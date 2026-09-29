@@ -1,5 +1,6 @@
 import type { ApprovalQueueItemRecord } from "@/lib/firestore/types";
 import { displayValue } from "./ApprovalQueueModel";
+import { formatCalendarDate } from "@/lib/date-display";
 
 interface QueueListPanelProps {
   items: ApprovalQueueItemRecord[];
@@ -51,7 +52,9 @@ export function QueueListPanel({
                 <QueuePill label={item.risk} tone="risk" />
                 <span>Assignee: {displayValue(item.assignee_uid)}</span>
                 <span>Approver: {displayValue(item.required_approver_uid)}</span>
-                <span>Due: {displayValue(item.due_date)}</span>
+                <span>
+                  Due: {formatCalendarDate(item.due_date, displayValue(undefined))}
+                </span>
               </span>
             </button>
           </div>

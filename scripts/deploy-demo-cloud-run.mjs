@@ -12,6 +12,8 @@ import {
 } from "./check-live-cost.mjs";
 import { validateProductionCutoverConfig } from "./preflight-production-cutover.mjs";
 import { resolveMaintenanceIntakeSecretBindings } from "./runtime-secret-bindings.mjs";
+import { assertReleaseAdmission, releaseHead } from "./release-control.mjs";
+import { assertReleaseProcessLock } from "./release-lock.mjs";
 
 // Live cheap-live target: the prod project `pmi-kc-kb-prod` running the Cloud Run service
 // historically named `pmi-kc-app` (https://pmi-kc-app-kq6wuvpiva-uc.a.run.app). The
@@ -271,6 +273,12 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     return;
   }
 
+  assertReleaseProcessLock();
+  assertReleaseAdmission({ sha: releaseHead() });
+  // This historical command immediately promotes. Production uses the receipt-bound batch runner.
+  if (command.args.some((arg) => arg === `--project=${DEFAULT_PROJECT_ID}`)) {
+    throw new Error("production_release_requires_receipt_bound_batch_runner");
+  }
   await executeDemoDeployPlan(command, revisionTrafficCommand);
 }
 

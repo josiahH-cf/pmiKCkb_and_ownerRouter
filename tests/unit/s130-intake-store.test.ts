@@ -1,3 +1,4 @@
+import { syntheticAcroform } from "@/tests/fixtures/synthetic-acroform";
 import { createHash } from "node:crypto";
 
 import type { Firestore } from "firebase-admin/firestore";
@@ -37,12 +38,12 @@ const approver = { ...admin, uid: "approver-1", role: "Approver" } as Authentica
 const editor = { ...admin, uid: "editor-1", role: "Editor" } as AuthenticatedUser;
 const OP = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
-const pdf = (body: string) => new Uint8Array(Buffer.from(`%PDF-1.4\n${body}\n%%EOF`));
 const sha = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
-const FILLABLE = pdf("<< /Type /Catalog /AcroForm << >> >> << /Type /Page >>");
-const STATIC = pdf("<< /Type /Catalog >> << /Type /Page >>");
-const OTHER = pdf(
-  "<< /Type /Catalog /AcroForm << >> >> << /Type /Page >> << /Type /Page >>",
+const FILLABLE = await syntheticAcroform();
+const STATIC = await syntheticAcroform([], "SYNTHETIC STATIC TEST");
+const OTHER = await syntheticAcroform(
+  ["Rent", "Tenant name"],
+  "SYNTHETIC REPLACEMENT TEST",
 );
 
 const FILES: Record<string, Uint8Array> = {
@@ -380,8 +381,15 @@ describe("S130 mapping and approval project the exact version into the catalog (
           admin,
           {
             kind: "renewal_extension",
-            fieldMap: map("renewal_extension", "synthetic-ext-0001"),
-            detectedFieldIds: ["Monthly Rent"],
+            fieldMap: map("renewal_extension", "synthetic-ext-0001", {
+              fields: [
+                {
+                  ...map("renewal_extension", "synthetic-ext-0001").fields[0],
+                  pdfFieldNames: ["Missing renamed field"],
+                },
+              ],
+            }),
+            detectedFieldIds: ["Missing renamed field"],
             expectedRevision: 1,
           },
           db,

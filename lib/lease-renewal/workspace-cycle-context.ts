@@ -1,4 +1,6 @@
 import { EditableLayerError } from "@/lib/firestore/errors";
+import type { AuthenticatedUser } from "@/lib/auth/session";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import { leaseEndDateIso, leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import { requireCurrentLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
@@ -8,6 +10,7 @@ import {
 } from "@/lib/lease-renewal/workspace-state";
 
 export async function resolveRenewalCycleBasis(
+  actor: AuthenticatedUser,
   id: string,
   reviewed?: RenewalCycleBasis,
 ): Promise<RenewalCycleBasis> {
@@ -17,7 +20,10 @@ export async function resolveRenewalCycleBasis(
       "The current lease source must be connected before a new cycle can be selected.",
       409,
     );
-  const views = await requireCurrentLeaseViews(config.rentvineClient, Date.now());
+  const views = await requireCurrentLeaseViews(
+    withRenewalNoticeAdmission(actor, config.rentvineClient),
+    Date.now(),
+  );
   const matches = views.filter((view) => leaseViewId(view) === id);
   if (matches.length !== 1)
     throw new EditableLayerError(

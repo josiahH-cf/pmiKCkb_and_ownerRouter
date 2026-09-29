@@ -1,4 +1,5 @@
 // Value-bearing client projection of one S98 proposal for the authorized workspace panel.
+import { sheetRuntimeBindingMatches } from "./runtime-binding";
 
 import type {
   SheetWritebackProposal,
@@ -15,6 +16,7 @@ export interface SheetWritebackClientEffect {
 }
 
 export interface SheetWritebackClientProposal {
+  requires_fresh_review?: boolean;
   spreadsheet_id: string;
   tab_title: string;
   actor_email: string;
@@ -43,6 +45,7 @@ export function clientSheetWritebackProposal(
   proposal: SheetWritebackProposal,
 ): SheetWritebackClientProposal {
   return {
+    requires_fresh_review: !sheetRuntimeBindingMatches(proposal.runtimeBinding),
     spreadsheet_id: proposal.spreadsheetId,
     tab_title: proposal.tabTitle,
     actor_email: proposal.actorEmail,

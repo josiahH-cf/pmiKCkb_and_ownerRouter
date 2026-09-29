@@ -6,6 +6,8 @@
 // real lease at a source state the server itself observed, never a client-asserted one.
 
 import { findLeaseViewById } from "@/lib/integrations/rentvine/lease-mapper";
+import type { AuthenticatedUser } from "@/lib/auth/session";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import { leaseTermSourceFingerprint } from "@/lib/lease-renewal/lease-term";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
 import { getLiveLeaseSnapshot } from "@/lib/lease-renewal/live-lease-cache";
@@ -17,13 +19,17 @@ export type LeaseTermSourceRead =
 
 /** Read the current live lease view for one lease id and fingerprint its term-bearing facts. */
 export async function readLeaseTermSource(
+  actor: AuthenticatedUser,
   leaseId: string,
   nowMs: number = Date.now(),
 ): Promise<LeaseTermSourceRead> {
   const config = buildLiveRenewalConfig();
   if (!config.ok) return { status: "unavailable" };
   try {
-    const { snapshot } = await getLiveLeaseSnapshot(config.rentvineClient, nowMs);
+    const { snapshot } = await getLiveLeaseSnapshot(
+      withRenewalNoticeAdmission(actor, config.rentvineClient),
+      nowMs,
+    );
     const view = findLeaseViewById(snapshot.views, leaseId);
     // An incomplete portfolio read cannot prove a lease is absent (the desk's own S57 rule).
     if (!view)

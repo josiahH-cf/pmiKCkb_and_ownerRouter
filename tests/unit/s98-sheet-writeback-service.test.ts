@@ -23,7 +23,68 @@ import {
 import { mintSheetReversalPreviewHash } from "@/lib/lease-renewal/sheet-writeback/workspace-context";
 
 const NOW = Date.parse("2026-09-02T12:00:00.000Z");
+const RUNTIME_BINDING = {
+  version: "operating-sheet-runtime/v1",
+  revision: "pmi-kc-app-test-enabled-a",
+  policy: "explicit-owner-enabled/v1",
+} as const;
 process.env.RENEWAL_DESK_PARTY_FILTER_KEY = Buffer.alloc(32, 19).toString("base64url");
+
+describe("S128 runtime-bound write confirmation", () => {
+  it("keeps legacy proposal identities readable but refuses their execution", async () => {
+    const h = harness();
+    const proposal = appendProposal(h, { runtimeBinding: undefined });
+    expect(proposal.version).toBe("operating-sheet-writeback/v2");
+    expect(sheetWritebackExecutionId(proposal, proposal.effects[0])).toBeTruthy();
+    await expect(h.service.executeEffect(confirmed(proposal))).rejects.toMatchObject({
+      code: "runtime_stale",
+    });
+    expect(h.createWriterSpy).not.toHaveBeenCalled();
+  });
+
+  it("a restarted resumed revision cannot consume an unexpired old confirmation", async () => {
+    const proposal = appendProposal(harness());
+    const restarted = harness();
+    restarted.flags.revision = "pmi-kc-app-test-resumed-c";
+    await expect(
+      restarted.service.executeEffect(confirmed(proposal)),
+    ).rejects.toMatchObject({ code: "runtime_stale" });
+    expect(restarted.createWriterSpy).not.toHaveBeenCalled();
+  });
+
+  it.each(["pause", "revision"])(
+    "refuses %s after claiming, before any provider mutation",
+    async (change) => {
+      const h = harness({
+        rows: [{ values: ["", "", "Existing Tenant", "", "1100"], note: "" }],
+      });
+      const proposal = updateProposal(h, { expectedValue: "1100" });
+      let probes = 0;
+      await expect(
+        h.service.executeEffect({
+          ...confirmed(proposal),
+          revalidateBeforeEffect: async () => {
+            if (++probes === 2) {
+              if (change === "pause") h.flags.writeFlag = false;
+              else h.flags.revision = "pmi-kc-app-test-resumed-c";
+            }
+          },
+          revalidateAfterEffect: async () => {},
+        }),
+      ).rejects.toMatchObject({
+        code: change === "pause" ? "flag_disabled" : "runtime_stale",
+      });
+      expect(
+        h.calls.filter((call) => call.method === "replaceCellIfExactMatch"),
+      ).toHaveLength(0);
+      const attempt = await h.store.get(
+        sheetWritebackExecutionId(proposal, proposal.effects[0]),
+      );
+      expect(attempt?.state).toBe("failed");
+      expect(attempt?.attemptCount).toBe(1);
+    },
+  );
+});
 
 // A compact live-shaped header: the real Renewals phrases for the columns the tests exercise.
 const HEADER = [
@@ -47,7 +108,7 @@ interface Harness {
   state: FakeSheetState;
   calls: { method: string; args: unknown[] }[];
   createWriterSpy: ReturnType<typeof vi.fn>;
-  flags: { gateOpen: boolean; writeFlag: boolean };
+  flags: { gateOpen: boolean; writeFlag: boolean; revision: string };
   headerHash: string;
   tenantColumnIndex: number;
   appendLifecycles: Map<string, string>;
@@ -89,7 +150,11 @@ function harness(overrides: Partial<FakeSheetState> = {}): Harness {
   const state: FakeSheetState = { header: [...HEADER], rows: [], ...overrides };
   const calls: Harness["calls"] = [];
   const record = (method: string, ...args: unknown[]) => calls.push({ method, args });
-  const flags = { gateOpen: true, writeFlag: true };
+  const flags = {
+    gateOpen: true,
+    writeFlag: true,
+    revision: RUNTIME_BINDING.revision as string,
+  };
   const appendLifecycles = new Map<string, string>();
 
   const writer: SheetWritebackWriter = {
@@ -180,6 +245,7 @@ function harness(overrides: Partial<FakeSheetState> = {}): Harness {
       },
     }),
     writeFlagEnabled: () => flags.writeFlag,
+    runtimeBinding: () => ({ ...RUNTIME_BINDING, revision: flags.revision }),
     claimLeaseScopedFieldUpdate: async (input) =>
       store.claim(input.executionId, input.previewHash),
     claimLeaseScopedAppend: async (input) => {
@@ -214,6 +280,7 @@ function appendProposal(
   overrides: Partial<SheetWritebackProposalInput> = {},
 ): SheetWritebackProposal {
   return buildSheetWritebackProposal({
+    runtimeBinding: RUNTIME_BINDING,
     generationId: "proposal-append-12345678",
     spreadsheetId: "sheet-1",
     tabTitle: "Lease Renewal",
@@ -254,6 +321,7 @@ function updateProposal(
   }> = {},
 ): SheetWritebackProposal {
   return buildSheetWritebackProposal({
+    runtimeBinding: RUNTIME_BINDING,
     generationId: overrides.generationId ?? "proposal-update-12345678",
     spreadsheetId: "sheet-1",
     tabTitle: "Lease Renewal",

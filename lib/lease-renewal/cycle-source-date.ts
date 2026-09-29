@@ -1,4 +1,4 @@
-import { formatCalendarDate } from "@/lib/date-display";
+import { formatCalendarDate, parseCalendarDate } from "@/lib/date-display";
 import type { RenewalCycleBasis } from "@/lib/lease-renewal/workspace-state";
 
 /**
@@ -35,7 +35,7 @@ export type CycleSourceDateChange =
 
 function cleanIso(value: string | null | undefined): string | null {
   const trimmed = typeof value === "string" ? value.trim() : "";
-  return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : null;
+  return parseCalendarDate(trimmed) ? trimmed : null;
 }
 
 export function projectCycleSourceDateChange(
@@ -49,8 +49,10 @@ export function projectCycleSourceDateChange(
       recordedIso: null,
       currentIso,
       label: currentIso
-        ? `Previous terms were not recorded for this lease. RentVine currently reports lease end ${currentIso}.`
-        : "Previous terms were not recorded for this lease. RentVine currently reports no lease end.",
+        ? `Previous terms were not recorded for this lease. RentVine currently reports lease end ${formatCalendarDate(currentIso)}.`
+        : currentEndDateIso?.trim()
+          ? "Previous terms were not recorded for this lease. Invalid date in the current RentVine lease end; check the source."
+          : "Previous terms were not recorded for this lease. RentVine currently reports no lease end.",
     };
   }
   const recordedIso = basis.dateIso;
@@ -59,7 +61,7 @@ export function projectCycleSourceDateChange(
       state: "review_basis",
       recordedIso,
       currentIso,
-      label: `This cycle is based on the reviewed periodic-review date ${recordedIso}. The provider lease end is shown separately.`,
+      label: `This cycle is based on the reviewed periodic-review date ${formatCalendarDate(recordedIso)}. The provider lease end is shown separately.`,
     };
   }
   if (!currentIso) {
@@ -67,7 +69,7 @@ export function projectCycleSourceDateChange(
       state: "current_unavailable",
       recordedIso,
       currentIso: null,
-      label: `This cycle recorded lease end ${formatCalendarDate(recordedIso)}. RentVine currently reports no lease end; the recorded date is kept.`,
+      label: `This cycle recorded lease end ${formatCalendarDate(recordedIso)}. ${currentEndDateIso?.trim() ? "Invalid date in the current RentVine lease end; check the source" : "RentVine currently reports no lease end"}; the recorded date is kept.`,
     };
   }
   if (currentIso === recordedIso) {
@@ -75,7 +77,7 @@ export function projectCycleSourceDateChange(
       state: "unchanged",
       recordedIso,
       currentIso,
-      label: `RentVine still reports the lease end this cycle recorded (${recordedIso}).`,
+      label: `RentVine still reports the lease end this cycle recorded (${formatCalendarDate(recordedIso)}).`,
     };
   }
   return {

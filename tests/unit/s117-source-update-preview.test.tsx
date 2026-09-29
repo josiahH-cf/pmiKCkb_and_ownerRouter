@@ -199,10 +199,10 @@ describe("S117 dense exact preview at the decision point (R117.3)", () => {
     });
     expect(current).toMatchObject({
       lease: "318 Cedar Ave, Unit 7, lease 4821",
-      source: "RentVine, account pmikcmetro, read 2026-09-16T18:00:00.000Z",
+      source: "RentVine, account pmikcmetro, read 09/16/2026, 1:00 PM CDT",
       target: "Rent account (recurring charge)",
-      current: "1250.00 every 1 month(s) on day 1, 2026-01-01 to no end date",
-      proposed: "1300.00 every 1 month(s) on day 1, 2026-01-01 to no end date",
+      current: "1250.00 every 1 month(s) on day 1, 01/01/2026 to no end date",
+      proposed: "1300.00 every 1 month(s) on day 1, 01/01/2026 to no end date",
     });
     expect(current.consequence).toMatch(/contractual base rent is read again separately/);
     const future = rentvinePreviewFacts(
@@ -255,10 +255,10 @@ describe("S117 dense exact preview at the decision point (R117.3)", () => {
     );
     expect(dates).toMatchObject({
       target: "Lease renewal dates",
-      current: "ends 2026-08-31",
-      proposed: "ends 2027-08-31",
+      current: "ends 08/31/2026",
+      proposed: "ends 08/31/2027",
       timing: "Lease end date",
-      consequence: "Lease start date stays 2025-09-01; no other lease field changes.",
+      consequence: "Lease start date stays 09/01/2025; no other lease field changes.",
     });
     const cell = sheetPreviewFacts(sheetEffect, { proposal: sheetProposal, identity });
     expect(cell).toMatchObject({
@@ -297,7 +297,7 @@ describe("S117 dense exact preview at the decision point (R117.3)", () => {
     ).toBeInTheDocument();
     expect(
       within(preview).getByText(
-        "1300.00 every 1 month(s) on day 1, 2026-01-01 to no end date",
+        "1300.00 every 1 month(s) on day 1, 01/01/2026 to no end date",
       ),
     ).toBeInTheDocument();
     for (const pattern of TECHNICAL)

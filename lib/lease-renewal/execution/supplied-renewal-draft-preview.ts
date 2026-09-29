@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { manualNonRenewalReason } from "@/lib/lease-renewal/notice-safety";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import type { currentRenewalMessage } from "@/lib/lease-renewal/current-renewal-message";
 import { buildRenewalNoticeDraftAction } from "@/lib/lease-renewal/execution/renewal-draft-request";
@@ -16,6 +17,10 @@ export function buildSuppliedRenewalDraftPreview(
   const { content, saved, workspace, publication } = current;
   const channel = content.channel;
   const reasons = content.missing.map((value) => value.message);
+  const noticeBlock = manualNonRenewalReason(workspace) ?? current.noticeBlock;
+  if (noticeBlock) reasons.push(noticeBlock);
+  if (!current.basis.noticeSafety)
+    reasons.push("Current notice approval safety must be verified before drafting.");
   if (!current.draftJournalAvailable)
     reasons.push("Reload the Gmail attempt history before preparing a new draft.");
   if (!workspace) reasons.push("Select and review the current renewal cycle.");

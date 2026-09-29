@@ -1,4 +1,6 @@
 "use client";
+import { useRenewalSaveFocus } from "./RenewalSaveFocus";
+import { formatBusinessTimestamp, formatSourceCalendarDate } from "@/lib/date-display";
 
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
@@ -56,6 +58,7 @@ export function RenewalCorrections({
 }) {
   const id = useId(),
     router = useRouter();
+  const focusAfterSave = useRenewalSaveFocus();
   // S117 (R117.1): a known RentVine value is prefilled with its source shown; the operator can
   // edit it, and the source/reason stays a manual, required input.
   function prefillFor(target: SheetEditableField) {
@@ -152,7 +155,7 @@ export function RenewalCorrections({
     setNotice(
       "Saved for an Admin to review on this lease. The proposed amount and source remain available after reload; no approval or provider write was made.",
     );
-    router.refresh();
+    if (!focusAfterSave?.()) router.refresh();
   }
   async function resolveRent() {
     if (
@@ -182,6 +185,7 @@ export function RenewalCorrections({
     setNotice(
       "Current-rent decision saved. An Admin must review its approval before the separately confirmed Sheet update.",
     );
+    focusAfterSave?.();
   }
   async function approveRent() {
     if (!approval || !observed?.sourceTriggerKey) return;
@@ -196,6 +200,7 @@ export function RenewalCorrections({
     setNotice(
       "This exact current-rent decision is approved. Prepare the destination preview; approval has not written to either source.",
     );
+    focusAfterSave?.();
   }
   async function prepare() {
     const intent = parseSheetFieldIntent({
@@ -390,8 +395,9 @@ export function RenewalCorrections({
                   .map((charge) => (
                     <option key={charge.id} value={charge.id}>
                       {charge.accountLabel ?? charge.projection.description} :{" "}
-                      {charge.projection.amount} · {charge.projection.startDate} to{" "}
-                      {charge.projection.endDate ?? "open-ended"}
+                      {charge.projection.amount} ·{" "}
+                      {formatSourceCalendarDate(charge.projection.startDate)} to{" "}
+                      {formatSourceCalendarDate(charge.projection.endDate, "open-ended")}
                     </option>
                   ))}
               </select>
@@ -418,7 +424,8 @@ export function RenewalCorrections({
               <div>
                 <p>
                   Staff-proposed current rent: {proposedReview.value.toFixed(2)} ·{" "}
-                  {proposedReview.source} · {proposedReview.recordedAt}.
+                  {proposedReview.source} ·{" "}
+                  {formatBusinessTimestamp(proposedReview.recordedAt)}.
                   {proposedReview.candidateFingerprint !== observed?.candidateFingerprint
                     ? " Source facts changed; review the current sources before a decision."
                     : " Awaiting current-source review and approval."}

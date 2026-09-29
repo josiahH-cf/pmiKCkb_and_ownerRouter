@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button, Field } from "@/components/ui";
 import type { ReindexCommandPlan } from "@/lib/admin/reindex-command";
 import type { ReindexRequest } from "@/lib/firestore/reindex-requests";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 
 // Admin "re-index sources" control (Slice 8, D14). Re-indexing runs cost-bearing Vertex ingestion, so
 // this NEVER ingests: it records an explicitly-confirmed request and prints the exact owner command.
@@ -108,7 +109,9 @@ export function ReindexPanel({
             {initialRequests.map((request) => (
               <li className="ui-spread" key={request.id}>
                 <strong>{request.spaceId}</strong>
-                <span className="muted">{request.createdAt ?? ""}</span>
+                <span className="muted">
+                  {formatBusinessTimestamp(request.createdAt)}
+                </span>
               </li>
             ))}
           </ul>

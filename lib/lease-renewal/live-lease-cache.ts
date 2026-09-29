@@ -16,8 +16,10 @@
 // one provider read per request. Refresh is demand-driven by design: no timer, cron, or scheduler —
 // production scales to zero and a background interval would hold an instance warm for nothing.
 //
-// This module has NO write capability of any kind: it imports no Firestore, Sheets, Drive, or Gmail
-// module and persists nothing. The S63 frozen test-set baseline is a different store with a different
+// The provider cache imports no Firestore, Sheets, Drive, or Gmail module and persists no provider
+// evidence. Authenticated callers inject the owner-approved hash/version/time admission callback
+// before a new provider generation; it cannot change workflow progress or provider records.
+// The S63 frozen test-set baseline is a different store with a different
 // lifetime; no refresh path here can touch it (guarded by
 // tests/unit/testset-baseline-immutability-boundary.test.ts).
 //
@@ -25,6 +27,10 @@
 // clearLiveLeaseCache() resets the module state between tests.
 
 import type { LeaseExportReadResult, RawLease } from "@/lib/integrations/rentvine/client";
+import {
+  noticeAdmissionContext,
+  type NoticeSourceAdmission,
+} from "./notice-source-admission";
 import {
   enrichLeaseViewsWithDetail,
   LEASE_DETAIL_READ_CONCURRENCY,
@@ -41,6 +47,8 @@ export { LEASE_DETAIL_READ_CONCURRENCY };
  */
 export interface LeaseExportReader extends Partial<LeaseDetailReader> {
   listAllLeasesExport(): Promise<LeaseExportReadResult>;
+  /** Authenticated orchestration admits new generations before any provider evidence is read. */
+  beforeLeaseSourceRead?: (readAtMs: number) => Promise<NoticeSourceAdmission | void>;
 }
 
 /** Soft TTL: inside it a read is served from cache with no provider call. Shipped value, kept. */
@@ -64,6 +72,8 @@ export interface LiveLeaseSnapshot {
   complete: boolean;
   /** When this snapshot was read (the caller-supplied nowMs of the successful read). */
   readAtMs: number;
+  noticeAdmitted?: boolean;
+  noticeAdmission?: NoticeSourceAdmission;
   /**
    * S102: true only when every lease received its documented detail (base rent and term evidence).
    * False leaves portfolio completeness untouched; only the affected leases read `unavailable`.
@@ -140,6 +150,11 @@ interface FailureState {
 let entry: CacheEntry | null = null;
 let inflight: Promise<LiveLeaseSnapshot> | null = null;
 let failure: FailureState | null = null;
+let admissionEpoch = 0;
+const admissionContexts = new WeakMap<
+  LiveLeaseSnapshot,
+  { context?: object; epoch: number }
+>();
 
 function recordFailure(nowMs: number): void {
   const count = (failure?.count ?? 0) + 1;
@@ -153,8 +168,10 @@ function recordFailure(nowMs: number): void {
 /** One coalesced provider read. Success replaces the entry and clears the failure state. */
 function readOnce(reader: LeaseExportReader, nowMs: number): Promise<LiveLeaseSnapshot> {
   if (inflight) return inflight;
+  const epoch = admissionEpoch;
   inflight = (async () => {
     try {
+      const admittedAt = await reader.beforeLeaseSourceRead?.(nowMs);
       const exportRead = await reader.listAllLeasesExport();
       const views = leaseViewsFromExport(exportRead.rows);
       // S102: the same generation carries each lease's documented detail so every consumer of the
@@ -168,10 +185,15 @@ function readOnce(reader: LeaseExportReader, nowMs: number): Promise<LiveLeaseSn
       const snapshot: LiveLeaseSnapshot = {
         views,
         complete: exportRead.complete,
-        readAtMs: nowMs,
+        readAtMs: admittedAt?.readAtMs ?? nowMs,
+        ...(admittedAt ? { noticeAdmitted: true, noticeAdmission: admittedAt } : {}),
         detailComplete: detail.detailComplete,
         detailUnavailableCount: detail.detailUnavailableCount,
       };
+      admissionContexts.set(snapshot, {
+        context: admittedAt ? noticeAdmissionContext(admittedAt) : undefined,
+        epoch,
+      });
       entry = { snapshot, invalidated: false };
       failure = null;
       return snapshot;
@@ -300,12 +322,81 @@ export async function requireCurrentLeaseViews(
 }
 
 /**
+ * Repair missing lease admission without applying the stronger post-write barrier. An existing
+ * generation may satisfy this read only when its own proof covers the requested context and key.
+ * After waiting for an older generation, perform at most one coalesced new read, then fail closed.
+ */
+export async function readLiveLeaseSnapshotForAdmission(
+  reader: LeaseExportReader,
+  nowMs: number,
+  context: object,
+  leaseKey: string | readonly string[],
+  minimumReadAtMs = 0,
+): Promise<LiveLeaseSnapshotResult> {
+  if (!Number.isFinite(nowMs) || !Number.isFinite(minimumReadAtMs) || minimumReadAtMs < 0)
+    throw new Error("A finite admission timestamp is required.");
+  const accepted = (snapshot: LiveLeaseSnapshot) =>
+    liveLeaseSnapshotHasAdmission(snapshot, nowMs, context, leaseKey) &&
+    snapshot.readAtMs >= minimumReadAtMs;
+  const current = () =>
+    entry && !entry.invalidated && accepted(entry.snapshot) ? entry.snapshot : null;
+  let snapshot = current();
+  if (snapshot) {
+    // Preserve soft-TTL revalidation for a valid ordinary generation. A missing admission does
+    // not need a normal failed-refresh fallback followed by another redundant forced attempt.
+    await getLiveLeaseSnapshot(reader, nowMs);
+    snapshot = current();
+  }
+  if (!snapshot) {
+    const pending = inflight;
+    if (pending) await pending.catch(() => undefined);
+    snapshot = current();
+  }
+  if (!snapshot) snapshot = await readOnce(reader, nowMs);
+  if (!accepted(snapshot)) {
+    throw new Error("The lease source did not admit the requested notice context.");
+  }
+  return {
+    snapshot,
+    currency: currencyFor(
+      snapshot,
+      nowMs,
+      classifyLeaseDataAge(snapshot.readAtMs, nowMs),
+    ),
+  };
+}
+
+/** Validate a held result using private cache metadata; no context identifier leaves this module. */
+export function liveLeaseSnapshotHasAdmission(
+  snapshot: LiveLeaseSnapshot,
+  nowMs: number,
+  context: object,
+  leaseKey: string | readonly string[],
+): boolean {
+  const admission = admissionContexts.get(snapshot);
+  return (
+    entry?.snapshot === snapshot &&
+    !entry.invalidated &&
+    admission?.epoch === admissionEpoch &&
+    admission.context === context &&
+    snapshot.noticeAdmitted === true &&
+    (typeof leaseKey === "string" ? [leaseKey] : leaseKey).every(
+      (key) => snapshot.noticeAdmission?.leaseKeys.includes(key) === true,
+    ) &&
+    Number.isFinite(nowMs) &&
+    Number.isFinite(snapshot.readAtMs) &&
+    classifyLeaseDataAge(snapshot.readAtMs, nowMs) !== "expired"
+  );
+}
+
+/**
  * Invalidate after OUR OWN successful write to a system the export reflects: the next read goes to
  * the provider instead of waiting out the TTL, while the last good rows remain the failure
  * fallback. Sheet reconciliation invalidation and the protected RentVine write paths share this
  * boundary; a RentVine write also performs the stronger explicit post-write refresh below.
  */
 export function invalidateLiveLeaseCache(): void {
+  admissionEpoch++;
   if (entry) entry.invalidated = true;
   // A deliberate write wants its refresh now; a prior provider failure must not defer it.
   failure = null;
@@ -366,6 +457,7 @@ export async function getLiveLeaseSnapshotAtOrAfter(
 
 /** Reset the module cache. Test-only; production relies on the age contract. */
 export function clearLiveLeaseCache(): void {
+  admissionEpoch++;
   entry = null;
   inflight = null;
   failure = null;

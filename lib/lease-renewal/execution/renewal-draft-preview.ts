@@ -20,7 +20,10 @@ import {
   renewalDraftAttachmentLabel,
   type RenewalDraftAttachmentIdentity,
 } from "@/lib/lease-renewal/execution/renewal-draft-attachment";
-import type { OwnerDraftInput } from "@/lib/lease-renewal/owner-draft";
+import type {
+  OwnerDraftInput,
+  OwnerDraftDateFormat,
+} from "@/lib/lease-renewal/owner-draft";
 import {
   resolveRenewalRecipient,
   type RenewalRecipientChannel,
@@ -191,6 +194,7 @@ export function resolveSeparatedRenewalDraftRecipient(input: {
 
 export function buildRenewalNoticeDraftPreview(
   input: RenewalDraftPreviewInput,
+  ownerDateFormat: OwnerDraftDateFormat = "display",
 ): RenewalDraftPreview {
   const recipientResult = resolveSeparatedRenewalDraftRecipient(input);
   if (recipientResult.status === "blocked") return recipientResult;
@@ -209,20 +213,26 @@ export function buildRenewalNoticeDraftPreview(
 
   const instance =
     input.channel === "owner"
-      ? renderGovernedArtifactInstance({
-          artifactRef: "owner-renewal:v1.0",
-          values: input.decision,
-          recipient,
-          mailbox,
-          sourceRefs: input.sourceRefs,
-        })
-      : renderGovernedArtifactInstance({
-          artifactRef: "tenant-renewal:v1.0",
-          values: input.decision,
-          recipient,
-          mailbox,
-          sourceRefs: input.sourceRefs,
-        });
+      ? renderGovernedArtifactInstance(
+          {
+            artifactRef: "owner-renewal:v1.0",
+            values: input.decision,
+            recipient,
+            mailbox,
+            sourceRefs: input.sourceRefs,
+          },
+          ownerDateFormat,
+        )
+      : renderGovernedArtifactInstance(
+          {
+            artifactRef: "tenant-renewal:v1.0",
+            values: input.decision,
+            recipient,
+            mailbox,
+            sourceRefs: input.sourceRefs,
+          },
+          ownerDateFormat,
+        );
 
   if (instance.status === "blocked") {
     return { status: "blocked", channel: input.channel, reasons: instance.reasons };

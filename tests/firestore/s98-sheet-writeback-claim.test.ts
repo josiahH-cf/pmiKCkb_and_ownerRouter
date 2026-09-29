@@ -4,7 +4,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
 import { EXTERNAL_EXECUTION_COLLECTIONS } from "@/lib/firestore/external-action-executions";
@@ -54,6 +54,8 @@ let db: Firestore;
 let testEnv: RulesTestEnvironment;
 
 beforeAll(async () => {
+  vi.stubEnv("LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED", "true");
+  vi.stubEnv("K_REVISION", "pmi-kc-app-test-enabled-a");
   testEnv = await initializeTestEnvironment({
     firestore: FIRESTORE_EMULATOR_TARGET,
     projectId,
@@ -62,9 +64,14 @@ beforeAll(async () => {
   db = getFirestore(app);
 });
 
-beforeEach(async () => testEnv.clearFirestore());
+beforeEach(async () => {
+  vi.stubEnv("LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED", "true");
+  vi.stubEnv("K_REVISION", "pmi-kc-app-test-enabled-a");
+  await testEnv.clearFirestore();
+});
 
 afterAll(async () => {
+  vi.unstubAllEnvs();
   await deleteApp(app);
   await testEnv.cleanup();
 });
@@ -285,6 +292,11 @@ const editor: AuthenticatedUser = {
 
 function appendProposal(generationId: string, leaseId = "115", propertyId = "84") {
   return buildSheetWritebackProposal({
+    runtimeBinding: {
+      version: "operating-sheet-runtime/v1",
+      revision: "pmi-kc-app-test-enabled-a",
+      policy: "explicit-owner-enabled/v1",
+    },
     generationId,
     spreadsheetId: "sheet-live-1",
     tabTitle: "Lease Renewal",
@@ -353,6 +365,44 @@ async function seedAppend(current: ReturnType<typeof appendProposal>) {
 }
 
 describe("S98 lease-scoped append claim", () => {
+  it.each(["paused", "resumed"])(
+    "refuses a durable old append proposal while %s without consuming an attempt",
+    async (state) => {
+      const current = appendProposal("generation-pre-pause");
+      const input = await seedAppend(current);
+      vi.stubEnv(
+        "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED",
+        state === "paused" ? "false" : "true",
+      );
+      vi.stubEnv(
+        "K_REVISION",
+        state === "paused" ? "pmi-kc-app-paused" : "pmi-kc-app-resumed",
+      );
+      expect(await claimLeaseScopedS98Append(db, input)).toBe("blocked");
+      expect(
+        (
+          await db
+            .collection(EXTERNAL_EXECUTION_COLLECTIONS.records)
+            .doc(input.executionId)
+            .get()
+        ).data(),
+      ).toMatchObject({ state: "ready", attemptCount: 0 });
+      expect(
+        (
+          await getSheetWritebackProposal(
+            editor,
+            current.spreadsheetId,
+            current.tabTitle,
+            { kind: "lease_workspace", leaseId: "115" },
+            db,
+          )
+        )?.previewHash,
+      ).toBe(current.previewHash);
+      expect((await db.collection(SHEET_APPEND_LIFECYCLES_COLLECTION).get()).empty).toBe(
+        true,
+      );
+    },
+  );
   it("atomically consumes one active generation and blocks replay or cross-workspace claims", async () => {
     const current = appendProposal("generation-append-115");
     const input = await seedAppend(current);
@@ -449,6 +499,11 @@ describe("S98 lease-scoped append claim", () => {
 function fieldProposal(generationId: string) {
   const base = appendProposal(generationId);
   return buildSheetWritebackProposal({
+    runtimeBinding: {
+      version: "operating-sheet-runtime/v1",
+      revision: "pmi-kc-app-test-enabled-a",
+      policy: "explicit-owner-enabled/v1",
+    },
     generationId,
     spreadsheetId: base.spreadsheetId,
     tabTitle: base.tabTitle,
@@ -484,6 +539,31 @@ function fieldProposal(generationId: string) {
 
 describe("S113 field generation and persisted correction history", () => {
   const scope = { kind: "lease_workspace" as const, leaseId: "115" };
+  it("refuses an old field proposal after resume while preserving its unused durable record", async () => {
+    const current = fieldProposal("field-pre-pause");
+    const input = await seedAppend(current);
+    vi.stubEnv("K_REVISION", "pmi-kc-app-resumed");
+    expect(await claimLeaseScopedS113FieldUpdate(db, input)).toBe("blocked");
+    expect(
+      (
+        await db
+          .collection(EXTERNAL_EXECUTION_COLLECTIONS.records)
+          .doc(input.executionId)
+          .get()
+      ).data(),
+    ).toMatchObject({ state: "ready", attemptCount: 0 });
+    expect(
+      (
+        await getSheetWritebackProposal(
+          editor,
+          current.spreadsheetId,
+          current.tabTitle,
+          scope,
+          db,
+        )
+      )?.previewHash,
+    ).toBe(current.previewHash);
+  });
   it("serializes active field replacement against the first provider attempt", async () => {
     const current = fieldProposal("field-race-current");
     const replacement = fieldProposal("field-race-next");

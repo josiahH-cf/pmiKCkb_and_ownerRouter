@@ -150,15 +150,18 @@ export async function prepareRenewalNoticeDraft(
     if (!decision.ok) {
       return { status: "blocked", channel: "tenant", reasons: decision.reasons };
     }
-    const preview = buildRenewalNoticeDraftPreview({
-      ...common,
-      channel: "tenant",
-      lease,
-      decision: decision.decision,
-      copyTemplate:
-        deps.resolveCopyTemplate?.("tenant") ?? currentRenewalCopyTemplate("tenant"),
-      ...(browserRequest.copy ? { copySelection: browserRequest.copy } : {}),
-    });
+    const preview = buildRenewalNoticeDraftPreview(
+      {
+        ...common,
+        channel: "tenant",
+        lease,
+        decision: decision.decision,
+        copyTemplate:
+          deps.resolveCopyTemplate?.("tenant") ?? currentRenewalCopyTemplate("tenant"),
+        ...(browserRequest.copy ? { copySelection: browserRequest.copy } : {}),
+      },
+      browserRequest.reconcile ? "legacy_receipt" : "display",
+    );
     return finalizeRenewalNoticeDraft(preview, browserRequest, input.mailbox, deps);
   }
 
@@ -192,20 +195,23 @@ export async function prepareRenewalNoticeDraft(
   if (!decision.ok) {
     return { status: "blocked", channel: "owner", reasons: decision.reasons };
   }
-  const preview = buildRenewalNoticeDraftPreview({
-    ...common,
-    channel: "owner",
-    lease,
-    decision: decision.decision,
-    copyTemplate:
-      deps.resolveCopyTemplate?.("owner") ?? currentRenewalCopyTemplate("owner"),
-    ...(browserRequest.copy ? { copySelection: browserRequest.copy } : {}),
-    ...(attachment ? { attachment } : {}),
-    sourceRefs: [
-      ...common.sourceRefs,
-      ...(attachment ? [`comp-screenshot-receipt:${attachment.receiptId}`] : []),
-    ],
-  });
+  const preview = buildRenewalNoticeDraftPreview(
+    {
+      ...common,
+      channel: "owner",
+      lease,
+      decision: decision.decision,
+      copyTemplate:
+        deps.resolveCopyTemplate?.("owner") ?? currentRenewalCopyTemplate("owner"),
+      ...(browserRequest.copy ? { copySelection: browserRequest.copy } : {}),
+      ...(attachment ? { attachment } : {}),
+      sourceRefs: [
+        ...common.sourceRefs,
+        ...(attachment ? [`comp-screenshot-receipt:${attachment.receiptId}`] : []),
+      ],
+    },
+    browserRequest.reconcile ? "legacy_receipt" : "display",
+  );
   return finalizeRenewalNoticeDraft(preview, browserRequest, input.mailbox, deps);
 }
 

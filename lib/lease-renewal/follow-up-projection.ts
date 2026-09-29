@@ -1,3 +1,4 @@
+import { formatCalendarDateOrTimestamp } from "@/lib/date-display";
 // One provider-free renewal follow-up projection. Exact bodyless communication evidence and one
 // immutable policy snapshot enter as data; desk, workspace, and internal attention consume the same
 // result. No clock or I/O is hidden here: the caller supplies the observation time and every source.
@@ -422,7 +423,7 @@ function nextAction(
     return "Review the linked thread and record the next human follow-up action.";
   }
   if (due.state === "not_due" && due.atIso) {
-    return `Review follow-up state on ${due.atIso}; no communication is automatic.`;
+    return `Review follow-up state on ${formatCalendarDateOrTimestamp(due.atIso)}; no communication is automatic.`;
   }
   if (contact.waiting.party === "document_coordinator") {
     return "Continue the current document-coordinator substep.";

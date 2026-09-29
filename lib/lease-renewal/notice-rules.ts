@@ -355,7 +355,7 @@ const MONTHS = [
 
 /** S126: format an ISO date as "06/15/2026" for read-only display and message text. Returns the input if unparseable. */
 export function formatNoticeDate(iso: string): string {
-  return parseIso(iso) ? formatCalendarDate(iso) : iso;
+  return formatCalendarDate(iso);
 }
 
 /** Human label for where a value came from: "default" for an unconfirmed global, else "<scope> rule". */

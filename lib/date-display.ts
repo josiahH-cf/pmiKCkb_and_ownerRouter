@@ -20,6 +20,8 @@ export const TIMESTAMP_INVALID_LABEL = "Invalid timestamp";
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const ISO_MONTH = /^(\d{4})-(\d{2})$/;
+const ISO_INSTANT =
+  /^(\d{4}-\d{2}-\d{2})T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/;
 
 const MONTH_NAMES = [
   "January",
@@ -96,6 +98,20 @@ export function formatCalendarDate(
   return describeCalendarDate(value, unavailableLabel).label;
 }
 
+/** Provider calendar fields may use MM/DD/YYYY or an ISO date/time. Keep the source's
+ * calendar day, validate it, and change presentation only; never normalize a wire value. */
+export function formatSourceCalendarDate(
+  value: string | null | undefined,
+  unavailableLabel: string = DATE_UNAVAILABLE_LABEL,
+): string {
+  if (value === null || value === undefined || !value.trim()) return unavailableLabel;
+  const us = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value);
+  const timestamp = ISO_INSTANT.exec(value);
+  const calendar = us ? `${us[3]}-${us[1]}-${us[2]}` : timestamp ? timestamp[1] : value;
+  if (timestamp && !Number.isFinite(Date.parse(value))) return DATE_INVALID_LABEL;
+  return formatCalendarDate(calendar, unavailableLabel);
+}
+
 /** "September 2026" for a canonical YYYY-MM month; explicit labels for missing or invalid input. */
 export function formatCalendarMonth(
   value: string | null | undefined,
@@ -126,7 +142,7 @@ export function formatCalendarDateOrTimestamp(
 ): string {
   if (value === null || value === undefined || value.trim() === "")
     return unavailableLabel;
-  return parseCalendarDate(value)
+  return ISO_DATE.test(value)
     ? formatCalendarDate(value, unavailableLabel)
     : formatBusinessTimestamp(value, unavailableLabel);
 }
@@ -150,6 +166,14 @@ export function formatBusinessTimestamp(
   unavailableLabel: string = DATE_UNAVAILABLE_LABEL,
 ): string {
   if (value === null || value === undefined || value === "") return unavailableLabel;
+  if (typeof value === "string") {
+    if (!value.trim()) return unavailableLabel;
+    // Date-only values are calendar days, never UTC-midnight instants. Reject impossible
+    // date components before JavaScript can normalize them into a different month.
+    if (ISO_DATE.test(value)) return formatCalendarDate(value, unavailableLabel);
+    const datePrefix = ISO_INSTANT.exec(value);
+    if (!datePrefix || !parseCalendarDate(datePrefix[1])) return TIMESTAMP_INVALID_LABEL;
+  }
   const instant = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(instant.getTime())) return TIMESTAMP_INVALID_LABEL;
   return BUSINESS_TIMESTAMP_FORMAT.format(instant);

@@ -1,31 +1,34 @@
 # Loop state
 
-Last updated: 2026-09-28 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-09-29 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-Terminal state: BLOCKED — the one thirteen-feature batch has confirmed release-safety and litmus
-gaps. Billing and approved CLI/ADC authentication now work. Do not start the watcher until the
-findings in docs/evidence/batch-litmus-audit-2026-09-28.md are resolved and the release gates pass.
-The batch remains undeployed; candidate assurance, promotion and observation for it are NOT RUN.
-Owner direction on repair or stopping is pending. S121 remains separate unscheduled scope.
-
-Native checkout, Windows checkout and remote main were read back at
-`f85abacc771dc0f85c2f7bf69af3d05d8402e88e`; exact-SHA push CI 35549486717 passed.
-Before these documentation edits, repeated native batch preflight read GO, thirteen features and
-watcher_target on that head. GO does not override the independently identified safety defects.
-Focused verification passed 194 tests in 37 files. Full verify.sh passed: 6,953 unit tests,
-216 backend tests, policy checks and build. Core E2E passed 31 tests with 18 intentional skips.
+Terminal state: BLOCKED — fresh attended Google enrollment and release admission.
+Run K passed 7,174 unit tests, 230 backend tests, all gates and build hkH9ZkYerS_oUJOH5zk1z.
+K cold notice passed in 16.563 seconds; a clean desk-warmed read passed in 16.778 seconds.
+Save/readback focus, 71 guide steps, actual-source and six-category synthetic presentation passed.
+A separate instrumented check matched all 311 source/cache/projected/rendered records and categories
+before/after a newer API read, with zero missing records or duplicates. All previous failures remain.
+Final K core E2E passed 31 tests with 18 intentional skips. Its isolated next-dev run preserved all 258 changed source hashes and build K; it is separate from compiled production acceptance.
+All thirteen queue entries remain. S121 stays separate. No batch candidate/promotion/observation ran.
+CLI/ADC refresh works and Google sign-in is enabled; Admin requires attended Google sign-in.
+The 20:56:36.677Z September 28 enrollment exceeds the seven-hour release-start budget; fresh attended
+WSL enrollment is also required. Successful token refresh does not waive that gate.
+The owner-approved read exception permits lease-bound version/hash/time invalidation metadata only.
+The pre-repair head remains 952c5cd843d14a9f7e2be2bcfa227598f235d059 (CI 36485825488).
+Its historical GO does not admit this tree; exact current push CI and fresh GO are mandatory.
 
 ## Verified host and cloud readbacks
 
-- Approved `josiah@pmikcmetro.com` WSL CLI and ADC authentication passed on 2026-09-28.
+- Approved `josiah@pmikcmetro.com` WSL CLI and ADC refresh passed on 2026-09-29.
+- Google sign-in provider independently read enabled=true at 03:03:37.930Z, with no setting change.
 - Billing enabled on the expected account. Unchanged controls: alert 25 USD, project hard stop
   100 USD, account backstop 100 USD, ACTIVE Node.js 22 guardrail with cap 100, hard-stop Pub/Sub
   present and two channels on each alert. No billing, budget or security setting was changed.
 - Both ignored env files in both checkouts now carry Sheet write-back false.
 - Canonical/tagged versions and sign-in returned HTTP 200; both versions name the exact serving SHA/revision. Admin browser authentication is UNVERIFIED
-  after two 60-second sign-in navigation timeouts with no observed challenge; a page response is not authenticated assurance.
+  after a genuine Google challenge; attended enrollment closed before verification. A page response is not authenticated assurance.
 - Serving revision remains Production + Live, Demo false, managed identity and eleven Space maps.
   Its operating-Sheet flag is still true: the queued S128 pause has NOT reached production.
 
@@ -40,26 +43,31 @@ Cancellation is not a successful build, candidate, assurance or release.
 The exact stale checkpoint is archived outside Git at
 `~/.local/state/pmi-kc-release/checkpoint-0bbd95c3dbd8f4a93b4b185b8ba09770170d1ca4-cancelled-stale-batch-20260928T2107Z.json`,
 with a reason file. The active checkpoint truthfully names the last completed S120 release below.
-Watcher readback: zero processes and free lock. The existing scheduled task remains Ready and
-unchanged; this is a stopped-process observation, not a disabled-task claim. Recheck before resuming.
+The fail-closed interlock is installed in both checkouts. At 2026-09-29T02:31:17Z eleven release files
+matched, no permit existed, zero watchers were found and the S120 checkpoint had no in-flight work.
+The temporary installation hold was released; the kernel lock read free and direct admission refused.
+The scheduled task remains Ready and unchanged. Recheck all state before preparing any permit.
 
-## Release blockers
+## Current repair verification
 
-- Promotion compensation can restore the original Sheet-enabled predecessor without a pause check.
-- Observer rollback can redeploy a paused predecessor image, but recovery still demands the original
-  receipt-bound revision/fingerprint; the new rollback target is not durably recorded.
-- Move-out withdrawal has no prior-evidence integration; manual non-renewal is not enforced by every
-  supplied-draft path, and the review fingerprint omits provider notice history.
-- Move-out labels still render raw ISO dates and accept date-shaped impossible calendar dates.
-- Staff saves can automatically persist Sheet proposals during the pause; unexpired confirmations
-  are not bound to a pause generation.
-- The template filling helpers have no production caller; actual independently verified filled output
-  is not demonstrated. PDF manual handoff remains permitted; no replacement provider is authorized.
+G1/G2 retain reviewed notice history and owner-approved source invalidation; real Firestore tests
+reject an old unused approval after a notice clears across instances. G3 covers 69 date consumers.
+G4 creates no paused Sheet proposal and binds confirmation to the current server revision/policy.
+G5 saves/downloads actual approved AcroForm bytes, preserves originals and atomically binds S20;
+independent parsing checked 14 fields. Concurrent staging cleanup was reproduced and repaired;
+all six real PDF race/persistence cases passed. G6/G7 recovery/admission passed 135 focused tests,
+including five real kernel-lock/process tests and four observer-entry guards plus independent review.
+Run K verify.sh passed: 7,174 unit tests in 795 files, 230 backend tests in 41 files, all gates/build.
+Both repaired S113 mounted journeys passed in the complete backend run. Failed earlier logs remain
+outside Git unchanged. Eight compiled smokes and G1/G2 controls passed; final rebuilt G4/G5 passed
+on prior build pAKd_VsJI8vmZvjAv6Lgu with zero forwarded business writes. Final core E2E passed 31/18 skipped. Objective compiled scopes passed as recorded above; the older
+long-run warm miss and helper failures retain their original verdicts. The final manifest is outside
+Git at ~/pmi-kc-work/logs/final-k-browser-receipt-manifest-20260929.json. Human verdicts remain NOT RUN.
 
-## Awaiting release (built, CI-green, undeployed; one cumulative candidate)
+## Awaiting release (thirteen cumulative features; repaired head requires exact CI)
 
 1. S128 (F08) pause operating-Sheet writes: code `31bc9072`, docs `0bbd95c3`, CI 35342904192.
-   Flag-false deployment and safe rollback remain required; current rollback gaps block release.
+   Flag-false deployment and prepared paused recovery readbacks remain required.
 2. S123 (F02) retain unfinished renewals across date changes: `aa062d8e`, CI 35505452408.
 3. S124 (F03) move-out detection and non-renewal outreach filtering: `fc03ec55` plus test fix `3d4a9e23`, CI 35508231675.
 4. S134 (F14) color-coded lease status with matching sorting and filters: `136826cc`, CI 35508545796.
@@ -87,12 +95,12 @@ Git unchanged. No current batch receipt, promotion time or observation pass exis
 
 ## Resume and remaining limits
 
-After authorized repairs: focused adversarial checks, full verify.sh and core E2E, exact-main CI,
+Local repair verification is complete. Next: exact-main CI,
 fresh preflight GO with thirteen entries/current watcher target, single native watcher on the free
 lock, candidate/assurance/promotion/observation and independent readbacks. Follow the batch runbook.
 Never substitute per-feature releases. Authentication expiry requires attended owner enrollment.
 
-Compiled feature browser smokes and human verdicts remain NOT RUN for the batch. B-DL1, B-DL2,
+Local compiled checks are recorded above; remote batch browser assurance and human verdicts remain NOT RUN. B-DL1, B-DL2,
 B-DL3, B-S100, B-MNT1 and B-MNT2 remain open. Staff records are not provider receipts or signatures.
 S36 stays behind complete S100; completed provider proofs are not rerun. Live providers remain
 read-only for this release task. No customer draft/send, source write or paid comparison ran.

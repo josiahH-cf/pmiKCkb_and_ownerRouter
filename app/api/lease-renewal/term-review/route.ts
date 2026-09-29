@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     // The review binds to the lease view the SERVER observes now, not to the fingerprint the
     // browser asserts: an unknown lease is refused, and a view whose term-bearing facts changed
     // since the page loaded is refused so the person re-reads before recording.
-    const source = await readLeaseTermSource(input.lease_id);
+    const source = await readLeaseTermSource(user, input.lease_id);
     if (source.status === "unavailable") {
       throw new EditableLayerError(
         "The live lease source could not be read, so the term review cannot be bound to the lease view. Try again shortly.",

@@ -1923,6 +1923,16 @@ textarea:disabled {
 .renewal-workspace-shell {
   display: grid;
   gap: var(--space-4);
+  overflow-wrap: anywhere;
+}
+
+/* Long source labels and action text must not widen the workspace's intrinsic grid tracks
+   on small screens. Keep the full text and controls available instead of clipping the page. */
+.renewal-workspace-shell button,
+.renewal-workspace-shell .ui-tag {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .renewal-guided-content {

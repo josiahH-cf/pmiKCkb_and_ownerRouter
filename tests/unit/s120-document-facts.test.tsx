@@ -69,10 +69,10 @@ describe("S120 document facts propagation", () => {
     expect(region).toHaveTextContent("318 Cedar Street, Unit 7");
     expect(region).toHaveTextContent("Fixture Owner");
     expect(region).toHaveTextContent("Fixture Tenant, Second Tenant");
-    expect(region).toHaveTextContent("2026-12-31");
+    expect(region).toHaveTextContent("12/31/2026");
     expect(region).toHaveTextContent("$1,250.00");
-    expect(region).toHaveTextContent("2027-01-01");
-    expect(region).toHaveTextContent("2027-12-31");
+    expect(region).toHaveTextContent("01/01/2027");
+    expect(region).toHaveTextContent("12/31/2027");
     expect(region).toHaveTextContent(/recorded owner response/i);
     expect(within(region).getByRole("link", { name: /owner response/i })).toHaveAttribute(
       "href",
@@ -86,7 +86,12 @@ describe("S120 document facts propagation", () => {
     expect(region.textContent).not.toMatch(
       /signed|signature complete|filled in Dotloop/i,
     );
-    expect(region).toHaveTextContent(/does not fill a PDF or a Dotloop field/i);
+    expect(region).toHaveTextContent(/list summarizes recorded source facts/i);
+    expect(region).toHaveTextContent(
+      /packet controls to prepare, download, inspect and approve a filled PDF/i,
+    );
+    expect(region).toHaveTextContent(/Other forms keep their manual Dotloop handoff/i);
+    expect(region).toHaveTextContent(/populated fact is not a provider receipt/i);
     // The existing gates and manual handoffs are intact.
     expect(
       screen.getByRole("button", { name: "Preview exact Dotloop packet creation" }),

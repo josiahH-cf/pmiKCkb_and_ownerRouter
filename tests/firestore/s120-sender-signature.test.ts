@@ -8,43 +8,88 @@ import {
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
+import { clearLiveLeaseCache } from "@/lib/lease-renewal/live-lease-cache";
+import { clearLeaseStatusTableCache } from "@/lib/lease-renewal/lease-status-table";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 
 // S120 (R120.2): a managed sender's saved signature is retained for that same sender across leases
 // and cycles, fills the next preparation with a visible origin, never leaks to another actor, and
 // binds only when that actor saves. Live lease views are deterministic fixtures.
 
-vi.mock("@/lib/lease-renewal/live-config", async (original) => ({
-  ...(await original<typeof import("@/lib/lease-renewal/live-config")>()),
-  buildLiveRentVineConfig: () => ({ ok: true, rentvineClient: {} }),
-  buildLiveRenewalConfig: () => ({ ok: false, reason: "test_source_not_configured" }),
-}));
-vi.mock("@/lib/lease-renewal/live-lease-cache", async (original) => ({
-  ...(await original<typeof import("@/lib/lease-renewal/live-lease-cache")>()),
-  requireCurrentLeaseViews: async () => [
-    {
-      leaseID: 701,
-      endDate: "2026-12-31",
-      currentRent: 1000,
-      tenants: [{ name: "Emulator Tenant", email: "tenant@fixture-rental.net" }],
-      property: { streetName: "701 Emulator Avenue" },
-      portfolio: {
-        owners: [{ name: "Emulator Owner", email: "owner@fixture-rental.net" }],
+vi.mock("@/lib/lease-renewal/live-config", async (original) => {
+  const actual = await original<typeof import("@/lib/lease-renewal/live-config")>();
+  const { withFakeLeaseDetail } = await import("@/tests/helpers/rentvine-detail-fake");
+  const reader = withFakeLeaseDetail({
+    listAllLeasesExport: async () => ({
+      rows: [
+        {
+          lease: {
+            leaseID: 701,
+            leaseStatusID: "2",
+            endDate: "2026-12-31",
+            baseRentAmount: 1000,
+            noticeDate: null,
+            expectedMoveOutDate: null,
+            moveOutDate: null,
+            tenants: [
+              {
+                contactID: "1701",
+                name: "Emulator Tenant",
+                email: "tenant@fixture-rental.net",
+              },
+            ],
+          },
+          unit: { unitID: "2701" },
+          property: { streetName: "701 Emulator Avenue" },
+          portfolio: {
+            owners: [{ name: "Emulator Owner", email: "owner@fixture-rental.net" }],
+          },
+        },
+        {
+          lease: {
+            leaseID: 702,
+            leaseStatusID: "2",
+            endDate: "2027-03-31",
+            baseRentAmount: 1200,
+            noticeDate: null,
+            expectedMoveOutDate: null,
+            moveOutDate: null,
+            tenants: [
+              {
+                contactID: "1702",
+                name: "Second Tenant",
+                email: "second@fixture-rental.net",
+              },
+            ],
+          },
+          unit: { unitID: "2702" },
+          property: { streetName: "702 Emulator Avenue" },
+          portfolio: {
+            owners: [{ name: "Second Owner", email: "owner2@fixture-rental.net" }],
+          },
+        },
+      ],
+      pages: 1,
+      complete: true,
+    }),
+    listLeaseStatuses: async () => [
+      {
+        leaseStatusID: "2",
+        name: "Emulator Active",
+        primaryLeaseStatusID: "2",
+        isPendingMoveOutStatus: false,
+        isCompletedMoveOutStatus: false,
+        isPendingMoveInStatus: false,
+        isSystemStatus: true,
       },
-    },
-    {
-      leaseID: 702,
-      endDate: "2027-03-31",
-      currentRent: 1200,
-      tenants: [{ name: "Second Tenant", email: "second@fixture-rental.net" }],
-      property: { streetName: "702 Emulator Avenue" },
-      portfolio: {
-        owners: [{ name: "Second Owner", email: "owner2@fixture-rental.net" }],
-      },
-    },
-  ],
-}));
-
+    ],
+  });
+  return {
+    ...actual,
+    buildLiveRentVineConfig: () => ({ ok: true, rentvineClient: reader }),
+    buildLiveRenewalConfig: () => ({ ok: false, reason: "test_source_not_configured" }),
+  };
+});
 import {
   getRetainedSenderSignature,
   RENEWAL_SENDER_SIGNATURE_COLLECTION,
@@ -99,6 +144,8 @@ beforeAll(async () => {
 });
 beforeEach(async () => {
   await testEnv.clearFirestore();
+  clearLiveLeaseCache();
+  clearLeaseStatusTableCache();
 });
 afterAll(async () => {
   await deleteApp(app);

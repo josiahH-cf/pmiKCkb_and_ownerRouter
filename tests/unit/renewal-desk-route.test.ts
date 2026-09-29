@@ -23,7 +23,13 @@ describe("S78 canonical renewal route", () => {
     expect(desk).toContain("loadRenewalAssistantSource");
     const orchestration = source("lib/lease-renewal/assistant-source.ts");
     expect(orchestration).toContain("buildRenewalDeskWindow");
-    expect(orchestration).toContain("getLiveLeaseSnapshotAtOrAfter");
+    expect(orchestration).toMatch(
+      /readCoherentRenewalDisplaySource\(\s*user,\s*liveConfig\.rentvineClient,\s*now\.getTime\(\),\s*\{ sourceRefreshAfter \}/,
+    );
+    const coherentSource = source("lib/lease-renewal/admitted-notice-source.ts");
+    expect(coherentSource).toContain(
+      "getLiveLeaseSnapshotAtOrAfter(reader, nowMs, options.sourceRefreshAfter)",
+    );
     expect(orchestration).toContain("leaseSnapshotResult");
     expect(orchestration).not.toContain("startIso = now.toISOString().slice(0, 10)");
   });

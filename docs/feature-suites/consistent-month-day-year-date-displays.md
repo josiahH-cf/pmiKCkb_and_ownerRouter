@@ -4,9 +4,9 @@
 # S126 — Consistent month/day/year date presentation
 
 > **Approval reference:** F06 (original feature #6).
-> **Status:** IMPLEMENTED and CI-GREEN at `7f0ed865` (2026-09-20); release deferred by the billing incident; no deployment, provider activation, or meeting validation has occurred. Serving evidence: `docs/facts.md` F-S126 and `docs/date-display-inventory.md`.
+> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `7f0ed865` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
-> **Registration:** S126 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F06 when renumbering.
+> **Registration:** Registered as S126 in `docs/feature-suites/README.md`; the original F06 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** Application-wide presentation correction with unchanged date semantics.
 
 **Goal.**
@@ -19,7 +19,7 @@ C03 — Readable operational facts; C05 — Consistent meeting and document prep
 
 **Current state / intended end state.**
 
-**Current evidence:** The transcript requests month/day/year and specifically calls out dates at the top of the page. The desk stores/query-filters canonical ISO dates, and `work-status.ts` separately formats audit timestamps in America/Chicago. Current presentation is mixed. The transcript does not choose a separator, padding, or year width.
+**Current evidence:** The repaired shared calendar/instant formatter covers 69 inventoried source consumers across renewal, Admin, maintenance, Gmail, workflows, approvals, Spaces and Console. App-authored dates use month/day/year; invalid dates stay explicit and date-only values retain their calendar day. Canonical query/provider/hash values, underlying sort and retained historical message bytes remain unchanged. The bounded inventory and formatter defaults are documented in docs/date-display-inventory.md. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** A shared display convention is used in app-owned tables, headers, sidebars, forms, previews, history, and current operator handouts. Internal dates remain canonical and date-only values never undergo timezone conversion.
 
@@ -131,7 +131,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** An operator reads the same lease date in the table, header, sidebar, and draft preview in the expected order, and filtering/sorting still returns the same leases.
 
-- Model/engineering verdict: PASS in local engineering tests on `7f0ed865` (2026-09-20): AC-S126-1 through AC-S126-7 covered by the utility, surface and inventory cases named in F-S126 (compiled browser checks NOT RUN while rehearsal auth is blocked); no deployed readback.
+- Model/engineering verdict: Expanded G3 focused rendered/date checks pass locally. Historical baseline `7f0ed865` remains provenance; current combined, browser and remote acceptance are recorded in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). S126 remains undeployed.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

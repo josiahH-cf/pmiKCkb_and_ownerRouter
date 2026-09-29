@@ -35,6 +35,7 @@ import {
   validateFieldMap,
 } from "@/lib/lease-documents/artifact-intake";
 import { ApprovedLeaseCatalogSchema } from "@/lib/lease-documents/live-source-schema";
+import { inspectAcroformPdf } from "@/lib/lease-documents/acroform-pdf";
 import {
   LEASE_ARTIFACT_KINDS,
   type LeaseArtifactKind,
@@ -196,12 +197,44 @@ export async function receiveArtifactFamily(
   const input = ReceiveArtifactInputSchema.parse(raw);
   const version = await requireBoundPublication(input.publicationSource, deps);
   const content = await deps.readContent(version.contentRef);
-  const classification = classifyUploadedForm({
+  let classification = classifyUploadedForm({
     content,
     detectedMimeType: version.detectedMimeType,
     byteSize: version.contentByteSize,
     providerTemplateRef: input.providerBindings?.dotloopTemplateRef ?? null,
   });
+  // Token scanning is preliminary only. Actual parsed inventory is the filling authority.
+  try {
+    if (
+      version.detectedMimeType !== "application/pdf" ||
+      version.contentByteSize !== content.length
+    )
+      throw new Error("PDF content required");
+    const pdfFields = await inspectAcroformPdf(content);
+    classification = {
+      ...classification,
+      pdfFields,
+      hasAcroForm: pdfFields.length > 0,
+      format: pdfFields.length
+        ? "fillable_pdf"
+        : input.providerBindings?.dotloopTemplateRef
+          ? "provider_native"
+          : "static_pdf",
+      reasons: [
+        pdfFields.length
+          ? "Parsed form fields are available for reviewed AcroForm filling."
+          : "No form fields: manual completion is required.",
+      ],
+    };
+  } catch {
+    classification = {
+      ...classification,
+      format: "unsupported",
+      reasons: [
+        "The actual PDF structure is invalid or outside the bounded safe filling/manual-handoff format.",
+      ],
+    };
+  }
   if (classification.contentHash !== input.publicationSource.contentHash)
     throw new EditableLayerError("The publication content changed during readback.", 409);
   const requestHash = hashExecutionPreview({
@@ -326,7 +359,13 @@ export async function recordArtifactFieldMap(
     const validation = validateFieldMap(
       input.fieldMap,
       existing,
-      input.detectedFieldIds ?? null,
+      existing.classification?.format === "fillable_pdf"
+        ? (existing.classification.pdfFields
+            ?.filter(
+              (field) => field.type !== "signature" && field.type !== "unsupported",
+            )
+            .map((field) => field.name) ?? [])
+        : (input.detectedFieldIds ?? null),
     );
     if (!validation.ok)
       throw new EditableLayerError(

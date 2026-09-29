@@ -1,4 +1,5 @@
 "use client";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 
 import { useState } from "react";
 
@@ -99,7 +100,8 @@ export function MoveOutTimingBasisAdminPanel({
         </p>
         {saved ? (
           <p className="muted">
-            Current saved version: {saved.version}, recorded {saved.updated_at}.
+            Current saved version: {saved.version}, recorded{" "}
+            {formatBusinessTimestamp(saved.updated_at)}.
           </p>
         ) : null}
       </div>

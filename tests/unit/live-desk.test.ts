@@ -1,4 +1,14 @@
-import { beforeEach, describe, expect, it } from "vitest";
+const noticeReader = {
+  uid: "fixture-reader",
+  email: "fixture-reader@pmikcmetro.com",
+  hd: "pmikcmetro.com",
+  role: "Editor" as const,
+};
+vi.mock("@/lib/firestore/renewal-notice-safety", () => ({
+  withRenewalNoticeAdmission: (_actor: unknown, reader: object) => reader,
+}));
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { RenewalNoticeObserver } from "@/lib/lease-renewal/notice-read";
 
 import type { DateWindow } from "@/lib/lease-renewal/cohort";
 import {
@@ -227,6 +237,59 @@ type DeskConfigArg = Parameters<typeof loadLiveRenewalDesk>[2];
 type WorkspaceConfigArg = Parameters<typeof loadLiveRenewalLeaseWorkspace>[2];
 
 describe("loadLiveRenewalDesk", () => {
+  it("uses the supplied status half for desk and detail without another status read", async () => {
+    const config = okConfig();
+    const statusRead = vi.fn(async () => []);
+    const pairedConfig = {
+      ...config,
+      rentvineClient: { ...config.rentvineClient, listLeaseStatuses: statusRead },
+    };
+    const read = snapshotResult();
+    const unavailable = { status: "unavailable" as const };
+    const observer = vi.fn<RenewalNoticeObserver>(async () => new Map());
+    const desk = await loadLiveRenewalDesk(
+      WINDOWS,
+      READ_TS,
+      pairedConfig as unknown as DeskConfigArg,
+      undefined,
+      undefined,
+      [],
+      undefined,
+      true,
+      read,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      observer,
+      unavailable,
+    );
+    expect(desk.status).toBe("ok");
+    expect(observer.mock.calls[0]?.[1]).toBe(unavailable);
+    const detail = await loadLiveRenewalLeaseWorkspace(
+      "4821",
+      READ_TS,
+      pairedConfig as unknown as DeskConfigArg,
+      null,
+      null,
+      [],
+      undefined,
+      undefined,
+      null,
+      { status: "available", value: read },
+      null,
+      null,
+      undefined,
+      undefined,
+      observer,
+      unavailable,
+    );
+    expect(detail.status).toBe("ok");
+    expect(observer.mock.calls[1]?.[1]).toBe(unavailable);
+    expect(statusRead).not.toHaveBeenCalled();
+  });
+
   it("keeps the active window label and retains unfinished manual cycles outside it", async () => {
     const manual = new Map(
       ["4821", "8004", "7003", "9007"].map((id) => [
@@ -317,6 +380,7 @@ describe("loadLiveRenewalDesk", () => {
     }));
 
     const result = await loadLiveOwnerCurrentRentDecision(
+      noticeReader,
       "9005",
       READ_TS,
       config as unknown as NonNullable<DeskConfigArg>,

@@ -1,3 +1,4 @@
+import { formatSourceCalendarDate } from "@/lib/date-display";
 // S117 (R117.1, R117.2, R117.4): the Rent and charges card as the one working area.
 //
 // It shows the owning current values with their source, every recurring charge with its
@@ -93,8 +94,9 @@ export function RentAndCharges({
                 <li key={charge.id}>
                   <strong>{charge.accountLabel ?? charge.projection.description}</strong>:{" "}
                   {charge.projection.amount} every {charge.projection.frequency} month(s)
-                  on day {charge.projection.dayDue}; {charge.projection.startDate} to{" "}
-                  {charge.projection.endDate ?? "no end date"}.{" "}
+                  on day {charge.projection.dayDue};{" "}
+                  {formatSourceCalendarDate(charge.projection.startDate)} to{" "}
+                  {formatSourceCalendarDate(charge.projection.endDate, "no end date")}.{" "}
                   <span className="muted">
                     {CLASSIFICATION_LABELS[charge.classification]};{" "}
                     {scheduleLabel(charge.current)}.

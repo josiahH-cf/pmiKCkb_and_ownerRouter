@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { MAINTENANCE_TRADES } from "@/lib/maintenance/constants";
+import { formatCalendarDateOrTimestamp } from "@/lib/date-display";
 
 // S109 public maintenance report form.
 //
@@ -108,7 +109,7 @@ export function MaintenanceIntakeBridge() {
               {result.resource.title}
             </a>{" "}
             was reviewed by the property team on{" "}
-            {result.resource.reviewed_on.slice(0, 10)}.
+            {formatCalendarDateOrTimestamp(result.resource.reviewed_on)}.
           </p>
         ) : null}
         <p>Your confirmation code is {result.reference}.</p>

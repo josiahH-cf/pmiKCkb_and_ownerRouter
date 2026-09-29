@@ -1,4 +1,5 @@
 import { evaluateRenewalPacket } from "./evaluate-packet";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { Firestore } from "firebase-admin/firestore";
 import { getAdminFirestore } from "@/lib/firestore/admin";
@@ -46,7 +47,10 @@ export async function resolveLivePacketInput(
       409,
     );
   const [views, workspace, catalogDoc, sourceDoc] = await Promise.all([
-    requireCurrentLeaseViews(config.rentvineClient, Date.now()),
+    requireCurrentLeaseViews(
+      withRenewalNoticeAdmission(actor, config.rentvineClient, db),
+      Date.now(),
+    ),
     getRenewalWorkspace(actor, leaseId, db),
     db.collection(PACKET_SOURCE_COLLECTIONS.catalog).doc("current").get(),
     db

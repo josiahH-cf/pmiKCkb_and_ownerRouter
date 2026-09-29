@@ -630,7 +630,5 @@ function hasOnlyKeys(
 }
 
 function formatChangedAt(createdAt: string): string {
-  return /^\d{4}-\d{2}-\d{2}T/.test(createdAt) && Number.isFinite(Date.parse(createdAt))
-    ? formatBusinessTimestamp(createdAt)
-    : createdAt;
+  return formatBusinessTimestamp(createdAt);
 }

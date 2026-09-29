@@ -1,4 +1,5 @@
 import type { Firestore } from "firebase-admin/firestore";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 
 import { AuthError, type AuthenticatedUser } from "@/lib/auth/session";
 import { getApprovalQueueItem } from "@/lib/firestore/approval-queue";
@@ -38,7 +39,11 @@ export interface WorkSourceReaderDependencies {
   getApprovalQueueItem: typeof getApprovalQueueItem;
   getMaintenanceTicket: typeof getMaintenanceTicket;
   getRenewalProgress: typeof getRenewalProgress;
-  getRenewalLeaseVersion: (leaseId: string) => Promise<string | null>;
+  getRenewalLeaseVersion: (
+    actor: AuthenticatedUser,
+    leaseId: string,
+    db?: Firestore,
+  ) => Promise<string | null>;
 }
 
 const defaultReaders: WorkSourceReaderDependencies = {
@@ -91,7 +96,7 @@ export class ExistingWorkSourceResolver implements WorkSourceResolver {
 
       const [progress, leaseVersion] = await Promise.all([
         this.readers.getRenewalProgress(actor, id, this.db),
-        this.readers.getRenewalLeaseVersion(id),
+        this.readers.getRenewalLeaseVersion(actor, id, this.db),
       ]);
       if (!leaseVersion) return { source: unverifiedSource(input.type, id) };
       return this.verified(
@@ -138,11 +143,18 @@ export class ExistingWorkSourceResolver implements WorkSourceResolver {
   }
 }
 
-async function readLiveRenewalLeaseVersion(leaseId: string): Promise<string | null> {
+async function readLiveRenewalLeaseVersion(
+  actor: AuthenticatedUser,
+  leaseId: string,
+  db?: Firestore,
+): Promise<string | null> {
   const config = buildLiveRentVineConfig();
   if (!config.ok) return null;
   const now = Date.now();
-  const { snapshot } = await getLiveLeaseSnapshot(config.rentvineClient, now);
+  const { snapshot } = await getLiveLeaseSnapshot(
+    withRenewalNoticeAdmission(actor, config.rentvineClient, db),
+    now,
+  );
   const exists = snapshot.views.some((view) => {
     for (const key of ["leaseID", "leaseId", "id"] as const) {
       const value = view[key];

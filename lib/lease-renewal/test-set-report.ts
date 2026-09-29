@@ -1,3 +1,4 @@
+import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
 // S63 report builder. The report is generated from immutable baselines and append-only evidence,
 // never hand-authored. It contains client data and is written only under the gitignored report
 // boundary by `scripts/generate-test-set-report.ts`.
@@ -47,7 +48,7 @@ export function buildTestSetReport(input: TestSetReportInput): string {
   lines.push("# Four-lease renewal test set — evidence report");
   lines.push("");
   lines.push(
-    `Generated ${input.generatedAtIso} from immutable baseline and evidence records.`,
+    `Generated ${formatBusinessTimestamp(input.generatedAtIso)} from immutable baseline and evidence records.`,
   );
   lines.push(
     "This report is generated inside the authorized evidence boundary and is written outside",
@@ -88,12 +89,12 @@ export function buildTestSetReport(input: TestSetReportInput): string {
 
   for (const lease of input.leases) {
     lines.push(
-      `## Lease ${lease.leaseId} (Sheet row ${lease.sheetRowNumber}, ends ${lease.endDateIso ?? "unknown"})`,
+      `## Lease ${lease.leaseId} (Sheet row ${lease.sheetRowNumber}, ends ${formatCalendarDate(lease.endDateIso, "unknown")})`,
     );
     lines.push("");
     lines.push(
       lease.baseline.captured
-        ? `Frozen baseline captured ${lease.baseline.capturedAt ?? "(time unrecorded)"} — hash \`${lease.baseline.hash ?? ""}\`.`
+        ? `Frozen baseline captured ${formatBusinessTimestamp(lease.baseline.capturedAt, "(time unrecorded)")} — hash \`${lease.baseline.hash ?? ""}\`.`
         : "Frozen baseline NOT yet captured for this exact binding.",
     );
     lines.push(
@@ -123,10 +124,12 @@ export function buildTestSetReport(input: TestSetReportInput): string {
       `Discrepancies raised: ${discrepancies.length}; dispositioned: ${dispositions.length}.`,
     );
     for (const entry of discrepancies) {
-      lines.push(`- Raised ${entry.recordedAt}: ${entry.note}`);
+      lines.push(`- Raised ${formatBusinessTimestamp(entry.recordedAt)}: ${entry.note}`);
     }
     for (const entry of dispositions) {
-      lines.push(`- Dispositioned ${entry.recordedAt}: ${entry.note}`);
+      lines.push(
+        `- Dispositioned ${formatBusinessTimestamp(entry.recordedAt)}: ${entry.note}`,
+      );
     }
     lines.push("");
     lines.push("Timeline:");
@@ -134,7 +137,9 @@ export function buildTestSetReport(input: TestSetReportInput): string {
       lines.push("- No evidence entries recorded yet.");
     }
     for (const entry of lease.evidence) {
-      lines.push(`- ${entry.recordedAt} · ${entry.kind}: ${entry.note}`);
+      lines.push(
+        `- ${formatBusinessTimestamp(entry.recordedAt)} · ${entry.kind}: ${entry.note}`,
+      );
     }
     lines.push("");
   }

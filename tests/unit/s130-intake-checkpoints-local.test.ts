@@ -1,3 +1,4 @@
+import { syntheticAcroform } from "@/tests/fixtures/synthetic-acroform";
 import { createHash } from "node:crypto";
 
 import type { Firestore } from "firebase-admin/firestore";
@@ -54,12 +55,15 @@ const CONTEXT_FAMILIES: LeaseArtifactKind[] = [
   "hoa_artifact",
 ];
 const FILES: Record<string, Uint8Array> = Object.fromEntries(
-  CONTEXT_FAMILIES.map((kind, index) => [
-    `synthetic-${kind.replace(/_/g, "-")}-0001`,
-    pdf(
-      `<< /Type /Catalog ${index % 2 === 0 ? "/AcroForm << >>" : ""} >> << /Type /Page >> ${kind}`,
-    ),
-  ]),
+  await Promise.all(
+    CONTEXT_FAMILIES.map(async (kind, index) => [
+      `synthetic-${kind.replace(/_/g, "-")}-0001`,
+      await syntheticAcroform(
+        index % 2 === 0 && kind != "hoa_artifact" ? ["Rent", "Tenant name"] : [],
+        `SYNTHETIC ${kind}`,
+      ),
+    ]),
+  ),
 );
 const publicationId = (kind: LeaseArtifactKind) =>
   `synthetic-${kind.replace(/_/g, "-")}-0001`;

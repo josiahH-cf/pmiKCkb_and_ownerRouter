@@ -19,6 +19,8 @@ export interface DotloopPacketBinding {
     artifactVersion: string;
     documentRef: string;
     contentHash: string;
+    derivedArtifactId?: string;
+    derivedProvenanceHash?: string;
     audience: "tenant" | "owner";
     fieldBindings: Array<{
       fieldId: string;

@@ -4,9 +4,9 @@
 # S133 — External maintenance-agent handoff assessment
 
 > **Approval reference:** F13 (original feature #13).
-> **Status:** IMPLEMENTED and CI-GREEN at `75c06252` (2026-09-20) as a bounded assessment contract and tabletop decision packet; release deferred by the billing incident; no vendor contacted, no account connected, no provider activated and no integration built. Feasibility not established pending the owner inputs in `docs/open-blockers.md` B-MNT2. Serving evidence: `docs/facts.md` F-S133.
+> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `75c06252` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
-> **Registration:** S133 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F13 when renumbering.
+> **Registration:** Registered as S133 in `docs/feature-suites/README.md`; the original F13 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** Bounded discovery/decision specification, not an integration implementation.
 
 **Goal.**
@@ -19,7 +19,7 @@ C07 — Understand the external maintenance handoff without duplicating or broad
 
 **Current state / intended end state.**
 
-**Current evidence:** The transcript says vendor implementation is beginning, the team may provide access, and ticket management/escalation are potential areas to assess. It does not establish the vendor’s exact legal/product identity, account permissions, supported interfaces, contracts, or a selected integration design. Existing PMI KC Maintenance capabilities remain governed by their current S99/S100/S108/S109 contracts.
+**Current evidence:** The local bounded assessment contract and tabletop decision packet are implemented: source-qualified conclusions, a capability matrix, workflow ownership, minimal identity-linked handoff data and conditional options. PMI KC behavior is backed by repository evidence; vendor identity, authorized access/interfaces and feasibility remain unestablished under B-MNT2. No vendor contact, account connection, connector, scheduler, new action grant or external integration was created. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** A bounded capability/ownership/data-flow assessment identifies verified supported handoff options, genuinely missing evidence, and one decision needed before any future integration spec. When access/material is unavailable, the packet explicitly says feasibility is not established and names the exact input; no fictional connector is scaffolded.
 
@@ -129,7 +129,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** The maintenance owner can see what the purchased agent actually handles, what the app would receive or hand off, what remains manual or unknown, and what must be decided before any build.
 
-- Model/engineering verdict: PASS in local engineering tests on `75c06252` (2026-09-20): AC-S133-1 through AC-S133-6 covered by the contract and packet cases named in F-S133 on synthetic fixtures and the tabletop packet; the existing Maintenance tests carry preservation; provider feasibility is not established and is not claimed; compiled browser checks NOT RUN (no served surface changed); no deployed readback.
+- Model/engineering verdict: Historical baseline PASS in local engineering tests on `75c06252` (2026-09-20): AC-S133-1 through AC-S133-6 covered by the contract and packet cases named in F-S133 on synthetic fixtures and the tabletop packet; the existing Maintenance tests carry preservation; provider feasibility is not established and is not claimed; compiled browser checks NOT RUN (no served surface changed); no deployed readback. Current repair-batch results and remaining gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); the historical result does not verify the current batch or deployment.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

@@ -1,34 +1,7 @@
-import { createHash } from "node:crypto";
+export { fingerprintRevisionRuntimeConfiguration } from "./revision-fingerprint.mjs";
 
 export const MONITORING_INGESTION_DELAY_MS = 2 * 60 * 1_000;
 export const REVISION_CONFIGURATION_FINGERPRINT_PATTERN = /^sha256:[a-f0-9]{64}$/;
-
-// The output-only Revision fields the control plane can change after the revision exists (`etag`
-// changes whenever the control plane touches the resource, `scalingStatus` appears only once
-// instances run) plus the output-only identity and audit fields. Template-derived `labels` and
-// `annotations` are also documented output-only on a Revision but stay in the digest: they describe
-// configuration and are fixed when the revision is created. A digest that kept a mutable field would
-// drift between the zero-traffic capture and the post-promotion read and fire a false
-// `configuration_unverified` rollback.
-const REVISION_OUTPUT_ONLY_FIELDS = new Set([
-  "client",
-  "clientVersion",
-  "conditions",
-  "createTime",
-  "creator",
-  "deleteTime",
-  "etag",
-  "expireTime",
-  "generation",
-  "logUri",
-  "name",
-  "observedGeneration",
-  "reconciling",
-  "satisfiesPzs",
-  "scalingStatus",
-  "uid",
-  "updateTime",
-]);
 
 export interface ClosedObservationInterval {
   readonly startTimeMs: number;
@@ -51,27 +24,6 @@ export interface CorroboratedMonitoringCounts {
   readonly readComplete: boolean;
   readonly candidateFiveXxCount: number;
   readonly unresolvedLiveEffectCount: number;
-}
-
-/**
- * Fingerprint only the immutable revision's runtime configuration. Identity, timestamps, observed
- * conditions, and console links are verified separately or are mutable control-plane observations.
- * Every other top-level field, including any future configuration field, remains in the digest.
- */
-export function fingerprintRevisionRuntimeConfiguration(value: unknown): string {
-  if (
-    !isRecord(value) ||
-    !Array.isArray(value.containers) ||
-    value.containers.length === 0
-  ) {
-    throw new Error("revision_configuration_invalid");
-  }
-  const configuration = Object.fromEntries(
-    Object.entries(value).filter(([key]) => !REVISION_OUTPUT_ONLY_FIELDS.has(key)),
-  );
-  const canonical = canonicalizeJson(configuration);
-  const digest = createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
-  return `sha256:${digest}`;
 }
 
 export function requireRevisionConfigurationFingerprint(
@@ -132,29 +84,8 @@ export function corroborateMonitoringCounts(
   };
 }
 
-function canonicalizeJson(value: unknown): unknown {
-  if (value === null || typeof value === "string" || typeof value === "boolean") {
-    return value;
-  }
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) throw new Error("revision_configuration_invalid");
-    return value;
-  }
-  if (Array.isArray(value)) return value.map(canonicalizeJson);
-  if (!isRecord(value)) throw new Error("revision_configuration_invalid");
-  return Object.fromEntries(
-    Object.keys(value)
-      .sort()
-      .map((key) => [key, canonicalizeJson(value[key])]),
-  );
-}
-
 function assertCount(value: number): void {
   if (!Number.isSafeInteger(value) || value < 0) {
     throw new Error("monitoring_count_invalid");
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }

@@ -28,41 +28,29 @@ describe("S128 revision write-flag readback", () => {
     expect(parseRevisionWritebackFlag(null)).toBeNull();
   });
 
-  it("treats a trimmed true as writing (matching the runtime), everything else as paused", () => {
+  it("treats a trimmed true as writing (matching the runtime), requires an explicit false pause", () => {
     // The runtime enables writes on the trimmed exact "true", so the guard must too: a " true "
     // revision WOULD write and is therefore not paused (the guard would redeploy it flag-false).
     expect(revisionPausesSheetWriteback(revision("true"))).toBe(false);
     expect(revisionPausesSheetWriteback(revision(" true "))).toBe(false);
     expect(revisionPausesSheetWriteback(revision("false"))).toBe(true);
-    expect(revisionPausesSheetWriteback(revision("TRUE"))).toBe(true);
-    expect(revisionPausesSheetWriteback(revision(undefined))).toBe(true);
+    expect(revisionPausesSheetWriteback(revision("TRUE"))).toBe(false);
+    expect(revisionPausesSheetWriteback(revision(undefined))).toBe(false);
   });
 });
 
 describe("S128 paused rollback redeploy plan", () => {
-  it("reuses the predecessor image and pins the flag off with 100% traffic", () => {
-    const plan = buildPausedRollbackRedeployPlan({
-      project: "pmi-kc-kb-prod",
-      region: "us-central1",
-      service: "pmi-kc-app",
-      image: "img@sha256:abc",
-      revisionSuffix: "rabc-0123456789ab",
-    });
-    expect(plan.args).toEqual([
-      "run",
-      "deploy",
-      "pmi-kc-app",
-      "--project=pmi-kc-kb-prod",
-      "--region=us-central1",
-      "--image=img@sha256:abc",
-      "--revision-suffix=rabc-0123456789ab",
-      `--update-env-vars=${SHEET_WRITEBACK_FLAG}=false`,
-      "--quiet",
-    ]);
-    // The paused redeploy never carries --no-traffic: default routing restores service to it.
-    expect(plan.args).not.toContain("--no-traffic");
+  it("refuses the retired image-only immediate-traffic redeploy", () => {
+    expect(() =>
+      buildPausedRollbackRedeployPlan({
+        project: "pmi-kc-kb-prod",
+        region: "us-central1",
+        service: "pmi-kc-app",
+        image: "img@sha256:abc",
+        revisionSuffix: "rabc-0123456789ab",
+      }),
+    ).toThrow("receipt_bound_prepared_recovery_required");
   });
-
   it("refuses to build a redeploy that is missing an exact target field", () => {
     for (const omit of ["project", "region", "service", "image", "revisionSuffix"]) {
       const input = {

@@ -4,6 +4,7 @@
 
 import type { AssistantItem } from "@/lib/assistant/envelope";
 import type { WorkTaskRecord } from "@/lib/work-accountability/types";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 
 /** Task states that are still open work. A completed or cancelled task is not today's work. */
 const OPEN_STATES = new Set([
@@ -46,7 +47,7 @@ export function projectWorkItems(tasks: readonly WorkTaskRecord[]): AssistantIte
     id: entry.id,
     title: entry.title,
     detail: entry.due_at
-      ? `${entry.state} · due ${entry.due_at.slice(0, 10)}`
+      ? `${entry.state} · due ${formatBusinessTimestamp(entry.due_at)}`
       : `${entry.state} · no due date`,
     blockers: entry.blocker_reason ? [entry.blocker_reason] : [],
     href: `/work?task_id=${encodeURIComponent(entry.id)}`,

@@ -166,7 +166,10 @@ export interface WritebackRecoveryDeps {
 }
 
 export interface WritebackExecuteDeps extends WritebackRecoveryDeps {
-  rebuildRun: (readTimestamp: string) => Promise<RenewalRunResult | null>;
+  rebuildRun: (
+    actor: AuthenticatedUser,
+    readTimestamp: string,
+  ) => Promise<RenewalRunResult | null>;
   loadApproval: (
     actor: AuthenticatedUser,
     sourceTriggerKey: string,
@@ -933,7 +936,7 @@ async function loadCurrentApprovedPlan(
     }
   | { outcome: WritebackExecuteOutcome }
 > {
-  const run = await deps.rebuildRun(readTimestamp);
+  const run = await deps.rebuildRun(actor, readTimestamp);
   if (!run) return { outcome: { status: "read_error" } };
   const matchingFlags = run.flags.filter(
     (candidate) =>

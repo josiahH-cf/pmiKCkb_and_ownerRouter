@@ -16,10 +16,17 @@ import { EXTERNAL_EXECUTION_COLLECTIONS } from "@/lib/firestore/external-action-
 import {
   SHEET_WRITEBACK_KEYS,
   SHEET_WRITEBACK_PROPOSAL_VERSION,
+  LEGACY_SHEET_WRITEBACK_PROPOSAL_VERSION,
   sheetWritebackExecutionId,
   type SheetWritebackProposal,
   type SheetWritebackProposalScope,
 } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
+import {
+  sheetRuntimeBindingMatches,
+  SHEET_RUNTIME_BINDING_VERSION,
+  SHEET_ENABLED_POLICY,
+  validSheetRuntimeRevision,
+} from "./runtime-binding";
 
 export const SHEET_WRITEBACK_PROPOSALS_COLLECTION = "operating_sheet_proposals";
 export const SHEET_APPEND_LIFECYCLES_COLLECTION = "operating_sheet_append_lifecycles";
@@ -151,7 +158,18 @@ const ValidatedEffectSchema = z
 
 const StoredProposalSchema = z
   .object({
-    version: z.literal(SHEET_WRITEBACK_PROPOSAL_VERSION),
+    version: z.enum([
+      SHEET_WRITEBACK_PROPOSAL_VERSION,
+      LEGACY_SHEET_WRITEBACK_PROPOSAL_VERSION,
+    ]),
+    runtimeBinding: z
+      .object({
+        version: z.literal(SHEET_RUNTIME_BINDING_VERSION),
+        revision: z.string().refine(validSheetRuntimeRevision),
+        policy: z.literal(SHEET_ENABLED_POLICY),
+      })
+      .strict()
+      .optional(),
     generationId: OpaqueIdSchema,
     spreadsheetId: z.string().min(1).max(120),
     tabTitle: z.string().min(1).max(120),
@@ -169,7 +187,13 @@ const StoredProposalSchema = z
     createdAtIso: IsoSchema,
     confirmationExpiresAtIso: IsoSchema,
   })
-  .strict();
+  .strict()
+  .refine(
+    (value) =>
+      (value.version === SHEET_WRITEBACK_PROPOSAL_VERSION) ===
+      Boolean(value.runtimeBinding),
+    "Proposal runtime binding/version mismatch",
+  );
 
 const StoredAppendLifecycleSchema = z
   .object({
@@ -459,6 +483,18 @@ export async function saveSheetWritebackProposal(
   db: Firestore = getAdminFirestore(),
 ): Promise<void> {
   assertEditor(actor);
+  const assertCurrentRuntime = () => {
+    if (
+      proposal.version !== SHEET_WRITEBACK_PROPOSAL_VERSION ||
+      !sheetRuntimeBindingMatches(proposal.runtimeBinding)
+    ) {
+      throw new EditableLayerError(
+        "Sheet updates are paused or this proposal belongs to an older release. Review and prepare a new proposal after an authorized resume.",
+        409,
+      );
+    }
+  };
+  assertCurrentRuntime();
   if (proposal.actorUid !== actor.uid) {
     throw new EditableLayerError(
       "A proposal can be saved only by the actor who assembled it.",
@@ -495,6 +531,7 @@ export async function saveSheetWritebackProposal(
           )
       : null;
   await db.runTransaction(async (transaction) => {
+    assertCurrentRuntime();
     const [existing, lifecycle] = await Promise.all([
       transaction.get(ref),
       lifecycleRef ? transaction.get(lifecycleRef) : Promise.resolve(null),
@@ -547,6 +584,7 @@ export async function saveSheetWritebackProposal(
         archive.lifecycle,
       );
     }
+    assertCurrentRuntime();
     if (fieldArchive) transaction.create(fieldArchive.ref, fieldArchive.data);
     transaction.set(ref, {
       ...parsed,

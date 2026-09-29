@@ -4,6 +4,7 @@ export function workspaceMessageBasisFingerprint(head: Record<string, unknown>) 
     cycleId: head.cycleId,
     termsRevision: head.termsRevision,
     ownerResponse: head.ownerResponse,
+    tenantResponse: head.tenantResponse,
     preparation: head.preparation,
   });
 }
@@ -25,4 +26,6 @@ export interface RenewalMessageClaimBasis {
   sourceFingerprint: string;
   resourceFingerprint: string;
   preparationRevision: number;
+  /** Absent only on historical receipts; never sufficient for a new claim. */
+  noticeSafety?: { scopeHash: string; version: number; semanticHash: string };
 }

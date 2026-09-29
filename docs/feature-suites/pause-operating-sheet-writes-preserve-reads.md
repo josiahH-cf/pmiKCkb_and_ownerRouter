@@ -4,9 +4,9 @@
 # S128 — Pause operating-Sheet writes while preserving reads and app-owned work
 
 > **Approval reference:** F08 (original feature #8).
-> **Status:** SPECIFICATION ONLY — scope approved; no implementation, deployment, provider activation, or meeting validation performed by this export.
+> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `31bc9072` (2026-09-18) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
-> **Registration:** S128 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F08 when renumbering.
+> **Registration:** Registered as S128 in `docs/feature-suites/README.md`; the original F08 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** Explicit policy reversal of currently enabled writeback execution.
 
 **Goal.**
@@ -19,7 +19,7 @@ C04 — Preserve the operating Sheet as a trusted fallback during the pause. See
 
 **Current state / intended end state.**
 
-**Current evidence:** Current repository documentation records enabled Sheet writeback and S113 normal append/field update capability. `lib/lease-renewal/sheet-writeback-policy.ts` defines `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED`, true only for the exact string true. The live dependency wiring uses `writeFlagEnabled: isSheetWritebackEnabled` and creates the writer lazily. The meeting’s stated read-only policy therefore requires an actual configuration/control-plane change, not a cosmetic explanation.
+**Current evidence:** The local pause is implemented at policy, preparation, store, transaction and dispatch boundaries. App-owned saves create no Sheet proposal and return saved-in-app/Sheet-paused messaging; version-3 proposals bind the server revision and current policy, while historical receipts remain readable. Both ignored env files in both checkouts stage Sheet=false. Production still serves S120 with Sheet=true, so the pause is not deployed. The shared recovery implementation prepares one zero-traffic, digest-bound clone of the actual predecessor with Sheet=false and requires exact candidate/promoted/recovery readbacks; its cloud preparation and release remain NOT RUN. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** The production operating-Sheet write flag is explicitly false under a verified later release. All normal append/update/correction and other reachable mutating paths refuse before provider dispatch. Reads, source comparisons, app-owned preparation/activity, and read-only receipt reconciliation continue. Existing implementation and historical proof remain intact for a separately reviewed resumption.
 
@@ -53,7 +53,7 @@ Existing proposals, receipts, and failed/ambiguous attempts remain readable with
 
 ### R-F08-06 — Resume only by a fresh explicit owner decision
 
-There is no automatic expiry, date-based resume, scheduler, or “several months” timer. A later owner-approved resumption must verify the actual writer contract, permissions, current targets, runtime state, and exact action authority. Old proposals require a fresh preview/source comparison and a new authorized confirmation; resumption MUST NOT flush saved or queued work automatically.
+There is no automatic expiry, date-based resume, scheduler, or “several months” timer. A later owner-approved resumption must verify the actual writer contract, permissions, current targets, runtime state, and exact action authority. Old proposals require a fresh preview/source comparison and a new authorized confirmation; resumption MUST NOT flush saved or queued work automatically. New executable proposals bind to the trusted Cloud Run revision and explicit enabled policy. Legacy unbound proposals remain readable but cannot execute. Every new revision requires a new source review and confirmation; an old enabled revision cannot serve as an authorized resume target.
 
 ### R-F08-07 — Keep the pause through releases and rollback
 
@@ -135,7 +135,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** Staff keep using and comparing the Sheet and the app, but even an Admin cannot write to the operating Sheet from the app; saves clearly say they were recorded in the app only.
 
-- Model/engineering verdict: NOT RUN — this export specifies checks; it does not execute application tests or claim their results.
+- Model/engineering verdict: Local G4 pause and version-bound proposal tests, real app-save/claim checks and G6/G7 shared-recovery/process tests pass. Original implementation `31bc9072` was CI-green. Final combined acceptance and candidate/promoted/recovery Sheet=false readbacks remain gates in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); no production pause is claimed.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

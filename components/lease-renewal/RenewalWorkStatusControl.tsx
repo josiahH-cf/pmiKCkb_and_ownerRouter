@@ -1,4 +1,5 @@
 "use client";
+import { useRenewalSaveFocus } from "./RenewalSaveFocus";
 
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -37,6 +38,7 @@ export function RenewalWorkStatusControl({
   read: RenewalWorkStatusPanelInput;
 }>) {
   const router = useRouter();
+  const focusAfterSave = useRenewalSaveFocus();
   const [available, setAvailable] = useState(read.available);
   const [saved, setSaved] = useState<RenewalWorkStatusRecord | null>(read.record);
   const [history, setHistory] = useState<readonly RenewalWorkStatusActivity[]>(
@@ -119,7 +121,7 @@ export function RenewalWorkStatusControl({
           setMessage(
             `Saved: ${label}. The save response was lost, so the saved status was read back to confirm it.`,
           );
-          router.refresh();
+          if (!focusAfterSave?.()) router.refresh();
         } else if (current) {
           applyCurrent(current.record, current.history);
           setMessage(
@@ -160,7 +162,7 @@ export function RenewalWorkStatusControl({
       setMessage(
         `Saved: ${RENEWAL_WORK_STATUS_LABELS[body.record.status]}. Recorded by ${body.record.recordedByLabel} at ${formatWorkStatusRecordedAt(body.record.recordedAt)}.`,
       );
-      router.refresh();
+      if (!focusAfterSave?.()) router.refresh();
     } finally {
       setPending(false);
     }

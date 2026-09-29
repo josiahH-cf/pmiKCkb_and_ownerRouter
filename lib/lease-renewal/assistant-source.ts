@@ -1,12 +1,14 @@
 import { readRenewalSheetGridsWithLinks } from "@/lib/lease-renewal/sheet-links";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
+import { renewalNoticeObserver } from "./notice-read";
 import { listRenewalWorkspaces } from "@/lib/firestore/renewal-workspace";
 import { listRenewalWorkStatuses } from "@/lib/firestore/renewal-work-status";
 // S110: the Renewals desk orchestration, extracted so exactly one code path produces the desk rows.
 //
 // The desk page and the assistant both call this. That is the whole point: a parity test can compare
 // what the table renders with what the assistant answers, and the two cannot drift because there is
-// only one orchestration. It reads live sources and supporting stores read-only; it performs no
-// write, no draft, no send, and no provider effect.
+// only one orchestration. Source admission updates only approved invalidation metadata; this
+// read creates no workflow progress, draft, send, or provider effect.
 
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import type { AuthenticatedUser } from "@/lib/auth/session";
@@ -26,11 +28,7 @@ import {
 } from "@/lib/lease-renewal/auxiliary-read";
 import { buildRenewalDeskWindow } from "@/lib/lease-renewal/desk-query";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
-import {
-  getLiveLeaseSnapshot,
-  getLiveLeaseSnapshotAtOrAfter,
-  type LiveLeaseSnapshotResult,
-} from "@/lib/lease-renewal/live-lease-cache";
+import { readCoherentRenewalDisplaySource } from "@/lib/lease-renewal/admitted-notice-source";
 import { loadLiveRenewalDesk } from "@/lib/lease-renewal/live-desk";
 import { DEFAULT_NOTICE_RULE_SET } from "@/lib/lease-renewal/notice-rules";
 
@@ -54,6 +52,11 @@ export async function runRenewalAssistantSource(
   // period parser and the workspace reference date read, so the three never disagree at a month end.
   const window = buildRenewalDeskWindow(businessDateIso(now), RENEWAL_DESK_WINDOW_DAYS);
   const liveConfig = buildLiveRenewalConfig();
+  if (liveConfig.ok)
+    liveConfig.rentvineClient = withRenewalNoticeAdmission(
+      user,
+      liveConfig.rentvineClient,
+    );
   // Start this render's fresh Sheet read before waiting for independent supporting stores.
   // Capture rejection immediately; failure remains a primary read_error, never an empty Sheet.
   const sheetRead = liveConfig.ok
@@ -66,16 +69,17 @@ export async function runRenewalAssistantSource(
         () => null,
       )
     : Promise.resolve(null);
-  const leaseRead: Promise<LiveLeaseSnapshotResult | undefined> = (async () => {
+  const leaseRead: Promise<
+    Awaited<ReturnType<typeof readCoherentRenewalDisplaySource>> | undefined
+  > = (async () => {
     if (!liveConfig.ok) return undefined;
     try {
-      return await (sourceRefreshAfter === null
-        ? getLiveLeaseSnapshot(liveConfig.rentvineClient, now.getTime())
-        : getLiveLeaseSnapshotAtOrAfter(
-            liveConfig.rentvineClient,
-            now.getTime(),
-            sourceRefreshAfter,
-          ));
+      return await readCoherentRenewalDisplaySource(
+        user,
+        liveConfig.rentvineClient,
+        now.getTime(),
+        { sourceRefreshAfter },
+      );
     } catch {
       return undefined;
     }
@@ -185,6 +189,8 @@ export async function runRenewalAssistantSource(
           },
           preparedSheetRead,
           timingBasis,
+          renewalNoticeObserver(user),
+          leaseSnapshotResult.statusTable,
         );
 
   return { outcome, auxiliaryFailures, coverage: window };

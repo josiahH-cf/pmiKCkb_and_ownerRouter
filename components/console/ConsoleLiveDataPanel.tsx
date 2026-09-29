@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
 import type {
   ConsoleField,
   ConsoleMessagePresence,
@@ -48,7 +49,7 @@ export function ConsoleLiveDataPanel({
               </div>
               <div className="grid three">
                 <Field label="Current rent" field={row.currentRent} />
-                <Field label="Lease end" field={row.leaseEnd} />
+                <Field label="Lease end" field={row.leaseEnd} calendarDate />
                 <Field label="Workflow" field={row.workflow} />
               </div>
               {row.message ? <MessageMetadata field={row.message} /> : null}
@@ -60,11 +61,15 @@ export function ConsoleLiveDataPanel({
   );
 }
 
-function Field<T>({ label, field }: Readonly<{ field: ConsoleField<T>; label: string }>) {
+function Field<T>({
+  label,
+  field,
+  calendarDate = false,
+}: Readonly<{ field: ConsoleField<T>; label: string; calendarDate?: boolean }>) {
   return (
     <div>
       <strong>{label}</strong>
-      <p>{displayValue(field)}</p>
+      <p>{displayValue(field, calendarDate)}</p>
       <Provenance field={field} />
     </div>
   );
@@ -87,7 +92,9 @@ function MessageMetadata({
     <div className="notice">
       <strong>Linked message on file</strong>
       <p className="muted">Open the workflow to read it under its communication panel.</p>
-      <p className="muted">Last message {field.value.timestamp}</p>
+      <p className="muted">
+        Last message {formatBusinessTimestamp(field.value.timestamp)}
+      </p>
       <Provenance field={field} />
     </div>
   );
@@ -98,16 +105,16 @@ function Provenance<T>({ field }: Readonly<{ field: ConsoleField<T> }>) {
     <p className="muted">
       {field.source} · {field.state}
       {field.observedAt
-        ? ` · observed ${field.observedAt}`
+        ? ` · observed ${formatBusinessTimestamp(field.observedAt)}`
         : " · observation unavailable"}
     </p>
   );
 }
 
-function displayValue<T>(field: ConsoleField<T>) {
+function displayValue<T>(field: ConsoleField<T>, calendarDate = false) {
   if (field.state === "unavailable") return "Unavailable";
   if (field.value === undefined || field.value === null || field.value === "") {
     return "Needs review";
   }
-  return String(field.value);
+  return calendarDate ? formatCalendarDate(String(field.value)) : String(field.value);
 }

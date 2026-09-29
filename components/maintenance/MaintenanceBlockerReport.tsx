@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Card } from "@/components/ui";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 import { formatPreapprovalAmount } from "@/lib/maintenance/property-preapproval";
 import {
   MAINTENANCE_WAITING_ON_LABELS,
@@ -81,7 +82,7 @@ export function MaintenanceBlockerReport({
                       : formatPreapprovalAmount(row.projection.preapprovalAmountCents)}
                   </td>
                   <td>{row.assigneeLabel ?? "Unassigned"}</td>
-                  <td>{row.lastActivityIso.slice(0, 10)}</td>
+                  <td>{formatBusinessTimestamp(row.lastActivityIso)}</td>
                   <td>
                     {row.projection.providerWorkOrderId ? (
                       <Link

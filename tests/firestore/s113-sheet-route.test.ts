@@ -18,6 +18,8 @@ import {
   vi,
 } from "vitest";
 import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
+import { clearLiveLeaseCache } from "@/lib/lease-renewal/live-lease-cache";
+import { clearLeaseStatusTableCache } from "@/lib/lease-renewal/lease-status-table";
 import type { SheetWritebackWriter } from "@/lib/lease-renewal/sheet-writeback/execution-service";
 import type { FreshOperatingSheetLeaseContext } from "@/lib/lease-renewal/sheet-writeback/workspace-resolution";
 import type { SheetWritebackProposal } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
@@ -132,6 +134,7 @@ beforeAll(async () => {
   vi.stubEnv("DATA_CONTEXT", "live");
   vi.stubEnv("RENEWAL_SHEET_ID", spreadsheetId);
   vi.stubEnv("LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED", "true");
+  vi.stubEnv("K_REVISION", "pmi-kc-app-test-enabled-a");
   vi.stubEnv("RENEWAL_DESK_PARTY_FILTER_KEY", Buffer.alloc(32, 29).toString("base64url"));
 });
 afterAll(async () => {
@@ -140,7 +143,11 @@ afterAll(async () => {
   await environment.cleanup();
 });
 beforeEach(async () => {
+  vi.stubEnv("LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED", "true");
+  vi.stubEnv("K_REVISION", "pmi-kc-app-test-enabled-a");
   await environment.clearFirestore();
+  clearLiveLeaseCache();
+  clearLeaseStatusTableCache();
   marketValue = "1000";
   packetTransport.runtime = null;
   messageTransport.creates = 0;
@@ -504,7 +511,7 @@ async function recordManual(
   const response = await postWorkspaceRoute(workspaceRequest(input));
   const result = await response.json();
   expect(response.status, JSON.stringify(result)).toBe(200);
-  return { state: result.state as RenewalWorkspaceState, input };
+  return { ...result, state: result.state as RenewalWorkspaceState, input };
 }
 describe("S113 actual manual route and durable cycle state", () => {
   it("records a complete staff journey without creating provider receipts or changing legacy completion", async () => {
@@ -687,7 +694,7 @@ import {
 } from "@/app/api/lease-renewal/market-comps/route";
 import { RENTCAST_USAGE_COLLECTION } from "@/lib/firestore/rentcast-usage";
 vi.mock("@/lib/lease-renewal/market-comp-query-resolver", () => ({
-  resolveCurrentMarketCompQueryBasis: async (leaseId: string) => ({
+  resolveCurrentMarketCompQueryBasis: async (_actor: unknown, leaseId: string) => ({
     leaseId,
     addressLabel: "Emulator subject address",
     policy: {
@@ -943,6 +950,51 @@ function usePetField() {
   testState.writer!.getCellEvidence = async () => cell();
 }
 describe("S113 recorded activity prepares its value for separate source confirmation", () => {
+  it("saves app progress during the Sheet pause without creating a proposal or execution backlog", async () => {
+    usePetField();
+    const state = await startManual();
+    vi.stubEnv("LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED", "false");
+    const saved = await recordManual(state, {
+      kind: "activity",
+      activity: "pet",
+      outcome: "done",
+      source: "Reviewed local fixture pet record",
+    });
+    expect(saved).toMatchObject({
+      writeback_paused: true,
+      sourcePreparation: "Saved in app; Sheet updates paused.",
+    });
+    expect(saved.state.activities.pet.outcome).toBe("done");
+    expect(saved.state.sourceUpdates.pet_registered.proposalId).toBeUndefined();
+    expect((await db.collection("operating_sheet_proposals").get()).empty).toBe(true);
+    expect(
+      (await db.collection(EXTERNAL_EXECUTION_COLLECTIONS.records).get()).empty,
+    ).toBe(true);
+    expect(mutations).toBe(0);
+    const read = await (
+      await getWorkspaceRoute(
+        new Request("http://local.test/api/lease-renewal/workspace?leaseId=701"),
+      )
+    ).json();
+    expect(read.writeback_paused).toBe(true);
+    expect(read.state.activities.pet.outcome).toBe("done");
+    const explicit = await postWorkspaceRoute(
+      workspaceRequest({
+        operation: "prepare_source",
+        leaseId: "701",
+        cycleId: saved.state.cycleId,
+        field: "pet_registered",
+        eventId: saved.input.operationId,
+      }),
+    );
+    expect(explicit.status).toBe(409);
+    expect((await db.collection("operating_sheet_proposals").get()).empty).toBe(true);
+    expect(
+      (await db.collection(EXTERNAL_EXECUTION_COLLECTIONS.records).get()).empty,
+    ).toBe(true);
+    expect(mutations).toBe(0);
+  });
+
   it("lets an Editor record once, then an Admin confirm and read back the same typed field", async () => {
     usePetField();
     testState.role = "Editor";
@@ -1143,26 +1195,60 @@ const messageTransport = vi.hoisted(() => ({
   disconnected: false,
   loseResponse: false,
 }));
-vi.mock("@/lib/lease-renewal/live-config", async (original) => ({
-  ...(await original<typeof import("@/lib/lease-renewal/live-config")>()),
-  buildLiveRentVineConfig: () => ({ ok: true, rentvineClient: {} }),
-  buildLiveRenewalConfig: () => ({ ok: false, reason: "test_source_not_configured" }),
-}));
-vi.mock("@/lib/lease-renewal/live-lease-cache", async (original) => ({
-  ...(await original<typeof import("@/lib/lease-renewal/live-lease-cache")>()),
-  requireCurrentLeaseViews: async () => [
-    {
-      leaseID: 701,
-      endDate: "2026-12-31",
-      currentRent: 1000,
-      tenants: [{ name: "Emulator Tenant", email: "tenant@fixture-rental.net" }],
-      property: { streetName: "701 Emulator Avenue" },
-      portfolio: {
-        owners: [{ name: "Emulator Owner", email: "owner@fixture-rental.net" }],
+// Full deterministic source adapter: real mapping, cache admission and Firestore markers stay active.
+vi.mock("@/lib/lease-renewal/live-config", async (original) => {
+  const actual = await original<typeof import("@/lib/lease-renewal/live-config")>();
+  const { withFakeLeaseDetail } = await import("@/tests/helpers/rentvine-detail-fake");
+  const reader = withFakeLeaseDetail({
+    listAllLeasesExport: async () => ({
+      rows: [
+        {
+          lease: {
+            leaseID: 701,
+            leaseStatusID: "2",
+            startDate: "2026-01-01",
+            endDate: "2026-12-31",
+            leaseType: "Fixed Term",
+            baseRentAmount: "1000.00",
+            noticeDate: null,
+            expectedMoveOutDate: null,
+            moveOutDate: null,
+            tenants: [
+              {
+                contactID: "703",
+                name: "Emulator Tenant",
+                email: "tenant@fixture-rental.net",
+              },
+            ],
+          },
+          unit: { unitID: "702", rent: "1400.00" },
+          property: { propertyID: 702, streetName: "701 Emulator Avenue" },
+          portfolio: {
+            owners: [{ name: "Emulator Owner", email: "owner@fixture-rental.net" }],
+          },
+        },
+      ],
+      pages: 1,
+      complete: true,
+    }),
+    listLeaseStatuses: async () => [
+      {
+        leaseStatusID: "2",
+        name: "Emulator Active",
+        primaryLeaseStatusID: "2",
+        isPendingMoveOutStatus: false,
+        isCompletedMoveOutStatus: false,
+        isPendingMoveInStatus: false,
+        isSystemStatus: true,
       },
-    },
-  ],
-}));
+    ],
+  });
+  return {
+    ...actual,
+    buildLiveRentVineConfig: () => ({ ok: true, rentvineClient: reader }),
+    buildLiveRenewalConfig: () => ({ ok: false, reason: "test_source_not_configured" }),
+  };
+});
 vi.mock("@/lib/gmail-hub/dependencies", async (original) => ({
   ...(await original<typeof import("@/lib/gmail-hub/dependencies")>()),
   createDescriptorBoundGmailRuntimeClient: (subject: string) => {
@@ -1625,9 +1711,7 @@ describe("S113 normal S66 packet resolver and S106/S34 handoff", () => {
         source: "Emulator exact owner terms",
       })
     ).state;
-    const { resolveLivePacketInput, PACKET_SOURCE_COLLECTIONS } =
-      await import("@/lib/lease-documents/live-input");
-    const { renewalWorkspaceDocId } = await import("@/lib/firestore/renewal-workspace");
+    const { resolveLivePacketInput } = await import("@/lib/lease-documents/live-input");
     const { POST: evaluateRoute } =
       await import("@/app/api/lease-renewal/packet-truth/route");
     const { GET: readHandoff, POST: packetAction } =
@@ -2047,28 +2131,17 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       const { getRenewalWorkspace } = await import("@/lib/firestore/renewal-workspace");
       const { loadLiveRenewalLeaseWorkspace, loadLiveRenewalDesk } =
         await import("@/lib/lease-renewal/live-desk");
-      const { withFakeLeaseDetail } =
-        await import("@/tests/helpers/rentvine-detail-fake");
+      const { buildLiveRentVineConfig } = await import("@/lib/lease-renewal/live-config");
       const { clearLiveLeaseCache } =
         await import("@/lib/lease-renewal/live-lease-cache");
+      const { clearLeaseStatusTableCache } =
+        await import("@/lib/lease-renewal/lease-status-table");
       const { GET: documentGet } =
         await import("@/app/api/lease-renewal/document-handoff/route");
       const { GET: screenshotGet } =
         await import("@/app/api/lease-renewal/comp-screenshot/route");
-      const raw = [
-        {
-          lease: {
-            leaseID: 701,
-            startDate: "2026-01-01",
-            endDate: "2026-12-31",
-            leaseType: "Fixed Term",
-            baseRentAmount: "1000.00",
-            tenants: [{ name: "Emulator Tenant", email: "tenant@fixture-rental.net" }],
-          },
-          property: { propertyID: 702, streetName: "701 Emulator Avenue" },
-          unit: { rent: "1400.00" },
-        },
-      ];
+      const leaseSource = buildLiveRentVineConfig();
+      if (!leaseSource.ok) throw new Error("Deterministic source missing");
       const sheet = [header, ["Emulator Tenant", "1000", "1000"]];
       const formulas = [
         header,
@@ -2082,9 +2155,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         ok: true as const,
         rentvineHost: "pmikcmetro.rentvine.com",
         spreadsheetId,
-        rentvineClient: withFakeLeaseDetail({
-          listAllLeasesExport: async () => ({ rows: raw, pages: 1, complete: true }),
-        }),
+        rentvineClient: leaseSource.rentvineClient,
         sheetsReader: {
           listTabTitles: async () => ["Lease Renewal"],
           batchGet: async () => ({
@@ -2096,6 +2167,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         },
       };
       clearLiveLeaseCache();
+      clearLeaseStatusTableCache();
       if (start === "already underway") {
         await recordManual(await startManual(), {
           kind: "activity",
@@ -2105,6 +2177,17 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         });
       }
       const requests: string[] = [];
+      // Bodyless diagnostics preserve the assertion budget and distinguish an unsettled owning
+      // read from a detached testing-library scope when this mounted journey fails under load.
+      const messageReads: Array<{
+        channel: "owner" | "tenant" | "unknown";
+        startedAt: number;
+        elapsedMs: number | null;
+        status: number | null;
+        contentPresent: boolean;
+        errorPresent: boolean;
+        threw: boolean;
+      }> = [];
       const originalFetch = globalThis.fetch;
       vi.stubGlobal("fetch", async (input: string | Request, init?: RequestInit) => {
         const url = new URL(
@@ -2138,10 +2221,40 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           return request.method === "GET"
             ? getWorkspaceRoute(request)
             : postWorkspaceRoute(request);
-        if (url.pathname.endsWith("/message-preparation"))
-          return request.method === "GET"
-            ? getMessageRoute(request)
-            : postMessageRoute(request);
+        if (url.pathname.endsWith("/message-preparation")) {
+          if (request.method !== "GET") return postMessageRoute(request);
+          const channel = url.searchParams.get("channel");
+          const read: (typeof messageReads)[number] = {
+            channel: channel === "owner" || channel === "tenant" ? channel : "unknown",
+            startedAt: Date.now(),
+            elapsedMs: null,
+            status: null,
+            contentPresent: false,
+            errorPresent: false,
+            threw: false,
+          };
+          messageReads.push(read);
+          if (messageReads.length > 32) messageReads.shift();
+          try {
+            const response = await getMessageRoute(request);
+            const body = (await response
+              .clone()
+              .json()
+              .catch(() => null)) as {
+              content?: { htmlBody?: unknown };
+              error?: unknown;
+            } | null;
+            read.status = response.status;
+            read.contentPresent = typeof body?.content?.htmlBody === "string";
+            read.errorPresent = typeof body?.error === "string";
+            return response;
+          } catch (error) {
+            read.threw = true;
+            throw error;
+          } finally {
+            read.elapsedMs = Date.now() - read.startedAt;
+          }
+        }
         if (url.pathname.endsWith("/operating-sheet"))
           return request.method === "GET" ? GET(request) : POST(request);
         if (url.pathname.endsWith("/market-comps")) return compRoute(request);
@@ -2407,9 +2520,10 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       }
       await respond("owner", "approved_terms");
       if (start === "fresh") {
-        const tenant = within(
-          screen.getByRole("region", { name: "Tenant offer and response" }),
-        );
+        const tenantRegion = screen.getByRole("region", {
+          name: "Tenant offer and response",
+        });
+        const tenant = within(tenantRegion);
         // The tenant preparation reloads after the owner response is recorded; wait for it.
         // S120: the unfinished preparation shows its formatted preview; the selectable plain
         // text and the body copy open only once every input is reviewed and saved.
@@ -2418,7 +2532,31 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             expect(tenant.getByLabelText("tenant formatted body")).toHaveTextContent(
               "$1,100.00",
             ),
-          { timeout: 10_000 },
+          {
+            timeout: 10_000,
+            onTimeout: (error) => {
+              const liveRegions = screen.queryAllByRole("region", {
+                name: "Tenant offer and response",
+              });
+              const livePreviews = screen.queryAllByLabelText("tenant formatted body");
+              return new Error(
+                `Tenant preview wait diagnostics: ${JSON.stringify({
+                  capturedRegionConnected: tenantRegion.isConnected,
+                  currentRegionCount: liveRegions.length,
+                  sameRegion: liveRegions.includes(tenantRegion),
+                  currentPreviewCount: livePreviews.length,
+                  currentPreviewHasExpectedRent: livePreviews.some((node) =>
+                    node.textContent?.includes("$1,100.00"),
+                  ),
+                  reads: messageReads.slice(-16).map(({ startedAt, ...read }) => ({
+                    ...read,
+                    pendingMs: read.elapsedMs === null ? Date.now() - startedAt : null,
+                  })),
+                })}`,
+                { cause: error },
+              );
+            },
+          },
         );
         expect(
           tenant.getByRole("button", { name: "Preview unsent Gmail draft" }),
@@ -2590,6 +2728,16 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         expect(
           manualRenewalSummary((await getRenewalWorkspace(actor, "701", db))!).complete,
         ).toBe(true),
+      );
+      // Completion first persists its staff record, then resolves the associated Sheet proposal.
+      // Remount only after the actual control receives the route's final state, otherwise the
+      // new provider can start from the intermediate revision and correctly refuse a later edit.
+      await waitFor(
+        () =>
+          expect(
+            screen.getByRole("button", { name: "Reopen recorded completion" }),
+          ).toBeEnabled(),
+        { timeout: 10_000 },
       );
       const independentlyRead = await readIndependentDecisionFacts(db);
       expect(independentlyRead.manualByLease?.get("701")).toMatchObject({

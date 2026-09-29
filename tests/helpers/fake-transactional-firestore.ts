@@ -17,6 +17,9 @@ export class FakeTransactionalFirestore {
   collection(name: string) {
     return new FakeCollection(this, name);
   }
+  collectionGroup(name: string) {
+    return new FakeQuery(this, `**/${name}`, []);
+  }
 
   seed(path: string, data: Record<string, unknown>) {
     this.applyWrite(path, data);
@@ -149,6 +152,7 @@ export class FakeTransactionalFirestore {
     const version = ++this.nextVersion;
     this.documentVersions.set(path, version);
     this.collectionVersions.set(collectionPathForDocument(path), version);
+    this.collectionVersions.set(`**/${path.split("/").at(-2)}`, version);
   }
 
   private applyDelete(path: string) {
@@ -156,6 +160,7 @@ export class FakeTransactionalFirestore {
     const version = ++this.nextVersion;
     this.documentVersions.set(path, version);
     this.collectionVersions.set(collectionPathForDocument(path), version);
+    this.collectionVersions.set(`**/${path.split("/").at(-2)}`, version);
   }
 
   private async waitAtNextCommitBarrier() {
@@ -394,6 +399,7 @@ function documentSnapshot(
     ref: new FakeDocument(db, path, id),
     exists: data !== undefined,
     data: () => (data ? structuredClone(data) : undefined),
+    get: (key: string) => (data ? structuredClone(data[key]) : undefined),
   };
 }
 
@@ -406,8 +412,10 @@ function querySnapshot(
 ) {
   const prefix = `${collectionPath}/`;
   const matchingDocs = Array.from(store.entries())
-    .filter(
-      ([path]) => path.startsWith(prefix) && !path.slice(prefix.length).includes("/"),
+    .filter(([path]) =>
+      collectionPath.startsWith("**/")
+        ? path.split("/").at(-2) === collectionPath.slice(3)
+        : path.startsWith(prefix) && !path.slice(prefix.length).includes("/"),
     )
     .filter(([, data]) =>
       filters.every(({ field, operator, value }) => {
@@ -423,7 +431,7 @@ function querySnapshot(
         );
       }),
     )
-    .map(([path]) => documentSnapshot(db, store, path, path.slice(prefix.length)));
+    .map(([path]) => documentSnapshot(db, store, path, path.split("/").at(-1)!));
   const docs =
     limitCount === undefined ? matchingDocs : matchingDocs.slice(0, limitCount);
   return { docs, empty: docs.length === 0, size: docs.length };

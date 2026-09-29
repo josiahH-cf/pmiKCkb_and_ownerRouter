@@ -1,9 +1,10 @@
 # Environment and release handoff
 
-Updated: 2026-09-28 (UTC). The thirteen-feature batch is BLOCKED by the safety and litmus
-findings in `docs/evidence/batch-litmus-audit-2026-09-28.md`. Billing and approved CLI/ADC work;
-pre-edit native preflight read GO with thirteen entries on `f85abacc771dc0f85c2f7bf69af3d05d8402e88e`
-(exact-main CI 35549486717), but no batch candidate assurance, promotion or observation ran.
+Updated: 2026-09-29 (UTC). Native run K passed 7,174 unit tests in 795 files, 230 backend tests in 41 files, all required gates and production build hkH9ZkYerS_oUJOH5zk1z.
+Objective compiled checks passed on immutable build K: cold notice readiness in 16.563 seconds, a clean desk-warmed read in 16.778 seconds, exact save/readback focus and all 71 guide steps. Actual-source presentation and a separate six-category synthetic presentation passed both themes and 320/640/1360-pixel layouts, with zero overflow plus contrast, keyboard, accessible-tree, forced-colors and page-scale checks. A separate instrumented diagnostic verified all 311 source/cache/projected/rendered records and per-row categories before and after a newer API read, with zero missing records or duplicates. Its API read passed in 17.591 seconds and the desk caught up within its unchanged route deadline. Synthetic presentation establishes component presentation only; it does not establish actual source projection. Earlier failures remain unchanged outside Git. Human screen-reader and desktop full-page zoom verdicts remain NOT RUN.
+The thirteen-feature batch remains undeployed. Attended Admin browser enrollment, exact repair-head green CI, fresh prerequisites and preflight GO, one candidate, promotion, observation and independent readbacks remain required. The queue stays intact; no batch release receipt exists.
+Final K core E2E passed 31 tests with 18 intentional skips. Its isolated next-dev run preserved all 258 changed source hashes and build K; it is separate from compiled production acceptance.
+The last synchronized pre-repair head remains 952c5cd843d14a9f7e2be2bcfa227598f235d059, with CI 36485825488. Its historical GO does not admit this repaired tree. Exact outcomes are in docs/evidence/batch-litmus-audit-2026-09-28.md.
 
 Production readback still names `79493458f641b9710d8c43467e872aa9acf7948e` /
 `pmi-kc-app-rmu4wevd9-d89996133320` at 100% traffic. Canonical and tagged /api/version returned
@@ -11,8 +12,14 @@ HTTP 200 and exact identity; sign-in returned HTTP 200. Fresh revision configura
 `sha256:d44428cbddc18208ef1422dff178fd2f24af77119465497623f02cd57c686568`.
 Authorized domains contain exactly one candidate entry for the serving S120 release plus canonical.
 The serving Sheet write-back flag is true; S128 is staged false in both ignored env files in both
-checkouts and is not deployed. Admin browser authentication remains UNVERIFIED after two 60-second
-sign-in navigation timeouts without an observed challenge.
+checkouts and is not deployed. Approved CLI/ADC refresh passed on 2026-09-29. Admin browser
+authentication remains UNVERIFIED: after the earlier navigation timeouts, a guarded check reached
+a genuine Google challenge and the attended enrollment window closed before verification.
+The independent Google-provider read at 2026-09-29T03:03:37.930Z returned HTTP 200,
+the expected Identity Platform resource and enabled=true, with zero mutations.
+CLI/ADC refresh passed again at approximately 04:58 UTC, but the enrollment record still names
+2026-09-28T20:56:36.677Z. It exceeds the seven-hour release-start budget; fresh attended WSL
+enrollment is required in addition to Admin browser sign-in.
 
 Historical S120 receipts were re-read: candidate issued 2026-09-17T02:27:49.328Z (Admin passed,
 Editor not_run); promotion started 02:28:00.680Z and verified 02:28:06.952Z; observation generated
@@ -71,7 +78,8 @@ confirmed current-state correction. Row deletion and historical restore remain u
   provider error body; it cannot probe an unverified ADC identity.
 - `npm run auth:status` inspects only. Unprobed freshness is unverified. `npm run auth:ensure`
   verifies identity/store before ordinary Google-library refresh. Current approved CLI/ADC probes
-  passed on 2026-09-28; browser authentication remains unverified. Historical enrollment and reboot
+  passed on 2026-09-29; browser authentication remains unverified after an observed Google challenge.
+  The owner must complete attended enrollment; the runner never answers the challenge. Historical enrollment and reboot
   proofs do not establish the current browser session. A transient identity lookup receives one
   bounded retry; an unavailable lookup remains blocked without directing unnecessary reenrollment.
 - `auth:session`, `auth:enroll` and `auth:enroll:wsl` enroll CLI and ADC in WSL. The PowerShell
@@ -104,13 +112,18 @@ identity or permission scope changed.
 
 ### Local release watcher
 
-Current state: STOPPED, zero processes and free lock read back on 2026-09-28. The existing scheduled
-task remains Ready and unchanged; recheck processes and lock before resuming. A preexisting watcher
+At 2026-09-29T02:31:17Z eleven release entry files matched both checkouts, zero watchers were found,
+`release-permit.json` was absent and the checkpoint was complete S120 without in-flight work. The
+temporary installation hold was released; the kernel lock read free and direct admission still
+refused. The scheduled task remains Ready and unchanged. Recheck all state before admission. A preexisting watcher
 PID 382 started stale S128-only build `57f23335-8f8b-490e-b18e-5d6d4b1db564` at 20:58:24.661Z.
 It was stopped and the build read CANCELLED at 21:01:53.995Z; candidate
 `pmi-kc-app-rmu82xj2c-fa2fae08b587` is absent and traffic unchanged. The exact checkpoint was
 archived with a reason outside Git, and the active checkpoint names the last completed S120 release.
-Do not start again before the batch audit is resolved; see the ordered batch runbook.
+Missing permission blocks forward release even after the installation lock is released. The launcher
+checks admission before starting the watcher; the watcher checks it before polling CI or auth; direct
+forward-mutation entry points require a real inherited kernel lock, exact run/SHA/revision checkpoint and
+admitted permission. Follow `docs/release-batch-runbook.md`; a stopped process alone is not the hold.
 
 `scripts/install-release-watcher.ps1` owns the existing limited interactive-user task
 `PMI KC release watcher`. `-CheckOnly` inspects its logon/catch-up/one-instance contract without
@@ -120,21 +133,15 @@ under `%LOCALAPPDATA%/PMI-KC/release-watcher`. WSL checkpoints and locks stay ou
 `/snap/google-cloud-cli/current/bin` and Node 22.23.2 ahead of the inherited Windows-mounted Cloud
 SDK path. Through the interop path each gcloud read takes 26-44 s (1-2 s natively), which stalled
 the S114 post-promotion observer for its whole 420,000 ms window on 2026-09-16 and forced a verified
-rollback; the launcher now prepends that runtime. On that runtime S114 attempt 2 promoted, then the owner's enrollment expired during observation and
-the required rollback was held on `authentication_required` until the 13:59:18Z re-enrollment, executed
-and verified at 14:05:12Z. Attempt 3 then completed, after a same-lock relaunch of the watcher at 14:41Z:
-the long-lived process had memoized an Identity Platform client with the expired refresh token, so the
-`domains` phase failed each pass while subprocess phases passed. The client-lifecycle fix (`14b486a0`,
-client recreated after a credential failure) shipped with S115; a watcher process started before it
-still needs that relaunch after a re-enrollment: stop the idle native process between passes, confirm
-`flock --nonblock` on `release.lock`, start it again with the command below. S115 attempt 1 rolled back
-with verification because the production canary asserted the work board's exact heading before the
-board settled; since `f3406f3d` the canary settles a route before asserting its landmark.
+rollback; the launcher now prepends that runtime. Historical S114 authentication expiry held recovery
+until attended enrollment; the later S115 client-lifecycle and canary-settling fixes remain in the
+code. Those earlier recovery results do not verify the current batch or permit another launch.
 The task launch writes `status.log`/`errors.log`;
 native launches write `native-status-<tag>.log`/`native-errors-<tag>.log`. The historical
-S115 logs are not current release evidence. A manual native launch on the same lock is
-`export PATH=/snap/google-cloud-cli/current/bin:/home/josiah/.local/opt/node-v22.23.2-linux-x64/bin:$PATH; nohup setsid node scripts/release-watcher.mjs --watch … &`
-after the idle task-launched process is stopped and `flock --nonblock` on `release.lock` succeeds.
+S115 logs are not current release evidence. Start the batch only through the runbook's
+`release-control.mjs --admit-and-watch`: it collects fresh prerequisites and admits the prepared
+exact run under the same lock handed to the watcher. Do not substitute a lock-free check followed by
+a separate launch. Scheduled retries cannot create another application build for that run.
 
 Set MONITORING_OPERATOR_EMAIL in ignored .env.local to the existing verified managed alert
 recipient. It is independent of the approved CLI/ADC login. Missing, non-managed or conflicting
@@ -142,12 +149,12 @@ configuration refuses the watcher; it never rewrites the cloud channel to match 
 The existing channel and recipient passed the historical 2026-09-08 monitoring readback.
 A future promotion still requires fresh monitoring READY for its exact release.
 
-Use `npm run release:watch:dry-run` to inspect one pass or `release:watch:once` for one actual pass.
-The watcher releases the newest green `main` SHA, so a queue of undeployed features ships as one
-candidate; when several are waiting, follow `docs/release-batch-runbook.md` and confirm readiness
-with `npm run release:batch-preflight` first. The watcher takes its checkpoint's SHA while that
-checkpoint is unfinished, so an unfinished checkpoint at an older commit must be archived before
-starting or only that commit deploys.
+`npm run release:watch:dry-run` is inspection only. The actual batch requires a prepared exact-SHA
+permit, fresh preflight GO for all thirteen suites and atomic admission under the release lock.
+The watcher checks the current green `main` SHA against that permit; it cannot advance to another
+head under the same permission. An unfinished checkpoint still pins its exact SHA and must be
+reconciled through the runbook before a new run. Never replace a failed checkpoint or dispatch claim
+to obtain another build.
 The last successful serialized release completed exact SHA `79493458f641b9710d8c43467e872aa9acf7948e`, CI 35173497243, revision `pmi-kc-app-rmu4wevd9-d89996133320` (S120, first attempt; no retries, 2026-09-17).
 The earlier Feature 2 attempt promoted `4e1a4a061cd8b49ef57e910831f6515c57e0089c` / `pmi-kc-app-rmu1zycgi-d28f58f32910`,
 then verified rollback to Feature 1 after a missing observation report and `checkpoint_schedule_invalid`.
@@ -186,13 +193,19 @@ The final Dashboard smoke selects the installed Linux browser explicitly with
 the Windows browser fallback cannot use a Linux remote-debugging pipe. This does not enroll or
 change a managed canary profile.
 Use the required two-worker ceiling for Vitest and complete scratch logs without piping through tail.
-Local Demo + Live-read-only refuses every persistence/provider effect, including app-owned progress.
+Local Demo + Live-read-only refuses business/provider effects, including app-owned progress.
+The owner-approved G2 exception permits only lease-bound version/hash/time approval-invalidation
+metadata during authenticated source reads; it creates no workflow milestone, reviewed history or draft.
 Do not manufacture source data or bypass identity policy to make a browser smoke pass.
 
-The historical S113 verification on native Node 22 passed 6,528 units/four skips, all 201 backend
-tests and production build. The mounted filesystem's slow cold
-startup is separate from ready-process browser acceptance. All seven compiled checks passed without
-relaxing deadlines or source freshness. Private captures remain ignored and unchanged.
+The current local repair rehearsal passed eight compiled smokes: navbar, dashboard-assistant,
+renewal-desk, renewal-guide-controls, maintenance-blockers, maintenance-intake, theme and Work.
+Local notice/draft controls also passed. Final rebuilt G4/G5 controls passed on build
+`pAKd_VsJI8vmZvjAv6Lgu`, with zero forwarded business writes; the complete native gate passed.
+Core E2E startup is being diagnosed and retains a separate verdict. In-memory synthetic transport checks establish local control
+behavior only; they do not establish production writes, real-form accuracy or provider acceptance.
+The mounted filesystem's slow cold startup is separate from ready-process browser acceptance.
+No source-freshness limit or browser deadline was relaxed. Private captures remain outside Git.
 
 ## Preflight
 
@@ -213,26 +226,21 @@ enrollment command it names; do not bridge a token by hand.
 
 ## Candidate release
 
-These commands describe the gated release contract. Do not execute them while the current batch
-safety/litmus findings remain open; current preflight GO alone is insufficient.
-
-```bash
-npm run release -- --environment=production --execute \
-  --operator-email=josiah@pmikcmetro.com \
-  --monitoring-operator-email=josiah+alerts@pmikcmetro.com \
-  --admin-profile=/home/josiah/pmi-assurance/owner-admin \
-  --budget-confirmed --allow-multiple-spaces
-```
+Use the ordered admission and watcher procedure in `docs/release-batch-runbook.md`. The local
+implementation requires the exact admitted run and actual inherited lock for every mutation-capable
+entry. Standalone execute/promote commands are not a substitute for that procedure. Before the one
+application Cloud Build, prepare and verify the paused recovery baseline described below. Its
+zero-traffic predecessor clone uses the captured image digests and does not require another build.
 
 Capture the returned exact candidate revision, candidate tag, candidate origin, and predecessor.
 Compare the candidate's normalized runtime spec to the captured predecessor, allowing only reviewed
-image and `APP_COMMIT_SHA` identity differences plus any explicitly authorized change. Inspect
+image and `APP_COMMIT_SHA` identity differences plus the explicitly authorized Sheet pause. Inspect
 provider-generated per-build provenance metadata separately.
 
-The accepted candidate is now serving: `79493458f641b9710d8c43467e872aa9acf7948e` / `pmi-kc-app-rmu4wevd9-d89996133320`, tag `cand-rmu4wevd9-d89996133320`.
+The historical S120 candidate is now serving: `79493458f641b9710d8c43467e872aa9acf7948e` / `pmi-kc-app-rmu4wevd9-d89996133320`, tag `cand-rmu4wevd9-d89996133320`.
 Captured predecessor is `pmi-kc-app-rmu4s6qo5-5d81e4f12265`. Fingerprint `sha256:d44428cbddc18208ef1422dff178fd2f24af77119465497623f02cd57c686568`.
-Exact candidate and canonical versions, traffic and configuration passed all release readbacks.
-The commands below remain the required contract for future releases.
+Exact S120 candidate and canonical versions, traffic and configuration passed its release readbacks.
+The read-only diagnostic below remains part of the watcher's candidate gate.
 
 Run the anonymous, GET-only candidate smoke before any authenticated browser check:
 
@@ -247,14 +255,17 @@ Do not promote until the anonymous smoke and the complete S51 candidate assuranc
 
 ## S51 candidate and post-promotion assurance
 
-Run these gates only after the remediation commit is clean, pushed, and green at its exact SHA. Add
-the exact candidate hostname to Firebase authorized domains through a reviewed managed cloud change
-and read it back. The owner's September 10 direction accepts the existing
+Run these gates only after the remediation commit is clean, pushed, and green at its exact SHA,
+and the runbook admits that exact batch. The watcher binds the candidate domain step to its exact
+candidate and verifies the resulting authorized-domain list. The owner's September 10 direction accepts the existing
 `josiah@pmikcmetro.com` Admin profile on both the candidate and canonical origins. The enrolled
 profile is `/home/josiah/pmi-assurance/owner-admin`, outside the repository. Re-establish its
 session with `npm run auth:ensure -- --need=canary --origins=<canonical>,<candidate> --admin-profile=/home/josiah/pmi-assurance/owner-admin --admin-email=josiah@pmikcmetro.com`.
-Version 4 candidate/promotion receipts bind `browserPolicy=owner-admin-2026-09-10`; the candidate
-and predecessor baseline explicitly record Editor `not_run`. Admin access does not prove Editor
+Historical version-4 candidate/promotion receipts retain `browserPolicy=owner-admin-2026-09-10`,
+their original identity proof and Editor `not_run`; they are never rewritten for the new run.
+The repaired batch uses version-5 candidate/promotion receipts that additionally bind the exact run
+and immutable supplemental recovery-receipt hash. Candidate and recovery assurance retain the same
+Admin-only policy and Editor `not_run`. Admin access does not prove Editor
 restrictions; backend role tests remain required. No role, claim or canary business-refusal identity
 changes. Copied cookies, guessed profiles and runner-entered security challenges remain forbidden.
 
@@ -274,31 +285,21 @@ npm run assure:production-observation -- \
   --expected-revision=<candidate-revision>
 ```
 
-Choose two new, explicit receipt paths outside the repository. Run the aggregate candidate gate; it
-serially runs the complete Admin canary, independent Admin source reconciliation, origin/
-traffic/configuration binding, predecessor recovery baseline, and monitoring readback. Production
-promotion does not accept independently run diagnostic commands as a substitute for this receipt:
-
-```bash
-npm run assure:production-observation -- \
-  --prepare-candidate-receipt --live \
-  --base-url=<candidate-origin> \
-  --expected-commit=<exact-sha> --expected-revision=<candidate-revision> \
-  --expected-config-fingerprint=<sha256-fingerprint> \
-  --project=pmi-kc-kb-prod --region=us-central1 --service=pmi-kc-app \
-  --operator-email=<managed-operator@pmikcmetro.com> \
-  --admin-profile=<absolute-external-admin-profile> \
-  --candidate-assurance-receipt=<new-absolute-external-candidate-receipt-path>
-```
+The watcher chooses new explicit receipt paths outside Git and runs the aggregate candidate gate:
+complete Admin canary, independent Admin source reconciliation, origin/traffic/configuration binding,
+the prepared recovery receipt and monitoring readback. Promotion does not accept independently run
+diagnostics as a substitute for the exact aggregate receipt. Receipts and terminal checkpoints are
+immutable evidence; failed or interrupted attempts remain exactly as recorded.
 
 The canary/reconciliation browser starts offline with service workers blocked, installs its
 GET/HEAD-only firewall, then connects. It must use the exact candidate revision's bound Sheet
 configuration and fail closed on mutation, identity drift, partial reads, or source/application
 disagreement.
 
-The monitoring setup generator is print-only. If the exact managed S51 resource set is absent,
-render its fully targeted plan, review every emitted mutation and rollback command, run the approved
-commands, and then use the read-only verifier. The operator address is `josiah+alerts@pmikcmetro.com`,
+The monitoring setup generator is print-only. This release task authorizes no monitoring, budget,
+guardrail or security-setting repair. If the exact managed S51 resource set is absent or differs,
+hold the dependent phase and report the readback; do not apply generated setup commands.
+The operator address is `josiah+alerts@pmikcmetro.com`,
 which is the address the managed channel actually carries; passing any other internal address reports
 a channel definition mismatch. Do not wait on an email-channel verification step: the provider owns
 `verificationStatus` (it is settable only through `notificationChannels.verify`, never by patch) and
@@ -322,57 +323,49 @@ notification channel before promotion. The verifier refuses a channel the provid
 The fresh-setup plan refuses while any managed S51 resource already exists, so a partial set needs a
 reviewed in-place repair to the committed definitions rather than a rerun of setup.
 
-Before promotion, establish the versioned recovery baseline on the still-serving predecessor. Read
-its exact commit, revision, configuration fingerprint, and 100% traffic, then run the Admin
-canary against the canonical origin with `--phase=rollback`. That phase alone may select a
-workspace through the predecessor's existing `.renewal-lease-link` when the newer
-`data-workspace-available` marker does not exist. It still requires exact version/configuration,
-the complete Admin route manifest, no browser diagnostic, and ready monitoring. Do not run the
-candidate-era semantic reconciliation against a predecessor that does not publish its markers.
+Before the application build, the watcher captures the still-serving predecessor's exact commit,
+revision, complete reviewed configuration, resolved container image digests and 100% traffic in an
+immutable original baseline. Because that predecessor has Sheet writes enabled, the shared recovery
+module prepares one zero-traffic clone from that predecessor configuration, changing only the revision
+identity and Sheet=false. It does not use the current service template or build a new predecessor image.
+Ready state, exact configuration/digests, version, tagged Admin assurance, monitoring and unchanged
+original traffic must pass before a separate immutable supplemental recovery receipt is issued.
+
+Recovery Admin assurance uses `--phase=rollback`; only that phase may select a workspace through the
+predecessor's existing `.renewal-lease-link` when newer semantic markers are absent. Exact version,
+configuration, the complete Admin route manifest, diagnostics and monitoring remain required.
+Candidate-era semantic reconciliation cannot be imposed on a predecessor without those markers.
+This recovery implementation and its failure paths pass local tests; the current batch's real
+zero-traffic clone, recovery receipts and cloud readbacks are NOT RUN.
 
 ## Promotion and observation
 
-Promote only the exact passed candidate. The release command validates the fresh aggregate receipt
-and reserves the new promotion-receipt path before traffic changes:
+Promotion runs only inside the admitted watcher's exact promotion checkpoint. Immediately before
+its durable one-attempt claim, the release command revalidates kernel lock/admission, fresh candidate
+assurance, the still-serving original's 100% traffic/configuration and the prepared paused target's
+Ready state, digests, configuration and receipt. It reads back exact candidate 100% traffic before
+committing the version-5 promotion receipt. No caller may substitute another predecessor, recovery
+target, fingerprint or run identity.
 
-```bash
-npm run release -- --environment=production --promote \
-  --candidate-revision=<candidate-revision> \
-  --candidate-assurance-receipt=<absolute-external-candidate-receipt-path> \
-  --promotion-receipt=<new-absolute-external-promotion-receipt-path> \
-  --operator-email=josiah@pmikcmetro.com \
-  --monitoring-operator-email=josiah+alerts@pmikcmetro.com \
-  --admin-profile=/home/josiah/pmi-assurance/owner-admin \
-  --budget-confirmed --allow-multiple-spaces
-```
+Post-traffic promotion failure and observer rollback now use the same receipt-bound recovery
+executor. A globally shared durable claim precedes the one traffic request. Lost replies and restart
+reconcile that exact target and retained operation; they cannot dispatch another target or retry an
+ambiguous traffic change. Recovery succeeds only after exact target traffic/version/configuration,
+Sheet=false, Admin assurance and monitoring pass. Authentication failure preserves the recovery
+intent for the owner's attended enrollment. Held or expired forward permission does not revoke
+already-authorized exact receipt-bound recovery, but actual kernel lock and phase proof remain required.
 
-The command reads back exact 100-percent traffic before committing the promotion receipt.
-Current defect: its post-traffic failure compensation restores the raw receipt-bound predecessor
-without checking the Sheet pause. That predecessor currently has writes enabled. Promotion is blocked
-until this path preserves S128 and verifies the exact safe recovery target.
-
-Run the canonical-origin observation with the bound promotion receipt, fingerprint, managed
-operator, and the explicit Admin profile. The observer rejects caller-supplied predecessor or promotion
-time:
-
-```bash
-npm run assure:production-observation -- \
-  --live --base-url=https://pmi-kc-app-kq6wuvpiva-uc.a.run.app \
-  --expected-commit=<exact-sha> --expected-revision=<candidate-revision> \
-  --expected-config-fingerprint=<sha256-fingerprint> \
-  --project=pmi-kc-kb-prod --region=us-central1 --service=pmi-kc-app \
-  --promotion-receipt=<absolute-external-promotion-receipt-path> \
-  --operator-email=<managed-operator@pmikcmetro.com> \
-  --admin-profile=/home/josiah/pmi-assurance/owner-admin
-```
+The watcher runs canonical observation with the bound promotion receipt, fingerprint, managed
+operator and explicit Admin profile. The observer rejects caller-supplied predecessor or promotion
+time. The current batch's promotion and observation remain NOT RUN.
 
 The runner executes immediate and end-of-300,000-ms Admin canaries and reconciliation. It may
 wait only through the specified two-minute monitoring-ingestion grace. It emits a bodyless decision
-and never changes traffic. A `rollback_required` result requires a receipt-bound, Sheet-paused
-recovery target and its actual Admin/configuration/monitoring/100%-traffic readbacks. Current defect:
-the watcher can redeploy a paused predecessor image but still verifies the original revision and
-fingerprint, without durably retaining the replacement target. This must be repaired before release. Do not claim that
-an older predecessor implements the candidate's new Renewal Desk reconciliation schema.
+and never changes traffic in observation mode. A `rollback_required` result invokes the shared
+recovery flow under the watcher lock. Its durable target is the supplemental receipt's paused
+revision and fingerprint; it never verifies a replacement against the original enabled revision's
+identity. Do not claim that an older predecessor implements the candidate's new Renewal Desk
+reconciliation schema.
 
 After a passed observation, independently read back traffic, Ready state, service account,
 Production + Live descriptor, exact Space maps, expected secret references, allowance 50, current
@@ -393,10 +386,11 @@ A future batch would capture currently serving `pmi-kc-app-rmu4wevd9-d8999613332
 `79493458f641b9710d8c43467e872aa9acf7948e` as its predecessor. That revision reads Sheet writes
 true, so a bare traffic restoration would violate S128.
 
-Forward restoration and rollback commands must wait for the corrected pause-preserving recovery
-contract, exact receipt binding and configuration/traffic/browser readbacks. The current batch audit
-blocks relying on either compensation path. No historical receipt may be changed to make a new
-revision or fingerprint match. No rollback rehearsal was run in this task.
+Forward restoration and rollback use the implemented shared pause-preserving recovery contract,
+exact receipt binding and configuration/traffic/browser readbacks. Local failure, restart and
+process-ownership tests passed. Actual cloud recovery preparation and any required recovery remain
+release gates; local tests do not establish a verified production rollback. No historical receipt
+may be changed to make a new revision or fingerprint match. No rollback rehearsal was run in this task.
 
 Historical recovery coordinates remain provenance only. The prior S113 release captured
 `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` / `d243911cb20ffb01773072c0e27c723648eeea34`;
@@ -432,5 +426,5 @@ R29 full-cohort desk passed sorting/filtering, inspection-only refusal, active d
 return/Back, keyboard/targets and narrow/zoom layout budgets. The guide passes all 42 semantic
 steps. Independent page reads now run in parallel with their existing source/failure contracts;
 fragment history restores the dashboard. Source freshness and every deadline remain unchanged.
-B-REH1 closed for that local acceptance. The thirteen-feature batch browser smokes remain NOT RUN;
-exact-SHA candidate assurance remains a separate release gate.
+B-REH1 closed for that historical local acceptance. Current batch local rehearsal evidence is stated
+above; final rebuilt controls passed, while exact-SHA candidate assurance remains a separate gate.

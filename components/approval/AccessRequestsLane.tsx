@@ -774,8 +774,7 @@ function formatAccess(access: AccessRequestRecordV1["target_access"]) {
 }
 
 function formatDate(value: string) {
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) ? formatBusinessTimestamp(timestamp) : "Unknown time";
+  return formatBusinessTimestamp(value, "Unknown time");
 }
 
 function formatAge(createdAt: string, referenceTime: string) {

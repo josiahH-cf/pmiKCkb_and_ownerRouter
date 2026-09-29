@@ -4,9 +4,9 @@
 # S125 — Thirty-day notice timing review with an explicit date basis
 
 > **Approval reference:** F04 (original feature #4).
-> **Status:** IMPLEMENTED and CI-GREEN at `41d6e00c` (2026-09-20); release deferred by the billing incident; no deployment, provider activation, or meeting validation has occurred. The reviewed target-date meaning and counting convention remain an owner input recorded through the Admin panel. Serving evidence: `docs/facts.md` F-S125.
+> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `41d6e00c` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
-> **Registration:** S125 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F04 when renumbering.
+> **Registration:** Registered as S125 in `docs/feature-suites/README.md`; the original F04 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** New operational timing indicator; not a legal or fee determination.
 
 **Goal.**
@@ -19,7 +19,7 @@ C03 — Explain a reviewable timing result without inventing policy or money owe
 
 **Current state / intended end state.**
 
-**Current evidence:** The transcript states PMI requires 30-day notice and mentions a RentVine notice-given date, but does not establish whether the comparison target is scheduled move-out, contractual end, or another date, nor legal counting rules. Existing renewal notice/follow-up rules concern a different workflow and MUST not silently be repurposed as move-out policy.
+**Current evidence:** The local implementation compares verified noticeDate with one explicitly reviewed target under the versioned calendar-day rule, presents both dates and the attributed result, and exposes Admin revision-checked basis configuration. The owner's intended target-date meaning and counting convention remain required inputs; an absent or unreadable basis yields Cannot determine. Existing renewal follow-up rules are not substituted for move-out policy. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** A deterministic calculator and source-attributed display work once the target-date/counting basis is explicitly reviewed. Until then, the UI identifies the missing basis instead of issuing a misleading yes/no. No fees, balances, legal conclusions, or notices are generated.
 
@@ -129,7 +129,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** Staff can see the exact dates and the number of days given, understand why a case needs review, and never mistake an unknown date or unset policy for a yes/no answer.
 
-- Model/engineering verdict: PASS in local engineering tests on `41d6e00c` (2026-09-20): AC-S125-1 through AC-S125-7 covered by the unit, store, route and component cases named in F-S125 (compiled browser checks NOT RUN while rehearsal auth is blocked); no deployed readback; the unconfigured state is the delivered default until the owner records the basis.
+- Model/engineering verdict: Historical baseline PASS in local engineering tests on `41d6e00c` (2026-09-20): AC-S125-1 through AC-S125-7 covered by the unit, store, route and component cases named in F-S125 (compiled browser checks NOT RUN while rehearsal auth is blocked); no deployed readback; the unconfigured state is the implemented default until the owner records the basis. Current repair-batch results and remaining gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); the historical result does not verify the current batch or deployment.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

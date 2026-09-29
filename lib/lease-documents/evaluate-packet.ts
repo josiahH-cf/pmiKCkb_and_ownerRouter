@@ -96,6 +96,13 @@ export function evaluateRenewalPacket(input: PacketEvaluationInput): PacketEvalu
       : "Ready for preview";
 
   const sourceVersions = collectSourceVersions(input, manifest);
+  const filling = input.catalog.artifacts.filter(
+    (artifact) =>
+      artifact.fillMapping &&
+      manifest?.includedArtifacts.some(
+        (included) => included.artifactId === artifact.artifactId,
+      ),
+  );
   const hashPayload = {
     schemaVersion: 1,
     leaseId: input.leaseId,
@@ -108,6 +115,19 @@ export function evaluateRenewalPacket(input: PacketEvaluationInput): PacketEvalu
     catalogVersion: input.catalog.catalogVersion,
     ruleVersion: input.catalog.ruleVersion,
     sourceVersions,
+    ...(filling.length
+      ? {
+          fillInputHash: stablePacketHash({
+            maps: filling.map((artifact) => ({
+              artifactId: artifact.artifactId,
+              mapHash: artifact.fillMapping!.mapHash,
+            })),
+            facts: input.facts,
+            participants: input.participants,
+            animals: input.animals,
+          }),
+        }
+      : {}),
   };
 
   return {

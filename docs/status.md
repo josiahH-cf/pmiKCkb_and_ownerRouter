@@ -1,37 +1,27 @@
 # PMI KC current status
 
-Last updated: 2026-09-28 (UTC).
+Last updated: 2026-09-29 (UTC).
 
 ## Current feature
 
-**BLOCKED — thirteen-feature batched release.** Billing is enabled and approved CLI/ADC
-authentication works. The cumulative head `f85abacc771dc0f85c2f7bf69af3d05d8402e88e` is present
-in both checkouts and remote main; exact-SHA CI 35549486717 passed. Native batch preflight read GO
-with thirteen entries and the current head as watcher target before these documentation edits.
-Independent code review nevertheless found release-safety and litmus gaps, so no batch candidate,
-promotion or observation is claimed. Owner direction on repair or stopping is pending.
+**BLOCKED — fresh attended Google enrollment and release admission. Local objective verification passed.**
+Native run K passed 7,174 unit tests in 795 files, 230 backend tests in 41 files, all required gates and production build hkH9ZkYerS_oUJOH5zk1z.
+Objective compiled checks passed on immutable build K: cold notice readiness in 16.563 seconds, a clean desk-warmed read in 16.778 seconds, exact save/readback focus and all 71 guide steps. Actual-source presentation and a separate six-category synthetic presentation passed both themes and 320/640/1360-pixel layouts, with zero overflow plus contrast, keyboard, accessible-tree, forced-colors and page-scale checks. A separate instrumented diagnostic verified all 311 source/cache/projected/rendered records and per-row categories before and after a newer API read, with zero missing records or duplicates. Its API read passed in 17.591 seconds and the desk caught up within its unchanged route deadline. Synthetic presentation establishes component presentation only; it does not establish actual source projection. Earlier failures remain unchanged outside Git. Human screen-reader and desktop full-page zoom verdicts remain NOT RUN.
+All 118 references are mapped in [batch litmus evidence](evidence/batch-litmus-audit-2026-09-28.md). Final K core E2E passed 31 tests with 18 intentional skips. Its isolated next-dev run preserved all 258 changed source hashes and build K; it is separate from compiled production acceptance. Human screen-reader and desktop full-page zoom verdicts remain NOT RUN. Every earlier failure is preserved.
 
-The thirteen queued features remain S128, S123, S124, S134, S122, S125, S126, S127, S131, S129,
-S130, S132 and S133. Their individual commit/CI evidence is in `docs/loop-state.md` and
-`docs/facts.md`. They must ship together through `docs/release-batch-runbook.md` after repairs,
-verification and all existing gates. S121 remains separate and unscheduled.
+The thirteen-feature queue remains S128, S123, S124, S134, S122, S125, S126, S127, S131, S129,
+S130, S132 and S133. S121 remains separate and unscheduled. Exact-head green push CI, fresh
+prerequisites and GO, one candidate, promotion, observation and independent readbacks remain gates.
+No batch deployment or release receipt exists.
+Fresh attended WSL enrollment and Admin browser sign-in are required. CLI/ADC refresh passed,
+but the 2026-09-28T20:56:36.677Z enrollment exceeds the seven-hour release-start budget.
 
-Current audit: [batch litmus evidence](evidence/batch-litmus-audit-2026-09-28.md).
-Confirmed gaps are pause-unsafe promotion compensation, receipt-incompatible paused observer
-rollback, unintegrated notice-withdrawal history, incomplete manual non-renewal draft refusals and
-notice-review invalidation, raw ISO/impossible dates in move-out labels, automatic Sheet proposal
-preparation and stale pause-resume confirmations, and unintegrated actual template filling. These findings prevent claiming every supplied litmus criterion passes.
-PDF manual completion is an allowed fallback; missing real forms and provider activation remain
-separate dependencies.
-
-Focused verification passed 194 tests in 37 files. Full verify.sh passed: formatting, lint,
-TypeScript, 6,953 unit tests in 773 files, 216 backend tests in 38 files, all seven policy/document
-gates, configuration guard and production build. Core E2E passed 31 tests in eight files;
-18 tests in four Firestore-only files were intentionally skipped by core mode. The earlier
-missing-Java-PATH attempt remains preserved; the complete rerun passed with installed Java 21.
-Compiled feature browser smokes and human verdicts for this batch remain NOT RUN. Admin browser
-authentication is UNVERIFIED after two 60-second sign-in navigation timeouts with no observed challenge; canonical sign-in HTTP 200
-does not establish an authenticated session.
+Repairs include reviewed notice evidence and the approved invalidation marker, both-audience final-
+claim refusal, strict dates across 69 consumers, proposal-free Sheet pause, actual immutable filled
+PDF output/approval and shared paused recovery with exact admission/lock. Independent parsing checked
+14 PDF fields; six real PDF races passed. Release recovery/control passed 135 focused tests including
+five real process tests. Actual form accuracy and human verdicts retain their external prerequisites;
+synthetic fixtures never become production records.
 
 ## Cancelled stale attempt and watcher
 
@@ -42,8 +32,9 @@ Candidate `pmi-kc-app-rmu82xj2c-fa2fae08b587` is absent, and traffic did not cha
 The attempt was not relabeled successful.
 
 The stale checkpoint is preserved verbatim with a reason outside Git. The active checkpoint now
-names the last completed S120 release. Zero watcher processes and a free lock were read back;
-the unchanged scheduled task remains Ready. Recheck the process and lock before any later start.
+names the last completed S120 release. At 2026-09-29T02:31:17Z eleven release files matched both checkouts, the permit was absent and zero
+watchers were found. The temporary installation hold was released and the kernel lock read free.
+Direct admission still refused; the unchanged scheduled task remains Ready. Recheck before resuming.
 
 ## Serving release
 
@@ -64,7 +55,11 @@ remain evidence for that release. They do not verify the queued batch.
 
 ## Authentication and cost controls
 
-Approved `josiah@pmikcmetro.com` WSL CLI/ADC authentication passed on 2026-09-28.
+Approved `josiah@pmikcmetro.com` WSL CLI/ADC refresh passed on 2026-09-29.
+At 03:03:37.930Z, an independent Identity Platform Google-provider read returned HTTP 200
+with the expected resource and enabled=true. No authentication setting was changed.
+Guarded Admin browser authentication remains UNVERIFIED after a genuine Google challenge;
+attended enrollment closed before verification and now awaits the owner.
 Billing is enabled on the expected account. The unchanged controls read back as alert 25 USD,
 project hard stop 100 USD, account backstop 100 USD and ACTIVE Node.js 22 guardrail with cap 100.
 The hard-stop Pub/Sub configuration is present, and both alerts retain two channels.

@@ -1,4 +1,5 @@
 "use client";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 
 // Shared lease-renewal flag actions (slice 1b). The resolve form and the Admin approve / return /
 // revoke write-back controls were extracted verbatim from LeaseRenewalRunClient so both the run page
@@ -21,6 +22,7 @@ import type { WritebackProposal } from "@/lib/lease-renewal/writeback-proposal";
 import { displaySourceLabel } from "@/lib/lease-renewal/source-display";
 import { Field } from "@/components/ui";
 import { ReasonCodeSelect } from "@/components/lease-renewal/ReasonCodeSelect";
+import { useRenewalSaveFocus } from "@/components/lease-renewal/RenewalSaveFocus";
 
 type ResolveKind = "pick_source" | "corrected_value" | "flag_incorrect";
 
@@ -53,6 +55,7 @@ export function FlagResolveForm({
   isAdmin: boolean;
 }) {
   const router = useRouter();
+  const focusAfterSave = useRenewalSaveFocus();
   // Unique per instance so multiple resolve forms on one page don't collide on field ids.
   const fieldId = useId();
   const requiresAdmin = flag.severity === "High" || flag.severity === "Blocked";
@@ -140,7 +143,7 @@ export function FlagResolveForm({
       setReasonCode("");
       setCorrectedValue("");
       setConfirmationOpen(false);
-      router.refresh();
+      if (!focusAfterSave?.()) router.refresh();
     } catch {
       setError("Could not reach the resolution endpoint.");
       setConfirmationOpen(false);
@@ -435,6 +438,7 @@ export function WritebackApprovalControl({
   showLegacyWritebackRecovery?: boolean;
 }) {
   const router = useRouter();
+  const focusAfterSave = useRenewalSaveFocus();
   const [reason, setReason] = useState("");
   const [reasonCode, setReasonCode] = useState("");
   const [submitting, setSubmitting] = useState<null | "approve" | "return">(null);
@@ -473,7 +477,7 @@ export function WritebackApprovalControl({
       }
       setReason("");
       setReasonCode("");
-      router.refresh();
+      if (!focusAfterSave?.()) router.refresh();
     } catch {
       setError("Could not reach the approval endpoint.");
     } finally {
@@ -1050,8 +1054,8 @@ function SheetWritebackButton({
           <p className="muted">
             Exact correction preview{" "}
             <code>{shortIdentity(correctionPreview.preview.hash)}</code> expires{" "}
-            {correctionPreview.preview.expiresAt}. Any intervening cell change blocks the
-            clear.
+            {formatBusinessTimestamp(correctionPreview.preview.expiresAt)}. Any
+            intervening cell change blocks the clear.
           </p>
           <div className="lr-approve-actions">
             <button
@@ -1099,8 +1103,8 @@ function SheetWritebackButton({
           </p>
           <p className="muted">
             Exact preview <code>{shortIdentity(preview.hash)}</code> expires{" "}
-            {preview.expiresAt}. Any approval, target, value, actor, or environment change
-            invalidates it.
+            {formatBusinessTimestamp(preview.expiresAt)}. Any approval, target, value,
+            actor, or environment change invalidates it.
           </p>
           <div className="lr-approve-actions">
             <button
@@ -1269,7 +1273,8 @@ function WritebackApprovalTimeline({
         {activity.map((entry, index) => (
           <li key={`${entry.createdAt}-${index}`}>
             <strong>{DECISION_LABEL[entry.action]}</strong> by {entry.decidedByUid} ·{" "}
-            {entry.reason} <span className="muted">({entry.createdAt})</span>
+            {entry.reason}{" "}
+            <span className="muted">({formatBusinessTimestamp(entry.createdAt)})</span>
           </li>
         ))}
       </ol>

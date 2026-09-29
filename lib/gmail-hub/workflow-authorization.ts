@@ -6,6 +6,7 @@ import { getWorkflowRun } from "@/lib/firestore/workflows";
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import { requireCurrentLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import { leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
 import { assertWorkflowRunAccess } from "@/lib/space-scope-resources";
 
@@ -61,7 +62,10 @@ export async function requireWorkflowCommunicationContext(
     }
     let views;
     try {
-      views = await requireCurrentLeaseViews(config.rentvineClient, Date.now());
+      views = await requireCurrentLeaseViews(
+        withRenewalNoticeAdmission(user, config.rentvineClient),
+        Date.now(),
+      );
     } catch {
       throw new EditableLayerError(
         "Current live lease evidence is unavailable; refresh it before linking Gmail.",

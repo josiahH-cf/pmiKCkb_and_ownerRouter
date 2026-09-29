@@ -1,7 +1,8 @@
 // AC-S58-10 (named form) + AC-S63-3 (full form). The S63 four-lease test-set baseline is a
 // persisted, IMMUTABLE record: captured once per lease, never revalidated, never overwritten by
-// any refresh. S58 shipped the independently checkable half — the live-lease refresh path has NO
-// write capability at all. S63 completes the sentinel with the store present: the store's only
+// any refresh. The cache itself has no store capability. The owner-authorized 2026-09-29
+// exception permits only durable lease-bound approval-invalidation metadata at source admission.
+// S63 completes the sentinel with the store present: the baseline store's only
 // write is a transactional `create` (a second capture is an API error, not an overwrite), the
 // refresh path never imports the store, and a REAL captured baseline survives a full refresh
 // cycle with its hash byte-identical.
@@ -33,16 +34,35 @@ const REFRESH_PATH_FILES = [
 // types and the lease mapper; the route may add auth/session, config, zod, and Next primitives.
 const WRITE_CAPABLE_IMPORT =
   /from\s+"@\/lib\/(?:firestore|google-sheets|google-drive|gmail-hub|maintenance)\/|write-client|firebase-admin/;
+const ADMITTED_READ_IMPORT =
+  /import\s*\{\s*withRenewalNoticeAdmission\s*\}\s*from\s*"@\/lib\/firestore\/renewal-notice-safety"\s*;?/;
 
 describe("test-set baseline immutability boundary (AC-S58-10 named form)", () => {
-  it("the live-lease refresh path imports no write-capable module", () => {
+  it("the refresh route permits only the exact approved admission helper and no baseline/provider writer", () => {
     for (const rel of REFRESH_PATH_FILES) {
       const source = readFileSync(join(ROOT, rel), "utf8");
       expect(
-        WRITE_CAPABLE_IMPORT.test(source),
+        WRITE_CAPABLE_IMPORT.test(
+          rel === "app/api/lease-renewal/refresh/route.ts"
+            ? source.replace(ADMITTED_READ_IMPORT, "")
+            : source,
+        ),
         `${rel} must not import a write-capable module`,
       ).toBe(false);
     }
+  });
+  it("does not exempt any additional writer imported from the admission module", () => {
+    const extra =
+      'import { withRenewalNoticeAdmission, saveRenewalNoticeReview } from "@/lib/firestore/renewal-notice-safety";';
+    expect(WRITE_CAPABLE_IMPORT.test(extra.replace(ADMITTED_READ_IMPORT, ""))).toBe(true);
+    expect(
+      WRITE_CAPABLE_IMPORT.test(
+        'import { saveRenewalNoticeReview } from "@/lib/firestore/renewal-notice-safety";'.replace(
+          ADMITTED_READ_IMPORT,
+          "",
+        ),
+      ),
+    ).toBe(true);
   });
 
   it("the cache module exports no write-shaped capability", () => {

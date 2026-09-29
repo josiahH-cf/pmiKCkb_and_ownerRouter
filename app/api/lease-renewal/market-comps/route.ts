@@ -117,7 +117,7 @@ async function marketCompsResponse(request: Request) {
 
     const body = await parseJsonBody(request, MarketCompsRequestSchema);
 
-    const sourceBasis = await resolveCurrentMarketCompQueryBasis(body.leaseId);
+    const sourceBasis = await resolveCurrentMarketCompQueryBasis(user, body.leaseId);
     const queryBasis: MarketCompQueryBasis = {
       ...sourceBasis,
       policy: {

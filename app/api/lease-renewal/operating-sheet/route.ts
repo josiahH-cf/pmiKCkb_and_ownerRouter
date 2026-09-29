@@ -254,6 +254,15 @@ async function handleRequest(request: Request, statusOnly: boolean) {
 
     if (body.operation === "propose") {
       assertRenewalRoleAuthority("propose_source_write", user.role);
+      if (!deps.writeFlagEnabled()) {
+        return NextResponse.json(
+          {
+            error: "Operating-Sheet updates are paused; no proposal was created.",
+            error_type: "writeback_paused",
+          },
+          { status: 409 },
+        );
+      }
       if ((body.intent === "update_field") !== (body.fieldIntent !== undefined))
         serviceError("confirmation_invalid");
       if ((body.intent === "update_audience_emails") !== (body.audience !== undefined))
@@ -312,7 +321,7 @@ async function handleRequest(request: Request, statusOnly: boolean) {
       );
       // S128 (F08): the proactive server-owned pause read so the panel shows "recorded in the app
       // only" and hides execute controls before any attempt. It uses the same write switch as the
-      // mutation gate and never blocks status, propose, or reads.
+      // mutation gate and never blocks status or reads; new proposals are refused above.
       const writebackPaused = !deps.writeFlagEnabled();
       if (!proposal) {
         return NextResponse.json({
@@ -384,7 +393,7 @@ async function handleRequest(request: Request, statusOnly: boolean) {
     // S128 (F08): operating-Sheet mutations are paused by explicit owner policy. Every mutating
     // operation (execute, reverse_execute) refuses here with the exact paused reason before the
     // per-key gate or any writer construction. The pause reads the same server-owned write switch the
-    // service gate uses. Status, propose, discard, and read-only reconcile above stay available; the
+    // service gate uses. Status, discard, and read-only reconcile above stay available; the
     // service still fails closed on flag_disabled as defense in depth.
     if (!deps.writeFlagEnabled()) {
       return NextResponse.json(

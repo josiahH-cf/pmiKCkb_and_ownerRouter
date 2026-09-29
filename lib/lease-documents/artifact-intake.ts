@@ -31,8 +31,8 @@ import type {
  * logic for the seven lease-artifact families. Files are untrusted bytes: classification looks
  * for structural tokens and never extracts, interprets or executes content. A mapping worksheet is
  * Preview only; the only fill route this repository can verify produces provider-native field
- * values, so a fillable or static PDF yields a source-filled worksheet and an exact manual Dotloop
- * handoff, never a claim of machine autofill. No I/O; nothing here activates a template, a
+ * values as a preview. Actual PDF filling is implemented by the separate saved-byte AcroForm
+ * service; static/native material keeps its manual handoff. No I/O; nothing here activates a template, a
  * connection or a provider key.
  */
 
@@ -152,13 +152,13 @@ export function classifyUploadedForm(
     reasons.push("The PDF carries embedded files; review them before approval.");
   if (input.providerTemplateRef?.trim()) {
     reasons.push(
-      "A provider template reference was recorded by staff; field values are supplied to the provider.",
+      "A provider template reference was recorded; field values remain a preview for manual handoff.",
     );
     return { ...scanned, format: "provider_native", reasons: reasons.slice(0, 10) };
   }
   if (hasAcroForm) {
     reasons.push(
-      "Form fields are present; machine autofill is not available in this repository, so the fields are completed by a person in Dotloop from the worksheet.",
+      "Possible form fields found; actual parsed field inventory and reviewed mapping are required for filling.",
     );
     return { ...scanned, format: "fillable_pdf", reasons: reasons.slice(0, 10) };
   }
@@ -198,11 +198,15 @@ export function validateFieldMap(
     });
   if (detectedFieldIds)
     for (const field of map.fields)
-      if (field.required && !detectedFieldIds.includes(field.fieldId))
+      if (
+        (field.pdfFieldNames ?? [field.fieldId]).some(
+          (name) => !detectedFieldIds.includes(name),
+        )
+      )
         issues.push({
           code: "renamed_required_field",
           fieldId: field.fieldId,
-          message: `Required field ${field.fieldId} is not among the confirmed form fields.`,
+          message: `Mapped field ${field.fieldId} is not among the confirmed form fields.`,
         });
   for (const signer of map.signers)
     if (PARTICIPANT_KIND_FOR_ROLE[signer.signerRole] !== signer.participantKind)
@@ -322,8 +326,8 @@ export function buildFillWorksheet(
   input: WorksheetInput,
 ): FillWorksheet {
   const rows: WorksheetRow[] = [];
-  const tenants = [...input.participants]
-    .filter((participant) => participant.kind === "tenant")
+  const parties = [...input.participants]
+    .filter((participant) => participant.kind === map.audience)
     .sort((a, b) => a.authoritativeOrder - b.authoritativeOrder);
   for (const field of map.fields) {
     if (field.multiplicity === "single") {
@@ -334,7 +338,7 @@ export function buildFillWorksheet(
     }
     if (field.multiplicity === "per_party") {
       const attribute = field.factKey.slice("party.".length);
-      for (const participant of tenants) {
+      for (const participant of parties) {
         const key = `party.${participant.participantId}.${attribute}`;
         rows.push(
           row(
@@ -385,7 +389,7 @@ export type FillResult =
       readonly kind: "provider_field_values";
       readonly values: Readonly<Record<string, string>>;
       readonly outputHash: string;
-      readonly label: "Filled: provider-native field values";
+      readonly label: "Preview only: prepared field values";
     }
   | {
       readonly kind: "machine_autofill_unavailable";
@@ -411,10 +415,9 @@ export type FillResult =
     };
 
 /**
- * The deterministic filling boundary. Provider-native templates receive exact field values (the
- * only route this repository can independently read back and compare); a fillable or static PDF
- * keeps its source-filled worksheet and the manual Dotloop handoff, labeled unavailable rather than
- * completed. An empty or blank output is never called prefilled.
+ * Worksheet compatibility helper: every result is an inert preview. Provider-native values are
+ * not sent or read back through a field API. Actual PDF output uses prepareDerivedArtifact with
+ * an approved original, reviewed map, saved bytes and complete reopened field comparison.
  */
 export function fillArtifact(input: {
   readonly format: ArtifactFormat;
@@ -449,7 +452,7 @@ export function fillArtifact(input: {
       kind: "provider_field_values",
       values,
       outputHash: sha256(canonicalJson({ mapVersion: worksheet.mapVersion, values })),
-      label: "Filled: provider-native field values",
+      label: "Preview only: prepared field values",
     };
   }
   if (format === "fillable_pdf")
@@ -609,6 +612,11 @@ export function catalogFromIntake(
         retrievedAt: meta.approvedAt,
         version: publicationId,
       },
+      ...(entry.classification?.format === "fillable_pdf"
+        ? {
+            fillMapping: { map, mapHash: mapHashOf(map), intakeRevision: entry.revision },
+          }
+        : {}),
       ...(entry.providerBindings
         ? { providerBindings: { ...entry.providerBindings } }
         : {}),
@@ -621,7 +629,7 @@ export function catalogFromIntake(
     approvedByUid: meta.approvedByUid,
     approvedAt: meta.approvedAt,
     catalog: {
-      catalogVersion: `intake:${sha256(canonicalJson({ artifacts: artifacts.map((a) => a.artifactId) })).slice(0, 16)}`,
+      catalogVersion: `intake:${sha256(canonicalJson({ artifacts: artifacts.map((a) => ({ id: a.artifactId, mapHash: a.fillMapping?.mapHash ?? null })) })).slice(0, 16)}`,
       ruleVersion: "s66-rules-v1",
       activeAt: meta.approvedAt,
       source: {
@@ -790,7 +798,7 @@ export interface CheckpointStatus {
 
 export interface CheckpointEvidence {
   readonly manifest: ArtifactIntakeManifest;
-  /** True when a provider-native fill was independently compared for the selected lease. */
+  /** True only after the selected lease's saved output was independently compared. */
   readonly filledValuesVerified: boolean;
   readonly packetState: string | null;
   readonly providerReceiptId: string | null;
@@ -862,8 +870,8 @@ export function projectIntakeCheckpoints(
     "verify_filled_values",
     evidence.filledValuesVerified ? "done" : approved === 0 ? "blocked" : "pending",
     evidence.filledValuesVerified
-      ? "Provider-native field values were read back and compared for the selected lease."
-      : "Machine autofill is unavailable for PDF forms in this repository; provider-native values are compared when a provider template is recorded, otherwise a person completes the fields in Dotloop.",
+      ? "Actual saved output values were read back and compared for the selected lease."
+      : "Use the lease packet's filled PDF controls for an approved AcroForm mapping; inspect and approve the exact downloaded output. Static and provider-native files remain manual handoffs.",
   );
   push(
     "approve_packet",

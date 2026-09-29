@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { InfoTip } from "@/components/ui";
+import { formatCalendarDate } from "@/lib/date-display";
 import type { ApprovalQueueActionAvailability } from "@/lib/approval/queue";
 import type {
   ApprovalQueueActivityRecord,
@@ -97,7 +98,10 @@ export function QueueDetailPanel({
                   selectedActivity.find((entry) => entry.action === "created")?.actor_uid,
               )}
             />
-            <DetailField label="Due date" value={displayValue(selectedItem.due_date)} />
+            <DetailField
+              label="Due date"
+              value={formatCalendarDate(selectedItem.due_date, displayValue(undefined))}
+            />
             <DetailField
               label="Affected action"
               value={displayValue(selectedItem.affected_system_action)}

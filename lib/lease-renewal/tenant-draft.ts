@@ -10,6 +10,7 @@
 
 import { formatUsd, type DraftFact } from "@/lib/lease-renewal/owner-draft";
 import { formatNoticeDate } from "@/lib/lease-renewal/notice-rules";
+import { formatCalendarDate } from "@/lib/date-display";
 
 export type TenantChannel = "email" | "portal_chat" | "text";
 
@@ -77,7 +78,10 @@ function chargesLine(charges: TenantOfferInput["charges"]): string | null {
 }
 
 /** Compose a tenant renewal-offer draft, rendered for email + portal chat + text. No send. */
-export function buildTenantOfferDraft(input: TenantOfferInput): TenantOfferDraft {
+export function buildTenantOfferDraft(
+  input: TenantOfferInput,
+  dateFormat: "display" | "legacy_receipt" = "display",
+): TenantOfferDraft {
   const offered = formatUsd(input.offeredRent);
   const charges = chargesLine(input.charges);
   const formAsk = input.infoFormUrl
@@ -147,7 +151,12 @@ export function buildTenantOfferDraft(input: TenantOfferInput): TenantOfferDraft
     tenant_name: input.tenantNameLabel,
     // LR-04: the tenant-facing subject/body render a human date ("Aug 31, 2026"), not the raw ISO. The
     // machine fact above (facts[].value) keeps the ISO for downstream use.
-    lease_end_date: formatNoticeDate(input.leaseEndDateIso),
+    lease_end_date:
+      dateFormat === "legacy_receipt"
+        ? /^\d{4}-\d{2}-\d{2}$/.test(input.leaseEndDateIso)
+          ? formatCalendarDate(input.leaseEndDateIso)
+          : input.leaseEndDateIso
+        : formatNoticeDate(input.leaseEndDateIso),
     offered_rent: offered,
     charges_line: charges ?? "",
     form_ask: formAsk ? `\n${formAsk}` : "",

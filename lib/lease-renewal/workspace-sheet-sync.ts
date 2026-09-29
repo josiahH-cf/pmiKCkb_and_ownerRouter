@@ -24,6 +24,8 @@ import {
   type SheetWritebackProposal,
 } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
 import type { SheetEditableField } from "@/lib/lease-renewal/sheet-writeback/field-intent";
+import { isOperatingSheetWritebackPaused } from "@/lib/lease-renewal/sheet-writeback-policy";
+import { sheetRuntimeBindingMatches } from "@/lib/lease-renewal/sheet-writeback/runtime-binding";
 
 const MANUAL_REFERENCE =
   /^workspace:([1-9]\d*):cycle:([a-f0-9-]{36}):manual:([a-f0-9-]{36})$/;
@@ -106,6 +108,11 @@ export async function prepareWorkspaceSheetUpdate(
   input: { leaseId: string; cycleId: string; field: SheetEditableField; eventId: string },
 ) {
   assertMutationAllowed(requireEnvironmentDescriptor());
+  if (isOperatingSheetWritebackPaused())
+    throw new EditableLayerError(
+      "Saved in app; Sheet updates paused. No proposal was created.",
+      409,
+    );
   const state = await getRenewalWorkspace(actor, input.leaseId),
     entry = state?.sourceUpdates[input.field];
   if (
@@ -136,6 +143,7 @@ export async function prepareWorkspaceSheetUpdate(
     );
     if (
       active?.evidenceRef === evidenceRef &&
+      sheetRuntimeBindingMatches(active.runtimeBinding) &&
       Date.parse(active.confirmationExpiresAtIso) > Date.now()
     ) {
       await recordWorkspaceSourceStatus(actor, {

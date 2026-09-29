@@ -196,7 +196,7 @@ export function workStatusFilterLabel(filter: RenewalWorkStatusFilter): string {
   return `Staff status: ${RENEWAL_WORK_STATUS_LABELS[filter]}`;
 }
 
-/** S126: the shared business-time rendering (MM/DD/YYYY, time, zone); an unparseable timestamp is shown as recorded. */
+/** S126: shared business-time rendering, with an explicit invalid state for malformed input. */
 export function formatWorkStatusRecordedAt(iso: string): string {
-  return Number.isFinite(Date.parse(iso)) ? formatBusinessTimestamp(iso) : iso;
+  return formatBusinessTimestamp(iso);
 }

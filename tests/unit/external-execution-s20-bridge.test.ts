@@ -1,3 +1,8 @@
+// Generic S20/transport tests isolate the lease-specific current-message companion guard.
+// Actual renewal admission is exercised by notice-safety claim tests and real backend journeys.
+vi.mock("@/lib/firestore/renewal-message-claim", () => ({
+  assertCurrentRenewalMessageClaim: vi.fn(async () => undefined),
+}));
 import type { Firestore } from "firebase-admin/firestore";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

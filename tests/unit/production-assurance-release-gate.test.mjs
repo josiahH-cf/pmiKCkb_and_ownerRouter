@@ -2,7 +2,12 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { recoveryFixture } from "../helpers/release-recovery-fixture.mjs";
+import {
+  executeSafeRecovery,
+  verifyRecoveryAvailability,
+} from "../../scripts/release-recovery.mjs";
 
 import {
   buildCandidateAssuranceReceipt,
@@ -22,10 +27,19 @@ const RECEIPT = Object.freeze({
   expectedRevision: "pmi-kc-app-candidate-123",
   service: "pmi-kc-app",
 });
-const NOW = Date.parse("2026-09-02T20:00:00.000Z");
-const PREDECESSOR = "pmi-kc-app-predecessor-122";
+const NOW = Date.now();
+const PREDECESSOR = "pmi-kc-app-predecessor-isolated";
+const roots = [];
+afterEach(() => {
+  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+});
+function newRecovery() {
+  const root = mkdtempSync(join(tmpdir(), "promotion-recovery-"));
+  roots.push(root);
+  return recoveryFixture(root, { prepared: true });
+}
 
-function candidateReceipt() {
+function candidateReceipt(recovery) {
   return buildCandidateAssuranceReceipt(
     {
       project: "pmi-kc-kb-prod",
@@ -52,8 +66,17 @@ function candidateReceipt() {
       editorVerdict: "passed",
       reconciliationState: "matched",
       monitoringState: "ready",
+      ...(recovery
+        ? {
+            browserPolicy: "owner-admin-2026-09-10",
+            canonicalOrigin: recovery.receipt.originalBaseline.canonicalOrigin,
+            predecessorBaseline: recovery.receipt.originalBaseline,
+            recoveryBaseline: recovery.reference,
+            editorVerdict: "not_run",
+          }
+        : {}),
     },
-    NOW,
+    Date.now(),
   );
 }
 
@@ -64,6 +87,7 @@ function serving(revision) {
 }
 
 function promotionHarness(readbacks) {
+  const recovery = newRecovery();
   const remainingReadbacks = [...readbacks];
   const trafficTargets = [];
   const runCommand = vi.fn(async (_command, args) => {
@@ -73,14 +97,16 @@ function promotionHarness(readbacks) {
       ?.slice("--to-revisions=".length, -"=100".length);
     if (!target) throw new Error("unexpected_test_command");
     trafficTargets.push(target);
+    recovery.state.service.trafficStatuses[0].revision = target;
     return "";
   });
-  return { runCommand, trafficTargets };
+  return { runCommand, trafficTargets, recovery };
 }
 
 function promotionInput(overrides = {}) {
+  const recovery = overrides.recovery ?? newRecovery();
   return {
-    candidateReceipt: candidateReceipt(),
+    candidateReceipt: candidateReceipt(recovery),
     candidateReceiptPath: "/not-used-by-injected-claim/candidate.json",
     candidateRevision: RECEIPT.expectedRevision,
     deployCommand: "gcloud",
@@ -100,7 +126,21 @@ function promotionInput(overrides = {}) {
       operatorEmail: "operator@pmikcmetro.com",
     }),
     verifyOperatorAccount: vi.fn().mockResolvedValue(undefined),
-    verifyRecovery: vi.fn().mockResolvedValue(undefined),
+    authorize: () => true,
+    verifyPreparedRecovery: async () => {
+      await verifyRecoveryAvailability(recovery.receipt, { client: recovery.client });
+      return recovery.receipt;
+    },
+    verifyRecovery: vi.fn(async () =>
+      executeSafeRecovery(recovery.reference, {
+        client: recovery.client,
+        stateRoot: recovery.root,
+        candidateRevision: RECEIPT.expectedRevision,
+        verifyRecovered: recovery.verifyRecovered,
+        assertLock: () => {},
+        wait: async () => {},
+      }),
+    ),
     reserveReceiptOutput: vi.fn().mockReturnValue({ reserved: true }),
     discardReceiptOutput: vi.fn(),
     buildTrafficCommand: ({ revision }) => ({
@@ -126,6 +166,15 @@ function response(patch = {}) {
 }
 
 describe("production promotion assurance gate", () => {
+  it("refuses direct receipt-bound promotion without the actual inherited kernel lock before auth or effects", async () => {
+    const input = promotionInput({ authorize: undefined });
+    await expect(promoteProductionCandidate(input)).rejects.toThrow(
+      "release_kernel_lock_required",
+    );
+    expect(input.preflightRecovery).not.toHaveBeenCalled();
+    expect(input.verifyOperatorAccount).not.toHaveBeenCalled();
+    expect(input.claimCandidateReceipt).not.toHaveBeenCalled();
+  });
   it("validates a managed operator and two distinct existing external recovery profiles", () => {
     const directory = mkdtempSync(join(tmpdir(), "pmi-promotion-readiness-"));
     const adminProfile = mkdtempSync(join(tmpdir(), "pmi-admin-profile-"));
@@ -239,7 +288,7 @@ describe("production promotion assurance gate", () => {
       PREDECESSOR,
     ]);
     const discardReceiptOutput = vi.fn();
-    const verifyRecovery = vi.fn().mockResolvedValue(undefined);
+    const verifyRecovery = promotionInput({ ...harness }).verifyRecovery;
     await expect(
       promoteProductionCandidate(
         promotionInput({
@@ -252,13 +301,13 @@ describe("production promotion assurance gate", () => {
         }),
       ),
     ).rejects.toThrow(
-      "Production promotion failed after traffic mutation; exact predecessor restored",
+      "Production promotion failed after traffic mutation; prepared paused recovery target restored",
     );
-    expect(harness.trafficTargets).toEqual([RECEIPT.expectedRevision, PREDECESSOR]);
-    expect(harness.runCommand).toHaveBeenCalledTimes(5);
+    expect(harness.trafficTargets).toEqual([RECEIPT.expectedRevision]);
+    expect(harness.runCommand).toHaveBeenCalledTimes(3);
     expect(discardReceiptOutput).toHaveBeenCalledTimes(1);
     expect(verifyRecovery).toHaveBeenCalledWith(
-      expect.objectContaining({ expectedRevision: PREDECESSOR, trafficPercent: 100 }),
+      expect.objectContaining({ targetRevision: harness.recovery.target }),
     );
   });
 
@@ -272,10 +321,10 @@ describe("production promotion assurance gate", () => {
     await expect(
       promoteProductionCandidate(promotionInput({ ...harness, commitReceiptOutput })),
     ).rejects.toThrow(
-      "Production promotion failed after traffic mutation; exact predecessor restored",
+      "Production promotion failed after traffic mutation; prepared paused recovery target restored",
     );
-    expect(harness.trafficTargets).toEqual([RECEIPT.expectedRevision, PREDECESSOR]);
-    expect(harness.runCommand).toHaveBeenCalledTimes(5);
+    expect(harness.trafficTargets).toEqual([RECEIPT.expectedRevision]);
+    expect(harness.runCommand).toHaveBeenCalledTimes(3);
     expect(commitReceiptOutput).not.toHaveBeenCalled();
   });
 
@@ -285,12 +334,13 @@ describe("production promotion assurance gate", () => {
       "pmi-kc-app-unexpected-999",
       RECEIPT.expectedRevision,
     ]);
+    harness.recovery.state.monitoring = false;
     const discardReceiptOutput = vi.fn();
     await expect(
       promoteProductionCandidate(promotionInput({ ...harness, discardReceiptOutput })),
-    ).rejects.toThrow("predecessor restoration could not be verified");
-    expect(harness.trafficTargets).toEqual([RECEIPT.expectedRevision, PREDECESSOR]);
-    expect(harness.runCommand).toHaveBeenCalledTimes(5);
+    ).rejects.toThrow("receipt-bound safe recovery is unverified");
+    expect(harness.trafficTargets).toEqual([RECEIPT.expectedRevision]);
+    expect(harness.runCommand).toHaveBeenCalledTimes(3);
     expect(discardReceiptOutput).not.toHaveBeenCalled();
   });
 
@@ -317,6 +367,7 @@ describe("production promotion assurance gate", () => {
       RECEIPT.expectedRevision,
       RECEIPT.expectedRevision,
     ]);
+    harness.recovery.state.monitoring = false;
     try {
       await expect(
         promoteProductionCandidate(
@@ -326,7 +377,7 @@ describe("production promotion assurance gate", () => {
             reserveReceiptOutput,
           }),
         ),
-      ).rejects.toThrow("predecessor restoration could not be verified");
+      ).rejects.toThrow("receipt-bound safe recovery is unverified");
       expect(existsSync(output)).toBe(false);
       expect(existsSync(reservation.pendingPath)).toBe(false);
     } finally {
@@ -348,12 +399,12 @@ describe("production promotion assurance gate", () => {
       if (mutationCalls === 1) throw new Error("provider_timeout_after_accept");
       return "";
     });
-    const verifyRecovery = vi.fn().mockResolvedValue(undefined);
+    const verifyRecovery = promotionInput({ runCommand }).verifyRecovery;
 
     await expect(
       promoteProductionCandidate(promotionInput({ runCommand, verifyRecovery })),
-    ).rejects.toThrow("exact predecessor restored and recovery verified");
-    expect(trafficTargets).toEqual([RECEIPT.expectedRevision, PREDECESSOR]);
+    ).rejects.toThrow("prepared paused recovery target restored and verified");
+    expect(trafficTargets).toEqual([RECEIPT.expectedRevision]);
     expect(verifyRecovery).toHaveBeenCalledOnce();
   });
 
@@ -423,11 +474,10 @@ describe("production promotion assurance gate", () => {
       candidateReceiptPath: "/outside/candidate.json",
       runCommand,
     });
-    expect(runCommand).toHaveBeenCalledWith(expect.stringMatching(/^npm(?:\.cmd)?$/), [
-      "run",
-      "assure:production-observation",
-      "--",
-      "--verify-rollback-recovery",
+    expect(runCommand).toHaveBeenCalledWith(process.execPath, [
+      "--import=tsx",
+      "scripts/observe-production-release.ts",
+      "--execute-safe-recovery",
       "--live",
       "--recovery-receipt=/outside/candidate.json",
       "--operator-email=operator@pmikcmetro.com",

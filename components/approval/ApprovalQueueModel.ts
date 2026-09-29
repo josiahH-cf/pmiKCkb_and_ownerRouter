@@ -207,15 +207,9 @@ export function displayValue(value: string | undefined) {
   return value?.trim() || "Not set";
 }
 
-/** S126: the shared business-time rendering; an unparseable value is shown as recorded. */
+/** S126: shared business time with explicit unavailable/invalid labels. */
 export function formatDateTime(value: string) {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return formatBusinessTimestamp(date);
+  return formatBusinessTimestamp(value);
 }
 
 export function activityLabel(action: ApprovalQueueActivityRecord["action"]) {

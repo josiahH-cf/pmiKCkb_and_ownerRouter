@@ -51,6 +51,7 @@ it("resolves approved artifact bytes before provider construction or an S20 exec
         ],
         artifactContent,
         packet: {
+          catalog: { artifacts: [] },
           snapshot: {
             execution: {
               loopLink: {
@@ -93,7 +94,7 @@ it.each(["isolated-participant", "another-participant"])(
             role: "TENANT",
           },
         ],
-        packet: {},
+        packet: { catalog: { artifacts: [] } },
         request: {
           action: {
             actionKey: "dotloop.loop.create_from_template",

@@ -40,7 +40,7 @@ export type ArtifactFormat = (typeof ARTIFACT_FORMATS)[number];
 export const ARTIFACT_FORMAT_LABELS: Record<ArtifactFormat, string> = {
   fillable_pdf: "Fillable PDF (form fields present)",
   static_pdf: "Static PDF (no form fields)",
-  provider_native: "Provider-native template (fields supplied to Dotloop)",
+  provider_native: "Provider template reference (manual field handoff)",
   unsupported: "Unsupported or unsafe file",
 };
 
@@ -157,6 +157,12 @@ export const ArtifactFieldMapSchema = z
             meaning: bounded(200),
             required: z.boolean(),
             multiplicity: z.enum(FIELD_MULTIPLICITIES),
+            /** Exact reviewed PDF field names, in authoritative party/animal order. No inferred slots. */
+            pdfFieldNames: z
+              .array(z.string().trim().min(1).max(160))
+              .min(1)
+              .max(100)
+              .optional(),
             allowedSourceSystems: z.array(bounded(64)).min(1).max(8),
           })
           .strict(),
@@ -182,6 +188,16 @@ export const ArtifactFieldMapSchema = z
   .strict()
   .superRefine((map, ctx) => {
     const ids = new Set(map.fields.map((field) => field.fieldId));
+    const pdfTargets = map.fields.flatMap(
+      (field) =>
+        field.pdfFieldNames ?? (field.multiplicity === "single" ? [field.fieldId] : []),
+    );
+    if (new Set(pdfTargets).size !== pdfTargets.length)
+      ctx.addIssue({
+        code: "custom",
+        path: ["fields"],
+        message: "Each actual PDF field may have only one reviewed source.",
+      });
     if (ids.size !== map.fields.length)
       ctx.addIssue({
         code: "custom",
@@ -257,6 +273,18 @@ export const ArtifactClassificationSchema = z
     hasEmbeddedScript: z.boolean(),
     hasEmbeddedFiles: z.boolean(),
     approximatePages: z.number().int().nonnegative().nullable(),
+    /** Parsed from the immutable original, not supplied by a browser or token scan. */
+    pdfFields: z
+      .array(
+        z
+          .object({
+            name: z.string().min(1).max(160),
+            type: z.enum(["signature", "text", "checkbox", "selection", "unsupported"]),
+          })
+          .strict(),
+      )
+      .max(200)
+      .optional(),
     reasons: z.array(z.string().max(200)).max(10),
   })
   .strict();

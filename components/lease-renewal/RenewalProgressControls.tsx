@@ -1,4 +1,6 @@
 "use client";
+import { useRenewalSaveFocus } from "./RenewalSaveFocus";
+import { formatCalendarDateOrTimestamp } from "@/lib/date-display";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -285,6 +287,7 @@ export function OwnerDecisionForm({
   };
 }>) {
   const router = useRouter();
+  const focusAfterSave = useRenewalSaveFocus();
   const currentMarket = preparation?.market ?? current?.market;
   const [preparationSource, setPreparationSource] = useState(preparation?.source ?? "");
   const [analysisReference, setAnalysisReference] = useState(
@@ -1189,7 +1192,7 @@ export function OwnerDecisionForm({
       });
       if (response.ok) {
         setSaved(true);
-        router.refresh();
+        if (!focusAfterSave?.()) router.refresh();
       } else {
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
         setError(payload.error ?? "Could not record the decision.");
@@ -1648,8 +1651,15 @@ export function OwnerDecisionForm({
                       {comp.daysOnMarket !== undefined ? (
                         <> · {comp.daysOnMarket} days on market</>
                       ) : null}
-                      {comp.listedDate ? <> · listed {comp.listedDate}</> : null}
-                      {comp.lastSeenDate ? <> · last seen {comp.lastSeenDate}</> : null}
+                      {comp.listedDate ? (
+                        <> · listed {formatCalendarDateOrTimestamp(comp.listedDate)}</>
+                      ) : null}
+                      {comp.lastSeenDate ? (
+                        <>
+                          {" "}
+                          · last seen {formatCalendarDateOrTimestamp(comp.lastSeenDate)}
+                        </>
+                      ) : null}
                     </li>
                   ))}
                 </ol>
@@ -1739,6 +1749,7 @@ export function RenewalCompleteButton({
   complete,
 }: Readonly<{ leaseId: string; complete: boolean }>) {
   const router = useRouter();
+  const focusAfterSave = useRenewalSaveFocus();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
@@ -1752,7 +1763,7 @@ export function RenewalCompleteButton({
         body: JSON.stringify({ action: "mark_complete", leaseId }),
       });
       if (response.ok) {
-        router.refresh();
+        if (!focusAfterSave?.()) router.refresh();
       } else {
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
         setError(payload.error ?? "Could not mark the renewal complete.");

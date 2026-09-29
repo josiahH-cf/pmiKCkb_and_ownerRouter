@@ -14,8 +14,13 @@ import {
 } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { RENEWAL_TAB_SCHEMAS, type ColumnSchemaField } from "@/lib/lease-renewal/headers";
+import {
+  sheetRuntimeBindingMatches,
+  type SheetWritebackRuntimeBinding,
+} from "./runtime-binding";
 
-export const SHEET_WRITEBACK_PROPOSAL_VERSION = "operating-sheet-writeback/v2";
+export const SHEET_WRITEBACK_PROPOSAL_VERSION = "operating-sheet-writeback/v3";
+export const LEGACY_SHEET_WRITEBACK_PROPOSAL_VERSION = "operating-sheet-writeback/v2";
 
 export const SHEET_ROW_APPEND_KEY = "google_sheets.renewal_checklist.row_append";
 export const SHEET_FIELD_UPDATE_KEY = "google_sheets.renewal_checklist.field_update";
@@ -208,6 +213,8 @@ export interface ValidatedSheetWritebackEffect {
 }
 
 export interface SheetWritebackProposalInput {
+  /** Omitted only when reconstructing a non-executable historical v2 proposal. */
+  readonly runtimeBinding?: SheetWritebackRuntimeBinding;
   /** Server-generated identity for this immutable proposal generation. */
   readonly generationId: string;
   readonly spreadsheetId: string;
@@ -227,7 +234,10 @@ export interface SheetWritebackProposalInput {
 }
 
 export interface SheetWritebackProposal {
-  readonly version: typeof SHEET_WRITEBACK_PROPOSAL_VERSION;
+  readonly version:
+    | typeof SHEET_WRITEBACK_PROPOSAL_VERSION
+    | typeof LEGACY_SHEET_WRITEBACK_PROPOSAL_VERSION;
+  readonly runtimeBinding?: SheetWritebackRuntimeBinding;
   readonly generationId: string;
   readonly spreadsheetId: string;
   readonly tabTitle: string;
@@ -428,6 +438,18 @@ function validateScope(input: SheetWritebackProposalInput): void {
 export function buildSheetWritebackProposal(
   input: SheetWritebackProposalInput,
 ): SheetWritebackProposal {
+  if (
+    input.runtimeBinding &&
+    !sheetRuntimeBindingMatches(input.runtimeBinding, input.runtimeBinding)
+  ) {
+    fail("runtime_binding_invalid", "The proposal requires a verified runtime revision.");
+  }
+  const version = input.runtimeBinding
+    ? SHEET_WRITEBACK_PROPOSAL_VERSION
+    : LEGACY_SHEET_WRITEBACK_PROPOSAL_VERSION;
+  const runtimeFields = input.runtimeBinding
+    ? { runtimeBinding: input.runtimeBinding }
+    : {};
   if (!OPAQUE_ID_RE.test(input.generationId)) {
     fail("generation_invalid", "The proposal requires a server-generated generation id.");
   }
@@ -477,7 +499,8 @@ export function buildSheetWritebackProposal(
             restoreValue: effect.expectedValue,
           },
     effectHash: hashExecutionPreview({
-      version: SHEET_WRITEBACK_PROPOSAL_VERSION,
+      version,
+      ...runtimeFields,
       generationId: input.generationId,
       spreadsheetId: input.spreadsheetId,
       tabTitle: input.tabTitle,
@@ -490,7 +513,8 @@ export function buildSheetWritebackProposal(
   }));
 
   const previewHash = hashExecutionPreview({
-    version: SHEET_WRITEBACK_PROPOSAL_VERSION,
+    version,
+    ...runtimeFields,
     generationId: input.generationId,
     spreadsheetId: input.spreadsheetId,
     tabTitle: input.tabTitle,
@@ -507,7 +531,8 @@ export function buildSheetWritebackProposal(
   });
 
   return {
-    version: SHEET_WRITEBACK_PROPOSAL_VERSION,
+    version,
+    ...runtimeFields,
     generationId: input.generationId,
     spreadsheetId: input.spreadsheetId,
     tabTitle: input.tabTitle,

@@ -106,11 +106,11 @@ describe("S97 RentVine updates panel", () => {
     );
     expect(screen.getByText("Review RentVine updates")).toBeInTheDocument();
     // S117 (R117.3): the decision-point preview reads in business words, not field keys.
-    expect(screen.getByText("ends 2026-08-31")).toBeInTheDocument();
-    expect(screen.getByText("ends 2027-08-31")).toBeInTheDocument();
+    expect(screen.getByText("ends 08/31/2026")).toBeInTheDocument();
+    expect(screen.getByText("ends 08/31/2027")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Lease start date stays 2025-09-01; no other lease field changes.",
+        "Lease start date stays 09/01/2025; no other lease field changes.",
       ),
     ).toBeInTheDocument();
     expect(

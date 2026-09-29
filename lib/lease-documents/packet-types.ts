@@ -1,4 +1,5 @@
 import type { DotloopLoopLink } from "@/lib/lease-documents/dotloop-loop-link";
+import type { ArtifactFieldMap } from "@/lib/lease-documents/artifact-intake-contract";
 
 /**
  * S66 lease-document packet truth types.
@@ -155,6 +156,8 @@ export interface LeaseArtifactVersion {
   audience: PacketAudience;
   supersedesArtifactId?: string;
   publicationSource: PacketSourceReference;
+  /** Reviewed S130 AcroForm contract; a filled derivative is required before provider transport. */
+  fillMapping?: { map: ArtifactFieldMap; mapHash: string; intakeRevision: number };
   providerBindings?: {
     dotloopDocumentRef: string;
     dotloopTemplateRef?: string;
@@ -274,6 +277,8 @@ export interface PacketEvaluation {
   ruleVersion: string;
   sourceVersions: PacketSourceReference[];
   payloadHash: string;
+  /** Present only for mapped actual PDF output; repeated values also invalidate the packet. */
+  fillInputHash?: string;
 }
 
 export interface AuthenticatedTenantCompletionProof {

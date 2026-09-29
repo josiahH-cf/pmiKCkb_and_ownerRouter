@@ -11,6 +11,8 @@
 // authenticated app (design §6.1); they are never logged here.
 
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
+import type { AuthenticatedUser } from "@/lib/auth/session";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import { getLiveLeaseSnapshot } from "@/lib/lease-renewal/live-lease-cache";
 import {
   runFullyLiveRenewalReview,
@@ -93,6 +95,7 @@ export function categorizeLiveReviewError(error: unknown): "auth_error" | "read_
  * `readTimestamp` is injected by the caller so this module has no Date dependency.
  */
 async function runLiveReview(
+  actor: AuthenticatedUser,
   readTimestamp: string,
 ): Promise<
   | { status: "ok"; result: FullyLiveRenewalRunResult }
@@ -104,7 +107,7 @@ async function runLiveReview(
   try {
     // S102: reuse the live lease generation (export + per-lease detail) instead of a second read.
     const { snapshot } = await getLiveLeaseSnapshot(
-      config.rentvineClient,
+      withRenewalNoticeAdmission(actor, config.rentvineClient),
       Date.parse(readTimestamp),
     );
     const result = await runFullyLiveRenewalReview({
@@ -131,10 +134,11 @@ async function runLiveReview(
  * loads them for run_id LIVE_REVIEW_RUN_ID and degrades to an unresolved view when Firestore fails).
  */
 export async function loadLiveRenewalReview(
+  actor: AuthenticatedUser,
   readTimestamp: string,
   overlay: LiveReviewOverlay = {},
 ): Promise<LiveReviewOutcome> {
-  const outcome = await runLiveReview(readTimestamp);
+  const outcome = await runLiveReview(actor, readTimestamp);
   if (outcome.status !== "ok") return { status: outcome.status };
 
   const { result } = outcome;
@@ -166,8 +170,9 @@ export async function loadLiveRenewalReview(
  * runLiveReview with loadLiveRenewalReview so the rebuilt run uses the identical tabs + runId.
  */
 export async function rebuildLiveRenewalRun(
+  actor: AuthenticatedUser,
   readTimestamp: string,
 ): Promise<RenewalRunResult | null> {
-  const outcome = await runLiveReview(readTimestamp);
+  const outcome = await runLiveReview(actor, readTimestamp);
   return outcome.status === "ok" ? outcome.result.run : null;
 }

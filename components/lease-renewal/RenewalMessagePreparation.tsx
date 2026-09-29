@@ -1,4 +1,7 @@
 "use client";
+import { useRenewalSaveFocus } from "./RenewalSaveFocus";
+import { formatBusinessTimestamp, formatSourceCalendarDate } from "@/lib/date-display";
+
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import {
@@ -121,7 +124,7 @@ export function RenewalMessagePreparation({
       key={`${context.leaseId}:${context.state?.cycleId ?? "pending"}:${channel}`}
       leaseId={context.leaseId}
       cycleId={context.state?.cycleId ?? null}
-      refreshBasis={`${context.state?.termsRevision}:${context.state?.preparation?.revision}`}
+      refreshBasis={`${context.state?.revision}:${context.state?.termsRevision}:${context.state?.preparation?.revision}`}
       channel={channel}
       canEdit={canEdit}
     />
@@ -158,6 +161,7 @@ function MessagePreparationEditor({
   channel: "owner" | "tenant";
   canEdit: boolean;
 }) {
+  const focusAfterSave = useRenewalSaveFocus();
   const [current, setCurrent] = useState<Preparation | null>(null);
   const [inputs, setInputs] = useState(emptyMessagePreparationInputs);
   const [dirty, setDirty] = useState(false),
@@ -437,6 +441,7 @@ function MessagePreparationEditor({
           ? "Preparation and review saved. No Gmail draft was created."
           : "Edits saved. Review the current facts before a final export.",
       );
+      focusAfterSave?.();
     } catch (error) {
       setNotice(
         error instanceof Error ? error.message : "Save failed. Your edits remain here.",
@@ -603,7 +608,7 @@ function MessagePreparationEditor({
       <p className="muted">A person sends it; saving here does not record delivery.</p>
       {!cycleId ? <p>Select the current renewal cycle above to retain edits.</p> : null}
       {notice ? <p role="status">{notice}</p> : null}
-      {current?.notices.map((value) => (
+      {[...new Set(current?.notices ?? [])].map((value) => (
         <p key={value} className="muted">
           {value}
         </p>
@@ -727,7 +732,9 @@ function MessagePreparationEditor({
                                       {line.frequency === 1
                                         ? " per month"
                                         : ` every ${line.frequency} months`}
-                                      {line.startDate ? ` from ${line.startDate}` : ""}
+                                      {line.startDate
+                                        ? ` from ${formatSourceCalendarDate(line.startDate)}`
+                                        : ""}
                                       {line.current === false ? " (not current)" : ""}
                                     </option>
                                   ))}
@@ -975,7 +982,7 @@ function MessagePreparationEditor({
                 {signatureEdited
                   ? "Edited here. Saving records this version for this message and retains it for your managed sender."
                   : current.signatureOrigin?.kind === "retained_sender"
-                    ? `Filled from your retained sender signature (saved ${current.signatureOrigin.recordedAt.slice(0, 10)}). Edit here to override; saving binds it to this message.`
+                    ? `Filled from your retained sender signature (saved ${formatBusinessTimestamp(current.signatureOrigin.recordedAt)}). Edit here to override; saving binds it to this message.`
                     : current.signatureOrigin?.kind === "saved"
                       ? current.signatureMatchesActor
                         ? "Saved with this message as your signature for this managed sender."
@@ -1236,7 +1243,7 @@ function MessagePreparationEditor({
                 </p>
               ) : (
                 <ul className="renewal-message-recipients" role="status">
-                  {current.recipients.reasons.map((reason) => (
+                  {[...new Set(current.recipients.reasons)].map((reason) => (
                     <li key={reason}>{reason}</li>
                   ))}
                 </ul>

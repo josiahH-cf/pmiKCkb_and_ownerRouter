@@ -1,4 +1,5 @@
 "use client";
+import { useRenewalSaveFocus } from "./RenewalSaveFocus";
 
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -39,6 +40,7 @@ export function RenewalTenantOutcomeControl({
   leaseId: string;
 }>) {
   const router = useRouter();
+  const focusAfterSave = useRenewalSaveFocus();
   const outcomeId = useId();
   const sourceId = useId();
   const referenceId = useId();
@@ -76,7 +78,7 @@ export function RenewalTenantOutcomeControl({
         }),
       });
       if (response.ok) {
-        router.refresh();
+        if (!focusAfterSave?.()) router.refresh();
       } else {
         const payload = (await response.json().catch(() => ({}))) as {
           error?: string;

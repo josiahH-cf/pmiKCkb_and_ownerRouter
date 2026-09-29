@@ -1,3 +1,12 @@
+const noticeReader = {
+  uid: "fixture-reader",
+  email: "fixture-reader@pmikcmetro.com",
+  hd: "pmikcmetro.com",
+  role: "Editor" as const,
+};
+vi.mock("@/lib/firestore/renewal-notice-safety", () => ({
+  withRenewalNoticeAdmission: (_actor: unknown, reader: object) => reader,
+}));
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { leaseTermSourceFingerprint } from "@/lib/lease-renewal/lease-term";
@@ -45,7 +54,7 @@ describe("readLeaseTermSource (S103 server-side term binding)", () => {
   });
 
   it("fingerprints exactly the lease the id names, from the live snapshot", async () => {
-    const read = await readLeaseTermSource("116", 1_000);
+    const read = await readLeaseTermSource(noticeReader, "116", 1_000);
     expect(read).toEqual({
       status: "ok",
       sourceFingerprint: leaseTermSourceFingerprint(VIEW_116),
@@ -57,10 +66,10 @@ describe("readLeaseTermSource (S103 server-side term binding)", () => {
   });
 
   it("reports a lease the live snapshot does not contain, never a fingerprint for it", async () => {
-    await expect(readLeaseTermSource("999")).resolves.toEqual({
+    await expect(readLeaseTermSource(noticeReader, "999")).resolves.toEqual({
       status: "lease_not_found",
     });
-    await expect(readLeaseTermSource("abc")).resolves.toEqual({
+    await expect(readLeaseTermSource(noticeReader, "abc")).resolves.toEqual({
       status: "lease_not_found",
     });
   });
@@ -69,18 +78,24 @@ describe("readLeaseTermSource (S103 server-side term binding)", () => {
     mocks.getLiveLeaseSnapshot.mockResolvedValueOnce({
       snapshot: { views: [VIEW_115], complete: false, readAtMs: 0 },
     });
-    await expect(readLeaseTermSource("999")).resolves.toEqual({ status: "unavailable" });
+    await expect(readLeaseTermSource(noticeReader, "999")).resolves.toEqual({
+      status: "unavailable",
+    });
   });
 
   it("reports the source unavailable when the live read throws or is not configured", async () => {
     mocks.getLiveLeaseSnapshot.mockRejectedValueOnce(new Error("RentVine 503"));
-    await expect(readLeaseTermSource("115")).resolves.toEqual({ status: "unavailable" });
+    await expect(readLeaseTermSource(noticeReader, "115")).resolves.toEqual({
+      status: "unavailable",
+    });
 
     mocks.buildLiveRenewalConfig.mockReturnValueOnce({
       ok: false,
       reason: "missing_env",
     });
-    await expect(readLeaseTermSource("115")).resolves.toEqual({ status: "unavailable" });
+    await expect(readLeaseTermSource(noticeReader, "115")).resolves.toEqual({
+      status: "unavailable",
+    });
     expect(mocks.getLiveLeaseSnapshot).toHaveBeenCalledTimes(1);
   });
 });

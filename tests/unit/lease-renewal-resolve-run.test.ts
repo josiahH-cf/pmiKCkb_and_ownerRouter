@@ -1,3 +1,9 @@
+const noticeReader = {
+  uid: "fixture-reader",
+  email: "fixture-reader@pmikcmetro.com",
+  hd: "pmikcmetro.com",
+  role: "Editor" as const,
+};
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const rebuildLiveRenewalRun = vi.hoisted(() => vi.fn());
@@ -19,21 +25,23 @@ describe("resolveRenewalRun", () => {
   });
 
   it("rebuilds only the ordinary Live review id", async () => {
-    await expect(resolveRenewalRun("live-review")).resolves.toMatchObject({
+    await expect(resolveRenewalRun(noticeReader, "live-review")).resolves.toMatchObject({
       runId: "live-review",
     });
     expect(rebuildLiveRenewalRun).toHaveBeenCalledOnce();
   });
 
   it("refuses former sample, Test, and unknown ids without a persistence read", async () => {
-    await expect(resolveRenewalRun("sim-renewal-001")).resolves.toBeNull();
-    await expect(resolveRenewalRun("test-renewal-persisted")).resolves.toBeNull();
-    await expect(resolveRenewalRun("does-not-exist")).resolves.toBeNull();
+    await expect(resolveRenewalRun(noticeReader, "sim-renewal-001")).resolves.toBeNull();
+    await expect(
+      resolveRenewalRun(noticeReader, "test-renewal-persisted"),
+    ).resolves.toBeNull();
+    await expect(resolveRenewalRun(noticeReader, "does-not-exist")).resolves.toBeNull();
     expect(rebuildLiveRenewalRun).not.toHaveBeenCalled();
   });
 
   it("returns the same Live-only resolver to the authenticated route", async () => {
-    const resolve = createRenewalRunResolver();
+    const resolve = createRenewalRunResolver(noticeReader);
     await expect(resolve("live-review")).resolves.toMatchObject({
       runId: "live-review",
     });
@@ -42,6 +50,6 @@ describe("resolveRenewalRun", () => {
 
   it("degrades to null when the Live source cannot be rebuilt", async () => {
     rebuildLiveRenewalRun.mockResolvedValue(null);
-    await expect(resolveRenewalRun("live-review")).resolves.toBeNull();
+    await expect(resolveRenewalRun(noticeReader, "live-review")).resolves.toBeNull();
   });
 });

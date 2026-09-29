@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
+import { useRenewalSaveFocus } from "@/components/lease-renewal/RenewalSaveFocus";
 
 export function RenewalFollowUpThreadControl({
   canEdit,
@@ -16,6 +17,7 @@ export function RenewalFollowUpThreadControl({
   projection: RenewalFollowUpProjection;
 }>) {
   const router = useRouter();
+  const focusAfterSave = useRenewalSaveFocus();
   const currentSource = projection.linkedThread;
   const [purpose, setPurpose] = useState<"renewal_owner" | "renewal_tenant">(
     currentSource?.purpose ?? "renewal_tenant",
@@ -57,7 +59,7 @@ export function RenewalFollowUpThreadControl({
       setThreadId("");
       setReason("");
       setStatus("Exact linked-thread evidence recorded. No message was sent.");
-      router.refresh();
+      if (!focusAfterSave?.()) router.refresh();
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "The thread could not be linked.",

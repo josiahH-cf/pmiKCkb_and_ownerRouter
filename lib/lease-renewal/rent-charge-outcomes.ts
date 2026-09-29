@@ -1,3 +1,4 @@
+import { formatCalendarDate, formatSourceCalendarDate } from "@/lib/date-display";
 // S117 (R117.2, R117.4, AC-S117-4): one per-destination status projection for Rent and charges.
 //
 // Every row says where a value lives right now: saved in the app, prepared for an Admin, applied
@@ -110,7 +111,7 @@ function describeRentvineEffect(effect: RenewalWritebackEffectInput): string {
       .join(", ")}.`;
   }
   if (effect.kind === "recurring_charge_create")
-    return `New charge ${effect.create.amount} from ${effect.create.startDate}.`;
+    return `New charge ${effect.create.amount} from ${formatSourceCalendarDate(effect.create.startDate)}.`;
   return `Lease dates ${Object.entries(effect.after)
     .map(([key, value]) => `${key} to ${value ?? "open-ended"}`)
     .join(", ")}.`;
@@ -152,7 +153,7 @@ export function projectRentChargeOutcomes(input: {
         intent: "future",
         label: "Approved future rent (app record)",
         state: "recorded",
-        detail: `${money(terms.rent)} effective ${terms.effectiveDate} to ${terms.endDate}. Saved in the app only; today's rent and the Sheet current rent are unchanged until a confirmed source update.`,
+        detail: `${money(terms.rent)} effective ${formatCalendarDate(terms.effectiveDate)} to ${formatCalendarDate(terms.endDate)}. Saved in the app only; today's rent and the Sheet current rent are unchanged until a confirmed source update.`,
         anchor: "#renewal-future-rent",
       }),
     );

@@ -1,4 +1,5 @@
 "use client";
+import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -95,7 +96,7 @@ export function WorkflowRunClient({
           </div>
           <div className="queue-detail-field">
             <span>Due Date</span>
-            <strong>{run.due_date}</strong>
+            <strong>{formatCalendarDate(run.due_date)}</strong>
           </div>
           <div className="queue-detail-field">
             <span>Started By</span>
@@ -181,7 +182,8 @@ export function WorkflowRunClient({
             <article className="compact-record" key={entry.id}>
               <strong>{entry.summary}</strong>
               <p className="muted">
-                {entry.event_type} by {entry.actor_uid} on {entry.created_at}
+                {entry.event_type} by {entry.actor_uid} on{" "}
+                {formatBusinessTimestamp(entry.created_at)}
                 {entry.new_status ? ` - ${entry.new_status}` : ""}
               </p>
             </article>

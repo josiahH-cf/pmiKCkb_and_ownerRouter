@@ -40,7 +40,7 @@ export async function loadRenewalRunViewContext(
     overlayStatus = "unavailable";
   }
 
-  const outcome = await loadLiveRenewalReview(new Date().toISOString(), {
+  const outcome = await loadLiveRenewalReview(user, new Date().toISOString(), {
     resolutions,
     approvals,
   });

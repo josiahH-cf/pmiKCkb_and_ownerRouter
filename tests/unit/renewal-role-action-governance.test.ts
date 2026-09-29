@@ -97,11 +97,31 @@ const API_EXPECTATIONS = [
   ],
   ["app/api/lease-renewal/workspace/route.ts", "GET", "read_workspace"],
   ["app/api/lease-renewal/workspace/route.ts", "POST", "save_renewal_progress"],
+  ["app/api/lease-renewal/notice-review/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/notice-review/route.ts", "POST", "save_renewal_progress"],
+  ["app/api/lease-renewal/filled-artifact/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/filled-artifact/route.ts", "POST", "approve_filled_artifact"],
   ["app/api/lease-renewal/work-status/route.ts", "GET", "read_workspace"],
   ["app/api/lease-renewal/work-status/route.ts", "POST", "save_work_status"],
 ] as const satisfies readonly (readonly [string, "GET" | "POST", RenewalCapabilityKey])[];
 
 describe("S80 renewal role and action governance", () => {
+  it("keeps filled-output preparation and approval on their existing distinct role capabilities", () => {
+    expect(RENEWAL_GOVERNANCE_MATRIX.prepare_filled_artifact.roleCapability).toBe("edit");
+    expect(RENEWAL_GOVERNANCE_MATRIX.approve_filled_artifact.roleCapability).toBe(
+      "approve",
+    );
+    expect(() =>
+      assertRenewalRoleAuthority("prepare_filled_artifact", "Editor"),
+    ).not.toThrow();
+    expect(() => assertRenewalRoleAuthority("approve_filled_artifact", "Editor")).toThrow(
+      /Approver/,
+    );
+    expect(() =>
+      assertRenewalRoleAuthority("approve_filled_artifact", "Approver"),
+    ).not.toThrow();
+    expect(RENEWAL_GOVERNANCE_MATRIX.approve_filled_artifact.actionKeys).toEqual([]);
+  });
   it("lets a managed Renewals-space Editor perform every approved ordinary-work row", () => {
     for (const capability of [
       "read_workspace",

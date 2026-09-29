@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 
 import { GMAIL_INBOX_ZERO_LABELS } from "@/lib/gmail-inbox-zero/constants";
 import {
@@ -471,7 +472,7 @@ export function WorkflowCommunicationPanel({
                   ? ` Waiting on ${link.waiting_on}.`
                   : " Waiting-on evidence is not yet available."}
                 {link.last_contact_at_ms
-                  ? ` Last Gmail contact: ${new Date(link.last_contact_at_ms).toLocaleString()}.`
+                  ? ` Last Gmail contact: ${formatBusinessTimestamp(link.last_contact_at_ms)}.`
                   : " Last-contact evidence is not yet available."}
               </span>
             </li>
@@ -703,7 +704,7 @@ export function WorkflowCommunicationPanel({
                   </p>
                   <p>
                     <strong>Confirmation expires:</strong>{" "}
-                    {new Date(exactReplyPreview.expiresAt).toLocaleString()}
+                    {formatBusinessTimestamp(exactReplyPreview.expiresAt)}
                   </p>
                   <div>
                     <strong>Exact reply body:</strong>

@@ -1,5 +1,7 @@
 import { RenewalMarketBasisSchema } from "@/lib/lease-renewal/market-basis-schema";
 import { NextResponse } from "next/server";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
+import type { AuthenticatedUser } from "@/lib/auth/session";
 import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
@@ -135,7 +137,7 @@ export interface RenewalProgressRouteDeps {
   recordOutcome: typeof recordTenantOutcome;
   markComplete: typeof markRenewalComplete;
   /** S58: refuses (LeaseDataExpiredError) when the live lease snapshot is past the hard max age. */
-  assertLeaseDataCurrent: () => Promise<void>;
+  assertLeaseDataCurrent: (actor: AuthenticatedUser) => Promise<void>;
 }
 
 /**
@@ -144,10 +146,13 @@ export interface RenewalProgressRouteDeps {
  * before refusing). When live RentVine is NOT configured there is no live snapshot to be stale, and
  * the route keeps its existing behavior — progress is the operator's own forward state.
  */
-async function defaultAssertLeaseDataCurrent(): Promise<void> {
+async function defaultAssertLeaseDataCurrent(actor: AuthenticatedUser): Promise<void> {
   const config = buildLiveRentVineConfig();
   if (!config.ok) return;
-  await requireCurrentLeaseViews(config.rentvineClient, Date.now());
+  await requireCurrentLeaseViews(
+    withRenewalNoticeAdmission(actor, config.rentvineClient),
+    Date.now(),
+  );
 }
 
 const DEFAULT_ROUTE_DEPS: RenewalProgressRouteDeps = {
@@ -174,7 +179,7 @@ export function createRenewalProgressPostHandler(
       // S58: a decision recorded against data past the hard max age is a decision about a lease
       // that may no longer look like that. Refuse with the explicit reason; record nothing.
       try {
-        await deps.assertLeaseDataCurrent();
+        await deps.assertLeaseDataCurrent(user);
       } catch (error) {
         if (error instanceof LeaseDataExpiredError) {
           return NextResponse.json(

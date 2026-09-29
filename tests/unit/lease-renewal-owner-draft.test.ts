@@ -44,7 +44,7 @@ describe("buildOwnerRenewalDraft", () => {
     const rent = draft.facts.find((f) => f.key === "current_rent");
     expect(rent).toMatchObject({
       confidence: "Verified",
-      source: "Rentvine (read-authoritative) (read 2026-08-26)",
+      source: "Rentvine (read-authoritative) (read 08/26/2026, 7:00 AM CDT)",
     });
   });
 

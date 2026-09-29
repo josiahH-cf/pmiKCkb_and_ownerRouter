@@ -1,3 +1,4 @@
+import { formatCalendarDate, formatBusinessTimestamp } from "@/lib/date-display";
 // Operator-triggered renewal-notice reminders (S13 Wave 3 F4). Pure planner that turns a batch of
 // per-lease facts + the notice rule set + a reference date into a deduped list of reminders an
 // operator can act on: "notice due soon", "notice overdue", and "follow-up due". Mirrors the existing
@@ -63,11 +64,11 @@ export interface NoticeReminderPlan {
 function messageFor(kind: NoticeReminderKind, label: string, dueByIso: string): string {
   switch (kind) {
     case "notice_due_soon":
-      return `Notice due soon for ${label}. Send the renewal notice by ${dueByIso}.`;
+      return `Notice due soon for ${label}. Send the renewal notice by ${formatCalendarDate(dueByIso)}.`;
     case "notice_overdue":
-      return `Notice overdue for ${label}. It was due ${dueByIso}; send it now.`;
+      return `Notice overdue for ${label}. It was due ${formatCalendarDate(dueByIso)}; send it now.`;
     case "follow_up_due":
-      return `Follow-up due for ${label}. No tenant response; follow up (due ${dueByIso}).`;
+      return `Follow-up due for ${label}. No tenant response; follow up (due ${formatCalendarDate(dueByIso)}).`;
   }
 }
 
@@ -170,10 +171,10 @@ function callMessage(reminder: NoticeReminder, lastContactIso: string | null): s
   const contact =
     lastContactIso === null
       ? "No recorded contact on file"
-      : `Last recorded contact ${lastContactIso.slice(0, 10)}`;
+      : `Last recorded contact ${formatBusinessTimestamp(lastContactIso)}`;
   const why =
     reminder.kind === "notice_overdue" ? "notice is overdue" : "tenant follow-up is due";
-  return `Make a call for ${reminder.label}. ${contact}; ${why} (due ${reminder.dueByIso}).`;
+  return `Make a call for ${reminder.label}. ${contact}; ${why} (due ${formatCalendarDate(reminder.dueByIso)}).`;
 }
 
 /**

@@ -5,6 +5,7 @@ import {
   buildOwnerRenewalDraft,
   OWNER_RENEWAL_V1_BASE_COPY,
   type OwnerDraftInput,
+  type OwnerDraftDateFormat,
 } from "@/lib/lease-renewal/owner-draft";
 import {
   buildTenantOfferDraft,
@@ -184,10 +185,13 @@ export function getGovernedArtifactBaseCopy(ref: GovernedArtifactRef): string {
   return canonicalJson(artifactSources[ref].copy);
 }
 
-export function renderGovernedArtifactInstance(input: GovernedArtifactInstanceInput) {
+export function renderGovernedArtifactInstance(
+  input: GovernedArtifactInstanceInput,
+  ownerDateFormat: OwnerDraftDateFormat = "display",
+) {
   const artifact = getGovernedArtifact(input.artifactRef);
   const reasons = [...validateAuthority(input), ...validateRequiredValues(input)];
-  const rendered = render(input);
+  const rendered = render(input, ownerDateFormat);
   if (JSON.stringify(rendered).includes("Needs Verification")) {
     reasons.push("One or more send fields still need verification.");
   }
@@ -232,12 +236,15 @@ export function isApprovedWorkflowReplyTemplate(
   }
 }
 
-function render(input: GovernedArtifactInstanceInput) {
+function render(
+  input: GovernedArtifactInstanceInput,
+  ownerDateFormat: OwnerDraftDateFormat,
+) {
   switch (input.artifactRef) {
     case "owner-renewal:v1.0":
-      return buildOwnerRenewalDraft(input.values);
+      return buildOwnerRenewalDraft(input.values, ownerDateFormat);
     case "tenant-renewal:v1.0":
-      return buildTenantOfferDraft(input.values);
+      return buildTenantOfferDraft(input.values, ownerDateFormat);
     case "maintenance-owner:v1.0":
       return buildOwnerNoticeDraft(input.values);
   }

@@ -262,7 +262,11 @@ describe("S130 exact field and signer mapping (AC-S130-3)", () => {
     expect(validateFieldMap(MAP, current, ["Rent", "Tenant name", "Pet name"]).ok).toBe(
       true,
     );
-    const renamed = validateFieldMap(MAP, current, ["Monthly Rent", "Tenant name"]);
+    const renamed = validateFieldMap(MAP, current, [
+      "Monthly Rent",
+      "Tenant name",
+      "Pet name",
+    ]);
     expect(renamed.issues).toEqual([
       expect.objectContaining({ code: "renamed_required_field", fieldId: "Rent" }),
     ]);
@@ -609,7 +613,7 @@ describe("S130 resumable checkpoints (AC-S130-8)", () => {
       ["confirm_provider_effect", "pending"],
       ["inspect_returned_state", "pending"],
     ]);
-    expect(some[3].detail).toMatch(/Machine autofill is unavailable for PDF forms/);
+    expect(some[3].detail).toMatch(/filled PDF controls/);
     const observed = projectIntakeCheckpoints({
       manifest,
       filledValuesVerified: true,

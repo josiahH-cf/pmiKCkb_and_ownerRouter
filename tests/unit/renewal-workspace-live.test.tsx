@@ -2,7 +2,13 @@
 
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const router = vi.hoisted(() => ({ refresh: vi.fn() }));
+vi.mock("next/navigation", async (original) => ({
+  ...(await original<typeof import("next/navigation")>()),
+  useRouter: () => router,
+}));
 
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
 import type {
@@ -19,6 +25,8 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 
 afterEach(() => {
   cleanup();
+  expect(router.refresh).not.toHaveBeenCalled();
+  router.refresh.mockClear();
 });
 
 function tenantPhaseCurrentEvidence(): RenewalEvidenceMap {
@@ -138,14 +146,22 @@ describe("RenewalWorkspace live mode", () => {
     expect(screen.getByText("Live data")).toBeInTheDocument();
     expect(screen.queryByText("Sample data")).not.toBeInTheDocument();
 
-    // The live, gated draft composer is present (the only send path).
-    expect(screen.getByText(/Composes an unsent Gmail draft/)).toBeInTheDocument();
+    // Legacy entry points lead to the actual current-cycle reviewed controls; they cannot create.
+    expect(screen.getByText("Reviewed renewal messages")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Prepare owner message" })).toHaveAttribute(
+      "href",
+      `/lease-renewal/live/desk/lease/${workspace.summary.id}#renewal-section-owner`,
+    );
+    expect(screen.getByRole("link", { name: "Prepare tenant message" })).toHaveAttribute(
+      "href",
+      `/lease-renewal/live/desk/lease/${workspace.summary.id}#renewal-section-tenant`,
+    );
     expect(
-      screen.getByRole("button", { name: "Preview review-only copy" }),
+      screen.queryByRole("button", { name: "Create Gmail draft" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Recover an earlier legacy draft attempt"),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Tenant copy v1\.0: Review only/)).toBeInTheDocument();
-    expect(screen.getByText(/review-only preview cannot create/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Create Gmail draft" })).toBeDisabled();
 
     // The sample "Prepare ... email" buttons (which post to the sample draft routes) are gone.
     expect(
@@ -169,7 +185,7 @@ describe("RenewalWorkspace live mode", () => {
     expect(
       screen.queryByRole("button", { name: "Prepare tenant email" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText(/Composes an unsent Gmail draft/)).toBeInTheDocument();
+    expect(screen.getByText("Reviewed renewal messages")).toBeInTheDocument();
   });
 
   it("pauses progress-dependent draft controls when saved progress cannot be verified", () => {

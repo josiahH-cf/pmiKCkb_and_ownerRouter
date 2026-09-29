@@ -7,9 +7,8 @@ vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
   readRuntimeActionSuspension: vi.fn(async () => runtimeSuspension.current),
 }));
 
-// Wiring test for the LIVE renewal-notice-draft route: the OWNER channel resolves its recipient through
-// the read-only property -> portfolio -> contact join and drafts for real; it blocks honestly when the
-// join cannot resolve; and the TENANT channel is untouched (no property/portfolio/contact reads).
+// Compatibility route: new drafts migrate to the current reviewed message flow, while a historical
+// exact attempt can still be reconciled through the real S20 ledger with deterministic providers.
 const mocks = vi.hoisted(() => ({
   requireCapabilityInSpace: vi.fn(),
   buildLiveRentVineConfig: vi.fn(),
@@ -115,7 +114,7 @@ vi.mock("@/lib/lease-renewal/renewal-copy-governance", async (importActual) => {
   };
 });
 
-// S105: the recorded owner response gates the tenant channel; null means nothing recorded.
+// Historical recovery remains available after an independent later owner decision.
 const progressMocks = vi.hoisted(() => ({
   current: null as null | { ownerOutcome?: { state: string } },
 }));
@@ -152,16 +151,25 @@ vi.mock("@/lib/gmail-runtime/client", () => ({
 import { POST } from "@/app/api/lease-renewal/renewal-notice-draft/route";
 import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
 import { encodeRawDraft } from "@/lib/gmail-runtime/raw-message";
-import { FakeFirestore } from "@/tests/helpers/fake-firestore";
+import { FakeTransactionalFirestore as FakeFirestore } from "@/tests/helpers/fake-transactional-firestore";
+import {
+  prepareRenewalNoticeDraft,
+  finalizeRenewalNoticeDraft,
+} from "@/lib/lease-renewal/execution/renewal-notice-draft-service";
+import { buildRenewalNoticeDraftPreview } from "@/lib/lease-renewal/execution/renewal-draft-preview";
+import { currentRenewalCopyTemplate } from "@/lib/lease-renewal/renewal-copy-governance";
+import { leaseAddressLabel } from "@/lib/integrations/rentvine/lease-mapper";
+import { compScreenshotDraftAttachmentIdentity } from "@/lib/lease-renewal/comp-screenshot-attachment";
+import { RenewalNoticeDraftRequestSchema } from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
 import {
   clearLiveLeaseCache,
   getLiveLeaseViews,
 } from "@/lib/lease-renewal/live-lease-cache";
 import {
   TEST_COMP_SCREENSHOT_ATTACHMENT,
+  TEST_RENEWAL_ATTACHMENT_BYTES,
   TEST_RESOLVED_RENEWAL_ATTACHMENT,
 } from "@/tests/helpers/renewal-draft-attachment";
-import { ActionNotExecutableError } from "@/lib/operations/runtime-suspension-gate";
 
 interface ClientOverrides {
   exportRows?: Record<string, unknown>[];
@@ -229,7 +237,7 @@ function fakeClient(overrides: ClientOverrides = {}) {
   };
 }
 
-function useClient(client: unknown) {
+function configureClient(client: unknown) {
   mocks.buildLiveRentVineConfig.mockReturnValue({ ok: true, rentvineClient: client });
   mocks.buildLiveRenewalConfig.mockReturnValue({
     ok: true,
@@ -275,6 +283,8 @@ beforeEach(() => {
   mocks.requireCapabilityInSpace.mockResolvedValue({
     email: "josiah@pmikcmetro.com",
     uid: "editor-1",
+    role: "Editor",
+    hd: "pmikcmetro.com",
   });
   // Default: no Admin-approved suggestion for this lease (the operator's own numbers are used).
   mocks.getApprovedRentSuggestion.mockResolvedValue(null);
@@ -334,513 +344,271 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("renewal-notice-draft route — owner channel via the live join", () => {
-  it("returns a distinct runtime 409 before RentVine or Gmail construction", async () => {
-    runtimeSuspension.current = { status: "global_suspended" };
-
-    const response = await POST(req(ownerBody()));
-
-    expect(response.status).toBe(409);
-    await expect(response.json()).resolves.toMatchObject({
-      action_key: "gmail.renewal_notice.draft_create",
-      error_type: "action_runtime_suspended",
-    });
-    expect(mocks.buildLiveRentVineConfig).not.toHaveBeenCalled();
-    expect(GmailRuntimeClient).not.toHaveBeenCalled();
-  });
-
-  // AC-S58-3: composing refuses expired lease data with an explicit reason and creates nothing.
-  it("refuses with 409 lease_data_expired when the live snapshot is past the hard max age", async () => {
-    const { client } = fakeClient();
-    // Seed the shared cache at t0 with a healthy read, then advance past the hard max with the
-    // provider failing, so the served snapshot is expired-and-unrefreshable.
-    const t0 = 1_700_000_000_000;
-    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(t0);
-    try {
-      await getLiveLeaseViews(
-        client as unknown as Parameters<typeof getLiveLeaseViews>[0],
-        t0,
-      );
-      const { client: failingClient } = fakeClient();
-      failingClient.listAllLeasesExport = vi.fn(async () => {
-        throw new Error("provider down");
-      }) as never;
-      useClient(failingClient);
-      nowSpy.mockReturnValue(t0 + 16 * 60_000);
-
-      const response = await POST(req(tenantBody()));
-      expect(response.status).toBe(409);
-      await expect(response.json()).resolves.toMatchObject({
-        error_type: "lease_data_expired",
-      });
+// Current creation parity is exercised by s113-sheet-route (real current-message controls,
+// routes and claims), s116-complete-recipients and renewal-notice-draft-service (transport).
+// This compatibility endpoint preserves recovery; it cannot supply an alternate creation path.
+describe("legacy renewal draft migration and recovery", () => {
+  it.each(["owner", "tenant"] as const)(
+    "refuses old %s preview and confirmation before all live dependencies",
+    async (channel) => {
+      for (const confirm of [
+        undefined,
+        { executionId: `exec_${"a".repeat(40)}`, previewHash: "b".repeat(64) },
+      ]) {
+        const body = channel === "owner" ? ownerBody(confirm) : tenantBody(confirm);
+        const response = await POST(req(body));
+        expect(response.status).toBe(409);
+        expect(await response.json()).toMatchObject({
+          error_type: "current_message_review_required",
+          href: `/lease-renewal/live/desk/lease/42#renewal-section-${channel}`,
+        });
+      }
+      expect(mocks.buildLiveRentVineConfig).not.toHaveBeenCalled();
+      expect(GmailRuntimeClient).not.toHaveBeenCalled();
       expect(createDraftMock).not.toHaveBeenCalled();
-    } finally {
-      nowSpy.mockRestore();
-    }
-  });
-
-  it("previews a real owner draft resolved from the export row's own owners (no join reads)", async () => {
-    const { client, getContact, getProperty, getPortfolio } = fakeClient();
-    useClient(client);
-
-    const response = await POST(req(ownerBody()));
-    const payload = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(payload.status).toBe("preview");
-    expect(payload.channel).toBe("owner");
-    expect(payload.recipient.to).toBe("owner42@cedar-holdings.com");
-    expect(payload.attachment).toEqual({
-      label: `Comp screenshot attachment: ${TEST_COMP_SCREENSHOT_ATTACHMENT.filename}`,
-      filename: TEST_COMP_SCREENSHOT_ATTACHMENT.filename,
-      mimeType: TEST_COMP_SCREENSHOT_ATTACHMENT.mimeType,
-      sizeBytes: TEST_COMP_SCREENSHOT_ATTACHMENT.sizeBytes,
-    });
-    // S61: the contact join is gone — the owner channel makes no extra RentVine reads.
-    expect(getProperty).not.toHaveBeenCalled();
-    expect(getPortfolio).not.toHaveBeenCalled();
-    expect(getContact).not.toHaveBeenCalled();
-    expect(GmailRuntimeClient).not.toHaveBeenCalled();
-    expect(createDraftMock).not.toHaveBeenCalled();
-  });
-
-  it("blocks owner drafting when the reconciled current-rent read is unavailable", async () => {
-    const { client } = fakeClient();
-    useClient(client);
-    mocks.loadLiveOwnerCurrentRentDecision.mockResolvedValue({ status: "read_error" });
-
-    const response = await POST(req(ownerBody()));
-    const payload = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(payload.status).toBe("blocked");
-    expect(payload.reasons.join(" ")).toMatch(/current rent confirmation/i);
-    expect(createDraftMock).not.toHaveBeenCalled();
-  });
-
-  // AC-S61-1 + AC-S61-1b: the LIVE route fans out to every owner of record — to plus a cc entry
-  // per other distinct owner address — not merely the resolver in isolation.
-  it("addresses every owner of record on the live route: first To, the rest Cc", async () => {
-    const { client } = fakeClient({
-      exportRows: [
-        {
-          lease: {
-            leaseID: 42,
-            endDate: "2026-09-30",
-            tenants: [{ name: "Ada Rowan", email: "tenant42@northend-apts.com" }],
-          },
-          unit: { rent: 1400 },
-          property: { streetName: "200 Cedar Ct" },
-          portfolio: {
-            owners: [
-              { name: "Owner One", email: "owner.one@cedar-holdings.com" },
-              { name: "Owner Two", email: "owner.two@cedar-holdings.com" },
-              { name: "Owner Two Again", email: "OWNER.TWO@cedar-holdings.com" },
-              { name: "Owner Three", email: "owner.three@cedar-holdings.com" },
-            ],
-          },
-        },
-      ],
-    });
-    useClient(client);
-
-    const response = await POST(req(ownerBody()));
-    const payload = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(payload.status).toBe("preview");
-    expect(payload.recipient.to).toBe("owner.one@cedar-holdings.com");
-    // Deduplicated (AC-S61-2) and in the portfolio's own order (Q-OWNER-ORDERING).
-    expect(payload.recipient.cc).toEqual([
-      "owner.two@cedar-holdings.com",
-      "owner.three@cedar-holdings.com",
-    ]);
-  });
-
-  // AC-S61-7 falsification: a crafted lease whose tenant address also resolves as an owner
-  // address refuses BOTH channels naming the collision; the clean lease drafts normally (the
-  // preceding tests are the clean half).
-  it("refuses both channels when an address resolves on owner AND tenant for the same lease", async () => {
-    const collidingRows = [
-      {
-        lease: {
-          leaseID: 42,
-          endDate: "2026-09-30",
-          tenants: [{ name: "Ada Rowan", email: "shared@cedar-holdings.com" }],
-        },
-        unit: { rent: 1400 },
-        property: { streetName: "200 Cedar Ct" },
-        portfolio: {
-          owners: [
-            { name: "Owner One", email: "owner.one@cedar-holdings.com" },
-            { name: "Shared Person", email: "shared@cedar-holdings.com" },
-          ],
-        },
-      },
-    ];
-    const owner = fakeClient({ exportRows: collidingRows });
-    useClient(owner.client);
-    const ownerPayload = await (await POST(req(ownerBody()))).json();
-    expect(ownerPayload.status).toBe("blocked");
-    expect(ownerPayload.reasons.join(" ")).toContain("Channel separation");
-    expect(ownerPayload.reasons.join(" ")).toContain("shared@cedar-holdings.com");
-    expect(createDraftMock).not.toHaveBeenCalled();
-
-    clearLiveLeaseCache();
-    const tenant = fakeClient({ exportRows: collidingRows });
-    useClient(tenant.client);
-    const tenantPayload = await (await POST(req(tenantBody()))).json();
-    expect(tenantPayload.status).toBe("blocked");
-    expect(tenantPayload.reasons.join(" ")).toContain("Channel separation");
-    expect(createDraftMock).not.toHaveBeenCalled();
-  });
-
-  it("creates a real unsent owner draft only for a prepared, exactly-confirmed execution", async () => {
-    const { client } = fakeClient();
-    useClient(client);
-
-    const previewed = await (await POST(req(ownerBody()))).json();
-    expect(previewed.status).toBe("preview");
-    expect(createDraftMock).not.toHaveBeenCalled();
-
-    const response = await POST(
-      req(
-        ownerBody({
-          executionId: previewed.executionId,
-          previewHash: previewed.previewHash,
-        }),
-      ),
-    );
-    const payload = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(payload.status).toBe("created");
-    expect(payload.recipient.to).toBe("owner42@cedar-holdings.com");
-    expect(payload.draftId).toBe("draft_owner_1");
-    expect(createDraftMock).toHaveBeenCalledTimes(1);
-    expect(createDraftMock).toHaveBeenCalledWith(
-      expect.objectContaining({ to: "owner42@cedar-holdings.com" }),
-    );
-  });
-
-  it("reports the exact closed Drive key before Gmail construction or execution claim", async () => {
-    const { client } = fakeClient();
-    useClient(client);
-
-    const previewed = await (await POST(req(ownerBody()))).json();
-    expect(previewed.status).toBe("preview");
-    mocks.resolveCompScreenshotAttachment.mockRejectedValueOnce(
-      new ActionNotExecutableError("google_drive.renewal_comp_screenshot.store"),
-    );
-
-    const response = await POST(
-      req(
-        ownerBody({
-          executionId: previewed.executionId,
-          previewHash: previewed.previewHash,
-        }),
-      ),
-    );
-
-    expect(response.status).toBe(409);
-    await expect(response.json()).resolves.toMatchObject({
-      action_key: "google_drive.renewal_comp_screenshot.store",
-      error_type: "action_not_production_allowed",
-    });
-    expect(mocks.resolveCompScreenshotAttachment).toHaveBeenCalledTimes(1);
-    expect(GmailRuntimeClient).not.toHaveBeenCalled();
-    expect(createDraftMock).not.toHaveBeenCalled();
-    expect(getDraftByIdMock).not.toHaveBeenCalled();
-  });
-
-  it("injects the server-resolved Admin-approved comp-derived number into the owner draft (S29)", async () => {
-    const { client } = fakeClient();
-    useClient(client);
-    // The server (not the client body) supplies the Admin-approved number; the strict schema omits it.
-    mocks.getApprovedRentSuggestion.mockResolvedValue({
-      approvalId: "42",
-      value: 2350,
-      comps: [
-        { rent: 2200, source: "Manual comp low" },
-        { rent: 2500, source: "Manual comp high" },
-      ],
-    });
-
-    const response = await POST(req(ownerBody()));
-    const payload = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(payload.status).toBe("preview");
-    // The Admin-approved 2350 is carried, taking precedence over the operator's own 1550.
-    expect(payload.body).toContain("$2,350");
-    expect(payload.body).not.toContain("$1,550");
-    expect(mocks.getApprovedRentSuggestion).toHaveBeenCalledWith(
-      expect.objectContaining({ uid: "editor-1" }),
-      "42",
-      // S60 (AC-S60-10): the re-verify recomputes against the authoritative live rent (1400 in the
-      // fake export row for lease 42).
-      1400,
-      // S62: the portfolio id rides along for the owner-policy branch; the fake export row for
-      // lease 42 carries no portfolio, so the route passes null.
-      null,
-    );
-  });
-
-  it("leaves the owner draft on the operator's own number when there is no Admin approval (S29)", async () => {
-    const { client } = fakeClient();
-    useClient(client);
-    mocks.getApprovedRentSuggestion.mockResolvedValue(null);
-
-    const response = await POST(req(ownerBody()));
-    const payload = await response.json();
-
-    expect(payload.status).toBe("preview");
-    // No approval → the operator's own PMI number is used, unchanged.
-    expect(payload.body).toContain("$1,550");
-  });
-
-  // AC-S61-6: no authoritative owner address on the export row → Needs Verification, no guess.
-  it("blocks honestly (never invents) when the export row carries no owner email", async () => {
-    const { client } = fakeClient({
-      exportRows: [
-        {
-          lease: {
-            leaseID: 42,
-            endDate: "2026-09-30",
-            tenants: [{ name: "Ada Rowan", email: "tenant42@northend-apts.com" }],
-          },
-          unit: { rent: 1400 },
-          property: { streetName: "200 Cedar Ct" },
-          portfolio: { owners: [{ name: "No Email Owner" }] },
-        },
-      ],
-    });
-    useClient(client);
-
-    const response = await POST(req(ownerBody()));
-    const payload = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(payload.status).toBe("blocked");
-    expect(payload.channel).toBe("owner");
-    expect(payload.reasons.join(" ")).toMatch(/needs verification/i);
-    expect(createDraftMock).not.toHaveBeenCalled();
-  });
-});
-
-describe("renewal-notice-draft route — tenant channel is unchanged", () => {
-  it("refuses the tenant draft while the recorded owner response is not an approval (S105)", async () => {
-    const { client } = fakeClient();
-    useClient(client);
-    const draftsBefore = createDraftMock.mock.calls.length;
-    progressMocks.current = { ownerOutcome: { state: "no_response" } };
-    try {
-      const response = await POST(req(tenantBody()));
-      expect(response.status).toBe(409);
-      expect((await response.json()).error_type).toBe("owner_outcome_blocks_downstream");
-      expect(createDraftMock.mock.calls.length).toBe(draftsBefore);
-    } finally {
-      progressMocks.current = null;
-    }
-  });
-
-  it("previews a tenant draft and makes NO property/portfolio/contact reads", async () => {
-    const { client, getLease, getProperty, getPortfolio, getContact } = fakeClient();
-    useClient(client);
-
-    const response = await POST(req(tenantBody()));
-    const payload = await response.json();
-
-    expect(response.status).toBe(200);
-    expect(payload.status).toBe("preview");
-    expect(payload.channel).toBe("tenant");
-    expect(payload.recipient.to).toBe("tenant42@northend-apts.com");
-    // The owner-only join is never walked for the tenant channel. (S102 reads the lease detail
-    // for every lease inside the live generation, so only the property/portfolio/contact hops
-    // prove the join stayed closed.)
-    expect(getLease).not.toHaveBeenCalledWith("42", expect.anything());
-    expect(getProperty).not.toHaveBeenCalled();
-    expect(getPortfolio).not.toHaveBeenCalled();
-    expect(getContact).not.toHaveBeenCalled();
-  });
-
-  it("creates a real unsent tenant draft on confirm with no owner-join reads", async () => {
-    const { client, getProperty, getPortfolio, getContact } = fakeClient();
-    useClient(client);
-
-    const previewed = await (await POST(req(tenantBody()))).json();
-    expect(previewed.status).toBe("preview");
-
-    const response = await POST(
-      req(
-        tenantBody({
-          executionId: previewed.executionId,
-          previewHash: previewed.previewHash,
-        }),
-      ),
-    );
-    const payload = await response.json();
-
-    expect(payload.status).toBe("created");
-    expect(payload.recipient.to).toBe("tenant42@northend-apts.com");
-    expect(createDraftMock).toHaveBeenCalledTimes(1);
-    expect(getProperty).not.toHaveBeenCalled();
-    expect(getPortfolio).not.toHaveBeenCalled();
-    expect(getContact).not.toHaveBeenCalled();
-  });
-});
-
-describe("renewal-notice-draft route — shared request and recovery contract", () => {
-  it.each([
-    [
-      "boolean confirmation",
-      {
-        leaseId: "42",
-        confirm: true,
-        offer: { channel: "tenant", ownerDecision: "increase", offeredRent: 1550 },
-      },
-    ],
-    [
-      "string money",
-      {
-        leaseId: "42",
-        offer: { channel: "tenant", ownerDecision: "increase", offeredRent: "1550" },
-      },
-    ],
-    [
-      "zero money",
-      {
-        leaseId: "42",
-        offer: { channel: "tenant", ownerDecision: "increase", offeredRent: 0 },
-      },
-    ],
-    [
-      "non-finite money",
-      {
-        leaseId: "42",
-        offer: {
-          channel: "tenant",
-          ownerDecision: "increase",
-          offeredRent: Number.POSITIVE_INFINITY,
-        },
-      },
-    ],
-  ])("rejects %s before any live dependency", async (_label, body) => {
-    const response = await POST(req(body));
-
-    expect(response.status).toBe(400);
-    expect(mocks.buildLiveRentVineConfig).not.toHaveBeenCalled();
-    expect(GmailRuntimeClient).not.toHaveBeenCalled();
-    expect(createDraftMock).not.toHaveBeenCalled();
-  });
-
-  it("rejects an inverted owner range before any live dependency", async () => {
-    const body = ownerBody();
-    body.offer.market.rangeLow = 1700;
-    body.offer.market.rangeHigh = 1500;
-
-    const response = await POST(req(body));
-
-    expect(response.status).toBe(400);
-    expect(mocks.buildLiveRentVineConfig).not.toHaveBeenCalled();
-    expect(createDraftMock).not.toHaveBeenCalled();
-  });
-
-  it("refuses an offer changed after preview and creates no draft", async () => {
-    const { client } = fakeClient();
-    useClient(client);
-    const previewed = await (await POST(req(tenantBody()))).json();
-    expect(previewed.status).toBe("preview");
-    const changed = tenantBody({
-      executionId: previewed.executionId,
-      previewHash: previewed.previewHash,
-    });
-    changed.offer.offeredRent = 1600;
-
-    const response = await POST(req(changed));
-
-    expect(response.status).toBe(409);
-    expect(createDraftMock).not.toHaveBeenCalled();
-  });
-
-  it("refuses a server-side fact change after preview and creates no draft", async () => {
-    const initial = fakeClient();
-    useClient(initial.client);
-    const previewed = await (await POST(req(tenantBody()))).json();
-    expect(previewed.status).toBe("preview");
-
-    clearLiveLeaseCache();
-    const changed = fakeClient({
-      exportRows: [
-        {
-          lease: {
-            leaseID: 42,
-            endDate: "2026-10-31",
-            tenants: [{ name: "Ada Rowan", email: "tenant42@northend-apts.com" }],
-          },
-          unit: { rent: 1400 },
-          property: { streetName: "200 Cedar Ct" },
-          portfolio: {
-            owners: [{ name: "Cedar Holdings", email: "owner42@cedar-holdings.com" }],
-          },
-        },
-      ],
-    });
-    useClient(changed.client);
-
-    const response = await POST(
-      req(
-        tenantBody({
-          executionId: previewed.executionId,
-          previewHash: previewed.previewHash,
-        }),
-      ),
-    );
-
-    expect(response.status).toBe(409);
-    expect(createDraftMock).not.toHaveBeenCalled();
-  });
-
-  it("reconciles an uncertain exact attempt during suspension without drafting again", async () => {
-    const { client } = fakeClient();
-    useClient(client);
-    createDraftMock.mockRejectedValueOnce(new Error("gmail timeout"));
-    findDraftMock.mockResolvedValueOnce({ draftId: "draft-recovered-route-1" });
-
-    const previewed = await (await POST(req(tenantBody()))).json();
-    expect(previewed.status).toBe("preview");
-    const uncertain = await (
-      await POST(
+    },
+  );
+  it.each(["clear", "global_suspended"])(
+    "cannot bypass reviewed admission when runtime is %s",
+    async (status) => {
+      runtimeSuspension.current = { status };
+      const response = await POST(
         req(
-          tenantBody({
-            executionId: previewed.executionId,
-            previewHash: previewed.previewHash,
+          ownerBody({
+            executionId: `exec_${"c".repeat(40)}`,
+            previewHash: "d".repeat(64),
           }),
         ),
-      )
-    ).json();
-    expect(uncertain).toMatchObject({
-      status: "needs_reconciliation",
-      executionId: previewed.executionId,
-    });
-
-    runtimeSuspension.current = { status: "global_suspended" };
-    const response = await POST(
-      req({
-        ...tenantBody(),
-        reconcile: { executionId: previewed.executionId },
-      }),
+      );
+      expect(response.status).toBe(409);
+      expect(createDraftMock).not.toHaveBeenCalled();
+      expect(mocks.buildLiveRentVineConfig).not.toHaveBeenCalled();
+    },
+  );
+  it.each([
+    { ...tenantBody(), confirm: true },
+    {
+      leaseId: "42",
+      offer: { channel: "tenant", ownerDecision: "increase", offeredRent: "1550" },
+    },
+    {
+      leaseId: "42",
+      offer: { channel: "tenant", ownerDecision: "increase", offeredRent: 0 },
+    },
+    {
+      leaseId: "42",
+      offer: { channel: "owner", market: { rangeLow: 1700, rangeHigh: 1500 } },
+    },
+    {
+      ...tenantBody(),
+      reconcile: { executionId: `exec_${"a".repeat(40)}` },
+      confirm: { executionId: `exec_${"a".repeat(40)}`, previewHash: "b".repeat(64) },
+    },
+  ])("rejects malformed or mixed original requests before dependencies", async (body) => {
+    expect((await POST(req(body))).status).toBe(400);
+    expect(mocks.buildLiveRentVineConfig).not.toHaveBeenCalled();
+    expect(createDraftMock).not.toHaveBeenCalled();
+  });
+  async function historicalAttempt() {
+    const { client } = fakeClient();
+    configureClient(client);
+    const leases = await getLiveLeaseViews(client, Date.now());
+    const actor = await mocks.requireCapabilityInSpace();
+    const prepared = await prepareRenewalNoticeDraft(
+      {
+        actor,
+        loadLease: async () => leases[0],
+        createGmailClient: () => {
+          throw new Error("No creation during historic seeding");
+        },
+      },
+      {
+        request: RenewalNoticeDraftRequestSchema.parse(tenantBody()),
+        mailbox: { email: actor.email, sourceRef: `app:session:${actor.uid}` },
+      },
     );
-    const checked = await response.json();
-
+    if (prepared.status !== "preview")
+      throw new Error("Expected exact historic preparation");
+    const db = mocks.firestore as FakeFirestore;
+    const path = `action_executions/${prepared.executionId}`;
+    // Synthetic representation of a pre-migration, already-consumed provider attempt. No new
+    // creation or claim is invoked to manufacture this historical recovery state.
+    db.seed(path, {
+      ...db.read(path),
+      state: "Needs reconciliation",
+      attempt_count: 1,
+      claim_actor_uid: actor.uid,
+    });
+    return { prepared, db, path };
+  }
+  it("recovers a historical lost-response attempt during suspension without a new claim or draft", async () => {
+    const { prepared, db, path } = await historicalAttempt();
+    runtimeSuspension.current = { status: "global_suspended" };
+    findDraftMock.mockResolvedValueOnce({ draftId: "synthetic-recovered" });
+    const response = await POST(
+      req({ ...tenantBody(), reconcile: { executionId: prepared.executionId } }),
+    );
     expect(response.status).toBe(200);
-    expect(checked).toMatchObject({
+    expect(await response.json()).toMatchObject({
       status: "reconciliation",
       resolution: "created",
-      executionId: previewed.executionId,
-      draftId: "draft-recovered-route-1",
+      executionId: prepared.executionId,
+      draftId: "synthetic-recovered",
     });
-    expect(createDraftMock).toHaveBeenCalledTimes(1);
-    expect(findDraftMock).toHaveBeenCalledTimes(1);
+    expect(db.read(path)).toMatchObject({ state: "Succeeded", attempt_count: 1 });
+    expect(findDraftMock).toHaveBeenCalledOnce();
+    expect(createDraftMock).not.toHaveBeenCalled();
+  });
+  it("keeps a missing historical effect unresolved and does not replay creation", async () => {
+    const { prepared, db, path } = await historicalAttempt();
+    findDraftMock.mockResolvedValueOnce(null);
+    const response = await POST(
+      req({ ...tenantBody(), reconcile: { executionId: prepared.executionId } }),
+    );
+    expect(await response.json()).toMatchObject({
+      status: "reconciliation",
+      resolution: "not_found",
+    });
+    expect(db.read(path)).toMatchObject({
+      state: "Needs reconciliation",
+      attempt_count: 1,
+    });
+    expect(createDraftMock).not.toHaveBeenCalled();
+  });
+  it("recovers an already-attempted tenant draft after a later owner decline without creating again", async () => {
+    const { prepared, db, path } = await historicalAttempt();
+    progressMocks.current = { ownerOutcome: { state: "declined_non_renewal" } };
+    findDraftMock.mockResolvedValueOnce({ draftId: "synthetic-recovered" });
+    const response = await POST(
+      req({ ...tenantBody(), reconcile: { executionId: prepared.executionId } }),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      status: "reconciliation",
+      resolution: "created",
+      executionId: prepared.executionId,
+    });
+    expect(db.read(path)).toMatchObject({ state: "Succeeded", attempt_count: 1 });
+    expect(findDraftMock).toHaveBeenCalledOnce();
+    expect(createDraftMock).not.toHaveBeenCalled();
+  });
+  it("reconstructs the exact legacy owner date formatting for original-receipt recovery", async () => {
+    const { client } = fakeClient();
+    configureClient(client);
+    const [lease] = await getLiveLeaseViews(client, Date.now());
+    const actor = await mocks.requireCapabilityInSpace();
+    const attachment = compScreenshotDraftAttachmentIdentity(
+      TEST_COMP_SCREENSHOT_ATTACHMENT,
+    );
+    const mailbox = { email: actor.email, sourceRef: `app:session:${actor.uid}` };
+    const input = {
+      channel: "owner" as const,
+      lease,
+      mailbox,
+      workflowId: "renewal-live:42",
+      actionId: "renewal-notice-draft:owner:42",
+      workflowContext: "renewal:42",
+      sourceRefs: [
+        "rentvine:lease:42",
+        `comp-screenshot-receipt:${attachment.receiptId}`,
+      ],
+      copyTemplate: currentRenewalCopyTemplate("owner"),
+      attachment,
+      decision: {
+        addressLabel: leaseAddressLabel(lease)!,
+        currentRent: 1400,
+        currentRentEvidence: {
+          agreement: "agree" as const,
+          currencyState: "fresh" as const,
+          readAtIso: "2026-08-26T13:00:00.000Z",
+        },
+        market: {
+          ...ownerBody().offer.market,
+          compScreenshotAttachment: {
+            filename: attachment.filename,
+            mimeType: attachment.mimeType,
+            sizeBytes: attachment.sizeBytes,
+            sha256Checksum: attachment.sha256Checksum,
+          },
+        },
+      },
+    };
+    const legacy = buildRenewalNoticeDraftPreview(input, "legacy_receipt");
+    const displayed = buildRenewalNoticeDraftPreview(input);
+    if (legacy.status !== "ready" || displayed.status !== "ready")
+      throw new Error("Expected synthetic previews");
+    expect(legacy.action).not.toEqual(displayed.action);
+    const prepared = await finalizeRenewalNoticeDraft(
+      legacy,
+      RenewalNoticeDraftRequestSchema.parse(ownerBody()),
+      mailbox,
+      {
+        actor,
+        loadLease: async () => lease,
+        createGmailClient: () => {
+          throw new Error("No creation while seeding history");
+        },
+      },
+    );
+    if (prepared.status !== "preview") throw new Error("Expected historic preparation");
+    const db = mocks.firestore as FakeFirestore,
+      path = `action_executions/${prepared.executionId}`;
+    db.seed(path, {
+      ...db.read(path),
+      state: "Needs reconciliation",
+      attempt_count: 1,
+      claim_actor_uid: actor.uid,
+    });
+    findDraftMock.mockImplementationOnce(async () => ({
+      draftId: "synthetic-owner-recovered",
+      raw: encodeRawDraft({
+        from: String(legacy.action.values.from),
+        to: String(legacy.action.values.to),
+        subject: String(legacy.action.values.subject),
+        body: String(legacy.action.values.body),
+        messageId: String(legacy.action.values.rfc_message_id),
+        attachment: {
+          filename: attachment.filename,
+          mimeType: attachment.mimeType,
+          bytes: TEST_RENEWAL_ATTACHMENT_BYTES,
+        },
+      }),
+    }));
+    const response = await POST(
+      req({ ...ownerBody(), reconcile: { executionId: prepared.executionId } }),
+    );
+    expect(await response.json()).toMatchObject({
+      status: "reconciliation",
+      resolution: "created",
+      draftId: "synthetic-owner-recovered",
+    });
+    expect(createDraftMock).not.toHaveBeenCalled();
+    expect(findDraftMock).toHaveBeenCalledOnce();
+    // The browser cannot ask the current creation endpoint for legacy formatting.
+    expect(
+      (await POST(req({ ...ownerBody(), legacyReceiptFormatting: true }))).status,
+    ).toBe(400);
+  });
+  it("refuses changed original inputs and another actor's historical receipt", async () => {
+    const { prepared } = await historicalAttempt();
+    const changed = tenantBody();
+    changed.offer.offeredRent = 1600;
+    expect(
+      await (
+        await POST(req({ ...changed, reconcile: { executionId: prepared.executionId } }))
+      ).json(),
+    ).toMatchObject({ status: "reconciliation", resolution: "needs_review" });
+    mocks.requireCapabilityInSpace.mockResolvedValue({
+      email: "other@pmikcmetro.com",
+      uid: "other",
+      role: "Editor",
+      hd: "pmikcmetro.com",
+    });
+    const response = await POST(
+      req({ ...tenantBody(), reconcile: { executionId: prepared.executionId } }),
+    );
+    expect(response.status).toBe(404); // Another actor cannot discover the historical receipt.
+    expect(findDraftMock).not.toHaveBeenCalled();
+    expect(createDraftMock).not.toHaveBeenCalled();
   });
 });

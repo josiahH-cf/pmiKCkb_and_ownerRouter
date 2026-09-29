@@ -1,4 +1,5 @@
 "use client";
+import { useRenewalSaveFocus } from "./RenewalSaveFocus";
 
 import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSectionHeading";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
@@ -23,6 +24,7 @@ export function RenewalResourceLocations({
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
   const editable = can(role, "manageAdmin") && settings !== null;
+  const focusAfterSave = useRenewalSaveFocus();
   async function save(id: string) {
     const value = edits[id] ?? settings?.entries[id] ?? { url: "", verified: false };
     setPending(true);
@@ -47,6 +49,7 @@ export function RenewalResourceLocations({
       setNotice(
         value.url ? "Link saved and read back." : "Blank pending-team input saved.",
       );
+      focusAfterSave?.();
     } catch (error) {
       setError(error instanceof Error ? error.message : "The link could not be saved.");
     } finally {

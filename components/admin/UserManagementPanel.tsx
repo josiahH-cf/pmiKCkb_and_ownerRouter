@@ -5,6 +5,7 @@ import { Button, ConfirmationDialog } from "@/components/ui";
 import { ACCESS_CAPABILITIES, capabilityCatalogEntry } from "@/lib/access/catalog";
 import type { AppUser } from "@/lib/admin/users";
 import { can } from "@/lib/auth/roles";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 import { SPACE_SCOPES, type SpaceScope } from "@/lib/constants";
 import {
   RENEWAL_GOVERNANCE_MATRIX,
@@ -318,7 +319,7 @@ export function UserManagementPanel({
                   <strong>{user.email}</strong>
                   <span className="muted">
                     {user.lastSignInAt
-                      ? `Last sign-in ${user.lastSignInAt.slice(0, 10)}`
+                      ? `Last sign-in ${formatBusinessTimestamp(user.lastSignInAt)}`
                       : "No sign-in yet"}
                   </span>
                 </div>

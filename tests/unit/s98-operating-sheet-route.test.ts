@@ -405,6 +405,8 @@ function postUnmodified(body: Record<string, unknown>) {
 
 describe("S98 operating-sheet route", () => {
   beforeEach(() => {
+    vi.stubEnv("LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED", "true");
+    vi.stubEnv("K_REVISION", "pmi-kc-app-test-enabled-a");
     mocks.user = { uid: "admin-1", email: "admin@pmikcmetro.com", role: "Admin" };
     mocks.deps = fakeDeps();
     mocks.proposals.clear();
@@ -807,8 +809,8 @@ describe("S98 operating-sheet route", () => {
 
   // S128 (F08): operating-Sheet mutations are paused by owner policy while the write switch is off.
   // Every mutating operation refuses with the exact paused reason before any writer construction, even
-  // with an open per-key gate; status surfaces the pause proactively; propose and read-only reconcile
-  // stay reachable so app-owned work continues and honest recovery is preserved. Nested so the parent
+  // with an open per-key gate; status surfaces the pause proactively; new proposals refuse while
+  // read-only reconciliation stays reachable and app-owned work continues. Nested so the parent
   // beforeEach resets user, deps, the write flag and env for each case.
   describe("S128 operating-sheet write pause", () => {
     async function proposeAppend() {
@@ -900,7 +902,7 @@ describe("S98 operating-sheet route", () => {
       expect(mocks.writerMutations).toEqual([]);
     });
 
-    it("still lets an Editor save a proposal while paused so the reviewed value is preserved", async () => {
+    it("refuses proposal creation while paused without creating a backlog", async () => {
       mocks.user = { uid: "editor-1", email: "editor@pmikcmetro.com", role: "Editor" };
       mocks.writeFlagEnabled = false;
       const response = await post({
@@ -910,9 +912,33 @@ describe("S98 operating-sheet route", () => {
           { kind: "row_append", leaseId: "115", tenantName: "Fresh Real Tenant" },
         ],
       });
-      expect(response.status).toBe(200);
-      expect(mocks.proposals.has("115")).toBe(true);
+      expect(response.status).toBe(409);
+      expect((await response.json()).error_type).toBe("writeback_paused");
+      expect(mocks.proposals.has("115")).toBe(false);
+      expect(mocks.resolveContext).not.toHaveBeenCalled();
       expect(mocks.writerMutations).toEqual([]);
+    });
+
+    it("refuses an unexpired old confirmation after a paused release and authorized resume", async () => {
+      const proposal = await proposeAppend();
+      mocks.gateOpen = true;
+      mocks.writeFlagEnabled = false;
+      vi.stubEnv("K_REVISION", "pmi-kc-app-test-paused-b");
+      await post({ operation: "status" });
+      mocks.writeFlagEnabled = true;
+      vi.stubEnv("K_REVISION", "pmi-kc-app-test-resumed-c");
+      const response = await post({
+        operation: "execute",
+        previewHash: proposal.previewHash,
+        effectHash: proposal.effects[0].effectHash,
+        confirm: true,
+      });
+      expect(response.status).toBe(409);
+      expect((await response.json()).error_type).toBe("runtime_stale");
+      expect(mocks.writerMutations).toEqual([]);
+      const status = await (await post({ operation: "status" })).json();
+      expect(status.proposal.requires_fresh_review).toBe(true);
+      expect(status.proposal.preview_hash).toBe(proposal.previewHash);
     });
 
     it("surfaces writeback_paused in status when paused and false when enabled", async () => {
@@ -951,6 +977,12 @@ describe("S98 operating-sheet route", () => {
 // a caller cannot supply, omit or misplace the audience, and a tab without the confirmed column
 // refuses before any writer exists.
 describe("S116 audience email intent boundary", () => {
+  beforeEach(() => {
+    mocks.writeFlagEnabled = true;
+    mocks.writerMutations = [];
+    vi.stubEnv("LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED", "true");
+    vi.stubEnv("K_REVISION", "pmi-kc-app-test-enabled-a");
+  });
   it("refuses a missing, misplaced or unknown audience without touching the provider", async () => {
     mocks.user = { uid: "editor-1", email: "editor@pmikcmetro.com", role: "Editor" };
     const missing = await post({

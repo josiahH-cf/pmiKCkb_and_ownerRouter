@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { Button, Field } from "@/components/ui";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 
 // S100 manual chat sync and resident reply. Rendering this panel performs zero provider calls:
 // loading the conversation reads only already-synchronized local records, and the one
@@ -318,7 +319,9 @@ export function WorkOrderChatPanel({
             <li className="ui-stack" key={message.message_id}>
               <p>
                 <strong>{message.role === "tenant" ? "Resident" : "Manager"}</strong>{" "}
-                <span className="muted">{message.created_at}</span>
+                <span className="muted">
+                  {formatBusinessTimestamp(message.created_at)}
+                </span>
               </p>
               <p>{message.body}</p>
               {message.truncated ? <p className="muted">Message truncated</p> : null}

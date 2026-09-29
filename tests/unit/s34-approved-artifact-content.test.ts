@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
-import { resolveApprovedDotloopArtifact } from "@/lib/lease-documents/approved-artifact-content";
+import {
+  resolveApprovedDotloopArtifact,
+  readHistoricalApprovedArtifact,
+} from "@/lib/lease-documents/approved-artifact-content";
 import { s66Catalog } from "@/tests/fixtures/s66-packet";
 
 const bytes = new TextEncoder().encode("isolated approved artifact bytes");
@@ -51,6 +54,30 @@ function setup() {
   };
 }
 describe("S34 approved publication content resolution", () => {
+  it("reads a retained immutable original for audit after a successor, while current transport refuses it", async () => {
+    const h = setup();
+    h.deps.readActiveVersionId.mockResolvedValue("successor-version");
+    await expect(
+      resolveApprovedDotloopArtifact(h.actor as never, h.input, h.deps as never),
+    ).rejects.toThrow();
+    const result = await readHistoricalApprovedArtifact(
+      h.actor as never,
+      { originalPublication: h.artifact.publicationSource.reference, originalHash: hash },
+      h.deps as never,
+    );
+    expect(result.content).toEqual(bytes);
+    h.deps.readContent.mockResolvedValue(new TextEncoder().encode("corrupt"));
+    await expect(
+      readHistoricalApprovedArtifact(
+        h.actor as never,
+        {
+          originalPublication: h.artifact.publicationSource.reference,
+          originalHash: hash,
+        },
+        h.deps as never,
+      ),
+    ).rejects.toThrow(/readback/);
+  });
   it("loads only the exact active validated publication and preserves its bytes", async () => {
     const h = setup();
     const resolved = await resolveApprovedDotloopArtifact(

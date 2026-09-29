@@ -349,6 +349,7 @@ function toRenewalPacketSnapshot(
     ruleVersion: data.ruleVersion,
     sourceVersions: data.sourceVersions,
     payloadHash: data.payloadHash,
+    ...(data.fillInputHash ? { fillInputHash: data.fillInputHash } : {}),
     snapshotId: data.snapshot_id,
     snapshotVersion: data.snapshot_version,
     actorUid: data.actor_uid,

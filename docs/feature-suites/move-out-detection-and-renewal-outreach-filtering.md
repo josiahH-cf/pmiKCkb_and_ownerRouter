@@ -4,9 +4,9 @@
 # S124 — Move-out detection and non-renewal outreach filtering
 
 > **Approval reference:** F03 (original feature #3).
-> **Status:** IMPLEMENTED and CI-GREEN at `fc03ec55` (2026-09-20); release deferred by the billing incident; no deployment, provider activation, or meeting validation has occurred. The exact read contract is recorded in `docs/facts.md` F-RENTVINE-MOVE-OUT-CONTRACT; serving evidence in F-S124.
+> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `fc03ec55` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
-> **Registration:** S124 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F03 when renumbering.
+> **Registration:** Registered as S124 in `docs/feature-suites/README.md`; the original F03 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** New source-backed disposition over the existing non-renewal handoff.
 
 **Goal.**
@@ -19,7 +19,7 @@ C03 — Actionable, evidence-backed operational status; C02 — Non-renewal rema
 
 **Current state / intended end state.**
 
-**Current evidence:** The transcript reports a RentVine move-out state and notice-given date. The repository contains manual `non_renewal_handoff` status and a move-out process template, but this review did not verify an exact notice-given API field. `moveOutDate` also appears among legacy lease-end aliases: that presence alone is not proof that a move-out notice exists.
+**Current evidence:** The verified read contract is recorded in docs/facts.md F-RENTVINE-MOVE-OUT-CONTRACT: documented lease-status flags supply notice disposition, lease detail supplies noticeDate, and scheduled move-out remains distinct from contractual end. Local G1/G2 repairs persist explicit same-tenancy/cycle notice review with both observations and freshness, block both audiences on unresolved manual/provider non-renewal, and bind current preview, review and final S20 claim. Owner-approved lease-bound version/hash/time metadata invalidates old approval before authenticated source-read generations; a later clear notice cannot revive an unused approval after restart. Clear evidence is a withdrawal-review requirement, not proof of a provider cancellation event. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** One source-attributed move-out disposition distinguishes confirmed initiation, explicit absence, withdrawn/cancelled evidence, and unknown/stale/conflicting information. F14 displays the yellow non-renewal indicator and F01/F14 provide consistent filtering; this feature owns evidence and outreach routing.
 
@@ -57,11 +57,11 @@ A fresh explicit withdrawal updates current provider evidence without deleting t
 
 **Data, state, and integration contract.**
 
-Extend the existing authorized lease read projection with typed source evidence and freshness; use existing protected app records for manual decisions/history. Do not create an independent polling agent, new provider mutation endpoint, or negative default backfill. Resolve identities server-side. F14 consumes disposition and provenance, not raw provider bodies.
+Extend the existing authorized lease read projection with typed source evidence and freshness; use existing protected app records for manual decisions/history. Do not create an independent polling agent, new provider mutation endpoint, or negative default backfill. Resolve identities server-side. F14 consumes disposition and provenance, not raw provider bodies. The owner-approved 2026-09-29 exception permits authenticated reads to persist only a lease-bound version/hash/time approval-invalidation marker, including pre-dispatch invalidation. Explicit reviewed notice history remains an audited human action. No provider write, customer draft or workflow milestone is authorized by that metadata exception.
 
 **Failure, retry, cancellation, and concurrency.**
 
-Read failure permits a deliberate refresh and clearly labels any last-known positive evidence as stale; do not claim it was cancelled. A recorded manual handoff remains intact through provider failure. Interruption of a read has no effect. Source conflicts require review and never automatic writeback.
+Read failure permits a deliberate refresh and clearly labels any last-known positive evidence as stale; do not claim it was cancelled. A recorded manual handoff remains intact through provider failure. An interrupted provider read may leave the narrow approval-invalidation marker pending; this safely requires a fresh successful read/review and never records workflow completion. Source conflicts require review and never automatic writeback.
 
 **Agent and loop contract.**
 
@@ -75,7 +75,7 @@ In scope: bounded mapping investigation, fail-closed read projection, outreach p
 
 **Open questions & assumptions.**
 
-Live dependency (resolved 2026-09-20): the exact RentVine notice fields were established from the official reference and read-only live probes and are recorded in `docs/facts.md` F-RENTVINE-MOVE-OUT-CONTRACT: the status table's pending and completed move-out flags are the initiation evidence; the lease detail's notice date and expected move-out date are supporting evidence; RentVine exposes no explicit cancellation field, so withdrawal needs prior app-owned initiated evidence (no store records it yet) and otherwise stays unknown or a review case.
+Live dependency (resolved 2026-09-20): the exact RentVine notice fields were established from the official reference and read-only live probes and are recorded in `docs/facts.md` F-RENTVINE-MOVE-OUT-CONTRACT: the status table's pending and completed move-out flags are the initiation evidence; the lease detail's notice date and expected move-out date are supporting evidence; RentVine exposes no explicit cancellation field, so withdrawal needs prior app-owned initiated evidence plus explicit withdrawal review (the gap-closure implementation adds the store and authenticated controls; integrated verification is pending) and otherwise stays unknown or a review case.
 
 Unverified business/provider facts cannot be replaced by a plausible default. An explicitly labeled presentation/engineering default may be implemented within the approved scope; source semantics, policy applicability, legal wording, and provider permissions require their actual evidence. Missing input blocks only the dependent outcome identified below.
 
@@ -129,7 +129,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** Staff see that move-out is already initiated before contacting the owner, can find those leases as a group, and can distinguish a confirmed notice from missing information.
 
-- Model/engineering verdict: PASS in local engineering tests on `fc03ec55` (2026-09-20): AC-S124-1 through AC-S124-7 covered by the unit and component cases named in F-S124, with the read contract verified against docs.rentvine.com and read-only live probes; compiled browser checks NOT RUN (rehearsal auth blocked); no deployed readback.
+- Model/engineering verdict: Historical baseline PASS in local engineering tests on `fc03ec55` (2026-09-20): AC-S124-1 through AC-S124-7 covered by the unit and component cases named in F-S124, with the read contract verified against docs.rentvine.com and read-only live probes; compiled browser checks NOT RUN (rehearsal auth blocked); no deployed readback. Current repair-batch results and remaining gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); the historical result does not verify the current batch or deployment.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

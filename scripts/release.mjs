@@ -1,5 +1,20 @@
 #!/usr/bin/env node
 import { requiresEditorBrowser } from "../lib/production-assurance/release-browser-policy.mjs";
+import {
+  assertReleaseAdmission,
+  releaseHead,
+  claimApplicationBuild,
+  assertNativeReleaseRuntime,
+  assertReleaseCheckpoint,
+} from "./release-control.mjs";
+import { assertReleaseProcessLock, RELEASE_LOCK_FD_ENV } from "./release-lock.mjs";
+import { fingerprintRevisionRuntimeConfiguration } from "../lib/production-assurance/revision-fingerprint.mjs";
+import { GoogleAuth } from "google-auth-library";
+import {
+  readRecoveryBaseline,
+  verifyRecoveryAvailability,
+  revisionSheetPaused,
+} from "./release-recovery.mjs";
 // S40 blue/green release wrapper. Delivery is three separate, individually reviewable invocations:
 //
 //   npm run release -- --environment=production --plan-only        # prints; never runs gcloud
@@ -14,7 +29,7 @@ import { requiresEditorBrowser } from "../lib/production-assurance/release-brows
 
 import { ensureAuthenticated } from "./auth/ensure.mjs";
 import { spawn } from "node:child_process";
-import { accessSync, constants, realpathSync, statSync } from "node:fs";
+import { accessSync, constants, readFileSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, relative } from "node:path";
 
 import {
@@ -147,15 +162,23 @@ export function run(
     timeoutMs = RELEASE_STEP_TIMEOUT_MS,
     spawnFn = spawn,
     terminateTreeFn = terminateReleaseProcessTree,
+    lockFd = process.env[RELEASE_LOCK_FD_ENV] === "3"
+      ? assertReleaseProcessLock()
+      : undefined,
   } = {},
 ) {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawnFn(command, args, {
       // stdin is ignored deliberately; see (1) above. Never change this to "inherit".
-      stdio: ["ignore", capture ? "pipe" : "inherit", "inherit"],
+      stdio: [
+        "ignore",
+        capture ? "pipe" : "inherit",
+        "inherit",
+        ...(lockFd === undefined ? [] : [lockFd]),
+      ],
       shell: process.platform === "win32",
       // Creates a killable process group on POSIX. Windows uses taskkill /T above.
-      detached: process.platform !== "win32",
+      detached: process.platform !== "win32" && lockFd === undefined,
     });
     let out = "";
     let settled = false;
@@ -172,6 +195,17 @@ export function run(
     };
     const timer = setTimeout(() => {
       timedOut = true;
+      // Inherited-lock commands share the watcher's exact script process group. Killing that
+      // group also kills this wrapper: the watcher preserves the interrupted checkpoint and
+      // reconciles provider state. No detached gcloud grandchild can continue after cancellation.
+      if (lockFd !== undefined && process.platform !== "win32") {
+        const ownStat = readFileSync("/proc/self/stat", "utf8");
+        const group = Number(ownStat.slice(ownStat.lastIndexOf(")") + 2).split(" ")[2]);
+        if (!Number.isSafeInteger(group) || group <= 1)
+          throw new Error("release_process_group_unavailable");
+        process.kill(-group, "SIGKILL");
+        return;
+      }
       void Promise.resolve(terminateTreeFn(child)).then(
         () => finish(rejectRun, timeoutError),
         () =>
@@ -271,6 +305,16 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     throw new Error(`Deploy preflight failed:\n- ${deploy.errors.join("\n- ")}`);
   }
 
+  assertReleaseProcessLock();
+  const admission = assertReleaseAdmission({ sha: releaseHead() });
+  assertReleaseCheckpoint({
+    sha: admission.sha,
+    runId: admission.runId,
+    revision: args.promote ? args.candidateRevision : deploy.revision,
+    phases: [args.promote ? "promote" : "deploy"],
+  });
+  assertNativeReleaseRuntime(deploy.command);
+
   const authentication = await ensureAuthenticated({
     need: ["gcloud", "adc", "gh"],
     unattended: true,
@@ -282,6 +326,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     );
 
   if (args.promote) {
+    assertReleaseAdmission({ sha: admission.sha, runId: admission.runId });
     const candidateReceipt =
       args.environment === "production"
         ? readCandidateAssuranceReceipt(args.candidateAssuranceReceipt, {
@@ -309,16 +354,7 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
           }),
       });
       console.log(`\nPromoted ${args.candidateRevision}.`);
-      console.log(
-        `Rollback: ${formatCommand(
-          deploy.command,
-          buildRevisionTrafficCommand({
-            argv,
-            env,
-            revision: result.rollbackRevision,
-          }).args,
-        )}\n`,
-      );
+      console.log(`Receipt-bound safe recovery target: ${result.rollbackRevision}.\n`);
       return {
         promoted: args.candidateRevision,
         rollbackRevision: result.rollbackRevision,
@@ -372,6 +408,12 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     revisionSuffix,
     tag: args.tag,
   });
+  assertReleaseAdmission({ sha: admission.sha, runId: admission.runId });
+  await claimApplicationBuild({
+    sha: admission.sha,
+    runId: admission.runId,
+    revision: deploy.revision,
+  });
   await run(deploy.command, candidate.args);
 
   console.log(`\nCandidate ${deploy.revision} deployed at ZERO traffic.`);
@@ -421,11 +463,10 @@ export async function runPredecessorRecoveryGate({
     required[0] = `--operator-email=${monitoringOperator}`;
   }
 
-  await runCommand(process.platform === "win32" ? "npm.cmd" : "npm", [
-    "run",
-    "assure:production-observation",
-    "--",
-    "--verify-rollback-recovery",
+  await runCommand(process.execPath, [
+    "--import=tsx",
+    "scripts/observe-production-release.ts",
+    "--execute-safe-recovery",
     "--live",
     `--recovery-receipt=${candidateReceiptPath}`,
     ...required,
@@ -540,11 +581,26 @@ export async function promoteProductionCandidate({
   claimCandidateReceipt = claimCandidateAssuranceReceipt,
   preflightRecovery = preflightProductionPromotionRecovery,
   verifyOperatorAccount = verifyPromotionOperatorAccount,
+  verifyPreparedRecovery = verifyPreparedPromotionRecovery,
+  authorize = () => {
+    assertReleaseProcessLock();
+    const permit = assertReleaseAdmission({
+      sha: candidateReceipt.expectedCommit,
+      runId: candidateReceipt.recoveryBaseline?.runId,
+    });
+    assertReleaseCheckpoint({
+      sha: permit.sha,
+      runId: permit.runId,
+      revision: candidateRevision,
+      phases: ["promote"],
+    });
+  },
   verifyRecovery = async () => {
     throw new Error("predecessor_recovery_gate_required");
   },
   now = Date.now,
 }) {
+  authorize();
   const recoveryReadiness = await preflightRecovery({
     browserPolicy: candidateReceipt.browserPolicy,
     argv,
@@ -560,7 +616,9 @@ export async function promoteProductionCandidate({
   let prior = null;
   let trafficMutationAttempted = false;
   let promotionStartedAtMs = null;
+  let preparedRecovery;
   try {
+    authorize();
     prior = parseServingRevision(
       await runCommand(deployCommand, buildPriorRevisionQueryPlan(target).args, {
         capture: true,
@@ -575,6 +633,10 @@ export async function promoteProductionCandidate({
       env,
       revision: candidateRevision,
     });
+    preparedRecovery = await verifyPreparedRecovery(candidateReceipt);
+    // Read original 100% traffic and the prepared target again immediately before the claim.
+    // Local hold/expiry remains a final gate even when all earlier assurance passed.
+    authorize();
     // Candidate evidence is consumed durably at the last safe boundary before a traffic attempt.
     // A failed or ambiguous attempt can never reuse it, while preflight failures consume nothing.
     claimCandidateReceipt(candidateReceiptPath, candidateReceipt, now());
@@ -595,58 +657,66 @@ export async function promoteProductionCandidate({
       now(),
     );
     commitReceiptOutput(reservation, promotionReceipt);
-    return { rollbackRevision: prior, promotionReceipt };
+    return { rollbackRevision: preparedRecovery.targetRevision, promotionReceipt };
   } catch (error) {
     if (!trafficMutationAttempted) {
       discardReceiptOutput(reservation);
       throw error;
     }
 
-    let rollbackCommandError = false;
     try {
-      const rollback = buildTrafficCommand({ argv, env, revision: prior });
-      await runCommand(rollback.command, rollback.args);
-    } catch {
-      rollbackCommandError = true;
-    }
-    let restored;
-    try {
-      restored = parseServingRevision(
-        await runCommand(deployCommand, buildPriorRevisionQueryPlan(target).args, {
-          capture: true,
-        }),
-      );
+      // The same global executor is used by observer rollback and resume. It alone may shift
+      // traffic, to the already-assured Sheet=false target; the original baseline stays immutable.
+      await verifyRecovery(preparedRecovery);
     } catch {
       throw new Error(
-        "Production promotion failed after traffic mutation and predecessor restoration could not be verified.",
-      );
-    }
-    if (restored !== prior) {
-      throw new Error(
-        "Production promotion failed after traffic mutation and predecessor restoration could not be verified.",
-      );
-    }
-    try {
-      await verifyRecovery(candidateReceipt.predecessorBaseline);
-    } catch {
-      throw new Error(
-        "Production promotion failed after traffic mutation and predecessor recovery gate did not pass.",
+        "Production promotion failed after traffic mutation; receipt-bound safe recovery is unverified.",
       );
     }
     try {
       discardReceiptOutput(reservation);
     } catch {
       throw new Error(
-        "Production promotion failed after traffic mutation; exact predecessor restored but receipt cleanup failed.",
+        "Production promotion failed after traffic mutation; safe recovery verified but receipt cleanup failed.",
       );
     }
-    const rollbackQualifier = rollbackCommandError
-      ? " despite an ambiguous rollback command result"
-      : "";
     throw new Error(
-      `Production promotion failed after traffic mutation; exact predecessor restored and recovery verified${rollbackQualifier}.`,
+      "Production promotion failed after traffic mutation; prepared paused recovery target restored and verified.",
     );
   }
+}
+
+export async function verifyPreparedPromotionRecovery(candidate) {
+  if (!candidate.recoveryBaseline)
+    throw new Error("supplemental_recovery_baseline_required");
+  const receipt = readRecoveryBaseline(candidate.recoveryBaseline, {
+    project: candidate.project,
+    region: candidate.region,
+    service: candidate.service,
+    sha: candidate.expectedCommit,
+  });
+  const client = await new GoogleAuth({
+    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+  }).getClient();
+  const revision = (
+    await client.request({
+      method: "GET",
+      url: `https://run.googleapis.com/v2/projects/${candidate.project}/locations/${candidate.region}/services/${candidate.service}/revisions/${candidate.expectedRevision}`,
+    })
+  ).data;
+  if (
+    !revisionSheetPaused(revision) ||
+    fingerprintRevisionRuntimeConfiguration(revision) !==
+      candidate.expectedConfigurationFingerprint ||
+    !revision?.conditions?.some(
+      (condition) =>
+        condition.type === "Ready" && condition.state === "CONDITION_SUCCEEDED",
+    ) ||
+    revision.reconciling === true
+  )
+    throw new Error("candidate_sheet_pause_unverified");
+  await verifyRecoveryAvailability(receipt, { client });
+  return receipt;
 }
 
 export async function verifyCandidateReceiptVersion(receipt, fetchFn = fetch) {
@@ -682,7 +752,16 @@ function readFlag(args, name) {
 const invokedDirectly = process.argv[1] && process.argv[1].endsWith("release.mjs");
 if (invokedDirectly) {
   main().catch((error) => {
-    console.error(error.message);
+    const safe =
+      /^[a-z][a-z0-9_]{0,100}$/.test(error?.message ?? "") ||
+      /^Production promotion failed after traffic mutation[; ]/.test(
+        error?.message ?? "",
+      );
+    console.error(
+      safe
+        ? error.message
+        : "Release refused; inspect its local checkpoint and readback evidence.",
+    );
     process.exitCode = 1;
   });
 }

@@ -1,3 +1,4 @@
+import { formatBusinessTimestamp, formatCalendarMonth } from "@/lib/date-display";
 // Owner renewal-email draft composer (Phase-1, draft-only; design "Owner communication draft").
 //
 // This is the lowest-complexity, highest-value automation Dan named on the 2026-06-19 show-and-tell
@@ -202,8 +203,21 @@ export function ownerDraftMarketFromBasis(
   return out;
 }
 
+export type OwnerDraftDateFormat = "display" | "legacy_receipt";
+/** Legacy output is reconstructed only for existing own-receipt recovery; never client selected. */
+function retrievedDate(value: string, format: OwnerDraftDateFormat) {
+  return format === "legacy_receipt"
+    ? value.slice(0, 10)
+    : formatBusinessTimestamp(value);
+}
+function trendMonth(value: string, format: OwnerDraftDateFormat) {
+  return format === "legacy_receipt" ? value : formatCalendarMonth(value);
+}
 /** Compose a source-tagged owner renewal-email draft. No send; missing market inputs stay visible. */
-export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraft {
+export function buildOwnerRenewalDraft(
+  input: OwnerDraftInput,
+  dateFormat: OwnerDraftDateFormat = "display",
+): OwnerRenewalDraft {
   const facts: DraftFact[] = [];
   const missingInputs: string[] = [];
 
@@ -214,7 +228,7 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
     source: "Rentvine (read-authoritative)",
     confidence: "Verified",
   });
-  const currentRentFact = deriveCurrentRentFact(input);
+  const currentRentFact = deriveCurrentRentFact(input, dateFormat);
   facts.push(currentRentFact);
   if (currentRentFact.confidence === NEEDS_VERIFICATION) {
     missingInputs.push("current rent confirmation");
@@ -231,7 +245,7 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
       label: "Comparable range",
       value: `${formatUsd(market.rangeLow!)}–${formatUsd(market.rangeHigh!)}`,
       source: market.rangeRetrievedAt
-        ? `${rangeSource} (retrieved ${market.rangeRetrievedAt.slice(0, 10)})`
+        ? `${rangeSource} (retrieved ${retrievedDate(market.rangeRetrievedAt, dateFormat)})`
         : rangeSource,
       confidence: "Likely",
     });
@@ -253,18 +267,18 @@ export function buildOwnerRenewalDraft(input: OwnerDraftInput): OwnerRenewalDraf
   if (trend && (trend.firstAverage !== undefined || trend.lastAverage !== undefined)) {
     const from =
       trend.firstAverage !== undefined
-        ? `${formatUsd(trend.firstAverage)} in ${trend.firstMonth}`
-        : trend.firstMonth;
+        ? `${formatUsd(trend.firstAverage)} in ${trendMonth(trend.firstMonth, dateFormat)}`
+        : trendMonth(trend.firstMonth, dateFormat);
     const to =
       trend.lastAverage !== undefined
-        ? `${formatUsd(trend.lastAverage)} in ${trend.lastMonth}`
-        : trend.lastMonth;
-    trendLine = `Average area rent for ${trend.zipCode} moved from ${from} to ${to} (source: RentCast, ${RENTCAST_PUBLIC_URL}, retrieved ${trend.retrievedAt.slice(0, 10)}).`;
+        ? `${formatUsd(trend.lastAverage)} in ${trendMonth(trend.lastMonth, dateFormat)}`
+        : trendMonth(trend.lastMonth, dateFormat);
+    trendLine = `Average area rent for ${trend.zipCode} moved from ${from} to ${to} (source: RentCast, ${RENTCAST_PUBLIC_URL}, retrieved ${retrievedDate(trend.retrievedAt, dateFormat)}).`;
     facts.push({
       key: "market_trend",
       label: "Market trend",
       value: `${from} to ${to} (${trend.zipCode})`,
-      source: `RentCast (retrieved ${trend.retrievedAt.slice(0, 10)})`,
+      source: `RentCast (retrieved ${retrievedDate(trend.retrievedAt, dateFormat)})`,
       confidence: "Likely",
     });
   }
@@ -350,6 +364,7 @@ export function deriveCurrentRentFact(
     OwnerDraftInput,
     "currentRent" | "currentRentSource" | "currentRentEvidence"
   >,
+  dateFormat: OwnerDraftDateFormat = "display",
 ): DraftFact {
   const evidence = input.currentRentEvidence;
   const earned =
@@ -361,7 +376,7 @@ export function deriveCurrentRentFact(
     input.currentRentSource ??
     "Rentvine (read-authoritative)";
   const source = evidence?.readAtIso
-    ? `${baseSource} (read ${evidence.readAtIso.slice(0, 10)})`
+    ? `${baseSource} (read ${retrievedDate(evidence.readAtIso, dateFormat)})`
     : baseSource;
   return {
     key: "current_rent",

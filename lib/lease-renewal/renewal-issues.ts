@@ -1,4 +1,5 @@
 import { can, type Capability, type Role } from "@/lib/auth/roles";
+import { renewalDashboardTarget } from "./dashboard-sections";
 import type {
   DeskGuidanceDestination,
   DeskLeaseGuidance,
@@ -74,6 +75,33 @@ export interface RenewalIssueInput {
 export interface RenewalIssueProjection {
   readonly primary: RenewalPrimaryAction;
   readonly issues: readonly RenewalIssue[];
+}
+
+export const RENEWAL_NEXT_ACTION_TARGET_ID = "renewal-next-action";
+
+/** Uses the same ordered projection displayed by the desk/workspace; never invents a next step. */
+export function renewalPostSaveFocusTarget(
+  projection: RenewalIssueProjection,
+  role: Role,
+  firstUnresolvedField?: string,
+): string {
+  const fallback = RENEWAL_NEXT_ACTION_TARGET_ID;
+  if (projection.primary.kind === "complete") return fallback;
+  const target =
+    projection.primary.destination.kind === "none"
+      ? projection.issues.find((issue) => issue.kind === "blocking")
+      : projection.primary;
+  if (!target || (target.requiredCapability && !can(role, target.requiredCapability)))
+    return fallback;
+  const destination = target.destination;
+  if (destination.kind === "workspace_anchor") return destination.targetId;
+  if (destination.kind !== "workspace_phase") return fallback;
+  return (
+    destination.controlId ??
+    (destination.stepId === "verify-renewal" && firstUnresolvedField
+      ? `renewal-field-${firstUnresolvedField}`
+      : renewalDashboardTarget(destination.stepId))
+  );
 }
 
 export const NON_RENEWAL_HANDOFF_TARGET_ID = "renewal-manual-cycle";
@@ -246,7 +274,7 @@ export function projectRenewalIssues(input: RenewalIssueInput): RenewalIssueProj
       kindLabel: RENEWAL_ISSUE_KIND_LABELS.policy_pause,
       affectedAction: "Writing to the operating Sheet",
       reason:
-        "Operating-Sheet writes are paused by owner policy. Proposals and app records still work as usual.",
+        "Operating-Sheet writes and new Sheet proposals are paused by owner policy. App records can still be saved; historical proposals remain available to read.",
       responsible: "Owner policy",
       destination: { kind: "none" },
     });

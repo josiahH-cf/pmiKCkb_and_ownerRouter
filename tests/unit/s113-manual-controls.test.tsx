@@ -23,6 +23,66 @@ const initial = () =>
     source: "RentVine lease end",
   });
 describe("S113 mounted manual and comp controls", () => {
+  it("preserves unsaved inputs and requires fresh readback to clear an observed Sheet pause", async () => {
+    const state = planRenewalWorkspaceAction(
+      initial(),
+      {
+        kind: "owner_response",
+        outcome: "approved_terms",
+        terms: { rent: 1250, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
+        source: "Fixture owner call",
+      },
+      {
+        actorUid: "operator",
+        recordedAt: "2026-09-10T12:00:00.000Z",
+        eventId: "approval",
+      },
+    );
+    let apiPaused = true;
+    const fetch = vi.fn(async (url: string) => {
+      expect(url).toContain("workspace?");
+      return Response.json({ state, activity: [], writeback_paused: apiPaused });
+    });
+    vi.stubGlobal("fetch", fetch);
+    const mount = (writebackPaused: boolean) => (
+      <RenewalManualProvider
+        leaseId="701"
+        initialState={state}
+        writebackPaused={writebackPaused}
+      >
+        <RenewalManualSection section="owner" />
+        <RenewalManualSection section="documents" />
+      </RenewalManualProvider>
+    );
+    const view = render(mount(false));
+    const prepare = () =>
+      screen.getByRole("button", { name: /Prepare saved owner pricing confirmed value/ });
+    expect(prepare()).toBeEnabled();
+    fireEvent.change(screen.getByLabelText("Response source or channel"), {
+      target: { value: "Unsaved review note" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Reload records and history" }));
+    await screen.findByText(
+      "Current staff records read back. Review unsaved inputs before recording them.",
+    );
+    await waitFor(() => expect(prepare()).toBeDisabled());
+    view.rerender(mount(true));
+    view.rerender(mount(false));
+    expect(prepare()).toBeDisabled();
+    expect(screen.getByLabelText("Response source or channel")).toHaveValue(
+      "Unsaved review note",
+    );
+    apiPaused = false;
+    fireEvent.click(screen.getByRole("button", { name: "Reload records and history" }));
+    await waitFor(() => expect(prepare()).toBeEnabled());
+    view.rerender(mount(true));
+    expect(prepare()).toBeDisabled();
+    fireEvent.click(prepare());
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls.every(([url]) => String(url).includes("workspace?"))).toBe(
+      true,
+    );
+  });
   it("replaces the preceding cycle's controls when a refreshed page supplies the new cycle", () => {
     const approved = planRenewalWorkspaceAction(
       initial(),

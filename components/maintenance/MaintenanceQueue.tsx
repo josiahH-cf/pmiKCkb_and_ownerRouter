@@ -600,7 +600,7 @@ function TicketHistory({ ticketId }: Readonly<{ ticketId: string }>) {
 }
 
 function formatHistoryStamp(iso: string): string {
-  return Number.isFinite(Date.parse(iso)) ? formatBusinessTimestamp(iso) : iso;
+  return formatBusinessTimestamp(iso);
 }
 
 function describeActivity(entry: MaintenanceTicketActivityRecord): string {

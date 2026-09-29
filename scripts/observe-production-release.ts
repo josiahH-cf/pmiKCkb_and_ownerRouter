@@ -5,6 +5,21 @@ import {
   type ReleaseBrowserPolicy,
 } from "../lib/production-assurance/release-browser-policy.mjs";
 import { pathToFileURL } from "node:url";
+import { readFileSync } from "node:fs";
+import {
+  assertReleaseAdmission,
+  assertReleaseCheckpoint,
+  releaseHead,
+} from "./release-control.mjs";
+import { assertReleaseProcessLock } from "./release-lock.mjs";
+import {
+  assertRecoveryBaseline,
+  prepareRecoveryBaseline,
+  readRecoveryBaseline,
+  recoveryReference,
+  executeSafeRecovery,
+  verifyRecoveryAvailability,
+} from "./release-recovery.mjs";
 
 import {
   POST_PROMOTION_OBSERVATION_MS,
@@ -720,14 +735,164 @@ export async function verifyRollbackRecoveryFromReceipt(
   if (adminProfile === editorProfile) {
     throw new Error("distinct_managed_profiles_required");
   }
+  const supplemental = receipt.recoveryBaseline
+    ? readRecoveryBaseline(receipt.recoveryBaseline, {
+        project: receipt.project,
+        region: receipt.region,
+        service: receipt.service,
+        sha: receipt.expectedCommit,
+      })
+    : null;
   await verifyPredecessorRecovery({
-    baseline: receipt.predecessorBaseline,
+    baseline: supplemental
+      ? {
+          ...supplemental.originalBaseline,
+          expectedRevision: supplemental.targetRevision,
+          expectedConfigurationFingerprint: supplemental.targetFingerprint,
+          legacyException: null,
+        }
+      : receipt.predecessorBaseline,
     project: receipt.project,
     region: receipt.region,
     service: receipt.service,
     operatorEmail,
     adminProfile,
     editorProfile,
+  });
+}
+
+export async function prepareBatchRecovery(argv: readonly string[]): Promise<void> {
+  requireExplicitLive(argv);
+  assertReleaseProcessLock();
+  const permit = assertReleaseAdmission({ sha: releaseHead() });
+  assertReleaseCheckpoint({
+    sha: permit.sha,
+    runId: permit.runId,
+    phases: ["recovery"],
+  });
+  const predecessorRevision = readArg(argv, "--predecessor-revision");
+  const tag = readArg(argv, "--recovery-tag");
+  const tagOrigin = readArg(argv, "--recovery-origin");
+  const operatorEmail = readArg(argv, "--operator-email")?.toLowerCase();
+  if (
+    !predecessorRevision ||
+    !tag ||
+    !tagOrigin ||
+    !operatorEmail ||
+    !/^[a-z0-9][a-z0-9._%+-]{0,63}@pmikcmetro\.com$/i.test(operatorEmail)
+  )
+    throw new Error("recovery_preparation_inputs_required");
+  const coordinates = resolveRevisionCoordinates(argv, predecessorRevision);
+  const adminProfile = resolveNamedManagedProfile(argv, "--admin-profile");
+  const deadlineAtMs = Date.now() + CANDIDATE_ASSURANCE_TIMEOUT_MS;
+  const deadline = createAssuranceDeadline(deadlineAtMs);
+  try {
+    const assuranceContext = await preflightProductionAssurance({
+      project: coordinates.project,
+      deadlineAtMs,
+      abortSignal: deadline.signal,
+    });
+    const client = verifiedAssuranceClient(assuranceContext, coordinates.project);
+    const binding = await readVerifiedCloudRunOriginBinding(
+      client,
+      {
+        ...coordinates,
+        expectedRevision: predecessorRevision,
+        origin:
+          readArg(argv, "--canonical-origin") ??
+          "https://pmi-kc-app-kq6wuvpiva-uc.a.run.app",
+        phase: "rollback",
+      },
+      deadline.signal,
+    );
+    await prepareRecoveryBaseline(
+      {
+        ...coordinates,
+        runId: permit.runId,
+        sha: permit.sha,
+        predecessorRevision,
+        tag,
+        tagOrigin,
+      },
+      {
+        client,
+        captureOriginalBaseline: () =>
+          capturePredecessorBaseline({
+            ...coordinates,
+            browserPolicy: OWNER_ADMIN_BROWSER_POLICY,
+            client,
+            assuranceContext,
+            canonicalOrigin: binding.canonicalOrigin,
+            predecessorRevision,
+            operatorEmail,
+            adminProfile,
+            editorProfile: null,
+            deadlineAtMs,
+            abortSignal: deadline.signal,
+          }),
+        assureTarget: async (target) => {
+          const admin = await runProductionCanary({
+            ...coordinates,
+            ...target,
+            role: "Admin",
+            profile: adminProfile,
+            deadlineAtMs,
+            abortSignal: deadline.signal,
+            assuranceContext,
+          });
+          const ready = await readMonitoringConfigurationReady(
+            { ...coordinates, operatorEmail },
+            client,
+            deadline.signal,
+          );
+          if (admin.verdict !== "passed" || !ready)
+            throw new Error("recovery_preparation_assurance_failed");
+          return {
+            phase: "recovery_preparation",
+            verifiedAt: new Date().toISOString(),
+            adminVerdict: "passed",
+            editorVerdict: "not_run",
+            monitoringState: "ready",
+            trafficPercent: 0,
+          };
+        },
+      },
+    );
+  } finally {
+    deadline.dispose();
+  }
+}
+
+export async function executeBatchRecovery(argv: readonly string[]): Promise<void> {
+  requireExplicitLive(argv);
+  assertReleaseProcessLock();
+  const path = readArg(argv, "--recovery-receipt");
+  if (!path) throw new Error("recovery_receipt_required");
+  const receipts = await receiptModule();
+  const receipt = receipts.readAssuranceReceiptForRecovery(path);
+  if (!receipt.recoveryBaseline)
+    throw new Error("supplemental_recovery_baseline_required");
+  const baseline = readRecoveryBaseline(receipt.recoveryBaseline, {
+    project: receipt.project,
+    region: receipt.region,
+    service: receipt.service,
+    sha: receipt.expectedCommit,
+  });
+  assertReleaseCheckpoint({
+    sha: baseline.sha,
+    runId: baseline.runId,
+    revision: receipt.expectedRevision,
+    phases: ["promote", "observe"],
+  });
+  const deadlineAtMs = Date.now() + CANDIDATE_ASSURANCE_TIMEOUT_MS;
+  const context = await preflightProductionAssurance({
+    project: receipt.project,
+    deadlineAtMs,
+  });
+  await executeSafeRecovery(receipt.recoveryBaseline, {
+    client: verifiedAssuranceClient(context, receipt.project),
+    candidateRevision: receipt.expectedRevision,
+    verifyRecovered: async () => verifyRollbackRecoveryFromReceipt(argv),
   });
 }
 
@@ -739,6 +904,7 @@ export async function prepareCandidateAssuranceReceipt(
   const deadline = createAssuranceDeadline(deadlineAtMs);
   try {
     requireExplicitLive(argv);
+    const admission = assertReleaseAdmission({ sha: releaseHead() });
     const target = resolveProductionTarget(argv);
     const coordinates = resolveRevisionCoordinates(argv, target.expectedRevision);
     const expectedConfigurationFingerprint = requireRevisionConfigurationFingerprint(
@@ -784,6 +950,20 @@ export async function prepareCandidateAssuranceReceipt(
     );
     const predecessorRevision = binding.predecessorRevision;
     if (!predecessorRevision) throw new Error("exact_predecessor_required");
+    const recoveryPath = readArg(argv, "--recovery-baseline");
+    if (!recoveryPath) throw new Error("supplemental_recovery_baseline_required");
+    receipts.exactExternalReceiptPath(recoveryPath);
+    const supplemental = assertRecoveryBaseline(
+      JSON.parse(readFileSync(recoveryPath, "utf8")),
+      {
+        project: coordinates.project,
+        region: coordinates.region,
+        service: coordinates.service,
+        runId: admission.runId,
+        sha: admission.sha,
+      },
+    );
+    await verifyRecoveryAvailability(supplemental, { client });
     const predecessorBaseline = await capturePredecessorBaseline({
       browserPolicy,
       client,
@@ -874,6 +1054,7 @@ export async function prepareCandidateAssuranceReceipt(
       expectedConfigurationFingerprint,
       predecessorRevision,
       predecessorBaseline,
+      recoveryBaseline: recoveryReference(recoveryPath, supplemental),
       adminVerdict: "passed",
       editorVerdict: editor ? "passed" : "not_run",
       reconciliationState: "matched",
@@ -1542,6 +1723,15 @@ function buildObservationReport(
 
 export async function main(argv = process.argv.slice(2)): Promise<void> {
   try {
+    if (hasArg(argv, "--prepare-recovery-baseline")) {
+      await prepareBatchRecovery(argv);
+      return;
+    }
+    if (hasArg(argv, "--execute-safe-recovery")) {
+      await executeBatchRecovery(argv);
+      process.stdout.write("safe_recovery_verified\n");
+      return;
+    }
     if (hasArg(argv, "--verify-rollback-recovery")) {
       await verifyRollbackRecoveryFromReceipt(argv);
       process.stdout.write("predecessor_recovery_verified\n");

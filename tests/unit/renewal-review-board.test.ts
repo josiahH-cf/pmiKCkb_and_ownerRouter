@@ -49,7 +49,7 @@ describe("renewal review board gather", () => {
     await expect(loadRenewalRunViews(actor)).resolves.toEqual([liveView]);
     expect(mocks.listResolutionsForRun).toHaveBeenCalledWith(actor, "live-review");
     expect(mocks.listWritebackApprovalsForRun).toHaveBeenCalledWith(actor, "live-review");
-    expect(mocks.loadLiveRenewalReview).toHaveBeenCalledWith(expect.any(String), {
+    expect(mocks.loadLiveRenewalReview).toHaveBeenCalledWith(actor, expect.any(String), {
       resolutions: [{ id: "resolution-1" }],
       approvals: [{ id: "approval-1" }],
     });
@@ -68,7 +68,7 @@ describe("renewal review board gather", () => {
     mocks.listResolutionsForRun.mockRejectedValue(new Error("Firestore unavailable"));
 
     await expect(loadRenewalRunViews(actor)).resolves.toEqual([liveView]);
-    expect(mocks.loadLiveRenewalReview).toHaveBeenCalledWith(expect.any(String), {
+    expect(mocks.loadLiveRenewalReview).toHaveBeenCalledWith(actor, expect.any(String), {
       resolutions: [],
       approvals: [],
     });

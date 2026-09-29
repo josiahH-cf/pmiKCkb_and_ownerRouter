@@ -1,4 +1,6 @@
 "use client";
+import { formatCalendarDate } from "@/lib/date-display";
+
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card, Field } from "@/components/ui";
@@ -97,13 +99,17 @@ function PacketFacts({
         {sourceFact("Property", facts?.address ?? null)}
         {sourceFact("Owners", facts?.owners.length ? facts.owners.join(", ") : null)}
         {sourceFact("Tenants", facts?.tenants.length ? facts.tenants.join(", ") : null)}
-        {sourceFact("Current lease end", facts?.leaseEndDate ?? null)}
+        {sourceFact(
+          "Current lease end",
+          facts?.leaseEndDate ? formatCalendarDate(facts.leaseEndDate) : null,
+        )}
         <li>
           <strong>Approved terms</strong>:{" "}
           {terms ? (
             <>
-              {money(terms.rent)} per month, effective {terms.effectiveDate} through{" "}
-              {terms.endDate} (recorded owner response) ·{" "}
+              {money(terms.rent)} per month, effective{" "}
+              {formatCalendarDate(terms.effectiveDate)} through{" "}
+              {formatCalendarDate(terms.endDate)} (recorded owner response) ·{" "}
               <a className="text-link" href="#renewal-manual-owner_response">
                 Open the owner response
               </a>
@@ -129,8 +135,10 @@ function PacketFacts({
         </li>
       </ul>
       <p className="muted">
-        Shown for preparation from their recorded sources. The app does not fill a PDF or
-        a Dotloop field from this list, and a populated fact is not a provider receipt.
+        This list summarizes recorded source facts. For supported fillable forms, use the
+        packet controls to prepare, download, inspect and approve a filled PDF. Other
+        forms keep their manual Dotloop handoff. A populated fact is not a provider
+        receipt.
       </p>
     </section>
   );

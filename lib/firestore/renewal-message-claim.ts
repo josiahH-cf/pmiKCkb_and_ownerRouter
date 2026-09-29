@@ -9,7 +9,14 @@ import {
 } from "@/lib/lease-renewal/message-claim-basis";
 import { suppliedRenewalPublication } from "./renewal-message-publication";
 import { EditableLayerError } from "./errors";
-/** A companion guard at the existing S20 claim, not another execution ledger. Legacy scopes are unchanged. */
+import { noticeSafetyMarkerRef } from "./renewal-notice-safety";
+import {
+  NoticeSafetyMarkerSchema,
+  noticeSafetyBasis,
+  manualNonRenewalReason,
+} from "@/lib/lease-renewal/notice-safety";
+import { LEASE_EXPORT_MAX_AGE_MS } from "@/lib/lease-renewal/live-lease-cache";
+/** A companion guard at the existing S20 claim. Legacy attempts recover without a new claim. */
 export async function assertCurrentRenewalMessageClaim(
   tx: Transaction,
   db: Firestore,
@@ -21,7 +28,11 @@ export async function assertCurrentRenewalMessageClaim(
     /^external-workflow:live:renewal-live:([1-9]\d*):cycle:([a-f0-9-]{36})$/.exec(
       execution.scope_ref ?? "",
     );
-  if (!scope) return;
+  if (!scope)
+    throw new EditableLayerError(
+      "Review the current cycle message in the lease workspace before creating a new draft. Historical attempt recovery remains available.",
+      409,
+    );
   const fail = (): never => {
     throw new EditableLayerError(
       "The saved message, owner terms, resource links or approved publication changed. Reload and review a new preview before drafting.",
@@ -49,21 +60,31 @@ export async function assertCurrentRenewalMessageClaim(
     fail();
   const channel = snapshot!.channel as "owner" | "tenant",
     identity = hashExecutionPreview({ leaseId, cycleId, channel });
-  const [workspace, preparation, active, resources, templates] = await Promise.all([
-    tx.get(
-      db
-        .collection("lease_renewal_workspaces")
-        .doc(createHash("sha256").update(leaseId).digest("hex")),
-    ),
-    tx.get(db.collection("renewal_message_preparations").doc(identity)),
-    tx.get(db.collection("renewal_message_draft_heads").doc(identity)),
-    tx.get(db.collection("renewal_resource_locations").doc("current")),
-    tx.get(db.collection("templates").where("space_id", "==", "lease-renewals")),
-  ]);
+  const [workspace, preparation, active, resources, templates, noticeMarker] =
+    await Promise.all([
+      tx.get(
+        db
+          .collection("lease_renewal_workspaces")
+          .doc(createHash("sha256").update(leaseId).digest("hex")),
+      ),
+      tx.get(db.collection("renewal_message_preparations").doc(identity)),
+      tx.get(db.collection("renewal_message_draft_heads").doc(identity)),
+      tx.get(db.collection("renewal_resource_locations").doc("current")),
+      tx.get(db.collection("templates").where("space_id", "==", "lease-renewals")),
+      tx.get(noticeSafetyMarkerRef(db, leaseId)),
+    ]);
   const message = preparation.data(),
     head = workspace.data();
+  const marker = NoticeSafetyMarkerSchema.safeParse(noticeMarker.data());
   if (
     !head ||
+    manualNonRenewalReason(head) !== null ||
+    !basis.noticeSafety ||
+    !marker.success ||
+    Date.now() - marker.data!.sourceReadAt.lease >= LEASE_EXPORT_MAX_AGE_MS ||
+    Date.now() - marker.data!.sourceReadAt.status >= LEASE_EXPORT_MAX_AGE_MS ||
+    hashExecutionPreview(noticeSafetyBasis(marker.data!)) !==
+      hashExecutionPreview(basis.noticeSafety) ||
     head.cycleId !== cycleId ||
     workspaceMessageBasisFingerprint(head) !== basis.workspaceFingerprint ||
     !message ||

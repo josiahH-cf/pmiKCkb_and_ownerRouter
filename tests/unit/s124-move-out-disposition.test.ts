@@ -387,11 +387,20 @@ describe("S124 typed attributed disposition (AC-S124-2, AC-S124-6)", () => {
       prior: { state: "initiated", observedAtIso: "2026-06-01T00:00:00.000Z" },
     });
     expect(withdrawn).toMatchObject({
-      state: "withdrawn",
-      reason: "withdrawn_after_prior_notice",
+      state: "unknown",
+      reason: "withdrawal_review_required",
     });
-    expect(withdrawn.label).toContain("2026-06-01");
-    expect(withdrawn.label).toContain("manual non-renewal decision");
+    expect(withdrawn.label).toContain("06/01/2026");
+    expect(withdrawn.label).toContain("Withdrawal review is required");
+    expect(
+      disposition(active, {
+        prior: {
+          state: "initiated",
+          observedAtIso: "2026-06-01T00:00:00.000Z",
+          withdrawalReviewed: true,
+        },
+      }),
+    ).toMatchObject({ state: "withdrawn", reason: "withdrawn_after_prior_notice" });
     // The staff non-renewal decision is a separate fact the filter unions, never merges.
     expect(matchesMoveOutFilter("non_renewal", "withdrawn", true)).toBe(true);
     expect(matchesMoveOutFilter("non_renewal", "withdrawn", false)).toBe(false);
@@ -624,6 +633,33 @@ describe("S124 desk integration (AC-S124-4, AC-S124-5)", () => {
     expect(workspace.workspace.summary.moveOut?.state).toBe("unknown");
   });
 
+  it("never falls back to raw notice values when an authenticated observer has no admitted lease entry", async () => {
+    const { config: cfg } = config();
+    const result = await loadLiveRenewalDesk(
+      WINDOWS,
+      READ_TS,
+      cfg as unknown as DeskConfigArg,
+      undefined,
+      undefined,
+      [],
+      undefined,
+      true,
+      snapshotResult(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      async () => new Map(),
+    );
+    if (result.status !== "ok") throw new Error(result.status);
+    for (const item of result.view.items) {
+      expect(item.moveOut?.state).toBe("unknown");
+      expect(item.moveOut?.evidence.noticeDateIso).toBeNull();
+      expect(item.moveOut?.evidence.pendingMoveOut).toBeNull();
+      expect(item.moveOut?.evidence.statusName).toBeNull();
+    }
+  });
   it("round-trips the move-out filter through the canonical query and its chip", () => {
     const parsed = parseRenewalDeskQueryV2(
       new URLSearchParams("moveOut=exclude_initiated"),

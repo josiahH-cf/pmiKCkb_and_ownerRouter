@@ -274,45 +274,14 @@ export function parseRevisionWritebackFlag(revision) {
  * candidate/promoted revision must satisfy it, or the pause was not preserved.
  */
 export function revisionPausesSheetWriteback(revision) {
-  return parseRevisionWritebackFlag(revision)?.trim() !== "true";
+  return parseRevisionWritebackFlag(revision) === "false";
 }
 
-/**
- * S128 (F08) rollback safety: never shift traffic onto a writeback-enabled revision. When the captured
- * predecessor still has the flag true, redeploy its exact image with the flag forced false and route
- * 100% traffic to the new revision. `gcloud run deploy` starts from the current serving template (the
- * paused candidate) and applies only the image swap and the flag pin, so the result is the
- * predecessor's code served with writes paused. No Cloud Build runs; the predecessor image is reused.
- */
-export function buildPausedRollbackRedeployPlan({
-  project,
-  region,
-  service,
-  image,
-  revisionSuffix,
-} = {}) {
-  const missing = ["project", "region", "service", "image", "revisionSuffix"].filter(
-    (key) => !{ project, region, service, image, revisionSuffix }[key],
-  );
-  if (missing.length > 0) {
-    throw new Error(`A paused rollback redeploy requires ${missing.join(", ")}.`);
-  }
-  return {
-    args: [
-      "run",
-      "deploy",
-      service,
-      `--project=${project}`,
-      `--region=${region}`,
-      `--image=${image}`,
-      `--revision-suffix=${revisionSuffix}`,
-      `--update-env-vars=${SHEET_WRITEBACK_FLAG}=false`,
-      // Default traffic routing sends 100% to the new revision, restoring service after rollback.
-      "--quiet",
-    ],
-  };
+/** Historical entry point retained as an explicit refusal. Image-only redeploy inherits the
+ * candidate template and can route traffic before receipt-bound recovery is prepared. */
+export function buildPausedRollbackRedeployPlan() {
+  throw new Error("receipt_bound_prepared_recovery_required");
 }
-
 /** Read-only query for the revision currently serving traffic, captured BEFORE any promotion. */
 export function buildPriorRevisionQueryPlan({ project, region, service } = {}) {
   return {

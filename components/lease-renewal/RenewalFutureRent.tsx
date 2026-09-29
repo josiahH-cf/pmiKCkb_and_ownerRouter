@@ -1,4 +1,6 @@
 "use client";
+import { formatCalendarDate, formatSourceCalendarDate } from "@/lib/date-display";
+
 import { RenewalSectionHelp } from "@/components/lease-renewal/RenewalSectionHelp";
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -131,8 +133,8 @@ export function RenewalFutureRent({
           <>
             <p>
               Approved monthly base rent: {terms.rent.toFixed(2)} · effective{" "}
-              {terms.effectiveDate} · term end {terms.endDate}. Current Sheet rent is
-              unchanged.
+              {formatCalendarDate(terms.effectiveDate)} · term end{" "}
+              {formatCalendarDate(terms.endDate)}. Current Sheet rent is unchanged.
             </p>
             <p className="muted">
               Tenant response:{" "}
@@ -201,8 +203,9 @@ export function RenewalFutureRent({
                   .map((entry) => (
                     <option key={entry.id} value={entry.id}>
                       {entry.accountLabel ?? entry.projection.description}:{" "}
-                      {entry.projection.amount} · {entry.projection.startDate} to{" "}
-                      {entry.projection.endDate ?? "open-ended"}
+                      {entry.projection.amount} ·{" "}
+                      {formatSourceCalendarDate(entry.projection.startDate)} to{" "}
+                      {formatSourceCalendarDate(entry.projection.endDate, "open-ended")}
                     </option>
                   ))}
               </select>
@@ -253,8 +256,9 @@ export function RenewalFutureRent({
                 .map((entry) => (
                   <li key={entry.id}>
                     {entry.accountLabel ?? entry.projection.description} ·{" "}
-                    {entry.projection.amount} · {entry.projection.startDate} to{" "}
-                    {entry.projection.endDate ?? "open-ended"}
+                    {entry.projection.amount} ·{" "}
+                    {formatSourceCalendarDate(entry.projection.startDate)} to{" "}
+                    {formatSourceCalendarDate(entry.projection.endDate, "open-ended")}
                     {entry.classification === "unknown"
                       ? ": account classification needs verification"
                       : ""}

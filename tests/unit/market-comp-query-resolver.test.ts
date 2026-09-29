@@ -1,3 +1,12 @@
+const noticeReader = {
+  uid: "fixture-reader",
+  email: "fixture-reader@pmikcmetro.com",
+  hd: "pmikcmetro.com",
+  role: "Editor" as const,
+};
+vi.mock("@/lib/firestore/renewal-notice-safety", () => ({
+  withRenewalNoticeAdmission: (_actor: unknown, reader: object) => reader,
+}));
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const harness = vi.hoisted(() => ({
@@ -81,7 +90,7 @@ beforeEach(() => {
 describe("resolveCurrentMarketCompQueryBasis", () => {
   it("resolves exactly one current server-side lease into the authoritative query basis", async () => {
     await expect(
-      resolveCurrentMarketCompQueryBasis(" L1 ", 2_000),
+      resolveCurrentMarketCompQueryBasis(noticeReader, " L1 ", 2_000),
     ).resolves.toMatchObject({
       leaseId: "L1",
       addressLabel: "104 NE Lindsay Ave, Kansas City, MO 64118",
@@ -100,7 +109,9 @@ describe("resolveCurrentMarketCompQueryBasis", () => {
     ["account_mismatch", "rentvine_account_mismatch"],
   ] as const)("fails closed when RentVine is %s", async (reason, code) => {
     harness.config.current = { ok: false, reason };
-    await expect(resolveCurrentMarketCompQueryBasis("L1")).rejects.toMatchObject({
+    await expect(
+      resolveCurrentMarketCompQueryBasis(noticeReader, "L1"),
+    ).rejects.toMatchObject({
       code,
       status: 409,
     } satisfies Partial<MarketCompQueryResolutionError>);
@@ -108,7 +119,9 @@ describe("resolveCurrentMarketCompQueryBasis", () => {
 
   it("refuses an expired read even when it contains the lease", async () => {
     harness.result.current = snapshot([VIEW], { state: "expired" });
-    await expect(resolveCurrentMarketCompQueryBasis("L1")).rejects.toMatchObject({
+    await expect(
+      resolveCurrentMarketCompQueryBasis(noticeReader, "L1"),
+    ).rejects.toMatchObject({
       code: "lease_data_expired",
       status: 409,
     } satisfies Partial<MarketCompQueryResolutionError>);
@@ -116,7 +129,9 @@ describe("resolveCurrentMarketCompQueryBasis", () => {
 
   it("turns a RentVine read failure into a typed, non-leaking refusal", async () => {
     harness.result.current = Promise.reject(new Error("secret provider detail"));
-    await expect(resolveCurrentMarketCompQueryBasis("L1")).rejects.toMatchObject({
+    await expect(
+      resolveCurrentMarketCompQueryBasis(noticeReader, "L1"),
+    ).rejects.toMatchObject({
       code: "rentvine_read_failed",
       status: 503,
       message: "The current RentVine lease read failed, so no RentCast lookup ran.",
@@ -125,13 +140,17 @@ describe("resolveCurrentMarketCompQueryBasis", () => {
 
   it("distinguishes incomplete absence from verified not-found", async () => {
     harness.result.current = snapshot([], { complete: false });
-    await expect(resolveCurrentMarketCompQueryBasis("L1")).rejects.toMatchObject({
+    await expect(
+      resolveCurrentMarketCompQueryBasis(noticeReader, "L1"),
+    ).rejects.toMatchObject({
       code: "lease_read_incomplete",
       status: 409,
     } satisfies Partial<MarketCompQueryResolutionError>);
 
     harness.result.current = snapshot([], { complete: true });
-    await expect(resolveCurrentMarketCompQueryBasis("L1")).rejects.toMatchObject({
+    await expect(
+      resolveCurrentMarketCompQueryBasis(noticeReader, "L1"),
+    ).rejects.toMatchObject({
       code: "lease_not_found",
       status: 404,
     } satisfies Partial<MarketCompQueryResolutionError>);
@@ -139,7 +158,9 @@ describe("resolveCurrentMarketCompQueryBasis", () => {
 
   it("refuses duplicate lease identities instead of choosing one", async () => {
     harness.result.current = snapshot([VIEW, { ...VIEW }]);
-    await expect(resolveCurrentMarketCompQueryBasis("L1")).rejects.toMatchObject({
+    await expect(
+      resolveCurrentMarketCompQueryBasis(noticeReader, "L1"),
+    ).rejects.toMatchObject({
       code: "lease_ambiguous",
       status: 409,
     } satisfies Partial<MarketCompQueryResolutionError>);

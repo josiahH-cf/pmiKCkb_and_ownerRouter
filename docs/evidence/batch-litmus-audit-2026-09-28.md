@@ -1,115 +1,519 @@
 # Batched release litmus audit — 2026-09-28
 
-Reviewed tree: `f85abacc771dc0f85c2f7bf69af3d05d8402e88e`.
-Input: the owner's pasted renewal-readiness checklist, including its reference indexes
-0–117 and its unnumbered market-fallback exclusion. The indexes below identify that
-checklist; they are not citations to an external source.
+Updated 2026-09-29 UTC. Reviewed implementation: current working tree based on
+`952c5cd843d14a9f7e2be2bcfa227598f235d059`. The owner's pasted checklist contains
+reference indexes 0–117 plus the unnumbered S121 exclusion. Those indexes identify
+the supplied statements, not external citations. All thirteen queued suites remain
+in this one batch; S121 market fallback remains separately unscheduled.
 
-**Audit verdict: NOT READY for an unqualified claim that every litmus statement is
-delivered.** The thirteen queued suites have implementation and test owners, but the
-static audit found the concrete gaps below. Passing the existing regression suite
-cannot establish the missing behavior. Release identity, authentication, billing,
-candidate, promotion, observation, and remote readbacks are separate release-runner
-evidence and are not asserted by this audit.
+**Current verdict: required local engineering and scoped compiled acceptance PASSED; remote delivery is NOT VERIFIED.**
+Run K passed all 7,174 unit tests, 230 backend tests, policy/document checks and production build
+`hkH9ZkYerS_oUJOH5zk1z`. Its fresh-process notice, actual save/focus, 71-step guide and actual-source
+presentation checks passed. The combined helper attempt remains failed at its supplemental
+synthetic-fixture attachment, and a separate warm notice request missed its 20-second deadline.
+The later clean desk-warmed first notice read and six-category presentation supplement passed.
+The corrected instrumented before/after source diagnostic passed. Same-source core E2E passed 31 tests with 18 intentional
+skips. Earlier build I's notice
+check failed, while actual save/focus, the 71-step guide and scoped presentation checks passed.
+The subsequent bounded source-coherence repair now has engineering and scoped compiled
+latency/readiness evidence. Run J remains failed with 7,171 unit passes and three fixture failures,
+without backend execution or a build. Earlier run G's core E2E passed 31 tests with 18 intentional
+skips on an isolated development server. No earlier failed attempt is relabeled.
+Exact-main CI and the candidate/promotion/observation/readback sequence remain separate release
+gates, with fresh attended WSL and Admin browser enrollment still required. Production serves S120
+with Sheet true. Keep all thirteen features queued until their one
+remote release is verified.
 
-This report combines a read-only code/spec/test review with pure offline synthetic
-probes. No provider was contacted by this reviewer, no production record was changed,
-and no customer values or private source contents are included. A separate
-verification runner reports **37 focused files / 194 tests passed** and a passed full
-gate on the reviewed commit. Historical green results are not called fresh passes here. The
-owner-supplied untracked files were not read or changed.
+The initial audit reproduced real gaps on the earlier tree. Its offline probes and
+all failed verification/release attempts remain unchanged outside Git. They are not
+rewritten as passes. Private supplied files were not staged. Synthetic forms,
+customers and provider adapters remain local/emulated. No customer draft/send,
+provider write, paid comparison, action activation or security change is authorized
+by this report.
 
-The release runner reports the corrected preflight now reads **GO**, with thirteen
-features targeting this exact head after the stale checkpoint archive and local
-flag corrections. That verdict does not override the implementation or rollback
-failures below, and is not evidence of a successful deployment.
+## Verification evidence
 
-## Fresh verification results
+The pre-S127 native `bash scripts/verify.sh` run C exited **0**. It establishes the earlier repair
+tree's regression evidence, not the final combined tree's acceptance:
 
-All focused tests passed on the reviewed commit. These checks exercise the existing
-assertions; the independently reproduced gaps below remain open.
+- **7,096 unit tests in 789 files** and **229 backend tests in 40 files** passed.
+- Formatting, ESLint, TypeScript, router, falsification, context freshness, active paths,
+  spec traceability, copy voice, redaction, local budget guard and production build passed.
+- Both complete S113 operator journeys passed. Their synthetic source fixture now carries
+  verified active status/tenancy fields; remount waits for the actual final saved control.
+  No guard, assertion or deadline was lowered.
+- Eight existing compiled smokes passed: navbar, renewal desk, maintenance blockers/intake,
+  assistant, 72-step renewal guide, theme and Work. The unsupported assistant fallback was
+  intercepted locally; no real model request or production conversation was created.
+- Local compiled G1/G2 controls passed notice record/withdrawal/conflict/unknown handling
+  and both-audience refusal. G4 app-save/readback/pause and G5 actual download/separate approval
+  passed again on pre-S127 build `pAKd_VsJI8vmZvjAv6Lgu` at 02:31:45Z. G4 performed one intercepted
+  app save and readback with zero source preparations/Sheet mutations. G5 downloaded all 25,236
+  expected PDF bytes and separately approved the exact output hash. No fixture business request
+  reached a real provider. The immutable aggregate is `~/pmi-kc-work/logs/gap-browser-final-aggregate-20260929.json`.
+- Actual-source inspection found 311 rows and 307 month/day/year calendar labels. Eight lease
+  notice reads and five warm workspace transitions were fresh/ready. Cold-navigation attempts
+  timed out before a usable readback and remain **UNVERIFIED**. They are not ready=false evidence
+  or an external-input waiver. A fresh-process/direct-detail notice check on the final build must
+  report its actual readback within the unchanged deadline; warm transitions and generic workspace
+  landmarks cannot substitute for that result.
+- G4 old-proposal/resume behavior passed unit/real-backend checks; that conditional browser
+  branch remains **NOT RUN** because the compiled snapshot has no historical proposal fixture.
+- Core E2E run C subsequently passed **31 tests with 18 existing intentional skips** on its source
+  snapshot using the isolated development server. Earlier failed startup runs executed no tests and
+  remain preserved. Intentional skips do not replace backend journey coverage.
+- Earlier browser evidence
+  established keyboard issue disclosure, scoped issue text and lifecycle labels/decorative dots.
+  The later presentation helper stopped on a locator before its light/dark, narrow, zoom and
+  forced-color checks completed. Accessibility claims must identify actual keyboard, accessible
+  name/state and layout/zoom checks; no human screen-reader verdict has been recorded.
 
-| Suite | Feature                          | Passing focused tests |
-| ----- | -------------------------------- | --------------------: |
-| S122  | All-lease views                  |                    12 |
-| S123  | Unfinished-cycle retention       |                    13 |
-| S124  | Move-out detection and filtering |                    15 |
-| S125  | Notice timing                    |                    17 |
-| S126  | Date presentation                |                     8 |
-| S127  | Blockers and next actions        |                     6 |
-| S128  | Operating-Sheet pause            |                    12 |
-| S129  | Owner and tenant drafts          |                     8 |
-| S130  | Seven-template intake            |                    17 |
-| S131  | Rhino policy                     |                    23 |
-| S132  | Walkthrough preparation          |                    28 |
-| S133  | Maintenance-agent assessment     |                    25 |
-| S134  | Lifecycle status                 |                    10 |
-| Total | 37 test files                    |                   194 |
+Native run G exited **0** with **7,123 unit tests in 791 files**, **229 backend tests in 40
+files**, all policy/document gates and production build `QZdPCrt2aHwhf-Sh_c-bS` at 03:26 UTC.
+The intermittent run-F backend failure was not reproduced by its 27 focused checks or the complete
+run G; its cause remains unproven and diagnostics remain preserved. No assertion or deadline was
+lowered. Core E2E G exited **0** in 19.91 seconds at 03:27 UTC on the same source snapshot:
+**31 passed, 18 intentional skips**, eight passed files and four skipped files. Its tracked
+`tests/e2e/global-setup.mjs` starts `next dev` with `NEXT_E2E_ISOLATED_BUILD=true`; this is isolated
+development-server evidence, not execution of the compiled production build. Receipt:
+`~/pmi-kc-work/logs/core-e2e-final-g.log`, SHA-256
+`bdfbda808f67c1a12dd5c823b5dc523dea5f67eb40aa124baf7e396252d06638`.
 
-The first full verification attempt passed formatting, lint, TypeScript and 6,953
-unit tests across 773 files, then stopped because Java was absent from that shell's
-PATH. The installed Java 21 runtime was added to the process PATH; the complete
-`bash scripts/verify.sh` rerun exited zero. It passed formatting, lint, TypeScript,
-6,953 unit tests in 773 files, 216 backend tests in 38 files, all seven policy/document
-gates, the configuration guard and production build. Core E2E separately passed
-31 tests in eight files, with 18 tests in four Firestore-only files intentionally
-skipped by core mode. The failed attempt remains preserved and is not a full-gate pass.
-The updated documentation also passed 38 targeted tests across five files, including
-the two pinned serving-identity tests, and the seven document/policy gates.
-Full logs remain outside Git under `~/pmi-kc-work/logs/` with the `batch-` prefix.
-Compiled feature browser smokes and human verdicts are NOT RUN for this batch.
+The first final compiled attempt remains **FAILED**, preserved under
+`~/pmi-kc-work/logs/gap-browser-20260929-1790652433183/`. The 72-step guide passed. The focus
+receipt recorded no premature focus advance, one intercepted POST, only the initial Flight frame
+and an assertion failure after its newly configured 400 × 25 ms frame wait. That ten-second wait
+was an invalid harness assumption, not the existing route budget or evidence of a product focus
+defect. The cold receipt recorded `fresh_direct_detail` with `TimeoutError2` after
+discovery and zero completed notice reads. That stage began before fresh-server setup and browser
+authentication, so it did not identify which navigation timed out or its actual phase duration.
+Its configured navigation budget was 60 seconds. Subsequent instrumentation found that the
+discovery server's stale five-second shutdown timer could kill the fresh server through a mutable
+process reference; one instrumented process ended after 4.939 seconds. This latest cold harness
+failure cannot establish product latency. It does not invalidate earlier, separately unverified
+cold probes. No blank page or loading-state observation is inferred.
 
-## Concrete gaps to resolve or report
+The corrected focus check **passed on build `QZdPCrt2aHwhf-Sh_c-bS`**, preserved in
+`~/pmi-kc-work/logs/gap-browser-20260929-1790653451495/temp/s127-compiled-focus/report.json`.
+Two exact intercepted saves established no focus advance before the response or from stale
+revision data. The current server-rendered projection focused the actual next enabled tenant
+control and retained a dirty sibling input. No write was forwarded. The three HTTP-200 Flight
+responses took 16.670, 15.078 and 13.379 seconds, within the existing 60-second route budget.
+The earlier failed ten-second harness result remains preserved.
 
-| ID  | Litmus references            | Finding and falsification                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Owning code / existing coverage                                                                                                                                                                                                                                                                                                                                                                                                                |
-| --- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| G1  | 19, 25                       | The pure move-out projection can return `withdrawn` only when its caller supplies `prior.state === initiated`. Neither production caller supplies `prior`, and no production persistence/read path for prior notice evidence was found. A served notice-to-withdrawal transition therefore falls back to `not_initiated`, rather than the specified explicit withdrawal/review state. Verify by carrying one same-lease notice observation into a later clear provider snapshot through the actual service.                                                                                                                                                                                                                                   | `lib/lease-renewal/move-out-disposition.ts` (`PriorMoveOutEvidence`, `projectMoveOutDisposition`); `lib/lease-renewal/live-desk.ts` (`projectMoveOutFields`); `lib/lease-renewal/current-renewal-message.ts`; `tests/unit/s124-move-out-disposition.test.ts` tests the pure injected-prior branch, not its production storage/wiring.                                                                                                          |
-| G2  | 22, 25, 58                   | The supplied-message server preview rejects a provider `initiated` disposition but does not check the current manual non-renewal result. Its workspace fingerprint includes cycle, terms, owner response and preparation, but excludes tenant response; the source fingerprint excludes move-out/status evidence. An otherwise ready owner draft can therefore survive or be re-reviewed after a manual decline, a tenant decline does not invalidate the fingerprint, and a provider notice appearing then disappearing can restore the same old reviewed basis. Verify both audiences through preview and confirmation after owner/tenant decline and after a notice withdrawal. No Gmail call is needed for these checks.                  | `lib/lease-renewal/execution/supplied-renewal-draft-preview.ts`; `lib/lease-renewal/current-renewal-message.ts`; `lib/lease-renewal/message-claim-basis.ts`; `app/api/lease-renewal/message-preparation/route.ts`. Existing `s124-move-out-disposition` and `s129-draft-boundary` checks cover provider initiation, stale snapshots and policy gates, not these manual/withdrawal transitions.                                                 |
-| G3  | 32, 33, 37                   | The move-out notice builder embeds raw ISO dates in visible app-authored labels. Its local `isoDate` checks only the date-shaped prefix, so an impossible calendar date can also enter this label. `RenewalWorkspace` renders `disposition.label` verbatim; the table also exposes it in the title. This is a counterexample to the stated universal month/day/year convention and explicit invalid-date display. Verify valid and impossible notice/expected-move-out dates on these surfaces, while keeping stored values unchanged.                                                                                                                                                                                                        | `lib/lease-renewal/move-out-disposition.ts` (`isoDate`, `withNotice` and withdrawal label); `components/lease-renewal/RenewalWorkspace.tsx` (`MoveOutDispositionNotice`); `components/lease-renewal/RenewalDeskTable.tsx`; `tests/unit/s126-date-surfaces.test.tsx` does not cover these labels.                                                                                                                                               |
-| G4  | 47, 48, 51                   | App-owned workspace saves still automatically call `prepareWorkspaceSheetUpdate`; that function has no pause check and saves a new prepared Sheet proposal. Manual-workspace messages continue to say a Sheet update needs confirmation and offer preparation. Dispatch itself is gated while the flag is false, but the specified paused save behavior/no new executable proposals is missing. No pause generation appears in the proposal/confirmation contract, so an unexpired pre-pause proposal is not inherently invalidated by a pause/resume cycle. Verify flag-false activity/preparation saves produce no new proposal, show the pause, retain typed app values, and reject an old confirmation after simulated authorized resume. | `app/api/lease-renewal/workspace/route.ts`; `lib/lease-renewal/workspace-sheet-sync.ts` (`prepareWorkspaceSheetUpdate`); `lib/lease-renewal/workspace-state.ts`; `components/lease-renewal/RenewalManualWorkspace.tsx`; `lib/lease-renewal/sheet-writeback/proposal-contract.ts`. S128 spec R-F08-04 and AC-S128-4/-6 explicitly require these behaviors. Existing S128 tests cover flag policy, the operating-Sheet panel and rollback guard. |
-| G5  | 67; qualification for 69, 74 | The supported synthetic filled-output integration acceptance is not established. `fillArtifact` returns an in-memory field dictionary for `provider_native`; PDFs receive an honest unavailable/manual result, which the specification permits. No product caller of `fillArtifact` or its derived-output-current check was found outside the defining module. Existing tests compare a generated dictionary, not an independently read generated artifact or provider-native result through the product path. Verify one actually supported synthetic format through generation, identity binding and independent field readback, without touching a live provider. This finding does not require adding PDF filling or replacing Dotloop.   | `lib/lease-documents/artifact-intake.ts` (`fillArtifact`, `deriveArtifactIdentity`, `derivedArtifactCurrent`); `tests/unit/s130-artifact-intake.test.ts`; `tests/unit/s130-intake-checkpoints-local.test.ts`; S130 R-F10-04 and AC-S130-4. Actual supplied-form correctness remains separately unverified even after a synthetic check passes.                                                                                                 |
-| G6  | 52                           | The promotion-failure recovery in `release.mjs` sends traffic directly back to the originally captured predecessor without invoking the Sheet-pause guard. The release runner's live readback found that predecessor's flag true. A promotion failure can therefore re-enable operating-Sheet writes, violating the owner's release boundary. Verify this error branch with a flag-true predecessor and require that any restored target is independently read back paused before accepting recovery.                                                                                                                                                                                                                                         | `scripts/release.mjs` (line 605) builds the traffic command for `prior` directly. Independently confirmed by the release safety reviewer; the release runner owns the live predecessor readback.                                                                                                                                                                                                                                               |
-| G7  | 52, 117                      | The watcher can create a replacement predecessor revision with Sheet writes paused, but rollback observation still verifies the original receipt's expected revision and configuration fingerprint. The newly created paused target is not persisted in the checkpoint, so a retry can redeploy again. This prevents honest terminal verification/resumption of the paused rollback. Verify a flag-true predecessor path through one replacement deployment, persisted target, restart and receipt-consistent recovery without rewriting historical receipts.                                                                                                                                                                                 | `scripts/release-watcher.mjs` (`resolvePausedRollbackTarget`, rollback handler); `scripts/observe-production-release.ts` (line 609) supplies the original expected revision and line 632 compares the original revision/fingerprint. Independently confirmed by the release safety reviewer.                                                                                                                                                   |
+At 320 CSS pixels, presentation reported 91 pixels of page overflow, despite visible unchanged
+issue text, minimum measured contrast 7.31, keyboard checks and accessible-tree checks passing.
+Measured geometry traced the overflow to intrinsic workspace width and long unwrapped text.
+Scoped in-memory wrapping removed the overflow with all 197 controls and five issues retained;
+the resulting workspace/button/tag wrapping source change passed independent review. That attempt
+did not complete the remaining themes/zoom checks; the later build-I presentation result below
+provides rebuilt acceptance for this scoped repair.
 
-The gaps above are based on reachable code and missing wiring, not on missing live
-customer inputs. They do not authorize any provider effect, key activation, security
-change or assumption about external documents. S130's specified honest manual
-fallback remains useful and must be retained for unsupported material.
+The corrected fresh-process notice probe is preserved in
+`~/pmi-kc-work/logs/cold-ssr-timing-20260929-1790653331/fresh-process-notice/`, with report SHA-256
+`b7b5b260e9b32540a36db111d4bf41554ef81042359a4367369d2c10082cb714`. Local demo authentication
+took 62 ms; detail headers returned HTTP 200 after 220 ms, DOM content loaded after 20.437 seconds
+and the notice panel appeared after 20.571 seconds. Its one notice GET produced no response within
+the unchanged 20-second notice-read deadline. No HTTP failures, browser errors or blocked requests
+were observed. Bodyless instrumentation counted two complete export calls and 624 detail calls
+before DOM content loaded; at the end, four exports, 1,112 completed plus six pending detail calls
+and nine Sheet calls. Firestore timing coverage remains unverified. Both owned server processes
+exited 143 only during intended cleanup. The later repair has compiled proof under run K below. Static
+inspection confirms two separate SSR/API module-cache contexts; four compiled implementation
+matches do not establish four independent caches or the cause of every repeated provider read.
+The admission-specific coalescing repair reproduced three export calls where two were expected,
+then passed **47 focused checks**, including 15 new adversarial cases, and independent source/test
+review. It scopes shared work to the actual Firestore instance and exact configured provider
+context, keeps scope metadata private, reserves each caller's lease and refuses missing, invalidated
+or expired admission. Ordinary source refresh and the stronger post-write barrier retain their
+contracts. A verified-ready fixture becomes unready after an independent durable source generation
+advances; cache reuse cannot override that marker or the final S20 transaction. This evidence does
+not itself establish the rebuilt notice read's latency/readiness or complete browser acceptance.
 
-Pure offline probes against the reviewed source reproduced three defects without
-provider or Firestore calls: changing the tenant response from accepted to declined
-leaves `workspaceMessageBasisFingerprint` unchanged; a visible move-out label retains
-an ISO calendar date; and the same label accepts an impossible calendar date. A fourth
-probe confirms that a clear notice returns `not_initiated` without `prior` and
-`withdrawn` with `prior`, substantiating the missing production wiring in G1. These
-are successful reproductions of defects, not passing feature acceptance. The script
-and aggregate JSON output are preserved outside Git under the local temporary
-directory as `pmi-batch-litmus-probe-2026-09-28.ts` and `.json`.
+Independent focused evidence overlaps the full gate and must not be added to its counts:
+
+- Three real notice Firestore tests reject an old unused S20 approval after read-only notice
+  appearance, clearing and restart. Reads persist only the owner's narrow invalidation metadata.
+- Sheet pause: 58 focused tests plus real store/claim/save checks; current rendered controls
+  preserve unsaved input and require fresh API evidence before an observed pause clears.
+- Actual PDF: 129 focused tests in 19 files, six real Firestore cases and independent 14-field
+  pypdf extraction/render inspection. Original/download/submitted bytes are checked separately.
+  A reproduced concurrent-cleanup defect now uses per-attempt staging ownership; its 15 focused
+  tests and six backend cases pass. Original storage and indefinite retention/legal holds remain.
+- Release control/recovery: 135 focused tests, including five real kernel-lock/process cases,
+  four observer-entry guards and independent review. The prerequisite collector passed six tests.
+
+Earlier failures remain unchanged outside Git: the first integrated unit run (7,030 pass/32 fail),
+the later obsolete invalid-timestamp assertion (7,095 pass/1 fail), the first full backend run
+(227 pass/2 fail), and core startup refusals. The pre-S127 passing log is
+`C:/Users/josia/AppData/Local/Temp/pmi-gap-verify-20260929-c.log`. Browser/parser receipts remain
+under `~/pmi-kc-work/logs/`; no private source, customer value or credential is committed.
+The cancelled stale S128 build and original release receipts retain their original outcomes.
+
+The final suite audit also found an unclosed S127 AC-S127-5 requirement: successful saves had
+not focused the next unresolved item. The repair adds one shared success/readback coordinator
+across app-owned issue-resolution saves, preserves dirty sibling inputs and excludes reads/provider
+effects. A failed-refresh/no-new-props intent leak was reproduced during review and repaired; a later
+reload cannot revive it. **55 focused tests**, TypeScript, lint and independent review passed.
+The interrupted full run `pmi-gap-verify-20260929-d.log` remains a cancelled attempt, with a separate
+02:56:33Z cancellation receipt. Run E recorded **7,115 unit passes and eight fixture failures**.
+After those repairs, run F recorded **7,123 unit passes and 228 backend passes with one backend
+failure**, then stopped before the final build. Neither attempt is a full pass. Run G provides the
+later native pass, and the subsequent actual compiled save/focus check passed. Build I's later
+presentation and final run-K fresh-process notice results are recorded below. Packet/PDF
+inspection is never auto-skipped.
+
+The subsequent native run H exited **1** after **7,138 unit passes in 792 files** and **218 backend
+passes with 11 failures** in the S113/S120 suites. It stopped before a production build; no H build
+or final compiled-browser pass exists. Its unchanged log is
+`C:/Users/josia/AppData/Local/Temp/pmi-gap-verify-20260929-h.log`, SHA-256
+`62dccf3e2e58e75edd851a7ea5f1047b20466d68c0bb5915e68829f76998d5e1`.
+Independent diagnosis confirmed that two test files mocked the live-client factory with an empty
+client, producing `reader.listAllLeasesExport is not a function` when the real admission/cache path
+ran. The production factory constructs a complete concrete client. The fixture repair uses the real
+cache and admission path without a production-code change for this fixture failure. Run H remains
+failed; its outcome is not rewritten by the subsequent pass.
+The unchanged S120 fixture reproduced two TypeErrors in
+`~/pmi-kc-work/logs/notice-fixtures-red.log` (SHA-256
+`912d6cc026a77ea41ee90f443f0600a3dadf823f6c65952185c86e1dfd41b00a`). The repaired S113/S120
+fixtures passed **29 of 29 tests** in 82.52 seconds, using stable complete deterministic
+export/detail/status readers through the actual cache, admission and Firestore paths; both caches
+reset between tests. Green receipt: `~/pmi-kc-work/logs/notice-fixtures-green.log`, SHA-256
+`80a928c692831cea6ce4470b6afed3386e4424457231925806d2573739d7fc09`.
+Independent fixture review, TypeScript, lint, formatting and diff checks passed. These focused
+counts overlap the full suite below.
+
+Native run I exited **0 at 04:24:35 UTC** with **7,138 unit tests in 792 files**, **229 backend tests
+in 40 files**, all policy/document/redaction/budget checks and production build
+`Iuz88HHY5DByY37iigFp3`. Its log is
+`C:/Users/josia/AppData/Local/Temp/pmi-gap-verify-20260929-i.log`, SHA-256
+`e89e7203455418a6f4f8ff44c80fbd8b75ff2ab010f054ecd919ade6bb2342ec`.
+The compiled snapshot `final-20260929-1790655887126` was copied at 04:24:50 UTC for the final
+browser checks. Its fresh-process notice check **failed**: detail headers returned HTTP 200 after
+234 ms, DOM content loaded after 16.839 seconds and the notice panel appeared after 16.980 seconds.
+One notice GET produced zero responses within the unchanged 20-second notice deadline. Bodyless
+instrumentation counted four exports and 1,126 completed plus six pending detail calls, with zero
+HTTP failures, page errors or blocked requests. Receipt:
+`~/pmi-kc-work/logs/gap-browser-20260929-1790655903441/fresh-process-notice/report.json`.
+That earlier coalescing unit repair did not establish latency closure. The failed cold receipt's
+SHA-256 is `f85d84958f35d2a56978bdf38a9b14f91270b6e12cde86e8e8fad7f282cdbb62`.
+
+The compiled build-I batch finished at **04:30:41.363 UTC** with an overall **FAILED** result:
+the cold notice case failed, while focus, guide and presentation each exited zero. Independently
+read receipt fields establish these bounded results:
+
+- **Actual save/focus passed:** two intercepted saves, three HTTP-200 Flight frames, no advance
+  before the save response or from stale revision data, actual next enabled control focus, dirty
+  sibling input retained and no provider confirmation focused. Zero business requests were
+  forwarded. Receipt: `temp/s127-compiled-focus/report.json` under that run, SHA-256
+  `4c0f7c7acf0c6f0f2f7824d02e7dbbdba898ac20c7df7b4663c449793523e5c5`.
+- **Guide passed:** this run located **71 recorded guide steps** with exact semantic locators and
+  preserved the view from desk to lease and back. Earlier 72-step results retain their original
+  scope. Log: `smoke-renewal-guide-controls-browser.log`, SHA-256
+  `70b5dc6c0e590d975f3d42c2a9849dbcea82a2eb22a1927055030f0796c5ba8c`.
+- **Presentation passed for both actual surfaces:** light and dark themes at 1,360, 320 and 640 CSS
+  pixels had zero page overflow, visible text and keyboard focus. Issue disclosure, lifecycle
+  sorting and table-local scrolling where needed passed. Five issues exposed blocking, advisory
+  and policy-pause kinds with reasons/affected actions and accessible list/name semantics. All 311
+  displayed lifecycle rows were currently Unknown, with named categories and decorative dots;
+  this is not browser evidence for other live categories. Minimum measured text contrast was
+  6.698. Forced-colors text/focus checks passed. CDP page-scale zoom was exactly 2 for both surfaces,
+  with required text/focus retained; this proves page-scale zoom, not desktop full-page browser
+  zoom. Human screen-reader and desktop full-page zoom checks remain **NOT RUN**. Receipt:
+  `bounded-browser-followup/summary.json`, SHA-256
+  `a129767250b53cd3bd52212764d30b29ffae0e3efa55b26550f6777a25b35301`.
+
+The presentation helper's separate warm notice read returned HTTP 200 with `ready=false`, despite
+verified tenancy and a present basis. Neither that response nor presentation success closes notice
+readiness. All owned browser/server processes stopped; the cold probe's two servers recorded only
+intended cleanup exit 143. The subsequent approved diagnostic preload is separate diagnosis,
+not acceptance. Remote delivery remains unverified.
+
+The bodyless diagnostic at `~/pmi-kc-work/logs/notice-identity-diagnostic-20260929T043927Z/`
+retained the original 20-second failure. That same pending notice GET eventually returned HTTP 200
+after **29,669 ms**, with `ready=true`, verified tenancy, a basis and matching source vectors.
+It showed the first API portfolio generation lacked admission; the next notice generation carried
+all 311 registered keys. Factory/store/context identities matched. The raw ordinary cache caller
+in the rent-suggestion GET and independent SSR/API caches explained concrete redundant reads;
+the late response does not satisfy the acceptance deadline.
+
+The follow-up source repair now threads existing authenticated admission into the ordinary cache
+callers and acquires a coherent lease/status pair before desk/detail projections. Exact durable
+source minima and registered membership are read again before returning. Work is bounded to an
+initial pass plus one catch-up; the display's already-acquired lease generation counts as initial,
+so a second replacement is refused before dispatch. A valid held lease permits status-only
+catch-up. Continued churn, invalid context, invalidated/expired generations and missing membership
+cannot become ready. Valid canonical marker paths are checked before any admission mutation or
+provider fetch. Metadata failure preserves already-acquired lease inventory with explicitly
+unavailable notice evidence; a cold failed admission refuses the fetch. No missing portfolio lease
+is reserved to manufacture readiness. The stronger post-write helper is unchanged. Pending newer
+markers remain unavailable to older observations without poisoning completion of the newer read;
+old unused S20 approval still fails the final transaction before an attempt is created.
+
+The source repair passed **146 focused checks in 13 files**, real Firestore checks and independent
+source/test review. The strict-bound regression first reproduced three exports where two were
+required; its later pass does not rewrite that failed receipt. Two-runtime/two-lease fixtures cover
+the previously unselected lease, late membership, bounded continued churn, failed metadata,
+unavailable status and the stronger post-write barrier. These counts overlap full run K.
+
+Native run J exited **1** with **7,171 unit passes and three failures** across 795 files
+(793 passed, two failed). It stopped before backend checks and build. Receipt:
+`C:/Users/josia/AppData/Local/Temp/pmi-gap-verify-20260929-j.log`, SHA-256
+`1807b2101d3f41123278c8d0c3d62aa252ec889a2a0209c73f938f61b230e915`.
+The two test files still expected the previous cache helper or mocked that retired orchestration
+seam. Their repair traces the same freshness floor through the new coherent helper and preserves
+the 1,000 ms scheduling deadlines, primary Sheet failure behavior and redaction assertions.
+Exact pair, dependency ordering and admission-callback checks were strengthened. Independent
+review found no weakened requirement; no production change was made for those fixture failures.
+
+Native run K exited **0 at 05:36:35 UTC** with **7,174 unit tests in 795 files**, **230 backend
+tests in 41 files**, all policy/document/redaction/budget gates and production build
+`hkH9ZkYerS_oUJOH5zk1z`. Receipt:
+`C:/Users/josia/AppData/Local/Temp/pmi-gap-verify-20260929-k.log`, SHA-256
+`b01b3fe1d2138cd9448e01753e526d71dc17b22dda7daaec158f4accc898a89e`.
+The source-manifest comparison found zero drift across 281 intended paths after that run.
+The immutable compiled snapshot was copied at **05:36:59.446 UTC** to
+`~/.local/state/pmi-kc-rehearsal/final-20260929-1790660216695`.
+Its clean fresh-process notice check **passed at 05:38:25.894 UTC**. Detail headers returned
+HTTP 200 after 232 ms, DOM content loaded after 17.688 seconds and the notice panel appeared
+after 17.832 seconds. Exactly one notice GET returned HTTP 200 in **16,563 ms**, within the
+unchanged **20,000 ms** deadline, with `ready=true`, verified tenancy, a present basis and
+`active_without_notice`. There were zero failed notice requests, page errors or blocked requests.
+The discovery and fresh server children exited 143 only during intended cleanup. Receipt:
+`~/pmi-kc-work/logs/gap-browser-20260929-1790660241576/fresh-process-notice/report.json`, SHA-256
+`f3671dfc4786194351491770c60cfe62cfed05a25fdea39e6d5dc5b172e21eef`.
+This closes the owning cold-read requirement for that exact compiled snapshot; prior failed
+deadlines remain failed.
+
+The first compiled build-K batch finished at **05:44:18.362 UTC** with an overall **FAILED**
+result. Its cold-notice, focus and guide cases passed. Its presentation helper completed the
+actual-source checks below, then failed during supplemental `known_lifecycle_fixture` attachment
+before any synthetic frame rewrite. The failed run and helper receipts remain unchanged:
+`~/pmi-kc-work/logs/gap-browser-20260929-1790660241576/run.json` (SHA-256
+`b7021168b990ec61073f156523f2d7d5aec81f4568a06ecad1960375fe51172e`) and
+`bounded-browser-followup/summary.json` under that directory (SHA-256
+`5c9abb0191a7ee76188f89d9f8d3151430ddabb0360da3541c935653f3ac87ef`).
+Independently read fields support only these scoped passes:
+
+- **Actual save/focus passed:** two exact intercepted saves, zero forwarded business requests,
+  no premature or stale-revision focus, actual next enabled control focused, dirty sibling input
+  retained and no provider confirmation focused. The three HTTP-200 Flight frames took 14.675,
+  18.619 and 17.489 seconds within the existing route budget. Receipt:
+  `temp/s127-compiled-focus/report.json`, SHA-256
+  `c9d46c774d0d551aba324ed9bf8e70e1f91c613074e04188449327d76398e9d3`.
+- **Guide passed:** 71 recorded steps were located using exact semantic locators, with the view
+  preserved desk-to-lease-and-back. Log: `smoke-renewal-guide-controls-browser.log`, SHA-256
+  `61b91e2e117a1c23cd128eb0ff2139a4d364ed2eeae4b955b9e605afbd8c74ab`.
+- **Actual-source presentation passed:** both issue and table surfaces in light/dark at
+  1,360/320/640 CSS pixels had zero page overflow, visible text and focus. Keyboard issue
+  disclosure, ascending lifecycle sort, narrow table-local scrolling, accessible list/category
+  names, forced colors and exact CDP page-scale 2 checks passed. Minimum measured text contrast
+  was 6.698. Five issues covered blocking/advisory/policy-pause kinds. The 311 actual rows exposed
+  Later, Unknown, In progress, Non-renewal and Upcoming categories. This is actual rendered
+  presentation evidence; per-record source/projection/render agreement remains the separate
+  aggregate diagnostic. Complete-category fixture rendering did not run successfully. Human
+  screen-reader and desktop full-page browser zoom remain **NOT RUN**.
+
+The same presentation helper's separate, already-warmed notice read issued one GET with zero
+responses inside its 20-second wait and remains **UNVERIFIED**. Its context explicitly excludes
+cold-start proof; neither the clean cold pass nor the presentation pass rewrites this result.
+The helper reported zero blocked mutations, stateful GETs, external browser requests and page
+errors. Later clean warm-read and supplemental presentation passes are recorded below. This
+original failed attempt remains unchanged, and no remote delivery pass is claimed.
+
+The first observational diagnostic also remains **FAILED**, at `before_api` on
+**05:45:19.882 UTC**, under that original build-K run's `source-coherence-diagnostic/report.json`.
+Its instrumentation helper required a separately falsified correction before baseline evidence
+could be obtained. It establishes no successful baseline or post-API comparison; the subsequent
+qualified results below retain their own receipts.
+
+The separate corrected observational diagnostic completed at **05:53:09.089 UTC** with an
+overall **FAILED** result, while its pre-API baseline comparison passed. On the same build K,
+raw export, cached snapshot, projected rows and rendered rows each contained **311** identities,
+with zero missing or duplicate identities and matching whole-cohort hashes. Projected/rendered
+sorted identity/category hashes also matched. The category counts were **273 Later, 27 Upcoming,
+five Non-renewal, two In progress and four Unknown**. All 311 notice-safety observations were
+ready, using complete detail/portfolio data and an admitted lease/status pair with fresh currency.
+These are aggregate baseline observations; they do not turn an Unknown lifecycle into a known one
+or demonstrate the requested comparison after another API generation.
+The subsequent `owning_api_read` stage failed before recording a response readout. Independent
+offline falsification identified a helper error: inside browser `page.evaluate`, it called the
+Fetch response's numeric `status` property as `status()`. That raises a TypeError after JSON
+parsing; the Playwright response API's method shape does not apply there. The synthetic old/new
+check preserved the TypeError and passed with a numeric HTTP-200 status and parsed JSON after
+the correction. Log: `C:/Users/josia/AppData/Local/Temp/pmi-cohort-response-test-20260929.log`,
+SHA-256 `ea2edd1ea7555b1e2edb838a952d61e7a4db0b8d4fbef870d2df5d505f8494bf`.
+The original response status/readiness values were not recorded and remain unrecoverable.
+No post-API desk comparison ran, and the failed receipt does **not** establish a 20-second
+timeout. A later corrected bounded diagnostic is recorded below. This failed diagnostic reported zero
+blocked requests and page errors; its server exited 143 during cleanup. Receipt:
+`~/pmi-kc-work/logs/cohort-k-20260929-corrected/source-coherence-diagnostic/report.json`, SHA-256
+`a4c9965f5875faa215397401ccd0a2bfe9ee7a2f500c76f9f95f9de777edbfa1`.
+
+The corrected observational diagnostic **passed**, from **06:01:04.616 to 06:02:25.608 UTC**, on
+build `hkH9ZkYerS_oUJOH5zk1z`. Both before and after one owning API read, raw export, cached
+snapshot, projection and rendered table contained all **311** identities with zero missing or
+duplicates and matching cohort hashes. Each sorted projected identity/category pair matched
+its rendered pair; the five category counts above were unchanged. All **311** notice-safety
+observations were ready, with complete fresh admitted lease/status data and no pending/stale
+notice reasons. The API returned HTTP 200 and parsed JSON in **17,591 ms** within 20 seconds,
+with ready/tenancy/basis verified and a genuinely advanced source vector. The subsequent desk
+read completed in **24,406 ms** within its 60-second route budget and both its source timestamps
+followed the API's vector. There were zero blocked requests or page errors; the server exited
+143 during intended cleanup. Receipt:
+`~/pmi-kc-work/logs/cohort-k-20260929-response-fix/source-coherence-diagnostic/report.json`, SHA-256
+`203d1f41ff71ec8a315b1b8a5af86e0698fce9f171d1e44ff5e1c13211fa024f`.
+This is observational instrumentation evidence for source coherence, separate from clean browser
+acceptance. It does not rewrite the earlier failed diagnostic or the clean warm-read miss.
+
+The subsequent **uninstrumented desk-warmed first owning notice read passed** on build K.
+The genuine desk displayed 311 rows after **25,776 ms**; detail DOM content loaded after
+**18,248 ms**. Exactly one notice GET returned one HTTP-200 response in **16,778 ms**, within
+the unchanged 20-second deadline, with parsed JSON, readiness, tenancy and basis verified.
+There were zero blocked requests or page errors; the server exited 143 during cleanup.
+The containing attempt remains **FAILED** because the later synthetic presentation step failed
+before frame replacement: its helper compared an `aria-hidden` string value with boolean true.
+The supplement has separate falsification/repair work; this notice pass does not close it.
+The attempt finished at **06:05:19.226 UTC**. Receipt:
+`~/pmi-kc-work/logs/known-k-20260929-resolver-fix/known-lifecycle-clean/report.json`, SHA-256
+`d93cdefee4cb04c0bf6c9298b943097e8b562a42982da297b35fdd8a8d2bda75`.
+Its original scope text says "no server records"; that phrase is overbroad and remains unchanged
+in the immutable receipt. Genuine authenticated reads may persist only the owner-approved
+lease-bound version/hash/time invalidation metadata. This check created no business/provider
+effect or synthetic server record. The earlier longer-running warm-read miss remains unverified;
+its source age and exact cause were not recovered by this differently scoped pass.
+
+The final six-category presentation supplement **passed from 06:08:18.054 to 06:09:01.819 UTC**
+on the unchanged build K. After genuine desk loading, one exact loopback RSC frame supplied
+synthetic pure-projector output for all six lifecycle categories. The actual compiled surface
+preserved Complete's staff-recorded qualifier, Upcoming and Non-renewal labels, the remaining
+three categories, and decorative-dot semantics. Complete was green, Upcoming orange and
+Non-renewal yellow in both themes. Light/dark at 1,360/320/640 CSS pixels each had zero page
+overflow, visible category text and table focus; keyboard/scroll and accessible-name checks,
+forced-colors labels and exact page-scale 2/reset passed. Minimum light/dark text contrast was
+6.698/11.797 and minimum dot contrast was 4.513/11.797. There were zero synthetic destination
+attempts, blocked requests or page errors. The server exited 143 during intended cleanup with
+zero stderr bytes. Receipt:
+`~/pmi-kc-work/logs/known-k-20260929-aria-fix/known-lifecycle-clean/report.json`, SHA-256
+`336ade438e7641f6cb2eefb1a06b25d4aa74919e2d8f772b1645884dd9a3c88b`.
+The receipt explicitly records `synthetic=true` and `serverProjectionVerified=false`: this verifies
+pure projected fixture presentation with compiled CSS/semantics, not actual Complete source data
+or synthetic server persistence. Actual-source identity/category agreement is independently
+established by the 311-record observational diagnostic above. Human screen-reader and desktop
+full-page browser zoom verdicts remain **NOT RUN**.
+
+The final browser manifest binds **29 artifacts/helper files**, all independently rehashed to
+their recorded values, to build `hkH9ZkYerS_oUJOH5zk1z`. At **06:09:21.599 UTC** it recorded
+**zero active owned processes**. Manifest:
+`~/pmi-kc-work/logs/final-k-browser-receipt-manifest-20260929.json`, SHA-256
+`bc618dd1f9429a0848e68c993caece0d300e2d5488a37aed58dba7ae122f1fb9`.
+Required local acceptance is complete in these stated scopes. No failed attempt, historical
+warm-read miss, unexecuted conditional browser branch, human verdict or remote gate is converted
+into a pass by that conclusion.
+
+Final same-source core E2E K exited **0 at 05:48:52 UTC**: **31 passed, 18 intentional skips,
+zero failures**, with eight passed files and four skipped files. The test runner used isolated
+`next dev` without a Firestore emulator; this is not execution of the compiled production build.
+The before/after check matched all 258 source-file hashes and retained build ID
+`hkH9ZkYerS_oUJOH5zk1z`; cleanup read back zero remaining core processes. Independently read
+summary: `~/pmi-kc-work/logs/core-e2e-k-20260929T054828Z/summary.json`, SHA-256
+`cda14a22b3d3ee75449568951f81b0c8ff8d4dbafb4e527fe4e0679b23e4eaed`.
+Its `run.log` SHA-256 is `81fa7ef0553f6a133185c01329f0f79a8eb5a949909c406d27021d1e507dac6f`.
+
+The independent read-only precommit audit recorded **PASS at 06:09:52.5337003 UTC**:
+281 intended paths, all 258 non-document files matching frozen K, zero hash mismatches,
+an empty index, no protected-path or Action Registry seed changes, and 55 allowlisted new paths.
+Five private PDFs remained outside the intended manifest; no PDF was included. The recorded
+diff check and added/new-line scans found no exposed secrets or new customer-data literals.
+All thirteen features remained queued and undeployed. This receipt persists the completed
+review without rerunning its checks; it does not establish deployment or a new source snapshot.
+Its SHA-256 was independently matched:
+`C:/Users/josia/AppData/Local/Temp/pmi-independent-precommit-audit-20260929T0609525337003Z.json`,
+`cfb2a59812334eb25892a64f61fe84caadb9ed1fd4c88729587ac6e3fcb516d1`.
+
+Existing dependency debt remains separate from feature acceptance. The earlier `npm ci` output
+reported **23 affected packages** (16 moderate, six high, one critical). Fresh registry audits of
+outside-Git copies of the current and HEAD lockfiles both reported **18** (12 moderate, five high,
+one critical), with identical advisory objects: **zero introduced advisories**. The sole dependency
+change adds `pdf-lib` and four transitive package records; none appears in those findings.
+Existing Next 16.2.12 is affected by a
+[Windows-hosted RCE advisory](https://github.com/vercel/next.js/security/advisories/GHSA-p293-qw3h-jr36),
+whose hosting condition does not apply to native Linux verification or Cloud Run. The existing
+Next/sharp versions also carry the
+[AVIF image-optimization advisory](https://github.com/vercel/next.js/security/advisories/GHSA-2xp9-vwfh-vxw4)
+and [underlying sharp/libheif advisory](https://github.com/lovell/sharp/security/advisories/GHSA-rgj7-g3m4-5g8c).
+The optimizer remains enabled; actual configuration permits no remote images, public contains no
+image files, and source review found no anonymous binary-image/proxy route or app sharp use.
+Binary attachment routes require authenticated capability and exact artifact/receipt evidence;
+the new filled-artifact route returns parsed PDF bytes. No concrete reachable untrusted AVIF
+decode chain or new changed-path trigger was established. Affected dependencies remain present;
+this is neither a clean security audit nor a patch claim. No dependency was updated during triage.
+Exact metadata and applicability evidence remain outside Git in
+`C:/Users/josia/AppData/Local/Temp/pmi-dependency-audit-20260929/`, with applicability-report SHA-256
+`c344314342cf2370a644210117f3ba99f2ecd0aabd6213ecaff3c88359f5d2cc`.
+
+The 03:03:37.930 UTC readback on 2026-09-29 confirmed the Google sign-in provider is enabled.
+That setting and fresh CLI/ADC evidence do not establish browser session readiness. The guarded
+Admin browser still requires the owner's attended Google sign-in and a successful identity readback.
+CLI/ADC refresh passed at 04:57–04:58 UTC and again before 05:48:05 UTC, but the enrollment record remains
+`2026-09-28T20:56:36.677Z`, beyond the seven-hour admission budget. Fresh attended WSL enrollment
+and Admin browser verification are required; refreshing tokens does not renew the enrollment
+receipt, and its timestamp must never be advanced by hand.
+
+The external `~/pmi-kc-work/scripts/s120-readbacks.sh` helper was hardened before future use. Its
+original was preserved byte-for-byte as `s120-readbacks.sh.before-output-guard-20260929T032616330Z`
+(SHA-256 `5533d4b516a18ca99c6a2460b31a960e4924beebb74b904f5f8bb7644b1e5463`). Outputs now select only
+validated release identities, times, statuses and counts; no raw version/configuration/error body,
+observation fallback or customer value is printed. Exact arguments, runtime flags, eleven maps,
+managed runtime account, immutable configuration fingerprint, traffic and candidate-domain checks
+produce a nonzero result when unverified. Shell syntax and **32 local hostile/valid-input checks**
+passed with zero cloud calls and zero receipt/checkpoint writes. This is helper safety evidence,
+not a remote release readback; its actual post-release invocation remains required.
+
+## Gap dispositions and falsification
+
+| Gap | Litmus     | Implemented boundary and evidence                                                                                                                                                                                                                                                                                                                                                                                                      | Remaining acceptance                                                                                                                          |
+| --- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1  | 19, 25     | Explicit server-resolved notice review records same-tenancy/cycle evidence through revision, operation ID and readback. Clear evidence after a recorded positive becomes withdrawal review, never inferred provider cancellation. Source age and both observations remain visible. Unit, route, UI and real Firestore checks pass.                                                                                                     | Native K, scoped compiled controls/notice and source-coherence checks passed; deployed readback remains.                                      |
+| G2  | 22, 25, 58 | Both manual dispositions, stable notice facts and an admitted durable source generation bind preview/current review/final S20 claim. Read admission invalidates before fetch; failed admission refuses fetch; late unadmitted results cannot grant observation authority. An old unused approval cannot revive after a notice clears or restart. Legacy creation refuses, while exact own-receipt recovery preserves historical bytes. | Native K, scoped compiled controls/notice and source-coherence checks passed; deployed readback remains.                                      |
+| G3  | 32, 33, 37 | Strict calendar/instant formatting extends through 69 inventoried source consumers, including renewal, Admin, maintenance, Gmail, workflows, approvals, Spaces and Console. Invalid dates stay explicit; canonical/provider values and historical recovery remain unchanged. See docs/date-display-inventory.md and focused rendered tests.                                                                                            | Full regression/local labels passed; remote browser observation remains.                                                                      |
+| G4  | 47, 48, 51 | Paused app saves create no Sheet proposal and return saved-in-app messaging. Version-3 proposals bind the server revision/policy; prepare, store, transaction and dispatch each enforce current binding. Historical records remain readable. Focused zero-effect and backend claims pass.                                                                                                                                              | Backend/local controls passed; candidate/promoted false-flag readbacks remain.                                                                |
+| G5  | 67, 69, 74 | Bounded AcroForm parsing fills real original bytes; private immutable content, exact mappings/input/output hashes and separate approval bind saved download and packet submission. Final S20 claim atomically freezes exact approved derivatives against replacement. Independent parser/render and real races pass. Unsupported forms retain manual Dotloop handoff.                                                                  | Regression/local controls passed; actual supplied-form accuracy and provider acceptance remain external.                                      |
+| G6  | 52         | A prepared zero-traffic paused clone retains the predecessor's exact resolved images/full reviewed configuration. Immutable versioned recovery evidence is shared by promotion compensation and observation. Real process tests prove inherited kernel lock ownership/cancellation; direct commands require exact permit/checkpoint/phase.                                                                                             | Observer guards/review passed; real zero-traffic preparation and independent cloud readbacks remain.                                          |
+| G7  | 52, 117    | Durable recovery intent/target/attempt claims reconcile loss and restart against one receipt-bound revision. Exact paused target identity is verified through traffic/version/configuration/assurance/monitoring; historical receipts are retained unchanged. Admission/collector fail closed on unknown prerequisites and one-build claims prevent scheduled retries.                                                                 | Combined release tests passed; actual observed release remains; recovery requires verified readback if triggered, without per-feature cycles. |
+
+The owner explicitly approved only lease-bound version/hash/time invalidation
+metadata during authenticated source reads. It is not reviewed workflow history,
+a cycle milestone, provider write or customer draft. Final execution rereads this
+marker transactionally. Staff-reviewed withdrawal remains staff evidence; no
+provider cancellation event is invented. All other action and protected-path
+boundaries remain unchanged.
 
 ## Evidence owners and checks
 
-All paths are repository-relative. A prefix in this table means all existing tests
-with that prefix. `C` below means the current implementation and named checks support
-the statement on static review; it does **not** mean a fresh test, browser, provider
-or human pass. `G` means a gap above. `E` means an external or human observation is
-still required. `R` means an exact release/configuration readback is required.
+Paths below are repository-relative. Prefixes identify the existing test family.
+`C` means implementation plus named engineering checks support the statement,
+subject to the current verification status above. It does not imply a browser,
+provider, human or remote pass. `E` requires actual external/human evidence;
+`R` requires exact release/configuration readback. The original G1–G7 identifiers
+refer to the repaired boundaries above and never substitute for their acceptance.
 
-| Owner | Feature                                | Code / document owners                                                                                                                                | Exact existing check set                                                                                                                                                                                                                                                                                                                                                     |
-| ----- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A     | S122 / F01, all-lease visibility       | `lib/lease-renewal/live-desk.ts`, `desk-worklist-views.ts`, `desk-query.ts`; `components/lease-renewal/RenewalDesk.tsx`, `RenewalDeskTable.tsx`       | `tests/unit/s122-lease-inventory.test.ts`, `s122-worklist-views.test.ts`, `s122-worklist-views-table.test.tsx`; existing `renewal-desk-*`, `s104-desk-workspace-parity.test.ts`                                                                                                                                                                                              |
-| B     | S123 / F02, cycle retention            | `lib/lease-renewal/cycle-source-date.ts`, `workspace-state.ts`, `live-desk.ts`; `lib/firestore/renewal-workspace.ts`                                  | `tests/unit/s123-cycle-source-date.test.ts`, `s123-cycle-source-date-notice.test.tsx`, `s113-workspace-state.test.ts`; `tests/firestore/s123-cycle-store.test.ts`, `s113-sheet-route.test.ts`; packet snapshots and freshness checks                                                                                                                                         |
-| C     | S124 / F03, move-out disposition       | `lib/lease-renewal/move-out-disposition.ts`, `lease-status-table.ts`, `current-renewal-message.ts`; supplied-draft preview                            | `tests/unit/s124-move-out-disposition.test.ts`, `s124-move-out-desk.test.tsx`, `s129-draft-boundary.test.ts`                                                                                                                                                                                                                                                                 |
-| D     | S125 / F04, notice timing              | `lib/lease-renewal/move-out-timing.ts`; `lib/firestore/lease-renewal-move-out-timing-basis.ts`; Admin route/panel                                     | `tests/unit/s125-move-out-timing.test.ts`, `s125-move-out-timing-basis-config.test.ts`, `s125-move-out-timing-route.test.ts`, `s125-move-out-timing-desk.test.tsx`                                                                                                                                                                                                           |
-| E     | S126 / F06, date displays              | `lib/date-display.ts` and its consumers                                                                                                               | `tests/unit/s126-date-display.test.ts`, `s126-date-surfaces.test.tsx`                                                                                                                                                                                                                                                                                                        |
-| F     | S127 / F07, scoped issues/next action  | `lib/lease-renewal/renewal-issues.ts`; `RenewalWorkspace`, `RenewalDeskTable`, `RenewalFocusHashTarget`                                               | `tests/unit/s127-renewal-issues.test.ts`, `s127-issues-surfaces.test.tsx`; existing readiness, manual-controls and owning route readback checks                                                                                                                                                                                                                              |
-| G     | S128 / F08, operating-Sheet pause      | `lib/lease-renewal/sheet-writeback-policy.ts`; operating-Sheet route and execution services; release/revision guards                                  | `tests/unit/s128-writeback-policy.test.ts`, `s128-operating-sheet-panel.test.tsx`, `s128-release-writeback-guard.test.mjs`, `s98-sheet-writeback-service.test.ts`, `sheet-writeback-service.test.ts`, `lease-renewal-sheet-writeback-execution.test.ts`                                                                                                                      |
-| H     | S129 / F09, draft readiness            | `lib/lease-renewal/message-preflight.ts`, `current-renewal-message.ts`, supplied content/preview; existing governed Gmail draft executor              | `tests/unit/s129-*`, `s120-message-readiness.test.ts`, `s120-message-preparation-controls.test.tsx`, `renewal-copy-boundary.test.ts`, `renewal-notice-draft-service.test.ts`, `renewal-notice-draft-route.test.ts`, `renewal-notice-draft-contract.test.ts`, `governed-draft-execution.test.ts`; `tests/firestore/s120-sender-signature.test.ts`, `s113-sheet-route.test.ts` |
-| I     | S130 / F10, seven-template intake      | `lib/lease-documents/artifact-intake.ts`, `artifact-intake-contract.ts`; trusted publication intake store/route; S66/S34 packet owners                | `tests/unit/s130-*`, `lease-document-packet-truth.test.ts`, `s34-dotloop-packet-lifecycle.test.ts`; `tests/firestore/lease-document-packet-snapshots.test.ts`, `s113-sheet-route.test.ts`                                                                                                                                                                                    |
-| J     | S131 / F11, Rhino conditional material | `lib/lease-renewal/policy-content.ts`; `lib/firestore/lease-renewal-policy-material.ts`; Admin policy route/panel                                     | `tests/unit/s131-policy-content.test.ts`, `s131-policy-material-store.test.ts`, `s131-policy-material-route.test.ts`, `s131-policy-surfaces.test.tsx`; `s129-draft-boundary.test.ts`                                                                                                                                                                                         |
-| K     | S132 / F12, meeting preparation        | `lib/lease-renewal/meeting-walkthrough.ts`; `scripts/meeting-walkthrough-preflight.ts`; `docs/products/renewal-meeting-walkthrough-runbook.md`        | `tests/unit/s132-meeting-walkthrough.test.ts`, `s132-walkthrough-script.test.ts`, `s132-technical-ledger.test.ts`, plus each existing backend/adapter test cited by the technical ledger                                                                                                                                                                                     |
-| L     | S133 / F13, maintenance assessment     | `lib/maintenance/external-agent-handoff-assessment.ts`; `docs/evidence/s133-external-maintenance-agent-handoff-assessment-2026-09-20.md`              | `tests/unit/s133-handoff-assessment.test.ts`, `s133-decision-packet.test.ts`                                                                                                                                                                                                                                                                                                 |
-| M     | S134 / F14, lifecycle display          | `lib/lease-renewal/lifecycle-category.ts`, `desk-query-v2.ts`; renewal table/workspace and theme tokens                                               | `tests/unit/s134-lifecycle-category.test.ts`, `s134-lifecycle-desk.test.tsx`; S122 and S123 preservation checks                                                                                                                                                                                                                                                              |
-| N     | Shared authority and release           | Role/Space matrix, exact action registry and executors, immutable receipts, release watcher and production assurance; `docs/release-batch-runbook.md` | `tests/unit/renewal-role-action-governance.test.ts`, `roles.test.ts`, `space-scope.test.ts`, existing release/production-assurance tests; `bash scripts/verify.sh`, `npm run test:e2e:core`, exact CI and candidate/promotion/observation/readbacks                                                                                                                          |
+| Owner | Feature                                | Code / document owners                                                                                                                                                                                                     | Exact existing check set                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A     | S122 / F01, all-lease visibility       | `lib/lease-renewal/live-desk.ts`, `desk-worklist-views.ts`, `desk-query.ts`; `components/lease-renewal/RenewalDesk.tsx`, `RenewalDeskTable.tsx`                                                                            | `tests/unit/s122-lease-inventory.test.ts`, `s122-worklist-views.test.ts`, `s122-worklist-views-table.test.tsx`; existing `renewal-desk-*`, `s104-desk-workspace-parity.test.ts`                                                                                                                                                                                                                                                         |
+| B     | S123 / F02, cycle retention            | `lib/lease-renewal/cycle-source-date.ts`, `workspace-state.ts`, `live-desk.ts`; `lib/firestore/renewal-workspace.ts`                                                                                                       | `tests/unit/s123-cycle-source-date.test.ts`, `s123-cycle-source-date-notice.test.tsx`, `s113-workspace-state.test.ts`; `tests/firestore/s123-cycle-store.test.ts`, `s113-sheet-route.test.ts`; packet snapshots and freshness checks                                                                                                                                                                                                    |
+| C     | S124 / F03, move-out disposition       | `lib/lease-renewal/move-out-disposition.ts`, `lease-status-table.ts`, `current-renewal-message.ts`, admitted notice source; `lib/firestore/renewal-notice-safety.ts`; notice-review route/control                          | `tests/unit/s124-move-out-disposition.test.ts`, `s124-move-out-desk.test.tsx`, `s129-draft-boundary.test.ts`, `renewal-notice-review-*`, `renewal-notice-safety-store.test.ts`, `admitted-notice-source.test.ts`, `notice-cache-authenticated-callers.test.ts`, `notice-source-cross-runtime.test.ts`, `renewal-notice-marker-pending.test.ts`; `tests/firestore/renewal-notice-safety.test.ts`, `notice-source-bulk-coherence.test.ts` |
+| D     | S125 / F04, notice timing              | `lib/lease-renewal/move-out-timing.ts`; `lib/firestore/lease-renewal-move-out-timing-basis.ts`; Admin route/panel                                                                                                          | `tests/unit/s125-move-out-timing.test.ts`, `s125-move-out-timing-basis-config.test.ts`, `s125-move-out-timing-route.test.ts`, `s125-move-out-timing-desk.test.tsx`                                                                                                                                                                                                                                                                      |
+| E     | S126 / F06, date displays              | `lib/date-display.ts` and its consumers                                                                                                                                                                                    | `tests/unit/s126-date-display.test.ts`, `s126-date-surfaces.test.tsx`                                                                                                                                                                                                                                                                                                                                                                   |
+| F     | S127 / F07, scoped issues/next action  | `lib/lease-renewal/renewal-issues.ts`; `RenewalWorkspace`, `RenewalDeskTable`, `RenewalFocusHashTarget`, `RenewalSaveFocus` and owning app-save controls                                                                   | `tests/unit/s127-renewal-issues.test.ts`, `s127-issues-surfaces.test.tsx`, `s127-save-focus.test.tsx`, `s127-secondary-save-focus.test.tsx`; existing readiness, manual-controls and owning route readback checks                                                                                                                                                                                                                       |
+| G     | S128 / F08, operating-Sheet pause      | `lib/lease-renewal/sheet-writeback-policy.ts`; operating-Sheet route and execution services; release/revision guards                                                                                                       | `tests/unit/s128-writeback-policy.test.ts`, `s128-operating-sheet-panel.test.tsx`, `s128-release-writeback-guard.test.mjs`, `s98-sheet-writeback-service.test.ts`, `sheet-writeback-service.test.ts`, `lease-renewal-sheet-writeback-execution.test.ts`                                                                                                                                                                                 |
+| H     | S129 / F09, draft readiness            | `lib/lease-renewal/message-preflight.ts`, `current-renewal-message.ts`, supplied content/preview; existing governed Gmail draft executor                                                                                   | `tests/unit/s129-*`, `s120-message-readiness.test.ts`, `s120-message-preparation-controls.test.tsx`, `renewal-copy-boundary.test.ts`, `renewal-notice-draft-service.test.ts`, `renewal-notice-draft-route.test.ts`, `renewal-notice-draft-contract.test.ts`, `governed-draft-execution.test.ts`; `tests/firestore/s120-sender-signature.test.ts`, `s113-sheet-route.test.ts`                                                            |
+| I     | S130 / F10, seven-template intake      | `lib/lease-documents/artifact-intake.ts`, `artifact-intake-contract.ts`, `acroform-pdf.ts`, `derived-packet-binding.ts`; `lib/firestore/lease-derived-artifacts.ts`; filled-artifact route/controls; S66/S34 packet owners | `tests/unit/s130-*`, `lease-document-packet-truth.test.ts`, `s34-dotloop-packet-lifecycle.test.ts`; `tests/firestore/lease-document-packet-snapshots.test.ts`, `s130-derived-artifacts.test.ts`, `s113-sheet-route.test.ts`                                                                                                                                                                                                             |
+| J     | S131 / F11, Rhino conditional material | `lib/lease-renewal/policy-content.ts`; `lib/firestore/lease-renewal-policy-material.ts`; Admin policy route/panel                                                                                                          | `tests/unit/s131-policy-content.test.ts`, `s131-policy-material-store.test.ts`, `s131-policy-material-route.test.ts`, `s131-policy-surfaces.test.tsx`; `s129-draft-boundary.test.ts`                                                                                                                                                                                                                                                    |
+| K     | S132 / F12, meeting preparation        | `lib/lease-renewal/meeting-walkthrough.ts`; `scripts/meeting-walkthrough-preflight.ts`; `docs/products/renewal-meeting-walkthrough-runbook.md`                                                                             | `tests/unit/s132-meeting-walkthrough.test.ts`, `s132-walkthrough-script.test.ts`, `s132-technical-ledger.test.ts`, plus each existing backend/adapter test cited by the technical ledger                                                                                                                                                                                                                                                |
+| L     | S133 / F13, maintenance assessment     | `lib/maintenance/external-agent-handoff-assessment.ts`; `docs/evidence/s133-external-maintenance-agent-handoff-assessment-2026-09-20.md`                                                                                   | `tests/unit/s133-handoff-assessment.test.ts`, `s133-decision-packet.test.ts`                                                                                                                                                                                                                                                                                                                                                            |
+| M     | S134 / F14, lifecycle display          | `lib/lease-renewal/lifecycle-category.ts`, `desk-query-v2.ts`; renewal table/workspace and theme tokens                                                                                                                    | `tests/unit/s134-lifecycle-category.test.ts`, `s134-lifecycle-desk.test.tsx`; S122 and S123 preservation checks                                                                                                                                                                                                                                                                                                                         |
+| N     | Shared authority and release           | Role/Space matrix, exact action registry and executors, immutable receipts, release watcher and production assurance; `docs/release-batch-runbook.md`                                                                      | `tests/unit/renewal-role-action-governance.test.ts`, `roles.test.ts`, `space-scope.test.ts`, existing release/production-assurance tests; `bash scripts/verify.sh`, `npm run test:e2e:core`, exact CI and candidate/promotion/observation/readbacks                                                                                                                                                                                     |
 
 ## Complete pasted-checklist matrix
 
@@ -117,138 +521,138 @@ Every pasted statement is represented below, including statements containing two
 reference indexes. Combined indexes identify one pasted bullet. Multiple evidence
 owners indicate preservation coverage reused from earlier work.
 
-| Pasted index | Requirement, condensed                                                                                                     | Owner / status                                                                                                                                                         |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unnumbered   | Separately specified market-comparison fallback feature #5 remains unchanged.                                              | C — S121 remains separately specification-ready and unscheduled in the active suite registry; excluded from the thirteen-feature release.                              |
-| 0            | All authorized leases appear exactly once, including future/completed/out-of-window leases.                                | A / C — multi-page unique inventory and one projection tests.                                                                                                          |
-| 1            | Distinct All leases, Active/upcoming and Completed views.                                                                  | A / C — query and rendered-view checks.                                                                                                                                |
-| 2            | Missing optional Sheet/rent/notice data does not hide a known lease.                                                       | A, C / C — inventory and unavailable optional-source projections.                                                                                                      |
-| 3            | Counts match authorized scope and filters.                                                                                 | A, N / C — same projection and role/Space boundaries.                                                                                                                  |
-| 4, 5         | Incomplete/failed source reads do not claim a complete portfolio or deletion.                                              | A / C — interrupted pagination, partial read and not-found distinctions.                                                                                               |
-| 6            | Empty filtered views explain restrictions and offer clear/All leases.                                                      | A / C — zero-match rendered table checks.                                                                                                                              |
-| 7            | Inspect future/out-of-window leases without creating a cycle.                                                              | A, B / C — inspection read-only and cycle-store no-write checks.                                                                                                       |
-| 8            | Back/browser navigation retains views, filters and sorting.                                                                | A / C — query round trip and existing continuation checks; fresh browser observation remains separate.                                                                 |
-| 9            | Unfinished cycles survive provider date advancement.                                                                       | B / C — same-cycle retained-work fixture.                                                                                                                              |
-| 10           | Tenant acceptance alone does not complete signatures/follow-up/cycle.                                                      | B, M / C — completion predicate and lifecycle projections.                                                                                                             |
-| 11           | Staff completion remains distinct from provider verification.                                                              | B, M / C — explicit attribution.                                                                                                                                       |
-| 12           | Explicitly record actual outside work without invented milestones.                                                         | B / C — cycle start/save and mounted backend journey.                                                                                                                  |
-| 13           | Current provider dates remain separate from recorded cycle terms.                                                          | B / C — immutable basis and rendered source-date notice.                                                                                                               |
-| 14           | Source-date changes invalidate dependent offers/documents.                                                                 | B, H, I / C — source fingerprints, post-write freshness and packet snapshot tests.                                                                                     |
-| 15           | Earlier-cycle completion/non-renewal does not become later-cycle fact.                                                     | B, M / C — later-cycle store/projection fixtures.                                                                                                                      |
-| 16           | Reopen preserves earlier closure in audit history.                                                                         | B / C — workspace history and cycle store are the owning checks.                                                                                                       |
-| 17           | Conflicting/interrupted saves preserve work and recover by readback.                                                       | B / C — racing saves, changed duplicates and lost-response replay.                                                                                                     |
-| 18           | Move-out detection uses documented notice/status semantics and lease association.                                          | C / C — status flags and detail mapping; no end-date/alias inference. Current live semantics remain a readback matter.                                                 |
-| 19           | Initiated, absent, withdrawn and unknown states retain source/freshness.                                                   | C / G1 — three production states are wired; prior-observation withdrawal wiring is absent.                                                                             |
-| 20           | Unknown mapping/unavailable notice read yields unknown, not absence.                                                       | C / C — explicit unavailable/unresolved states.                                                                                                                        |
-| 21           | Applicable move-out/non-renewal routes to existing handoff.                                                                | C, F / C — issue/action projection and workspace notice.                                                                                                               |
-| 22           | Server blocks ordinary owner/tenant renewal drafts on unresolved non-renewal, including stale callers.                     | C, H / G2 — provider initiation is checked; manual non-renewal is not comprehensively enforced.                                                                        |
-| 23           | Excluding confirmed move-outs retains unknowns and alternate access.                                                       | A, C / C — filter membership and All leases projection.                                                                                                                |
-| 24           | Move-out initiation does not complete the handoff/workflow.                                                                | B, C, M / C — separate manual closure.                                                                                                                                 |
-| 25           | Withdrawal neither overrides manual non-renewal nor restores an old draft approval.                                        | B, C, H / G1, G2 — manual state itself is retained; served withdrawal and approval invalidation are incomplete.                                                        |
-| 26           | Notice timing uses validated dates and approved same-lease rule.                                                           | D / C — versioned basis and date validation.                                                                                                                           |
-| 27           | Show both dates, basis, interval and 30-day comparison.                                                                    | D / C — rendered panel and boundary calculations.                                                                                                                      |
-| 28           | Missing/invalid/stale/conflicting timing inputs produce cannot determine.                                                  | D / C — uncertainty matrix.                                                                                                                                            |
-| 29           | No production classification before authorized policy-basis confirmation.                                                  | D / C + E — default unreviewed basis and Admin-only storage; no current production basis was read by this reviewer.                                                    |
-| 30           | Corrected inputs recalculate without rewriting reviewed history.                                                           | D / C — basis revision conflict/history and pure result versions.                                                                                                      |
-| 31           | Late/uncertain timing offers review without penalties or liability.                                                        | D / C — scoped result and source-review action.                                                                                                                        |
-| 32, 33       | Month/day/year throughout app-controlled displays and materials.                                                           | E / G3 — raw ISO dates remain in move-out labels.                                                                                                                      |
-| 34           | Date-only formatting preserves the calendar day.                                                                           | E / C — leap/year/DST fixtures without zone conversion.                                                                                                                |
-| 35, 36       | Formatting preserves stored/provider/history values and chronological sort.                                                | E / C — ISO query/attribute values and year-boundary sort checks.                                                                                                      |
-| 37           | Missing/invalid dates show explicit unavailable/data-check state.                                                          | E / C with G3 — shared formatter handles null/malformed input; move-out labels bypass it and accept date-shaped impossible dates.                                      |
-| 38           | Issues distinguish prerequisites, people, advisory, evidence and policy pause.                                             | F / C — typed scoped issue matrix.                                                                                                                                     |
-| 39           | One primary next action with inspectable other issues.                                                                     | F / C — deterministic primary action and disclosure.                                                                                                                   |
-| 40           | Blocker activation targets the real resolution control/instruction.                                                        | F / C — hash focus test and exact target map.                                                                                                                          |
-| 41           | Insufficient permission yields authorized handoff, not self-grant.                                                         | F, N / C — role/action mapping.                                                                                                                                        |
-| 42           | Successful saves refresh guidance from authoritative readback.                                                             | B, F, H / C — owning routes reread and existing mounted controls/recovery checks.                                                                                      |
-| 43           | Missing optional resources block only dependent actions.                                                                   | F, H, I, J / C — scoped readiness.                                                                                                                                     |
-| 44           | Deployed Sheet flag explicitly equals false.                                                                               | G / R — exact candidate and promoted revision environment readback required.                                                                                           |
-| 45           | All operating-Sheet mutation paths refuse dispatch while paused.                                                           | G / C — route and low-level executor flag gates; fresh test result required.                                                                                           |
-| 46           | Pause preserves reads, matching, links, freshness and comparisons.                                                         | A, G / C — reader wiring is separate from mutation flag.                                                                                                               |
-| 47           | App saves work during pause without an executable Sheet backlog.                                                           | B, G / G4 — automatic proposal preparation remains reachable.                                                                                                          |
-| 48           | Paused app saves are labeled saved in app, not synchronized.                                                               | B, G / G4 — no false applied receipt, but required pause-specific save messaging is absent in manual workspace.                                                        |
-| 49           | Old proposals/receipts/ambiguity retain outcomes; recovery remains read-only.                                              | G / C — receipt hydration and read-only reconciliation checks.                                                                                                         |
-| 50           | Pause persists until explicit owner decision, with no timer.                                                               | G / C — server-owned flag, no expiration mechanism.                                                                                                                    |
-| 51           | Resume requires fresh review/confirmation, never flushes old work.                                                         | G / G4 — no automatic flusher, but no pause-bound invalidation of an unexpired pre-pause confirmation.                                                                 |
-| 52           | Candidate/promotion/rollback preserve pause.                                                                               | G, N / G6, G7 + R — promotion failure bypasses the pause guard; paused rollback target and recovery identity disagree.                                                 |
-| 53           | Messages fill known source facts and applicable charges.                                                                   | H / C — supplied composition and preparation controls.                                                                                                                 |
-| 54           | Tenant offers use explicitly recorded current owner-approved terms.                                                        | B, H / C — approved-terms selection and missing-term refusal.                                                                                                          |
-| 55           | Recurring/one-time charges remain distinct; unknown inputs remain missing.                                                 | H / C — typed charge fields and content/readiness checks.                                                                                                              |
-| 56           | Required-input review opens relevant controls; unresolved inputs cannot become final content.                              | F, H / C — readiness targets, copy and server gates.                                                                                                                   |
-| 57           | Verified audience separation and managed sender mailbox/signature.                                                         | H, N / C — recipient resolver and sender signature tests.                                                                                                              |
-| 58           | Gmail content equals current reviewed snapshot.                                                                            | H / C with G2 — byte/hash checks exist, but the definition of current omits manual tenant disposition and provider notice transitions.                                 |
-| 59           | Explicit authorized confirmation creates only an unsent draft.                                                             | H, N / C — exact-key executor and permanently closed send keys. No live draft was created in this audit.                                                               |
-| 60           | Lost-response recovery avoids duplicates and preserves human edits.                                                        | H / C — immutable attempts, identifier-only reconciliation and no update transport.                                                                                    |
-| 61           | Meeting draft preflight names actual dependencies and tested path.                                                         | H, K / C + E — technical matrix exists; real lease/mailbox/draft observations remain pending.                                                                          |
-| 62           | Seven family readiness entries do not assume seven files equal coverage.                                                   | I / C — empty manifest, conditional family and catalog checks.                                                                                                         |
-| 63           | Authenticated trusted intake classifies fillable/native/static/unsupported forms.                                          | I, N / C — approved publication identity and Admin route/store checks.                                                                                                 |
-| 64           | Field/signer maps bind reviewed source facts and exact template version.                                                   | I / C — version/hash, source allowlist and signer-role validation.                                                                                                     |
-| 65           | Repeated mapped party/pet facts stay consistent.                                                                           | I / C — worksheet repetition fixture; actual supplied-form output remains E.                                                                                           |
-| 66           | Requirements are lease-specific, not all seven for every renewal.                                                          | I / C — applicability and no-pet/no-HOA fixtures.                                                                                                                      |
-| 67           | Supported synthetic form produces actual filled values beyond a preview.                                                   | I / G5 — only field dictionary generation is demonstrated; supported-output product generation and independent readback are unwired. PDF manual fallback is permitted. |
-| 68           | Unsupported forms expose honest manual Dotloop handoff.                                                                    | I / C — explicit unavailable/unsupported/manual results.                                                                                                               |
-| 69           | Filled artifact binds original, map, input snapshot and output identity.                                                   | I / C with G5 — identity helper exists; no actual filled-artifact product path verified.                                                                               |
-| 70           | Template/map/dependent-input change invalidates unexecuted preparation.                                                    | I / C — identity comparison and packet snapshot staleness checks.                                                                                                      |
-| 71           | Forms/maps, credentials, consent, selection, keys and confirmation are separate.                                           | I / C + E — explicit dependencies; B-DL1/2/3 remain.                                                                                                                   |
-| 72           | Duplicate confirmation/interrupted upload recover without duplicate loop.                                                  | I / C — existing S34/provider-adapter and receipt-store checks. Live acceptance remains E.                                                                             |
-| 73           | Document presence is not signature completion; retain human handoff.                                                       | I / C — signature state never inferred from presence.                                                                                                                  |
-| 74           | Resumable intake-to-filled-output-to-approval-to-handoff checklist.                                                        | I / C with G5 + E — checklist exists and leaves unobserved fill/provider steps pending.                                                                                |
-| 75           | Rhino applicability is Unknown/Applicable/Not applicable from lease evidence.                                              | J / C — reviewed applicability projection and legacy/name-only refusals.                                                                                               |
-| 76, 77       | Material intake/rules are testable before real materials arrive.                                                           | J / C — bounded config and local fixtures.                                                                                                                             |
-| 78           | Uploaded material remains pending until exact-version approval.                                                            | J / C — store idempotency and separate Admin decision.                                                                                                                 |
-| 79           | Missing approved material blocks only policy-dependent outputs.                                                            | J, H / C — scoped policy gate and unrelated-lease tests.                                                                                                               |
-| 80           | Policy output uses approved wording/facts with no invented semantics.                                                      | J / C + E — allowed source/slot rendering; real wording has not been validated.                                                                                        |
-| 81           | Manual Rhino follow-up means staff work, not provider coverage/claim acceptance.                                           | B, J / C — separate activity evidence.                                                                                                                                 |
-| 82, 83       | Deterministic policy matrix covers states, gates, invalidity, access, versions, conflicts, cancellation and response loss. | J / C — named S131 tests and technical matrix; fresh rerun required.                                                                                                   |
-| 84           | One/two actual team-selected cases, policy case if supplied, otherwise pending.                                            | K / C + E — private-pointer case contract; no actual cases selected in this audit.                                                                                     |
-| 85           | Meeting preflight records all actual readiness dimensions.                                                                 | K / C + E — contract includes them; automatic CLI supplies only identity, flag and config presence; other dimensions remain Not run until supplied evidence.           |
-| 86           | Side-by-side process maps known manual steps to actual controls, inputs, outputs and recovery.                             | K / C — exact guide control parser and ten-stage script.                                                                                                               |
-| 87           | Technical scenarios cover fresh/underway/date changes/non-renewal/missing/stale/duplicate/interrupted work.                | K / C — ledger points to actual service/adapter tests; it does not itself execute them.                                                                                |
-| 88           | Missing real dependencies use inspection/preparation/manual fallback without claimed effects.                              | K / C — safe branch matrix.                                                                                                                                            |
-| 89           | Observations record step, expected/actual, actor, time, evidence, owner/action/dependency.                                 | K / C — observation schema and failed-step validation.                                                                                                                 |
-| 90           | Walkthrough stays draft until actual staff observations.                                                                   | K / C + E — Draft for validation, human verdict Not run.                                                                                                               |
-| 91           | Recording is planned/consented human activity, not auto scheduling/recording.                                              | K / C — context-only planning and no integration.                                                                                                                      |
-| 92           | Maintenance vendor identity/interfaces distinguish evidence from the “Rue” label.                                          | L / C + E — vendor identity Not established; transcript alone cannot support it.                                                                                       |
-| 93, 94       | Ownership map covers intake through resolution and human takeover.                                                         | L / C + E — PMI responsibilities mapped; external claims remain decision items.                                                                                        |
-| 95           | Minimal handoff data and verified stable identity association.                                                             | L / C — allowlist, secret/body refusal, stable ID or confirmed human link.                                                                                             |
-| 96           | Decision packet names options/dependencies/reconciliation ownership/owner decision.                                        | L / C + E — all vendor options conditional; B-MNT2 open.                                                                                                               |
-| 97           | No connector, replacement agent, phone routing or new autonomous permission.                                               | L, N / C — bounded pure assessment and exact-key preservation.                                                                                                         |
-| 98           | Applicable complete cycle shows green dot and completion label.                                                            | M / C — shared category and rendered label.                                                                                                                            |
-| 99, 100      | Upcoming shows orange using existing eligibility window.                                                                   | M / C — category consumes current cohort; no new threshold.                                                                                                            |
-| 101          | Applicable initiated non-renewal shows yellow beside label.                                                                | M / C — provider/manual category projection.                                                                                                                           |
-| 102          | Staff status annotation alone does not produce green cycle completion.                                                     | M / C — explicit negative fixture.                                                                                                                                     |
-| 103          | Old complete cycle does not hide new due cycle/newer notice.                                                               | B, M / C — later-cycle/notice precedence fixtures.                                                                                                                     |
-| 104          | Status sort uses visible categories with deterministic ascending/descending order.                                         | M / C — alphabetical category with deterministic tie keys.                                                                                                             |
-| 105          | All categories, including unknown, filter alongside existing dimensions.                                                   | A, M / C — exact filter keys and URL/chip round trip.                                                                                                                  |
-| 106          | Labels/dots/filter/sort/counts use same authorized evidence.                                                               | A, M, N / C — single projection and generation.                                                                                                                        |
-| 107          | Readiness/staff annotations remain distinct from lifecycle colors.                                                         | B, G, M / C — separate cells and attribution, including reconciliation.                                                                                                |
-| 108          | Meaning is available without color/hover; sort/filter keyboard controls work.                                              | M / C — text and native controls; fresh browser observation remains separate.                                                                                          |
-| 109          | Reader/Editor/Approver/Admin/Space boundaries preserved.                                                                   | N / C — role-action matrix, route and Space tests; Admin browser alone is not Editor proof.                                                                            |
-| 110, 111     | Read/filter/sort/copy creates no milestone/draft/write/paid comp.                                                          | A, B, H, N / C — read-only inventory, explicit cycle/effect boundaries and copy checks.                                                                                |
-| 112          | Missing real inputs do not block independent preparation/refusal/recovery engineering.                                     | H, I, J, K / C — local fixtures and explicit dependent holds; G1–G7 are independent implementation/release gaps.                                                       |
-| 113          | Engineering, deployment, external input, provider and human evidence stay separate.                                        | N / C — this ledger preserves those distinctions; release runner must attach fresh results.                                                                            |
-| 114          | Real draft/template/Rhino/human outcomes remain unverified until observed.                                                 | H, I, J, K / E — no real observations supplied or created by this audit.                                                                                               |
-| 115, 116     | Synthetic data stays local/emulator, never production.                                                                     | N / C — reviewed harness boundaries; this audit made no production write.                                                                                              |
-| 117          | Deployed claims identify exact SHA/revision and every release gate/readback.                                               | N / G7 + R — current remote delivery cannot be inferred from historical queue CI; rollback verification must bind the actual paused replacement.                       |
+| Pasted index | Requirement, condensed                                                                                                     | Owner / status                                                                                                                                                                                                                                                                                                         |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unnumbered   | Separately specified market-comparison fallback feature #5 remains unchanged.                                              | C — S121 remains separately specification-ready and unscheduled in the active suite registry; excluded from the thirteen-feature release.                                                                                                                                                                              |
+| 0            | All authorized leases appear exactly once, including future/completed/out-of-window leases.                                | A / C — multi-page unique inventory and one projection tests.                                                                                                                                                                                                                                                          |
+| 1            | Distinct All leases, Active/upcoming and Completed views.                                                                  | A / C — query and rendered-view checks.                                                                                                                                                                                                                                                                                |
+| 2            | Missing optional Sheet/rent/notice data does not hide a known lease.                                                       | A, C / C — inventory and unavailable optional-source projections.                                                                                                                                                                                                                                                      |
+| 3            | Counts match authorized scope and filters.                                                                                 | A, N / C — same projection and role/Space boundaries.                                                                                                                                                                                                                                                                  |
+| 4, 5         | Incomplete/failed source reads do not claim a complete portfolio or deletion.                                              | A / C — interrupted pagination, partial read and not-found distinctions.                                                                                                                                                                                                                                               |
+| 6            | Empty filtered views explain restrictions and offer clear/All leases.                                                      | A / C — zero-match rendered table checks.                                                                                                                                                                                                                                                                              |
+| 7            | Inspect future/out-of-window leases without creating a cycle.                                                              | A, B / C — inspection creates no cycle or workflow milestone; the separately authorized bodyless invalidation marker is the only source-read persistence exception.                                                                                                                                                    |
+| 8            | Back/browser navigation retains views, filters and sorting.                                                                | A / C — query round trip and continuation checks; build-K guide verified desk-to-lease-and-back view preservation.                                                                                                                                                                                                     |
+| 9            | Unfinished cycles survive provider date advancement.                                                                       | B / C — same-cycle retained-work fixture.                                                                                                                                                                                                                                                                              |
+| 10           | Tenant acceptance alone does not complete signatures/follow-up/cycle.                                                      | B, M / C — completion predicate and lifecycle projections.                                                                                                                                                                                                                                                             |
+| 11           | Staff completion remains distinct from provider verification.                                                              | B, M / C — explicit attribution.                                                                                                                                                                                                                                                                                       |
+| 12           | Explicitly record actual outside work without invented milestones.                                                         | B / C — cycle start/save and mounted backend journey.                                                                                                                                                                                                                                                                  |
+| 13           | Current provider dates remain separate from recorded cycle terms.                                                          | B / C — immutable basis and rendered source-date notice.                                                                                                                                                                                                                                                               |
+| 14           | Source-date changes invalidate dependent offers/documents.                                                                 | B, H, I / C — source fingerprints, post-write freshness and packet snapshot tests.                                                                                                                                                                                                                                     |
+| 15           | Earlier-cycle completion/non-renewal does not become later-cycle fact.                                                     | B, M / C — later-cycle store/projection fixtures.                                                                                                                                                                                                                                                                      |
+| 16           | Reopen preserves earlier closure in audit history.                                                                         | B / C — workspace history and cycle store are the owning checks.                                                                                                                                                                                                                                                       |
+| 17           | Conflicting/interrupted saves preserve work and recover by readback.                                                       | B / C — racing saves, changed duplicates and lost-response replay.                                                                                                                                                                                                                                                     |
+| 18           | Move-out detection uses documented notice/status semantics and lease association.                                          | C / C — status flags and detail mapping; no end-date/alias inference. Current live semantics remain a readback matter.                                                                                                                                                                                                 |
+| 19           | Initiated, absent, withdrawn and unknown states retain source/freshness.                                                   | C / C — explicit review persists same-tenancy notice evidence; later clear evidence requires withdrawal review. Both observations and source age are visible. Missing/stale evidence remains unknown. G1 focused and emulator checks passed.                                                                           |
+| 20           | Unknown mapping/unavailable notice read yields unknown, not absence.                                                       | C / C — explicit unavailable/unresolved states.                                                                                                                                                                                                                                                                        |
+| 21           | Applicable move-out/non-renewal routes to existing handoff.                                                                | C, F / C — issue/action projection and workspace notice.                                                                                                                                                                                                                                                               |
+| 22           | Server blocks ordinary owner/tenant renewal drafts on unresolved non-renewal, including stale callers.                     | C, H / C — both audiences check provider and independent manual non-renewal at preview, confirmation and final S20 transaction; old callers cannot bypass current-message review.                                                                                                                                      |
+| 23           | Excluding confirmed move-outs retains unknowns and alternate access.                                                       | A, C / C — filter membership and All leases projection.                                                                                                                                                                                                                                                                |
+| 24           | Move-out initiation does not complete the handoff/workflow.                                                                | B, C, M / C — separate manual closure.                                                                                                                                                                                                                                                                                 |
+| 25           | Withdrawal neither overrides manual non-renewal nor restores an old draft approval.                                        | B, C, H / C — manual non-renewal remains independent; durable read-generation invalidation prevents an unused approval reviving after a shown notice clears across process/store instances.                                                                                                                            |
+| 26           | Notice timing uses validated dates and approved same-lease rule.                                                           | D / C — versioned basis and date validation.                                                                                                                                                                                                                                                                           |
+| 27           | Show both dates, basis, interval and 30-day comparison.                                                                    | D / C — rendered panel and boundary calculations.                                                                                                                                                                                                                                                                      |
+| 28           | Missing/invalid/stale/conflicting timing inputs produce cannot determine.                                                  | D / C — uncertainty matrix.                                                                                                                                                                                                                                                                                            |
+| 29           | No production classification before authorized policy-basis confirmation.                                                  | D / C + E — default unreviewed basis and Admin-only storage; no current production basis was read by this reviewer.                                                                                                                                                                                                    |
+| 30           | Corrected inputs recalculate without rewriting reviewed history.                                                           | D / C — basis revision conflict/history and pure result versions.                                                                                                                                                                                                                                                      |
+| 31           | Late/uncertain timing offers review without penalties or liability.                                                        | D / C — scoped result and source-review action.                                                                                                                                                                                                                                                                        |
+| 32, 33       | Month/day/year throughout app-controlled displays and materials.                                                           | E / C — strict calendar/instant formatters now cover 69 inventoried source consumers, current draft output and operator labels; full regression and local compiled labels passed; remote served readback remains required.                                                                                             |
+| 34           | Date-only formatting preserves the calendar day.                                                                           | E / C — leap/year/DST fixtures without zone conversion.                                                                                                                                                                                                                                                                |
+| 35, 36       | Formatting preserves stored/provider/history values and chronological sort.                                                | E / C — ISO query/attribute values and year-boundary sort checks.                                                                                                                                                                                                                                                      |
+| 37           | Missing/invalid dates show explicit unavailable/data-check state.                                                          | E / C — strict calendar validation rejects impossible dates and malformed instants; explicit unavailable/data-check labels replace invalid fallback values.                                                                                                                                                            |
+| 38           | Issues distinguish prerequisites, people, advisory, evidence and policy pause.                                             | F / C — typed scoped issue matrix.                                                                                                                                                                                                                                                                                     |
+| 39           | One primary next action with inspectable other issues.                                                                     | F / C — deterministic primary action and disclosure.                                                                                                                                                                                                                                                                   |
+| 40           | Blocker activation targets the real resolution control/instruction.                                                        | F / C — hash focus test and exact target map; build-K actual save/next-control focus and scoped keyboard/presentation checks passed.                                                                                                                                                                                   |
+| 41           | Insufficient permission yields authorized handoff, not self-grant.                                                         | F, N / C — role/action mapping.                                                                                                                                                                                                                                                                                        |
+| 42           | Successful saves refresh guidance from authoritative readback.                                                             | B, F, H / C — 55 focused checks cover authoritative refresh, cycle/revision fencing and intent retirement. Build-I compiled saves passed pre-response/stale refusal, current-projection next-control focus and dirty sibling preservation.                                                                             |
+| 43           | Missing optional resources block only dependent actions.                                                                   | F, H, I, J / C — scoped readiness.                                                                                                                                                                                                                                                                                     |
+| 44           | Deployed Sheet flag explicitly equals false.                                                                               | G / R — exact candidate and promoted revision environment readback required.                                                                                                                                                                                                                                           |
+| 45           | All operating-Sheet mutation paths refuse dispatch while paused.                                                           | G / C — route, prepare/store/claim and final dispatch gates refuse while paused; focused zero-effect checks passed.                                                                                                                                                                                                    |
+| 46           | Pause preserves reads, matching, links, freshness and comparisons.                                                         | A, G / C — reader wiring is separate from mutation flag.                                                                                                                                                                                                                                                               |
+| 47           | App saves work during pause without an executable Sheet backlog.                                                           | B, G / C — paused app saves retain app-owned work and do not prepare/save executable Sheet proposals; route and transactional checks cover the boundary.                                                                                                                                                               |
+| 48           | Paused app saves are labeled saved in app, not synchronized.                                                               | B, G / C — authoritative save readback and controls explicitly say saved in app; Sheet updates paused.                                                                                                                                                                                                                 |
+| 49           | Old proposals/receipts/ambiguity retain outcomes; recovery remains read-only.                                              | G / C — receipt hydration and read-only reconciliation checks.                                                                                                                                                                                                                                                         |
+| 50           | Pause persists until explicit owner decision, with no timer.                                                               | G / C — server-owned flag, no expiration mechanism.                                                                                                                                                                                                                                                                    |
+| 51           | Resume requires fresh review/confirmation, never flushes old work.                                                         | G / C — version-3 proposals bind the server revision and policy hash, rechecked during save/claim/dispatch. Historical proposals remain readable but cannot execute after pause/resume.                                                                                                                                |
+| 52           | Candidate/promotion/rollback preserve pause.                                                                               | G, N / C + R — shared durable recovery binds a paused zero-traffic clone and immutable receipt; lock, cancellation, restart and readback checks passed locally. Exact cloud recovery-target preparation and promotion readbacks remain required; an actual rollback, if triggered, requires its own verified readback. |
+| 53           | Messages fill known source facts and applicable charges.                                                                   | H / C — supplied composition and preparation controls.                                                                                                                                                                                                                                                                 |
+| 54           | Tenant offers use explicitly recorded current owner-approved terms.                                                        | B, H / C — approved-terms selection and missing-term refusal.                                                                                                                                                                                                                                                          |
+| 55           | Recurring/one-time charges remain distinct; unknown inputs remain missing.                                                 | H / C — typed charge fields and content/readiness checks.                                                                                                                                                                                                                                                              |
+| 56           | Required-input review opens relevant controls; unresolved inputs cannot become final content.                              | F, H / C — readiness targets, copy and server gates.                                                                                                                                                                                                                                                                   |
+| 57           | Verified audience separation and managed sender mailbox/signature.                                                         | H, N / C — recipient resolver and sender signature tests.                                                                                                                                                                                                                                                              |
+| 58           | Gmail content equals current reviewed snapshot.                                                                            | H / C — current snapshot includes both manual dispositions and admitted notice generation; final transaction rechecks source age, marker and workspace/preparation. Legacy creation refuses; own-receipt recovery remains available.                                                                                   |
+| 59           | Explicit authorized confirmation creates only an unsent draft.                                                             | H, N / C — exact-key executor and permanently closed send keys. No live draft was created in this audit.                                                                                                                                                                                                               |
+| 60           | Lost-response recovery avoids duplicates and preserves human edits.                                                        | H / C — immutable attempts, identifier-only reconciliation and no update transport.                                                                                                                                                                                                                                    |
+| 61           | Meeting draft preflight names actual dependencies and tested path.                                                         | H, K / C + E — technical matrix exists; real lease/mailbox/draft observations remain pending.                                                                                                                                                                                                                          |
+| 62           | Seven family readiness entries do not assume seven files equal coverage.                                                   | I / C — empty manifest, conditional family and catalog checks.                                                                                                                                                                                                                                                         |
+| 63           | Authenticated trusted intake classifies fillable/native/static/unsupported forms.                                          | I, N / C — approved publication identity and Admin route/store checks.                                                                                                                                                                                                                                                 |
+| 64           | Field/signer maps bind reviewed source facts and exact template version.                                                   | I / C — version/hash, source allowlist and signer-role validation.                                                                                                                                                                                                                                                     |
+| 65           | Repeated mapped party/pet facts stay consistent.                                                                           | I / C + E — independently extracted synthetic PDF repeats two parties and two animals consistently; actual supplied-form mapping/output accuracy remains unverified.                                                                                                                                                   |
+| 66           | Requirements are lease-specific, not all seven for every renewal.                                                          | I / C — applicability and no-pet/no-HOA fixtures.                                                                                                                                                                                                                                                                      |
+| 67           | Supported synthetic form produces actual filled values beyond a preview.                                                   | I / C — actual AcroForm preparation, saved download and packet adapter bytes passed 14-field independent pypdf extraction and visual rendering; synthetic artifacts stayed local/emulated.                                                                                                                             |
+| 68           | Unsupported forms expose honest manual Dotloop handoff.                                                                    | I / C — explicit unavailable/unsupported/manual results.                                                                                                                                                                                                                                                               |
+| 69           | Filled artifact binds original, map, input snapshot and output identity.                                                   | I / C — immutable original, mapping, fill-input snapshot, derivative byte hash and exact-output approval bind through saved content, current packet and final S20 claim.                                                                                                                                               |
+| 70           | Template/map/dependent-input change invalidates unexecuted preparation.                                                    | I / C — changed original/map/fill inputs invalidate unexecuted preparation; actual Firestore replacement/claim races admit one winner and freeze exact approved output.                                                                                                                                                |
+| 71           | Forms/maps, credentials, consent, selection, keys and confirmation are separate.                                           | I / C + E — explicit dependencies; B-DL1/2/3 remain.                                                                                                                                                                                                                                                                   |
+| 72           | Duplicate confirmation/interrupted upload recover without duplicate loop.                                                  | I / C — existing S34/provider-adapter and receipt-store checks. Live acceptance remains E.                                                                                                                                                                                                                             |
+| 73           | Document presence is not signature completion; retain human handoff.                                                       | I / C — signature state never inferred from presence.                                                                                                                                                                                                                                                                  |
+| 74           | Resumable intake-to-filled-output-to-approval-to-handoff checklist.                                                        | I / C + E — product prepare/download/compare/separate approval and retained history are wired to resumable packet readiness. Actual supplied material and provider handoff remain pending.                                                                                                                             |
+| 75           | Rhino applicability is Unknown/Applicable/Not applicable from lease evidence.                                              | J / C — reviewed applicability projection and legacy/name-only refusals.                                                                                                                                                                                                                                               |
+| 76, 77       | Material intake/rules are testable before real materials arrive.                                                           | J / C — bounded config and local fixtures.                                                                                                                                                                                                                                                                             |
+| 78           | Uploaded material remains pending until exact-version approval.                                                            | J / C — store idempotency and separate Admin decision.                                                                                                                                                                                                                                                                 |
+| 79           | Missing approved material blocks only policy-dependent outputs.                                                            | J, H / C — scoped policy gate and unrelated-lease tests.                                                                                                                                                                                                                                                               |
+| 80           | Policy output uses approved wording/facts with no invented semantics.                                                      | J / C + E — allowed source/slot rendering; real wording has not been validated.                                                                                                                                                                                                                                        |
+| 81           | Manual Rhino follow-up means staff work, not provider coverage/claim acceptance.                                           | B, J / C — separate activity evidence.                                                                                                                                                                                                                                                                                 |
+| 82, 83       | Deterministic policy matrix covers states, gates, invalidity, access, versions, conflicts, cancellation and response loss. | J / C — named S131 tests and technical matrix passed in the complete native run K; actual supplied policy material remains a separate input.                                                                                                                                                                           |
+| 84           | One/two actual team-selected cases, policy case if supplied, otherwise pending.                                            | K / C + E — private-pointer case contract; no actual cases selected in this audit.                                                                                                                                                                                                                                     |
+| 85           | Meeting preflight records all actual readiness dimensions.                                                                 | K / C + E — contract includes them; automatic CLI supplies only identity, flag and config presence; other dimensions remain Not run until supplied evidence.                                                                                                                                                           |
+| 86           | Side-by-side process maps known manual steps to actual controls, inputs, outputs and recovery.                             | K / C — exact guide control parser and ten-stage script.                                                                                                                                                                                                                                                               |
+| 87           | Technical scenarios cover fresh/underway/date changes/non-renewal/missing/stale/duplicate/interrupted work.                | K / C — ledger points to actual service/adapter tests; it does not itself execute them.                                                                                                                                                                                                                                |
+| 88           | Missing real dependencies use inspection/preparation/manual fallback without claimed effects.                              | K / C — safe branch matrix.                                                                                                                                                                                                                                                                                            |
+| 89           | Observations record step, expected/actual, actor, time, evidence, owner/action/dependency.                                 | K / C — observation schema and failed-step validation.                                                                                                                                                                                                                                                                 |
+| 90           | Walkthrough stays draft until actual staff observations.                                                                   | K / C + E — Draft for validation, human verdict Not run.                                                                                                                                                                                                                                                               |
+| 91           | Recording is planned/consented human activity, not auto scheduling/recording.                                              | K / C — context-only planning and no integration.                                                                                                                                                                                                                                                                      |
+| 92           | Maintenance vendor identity/interfaces distinguish evidence from the “Rue” label.                                          | L / C + E — vendor identity Not established; transcript alone cannot support it.                                                                                                                                                                                                                                       |
+| 93, 94       | Ownership map covers intake through resolution and human takeover.                                                         | L / C + E — PMI responsibilities mapped; external claims remain decision items.                                                                                                                                                                                                                                        |
+| 95           | Minimal handoff data and verified stable identity association.                                                             | L / C — allowlist, secret/body refusal, stable ID or confirmed human link.                                                                                                                                                                                                                                             |
+| 96           | Decision packet names options/dependencies/reconciliation ownership/owner decision.                                        | L / C + E — all vendor options conditional; B-MNT2 open.                                                                                                                                                                                                                                                               |
+| 97           | No connector, replacement agent, phone routing or new autonomous permission.                                               | L, N / C — bounded pure assessment and exact-key preservation.                                                                                                                                                                                                                                                         |
+| 98           | Applicable complete cycle shows green dot and completion label.                                                            | M / C — shared category and rendered label; Complete presentation passed in the explicit synthetic compiled fixture, without claiming actual source completion.                                                                                                                                                        |
+| 99, 100      | Upcoming shows orange using existing eligibility window.                                                                   | M / C — category consumes current cohort; no new threshold.                                                                                                                                                                                                                                                            |
+| 101          | Applicable initiated non-renewal shows yellow beside label.                                                                | M / C — provider/manual category projection.                                                                                                                                                                                                                                                                           |
+| 102          | Staff status annotation alone does not produce green cycle completion.                                                     | M / C — explicit negative fixture.                                                                                                                                                                                                                                                                                     |
+| 103          | Old complete cycle does not hide new due cycle/newer notice.                                                               | B, M / C — later-cycle/notice precedence fixtures.                                                                                                                                                                                                                                                                     |
+| 104          | Status sort uses visible categories with deterministic ascending/descending order.                                         | M / C — alphabetical category with deterministic tie keys.                                                                                                                                                                                                                                                             |
+| 105          | All categories, including unknown, filter alongside existing dimensions.                                                   | A, M / C — exact filter keys and URL/chip round trip.                                                                                                                                                                                                                                                                  |
+| 106          | Labels/dots/filter/sort/counts use same authorized evidence.                                                               | A, M, N / C — single projection and generation; build-K observational before/after API comparison matched all 311 source/projected/rendered identities and per-row categories.                                                                                                                                         |
+| 107          | Readiness/staff annotations remain distinct from lifecycle colors.                                                         | B, G, M / C — separate cells and attribution, including reconciliation.                                                                                                                                                                                                                                                |
+| 108          | Meaning is available without color/hover; sort/filter keyboard controls work.                                              | M / C — build-K actual-source text, keyboard sort, accessible names, forced colors and page-scale checks passed across five observed categories; all six synthetic categories passed separate compiled presentation checks; actual aggregate source agreement passed the observational diagnostic.                     |
+| 109          | Reader/Editor/Approver/Admin/Space boundaries preserved.                                                                   | N / C — role-action matrix, route and Space tests; Admin browser alone is not Editor proof.                                                                                                                                                                                                                            |
+| 110, 111     | Read/filter/sort/copy creates no milestone/draft/write/paid comp.                                                          | A, B, H, N / C — reads/filter/sort/copy create no workflow milestone, customer draft, provider write or paid comp. The owner separately approved only lease-bound version/hash/time invalidation metadata on authenticated source-read generations.                                                                    |
+| 112          | Missing real inputs do not block independent preparation/refusal/recovery engineering.                                     | H, I, J, K / C — preparation, refusal and recovery repairs proceed with local/emulator fixtures; real inputs retain only their dependent holds.                                                                                                                                                                        |
+| 113          | Engineering, deployment, external input, provider and human evidence stay separate.                                        | N / C — this ledger preserves those distinctions; release runner must attach fresh results.                                                                                                                                                                                                                            |
+| 114          | Real draft/template/Rhino/human outcomes remain unverified until observed.                                                 | H, I, J, K / E — no real observations supplied or created by this audit.                                                                                                                                                                                                                                               |
+| 115, 116     | Synthetic data stays local/emulator, never production.                                                                     | N / C — reviewed harness boundaries; this audit made no production write.                                                                                                                                                                                                                                              |
+| 117          | Deployed claims identify exact SHA/revision and every release gate/readback.                                               | N / R — no batch deployment is claimed. Final exact SHA, CI, revision, candidate, promotion, observation and independent remote readbacks remain mandatory.                                                                                                                                                            |
 
 ## Required closeout evidence
 
-The release runner must attach fresh verification results and any gap dispositions to
-this report before claiming the checklist satisfied. In particular, record the
-focused tests, canonical unit/backend/policy/build checks and core E2E separately
-from compiled browser checks, exact candidate assurance and the independent remote
-readbacks. No test pass closes G1–G7 unless it exercises the missing behavior.
+The final combined unit/backend/policy/build gate, core E2E and scoped compiled-browser
+verdicts are recorded separately above. Bind the eventual exact-main SHA/CI, candidate,
+promotion, 300,000 ms observation and independent remote readbacks before calling
+any queued implementation delivered. A local pass or baseline CI cannot satisfy R.
+Authentication must be freshly verified; Admin browser currently needs attended
+Google sign-in. Do not enter credentials or lower a safety control to continue.
 
-After any successful batch release, the delivered set can be described as all
-thirteen queued implementations only with their actual verified scope and these
-limitations reconciled. Keep the following open unless new evidence closes them:
+Keep each dependent external item open unless actual evidence closes it:
 
-- Actual browser smokes for the new features and actual human walkthrough verdicts.
-- B-DL1 credentials, B-DL2 managed connection/resource selection, B-DL3 approved actual
-  forms/mappings; both Dotloop keys and signature work retain their separate gates.
-- B-S100 exact synchronized resident/verified-email input and subsequent bounded
-  draft proof/activation; S36 remains dependent.
-- B-MNT1 property-specific preapproval evidence and B-MNT2 verified vendor/account/
-  interface material plus the owner decision.
-- Actual customer draft accuracy, supplied-template filling accuracy, Rhino wording
-  and policy-basis confirmation, and unchanged-enrollment authentication longevity
-  remain separate observations. S121 market fallback is outside this batch.
+- Actual human walkthrough verdicts and actual customer-specific draft accuracy.
+- B-DL1 credentials, B-DL2 managed connection/resource selection and B-DL3 approved
+  actual forms/maps. Both Dotloop keys and signature work retain their separate gates.
+- B-S100 exact synchronized resident/verified-email input and separately bounded
+  proof/activation; S36 remains dependent.
+- B-MNT1 property-specific preapproval and B-MNT2 verified vendor/account/interface
+  material plus owner decision.
+- Supplied-form accuracy, Rhino wording/applicability, notice timing policy-basis
+  confirmation and B-AUTH2 unchanged-enrollment longevity.
+- S121 remains outside this release. No missing input authorizes an invented value,
+  provider endpoint, customer identity, form term or live demonstration effect.

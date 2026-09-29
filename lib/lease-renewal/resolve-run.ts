@@ -11,6 +11,7 @@ import {
   rebuildLiveRenewalRun,
 } from "@/lib/lease-renewal/live-review";
 import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline";
+import type { AuthenticatedUser } from "@/lib/auth/session";
 
 /**
  * Resolve a renewal run by id for the resolve route: rebuild the live-review run for the live id
@@ -18,9 +19,12 @@ import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline";
  * and refuse every former Test/sample id. The live-branch read timestamp does not affect the
  * source_trigger_key, so it never changes which flag is matched.
  */
-export async function resolveRenewalRun(runId: string): Promise<RenewalRunResult | null> {
+export async function resolveRenewalRun(
+  actor: AuthenticatedUser,
+  runId: string,
+): Promise<RenewalRunResult | null> {
   return runId === LIVE_REVIEW_RUN_ID
-    ? rebuildLiveRenewalRun(new Date().toISOString())
+    ? rebuildLiveRenewalRun(actor, new Date().toISOString())
     : null;
 }
 
@@ -28,8 +32,8 @@ export async function resolveRenewalRun(runId: string): Promise<RenewalRunResult
  * Builds the resolver used by the authenticated route. Only the ordinary Live-backed run id can
  * resolve; retired Test/sample ids cannot cause a fixture or persistence read.
  */
-export function createRenewalRunResolver(): (
-  runId: string,
-) => Promise<RenewalRunResult | null> {
-  return resolveRenewalRun;
+export function createRenewalRunResolver(
+  actor: AuthenticatedUser,
+): (runId: string) => Promise<RenewalRunResult | null> {
+  return (runId) => resolveRenewalRun(actor, runId);
 }

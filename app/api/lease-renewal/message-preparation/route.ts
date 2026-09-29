@@ -192,6 +192,7 @@ export async function POST(request: Request) {
           hashExecutionPreview({
             preview,
             claimBasis: {
+              noticeSafety: current.basis.noticeSafety ?? undefined,
               workspaceFingerprint: current.basis.workspaceFingerprint,
               sourceFingerprint: current.basis.sourceFingerprint,
               resourceFingerprint: current.basis.resourceFingerprint,
@@ -233,6 +234,7 @@ export async function POST(request: Request) {
         throw new EditableLayerError("The reviewed message basis is unavailable.", 409);
       const snapshot = await savePreparedMessageDraft(actor, {
         claimBasis: {
+          noticeSafety: current.basis.noticeSafety ?? undefined,
           workspaceFingerprint: current.basis.workspaceFingerprint,
           sourceFingerprint: current.basis.sourceFingerprint,
           resourceFingerprint: current.basis.resourceFingerprint,

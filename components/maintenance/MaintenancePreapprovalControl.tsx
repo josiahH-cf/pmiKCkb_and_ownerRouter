@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Card } from "@/components/ui";
+import { formatCalendarDate } from "@/lib/date-display";
 import {
   formatPreapprovalAmount,
   parsePreapprovalAmountCents,
@@ -129,6 +130,9 @@ export function MaintenancePreapprovalControl({
             type="date"
             value={effectiveFrom}
           />
+          <span className="muted">
+            {effectiveFrom ? formatCalendarDate(effectiveFrom) : "MM/DD/YYYY"}
+          </span>
         </label>
         <label className="ui-field">
           <span>Where this amount came from</span>
@@ -143,7 +147,7 @@ export function MaintenancePreapprovalControl({
         <div role="status">
           <p>
             Record {formatPreapprovalAmount(confirming.amountCents)} for property{" "}
-            {propertyKey.trim()}, effective {effectiveFrom}?
+            {propertyKey.trim()}, effective {formatCalendarDate(effectiveFrom)}?
           </p>
           <button onClick={() => setConfirming(null)} type="button">
             Cancel
@@ -226,7 +230,8 @@ function PreapprovalList({
             <span>Property {entry.property_key}</span>
             <span>
               {formatPreapprovalAmount(entry.amount_cents)} since{" "}
-              {entry.effective_from_iso.slice(0, 10)} (version {entry.version})
+              {formatCalendarDate(entry.effective_from_iso.slice(0, 10))} (version{" "}
+              {entry.version})
             </span>
             {onClear ? (
               <button onClick={() => onClear(entry.property_key)} type="button">

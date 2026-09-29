@@ -27,7 +27,10 @@ describe("LiveGmailWorkspace workflow boundary (AC-GW-1, AC-GW-12)", () => {
           return Response.json({
             status: "connected",
             mailboxEmail: "josiah@pmikcmetro.com",
-            sync: { health: "manual", lastSuccessfulSyncMs: null },
+            sync: {
+              health: "manual",
+              lastSuccessfulSyncMs: Date.parse("2026-10-01T00:30:00.000Z"),
+            },
           });
         }
         if (url.endsWith("/communications")) {
@@ -70,6 +73,12 @@ describe("LiveGmailWorkspace workflow boundary (AC-GW-1, AC-GW-12)", () => {
     expect(screen.queryByText("Compose message")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Send this exact message/ })).toBeNull();
     expect(await screen.findByText(/Waiting on team/)).toBeInTheDocument();
+    expect(
+      screen.getByText("Last workflow refresh: 09/30/2026, 7:30 PM CDT"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Last contact 11\/14\/2023, 4:13 PM CST/),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh linked Gmail now" }));
     expect(

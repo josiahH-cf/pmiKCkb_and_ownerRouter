@@ -1,4 +1,9 @@
 "use client";
+import {
+  formatCalendarDate,
+  formatSourceCalendarDate,
+  formatBusinessTimestamp,
+} from "@/lib/date-display";
 
 import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useEffect, useRef, useState } from "react";
@@ -102,7 +107,7 @@ function sourceRefreshCopy(payload: Record<string, unknown>): string {
     | { status?: unknown; read_at_iso?: unknown; complete?: unknown }
     | undefined;
   if (refresh?.status === "current" && refresh.complete === true) {
-    return ` The complete lease projection was re-read after the write${typeof refresh.read_at_iso === "string" ? ` at ${refresh.read_at_iso}` : ""}.`;
+    return ` The complete lease projection was re-read after the write${typeof refresh.read_at_iso === "string" ? ` at ${formatBusinessTimestamp(refresh.read_at_iso)}` : ""}.`;
   }
   if (refresh?.status === "current") {
     return " The post-write lease projection read was partial; the receipt is valid, but portfolio data still needs verification.";
@@ -469,7 +474,7 @@ export function RentvineUpdatesPanel({
             </RenewalSectionHeading>
             <p className="muted">
               Exact source: RentVine account {proposal.account}, lease {proposal.lease_id}
-              , read {proposal.source_read_at}.
+              , read {formatBusinessTimestamp(proposal.source_read_at)}.
             </p>
           </div>
           {expired ? (
@@ -682,7 +687,7 @@ export function RentvineUpdatesPanel({
           {history.map((generation) => (
             <details key={generation.generation_preview_hash}>
               <summary>
-                Generation archived {generation.archived_at} ·{" "}
+                Generation archived {formatBusinessTimestamp(generation.archived_at)} ·{" "}
                 {generation.archived_reason}
               </summary>
               <ol className="ui-stack">
@@ -775,8 +780,8 @@ export function RentvineUpdatesPanel({
         {inventory ? (
           <>
             <p className="muted">
-              Source: RentVine, read for {inventory.asOfDate}. Individual charges do not
-              redefine contractual base rent.
+              Source: RentVine, read for {formatCalendarDate(inventory.asOfDate)}.
+              Individual charges do not redefine contractual base rent.
             </p>
             <ul className="ui-rows">
               {inventory.charges.map((charge) => (
@@ -784,8 +789,8 @@ export function RentvineUpdatesPanel({
                   <strong>{charge.accountLabel ?? charge.projection.description}</strong>:
                   ${charge.projection.amount}, every {charge.projection.frequency}{" "}
                   month(s), due day {charge.projection.dayDue}.{" "}
-                  {charge.projection.startDate} to{" "}
-                  {charge.projection.endDate ?? "no end date"}.
+                  {formatSourceCalendarDate(charge.projection.startDate)} to{" "}
+                  {formatSourceCalendarDate(charge.projection.endDate, "no end date")}.
                   <span className="muted">
                     {" "}
                     {charge.classification === "rent"
@@ -927,7 +932,8 @@ export function RentvineUpdatesPanel({
                     .map((charge) => (
                       <option key={charge.id} value={charge.id}>
                         {charge.accountLabel ?? charge.projection.description} · $
-                        {charge.projection.amount} · {charge.projection.startDate}
+                        {charge.projection.amount} ·{" "}
+                        {formatSourceCalendarDate(charge.projection.startDate)}
                       </option>
                     ))}
                 </select>

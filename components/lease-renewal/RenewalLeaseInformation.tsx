@@ -202,13 +202,19 @@ export function RenewalLeaseInformation({
           </Row>
           <Row label="Lease dates">
             {term.startDateIso ? (
-              <RenewalCopyValue label="lease start date" value={term.startDateIso} />
+              <RenewalCopyValue
+                label="lease start date"
+                value={formatCalendarDate(term.startDateIso)}
+              />
             ) : (
               "Needs Verification"
             )}{" "}
             to{" "}
             {term.endDateIso ? (
-              <RenewalCopyValue label="lease end date" value={term.endDateIso} />
+              <RenewalCopyValue
+                label="lease end date"
+                value={formatCalendarDate(term.endDateIso)}
+              />
             ) : (
               "Needs Verification"
             )}

@@ -1,4 +1,5 @@
 "use client";
+import { formatCalendarDate } from "@/lib/date-display";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -155,7 +156,7 @@ export function ProcessDefinitionListClient({
                         {run.process_name}
                       </Link>
                       <p className="muted">
-                        Due {run.due_date} - Owner {run.owner_uid}
+                        Due {formatCalendarDate(run.due_date)} - Owner {run.owner_uid}
                       </p>
                     </div>
                     <span className="queue-pill" data-value={run.status}>

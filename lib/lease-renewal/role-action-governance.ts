@@ -277,6 +277,29 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     safeNextAction:
       "Retain preparation and ask an Approver or Admin to review the publication.",
   },
+  prepare_filled_artifact: {
+    label: "Prepare one exact filled document for review",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to prepare a filled document.",
+    safeNextAction:
+      "Read existing output or ask an Editor to prepare current source values.",
+  },
+  approve_filled_artifact: {
+    label: "Approve the exact reviewed filled document",
+    roleCapability: "approve",
+    effect: "app_owned_approval",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: true,
+    audit: "app_activity",
+    roleDeniedReason: "Approver or Admin access is required to approve filled output.",
+    safeNextAction: "Retain the prepared output for an Approver or Admin's exact review.",
+  },
   execute_document_packet: {
     label: "Confirm one exact supported document-packet effect",
     roleCapability: "manageAdmin",
@@ -560,22 +583,34 @@ export const RENEWAL_CONTROL_INVENTORY = [
     ],
   },
   {
-    control: "Request constrained renewal-copy assistance",
-    source: "components/lease-renewal/RenewalNoticeDraftComposer.tsx",
-    capability: "tailor_copy",
-    enforcementSources: ["app/api/lease-renewal/renewal-copy-assist/route.ts"],
-  },
-  {
-    control: "Preview and create unsent Gmail draft",
+    control: "Recover an already-attempted legacy draft with its original inputs",
     source: "components/lease-renewal/RenewalNoticeDraftComposer.tsx",
     capability: "draft_create",
     enforcementSources: ["app/api/lease-renewal/renewal-notice-draft/route.ts"],
+  },
+  {
+    control: "Record reviewed notice evidence or reviewed withdrawal",
+    source: "components/lease-renewal/RenewalNoticeReview.tsx",
+    capability: "save_renewal_progress",
+    enforcementSources: ["app/api/lease-renewal/notice-review/route.ts"],
   },
   {
     control: "Record actual staff work",
     source: "components/lease-renewal/RenewalManualWorkspace.tsx",
     capability: "save_renewal_progress",
     enforcementSources: ["app/api/lease-renewal/workspace/route.ts"],
+  },
+  {
+    control: "Prepare filled output from reviewed source values",
+    source: "components/lease-renewal/FilledArtifactPanel.tsx",
+    capability: "prepare_filled_artifact",
+    enforcementSources: ["app/api/lease-renewal/filled-artifact/route.ts"],
+  },
+  {
+    control: "Approve exact filled output",
+    source: "components/lease-renewal/FilledArtifactPanel.tsx",
+    capability: "approve_filled_artifact",
+    enforcementSources: ["app/api/lease-renewal/filled-artifact/route.ts"],
   },
   {
     control: "Save a correction proposal",
@@ -888,6 +923,30 @@ export const RENEWAL_ROUTE_INVENTORY = [
     source: "app/api/lease-renewal/workspace/route.ts",
     method: "POST",
     capability: "save_renewal_progress",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/notice-review/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/notice-review/route.ts",
+    method: "POST",
+    capability: "save_renewal_progress",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/filled-artifact/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/filled-artifact/route.ts",
+    method: "POST",
+    capability: "approve_filled_artifact",
   },
   {
     kind: "api",

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { formatCalendarDate } from "@/lib/date-display";
 
 /** Normalized from the owner's September 10 source pack; no example customer or sender values. */
 export const SUPPLIED_RENEWAL_COPY = Object.freeze({
@@ -312,7 +313,7 @@ export function composeRenewalMessage(
       add(
         SUPPLIED_RENEWAL_COPY.tenant.introduction.replace(
           "{{lease_end_date}}",
-          date.parse(facts.leaseEndDate),
+          formatCalendarDate(date.parse(facts.leaseEndDate)),
         ),
       );
     else require("leaseEndDate", "Verify the current lease end date.");
@@ -324,8 +325,8 @@ export function composeRenewalMessage(
       add(
         fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.tenant.terms, {
           rent: money(facts.ownerTerms.rent),
-          start,
-          end,
+          start: formatCalendarDate(start),
+          end: formatCalendarDate(end),
         }),
       );
     } else
@@ -381,7 +382,7 @@ export function composeRenewalMessage(
               cadence === "monthly"
                 ? SUPPLIED_RENEWAL_COPY.tenant.monthlyCadence
                 : SUPPLIED_RENEWAL_COPY.tenant.oneTimeCadence,
-            effective_date: charge.effectiveDate!,
+            effective_date: formatCalendarDate(charge.effectiveDate!),
           }),
         );
     }

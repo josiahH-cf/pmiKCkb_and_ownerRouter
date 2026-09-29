@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       user,
       input,
       undefined,
-      createRenewalRunResolver(),
+      createRenewalRunResolver(user),
     );
     const activity = await listLeaseRenewalResolutionActivity(
       user,

@@ -11,6 +11,7 @@ import {
   watcherTargetSha,
 } from "../../scripts/release-batch-preflight.mjs";
 import { evaluateRelease } from "../../scripts/release-watcher-plan.mjs";
+import { prepareReleasePermit } from "../../scripts/release-control.mjs";
 
 const HEAD = "f45ecd58137a51f59937d0afaa57e8ed19853964";
 const OLD = "0bbd95c3dbd8f4a93b4b185b8ba09770170d1ca4";
@@ -29,7 +30,8 @@ function ci(sha = HEAD) {
 }
 
 function input(overrides = {}) {
-  return {
+  const permit = prepareReleasePermit(HEAD, Date.parse(NOW));
+  const value = {
     headSha: HEAD,
     treeClean: true,
     ci: ci(),
@@ -46,8 +48,29 @@ function input(overrides = {}) {
     enrolledAtIso: "2026-09-20T15:00:00.000Z",
     nowIso: NOW,
     billingReEnabled: true,
+    permit,
+    prerequisite: {
+      schemaVersion: "pmi-kc-release-prerequisites.v1",
+      runId: permit.runId,
+      sha: HEAD,
+      checkedAt: NOW,
+      checks: {
+        auth_cli_adc: "ready",
+        admin_browser: "ready",
+        billing: "ready",
+        cost_controls: "ready",
+      },
+    },
+    remoteHeadSha: HEAD,
+    nativeHeadSha: HEAD,
+    sourceHeadSha: HEAD,
+    queueAncestry: true,
+    nativeTools: true,
+    noWatcher: true,
+    lockAvailable: true,
     ...overrides,
   };
+  return { ...value, mirroredEnvFlags: value.envFlags, ...overrides };
 }
 
 function checkOf(result, id) {
@@ -58,7 +81,12 @@ describe("batched release preflight: the whole queue rides one candidate", () =>
   it("parses every queued feature from the live loop state", () => {
     const queue = parseAwaitingReleaseQueue(LOOP_STATE);
     expect(queue.length).toBeGreaterThanOrEqual(13);
-    expect(queue[0]).toEqual({ position: 1, suite: "S128", approval: "F08" });
+    expect(queue[0]).toEqual({
+      position: 1,
+      suite: "S128",
+      approval: "F08",
+      commits: ["31bc9072", "0bbd95c3"],
+    });
     expect(queue.map((row) => row.position)).toEqual(
       queue.map((_row, index) => index + 1),
     );
@@ -106,7 +134,7 @@ describe("batched release preflight: the stale checkpoint that would split the b
 
   it("refuses GO and names the archive step instead of shipping one old queue item", () => {
     const result = evaluateBatchPreflight(input({ checkpoint: stale }));
-    expect(result.verdict).toBe("owner_action_required");
+    expect(result.verdict).toBe("not_ready");
     expect(result.watcherTargetSha).toBe(OLD);
     const target = checkOf(result, "watcher_target");
     expect(target.state).toBe("owner_action");
@@ -205,5 +233,38 @@ describe("batched release preflight: safety and owner inputs", () => {
       "Bearer ",
     ])
       expect(rendered).not.toContain(shape);
+  });
+  it.each([
+    { queue: [] },
+    { queueAncestry: false },
+    { remoteHeadSha: OLD },
+    { nativeHeadSha: OLD },
+    { sourceHeadSha: OLD },
+    { permit: null },
+    { prerequisite: null },
+    { nativeTools: false },
+    { noWatcher: false },
+    { lockAvailable: false },
+    { mirroredEnvFlags: {} },
+    { enrolledAtIso: null },
+  ])("refuses unknown or incomplete batch prerequisite %j", (change) => {
+    expect(evaluateBatchPreflight(input(change)).verdict).not.toBe("go");
+  });
+  it("requires exactly thirteen ordered expected suites and both explicit false env files", () => {
+    const ready = input();
+    for (const queue of [
+      ready.queue.slice(1),
+      [...ready.queue, ready.queue[0]],
+      ready.queue.map((row, i) => (i ? row : { ...row, suite: "S999" })),
+      ready.queue.map((row, i) => (i ? row : { ...row, commits: [] })),
+    ])
+      expect(evaluateBatchPreflight(input({ queue })).verdict).not.toBe("go");
+    for (const invalid of [undefined, "", "FALSE", " true "]) {
+      const envFlags = {
+        ...ready.envFlags,
+        ".env.local:LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED": invalid,
+      };
+      expect(evaluateBatchPreflight(input({ envFlags })).verdict).not.toBe("go");
+    }
   });
 });

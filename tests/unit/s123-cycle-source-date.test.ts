@@ -193,7 +193,7 @@ describe("S123 cycle source-date projection (R-F02-04)", () => {
     const none = projectCycleSourceDateChange(null, "2027-08-31");
     expect(none).toMatchObject({ state: "not_recorded", recordedIso: null });
     expect(none.label).toContain("Previous terms were not recorded");
-    expect(none.label).toContain("2027-08-31");
+    expect(none.label).toContain("08/31/2027");
   });
 });
 

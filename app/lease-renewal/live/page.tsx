@@ -67,7 +67,7 @@ export default async function LiveRenewalReviewPage() {
     resolutionsError = true;
   }
 
-  const outcome = await loadLiveRenewalReview(new Date().toISOString(), {
+  const outcome = await loadLiveRenewalReview(user, new Date().toISOString(), {
     resolutions,
     approvals,
     activityByKey,

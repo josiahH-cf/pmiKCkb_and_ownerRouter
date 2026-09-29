@@ -1,3 +1,12 @@
+const noticeReader = {
+  uid: "fixture-reader",
+  email: "fixture-reader@pmikcmetro.com",
+  hd: "pmikcmetro.com",
+  role: "Editor" as const,
+};
+vi.mock("@/lib/firestore/renewal-notice-safety", () => ({
+  withRenewalNoticeAdmission: (_actor: unknown, reader: object) => reader,
+}));
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
@@ -116,7 +125,7 @@ afterEach(() => {
 describe("Live review linked record identity", () => {
   it("keeps the linked trigger, exact card destination, rebuild, and persisted resolution aligned", async () => {
     const timestamp = "2026-09-02T12:00:00.000Z";
-    const initial = await loadLiveRenewalReview(timestamp);
+    const initial = await loadLiveRenewalReview(noticeReader, timestamp);
     expect(initial.status).toBe("ok");
     if (initial.status !== "ok") return;
 
@@ -133,7 +142,7 @@ describe("Live review linked record identity", () => {
       `/lease-renewal/live#${itemId}`,
     );
 
-    const rebuilt = await rebuildLiveRenewalRun(timestamp);
+    const rebuilt = await rebuildLiveRenewalRun(noticeReader, timestamp);
     const rebuiltOutcome = rebuilt?.flags.find(
       (outcome) => outcome.fieldKey === "current_rent",
     );
@@ -166,7 +175,7 @@ describe("Live review linked record identity", () => {
       created_at: timestamp,
       updated_at: timestamp,
     };
-    const withResolution = await loadLiveRenewalReview(timestamp, {
+    const withResolution = await loadLiveRenewalReview(noticeReader, timestamp, {
       resolutions: [resolution],
     });
     expect(withResolution.status).toBe("ok");

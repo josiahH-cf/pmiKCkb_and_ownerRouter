@@ -1,5 +1,7 @@
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
+import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
   assertFutureRentSchedule,
   futureRentExecutionReady,
@@ -69,12 +71,15 @@ import {
 const LeaseIdSchema = z.string().regex(/^[1-9]\d*$/);
 const HashSchema = z.string().regex(/^[a-f0-9]{64}$/);
 
-async function refreshProjectionAfterWrite(writeCompletedAtMs: number) {
+async function refreshProjectionAfterWrite(
+  actor: AuthenticatedUser,
+  writeCompletedAtMs: number,
+) {
   const config = buildLiveRentVineConfig();
   if (!config.ok) return { status: "unavailable" as const };
   try {
     const { snapshot } = await refreshLiveLeaseSnapshotFromProvider(
-      config.rentvineClient,
+      withRenewalNoticeAdmission(actor, config.rentvineClient),
       writeCompletedAtMs,
       Date.now(),
     );
@@ -600,7 +605,7 @@ async function handleRequest(request: Request, statusOnly: boolean) {
         body.effectHash,
       );
       const [sourceRefresh, projection] = await Promise.all([
-        refreshProjectionAfterWrite(writeCompletedAtMs),
+        refreshProjectionAfterWrite(user, writeCompletedAtMs),
         projectReceiptEvidence(
           user,
           proposal.leaseId,
@@ -638,7 +643,7 @@ async function handleRequest(request: Request, statusOnly: boolean) {
         effectHash: body.effectHash,
       });
       const writeCompletedAtMs = Date.now();
-      const sourceRefresh = await refreshProjectionAfterWrite(writeCompletedAtMs);
+      const sourceRefresh = await refreshProjectionAfterWrite(user, writeCompletedAtMs);
       return postWriteResponse(
         {
           status: "reversal_reconciled",
@@ -720,7 +725,7 @@ async function handleRequest(request: Request, statusOnly: boolean) {
         },
       });
       const writeCompletedAtMs = Date.now();
-      const sourceRefresh = await refreshProjectionAfterWrite(writeCompletedAtMs);
+      const sourceRefresh = await refreshProjectionAfterWrite(user, writeCompletedAtMs);
       const projection = await projectReceiptEvidence(
         user,
         proposal.leaseId,
@@ -753,7 +758,7 @@ async function handleRequest(request: Request, statusOnly: boolean) {
       confirmedAtIso: new Date().toISOString(),
     });
     const writeCompletedAtMs = Date.now();
-    const sourceRefresh = await refreshProjectionAfterWrite(writeCompletedAtMs);
+    const sourceRefresh = await refreshProjectionAfterWrite(user, writeCompletedAtMs);
     return postWriteResponse(
       {
         status: "reversed",

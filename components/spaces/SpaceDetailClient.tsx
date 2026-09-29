@@ -1,4 +1,5 @@
 "use client";
+import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
 
 import { useEffect, useMemo, useState } from "react";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
@@ -782,7 +783,9 @@ export function SpaceDetailClient({
               <strong>{placeholder.missing_detail}</strong>
               <p className="muted">
                 {placeholder.priority} - {placeholder.status}
-                {placeholder.due_date ? ` - Due ${placeholder.due_date}` : ""}
+                {placeholder.due_date
+                  ? ` - Due ${formatCalendarDate(placeholder.due_date)}`
+                  : ""}
               </p>
               {placeholder.resolution ? (
                 <p className="muted">Resolution: {placeholder.resolution}</p>
@@ -824,7 +827,7 @@ export function SpaceDetailClient({
                   {entry.action} {entry.entity_type}
                 </strong>
                 <p className="muted">
-                  {entry.editor_uid} - {entry.created_at}
+                  {entry.editor_uid} - {formatBusinessTimestamp(entry.created_at)}
                   {entry.note ? ` - ${entry.note}` : ""}
                 </p>
               </article>

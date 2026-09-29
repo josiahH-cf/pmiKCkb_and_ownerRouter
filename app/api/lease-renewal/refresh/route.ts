@@ -5,6 +5,8 @@ import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
+import { clearLeaseStatusTableCache } from "@/lib/lease-renewal/lease-status-table";
 import {
   getLiveLeaseSnapshot,
   invalidateLiveLeaseCache,
@@ -13,7 +15,8 @@ import {
 // S58: demand-driven refresh of the shared live lease read. `revalidate` re-enters the cache's age
 // contract (a fresh snapshot makes no provider call); `force` bypasses the TTL via invalidation and
 // is rate-limited PER OPERATOR so a held-down click performs exactly one provider read inside the
-// window. Read-only: this route composes nothing, records nothing, and writes to no system of record.
+// window. Provider reads update only the owner-authorized approval-invalidation marker before
+// dispatch; this route records no staff review, workflow progress or provider effect.
 
 const RefreshBodySchema = z.object({ mode: z.enum(["force", "revalidate"]) }).strict();
 
@@ -56,9 +59,13 @@ export async function POST(request: Request) {
       }
       lastForceByUid.set(user.uid, nowMs);
       invalidateLiveLeaseCache();
+      clearLeaseStatusTableCache();
     }
 
-    const { currency } = await getLiveLeaseSnapshot(config.rentvineClient, nowMs);
+    const { currency } = await getLiveLeaseSnapshot(
+      withRenewalNoticeAdmission(user, config.rentvineClient),
+      nowMs,
+    );
     return NextResponse.json({
       refreshed: true,
       throttled: false,

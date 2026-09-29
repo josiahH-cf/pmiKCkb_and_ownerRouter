@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { WAITING_ON_GMAIL } from "@/lib/notifications/families";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 
 interface CommunicationAttention {
   id: string;
@@ -58,7 +59,7 @@ export function LiveGmailWorkspace({
           setConnectedEmail(data.mailboxEmail);
           setSyncMessage(
             data.sync?.lastSuccessfulSyncMs
-              ? `Last workflow refresh: ${new Date(data.sync.lastSuccessfulSyncMs).toLocaleString()}`
+              ? `Last workflow refresh: ${formatBusinessTimestamp(data.sync.lastSuccessfulSyncMs)}`
               : "Read-only manual refresh is ready; continuous watch is retired.",
           );
           try {
@@ -107,7 +108,7 @@ export function LiveGmailWorkspace({
       setSyncMessage(
         data.status === "duplicate"
           ? "That exact read-only refresh had already completed; no provider write occurred."
-          : `Read-only workflow refresh completed at ${new Date().toLocaleString()}.`,
+          : `Read-only workflow refresh completed at ${formatBusinessTimestamp(new Date())}.`,
       );
     } catch (refreshError) {
       setError(
@@ -198,7 +199,7 @@ export function LiveGmailWorkspace({
                       ? ` · Waiting on ${communication.waitingOn}`
                       : " · Waiting on not yet observed"}
                     {communication.lastContactAtMs
-                      ? ` · Last contact ${new Date(communication.lastContactAtMs).toLocaleString()}`
+                      ? ` · Last contact ${formatBusinessTimestamp(communication.lastContactAtMs)}`
                       : " · Last contact not yet observed"}
                   </span>
                 </li>

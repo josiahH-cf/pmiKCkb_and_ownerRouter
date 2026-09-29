@@ -1,4 +1,9 @@
+import { formatCalendarDate } from "@/lib/date-display";
 import { currentRentCorrectionKey } from "./current-rent-correction";
+import type { MoveOutDisposition } from "./move-out-disposition";
+import type { RenewalNoticeObserver } from "./notice-read";
+import type { AuthenticatedUser } from "@/lib/auth/session";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import {
   manualRenewalSummary,
   type RenewalWorkspaceState,
@@ -268,6 +273,7 @@ function resolveOwnerCurrentRentDecision(
  * the Live workspace and returns only the decision/evidence needed by the draft service.
  */
 export async function loadLiveOwnerCurrentRentDecision(
+  actor: AuthenticatedUser,
   leaseId: string,
   readTimestamp: string,
   config: LiveRenewalConfig,
@@ -276,7 +282,7 @@ export async function loadLiveOwnerCurrentRentDecision(
   if (!config.ok) return { status: config.reason };
   try {
     const { snapshot, currency } = await getLiveLeaseSnapshot(
-      config.rentvineClient,
+      withRenewalNoticeAdmission(actor, config.rentvineClient),
       Date.parse(readTimestamp),
     );
     const view = snapshot.views.find((candidate) => leaseIdOf(candidate) === leaseId);
@@ -538,7 +544,7 @@ function retentionFor(
     if (inRenewalWindow(nextReviewIso, windows)) {
       return {
         state: "periodic_review",
-        label: `Periodic review due ${nextReviewIso}`,
+        label: `Periodic review due ${formatCalendarDate(nextReviewIso)}`,
       };
     }
     if (manualPending)
@@ -549,7 +555,7 @@ function retentionFor(
       };
     return {
       state: "outside",
-      label: `Periodic review scheduled ${nextReviewIso}, outside the active window`,
+      label: `Periodic review scheduled ${formatCalendarDate(nextReviewIso)}, outside the active window`,
     };
   }
   const endDateIso = classification.endDateIso;
@@ -587,6 +593,7 @@ function retentionFor(
 
 /** S124: what one disposition needs beyond the lease view itself. */
 interface MoveOutInputs {
+  reviewed?: ReadonlyMap<string, MoveOutDisposition>;
   statusTable: LeaseStatusTableRead;
   freshness: MoveOutFreshness;
   observedAtIso: string;
@@ -603,12 +610,20 @@ function projectMoveOutFields(
   leaseEndIso: string | null,
   inputs: MoveOutInputs,
 ): Pick<DeskLeaseSummaryBase, "moveOut" | "moveOutTiming"> {
-  const moveOut = projectMoveOutDisposition({
-    lease: view,
-    statusTable: inputs.statusTable,
-    freshness: inputs.freshness,
-    observedAtIso: inputs.observedAtIso,
-  });
+  const moveOut = inputs.reviewed
+    ? (inputs.reviewed.get(leaseIdOf(view) ?? "") ??
+      projectMoveOutDisposition({
+        lease: { leaseID: leaseIdOf(view) },
+        statusTable: { status: "unavailable" },
+        freshness: "unavailable",
+        observedAtIso: null,
+      }))
+    : projectMoveOutDisposition({
+        lease: view,
+        statusTable: inputs.statusTable,
+        freshness: inputs.freshness,
+        observedAtIso: inputs.observedAtIso,
+      });
   return {
     moveOut,
     moveOutTiming: evaluateMoveOutTiming({
@@ -1260,6 +1275,9 @@ export async function loadLiveRenewalDesk(
   preparedSheetRead?: RenewalSheetReadWithLinks,
   /** S125: the reviewed notice timing basis; absent reads as unreviewed (Cannot determine). */
   timingBasis?: MoveOutTimingBasisSnapshot,
+  noticeObserver?: RenewalNoticeObserver,
+  /** Exact status half acquired alongside the supplied lease snapshot; unavailable forbids retry. */
+  preparedNoticeStatusTable?: LeaseStatusTableRead,
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1269,14 +1287,18 @@ export async function loadLiveRenewalDesk(
     const { views, complete } = snapshot;
     // S124: one memoized status-table read per generation; unavailable reads every row as unknown.
     const moveOutInputs: MoveOutInputs = {
-      statusTable: await readLeaseStatusTable(
-        config.rentvineClient,
-        Date.parse(readTimestamp),
-      ),
+      statusTable:
+        preparedNoticeStatusTable ??
+        (await readLeaseStatusTable(config.rentvineClient, Date.parse(readTimestamp))),
       freshness: currency.state,
       observedAtIso: readTimestamp,
       timingBasis: timingBasis ?? MISSING_MOVE_OUT_TIMING_BASIS,
     };
+    moveOutInputs.reviewed = await noticeObserver?.(
+      { snapshot, currency },
+      moveOutInputs.statusTable,
+      Date.parse(readTimestamp),
+    );
     const { tables, tableJoinIds } =
       preparedSheetRead ??
       (await readRenewalSheetGridsWithLinks({
@@ -1554,6 +1576,9 @@ export async function loadLiveRenewalLeaseWorkspace(
   workStatusRead?: RenewalWorkspaceWorkStatusRead,
   /** S125: the reviewed notice timing basis; absent reads as unreviewed (Cannot determine). */
   timingBasis?: MoveOutTimingBasisSnapshot,
+  noticeObserver?: RenewalNoticeObserver,
+  /** Exact status half acquired before rent/market projection; unavailable remains unavailable. */
+  preparedNoticeStatusTable?: LeaseStatusTableRead,
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1572,11 +1597,24 @@ export async function loadLiveRenewalLeaseWorkspace(
           ));
     const { views, complete } = snapshot;
     const moveOutInputs: MoveOutInputs = {
-      statusTable: await readLeaseStatusTable(config.rentvineClient, readAtMs),
+      statusTable:
+        preparedNoticeStatusTable ??
+        (await readLeaseStatusTable(config.rentvineClient, readAtMs)),
       freshness: currency.state,
       observedAtIso: readTimestamp,
       timingBasis: timingBasis ?? MISSING_MOVE_OUT_TIMING_BASIS,
     };
+    moveOutInputs.reviewed = await noticeObserver?.(
+      {
+        snapshot: {
+          ...snapshot,
+          views: views.filter((view) => leaseIdOf(view) === leaseId),
+        },
+        currency,
+      },
+      moveOutInputs.statusTable,
+      readAtMs,
+    );
     const view = views.find((candidate) => leaseIdOf(candidate) === leaseId);
     // S57: an incomplete read cannot prove absence — a lease missing from a partial portfolio reads
     // as a failed read, never as "not found".

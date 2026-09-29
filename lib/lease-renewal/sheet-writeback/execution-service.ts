@@ -21,6 +21,7 @@ import { RENEWAL_TAB_SCHEMAS, resolveHeaders } from "@/lib/lease-renewal/headers
 import {
   PROOF_NOTE_PREFIX,
   SHEET_WRITEBACK_CONFIRMATION_TTL_MS,
+  SHEET_WRITEBACK_PROPOSAL_VERSION,
   SheetWritebackContractError,
   assertSheetWritebackConfirmation,
   normalRowNote,
@@ -39,11 +40,17 @@ import {
   type SheetReversalPreviewBinding,
 } from "@/lib/lease-renewal/sheet-writeback/workspace-context";
 import type { SheetAppendLifecycleState } from "@/lib/lease-renewal/sheet-writeback/proposal-store";
+import {
+  readSheetWritebackRuntimeBinding,
+  sheetRuntimeBindingMatches,
+  type SheetWritebackRuntimeBinding,
+} from "./runtime-binding";
 
 export type SheetWritebackServiceErrorCode =
   | "environment_refused"
   | "action_closed"
   | "flag_disabled"
+  | "runtime_stale"
   | "effect_missing"
   | "execution_missing"
   | "execution_state"
@@ -120,6 +127,8 @@ export interface SheetWritebackDependencies {
   gateFor(actionKey: string): SheetWritebackGate;
   /** The reviewed operating-write runtime switch. */
   writeFlagEnabled(): boolean;
+  /** Trusted server identity; tests may inject an isolated revision, never a client value. */
+  runtimeBinding?: () => SheetWritebackRuntimeBinding | null;
   /** Firestore-only exact resolution/approval claim for a normal field update. */
   claimAuthorizedFieldUpdate?: (input: {
     executionId: string;
@@ -262,6 +271,7 @@ export class SheetWritebackService {
     if (proposal.scope.kind === "sealed_proof") {
       throw new SheetWritebackServiceError("proof_retired");
     }
+    this.assertCurrentRuntime(proposal);
     if (
       effect.effect.kind === "field_update" &&
       (!input.revalidateBeforeEffect || !input.revalidateAfterEffect)
@@ -345,6 +355,7 @@ export class SheetWritebackService {
       effect.effect.kind === "field_update"
         ? this.dependencies.claimLeaseScopedFieldUpdate
         : this.dependencies.claimLeaseScopedAppend;
+    this.assertCurrentRuntime(proposal);
     const claim = await claimFunction?.({
       executionId,
       previewHash: proposal.previewHash,
@@ -376,7 +387,10 @@ export class SheetWritebackService {
     try {
       await input.revalidateBeforeEffect?.();
       const gate = this.dependencies.gateFor(effect.actionKey);
-      outcome = await gate.run(() => this.performEffect(proposal, effect, writer));
+      outcome = await gate.run(() => {
+        this.assertCurrentRuntime(proposal);
+        return this.performEffect(proposal, effect, writer);
+      });
       if (effect.effect.kind === "field_update") {
         try {
           await input.revalidateAfterEffect!();
@@ -387,7 +401,9 @@ export class SheetWritebackService {
     } catch (error) {
       if (
         error instanceof SheetWritebackServiceError &&
-        (error.code === "cas_not_applied" ||
+        (error.code === "runtime_stale" ||
+          error.code === "flag_disabled" ||
+          error.code === "cas_not_applied" ||
           error.code === "header_drift" ||
           error.code === "row_anchor_drift" ||
           error.code === "authorization_stale")
@@ -693,6 +709,19 @@ export class SheetWritebackService {
     if (!executable) throw new SheetWritebackServiceError("action_closed");
   }
 
+  private assertCurrentRuntime(proposal: SheetWritebackProposal): void {
+    if (!this.dependencies.writeFlagEnabled())
+      throw new SheetWritebackServiceError("flag_disabled");
+    const current = this.dependencies.runtimeBinding
+      ? this.dependencies.runtimeBinding()
+      : readSheetWritebackRuntimeBinding();
+    if (
+      proposal.version !== SHEET_WRITEBACK_PROPOSAL_VERSION ||
+      !sheetRuntimeBindingMatches(proposal.runtimeBinding, current)
+    )
+      throw new SheetWritebackServiceError("runtime_stale");
+  }
+
   private effectByHash(
     proposal: SheetWritebackProposal,
     effectHash: string,
@@ -951,6 +980,7 @@ export class SheetWritebackService {
         proposal.spreadsheetId,
         proposal.tabTitle,
       );
+      this.assertCurrentRuntime(proposal);
       await writer.appendRowWithNote({
         spreadsheetId: proposal.spreadsheetId,
         sheetId,
@@ -996,6 +1026,7 @@ export class SheetWritebackService {
       (representation && representation.formattedValue !== before)
     )
       throw new SheetWritebackServiceError("row_anchor_drift");
+    this.assertCurrentRuntime(proposal);
     const changed = await writer.replaceCellIfExactMatch(
       proposal.spreadsheetId,
       range,

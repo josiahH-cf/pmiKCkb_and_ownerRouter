@@ -4,9 +4,9 @@
 # S134 — Color-coded lease status with matching sorting and filters
 
 > **Approval reference:** F14 (original feature #14; added color/sort/filter feature linked to #3).
-> **Status:** IMPLEMENTED and CI-GREEN at `136826cc` (2026-09-20); release deferred by the billing incident; no deployment, provider activation, or meeting validation has occurred. Serving evidence: `docs/facts.md` F-S134.
+> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `136826cc` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
-> **Registration:** S134 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F14 when renumbering.
+> **Registration:** Registered as S134 in `docs/feature-suites/README.md`; the original F14 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** New cross-lease presentation feature added to the approved Feature 3 discussion.
 
 **Goal.**
@@ -19,7 +19,7 @@ C03 — A consistent status category controls what staff see, sort, and filter; 
 
 **Current state / intended end state.**
 
-**Current evidence:** The desk already has derived overall status and manual staff-status filtering; S119 explicitly separates its annotation from completion/provider evidence. The user now requests small color indicators plus matching categories for sorting/filtering. Adding colors directly to existing loose annotations would falsely equate a staff label with an actual completed cycle.
+**Current evidence:** The local shared lifecycle projection supplies labeled colors, matching category sorting/filtering/counts and consistent workspace meaning. It derives completion, active non-renewal and retained work from current-cycle evidence; a staff annotation or green dot does not prove provider completion or signatures. S124's verified status flags and explicit reviewed/manual evidence feed the disposition, while unavailable or ambiguous sources remain visible as unknown. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** One deterministic, source-attributed lifecycle category is rendered as a dot plus visible text in the existing table. It is separate from readiness blockers and the saved staff-work label. F03 supplies notice evidence, F02 supplies current-cycle continuity, F01 supplies views, and F07 explains actions.
 
@@ -143,7 +143,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** Staff immediately distinguish completed, upcoming, and non-renewal work from the dots and words, then sort or filter those same categories without seeing different classifications or accidentally changing any record.
 
-- Model/engineering verdict: PASS in local engineering tests on `136826cc` (2026-09-20): AC-S134-1 through AC-S134-9 covered by the unit and component cases named in F-S134 (theme tokens asserted for both themes; keyboard, zoom and narrow-screen checks rely on the existing table conventions and the compiled browser checks, which are NOT RUN while rehearsal auth is blocked); no deployed readback.
+- Model/engineering verdict: Historical baseline PASS in local engineering tests on `136826cc` (2026-09-20): AC-S134-1 through AC-S134-9 covered by the unit and component cases named in F-S134 (theme tokens asserted for both themes; keyboard, zoom and narrow-screen checks rely on the existing table conventions and the compiled browser checks, which are NOT RUN while rehearsal auth is blocked); no deployed readback. Current repair-batch results and remaining gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); the historical result does not verify the current batch or deployment.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 
@@ -203,7 +203,7 @@ F02 supplies current applicable cycle truth; F03 supplies confirmed/manual/unkno
 
 - **Deliverable now, in a later implementation task:** The deterministic category contract, single accessible status component, additive query/filter/sort integration, and cycle/source/role/refresh parity tests.
 - **Consumes, but does not assume:** the exact source/configuration/cross-feature inputs above; missing or unverified values retain their explicit unavailable representation.
-- **Externally blocked or deferred outcome:** F03 automatic provider-disposition mapping remains conditional until verified; manual/app evidence and explicit unknown cases must still render/filter correctly.
+- **Externally blocked or deferred outcome:** Actual customer-case and account-specific source confirmation remain external evidence. F03's documented status-flag and notice-date read contract is established in `docs/facts.md` F-RENTVINE-MOVE-OUT-CONTRACT; unavailable or ambiguous account evidence still renders and filters as unknown, and staff evidence retains its own attribution.
 - **Produces for downstream work:** the stable evidence/state contract and acceptance record defined here. No inferred approval or provider receipt is produced by a technical test.
 
 **Verification and delivery contract.**

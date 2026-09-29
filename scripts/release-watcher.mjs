@@ -1,6 +1,16 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+  openSync,
+  closeSync,
+  fsyncSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -18,13 +28,30 @@ import { browserEnrollmentVersion } from "./auth/browser-enrollment.mjs";
 import {
   readCandidateAssuranceReceipt,
   readPromotionReceipt,
+  readAssuranceReceiptForRecovery,
+  candidateAssuranceWasClaimed,
+  writeReceipt,
 } from "./production-assurance-receipts.mjs";
 import { createDeployRevisionSuffix } from "./deploy-demo-cloud-run.mjs";
 import {
-  buildPausedRollbackRedeployPlan,
-  revisionPausesSheetWriteback,
-} from "./release-candidate.mjs";
+  assertRecoveryBaseline,
+  readRecoveryBaseline,
+  recoveryReference,
+} from "./release-recovery.mjs";
 import { terminateReleaseProcessTree } from "./release.mjs";
+import {
+  assertReleaseAdmission,
+  consumeReleasePermit,
+  readReleasePermit,
+  interruptedPromotionNeedsRecovery,
+  assertNativeReleaseRuntime,
+} from "./release-control.mjs";
+import {
+  acquireWatcherLock,
+  assertReleaseProcessLock,
+  RELEASE_LOCK_FD_ENV,
+} from "./release-lock.mjs";
+export { acquireWatcherLock } from "./release-lock.mjs";
 
 const SOURCE = dirname(dirname(fileURLToPath(import.meta.url)));
 const REPOSITORY = "josiahH-cf/pmiKCkb_and_ownerRouter";
@@ -47,13 +74,21 @@ const GH = existsSync("/mnt/c/Program Files/GitHub CLI/gh.exe")
 export function command(
   bin,
   args,
-  { cwd = SOURCE, env = process.env, timeoutMs = 120_000 } = {},
+  { cwd = SOURCE, env = process.env, timeoutMs = 120_000, signal, lockFd } = {},
 ) {
   return new Promise((resolveResult, reject) => {
+    if (signal?.aborted) {
+      reject(new Error("release_lock_lost"));
+      return;
+    }
     const child = spawn(bin, args, {
       cwd,
-      env: { ...env, CLOUDSDK_CORE_DISABLE_PROMPTS: "1" },
-      stdio: ["ignore", "pipe", "pipe"],
+      env: {
+        ...env,
+        CLOUDSDK_CORE_DISABLE_PROMPTS: "1",
+        ...(lockFd === undefined ? {} : { [RELEASE_LOCK_FD_ENV]: "3" }),
+      },
+      stdio: ["ignore", "pipe", "pipe", ...(lockFd === undefined ? [] : [lockFd])],
       detached: true,
     });
     let stdout = "",
@@ -62,6 +97,7 @@ export function command(
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
       resolveResult(result);
     };
     const timer = setTimeout(async () => {
@@ -72,6 +108,15 @@ export function command(
       }
       finish({ status: null, stdout: "", timedOut: true });
     }, timeoutMs);
+    const abort = async () => {
+      try {
+        await terminateReleaseProcessTree(child);
+      } catch {
+        /* durable intent remains unresolved */
+      }
+      finish({ status: null, stdout: "", lockLost: true });
+    };
+    signal?.addEventListener("abort", abort, { once: true });
     child.stdout.on("data", (data) => {
       if (stdout.length < 16 * 1024 * 1024) stdout += data;
     });
@@ -95,46 +140,24 @@ function parseJson(text) {
 }
 function writeState(path, state) {
   const temporary = `${path}.${process.pid}.tmp`;
-  writeFileSync(temporary, JSON.stringify(state, null, 2) + "\n", { mode: 0o600 });
+  const fd = openSync(temporary, "wx", 0o600);
+  try {
+    writeFileSync(fd, JSON.stringify(state, null, 2) + "\n");
+    fsyncSync(fd);
+  } finally {
+    closeSync(fd);
+  }
   renameSync(temporary, path);
+  const directory = openSync(dirname(path), "r");
+  try {
+    fsyncSync(directory);
+  } finally {
+    closeSync(directory);
+  }
 }
 function readState(path) {
   return existsSync(path) ? parseJson(readFileSync(path, "utf8")) : null;
 }
-// flock is released by the kernel on exit/reboot, including an interrupted watcher. No PID
-// guessing or stale-lock deletion can let two release processes run together.
-export async function acquireWatcherLock(root) {
-  mkdirSync(root, { recursive: true, mode: 0o700 });
-  return new Promise((resolveLock, reject) => {
-    const child = spawn(
-      "flock",
-      [
-        "--nonblock",
-        join(root, "release.lock"),
-        process.execPath,
-        "-e",
-        'process.stdout.write("locked"); process.stdin.resume();',
-      ],
-      { stdio: ["pipe", "pipe", "ignore"] },
-    );
-    let locked = false;
-    child.once("error", () => reject(new Error("release_lock_unavailable")));
-    child.once("close", () => {
-      if (!locked) reject(new Error("release_watcher_already_running"));
-    });
-    child.stdout.once("data", () => {
-      locked = true;
-      resolveLock(
-        () =>
-          new Promise((resolveUnlock) => {
-            child.once("close", resolveUnlock);
-            child.stdin.end();
-          }),
-      );
-    });
-  });
-}
-
 function traffic(service) {
   return (service.status?.traffic ?? [])
     .filter((x) => (x.percent ?? 0) > 0)
@@ -200,7 +223,17 @@ export function createDriver({
     new GoogleAuth({
       scopes: ["https://www.googleapis.com/auth/cloud-platform"],
     }).getClient(),
+  assertAdmission = (cp) =>
+    assertReleaseAdmission({ sha: cp.sha, runId: cp.runId, stateRoot }),
+  assertLock = () => assertReleaseProcessLock({ stateRoot }),
+  lockSignal,
+  lockFd,
 }) {
+  const underlyingCommand = runCommand;
+  runCommand = (bin, args, options = {}) => {
+    assertLock();
+    return underlyingCommand(bin, args, { ...options, signal: lockSignal, lockFd });
+  };
   const monitoring = resolveMonitoringConfig(
     operatorEmail ? [`--operator-email=${operatorEmail}`] : [],
     {},
@@ -225,13 +258,16 @@ export function createDriver({
     ]);
   const identityConfig = async (method = "GET", data) => {
     const request = async () => {
+      assertLock();
       cloudClient ??= await createCloudClient();
+      assertLock();
       return (
         await cloudClient.request({
           method,
           url: `https://identitytoolkit.googleapis.com/admin/v2/projects/${PROJECT}/config${method === "PATCH" ? "?updateMask=authorizedDomains" : ""}`,
           ...(data ? { data } : {}),
           timeout: 30_000,
+          signal: lockSignal,
         })
       ).data;
     };
@@ -257,7 +293,8 @@ export function createDriver({
     return runCommand(
       process.execPath,
       [
-        join(checkout(cp), "node_modules", "tsx", "dist", "cli.mjs"),
+        "--import",
+        join(checkout(cp), "node_modules", "tsx", "dist", "loader.mjs"),
         join(checkout(cp), "scripts", script),
         ...args,
       ],
@@ -298,15 +335,43 @@ export function createDriver({
     return { commit: value.commit, revision: value.revision, service: value.service };
   };
   return {
-    save: async (cp) => writeState(checkpointPath, cp),
-    authenticate: async () =>
-      (
-        await ensureAuth({
-          need: ["gcloud", "adc", "gh"],
-          unattended: true,
-          root: source,
-        })
-      ).exitCode === 0,
+    authorize: async (cp) => {
+      try {
+        assertLock();
+      } catch {
+        return false;
+      }
+      if (cp.rollback) {
+        try {
+          readRecoveryBaseline(cp.recoveryBaseline, { runId: cp.runId, sha: cp.sha });
+          return true;
+        } catch {
+          return false;
+        }
+      }
+      try {
+        assertAdmission(cp);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    save: async (cp) => {
+      assertLock();
+      writeState(checkpointPath, cp);
+    },
+    authenticate: async () => {
+      assertLock();
+      return (
+        (
+          await ensureAuth({
+            need: ["gcloud", "adc", "gh"],
+            unattended: true,
+            root: source,
+          })
+        ).exitCode === 0
+      );
+    },
     hasExactReceipt: async (cp) => {
       try {
         const receipt = readCandidateAssuranceReceipt(candidateReceipt(cp), {
@@ -423,6 +488,7 @@ export function createDriver({
       };
     },
     async deploy(cp) {
+      assertAdmission(cp);
       const before = await serviceRead();
       if (!sameTraffic(traffic(before), cp.baselineTraffic))
         return { verified: false, reason: "serving_traffic_changed" };
@@ -440,6 +506,7 @@ export function createDriver({
       if (revision.status !== 0) {
         if (cp.inFlight === "deploy")
           return { verified: false, reason: "deployment_outcome_unresolved" };
+        assertAdmission(cp);
         const result = await runScript(cp, "release.mjs", [
           "--environment=production",
           "--execute",
@@ -500,6 +567,7 @@ export function createDriver({
       };
     },
     async domains(cp) {
+      assertAdmission(cp);
       const current = await identityConfig();
       const prior = current.authorizedDomains;
       if (
@@ -518,14 +586,41 @@ export function createDriver({
       ];
       if (!sameTraffic(traffic(await serviceRead()), cp.baselineTraffic))
         throw new Error("serving_traffic_changed");
-      if (JSON.stringify([...prior].sort()) !== JSON.stringify([...next].sort()))
+      if (JSON.stringify([...prior].sort()) !== JSON.stringify([...next].sort())) {
+        assertAdmission(cp);
         await identityConfig("PATCH", { authorizedDomains: next });
+      }
       const observed = (await identityConfig()).authorizedDomains;
       return {
         verified:
           Array.isArray(observed) &&
           JSON.stringify([...observed].sort()) === JSON.stringify([...next].sort()) &&
           sameTraffic(traffic(await serviceRead()), cp.baselineTraffic),
+      };
+    },
+    async recovery(cp) {
+      assertAdmission(cp);
+      const output = join(stateRoot, `recovery-${cp.runId}-baseline.json`);
+      const result = await runScript(cp, "observe-production-release.ts", [
+        "--prepare-recovery-baseline",
+        "--live",
+        ...COORDINATES,
+        `--predecessor-revision=${cp.predecessor}`,
+        `--recovery-tag=${cp.supersededCandidateHost.split("---")[0]}`,
+        `--recovery-origin=https://${cp.supersededCandidateHost}`,
+        `--canonical-origin=${CANONICAL}`,
+        `--operator-email=${monitoring.operatorEmail}`,
+        `--admin-profile=${adminProfile}`,
+      ]);
+      if (result.status !== 0 || !existsSync(output))
+        return { verified: false, reason: "recovery_preparation_unverified" };
+      const receipt = assertRecoveryBaseline(readState(output), {
+        runId: cp.runId,
+        sha: cp.sha,
+      });
+      return {
+        verified: true,
+        patch: { recoveryBaseline: recoveryReference(output, receipt) },
       };
     },
     async assurance(cp) {
@@ -555,10 +650,12 @@ export function createDriver({
         "--prepare-candidate-receipt",
         ...assuranceArgs(cp),
         `--candidate-assurance-receipt=${candidateReceipt(cp)}`,
+        `--recovery-baseline=${cp.recoveryBaseline?.path}`,
       ]);
       return { verified: result.status === 0 && (await this.hasExactReceipt(cp)) };
     },
     async promote(cp) {
+      assertAdmission(cp);
       const current = traffic(await serviceRead());
       if (sameTraffic(current, [{ revision: cp.revision, percent: 100 }])) {
         try {
@@ -585,8 +682,20 @@ export function createDriver({
         `--monitoring-operator-email=${monitoring.operatorEmail}`,
         ...assuranceArgs(cp).filter((x) => /^(--admin-profile)=/.test(x)),
       ]);
-      if (result.status !== 0)
-        return { verified: false, reason: "promotion_outcome_unresolved" };
+      if (result.status !== 0) {
+        const attempted = readAssuranceReceiptForRecovery(candidateReceipt(cp));
+        if (!candidateAssuranceWasClaimed(attempted))
+          return { verified: false, reason: "promotion_preflight_failed" };
+        // A consumed candidate receipt with a missing promotion receipt may have failed after
+        // traffic changed. Both the direct command and watcher resume the same global recovery.
+        const recovery = {
+          ...cp,
+          inFlight: cp.phase,
+          rollback: { revision: cp.predecessor, reason: "promotion_outcome_unresolved" },
+        };
+        await this.save(recovery);
+        return this.recoverRollback(recovery);
+      }
       readPromotionReceipt(promotionReceipt(cp), {
         expectedCommit: cp.sha,
         expectedRevision: cp.revision,
@@ -612,6 +721,7 @@ export function createDriver({
         // rollback and readback as an explicitly failed observation.
         const recovery = {
           ...cp,
+          inFlight: cp.phase,
           rollback: { revision: cp.predecessor, reason: "observation_unavailable" },
         };
         await this.save(recovery);
@@ -626,7 +736,11 @@ export function createDriver({
       if (report.observation?.decision === "rollback_required") {
         if (report.observation.rollbackRevision !== cp.predecessor)
           throw new Error("rollback_binding_invalid");
-        const recovery = { ...cp, rollback: { revision: cp.predecessor } };
+        const recovery = {
+          ...cp,
+          inFlight: cp.phase,
+          rollback: { revision: cp.predecessor },
+        };
         await this.save(recovery);
         return this.recoverRollback(recovery);
       }
@@ -645,124 +759,55 @@ export function createDriver({
         patch: { lastDeployedSha: cp.sha },
       };
     },
-    // S128 (F08): describe one revision's runtime config for the write-flag readback.
-    async describeRevision(revision) {
-      return cloud([
-        "run",
-        "revisions",
-        "describe",
-        revision,
-        `--project=${PROJECT}`,
-        `--region=${REGION}`,
-        "--format=json",
-      ]);
-    },
-    // S128 (F08): true only when the exact revision would NOT dispatch operating-Sheet writes.
-    async revisionPausesWriteback(revision) {
-      try {
-        return revisionPausesSheetWriteback(await this.describeRevision(revision));
-      } catch {
-        return false;
-      }
-    },
-    /**
-     * S128 (F08) rollback safety: resolve a flag-false rollback target so a rollback never re-enables
-     * operating-Sheet writes. The captured predecessor is used directly when it already pauses writes;
-     * otherwise its exact image is redeployed with the flag pinned false and the new serving revision
-     * becomes the target. Any uncertainty throws so the caller fails closed (never an unsafe shift).
-     */
-    async resolvePausedRollbackTarget(cp) {
-      const predecessor = await this.describeRevision(cp.predecessor);
-      if (revisionPausesSheetWriteback(predecessor))
-        return { revision: cp.predecessor, baseline: cp.baselineTraffic };
-      const image = predecessor?.spec?.containers?.[0]?.image;
-      if (typeof image !== "string" || image.trim() === "")
-        throw new Error("predecessor_image_unavailable");
-      const suffix = createDeployRevisionSuffix();
-      const plan = buildPausedRollbackRedeployPlan({
-        project: PROJECT,
-        region: REGION,
-        service: SERVICE,
-        image,
-        revisionSuffix: suffix,
-      });
-      const deployed = await runCommand("gcloud", plan.args);
-      if (deployed.status !== 0) throw new Error("paused_rollback_redeploy_failed");
-      // Read the new serving revision from traffic instead of predicting its exact name.
-      const serving = traffic(await serviceRead());
-      if (serving.length !== 1 || serving[0].percent !== 100)
-        throw new Error("paused_rollback_redeploy_traffic_unresolved");
-      if (!revisionPausesSheetWriteback(await this.describeRevision(serving[0].revision)))
-        throw new Error("paused_rollback_redeploy_not_paused");
-      return {
-        revision: serving[0].revision,
-        baseline: [{ revision: serving[0].revision, percent: 100 }],
-      };
-    },
     async recoverRollback(cp) {
+      if (!["promote", "observe"].includes(cp.phase))
+        throw new Error("rollback_checkpoint_phase_invalid");
+      cp = { ...cp, inFlight: cp.phase };
+      await this.save(cp);
       if (cp.rollback?.revision !== cp.predecessor)
         throw new Error("rollback_binding_invalid");
-      const patch = { rollback: cp.rollback };
-      // S128 (F08): never roll back onto a writeback-enabled revision. Resolve a flag-false target
-      // (the predecessor itself, or its image redeployed with the flag pinned false). Fail closed on
-      // any uncertainty so a rollback can only ever preserve the pause, never re-enable writes.
-      let target;
-      try {
-        target = await this.resolvePausedRollbackTarget(cp);
-      } catch {
-        return { verified: false, reason: "rollback_writeback_pause_unverified", patch };
-      }
-      const current = traffic(await serviceRead());
-      if (!sameTraffic(current, target.baseline)) {
-        if (!sameTraffic(current, [{ revision: cp.revision, percent: 100 }]))
-          return { verified: false, reason: "rollback_traffic_changed", patch };
-        // The rollback target was durably recorded before dispatch. A lost command response is
-        // resolved from exact traffic, and a resumed rollback never overwrites another release.
-        await runCommand("gcloud", [
-          "run",
-          "services",
-          "update-traffic",
-          SERVICE,
-          `--project=${PROJECT}`,
-          `--region=${REGION}`,
-          `--to-revisions=${target.revision}=100`,
-          "--quiet",
-        ]);
-        if (!sameTraffic(traffic(await serviceRead()), target.baseline))
-          return { verified: false, reason: "rollback_traffic_unverified", patch };
-      }
-      // S128 (F08): the now-serving rollback target must read back with writeback paused.
-      if (!(await this.revisionPausesWriteback(target.revision)))
-        return { verified: false, reason: "rollback_writeback_pause_unverified", patch };
+      readRecoveryBaseline(cp.recoveryBaseline, { runId: cp.runId, sha: cp.sha });
+      const receiptPath = existsSync(promotionReceipt(cp))
+        ? promotionReceipt(cp)
+        : candidateReceipt(cp);
       const recovered = await runScript(cp, "observe-production-release.ts", [
-        "--verify-rollback-recovery",
+        "--execute-safe-recovery",
         "--live",
-        `--recovery-receipt=${promotionReceipt(cp)}`,
+        `--recovery-receipt=${receiptPath}`,
         `--operator-email=${monitoring.operatorEmail}`,
         `--admin-profile=${adminProfile}`,
-        `--editor-profile=${editorProfile}`,
       ]);
+      const terminal = readState(join(stateRoot, `recovery-${cp.runId}-verified.json`));
+      const verified =
+        recovered.status === 0 &&
+        terminal?.state === "ROLLED_BACK_VERIFIED" &&
+        terminal.runId === cp.runId;
       return {
         verified: false,
-        reason:
-          recovered.status === 0
-            ? "rolled_back_verified"
-            : "rollback_recovery_unverified",
-        patch: { ...patch, terminalFailure: recovered.status === 0 },
+        reason: verified ? "rolled_back_verified" : "rollback_recovery_unverified",
+        patch: {
+          rollback: cp.rollback,
+          terminalFailure: verified,
+          ...(verified ? { recoveryRevision: terminal.targetRevision } : {}),
+        },
       };
     },
   };
 }
 
-export async function main(argv = process.argv.slice(2)) {
+export async function main(
+  argv = process.argv.slice(2),
+  { heldUnlock, operatorResume = false } = {},
+) {
   if (process.platform !== "linux") throw new Error("watcher_requires_this_wsl_host");
+  assertNativeReleaseRuntime();
   const watch = argv.includes("--watch"),
     dryRun = argv.includes("--dry-run");
   if (argv.some((x) => !["--watch", "--once", "--dry-run"].includes(x)))
     throw new Error("watcher_argument_invalid");
   const stateRoot = join(homedir(), ".local", "state", "pmi-kc-release");
   const checkpointPath = join(stateRoot, "checkpoint.json");
-  const unlock = await acquireWatcherLock(stateRoot);
+  const unlock = heldUnlock ?? (await acquireWatcherLock(stateRoot));
   let lastStatus = "";
   try {
     const driver = createDriver({
@@ -771,20 +816,61 @@ export async function main(argv = process.argv.slice(2)) {
       adminProfile: join(homedir(), "pmi-assurance", "owner-admin"),
       editorProfile: join(homedir(), "pmi-assurance", "canary-editor"),
       operatorEmail: resolveWatcherMonitoringConfig().operatorEmail,
+      assertLock: unlock.assertHeld,
+      lockSignal: unlock.signal,
+      lockFd: unlock.fd,
     });
     do {
       let cp = readState(checkpointPath);
       try {
-        const observed = await driver.inspect(cp);
-        const decision = evaluateRelease({ ...observed, checkpoint: cp });
+        unlock.assertHeld();
+        if (cp?.operatorResumeRequired && !operatorResume)
+          throw new Error("release_operator_resume_required");
+        if (operatorResume && cp) {
+          cp = { ...cp, operatorResumeRequired: false };
+          await driver.save(cp);
+          operatorResume = false;
+        }
+        if (!cp?.rollback && (await interruptedPromotionNeedsRecovery(cp, stateRoot))) {
+          cp = {
+            ...cp,
+            rollback: {
+              revision: cp.predecessor,
+              reason: "promotion_interrupted_after_claim",
+            },
+          };
+          await driver.save(cp);
+        }
+        // Check the local admission before even polling CI/auth. Scheduled restarts stay held.
+        if (!dryRun && !cp?.rollback) {
+          const permit = readReleasePermit(stateRoot);
+          assertReleaseAdmission({
+            sha: cp && cp.phase !== "complete" ? cp.sha : permit.sha,
+            runId: cp && cp.phase !== "complete" ? cp.runId : undefined,
+            stateRoot,
+            permit,
+          });
+        }
+        const observed = cp?.rollback ? { sha: cp.sha } : await driver.inspect(cp);
+        const decision = cp?.rollback
+          ? { state: "resume", sha: cp.sha, phase: cp.phase }
+          : evaluateRelease({ ...observed, checkpoint: cp });
         if (dryRun || !["release", "resume"].includes(decision.state)) {
           const status = JSON.stringify({ ...decision, sha: observed.sha, dryRun });
           if (status !== lastStatus) console.log(status);
           lastStatus = status;
         } else {
+          const permit = cp?.rollback
+            ? null
+            : assertReleaseAdmission({
+                sha: observed.sha,
+                runId: cp && cp.phase !== "complete" ? cp.runId : undefined,
+                stateRoot,
+              });
           if (!cp || cp.phase === "complete" || cp.terminalFailure) {
             const suffix = createDeployRevisionSuffix();
             cp = {
+              runId: permit.runId,
               sha: observed.sha,
               ciRunId: observed.ci.databaseId,
               phase: "prepare",
@@ -808,17 +894,61 @@ export async function main(argv = process.argv.slice(2)) {
             });
             if (status !== lastStatus) console.log(status);
             lastStatus = status;
-            if (cp.blocked) break;
+            if (cp.blocked) {
+              cp = { ...cp, operatorResumeRequired: true };
+              await driver.save(cp);
+              writeReceipt(
+                join(
+                  stateRoot,
+                  `checkpoint-${cp.runId}-${Date.now()}-${randomUUID()}.json`,
+                ),
+                cp,
+              );
+              return;
+            }
+          }
+          if (cp.phase === "complete") {
+            consumeReleasePermit({ sha: cp.sha, runId: cp.runId, stateRoot });
+            return;
           }
         }
-      } catch {
+      } catch (error) {
+        if (unlock.signal.aborted) {
+          console.log(
+            JSON.stringify({
+              sha: cp?.sha ?? null,
+              phase: cp?.phase ?? "inspect",
+              blocked: "release_lock_lost",
+            }),
+          );
+          return;
+        }
+        // The phase may already have durably recorded recovery/dispatch intent before throwing.
+        // Preserve that newest checkpoint; never overwrite it with the pre-dispatch in-memory copy.
+        cp = readState(checkpointPath) ?? cp;
+        const reason = /^[a-z][a-z0-9_]{0,100}$/.test(error?.message ?? "")
+          ? error.message
+          : "release_phase_unverified";
+        if (cp && cp.phase !== "complete") {
+          cp = { ...cp, blocked: reason, operatorResumeRequired: true };
+          await driver.save(cp);
+          if (cp.runId)
+            writeReceipt(
+              join(
+                stateRoot,
+                `checkpoint-${cp.runId}-${Date.now()}-${randomUUID()}.json`,
+              ),
+              cp,
+            );
+        }
         const status = JSON.stringify({
           sha: cp?.sha ?? null,
           phase: cp?.phase ?? "inspect",
-          blocked: "release_phase_unverified",
+          blocked: reason,
         });
         if (status !== lastStatus) console.log(status);
         lastStatus = status;
+        return;
       }
       if (watch && !dryRun)
         await new Promise((resolveWait) => setTimeout(resolveWait, 60_000));

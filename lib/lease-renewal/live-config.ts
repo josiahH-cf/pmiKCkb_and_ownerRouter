@@ -8,7 +8,9 @@
 // The result is a discriminated union so the owner-gated live page degrades to a clear panel when the
 // sources are not connected, instead of throwing. Account safety (pmikcmetro only) is enforced here.
 
+import { createHash } from "node:crypto";
 import { GoogleSheetsApiReader } from "@/lib/google-sheets/read-client";
+import { registerConfiguredNoticeReaderScope } from "./notice-source-admission";
 import {
   RentVineClient,
   assertRentVineAccount,
@@ -16,6 +18,26 @@ import {
 } from "@/lib/integrations/rentvine/client";
 
 const EXPECTED_ACCOUNT = "pmikcmetro";
+
+// Neither this credential digest nor its opaque value leaves process-local factory metadata.
+const noticeReaderScopes = new Map<string, object>();
+function registerNoticeReader(
+  reader: RentVineClient,
+  baseUrl: string,
+  apiKey: string,
+  apiSecret: string,
+): RentVineClient {
+  const digest = createHash("sha256")
+    .update(JSON.stringify([new URL(baseUrl).href, apiKey, apiSecret]))
+    .digest("hex");
+  let scope = noticeReaderScopes.get(digest);
+  if (!scope) {
+    scope = {};
+    noticeReaderScopes.set(digest, scope);
+  }
+  registerConfiguredNoticeReaderScope(reader, scope);
+  return reader;
+}
 
 export type LiveRenewalConfig =
   | {
@@ -58,9 +80,14 @@ export function buildLiveRentVineConfig(
 
   return {
     ok: true,
-    rentvineClient: new RentVineClient(
-      { baseUrl, apiKey, apiSecret },
-      createFetchTransport({ signal: options.abortSignal }),
+    rentvineClient: registerNoticeReader(
+      new RentVineClient(
+        { baseUrl, apiKey, apiSecret },
+        createFetchTransport({ signal: options.abortSignal }),
+      ),
+      baseUrl,
+      apiKey,
+      apiSecret,
     ),
   };
 }
@@ -96,9 +123,11 @@ export function buildLiveRenewalConfig(env: EnvLike = process.env): LiveRenewalC
     return { ok: false, reason: "account_mismatch" };
   }
 
-  const rentvineClient = new RentVineClient(
-    { baseUrl, apiKey, apiSecret },
-    createFetchTransport(),
+  const rentvineClient = registerNoticeReader(
+    new RentVineClient({ baseUrl, apiKey, apiSecret }, createFetchTransport()),
+    baseUrl,
+    apiKey,
+    apiSecret,
   );
   const sheetsReader = new GoogleSheetsApiReader(impersonateSa, dwdSubject);
 

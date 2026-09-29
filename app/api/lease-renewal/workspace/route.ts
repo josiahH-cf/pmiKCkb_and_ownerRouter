@@ -1,4 +1,5 @@
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
+import { isOperatingSheetWritebackPaused } from "@/lib/lease-renewal/sheet-writeback-policy";
 import { prepareWorkspaceSheetUpdate } from "@/lib/lease-renewal/workspace-sheet-sync";
 import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import { listMarketObservations } from "@/lib/firestore/renewal-market-observations";
@@ -49,6 +50,7 @@ export async function GET(request: Request) {
       listRenewalWorkspaceActivity(actor, leaseId),
     ]);
     return NextResponse.json({
+      writeback_paused: isOperatingSheetWritebackPaused(),
       state,
       activity,
       observations: state
@@ -76,12 +78,19 @@ export async function POST(request: Request) {
         await startRenewalCycle(
           actor,
           value,
-          await resolveRenewalCycleBasis(value.leaseId, value.basis),
+          await resolveRenewalCycleBasis(actor, value.leaseId, value.basis),
         ),
       );
     }
     const { operation: _, ...value } = input;
     const result = await saveRenewalWorkspace(actor, value);
+    if (isOperatingSheetWritebackPaused()) {
+      return NextResponse.json({
+        ...result,
+        writeback_paused: true,
+        sourcePreparation: "Saved in app; Sheet updates paused.",
+      });
+    }
     const entry = Object.values(result.state?.sourceUpdates ?? {}).find(
       (item) => item.eventId === value.operationId,
     );
@@ -101,7 +110,7 @@ export async function POST(request: Request) {
         });
       }
     }
-    return NextResponse.json(result);
+    return NextResponse.json({ ...result, writeback_paused: false });
   } catch (error) {
     return apiErrorResponse(error);
   }

@@ -29,7 +29,7 @@ PRs #87/#88 provide external destinations and reconciliation; PR #89 repairs Ren
 and operator-selected radius recovery. The earlier failed Feature 4 observation and verified rollback
 remain preserved. Its resumed release passed all existing gates. PR #90 makes the draft preview readable in dark mode while preserving email/copy content.
 PR #91 clarifies shared navigation and renewal sections/fields and removes unnecessary shared
-page reads. All six standalone release cycles are complete; the existing watcher remains active. Automatic approved CLI/ADC and Admin browser authentication passed. Existing
+page reads. All six standalone release cycles are complete. The thirteen-feature follow-up batch remains undeployed; its installed admission interlock currently holds the watcher without a permit. Approved CLI/ADC refresh passed on 2026-09-29; current Admin browser authentication requires attended enrollment. Historical release assurance remains evidence for its recorded times. Existing
 identity, role, provider-action and release boundaries remain unchanged.
 
 S113 F1-F5 is complete and deployed: one lease dashboard, typed corrections and supported Sheet/
@@ -63,8 +63,9 @@ S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger 
   No paid comp request, live customer draft/send, new provider proof or signature effect ran.
 - Both private supplied v2 templates are published and read back approved. Private sources and
   customer data remain outside Git. Staff and provider evidence retain their separate meanings.
-- Approved WSL CLI/ADC and owner Admin browser authentication passed. Separate 24-hour authentication
-  longevity remains unverified after the owner-completed 01:36 UTC enrollment; no identity, IAM or claim changed.
+- Historical release CLI/ADC and owner Admin browser assurance passed. Current CLI/ADC refresh
+  passed on 2026-09-29; Admin browser requires attended enrollment. Separate 24-hour unchanged-session
+  longevity remains unverified; no identity, IAM or claim changed.
 
 The owner-approved v4 receipt records only the exact blocked predecessor My Work reconcile defect on `d243911cb20ffb01773072c0e27c723648eeea34` / `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` as `failed_known_legacy_defect`. The single request was aborted before dispatch; its matching browser failures remain recorded. Candidate and post-promotion checks passed with zero mutation attempts. Editor browser coverage is `not_run` under the owner-approved Admin-only policy; backend role restrictions remain.
 
@@ -179,6 +180,16 @@ human enrollment. Protected auth changes are authorized only for this explicit s
 
 ## Action authority
 
+### Owner-approved notice invalidation metadata — 2026-09-29 UTC
+
+For the release-gap repairs, the owner explicitly permits authenticated source reads to update a
+durable, lease-bound approval-invalidation marker containing only version/hash/time metadata. Bind
+the marker to verified tenancy/cycle scope so a notice observed and later withdrawn cannot revive
+an old draft approval, including after restart. This narrow app-owned metadata exception creates
+no workflow milestone, provider write, customer draft or send. Other reads retain their existing
+contracts. Source absence does not itself prove provider withdrawal; staff-reviewed
+withdrawal and provider evidence remain distinct. This is not a new provider-action or role grant.
+
 Production activation is per exact Action Registry key. Never infer a category grant.
 
 Open keys as of 2026-09-02:
@@ -253,9 +264,11 @@ their existing contracts remain separate. Authentication/release assurance conti
 The owner directed on 2026-08-31 that the application graduate from categorical read-only posture
 to exact human-confirmed source-of-truth updates. S97, S98, S99, and the S100 chat-sync action passed
 their bounded per-key proof windows, mandatory close/readback, and separate final activations. An
-open key is authority, not proof that the provider currently exposes every safety primitive. The
-candidate's S98 code still refuses field update and fixed-row reversal. S113 now requires normal
-field updates under the explicit owner-approved contract above; completed receipts remain evidence.
+open key is authority, not proof that the provider currently exposes every safety primitive.
+Serving S113 supports normal field updates under the explicit owner-approved contract above.
+The queued S128 batch pauses operating-Sheet effects while preserving reads and app-owned saves;
+that pause remains undeployed. Row deletion and historical restore remain unavailable, and
+completed receipts retain their original meaning.
 No activation is a generic method/path/body, bulk,
 autonomous, model-triggered, or send grant.
 

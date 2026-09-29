@@ -4,6 +4,11 @@
 // current and proposed values in business words, the effective timing and what the confirmation
 // changes. No id, hash, A1 range or action key appears here; those stay in the receipt disclosure.
 
+import {
+  formatCalendarDate,
+  formatSourceCalendarDate,
+  formatBusinessTimestamp,
+} from "@/lib/date-display";
 import type {
   SheetWritebackClientEffect,
   SheetWritebackClientProposal,
@@ -47,11 +52,11 @@ function schedule(charge: Record<string, unknown>): string {
   const amount = str(charge.amount, "unknown amount");
   const frequency = str(charge.frequency, "?");
   const dayDue = str(charge.dayDue, "?");
-  const start = str(charge.startDate, "unknown start");
+  const start = formatSourceCalendarDate(str(charge.startDate), "unknown start");
   const end =
     charge.endDate === null || charge.endDate === undefined
       ? "no end date"
-      : str(charge.endDate);
+      : formatSourceCalendarDate(str(charge.endDate));
   return `${amount} every ${frequency} month(s) on day ${dayDue}, ${start} to ${end}`;
 }
 
@@ -84,7 +89,7 @@ export function rentvinePreviewFacts(
 ): SourceUpdatePreviewFacts {
   const { proposal } = context;
   const lease = leaseLine(context.identity, proposal.lease_id);
-  const source = `RentVine, account ${proposal.account}, read ${proposal.source_read_at}`;
+  const source = `RentVine, account ${proposal.account}, read ${formatBusinessTimestamp(proposal.source_read_at)}`;
   if (effect.kind === "renewal_dates_update") {
     const before = (effect.effect.before ?? {}) as Record<string, string | null>;
     const after = (effect.effect.after ?? {}) as Record<
@@ -96,11 +101,11 @@ export function rentvinePreviewFacts(
       fallback: Record<string, string | null>,
     ) => {
       const parts = [
-        `ends ${(state.endDate === undefined ? fallback.endDate : state.endDate) ?? "open-ended"}`,
+        `ends ${formatCalendarDate(state.endDate === undefined ? fallback.endDate : state.endDate, "open-ended")}`,
       ];
       if ("increaseEligibilityDate" in after)
         parts.push(
-          `increase eligibility ${(state.increaseEligibilityDate === undefined ? fallback.increaseEligibilityDate : state.increaseEligibilityDate) ?? "none"}`,
+          `increase eligibility ${formatCalendarDate(state.increaseEligibilityDate === undefined ? fallback.increaseEligibilityDate : state.increaseEligibilityDate, "none")}`,
         );
       return parts.join(", ");
     };
@@ -111,7 +116,7 @@ export function rentvinePreviewFacts(
       current: describe(before, before),
       proposed: describe(after, before),
       timing: "Lease end date",
-      consequence: `Lease start date stays ${before.startDate ?? "as read"}; no other lease field changes.`,
+      consequence: `Lease start date stays ${formatCalendarDate(before.startDate, "as read")}; no other lease field changes.`,
     };
   }
   const intent = proposal.business_intent;
@@ -119,7 +124,7 @@ export function rentvinePreviewFacts(
     const before = (effect.effect.before ?? {}) as Record<string, unknown>;
     const changes = (effect.effect.changes ?? {}) as Record<string, unknown>;
     const after = { ...before, ...changes };
-    const start = str(after.startDate, "its start date");
+    const start = formatSourceCalendarDate(str(after.startDate), "its start date");
     return {
       lease,
       source,
@@ -133,7 +138,7 @@ export function rentvinePreviewFacts(
       proposed: schedule(after),
       timing:
         "endDate" in changes
-          ? `Billing ends ${changes.endDate === null ? "never" : str(changes.endDate)}`
+          ? `Billing ends ${formatSourceCalendarDate(changes.endDate === null ? null : str(changes.endDate), "never")}`
           : `Billing from ${start}`,
       consequence:
         intent === "current_base"
@@ -155,10 +160,10 @@ export function rentvinePreviewFacts(
     ),
     current: "No charge yet",
     proposed: schedule(create),
-    timing: `Billing from ${str(create.startDate, "its start date")}`,
+    timing: `Billing from ${formatSourceCalendarDate(str(create.startDate), "its start date")}`,
     consequence:
       intent === "future_rent"
-        ? `Adds one new recurring charge starting ${str(create.startDate, "on its start date")}; today's billing and the Sheet current rent are unchanged until then.`
+        ? `Adds one new recurring charge starting ${formatSourceCalendarDate(str(create.startDate), "on its start date")}; today's billing and the Sheet current rent are unchanged until then.`
         : "Adds one new recurring charge; no existing charge changes.",
   };
 }
@@ -186,7 +191,7 @@ export function sheetPreviewFacts(
   if (effect.kind === "row_append") {
     return {
       lease,
-      source: `Operating renewal Sheet, tab ${proposal.tab_title}, read ${proposal.source_read_at}`,
+      source: `Operating renewal Sheet, tab ${proposal.tab_title}, read ${formatBusinessTimestamp(proposal.source_read_at)}`,
       target: `New row for ${str(effect.effect.tenantName)}`,
       current: "No row for this lease",
       proposed:
@@ -198,7 +203,7 @@ export function sheetPreviewFacts(
   const rowNumber = str(effect.effect.rowNumber);
   return {
     lease,
-    source: `Operating renewal Sheet, tab ${proposal.tab_title}, row ${rowNumber}, read ${proposal.source_read_at}`,
+    source: `Operating renewal Sheet, tab ${proposal.tab_title}, row ${rowNumber}, read ${formatBusinessTimestamp(proposal.source_read_at)}`,
     target: sheetFieldLabel(str(effect.effect.field)),
     current: str(effect.effect.expectedValue) || "(blank)",
     proposed: str(effect.effect.afterValue),

@@ -9,6 +9,18 @@ import {
 } from "../../scripts/release-watcher.mjs";
 import { recordBrowserEnrollment } from "../../scripts/auth/browser-enrollment.mjs";
 import { parseReleaseArgs } from "../../scripts/release-candidate.mjs";
+import {
+  prepareReleasePermit,
+  admitReleasePermit,
+  writeReleasePermit,
+  assertReleaseCheckpoint,
+} from "../../scripts/release-control.mjs";
+import { recoveryFixture } from "../helpers/release-recovery-fixture.mjs";
+import { executeSafeRecovery } from "../../scripts/release-recovery.mjs";
+import {
+  buildCandidateAssuranceReceipt,
+  writeReceipt,
+} from "../../scripts/production-assurance-receipts.mjs";
 
 const service = "pmi-kc-app";
 const sha = "a".repeat(40);
@@ -25,6 +37,8 @@ function harness({
   reportOverride = {},
   authExitCode = 0,
   createCloudClient,
+  candidateAssured = false,
+  assertLock,
   // S128 (F08): the captured predecessor's operating-Sheet write flag as read back from its revision.
   // Default "false" so existing rollback tests take the ordinary traffic-shift path unchanged.
   predecessorWritebackFlag = "false",
@@ -38,7 +52,28 @@ function harness({
   );
   const checkpointPath = join(root, "checkpoint.json");
   let serving = initialTraffic ?? revision;
+  const recovery = recoveryFixture(root, { prepared: true, serving });
+  if (redeployedWritebackFlag !== "false")
+    recovery.state.revisions.get(recovery.target).containers[0].env.push({
+      name: "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED",
+      value: redeployedWritebackFlag,
+    });
+  const prepared = prepareReleasePermit(sha, Date.now(), recovery.input.runId);
+  writeReleasePermit(
+    admitReleasePermit(prepared, {
+      verdict: "go",
+      headSha: sha,
+      watcherTargetSha: sha,
+      batchSize: 13,
+      runId: prepared.runId,
+      checkedAt: prepared.preparedAt,
+      checks: [{ state: "ready" }],
+    }),
+    root,
+  );
   const cp = {
+    runId: prepared.runId,
+    recoveryBaseline: recovery.reference,
     sha,
     revision,
     predecessor,
@@ -49,6 +84,28 @@ function harness({
     tag: "cand-isolated",
     suffix: "candidate-isolated",
   };
+  if (candidateAssured)
+    writeReceipt(
+      join(root, `candidate-${revision}.json`),
+      buildCandidateAssuranceReceipt({
+        browserPolicy: "owner-admin-2026-09-10",
+        project: "pmi-kc-kb-prod",
+        region: "us-central1",
+        service,
+        candidateOrigin: "https://cand-isolated---pmi-kc-app-isolated.a.run.app",
+        canonicalOrigin: recovery.receipt.originalBaseline.canonicalOrigin,
+        expectedCommit: sha,
+        expectedRevision: revision,
+        expectedConfigurationFingerprint: cp.fingerprint,
+        predecessorRevision: predecessor,
+        predecessorBaseline: recovery.receipt.originalBaseline,
+        recoveryBaseline: recovery.reference,
+        adminVerdict: "passed",
+        editorVerdict: "not_run",
+        reconciliationState: "matched",
+        monitoringState: "ready",
+      }),
+    );
   let redeployedRevision = `${service}-rollback-redeploy`;
   const runCommand = vi.fn(async (bin, args) => {
     if (bin === "gcloud" && args.includes("describe") && args.includes("services"))
@@ -91,6 +148,31 @@ function harness({
       return { status: rollbackReplyLost ? 1 : 0, stdout: "" };
     }
     if (args.some((arg) => arg.endsWith("observe-production-release.ts"))) {
+      if (args.includes("--execute-safe-recovery")) {
+        if (rollbackReplyLost && !recovery.state.patches.length)
+          recovery.state.fail = "after";
+        else recovery.state.fail = null;
+        try {
+          await executeSafeRecovery(recovery.reference, {
+            client: recovery.client,
+            stateRoot: root,
+            candidateRevision: revision,
+            verifyRecovered: recovery.verifyRecovered,
+            assertLock: () =>
+              assertReleaseCheckpoint({
+                sha,
+                runId: prepared.runId,
+                revision,
+                phases: ["promote", "observe"],
+                stateRoot: root,
+              }),
+            wait: async () => {},
+          });
+          return { status: 0, stdout: "safe_recovery_verified" };
+        } catch {
+          return { status: 1, stdout: "" };
+        }
+      }
       if (args.includes("--verify-rollback-recovery"))
         return { status: 0, stdout: "predecessor_recovery_verified" };
       const reportPath = args.find((arg) => arg.startsWith("--report="))?.slice(9);
@@ -130,11 +212,43 @@ function harness({
       json: async () => ({ commit: sha, revision: serving, service }),
     }),
     ...(createCloudClient ? { createCloudClient } : {}),
+    assertLock: assertLock ?? (() => {}),
   });
-  return { root, cp, driver, runCommand, checkpointPath, ensureAuth };
+  return { root, cp, driver, runCommand, checkpointPath, ensureAuth, recovery };
 }
 
 describe("release watcher command-path recovery", () => {
+  it("the real driver factory refuses direct calls without a kernel lock before client or auth creation", async () => {
+    const h = harness();
+    const createCloudClient = vi.fn();
+    const ensureAuth = vi.fn();
+    const driver = createDriver({
+      source: h.root,
+      stateRoot: h.root,
+      checkpointPath: h.checkpointPath,
+      operatorEmail: "alerts@pmikcmetro.com",
+      createCloudClient,
+      ensureAuth,
+    });
+    expect(await driver.authorize(h.cp)).toBe(false);
+    await expect(driver.domains(h.cp)).rejects.toThrow("release_kernel_lock_required");
+    await expect(driver.authenticate()).rejects.toThrow("release_kernel_lock_required");
+    expect(createCloudClient).not.toHaveBeenCalled();
+    expect(ensureAuth).not.toHaveBeenCalled();
+  });
+  it("refuses an admitted mutation and checkpoint write after losing kernel lock ownership", async () => {
+    let held = true;
+    const h = harness({
+      assertLock: () => {
+        if (!held) throw new Error("release_lock_lost");
+      },
+    });
+    held = false;
+    expect(await h.driver.authorize(h.cp)).toBe(false);
+    await expect(h.driver.deploy(h.cp)).rejects.toThrow("release_lock_lost");
+    await expect(h.driver.save(h.cp)).rejects.toThrow("release_lock_lost");
+    expect(h.runCommand).not.toHaveBeenCalled();
+  });
   it("passes only reviewed RentVine source settings into isolated assurance and refuses conflicts", async () => {
     const h = harness();
     const supplied = {
@@ -298,7 +412,7 @@ describe("release watcher command-path recovery", () => {
     ).toHaveLength(1);
   });
   it("dispatches promotion arguments accepted by the receipt-aware release entry point", async () => {
-    const h = harness();
+    const h = harness({ candidateAssured: true });
     h.runCommand.mockImplementation(async (bin, args) => {
       if (bin === "gcloud" && args.includes("services"))
         return {
@@ -318,127 +432,82 @@ describe("release watcher command-path recovery", () => {
         ...h.cp,
         baselineTraffic: [{ revision: predecessor, percent: 100 }],
       }),
-    ).toMatchObject({ verified: false, reason: "promotion_outcome_unresolved" });
+    ).toMatchObject({ verified: false, reason: "promotion_preflight_failed" });
   });
   it("requires the observation report to identify the exact promoted commit", async () => {
     const h = harness({ reportOverride: { expectedCommit: "c".repeat(40) } });
     expect((await h.driver.observe(h.cp)).verified).toBe(false);
   });
-  it("records rollback intent before dispatching traffic and retains recovery state", async () => {
+  it("records rollback intent before the shared receipt-bound recovery executor runs", async () => {
     const h = harness({ rollback: true });
-    let persisted;
-    // Observe the durable checkpoint at the exact traffic dispatch boundary.
-    h.runCommand.mockReset();
-    h.runCommand.mockImplementation(async (bin, args) => {
-      if (bin === "gcloud" && args.includes("update-traffic")) {
-        persisted = JSON.parse(readFileSync(h.checkpointPath, "utf8"));
-        return { status: 1, stdout: "" };
-      }
-      if (bin === "gcloud")
-        return {
-          status: 0,
-          stdout: JSON.stringify({
-            status: {
-              traffic: [
-                { revisionName: persisted ? predecessor : revision, percent: 100 },
-              ],
-            },
-          }),
-        };
-      if (args.includes("--verify-rollback-recovery"))
-        return { status: 0, stdout: "predecessor_recovery_verified" };
-      const path = args.find((x) => x.startsWith("--report=")).slice(9);
-      writeFileSync(
-        path,
-        JSON.stringify({
-          phase: "post_promotion",
-          expectedCommit: sha,
-          expectedRevision: revision,
-          verdict: "failed",
-          observation: { decision: "rollback_required", rollbackRevision: predecessor },
-        }),
-      );
-      return { status: 1, stdout: "" };
-    });
     const result = await h.driver.observe(h.cp);
-    expect(persisted).toMatchObject({
+    expect(JSON.parse(readFileSync(h.checkpointPath, "utf8"))).toMatchObject({
       sha,
       revision,
+      phase: "observe",
+      inFlight: "observe",
       rollback: { revision: predecessor },
     });
-    expect(result.patch.terminalFailure).toBe(true);
-  });
-  it("reconciles a lost rollback response by reading traffic before running recovery", async () => {
-    const h = harness({ rollback: true, rollbackReplyLost: true });
-    expect(await h.driver.observe(h.cp)).toMatchObject({
+    expect(result).toMatchObject({
       reason: "rolled_back_verified",
       patch: { terminalFailure: true },
     });
+    expect(h.recovery.state.patches).toHaveLength(1);
+    expect(
+      h.runCommand.mock.calls.some(
+        ([, args]) => args.includes("update-traffic") || args.includes("deploy"),
+      ),
+    ).toBe(false);
   });
-  it("resumes rollback recovery after reboot without another observation or traffic mutation", async () => {
-    const h = harness({ initialTraffic: predecessor });
-    const cp = { ...h.cp, rollback: { revision: predecessor } };
-    expect(await h.driver.observe(cp)).toMatchObject({ reason: "rolled_back_verified" });
+  it("holds a lost rollback reply then verifies its same target without redispatch", async () => {
+    const h = harness({ rollback: true, rollbackReplyLost: true });
+    expect(await h.driver.observe(h.cp)).toMatchObject({
+      reason: "rollback_recovery_unverified",
+    });
+    const checkpoint = JSON.parse(readFileSync(h.checkpointPath, "utf8"));
+    expect(await h.driver.observe(checkpoint)).toMatchObject({
+      reason: "rolled_back_verified",
+      patch: { terminalFailure: true },
+    });
+    expect(h.recovery.state.patches).toHaveLength(1);
+  });
+  it("resumes terminal readback without a second observation, target or traffic mutation", async () => {
+    const h = harness({ rollback: true });
+    await h.driver.observe(h.cp);
+    h.runCommand.mockClear();
+    const checkpoint = { ...h.cp, rollback: { revision: predecessor } };
+    expect(await h.driver.observe(checkpoint)).toMatchObject({
+      reason: "rolled_back_verified",
+    });
     expect(
       h.runCommand.mock.calls.some(([, args]) =>
         args.some((x) => x.startsWith("--report=")),
       ),
     ).toBe(false);
-    expect(
-      h.runCommand.mock.calls.some(([, args]) => args.includes("update-traffic")),
-    ).toBe(false);
+    expect(h.recovery.state.patches).toHaveLength(1);
   });
-  it("refuses to overwrite an unrelated serving revision during rollback", async () => {
-    const h = harness({ rollback: true, initialTraffic: `${service}-another-release` });
-    expect(await h.driver.observe(h.cp)).toMatchObject({
-      verified: false,
-      reason: "rollback_traffic_changed",
-    });
-    expect(
-      h.runCommand.mock.calls.some(([, args]) => args.includes("update-traffic")),
-    ).toBe(false);
-  });
-
-  // S128 (F08): a rollback must never shift traffic onto a writeback-enabled revision. When the
-  // captured predecessor still has the flag true, redeploy its image with the flag pinned false and
-  // serve that instead of the write-enabled revision.
-  it("redeploys the predecessor flag-false instead of restoring a writeback-enabled revision", async () => {
-    const h = harness({ rollback: true, predecessorWritebackFlag: "true" });
-    expect(await h.driver.observe(h.cp)).toMatchObject({
-      reason: "rolled_back_verified",
-    });
-    const deploy = h.runCommand.mock.calls.find(
-      ([bin, args]) => bin === "gcloud" && args.includes("deploy"),
-    );
-    expect(deploy).toBeDefined();
-    expect(deploy[1]).toContain(
-      "--update-env-vars=LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=false",
-    );
-    // The write-enabled predecessor is never restored by a bare traffic shift.
-    expect(
-      h.runCommand.mock.calls.some(
-        ([, args]) =>
-          args.includes("update-traffic") &&
-          args.some((x) => x === `--to-revisions=${predecessor}=100`),
-      ),
-    ).toBe(false);
-  });
-
-  it("fails closed when a paused rollback target cannot be established (never re-enables writes)", async () => {
-    const h = harness({
+  it("refuses unrelated traffic, a changed pause and an unbound recovery receipt", async () => {
+    const unrelated = harness({
       rollback: true,
-      predecessorWritebackFlag: "true",
-      redeployedWritebackFlag: "true",
+      initialTraffic: `${service}-another-release`,
     });
-    const result = await h.driver.observe(h.cp);
-    expect(result).toMatchObject({
-      verified: false,
-      reason: "rollback_writeback_pause_unverified",
+    expect(await unrelated.driver.observe(unrelated.cp)).toMatchObject({
+      reason: "rollback_recovery_unverified",
     });
-    expect(result.patch?.terminalFailure).not.toBe(true);
-    expect(
-      h.runCommand.mock.calls.some(([, args]) => args.includes("update-traffic")),
-    ).toBe(false);
+    expect(unrelated.recovery.state.patches).toHaveLength(0);
+    const unsafe = harness({ rollback: true, redeployedWritebackFlag: "true" });
+    expect(await unsafe.driver.observe(unsafe.cp)).toMatchObject({
+      reason: "rollback_recovery_unverified",
+    });
+    expect(unsafe.recovery.state.patches).toHaveLength(0);
+    const missing = harness();
+    await expect(
+      missing.driver.recoverRollback({
+        ...missing.cp,
+        recoveryBaseline: undefined,
+        rollback: { revision: predecessor },
+      }),
+    ).rejects.toThrow("recovery_receipt_invalid");
   });
 });
 

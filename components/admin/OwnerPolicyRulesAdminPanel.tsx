@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Button, Field } from "@/components/ui";
 import type { OwnerPolicyRule } from "@/lib/firestore/owner-policy-rules";
+import { formatCalendarDate } from "@/lib/date-display";
 
 // S62: Admin management for owner-policy pricing rules (mirrors NoticeRulesAdminPanel). A rule
 // SUGGESTS a renewal number through the same Admin approval that governs comp-derived numbers; it
@@ -78,7 +79,7 @@ export function OwnerPolicyRulesAdminPanel({
               <li className="ui-spread" key={rule.portfolioId}>
                 <span>
                   Portfolio {rule.portfolioId}: +{rule.percent}% each renewal, effective{" "}
-                  {rule.effectiveFrom}
+                  {formatCalendarDate(rule.effectiveFrom)}
                 </span>
                 <span className="muted">{rule.note}</span>
               </li>
@@ -102,12 +103,16 @@ export function OwnerPolicyRulesAdminPanel({
           value={percent}
         />
       </Field>
-      <Field htmlFor="opr-effective" label="Effective from (YYYY-MM-DD)">
+      <Field htmlFor="opr-effective" label="Effective from">
         <input
           id="opr-effective"
+          type="date"
           onChange={(event) => setEffectiveFrom(event.target.value)}
           value={effectiveFrom}
         />
+        <span className="muted">
+          {effectiveFrom ? formatCalendarDate(effectiveFrom) : "MM/DD/YYYY"}
+        </span>
       </Field>
       <Field htmlFor="opr-note" label="Rule note (shown beside the suggested number)">
         <input

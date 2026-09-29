@@ -52,10 +52,7 @@ export function AdminActivityLogPanel({
   );
 }
 
-// Deterministic, locale-independent "YYYY-MM-DD HH:MM" from an ISO instant (server-rendered, so it must
-// not depend on the viewer's locale). Non-ISO values pass through unchanged.
+// Shared business-time rendering; raw audit records remain unchanged.
 function formatChangedAt(createdAt: string): string {
-  return /^\d{4}-\d{2}-\d{2}T/.test(createdAt) && Number.isFinite(Date.parse(createdAt))
-    ? formatBusinessTimestamp(createdAt)
-    : createdAt;
+  return formatBusinessTimestamp(createdAt);
 }

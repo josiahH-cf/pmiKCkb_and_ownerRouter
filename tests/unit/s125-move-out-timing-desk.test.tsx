@@ -311,8 +311,8 @@ describe("S125 workspace timing panel (AC-S125-1, AC-S125-3, AC-S125-5)", () => 
     const panel = screen.getByRole("region", { name: "Notice timing" });
     expect(panel).toHaveAttribute("data-renewal-move-out-timing", "below");
     expect(panel).toHaveTextContent("Below configured 30-day timing: staff review");
-    expect(panel).toHaveTextContent("2026-08-15");
-    expect(panel).toHaveTextContent("2026-09-10");
+    expect(panel).toHaveTextContent("08/15/2026");
+    expect(panel).toHaveTextContent("09/10/2026");
     expect(panel).toHaveTextContent("Scheduled move-out date");
     expect(panel).toHaveTextContent("26");
     expect(panel).toHaveTextContent("30 calendar days, version 3");

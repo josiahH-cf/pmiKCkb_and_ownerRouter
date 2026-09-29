@@ -1,6 +1,7 @@
 import type { RawLease, RentVineLeaseStatus } from "@/lib/integrations/rentvine/client";
 import { leaseDetailOf, leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
 import type { LeaseDataAgeState } from "@/lib/lease-renewal/live-lease-cache";
+import { formatCalendarDate, parseCalendarDate } from "@/lib/date-display";
 
 /**
  * S124 (F03): one typed, source-attributed move-out disposition over the documented RentVine read
@@ -30,6 +31,9 @@ export type MoveOutDispositionReason =
   | "notice_status"
   | "active_without_notice"
   | "withdrawn_after_prior_notice"
+  | "withdrawal_review_required"
+  | "notice_date_invalid"
+  | "approval_safety_unavailable"
   | "status_table_unavailable"
   | "lease_status_missing"
   | "status_unresolved"
@@ -64,13 +68,20 @@ export interface MoveOutDisposition {
 }
 
 export type LeaseStatusTableRead =
-  | { readonly status: "available"; readonly statuses: readonly RentVineLeaseStatus[] }
+  | {
+      readonly status: "available";
+      readonly statuses: readonly RentVineLeaseStatus[];
+      readonly readAtMs?: number;
+      readonly noticeAdmitted?: boolean;
+      readonly admittedLeaseKeys?: readonly string[];
+    }
   | { readonly status: "unavailable" };
 
 /** An earlier app-owned observation of an initiated notice for the same lease identity. */
 export interface PriorMoveOutEvidence {
   readonly state: "initiated";
   readonly observedAtIso: string;
+  readonly withdrawalReviewed?: boolean;
 }
 
 export interface MoveOutDispositionInput {
@@ -91,7 +102,8 @@ function isoDate(value: unknown): string | null {
   const text = cleanText(value);
   if (!text) return null;
   const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return match ? `${match[1]}-${match[2]}-${match[3]}` : null;
+  const iso = match ? `${match[1]}-${match[2]}-${match[3]}` : null;
+  return iso && parseCalendarDate(iso) ? iso : null;
 }
 
 export function findLeaseStatus(
@@ -105,8 +117,8 @@ export function findLeaseStatus(
 
 function withNotice(dateIso: string | null, expectedIso: string | null): string {
   const parts: string[] = [];
-  if (dateIso) parts.push(`notice ${dateIso}`);
-  if (expectedIso) parts.push(`expected move-out ${expectedIso}`);
+  if (dateIso) parts.push(`notice ${formatCalendarDate(dateIso)}`);
+  if (expectedIso) parts.push(`expected move-out ${formatCalendarDate(expectedIso)}`);
   return parts.length ? ` (${parts.join(", ")})` : "";
 }
 
@@ -126,6 +138,11 @@ export function projectMoveOutDisposition(
     isoDate(lease.expectedMoveOutDate);
   const moveOutIso =
     (detailAvailable ? isoDate(detail.moveOutDate) : null) ?? isoDate(lease.moveOutDate);
+  const invalidDate = [
+    detailAvailable ? detail.noticeDate : null,
+    detailAvailable ? detail.expectedMoveOutDate : lease.expectedMoveOutDate,
+    detailAvailable ? detail.moveOutDate : lease.moveOutDate,
+  ].some((value) => cleanText(value) !== null && isoDate(value) === null);
   const status =
     statusTable.status === "available"
       ? findLeaseStatus(statusTable.statuses, statusId)
@@ -177,7 +194,7 @@ export function projectMoveOutDisposition(
     return {
       state: "initiated",
       reason: "notice_status",
-      label: `Move-out initiated in RentVine: ${status.name}${withNotice(noticeDateIso, expectedMoveOutIso)}.${stale ? " This RentVine read is expired; refresh before relying on it." : ""} Ordinary renewal outreach is unavailable; use the non-renewal handoff.`,
+      label: `Move-out initiated in RentVine: ${status.name}${withNotice(noticeDateIso, expectedMoveOutIso)}.${invalidDate ? " Invalid date in the move-out evidence; check the source." : ""}${stale ? " This RentVine read is expired; refresh before relying on it." : ""} Ordinary renewal outreach is unavailable; use the non-renewal handoff.`,
       ...base,
     };
   }
@@ -191,6 +208,11 @@ export function projectMoveOutDisposition(
       "detail_unavailable",
       `Move-out evidence unknown: RentVine shows ${status.name}, but the lease detail could not be read, so the absence of a notice is unverified. Review before outreach.`,
     );
+  if (invalidDate)
+    return unknown(
+      "notice_date_invalid",
+      "Move-out evidence unknown: Invalid date in the RentVine notice or move-out evidence. Check the source before outreach.",
+    );
   if (noticeDateIso || expectedMoveOutIso)
     return unknown(
       "notice_evidence_without_status",
@@ -203,9 +225,11 @@ export function projectMoveOutDisposition(
     );
   if (input.prior?.state === "initiated")
     return {
-      state: "withdrawn",
-      reason: "withdrawn_after_prior_notice",
-      label: `RentVine no longer shows a move-out notice (${status.name}); a notice was observed ${input.prior.observedAtIso.slice(0, 10)}. Review the lease and any manual non-renewal decision before resuming outreach.`,
+      state: input.prior.withdrawalReviewed ? "withdrawn" : "unknown",
+      reason: input.prior.withdrawalReviewed
+        ? "withdrawn_after_prior_notice"
+        : "withdrawal_review_required",
+      label: `RentVine no longer shows a move-out notice (${status.name}); staff recorded earlier notice evidence on ${formatCalendarDate(input.prior.observedAtIso.slice(0, 10))}. ${input.prior.withdrawalReviewed ? "Staff reviewed the withdrawal for this tenancy and cycle; this does not prove provider cancellation. Review a fresh message before outreach." : "Withdrawal review is required before outreach; no provider cancellation is asserted."}`,
       ...base,
     };
   return {

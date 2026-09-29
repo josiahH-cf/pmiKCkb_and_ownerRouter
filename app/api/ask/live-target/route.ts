@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import {
   MAINTENANCE_OWNER_DRAFT_ACTION_KEY,
   RENEWAL_DRAFT_ACTION_KEY,
@@ -38,7 +39,7 @@ function leaseIdOf(view: RawLease): string | undefined {
 // Ask never invents a lease; a live action surfaces only on an unambiguous single match.
 export async function POST(request: Request) {
   try {
-    await requireCapabilityInSpace("edit", "renewals");
+    const actor = await requireCapabilityInSpace("edit", "renewals");
     const { question, processId } = await parseJsonBody(request, BodySchema);
 
     const config = buildLiveRentVineConfig();
@@ -46,7 +47,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: "not_configured", reason: config.reason });
     }
 
-    const views = await getLiveLeaseViews(config.rentvineClient, Date.now());
+    const views = await getLiveLeaseViews(
+      withRenewalNoticeAdmission(actor, config.rentvineClient),
+      Date.now(),
+    );
     const candidates = views
       .map((view) => ({
         leaseId: leaseIdOf(view),

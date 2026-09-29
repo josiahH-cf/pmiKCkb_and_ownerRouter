@@ -1,4 +1,5 @@
 "use client";
+import { useRenewalSaveFocus } from "./RenewalSaveFocus";
 
 import { useState } from "react";
 
@@ -17,6 +18,7 @@ export function DiscrepancyDispositionPanel({
   initialDispositions: RenewalDiscrepancyDisposition[];
 }>) {
   const [dispositions, setDispositions] = useState(initialDispositions);
+  const focusAfterSave = useRenewalSaveFocus();
   const [sheetRowNumber, setSheetRowNumber] = useState("");
   const [field, setField] = useState("current_rent");
   const [category, setCategory] = useState("conflict");
@@ -70,6 +72,7 @@ export function DiscrepancyDispositionPanel({
       setReason("");
       setProposedCorrection("");
       setEvidenceRefs("");
+      focusAfterSave?.();
     } catch (saveError) {
       setError(
         saveError instanceof Error

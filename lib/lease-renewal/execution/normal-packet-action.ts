@@ -28,6 +28,7 @@ import { getDotloopRenewalSettings } from "@/lib/firestore/dotloop-renewal-setti
 import { resolveLivePacketInput } from "@/lib/lease-documents/live-input";
 import { evaluateRenewalPacket } from "@/lib/lease-documents/evaluate-packet";
 import { bindCurrentPacketForDotloop } from "@/lib/lease-documents/dotloop-packet-binding";
+import { bindApprovedDerivedPacket } from "@/lib/lease-documents/derived-packet-binding";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { externalActionContextHash } from "@/lib/external-execution/identity";
 import {
@@ -176,7 +177,11 @@ async function assemble(
     confirmedPayloadHash: snapshot.payloadHash,
     operation,
   };
-  const binding = bindCurrentPacketForDotloop(packet);
+  const binding = await bindApprovedDerivedPacket(
+    actor,
+    bindCurrentPacketForDotloop(packet),
+    packet,
+  );
   if (binding.templateRef !== settings.templateId)
     throw new EditableLayerError(
       "The approved form catalog and selected Dotloop template differ.",
@@ -205,7 +210,7 @@ async function assemble(
     workflowId: `renewal-packet:${snapshot.snapshotId}`,
     contractRef: "documented:dotloop-public-api-v2:s34",
     connectionRef: `dotloop:profile:${settings.profileId}`,
-    mappingRef: `s66:${binding.catalogVersion}:${snapshot.payloadHash}`,
+    mappingRef: `s66:${binding.catalogVersion}:${snapshot.payloadHash}${binding.documents.some((item) => item.derivedArtifactId) ? `:filled:${hashExecutionPreview({ documents: binding.documents.map((item) => ({ artifactId: item.artifactId, derivedId: item.derivedArtifactId ?? null, provenance: item.derivedProvenanceHash ?? null })) })}` : ""}`,
     sourceRefs: [
       `rentvine:lease:${leaseId}`,
       `s66:packet:${snapshot.snapshotId}`,
@@ -265,6 +270,9 @@ async function assemble(
   };
   return {
     packet,
+    ...(binding.documents.some((item) => item.derivedArtifactId)
+      ? { derivedDocuments: binding.documents.filter((item) => item.derivedArtifactId) }
+      : {}),
     participants,
     action,
     trustedContext,
@@ -369,10 +377,18 @@ export async function prepareNormalPacketAction(
       email: p.email,
       role: p.role,
     })),
-    artifacts: value.packet.snapshot.manifest!.includedArtifacts.map((artifact) => ({
-      ...artifact,
-      downloadUrl: `/api/lease-renewal/document-artifact?leaseId=${encodeURIComponent(leaseId)}&documentRef=${encodeURIComponent(value.packet.catalog.artifacts.find((a) => a.artifactId === artifact.artifactId)!.providerBindings!.dotloopDocumentRef)}`,
-    })),
+    artifacts: value.packet.snapshot.manifest!.includedArtifacts.map((artifact) => {
+      const derived = value.derivedDocuments?.find(
+        (item) => item.artifactId === artifact.artifactId,
+      );
+      return {
+        ...artifact,
+        ...(derived ? { contentHash: derived.contentHash } : {}),
+        downloadUrl: derived
+          ? `/api/lease-renewal/filled-artifact?${new URLSearchParams({ leaseId, snapshotId: value.packet.snapshot.snapshotId, artifactId: derived.artifactId, derivedId: derived.derivedArtifactId! })}`
+          : `/api/lease-renewal/document-artifact?leaseId=${encodeURIComponent(leaseId)}&documentRef=${encodeURIComponent(value.packet.catalog.artifacts.find((a) => a.artifactId === artifact.artifactId)!.providerBindings!.dotloopDocumentRef)}`,
+      };
+    }),
     fields: value.packet.snapshot.manifest!.fields.map((field) => ({
       label: field.factKey,
       value: field.displayValue,
@@ -446,6 +462,9 @@ export async function finishNormalPacketAction(
     packet: value.packet,
     participants: value.participants,
     reconcile: recover,
+    ...(recover && value.derivedDocuments
+      ? { retainedDerivedDocuments: value.derivedDocuments }
+      : {}),
     receiptStore: {
       read: async () => {
         const value = (await storedDoc.ref.get()).get("effectReceipt");

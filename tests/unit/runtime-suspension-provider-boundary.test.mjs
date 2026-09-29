@@ -141,6 +141,7 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   "lib/lease-renewal/workspace-cycle-context.ts:resolveRenewalCycleBasis:buildLiveRentVineConfig",
   "app/api/ask/live-target/route.ts:POST:buildLiveRentVineConfig",
   // S58: the demand-driven refresh route (read-only; forces/revalidates the shared lease read).
+  "app/api/lease-renewal/notice-review/route.ts:source:buildLiveRentVineConfig",
   "app/api/lease-renewal/refresh/route.ts:POST:buildLiveRentVineConfig",
   "app/api/lease-renewal/renewal-notice-draft/route.ts:POST:buildLiveRentVineConfig",
   // S73: owner draft verification performs the canonical RentVine-versus-Sheet read.

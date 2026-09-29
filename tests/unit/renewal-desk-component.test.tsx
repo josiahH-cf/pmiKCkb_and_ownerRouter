@@ -302,7 +302,13 @@ describe("RenewalWorkspace (S113 dashboard with S82 evidence)", () => {
         },
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Create Gmail draft" })).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "Create Gmail draft" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Prepare tenant message" })).toHaveAttribute(
+      "href",
+      `/lease-renewal/live/desk/lease/${workspace.summary.id}#renewal-section-tenant`,
+    );
   });
 
   it("keeps the data check with source-tagged candidates on the verify phase", () => {

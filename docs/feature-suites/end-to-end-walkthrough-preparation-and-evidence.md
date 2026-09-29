@@ -4,9 +4,9 @@
 # S132 — End-to-end walkthrough preparation and meeting evidence
 
 > **Approval reference:** F12 (original feature #12).
-> **Status:** IMPLEMENTED and CI-GREEN at `f74468a1` (2026-09-20) as a technical rehearsal and documentation scaffold; release deferred by the billing incident; no deployment, provider activation, meeting, recording or meeting validation has occurred. Serving evidence: `docs/facts.md` F-S132.
+> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `f74468a1` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
-> **Registration:** S132 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F12 when renumbering.
+> **Registration:** Registered as S132 in `docs/feature-suites/README.md`; the original F12 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** Technical rehearsal and documentation scaffold; human validation later.
 
 **Goal.**
@@ -19,7 +19,7 @@ C05 — A prepared, observable end-to-end renewal walkthrough. See suite outcome
 
 **Current state / intended end state.**
 
-**Current evidence:** The repository already has an operator guide, guide-to-control checks, backend journey tests, and a local Live-read-only rehearsal contract. The transcript proposes a recorded 90-minute session and one or two real cases, including a policy-related case. No meeting has been run or verified in this task; the user expressly defers validation to future meetings.
+**Current evidence:** The local technical rehearsal contract provides the readiness matrix, named evidence ledger, branch/refusal coverage, resumable observations and draft-for-validation walkthrough material, reusing the operator guide and actual backend journeys. Current compiled local checks remain engineering evidence. No real team-selected case, meeting, consented recording or human verdict is established; those inputs remain separately owned and never inherit a synthetic/local pass. Current verification and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** Engineering checks and meeting materials can be completed beforehand without synthetic production activity. At the meeting, staff record actual observations, optional explicitly authorized real effects, deviations, and decisions; only then are human validation results and process documentation updated.
 
@@ -141,7 +141,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** The facilitator starts the meeting knowing which inputs are ready, follows real controls alongside the team’s manual process, handles missing materials without improvising fake outcomes, and records exactly what staff validated.
 
-- Model/engineering verdict: PASS in local engineering tests on `f74468a1` (2026-09-20): AC-S132-1 through AC-S132-8 covered by the preflight, matrix, script, branch, ledger, import and technical-ledger cases named in F-S132 on synthetic fixtures; the technical result ledger cites existing journey tests as preservation evidence; compiled browser checks NOT RUN while rehearsal auth is blocked; no deployed readback; no meeting run.
+- Model/engineering verdict: Historical baseline PASS in local engineering tests on `f74468a1` (2026-09-20): AC-S132-1 through AC-S132-8 covered by the preflight, matrix, script, branch, ledger, import and technical-ledger cases named in F-S132 on synthetic fixtures; the technical result ledger cites existing journey tests as preservation evidence; compiled browser checks NOT RUN while rehearsal auth is blocked; no deployed readback; no meeting run. Current repair-batch results and remaining gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); the historical result does not verify the current batch or deployment.
 - Human verdict: NOT RUN — no human observer.
 - Human/customer-specific validation is explicitly deferred to the next meetings or material-receipt review. Technical readiness may pass earlier without changing this verdict.
 

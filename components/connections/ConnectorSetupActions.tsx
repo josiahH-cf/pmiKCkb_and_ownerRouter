@@ -1,4 +1,5 @@
 "use client";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -166,7 +167,11 @@ function ConnectorDisconnectControl({
     return (
       <div className="ui-stack-tight" data-connector-revocation-receipt>
         <p role="status">
-          Disconnected{disconnect.completed_at ? ` at ${disconnect.completed_at}` : ""}.
+          Disconnected
+          {disconnect.completed_at
+            ? ` at ${formatBusinessTimestamp(disconnect.completed_at)}`
+            : ""}
+          .
         </p>
         {disconnect.operation_id ? (
           <p className="muted">Receipt: {disconnect.operation_id}</p>

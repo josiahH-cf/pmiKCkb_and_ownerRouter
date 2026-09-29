@@ -6,14 +6,15 @@
 //
 // It runs no cloud command, changes no state, and never prints a secret value: it reads local git,
 // the two ignored env files (two flag values only), the watcher checkpoint, the WSL enrollment
-// marker and the Awaiting release queue in docs/loop-state.md. Billing is the owner's readback and
-// is always reported as an owner step, never inferred.
+// marker, exact-run permit, fresh sanitized prerequisite receipt and Awaiting release queue in
+// docs/loop-state.md. The separate collector verifies approved auth, Admin browser readiness,
+// billing and unchanged cost controls; missing, stale or mismatched readbacks hold this preflight.
 //
 // The decisive check is `watcher_target`: the watcher deploys the SHA its checkpoint names while
 // that checkpoint is unfinished, so a stale checkpoint silently ships one old queue item instead of
 // the whole batch. This reuses the watcher's own `evaluateRelease`, so the two cannot drift.
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -21,6 +22,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseEnv } from "node:util";
 
 import { evaluateRelease } from "./release-watcher-plan.mjs";
+import { assertReleaseAdmission, readReleasePermit } from "./release-control.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const SHEET_WRITEBACK_FLAG = "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED";
@@ -34,6 +36,21 @@ const DEMO_FLAG = "ASK_DEMO_MODE";
 export const ENROLLMENT_BUDGET_HOURS = 7;
 
 export const PREFLIGHT_STATES = ["ready", "owner_action", "blocked", "unknown"];
+export const EXPECTED_BATCH = [
+  "S128:F08",
+  "S123:F02",
+  "S124:F03",
+  "S134:F14",
+  "S122:F01",
+  "S125:F04",
+  "S126:F06",
+  "S127:F07",
+  "S131:F11",
+  "S129:F09",
+  "S130:F10",
+  "S132:F12",
+  "S133:F13",
+];
 
 /**
  * The watcher takes `checkpoint.sha` while that checkpoint is neither complete nor terminal. This
@@ -54,7 +71,14 @@ export function parseAwaitingReleaseQueue(loopState) {
     if (line.startsWith("## ")) break;
     const match = /^(\d+)\.\s+(S\d+)\s+\((F\d+)\)/.exec(line);
     if (match)
-      rows.push({ position: Number(match[1]), suite: match[2], approval: match[3] });
+      rows.push({
+        position: Number(match[1]),
+        suite: match[2],
+        approval: match[3],
+        commits: [...line.matchAll(/`([a-f0-9]{7,40})`/g)].map((item) => item[1]),
+      });
+    else if (/^\d+\./.test(line))
+      rows.push({ position: -1, suite: "unknown", approval: "unknown", commits: [] });
   }
   return rows;
 }
@@ -64,8 +88,8 @@ function check(id, state, summary, detail, ownerAction = null) {
 }
 
 /**
- * Pure verdict over gathered inputs. `billingReEnabled` is the owner's own readback: undefined means
- * unknown, which keeps the verdict at owner_action rather than guessing that production can deploy.
+ * Pure verdict over gathered inputs. `billingReEnabled` may come from the fresh collector receipt;
+ * undefined stays unknown. Exact-run fresh prerequisites remain mandatory regardless of this input.
  */
 export function evaluateBatchPreflight(input) {
   const {
@@ -82,6 +106,74 @@ export function evaluateBatchPreflight(input) {
     billingReEnabled,
   } = input;
   const checks = [];
+  let permitReady = false;
+  try {
+    assertReleaseAdmission({
+      sha: headSha,
+      permit: input.permit,
+      prepared: true,
+      nowMs: Date.parse(nowIso),
+    });
+    permitReady = true;
+  } catch {
+    /* missing is held */
+  }
+  checks.push(
+    check(
+      "run_permit",
+      permitReady ? "ready" : "blocked",
+      permitReady
+        ? "Exact run is prepared or admitted"
+        : "Release held: exact prepared run permit required",
+      "Admission is issued only from fresh GO while holding release.lock.",
+    ),
+  );
+  const aligned =
+    input.remoteHeadSha === headSha &&
+    input.nativeHeadSha === headSha &&
+    input.sourceHeadSha === headSha;
+  checks.push(
+    check(
+      "checkout_alignment",
+      aligned ? "ready" : "blocked",
+      aligned
+        ? "Native, launcher and remote main agree"
+        : "Checkout or remote main differs",
+      "Every checkout and the watcher remote target must name the exact reviewed head.",
+    ),
+  );
+  checks.push(
+    check(
+      "native_runner",
+      input.nativeTools === true &&
+        input.noWatcher === true &&
+        input.lockAvailable === true
+        ? "ready"
+        : "blocked",
+      "One native runner on the release lock",
+      "Native Node 22 and snap gcloud, zero other watchers, and owned/free lock are required.",
+    ),
+  );
+  const prerequisite = input.prerequisite;
+  const prerequisiteKeys = ["auth_cli_adc", "admin_browser", "billing", "cost_controls"];
+  const fresh =
+    prerequisite?.schemaVersion === "pmi-kc-release-prerequisites.v1" &&
+    prerequisite.runId === input.permit?.runId &&
+    prerequisite.sha === headSha &&
+    Number.isFinite(Date.parse(prerequisite.checkedAt)) &&
+    Date.parse(nowIso) >= Date.parse(prerequisite.checkedAt) &&
+    Date.parse(nowIso) - Date.parse(prerequisite.checkedAt) <= 5 * 60_000 &&
+    prerequisiteKeys.every((key) => prerequisite.checks?.[key] === "ready");
+  checks.push(
+    check(
+      "fresh_prerequisites",
+      fresh ? "ready" : "blocked",
+      fresh
+        ? "Fresh authentication, browser and cost readbacks passed"
+        : "Fresh prerequisite readbacks are incomplete",
+      "Run the read-only release prerequisite collector for this prepared run; historical success never admits a release.",
+    ),
+  );
 
   checks.push(
     /^[0-9a-f]{40}$/.test(headSha ?? "")
@@ -135,6 +227,21 @@ export function evaluateBatchPreflight(input) {
     foundationPresent,
   });
   const targetsHead = target === headSha;
+  const resumable =
+    !checkpoint ||
+    checkpoint.phase === "complete" ||
+    checkpoint.terminalFailure ||
+    checkpoint.runId === input.permit?.runId;
+  checks.push(
+    check(
+      "release_foundation",
+      foundationPresent && resumable && ["release", "resume"].includes(decision.state)
+        ? "ready"
+        : "blocked",
+      "Reviewed runner and exact checkpoint are required",
+      "An unfinished checkpoint must belong to this admitted run; all interlock and recovery modules must exist in the target commit.",
+    ),
+  );
   checks.push(
     check(
       "watcher_target",
@@ -154,7 +261,16 @@ export function evaluateBatchPreflight(input) {
   checks.push(
     check(
       "batch_scope",
-      queue.length > 0 ? "ready" : "unknown",
+      queue.length === EXPECTED_BATCH.length &&
+        queue.every(
+          (row, index) =>
+            row.position === index + 1 &&
+            `${row.suite}:${row.approval}` === EXPECTED_BATCH[index] &&
+            row.commits?.length > 0,
+        ) &&
+        input.queueAncestry === true
+        ? "ready"
+        : "blocked",
       `${queue.length} queued feature${queue.length === 1 ? "" : "s"} ride this one candidate`,
       queue.length
         ? `${queue.map((row) => row.suite).join(", ")}. One Cloud Build and one candidate replace ${queue.length} separate release cycles.`
@@ -165,7 +281,12 @@ export function evaluateBatchPreflight(input) {
   const paused = Object.entries(envFlags)
     .filter(([name]) => name.endsWith(SHEET_WRITEBACK_FLAG))
     .map(([name, value]) => [name, String(value).trim() !== "true"]);
-  const allPaused = paused.length > 0 && paused.every(([, safe]) => safe);
+  const requiredFlagKeys = [".env.local", ".env.production.local"].map(
+    (file) => `${file}:${SHEET_WRITEBACK_FLAG}`,
+  );
+  const allPaused = requiredFlagKeys.every(
+    (key) => envFlags[key] === "false" && input.mirroredEnvFlags?.[key] === "false",
+  );
   checks.push(
     check(
       "sheet_pause",
@@ -183,8 +304,11 @@ export function evaluateBatchPreflight(input) {
   );
 
   const demo = Object.entries(envFlags).filter(([name]) => name.endsWith(DEMO_FLAG));
-  const demoOff =
-    demo.length > 0 && demo.every(([, value]) => String(value).trim() !== "true");
+  const demoOff = [".env.local", ".env.production.local"].every(
+    (file) =>
+      envFlags[`${file}:${DEMO_FLAG}`] === "false" &&
+      input.mirroredEnvFlags?.[`${file}:${DEMO_FLAG}`] === "false",
+  );
   checks.push(
     check(
       "demo_mode",
@@ -232,7 +356,9 @@ export function evaluateBatchPreflight(input) {
     ),
   );
 
-  const blocked = checks.filter((row) => row.state === "blocked");
+  const blocked = checks.filter(
+    (row) => row.state === "blocked" || row.state === "unknown",
+  );
   const ownerActions = checks.filter((row) => row.state === "owner_action");
   const verdict = blocked.length
     ? "not_ready"
@@ -244,6 +370,8 @@ export function evaluateBatchPreflight(input) {
     headSha,
     watcherTargetSha: target,
     batchSize: queue.length,
+    runId: input.permit?.runId ?? null,
+    checkedAt: nowIso,
     checks,
     ownerActions: [...blocked, ...ownerActions]
       .map((row) => row.ownerAction)
@@ -335,6 +463,9 @@ export function gatherBatchPreflight({
   nowIso = new Date().toISOString(),
   ci,
   billingReEnabled,
+  permit,
+  lockOwned = false,
+  prerequisite: suppliedPrerequisite,
 } = {}) {
   const headSha = git(["rev-parse", "HEAD"], root);
   const exactCi = ci === undefined ? readExactShaCi(headSha, { cwd: root }) : ci;
@@ -345,19 +476,83 @@ export function gatherBatchPreflight({
   const loopState = existsSync(join(root, "docs", "loop-state.md"))
     ? readFileSync(join(root, "docs", "loop-state.md"), "utf8")
     : "";
+  const queue = parseAwaitingReleaseQueue(loopState);
+  const nativeRoot = join(homedir(), "pmi-kc-work", "main");
+  const sourceRoot =
+    "/mnt/c/Users/josia/Documents/github-windows/pmiKCkb_and_ownerRouter";
+  const prerequisite =
+    suppliedPrerequisite ?? readJson(join(stateRoot, "prerequisites.json"));
+  const safeExec = (bin, args) => {
+    try {
+      return execFileSync(bin, args, {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        timeout: 30_000,
+      }).trim();
+    } catch {
+      return null;
+    }
+  };
+  const watcherProbe = spawnSync(
+    "pgrep",
+    ["-f", "^([^ ]*/)?node .*scripts/release-watcher\\.mjs"],
+    { stdio: "ignore", timeout: 30_000 },
+  );
+  const noWatcher = watcherProbe.status === 1 && !watcherProbe.error;
+  const nativeGcloud = safeExec("which", ["gcloud"]);
+  const lockAvailable =
+    lockOwned ||
+    safeExec("flock", ["--nonblock", join(stateRoot, "release.lock"), "true"]) !== null;
   return {
     headSha,
-    treeClean:
-      (git(["status", "--porcelain", "--untracked-files=no"], root) ?? "x") === "",
+    treeClean: [root, nativeRoot, sourceRoot].every(
+      (checkout) =>
+        (git(["status", "--porcelain", "--untracked-files=no"], checkout) ?? "x") === "",
+    ),
     ci: exactCi,
     checkpoint,
     changedPaths: diff ? diff.split(/\r?\n/).filter(Boolean) : ["lib/unknown"],
-    foundationPresent: true,
-    queue: parseAwaitingReleaseQueue(loopState),
+    foundationPresent: [
+      "lib/auth/canary-policy.ts",
+      "scripts/release-control.mjs",
+      "scripts/release-recovery.mjs",
+      "scripts/release-prerequisites.mjs",
+    ].every((path) => git(["cat-file", "-e", `${headSha}:${path}`], root) !== null),
+    queue,
+    queueAncestry:
+      queue.length === 13 &&
+      queue.every(
+        (row) =>
+          row.commits.length > 0 &&
+          row.commits.every(
+            (commit) =>
+              git(["merge-base", "--is-ancestor", commit, headSha], root) !== null,
+          ),
+      ),
     envFlags: readEnvFlags(root),
+    mirroredEnvFlags: readEnvFlags(root === nativeRoot ? sourceRoot : nativeRoot),
+    remoteHeadSha: git(["ls-remote", "origin", "refs/heads/main"], root)?.split(/\s/)[0],
+    nativeHeadSha: git(["rev-parse", "HEAD"], nativeRoot),
+    sourceHeadSha: git(["rev-parse", "HEAD"], sourceRoot),
+    nativeTools:
+      process.platform === "linux" &&
+      process.versions.node.startsWith("22.") &&
+      nativeGcloud === "/snap/google-cloud-cli/current/bin/gcloud",
+    noWatcher,
+    lockAvailable,
+    permit:
+      permit ??
+      (() => {
+        try {
+          return readReleasePermit(stateRoot);
+        } catch {
+          return null;
+        }
+      })(),
+    prerequisite,
     enrolledAtIso: readJson(enrollmentPath)?.enrolledAt ?? null,
     nowIso,
-    billingReEnabled,
+    billingReEnabled: prerequisite?.checks?.billing === "ready" ? true : billingReEnabled,
   };
 }
 

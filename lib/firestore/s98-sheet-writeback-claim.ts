@@ -4,6 +4,8 @@ import {
 } from "@/lib/firestore/renewal-workspace";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { sheetWritebackExecutionId } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
+import { SHEET_WRITEBACK_PROPOSAL_VERSION } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
+import { sheetRuntimeBindingMatches } from "@/lib/lease-renewal/sheet-writeback/runtime-binding";
 // Lease-scoped active proposal and one-attempt claims. App target serialization does not
 // isolate direct Sheet collaborators; the execution service revalidates exact source state.
 
@@ -73,6 +75,11 @@ export async function claimLeaseScopedS113FieldUpdate(
     ]);
     if (!executionSnapshot.exists || !proposalSnapshot.exists) return "blocked";
     const proposal = proposalSnapshot.data() as SheetWritebackProposal;
+    if (
+      proposal.version !== SHEET_WRITEBACK_PROPOSAL_VERSION ||
+      !sheetRuntimeBindingMatches(proposal.runtimeBinding)
+    )
+      return "blocked";
     const effect = proposal.effects?.find(
       (entry) => entry.effectHash === input.effectHash,
     );
@@ -187,6 +194,7 @@ export async function claimLeaseScopedS113FieldUpdate(
       if (!previous.exists || !["succeeded", "failed"].includes(previous.get("state")))
         return "blocked";
     }
+    if (!sheetRuntimeBindingMatches(proposal.runtimeBinding)) return "blocked";
     const now = new Date().toISOString();
     transaction.set(executionRef, {
       ...execution,
@@ -250,6 +258,11 @@ export async function claimLeaseScopedS98Append(
     if (!executionSnapshot.exists || !proposalSnapshot.exists) return "blocked";
 
     const proposal = proposalSnapshot.data() ?? {};
+    if (
+      proposal.version !== SHEET_WRITEBACK_PROPOSAL_VERSION ||
+      !sheetRuntimeBindingMatches(proposal.runtimeBinding)
+    )
+      return "blocked";
     const scope = proposal.scope as Record<string, unknown> | undefined;
     const effects = Array.isArray(proposal.effects) ? proposal.effects : [];
     const exactEffect = effects.find(
@@ -286,6 +299,7 @@ export async function claimLeaseScopedS98Append(
       return "blocked";
     }
     if (lifecycleSnapshot.exists) return "blocked";
+    if (!sheetRuntimeBindingMatches(proposal.runtimeBinding)) return "blocked";
 
     const now = new Date().toISOString();
     const next: ExternalExecutionRecord = {

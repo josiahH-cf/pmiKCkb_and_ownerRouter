@@ -996,10 +996,7 @@ function humanizeState(value: string) {
 }
 
 function formatDate(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "at an unavailable time"
-    : formatBusinessTimestamp(date);
+  return formatBusinessTimestamp(value, "at an unavailable time");
 }
 
 function readError(body: unknown, fallback: string) {

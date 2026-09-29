@@ -116,6 +116,16 @@ describe("S113 supplied message content", () => {
     };
     let message = composeRenewalMessage(input);
     expect(message.missing).toEqual([]);
+    expect(message.plainText).toContain("10/31/2026");
+    expect(message.plainText).toContain("11/01/2026");
+    expect(message.plainText).toContain("10/31/2027");
+    expect(message.htmlBody).toContain("11/01/2026");
+    expect(message.plainText).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+    expect(input.leaseEndDate).toBe("2026-10-31");
+    expect(input.ownerTerms?.effectiveDate).toBe("2026-11-01");
+    expect(input.charges.find((charge) => charge.id === "insurance")?.effectiveDate).toBe(
+      "2026-11-01",
+    );
     expect(message.plainText.match(/Insurance: \$12.34/g)).toHaveLength(1);
     expect(message.plainText).toContain(
       "One-time charges\n\nRenewal processing fee: $99.00 one time",
@@ -146,7 +156,7 @@ describe("S113 supplied message content", () => {
         "charge.rbp",
       ]),
     );
-    expect(message.plainText).toContain("Your lease ends on 2026-10-31");
+    expect(message.plainText).toContain("Your lease ends on 10/31/2026");
     expect(message.plainText).not.toMatch(
       /https:|\{\{|placeholder|example-staff@|\$1,150|Resident Benefits Package:/,
     );

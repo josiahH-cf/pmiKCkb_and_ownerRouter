@@ -1,4 +1,5 @@
 import { acceptsPredecessorException } from "../lib/production-assurance/predecessor-exception.mjs";
+import { readRecoveryBaseline } from "./release-recovery.mjs";
 import {
   DUAL_ROLE_BROWSER_POLICY,
   browserVerdictsAccepted,
@@ -23,6 +24,8 @@ import { basename, dirname, isAbsolute, relative, resolve } from "node:path";
 
 export const CANDIDATE_ASSURANCE_RECEIPT_SCHEMA = "pmi-kc-candidate-assurance-receipt.v4";
 export const PROMOTION_RECEIPT_SCHEMA = "pmi-kc-promotion-receipt.v4";
+export const BATCH_CANDIDATE_RECEIPT_SCHEMA = "pmi-kc-candidate-assurance-receipt.v5";
+export const BATCH_PROMOTION_RECEIPT_SCHEMA = "pmi-kc-promotion-receipt.v5";
 export const CANDIDATE_RECEIPT_CLAIM_SCHEMA = "pmi-kc-candidate-assurance-claim.v1";
 export const CANDIDATE_RECEIPT_TTL_MS = 2 * 60 * 60 * 1000;
 
@@ -118,7 +121,10 @@ export function buildCandidateAssuranceReceipt(
   const issuedAt = new Date(nowMs).toISOString();
   return assertCandidateAssuranceReceipt(
     {
-      schemaVersion: CANDIDATE_ASSURANCE_RECEIPT_SCHEMA,
+      schemaVersion: input.recoveryBaseline
+        ? BATCH_CANDIDATE_RECEIPT_SCHEMA
+        : CANDIDATE_ASSURANCE_RECEIPT_SCHEMA,
+      ...(input.recoveryBaseline ? { recoveryBaseline: input.recoveryBaseline } : {}),
       candidateReceiptId,
       issuedAt,
       expiresAt: new Date(nowMs + CANDIDATE_RECEIPT_TTL_MS).toISOString(),
@@ -155,14 +161,19 @@ export function assertCandidateAssuranceReceipt(
   { allowExpired = false } = {},
 ) {
   assertPlainObject(value, "candidate_assurance_receipt_invalid");
-  assertExactKeys(value, CANDIDATE_KEYS, "candidate_assurance_receipt_invalid");
+  const batch = value.schemaVersion === BATCH_CANDIDATE_RECEIPT_SCHEMA;
+  assertExactKeys(
+    value,
+    batch ? [...CANDIDATE_KEYS, "recoveryBaseline"] : CANDIDATE_KEYS,
+    "candidate_assurance_receipt_invalid",
+  );
   const baseline = assertPredecessorBaseline(
     value.predecessorBaseline,
     value.service,
     "candidate_assurance_receipt_invalid",
   );
   if (
-    value.schemaVersion !== CANDIDATE_ASSURANCE_RECEIPT_SCHEMA ||
+    (!batch && value.schemaVersion !== CANDIDATE_ASSURANCE_RECEIPT_SCHEMA) ||
     !RECEIPT_ID.test(value.candidateReceiptId) ||
     !validIso(value.issuedAt) ||
     !validIso(value.expiresAt) ||
@@ -199,6 +210,7 @@ export function assertCandidateAssuranceReceipt(
     throw new Error("candidate_assurance_receipt_invalid");
   }
   assertExpected(value, expected, "candidate_assurance_receipt_mismatch");
+  if (batch) assertReceiptRecoveryBinding(value);
   return Object.freeze({ ...value, predecessorBaseline: baseline });
 }
 
@@ -213,7 +225,10 @@ export function buildPromotionReceipt(
   const checked = assertCandidateAssuranceReceipt(candidate, {}, promotionStartedAtMs);
   return assertPromotionReceipt(
     {
-      schemaVersion: PROMOTION_RECEIPT_SCHEMA,
+      schemaVersion: checked.recoveryBaseline
+        ? BATCH_PROMOTION_RECEIPT_SCHEMA
+        : PROMOTION_RECEIPT_SCHEMA,
+      ...(checked.recoveryBaseline ? { recoveryBaseline: checked.recoveryBaseline } : {}),
       candidateReceiptId: checked.candidateReceiptId,
       candidateReceiptIssuedAt: checked.issuedAt,
       promotionStartedAt: new Date(promotionStartedAtMs).toISOString(),
@@ -241,7 +256,12 @@ export function assertPromotionReceipt(
   { allowStale = false } = {},
 ) {
   assertPlainObject(value, "promotion_receipt_invalid");
-  assertExactKeys(value, PROMOTION_KEYS, "promotion_receipt_invalid");
+  const batch = value.schemaVersion === BATCH_PROMOTION_RECEIPT_SCHEMA;
+  assertExactKeys(
+    value,
+    batch ? [...PROMOTION_KEYS, "recoveryBaseline"] : PROMOTION_KEYS,
+    "promotion_receipt_invalid",
+  );
   const baseline = assertPredecessorBaseline(
     value.predecessorBaseline,
     value.service,
@@ -251,7 +271,7 @@ export function assertPromotionReceipt(
   const verifiedAtMs = Date.parse(value.promotionVerifiedAt);
   const candidateIssuedAtMs = Date.parse(value.candidateReceiptIssuedAt);
   if (
-    value.schemaVersion !== PROMOTION_RECEIPT_SCHEMA ||
+    (!batch && value.schemaVersion !== PROMOTION_RECEIPT_SCHEMA) ||
     !RECEIPT_ID.test(value.candidateReceiptId) ||
     !Number.isFinite(startedAtMs) ||
     !Number.isFinite(verifiedAtMs) ||
@@ -279,6 +299,7 @@ export function assertPromotionReceipt(
     throw new Error("promotion_receipt_invalid");
   }
   assertExpected(value, expected, "promotion_receipt_mismatch");
+  if (batch) assertReceiptRecoveryBinding(value);
   return Object.freeze({ ...value, predecessorBaseline: baseline });
 }
 
@@ -293,15 +314,41 @@ export function readPromotionReceipt(path, expected = {}, nowMs = Date.now()) {
 /** Recovery is read-only and may be retried after authorization freshness has elapsed. */
 export function readAssuranceReceiptForRecovery(path, expected = {}, nowMs = Date.now()) {
   const value = readJson(path);
-  if (value?.schemaVersion === CANDIDATE_ASSURANCE_RECEIPT_SCHEMA) {
+  if (
+    [CANDIDATE_ASSURANCE_RECEIPT_SCHEMA, BATCH_CANDIDATE_RECEIPT_SCHEMA].includes(
+      value?.schemaVersion,
+    )
+  ) {
     return assertCandidateAssuranceReceipt(value, expected, nowMs, {
       allowExpired: true,
     });
   }
-  if (value?.schemaVersion === PROMOTION_RECEIPT_SCHEMA) {
+  if (
+    [PROMOTION_RECEIPT_SCHEMA, BATCH_PROMOTION_RECEIPT_SCHEMA].includes(
+      value?.schemaVersion,
+    )
+  ) {
     return assertPromotionReceipt(value, expected, nowMs, { allowStale: true });
   }
   throw new Error("recovery_receipt_invalid");
+}
+
+function assertReceiptRecoveryBinding(value) {
+  const supplemental = readRecoveryBaseline(value.recoveryBaseline, {
+    project: value.project,
+    region: value.region,
+    service: value.service,
+    sha: value.expectedCommit,
+  });
+  const original = supplemental.originalBaseline;
+  if (
+    original.expectedRevision !== value.predecessorRevision ||
+    original.expectedCommit !== value.predecessorBaseline.expectedCommit ||
+    original.expectedConfigurationFingerprint !==
+      value.predecessorBaseline.expectedConfigurationFingerprint ||
+    original.canonicalOrigin !== value.canonicalOrigin
+  )
+    throw new Error("recovery_original_binding_mismatch");
 }
 
 export function claimCandidateAssuranceReceipt(
@@ -374,6 +421,29 @@ function resolveCandidateClaimAuthorityRoot(
   } catch {
     throw new Error("candidate_claim_authority_unavailable");
   }
+}
+
+export function candidateAssuranceWasClaimed(candidate) {
+  const path = resolve(
+    homedir(),
+    ".pmi-kc",
+    "release-authority",
+    `${candidate.project}--${candidate.region}--${candidate.service}`,
+    `.pmi-kc-candidate-assurance-${candidate.candidateReceiptId}.claim`,
+  );
+  if (!existsSync(path)) return false;
+  const claim = readJson(path);
+  assertCandidateClaim(claim);
+  for (const key of [
+    "candidateReceiptId",
+    "project",
+    "region",
+    "service",
+    "expectedCommit",
+    "expectedRevision",
+  ])
+    if (claim[key] !== candidate[key]) throw new Error("candidate_claim_mismatch");
+  return true;
 }
 
 export function writeReceipt(path, receipt) {
@@ -485,6 +555,10 @@ function readJson(path) {
     }
     throw new Error("receipt_read_failed");
   }
+}
+
+export function assertRecordedPredecessorBaseline(value, service) {
+  return assertPredecessorBaseline(value, service, "recovery_original_baseline_invalid");
 }
 
 function assertPredecessorBaseline(value, service, code) {

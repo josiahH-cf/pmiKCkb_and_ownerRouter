@@ -20,6 +20,15 @@ import {
 } from "@/lib/integrations/dotloop/renewal-provider";
 import { bindCurrentPacketForDotloop } from "@/lib/lease-documents/dotloop-packet-binding";
 import { resolveApprovedDotloopArtifact } from "@/lib/lease-documents/approved-artifact-content";
+import {
+  bindApprovedDerivedPacket,
+  bindRetainedDerivedPacket,
+} from "@/lib/lease-documents/derived-packet-binding";
+import {
+  readDerivedArtifactContent,
+  readHistoricalDerivedArtifactContent,
+} from "@/lib/firestore/lease-derived-artifacts";
+import type { DotloopPacketBinding } from "@/lib/lease-documents/dotloop-packet-binding";
 import { DotloopRenewalExecutor } from "@/lib/lease-renewal/execution/providers";
 import { assertProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 
@@ -34,6 +43,8 @@ export async function executeDotloopPacketWithS20(
     })[];
     artifactContent?: LiveDotloopProviderDeps["artifactContent"];
     reconcile?: boolean;
+    /** Server-loaded immutable S34 preparation only; consumed for read-only own-receipt recovery. */
+    retainedDerivedDocuments?: DotloopPacketBinding["documents"];
     receiptStore?: {
       read: () => Promise<ExternalActionReceipt | null>;
       save: (receipt: ExternalActionReceipt) => Promise<void>;
@@ -46,10 +57,18 @@ export async function executeDotloopPacketWithS20(
     throw new EditableLayerError("Unsupported packet action.", 400);
   // The two exact keys remain closed. Refuse before constructing credentials or provider clients.
   await assertProductionRuntimeActionExecutable(key);
-  const binding = bindCurrentPacketForDotloop({
+  const originalBinding = bindCurrentPacketForDotloop({
     ...input.packet,
     operation: key === "dotloop.document.upload" ? "document_upload" : "loop_create",
   });
+  const binding = input.reconcile
+    ? await bindRetainedDerivedPacket(
+        actor,
+        originalBinding,
+        input.packet,
+        input.retainedDerivedDocuments,
+      )
+    : await bindApprovedDerivedPacket(actor, originalBinding, input.packet);
   const settings = await getDotloopRenewalSettings(actor);
   const readiness = await readDotloopRuntimeReadiness();
   if (
@@ -110,6 +129,18 @@ export async function executeDotloopPacketWithS20(
           "This document is outside the confirmed packet.",
           409,
         );
+      if (document.derivedArtifactId) {
+        const read = input.reconcile
+          ? readHistoricalDerivedArtifactContent
+          : readDerivedArtifactContent;
+        return read(actor, {
+          leaseId: input.packet.snapshot.leaseId,
+          snapshotId: binding.packetSnapshotId,
+          artifactId: document.artifactId,
+          derivedId: document.derivedArtifactId,
+          requireApproval: true,
+        });
+      }
       return resolveApprovedDotloopArtifact(actor, {
         catalog: input.packet.catalog,
         documentRef,

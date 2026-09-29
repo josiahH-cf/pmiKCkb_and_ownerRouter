@@ -4,12 +4,14 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
+import { useRenewalSaveFocus } from "@/components/lease-renewal/RenewalSaveFocus";
 
 export function RenewalFollowUpAttentionControl({
   canEdit,
   projection,
 }: Readonly<{ canEdit: boolean; projection: RenewalFollowUpProjection }>) {
   const router = useRouter();
+  const focusAfterSave = useRenewalSaveFocus();
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState("");
@@ -51,7 +53,7 @@ export function RenewalFollowUpAttentionControl({
           ? "This exact due item is dismissed with audit evidence."
           : "This exact due item is reopened with audit evidence.",
       );
-      router.refresh();
+      if (!focusAfterSave?.()) router.refresh();
     } catch (error) {
       setStatus(
         error instanceof Error

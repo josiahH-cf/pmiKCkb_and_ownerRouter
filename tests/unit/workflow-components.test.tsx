@@ -107,6 +107,8 @@ describe("workflow components", () => {
     );
 
     expect(screen.getByText("Not pinned (draft)")).toBeInTheDocument();
+    expect(screen.getByText("07/01/2026")).toBeInTheDocument();
+    expect(screen.getByText(/06\/05\/2026, 7:00 PM CDT/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /execute/i })).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Notes"), "All workflow steps passed.");
@@ -161,6 +163,7 @@ describe("workflow components", () => {
     );
 
     expect(screen.getByText("Recent runs")).toBeInTheDocument();
+    expect(screen.getByText(/Due 07\/01\/2026/)).toBeInTheDocument();
     expect(
       screen
         .getAllByRole("link", { name: "Lease Renewal Test Process" })

@@ -316,7 +316,18 @@ describe("AskForm (action console)", () => {
     expect(
       await screen.findByRole("heading", { name: "Start the renewal on the live desk" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Renewal-notice draft")).toBeInTheDocument();
+    expect(screen.getByText("Reviewed renewal messages")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Prepare owner message" })).toHaveAttribute(
+      "href",
+      "/lease-renewal/live/desk/lease/42#renewal-section-owner",
+    );
+    expect(screen.getByRole("link", { name: "Prepare tenant message" })).toHaveAttribute(
+      "href",
+      "/lease-renewal/live/desk/lease/42#renewal-section-tenant",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Create Gmail draft" }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Open the full lease workspace" }),
     ).toHaveAttribute("href", "/lease-renewal/live/desk/lease/42");

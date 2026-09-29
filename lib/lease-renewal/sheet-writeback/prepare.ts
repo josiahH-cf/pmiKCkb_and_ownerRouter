@@ -1,4 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { EditableLayerError } from "@/lib/firestore/errors";
+import { isOperatingSheetWritebackPaused } from "@/lib/lease-renewal/sheet-writeback-policy";
+import { readSheetWritebackRuntimeBinding } from "./runtime-binding";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { SheetFieldIntent } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import { hashSheetHeader } from "@/lib/lease-renewal/sheet-writeback/execution-service";
@@ -30,6 +33,17 @@ export async function assembleSheetProposal(
   evidenceRef?: string,
   audience?: "owner" | "tenant",
 ): Promise<SheetWritebackProposal> {
+  if (isOperatingSheetWritebackPaused())
+    throw new EditableLayerError(
+      "Saved in app; Sheet updates paused. No proposal was created.",
+      409,
+    );
+  const runtimeBinding = readSheetWritebackRuntimeBinding();
+  if (!runtimeBinding)
+    throw new EditableLayerError(
+      "The Sheet update requires a verified runtime revision. Review and prepare it again after release.",
+      409,
+    );
   const context = await resolveFreshOperatingSheetLeaseContext(
     leaseId,
     undefined,
@@ -58,6 +72,7 @@ export async function assembleSheetProposal(
   ];
 
   return buildSheetWritebackProposal({
+    runtimeBinding,
     generationId: `proposal-${randomUUID()}`,
     spreadsheetId,
     tabTitle: OPERATING_SHEET_TAB,

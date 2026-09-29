@@ -349,29 +349,63 @@ export function RenewalDashboardNavigation({
 }
 
 /** Focus the unresolved control, opening enclosing disclosures without recording any progress. */
-export function focusRenewalDashboardControl(id: string) {
-  if (!id.startsWith("renewal-")) return;
+export function focusRenewalDashboardControl(
+  id: string,
+  {
+    allowButtons = true,
+    focusContainer = false,
+  }: { allowButtons?: boolean; focusContainer?: boolean } = {},
+) {
+  if (!id.startsWith("renewal-")) return false;
   const root = document.getElementById(id);
-  if (!root) return;
-  const candidates = root.querySelectorAll<HTMLElement>(
-    "[data-renewal-next-control], [aria-invalid='true'], input, select, textarea, button:not(.info-tip-trigger), summary, a[href]",
+  if (
+    !root ||
+    root.matches(":disabled, [aria-disabled='true']") ||
+    root.closest("[hidden], [aria-hidden='true']")
+  )
+    return false;
+  const candidates = [
+    ...root.querySelectorAll<HTMLElement>(
+      "[data-renewal-next-control], [aria-invalid='true'], input, select, textarea, button:not(.info-tip-trigger), summary, a[href]",
+    ),
+  ].filter(
+    (element) =>
+      !element.matches(
+        ":disabled, [aria-disabled='true'], [hidden], input[type='hidden']",
+      ) &&
+      !element.closest("[hidden], [aria-hidden='true']") &&
+      (allowButtons ||
+        !element.matches("button, input[type='submit'], input[type='button']")),
   );
-  const target =
-    [...candidates].find(
-      (element) =>
-        element.hasAttribute("data-renewal-next-control") &&
-        !element.matches(":disabled"),
-    ) ??
-    [...candidates].find(
-      (element) =>
-        !element.matches(":disabled") && element.getAttribute("aria-disabled") !== "true",
-    ) ??
-    root;
+  const target = focusContainer
+    ? root
+    : (candidates.find(
+        (element) =>
+          element.hasAttribute("data-renewal-next-control") &&
+          !element.matches(":disabled"),
+      ) ??
+      (!allowButtons
+        ? candidates.find((element) => element.matches("input, select, textarea"))
+        : undefined) ??
+      candidates.find(
+        (element) =>
+          !element.matches(":disabled") &&
+          element.getAttribute("aria-disabled") !== "true",
+      ) ??
+      root);
+  if (
+    !allowButtons &&
+    target.matches("button, input[type='submit'], input[type='button']")
+  )
+    return false;
   let ancestor: HTMLElement | null = target;
   while (ancestor) {
     if (ancestor instanceof HTMLDetailsElement) ancestor.open = true;
     ancestor = ancestor.parentElement;
   }
+  if (!target.matches("input, select, textarea, button, summary, a[href], [tabindex]"))
+    target.tabIndex = -1;
   target.focus({ preventScroll: true });
   target.scrollIntoView?.({ block: "start" });
+  return document.activeElement === target;
 }

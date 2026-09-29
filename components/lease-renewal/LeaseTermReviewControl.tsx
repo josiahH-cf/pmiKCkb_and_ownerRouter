@@ -1,4 +1,5 @@
 "use client";
+import { useRenewalSaveFocus } from "./RenewalSaveFocus";
 
 import { Field } from "@/components/ui";
 import { useRouter } from "next/navigation";
@@ -27,6 +28,7 @@ export function LeaseTermReviewControl({
   recordedTerm: RecordableLeaseTerm | null;
 }>) {
   const router = useRouter();
+  const focusAfterSave = useRenewalSaveFocus();
   const [selected, setSelected] = useState<RecordableLeaseTerm>(
     term.term === "month_to_month" ? "month_to_month" : "fixed_term",
   );
@@ -71,7 +73,7 @@ export function LeaseTermReviewControl({
       setStatus(
         `Recorded: this lease is ${LEASE_TERM_LABELS[selected].toLowerCase()}, with audit evidence.`,
       );
-      router.refresh();
+      if (!focusAfterSave?.()) router.refresh();
     } catch (error) {
       setStatus(
         error instanceof Error

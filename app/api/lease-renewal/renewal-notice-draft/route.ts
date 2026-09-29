@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import { requireEnvironmentDescriptor } from "@/lib/environment/descriptor";
 import { createDescriptorBoundGmailRuntimeClient } from "@/lib/gmail-hub/dependencies";
@@ -10,11 +11,7 @@ import {
   leaseCurrentRent,
   leasePortfolioId,
 } from "@/lib/integrations/rentvine/lease-mapper";
-import {
-  getRenewalProgress,
-  recordTenantOfferDraft,
-} from "@/lib/firestore/lease-renewal-progress";
-import { ownerOutcomeBlocksDownstream } from "@/lib/lease-renewal/renewal-progress";
+import { recordTenantOfferDraft } from "@/lib/firestore/lease-renewal-progress";
 import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
 import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import {
@@ -38,7 +35,6 @@ import { loadLiveOwnerCurrentRentDecision } from "@/lib/lease-renewal/live-desk"
 import {
   ActionNotExecutableError,
   ActionRuntimeSuspendedError,
-  assertProductionRuntimeActionExecutable,
 } from "@/lib/operations/runtime-suspension-gate";
 
 function leaseIdOf(view: RawLease): string | undefined {
@@ -52,9 +48,8 @@ function leaseIdOf(view: RawLease): string | undefined {
 }
 
 /**
- * Preview, exactly confirm, or read-only reconcile a real UNSENT renewal-notice Gmail draft for one
- * LIVE lease. The recipient + facts come from the authoritative live RentVine read; the offer is the
- * operator's input. Draft-only — the service re-asserts the production gate and never sends.
+ * Recover an already-attempted legacy draft from its original inputs. New creation must use the
+ * current workspace's reviewed message and durable notice generation. Recovery never claims anew.
  */
 export async function POST(request: Request) {
   try {
@@ -63,10 +58,16 @@ export async function POST(request: Request) {
       "renewals",
     );
     const body = await parseJsonBody(request, RenewalNoticeDraftRequestSchema);
-    if (!body.reconcile) {
-      await assertProductionRuntimeActionExecutable(RENEWAL_NOTICE_DRAFT_ACTION_KEY);
-    }
-
+    if (!body.reconcile)
+      return NextResponse.json(
+        {
+          error:
+            "Open the lease workspace and review the current owner or tenant message before creating a new draft.",
+          error_type: "current_message_review_required",
+          href: `/lease-renewal/live/desk/lease/${body.leaseId}#renewal-section-${body.offer.channel}`,
+        },
+        { status: 409 },
+      );
     const config = buildLiveRentVineConfig();
     if (!config.ok) {
       return NextResponse.json(
@@ -80,23 +81,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const rentvineClient = config.rentvineClient;
+    const rentvineClient = withRenewalNoticeAdmission(user, config.rentvineClient);
     const nowMs = Date.now();
     const channel = body.offer.channel;
-    // S105: the tenant offer is built on the owner's approved terms. While the recorded owner
-    // response is a revision request, a decline, or still unanswered, the draft is refused here,
-    // before any Gmail client is constructed.
-    if (channel === "tenant") {
-      const downstreamBlock = ownerOutcomeBlocksDownstream(
-        await getRenewalProgress(user, body.leaseId),
-      );
-      if (downstreamBlock) {
-        return NextResponse.json(
-          { error: downstreamBlock, error_type: "owner_outcome_blocks_downstream" },
-          { status: 409 },
-        );
-      }
-    }
+    // Creation was refused above. A later owner decision cannot prevent receipt-bound lookup of
+    // this actor's already-attempted draft; the recovery service cannot claim or dispatch anew.
     let compScreenshotRuntime: ReturnType<typeof buildLiveCompScreenshotRuntime> | null =
       null;
     const getCompScreenshotRuntime = () =>
@@ -161,6 +150,7 @@ export async function POST(request: Request) {
             resolutions = [];
           }
           const result = await loadLiveOwnerCurrentRentDecision(
+            user,
             leaseId,
             new Date(nowMs).toISOString(),
             renewalConfig,

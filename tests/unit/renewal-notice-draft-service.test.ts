@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
+// Isolated historical transport contract: preserve its exact copy, recipient, one-attempt and
+// receipt-recovery assertions. Production admission is covered without this seam by the current
+// message backend journeys, notice-safety final-claim tests and legacy route refusal tests.
+vi.mock("@/lib/firestore/renewal-message-claim", () => ({
+  assertCurrentRenewalMessageClaim: vi.fn(async () => undefined),
+}));
+
 vi.mock("@/lib/firestore/runtime-action-suspensions", () => ({
   readRuntimeActionSuspension: vi.fn(async () => ({ status: "clear" })),
 }));

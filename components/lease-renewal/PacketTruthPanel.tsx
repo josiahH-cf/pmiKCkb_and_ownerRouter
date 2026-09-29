@@ -1,6 +1,8 @@
 "use client";
 
 import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSectionHeading";
+import { FilledArtifactPanel } from "@/components/lease-renewal/FilledArtifactPanel";
+import { FilledArtifactHistory } from "@/components/lease-renewal/FilledArtifactHistory";
 import { useEffect, useRef, useState } from "react";
 
 import { REQUIRED_LEASE_ARTIFACTS } from "@/lib/lease-documents/artifact-catalog";
@@ -165,6 +167,7 @@ export function PacketTruthPanel({
           ))}
         </ul>
       </div>
+      <FilledArtifactHistory key={leaseId} leaseId={leaseId} />
     </section>
   );
 }
@@ -211,6 +214,16 @@ function PacketSnapshotDetails({
                   <li key={artifact.artifactId}>
                     {artifact.label} · version {artifact.version} · {artifact.audience}
                     <span className="muted">: {artifact.reason}</span>
+                    {snapshot.current &&
+                    artifact.artifactId &&
+                    snapshot.state === "Ready for preview" ? (
+                      <FilledArtifactPanel
+                        key={`${snapshot.snapshotId}:${artifact.artifactId}`}
+                        leaseId={snapshot.leaseId}
+                        snapshotId={snapshot.snapshotId}
+                        artifactId={artifact.artifactId}
+                      />
+                    ) : null}
                   </li>
                 ))}
               </ul>

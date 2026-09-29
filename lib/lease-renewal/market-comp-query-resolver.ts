@@ -1,4 +1,6 @@
 import { leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
+import type { AuthenticatedUser } from "@/lib/auth/session";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import {
   LEASE_EXPORT_MAX_AGE_MS,
@@ -12,6 +14,7 @@ import {
 
 /** Resolve one exact current lease server-side so a browser cannot nominate provider query facts. */
 export async function resolveCurrentMarketCompQueryBasis(
+  actor: AuthenticatedUser,
   leaseId: string,
   nowMs: number = Date.now(),
 ): Promise<MarketCompQueryBasis> {
@@ -31,7 +34,10 @@ export async function resolveCurrentMarketCompQueryBasis(
 
   let current: Awaited<ReturnType<typeof getLiveLeaseSnapshot>>;
   try {
-    current = await getLiveLeaseSnapshot(config.rentvineClient, nowMs);
+    current = await getLiveLeaseSnapshot(
+      withRenewalNoticeAdmission(actor, config.rentvineClient),
+      nowMs,
+    );
   } catch {
     throw new MarketCompQueryResolutionError(
       "rentvine_read_failed",

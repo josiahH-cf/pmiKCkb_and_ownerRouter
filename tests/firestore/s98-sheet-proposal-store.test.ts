@@ -4,7 +4,7 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
 import type { AuthenticatedUser } from "@/lib/auth/session";
@@ -32,6 +32,8 @@ let db: Firestore;
 let testEnv: RulesTestEnvironment;
 
 beforeAll(async () => {
+  vi.stubEnv("LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED", "true");
+  vi.stubEnv("K_REVISION", "pmi-kc-app-test-enabled-a");
   testEnv = await initializeTestEnvironment({
     firestore: FIRESTORE_EMULATOR_TARGET,
     projectId,
@@ -43,12 +45,18 @@ beforeAll(async () => {
 beforeEach(async () => testEnv.clearFirestore());
 
 afterAll(async () => {
+  vi.unstubAllEnvs();
   await deleteApp(app);
   await testEnv.cleanup();
 });
 
 function proposal(leaseId: string, propertyId: string, generation: string) {
   return buildSheetWritebackProposal({
+    runtimeBinding: {
+      version: "operating-sheet-runtime/v1",
+      revision: "pmi-kc-app-test-enabled-a",
+      policy: "explicit-owner-enabled/v1",
+    },
     generationId: generation,
     spreadsheetId: "sheet-live-1",
     tabTitle: "Lease Renewal",

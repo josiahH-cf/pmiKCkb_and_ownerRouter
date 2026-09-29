@@ -5,16 +5,12 @@ import { useState } from "react";
 import { UnitTypeahead } from "@/components/maintenance/UnitTypeahead";
 import { Button, ConfirmationDialog } from "@/components/ui";
 import type { UnverifiedIntakeRecord } from "@/lib/maintenance/intake-model";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 
 // Staff triage for the public tokenized intake (2d). Lists what the unauthenticated ingress captured and
 // lets an editor PROMOTE each report into a real ticket (external reporter, unit still Needs Verification)
 // or DISMISS it as junk with a reason. Read + app-plane transitions only; promotion creates a KB ticket,
 // never a system-of-record work order. A promoted/dismissed row leaves the list.
-
-function formatWhen(iso: string): string {
-  const date = new Date(iso);
-  return Number.isNaN(date.getTime()) ? iso : date.toLocaleString();
-}
 
 const INTAKE_URGENCY_LABELS = {
   emergency_fire: "Emergency: told to call 911",
@@ -132,7 +128,7 @@ export function UnverifiedIntakeReview({
               <strong>{row.summary}</strong>
             </p>
             <div className="muted">
-              {formatWhen(row.created_at)}
+              {formatBusinessTimestamp(row.created_at)}
               {row.contact ? ` · contact: ${row.contact}` : ""} · property:{" "}
               {row.property_key}
             </div>

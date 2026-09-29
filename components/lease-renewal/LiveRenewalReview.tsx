@@ -1,3 +1,4 @@
+import { formatBusinessTimestamp } from "@/lib/date-display";
 // The live renewal review — the owner-gated surface that shows the REAL reconciliation items (with
 // values) the team needs to decide, read from RentVine + the renewal sheet. Read-only: it renders the
 // items but never resolves them and never sends. Server component (no client state).
@@ -73,7 +74,7 @@ export function LiveRenewalReview({
 
       <p className="muted">
         Data status: <strong>{meta.currencyState}</strong> from a direct read at{" "}
-        <time dateTime={meta.readAtIso}>{meta.readAtIso}</time>.{" "}
+        <time dateTime={meta.readAtIso}>{formatBusinessTimestamp(meta.readAtIso)}</time>.{" "}
         <Link href="/lease-renewal/live">Refresh now</Link>
       </p>
 

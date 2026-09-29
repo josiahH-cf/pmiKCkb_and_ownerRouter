@@ -21,6 +21,7 @@ import {
 } from "@/lib/operations/runtime-suspension-gate";
 import { isSheetWritebackEnabled } from "@/lib/lease-renewal/sheet-writeback-policy";
 import type { SheetWritebackDependencies } from "@/lib/lease-renewal/sheet-writeback/execution-service";
+import { readSheetWritebackRuntimeBinding } from "./runtime-binding";
 
 /** The operating tab title (matches the live desk read path). */
 export const OPERATING_SHEET_TAB = "Lease Renewal";
@@ -63,6 +64,7 @@ export function buildLiveSheetWritebackDeps(
       run: (effect) => runProductionRuntimeGatedAction(actionKey, effect),
     }),
     writeFlagEnabled: isSheetWritebackEnabled,
+    runtimeBinding: readSheetWritebackRuntimeBinding,
     claimAuthorizedFieldUpdate: (input) => claimAuthorizedS98FieldUpdate(db, input),
     claimLeaseScopedFieldUpdate: (input) => claimLeaseScopedS113FieldUpdate(db, input),
     claimLeaseScopedAppend: (input) => claimLeaseScopedS98Append(db, input),

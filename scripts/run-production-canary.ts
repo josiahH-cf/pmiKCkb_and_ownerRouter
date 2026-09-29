@@ -440,9 +440,9 @@ export function resolveCanaryCoordinates(argv: readonly string[]): {
 export function resolveCanaryPhase(argv: readonly string[]): AssurancePhase {
   const phase = readArg(argv, "--phase") ?? "candidate";
   if (
-    !(["candidate", "post_promotion", "rollback"] as const).includes(
-      phase as AssurancePhase,
-    )
+    !(
+      ["candidate", "post_promotion", "rollback", "recovery_preparation"] as const
+    ).includes(phase as AssurancePhase)
   ) {
     throw new Error("assurance_phase_invalid");
   }
@@ -450,7 +450,7 @@ export function resolveCanaryPhase(argv: readonly string[]): AssurancePhase {
 }
 
 export function workspaceSelectorsForPhase(phase: AssurancePhase): readonly string[] {
-  return phase === "rollback"
+  return phase === "rollback" || phase === "recovery_preparation"
     ? [STRICT_WORKSPACE_SELECTOR, LEGACY_WORKSPACE_SELECTOR]
     : [STRICT_WORKSPACE_SELECTOR];
 }

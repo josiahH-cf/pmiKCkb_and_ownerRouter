@@ -1,3 +1,7 @@
+import {
+  formatCalendarDateOrTimestamp,
+  formatBusinessTimestamp,
+} from "@/lib/date-display";
 // Renewal needs-attention fold (console overhaul Slice C; refined after adversarial review). Pure,
 // deterministic projection that surfaces ONLY the actionable leases that genuinely need a human now
 // — an open source conflict, or an awaited data-check / owner decision — so the desk leads with what
@@ -87,7 +91,7 @@ function itemFor(
     return {
       leaseId: lease.id,
       addressLabel: lease.addressLabel,
-      headline: `Follow-up review due ${lease.followUp.attention.dueAtIso}; last verified contact ${lease.followUp.attention.lastContactAtIso}`,
+      headline: `Follow-up review due ${formatCalendarDateOrTimestamp(lease.followUp.attention.dueAtIso)}; last verified contact ${formatBusinessTimestamp(lease.followUp.attention.lastContactAtIso)}`,
       actionLabel: "Review follow-up",
       href,
       urgency: "high",

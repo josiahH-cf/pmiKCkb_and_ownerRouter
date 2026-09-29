@@ -1,3 +1,4 @@
+import { formatCalendarDate } from "@/lib/date-display";
 import type {
   MoveOutDisposition,
   MoveOutFreshness,
@@ -259,20 +260,20 @@ export function evaluateMoveOutTiming(input: MoveOutTimingInput): MoveOutTimingR
   if (noticeOrdinal === null || targetOrdinal === null)
     return cannot(
       "invalid_date",
-      `A source date is not a real calendar date (notice ${noticeDateIso}, ${targetLabel} ${targetDateIso}). Review the RentVine record; the value is invalid evidence, not a timing result.`,
+      `A source date is not a real calendar date (notice ${formatCalendarDate(noticeDateIso)}, ${targetLabel} ${formatCalendarDate(targetDateIso)}). Review the RentVine record; the value is invalid evidence, not a timing result.`,
       { ...basisFields, noticeDateIso, targetDateIso },
     );
   const observedOrdinal = calendarDayOrdinal(input.observedDateIso);
   if (observedOrdinal !== null && noticeOrdinal > observedOrdinal)
     return cannot(
       "notice_after_observed",
-      `The notice-given date ${noticeDateIso} is after the date of this read (${input.observedDateIso}), so it cannot be treated as notice already given. Review the RentVine record.`,
+      `The notice-given date ${formatCalendarDate(noticeDateIso)} is after the date of this read (${formatCalendarDate(input.observedDateIso)}), so it cannot be treated as notice already given. Review the RentVine record.`,
       { ...basisFields, noticeDateIso, targetDateIso },
     );
   if (targetOrdinal < noticeOrdinal)
     return cannot(
       "target_before_notice",
-      `The ${targetLabel} ${targetDateIso} is before the notice-given date ${noticeDateIso}, which contradicts the notice. Review both dates in RentVine.`,
+      `The ${targetLabel} ${formatCalendarDate(targetDateIso)} is before the notice-given date ${formatCalendarDate(noticeDateIso)}, which contradicts the notice. Review both dates in RentVine.`,
       { ...basisFields, noticeDateIso, targetDateIso },
     );
 
@@ -283,7 +284,7 @@ export function evaluateMoveOutTiming(input: MoveOutTimingInput): MoveOutTimingR
       noticeDateIso,
       targetDateIso,
     });
-  const dates = `Notice given ${noticeDateIso}; ${targetLabel} ${targetDateIso}; ${daysGiven} calendar ${daysGiven === 1 ? "day" : "days"} given against the reviewed ${thresholdDays}-day basis (version ${basis.version ?? "unknown"}).`;
+  const dates = `Notice given ${formatCalendarDate(noticeDateIso)}; ${targetLabel} ${formatCalendarDate(targetDateIso)}; ${daysGiven} calendar ${daysGiven === 1 ? "day" : "days"} given against the reviewed ${thresholdDays}-day basis (version ${basis.version ?? "unknown"}).`;
   if (daysGiven >= thresholdDays)
     return result(input, {
       state: "meets",

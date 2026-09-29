@@ -1,9 +1,13 @@
+import { formatBusinessTimestamp, formatCalendarMonth } from "@/lib/date-display";
 import {
   buildManagedGmailDraftsDestination,
   buildRentvineRecordDestination,
   expectedRentvineHost,
 } from "@/lib/lease-renewal/desk-destinations";
 import { messageResourceFingerprint } from "./message-claim-basis";
+import { observeRenewalNotice } from "@/lib/firestore/renewal-notice-safety";
+import { readAdmittedRenewalNoticeLease } from "./admitted-notice-source";
+import { manualNonRenewalReason } from "./notice-safety";
 import {
   getCurrentMessageDraft,
   getPreviousMessageDrafts,
@@ -33,9 +37,7 @@ import {
   buildLiveRenewalConfig,
   buildLiveRentVineConfig,
 } from "@/lib/lease-renewal/live-config";
-import { requireCurrentLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
-import { readLeaseStatusTable } from "@/lib/lease-renewal/lease-status-table";
-import { projectMoveOutDisposition } from "@/lib/lease-renewal/move-out-disposition";
+import { LeaseDataExpiredError } from "@/lib/lease-renewal/live-lease-cache";
 import {
   leaseEndDateIso,
   leasePortfolioId,
@@ -113,35 +115,58 @@ export async function currentRenewalMessage(
       409,
     );
   const nowMs = Date.now();
-  const [views, workspace, resources, publication, retainedSignature, policyMaterial] =
-    await Promise.all([
-      requireCurrentLeaseViews(config.rentvineClient, nowMs),
-      getRenewalWorkspace(actor, leaseId, db),
-      getRenewalResourceLocations(actor, db).catch(() => null),
-      getSuppliedRenewalPublication(actor, channel, db).catch(() => ({
-        ...suppliedRenewalPublication(channel),
-        status: "unavailable" as const,
-        reason:
-          "Current supplied-template publication could not be read. Preparation remains available; Gmail export waits for that readback.",
-      })),
-      getRetainedSenderSignature(actor, db).catch(() => null),
-      // S129/S131: the policy material snapshot never throws.
-      readPolicyMaterialSnapshot("rhino", db),
-    ]);
-  const matching = views.filter((view) => leaseViewId(view) === leaseId);
+  const [
+    leaseRead,
+    workspace,
+    resources,
+    publication,
+    retainedSignature,
+    policyMaterial,
+  ] = await Promise.all([
+    readAdmittedRenewalNoticeLease(actor, leaseId, config.rentvineClient, nowMs, db),
+    getRenewalWorkspace(actor, leaseId, db),
+    getRenewalResourceLocations(actor, db).catch(() => null),
+    getSuppliedRenewalPublication(actor, channel, db).catch(() => ({
+      ...suppliedRenewalPublication(channel),
+      status: "unavailable" as const,
+      reason:
+        "Current supplied-template publication could not be read. Preparation remains available; Gmail export waits for that readback.",
+    })),
+    getRetainedSenderSignature(actor, db).catch(() => null),
+    // S129/S131: the policy material snapshot never throws.
+    readPolicyMaterialSnapshot("rhino", db),
+  ]);
+  if (leaseRead.currency.state === "expired")
+    throw new LeaseDataExpiredError(leaseRead.currency.ageMs);
+  const matching = leaseRead.snapshot.views.filter(
+    (view) => leaseViewId(view) === leaseId,
+  );
   if (matching.length !== 1)
     throw new EditableLayerError("The live lease is missing or ambiguous.", 409);
   const lease = matching[0];
-  // S124: the memoized status table over the same lease generation. `requireCurrentLeaseViews`
-  // refuses an expired generation, so the served views are inside the cache window (the
-  // disposition downgrades a negative only on an expired read). A failed table read yields an
-  // unknown disposition (a review cue), never permission to draft against a notice.
-  const moveOut = projectMoveOutDisposition({
-    lease,
-    statusTable: await readLeaseStatusTable(config.rentvineClient, nowMs),
-    freshness: "fresh",
-    observedAtIso: new Date(nowMs).toISOString(),
-  });
+  // S124: only source generations admitted for this lease can establish notice facts.
+  // The admitted snapshot and status read retain their actual freshness. Missing membership,
+  // expired reads or a failed status read cannot grant permission to create a draft.
+  const noticeSafety = await observeRenewalNotice(
+    actor,
+    {
+      lease,
+      statusTable: leaseRead.statusTable,
+      freshness: leaseRead.currency.state,
+      leaseReadAtMs: leaseRead.snapshot.readAtMs,
+      observedAtMs: nowMs,
+      noticeAdmitted: leaseRead.snapshot.noticeAdmitted,
+      admittedLeaseKeys: leaseRead.snapshot.noticeAdmission?.leaseKeys,
+    },
+    db,
+  );
+  const moveOut = noticeSafety.disposition;
+  const noticeBlock =
+    manualNonRenewalReason(workspace) ??
+    noticeSafety.reason ??
+    (noticeSafety.cycleId !== (workspace?.cycleId ?? null)
+      ? "The renewal cycle changed. Reload and review the message."
+      : null);
   const identity = projectRenewalDeskIdentity(lease);
   const rentvineHost = expectedRentvineHost(process.env.RENTVINE_API_BASE_URL);
   const saved = workspace
@@ -175,6 +200,7 @@ export async function currentRenewalMessage(
     policyMaterial,
   );
   const notices: string[] = [];
+  if (noticeBlock) notices.push(noticeBlock);
   if (moveOut.state === "unknown") notices.push(moveOut.label);
   let draftJournalAvailable = true;
   const [draftAttempt, previousDraftAttempts] = workspace
@@ -242,6 +268,7 @@ export async function currentRenewalMessage(
     try {
       const resolutions = await listResolutionsForRun(actor, "live-review", db);
       const result = await loadLiveOwnerCurrentRentDecision(
+        actor,
         leaseId,
         new Date(nowMs).toISOString(),
         renewalConfig,
@@ -326,10 +353,10 @@ export async function currentRenewalMessage(
     comps: (provider?.comps ?? []).map((comp, index) => ({
       address: `Comparable ${index + 1}${comp.bedrooms !== undefined ? `, ${comp.bedrooms} bedrooms` : ""}${comp.distanceMiles !== undefined ? `, ${comp.distanceMiles} miles away` : ""}`,
       rent: comp.rent,
-      source: `${provider!.source} retrieved ${provider!.retrievedAt}`,
+      source: `${provider!.source} retrieved ${formatBusinessTimestamp(provider!.retrievedAt)}`,
     })),
     trend: ownerMarket.trend
-      ? `Average area rent for ${ownerMarket.trend.zipCode}: ${ownerMarket.trend.firstMonth} ${ownerMarket.trend.firstAverage === undefined ? "(average unavailable)" : `$${ownerMarket.trend.firstAverage.toFixed(2)}`} to ${ownerMarket.trend.lastMonth} ${ownerMarket.trend.lastAverage === undefined ? "(average unavailable)" : `$${ownerMarket.trend.lastAverage.toFixed(2)}`} (RentCast, retrieved ${ownerMarket.trend.retrievedAt.slice(0, 10)}).`
+      ? `Average area rent for ${ownerMarket.trend.zipCode}: ${formatCalendarMonth(ownerMarket.trend.firstMonth)} ${ownerMarket.trend.firstAverage === undefined ? "(average unavailable)" : `$${ownerMarket.trend.firstAverage.toFixed(2)}`} to ${formatCalendarMonth(ownerMarket.trend.lastMonth)} ${ownerMarket.trend.lastAverage === undefined ? "(average unavailable)" : `$${ownerMarket.trend.lastAverage.toFixed(2)}`} (RentCast, retrieved ${formatBusinessTimestamp(ownerMarket.trend.retrievedAt)}).`
       : null,
     sparseCompsQualification:
       provider && provider.compCount < 3
@@ -353,10 +380,12 @@ export async function currentRenewalMessage(
       : [],
   };
   const basis = {
+    noticeSafety: noticeSafety.basis,
     resourceFingerprint: messageResourceFingerprint(resources),
     sourceFingerprint: hashExecutionPreview({
       leaseId,
       channel,
+      noticeSafety: noticeSafety.basis,
       names: facts.names,
       address: facts.address,
       currentBaseRent,
@@ -402,6 +431,7 @@ export async function currentRenewalMessage(
     saved?.signatureActorUid === actor.uid &&
     saved.signatureEmail?.toLowerCase() === actor.email.toLowerCase();
   return {
+    noticeBlock,
     attachment,
     availableCompScreenshot: availableCompScreenshot
       ? compScreenshotDraftAttachmentIdentity(availableCompScreenshot)

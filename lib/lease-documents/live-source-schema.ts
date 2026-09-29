@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { LEASE_ARTIFACT_KINDS, PACKET_CONTEXTS } from "./packet-types";
+import { ArtifactFieldMapSchema } from "./artifact-intake-contract";
 const text = z.string().trim().min(1).max(500);
 const participantRef = text.regex(
   /^[^,\r\n]+$/,
@@ -70,6 +71,14 @@ const artifact = z
     audience: z.enum(["tenant", "owner"]),
     supersedesArtifactId: text.optional(),
     publicationSource: PacketSourceSchema,
+    fillMapping: z
+      .object({
+        map: ArtifactFieldMapSchema,
+        mapHash: hash,
+        intakeRevision: z.number().int().positive(),
+      })
+      .strict()
+      .optional(),
     providerBindings: z
       .object({ dotloopDocumentRef: text, dotloopTemplateRef: text.optional() })
       .strict()

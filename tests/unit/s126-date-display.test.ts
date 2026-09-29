@@ -8,6 +8,8 @@ import {
   describeCalendarDate,
   formatBusinessTimestamp,
   formatCalendarDate,
+  formatCalendarDateOrTimestamp,
+  formatSourceCalendarDate,
   formatCalendarDateRange,
   formatCalendarMonth,
   parseCalendarDate,
@@ -131,6 +133,17 @@ describe("S126 storage, filters and sort keys are untouched (AC-S126-3)", () => 
 
 describe("S126 unknown and invalid dates are distinct and explicit (AC-S126-5)", () => {
   it("never renders zero, the epoch, today or Invalid Date for missing or malformed input", () => {
+    expect(formatCalendarDateOrTimestamp("2026-02-30")).toBe(DATE_INVALID_LABEL);
+    expect(formatBusinessTimestamp("2026-02-30T12:00:00.000Z")).toBe(
+      TIMESTAMP_INVALID_LABEL,
+    );
+    expect(formatBusinessTimestamp("2026-10-01")).toBe("10/01/2026");
+    expect(formatBusinessTimestamp("1")).toBe(TIMESTAMP_INVALID_LABEL);
+    expect(formatBusinessTimestamp("2026-10-01T24:00:00Z")).toBe(TIMESTAMP_INVALID_LABEL);
+    expect(formatSourceCalendarDate("09/30/2026")).toBe("09/30/2026");
+    expect(formatSourceCalendarDate("2026-09-30T00:00:00Z")).toBe("09/30/2026");
+    expect(formatSourceCalendarDate("02/30/2026")).toBe(DATE_INVALID_LABEL);
+    expect(formatSourceCalendarDate("2026-02-30T00:00:00Z")).toBe(DATE_INVALID_LABEL);
     for (const missing of [null, undefined, "", "   "]) {
       expect(formatCalendarDate(missing)).toBe(DATE_UNAVAILABLE_LABEL);
       expect(describeCalendarDate(missing)).toEqual({

@@ -16,7 +16,10 @@ export interface PredecessorBaseline {
 
 export interface CandidateAssuranceReceipt {
   readonly browserPolicy?: ReleaseBrowserPolicy;
-  readonly schemaVersion: "pmi-kc-candidate-assurance-receipt.v4";
+  readonly schemaVersion:
+    | "pmi-kc-candidate-assurance-receipt.v4"
+    | "pmi-kc-candidate-assurance-receipt.v5";
+  readonly recoveryBaseline?: RecoveryBaselineReference;
   readonly candidateReceiptId: string;
   readonly issuedAt: string;
   readonly expiresAt: string;
@@ -38,7 +41,8 @@ export interface CandidateAssuranceReceipt {
 
 export interface PromotionReceipt {
   readonly browserPolicy?: ReleaseBrowserPolicy;
-  readonly schemaVersion: "pmi-kc-promotion-receipt.v4";
+  readonly schemaVersion: "pmi-kc-promotion-receipt.v4" | "pmi-kc-promotion-receipt.v5";
+  readonly recoveryBaseline?: RecoveryBaselineReference;
   readonly candidateReceiptId: string;
   readonly candidateReceiptIssuedAt: string;
   readonly promotionStartedAt: string;
@@ -52,6 +56,13 @@ export interface PromotionReceipt {
   readonly expectedConfigurationFingerprint: string;
   readonly predecessorRevision: string;
   readonly predecessorBaseline: PredecessorBaseline;
+}
+
+export interface RecoveryBaselineReference {
+  readonly path: string;
+  readonly receiptId: string;
+  readonly hash: string;
+  readonly runId: string;
 }
 
 export interface ReceiptReservation {

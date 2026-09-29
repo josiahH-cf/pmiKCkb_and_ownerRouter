@@ -1,4 +1,6 @@
 import { RenewalDeskReturnLink } from "@/components/lease-renewal/RenewalDeskReturnLink";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
+import { renewalNoticeObserver } from "@/lib/lease-renewal/notice-read";
 import { RenewalCorrections } from "@/components/lease-renewal/RenewalCorrections";
 import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
 import {
@@ -62,11 +64,9 @@ import {
   type MarketSubjectProjection,
 } from "@/lib/lease-renewal/market-subject";
 import { canonicalJson } from "@/lib/execution/preview-hash";
-import {
-  getLiveLeaseSnapshot,
-  getLiveLeaseSnapshotAtOrAfter,
-  type AttemptedLiveLeaseSnapshotResult,
-} from "@/lib/lease-renewal/live-lease-cache";
+import { type AttemptedLiveLeaseSnapshotResult } from "@/lib/lease-renewal/live-lease-cache";
+import { readCoherentRenewalDisplaySource } from "@/lib/lease-renewal/admitted-notice-source";
+import type { LeaseStatusTableRead } from "@/lib/lease-renewal/move-out-disposition";
 import {
   loadLiveRenewalLeaseWorkspace,
   type LiveDeskStatus,
@@ -139,6 +139,11 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const deskView = validateDeskView(rawDeskView);
 
   const liveConfig = buildLiveRenewalConfig();
+  if (liveConfig.ok)
+    liveConfig.rentvineClient = withRenewalNoticeAdmission(
+      user,
+      liveConfig.rentvineClient,
+    );
   const operatingSheetId = liveOperatingSheetId();
   const sheetWorkspaceContext = mintSheetWorkspaceContext(user.uid, leaseId);
   // Start the complete fresh field rebuild now, but await it only after the independent
@@ -214,16 +219,16 @@ export default async function LiveRenewalLeaseWorkspacePage({
   // from the same live view the lookup would use; an unresolved subject keeps its exact cause.
   let marketSubject: MarketSubjectProjection = projectMarketSubject(null, leaseId);
   let leaseSnapshotAttempt: AttemptedLiveLeaseSnapshotResult | undefined;
+  let preparedNoticeStatusTable: LeaseStatusTableRead | undefined;
   if (liveConfig.ok) {
     try {
-      const leaseSnapshotResult =
-        sourceRefreshAfter === null
-          ? await getLiveLeaseSnapshot(liveConfig.rentvineClient, readTimestampMs)
-          : await getLiveLeaseSnapshotAtOrAfter(
-              liveConfig.rentvineClient,
-              readTimestampMs,
-              sourceRefreshAfter,
-            );
+      const leaseSnapshotResult = await readCoherentRenewalDisplaySource(
+        user,
+        liveConfig.rentvineClient,
+        readTimestampMs,
+        { sourceRefreshAfter, leaseId },
+      );
+      preparedNoticeStatusTable = leaseSnapshotResult.statusTable;
       leaseSnapshotAttempt = { status: "available", value: leaseSnapshotResult };
       const { snapshot } = leaseSnapshotResult;
       const views = snapshot.views;
@@ -311,6 +316,8 @@ export default async function LiveRenewalLeaseWorkspacePage({
       cyclesAvailable: manualRead.status === "available",
     },
     timingBasis,
+    renewalNoticeObserver(user),
+    preparedNoticeStatusTable,
   );
   const dispositions = renewalAuxiliaryValue(dispositionsRead, []);
   const writebackProposal = renewalAuxiliaryValue(writebackProposalRead, null);

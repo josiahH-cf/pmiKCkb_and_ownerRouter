@@ -1,6 +1,7 @@
 // Pure release decisions. The driver owns durable writes and bounded existing release commands.
 export const RELEASE_PHASES = Object.freeze([
   "prepare",
+  "recovery",
   "deploy",
   "smoke",
   "fingerprint",
@@ -68,8 +69,16 @@ export async function advanceRelease(checkpoint, driver) {
   if (!RELEASE_PHASES.includes(checkpoint.phase))
     throw new Error("unknown_release_phase");
   if (checkpoint.phase === "complete") return checkpoint;
+  if (driver.authorize && !(await driver.authorize(checkpoint)))
+    return { ...checkpoint, blocked: "release_held_not_admitted" };
   if (!(await driver.authenticate(checkpoint.phase)))
     return { ...checkpoint, blocked: "authentication_required" };
+  if (checkpoint.rollback) {
+    const evidence = await driver.recoverRollback(checkpoint);
+    const next = { ...checkpoint, ...evidence.patch, blocked: evidence.reason };
+    await driver.save(next);
+    return next;
+  }
   const phase = checkpoint.phase;
   if (phase === "promote" && !(await driver.hasExactReceipt(checkpoint))) {
     return { ...checkpoint, blocked: "exact_candidate_receipt_required" };

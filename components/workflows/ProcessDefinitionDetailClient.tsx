@@ -1,4 +1,5 @@
 "use client";
+import { formatCalendarDate } from "@/lib/date-display";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -321,6 +322,9 @@ export function ProcessDefinitionDetailClient({
               type="date"
               value={runForm.due_date}
             />
+            <span className="muted">
+              {runForm.due_date ? formatCalendarDate(runForm.due_date) : "MM/DD/YYYY"}
+            </span>
           </label>
           <label className="workflow-note-field">
             Start note
@@ -352,7 +356,7 @@ export function ProcessDefinitionDetailClient({
                   {run.process_name}
                 </Link>
                 <p className="muted">
-                  {run.status} - Due {run.due_date}
+                  {run.status} - Due {formatCalendarDate(run.due_date)}
                 </p>
                 <p className="muted">
                   Definition version: {run.definition_version_id ?? "Not pinned (draft)"}

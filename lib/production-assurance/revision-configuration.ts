@@ -38,7 +38,7 @@ export interface ExactCloudRunOriginTarget extends Pick<
   "project" | "region" | "service" | "expectedRevision"
 > {
   readonly origin: string;
-  readonly phase: "candidate" | "post_promotion" | "rollback";
+  readonly phase: "candidate" | "post_promotion" | "rollback" | "recovery_preparation";
 }
 
 export interface VerifiedCloudRunOriginBinding {
@@ -130,7 +130,7 @@ export async function readVerifiedCloudRunOriginBinding(
       parsed.filter((entry) => entry.percent === 100).map((entry) => entry.revision),
     ),
   ];
-  if (target.phase === "candidate") {
+  if (target.phase === "candidate" || target.phase === "recovery_preparation") {
     const candidateTags = parsed.filter(
       (entry) =>
         entry.revision === target.expectedRevision &&

@@ -41,6 +41,10 @@ describe("Console live-data projection", () => {
     // F-CONS-4: the front door shows only that a message is present — never its subject, sender,
     // recipients, or snippet.
     expect(screen.getByText("Linked message on file")).toBeInTheDocument();
+    expect(screen.getByText("08/31/2026")).toBeInTheDocument();
+    expect(screen.getByText("Last message 07/14/2026, 7:00 AM CDT")).toBeInTheDocument();
+    expect(projection.rows[0].leaseEnd.value).toBe("2026-08-31");
+    expect(projection.rows[0].message?.observedAt).toBe(observedAt);
     expect(
       screen.queryByText(/From fixture-sender@example\.test/),
     ).not.toBeInTheDocument();

@@ -38,6 +38,7 @@ describe("Console-to-full-message boundary", () => {
               source_refs: ["renewal_run:run-1"],
               status: "linked",
               updated_at_ms: 1,
+              last_contact_at_ms: Date.parse("2026-10-01T00:30:00.000Z"),
             },
           ],
         });
@@ -83,6 +84,9 @@ describe("Console-to-full-message boundary", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(screen.queryByText(/Fixture full body/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Load linked communication" }));
+    expect(
+      await screen.findByText(/Last Gmail contact: 09\/30\/2026, 7:30 PM CDT/),
+    ).toBeInTheDocument();
     await user.click(
       await screen.findByRole("button", { name: /Open renewal owner · linked/ }),
     );
@@ -218,6 +222,7 @@ describe("Console-to-full-message boundary", () => {
       name: "Exact linked Gmail reply confirmation",
     });
     expect(within(preview).getByText("owner@example.test")).toBeInTheDocument();
+    expect(within(preview).getByText("07/15/2026, 1:00 PM CDT")).toBeInTheDocument();
     expect(within(preview).getByText(proposal)).toBeInTheDocument();
     const sendButton = within(preview).getByRole("button", {
       name: "Send exact linked reply",

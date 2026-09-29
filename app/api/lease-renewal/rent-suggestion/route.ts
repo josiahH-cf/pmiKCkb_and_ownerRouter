@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { can } from "@/lib/auth/roles";
-import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { requireCapabilityInSpace, type AuthenticatedUser } from "@/lib/auth/session";
+import {
+  reserveRenewalNoticeLease,
+  withRenewalNoticeAdmission,
+} from "@/lib/firestore/renewal-notice-safety";
 import {
   assertRenewalRoleAuthority,
   renewalRoleCapability,
@@ -29,12 +33,19 @@ import { getLiveLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
  * than working from a guess.
  */
 async function resolveLeaseLiveFacts(
+  actor: AuthenticatedUser,
   leaseId: string,
 ): Promise<{ currentRent: number | null; portfolioId: string | null }> {
+  // The new bodyless reservation uses the same exact lease-id grammar as notice review.
+  if (!/^[1-9]\d*$/.test(leaseId)) return { currentRent: null, portfolioId: null };
   const config = buildLiveRentVineConfig();
   if (!config.ok) return { currentRent: null, portfolioId: null };
   try {
-    const views = await getLiveLeaseViews(config.rentvineClient, Date.now());
+    await reserveRenewalNoticeLease(actor, leaseId);
+    const views = await getLiveLeaseViews(
+      withRenewalNoticeAdmission(actor, config.rentvineClient),
+      Date.now(),
+    );
     const view = findLeaseViewById(views, leaseId);
     if (!view) return { currentRent: null, portfolioId: null };
     return {
@@ -58,7 +69,7 @@ export async function GET(request: Request) {
     if (leaseId === "") {
       return NextResponse.json({ error: "A lease_id is required." }, { status: 400 });
     }
-    const facts = await resolveLeaseLiveFacts(leaseId);
+    const facts = await resolveLeaseLiveFacts(user, leaseId);
     const suggestion = await resolveLeaseRentSuggestion(
       user,
       leaseId,
@@ -90,7 +101,7 @@ export async function POST(request: Request) {
     );
     assertRenewalRoleAuthority("approve_pricing_suggestion", user.role);
     const input = await parseJsonBody(request, DecideRentSuggestionApprovalInputSchema);
-    const facts = await resolveLeaseLiveFacts(input.lease_id);
+    const facts = await resolveLeaseLiveFacts(user, input.lease_id);
     const approval = await decideRentSuggestionApproval(
       user,
       input,

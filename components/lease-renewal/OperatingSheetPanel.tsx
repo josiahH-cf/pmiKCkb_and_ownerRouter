@@ -1,4 +1,5 @@
 "use client";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 
 import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useRouter } from "next/navigation";
@@ -155,7 +156,7 @@ export function OperatingSheetPanel({
   initialEffects?: SheetWritebackEffectStatus[] | null;
   initialFieldValues?: Record<string, string>;
   /**
-   * S128 (F08): operating-Sheet writes are paused by owner policy. Proposals and app records still
+   * S128 (F08): operating-Sheet writes and new proposals are paused. App-owned records still
    * save, reads and read-only reconciliation continue, but no execute or reversal write can dispatch.
    */
   writebackPaused?: boolean;
@@ -398,13 +399,13 @@ export function OperatingSheetPanel({
   return (
     <article aria-labelledby="operating-sheet-title" className="panel ui-stack">
       {paused ? (
-        // S128 (F08): the proactive owner-policy pause. Proposals and app records still save; reads
+        // S128 (F08): the proactive owner-policy pause. App-owned records still save; reads
         // and read-only reconciliation continue; no execute or reversal write can dispatch.
         <p className="muted" role="status">
-          Operating-Sheet writes are paused by policy. Proposals and app records still
-          save here, and reads and comparisons continue, but an Admin cannot write to the
-          operating Sheet until the pause is lifted. Anything you save is recorded in the
-          app only.
+          Operating-Sheet writes are paused by policy. Staff progress is recorded in the
+          app only; new Sheet proposals are unavailable. Reads and comparisons continue.
+          After an authorized resume, review the current target and prepare a fresh
+          proposal.
         </p>
       ) : null}
       {proposal ? (
@@ -414,13 +415,20 @@ export function OperatingSheetPanel({
               Review Sheet updates
             </RenewalSectionHeading>
             <p className="muted">
-              Target: the operating renewal tab, read {proposal.source_read_at}.
+              Target: the operating renewal tab, read{" "}
+              {formatBusinessTimestamp(proposal.source_read_at)}.
             </p>
           </div>
           {expired ? (
             <p className="muted" role="status">
               This proposal&apos;s confirmation window has expired. Save a fresh proposal
               to continue; the exact terms below stay visible for review.
+            </p>
+          ) : null}
+          {proposal.requires_fresh_review && !paused ? (
+            <p role="status">
+              This proposal belongs to an earlier release or pause. Review the current
+              target and prepare a new proposal before confirming.
             </p>
           ) : null}
           <ol className="ui-stack">
@@ -470,6 +478,7 @@ export function OperatingSheetPanel({
                     <div className="ui-actions">
                       {state === "not_started" &&
                       !expired &&
+                      !proposal.requires_fresh_review &&
                       !paused &&
                       status?.effect_executable !== false ? (
                         armedEffect === effect.effect_hash ? (
@@ -509,7 +518,8 @@ export function OperatingSheetPanel({
                       status?.effect_executable !== false ? (
                         <p className="muted" role="status">
                           Confirming this Sheet write is paused by policy. The reviewed
-                          value stays saved in the app for a later authorized resume.
+                          value stays visible as history. An authorized resume requires a
+                          fresh target review, proposal and confirmation.
                         </p>
                       ) : null}
                       {state === "ambiguous" || state === "running" ? (
@@ -621,7 +631,12 @@ export function OperatingSheetPanel({
                       </p>
                     ) : (
                       <Button
-                        disabled={pending || !workspaceContext || proposalLifecycleLocked}
+                        disabled={
+                          paused ||
+                          pending ||
+                          !workspaceContext ||
+                          proposalLifecycleLocked
+                        }
                         onClick={() => void run(() => proposeAudience(audience))}
                         type="button"
                       >
@@ -645,6 +660,7 @@ export function OperatingSheetPanel({
             className="ui-stack"
             onSubmit={(event) => {
               event.preventDefault();
+              if (paused) return;
               void run(hasSheetRow ? proposeField : proposeAppend);
             }}
           >
@@ -736,7 +752,9 @@ export function OperatingSheetPanel({
             )}
             <div className="ui-actions">
               <Button
-                disabled={pending || !workspaceContext || proposalLifecycleLocked}
+                disabled={
+                  paused || pending || !workspaceContext || proposalLifecycleLocked
+                }
                 type="submit"
               >
                 {hasSheetRow

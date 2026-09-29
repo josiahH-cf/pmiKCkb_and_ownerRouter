@@ -5,7 +5,12 @@ export const PRODUCTION_ASSURANCE_SCHEMA_VERSION =
 export const ASSURANCE_ROLES = ["Admin", "Editor"] as const;
 export type AssuranceRole = (typeof ASSURANCE_ROLES)[number];
 
-export const ASSURANCE_PHASES = ["candidate", "post_promotion", "rollback"] as const;
+export const ASSURANCE_PHASES = [
+  "candidate",
+  "post_promotion",
+  "rollback",
+  "recovery_preparation",
+] as const;
 export type AssurancePhase = (typeof ASSURANCE_PHASES)[number];
 
 export const ROUTE_KEYS = [

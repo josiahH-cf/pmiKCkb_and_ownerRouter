@@ -1,5 +1,5 @@
 "use client";
-import { formatCalendarDate } from "@/lib/date-display";
+import { formatCalendarDate, formatBusinessTimestamp } from "@/lib/date-display";
 import {
   RenewalSectionHeading,
   renewalCardTitle,
@@ -13,6 +13,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { useRenewalSaveFocus } from "./RenewalSaveFocus";
 import { Button, Card, Field } from "@/components/ui";
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
 import {
@@ -29,6 +30,7 @@ import { parseCurrencyInput } from "@/lib/currency-input";
 import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 
 interface ManualContext {
+  writebackPaused: boolean;
   state: RenewalWorkspaceState | null;
   leaseId: string;
   pending: boolean;
@@ -43,6 +45,7 @@ export function useRenewalManualWorkspace() {
   return useContext(Context);
 }
 interface ManualProviderProps {
+  writebackPaused?: boolean;
   unavailable?: boolean;
   leaseId: string;
   initialState: RenewalWorkspaceState | null | undefined;
@@ -64,8 +67,14 @@ function ActiveManualProvider({
   initialState,
   children,
   cycleBasis,
+  writebackPaused = false,
   unavailable = false,
 }: ManualProviderProps) {
+  const focusAfterSave = useRenewalSaveFocus();
+  const [pausedReadback, setPaused] = useState(false);
+  // Either server observation can impose the pause. A refreshed page never erases a newer API
+  // pause; after resumption, a fresh API readback must also clear it before preparing source work.
+  const paused = writebackPaused || pausedReadback;
   const [readUnavailable, setReadUnavailable] = useState(unavailable);
   const [recordedState, setState] = useState(initialState ?? null),
     [pending, setPending] = useState(false),
@@ -81,6 +90,10 @@ function ActiveManualProvider({
       ? initialState
       : recordedState;
   async function prepareSource(field: keyof typeof SHEET_FIELD_LABELS, eventId: string) {
+    if (paused) {
+      setMessage("Saved in app; Sheet updates paused.");
+      return;
+    }
     if (!state) return;
     setPending(true);
     try {
@@ -96,6 +109,8 @@ function ActiveManualProvider({
         }),
       });
       const result = await response.json();
+      if (typeof result.writeback_paused === "boolean")
+        setPaused(result.writeback_paused);
       if (!response.ok)
         throw new Error(result.error ?? "This source proposal could not be prepared.");
       setState(result.state);
@@ -121,6 +136,7 @@ function ActiveManualProvider({
     const key = JSON.stringify(payload);
     if (outstanding.current?.key !== key)
       outstanding.current = { key, id: crypto.randomUUID() };
+    const operationId = outstanding.current.id;
     setPending(true);
     setMessage("");
     try {
@@ -130,18 +146,28 @@ function ActiveManualProvider({
         body: JSON.stringify({
           ...payload,
           leaseId,
-          operationId: outstanding.current.id,
+          operationId,
         }),
       });
       const result = await response.json();
+      if (typeof result.writeback_paused === "boolean")
+        setPaused(result.writeback_paused);
       if (!response.ok)
         throw new Error(result.error ?? "The activity could not be recorded.");
       setState(result.state);
       outstanding.current = null;
       setMessage(
-        "Staff record saved and read back. Any listed Sheet update still needs its own confirmation.",
+        result.writeback_paused
+          ? "Saved in app; Sheet updates paused."
+          : "Staff record saved and read back. Any listed Sheet update still needs its own confirmation.",
       );
-      router.refresh();
+      if (
+        !result.state ||
+        !focusAfterSave?.({
+          manual: { cycleId: result.state.cycleId, revision: result.state.revision },
+        })
+      )
+        router.refresh();
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -169,6 +195,7 @@ function ActiveManualProvider({
         `/api/lease-renewal/workspace?leaseId=${encodeURIComponent(leaseId)}`,
       );
       const value = await response.json();
+      if (typeof value.writeback_paused === "boolean") setPaused(value.writeback_paused);
       if (!response.ok)
         throw new Error(value.error ?? "Current records could not be read.");
       setState(value.state);
@@ -189,6 +216,7 @@ function ActiveManualProvider({
   return (
     <Context.Provider
       value={{
+        writebackPaused: paused,
         state,
         leaseId,
         pending: pending || readUnavailable,
@@ -246,7 +274,10 @@ function ActiveManualProvider({
             <ol>
               {history.map((entry) => (
                 <li key={String(entry.id)}>
-                  {String(entry.recorded_at)} · {String(entry.actor_uid)} ·{" "}
+                  {formatBusinessTimestamp(
+                    typeof entry.recorded_at === "string" ? entry.recorded_at : null,
+                  )}{" "}
+                  · {String(entry.actor_uid)} ·{" "}
                   {String((entry.action as Record<string, unknown>)?.kind)}
                   <pre style={{ whiteSpace: "pre-wrap" }}>
                     {JSON.stringify(entry.action, null, 2)}
@@ -285,7 +316,7 @@ function CycleSourceDateNote({
       {change.label}
       {change.state === "changed"
         ? terms
-          ? ` Owner-approved terms recorded on this cycle: ${USD.format(terms.rent)} from ${terms.effectiveDate} to ${terms.endDate}. They remain as recorded.`
+          ? ` Owner-approved terms recorded on this cycle: ${USD.format(terms.rent)} from ${formatCalendarDate(terms.effectiveDate)} to ${formatCalendarDate(terms.endDate)}. They remain as recorded.`
           : " Previous terms were not recorded for this cycle."
         : null}
     </p>
@@ -461,13 +492,15 @@ export function RenewalManualSection({
                   :{" "}
                   {update.state === "verified"
                     ? "Read back after confirmed update"
-                    : "Pending separate Sheet confirmation"}
+                    : context.writebackPaused
+                      ? "Saved in app; Sheet updates paused"
+                      : "Pending separate Sheet confirmation"}
                   {update.reason ? ` · ${update.reason}` : ""}.{" "}
                   <a href="#renewal-step-verify-renewal">Review Sheet updates</a>
                   {update.state !== "verified" ? (
                     <Button
                       variant="secondary"
-                      disabled={context.pending}
+                      disabled={context.pending || context.writebackPaused}
                       onClick={() =>
                         void context.prepareSource(update.intent.field, update.eventId)
                       }
@@ -619,7 +652,8 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
         </Button>
         {current ? (
           <p>
-            Recorded {current.recordedAt} by {current.actorUid}. Source: {current.source}.
+            Recorded {formatBusinessTimestamp(current.recordedAt)} by {current.actorUid}.
+            Source: {current.source}.
           </p>
         ) : null}
       </div>
@@ -757,7 +791,7 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
       </Button>
       {current ? (
         <p>
-          Recorded {current.recordedAt} by {current.actorUid}.{" "}
+          Recorded {formatBusinessTimestamp(current.recordedAt)} by {current.actorUid}.{" "}
           {current.termsRevision !== state.termsRevision
             ? "Needs review after changed terms."
             : ""}

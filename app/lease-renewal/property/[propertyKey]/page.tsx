@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { LeaseDecisionProjectionPanel } from "@/components/lease-renewal/LeaseDecisionProjectionPanel";
@@ -46,7 +47,7 @@ export default async function LeaseRenewalPropertyPage({
   // constructed on this Production route.
   const runs: PropertyRunActivity[] = [];
   let activityUnavailable = false;
-  const run = await rebuildLiveRenewalRun(new Date().toISOString());
+  const run = await rebuildLiveRenewalRun(user, new Date().toISOString());
   if (run) {
     let resolutionActivity: Awaited<ReturnType<typeof listResolutionActivityForRun>> = [];
     let approvalActivity: LeaseRenewalWritebackApprovalActivityRecord[] = [];
@@ -115,7 +116,9 @@ export default async function LeaseRenewalPropertyPage({
                 <li key={`${entry.timestamp}-${index}`}>
                   <span className="activity-action">{entry.action}</span> by{" "}
                   <span className="activity-actor">{entry.actorUid}</span> at{" "}
-                  <span className="activity-time">{entry.timestamp}</span>
+                  <span className="activity-time">
+                    {formatBusinessTimestamp(entry.timestamp)}
+                  </span>
                   <p className="muted">{entry.reason}</p>
                 </li>
               ))}

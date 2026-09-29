@@ -111,7 +111,7 @@ describe("S125 both dates and their meaning (AC-S125-1)", () => {
       daysGiven: 60,
       basisVersion: 2,
     });
-    expect(leaseEnd.explanation).toContain("contractual lease-end date 2026-09-30");
+    expect(leaseEnd.explanation).toContain("contractual lease-end date 09/30/2026");
 
     // No reviewed basis: no yes or no, and the missing basis is named.
     const unreviewed = evaluateMoveOutTiming({

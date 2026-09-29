@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
-import { requireCapability } from "@/lib/auth/session";
+import { requireCapability, type AuthenticatedUser } from "@/lib/auth/session";
+import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import {
   listOwnerPolicyRules,
   upsertOwnerPolicyRule,
@@ -32,11 +33,17 @@ const UpsertRuleSchema = z
   .strict();
 
 /** AC-S62-11: a rule needs a portfolio id that resolves against a live lease view. */
-async function portfolioIdResolvesLive(portfolioId: string): Promise<boolean> {
+async function portfolioIdResolvesLive(
+  actor: AuthenticatedUser,
+  portfolioId: string,
+): Promise<boolean> {
   const config = buildLiveRentVineConfig();
   if (!config.ok) return false;
   try {
-    const views = await getLiveLeaseViews(config.rentvineClient, Date.now());
+    const views = await getLiveLeaseViews(
+      withRenewalNoticeAdmission(actor, config.rentvineClient),
+      Date.now(),
+    );
     return views.some((view) => leasePortfolioId(view) === portfolioId);
   } catch {
     return false;
@@ -57,7 +64,9 @@ export async function POST(request: Request) {
   try {
     const user = await requireCapability("manageAdmin");
     const input = await parseJsonBody(request, UpsertRuleSchema);
-    const rule = await upsertOwnerPolicyRule(user, input, portfolioIdResolvesLive);
+    const rule = await upsertOwnerPolicyRule(user, input, (portfolioId) =>
+      portfolioIdResolvesLive(user, portfolioId),
+    );
     return NextResponse.json({ rule });
   } catch (error) {
     return apiErrorResponse(error);

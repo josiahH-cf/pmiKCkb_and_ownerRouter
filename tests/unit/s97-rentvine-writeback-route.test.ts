@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   proposals: new Map<string, RenewalWritebackProposal>(),
   gateOpen: false,
   refreshConfigured: false,
+  noticeAdmission: vi.fn((_actor: unknown, reader: unknown) => reader),
   refreshRead: vi.fn(async () => ({
     snapshot: { readAtMs: Date.parse("2026-09-02T12:00:00.000Z"), complete: true },
   })),
@@ -102,6 +103,9 @@ vi.mock("@/lib/lease-renewal/live-config", () => ({
 
 vi.mock("@/lib/lease-renewal/live-lease-cache", () => ({
   refreshLiveLeaseSnapshotFromProvider: mocks.refreshRead,
+}));
+vi.mock("@/lib/firestore/renewal-notice-safety", () => ({
+  withRenewalNoticeAdmission: mocks.noticeAdmission,
 }));
 
 // The production-bound suspension reader would hang without Firestore in the unit env; an
@@ -465,6 +469,7 @@ describe("S97 rentvine-writeback route", () => {
       complete: true,
     });
     expect(mocks.refreshRead).toHaveBeenCalledTimes(1);
+    expect(mocks.noticeAdmission).toHaveBeenCalledWith(mocks.user, { boundary: "test" });
     expect(response.headers.get("set-cookie")).toMatch(
       new RegExp(`${RENEWAL_SOURCE_REFRESH_COOKIE}=\\d{13}`),
     );

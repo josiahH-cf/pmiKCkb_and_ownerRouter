@@ -149,7 +149,7 @@ describe("S123 workspace source-date notice (AC-S123-4)", () => {
     expect(note).toHaveTextContent("RentVine now reports 08/31/2027");
     expect(note).toHaveTextContent("kept as history");
     expect(note).toHaveTextContent(
-      "Owner-approved terms recorded on this cycle: $1,250.00 from 2026-09-01 to 2027-08-31",
+      "Owner-approved terms recorded on this cycle: $1,250.00 from 09/01/2026 to 08/31/2027",
     );
     // The recorded basis line is history and still shows the recorded date, never the new one.
     expect(screen.getByText(/Cycle based on lease end 08\/31\/2026/)).toBeInTheDocument();

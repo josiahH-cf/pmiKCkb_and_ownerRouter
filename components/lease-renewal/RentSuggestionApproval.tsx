@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
+import { useRenewalSaveFocus } from "@/components/lease-renewal/RenewalSaveFocus";
 import { Button, Field, StatusPill } from "@/components/ui";
 import { formatUsd } from "@/lib/lease-renewal/owner-draft";
 
@@ -47,6 +48,7 @@ export function RentSuggestionApproval({
   initialData,
 }: Readonly<{ leaseId: string; initialData?: RentSuggestionData }>) {
   const router = useRouter();
+  const focusAfterSave = useRenewalSaveFocus();
   const [data, setData] = useState<RentSuggestionData | null>(initialData ?? null);
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
@@ -59,11 +61,14 @@ export function RentSuggestionApproval({
         `/api/lease-renewal/rent-suggestion?lease_id=${encodeURIComponent(leaseId)}`,
       );
       if (response.ok) {
-        setData((await response.json()) as RentSuggestionData);
+        const current = (await response.json()) as RentSuggestionData;
+        setData(current);
+        return current;
       }
     } catch {
       // Leave the prior state in place; the operator can retry.
     }
+    return null;
   }, [leaseId]);
 
   // Fetch once on mount when the server did not seed initialData. setData runs only in the async
@@ -98,9 +103,18 @@ export function RentSuggestionApproval({
         body: JSON.stringify({ lease_id: leaseId, decision, reason: reason.trim() }),
       });
       if (response.ok) {
+        const saved = (await response.json().catch(() => null)) as {
+          approval?: RentSuggestionApprovalStateView;
+        } | null;
         setReason("");
-        await refresh();
-        router.refresh();
+        const current = await refresh();
+        const expectedState =
+          decision === "approve" ? "Approved" : "Returned for Revision";
+        const readBack =
+          saved?.approval?.state === expectedState &&
+          current?.approval?.state === expectedState &&
+          current.approval.approved_value === saved.approval.approved_value;
+        if (!readBack || !focusAfterSave?.()) router.refresh();
       } else {
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
         setError(payload.error ?? "Could not record the decision.");

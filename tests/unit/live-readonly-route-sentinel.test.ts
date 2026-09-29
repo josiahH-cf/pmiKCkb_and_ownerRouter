@@ -55,6 +55,9 @@ const REVIEWED_BENIGN_READ_BOUNDARIES = new Set([
   // S66 GET composes only an authenticated app-owned Firestore read handler. Its POST is separately
   // denied by the Live-read-only request policy and the handler's edit + renewals guard.
   "app/api/lease-renewal/packet-truth/route.ts:GET:createPacketTruthGetHandler",
+  // Constructs authenticated status/content readers; preparation and approval are POST only.
+  // Source reads may update only the separately owner-authorized notice invalidation metadata.
+  "app/api/lease-renewal/filled-artifact/route.ts:GET:createFilledArtifactHandlers",
   // S113 status GETs set only their local response Cache-Control header. Shared handlers retain
   // the same access/environment guards; persisted status reads construct no provider writer.
   "app/api/lease-renewal/operating-sheet/route.ts:GET:response.headers.set",

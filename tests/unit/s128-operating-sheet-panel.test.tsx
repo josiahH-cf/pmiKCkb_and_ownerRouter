@@ -85,4 +85,28 @@ describe("S128 OperatingSheetPanel pause surfacing", () => {
     expect(screen.queryByText(/Operating-Sheet writes are paused by policy/i)).toBeNull();
     expect(screen.getByRole("button", { name: /review and confirm/i })).toBeTruthy();
   });
+
+  it("disables new proposal preparation during the pause", () => {
+    renderPanel(true);
+    expect(
+      screen.getByRole("button", { name: "Preview Sheet field update" }),
+    ).toBeDisabled();
+  });
+
+  it("keeps an old proposal visible but requires fresh review after resume", () => {
+    render(
+      <OperatingSheetPanel
+        role="Admin"
+        association={{ kind: "exact_link", rowNumber: 2 }}
+        workspaceContext={`context-115-${"z".repeat(48)}`}
+        initialProposal={{ ...proposal(), requires_fresh_review: true }}
+        initialEffects={[readyEffect()]}
+        writebackPaused={false}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: /review and confirm/i })).toBeNull();
+    expect(
+      screen.getByText(/belongs to an earlier release or pause/),
+    ).toBeInTheDocument();
+  });
 });

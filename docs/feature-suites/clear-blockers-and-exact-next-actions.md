@@ -4,9 +4,9 @@
 # S127 — Clear blockers and exact next-action guidance
 
 > **Approval reference:** F07 (original feature #7).
-> **Status:** IMPLEMENTED and CI-GREEN at `52286917` (2026-09-20); release deferred by the billing incident; no deployment, provider activation, or meeting validation has occurred. Serving evidence: `docs/facts.md` F-S127.
+> **Status:** Locally IMPLEMENTED in the one thirteen-feature repair batch; billing is enabled and this suite is not deployed. Original implementation `52286917` (2026-09-20) was CI-green. Local objective checks passed within the shared audit’s recorded scopes. Fresh attended WSL/Admin authentication, exact-main CI and remote delivery remain gates; see the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). External-input and human verdict boundaries below remain in force.
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
-> **Registration:** S127 is a proposed allocation following the inspected S120 sequence, not a reservation or a claim of repository registration. Check for collisions on import, including the separately written F05 spec; preserve F07 when renumbering.
+> **Registration:** Registered as S127 in `docs/feature-suites/README.md`; the original F07 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** Targeted usability correction over existing help and readiness controls.
 
 **Goal.**
@@ -19,7 +19,7 @@ C03 — Staff know what is blocked, what they can do, and where to go next. See 
 
 **Current state / intended end state.**
 
-**Current evidence:** S113/S115/S120 already provide section help, missing-input routing, and a next-action surface. The transcript still reports difficulty understanding how to progress. This is a correction of the shared guidance and navigation, not a new six-phase rail or a second readiness engine.
+**Current evidence:** The local shared issue projection presents action-specific blockers, owner-policy pauses, source-unavailable states and authorized next controls in the desk/workspace. Hash targets focus the existing resolution control. Successful app-owned saves now request a shared refresh and focus the next available issue only after authoritative readback; manual saves also require the saved cycle and revision. Failed saves, ordinary reads and stale or unavailable refreshes do not advance focus, and unrelated unfinished inputs remain intact. A refresh that finishes without new evidence retires its focus request so a later ordinary reload cannot revive it. Current role checks and available controls govern the destination. When no actionable issue remains, focus lands on the current instruction; provider execution buttons are excluded. Packet evaluation and filled-PDF preparation/approval retain their specific inspection, download and separate approval flow. The repair passed 55 focused tests, TypeScript, lint and independent review. Final browser/full-verification evidence and remaining release gates are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); these local results do not establish deployment or a human workflow verdict.
 
 **Required end state:** The desk and workspace show consistent, plain-language readiness with one primary next action, other relevant issues available on demand, and honest action-specific boundaries. F14 owns lifecycle colors; this feature owns explanations and control targets.
 
@@ -129,7 +129,7 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **If this was built correctly:** A staff member unfamiliar with a blocker understands what is missing, selects the action, lands on the correct field or handoff, and sees the next step only after the save is confirmed.
 
-- Model/engineering verdict: PASS in local engineering tests on `52286917` (2026-09-20): AC-S127-1 through AC-S127-4 and AC-S127-7 covered by the issue-model, desk-row, workspace and focus cases named in F-S127; AC-S127-6 in text only and AC-S127-5 partially (post-save focus not built); compiled browser checks NOT RUN while rehearsal auth is blocked; no deployed readback.
+- Model/engineering verdict: The local repair closes the original AC-S127-5 post-save focus gap across app-owned save controls. All 55 focused tests passed, including mounted successful-save/readback focus, preserved unrelated inputs, failed and stale saves, refresh completion without new evidence, ordinary read exclusion, role/target boundaries and independent-store saves; TypeScript, lint and independent review passed. Existing issue-model, desk-row, workspace and hash-focus behavior remains covered. Packet/PDF controls preserve their specific inspection and approval sequence. Final browser/full-verification results and remote delivery state are recorded in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md); this suite remains locally implemented and undeployed until that release evidence is read back.
 - Human verdict: NOT RUN — no human observer.
 - Any later human observation is recorded independently of implementation and provider verification.
 

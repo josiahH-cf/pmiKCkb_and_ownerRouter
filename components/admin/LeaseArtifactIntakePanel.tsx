@@ -79,7 +79,7 @@ type Payload = {
  * until a file arrives through the trusted publication path; receiving classifies the bytes as data,
  * recording a mapping keeps it Preview only, and approval puts that exact version into the S66
  * catalog. Nothing here uploads to a provider, connects an account, opens an action key or fills a
- * form; machine autofill is reported unavailable for PDF forms in this repository.
+ * form; reviewed supported AcroForms are filled and inspected through the lease packet controls.
  */
 export function LeaseArtifactIntakePanel({
   initial,
@@ -216,10 +216,10 @@ export function LeaseArtifactIntakePanel({
         Seven families, one entry each. A file is received only through the trusted
         publication path and classified from its bytes as data; a recorded mapping is
         Preview only; approval puts that exact version into the packet catalog and
-        supersedes the earlier one. Machine autofill is not available for PDF forms in
-        this repository: a worksheet is prepared from verified facts and a person
-        completes the fields in Dotloop. Nothing here uploads, connects an account or
-        opens an action key.
+        supersedes the earlier one. Supported AcroForms use the lease packet&apos;s filled
+        PDF controls: prepare from verified facts, download, inspect and approve the exact
+        output. Static files and provider templates keep their manual handoff. Nothing
+        here uploads, connects an account or opens an action key.
       </p>
       {note ? <p className="renewal-notice">{note}</p> : null}
       {manifest.state === "unreadable" ? (
@@ -262,6 +262,21 @@ export function LeaseArtifactIntakePanel({
                     <li key={line}>{line}</li>
                   ))}
                 </ul>
+              ) : null}
+              {entry?.classification?.pdfFields?.length ? (
+                <details>
+                  <summary>Parsed form field inventory</summary>
+                  <ul>
+                    {entry.classification.pdfFields.map((field) => (
+                      <li key={field.name}>
+                        {field.name}: {field.type}
+                        {field.type === "signature"
+                          ? " (human handoff; never filled)"
+                          : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               ) : null}
               {entry &&
               entry.state !== "rejected" &&
@@ -344,7 +359,7 @@ export function LeaseArtifactIntakePanel({
       <Field
         htmlFor="artifact-intake-template"
         label="Dotloop template reference (optional)"
-        hint="Recorded by staff only; a template reference makes the family provider-native."
+        hint="Recorded by staff only. Parsed AcroForms remain fillable; a provider reference alone never proves field filling."
       >
         <input
           id="artifact-intake-template"
@@ -361,7 +376,7 @@ export function LeaseArtifactIntakePanel({
       <Field
         htmlFor="artifact-intake-map"
         label="Reviewed mapping (JSON)"
-        hint="Exact field ids, meanings, requiredness, repeats, sources and signer roles as reviewed on the actual form."
+        hint="Exact field ids, meanings, requiredness, repeats, sources and signer roles as reviewed on the actual form. For repeated values, set pdfFieldNames to the exact slots in authoritative party or animal order."
       >
         <textarea
           id="artifact-intake-map"

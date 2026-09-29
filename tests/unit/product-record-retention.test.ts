@@ -37,6 +37,8 @@ const DIRECT_PRODUCT_RECORD_REFERENCE_INVENTORY = {
     "scripts/demo-firestore.mjs",
   ],
   lease_renewal_progress: [
+    "lib/firestore/lease-derived-artifacts.ts",
+    "lib/firestore/lease-document-action-claim.ts",
     "lib/firestore/lease-document-packet-snapshots.ts",
     "lib/firestore/lease-renewal-progress-schema.ts",
     "lib/firestore/lease-renewal-progress.ts",
@@ -62,6 +64,8 @@ const DIRECT_PRODUCT_RECORD_REFERENCE_INVENTORY = {
 const PRODUCT_RECORD_WRITER_INVENTORY = {
   approval_queue_items: ["lib/firestore/approval-queue.ts", "scripts/demo-firestore.mjs"],
   lease_renewal_progress: [
+    "lib/firestore/lease-derived-artifacts.ts",
+    "lib/firestore/lease-document-action-claim.ts",
     "lib/firestore/lease-document-packet-snapshots.ts",
     "lib/firestore/lease-renewal-progress.ts",
   ],

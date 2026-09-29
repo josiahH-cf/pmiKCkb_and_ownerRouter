@@ -4,7 +4,7 @@ const fixture = vi.hoisted(() => ({
   sheet: vi.fn(),
   project: vi.fn(),
   snapshot: vi.fn(),
-  freshSnapshot: vi.fn(),
+  packets: vi.fn(),
 }));
 vi.mock("@/lib/lease-renewal/live-config", () => ({
   buildLiveRenewalConfig: () => ({
@@ -14,9 +14,10 @@ vi.mock("@/lib/lease-renewal/live-config", () => ({
     spreadsheetId: "isolated-fixture-sheet",
   }),
 }));
-vi.mock("@/lib/lease-renewal/live-lease-cache", () => ({
-  getLiveLeaseSnapshot: fixture.snapshot,
-  getLiveLeaseSnapshotAtOrAfter: fixture.freshSnapshot,
+// This suite owns orchestration scheduling; the real admitted reader and its stronger
+// post-write barrier are exercised by the separate cache/cross-runtime/backend suites.
+vi.mock("@/lib/lease-renewal/admitted-notice-source", () => ({
+  readCoherentRenewalDisplaySource: fixture.snapshot,
 }));
 vi.mock("@/lib/lease-renewal/sheet-links", () => ({
   readRenewalSheetGridsWithLinks: fixture.sheet,
@@ -55,7 +56,7 @@ vi.mock("@/lib/firestore/lease-renewal-term-reviews", () => ({
   listLeaseTermReviews: async () => new Map(),
 }));
 vi.mock("@/lib/firestore/lease-document-packet-snapshots", () => ({
-  listCurrentRenewalPacketSnapshots: async () => new Map(),
+  listCurrentRenewalPacketSnapshots: fixture.packets,
 }));
 vi.mock("@/lib/gmail-hub/dependencies", () => ({
   createGmailHubService: () => ({ listCommunications: async () => [] }),
@@ -67,7 +68,31 @@ const actor = {
   hd: "pmikcmetro.com",
   role: "Editor" as const,
 };
-const snapshot = { snapshot: { views: [], complete: true } };
+const snapshot: Awaited<
+  ReturnType<
+    typeof import("@/lib/lease-renewal/admitted-notice-source").readCoherentRenewalDisplaySource
+  >
+> = {
+  snapshot: {
+    views: [{ leaseID: "9001" }],
+    complete: true,
+    detailComplete: true,
+    detailUnavailableCount: 0,
+    readAtMs: Date.parse("2026-09-10T16:00:00Z"),
+  },
+  currency: {
+    state: "fresh",
+    ageMs: 0,
+    readAtMs: Date.parse("2026-09-10T16:00:00Z"),
+    refreshing: false,
+    lastError: false,
+  },
+  statusTable: {
+    status: "available",
+    statuses: [],
+    readAtMs: Date.parse("2026-09-10T16:00:00Z"),
+  },
+};
 const sheet = {
   tables: [],
   tableJoinIds: [],
@@ -77,7 +102,7 @@ const sheet = {
 afterEach(() => vi.resetAllMocks());
 function setup() {
   fixture.snapshot.mockResolvedValue(snapshot);
-  fixture.freshSnapshot.mockResolvedValue(snapshot);
+  fixture.packets.mockResolvedValue(new Map());
   fixture.sheet.mockResolvedValue(sheet);
   fixture.project.mockResolvedValue({ status: "ok" });
   fixture.progress.mockResolvedValue(new Map());
@@ -97,12 +122,16 @@ describe("S113 fresh desk read scheduling", () => {
       await vi.waitFor(() => expect(fixture.sheet).toHaveBeenCalledTimes(1), {
         timeout: 1000,
       });
+      expect(fixture.project).not.toHaveBeenCalled();
     } finally {
       finish?.();
     }
     expect((await result).outcome.status).toBe("ok");
     // The prepared Sheet read is the loader's thirteenth argument (S125 appended the timing basis).
     expect(fixture.project.mock.calls[0][12]).toBe(sheet);
+    expect(fixture.project.mock.calls[0][8]).toBe(snapshot);
+    expect(fixture.project.mock.calls[0][15]).toBe(snapshot.statusTable);
+    expect(fixture.snapshot).toHaveBeenCalledOnce();
     expect(fixture.sheet).toHaveBeenCalledTimes(1);
   });
   it("starts independent supporting reads before the lease snapshot settles", async () => {
@@ -119,11 +148,15 @@ describe("S113 fresh desk read scheduling", () => {
       await vi.waitFor(() => expect(fixture.progress).toHaveBeenCalledOnce(), {
         timeout: 1000,
       });
+      expect(fixture.project).not.toHaveBeenCalled();
+      expect(fixture.packets).not.toHaveBeenCalled();
     } finally {
       finish();
     }
     expect((await result).outcome.status).toBe("ok");
     expect(fixture.project.mock.calls[0][8]).toBe(snapshot);
+    expect(fixture.project.mock.calls[0][15]).toBe(snapshot.statusTable);
+    expect(fixture.packets).toHaveBeenCalledExactlyOnceWith(actor, ["9001"]);
   });
   it("keeps failed primary Sheet reads as read_error and preserves the requested lease freshness floor", async () => {
     setup();
@@ -134,8 +167,20 @@ describe("S113 fresh desk read scheduling", () => {
     expect(result.outcome).toEqual({ status: "read_error" });
     expect(fixture.project).not.toHaveBeenCalled();
     expect(fixture.sheet).toHaveBeenCalledTimes(1);
-    expect(fixture.snapshot).not.toHaveBeenCalled();
-    expect(fixture.freshSnapshot).toHaveBeenCalledWith({}, now.getTime(), floor);
+    expect(fixture.snapshot).toHaveBeenCalledExactlyOnceWith(
+      actor,
+      expect.any(Object),
+      now.getTime(),
+      { sourceRefreshAfter: floor },
+    );
+    // These callbacks are supplied through a Proxy get trap, not enumerable own properties.
+    expect(fixture.snapshot.mock.calls[0][1].beforeLeaseSourceRead).toBeTypeOf(
+      "function",
+    );
+    expect(fixture.snapshot.mock.calls[0][1].beforeStatusSourceRead).toBeTypeOf(
+      "function",
+    );
+    expect(fixture.packets).toHaveBeenCalledExactlyOnceWith(actor, ["9001"]);
     expect(JSON.stringify(result)).not.toContain("private provider body");
   });
 });

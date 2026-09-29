@@ -180,10 +180,10 @@ describe("S126 app-owned history and message text (AC-S126-1, AC-S126-2)", () =>
     expect(formatWorkStatusRecordedAt("2026-07-15T15:00:00.000Z")).toBe(
       "07/15/2026, 10:00 AM CDT",
     );
-    expect(formatWorkStatusRecordedAt("not a time")).toBe("not a time");
+    expect(formatWorkStatusRecordedAt("not a time")).toBe("Invalid timestamp");
     expect(formatDateTime("2026-01-15T15:00:00.000Z")).toBe("01/15/2026, 9:00 AM CST");
     expect(formatNoticeDate("2026-06-15")).toBe("06/15/2026");
-    expect(formatNoticeDate("garbage")).toBe("garbage");
+    expect(formatNoticeDate("garbage")).toBe("Invalid date");
   });
 });
 

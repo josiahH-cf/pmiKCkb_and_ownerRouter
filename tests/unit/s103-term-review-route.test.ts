@@ -213,7 +213,7 @@ describe("S103 AC-S103-4: the review is bound to the lease view the server obser
   it("records the review only when the served view's fingerprint matches", async () => {
     const response = await POST(post(body));
     expect(response.status).toBe(200);
-    expect(mocks.readLeaseTermSource).toHaveBeenCalledWith("41");
+    expect(mocks.readLeaseTermSource).toHaveBeenCalledWith(editor, "41");
     expect(mocks.recordLeaseTermReview).toHaveBeenCalledTimes(1);
   });
 });
