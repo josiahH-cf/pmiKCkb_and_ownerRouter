@@ -22,4 +22,13 @@ export function assertReleaseCheckpoint(input: {
   revision?: string;
   phases: readonly string[];
   stateRoot?: string;
-}): { sha: string; runId: string; revision: string; phase: string; inFlight: string };
+}): {
+  sha: string;
+  runId: string;
+  revision: string;
+  phase: string;
+  inFlight: string;
+  predecessor?: string;
+  supersededCandidateHost?: string;
+  supersededCandidateRevision?: string;
+};

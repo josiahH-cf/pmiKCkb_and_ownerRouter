@@ -59,8 +59,39 @@ const PROJECT = "pmi-kc-kb-prod",
   REGION = "us-central1",
   SERVICE = "pmi-kc-app";
 const CANONICAL = "https://pmi-kc-app-kq6wuvpiva-uc.a.run.app";
-const INITIAL_CANDIDATE_HOST =
-  "cand-rmtq71kjl-bff41bbdb5fa---pmi-kc-app-kq6wuvpiva-uc.a.run.app";
+const CHILD_FAILURE_CODES = new Set([
+  "assurance_failed",
+  "assurance_live_environment_required",
+  "version_read_failed",
+  "version_identity_mismatch",
+  "recovery_preparation_inputs_required",
+  "recovery_checkpoint_binding_mismatch",
+  "recovery_authorized_tag_binding_required",
+  "recovery_origin_not_authorized",
+  "recovery_original_baseline_mismatch",
+  "recovery_preparation_intent_mismatch",
+  "recovery_preparation_claim_required",
+  "recovery_preparation_outcome_unresolved",
+  "recovery_service_conflict",
+  "recovery_revision_not_ready",
+  "recovery_configuration_mismatch",
+  "recovery_zero_traffic_binding_mismatch",
+  "recovery_preparation_assurance_failed",
+  "recovery_final_preparation_readback_failed",
+  "recovery_serving_traffic_changed",
+  "recovery_digest_required",
+  "recovery_unmapped_configuration_field",
+  "release_lock_lost",
+  "release_kernel_lock_required",
+  "exact_batch_checkpoint_required",
+  "candidate_assurance_gate_failed",
+  "predecessor_baseline_failed",
+  "candidate_assurance_deadline_exceeded",
+]);
+export function childFailureCode(stderr) {
+  const match = /^Production observation refused: ([a-z0-9_]+)\.$/m.exec(stderr);
+  return CHILD_FAILURE_CODES.has(match?.[1]) ? match[1] : "unclassified_child_failure";
+}
 const COORDINATES = [
   `--project=${PROJECT}`,
   `--region=${REGION}`,
@@ -92,13 +123,17 @@ export function command(
       detached: true,
     });
     let stdout = "",
+      stderr = "",
       settled = false;
     const finish = (result) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
       signal?.removeEventListener("abort", abort);
-      resolveResult(result);
+      resolveResult({
+        ...result,
+        ...(result.status === 0 ? {} : { failureCode: childFailureCode(stderr) }),
+      });
     };
     const timer = setTimeout(async () => {
       try {
@@ -120,7 +155,9 @@ export function command(
     child.stdout.on("data", (data) => {
       if (stdout.length < 16 * 1024 * 1024) stdout += data;
     });
-    child.stderr.resume();
+    child.stderr.on("data", (data) => {
+      if (stderr.length < 64 * 1024) stderr += data;
+    });
     child.on("error", () => {
       if (!settled) {
         settled = true;
@@ -163,6 +200,61 @@ function traffic(service) {
     .filter((x) => (x.percent ?? 0) > 0)
     .map((x) => ({ revision: x.revisionName, percent: x.percent }))
     .sort((a, b) => a.revision.localeCompare(b.revision));
+}
+
+/** The currently authorized tag is a navigation binding, never the rollback source. */
+export function selectRecoveryTagBinding(config, service) {
+  const canonicalHost = new URL(CANONICAL).hostname;
+  const domains = config?.authorizedDomains;
+  const candidates = Array.isArray(domains)
+    ? domains.filter((host) => typeof host === "string" && host.startsWith("cand-"))
+    : [];
+  if (
+    !Array.isArray(domains) ||
+    domains.some((host) => typeof host !== "string") ||
+    domains.filter((host) => host === canonicalHost).length !== 1 ||
+    candidates.length !== 1 ||
+    !/^cand-[a-z0-9-]+---pmi-kc-app-kq6wuvpiva-uc\.a\.run\.app$/.test(candidates[0])
+  )
+    throw new Error("unique_authorized_candidate_host_required");
+  const baseline = traffic(service);
+  if (
+    service?.metadata?.name !== SERVICE ||
+    service?.status?.url !== CANONICAL ||
+    baseline.length !== 1 ||
+    baseline[0].percent !== 100 ||
+    !/^pmi-kc-app-[a-z0-9-]+$/.test(baseline[0].revision)
+  )
+    throw new Error("exact_serving_baseline_required");
+  const host = candidates[0];
+  const tag = host.split("---")[0];
+  const bindings = service.status.traffic.filter(
+    (row) => row.tag === tag || row.url === `https://${host}`,
+  );
+  const bound = bindings[0];
+  if (
+    bindings.length !== 1 ||
+    bound.tag !== tag ||
+    bound.url !== `https://${host}` ||
+    !/^pmi-kc-app-[a-z0-9-]{1,51}$/.test(bound.revisionName ?? "") ||
+    bound.latestRevision === true ||
+    ![0, 100].includes(bound.percent ?? 0) ||
+    ((bound.percent ?? 0) === 100 && bound.revisionName !== baseline[0].revision)
+  )
+    throw new Error("authorized_candidate_tag_binding_required");
+  return {
+    supersededCandidateHost: host,
+    supersededCandidateRevision: bound.revisionName,
+    predecessor: baseline[0].revision,
+    baselineTraffic: baseline,
+  };
+}
+
+/** Publish only a fully read-back bootstrap; a failed read leaves the prior checkpoint intact. */
+export async function bootstrapReleaseCheckpoint(draft, driver) {
+  const checkpoint = { ...draft, ...(await driver.bootstrap(draft)) };
+  await driver.save(checkpoint);
+  return checkpoint;
 }
 function sameTraffic(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
@@ -283,14 +375,15 @@ export function createDriver({
     }
   };
   const checkout = (cp) => join(stateRoot, "checkouts", cp.sha);
-  const runScript = (cp, script, args = [], timeoutMs = 30 * 60_000) => {
+  const runScript = async (cp, script, args = [], timeoutMs = 30 * 60_000) => {
     const sourceEnvironment =
       script === "observe-production-release.ts" &&
       (args.includes("--prepare-candidate-receipt") ||
+        args.includes("--prepare-recovery-baseline") ||
         args.some((arg) => arg.startsWith("--promotion-receipt=")))
         ? resolveWatcherSourceEnvironment(source)
         : {};
-    return runCommand(
+    const result = await runCommand(
       process.execPath,
       [
         "--import",
@@ -311,6 +404,24 @@ export function createDriver({
         },
       },
     );
+    if (result.status !== 0) {
+      assertLock();
+      writeReceipt(join(stateRoot, `child-failure-${cp.runId}-${randomUUID()}.json`), {
+        schemaVersion: "pmi-kc-release-child-failure.v1",
+        runId: cp.runId,
+        sha: cp.sha,
+        phase: cp.phase,
+        script,
+        recordedAt: new Date().toISOString(),
+        status: Number.isInteger(result.status) ? result.status : null,
+        timedOut: result.timedOut === true,
+        lockLost: result.lockLost === true,
+        code: CHILD_FAILURE_CODES.has(result.failureCode)
+          ? result.failureCode
+          : "unclassified_child_failure",
+      });
+    }
+    return result;
   };
   const assuranceArgs = (cp, origin = cp.candidateOrigin) => [
     "--live",
@@ -456,7 +567,19 @@ export function createDriver({
       );
       return { sha, ci, changedPaths, foundationPresent: foundation.status === 0 };
     },
+    async bootstrap(cp) {
+      assertAdmission(cp);
+      return selectRecoveryTagBinding(await identityConfig(), await serviceRead());
+    },
     async prepare(cp) {
+      const binding = await this.bootstrap(cp);
+      if (
+        binding.supersededCandidateHost !== cp.supersededCandidateHost ||
+        binding.supersededCandidateRevision !== cp.supersededCandidateRevision ||
+        binding.predecessor !== cp.predecessor ||
+        !sameTraffic(binding.baselineTraffic, cp.baselineTraffic)
+      )
+        throw new Error("recovery_bootstrap_binding_changed");
       await checked(GH, [
         "run",
         "watch",
@@ -479,12 +602,11 @@ export function createDriver({
         cwd: checkout(cp),
         timeoutMs: 15 * 60_000,
       });
-      const baseline = traffic(await serviceRead());
-      if (baseline.length !== 1 || baseline[0].percent !== 100)
-        throw new Error("exact_serving_baseline_required");
+      const after = await this.bootstrap(cp);
+      if (JSON.stringify(after) !== JSON.stringify(binding))
+        throw new Error("recovery_bootstrap_binding_changed");
       return {
         verified: true,
-        patch: { baselineTraffic: baseline, predecessor: baseline[0].revision },
       };
     },
     async deploy(cp) {
@@ -600,6 +722,34 @@ export function createDriver({
     },
     async recovery(cp) {
       assertAdmission(cp);
+      assertLock();
+      if (
+        !/^cand-[a-z0-9-]+---pmi-kc-app-kq6wuvpiva-uc\.a\.run\.app$/.test(
+          cp.supersededCandidateHost ?? "",
+        ) ||
+        !/^pmi-kc-app-[a-z0-9-]+$/.test(cp.supersededCandidateRevision ?? "")
+      )
+        throw new Error("authorized_candidate_tag_binding_required");
+      const enrollmentVersion = browserEnrollmentVersion([adminProfile]);
+      if (!browserEnrollmentChanged(cp, enrollmentVersion))
+        return { verified: false, reason: "managed_browser_enrollment_required" };
+      const sessions = await ensureAuth({
+        need: ["canary"],
+        unattended: true,
+        root: checkout(cp),
+        canary: [CANONICAL, `https://${cp.supersededCandidateHost}`].map((origin) => ({
+          label: "admin",
+          profile: adminProfile,
+          email: "josiah@pmikcmetro.com",
+          origin,
+        })),
+      });
+      if (sessions.exitCode !== 0)
+        return {
+          verified: false,
+          reason: "managed_browser_enrollment_required",
+          patch: { browserEnrollmentVersion: enrollmentVersion },
+        };
       const output = join(stateRoot, `recovery-${cp.runId}-baseline.json`);
       const result = await runScript(cp, "observe-production-release.ts", [
         "--prepare-recovery-baseline",
@@ -608,6 +758,7 @@ export function createDriver({
         `--predecessor-revision=${cp.predecessor}`,
         `--recovery-tag=${cp.supersededCandidateHost.split("---")[0]}`,
         `--recovery-origin=https://${cp.supersededCandidateHost}`,
+        `--recovery-tag-previous-revision=${cp.supersededCandidateRevision}`,
         `--canonical-origin=${CANONICAL}`,
         `--operator-email=${monitoring.operatorEmail}`,
         `--admin-profile=${adminProfile}`,
@@ -869,7 +1020,7 @@ export async function main(
               });
           if (!cp || cp.phase === "complete" || cp.terminalFailure) {
             const suffix = createDeployRevisionSuffix();
-            cp = {
+            const draft = {
               runId: permit.runId,
               sha: observed.sha,
               ciRunId: observed.ci.databaseId,
@@ -878,11 +1029,8 @@ export async function main(
               revision: `${SERVICE}-${suffix}`,
               tag: `cand-${suffix}`,
               lastDeployedSha: cp?.lastDeployedSha,
-              supersededCandidateHost: cp?.candidateOrigin
-                ? new URL(cp.candidateOrigin).hostname
-                : INITIAL_CANDIDATE_HOST,
             };
-            await driver.save(cp);
+            cp = await bootstrapReleaseCheckpoint(draft, driver);
           }
           while (cp.phase !== "complete") {
             cp = await advanceRelease(cp, driver);

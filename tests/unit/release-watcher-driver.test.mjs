@@ -1,11 +1,21 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   createDriver,
   resolveWatcherMonitoringConfig,
   resolveWatcherSourceEnvironment,
+  selectRecoveryTagBinding,
+  childFailureCode,
+  bootstrapReleaseCheckpoint,
 } from "../../scripts/release-watcher.mjs";
 import { recordBrowserEnrollment } from "../../scripts/auth/browser-enrollment.mjs";
 import { parseReleaseArgs } from "../../scripts/release-candidate.mjs";
@@ -37,6 +47,7 @@ function harness({
   reportOverride = {},
   authExitCode = 0,
   createCloudClient,
+  serviceReadback,
   candidateAssured = false,
   assertLock,
   // S128 (F08): the captured predecessor's operating-Sheet write flag as read back from its revision.
@@ -111,9 +122,11 @@ function harness({
     if (bin === "gcloud" && args.includes("describe") && args.includes("services"))
       return {
         status: 0,
-        stdout: JSON.stringify({
-          status: { traffic: [{ revisionName: serving, percent: 100 }] },
-        }),
+        stdout: JSON.stringify(
+          serviceReadback ?? {
+            status: { traffic: [{ revisionName: serving, percent: 100 }] },
+          },
+        ),
       };
     // S128 (F08): revision runtime readback for the rollback write-flag guard.
     if (bin === "gcloud" && args.includes("describe") && args.includes("revisions")) {
@@ -508,6 +521,223 @@ describe("release watcher command-path recovery", () => {
         rollback: { revision: predecessor },
       }),
     ).rejects.toThrow("recovery_receipt_invalid");
+  });
+});
+
+describe("fresh replacement recovery bootstrap", () => {
+  const canonical = "https://pmi-kc-app-kq6wuvpiva-uc.a.run.app";
+  const host = "cand-held---pmi-kc-app-kq6wuvpiva-uc.a.run.app";
+  const config = () => ({
+    authorizedDomains: ["localhost", new URL(canonical).hostname, host],
+  });
+  const serviceState = () => ({
+    metadata: { name: service },
+    status: {
+      url: canonical,
+      traffic: [
+        { revisionName: predecessor, percent: 100 },
+        { revisionName: revision, percent: 0, tag: "cand-held", url: `https://${host}` },
+        {
+          revisionName: "pmi-kc-app-old-recovery",
+          percent: 0,
+          tag: "cand-old",
+          url: "https://cand-old---pmi-kc-app-kq6wuvpiva-uc.a.run.app",
+        },
+      ],
+    },
+  });
+  const bound = () => selectRecoveryTagBinding(config(), serviceState());
+  it("selects the actual unique authorized tag, keeping canonical predecessor separate", async () => {
+    const cloud = { request: vi.fn(async () => ({ data: config() })) };
+    const h = harness({
+      serviceReadback: serviceState(),
+      createCloudClient: async () => cloud,
+    });
+    expect(await h.driver.bootstrap(h.cp)).toEqual({
+      supersededCandidateHost: host,
+      supersededCandidateRevision: revision,
+      predecessor,
+      baselineTraffic: [{ revision: predecessor, percent: 100 }],
+    });
+    expect(cloud.request.mock.calls.every(([request]) => request.method === "GET")).toBe(
+      true,
+    );
+    expect(h.runCommand.mock.calls).toHaveLength(1);
+  });
+  it.each([
+    "none",
+    "duplicate_domain",
+    "foreign_domain",
+    "no_canonical",
+    "duplicate_tag",
+    "duplicate_uri",
+    "wrong_uri",
+    "missing_revision",
+    "latest_revision",
+    "traffic_split",
+    "wrong_service",
+    "wrong_canonical",
+  ])("refuses %s without a fallback host", (kind) => {
+    const cfg = config(),
+      svc = serviceState();
+    if (kind === "none") cfg.authorizedDomains.pop();
+    if (kind === "duplicate_domain") cfg.authorizedDomains.push(host);
+    if (kind === "foreign_domain")
+      cfg.authorizedDomains.push("cand-other---foreign.a.run.app");
+    if (kind === "no_canonical") cfg.authorizedDomains.splice(1, 1);
+    if (kind === "duplicate_tag")
+      svc.status.traffic.push({ ...svc.status.traffic[1], url: "https://other.invalid" });
+    if (kind === "duplicate_uri")
+      svc.status.traffic.push({ ...svc.status.traffic[1], tag: "cand-other" });
+    if (kind === "wrong_uri") svc.status.traffic[1].url = "https://foreign.invalid";
+    if (kind === "missing_revision") delete svc.status.traffic[1].revisionName;
+    if (kind === "latest_revision") svc.status.traffic[1].latestRevision = true;
+    if (kind === "traffic_split") svc.status.traffic[0].percent = 99;
+    if (kind === "wrong_service") svc.metadata.name = "other";
+    if (kind === "wrong_canonical") svc.status.url = "https://other.invalid";
+    expect(() => selectRecoveryTagBinding(cfg, svc)).toThrow();
+  });
+  it("refuses bootstrap read failure or persisted binding drift before preparation commands", async () => {
+    const cloud = { request: vi.fn(async () => ({ data: config() })) };
+    const h = harness({
+      serviceReadback: serviceState(),
+      createCloudClient: async () => cloud,
+    });
+    await expect(
+      h.driver.prepare({ ...h.cp, ...bound(), supersededCandidateRevision: predecessor }),
+    ).rejects.toThrow("recovery_bootstrap_binding_changed");
+    expect(h.runCommand.mock.calls.every(([bin]) => bin === "gcloud")).toBe(true);
+    cloud.request.mockRejectedValue(new Error("isolated_read_failure"));
+    await expect(h.driver.bootstrap(h.cp)).rejects.toThrow("isolated_read_failure");
+  });
+  it.each([
+    null,
+    { phase: "complete", sha: "c".repeat(40), lastDeployedSha: "c".repeat(40) },
+  ])(
+    "keeps prior checkpoint %s unchanged on a failed read then publishes one complete retry",
+    async (previous) => {
+      const h = harness({
+        serviceReadback: serviceState(),
+        createCloudClient: async () => ({
+          request: vi
+            .fn()
+            .mockRejectedValueOnce(new Error("isolated_read_failure"))
+            .mockResolvedValue({ data: config() }),
+        }),
+      });
+      // Retain one client so its read failure is transient, as it is in the real driver.
+      if (previous) writeFileSync(h.checkpointPath, JSON.stringify(previous));
+      const oldBytes = previous ? readFileSync(h.checkpointPath, "utf8") : null;
+      const draft = { runId: h.cp.runId, sha: h.cp.sha, phase: "prepare" };
+      await expect(bootstrapReleaseCheckpoint(draft, h.driver)).rejects.toThrow(
+        "isolated_read_failure",
+      );
+      expect(
+        previous
+          ? readFileSync(h.checkpointPath, "utf8")
+          : readdirSync(h.root).includes("checkpoint.json"),
+      ).toBe(previous ? oldBytes : false);
+      const result = await bootstrapReleaseCheckpoint(draft, h.driver);
+      expect(result).toEqual({ ...draft, ...bound() });
+      expect(JSON.parse(readFileSync(h.checkpointPath, "utf8"))).toEqual(result);
+      expect(h.runCommand.mock.calls.every(([bin]) => bin === "gcloud")).toBe(true);
+      expect(
+        readdirSync(h.root).some((name) => name.startsWith("application-build-")),
+      ).toBe(false);
+    },
+  );
+  it("ensures the exact canonical and recovery origin sessions before the isolated recovery command", async () => {
+    const h = harness();
+    h.runCommand.mockResolvedValue({ status: 0, stdout: "" });
+    const cp = { ...h.cp, ...bound(), phase: "recovery" };
+    expect((await h.driver.recovery(cp)).verified).toBe(true);
+    expect(h.ensureAuth).toHaveBeenCalledWith(
+      expect.objectContaining({
+        need: ["canary"],
+        unattended: true,
+        canary: [canonical, `https://${host}`].map((origin) => ({
+          origin,
+          label: "admin",
+          profile: join(h.root, "admin"),
+          email: "josiah@pmikcmetro.com",
+        })),
+      }),
+    );
+    expect(h.ensureAuth.mock.invocationCallOrder[0]).toBeLessThan(
+      h.runCommand.mock.invocationCallOrder[0],
+    );
+    expect(h.runCommand.mock.calls[0][1]).toContain(
+      `--recovery-tag-previous-revision=${revision}`,
+    );
+    expect(h.runCommand.mock.calls[0][2].env).toMatchObject({
+      RENTVINE_API_KEY: "isolated-key",
+      ENVIRONMENT_KIND: "production",
+      DATA_CONTEXT: "live",
+    });
+  });
+  it("holds a challenged recovery origin without dispatch, and does not retry unchanged enrollment", async () => {
+    const h = harness({ authExitCode: 1 });
+    const cp = { ...h.cp, ...bound(), phase: "recovery" };
+    const result = await h.driver.recovery(cp);
+    expect(result.reason).toBe("managed_browser_enrollment_required");
+    await h.driver.recovery({ ...cp, blocked: result.reason, ...result.patch });
+    expect(h.ensureAuth).toHaveBeenCalledTimes(1);
+    expect(h.runCommand).not.toHaveBeenCalled();
+  });
+  it.each([
+    "recovery_preparation_assurance_failed",
+    "candidate_assurance_gate_failed",
+    "arbitrary_secret_value",
+  ])(
+    "persists only the allowlisted child failure classification %s",
+    async (failureCode) => {
+      const h = harness();
+      h.runCommand.mockResolvedValue({
+        status: 1,
+        stdout: "PRIVATE_PROVIDER_BODY",
+        stderr: "SECRET_TOKEN",
+        failureCode,
+      });
+      await h.driver.recovery({ ...h.cp, ...bound(), phase: "recovery" });
+      const path = readdirSync(h.root).find((name) => name.startsWith("child-failure-"));
+      const bytes = readFileSync(join(h.root, path), "utf8");
+      const report = JSON.parse(bytes);
+      expect(report.code).toBe(
+        failureCode === "arbitrary_secret_value"
+          ? "unclassified_child_failure"
+          : failureCode,
+      );
+      expect(bytes).not.toMatch(
+        /PRIVATE_PROVIDER_BODY|SECRET_TOKEN|arbitrary_secret_value/,
+      );
+      expect(Object.keys(report).sort()).toEqual(
+        [
+          "schemaVersion",
+          "runId",
+          "sha",
+          "phase",
+          "script",
+          "recordedAt",
+          "status",
+          "timedOut",
+          "lockLost",
+          "code",
+        ].sort(),
+      );
+    },
+  );
+  it("never admits arbitrary underscore-only error strings into the failure classifier", () => {
+    expect(
+      childFailureCode("Production observation refused: sensitive_customer_value."),
+    ).toBe("unclassified_child_failure");
+    expect(
+      childFailureCode("Production observation refused: predecessor_baseline_failed.\n"),
+    ).toBe("predecessor_baseline_failed");
+    expect(
+      childFailureCode(
+        "Production observation refused: candidate_assurance_deadline_exceeded.",
+      ),
+    ).toBe("candidate_assurance_deadline_exceeded");
   });
 });
 

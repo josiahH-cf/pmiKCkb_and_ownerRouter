@@ -227,6 +227,7 @@ export function recoveryFixture(root, options = {}) {
       predecessorRevision: original,
       tag,
       tagOrigin,
+      tagPreviousRevision: original,
     },
     receipt,
     reference: recoveryReference(path, receipt),

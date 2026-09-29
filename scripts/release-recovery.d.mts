@@ -65,6 +65,7 @@ export function prepareRecoveryBaseline(
     predecessorRevision: string;
     tag: string;
     tagOrigin: string;
+    tagPreviousRevision: string;
   },
   dependencies: {
     client: Client;

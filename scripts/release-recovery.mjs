@@ -172,17 +172,21 @@ function serviceControlHash(service) {
     Object.fromEntries(Object.entries(service).filter(([key]) => !ignored.has(key))),
   );
 }
+const sortTraffic = (rows) =>
+  [...rows].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
 function explicitTraffic(service) {
-  return service.trafficStatuses.map((row) => {
-    if (!NAME.test(row.revision) || !Number.isFinite(Number(row.percent ?? 0)))
-      throw new Error("recovery_traffic_unavailable");
-    return {
-      type: "TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION",
-      revision: row.revision,
-      percent: Number(row.percent ?? 0),
-      ...(row.tag ? { tag: row.tag } : {}),
-    };
-  });
+  return sortTraffic(
+    service.trafficStatuses.map((row) => {
+      if (!NAME.test(row.revision) || !Number.isFinite(Number(row.percent ?? 0)))
+        throw new Error("recovery_traffic_unavailable");
+      return {
+        type: "TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION",
+        revision: row.revision,
+        percent: Number(row.percent ?? 0),
+        ...(row.tag ? { tag: row.tag } : {}),
+      };
+    }),
+  );
 }
 
 /** Preserve the immutable predecessor, never the current service template. Resolve image tags
@@ -390,12 +394,20 @@ export async function prepareRecoveryBaseline(
   coordinates(input);
   assertLock();
   authorize();
+  if (
+    !NAME.test(input.tagPreviousRevision ?? "") ||
+    !input.tagPreviousRevision.startsWith(`${input.service}-`)
+  )
+    throw new Error("recovery_authorized_tag_binding_required");
   const receiptPath = statePath(stateRoot, input.runId, "baseline");
   if (existsSync(receiptPath))
     return {
       receipt: assertRecoveryBaseline(read(receiptPath), {
         runId: input.runId,
         sha: input.sha,
+        tag: input.tag,
+        tagOrigin: input.tagOrigin,
+        tagPreviousRevision: input.tagPreviousRevision,
       }),
       path: receiptPath,
     };
@@ -417,19 +429,24 @@ export async function prepareRecoveryBaseline(
   const recoveryHost = new URL(input.tagOrigin).hostname;
   if (input.tagOrigin !== `https://${input.tag}---${canonicalHost}`)
     throw new Error("recovery_authorized_tag_binding_required");
-  const identityConfig = (
-    await client.request({
-      method: "GET",
-      url: `https://identitytoolkit.googleapis.com/admin/v2/projects/${input.project}/config`,
-    })
-  ).data;
-  const domains = identityConfig?.authorizedDomains;
-  if (
-    !Array.isArray(domains) ||
-    domains.filter((host) => host === recoveryHost).length !== 1 ||
-    !domains.includes(canonicalHost)
-  )
-    throw new Error("recovery_origin_not_authorized");
+  const assertAuthorizedOrigin = async () => {
+    const identityConfig = (
+      await client.request({
+        method: "GET",
+        url: `https://identitytoolkit.googleapis.com/admin/v2/projects/${input.project}/config`,
+      })
+    ).data;
+    const domains = identityConfig?.authorizedDomains;
+    if (
+      !Array.isArray(domains) ||
+      domains.filter((host) => host === recoveryHost).length !== 1 ||
+      domains.filter((host) => typeof host === "string" && host.startsWith("cand-"))
+        .length !== 1 ||
+      domains.filter((host) => host === canonicalHost).length !== 1
+    )
+      throw new Error("recovery_origin_not_authorized");
+  };
+  await assertAuthorizedOrigin();
   const imageDigests = await resolveDigests(client, input, source);
   const targetRevision = `${input.service}-recovery-${input.runId.replaceAll("-", "").slice(0, 16)}`;
   const { template, expected } = pausedPredecessorTemplate(
@@ -439,18 +456,69 @@ export async function prepareRecoveryBaseline(
   );
   const targetFingerprint = fingerprint(expected);
   const intentPath = statePath(stateRoot, input.runId, "preparation-intent");
-  const tagEntry = service.trafficStatuses.find(
-    (row) => row.tag === input.tag && row.uri === input.tagOrigin,
+  const claimPath = statePath(stateRoot, input.runId, "preparation-dispatch");
+  const operationPath = statePath(stateRoot, input.runId, "preparation-operation");
+  const priorIntent = existsSync(intentPath) ? read(intentPath) : null;
+  const tagEntries = service.trafficStatuses.filter(
+    (row) => row.tag === input.tag || row.uri === input.tagOrigin,
   );
+  const tagEntry = tagEntries[0];
   if (
-    !tagEntry ||
-    (tagEntry.revision !== input.predecessorRevision &&
-      !(existsSync(intentPath) && tagEntry.revision === targetRevision)) ||
+    tagEntries.length !== 1 ||
+    tagEntry.tag !== input.tag ||
+    tagEntry.uri !== input.tagOrigin ||
+    (tagEntry.revision !== input.tagPreviousRevision &&
+      !(priorIntent && tagEntry.revision === targetRevision)) ||
+    ![0, 100].includes(tagEntry.percent ?? 0) ||
+    ((tagEntry.percent ?? 0) === 100 &&
+      tagEntry.revision !== input.predecessorRevision) ||
     !/^cand-[a-z0-9-]+$/.test(input.tag)
   )
     throw new Error("recovery_authorized_tag_binding_required");
+  const originalTraffic = priorIntent?.originalTraffic ?? explicitTraffic(service);
+  if (
+    !Array.isArray(originalTraffic) ||
+    !originalTraffic.length ||
+    originalTraffic.some(
+      (row) =>
+        !row ||
+        row.type !== "TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION" ||
+        !NAME.test(row.revision ?? "") ||
+        ![0, 100].includes(row.percent) ||
+        (row.tag !== undefined && !NAME.test(row.tag)) ||
+        Object.keys(row).sort().join(",") !==
+          (row.tag ? "percent,revision,tag,type" : "percent,revision,type"),
+    ) ||
+    originalTraffic.filter((row) => row.tag === input.tag).length !== 1 ||
+    originalTraffic.find((row) => row.tag === input.tag)?.revision !==
+      input.tagPreviousRevision ||
+    !equal(
+      originalTraffic
+        .filter((row) => row.percent > 0)
+        .map(({ revision, percent }) => ({ revision, percent })),
+      [{ revision: input.predecessorRevision, percent: 100 }],
+    )
+  )
+    throw new Error("recovery_preparation_intent_mismatch");
+  const plannedTraffic = sortTraffic(
+    originalTraffic
+      .map((row) =>
+        row.tag === input.tag ? { ...row, revision: targetRevision, percent: 0 } : row,
+      )
+      .concat(
+        originalTraffic.find((row) => row.tag === input.tag).percent === 100
+          ? [
+              {
+                type: "TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION",
+                revision: input.predecessorRevision,
+                percent: 100,
+              },
+            ]
+          : [],
+      ),
+  );
   const intent = {
-    schemaVersion: "pmi-kc-recovery-preparation-intent.v1",
+    schemaVersion: "pmi-kc-recovery-preparation-intent.v2",
     runId: input.runId,
     sha: input.sha,
     predecessorRevision: input.predecessorRevision,
@@ -460,15 +528,45 @@ export async function prepareRecoveryBaseline(
     imageDigests,
     tag: input.tag,
     tagOrigin: input.tagOrigin,
+    tagPreviousRevision: input.tagPreviousRevision,
+    originalTraffic,
     serviceControlsHash: serviceControlHash(service),
   };
-  if (existsSync(intentPath)) {
-    if (!equal(read(intentPath), intent))
+  if (priorIntent) {
+    if (!equal(priorIntent, intent))
       throw new Error("recovery_preparation_intent_mismatch");
   } else persist(intentPath, intent);
+  if (
+    !equal(explicitTraffic(service), originalTraffic) &&
+    !equal(explicitTraffic(service), plannedTraffic)
+  )
+    throw new Error("recovery_service_conflict");
+  if (existsSync(claimPath)) {
+    const claim = read(claimPath);
+    onlyKeys(claim, [
+      "runId",
+      "sha",
+      "targetRevision",
+      "intentHash",
+      "serviceEtag",
+      "claimedAt",
+    ]);
+    if (
+      claim.runId !== input.runId ||
+      claim.sha !== input.sha ||
+      claim.targetRevision !== targetRevision ||
+      claim.intentHash !== recoveryHash(intent) ||
+      typeof claim.serviceEtag !== "string" ||
+      !claim.serviceEtag ||
+      !Number.isFinite(Date.parse(claim.claimedAt))
+    )
+      throw new Error("recovery_preparation_intent_mismatch");
+  } else if (tagEntry.revision === targetRevision) {
+    throw new Error("recovery_preparation_claim_required");
+  }
   let target = await getRevision(client, input, targetRevision);
-  const claimPath = statePath(stateRoot, input.runId, "preparation-dispatch");
-  const operationPath = statePath(stateRoot, input.runId, "preparation-operation");
+  if (target && !existsSync(claimPath))
+    throw new Error("recovery_preparation_claim_required");
   if (!target) {
     if (existsSync(claimPath)) {
       if (existsSync(operationPath))
@@ -481,14 +579,17 @@ export async function prepareRecoveryBaseline(
       if (
         !fresh.etag ||
         serviceControlHash(fresh) !== intent.serviceControlsHash ||
-        !equal(explicitTraffic(fresh), explicitTraffic(service))
+        !equal(explicitTraffic(fresh), originalTraffic)
       )
         throw new Error("recovery_service_conflict");
       authorize();
+      await assertAuthorizedOrigin();
       assertLock();
       persist(claimPath, {
         runId: input.runId,
+        sha: input.sha,
         targetRevision,
+        intentHash: recoveryHash(intent),
         serviceEtag: fresh.etag,
         claimedAt: new Date(now()).toISOString(),
       });
@@ -503,23 +604,7 @@ export async function prepareRecoveryBaseline(
             name: serviceName(input),
             etag: fresh.etag,
             template,
-            traffic: explicitTraffic(fresh)
-              .map((row) =>
-                row.tag === input.tag
-                  ? { ...row, revision: targetRevision, percent: 0 }
-                  : row,
-              )
-              .concat(
-                tagEntry.percent === 100
-                  ? [
-                      {
-                        type: "TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION",
-                        revision: input.predecessorRevision,
-                        percent: 100,
-                      },
-                    ]
-                  : [],
-              ),
+            traffic: plannedTraffic,
           },
           retry: false,
         })
@@ -536,6 +621,7 @@ export async function prepareRecoveryBaseline(
   assertServing(after, input.predecessorRevision);
   if (
     serviceControlHash(after) !== intent.serviceControlsHash ||
+    !equal(explicitTraffic(after), plannedTraffic) ||
     !after.trafficStatuses.some(
       (row) =>
         row.tag === input.tag &&
@@ -556,10 +642,12 @@ export async function prepareRecoveryBaseline(
   const finalService = await get(client, serviceName(input));
   assertReady(finalTarget, input, targetRevision);
   assertServing(finalService, input.predecessorRevision);
+  await assertAuthorizedOrigin();
   if (
     fingerprint(finalTarget) !== targetFingerprint ||
     !revisionSheetPaused(finalTarget) ||
     serviceControlHash(finalService) !== intent.serviceControlsHash ||
+    !equal(explicitTraffic(finalService), plannedTraffic) ||
     !finalService.trafficStatuses.some(
       (row) =>
         row.tag === input.tag &&
@@ -586,7 +674,7 @@ export async function prepareRecoveryBaseline(
     allowedDifference: "sheet_writeback_false_and_revision_identity",
     tag: input.tag,
     tagOrigin: input.tagOrigin,
-    tagPreviousRevision: input.predecessorRevision,
+    tagPreviousRevision: intent.tagPreviousRevision,
     serviceControlsHash: intent.serviceControlsHash,
     assurance,
   });

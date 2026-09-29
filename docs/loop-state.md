@@ -4,12 +4,12 @@ Last updated: 2026-09-29 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-Terminal state: BLOCKED — candidate assurance and date-comparison reconciliation.
-Frozen target: 1fbf8c3d41dc9638f3d37e01e1cab7649b7c2151, exact
+Current work: owner-authorized release-path repair and one replacement all-thirteen candidate; not yet admitted.
+Failed run remains BLOCKED at assurance. Its frozen target: 1fbf8c3d41dc9638f3d37e01e1cab7649b7c2151, exact
 [CI 36541531783](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36541531783) passed.
 All thirteen features reached GO; run d63f66b3-db02-472e-bd72-11c7e713198c was admitted at 09:38:37.326Z.
 The permit is now explicitly HELD after an immutable admitted-permit snapshot; operator Resume stays true.
-One application build is already claimed. No rebuild/resume is authorized while that claim is held.
+Its one application build is consumed. Preserve that failed run; the amendment authorizes one separately gated replacement.
 All thirteen queue entries remain. S121 stays separate. No candidate assurance receipt, promotion or observation exists.
 
 Recovery first failed at 09:40:50.710Z without a captured cause; separate later diagnostics found a
@@ -40,15 +40,15 @@ These are separate diagnostics, not release receipts. The original candidate and
 
 ## Verified host and cloud readbacks
 
-- Fresh approved WSL CLI/ADC enrollment and binding completed 09:18:39.478Z; post-restart probes pass.
+- Enrollment/binding completed 09:18:39.478Z; CLI/ADC READY around 11:10 and canonical Admin READY 11:14:21.741Z.
 - One owner-approved WSL restart resolved the invisible WSLg window. Headed Admin enrollment verified
   role Admin/human_completed at 09:34:11.947Z. Authentication expiry is not the current blocker.
-- Google sign-in provider independently read HTTP 200 and enabled=true at 07:45:40.618Z, mutation zero.
+- Google sign-in provider read HTTP200/enabled=true at 11:14:50.693Z, mutation zero; billing/cost validation passed 11:13:27.194Z.
 - Billing and exact cost-control validation passed at 07:48:03.544Z on the expected account: alert 25 USD, project hard stop
   100 USD, account backstop 100 USD, ACTIVE Node.js 22 guardrail with cap 100, hard-stop Pub/Sub
   present and two channels on each alert. No billing, budget or security setting was changed.
 - Both ignored env files in both checkouts now carry Sheet write-back false.
-- Independent 10:03:32.146Z readback: original S120 remains 100% traffic, unchanged fingerprint,
+- Independent 11:14:04.037Z readback: original S120 remains 100% traffic, unchanged fingerprint,
   Sheet=true; candidate and recovery Ready/Sheet=false. Canonical/candidate exact versions returned
   HTTP 2xx; authorized domains contain one candidate plus canonical. The readback made zero mutations.
 - Serving Production/Live, managed identity and eleven Space maps remain the baseline; S128 is not promoted.
@@ -111,7 +111,7 @@ remaining owned Next processes were zero. Older failures remain unchanged; human
 ## Verified production
 
 Serving SHA: 79493458f641b9710d8c43467e872aa9acf7948e
-Serving revision: pmi-kc-app-rmu4wevd9-d89996133320, 100% traffic, independently read 10:03:32.146Z.
+Serving revision: pmi-kc-app-rmu4wevd9-d89996133320, 100% traffic, independently read 11:14:04.037Z.
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
 Freshly read-back serving fingerprint: sha256:d44428cbddc18208ef1422dff178fd2f24af77119465497623f02cd57c686568.
 S120's historical predecessor: pmi-kc-app-rmu4s6qo5-5d81e4f12265 / be023196ef63cd4e48db8230fc8deccaedae95c8.
@@ -124,10 +124,10 @@ Git unchanged. This batch has a prepared recovery receipt but no candidate assur
 ## Resume and remaining limits
 
 The prior document gate passed pinned tests 6/6, Prettier and all document gates at 07:58:36.804Z–07:58:57.540Z.
-Next: obtain owner authorization for replacement-flow repair and one replacement cumulative candidate; the current runner cannot bind a new checker to this candidate.
-Fresh-run bootstrap also needs the actual authorized host and true prior tag binding; its historical-host fallback/current predecessor assumption cannot handle this state.
-Preserve the failed run and consumed build claim; keep the permit HELD with no new build/resume until authorized.
-Only a subsequently authorized, verified continuation may complete assurance/promotion/observation.
+Next: finish/review the authorized bootstrap/recovery repair, full verification and exact-head green main CI. New-run preflight is NOT READY; no GO yet.
+Verify the actual authorized host/current revision and true prior tag binding separately from canonical S120; no historical-host fallback or receipt reuse.
+Archive failed evidence immutably under the release lock, then require fresh prerequisites/GO for one new all-thirteen run.
+Keep the old permit HELD and claim consumed. The replacement needs its own paused recovery, candidate, assurance, promotion, observation and readbacks.
 Never substitute per-feature releases. Authentication expiry requires attended owner enrollment.
 
 Local compiled checks retain their scope; remote candidate assurance is BLOCKED and human verdicts remain NOT RUN. B-DL1, B-DL2,

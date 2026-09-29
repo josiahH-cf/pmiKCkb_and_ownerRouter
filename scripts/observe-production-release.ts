@@ -765,7 +765,7 @@ export async function prepareBatchRecovery(argv: readonly string[]): Promise<voi
   requireExplicitLive(argv);
   assertReleaseProcessLock();
   const permit = assertReleaseAdmission({ sha: releaseHead() });
-  assertReleaseCheckpoint({
+  const checkpoint = assertReleaseCheckpoint({
     sha: permit.sha,
     runId: permit.runId,
     phases: ["recovery"],
@@ -773,15 +773,24 @@ export async function prepareBatchRecovery(argv: readonly string[]): Promise<voi
   const predecessorRevision = readArg(argv, "--predecessor-revision");
   const tag = readArg(argv, "--recovery-tag");
   const tagOrigin = readArg(argv, "--recovery-origin");
+  const tagPreviousRevision = readArg(argv, "--recovery-tag-previous-revision");
   const operatorEmail = readArg(argv, "--operator-email")?.toLowerCase();
   if (
     !predecessorRevision ||
     !tag ||
     !tagOrigin ||
+    !tagPreviousRevision ||
     !operatorEmail ||
     !/^[a-z0-9][a-z0-9._%+-]{0,63}@pmikcmetro\.com$/i.test(operatorEmail)
   )
     throw new Error("recovery_preparation_inputs_required");
+  if (
+    checkpoint.predecessor !== predecessorRevision ||
+    checkpoint.supersededCandidateRevision !== tagPreviousRevision ||
+    tagOrigin !== `https://${checkpoint.supersededCandidateHost}` ||
+    tag !== checkpoint.supersededCandidateHost?.split("---")[0]
+  )
+    throw new Error("recovery_checkpoint_binding_mismatch");
   const coordinates = resolveRevisionCoordinates(argv, predecessorRevision);
   const adminProfile = resolveNamedManagedProfile(argv, "--admin-profile");
   const deadlineAtMs = Date.now() + CANDIDATE_ASSURANCE_TIMEOUT_MS;
@@ -813,6 +822,7 @@ export async function prepareBatchRecovery(argv: readonly string[]): Promise<voi
         predecessorRevision,
         tag,
         tagOrigin,
+        tagPreviousRevision,
       },
       {
         client,

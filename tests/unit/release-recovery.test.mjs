@@ -6,6 +6,7 @@ import {
   writeFileSync,
   copyFileSync,
   existsSync,
+  unlinkSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -150,6 +151,191 @@ describe("shared receipt-bound paused recovery", () => {
     );
     expect(h.state.patches).toHaveLength(1);
   });
+  it("rebinds a distinct held zero-traffic candidate while cloning only canonical source and preserving other tags", async () => {
+    const h = fixture();
+    h.input.tagPreviousRevision = h.candidate;
+    h.state.service.trafficStatuses[1].revision = h.candidate;
+    h.state.service.trafficStatuses.push({
+      revision: "pmi-kc-app-old-recovery",
+      percent: 0,
+      tag: "old-recovery",
+      uri: "https://old-recovery---pmi-kc-app-isolated.a.run.app",
+    });
+    const result = await prepareRecoveryBaseline(h.input, h.deps);
+    expect(result.receipt.tagPreviousRevision).toBe(h.candidate);
+    expect(result.receipt.originalBaseline.expectedRevision).toBe(h.original);
+    expect(result.receipt.imageDigests).toEqual(h.source.containers.map((c) => c.image));
+    expect(h.state.patches[0].data.traffic).toContainEqual({
+      type: "TRAFFIC_TARGET_ALLOCATION_TYPE_REVISION",
+      revision: "pmi-kc-app-old-recovery",
+      percent: 0,
+      tag: "old-recovery",
+    });
+    const intent = JSON.parse(
+      readFileSync(
+        join(h.root, `recovery-${h.input.runId}-preparation-intent.json`),
+        "utf8",
+      ),
+    );
+    expect(intent).toMatchObject({
+      schemaVersion: "pmi-kc-recovery-preparation-intent.v2",
+      tagPreviousRevision: h.candidate,
+    });
+    expect(h.state.reads.some((url) => url.endsWith(`/revisions/${h.candidate}`))).toBe(
+      false,
+    );
+  });
+  it("retains the original distinct tag binding across a lost reply and refuses a changed checkpoint binding", async () => {
+    const h = fixture();
+    h.input.tagPreviousRevision = h.candidate;
+    h.state.service.trafficStatuses[1].revision = h.candidate;
+    h.state.fail = "after";
+    await expect(prepareRecoveryBaseline(h.input, h.deps)).rejects.toThrow(
+      "lost_after_dispatch",
+    );
+    const intentPath = join(h.root, `recovery-${h.input.runId}-preparation-intent.json`);
+    const bytes = readFileSync(intentPath, "utf8");
+    h.state.fail = null;
+    await expect(
+      prepareRecoveryBaseline({ ...h.input, tagPreviousRevision: h.target }, h.deps),
+    ).rejects.toThrow("recovery_preparation_intent_mismatch");
+    const result = await prepareRecoveryBaseline(h.input, h.deps);
+    expect(result.receipt.tagPreviousRevision).toBe(h.candidate);
+    expect(readFileSync(intentPath, "utf8")).toBe(bytes);
+    expect(h.state.patches).toHaveLength(1);
+  });
+  it.each([
+    "no_claim",
+    "wrong_claim",
+    "wrong_run",
+    "legacy_intent",
+    "changed_unrelated_tag",
+  ])(
+    "refuses %s after preparation without redispatch or a new baseline",
+    async (kind) => {
+      const h = fixture();
+      h.state.fail = "after";
+      await expect(prepareRecoveryBaseline(h.input, h.deps)).rejects.toThrow(
+        "lost_after_dispatch",
+      );
+      h.state.fail = null;
+      const claimPath = join(
+        h.root,
+        `recovery-${h.input.runId}-preparation-dispatch.json`,
+      );
+      const intentPath = join(
+        h.root,
+        `recovery-${h.input.runId}-preparation-intent.json`,
+      );
+      if (kind === "no_claim") unlinkSync(claimPath);
+      if (kind === "wrong_claim" || kind === "wrong_run") {
+        const claim = JSON.parse(readFileSync(claimPath, "utf8"));
+        claim[kind === "wrong_claim" ? "intentHash" : "runId"] =
+          kind === "wrong_claim"
+            ? `sha256:${"0".repeat(64)}`
+            : "00000000-0000-4000-8000-000000000001";
+        writeFileSync(claimPath, JSON.stringify(claim));
+      }
+      if (kind === "legacy_intent") {
+        const intent = JSON.parse(readFileSync(intentPath, "utf8"));
+        intent.schemaVersion = "pmi-kc-recovery-preparation-intent.v1";
+        writeFileSync(intentPath, JSON.stringify(intent));
+      }
+      if (kind === "changed_unrelated_tag")
+        h.state.service.trafficStatuses.push({
+          revision: h.original,
+          percent: 0,
+          tag: "unexpected",
+        });
+      await expect(prepareRecoveryBaseline(h.input, h.deps)).rejects.toThrow();
+      expect(h.state.patches).toHaveLength(1);
+      expect(existsSync(h.path)).toBe(false);
+    },
+  );
+  it.each([
+    "missing",
+    "wrong_revision",
+    "duplicate_tag",
+    "duplicate_origin",
+    "tag_with_positive_other_traffic",
+    "unknown_target_without_claim",
+  ])("refuses fresh %s before mutation", async (kind) => {
+    const h = fixture();
+    if (kind === "missing") h.state.service.trafficStatuses.pop();
+    if (kind === "wrong_revision")
+      h.state.service.trafficStatuses[1].revision = h.candidate;
+    if (kind === "duplicate_tag")
+      h.state.service.trafficStatuses.push({ ...h.state.service.trafficStatuses[1] });
+    if (kind === "duplicate_origin")
+      h.state.service.trafficStatuses.push({
+        ...h.state.service.trafficStatuses[1],
+        tag: "cand-other",
+      });
+    if (kind === "tag_with_positive_other_traffic")
+      h.state.service.trafficStatuses[1].percent = 1;
+    if (kind === "unknown_target_without_claim")
+      h.state.revisions.set(h.target, h.recovered);
+    await expect(prepareRecoveryBaseline(h.input, h.deps)).rejects.toThrow();
+    expect(h.state.patches).toHaveLength(0);
+    expect(existsSync(h.path)).toBe(false);
+  });
+  it("preserves canonical 100% traffic when the authorized tag originally carries that allocation", async () => {
+    const h = fixture();
+    h.state.service.trafficStatuses = [
+      { ...h.state.service.trafficStatuses[1], percent: 100 },
+    ];
+    const result = await prepareRecoveryBaseline(h.input, h.deps);
+    expect(result.receipt.tagPreviousRevision).toBe(h.original);
+    expect(h.state.service.trafficStatuses).toHaveLength(2);
+    expect(h.state.service.trafficStatuses).toEqual(
+      expect.arrayContaining([
+        { revision: h.target, percent: 0, tag: h.input.tag, uri: h.input.tagOrigin },
+        { revision: h.original, percent: 100 },
+      ]),
+    );
+  });
+  it("accepts provider traffic ordering changes without dropping any binding", async () => {
+    const h = fixture();
+    const request = h.client.request;
+    h.client.request = async (input) => {
+      const result = await request(input);
+      if (result.data?.trafficStatuses) result.data.trafficStatuses.reverse();
+      return result;
+    };
+    await expect(prepareRecoveryBaseline(h.input, h.deps)).resolves.toBeTruthy();
+    expect(h.state.patches).toHaveLength(1);
+  });
+  it.each(["extra", "missing", "duplicate", "changed"])(
+    "refuses %s unrelated traffic after dispatch",
+    async (kind) => {
+      const h = fixture();
+      h.state.service.trafficStatuses.push({
+        revision: h.original,
+        percent: 0,
+        tag: "preserve",
+        uri: "https://preserve---pmi-kc-app-isolated.a.run.app",
+      });
+      const request = h.client.request;
+      h.client.request = async (input) => {
+        const result = await request(input);
+        if (input.method === "PATCH") {
+          const rows = h.state.service.trafficStatuses;
+          const i = rows.findIndex((r) => r.tag === "preserve");
+          if (kind === "extra")
+            rows.push({ revision: h.original, percent: 0, tag: "extra" });
+          if (kind === "missing") rows.splice(i, 1);
+          if (kind === "duplicate") rows.push({ ...rows[i] });
+          if (kind === "changed") rows[i].revision = h.candidate;
+        }
+        return result;
+      };
+      await expect(prepareRecoveryBaseline(h.input, h.deps)).rejects.toThrow(
+        "recovery_zero_traffic_binding_mismatch",
+      );
+      expect(h.state.patches).toHaveLength(1);
+      expect(existsSync(h.path)).toBe(false);
+    },
+  );
   it("does not redispatch preparation when a durable claim has an unknown outcome and no revision", async () => {
     const h = fixture();
     h.state.fail = "before";

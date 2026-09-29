@@ -1,7 +1,7 @@
 # Batched release runbook
 
 Updated: 2026-09-29 (UTC). One candidate must ship every queued feature.
-**BLOCKED — candidate assurance and date-comparison reconciliation.** Exact target `1fbf8c3d41dc9638f3d37e01e1cab7649b7c2151` passed [CI 36541531783](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36541531783); all thirteen features reached GO. Run `d63f66b3-db02-472e-bd72-11c7e713198c` was admitted at 09:38:37.326Z. The permit is now explicitly **HELD** after preserving an immutable admitted-permit snapshot; operator Resume remains true. Its one application-build claim is already used. No rebuild or resume is authorized while that claim is held; isolated repair work is not deployed.
+**Failed run: BLOCKED — candidate assurance and date-comparison reconciliation.** Exact target `1fbf8c3d41dc9638f3d37e01e1cab7649b7c2151` passed [CI 36541531783](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36541531783); all thirteen features reached GO. Run `d63f66b3-db02-472e-bd72-11c7e713198c` was admitted at 09:38:37.326Z. The permit is now explicitly **HELD** after preserving an immutable admitted-permit snapshot; operator Resume remains true. Its one application-build claim is already used. The failed run cannot rebuild or resume while held; its separately authorized replacement has not been admitted or deployed.
 
 Recovery's first failure at 09:40:50.710Z remains preserved; its underlying cause was not captured. Separate later readbacks passed cloud readiness, exact configuration and zero traffic, while guarded diagnostics found a tagged-host authentication mismatch. That later diagnosis does not establish the first failure's cause. Approved Google-session reuse restored that host. All 13 guarded routes passed with zero mutations at 09:46:31.802Z. Same-run receipt `57db0431-0f93-4fea-8a71-41d7dda72eab` issued at 09:47:29.810Z for Ready, zero-traffic, Sheet=false recovery revision `pmi-kc-app-recovery-d63f66b3db02472e`, fingerprint `sha256:34490b4330ff3bec3d38da1a81f097a196f4af4d6526abb979f148f542f695d8`.
 
@@ -11,9 +11,11 @@ The watcher blocked at 09:54:53.550Z with `assurance_unverified` and emitted no 
 
 The aggregate diagnostic at 10:11:29.336Z–10:12:40.060Z preserved that original FAILED/307 verdict. All mismatches were `endDate`; address, owners, tenants and base-rent mismatches were zero. The 311 source rows contained 307 valid ISO dates and four missing dates. Each of the 307 visible dates exactly matched an independent MM/DD/YYYY conversion, and its unique `time[datetime]` exactly matched the source ISO date. Rendered-DOM and other-field mismatches were zero; sources were complete/stable, with zero missing/unexpected/duplicate records or invalid destinations. This establishes the comparator's ISO-versus-display-format mismatch, not an assurance pass. Receipts remain at `~/pmi-kc-work/logs/candidate-reconciliation-field-diagnostic-2026-09-29T101129334Z/report.json` and `summary.json`. Checker repair `4f553dcae4e63eee0cddf9d689cdc8013e79b1a2` passed 63 focused tests, TypeScript, lint and independent review, then the full native gate: 7,244 unit tests passed with four local-config checks intentionally skipped in the clean snapshot, all 232 backend tests passed, required gates passed and production build `_F3DKdqhP0JMBovFiHYn2` completed. Those four unchanged config-key parity checks separately passed against the actual native configuration at 10:31:56.552Z. No credentials were copied into the isolated runner. A corrected-checker read-only diagnostic passed all 311 source/projected/rendered records with zero mismatches at 10:21:46.480Z. The unchanged full canary passed all thirteen routes with zero diagnostics or mutations at 10:22:44.437Z; desk/workspace timings were 9.577/15.428 seconds under unchanged deadlines. These new scoped results preserve every earlier failure and do not issue release receipts, change the admitted candidate or authorize continuation.
 
-The current runner executes assurance and observation from the admitted application's exact checkout and has no separately bound checker-version override. A normal resume cannot substitute this corrected checker for the held 1fb candidate. The one-build claim remains consumed. Owner authorization is required for one replacement cumulative candidate carrying all thirteen features plus the repair, with the failed run preserved and every admission/release gate repeated; no per-feature cycles or receipt edits are permitted. A separate checker-version continuation would require a new reviewed capability and is not implemented.
+The owner explicitly authorized repair of the replacement-release path and **one replacement cumulative candidate carrying all thirteen features** on September 29, 2026. This replaces the prior stop for that decision; it does not change the failed 1fb run, its HELD permit or consumed build claim. The corrected tree must pass review, the full gate, exact-head main CI and fresh locked admission before its separate replacement run starts. Preserve every failed checkpoint, claim and receipt; no per-feature releases, receipt edits or gate bypass are permitted. The runner uses the admitted application's exact checkout for assurance and observation; it cannot substitute a separately versioned checker into the failed candidate.
 
-A replacement is not ready to launch merely by archiving this checkpoint. The current watcher falls back to a historical candidate host when no checkpoint exists, and recovery accepts only a tag bound to the serving predecessor or this same run's recovery. The actual authorized tag now points to the failed 1fb candidate; the old S120 tag points to the old run's recovery. Neither is that serving-predecessor binding. A reviewed bootstrap/recovery correction must select the actual authorized host, verify its current revision and record the true previous tag binding while deriving a fresh recovery revision and receipt from canonical S120. The old recovery receipt must not be reassigned, and the failed checkpoint must not be marked complete or rolled back. This correction is not implemented by the date-checker commit.
+Replacement preparation remains conditional on the reviewed bootstrap/recovery repair, which is not part of the date-checker commit. It must select the actual already-authorized candidate host, validate its current exact tag/revision binding and preserve that binding separately from the canonical 100% serving predecessor. The last readback has that host on the failed 1fb candidate and the old S120 tag on the failed run's recovery; neither may be guessed to equal the serving predecessor. Derive a fresh Sheet=false recovery target and immutable receipt for the new run from the independently read canonical baseline. Preserve unrelated tag bindings, require service-version conflict checks, and never reassign the old recovery receipt or mark the failed checkpoint complete or rolled back. Archiving alone does not establish readiness.
+
+Fresh readbacks remain scoped to the failed run and serving baseline: approved CLI/ADC probes were READY around 11:10 UTC, canonical Admin was READY at 11:14:21.741Z, and the Google sign-in provider returned HTTP200/enabled=true at 11:14:50.693Z without changes. Billing and the exact unchanged cost controls passed at 11:13:27.194Z. At 11:14:04.037Z, S120 still served 100% traffic; the failed 1fb candidate and its recovery stayed at zero, with one candidate authorized domain. The replacement preflight remained NOT READY despite thirteen features, green CI for then-head `22fc2b4d`, a free runtime and 1.9-hour enrollment: the old checkpoint/HELD permit and missing new-run prerequisites still prevent GO. None of these reads admits the replacement.
 
 Native Node 22 run L passed 7,212 unit tests, 232 backend tests, all gates and build
 `MsohNlljqt7KxRmFLb2od`; new core E2E passed 31 tests with 18 intentional skips. Exact-build cold and
@@ -21,9 +23,43 @@ corrected desk-warmed notice passed in 15.459/17.456 seconds, and the separate c
 matched all 311 identity/category pairs before/after the notice API. That equality is observational,
 not independent lifecycle derivation. Scopes and unchanged failed attempts are recorded in
 `docs/evidence/batch-litmus-audit-2026-09-28.md`. Billing is enabled. The thirteen-feature queue stays
-intact. The procedural commands below do not authorize continuation of the currently HELD run.
-Preserve its frozen head, checkpoint, operator Resume=true and already-used one-build claim; no
-second build, new run or watcher resume is authorized while the checker repair is prepared separately.
+intact. The procedural commands below do not reopen the failed run. Preserve its frozen head,
+checkpoint, operator Resume=true and consumed build claim. The owner-authorized replacement must
+pass the corrected preparation below before any new candidate dispatch.
+
+## Authorized replacement preparation
+
+This is a prospective procedure; replacement verification, admission and deployment remain pending.
+
+1. Finish and independently review the narrow bootstrap/recovery repair. Verify new-run entry
+   against the actual existing authorized host, including a host currently bound to the failed
+   candidate, changed or ambiguous tag bindings, unchanged canonical traffic and refusal before
+   mutation on mismatches. Preserve the exact checker, one-build and receipt contracts.
+2. Run the full corrected-tree gate, affected process/lock/recovery checks and exact-head main CI.
+   Existing application/browser evidence retains its exact source/build scope; perform the new
+   candidate's complete guarded route/reconciliation checks before promotion. No historical pass
+   substitutes for the new run's receipts.
+3. Under the release lock, prove no watcher, child process or cloud operation remains unresolved.
+   Preserve the failed checkpoint, HELD permit, build claim, operation identities, original baseline,
+   recovery receipt and all reports byte-for-byte with an explicit superseded-by-authorized-
+   replacement record. Archive only through the reviewed procedure; do not rewrite the old verdict
+   as complete or rolled back, clear its claim, or reuse its receipt for the new run.
+4. Require the admitted watcher's bootstrap to re-read canonical 100% traffic and the unique
+   already-authorized candidate host's actual tag/revision binding, then persist them separately
+   before its preparation phase. Operators must not fabricate that checkpoint. The new intent must retain
+   the actual previous tag revision through replay, while cloning only canonical configuration
+   and resolved image digests. Verify the source revision/configuration,
+   unrelated tags and service version before the new run's bounded recovery preparation. Unknown,
+   missing, ambiguous or changed bindings refuse dispatch; no historical hostname is a fallback.
+5. Prepare one new run for the exact current main SHA and all thirteen suites. Collect fresh
+   authentication, billing/cost and environment evidence; require preflight GO and locked admission
+   through the existing one-watcher path. Prepare a new Sheet=false recovery target/receipt from
+   the canonical predecessor; verify Admin readiness on canonical and the exact recovery origin
+   before its guarded canary. Then build one replacement application candidate. The owner amendment
+   permits this replacement only; a further replacement requires a new owner decision.
+
+Candidate/recovery/promotion/observation gates below remain unchanged. These steps authorize no
+business write, live fixture, paid comp, send, security change or manually fabricated receipt.
 
 ## What ships
 
@@ -121,9 +157,9 @@ remains held until authentication returns. The separate 24-hour longevity proof 
 **4. Prepare the exact repaired batch.** Run L's full native gate, repair core E2E and affected
 compiled checks passed. Exact `1fbf8c3d41dc9638f3d37e01e1cab7649b7c2151` CI 36541531783 and thirteen-feature
 GO admitted the frozen run at 09:38:37.326Z. Its one build succeeded and its candidate now waits on
-assurance/reconciliation. Current continuation is explicitly held. Any proposed repair/continuation
-must reconcile the frozen target, receipts and one-build claim before separate authorization;
-do not prepare a replacement run or rebuild automatically. Keep all thirteen entries until remote delivery is verified.
+assurance/reconciliation. That failed run remains held. The owner has authorized its one replacement
+after the bootstrap/recovery repair and preparation above pass; retain separate identities and claims
+for the two runs. Keep all thirteen entries until remote delivery is verified.
 
 The 08:00:40.289Z preflight found thirteen features/current `a5d5791c` watcher target, aligned
 checkouts, native runner READY, free lock/zero watchers and Sheet pause/Demo flags READY. It remained

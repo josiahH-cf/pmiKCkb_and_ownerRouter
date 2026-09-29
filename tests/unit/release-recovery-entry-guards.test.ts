@@ -76,6 +76,29 @@ describe("recovery command admission before authentication", () => {
     expect(guards.checkpoint).toHaveBeenCalledWith({ sha, runId, phases: ["recovery"] });
     expect(guards.preflight).not.toHaveBeenCalled();
   });
+  it.each(["predecessor", "host", "previous_revision", "tag"])(
+    "refuses substituted %s before authentication",
+    async (kind) => {
+      const predecessor = "pmi-kc-app-original";
+      const host = "cand-held---pmi-kc-app-kq6wuvpiva-uc.a.run.app";
+      guards.checkpoint.mockReturnValue({
+        predecessor,
+        supersededCandidateHost: host,
+        supersededCandidateRevision: revision,
+      });
+      await expect(
+        prepareBatchRecovery([
+          "--live",
+          "--operator-email=owner@pmikcmetro.com",
+          `--predecessor-revision=${kind === "predecessor" ? revision : predecessor}`,
+          `--recovery-tag=${kind === "tag" ? "cand-other" : "cand-held"}`,
+          `--recovery-origin=https://${kind === "host" ? "candidate.invalid" : host}`,
+          `--recovery-tag-previous-revision=${kind === "previous_revision" ? predecessor : revision}`,
+        ]),
+      ).rejects.toThrow("recovery_checkpoint_binding_mismatch");
+      expect(guards.preflight).not.toHaveBeenCalled();
+    },
+  );
   it("rollback binds immutable receipt run, commit and candidate without requiring forward admission", async () => {
     guards.checkpoint.mockImplementation(() => {
       throw new Error("exact_batch_checkpoint_required");

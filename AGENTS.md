@@ -104,6 +104,27 @@ The owner has authorized the runner to:
 
 Every cloud mutation must be read back. Record verified non-secret outcomes in `docs/facts.md`.
 
+### Owner-authorized replacement batch — 2026-09-29 UTC
+
+The owner explicitly authorized repairing the replacement-release path and deploying **one
+replacement cumulative candidate containing all thirteen queued features** plus the reviewed
+repairs. The failed `1fbf8c3d` run remains failed/HELD with its consumed build claim and immutable
+evidence. This amendment permits one new run after the corrected tree passes full verification,
+exact-head main CI, fresh prerequisites and locked preflight GO; it does not reopen the failed run's
+claim, authorize per-feature releases or allow another replacement automatically.
+
+The replacement must use the actual already-authorized candidate host and independently verify
+its current tag/revision binding separately from the canonical serving predecessor. Prepare a new
+run-bound Sheet=false recovery target and receipt from that predecessor, preserving the actual
+previous tag binding and every old receipt. No historical-host guess or reassigned recovery receipt
+may establish readiness. Candidate assurance, exact reconciliation, promotion, the complete
+observation and independent readbacks remain mandatory; clear the thirteen-feature queue only
+after RELEASED is verified. External inputs and human verdicts retain their explicit holds.
+
+This changes no billing, budget, guardrail, identity, claim, security setting, protected-path grant,
+Action Registry key, client-send authority or provider-effect boundary. Live providers remain
+read-only for this release, apart from the separately approved notice-invalidation metadata.
+
 ## Authentication — approved local host contract (2026-09-08)
 
 The owner explicitly authorized `josiah@pmikcmetro.com` for local unattended development and
