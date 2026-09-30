@@ -473,6 +473,7 @@ export default async function AdminPage() {
             <ModelConfigPanel
               answerModel={config.geminiAnswerModel}
               classifyModel={config.geminiClassifyModel}
+              location={config.geminiModelLocation}
               provider={config.modelProvider}
             />
           </div>

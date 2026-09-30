@@ -339,6 +339,7 @@ export async function assistGovernedRenewalCopy(input: {
   try {
     const response = await withTimeout(
       input.provider.generateText({
+        purpose: "renewal.copy_assist",
         model: input.model,
         systemInstruction: assistanceSystemInstruction(input.template),
         userContent: assistanceUserContent(input.template, input.selection),

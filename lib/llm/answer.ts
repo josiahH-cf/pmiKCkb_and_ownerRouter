@@ -115,6 +115,7 @@ export class GoogleGenAiAnswerGenerator implements AnswerGenerator {
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const { text } = await this.provider.generateText({
+        purpose: "ask.answer",
         model: this.config.geminiAnswerModel,
         systemInstruction: buildGroundedAnswerSystemPrompt(),
         userContent: buildGroundedAnswerUserPrompt(request, { retry: attempt > 0 }),

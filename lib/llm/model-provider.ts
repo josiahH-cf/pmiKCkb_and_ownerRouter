@@ -16,10 +16,24 @@ export interface ModelTextRequest {
   temperature?: number;
   /** Structured-output hint. Honored by Gemini; local servers fall back to JSON mode + retry. */
   responseJsonSchema?: unknown;
+  /** Optional bounded wait for one request. A timeout fails visibly; nothing retries on another model. */
+  timeoutMs?: number;
+  /** Bodyless telemetry label naming the caller (for example "ask.answer"). Never prompt text. */
+  purpose?: string;
+}
+
+/** Token counts reported by the provider. Counts only; no prompt or response text. */
+export interface ModelUsage {
+  promptTokens: number | null;
+  outputTokens: number | null;
+  thoughtsTokens: number | null;
 }
 
 export interface ModelTextResponse {
   text: string;
+  /** The model version the provider reports it actually served, when it reports one. */
+  modelVersion?: string;
+  usage?: ModelUsage;
 }
 
 export interface ModelProvider {
@@ -38,33 +52,113 @@ export class AnswerGenerationSetupError extends Error {
 /** The subset of the GoogleGenAI models client this seam uses. */
 export type GenAiModelsClient = Pick<GoogleGenAI["models"], "generateContent">;
 
+/** One bodyless line per model call so serving logs show the model actually used, its cost and time. */
+export interface ModelCallTelemetry {
+  event: "model_call";
+  purpose: string;
+  model: string;
+  location: string;
+  outcome: "ok" | "error";
+  latencyMs: number;
+  modelVersion: string | null;
+  promptTokens: number | null;
+  outputTokens: number | null;
+  thoughtsTokens: number | null;
+  errorName?: string;
+  status?: number | null;
+}
+
+export type ModelTelemetrySink = (event: ModelCallTelemetry) => void;
+
+const logModelCall: ModelTelemetrySink = (event) => {
+  console.info(JSON.stringify(event));
+};
+
+function countOrNull(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 export class GoogleGenAiModelProvider implements ModelProvider {
   private readonly models: GenAiModelsClient;
+  private readonly location: string;
+  private readonly telemetry: ModelTelemetrySink;
+  private readonly now: () => number;
 
-  constructor(config: ServerConfig, options: { models?: GenAiModelsClient } = {}) {
+  constructor(
+    config: ServerConfig,
+    options: {
+      models?: GenAiModelsClient;
+      telemetry?: ModelTelemetrySink;
+      now?: () => number;
+    } = {},
+  ) {
+    // S136: the model endpoint location is its own setting; the Cloud Run region never selects it.
+    this.location = config.geminiModelLocation;
+    this.telemetry = options.telemetry ?? logModelCall;
+    this.now = options.now ?? Date.now;
     this.models =
       options.models ??
       new GoogleGenAI({
         apiVersion: "v1",
-        location: config.vertexAiLocation,
+        location: this.location,
         project: requireGcpProjectId(config),
         vertexai: true,
       }).models;
   }
 
   async generateText(request: ModelTextRequest): Promise<ModelTextResponse> {
-    const response = await this.models.generateContent({
-      config: {
-        responseJsonSchema: request.responseJsonSchema,
-        responseMimeType: "application/json",
-        systemInstruction: request.systemInstruction,
-        temperature: request.temperature,
-      },
-      contents: request.userContent,
+    const started = this.now();
+    const base = {
+      event: "model_call" as const,
+      purpose: request.purpose ?? "unspecified",
       model: request.model,
-    });
+      location: this.location,
+    };
+    let response: Awaited<ReturnType<GenAiModelsClient["generateContent"]>>;
+    try {
+      response = await this.models.generateContent({
+        config: {
+          responseJsonSchema: request.responseJsonSchema,
+          responseMimeType: "application/json",
+          systemInstruction: request.systemInstruction,
+          temperature: request.temperature,
+          ...(request.timeoutMs ? { httpOptions: { timeout: request.timeoutMs } } : {}),
+        },
+        contents: request.userContent,
+        model: request.model,
+      });
+    } catch (error) {
+      this.telemetry({
+        ...base,
+        outcome: "error",
+        latencyMs: this.now() - started,
+        modelVersion: null,
+        promptTokens: null,
+        outputTokens: null,
+        thoughtsTokens: null,
+        errorName: error instanceof Error ? error.name : "unknown",
+        status: countOrNull((error as { status?: unknown } | null)?.status),
+      });
+      throw error;
+    }
 
-    return { text: response.text ?? "" };
+    const usage: ModelUsage = {
+      promptTokens: countOrNull(response.usageMetadata?.promptTokenCount),
+      outputTokens: countOrNull(response.usageMetadata?.candidatesTokenCount),
+      thoughtsTokens: countOrNull(response.usageMetadata?.thoughtsTokenCount),
+    };
+    this.telemetry({
+      ...base,
+      outcome: "ok",
+      latencyMs: this.now() - started,
+      modelVersion: response.modelVersion ?? null,
+      ...usage,
+    });
+    return {
+      text: response.text ?? "",
+      ...(response.modelVersion ? { modelVersion: response.modelVersion } : {}),
+      usage,
+    };
   }
 }
 
@@ -184,7 +278,11 @@ export class LocalModelProvider implements ModelProvider {
 /** Build the configured provider. Local is selected only when config resolved it (prod is fenced). */
 export function createModelProvider(
   config: ServerConfig,
-  options: { transport?: ModelHttpTransport; models?: GenAiModelsClient } = {},
+  options: {
+    transport?: ModelHttpTransport;
+    models?: GenAiModelsClient;
+    telemetry?: ModelTelemetrySink;
+  } = {},
 ): ModelProvider {
   if (config.modelProvider === "local") {
     return new LocalModelProvider(
@@ -194,7 +292,10 @@ export function createModelProvider(
     );
   }
 
-  return new GoogleGenAiModelProvider(config, { models: options.models });
+  return new GoogleGenAiModelProvider(config, {
+    models: options.models,
+    telemetry: options.telemetry,
+  });
 }
 
 function requireGcpProjectId(config: Pick<ServerConfig, "gcpProjectId">): string {
