@@ -30,6 +30,16 @@ export const assistantModelRateLimiter = new IntakeRateLimiter(
   ASSISTANT_MODEL_RATE_LIMIT_OPTIONS,
 );
 
+// S139: refining a workflow-linked email draft is an explicit staff action; same interactive budget.
+export const REFINEMENT_MODEL_RATE_LIMIT_OPTIONS = Object.freeze({
+  capacity: 15,
+  refillPerSecond: 0.5,
+  maxKeys: 10_000,
+});
+export const refinementModelRateLimiter = new IntakeRateLimiter(
+  REFINEMENT_MODEL_RATE_LIMIT_OPTIONS,
+);
+
 // Classification is a model fallback the client reaches only when the free deterministic matcher misses,
 // so it warrants a tighter budget (~1 call / 5s sustained).
 export const CLASSIFY_MODEL_RATE_LIMIT_OPTIONS = Object.freeze({

@@ -3,7 +3,9 @@
 import { useState } from "react";
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
+import { RefineWithAi } from "@/components/email/RefineWithAi";
 import { Button, Field } from "@/components/ui";
+import { GEMINI_IN_GMAIL_HINT } from "@/lib/email-refinement/hint";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 
 // S100 manual chat sync and resident reply. Rendering this panel performs zero provider calls:
@@ -399,6 +401,21 @@ export function WorkOrderChatPanel({
                       value={body}
                     />
                   </Field>
+                  <RefineWithAi
+                    appliedNotice="Revision applied. Preview this reply before creating the draft."
+                    currentBody={body}
+                    disabledReason={
+                      body.trim() ? null : "Write a first reply before refining it."
+                    }
+                    onApply={(revision) => {
+                      setBody(revision.body);
+                      setDraftPreview(null);
+                    }}
+                    request={{
+                      surface: "maintenance_resident_reply",
+                      messageId: message.message_id,
+                    }}
+                  />
                   <div className="ui-actions">
                     <Button
                       disabled={pending}
@@ -465,6 +482,7 @@ export function WorkOrderChatPanel({
           it there yourself; the app never sends and never deletes drafts.
         </p>
       ) : null}
+      {draftCreated ? <p className="muted">{GEMINI_IN_GMAIL_HINT}</p> : null}
 
       {notice ? (
         <p className="muted" role="status">

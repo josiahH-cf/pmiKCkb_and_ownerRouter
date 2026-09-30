@@ -8,6 +8,8 @@
 // production gate. Draft-only by construction: LiveRenewalGmailDraftProvider hard-refuses every non-draft
 // operation, and gmail.maintenance_owner_notice.send stays production_allowed:false. Nothing here sends.
 
+import { createHash } from "node:crypto";
+
 import { DRAFT_BANNER } from "@/lib/constants";
 import { deterministicDraftRfcMessageId } from "@/lib/external-execution/draft-identity";
 import type {
@@ -49,6 +51,11 @@ export interface MaintenanceOwnerNoticeDraftActionInput {
   body: string;
 }
 
+/** A short stable key for one exact draft body (banner included). */
+export function ownerNoticeBodyKey(body: string): string {
+  return createHash("sha256").update(body).digest("hex").slice(0, 16);
+}
+
 /**
  * Build the exact governed ExternalActionInput for gmail.maintenance_owner_notice.draft_create. Pure: it
  * only shapes values (and idempotently applies the banner); it performs no I/O and enforces no gate — the
@@ -60,10 +67,12 @@ export function buildMaintenanceOwnerNoticeDraftAction(
   const body = input.body.startsWith(`${DRAFT_BANNER}\n\n`)
     ? input.body
     : `${DRAFT_BANNER}\n\n${input.body}`;
+  // S139: each distinct reviewed wording is its own attempt, so an edited or refined body previews
+  // and creates cleanly while a retry of the same wording stays one idempotent draft.
   const identity = {
     dataMode: "live" as const,
     workflowId: input.ticketRef,
-    actionId: `maintenance-owner-notice-draft:${input.ticketRef}`,
+    actionId: `maintenance-owner-notice-draft:${input.ticketRef}:${ownerNoticeBodyKey(body)}`,
     actionKey: MAINTENANCE_OWNER_NOTICE_DRAFT_ACTION_KEY,
   };
   return {

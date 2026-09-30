@@ -22,6 +22,10 @@ import {
   getMessagePreparation,
   workspaceMessageBasisFingerprint,
 } from "@/lib/firestore/renewal-message-preparations";
+import {
+  getMessageBodyOverride,
+  resolveMessageBodyOverride,
+} from "@/lib/firestore/renewal-message-body-overrides";
 import { getRenewalResourceLocations } from "@/lib/firestore/renewal-resource-locations";
 import { getRetainedSenderSignature } from "@/lib/firestore/renewal-sender-signatures";
 import { loadRenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory";
@@ -411,7 +415,25 @@ export async function currentRenewalMessage(
       ? workspaceMessageBasisFingerprint({ ...workspace })
       : null,
   };
-  const content = composeRenewalMessage(facts, inputs.edits);
+  const composed = composeRenewalMessage(facts, inputs.edits);
+  // S139: accepted refined wording replaces the composed body text for its own saved revision only
+  // while the composition it started from is unchanged; otherwise it blocks drafting, kept visible.
+  const savedOverride =
+    saved && workspace
+      ? await getMessageBodyOverride(
+          actor,
+          leaseId,
+          workspace.cycleId,
+          channel,
+          db,
+        ).catch(() => "unreadable" as const)
+      : null;
+  const refined = resolveMessageBodyOverride(
+    composed,
+    saved?.revision ?? null,
+    savedOverride,
+  );
+  const content = refined.content;
   if (marketEvidence.rangeRequirement) {
     // R118.4: the starting range alone satisfies neither evidence requirement; say which one.
     const entry = content.missing.find((item) => item.field === "range");
@@ -482,6 +504,10 @@ export async function currentRenewalMessage(
     inputs,
     facts,
     content,
+    /** S139: the composed body before refined wording, and the refined wording's state. */
+    composedContent: composed,
+    bodyBaseHash: refined.baseHash,
+    bodyOverride: refined.state,
     basis,
     needsReview,
     signatureMatchesActor,

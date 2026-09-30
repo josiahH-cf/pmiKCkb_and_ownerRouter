@@ -68,6 +68,8 @@ export function WorkflowCommunicationPanel({
   const [labelReason, setLabelReason] = useState("");
   const [analysisCategory, setAnalysisCategory] = useState("general_question");
   const [currentDraft, setCurrentDraft] = useState("");
+  // S139: an instruction describing a change to the current draft; it never becomes reply text.
+  const [instruction, setInstruction] = useState("");
   const [analysis, setAnalysis] = useState<{
     review_state: string;
     refusedBeforeModel?: boolean;
@@ -262,12 +264,14 @@ export function WorkflowCommunicationPanel({
           category: analysisCategory,
           context: context("gmail.mailbox.read"),
           currentText: currentDraft,
+          ...(instruction.trim() ? { instruction: instruction.trim() } : {}),
           threadId: selected.gmail_thread_id,
         }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "AI reply is unavailable.");
       setAiReply(data);
+      if (data.ok) setInstruction("");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "AI reply is unavailable.");
     } finally {
@@ -632,6 +636,20 @@ export function WorkflowCommunicationPanel({
                   value={currentDraft}
                 />
               </label>
+              <label className="field">
+                <span>Refine with AI (optional)</span>
+                <textarea
+                  maxLength={1_000}
+                  onChange={(event) => setInstruction(event.target.value)}
+                  placeholder="For example: make this shorter and warmer."
+                  rows={2}
+                  value={instruction}
+                />
+                <span className="muted">
+                  Describe the change you want. Your instruction is not added to the
+                  reply.
+                </span>
+              </label>
               <button
                 className="secondary-button"
                 disabled={busy}
@@ -665,14 +683,29 @@ export function WorkflowCommunicationPanel({
                     prepare the exact mailbox, recipient, subject, and body confirmation.
                   </p>
                   {aiReply.ok ? (
-                    <button
-                      className="secondary-button"
-                      disabled={busy}
-                      onClick={() => void prepareExactReply()}
-                      type="button"
-                    >
-                      Review exact linked reply
-                    </button>
+                    <>
+                      <button
+                        className="secondary-button"
+                        disabled={busy}
+                        onClick={() => {
+                          // The next instruction refines this wording, and it stays editable.
+                          setCurrentDraft(aiReply.proposal);
+                          setAiReply(null);
+                          clearExactReply();
+                        }}
+                        type="button"
+                      >
+                        Use as my draft
+                      </button>
+                      <button
+                        className="secondary-button"
+                        disabled={busy}
+                        onClick={() => void prepareExactReply()}
+                        type="button"
+                      >
+                        Review exact linked reply
+                      </button>
+                    </>
                   ) : null}
                 </div>
               ) : null}

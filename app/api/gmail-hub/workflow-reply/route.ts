@@ -25,6 +25,8 @@ const WorkflowReplyInputSchema = z
     category: z.string().trim().min(1).max(100),
     context: WorkflowCommunicationContextSchema,
     currentText: z.string().max(50_000).default(""),
+    // S139: an instruction describing a change to the current draft; never reply text itself.
+    instruction: z.string().trim().max(1_000).optional(),
     threadId: z
       .string()
       .trim()
@@ -63,6 +65,7 @@ export async function POST(request: Request) {
       artifactRef: input.artifactRef,
       category: input.category,
       currentText: input.currentText,
+      ...(input.instruction ? { instruction: input.instruction } : {}),
       provider: createModelProvider(config),
       model:
         config.modelProvider === "local"

@@ -11,6 +11,7 @@ import {
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { retainSenderSignature } from "@/lib/firestore/renewal-sender-signatures";
+import { writeMessageBodyOverride } from "@/lib/firestore/renewal-message-body-overrides";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
   RENEWAL_WORKSPACE_COLLECTIONS,
@@ -151,6 +152,15 @@ export async function saveMessagePreparation(
       updatedByUid: actor.uid,
     });
     transaction.set(ref, record);
+    // S139: refined wording belongs to exactly this revision; a revision saved without it clears it.
+    const bodyOverride = writeMessageBodyOverride(transaction, db, actor, {
+      leaseId: input.leaseId,
+      cycleId: input.cycleId,
+      channel: input.channel,
+      revision: record.revision,
+      body: input.bodyOverride ?? null,
+      now,
+    });
     // S120: the sender's own signature is retained for reuse on their next lease or cycle.
     retainSenderSignature(transaction, db, actor, record);
     transaction.create(audit, {
@@ -162,6 +172,8 @@ export async function saveMessagePreparation(
       recordedAt: now,
       previous_revision: current?.revision ?? 0,
       next_state: record,
+      // The audit keeps hashes only; the wording itself lives in the override record.
+      body_override: bodyOverride,
     });
     return false;
   });
