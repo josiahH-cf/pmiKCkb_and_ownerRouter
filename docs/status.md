@@ -42,9 +42,11 @@ patched 1.14.5 and merged at `dc493dfe` after its full gate and exact CI passed.
 Batch 002 requests 002–008 are recorded in supplied order as S135–S141. On 2026-09-30 the owner
 explicitly instructed their execution, then batch 003's, through implementation, mainline merge
 and deployment. The owner clarified 006–007 as all existing workflow-linked
-draft screens. The deployed Dashboard still handles three operational intents; production answer
-and classify settings read back as `gemini-2.5-flash`. Broader retrieval/conversation, model
-migration, draft refinement and integrated validation are not yet merged or live-verified.
+draft screens. S136 merged via PR #96, S135/S137/S138 via PR #98 and S139/S140 via PR #99
+(`f43629aa`); each slice passed its full local gate and exact CI. S141's local rehearsal matched
+Dashboard answers to the desk's own filtered views and recorded 43 real model calls served by
+`gemini-3.1-flash-lite`. The deployed Dashboard still handles three operational intents with
+`gemini-2.5-flash` until the batch 002 release.
 The overlapping old S88–S93/S101 assistant plans are superseded for this scope. No batch 002
 application effect, deployment, or provider activation has occurred.
 
