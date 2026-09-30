@@ -424,3 +424,90 @@ describe("resolveOwnerContactFromPropertyId", () => {
     await expect(resolveOwnerContactFromPropertyId(client, 7)).resolves.toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------------------------------
+// S139: reviewed wording (edited or refined) previews and creates as its own exact attempt
+// ---------------------------------------------------------------------------------------------------
+
+describe("S139 owner-notice wording", () => {
+  it("previews changed wording without reusing the earlier attempt, and creates exactly that wording", async () => {
+    const { deps: d, gmail } = deps();
+    const standard = await prepareMaintenanceOwnerNoticeDraft(d, {
+      ticketRef: "ticket-1",
+      mailbox: MAILBOX,
+    });
+    if (standard.status !== "preview") throw new Error("expected preview");
+    expect(standard.editableBody).toBe(standard.standardBody);
+    expect(standard.editableBody.startsWith(DRAFT_BANNER)).toBe(false);
+
+    const wording = `${standard.standardBody}\n\nWe will follow up with a vendor today.`;
+    // Before S139 one action id per ticket made this second preview an idempotency conflict.
+    const edited = await prepareMaintenanceOwnerNoticeDraft(d, {
+      ticketRef: "ticket-1",
+      mailbox: MAILBOX,
+      body: wording,
+    });
+    if (edited.status !== "preview") throw new Error("expected preview");
+    expect(edited.executionId).not.toBe(standard.executionId);
+    expect(edited.editableBody).toBe(wording);
+    expect(edited.body).toBe(`${DRAFT_BANNER}\n\n${wording}`);
+
+    const created = await prepareMaintenanceOwnerNoticeDraft(d, {
+      ticketRef: "ticket-1",
+      mailbox: MAILBOX,
+      body: wording,
+      confirm: { executionId: edited.executionId, previewHash: edited.previewHash },
+    });
+    expect(created.status).toBe("created");
+    expect(gmail.createDraft).toHaveBeenCalledTimes(1);
+    expect(gmail.createDraft.mock.calls[0][0].body).toBe(`${DRAFT_BANNER}\n\n${wording}`);
+    expect(gmail.createDraft.mock.calls[0][0].to).toBe(OWNER.email);
+
+    // A retried create of the same wording never makes a second draft: the one attempt is used.
+    await expect(
+      prepareMaintenanceOwnerNoticeDraft(d, {
+        ticketRef: "ticket-1",
+        mailbox: MAILBOX,
+        body: wording,
+        confirm: { executionId: edited.executionId, previewHash: edited.previewHash },
+      }),
+    ).rejects.toThrow(/already has an attempt/);
+    expect(gmail.createDraft).toHaveBeenCalledTimes(1);
+  });
+
+  it("discloses an unsent draft from different wording and blocks empty wording", async () => {
+    const { deps: d } = deps({
+      listCreatedDrafts: vi.fn(async () => [`exec_${"f".repeat(40)}`]),
+    });
+    const preview = await prepareMaintenanceOwnerNoticeDraft(d, {
+      ticketRef: "ticket-1",
+      mailbox: MAILBOX,
+      body: "Hello,\n\nA repair request came in.",
+    });
+    expect(preview).toMatchObject({ status: "preview", earlierDraftExists: true });
+
+    const blank = await prepareMaintenanceOwnerNoticeDraft(d, {
+      ticketRef: "ticket-1",
+      mailbox: MAILBOX,
+      body: "   ",
+    });
+    expect(blank.status).toBe("blocked");
+  });
+
+  it("keys each exact wording to its own action id", () => {
+    const base = {
+      ticketRef: "ticket-1",
+      unitTag: "unit:456",
+      recipient: { to: OWNER.email, sourceRef: OWNER.sourceRef },
+      mailbox: MAILBOX,
+      subject: "Maintenance request",
+    };
+    const a = buildMaintenanceOwnerNoticeDraftAction({ ...base, body: "One" });
+    const b = buildMaintenanceOwnerNoticeDraftAction({ ...base, body: "Two" });
+    const again = buildMaintenanceOwnerNoticeDraftAction({ ...base, body: "One" });
+    expect(a.actionId).not.toBe(b.actionId);
+    expect(a.actionId).toBe(again.actionId);
+    expect(a.actionId.startsWith("maintenance-owner-notice-draft:ticket-1:")).toBe(true);
+    expect(a.values.rfc_message_id).not.toBe(b.values.rfc_message_id);
+  });
+});

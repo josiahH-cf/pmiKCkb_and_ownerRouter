@@ -32,6 +32,8 @@ import {
 } from "@/lib/external-execution/governed-draft-execution";
 import { MAINTENANCE_EXECUTION_DEFINITION_MAP } from "@/lib/maintenance/execution/matrix";
 
+export const MAX_OWNER_NOTICE_BODY_LENGTH = 20_000;
+
 export interface MaintenanceOwnerNoticeMailbox {
   email: string;
   sourceRef: string;
@@ -47,6 +49,11 @@ export interface MaintenanceOwnerRecipient {
 export interface MaintenanceOwnerNoticeDraftInput {
   ticketRef: string;
   mailbox: MaintenanceOwnerNoticeMailbox;
+  /**
+   * S139: the person's reviewed wording (edited or refined). Absent uses the standard body composed
+   * from the ticket. The recipient, subject and banner never come from here.
+   */
+  body?: string;
   /**
    * Absent → return the preview plus its S20 execution id and immutable preview hash.
    * Present → execute that exact prepared execution. A bare boolean carried no binding to WHAT was
@@ -64,6 +71,11 @@ export interface MaintenanceOwnerNoticeDraftDeps {
   ): Promise<MaintenanceOwnerRecipient | null>;
   /** Build a draft-capable Gmail client for the authenticated sender (subject === mailbox email). */
   createGmailClient(subject: string): RenewalDraftGmailClient;
+  /**
+   * S139: execution ids of unsent drafts already created for this ticket's owner notice. The app
+   * cannot update an existing Gmail draft, so a new wording is disclosed as a separate draft.
+   */
+  listCreatedDrafts?(ticketRef: string): Promise<readonly string[]>;
   /** The signed-in operator; the S20 ledger owns approval, claim, and actor scope. */
   actor: AuthenticatedUser;
   /** Test-only S20/environment seams; production omits them. */
@@ -77,6 +89,11 @@ export type MaintenanceOwnerNoticeDraftOutcome =
       recipient: { to: string; sourceRef: string };
       subject: string;
       body: string;
+      /** S139: the editable wording (no banner) and the standard wording composed from the ticket. */
+      editableBody: string;
+      standardBody: string;
+      /** S139: an unsent draft from a different wording already exists for this ticket. */
+      earlierDraftExists: boolean;
       /** The exact prepared execution the caller must confirm; binds this reviewed preview. */
       executionId: string;
       previewHash: string;
@@ -137,13 +154,27 @@ export async function prepareMaintenanceOwnerNoticeDraft(
     propertyLabel: ticket.unit.label,
   });
 
+  const edited = input.body?.replace(/\r\n/g, "\n").trim();
+  if (input.body !== undefined && !edited) {
+    return {
+      status: "blocked",
+      reasons: ["Add the email wording before previewing the draft."],
+    };
+  }
+  if (edited && edited.length > MAX_OWNER_NOTICE_BODY_LENGTH) {
+    return {
+      status: "blocked",
+      reasons: ["Shorten the email wording before previewing the draft."],
+    };
+  }
+  const editableBody = edited || draft.body;
   const action = buildMaintenanceOwnerNoticeDraftAction({
     ticketRef: input.ticketRef,
     unitTag: ticket.unit.unitId,
     recipient: { to: owner.email, sourceRef: owner.sourceRef },
     mailbox: input.mailbox,
     subject: draft.subject,
-    body: draft.body,
+    body: editableBody,
   });
 
   const recipient = { to: owner.email, sourceRef: owner.sourceRef };
@@ -157,11 +188,17 @@ export async function prepareMaintenanceOwnerNoticeDraft(
 
   if (!input.confirm) {
     const prepared = await prepareGovernedDraft(deps.actor, request, deps.seams);
+    const created = deps.listCreatedDrafts
+      ? await deps.listCreatedDrafts(input.ticketRef).catch(() => [])
+      : [];
     return {
       status: "preview",
       recipient,
       subject: draft.subject,
       body: String(action.values.body),
+      editableBody,
+      standardBody: draft.body,
+      earlierDraftExists: created.some((executionId) => executionId !== prepared.id),
       executionId: prepared.id,
       previewHash: prepared.preview_hash,
     };

@@ -19,6 +19,10 @@ export const LIVE_READONLY_ALLOWED_NON_SAFE_REQUESTS: ReadonlyMap<string, string
     ["POST /api/auth/demo", "Create only the local rehearsal session cookie."],
     ["POST /api/auth/session", "Create only the authenticated staff session cookie."],
     ["POST /api/connections/verify", "Run a read-only provider health probe."],
+    [
+      "POST /api/email-refinement",
+      "Propose a revised wording for one workflow-linked draft from its owning record; nothing is saved, drafted or sent.",
+    ],
     ["POST /api/maintenance/match-unit", "Read and match authoritative RentVine units."],
     ["POST /api/maintenance/transcribe", "Transcribe into an unsaved intake input."],
     ["POST /api/processes/classify", "Classify against read-only process definitions."],

@@ -40,6 +40,8 @@ describe("Live-read-only request policy (AC-S56-6)", () => {
       "POST /api/auth/demo",
       "POST /api/auth/session",
       "POST /api/connections/verify",
+      // S139: a proposed revision of one draft's wording; nothing is saved, drafted or sent.
+      "POST /api/email-refinement",
       "POST /api/maintenance/match-unit",
       "POST /api/maintenance/transcribe",
       "POST /api/processes/classify",

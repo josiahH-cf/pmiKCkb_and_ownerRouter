@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { WorkOrderChatPanel } from "@/components/maintenance/WorkOrderChatPanel";
+import { GEMINI_IN_GMAIL_HINT } from "@/lib/email-refinement/hint";
 
 const fetchMock = vi.fn();
 
@@ -97,6 +98,15 @@ beforeEach(() => {
           mapping_state: "resident_bound",
         });
       }
+    }
+    if (url === "/api/email-refinement") {
+      return jsonResponse({
+        version: "email-refinement/v1",
+        status: "revised",
+        body: "Thanks for letting us know. The plumber arrives Tuesday morning.",
+        requestedValues: [],
+        removedValues: [],
+      });
     }
     if (url.endsWith("/resident-reply-draft")) {
       if (body.confirm) {
@@ -267,5 +277,53 @@ describe("S100 WorkOrderChatPanel", () => {
       previewHash: "b".repeat(64),
     });
     expect(screen.getByText(/never sends and never deletes drafts/)).toBeInTheDocument();
+    // S140: one wording hint, only once the draft exists.
+    expect(screen.getAllByText(GEMINI_IN_GMAIL_HINT)).toHaveLength(1);
+  });
+
+  it("refines the reply body on request and previews the accepted wording (S139)", async () => {
+    thread = {
+      status: "ok",
+      work_order_id: "9005",
+      eligible: true,
+      records: [message()],
+    };
+    render(<WorkOrderChatPanel canEdit ticketId="ticket-9" />);
+    await loadConversation();
+
+    fireEvent.click(screen.getByRole("button", { name: "Draft email reply" }));
+    expect(screen.getByRole("button", { name: "Refine wording" })).toBeDisabled();
+    expect(screen.queryByText(GEMINI_IN_GMAIL_HINT)).toBeNull();
+    fireEvent.change(screen.getByLabelText("Subject"), {
+      target: { value: "Re: your maintenance request" },
+    });
+    fireEvent.change(screen.getByLabelText("Reply body"), {
+      target: { value: "The plumber arrives Tuesday morning." },
+    });
+    fireEvent.change(screen.getByLabelText("Refine with AI"), {
+      target: { value: "Thank them first" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Refine wording" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Use this revision" }));
+
+    const refinement = sent.find((entry) => entry.url === "/api/email-refinement");
+    expect(refinement?.body).toEqual({
+      surface: "maintenance_resident_reply",
+      messageId: 501,
+      currentBody: "The plumber arrives Tuesday morning.",
+      instruction: "Thank them first",
+    });
+    expect(screen.getByLabelText("Reply body")).toHaveValue(
+      "Thanks for letting us know. The plumber arrives Tuesday morning.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Preview draft" }));
+    await screen.findByText(/server-verified resident resident9@residents-pmikc\.net/);
+    const preview = sent.find(
+      (entry) => entry.url.endsWith("/resident-reply-draft") && !entry.body.confirm,
+    );
+    expect(preview?.body.body).toBe(
+      "Thanks for letting us know. The plumber arrives Tuesday morning.",
+    );
   });
 });

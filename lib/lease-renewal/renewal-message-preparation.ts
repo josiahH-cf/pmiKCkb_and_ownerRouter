@@ -5,6 +5,7 @@ import {
   MessageLinkSchema,
   RenewalMessageEditsSchema,
 } from "@/lib/lease-renewal/renewal-message-content";
+import { RefinedBodySchema } from "@/lib/lease-renewal/refined-message";
 
 const source = z.string().trim().min(1).max(240);
 export const MessagePreparationInputsSchema = z
@@ -78,6 +79,8 @@ export const SaveMessagePreparationSchema = z
     reviewed: z.boolean(),
     adoptSignature: z.boolean().optional().default(false),
     inputs: MessagePreparationInputsSchema,
+    /** S139: accepted refined wording for this revision; null or absent keeps the composed body. */
+    bodyOverride: RefinedBodySchema.nullable().optional(),
   })
   .strict();
 export const MessagePreparationRecordSchema = z

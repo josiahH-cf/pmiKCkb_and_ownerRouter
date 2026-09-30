@@ -60,6 +60,7 @@ export const MESSAGE_CONTROL_IDS = {
     `renewal-message-${channel}-adopt-signature`,
   reviewed: (channel: MessageChannel) => `renewal-message-${channel}-reviewed`,
   readiness: (channel: MessageChannel) => `renewal-message-${channel}-readiness`,
+  refine: (channel: MessageChannel) => `renewal-message-${channel}-refine`,
   attachment: "renewal-message-owner-attachment",
 } as const;
 
@@ -133,6 +134,8 @@ export function messageInputTarget(
       MESSAGE_CONTROL_IDS.adoptSignature(channel),
       "Signature for the signed-in sender",
     );
+  if (field === "refinedBody")
+    return control(MESSAGE_CONTROL_IDS.refine(channel), "Refined wording");
   if (field === "review")
     return control(MESSAGE_CONTROL_IDS.reviewed(channel), "Review and save");
   return control(MESSAGE_CONTROL_IDS.inputs(channel), "Message inputs");

@@ -9,7 +9,11 @@ import { createDescriptorBoundGmailRuntimeClient } from "@/lib/gmail-hub/depende
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import { resolveOwnerContactFromPropertyId } from "@/lib/lease-renewal/live-owner-recipient";
 import { MAINTENANCE_OWNER_NOTICE_DRAFT_ACTION_KEY } from "@/lib/maintenance/execution/owner-notice-draft-request";
-import { prepareMaintenanceOwnerNoticeDraft } from "@/lib/maintenance/execution/owner-notice-draft-service";
+import {
+  MAX_OWNER_NOTICE_BODY_LENGTH,
+  prepareMaintenanceOwnerNoticeDraft,
+} from "@/lib/maintenance/execution/owner-notice-draft-service";
+import { listCreatedOwnerNoticeDrafts } from "@/lib/firestore/owner-notice-draft-history";
 import { getUnitIndex } from "@/lib/maintenance/unit-index";
 import {
   ActionNotExecutableError,
@@ -20,6 +24,8 @@ import {
 const OwnerNoticeDraftBodySchema = z
   .object({
     ticketRef: z.string().trim().min(1).max(120),
+    // S139: the person's reviewed wording; absent uses the standard body composed from the ticket.
+    body: z.string().max(MAX_OWNER_NOTICE_BODY_LENGTH).optional(),
     // Confirmation carries the exact prepared execution and the preview hash it was reviewed at.
     confirm: z
       .object({
@@ -98,10 +104,12 @@ export async function POST(request: Request) {
             subject,
             requireEnvironmentDescriptor(),
           ),
+        listCreatedDrafts: (ticketRef) => listCreatedOwnerNoticeDrafts(user, ticketRef),
         actor: user,
       },
       {
         ticketRef: body.ticketRef,
+        ...(body.body !== undefined ? { body: body.body } : {}),
         ...(body.confirm ? { confirm: body.confirm } : {}),
         mailbox: { email: user.email, sourceRef: `app:session:${user.uid}` },
       },

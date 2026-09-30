@@ -44,6 +44,14 @@ import {
   type RenewalNoticeDraftOutcome,
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
 import { formatRecipientsForCopy } from "@/lib/lease-renewal/recipient-resolution";
+import { RefineWithAi } from "@/components/email/RefineWithAi";
+import { GEMINI_IN_GMAIL_HINT } from "@/lib/email-refinement/hint";
+import {
+  STALE_REFINED_BODY_MESSAGE,
+  applyRefinedBody,
+  type RefinedBody,
+  type RefinedBodyState,
+} from "@/lib/lease-renewal/refined-message";
 
 interface ChargeInventoryLine {
   id: string;
@@ -106,6 +114,8 @@ interface Preparation {
   /** S120: current non-rent recurring charges a person may deliberately fill a charge from. */
   chargeInventory?: ChargeInventoryLine[] | null;
   publication: { status: string; reason?: string };
+  /** S139: the saved refined wording and whether it still matches the current composition. */
+  bodyOverride?: RefinedBodyState | null;
   notices: string[];
   /** S129: policy gates projected on the server from the same applicability the workspace shows. */
   policyGates?: Array<{ field: string; message: string }>;
@@ -129,6 +139,20 @@ export function RenewalMessagePreparation({
       canEdit={canEdit}
     />
   ) : null;
+}
+
+/** S139: the editor's starting refined wording from the saved state the server reports. */
+function savedOverride(saved: RefinedBodyState | null): {
+  override: RefinedBody | null;
+  state: RefinedBodyState["state"] | null;
+} {
+  return {
+    override:
+      saved && saved.state !== "unreadable"
+        ? { text: saved.text, baseHash: saved.baseHash }
+        : null,
+    state: saved?.state ?? null,
+  };
 }
 
 function chargeFillSource(line: ChargeInventoryLine) {
@@ -174,6 +198,15 @@ function MessagePreparationEditor({
   const [confirming, setConfirming] = useState(false);
   const [loadedAtIso, setLoadedAtIso] = useState<string | null>(null);
   const [adoptSignature, setAdoptSignature] = useState(false);
+  // S139: accepted refined wording for this message, its saved state, and the one prior value
+  // "Undo the last refinement" restores. Unsaved like any other edit until Save.
+  const [override, setOverride] = useState<RefinedBody | null>(null);
+  const [overrideState, setOverrideState] = useState<RefinedBodyState["state"] | null>(
+    null,
+  );
+  const [previousOverride, setPreviousOverride] = useState<
+    RefinedBody | null | undefined
+  >(undefined);
   const base = useId();
   const loadSequence = useRef(0);
   const readinessRef = useRef<HTMLDetailsElement | null>(null);
@@ -230,6 +263,10 @@ function MessagePreparationEditor({
       }
       if (!dirtyRef.current) {
         setInputs(result.inputs);
+        const saved = savedOverride(result.bodyOverride ?? null);
+        setOverride(saved.override);
+        setOverrideState(saved.state);
+        setPreviousOverride(undefined);
         setReviewed(false);
       } else {
         setReviewed(false);
@@ -251,6 +288,17 @@ function MessagePreparationEditor({
   }, [load, cycleId, refreshBasis]); // source changes retain deliberate edits
   function change(next: MessagePreparationInputs) {
     setInputs(next);
+    dirtyRef.current = true;
+    setDirty(true);
+    setReviewed(false);
+    if (outcome?.status === "preview") setOutcome(null);
+    setConfirming(false);
+  }
+  /** Refined wording is an ordinary unsaved edit: it needs review and a Save like any other. */
+  function overrideChange(next: RefinedBody | null, remember = false) {
+    if (remember) setPreviousOverride(override);
+    setOverride(next);
+    setOverrideState(next ? "applied" : null);
     dirtyRef.current = true;
     setDirty(true);
     setReviewed(false);
@@ -354,6 +402,30 @@ function MessagePreparationEditor({
         error instanceof Error ? error.message : "Review the labeled inputs.";
     }
   }
+  // S139: refined wording is the body only while the facts it was refined from are unchanged: a
+  // local edit to the inputs or a server-reported change makes it stale, and stale wording blocks
+  // the final body instead of silently reverting or silently sending older facts.
+  const baseChanged =
+    current !== null && JSON.stringify(inputs) !== JSON.stringify(current.inputs);
+  const overrideStale = override !== null && (overrideState === "stale" || baseChanged);
+  if (content && override && overrideStale)
+    content.missing.push({ field: "refinedBody", message: STALE_REFINED_BODY_MESSAGE });
+  if (content && overrideState === "unreadable" && !override)
+    content.missing.push({
+      field: "refinedBody",
+      message: "The saved refined wording could not be read. Reload before drafting.",
+    });
+  const shownContent =
+    content && override && !overrideStale
+      ? applyRefinedBody(content, override.text)
+      : content;
+  const refineDisabledReason = !canEdit
+    ? "Refining wording needs edit access to this renewal."
+    : !current?.saved
+      ? "Save this message once before refining its wording."
+      : baseChanged
+        ? "Save your changes first so the wording starts from the reviewed facts."
+        : null;
   // S120 (R120.4): one readiness result from the same content, review and sender basis governs
   // the missing-input list and the supported final-body exports.
   const readiness = current
@@ -414,6 +486,7 @@ function MessagePreparationEditor({
       reviewed,
       adoptSignature,
       inputs,
+      bodyOverride: override,
     };
     const serialized = JSON.stringify(request);
     if (outstanding.current?.payload !== serialized)
@@ -431,6 +504,10 @@ function MessagePreparationEditor({
         throw new Error(data.error ?? "The preparation could not be saved.");
       setCurrent(data);
       setInputs(data.inputs);
+      const saved = savedOverride((data as Preparation).bodyOverride ?? null);
+      setOverride(saved.override);
+      setOverrideState(saved.state);
+      setPreviousOverride(undefined);
       setDirty(false);
       dirtyRef.current = false;
       setReviewed(false);
@@ -451,6 +528,7 @@ function MessagePreparationEditor({
     }
   }
   async function copy(kind: "subject" | "plain" | "formatted" | "recipients") {
+    const content = shownContent;
     if (!content) return;
     // The guarded final-body exports never put an unfinished body on the clipboard; the guard
     // opens the actual missing items instead.
@@ -1306,7 +1384,7 @@ function MessagePreparationEditor({
               </p>
             ) : null}
           </section>
-          {content ? (
+          {shownContent ? (
             <>
               {!bodyReady && readiness ? (
                 <p className="muted">
@@ -1317,7 +1395,7 @@ function MessagePreparationEditor({
               <div
                 aria-label={`${channel} formatted body`}
                 className="renewal-message-preview"
-                dangerouslySetInnerHTML={{ __html: content.htmlBody }}
+                dangerouslySetInnerHTML={{ __html: shownContent.htmlBody }}
               />
               {bodyReady ? (
                 <details>
@@ -1325,11 +1403,94 @@ function MessagePreparationEditor({
                   <textarea
                     aria-label={`${channel} plain text body`}
                     readOnly
-                    value={content.plainText}
+                    value={shownContent.plainText}
                     rows={14}
                   />
                 </details>
               ) : null}
+              <fieldset
+                className="ui-stack-tight renewal-message-group"
+                disabled={!canEdit || pending}
+              >
+                <RefineWithAi
+                  appliedNotice="Revision applied. Review it and save the message to keep it."
+                  currentBody={
+                    override && !overrideStale
+                      ? override.text
+                      : (content?.plainText ?? "")
+                  }
+                  disabledReason={refineDisabledReason}
+                  id={MESSAGE_CONTROL_IDS.refine(channel)}
+                  onApply={(revision) =>
+                    revision.baseHash
+                      ? overrideChange(
+                          { text: revision.body, baseHash: revision.baseHash },
+                          true,
+                        )
+                      : setNotice(
+                          "The revision could not be bound to this message. Refine again.",
+                        )
+                  }
+                  request={{ surface: "renewal_message", leaseId, channel }}
+                />
+                {override && !overrideStale ? (
+                  <>
+                    <Field
+                      htmlFor={`${base}-refined`}
+                      label="Refined email body"
+                      hint="This wording replaces the standard body for this saved version. You can edit it; amounts, dates, names and links stay as the facts show unless you change them here."
+                    >
+                      <textarea
+                        id={`${base}-refined`}
+                        onChange={(event) =>
+                          overrideChange({ ...override, text: event.target.value })
+                        }
+                        rows={14}
+                        value={override.text}
+                      />
+                    </Field>
+                    <div className="ui-actions">
+                      {previousOverride !== undefined ? (
+                        <Button
+                          onClick={() => {
+                            overrideChange(previousOverride);
+                            setPreviousOverride(undefined);
+                          }}
+                          type="button"
+                          variant="secondary"
+                        >
+                          Undo the last refinement
+                        </Button>
+                      ) : null}
+                      <Button
+                        onClick={() => overrideChange(null, true)}
+                        type="button"
+                        variant="secondary"
+                      >
+                        Return to the standard wording
+                      </Button>
+                    </div>
+                  </>
+                ) : null}
+                {override && overrideStale ? (
+                  <div className="ui-stack-tight" role="status">
+                    <p>{STALE_REFINED_BODY_MESSAGE}</p>
+                    <details>
+                      <summary>Earlier refined wording (kept for reference)</summary>
+                      <div className="draft-box">{override.text}</div>
+                    </details>
+                    <div className="ui-actions">
+                      <Button
+                        onClick={() => overrideChange(null, true)}
+                        type="button"
+                        variant="secondary"
+                      >
+                        Return to the standard wording
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+              </fieldset>
             </>
           ) : null}
           <section
@@ -1361,6 +1522,14 @@ function MessagePreparationEditor({
                 </p>
                 <p>{outcome.subject}</p>
                 <div className="draft-box">{outcome.body}</div>
+                {current.draftAttempt?.outcome?.status === "created" &&
+                current.draftAttempt.executionId !== outcome.executionId ? (
+                  <p role="note">
+                    A Gmail draft from an earlier version of this message already exists.
+                    Creating this one adds a second, separate unsent draft; the app cannot
+                    replace the earlier one, so delete it in Gmail and send only one.
+                  </p>
+                ) : null}
                 {outcome.attachment ? (
                   <p>
                     {outcome.attachment.label} · {outcome.attachment.mimeType} ·{" "}
@@ -1417,6 +1586,10 @@ function MessagePreparationEditor({
                 )}{" "}
                 Mailbox: {current.senderEmail}. A person sends from Gmail.
               </p>
+            ) : null}
+            {outcome?.status === "created" ||
+            (outcome?.status === "reconciliation" && outcome.resolution === "created") ? (
+              <p className="muted">{GEMINI_IN_GMAIL_HINT}</p>
             ) : null}
           </section>
           {current.previousDraftAttempts?.length ? (

@@ -63,6 +63,8 @@ function publicPreparation(current: Awaited<ReturnType<typeof currentRenewalMess
     inputs: current.inputs,
     facts: current.facts,
     content: current.content,
+    // S139: the saved refined wording and whether it still matches the current composition.
+    bodyOverride: current.bodyOverride,
     sourceFingerprint: current.basis.sourceFingerprint,
     needsReview: current.needsReview,
     signatureMatchesActor: current.signatureMatchesActor,
