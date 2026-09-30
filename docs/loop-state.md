@@ -10,7 +10,11 @@ Revision pmi-kc-app-rmundpf2v-249c945f2220; tag cand-rmundpf2v-249c945f2220; tra
 Fingerprint sha256:e6a481aeb691991fe38f89bc0d25f40bb73c67de7d1e639e89f2cb5e8c4d0eaa.
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
 Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=false.
-Checkpoint complete; permit consumed; no blocked, in-flight or rollback phase.
+Request 001 run dc4e1ac8-d8b9-4090-9258-e2ddb18f119f (`41ad65cb`) built zero-traffic candidate
+pmi-kc-app-rmuo61wve-fcdc2fc4b0d0, then blocked at assurance before receipt or promotion: live
+renewal routes exceeded the 30-second canary navigation bound. Its admitted permit expired
+unused; operator resume is required and failed evidence stays preserved outside Git. Draft PR
+#93 proposes a 60-second bound for two renewal routes and awaits owner review.
 
 ## Awaiting release
 
@@ -39,7 +43,22 @@ The owner clarified that 006–007 apply to all existing workflow-linked draft s
 three-intent answer path and current draft flows are verified code/serving baseline; broader
 conversation, shared retrieval, model migration, AI draft refinement and integrated validation
 are not implemented. Overlapping unimplemented S88–S93/S101 plans are superseded for this scope;
-S87/S94/S95 remain separate proposals. No batch 002 implementation or release was authorized.
+S87/S94/S95 remain separate proposals.
+
+On 2026-09-30 the owner explicitly instructed execution of batch 002 (S135–S141), then batch 003
+(S142–S145), through implementation, mainline merge and deployment, with one cumulative release at
+the end of each set. PR #95 (production audit patch and S113 journey settle fix) merged at
+`dc493dfe`. S136 is in PR #96; S135/S137/S138 and S139/S140 are implemented on stacked branches.
+
+Batch 003's four files 009–012 are registered once as S142–S145, covered by the same instruction
+after batch 002. No prior-batch intake question remained; the owner accepts earlier
+defaults. Serving Full view, one linked next action and cycle-bound manual progress are baseline;
+multiple-ready dependency projection, separate Focus pane, in-pane lifecycle and its regression
+validation are new work. Fresh read-only traffic check still showed the documented serving revision
+at 100%; a newer candidate was not serving. `auth:ensure` returned READY for approved WSL CLI/ADC.
+No Focus code, provider effect or deployment was started by this intake.
+Spec-shape, traceability, active-path, freshness, policy, redaction and formatting checks passed.
+The production audit failure that first held these docs was remediated by PR #95 (`dc493dfe`).
 
 ## Verified evidence
 
@@ -74,14 +93,15 @@ Historical K unit-store target/marker effects remain UNVERIFIED; absent Data Acc
 prove zero effects. No customer draft/send, paid comparison, provider-proof rerun or synthetic
 production record was authorized for this release.
 
-One development-only moderate Firebase CLI/PubSub/OpenTelemetry advisory chain remains absent
-from all 194 runtime traces. A compatible upstream fix is the supported follow-up; production audit
-is clean. Earlier emulator lock contention remains recorded; passing final checks do not establish
+One earlier development-only moderate Firebase CLI/PubSub/OpenTelemetry advisory chain remained absent
+from all 194 runtime traces. PR #95 patched the later `@grpc/grpc-js` production audit failure.
+Earlier emulator lock contention remains recorded; passing final checks do not establish
 a durable flakiness fix or a general production performance SLO.
 
 ## Continuation
 
-Only the owner-authorized 001 dependency release remains queued, subject to its exact gates and
-current draft timing fix. Batch 002 is intake-only. Future external/human work requires its actual
-inputs and existing exact-effect contracts. Consumed permits and historical receipts cannot admit
-another deployment.
+The 001 dependency release remains queued behind its blocked run. Batch 002's cumulative release
+carries 001's merged changes after S141; batch 003 follows with its own. The blocked run must be
+archived through the reviewed superseded-by procedure before a new run. Future external/human work
+requires its actual inputs and existing exact-effect contracts. Consumed permits and historical
+receipts cannot admit another deployment.

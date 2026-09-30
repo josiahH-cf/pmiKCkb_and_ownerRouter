@@ -1,6 +1,6 @@
 # Current plan
 
-Updated: 2026-09-30 (UTC). The thirteen-feature batch and confirmed adversarial repairs are verified deployed. The separate 001 dependency release remains pending; batch 002 is intake-only.
+Updated: 2026-09-30 (UTC). The thirteen-feature batch and confirmed adversarial repairs are verified deployed. The separate 001 dependency release is blocked at assurance; batches 002–003 are owner-authorized for execution.
 
 ## Direct maintenance request 001: merged, release pending
 
@@ -22,18 +22,37 @@ resume. Permission denial and unknown probe failures must not masquerade as toke
 
 Focused tests, `bash scripts/verify.sh` and host read-only checks passed. PR #92 merged at
 `41ad65cb` on 2026-09-30. New production dependency resolutions needed for the mandatory audit
-require a separately gated Cloud Run release. Draft PR #93 addresses a release timing issue and
-is not merged. The previous release's consumed permit remains historical. This intake does not
-resume that release or authorize any batch 002 implementation.
+require a separately gated Cloud Run release. Its run `dc4e1ac8-d8b9-4090-9258-e2ddb18f119f`
+built a zero-traffic candidate and blocked at assurance when live renewal routes exceeded the
+30-second canary navigation bound; the admitted permit expired unused. Draft PR #93 proposes a
+60-second bound for those two routes and awaits owner review. The previous release's consumed
+permit remains historical.
 
-## Markdown batch 002: scoped, not started
+## Markdown batch 002: executing
 
 All seven supplied requests 002–008 were read in order, mapped to S135–S141 and registered as
 `ready` in `docs/feature-suites/README.md`. The owner clarified that email requests 006–007 cover
 all existing workflow-linked draft screens. S110 and the existing email paths are the verified
 baseline; the broader AI/model/context/refinement outcomes are not implemented. S88–S93/S101's
 overlapping unimplemented plans are superseded for this scope and cannot restart automatically.
-Await an explicit implementation selection; preserve S87/S94/S95 as separate proposals.
+Preserve S87/S94/S95 as separate proposals. On 2026-09-30 the owner explicitly instructed
+execution of batch 002, then batch 003, through implementation, mainline merge and deployment,
+with one cumulative release at the end of each set. PR #95 merged the production audit patch at
+`dc493dfe`; the S136, S135/S137/S138 and S139/S140 slices merge next, then S141 validation.
+
+## Markdown batch 003: authorized, follows batch 002
+
+The four supplied requests 009–012 were read in order and registered as S142–S145, all `ready`.
+S113/S127, the evidence process, manual cycle state and existing action services are the verified
+baseline; the new graph projection, additive Focus view, in-pane execution and regression pass are
+the remaining delta. No earlier completed/superseded suite restarts, and S135–S141 AI work is not
+a dependency. The owner's 2026-09-30 instruction carries its clarified scope through
+implementation and authorized delivery without per-feature consent, subject to router gates and
+actual external-effect inputs. Its work starts in an isolated checkout once batch 002 is released
+or under observation.
+The documentation checks passed. The production dependency audit failure that first held this
+intake was remediated separately by PR #95 before it was committed. Do not use the pending 001
+release permit as an intake approval.
 
 ## Outcome
 
