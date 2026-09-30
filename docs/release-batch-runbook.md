@@ -155,8 +155,8 @@ npm run release:batch-preflight
 The prepared permit is outside Git at `~/.local/state/pmi-kc-release/release-permit.json`; preparation
 is not deployment authority. The prerequisite collector performs approved CLI/ADC and guarded Admin
 browser reads, billing and exact cost-control readbacks. Its sanitized immutable history and latest
-receipt remain outside Git. Unknown or stale evidence is not GO. Require exactly thirteen ordered
-expected suites, all queue commits ancestors of the head, equal native/Windows/remote main SHAs,
+receipt remain outside Git. Unknown or stale evidence is not GO. Require explicitly queued ordered
+items, all queue commits ancestors of the head, equal native/Windows/remote main SHAs,
 exact green push CI, both ignored env files with explicit false flags in both checkouts, a compatible
 checkpoint, native tools, zero other watchers and an owned/free lock. Historical GO does not admit
 this batch. Resolve every reported failure before continuing.
@@ -194,6 +194,9 @@ Each phase advances only on independent readback:
    application build or preliminary production promotion occurs.
 3. Build one application candidate at zero traffic, smoke its exact identity, capture its fingerprint,
    replace the superseded candidate authorized-domain entry, and pass Admin assurance/reconciliation.
+   The two live renewal routes have a 60-second navigation bound because their current source reads
+   can complete after 30 seconds. Every landmark, guarded-browser diagnostic, exact version, and
+   reconciliation check remains required; all other routes keep a 30-second navigation bound.
 4. Immediately before claiming promotion, re-read the original 100% baseline and prepared recovery
    target's Ready state, digest, configuration and explicit false Sheet flag. The candidate must also
    read false and match its fingerprint. Version 5 candidate/promotion receipts bind the supplemental
