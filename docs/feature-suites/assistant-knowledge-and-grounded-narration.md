@@ -3,10 +3,7 @@
 
 # S92 — Assistant knowledge and grounded narration
 
-> Status: Specified and not implemented. The deployed Ask service answers source-backed KB questions
-> through scoped retrieval and structured model output, but it is not an S88 assistant adapter and no
-> operational result currently has the minimized, injection-resistant narration envelope defined
-> here.
+> Status: Superseded for Dashboard AI by S135–S138 (batch 002); deployed KB source-state safeguards still apply.
 
 **Goal.**
 

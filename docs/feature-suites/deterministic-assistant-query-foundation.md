@@ -3,9 +3,7 @@
 
 # S88 — Deterministic assistant query foundation
 
-> Status: Specified and not implemented. The current `/api/ask` path is a buffered, model-backed KB
-> answer route; it has no actor-scoped operational query coordinator, structured result envelope, or
-> completeness contract, and the existing Console Ask form can separately start a workflow run.
+> Status: Superseded for Dashboard AI by S135–S138 (batch 002); retained only as planning provenance. Its closed eight-intent execution sequence must not restart.
 
 **Goal.**
 

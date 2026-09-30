@@ -3,10 +3,7 @@
 
 # S95 — Minimal Dashboard composition and relocation
 
-> Status: Specified and not implemented. Production still renders the current Console composition at
-> both `/` and `/ask`; S82–S86 are deployed prerequisites, S88–S94 remain implementation
-> prerequisites, and S95 consumes S87's already-specified `SF-06`/`CB-01`/`CB-17` manifest before
-> S87 performs the final cross-suite reconciliation.
+> Status: Separate unimplemented Dashboard layout proposal, outside batch 002. Re-scope old assistant dependencies before any explicit execution.
 
 **Goal.**
 

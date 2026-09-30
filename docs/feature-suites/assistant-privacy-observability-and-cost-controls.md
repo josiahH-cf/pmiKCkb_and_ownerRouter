@@ -3,9 +3,7 @@
 
 # S89 — Assistant privacy, observability, and cost controls
 
-> Status: Specified and not implemented. Current Ask persists full question/answer records, exposes
-> coarse Firestore-derived counts, uses per-instance model throttles, and has no assistant transcript,
-> cancellation, concurrency, usage, or operational-evaluation contract.
+> Status: Superseded as an independent assistant program by S135–S138 (batch 002). Applicable privacy, cost and observability controls survive in the new contracts; this old sequence must not restart.
 
 **Goal.**
 

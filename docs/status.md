@@ -22,14 +22,25 @@ Editor browser coverage remains `not_run` under the approved Admin-only contract
 
 ## Current operational maintenance
 
-Request 001, governance simplification and unattended authentication renewal, is authorized for
+Request 001, governance simplification and unattended authentication renewal, was authorized for
 direct implementation and mainline merge. Focused tests passed. A fresh WSL unattended auth probe
 verified both CLI and ADC refresh under the approved managed identity, and a read-only Cloud Run
 describe confirmed the documented serving revision still has 100% traffic. The reported eight-hour
 failure remains a user observation, not a verified token lifetime. The mandatory production audit
 required three patched transitive dependency overrides; the new lockfile has zero production audit
 findings. The full local gate passed 7,470 unit tests (four existing skips), 234 backend tests, all
-policy checks and a production build. Mainline CI/merge and the dependency release remain pending.
+policy checks and a production build. PR #92 merged at `41ad65cb` on 2026-09-30; the separate
+dependency release remains pending. Draft PR #93 addresses a release timing issue and is not merged.
+
+## Feature intake
+
+Batch 002 requests 002–008 are recorded in supplied order as S135–S141, all **ready for a later
+explicit implementation instruction**. The owner clarified 006–007 as all existing workflow-linked
+draft screens. The deployed Dashboard still handles three operational intents; production answer
+and classify settings read back as `gemini-2.5-flash`. Broader retrieval/conversation, model
+migration, draft refinement and integrated validation have not been implemented or live-verified.
+The overlapping old S88–S93/S101 assistant plans are superseded for this scope. No batch 002
+application effect, deployment, or provider activation occurred.
 
 ## Verified corrective review
 

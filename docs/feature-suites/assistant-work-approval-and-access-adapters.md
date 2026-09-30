@@ -3,8 +3,7 @@
 
 # S90 — Assistant work, approval, and access read adapters
 
-> Status: Specified and not implemented. Current My Work, Approval Queue, authenticated-session, and
-> deployed S83 access-request services exist, but the current Ask pipeline does not query them.
+> Status: Superseded for Dashboard AI by S137–S138 (batch 002); the old adapter sequence must not restart.
 
 **Goal.**
 

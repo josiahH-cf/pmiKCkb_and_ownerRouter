@@ -25,18 +25,21 @@ Documentation/test-only closure must not start another deployment.
 ## Feature intake
 
 Request 001 was supplied from `pmi-new-features-9-30/001-governance-simplification-and-unattended-auth-renewal.md`.
-The owner explicitly directed this operational governance/authentication change through
-implementation and mainline merge. It is recorded as ready in `docs/feature-suites/README.md`;
-focused tests and the full local gate passed, with mainline CI/merge pending. A production
-dependency patch needed for the mandatory audit will require a new exact Cloud Run release after
-merge. No provider effect is admitted. The registered suite order is not an instruction to resume
-other work; future
-requests still require explicit execution direction.
-At intake initialization, GitHub CI 36650984450 read back successful at the exact release SHA.
-The first WSL CLI/ADC probe required reauthentication, then a fresh approved unattended probe
-verified both usable under `josiah@pmikcmetro.com`. A fresh read-only Cloud Run service describe
-confirmed `pmi-kc-app-rmundpf2v-249c945f2220` still has 100% traffic. A prior public HEAD timed
-out; no new product-route or configuration assurance was performed for this maintenance request.
+The authorized governance/auth change passed its local gate and PR #92 merged at `41ad65cb` on
+2026-09-30. Its patched dependencies still need the separately gated Cloud Run release; draft PR
+#93 addresses a release timing issue and is not merged. No other suite is thereby resumed. A fresh
+approved `auth:ensure` during batch 002 intake returned READY for WSL CLI and ADC under
+`josiah@pmikcmetro.com`. A read-only Cloud Run describe still showed the prior verified revision
+`pmi-kc-app-rmundpf2v-249c945f2220` at 100% traffic and answer/classify model settings of
+`gemini-2.5-flash`. No new product-route assurance or model inference was run for this intake.
+
+Batch 002's seven Markdown files were read in supplied order and registered once as S135–S141
+in `docs/feature-suites/README.md`, all **ready for a later explicit execution instruction**.
+The owner clarified that 006–007 apply to all existing workflow-linked draft screens. S110's
+three-intent answer path and current draft flows are verified code/serving baseline; broader
+conversation, shared retrieval, model migration, AI draft refinement and integrated validation
+are not implemented. Overlapping unimplemented S88–S93/S101 plans are superseded for this scope;
+S87/S94/S95 remain separate proposals. No batch 002 implementation or release was authorized.
 
 ## Verified evidence
 
@@ -78,6 +81,7 @@ a durable flakiness fix or a general production performance SLO.
 
 ## Continuation
 
-No application release remains queued. Future external/human work requires its actual inputs
-and existing exact-effect contracts. Diagnosed-repair governance retains every technical and
-safety gate; consumed permits and historical receipts cannot admit another deployment.
+Only the owner-authorized 001 dependency release remains queued, subject to its exact gates and
+current draft timing fix. Batch 002 is intake-only. Future external/human work requires its actual
+inputs and existing exact-effect contracts. Consumed permits and historical receipts cannot admit
+another deployment.
