@@ -27,20 +27,36 @@ direct implementation and mainline merge. Focused tests passed. A fresh WSL unat
 verified both CLI and ADC refresh under the approved managed identity, and a read-only Cloud Run
 describe confirmed the documented serving revision still has 100% traffic. The reported eight-hour
 failure remains a user observation, not a verified token lifetime. The mandatory production audit
-required three patched transitive dependency overrides; the new lockfile has zero production audit
-findings. The full local gate passed 7,470 unit tests (four existing skips), 234 backend tests, all
-policy checks and a production build. PR #92 merged at `41ad65cb` on 2026-09-30; the separate
-dependency release remains pending. Draft PR #93 addresses a release timing issue and is not merged.
+required three patched transitive dependency overrides; its then-current audit had zero production
+findings. The earlier full local gate passed 7,470 unit tests (four existing skips), 234 backend tests, all
+policy checks and a production build. PR #92 merged at `41ad65cb` on 2026-09-30. Its release run
+built a zero-traffic candidate and blocked at assurance when live renewal routes exceeded the
+30-second canary navigation bound; production traffic did not change. Draft PR #93 proposes a
+60-second bound for those two routes and awaits owner review.
+During batch 003 intake, a fresh mandatory production audit failed on four high
+`@grpc/grpc-js` findings in Firebase's dependency chain. PR #95 overrode `@grpc/grpc-js` to the
+patched 1.14.5 and merged at `dc493dfe` after its full gate and exact CI passed.
 
 ## Feature intake
 
-Batch 002 requests 002–008 are recorded in supplied order as S135–S141, all **ready for a later
-explicit implementation instruction**. The owner clarified 006–007 as all existing workflow-linked
+Batch 002 requests 002–008 are recorded in supplied order as S135–S141. On 2026-09-30 the owner
+explicitly instructed their execution, then batch 003's, through implementation, mainline merge
+and deployment. The owner clarified 006–007 as all existing workflow-linked
 draft screens. The deployed Dashboard still handles three operational intents; production answer
 and classify settings read back as `gemini-2.5-flash`. Broader retrieval/conversation, model
-migration, draft refinement and integrated validation have not been implemented or live-verified.
+migration, draft refinement and integrated validation are not yet merged or live-verified.
 The overlapping old S88–S93/S101 assistant plans are superseded for this scope. No batch 002
-application effect, deployment, or provider activation occurred.
+application effect, deployment, or provider activation has occurred.
+
+Batch 003 requests 009–012 are recorded in order as S142–S145, authorized by the same instruction
+and not started. The current Full lease dashboard, single next-action
+guidance and cycle-bound manual progress are verified code/serving baseline; the derived
+multiple-ready projection, separate Focus view, complete in-pane actions and new regression
+validation are not implemented. No batch 003 intake question remains. Read-only Cloud Run traffic
+still showed `pmi-kc-app-rmundpf2v-249c945f2220` at 100%, and approved WSL CLI/ADC refresh
+returned READY. No application mutation or deployment occurred for this intake.
+The documentation-specific gates passed; the audit failure that first held this intake was
+remediated separately by PR #95.
 
 ## Verified corrective review
 

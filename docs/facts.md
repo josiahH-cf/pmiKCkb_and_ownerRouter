@@ -144,6 +144,28 @@ Historical K unit-store target/marker effects remain UNVERIFIED; absent Data Acc
 prove zero effects. No customer draft/send, paid comparison, provider-proof rerun or synthetic
 production record was authorized for this release.
 
+## Feature intake baseline — September 30
+
+Batch 003 requests 009–012 are registered as S142–S145 and not implemented; the owner's
+2026-09-30 instruction authorizes executing batch 002, then batch 003. Current committed code has
+the S113 comprehensive dashboard,
+S127 linked next-action/issues and post-save focus, `renewal-process.ts` evidence prerequisites,
+and `workspace-state.ts` cycle-bound staff activity with a single next activity. It has no separate
+lease-level Focus view or complete multiple-ready in-pane action flow. The user's positive report
+about the recent makeover is experience/intent, not a separately observed usability verdict.
+Read-only Cloud Run traffic readback during intake still showed
+`pmi-kc-app-rmundpf2v-249c945f2220` at 100%; a newer candidate revision carried no production
+traffic. WSL `auth:ensure` verified CLI/ADC refresh under `josiah@pmikcmetro.com`. No customer,
+provider or app mutation was used for this intake. Batch 002 had no outstanding intake question;
+the owner accepted any earlier defaults. Batch 003 has no intake-blocking question; real external
+inputs and human verdicts remain localized to their existing boundaries.
+
+The new batch 003 documentation passed spec-shape, traceability, active-path, freshness, policy,
+redaction and formatting checks. Its first full Linux gate stopped at the then-failing production
+dependency audit; PR #95 remediated that audit before this intake was committed. No dependency or
+application code was changed by this intake. The active 001 release and draft PR #93 remain
+separate.
+
 ## Supersede Log
 
 - 2026-09-09: D-RENEWAL-CONSOLIDATION changes the intended S98 normal-field boundary and the
@@ -261,9 +283,10 @@ The September 29 serving release used Next.js/eslint-config-next 16.3.7, sharp 0
 A01–A04/A06 deployment passed; all 194 runtime traces excluded the development-only chain, and
 the native return control passed its six-case remote supplement. New September 30 advisories caused
 request 001's source lockfile to select fast-uri 3.1.8, ip-address 10.7.1 and brace-expansion
-5.0.12. A later September 30 recheck failed the unchanged production audit on four high
-`@grpc/grpc-js` findings (GHSA-m9gg-hp2v-232j, GHSA-f596-whhp-79r4) in the Firebase and Google
-client chains; the source now overrides `@grpc/grpc-js` to the patched 1.14.5. Its
+5.0.12. The PR #92 gate then reported zero production findings. A later September 30 recheck
+failed the unchanged production audit on four high `@grpc/grpc-js` findings
+(GHSA-m9gg-hp2v-232j, GHSA-f596-whhp-79r4) in the Firebase and Google client chains; PR #95
+(merged at `dc493dfe`) overrides `@grpc/grpc-js` to the patched 1.14.5. Its
 `npm audit --omit=dev` reports zero production findings; four development findings (three
 moderate, one high) remain outside that gate. The patched lockfile is not yet deployed.
 See docs/evidence/adversary-review-2026-09-29.md for the prior release's exact scope. The
