@@ -505,3 +505,149 @@ function askBody(mock: ReturnType<typeof vi.fn>): Record<string, unknown> {
   );
   return JSON.parse(String((call?.[1] as RequestInit)?.body ?? "{}"));
 }
+
+// S138: the Dashboard conversation. Operational answers come from the records the user can see and
+// stop there; a policy question continues to the knowledge answer; the page keeps the conversation.
+describe("AskForm Dashboard conversation (S138)", () => {
+  const CONTEXT_1 = { version: 1, actorKey: "a".repeat(32), turns: [] as unknown[] };
+  function operational(overrides: Record<string, unknown> = {}) {
+    return {
+      version: "assistant-conversation/v1",
+      kind: "answer",
+      summary: "2 leases end this week.",
+      interpretation: ["Dates: this week, on the America/Chicago business calendar."],
+      groups: [
+        {
+          source: "renewals",
+          title: "Leases",
+          summary: "2 leases end this week.",
+          status: "ok",
+          total: 2,
+          items: [
+            {
+              ref: { source: "renewals", id: "L1" },
+              title: "1 Main St",
+              detail: "In the renewal window",
+              blockers: [],
+              href: "/lease-renewal/live/desk/lease/L1",
+            },
+            {
+              ref: { source: "renewals", id: "L2" },
+              title: "2 Oak Ave",
+              detail: "In the renewal window",
+              blockers: ["Owner has not responded"],
+              href: "/lease-renewal/live/desk/lease/L2",
+            },
+          ],
+          notes: [],
+          link: {
+            label: "Open these on the Renewals desk",
+            href: "/lease-renewal/live/desk?v=2",
+          },
+        },
+      ],
+      clarification: null,
+      knowledgeQuestion: null,
+      interpretedBy: "deterministic",
+      conversation: CONTEXT_1,
+      contextReset: false,
+      ...overrides,
+    };
+  }
+
+  function assistantBodies(): Record<string, unknown>[] {
+    return fetchMock.mock.calls
+      .filter((entry) => String(entry[0]).includes("/api/assistant/query"))
+      .map((entry) => JSON.parse(String((entry[1] as RequestInit).body)));
+  }
+
+  it("answers from records, skips the knowledge answer, and carries the context into a follow-up", async () => {
+    const user = userEvent.setup();
+    const replies = [operational(), operational({ summary: "1 lease ends this week." })];
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) =>
+      String(input).includes("/api/assistant/query")
+        ? jsonResponse(replies.shift())
+        : jsonResponse(ANSWER),
+    );
+    render(
+      <AskForm
+        canUseProcessContext
+        processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
+      />,
+    );
+
+    await user.type(screen.getByLabelText(/Question/), "What leases are due this week?");
+    await user.selectOptions(screen.getByLabelText("Process"), "lease-renewal");
+    await user.click(screen.getByRole("button", { name: "Get answer" }));
+
+    const region = await screen.findByRole("region", { name: "Assistant answer" });
+    expect(region).toHaveTextContent("2 leases end this week.");
+    expect(screen.getByRole("link", { name: "2 Oak Ave" })).toHaveAttribute(
+      "href",
+      "/lease-renewal/live/desk/lease/L2",
+    );
+    expect(region.querySelector("ol")).toHaveAttribute("start", "1");
+    expect(screen.getByLabelText(/Question/)).toHaveValue("");
+    const urls = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(urls.some((url) => /\/api\/ask($|\?)/.test(url))).toBe(false);
+    expect(urls.some((url) => /\/process-definitions\/[^/]+\/runs$/.test(url))).toBe(
+      false,
+    );
+
+    await user.type(screen.getByLabelText(/Question/), "Only mine");
+    await user.click(screen.getByRole("button", { name: "Get answer" }));
+    expect(await screen.findByText("1 lease ends this week.")).toBeInTheDocument();
+    expect(assistantBodies()).toEqual([
+      { question: "What leases are due this week?", conversation: null },
+      { question: "Only mine", conversation: CONTEXT_1 },
+    ]);
+    expect(screen.getByText("Earlier in this conversation (1)")).toBeInTheDocument();
+  });
+
+  it("continues a policy question to the knowledge answer", async () => {
+    const user = userEvent.setup();
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) =>
+      String(input).includes("/api/assistant/query")
+        ? jsonResponse(
+            operational({
+              kind: "knowledge",
+              summary: "",
+              groups: [],
+              knowledgeQuestion: "What is our pet policy?",
+            }),
+          )
+        : jsonResponse(ANSWER),
+    );
+    render(<AskForm />);
+    await user.type(screen.getByLabelText(/Question/), "What is our pet policy?");
+    await user.click(screen.getByRole("button", { name: "Get answer" }));
+    expect(await screen.findByText("Here is the grounded answer.")).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Assistant answer" })).toBeNull();
+    expect(askBody(fetchMock).question).toBe("What is our pet policy?");
+  });
+
+  it("starts a new conversation on request", async () => {
+    const user = userEvent.setup();
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) =>
+      String(input).includes("/api/assistant/query")
+        ? jsonResponse(operational())
+        : jsonResponse(ANSWER),
+    );
+    render(<AskForm />);
+    await user.type(screen.getByLabelText(/Question/), "What leases are due this week?");
+    await user.click(screen.getByRole("button", { name: "Get answer" }));
+    await screen.findByRole("region", { name: "Assistant answer" });
+    await user.click(screen.getByRole("button", { name: "Start a new conversation" }));
+    expect(screen.queryByRole("region", { name: "Assistant answer" })).toBeNull();
+    await user.type(
+      screen.getByLabelText(/Question/),
+      "What applications are connected?",
+    );
+    await user.click(screen.getByRole("button", { name: "Get answer" }));
+    await screen.findByRole("region", { name: "Assistant answer" });
+    expect(assistantBodies().at(-1)).toEqual({
+      question: "What applications are connected?",
+      conversation: null,
+    });
+  });
+});

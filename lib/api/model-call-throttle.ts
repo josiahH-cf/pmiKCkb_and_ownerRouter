@@ -19,6 +19,17 @@ export const ASK_MODEL_RATE_LIMIT_OPTIONS = Object.freeze({
 });
 export const askModelRateLimiter = new IntakeRateLimiter(ASK_MODEL_RATE_LIMIT_OPTIONS);
 
+// S138: the Dashboard conversation asks the model only to interpret wording. Same interactive budget as
+// Ask; when it is spent the route answers with the deterministic interpreter instead of refusing.
+export const ASSISTANT_MODEL_RATE_LIMIT_OPTIONS = Object.freeze({
+  capacity: 15,
+  refillPerSecond: 0.5,
+  maxKeys: 10_000,
+});
+export const assistantModelRateLimiter = new IntakeRateLimiter(
+  ASSISTANT_MODEL_RATE_LIMIT_OPTIONS,
+);
+
 // Classification is a model fallback the client reaches only when the free deterministic matcher misses,
 // so it warrants a tighter budget (~1 call / 5s sustained).
 export const CLASSIFY_MODEL_RATE_LIMIT_OPTIONS = Object.freeze({

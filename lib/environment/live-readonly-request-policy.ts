@@ -12,7 +12,7 @@ export const LIVE_READONLY_ALLOWED_NON_SAFE_REQUESTS: ReadonlyMap<string, string
     ["POST /api/ask", "Retrieve and answer without persisting an Ask log."],
     [
       "POST /api/assistant/query",
-      "Answer one of three closed read-only intents from the owning services. The body carries only the question text, which is why it is a POST rather than a query string, and no path writes, starts a run, drafts, or reaches a provider.",
+      "Answer a Dashboard question from the owning services as the signed-in user. The body carries the question text and the page session conversation context, which is why it is a POST rather than a query string; no path writes, sends, drafts, starts a run, or refreshes a provider.",
     ],
     ["POST /api/ask/live-target", "Read one authoritative RentVine target."],
     ["POST /api/ask/transcribe", "Transcribe into an unsaved Console input."],

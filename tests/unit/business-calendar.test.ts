@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { businessDateIso, businessMonth } from "@/lib/lease-renewal/business-calendar";
-import { kansasCityMonth } from "@/lib/assistant/intent-registry";
+import { resolveBusinessRange } from "@/lib/assistant/business-dates";
 
 // The desk window, the workspace reference date, the assistant's period parser, and the
 // production oracle all read one business calendar (America/Chicago). Before this helper the desk
@@ -30,6 +30,9 @@ describe("business calendar (America/Chicago)", () => {
   });
 
   it("is the same calendar the assistant's period parser reads", () => {
+    // S138: the Dashboard conversation resolves "this month" through the same business calendar.
+    const kansasCityMonth = (at: string) =>
+      resolveBusinessRange("this_month", null, at).startIso?.slice(0, 7);
     expect(kansasCityMonth("2026-10-01T04:30:00.000Z")).toBe("2026-09");
     expect(kansasCityMonth("2026-10-01T05:30:00.000Z")).toBe("2026-10");
     expect(kansasCityMonth("2026-03-08T07:59:00.000Z")).toBe("2026-03");
