@@ -14,8 +14,8 @@ Checkpoint complete; permit consumed; no blocked, in-flight or rollback phase.
 
 ## Awaiting release
 
-1. 001 governance/auth continuity and patched dependencies: merged main
-   `41ad65cbccf89fdd248cd82088496470d90e057b`, exact CI 36723410549 passed. Run
+1. 001 governance/auth continuity and patched dependencies: merged main `41ad65cbccf89fdd248cd82088496470d90e057b`.
+   Exact CI 36723410549 passed. Run
    `dc4e1ac8-d8b9-4090-9258-e2ddb18f119f` is blocked at assurance after a zero-traffic build;
    no candidate receipt or promotion exists. Candidate `pmi-kc-app-rmuo61wve-fcdc2fc4b0d0` has 0%,
    predecessor `pmi-kc-app-rmundpf2v-249c945f2220` has 100%. Preserve the run and its claims.
