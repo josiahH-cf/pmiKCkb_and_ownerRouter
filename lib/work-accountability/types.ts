@@ -11,6 +11,11 @@ export const WORK_TASK_STATES = [
 ] as const;
 export type WorkTaskState = (typeof WORK_TASK_STATES)[number];
 
+/** Every task state that is still open work (not Completed or Cancelled). */
+export const OPEN_WORK_TASK_STATES: ReadonlySet<WorkTaskState> = new Set(
+  WORK_TASK_STATES.filter((state) => state !== "Completed" && state !== "Cancelled"),
+);
+
 export const WORK_SESSION_STATES = ["Active", "Ended"] as const;
 export type WorkSessionState = (typeof WORK_SESSION_STATES)[number];
 

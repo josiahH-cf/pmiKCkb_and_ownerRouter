@@ -10,7 +10,8 @@ import { RenewalNoticeDraftComposer } from "@/components/lease-renewal/RenewalNo
 import type { AskActionRoute } from "@/lib/ask/action-intent";
 import { detectProcess } from "@/lib/processes/intent";
 import { launchSpaces } from "@/lib/spaces";
-import type { AssistantEnvelope } from "@/lib/assistant/envelope";
+import type { AnswerGroup, ConversationAnswer } from "@/lib/assistant/conversation";
+import type { ConversationContext } from "@/lib/assistant/conversation-plan";
 import { AskCorrectionKinds, type AskResponse } from "@/lib/schemas";
 
 type SelectOption = { label: string; value: string };
@@ -85,9 +86,12 @@ export function AskForm({
     writableSpaceOptions[0]?.value ?? "lease-renewals",
   );
   const [result, setResult] = useState<AskResponse | null>(null);
-  // S110: the assistant answer for one of the three closed read-only intents, or null when the
-  // question falls through to the knowledge path.
-  const [assistant, setAssistant] = useState<AssistantEnvelope | null>(null);
+  // S138: this page session's conversation. The context lives only in component state, so it ends
+  // with the page; the server re-reads every record for each question.
+  const [conversation, setConversation] = useState<ConversationContext | null>(null);
+  const [exchanges, setExchanges] = useState<
+    { readonly question: string; readonly answer: ConversationAnswer }[]
+  >([]);
   const [workflowRun, setWorkflowRun] = useState<WorkflowRunSummary | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -126,23 +130,29 @@ export function AskForm({
     event.preventDefault();
     setIsPending(true);
     setResult(null);
-    setAssistant(null);
     setWorkflowRun(null);
     setStatusMessage("");
     setCaptureStatus("");
     setLiveTarget(null);
 
-    // S110: the closed assistant registry answers first. A matched intent returns the owning records
-    // with links and never falls through to the knowledge answer; anything else continues below.
+    // S138: operational questions are answered first from the records this user can already see,
+    // continuing this page's conversation. A policy or how-to question (or the policy half of a mixed
+    // question) also continues to the knowledge answer below; nothing else reaches it.
+    const asked = question.trim();
     const assistantResponse = await fetch("/api/assistant/query", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question: asked, conversation }),
     });
     if (assistantResponse.ok) {
-      const envelope = (await assistantResponse.json()) as AssistantEnvelope;
-      setAssistant(envelope);
-      if (envelope.intent || envelope.clarification) {
+      const answer = (await assistantResponse.json()) as ConversationAnswer;
+      setConversation(answer.conversation);
+      setExchanges((previous) => [
+        ...(answer.contextReset ? [] : previous),
+        { question: asked, answer },
+      ]);
+      if (!answer.knowledgeQuestion) {
+        setQuestion("");
         setIsPending(false);
         return;
       }
@@ -484,7 +494,16 @@ export function AskForm({
         </form>
 
         <aside className="panel result-panel" aria-live="polite">
-          {assistant ? <AssistantAnswer envelope={assistant} /> : null}
+          {exchanges.length > 0 ? (
+            <ConversationThread
+              exchanges={exchanges}
+              onReset={() => {
+                setConversation(null);
+                setExchanges([]);
+                setResult(null);
+              }}
+            />
+          ) : null}
           {result ? (
             <>
               <SourceStateBanner state={result.source_state} />
@@ -660,9 +679,9 @@ export function AskForm({
                 {correctionStatus ? <p className="muted">{correctionStatus}</p> : null}
               </div>
             </>
-          ) : (
+          ) : exchanges.length === 0 ? (
             <p className="muted">Results appear here.</p>
-          )}
+          ) : null}
           {statusMessage ? <p className="muted">{statusMessage}</p> : null}
         </aside>
       </div>
@@ -711,50 +730,135 @@ async function readErrorMessage(response: Response, fallback: string) {
 }
 
 /**
- * S110: one of the three closed read-only answers. Every line comes from the owning service through
- * the assistant envelope; nothing here narrates, and every link points at the owning view.
+ * S138: the page session's conversation. The latest answer is the "Assistant answer" region; earlier
+ * exchanges fold into one disclosure so a follow-up never buries the current answer.
  */
-function AssistantAnswer({ envelope }: Readonly<{ envelope: AssistantEnvelope }>) {
-  if (envelope.unsupported) {
-    return (
-      <section aria-label="Assistant answer" className="ui-stack">
-        <p className="muted">
-          {envelope.unsupported.message} You can ask:{" "}
-          {envelope.unsupported.supported.join(" ")}
-        </p>
-      </section>
-    );
-  }
-  if (envelope.clarification) {
-    return (
-      <section aria-label="Assistant answer" className="ui-stack">
-        <h2>One more detail</h2>
-        <p>{envelope.clarification}</p>
-      </section>
-    );
-  }
+function ConversationThread({
+  exchanges,
+  onReset,
+}: Readonly<{
+  exchanges: readonly {
+    readonly question: string;
+    readonly answer: ConversationAnswer;
+  }[];
+  onReset: () => void;
+}>) {
+  const latest = exchanges[exchanges.length - 1];
+  const earlier = exchanges.slice(0, -1);
   return (
-    <section aria-label="Assistant answer" className="ui-stack">
+    <div className="ui-stack">
+      {earlier.length > 0 ? (
+        <details>
+          <summary>Earlier in this conversation ({earlier.length})</summary>
+          {earlier.map((exchange, index) => (
+            <div className="ui-stack" key={`${index}-${exchange.question}`}>
+              <p className="muted">You asked: {exchange.question}</p>
+              <ConversationAnswerView answer={exchange.answer} />
+            </div>
+          ))}
+        </details>
+      ) : null}
+      {latest.answer.kind === "knowledge" ? null : (
+        <section aria-label="Assistant answer" className="ui-stack">
+          <p className="muted">You asked: {latest.question}</p>
+          <ConversationAnswerView answer={latest.answer} />
+        </section>
+      )}
+      <p>
+        <button className="link-button" onClick={onReset} type="button">
+          Start a new conversation
+        </button>
+      </p>
+    </div>
+  );
+}
+
+/** One answer: every record, count and link comes from the owning service through the server. */
+function ConversationAnswerView({ answer }: Readonly<{ answer: ConversationAnswer }>) {
+  if (answer.kind === "knowledge") return null;
+  if (answer.kind === "clarification") {
+    return (
+      <>
+        <h2>One more detail</h2>
+        <p>{answer.clarification}</p>
+      </>
+    );
+  }
+  if (answer.kind === "unsupported") return <p className="muted">{answer.summary}</p>;
+  // Items are numbered across groups in answer order, the same order "the second one" refers to.
+  const starts = answer.groups.map(
+    (_, index) =>
+      1 +
+      answer.groups
+        .slice(0, index)
+        .reduce((total, group) => total + group.items.length, 0),
+  );
+  return (
+    <>
       <h2>Answer</h2>
-      <p>{envelope.sourceState}</p>
-      {envelope.completeness === "unavailable" ? null : (
-        <ul className="ui-rows">
-          {envelope.items.map((item) => (
-            <li key={item.id}>
+      <p>{answer.summary}</p>
+      {answer.interpretation.length > 0 ? (
+        <ul className="muted">
+          {answer.interpretation.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : null}
+      {answer.groups.map((group, index) => (
+        <AnswerGroupView
+          group={group}
+          key={`${group.source}-${index}`}
+          showSummary={answer.groups.length > 1}
+          start={starts[index]}
+        />
+      ))}
+    </>
+  );
+}
+
+function AnswerGroupView({
+  group,
+  showSummary,
+  start,
+}: Readonly<{ group: AnswerGroup; showSummary: boolean; start: number }>) {
+  return (
+    <div className="ui-stack">
+      {showSummary ? (
+        <>
+          <h3>{group.title}</h3>
+          <p>{group.summary}</p>
+        </>
+      ) : null}
+      {group.items.length > 0 ? (
+        <ol className="ui-rows" start={start}>
+          {group.items.map((item) => (
+            <li key={`${item.ref.source}:${item.ref.id}`}>
               <Link href={item.href}>{item.title}</Link>
               <span className="muted"> · {item.detail}</span>
               {item.blockers.length > 0 ? (
                 <span className="muted"> · {item.blockers.join("; ")}</span>
               ) : null}
+              {item.facts && item.facts.length > 0 ? (
+                <ul className="muted">
+                  {item.facts.map((fact) => (
+                    <li key={fact}>{fact}</li>
+                  ))}
+                </ul>
+              ) : null}
             </li>
           ))}
-        </ul>
-      )}
-      {envelope.links.map((link) => (
-        <p key={link.href}>
-          <Link href={link.href}>{link.label}</Link>
+        </ol>
+      ) : null}
+      {group.notes.map((note) => (
+        <p className="muted" key={note}>
+          {note}
         </p>
       ))}
-    </section>
+      {group.link ? (
+        <p>
+          <Link href={group.link.href}>{group.link.label}</Link>
+        </p>
+      ) : null}
+    </div>
   );
 }

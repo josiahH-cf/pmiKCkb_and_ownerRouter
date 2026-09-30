@@ -34,8 +34,8 @@ describe("Live-read-only request policy (AC-S56-6)", () => {
       "POST /api/ask",
       "POST /api/ask/live-target",
       "POST /api/ask/transcribe",
-      // S110: the Dashboard assistant's three closed read-only intents. It is a POST only because
-      // the question text belongs in a body rather than a URL; no path writes.
+      // S138: the Dashboard conversation. It is a POST only because the question and the page
+      // session context belong in a body rather than a URL; no path writes.
       "POST /api/assistant/query",
       "POST /api/auth/demo",
       "POST /api/auth/session",

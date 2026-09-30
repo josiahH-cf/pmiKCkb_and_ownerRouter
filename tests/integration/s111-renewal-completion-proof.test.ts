@@ -10,7 +10,12 @@ import {
   leaseCurrentRent,
 } from "@/lib/integrations/rentvine/lease-mapper";
 import { buildRenewalDeskWindow } from "@/lib/lease-renewal/desk-query";
-import { runAssistantQuery } from "@/lib/assistant/query";
+import {
+  conversationActorKey,
+  runAssistantConversation,
+} from "@/lib/assistant/conversation";
+import { projectRenewalRead } from "@/lib/operational-context/projections";
+import { fakeOperationalContext } from "@/tests/helpers/operational-context-fake";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
 import {
@@ -504,55 +509,55 @@ describe("S111 the assistant answers from the same records (READY-06)", () => {
     }),
   ];
 
-  function deps(overrides: Record<string, unknown> = {}) {
-    return {
+  // S138: the Dashboard answers through the conversation over the shared S137 context; these reads
+  // are the same desk rows projected by the owning projection.
+  async function ask(question: string, status: "ok" | "read_error" = "ok") {
+    const context = fakeOperationalContext({
+      actorUid: operator.uid,
       nowIso: NOW,
-      hasRenewalsAccess: true,
-      loadWorkSnapshot: async () => ({ tasks: [], server_now: NOW }),
-      loadRenewalRows: async () => ({
-        status: "ok" as const,
-        rows,
-        coverage: buildRenewalDeskWindow(TODAY, 120),
-      }),
-      ...overrides,
-    };
+      reads: {
+        renewals: projectRenewalRead({
+          status,
+          rows: status === "ok" ? rows : [],
+          coverage: buildRenewalDeskWindow(TODAY, 120),
+        }),
+      },
+    });
+    return runAssistantConversation(
+      { question },
+      {
+        nowIso: NOW,
+        actorKey: conversationActorKey(operator.uid),
+        context,
+        interpret: null,
+      },
+    );
   }
 
   it("returns the same blocked lease the desk row marks blocked", async () => {
-    const envelope = await runAssistantQuery(
-      { question: "What renewal blockers do I currently have?" },
-      operator,
-      deps(),
-    );
+    const answer = await ask("What renewal blockers do I currently have?");
     const blockedRows = rows.filter((entry) => entry.guidance.isBlocked);
-    expect(envelope.items.map((item) => item.id)).toEqual(
+    expect(answer.groups[0].items.map((item) => item.ref.id)).toEqual(
       blockedRows.map((entry) => entry.id),
     );
-    expect(envelope.items[0].blockers).toEqual(
+    expect(answer.groups[0].items[0].blockers).toEqual(
       blockedRows[0].guidance.blockers.map((blocker) => blocker.label),
     );
   });
 
   it("returns the lease whose end date falls in the asked month", async () => {
-    const envelope = await runAssistantQuery(
-      { question: "Which renewals come up next month?" },
-      operator,
-      deps(),
-    );
-    expect(envelope.appliedFilters).toMatchObject({ month: "2026-10" });
-    expect(envelope.items.map((item) => item.id).sort()).toEqual(["4001", "4004"]);
+    const answer = await ask("Which renewals come up next month?");
+    expect(answer.groups[0].link?.href).toContain("month=2026-10");
+    expect(answer.groups[0].items.map((item) => item.ref.id).sort()).toEqual([
+      "4001",
+      "4004",
+    ]);
   });
 
   it("reports an unreadable renewal source as unavailable, never as none", async () => {
-    const envelope = await runAssistantQuery(
-      { question: "What renewal blockers do I currently have?" },
-      operator,
-      deps({
-        loadRenewalRows: async () => ({ status: "read_error" as const, rows: [] }),
-      }),
-    );
-    expect(envelope.completeness).toBe("unavailable");
-    expect(envelope.sourceState).not.toMatch(/no renewals/i);
+    const answer = await ask("What renewal blockers do I currently have?", "read_error");
+    expect(answer.groups[0].status).toBe("unavailable");
+    expect(answer.summary).not.toMatch(/no (leases|renewals)/i);
   });
 });
 

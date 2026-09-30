@@ -1,10 +1,11 @@
 import { resolveBrowserExecutable as findBrowserExecutable } from "./lib/browser-executable.mjs";
-// S110 real-browser smoke for the Dashboard assistant's three read-only questions.
+// S138 real-browser smoke for the Dashboard conversation (S110 questions preserved).
 //
 // Runs against the local rehearsal server, which is live-read-only, so nothing it does can write.
-// It asks each supported question and one unsupported question, proves each answer comes back with
-// its own shape (items with links, or the bounded note listing what can be asked), and proves the
-// page never posts to a write route while answering.
+// It asks the three S110 questions, the S138 question families and follow-ups in one page session,
+// proves each answer is a new answer region for that question (not the previous one), proves a
+// policy question continues to the knowledge answer, and proves the page never posts to a write
+// route.
 
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -32,7 +33,7 @@ const WRITE_ROUTES = [
   "/api/work",
 ];
 
-const artifactDir = join(process.cwd(), "temp", "dashboard-assistant-browser-s110");
+const artifactDir = join(process.cwd(), "temp", "dashboard-assistant-browser-s138");
 mkdirSync(artifactDir, { recursive: true });
 
 const cdpUrl = readArgument("--cdp-url") ?? process.env.DESK_BROWSER_CDP_URL?.trim();
@@ -47,7 +48,7 @@ try {
 }
 
 process.stdout.write(
-  `S110 dashboard assistant browser smoke passed: three supported questions answered from the closed registry, unsupported question bounded, no write route called. Artifacts: ${artifactDir}\n`,
+  `S138 dashboard conversation browser smoke passed: S110 questions and S138 families answered, follow-ups continued, policy question reached the knowledge answer, no write route called. Artifacts: ${artifactDir}\n`,
 );
 
 async function verifyAssistantQuestions() {
@@ -73,27 +74,45 @@ async function verifyAssistantQuestions() {
   const field = page.locator("#question");
   await field.waitFor();
 
-  for (const question of [
+  const questions = [
     "What work is assigned to me today?",
     "What renewal blockers do I currently have?",
     "Which renewals come up next month?",
-  ]) {
+    "What leases are due this week?",
+    "Now next month",
+    "Only mine",
+    "What does my approval queue look like?",
+    "Which of these are waiting on someone else?",
+    "What applications are connected?",
+    "What information is stale and needs updating?",
+  ];
+  for (const question of questions) {
     const answer = await ask(page, field, question);
     assert(answer.trim() !== "", `The assistant returned nothing for: ${question}`);
     assert(
       !/i think|probably|it seems|might be/i.test(answer),
       `The assistant hedged instead of stating the source state for: ${question}`,
     );
+    assert(
+      !/answers three questions/i.test(answer),
+      `The retired three-question note came back for: ${question}`,
+    );
   }
 
-  const unsupported = await ask(page, field, "what is our pet policy");
+  await field.fill("what is our pet policy");
+  await page.getByRole("button", { name: "Get answer" }).click();
+  await page
+    .locator(".result-panel")
+    .getByRole("heading", { name: "Answer", exact: true })
+    .last()
+    .waitFor();
   assert(
-    unsupported.includes("You can ask:"),
-    "An unsupported question did not receive the bounded note listing what can be asked.",
+    (await page.getByRole("region", { name: "Assistant answer" }).count()) === 0,
+    "A policy question rendered an operational answer instead of the knowledge answer.",
   );
 
   assert(
-    assistantCalls.length === 4,
+    assistantCalls.length === questions.length + 1,
     `The Dashboard called the assistant ${assistantCalls.length} times instead of once per question.`,
   );
   assert(
@@ -109,7 +128,10 @@ async function verifyAssistantQuestions() {
 
 async function ask(page, field, question) {
   await field.fill(question);
-  const answer = page.getByRole("region", { name: "Assistant answer" });
+  // The latest exchange is the one answer region; wait for THIS question, not the previous answer.
+  const answer = page
+    .getByRole("region", { name: "Assistant answer" })
+    .filter({ hasText: `You asked: ${question}` });
   await page.getByRole("button", { name: "Get answer" }).click();
   await answer.waitFor();
   return answer.innerText();
