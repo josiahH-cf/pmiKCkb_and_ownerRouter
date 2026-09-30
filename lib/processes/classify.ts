@@ -53,6 +53,7 @@ export async function classifyProcessWithModel(options: {
   const userContent = `Processes:\n${list}\n\nUser request: ${options.question}\n\nReturn the best-matching process id or null.`;
 
   const { text } = await options.provider.generateText({
+    purpose: "process.classify",
     model: options.model,
     systemInstruction: SYSTEM_INSTRUCTION,
     userContent,

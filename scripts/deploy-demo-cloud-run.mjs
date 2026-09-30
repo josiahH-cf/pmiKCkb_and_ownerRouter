@@ -6,6 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   CHEAP_LIVE_MODEL,
+  LIVE_MODEL_LOCATION,
   readLiveCostConfig,
   readLocalEnv,
   validateLiveCostConfig,
@@ -115,6 +116,8 @@ export function buildDemoDeployCommand({
     ASK_DEMO_MODE: "false",
     GCP_PROJECT_ID: project,
     GEMINI_MODEL_ANSWER: CHEAP_LIVE_MODEL,
+    GEMINI_MODEL_CLASSIFY: CHEAP_LIVE_MODEL,
+    GEMINI_MODEL_LOCATION: LIVE_MODEL_LOCATION,
     LOCAL_DEMO_AUTH: "false",
     VERTEX_AI_LOCATION: region,
     VERTEX_SEARCH_LOCATION: searchLocation,
@@ -450,8 +453,11 @@ function readRuntimeEnv(env, project, region, searchLocation, sourceCommit) {
     FIREBASE_PROJECT_ID: withDefault("FIREBASE_PROJECT_ID", project),
     FIRESTORE_DATABASE_ID: withDefault("FIRESTORE_DATABASE_ID", "(default)"),
     GCP_PROJECT_ID: project,
+    // S136: every serving caller uses the one selected model on its own endpoint location; the
+    // reviewed env file cannot reintroduce a retiring model or tie the endpoint to the region.
     GEMINI_MODEL_ANSWER: CHEAP_LIVE_MODEL,
-    GEMINI_MODEL_CLASSIFY: withDefault("GEMINI_MODEL_CLASSIFY", "gemini-2.5-flash"),
+    GEMINI_MODEL_CLASSIFY: CHEAP_LIVE_MODEL,
+    GEMINI_MODEL_LOCATION: LIVE_MODEL_LOCATION,
     GMAIL_DWD_SA: withDefault("GMAIL_DWD_SA", ""),
     GMAIL_PUBSUB_AUDIENCE: withDefault("GMAIL_PUBSUB_AUDIENCE", ""),
     GMAIL_PUBSUB_PUSH_SERVICE_ACCOUNT: withDefault(

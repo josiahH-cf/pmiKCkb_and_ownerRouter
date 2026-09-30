@@ -71,6 +71,7 @@ export async function summarizeThread(
   let text: string;
   try {
     const response = await input.provider.generateText({
+      purpose: "gmail.thread_summary",
       model: input.model,
       systemInstruction: SYSTEM_INSTRUCTION,
       userContent: threadText,

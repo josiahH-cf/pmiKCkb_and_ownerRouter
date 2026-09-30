@@ -66,6 +66,7 @@ export async function buildWorkflowAiReply(input: WorkflowAiReplyInput) {
   try {
     text = (
       await input.provider.generateText({
+        purpose: "gmail.workflow_reply",
         model: input.model,
         systemInstruction,
         userContent: [

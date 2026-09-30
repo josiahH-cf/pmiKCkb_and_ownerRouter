@@ -154,6 +154,7 @@ function config(overrides: Partial<ServerConfig> = {}): ServerConfig {
     gcpProjectId: "pmikckb-test",
     geminiAnswerModel: "gemini-2.5-pro",
     geminiClassifyModel: "gemini-2.5-flash",
+    geminiModelLocation: "global",
     groundingConfidenceThreshold: 0.65,
     kbApprovalLabel: "KB Approval",
     kbApprovalNotificationsEnabled: false,

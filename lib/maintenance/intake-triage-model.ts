@@ -61,6 +61,7 @@ export async function interpretIntakeFreeText(
   if (!options.provider) return fallback;
   try {
     const response = await options.provider.generateText({
+      purpose: "maintenance.intake_triage",
       model: options.model ?? "",
       systemInstruction: SYSTEM_INSTRUCTION,
       userContent: text,

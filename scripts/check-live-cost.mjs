@@ -1,9 +1,17 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  SUPPORTED_GEMINI_MODEL,
+  SUPPORTED_GEMINI_MODEL_LOCATION,
+} from "./model-selection.mjs";
 
 export const CHEAP_LIVE_SPACE_ID = "lease-renewals";
-export const CHEAP_LIVE_MODEL = "gemini-2.5-flash";
+// S136: the sanctioned live model and its endpoint come from the one shared selection.
+export const CHEAP_LIVE_MODEL = SUPPORTED_GEMINI_MODEL;
+export const LIVE_MODEL_LOCATION = SUPPORTED_GEMINI_MODEL_LOCATION;
+// The expensive reference the guards refuse without explicit approval, and the conservative
+// assumption for an unpinned answer model. It is never a selected or deployed model.
 export const PRO_MODEL = "gemini-2.5-pro";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));

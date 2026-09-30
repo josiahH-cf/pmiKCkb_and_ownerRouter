@@ -1,5 +1,10 @@
 import { z } from "zod";
 import { validateMaintenanceIntakeRuntimeValues } from "@/scripts/runtime-secret-bindings.mjs";
+import {
+  SUPPORTED_GEMINI_MODEL,
+  SUPPORTED_GEMINI_MODEL_LABEL,
+  SUPPORTED_GEMINI_MODEL_LOCATION,
+} from "@/scripts/model-selection.mjs";
 import { ALLOWED_HD_DEFAULT, KB_APPROVAL_LABEL } from "@/lib/constants";
 import {
   isProductionEnvironment,
@@ -66,8 +71,15 @@ const EnvSchema = z.object({
   FIREBASE_PROJECT_ID: OptionalStringSchema,
   FIRESTORE_DATABASE_ID: z.string().trim().min(1).default("(default)"),
   GCP_PROJECT_ID: OptionalStringSchema,
-  GEMINI_MODEL_ANSWER: z.string().trim().min(1).default("gemini-2.5-pro"),
-  GEMINI_MODEL_CLASSIFY: z.string().trim().min(1).default("gemini-2.5-flash"),
+  GEMINI_MODEL_ANSWER: z.string().trim().min(1).default(SUPPORTED_GEMINI_MODEL),
+  GEMINI_MODEL_CLASSIFY: z.string().trim().min(1).default(SUPPORTED_GEMINI_MODEL),
+  // S136: the Gemini endpoint location is independent of the Cloud Run region. The selected model is
+  // served on Google Cloud's global endpoint; us-central1 does not offer it to this project.
+  GEMINI_MODEL_LOCATION: z
+    .string()
+    .trim()
+    .min(1)
+    .default(SUPPORTED_GEMINI_MODEL_LOCATION),
   GROUNDING_CONFIDENCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.65),
   KB_APPROVAL_LABEL: z.string().trim().min(1).default(KB_APPROVAL_LABEL),
   KB_APPROVAL_NOTIFICATIONS_ENABLED: z
@@ -146,11 +158,10 @@ const EnvSchema = z.object({
 export type ServerConfig = ReturnType<typeof readServerConfig>;
 type Environment = Record<string, string | undefined>;
 
+// S136: only the supported production selection is known-good. Retiring 2.5/1.5 ids still read
+// cleanly through the title-case fallback, but the Admin panel flags them.
 const FRIENDLY_MODEL_LABELS: Record<string, string> = {
-  "gemini-2.5-pro": "Gemini 2.5 Pro",
-  "gemini-2.5-flash": "Gemini 2.5 Flash",
-  "gemini-1.5-pro": "Gemini 1.5 Pro",
-  "gemini-1.5-flash": "Gemini 1.5 Flash",
+  [SUPPORTED_GEMINI_MODEL]: SUPPORTED_GEMINI_MODEL_LABEL,
 };
 
 /**
@@ -205,6 +216,7 @@ export function readServerConfig(env: Environment = process.env) {
     gcpProjectId: parsed.GCP_PROJECT_ID,
     geminiAnswerModel: parsed.GEMINI_MODEL_ANSWER,
     geminiClassifyModel: parsed.GEMINI_MODEL_CLASSIFY,
+    geminiModelLocation: parsed.GEMINI_MODEL_LOCATION,
     groundingConfidenceThreshold: parsed.GROUNDING_CONFIDENCE_THRESHOLD,
     kbApprovalLabel: parsed.KB_APPROVAL_LABEL,
     kbApprovalNotificationsEnabled: parsed.KB_APPROVAL_NOTIFICATIONS_ENABLED,
@@ -251,6 +263,7 @@ export function readServerConfig(env: Environment = process.env) {
     spaceProvisioningEnabled: parsed.SPACE_PROVISIONING_ENABLED,
     spaceDriveFolderIds: parsed.SPACE_DRIVE_FOLDER_IDS,
     spaceVertexDataStoreIds: parsed.SPACE_VERTEX_DATA_STORE_IDS,
+    // The Cloud Run/Google Cloud region. It no longer selects the Gemini endpoint (S136).
     vertexAiLocation: parsed.VERTEX_AI_LOCATION,
     vertexSearchLocation: parsed.VERTEX_SEARCH_LOCATION,
     firebaseBrowserConfig: {

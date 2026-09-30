@@ -160,7 +160,7 @@ describe("cheap live setup scripts", () => {
       "ASK_DEMO_MODE must be false for live Ask smoke and demo deploy.",
     );
     expect(result.errors).toContain(
-      "GEMINI_MODEL_ANSWER must be gemini-2.5-flash; current value is gemini-2.5-pro.",
+      "GEMINI_MODEL_ANSWER must be gemini-3.1-flash-lite; current value is gemini-2.5-pro.",
     );
     expect(result.errors).toContain(
       'SPACE_DRIVE_FOLDER_IDS must contain exactly one entry for "lease-renewals" unless --allow-multiple-spaces is provided.',
@@ -204,6 +204,31 @@ describe("cheap live setup scripts", () => {
     expect(parseSourceMetaArgs(["--source-id=source-1"])).toMatchObject({
       sourceId: "source-1",
     });
+  });
+
+  it("forces the one selected model and its own endpoint location on every deploy (S136)", () => {
+    const command = buildDemoDeployCommand({
+      argv: ["--budget-confirmed", "--dry-run"],
+      env: deployEnv({
+        DATA_CONTEXT: "demo",
+        ENVIRONMENT_KIND: "demo",
+        // A stale reviewed env file must not reintroduce a retiring model or a region endpoint.
+        GEMINI_MODEL_CLASSIFY: "gemini-2.5-flash",
+        GEMINI_MODEL_LOCATION: "us-central1",
+        VERTEX_AI_LOCATION: "us-central1",
+      }),
+      localEnv: {},
+      revisionSuffix,
+    });
+
+    expect(command.ok).toBe(true);
+    const joined = command.args.join(" ");
+    expect(CHEAP_LIVE_MODEL).toBe("gemini-3.1-flash-lite");
+    expect(joined).toContain("GEMINI_MODEL_ANSWER=gemini-3.1-flash-lite");
+    expect(joined).toContain("GEMINI_MODEL_CLASSIFY=gemini-3.1-flash-lite");
+    expect(joined).toContain("GEMINI_MODEL_LOCATION=global");
+    expect(joined).toContain("--region=us-central1");
+    expect(joined).not.toMatch(/gemini-2\.5|gemini-1\.5/);
   });
 
   it("builds a scale-to-zero Cloud Run deploy command after preflight", () => {

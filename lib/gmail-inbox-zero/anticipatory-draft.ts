@@ -171,6 +171,7 @@ export async function composeAnticipatoryReplyDraft(
   let draftBody: string | null;
   try {
     const { text } = await provider.generateText({
+      purpose: "gmail.anticipatory_draft",
       model,
       systemInstruction: SYSTEM_INSTRUCTION,
       userContent: buildUserContent(template, message, missingFacts),
