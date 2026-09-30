@@ -158,6 +158,27 @@ remain read-only for this release apart from the separately approved notice-inva
 Human verdicts, real inputs and provider activations retain their existing scoped holds; they do not
 block deployment of the thirteen already-defined implementations or become verified by deployment.
 
+### Feature-run authorization continuity — 2026-09-30 owner direction
+
+An explicit owner instruction to execute a named feature or batch carries that same approved scope
+through planning, implementation, verification and its authorized delivery. Do not ask for fresh
+consent solely because that run advances a phase, moves between its named features, or reaches an
+already authorized deployment. Resolve ordinary technical choices from current evidence; ask once
+only when a consequential scope, effect, authority, or human input is genuinely unresolved. Keep the
+answer in the current loop state and continue independent authorized work.
+
+Markdown intake alone grants no execution authority. A completed, superseded, historical, or
+specified suite cannot start from its registry row or old queue position. The owner explicitly
+directed implementation and mainline merge of request 001, governance simplification and unattended
+authentication renewal, as operational maintenance. That direction grants no new application
+feature, customer/provider effect, target, identity, privilege, or unrelated feature execution.
+Patched production dependencies required by the unchanged audit use the existing release gates.
+Existing exact-key,
+protected-path, release-lock, fresh-GO, receipt and rollback gates still apply when relevant. A
+prepared release permit is a technical interlock, not a repeated consent form; an admitted permit
+stays bound to the same run/SHA through credential renewal, while a consumed or failed permit never
+authorizes new work.
+
 ## Authentication — approved local host contract (2026-09-08)
 
 The owner explicitly authorized `josiah@pmikcmetro.com` for local unattended development and
@@ -171,6 +192,9 @@ the runner never changes that policy or enters a password, code, passkey, or CAP
   freshness is unverified, never READY.
 - `npm run auth:ensure` verifies the exact local identity and store before ordinary token probes,
   refreshes through Google libraries, and reports one WSL recovery command when a person is needed.
+  Run it at the beginning of authorized work and use the actual CLI/ADC refresh probes again before
+  dependent release phases. Elapsed enrollment age alone is not a readiness gate or a universal
+  credential lifetime. Permission denial and an unknown probe failure are not treated as reauth.
 - `auth:session`, `auth:enroll`, and `auth:enroll:wsl` all enroll the WSL CLI and ADC. The PowerShell
   compatibility entry point delegates to WSL. Enrollment reads Google's identity once and binds
   the exact ADC file locally because gcloud leaves its account field empty.
@@ -198,11 +222,17 @@ the runner never changes that policy or enters a password, code, passkey, or CAP
 - The local release watcher may deploy exact-main-SHA green CI from an isolated clean checkout,
   serialize and resume phases outside Git, and catch up after this host starts. Documentation-only
   commits do not deploy. Missing authentication pauses only the dependent phase; no repeated login
-  loop or unverified promotion is allowed.
+  loop or unverified promotion is allowed. A pre-dispatch authentication hold waits for a change in
+  the approved local credential store, then rechecks the same identity and resumes that exact
+  checkpoint if usable. An in-flight or ambiguous effect still requires exact reconciliation; store
+  change never proves an effect failed or authorizes redispatch. If Google requires a person, the
+  owner completes the challenge and independent work continues meanwhile.
 
-Fresh-shell, reboot, and elapsed-session proofs remain required. A policy or procedure alone does
-not establish authentication readiness. Independent implementation continues when Google requires
-human enrollment. Protected auth changes are authorized only for this explicit scope.
+Fresh-shell, reboot, and elapsed-session proofs are required to claim those separate behaviors;
+they are not repeated release prerequisites without an exact current contract. A policy or
+procedure alone does not establish authentication readiness. Independent implementation continues
+when Google requires human enrollment. This request authorizes only the scoped local-auth changes;
+it does not authorize a session-policy, IAM, claim, or credential-store substitution.
 
 ## Permanent safety boundaries
 
@@ -422,7 +452,9 @@ Active documentation is intentionally small. `docs/README.md` is the index.
 4. Implement with tests and preserve unrelated/user-owned changes.
 5. Run focused adversarial tests, then `bash scripts/verify.sh` for a ship candidate.
 6. Audit secrets, PII, gates, runtime config, and diff.
-7. Commit/push only a green tree; deploy code changes through zero-traffic candidate smoke.
+7. Commit/push only a green tree; deploy served runtime or asset changes through zero-traffic
+   candidate smoke. Verify runner-local governance/auth/release-tooling changes with focused tests,
+   full CI and host readback; they do not by themselves require a Cloud Run revision.
 8. Update facts, status, plan, and loop state to the verified result.
 
 No force-push, history rewrite, release tag, or branch deletion. Do not deploy documentation-only

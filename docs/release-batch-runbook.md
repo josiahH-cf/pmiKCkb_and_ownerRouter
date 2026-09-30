@@ -27,6 +27,11 @@ Editor browser coverage remains `not_run` under the approved Admin-only contract
 The cumulative corrective release is complete, its permit consumed and its queue empty.
 Original completed runs remain preserved separately. This retained procedure does not authorize
 a new dispatch or reuse of a consumed permit; future authorized work requires current gates.
+The September 30 runner correction removes the former fixed thirteen-suite and seven-hour
+enrollment-age preflight assumptions. An explicitly authorized future batch still needs its own
+nonempty exact Awaiting release queue, ancestral commits, fresh CLI/ADC/browser prerequisites,
+new run-bound permit, lock, receipts and all release readbacks. The completed thirteen-suite run
+remains historical evidence and cannot be re-admitted.
 
 ## Authorized replacement preparation
 
@@ -123,26 +128,12 @@ step; never enter a password, code, passkey or CAPTCHA:
 npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com
 ```
 
-That helper intentionally skips enrollment while the existing tokens still refresh. If the
-enrollment-age gate is stale before refresh fails, the owner must complete fresh CLI and ADC browser
-flows using the existing native SDK/store, then the existing binding verifier. Do not edit the
-enrollment timestamp to claim freshness. With the owner attending and the approved account already
-verified, use:
-
-```bash
-export BROWSER="$PWD/scripts/auth/open-windows-browser.sh"
-gcloud auth login josiah@pmikcmetro.com --force --launch-browser --no-activate
-gcloud auth application-default login --account=josiah@pmikcmetro.com --launch-browser
-node scripts/auth/verify-enrollment.mjs
-npm run auth:ensure
-```
-
-The owner completes any Google challenge. Verify Admin browser readiness separately; successful
-CLI/ADC enrollment does not establish the application's browser session.
-
-An earlier session expired under nine hours. Ordinary refresh readiness does not waive the
-preflight's seven-hour enrollment budget; a release must begin within it. An expired rollback
-remains held until authentication returns. The separate 24-hour longevity proof remains open.
+That helper skips enrollment while the existing tokens refresh. A timestamp alone does not require
+forced browser login or establish freshness. The owner completes a genuine Google challenge, then
+`npm run auth:ensure -- --unattended` verifies CLI and ADC before the dependent phase resumes.
+Verify Admin browser readiness separately; CLI/ADC readiness does not establish the application's
+browser session. An expired rollback remains held until authentication and exact recovery readback
+return. The separate 24-hour longevity proof remains open.
 
 **4. Prepare only an authorized current batch.** An empty queue must refuse admission. This
 corrective review is complete; any future explicitly authorized batch requires reviewed scope, green

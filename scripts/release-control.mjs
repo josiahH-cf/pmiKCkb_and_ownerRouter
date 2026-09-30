@@ -15,6 +15,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { assertReleaseProcessLock } from "./release-lock.mjs";
+import { isAuthenticationOnlyHold } from "./release-watcher-plan.mjs";
 
 export const RELEASE_PERMIT_SCHEMA = "pmi-kc-release-permit.v1";
 export const RELEASE_PREFLIGHT_MAX_AGE_MS = 5 * 60_000;
@@ -43,6 +44,14 @@ export function releaseHead(root = ROOT) {
   }).trim();
   if (!SHA.test(sha)) throw new Error("release_exact_head_required");
   return sha;
+}
+
+export function releaseCheckTarget(checkpoint, currentHead) {
+  const pinned =
+    checkpoint && checkpoint.phase !== "complete" && !checkpoint.terminalFailure
+      ? checkpoint
+      : null;
+  return { sha: pinned?.sha ?? currentHead(), runId: pinned?.runId };
 }
 
 export function assertNativeReleaseRuntime(command = process.env.GCLOUD_BIN ?? "gcloud") {
@@ -151,7 +160,7 @@ export function assertReleaseAdmission({
     throw new Error("release_permit_target_mismatch");
   if (
     Date.parse(permit.preparedAt) > nowMs + 30_000 ||
-    Date.parse(permit.expiresAt) <= nowMs
+    (permit.state === "prepared" && Date.parse(permit.expiresAt) <= nowMs)
   )
     throw new Error("release_permit_expired");
   if (!(permit.state === "admitted" || (prepared && permit.state === "prepared")))
@@ -172,7 +181,8 @@ export function admitReleasePermit(permit, preflight, nowMs = Date.now()) {
     preflight.verdict !== "go" ||
     preflight.headSha !== permit.sha ||
     preflight.watcherTargetSha !== permit.sha ||
-    preflight.batchSize !== 13 ||
+    !Number.isSafeInteger(preflight.batchSize) ||
+    preflight.batchSize < 1 ||
     preflight.runId !== permit.runId ||
     !Number.isFinite(Date.parse(preflight.checkedAt)) ||
     Date.parse(preflight.checkedAt) > nowMs ||
@@ -284,7 +294,7 @@ export async function main(argv = process.argv.slice(2)) {
     } catch {
       /* no recovery authority */
     }
-    if (checkpoint?.operatorResumeRequired)
+    if (checkpoint?.operatorResumeRequired && !isAuthenticationOnlyHold(checkpoint))
       throw new Error("release_operator_resume_required");
     if (
       checkpoint?.rollback ||
@@ -304,7 +314,11 @@ export async function main(argv = process.argv.slice(2)) {
       );
       return;
     }
-    const permit = assertReleaseAdmission({ sha: releaseHead(), stateRoot });
+    const target = releaseCheckTarget(checkpoint, () => releaseHead());
+    const permit = assertReleaseAdmission({
+      ...target,
+      stateRoot,
+    });
     process.stdout.write(
       JSON.stringify({ state: permit.state, sha: permit.sha, runId: permit.runId }) +
         "\n",

@@ -2,7 +2,7 @@
 // material. An empty ADC `account` field cannot establish identity before a refresh; enrollment
 // binds the exact bytes to Google's observed email once, during the owner's interactive login.
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync, renameSync } from "node:fs";
+import { readFileSync, writeFileSync, renameSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { LOCAL_PRINCIPAL } from "./identities.mjs";
@@ -14,6 +14,22 @@ export function credentialPaths(home = homedir()) {
     adc: join(store, "application_default_credentials.json"),
     binding: join(store, "pmi-local-enrollment.json"),
   };
+}
+
+// Metadata only: a changed CLI/ADC enrollment wakes an auth-paused watcher. Readiness is always
+// re-probed before work resumes; timestamps never establish an identity or contain token material.
+export function credentialEnrollmentVersion({ home = homedir(), stat = statSync } = {}) {
+  const { store, adc, binding } = credentialPaths(home);
+  return JSON.stringify(
+    [join(store, "credentials.db"), adc, binding].map((path) => {
+      try {
+        const { size, mtimeMs, ctimeMs } = stat(path);
+        return [size, mtimeMs, ctimeMs];
+      } catch {
+        return null;
+      }
+    }),
+  );
 }
 
 export function inspectCredentialStore({

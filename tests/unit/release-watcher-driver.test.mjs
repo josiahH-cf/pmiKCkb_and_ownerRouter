@@ -46,6 +46,7 @@ function harness({
   initialTraffic,
   reportOverride = {},
   authExitCode = 0,
+  authItems = [],
   createCloudClient,
   serviceReadback,
   candidateAssured = false,
@@ -209,7 +210,7 @@ function harness({
     }
     throw new Error(`Unexpected isolated command: ${bin}`);
   });
-  const ensureAuth = vi.fn(async () => ({ exitCode: authExitCode }));
+  const ensureAuth = vi.fn(async () => ({ exitCode: authExitCode, items: authItems }));
   const driver = createDriver({
     source: root,
     stateRoot: root,
@@ -231,6 +232,29 @@ function harness({
 }
 
 describe("release watcher command-path recovery", () => {
+  it("renews a stale approved credential but separates permission and probe failures", async () => {
+    const stale = harness({
+      authExitCode: 2,
+      authItems: [{ credential: "gcloud", state: "blocked", code: "stale_token" }],
+    });
+    expect(await stale.driver.authenticate()).toBe(false);
+    const denied = harness({
+      authExitCode: 2,
+      authItems: [{ credential: "adc", state: "blocked", code: "permission_denied" }],
+    });
+    await expect(denied.driver.authenticate()).rejects.toThrow(
+      "release_identity_permission_denied",
+    );
+    const unavailable = harness({
+      authExitCode: 2,
+      authItems: [
+        { credential: "gcloud", state: "blocked", code: "identity_probe_unavailable" },
+      ],
+    });
+    await expect(unavailable.driver.authenticate()).rejects.toThrow(
+      "authentication_probe_unverified",
+    );
+  });
   it("the real driver factory refuses direct calls without a kernel lock before client or auth creation", async () => {
     const h = harness();
     const createCloudClient = vi.fn();

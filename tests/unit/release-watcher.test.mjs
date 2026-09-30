@@ -4,6 +4,9 @@ import {
   classifyReleaseChanges,
   evaluateRelease,
   browserEnrollmentChanged,
+  credentialEnrollmentChanged,
+  isAuthenticationOnlyHold,
+  parkAuthentication,
 } from "../../scripts/release-watcher-plan.mjs";
 const sha = "a".repeat(40);
 const ready = {
@@ -45,6 +48,21 @@ describe("local watcher exact-SHA release gates", () => {
       "foundation_not_in_target",
     );
     expect(classifyReleaseChanges(["public/brand/logo.svg"])).toBe(true);
+    expect(
+      classifyReleaseChanges([
+        "AGENTS.md",
+        "docs/loop-state.md",
+        "scripts/auth/ensure.mjs",
+        "scripts/preflight-adc.mjs",
+        "scripts/release-batch-preflight.mjs",
+        "scripts/release-control.mjs",
+        "scripts/release-watcher-plan.mjs",
+        "scripts/release-watcher.mjs",
+      ]),
+    ).toBe(false);
+    expect(classifyReleaseChanges(["scripts/release-control.mjs", "app/page.tsx"])).toBe(
+      true,
+    );
   });
   it("resumes an unfinished exact revision before considering newer main", () => {
     expect(
@@ -70,6 +88,27 @@ describe("local watcher exact-SHA release gates", () => {
     expect(browserEnrollmentChanged(cp, "prior")).toBe(false);
     expect(browserEnrollmentChanged(cp, "enrolled-again")).toBe(true);
     expect(browserEnrollmentChanged({}, "prior")).toBe(true);
+  });
+  it("rechecks a credential hold only after enrollment changes and never skips an in-flight effect", () => {
+    const hold = {
+      sha,
+      phase: "deploy",
+      blocked: "authentication_required",
+      credentialEnrollmentVersion: "before",
+    };
+    expect(isAuthenticationOnlyHold(hold)).toBe(true);
+    expect(credentialEnrollmentChanged(hold, "before")).toBe(false);
+    expect(credentialEnrollmentChanged(hold, "after")).toBe(true);
+    expect(parkAuthentication(hold, "before")).toMatchObject({
+      operatorResumeRequired: false,
+      credentialEnrollmentVersion: "before",
+      phase: "deploy",
+    });
+    expect(isAuthenticationOnlyHold({ ...hold, inFlight: "deploy" })).toBe(false);
+    expect(() => parkAuthentication({ ...hold, inFlight: "deploy" }, "after")).toThrow(
+      "authentication_hold_not_safe_to_park",
+    );
+    expect(credentialEnrollmentChanged({ ...hold, rollback: {} }, "after")).toBe(false);
   });
   it("never promotes without an exact candidate assurance receipt", async () => {
     const promote = vi.fn();

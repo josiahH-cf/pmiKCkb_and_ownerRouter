@@ -102,6 +102,23 @@ describe("assessCredentials (attended, today's owner login)", () => {
     expect(gcloud.humanStep).toContain("npm run auth:enroll");
     expect(exitCodeFor(result.items)).toBe(2);
   });
+  it("does not prescribe re-enrollment for permission denial or an unknown token failure", () => {
+    for (const [errorKind, code] of [
+      ["permission_denied", "permission_denied"],
+      ["token_probe_failed", "auth_probe_failed"],
+    ]) {
+      const result = assessCredentials(
+        {
+          ...attendedProbe,
+          gcloud: { ...attendedProbe.gcloud, tokenFresh: false, errorKind },
+        },
+        { identities, need: parseNeed() },
+      );
+      const entry = item(result, "gcloud");
+      expect(entry.code).toBe(code);
+      expect(entry.humanStep).not.toContain("auth:enroll");
+    }
+  });
 
   it("blocks a personal account and a key file with distinct reasons", () => {
     const personal = assessCredentials(

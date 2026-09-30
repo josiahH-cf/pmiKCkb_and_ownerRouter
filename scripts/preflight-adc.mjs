@@ -25,6 +25,10 @@ export function classifyAdcError(message) {
   ) {
     return "missing";
   }
+  if (/permission_denied|permission denied|not authorized|\b403\b/.test(text))
+    return "permission_denied";
+  if (/timed? ?out|deadline|unavailable|connection|network|\b429\b|\b5\d\d\b/.test(text))
+    return "identity_probe_unavailable";
   return "other";
 }
 

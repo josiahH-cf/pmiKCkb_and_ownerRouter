@@ -14,8 +14,29 @@ Checkpoint complete; permit consumed; no blocked, in-flight or rollback phase.
 
 ## Awaiting release
 
-None. The cumulative corrective queue is cleared after independent final verification.
-S121 remains excluded. Documentation/test-only closure must not start another deployment.
+1. 001 governance/auth continuity and patched dependencies: `474e5d7eccc5351a04b0b0dbed3ed8360062d748`.
+   The owner authorized this one operational change through mainline delivery. Admit only after
+   exact main CI, fresh prerequisites and a new run-bound permit. No provider effect or other suite
+   is in this queue.
+
+The prior cumulative corrective queue is cleared and its permit consumed. S121 remains excluded.
+Documentation/test-only closure must not start another deployment.
+
+## Feature intake
+
+Request 001 was supplied from `pmi-new-features-9-30/001-governance-simplification-and-unattended-auth-renewal.md`.
+The owner explicitly directed this operational governance/authentication change through
+implementation and mainline merge. It is recorded as ready in `docs/feature-suites/README.md`;
+focused tests and the full local gate passed, with mainline CI/merge pending. A production
+dependency patch needed for the mandatory audit will require a new exact Cloud Run release after
+merge. No provider effect is admitted. The registered suite order is not an instruction to resume
+other work; future
+requests still require explicit execution direction.
+At intake initialization, GitHub CI 36650984450 read back successful at the exact release SHA.
+The first WSL CLI/ADC probe required reauthentication, then a fresh approved unattended probe
+verified both usable under `josiah@pmikcmetro.com`. A fresh read-only Cloud Run service describe
+confirmed `pmi-kc-app-rmundpf2v-249c945f2220` still has 100% traffic. A prior public HEAD timed
+out; no new product-route or configuration assurance was performed for this maintenance request.
 
 ## Verified evidence
 

@@ -15,7 +15,9 @@ export const RELEASE_PHASES = Object.freeze([
 export function classifyReleaseChanges(paths) {
   return paths.some(
     (path) =>
-      !/^(?:docs\/|AGENTS\.md$|CLAUDE\.md$|README\.md$|tests\/|\.claude\/)/.test(path),
+      !/^(?:docs\/|AGENTS\.md$|CLAUDE\.md$|README\.md$|tests\/|\.claude\/|scripts\/auth\/|scripts\/(?:preflight-adc|release-batch-preflight|release-control|release-watcher|release-watcher-plan)\.mjs$)/.test(
+        path,
+      ),
   );
 }
 
@@ -25,6 +27,34 @@ export function browserEnrollmentChanged(checkpoint, enrollmentVersion) {
     checkpoint?.blocked !== "managed_browser_enrollment_required" ||
     checkpoint.browserEnrollmentVersion !== enrollmentVersion
   );
+}
+
+/** Auth-only holds have no dispatched phase to reconcile and keep their exact run authority. */
+export function isAuthenticationOnlyHold(checkpoint) {
+  return (
+    checkpoint?.blocked === "authentication_required" &&
+    !checkpoint.inFlight &&
+    !checkpoint.rollback &&
+    !checkpoint.terminalFailure &&
+    checkpoint.phase !== "complete"
+  );
+}
+
+export function credentialEnrollmentChanged(checkpoint, enrollmentVersion) {
+  return (
+    isAuthenticationOnlyHold(checkpoint) &&
+    checkpoint.credentialEnrollmentVersion !== enrollmentVersion
+  );
+}
+
+export function parkAuthentication(checkpoint, enrollmentVersion) {
+  if (!isAuthenticationOnlyHold(checkpoint))
+    throw new Error("authentication_hold_not_safe_to_park");
+  return {
+    ...checkpoint,
+    operatorResumeRequired: false,
+    credentialEnrollmentVersion: enrollmentVersion,
+  };
 }
 
 export function evaluateRelease({

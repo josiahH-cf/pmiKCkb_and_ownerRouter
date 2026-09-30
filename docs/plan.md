@@ -2,6 +2,30 @@
 
 Updated: 2026-09-30 (UTC). The thirteen-feature batch and all confirmed adversarial repairs are verified deployed; the release queue is empty.
 
+## Current direct maintenance request: 001
+
+The owner supplied `pmi-new-features-9-30/001-governance-simplification-and-unattended-auth-renewal.md`
+and explicitly directed implementation, push and merge to main. Scope is existing router,
+authentication and runner-local release controls; no application/provider effect is needed.
+The source's reported eight-hour failure is not a verified credential lifetime. On this host,
+a fresh approved WSL `auth:ensure -- --unattended` verified CLI/ADC refresh and GitHub access
+under the exact managed identity. A fresh read-only Cloud Run describe confirmed the recorded
+production revision still receives 100% traffic. An earlier failed probe is historical, not
+current readiness.
+
+Falsify the correction with focused checks: an older enrollment with currently usable CLI/ADC
+must pass release preflight; an empty, duplicate, unordered or non-ancestral queue must still fail,
+while a newly authorized one-suite queue can pass. Prepared permits still expire, while one
+admitted exact run survives credential renewal. A pre-dispatch authentication hold must park once
+and re-probe only after enrollment changes; in-flight effects keep reconciliation and operator
+resume. Permission denial and unknown probe failures must not masquerade as token expiry.
+
+Focused tests, `bash scripts/verify.sh` and host read-only checks passed. Await exact GitHub CI,
+then merge the governance change. New production dependency resolutions needed for the mandatory
+audit add a Cloud Run release step after merge, under a new exact run permit and fresh gates. The previous
+release's consumed permit remains historical. Later Markdown requests remain intake-only until
+explicitly selected for execution.
+
 ## Outcome
 
 Run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` released all thirteen features and five confirmed adversarial repairs at

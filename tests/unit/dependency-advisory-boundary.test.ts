@@ -17,9 +17,9 @@ describe("I11 patched transitive dependency boundaries", () => {
   it("loads the exact patched releases selected through Next and GenAI/MCP", () => {
     expect(installedVersion("next")).toBe("16.3.7");
     expect(installedVersion("sharp")).toBe("0.35.4");
-    expect(installedVersion("fast-uri")).toBe("3.1.7");
+    expect(installedVersion("fast-uri")).toBe("3.1.8");
     expect(installedVersion("hono")).toBe("4.13.5");
-    expect(installedVersion("ip-address")).toBe("10.5.1");
+    expect(installedVersion("ip-address")).toBe("10.7.1");
     expect(installedVersion("nanoid")).toBe("3.3.18");
     expect(installedVersion("qs")).toBe("6.16.0");
     expect(typeof GoogleGenAI).toBe("function");

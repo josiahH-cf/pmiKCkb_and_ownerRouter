@@ -4,8 +4,6 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  ENROLLMENT_BUDGET_HOURS,
-  EXPECTED_BATCH,
   evaluateBatchPreflight,
   parseAwaitingReleaseQueue,
   renderBatchPreflight,
@@ -66,7 +64,6 @@ function input(overrides = {}) {
       ".env.local:ASK_DEMO_MODE": "false",
       ".env.production.local:ASK_DEMO_MODE": "false",
     },
-    enrolledAtIso: "2026-09-20T15:00:00.000Z",
     nowIso: NOW,
     billingReEnabled: true,
     permit,
@@ -107,18 +104,16 @@ describe("batched release preflight: the whole queue rides one candidate", () =>
     expect(result.batchSize).toBe(0);
   });
 
-  it("keeps the current queue either closed or one complete ordered cumulative batch", () => {
+  it("keeps the current queue empty or uniquely ordered with commit provenance", () => {
     const queue = parseAwaitingReleaseQueue(CURRENT_LOOP_STATE);
     if (queue.length === 0) {
       expect(evaluateBatchPreflight(input({ queue })).verdict).toBe("not_ready");
       return;
     }
-    expect(queue.map((entry) => `${entry.suite}:${entry.approval}`)).toEqual(
-      EXPECTED_BATCH,
-    );
     expect(queue.map((entry) => entry.position)).toEqual(
-      Array.from({ length: 13 }, (_, index) => index + 1),
+      Array.from({ length: queue.length }, (_, index) => index + 1),
     );
+    expect(new Set(queue.map((entry) => entry.suite)).size).toBe(queue.length);
     expect(queue.every((entry) => entry.commits.length > 0)).toBe(true);
   });
 
@@ -145,7 +140,7 @@ describe("batched release preflight: the whole queue rides one candidate", () =>
     expect(result.watcherTargetSha).toBe(HEAD);
     expect(result.batchSize).toBe(parseAwaitingReleaseQueue(LOOP_STATE).length);
     expect(checkOf(result, "batch_scope").summary).toMatch(
-      /queued features ride this one candidate/,
+      /queued items ride this one candidate/,
     );
     expect(renderBatchPreflight(result)).toMatch(/Batched release preflight: GO/);
   });
@@ -237,23 +232,20 @@ describe("batched release preflight: safety and owner inputs", () => {
     );
   });
 
-  it("never assumes billing is back and never assumes a fresh enrollment", () => {
+  it("never assumes billing is back and uses fresh credential probes instead of enrollment age", () => {
     const unknown = evaluateBatchPreflight(input({ billingReEnabled: undefined }));
     expect(unknown.verdict).toBe("owner_action_required");
     expect(checkOf(unknown, "billing").state).toBe("owner_action");
     expect(checkOf(unknown, "billing").detail).toMatch(/runner never changes billing/);
 
-    const stale = evaluateBatchPreflight(
-      input({ enrolledAtIso: "2026-09-20T05:00:00.000Z" }),
+    const oldEnrollment = evaluateBatchPreflight(
+      input({ enrolledAtIso: "2026-09-19T00:00:00.000Z" }),
     );
-    expect(checkOf(stale, "auth_enrollment").state).toBe("owner_action");
-    expect(checkOf(stale, "auth_enrollment").summary).toMatch(
-      new RegExp(`past the ${ENROLLMENT_BUDGET_HOURS} h budget`),
-    );
-    expect(
-      checkOf(evaluateBatchPreflight(input({ enrolledAtIso: null })), "auth_enrollment")
-        .state,
-    ).toBe("unknown");
+    expect(oldEnrollment.verdict).toBe("go");
+    expect(checkOf(oldEnrollment, "auth_enrollment")).toBeUndefined();
+    const failedProbe = input();
+    failedProbe.prerequisite.checks.auth_cli_adc = "blocked";
+    expect(evaluateBatchPreflight(failedProbe).verdict).not.toBe("go");
   });
 
   it("prints every outstanding owner step and no secret value", () => {
@@ -290,16 +282,15 @@ describe("batched release preflight: safety and owner inputs", () => {
     { noWatcher: false },
     { lockAvailable: false },
     { mirroredEnvFlags: {} },
-    { enrolledAtIso: null },
   ])("refuses unknown or incomplete batch prerequisite %j", (change) => {
     expect(evaluateBatchPreflight(input(change)).verdict).not.toBe("go");
   });
-  it("requires exactly thirteen ordered expected suites and both explicit false env files", () => {
+  it("requires a nonempty, ordered, unique, ancestral queue and both explicit false env files", () => {
     const ready = input();
     for (const queue of [
       ready.queue.slice(1),
       [...ready.queue, ready.queue[0]],
-      ready.queue.map((row, i) => (i ? row : { ...row, suite: "S999" })),
+      ready.queue.map((row, i) => (i ? row : { ...row, position: 2 })),
       ready.queue.map((row, i) => (i ? row : { ...row, commits: [] })),
     ])
       expect(evaluateBatchPreflight(input({ queue })).verdict).not.toBe("go");
@@ -310,5 +301,27 @@ describe("batched release preflight: safety and owner inputs", () => {
       };
       expect(evaluateBatchPreflight(input({ envFlags })).verdict).not.toBe("go");
     }
+  });
+  it("accepts a future single explicitly queued suite without a historical F label", () => {
+    const queue = parseAwaitingReleaseQueue(
+      "## Awaiting release\n\n1. S135 governance-safe feature: commit `31bc9072`.\n",
+    );
+    expect(queue).toEqual([
+      { position: 1, suite: "S135", approval: null, commits: ["31bc9072"] },
+    ]);
+    expect(evaluateBatchPreflight(input({ queue })).verdict).toBe("go");
+  });
+  it("accepts a numbered intake maintenance item only with exact commit provenance", () => {
+    const queue = parseAwaitingReleaseQueue(
+      "## Awaiting release\n\n1. 001 governance maintenance: commit `31bc9072`.\n",
+    );
+    expect(queue).toEqual([
+      { position: 1, suite: "001", approval: null, commits: ["31bc9072"] },
+    ]);
+    expect(evaluateBatchPreflight(input({ queue })).verdict).toBe("go");
+    expect(
+      evaluateBatchPreflight(input({ queue: [{ ...queue[0], suite: "001-old" }] }))
+        .verdict,
+    ).not.toBe("go");
   });
 });

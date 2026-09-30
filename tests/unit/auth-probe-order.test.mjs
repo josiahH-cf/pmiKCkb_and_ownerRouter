@@ -1,10 +1,44 @@
 import { describe, expect, it, vi } from "vitest";
-import { probeAdc, probeGcloud } from "../../scripts/auth/ensure.mjs";
-import { inspectCredentialStore } from "../../scripts/auth/credential-store.mjs";
+import {
+  classifyGcloudTokenFailure,
+  probeAdc,
+  probeGcloud,
+} from "../../scripts/auth/ensure.mjs";
+import {
+  credentialEnrollmentVersion,
+  inspectCredentialStore,
+} from "../../scripts/auth/credential-store.mjs";
 import { verifyEnrollment } from "../../scripts/auth/verify-enrollment.mjs";
 
 const owner = "josiah@pmikcmetro.com";
 describe("local credential inspection precedes refresh", () => {
+  it("classifies CLI reauth, permission, and transient failures without emitting stderr", () => {
+    expect(classifyGcloudTokenFailure("invalid_rapt: reauth required")).toBe("reauth");
+    expect(classifyGcloudTokenFailure("PERMISSION_DENIED: forbidden")).toBe(
+      "permission_denied",
+    );
+    expect(classifyGcloudTokenFailure("network timeout")).toBe(
+      "identity_probe_unavailable",
+    );
+    expect(classifyGcloudTokenFailure("unexpected provider response")).toBe(
+      "token_probe_failed",
+    );
+  });
+  it("uses only store metadata to notice a new enrollment, never credential bytes", () => {
+    const version = credentialEnrollmentVersion({
+      home: "/isolated",
+      stat: (path) => ({ size: path.length, mtimeMs: 5, ctimeMs: 9 }),
+    });
+    expect(JSON.parse(version)).toHaveLength(3);
+    expect(version).not.toContain("authorized_user");
+    expect(version).not.toContain("refresh_token");
+    expect(
+      credentialEnrollmentVersion({
+        home: "/isolated",
+        stat: (path) => ({ size: path.length, mtimeMs: 6, ctimeMs: 9 }),
+      }),
+    ).not.toBe(version);
+  });
   it.each(["canary-admin@pmikcmetro.com", "someone@gmail.com", ""])(
     "never mints CLI tokens for %s",
     (account) => {
