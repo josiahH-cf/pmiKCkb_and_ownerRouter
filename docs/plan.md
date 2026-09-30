@@ -1,6 +1,6 @@
 # Current plan
 
-Updated: 2026-09-30 (UTC). The thirteen-feature batch and all confirmed adversarial repairs are verified deployed; the release queue is empty.
+Updated: 2026-09-30 (UTC). The thirteen-feature batch and all confirmed adversarial repairs are verified deployed. Request 001 is awaiting release.
 
 ## Current direct maintenance request: 001
 
@@ -20,11 +20,17 @@ admitted exact run survives credential renewal. A pre-dispatch authentication ho
 and re-probe only after enrollment changes; in-flight effects keep reconciliation and operator
 resume. Permission denial and unknown probe failures must not masquerade as token expiry.
 
-Focused tests, `bash scripts/verify.sh` and host read-only checks passed. Await exact GitHub CI,
-then merge the governance change. New production dependency resolutions needed for the mandatory
-audit add a Cloud Run release step after merge, under a new exact run permit and fresh gates. The previous
-release's consumed permit remains historical. Later Markdown requests remain intake-only until
-explicitly selected for execution.
+The governance change merged through PR 92 at `41ad65cbccf89fdd248cd82088496470d90e057b`;
+exact main CI 36723410549 passed. The production dependency patch requires Cloud Run release.
+Run `dc4e1ac8-d8b9-4090-9258-e2ddb18f119f` prepared recovery and built a zero-traffic candidate,
+then blocked at assurance before receipt or promotion. Original failed evidence stays failed.
+Cloud Run read-only renewal requests exceeded the canary's 30-second navigation limit. Draft PR 93
+proposes a 60-second bound only for the renewal desk and workspace; all five CI checks passed, but
+owner direction on this technical threshold is pending. A patched live canary passed 13/13 once;
+another failed on the unchanged dashboard route, which later returned HTTP 200 after 45 seconds.
+If approved, merge the reviewed repair, require exact green main CI, checked retirement of the
+blocked run, fresh prerequisites and permit, and complete new release gates. Do not reuse the prior
+claim or receipt. Later Markdown requests remain intake-only until explicitly selected for execution.
 
 ## Outcome
 

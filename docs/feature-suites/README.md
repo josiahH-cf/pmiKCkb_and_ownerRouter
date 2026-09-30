@@ -45,9 +45,9 @@ points to the newer entry or decision that replaced it. A dependency or missing 
 must be recorded separately from intake clarity. Suite implementation and release statuses remain
 separate and retain their exact evidence scopes.
 
-| Intake order | Request / matched suite                                                                                    | Source                                                                               | Intake status | Evidence or next input                                                                                      |
-| ------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------- | ----------------------------------------------------------------------------------------------------------- |
-| 001          | Governance simplification and unattended authentication renewal; existing router, auth and release tooling | `pmi-new-features-9-30/001-governance-simplification-and-unattended-auth-renewal.md` | ready         | Direct execution authorized 2026-09-30; full local gate passed, with mainline CI/merge and release pending. |
+| Intake order | Request / matched suite                                                                                    | Source                                                                               | Intake status | Evidence or next input                                                                                                                                                |
+| ------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 001          | Governance simplification and unattended authentication renewal; existing router, auth and release tooling | `pmi-new-features-9-30/001-governance-simplification-and-unattended-auth-renewal.md` | ready         | Main implementation merged as 41ad65cb, exact CI passed; release run dc4e1ac8 blocked at assurance. Draft PR 93 timing decision pending; delivery remains unverified. |
 
 ## Registered suite order and dependencies
 

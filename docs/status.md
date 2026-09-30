@@ -22,14 +22,19 @@ Editor browser coverage remains `not_run` under the approved Admin-only contract
 
 ## Current operational maintenance
 
-Request 001, governance simplification and unattended authentication renewal, is authorized for
-direct implementation and mainline merge. Focused tests passed. A fresh WSL unattended auth probe
-verified both CLI and ADC refresh under the approved managed identity, and a read-only Cloud Run
-describe confirmed the documented serving revision still has 100% traffic. The reported eight-hour
-failure remains a user observation, not a verified token lifetime. The mandatory production audit
-required three patched transitive dependency overrides; the new lockfile has zero production audit
-findings. The full local gate passed 7,470 unit tests (four existing skips), 234 backend tests, all
-policy checks and a production build. Mainline CI/merge and the dependency release remain pending.
+Request 001, governance simplification and unattended authentication renewal, merged to main as
+`41ad65cbccf89fdd248cd82088496470d90e057b` through
+[PR 92](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/92). Exact main CI 36723410549
+passed; the production dependency audit reports zero findings. Approved WSL CLI/ADC renewal is
+ready. The reported eight-hour failure remains a user observation, not a verified token lifetime.
+The new release run `dc4e1ac8-d8b9-4090-9258-e2ddb18f119f` prepared recovery and built candidate
+`pmi-kc-app-rmuo61wve-fcdc2fc4b0d0` at zero traffic, but assurance blocked before a candidate
+receipt or promotion. Production still serves `pmi-kc-app-rmundpf2v-249c945f2220` at 100%.
+Live renewal requests exceeded the 30-second navigation limit. Draft
+[PR 93](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/pull/93) passed all five CI checks and
+proposes a 60-second bound only for two renewal routes, pending owner direction. A read-only candidate
+sample passed 13/13; another failed on a dashboard request that returned HTTP 200 after 45 seconds.
+The failed sample and original blocked release remain failed.
 
 ## Verified corrective review
 
@@ -73,4 +78,5 @@ Historical K unit-store target/marker effects remain UNVERIFIED; absent Data Acc
 prove zero effects. No customer draft/send, paid comparison, provider-proof rerun or synthetic
 production record was authorized for this release.
 
-The completed corrective permit is consumed and the Awaiting release queue is empty. No original receipt, completed permit or build claim is reused.
+The earlier corrective permit is consumed. Request 001 remains awaiting release; its blocked run,
+original receipts and build claim are preserved. No completed permit or receipt is reused.
