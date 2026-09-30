@@ -3,9 +3,7 @@
 
 # S93 — Dashboard assistant streaming and linked result experience
 
-> Status: Specified on 2026-08-31; the current Dashboard still uses a process-picker-based,
-> one-request/one-buffered-JSON `AskForm`, while S88–S92 and S94 define the future query, control,
-> domain-adapter, narration, and action contracts this suite renders but does not replace.
+> Status: Superseded for Dashboard AI by S138 (batch 002); its S94 action dependency does not apply to the new read-only conversation.
 
 **Goal.**
 

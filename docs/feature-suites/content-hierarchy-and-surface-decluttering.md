@@ -3,15 +3,7 @@
 
 # S87 — Product-wide content hierarchy and surface decluttering
 
-> Status: Specified and not implemented. The 2026-08-31 source audit inventories 29 current
-> experiences across 36 routes; the target manifest includes the deployed S83 `/admin/access`
-> experience as SF-30. S82-S86 and S96 are deployed owners; S82 owns renewal desk/workspace behavior;
-> S83 owns access requests,
-> grants, and supported connector read-check behavior; S84 owns navbar destinations, terminology,
-> and within-navbar disclosure behavior; S96 owns connector disconnect/reconciliation and S86 owns
-> generic interaction feedback plus connection-store degradation presentation. S88-S95 own the later Dashboard assistant,
-> its data/action boundaries, and its two-region cutover. S87 owns all remaining content hierarchy
-> and placement and delegates SF-06 to that newer bundle.
+> Status: Separate unimplemented product-wide layout proposal, outside batch 002. Re-scope old assistant dependencies before any explicit execution.
 
 **Goal.**
 

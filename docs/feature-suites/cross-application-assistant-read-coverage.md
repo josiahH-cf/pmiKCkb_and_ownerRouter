@@ -3,8 +3,7 @@
 
 # S101 — Deterministic cross-application assistant read coverage
 
-> Status: Specified follow-on and not implemented. It starts only after S87 and the complete S88-S95
-> V1 Dashboard assistant are deployed and verified; it does not widen or delay V1.
+> Status: Superseded for Dashboard AI by S137–S138 (batch 002); the old post-S87 closed-registry sequence must not restart.
 
 **Goal.**
 

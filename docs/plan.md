@@ -1,11 +1,11 @@
 # Current plan
 
-Updated: 2026-09-30 (UTC). The thirteen-feature batch and all confirmed adversarial repairs are verified deployed; the release queue is empty.
+Updated: 2026-09-30 (UTC). The thirteen-feature batch and confirmed adversarial repairs are verified deployed. The separate 001 dependency release remains pending; batch 002 is intake-only.
 
-## Current direct maintenance request: 001
+## Direct maintenance request 001: merged, release pending
 
 The owner supplied `pmi-new-features-9-30/001-governance-simplification-and-unattended-auth-renewal.md`
-and explicitly directed implementation, push and merge to main. Scope is existing router,
+and explicitly directed implementation, push and merge to main, now completed. Scope was existing router,
 authentication and runner-local release controls; no application/provider effect is needed.
 The source's reported eight-hour failure is not a verified credential lifetime. On this host,
 a fresh approved WSL `auth:ensure -- --unattended` verified CLI/ADC refresh and GitHub access
@@ -20,11 +20,20 @@ admitted exact run survives credential renewal. A pre-dispatch authentication ho
 and re-probe only after enrollment changes; in-flight effects keep reconciliation and operator
 resume. Permission denial and unknown probe failures must not masquerade as token expiry.
 
-Focused tests, `bash scripts/verify.sh` and host read-only checks passed. Await exact GitHub CI,
-then merge the governance change. New production dependency resolutions needed for the mandatory
-audit add a Cloud Run release step after merge, under a new exact run permit and fresh gates. The previous
-release's consumed permit remains historical. Later Markdown requests remain intake-only until
-explicitly selected for execution.
+Focused tests, `bash scripts/verify.sh` and host read-only checks passed. PR #92 merged at
+`41ad65cb` on 2026-09-30. New production dependency resolutions needed for the mandatory audit
+require a separately gated Cloud Run release. Draft PR #93 addresses a release timing issue and
+is not merged. The previous release's consumed permit remains historical. This intake does not
+resume that release or authorize any batch 002 implementation.
+
+## Markdown batch 002: scoped, not started
+
+All seven supplied requests 002–008 were read in order, mapped to S135–S141 and registered as
+`ready` in `docs/feature-suites/README.md`. The owner clarified that email requests 006–007 cover
+all existing workflow-linked draft screens. S110 and the existing email paths are the verified
+baseline; the broader AI/model/context/refinement outcomes are not implemented. S88–S93/S101's
+overlapping unimplemented plans are superseded for this scope and cannot restart automatically.
+Await an explicit implementation selection; preserve S87/S94/S95 as separate proposals.
 
 ## Outcome
 

@@ -98,7 +98,10 @@ corrections and normal S106/S34 packet handoffs are serving. Real forms/mappings
 connection/selection and exact closed-key activation still govern dependent document effects.
 S96, S83-S86 and S99 retain their deployed contracts. S100 chat sync is deployed; resident-draft
 still requires its exact eligible message/email and separate activation. S36 remains queued behind
-complete S100. S87-S95 and S101 remain specification-only. S112 release authentication passed;
+complete S100. S110's three-intent assistant is serving. The overlapping unimplemented
+S88–S93/S101 assistant plans are superseded by intake-ready S135–S138; S139–S141 record the
+linked-email and integrated-validation requests. S87, S94 and S95 remain separate unimplemented
+proposals. Intake alone starts none of them. S112 release authentication passed;
 its separate 24-hour unchanged-enrollment longevity proof remains unverified.
 
 Current code, tests, facts and the S113 evidence report own the verified result. Staff-recorded

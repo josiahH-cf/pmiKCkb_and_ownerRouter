@@ -3,10 +3,7 @@
 
 # S94 — Assistant human-confirmed action proposals
 
-> Status: Specified and not implemented. Current My Work can create verified linked tasks, but its
-> public schema accepts a caller idempotency key and an existing-key replay does not compare the
-> original payload; current Ask can implicitly start a selected process and its `Capture Task` control
-> creates a KB placeholder, while no assistant action-token, review, or confirmation boundary exists.
+> Status: Separate unimplemented task-action proposal, outside batch 002. Its old S88/S93 dependencies require new scope and explicit owner instruction before execution.
 
 **Goal.**
 
