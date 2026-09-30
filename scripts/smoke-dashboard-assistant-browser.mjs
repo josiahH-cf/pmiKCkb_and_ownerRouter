@@ -101,15 +101,19 @@ async function verifyAssistantQuestions() {
 
   await field.fill("what is our pet policy");
   await page.getByRole("button", { name: "Get answer" }).click();
-  await page
-    .locator(".result-panel")
-    .getByRole("heading", { name: "Answer", exact: true })
-    .last()
-    .waitFor();
-  assert(
-    (await page.getByRole("region", { name: "Assistant answer" }).count()) === 0,
-    "A policy question rendered an operational answer instead of the knowledge answer.",
-  );
+  // The previous operational answer carries its own "Answer" heading inside the thread, so wait
+  // for the thread to drop its latest operational region, then for the knowledge answer's own
+  // heading (a direct child of the result panel), before asserting.
+  try {
+    await page
+      .getByRole("region", { name: "Assistant answer" })
+      .waitFor({ state: "detached" });
+  } catch {
+    throw new Error(
+      "A policy question rendered an operational answer instead of the knowledge answer.",
+    );
+  }
+  await page.locator(".result-panel > h2", { hasText: /^Answer$/ }).waitFor();
 
   assert(
     assistantCalls.length === questions.length + 1,
