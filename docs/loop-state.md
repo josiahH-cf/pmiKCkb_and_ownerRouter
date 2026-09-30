@@ -14,8 +14,13 @@ Checkpoint complete; permit consumed; no blocked, in-flight or rollback phase.
 
 ## Awaiting release
 
-None. The cumulative corrective queue is cleared after independent final verification.
-S121 remains excluded. Documentation/test-only closure must not start another deployment.
+1. 001 governance/auth continuity and patched dependencies: `474e5d7eccc5351a04b0b0dbed3ed8360062d748`.
+   The owner authorized this one operational change through mainline delivery. Admit only after
+   exact main CI, fresh prerequisites and a new run-bound permit. No provider effect or other suite
+   is in this queue.
+
+The prior cumulative corrective queue is cleared and its permit consumed. S121 remains excluded.
+Documentation/test-only closure must not start another deployment.
 
 ## Feature intake
 
