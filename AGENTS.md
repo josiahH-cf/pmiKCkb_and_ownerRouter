@@ -19,25 +19,25 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — 2026-09-29
+## Present production truth — 2026-09-30
 
-Run `f2036ad3-065e-4cac-8641-22f4946c975e` released all thirteen features together at
-`843e222f436cee824ccb89cef23e8eea59d78d5d` / `pmi-kc-app-rmun4mghg-35be42b3c74f` with 100% production traffic.
-Exact [CI 36624189352](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36624189352) passed.
-Recovery receipt `aede1a91-9cd9-4483-a80f-992a0e20a4d8` issued at 2026-09-29T20:36:35.193Z.
-The one application build `9329e6de-525a-4b54-b244-5d6398d0a885` succeeded at
-2026-09-29T20:40:46.626383Z. Candidate assurance issued at 2026-09-29T20:58:02.530Z;
-promotion verified at 2026-09-29T20:58:19.150Z. The 300,000 ms observation passed
-with two checkpoints in 404,390 ms. All 311 source/projected/rendered records matched,
-with zero missing/unexpected records, duplicates, field mismatches or invalid destinations.
-Monitoring read zero candidate 5xx and unresolved live effects during observation.
-Independent canonical/tagged identity, traffic, configuration, receipts and domain readbacks passed.
-Production + Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag: `cand-rmun4mghg-35be42b3c74f`. Fingerprint: `sha256:4ce7c7bd5d180115c27a604f38f1fca178e9b807119c0f34871d7c9991bf9ca8`.
-The guarded remote product supplement passed; no provider or business mutation was used as proof.
+Run `c639b736-43ad-4f5c-bac5-2aa6857e973a` deployed all thirteen features and the A01–A04 adversarial repairs at
+`81c770fcb698b6650771f9a28c65c32a42060062` / `pmi-kc-app-rmunbakkw-d2963016189e` with 100% production traffic.
+Exact CI 36645026905 and the full 7,461-unit / 234-backend gate passed (four existing skips).
+Build `55684cf1-f71f-4629-a86a-d9219fbf724c` succeeded at 2026-09-29T23:52:14.751052Z.
+Candidate receipt issued 2026-09-29T23:57:30.062Z; promotion verified 2026-09-29T23:57:49.623Z.
+Observation passed two checkpoints in 392,418 ms; all 311 records matched with zero discrepancies,
+candidate 5xx or unresolved live effects. Eleven independent readback sections matched.
+Exact uploaded source matched all 2,175 Git blobs; all thirteen suites were included, with no
+private/unexpected file, missing runtime source or .git pointer.
+Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
+Tag `cand-rmunbakkw-d2963016189e`; fingerprint `sha256:b77d4e40303aeaa889cfcdc07fe34e410c043608bfcf20ecda39f0e3bd73f601`.
+The separate product supplement passed five checks but failed return navigation on a canceled
+non-prefetch RSC read. A06's document-GET repair is local; a fresh cumulative candidate is pending.
+The completed run/consumed permit and all failed supplements remain preserved, never relabeled.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
-The final application gate passed 7,438 unit tests and 234 backend tests, with four existing
+The final application gate passed 7,461 unit tests and 234 backend tests, with four existing
 configuration skips, all required checks and production build. The notice portfolio repair
 preserves per-lease invalidation semantics while processing 311 leases in ten bounded transactions;
 its regression failed on the original fan-out and passed after repair. Mixed admission and
@@ -48,9 +48,9 @@ in the shared batch audit. Earlier failed attempts remain failed in immutable ev
 
 September 14 Features 1–6 and S113–S120 remain carried in this release.
 
-The owner subsequently requested an adversarial review and closure of confirmed gaps. A fresh
-cumulative corrective candidate is pending for lifecycle uncertainty, policy date validation,
-source-upload hygiene and dependency advisories. The original permit stays consumed; the repair
+The owner subsequently requested an adversarial review and closure of confirmed gaps. A01–A04 are verified deployed. A fresh
+cumulative candidate is pending for A06: the shared Back to renewals control now uses a document
+GET to avoid the reproduced canceled client-navigation stream while preserving its exact view. The original permit stays consumed; the repair
 requires a new exact-run permit, all thirteen suites and every existing technical/safety gate.
 The current evidence is in `docs/evidence/adversary-review-2026-09-29.md`.
 
@@ -68,7 +68,7 @@ Persistent labeled insurance-flyer, renewal-information-form and seven legal-for
 S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger execution and own-receipt recovery are implemented and deployed. Real approved forms/catalog/mappings, managed Dotloop credentials/connection/selection and separately authorized exact-key activation remain gates. Both Dotloop keys remain closed. Signature work is a human handoff; document presence and submitted content hashes do not prove signatures or provider-owned content verification.
 
 - Project `pmi-kc-kb-prod`, service `pmi-kc-app`, region `us-central1`; canonical https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-- Captured original predecessor: `pmi-kc-app-rmu4wevd9-d89996133320` / `79493458f641b9710d8c43467e872aa9acf7948e`. Its Sheet=true configuration cannot be directly restored. The verified run-bound Sheet=false recovery target is `pmi-kc-app-recovery-f2036ad3065e4cac`, receipt `aede1a91-9cd9-4483-a80f-992a0e20a4d8`. No traffic rollback occurred in this completed run.
+- Captured predecessor: `pmi-kc-app-rmun4mghg-35be42b3c74f` / `843e222f436cee824ccb89cef23e8eea59d78d5d`, Sheet=false. Run-bound recovery: `pmi-kc-app-recovery-c639b73643ad4f5c`, receipt `99e968f2-faf8-438c-94c4-a41f779c7eb6`. No traffic rollback occurred.
 - Runtime remains Production + Live, managed runtime identity, eleven Spaces, paused Sheet
   write-back (false), false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
 - S82 conformance, S97 replay/ambiguity integrity, S98 normal append and owner-approved field

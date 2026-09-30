@@ -26,15 +26,15 @@ const CURRENT_PROVIDERS = [
 describe("current provider and environment documentation", () => {
   it("pins the exact serving environment instead of a historical cutover target", () => {
     expect(handoff).toContain(
-      "| Serving revision          | `pmi-kc-app-rmun4mghg-35be42b3c74f`",
+      "| Serving revision          | `pmi-kc-app-rmunbakkw-d2963016189e`",
     );
     expect(handoff).toContain(
-      "| Serving commit            | `843e222f436cee824ccb89cef23e8eea59d78d5d`",
+      "| Serving commit            | `81c770fcb698b6650771f9a28c65c32a42060062`",
     );
     expect(handoff).toContain(
-      "Captured predecessor: `pmi-kc-app-rmu4wevd9-d89996133320` from commit",
+      "Captured predecessor: `pmi-kc-app-rmun4mghg-35be42b3c74f` from commit",
     );
-    expect(handoff).toContain("79493458f641b9710d8c43467e872aa9acf7948e");
+    expect(handoff).toContain("843e222f436cee824ccb89cef23e8eea59d78d5d");
     expect(handoff).toContain("Forward restoration");
     expect(handoff).toContain("Production + Live");
     expect(handoff).toContain("Sheet write-back");

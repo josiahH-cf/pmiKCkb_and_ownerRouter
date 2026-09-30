@@ -1,6 +1,6 @@
 # Batched release runbook
 
-Updated 2026-09-29 (UTC). One candidate must ship every queued feature.
+Updated 2026-09-30 (UTC). One candidate must ship every queued feature.
 
 The owner’s 2026-09-29 batch-scoped completion authorization is recorded in AGENTS.md. It permits
 necessary Cloud Build/Cloud Run actions, diagnosed and verified repairs, resumes/replacements,
@@ -8,20 +8,20 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-Run `f2036ad3-065e-4cac-8641-22f4946c975e` released all thirteen features together at
-`843e222f436cee824ccb89cef23e8eea59d78d5d` / `pmi-kc-app-rmun4mghg-35be42b3c74f` with 100% production traffic.
-Exact [CI 36624189352](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36624189352) passed.
-Recovery receipt `aede1a91-9cd9-4483-a80f-992a0e20a4d8` issued at 2026-09-29T20:36:35.193Z.
-The one application build `9329e6de-525a-4b54-b244-5d6398d0a885` succeeded at
-2026-09-29T20:40:46.626383Z. Candidate assurance issued at 2026-09-29T20:58:02.530Z;
-promotion verified at 2026-09-29T20:58:19.150Z. The 300,000 ms observation passed
-with two checkpoints in 404,390 ms. All 311 source/projected/rendered records matched,
-with zero missing/unexpected records, duplicates, field mismatches or invalid destinations.
-Monitoring read zero candidate 5xx and unresolved live effects during observation.
-Independent canonical/tagged identity, traffic, configuration, receipts and domain readbacks passed.
-Production + Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag: `cand-rmun4mghg-35be42b3c74f`. Fingerprint: `sha256:4ce7c7bd5d180115c27a604f38f1fca178e9b807119c0f34871d7c9991bf9ca8`.
-The guarded remote product supplement passed; no provider or business mutation was used as proof.
+Run `c639b736-43ad-4f5c-bac5-2aa6857e973a` deployed all thirteen features and the A01–A04 adversarial repairs at
+`81c770fcb698b6650771f9a28c65c32a42060062` / `pmi-kc-app-rmunbakkw-d2963016189e` with 100% production traffic.
+Exact CI 36645026905 and the full 7,461-unit / 234-backend gate passed (four existing skips).
+Build `55684cf1-f71f-4629-a86a-d9219fbf724c` succeeded at 2026-09-29T23:52:14.751052Z.
+Candidate receipt issued 2026-09-29T23:57:30.062Z; promotion verified 2026-09-29T23:57:49.623Z.
+Observation passed two checkpoints in 392,418 ms; all 311 records matched with zero discrepancies,
+candidate 5xx or unresolved live effects. Eleven independent readback sections matched.
+Exact uploaded source matched all 2,175 Git blobs; all thirteen suites were included, with no
+private/unexpected file, missing runtime source or .git pointer.
+Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
+Tag `cand-rmunbakkw-d2963016189e`; fingerprint `sha256:b77d4e40303aeaa889cfcdc07fe34e410c043608bfcf20ecda39f0e3bd73f601`.
+The separate product supplement passed five checks but failed return navigation on a canceled
+non-prefetch RSC read. A06's document-GET repair is local; a fresh cumulative candidate is pending.
+The completed run/consumed permit and all failed supplements remain preserved, never relabeled.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
 The original batch is complete and its permit consumed. The owner has now requested adversarial
@@ -84,7 +84,7 @@ The thirteen features are cumulative commits on main:
 | 13  | S133 (F13) | External maintenance-agent handoff assessment               |
 
 Exact implementation provenance and receipts remain in the shared batch audit and Git history.
-The completed run `f2036ad3-065e-4cac-8641-22f4946c975e` carried all thirteen features in one application build and candidate.
+The completed run `c639b736-43ad-4f5c-bac5-2aa6857e973a` carried all thirteen features in one application build and candidate.
 The original queue was cleared. The newly authorized corrective queue and current readiness are recorded in docs/loop-state.md.
 
 ## Before you start
@@ -104,7 +104,7 @@ gcloud beta billing projects describe pmi-kc-kb-prod --format="value(billingEnab
 
 Expect True and account `01A5A3-65CA5A-614D45`. Stop if billing is disabled.
 
-**2. Verify the watcher and checkpoint before any start.** Current run `f2036ad3-065e-4cac-8641-22f4946c975e` is complete,
+**2. Verify the watcher and checkpoint before any start.** Current run `c639b736-43ad-4f5c-bac5-2aa6857e973a` is complete,
 its permit consumed and its original receipts preserved. The stale S128-only checkpoint and later
 failed cumulative attempts were archived through checked retirement; none was relabeled a pass.
 Never overwrite an unfinished checkpoint or clear a build claim. Before another authorized run,

@@ -19,6 +19,8 @@ C01 — Discover every available authorized lease; C02 — Resume work without l
 
 **Current state / intended end state.**
 
+The shared Back to renewals control must use a document GET while preserving the exact validated desk continuation. A canceled client-navigation stream cannot be ignored to claim browser acceptance; source freshness and zero-diagnostic checks still apply.
+
 **Current evidence:** All leases, Active/upcoming and Completed views share one authorized inventory/projection. Partial source failures remain explicit; optional missing data does not hide a known lease. The deployed all-lease view showed 311 unique records, and the guarded check verified query-preserving filtered/sorted desk return without creating a manual cycle. Exact deployed and source-bound verification scopes are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 
 **Required end state:** The canonical desk exposes obvious All leases, Active / upcoming, and Completed views with truthful scope/counts and exact return-state preservation. A future date never prevents inspection. This feature does not start a renewal or decide its completion.

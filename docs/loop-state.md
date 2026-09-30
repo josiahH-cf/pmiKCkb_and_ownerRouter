@@ -1,20 +1,20 @@
 # Loop state
 
-Last updated: 2026-09-29 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-09-30 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-CORRECTIVE REVIEW: the original thirteen-feature batch is deployed. The owner requested an adversarial review and closure of confirmed gaps; a new cumulative repair candidate is pending.
-Run f2036ad3-065e-4cac-8641-22f4946c975e; serving SHA 843e222f436cee824ccb89cef23e8eea59d78d5d.
-Revision pmi-kc-app-rmun4mghg-35be42b3c74f; tag cand-rmun4mghg-35be42b3c74f; traffic 100%.
-Fingerprint sha256:4ce7c7bd5d180115c27a604f38f1fca178e9b807119c0f34871d7c9991bf9ca8.
+CORRECTIVE REVIEW: all thirteen features and A01–A04 are deployed. A06 native-return repair is pending after three recorded supplemental navigation failures.
+Run c639b736-43ad-4f5c-bac5-2aa6857e973a; serving SHA 81c770fcb698b6650771f9a28c65c32a42060062.
+Revision pmi-kc-app-rmunbakkw-d2963016189e; tag cand-rmunbakkw-d2963016189e; traffic 100%.
+Fingerprint sha256:b77d4e40303aeaa889cfcdc07fe34e410c043608bfcf20ecda39f0e3bd73f601.
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
 Production/Live, managed runtime identity, eleven Spaces, Demo=false, Sheet=false.
 The completed checkpoint and consumed permit prevent another dispatch under this run.
 
 ## Awaiting release
 
-The original run remains completed. This newly authorized corrective release carries every suite; current-head repairs cover lifecycle uncertainty, policy dates, upload hygiene and dependency advisories.
+The original run remains completed. This newly authorized corrective release carries every suite; A01–A04 are deployed; the next candidate preserves them and repairs only the A06 return-navigation transport.
 
 1. S128 (F08) preserve Sheet pause: `31bc9072`.
 2. S123 (F02) preserve retained cycles: `aa062d8e`.
@@ -34,7 +34,7 @@ S121 remains excluded. Full verification, main CI and fresh run-bound release ga
 
 ## Verified evidence
 
-The final application gate passed 7,438 unit tests and 234 backend tests, with four existing
+The final application gate passed 7,461 unit tests and 234 backend tests, with four existing
 configuration skips, all required checks and production build. The notice portfolio repair
 preserves per-lease invalidation semantics while processing 311 leases in ten bounded transactions;
 its regression failed on the original fan-out and passed after repair. Mixed admission and
@@ -43,14 +43,14 @@ passed three regressions that failed on the original source and 23 focused check
 118-reference litmus matrix and G1–G7 retain their exact unit/backend/compiled-browser scopes
 in the shared batch audit. Earlier failed attempts remain failed in immutable evidence outside Git.
 
-Candidate receipt: 2026-09-29T20:58:02.530Z.
-Promotion verified: 2026-09-29T20:58:19.150Z.
-Observation: passed, two checkpoints, 404,390 ms; all 311 records matched, zero discrepancies.
+Candidate receipt: 2026-09-29T23:57:30.062Z.
+Promotion verified: 2026-09-29T23:57:49.623Z.
+Observation: passed, two checkpoints, 392,418 ms; all 311 records matched, zero discrepancies.
 Independent readback: eleven matched sections, zero unverified; one candidate authorized domain.
-Guarded product supplement: passed; profile/process cleanup verified.
-Recovery target: pmi-kc-app-recovery-f2036ad3065e4cac, Sheet=false.
-Recovery receipt: aede1a91-9cd9-4483-a80f-992a0e20a4d8 at 2026-09-29T20:36:35.193Z.
-No traffic rollback occurred. Never restore the original Sheet=true predecessor directly.
+Guarded product supplement: five checks passed; return RSC request failed. Profile/process cleanup verified.
+Recovery target: pmi-kc-app-recovery-c639b73643ad4f5c, Sheet=false.
+Recovery receipt: 99e968f2-faf8-438c-94c4-a41f779c7eb6 at 2026-09-29T23:46:02.904Z.
+No traffic rollback occurred. The captured predecessor is Sheet=false; never restore older Sheet=true revisions directly.
 Receipts, failed attempts and exact litmus scopes: docs/evidence/batch-litmus-audit-2026-09-28.md.
 
 ## Authority and next work
@@ -69,6 +69,6 @@ Historical K unit-store target/marker effects remain UNVERIFIED; absent Data Acc
 prove zero effects. No customer draft/send, paid comparison, provider-proof rerun or synthetic
 production record was authorized for this release.
 
-Next: finish the isolated full gate and dependency review, push a green corrective slice, then
-admit a fresh cumulative run through the unchanged gates. Preserve the completed run before new
-state is written. External inputs retain their scoped holds. Evidence: docs/evidence/adversary-review-2026-09-29.md.
+Next: verify A06, push green main, preserve the completed c639 run, admit one fresh cumulative
+candidate, and require all release/readback/product checks. Keep every failed supplement.
+Evidence: docs/evidence/adversary-review-2026-09-29.md.
