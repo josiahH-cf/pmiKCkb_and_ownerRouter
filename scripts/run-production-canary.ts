@@ -52,10 +52,21 @@ import {
 } from "./production-assurance-preflight";
 
 const ROUTE_TIMEOUT_MS = 30_000;
+const LIVE_RENEWAL_ROUTE_TIMEOUT_MS = 60_000;
 const LOADED_STATE_TIMEOUT_MS = 10_000;
 const DEFAULT_PROJECT = "pmi-kc-kb-prod";
 const DEFAULT_REGION = "us-central1";
 const DEFAULT_SERVICE = "pmi-kc-app";
+
+// Live renewal pages wait on current RentVine, Sheet, and supporting-store reads. Keep their
+// navigation bounded while allowing a completed read to reach the unchanged route assertions.
+export function routeNavigationTimeoutMs(
+  definition: Pick<CanaryRouteDefinition, "key">,
+): number {
+  return definition.key === "renewal_desk" || definition.key === "renewal_workspace"
+    ? LIVE_RENEWAL_ROUTE_TIMEOUT_MS
+    : ROUTE_TIMEOUT_MS;
+}
 const STRICT_WORKSPACE_SELECTOR =
   'tr[data-workspace-available="true"]:is([data-disposition="actionable"], [data-retention-state="tracked_incomplete"]) a.renewal-lease-link';
 const LEGACY_WORKSPACE_SELECTOR = "a.renewal-lease-link";
@@ -182,7 +193,10 @@ async function runProductionCanaryWithin(
     const readRoute = async (
       definition: CanaryRouteDefinition,
     ): Promise<RouteAssuranceEvidence> => {
-      const remainingForRoute = remainingAssuranceTime(deadlineAtMs, ROUTE_TIMEOUT_MS);
+      const remainingForRoute = remainingAssuranceTime(
+        deadlineAtMs,
+        routeNavigationTimeoutMs(definition),
+      );
       if (remainingForRoute <= 0) {
         return failedRoute(options.role, definition);
       }

@@ -4,9 +4,32 @@ import {
   routesForRole,
   type RouteAssuranceEvidence,
 } from "../../lib/production-assurance";
-import { readCanaryRoutes } from "../../scripts/run-production-canary";
+import {
+  readCanaryRoutes,
+  routeNavigationTimeoutMs,
+} from "../../scripts/run-production-canary";
 
 describe("complete canary route scheduling", () => {
+  it("bounds live renewal source pages separately from all other routes", () => {
+    const routes = routesForRole("Admin");
+    expect(
+      routes
+        .filter((route) => routeNavigationTimeoutMs(route) === 60_000)
+        .map((route) => route.key),
+    ).toEqual(["renewal_desk", "renewal_workspace"]);
+    expect(
+      routes
+        .filter((route) => routeNavigationTimeoutMs(route) === 30_000)
+        .map((route) => route.key),
+    ).toEqual(
+      routes
+        .filter(
+          (route) => route.key !== "renewal_desk" && route.key !== "renewal_workspace",
+        )
+        .map((route) => route.key),
+    );
+  });
+
   it("checks the entire Admin manifest with bounded pages and discovers the workspace only after the desk", async () => {
     vi.useFakeTimers();
     try {
