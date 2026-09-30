@@ -33,12 +33,14 @@ permit remains historical.
 All seven supplied requests 002–008 were read in order, mapped to S135–S141 and registered as
 `ready` in `docs/feature-suites/README.md`. The owner clarified that email requests 006–007 cover
 all existing workflow-linked draft screens. S110 and the existing email paths are the verified
-baseline; the broader AI/model/context/refinement outcomes are not implemented. S88–S93/S101's
+baseline until the batch 002 release. S88–S93/S101's
 overlapping unimplemented plans are superseded for this scope and cannot restart automatically.
 Preserve S87/S94/S95 as separate proposals. On 2026-09-30 the owner explicitly instructed
 execution of batch 002, then batch 003, through implementation, mainline merge and deployment,
 with one cumulative release at the end of each set. PR #95 merged the production audit patch at
-`dc493dfe`; the S136, S135/S137/S138 and S139/S140 slices merge next, then S141 validation.
+`dc493dfe`; S136 (PR #96), S135/S137/S138 (PR #98) and S139/S140 (PR #99, `f43629aa`) merged
+after full local gates and exact CI. S141's local evidence is recorded; next is the cumulative
+release after archiving blocked run `dc4e1ac8` through the superseded-by procedure.
 
 ## Markdown batch 003: authorized, follows batch 002
 

@@ -18,10 +18,20 @@ unused; operator resume is required and failed evidence stays preserved outside 
 
 ## Awaiting release
 
-1. 001 governance/auth continuity and patched dependencies: `474e5d7eccc5351a04b0b0dbed3ed8360062d748`.
-   The owner authorized this one operational change through mainline delivery. Admit only after
-   exact main CI, fresh prerequisites and a new run-bound permit. No provider effect or other suite
-   is in this queue.
+1. 001 governance/auth continuity and patched dependencies: `474e5d7eccc5351a04b0b0dbed3ed8360062d748`, `afb5f92884edb7ea16c2c9f1b89ca12de3297f86`.
+   The owner authorized this operational change through mainline delivery; PR #95 patched the
+   later production audit failure.
+2. S135 Dashboard operational reads without extra AI restrictions: `6b21c7960ec1fa5d962442e98722a5fe40947afd`.
+3. S136 supported low-cost Gemini on the global endpoint: `d645168dab2e43f85e2cdfa561b35dca883d9ac6`.
+4. S137 shared actor-scoped operational context: `6b21c7960ec1fa5d962442e98722a5fe40947afd`.
+5. S138 conversational Dashboard operations: `6b21c7960ec1fa5d962442e98722a5fe40947afd`.
+6. S139 linked email draft refinement: `c1bfb09fcdba6047b74ed9a36f46dc87d0162d32`.
+7. S140 optional Gemini-in-Gmail hint: `c1bfb09fcdba6047b74ed9a36f46dc87d0162d32`.
+8. S141 integrated validation checks and evidence: `49f4a69596159f25bf988bdeed0b6c063e1b908e`.
+
+One cumulative candidate carries all eight items. Admit only after exact main CI on the release
+head, archiving blocked run dc4e1ac8 through the reviewed superseded-by procedure, fresh
+prerequisites and a new run-bound permit. No provider effect, key or activation is queued.
 
 The prior cumulative corrective queue is cleared and its permit consumed. S121 remains excluded.
 Documentation/test-only closure must not start another deployment.
@@ -38,17 +48,18 @@ approved `auth:ensure` during batch 002 intake returned READY for WSL CLI and AD
 `gemini-2.5-flash`. No new product-route assurance or model inference was run for this intake.
 
 Batch 002's seven Markdown files were read in supplied order and registered once as S135–S141
-in `docs/feature-suites/README.md`, all **ready for a later explicit execution instruction**.
+in `docs/feature-suites/README.md`.
 The owner clarified that 006–007 apply to all existing workflow-linked draft screens. S110's
-three-intent answer path and current draft flows are verified code/serving baseline; broader
-conversation, shared retrieval, model migration, AI draft refinement and integrated validation
-are not implemented. Overlapping unimplemented S88–S93/S101 plans are superseded for this scope;
+three-intent answer path and current draft flows remain the serving baseline until the batch 002
+release. Overlapping unimplemented S88–S93/S101 plans are superseded for this scope;
 S87/S94/S95 remain separate proposals.
 
 On 2026-09-30 the owner explicitly instructed execution of batch 002 (S135–S141), then batch 003
 (S142–S145), through implementation, mainline merge and deployment, with one cumulative release at
 the end of each set. PR #95 (production audit patch and S113 journey settle fix) merged at
-`dc493dfe`. S136 is in PR #96; S135/S137/S138 and S139/S140 are implemented on stacked branches.
+`dc493dfe`. S136 (PR #96), S135/S137/S138 (PR #98) and S139/S140 (PR #99) merged at `f43629aa`
+after full local gates and exact CI. S141's local rehearsal evidence is in
+`docs/evidence/connected-ai-batch-002-validation-2026-09-30.md`; production cells wait for the release.
 
 Batch 003's four files 009–012 are registered once as S142–S145, covered by the same instruction
 after batch 002. No prior-batch intake question remained; the owner accepts earlier
@@ -100,8 +111,8 @@ a durable flakiness fix or a general production performance SLO.
 
 ## Continuation
 
-The 001 dependency release remains queued behind its blocked run. Batch 002's cumulative release
-carries 001's merged changes after S141; batch 003 follows with its own. The blocked run must be
-archived through the reviewed superseded-by procedure before a new run. Future external/human work
+Next: the batch 002 cumulative release, which carries 001's merged changes; batch 003 follows
+with its own. The blocked run must be archived through the reviewed superseded-by procedure
+before a new run. Future external/human work
 requires its actual inputs and existing exact-effect contracts. Consumed permits and historical
 receipts cannot admit another deployment.
