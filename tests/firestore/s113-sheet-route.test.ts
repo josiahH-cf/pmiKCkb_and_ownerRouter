@@ -114,6 +114,7 @@ const spreadsheetId = "s113-emulator-fixture-sheet";
 const header = ["What is the Lease/Tenant name?", "Market Value", "Current Rent"];
 let app: App, db: Firestore, environment: RulesTestEnvironment;
 const REQUEST_DRAIN_TIMEOUT_MS = 5_000;
+const JOURNEY_SETTLE_TIMEOUT_MS = 30_000;
 let mountedRequests = createPendingRequestTracker();
 let mountedReadDiagnostics: () => Record<string, unknown> = () => ({});
 let assertMountedReadbacks: () => void = () => undefined;
@@ -2240,6 +2241,13 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       }
       const requests: string[] = [];
       const journeyRequests = mountedRequests;
+      // Each mount's owning reads (owner/tenant message preparation, notice review) run a
+      // read-modify-write notice-safety transaction on the same marker document. Overlapping one
+      // batch with the next mount's reads, or with a staff write this journey times, resolves only
+      // through the emulator's fixed 2 s lock-acquire timeout and SDK retry backoff. Let the
+      // previous batch settle first; this never cancels a request or changes its result.
+      const settleJourneyRequests = () =>
+        journeyRequests.drain(JOURNEY_SETTLE_TIMEOUT_MS);
       // Bodyless diagnostics preserve the assertion budget and distinguish an unsettled owning
       // read from a detached testing-library scope when this mounted journey fails under load.
       type MessageReadPhase =
@@ -2808,6 +2816,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       });
       const now = new Date().toISOString();
       async function mountCurrent() {
+        await settleJourneyRequests();
         const state = await getRenewalWorkspace(actor, "701", db);
         const loaded = await loadLiveRenewalLeaseWorkspace(
           "701",
@@ -2970,6 +2979,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           comps.getByLabelText("Source of the comparison and review notes"),
           "Reviewed retained fixture RentCast results",
         );
+        await settleJourneyRequests();
         fireEvent.click(comps.getByRole("button", { name: "Save comp preparation" }));
         // The record route saves the preparation and then prepares its Sheet update as a second
         // write. Wait for the provider's own read-back (issued after the route responds) before
@@ -3039,6 +3049,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           root.getByLabelText("Response source or channel"),
           "Actual fixture phone response",
         );
+        await settleJourneyRequests();
         const before = (await getRenewalWorkspace(actor, "701", db))!.revision;
         fireEvent.click(
           root.getByRole("button", { name: `Record ${audience} response` }),
@@ -3250,6 +3261,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           group.getByLabelText("Source or channel"),
           "Fixture record of work completed outside the app",
         );
+        await settleJourneyRequests();
         const before = (await getRenewalWorkspace(actor, "701", db))!.revision;
         fireEvent.click(
           group.getByRole("button", { name: `Record ${definition.label.toLowerCase()}` }),
@@ -3267,6 +3279,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           ).not.toBeDisabled(),
         );
       }
+      await settleJourneyRequests();
       fireEvent.click(screen.getByRole("button", { name: "Record staff completion" }));
       await waitFor(async () =>
         expect(

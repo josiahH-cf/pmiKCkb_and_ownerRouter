@@ -261,10 +261,17 @@ The September 29 serving release used Next.js/eslint-config-next 16.3.7, sharp 0
 A01–A04/A06 deployment passed; all 194 runtime traces excluded the development-only chain, and
 the native return control passed its six-case remote supplement. New September 30 advisories caused
 request 001's source lockfile to select fast-uri 3.1.8, ip-address 10.7.1 and brace-expansion
-5.0.12. Its `npm audit --omit=dev` now reports zero production findings; four development findings
-(three moderate, one high) remain outside that gate. The patched lockfile is not yet deployed.
+5.0.12. A later September 30 recheck failed the unchanged production audit on four high
+`@grpc/grpc-js` findings (GHSA-m9gg-hp2v-232j, GHSA-f596-whhp-79r4) in the Firebase and Google
+client chains; the source now overrides `@grpc/grpc-js` to the patched 1.14.5. Its
+`npm audit --omit=dev` reports zero production findings; four development findings (three
+moderate, one high) remain outside that gate. The patched lockfile is not yet deployed.
 See docs/evidence/adversary-review-2026-09-29.md for the prior release's exact scope. The
 references below explain the earlier patches, not the current source selection.
+
+- `@grpc/grpc-js` advisories and patched versions:
+  <https://github.com/advisories/GHSA-m9gg-hp2v-232j>,
+  <https://github.com/advisories/GHSA-f596-whhp-79r4>
 
 - fast-uri 3.1.6 security advisory and patched-version record:
   <https://github.com/fastify/fast-uri/security/advisories/GHSA-5jgf-p345-68v8>
