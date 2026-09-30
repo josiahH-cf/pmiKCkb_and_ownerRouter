@@ -105,7 +105,7 @@ completion is distinct from provider verification; no live customer completion w
 
 ## Current evidence and templates
 
-- `docs/evidence/adversary-review-2026-09-29.md` — independent deployment-source inspection and owner-requested corrective work, with remaining checks stated explicitly.
+- `docs/evidence/adversary-review-2026-09-29.md` — deployment-source inspection and verified corrective delivery, with remaining external/human boundaries stated explicitly.
 - `docs/evidence/batch-litmus-audit-2026-09-28.md` — all thirteen suites, the 118 supplied litmus references, original release receipts and their exact verification scopes.
 - docs/evidence/renewal-training-control-review-2026-09-09.md — current control and handoff analysis.
 - docs/products/build-renewal-handouts.py — printable training and meeting documents.
@@ -146,7 +146,7 @@ appropriate current document.
 
 B-GOLD1 closed after owner-reviewed source evidence and a single expected-label correction;
 source values and all assertions are preserved. Local authentication works after reboot.
-The separate 24-hour unchanged-enrollment proof remains unverified. The original thirteen-feature batch passed exact browser assurance and release acceptance; the new adversarial repairs have their own pending candidate and gates in the current resume state.
+The separate 24-hour unchanged-enrollment proof remains unverified. The thirteen-feature batch and all confirmed adversarial repairs passed their cumulative release gates, independent source/runtime proof and six guarded remote product checks. The current resume state records verified completion.
 
 September 10 unblock continuation is embedded in S113 F2.4–F5.1 and the updated S106/S34 contracts.
 The supplied private template pack now replaces the prior missing-wording assumption. Production

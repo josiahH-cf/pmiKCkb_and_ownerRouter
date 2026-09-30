@@ -4,7 +4,7 @@
 # S129 — Owner and tenant draft workflows: technical readiness for meeting validation
 
 > **Approval reference:** F09 (original feature #9).
-> **Status:** IMPLEMENTED AND DEPLOYED in the verified thirteen-feature batch at `843e222f436cee824ccb89cef23e8eea59d78d5d` / `pmi-kc-app-rmun4mghg-35be42b3c74f`. Exact CI 36624189352, candidate assurance, reconciliation, promotion, observation and independent remote readbacks passed. Engineering scope and remaining real-input/provider/human holds are recorded in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
+> **Status:** IMPLEMENTED AND DEPLOYED in the verified cumulative corrective batch at `c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220`. Exact CI 36650984450, release gates, independent source/runtime readbacks and six guarded product checks passed. Current evidence: [adversary review](../evidence/adversary-review-2026-09-29.md); original per-reference scopes and human/provider boundaries: [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** Registered as S129 in `docs/feature-suites/README.md`; the original F09 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** Scaffold, gap closure, and technical verification of existing communications.

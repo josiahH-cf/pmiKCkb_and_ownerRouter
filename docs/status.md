@@ -4,25 +4,25 @@ Last updated: 2026-09-30 (UTC).
 
 ## Serving release
 
-Run `c639b736-43ad-4f5c-bac5-2aa6857e973a` deployed all thirteen features and the A01–A04 adversarial repairs at
-`81c770fcb698b6650771f9a28c65c32a42060062` / `pmi-kc-app-rmunbakkw-d2963016189e` with 100% production traffic.
-Exact CI 36645026905 and the full 7,461-unit / 234-backend gate passed (four existing skips).
-Build `55684cf1-f71f-4629-a86a-d9219fbf724c` succeeded at 2026-09-29T23:52:14.751052Z.
-Candidate receipt issued 2026-09-29T23:57:30.062Z; promotion verified 2026-09-29T23:57:49.623Z.
-Observation passed two checkpoints in 392,418 ms; all 311 records matched with zero discrepancies,
-candidate 5xx or unresolved live effects. Eleven independent readback sections matched.
-Exact uploaded source matched all 2,175 Git blobs; all thirteen suites were included, with no
-private/unexpected file, missing runtime source or .git pointer.
+Run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` released all thirteen features and five confirmed adversarial repairs at
+`c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220` with 100% production traffic.
+Exact [CI 36650984450](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36650984450) passed.
+The final application gate passed 7,462 unit tests, four existing skips and all 234 backend tests.
+One application build `83925ea5-8230-4796-a2fd-cc4f8674d02f` succeeded at 2026-09-30T01:00:23.252385Z.
+Candidate receipt issued 2026-09-30T01:09:42.790Z; promotion verified 2026-09-30T01:10:01.479Z.
+Observation passed two checkpoints in 390,918 ms against the required 300,000 ms. All 311
+source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
+Eleven independent readback sections and all six guarded remote product checks passed.
+The actual uploaded source matched 2,176 exact Git blobs; all thirteen suites were included,
+with no unexpected/private file, missing runtime source or .git pointer.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag `cand-rmunbakkw-d2963016189e`; fingerprint `sha256:b77d4e40303aeaa889cfcdc07fe34e410c043608bfcf20ecda39f0e3bd73f601`.
-The separate product supplement passed five checks but failed return navigation on a canceled
-non-prefetch RSC read. A06's document-GET repair is local; a fresh cumulative candidate is pending.
-The completed run/consumed permit and all failed supplements remain preserved, never relabeled.
+Tag `cand-rmundpf2v-249c945f2220`; fingerprint `sha256:e6a481aeb691991fe38f89bc0d25f40bb73c67de7d1e639e89f2cb5e8c4d0eaa`.
+No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
-## Active corrective review
+## Verified corrective review
 
-A01–A04 are repaired and deployed with full local/CI/release/source proof. The additional read-only product supplement repeatedly found a canceled page-data stream while returning to the correctly rendered, filtered renewal desk. A06 replaces only that return control with a native document GET, preserving the exact validated query. The new regression failed on serving code and passes locally; fresh full verification and cumulative deployment remain required. No request failure is ignored and no deadline or safety gate is lowered. See [the adversary review](evidence/adversary-review-2026-09-29.md).
+Five confirmed adversarial findings are repaired and verified deployed: lifecycle uncertainty, policy calendar validation/presentation, source-upload hygiene, vulnerable production dependencies and return-navigation transport. All repairs passed focused regressions, full application verification, exact main CI and cumulative release gates. Independent source/runtime readbacks and all six guarded remote product checks passed. The same runner performed the authorized repairs; this is not an independent second-review signoff. See [the adversary review](evidence/adversary-review-2026-09-29.md).
 
 ## Delivered batch
 
@@ -42,7 +42,7 @@ A01–A04 are repaired and deployed with full local/CI/release/source proof. The
 
 ## Verification
 
-The final application gate passed 7,461 unit tests and 234 backend tests, with four existing
+The final application gate passed 7,462 unit tests and 234 backend tests, with four existing
 configuration skips, all required checks and production build. The notice portfolio repair
 preserves per-lease invalidation semantics while processing 311 leases in ten bounded transactions;
 its regression failed on the original fan-out and passed after repair. Mixed admission and
@@ -62,4 +62,4 @@ Historical K unit-store target/marker effects remain UNVERIFIED; absent Data Acc
 prove zero effects. No customer draft/send, paid comparison, provider-proof rerun or synthetic
 production record was authorized for this release.
 
-The original completion permit remains consumed. The Awaiting release queue now carries all thirteen suites for the newly authorized corrective candidate; no original receipt or build claim will be reused.
+The completed corrective permit is consumed and the Awaiting release queue is empty. No original receipt, completed permit or build claim is reused.

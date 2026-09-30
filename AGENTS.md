@@ -21,23 +21,23 @@ the current code and live service. Date-stamped history is not authority.
 
 ## Present production truth — 2026-09-30
 
-Run `c639b736-43ad-4f5c-bac5-2aa6857e973a` deployed all thirteen features and the A01–A04 adversarial repairs at
-`81c770fcb698b6650771f9a28c65c32a42060062` / `pmi-kc-app-rmunbakkw-d2963016189e` with 100% production traffic.
-Exact CI 36645026905 and the full 7,461-unit / 234-backend gate passed (four existing skips).
-Build `55684cf1-f71f-4629-a86a-d9219fbf724c` succeeded at 2026-09-29T23:52:14.751052Z.
-Candidate receipt issued 2026-09-29T23:57:30.062Z; promotion verified 2026-09-29T23:57:49.623Z.
-Observation passed two checkpoints in 392,418 ms; all 311 records matched with zero discrepancies,
-candidate 5xx or unresolved live effects. Eleven independent readback sections matched.
-Exact uploaded source matched all 2,175 Git blobs; all thirteen suites were included, with no
-private/unexpected file, missing runtime source or .git pointer.
+Run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` released all thirteen features and five confirmed adversarial repairs at
+`c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220` with 100% production traffic.
+Exact [CI 36650984450](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36650984450) passed.
+The final application gate passed 7,462 unit tests, four existing skips and all 234 backend tests.
+One application build `83925ea5-8230-4796-a2fd-cc4f8674d02f` succeeded at 2026-09-30T01:00:23.252385Z.
+Candidate receipt issued 2026-09-30T01:09:42.790Z; promotion verified 2026-09-30T01:10:01.479Z.
+Observation passed two checkpoints in 390,918 ms against the required 300,000 ms. All 311
+source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
+Eleven independent readback sections and all six guarded remote product checks passed.
+The actual uploaded source matched 2,176 exact Git blobs; all thirteen suites were included,
+with no unexpected/private file, missing runtime source or .git pointer.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag `cand-rmunbakkw-d2963016189e`; fingerprint `sha256:b77d4e40303aeaa889cfcdc07fe34e410c043608bfcf20ecda39f0e3bd73f601`.
-The separate product supplement passed five checks but failed return navigation on a canceled
-non-prefetch RSC read. A06's document-GET repair is local; a fresh cumulative candidate is pending.
-The completed run/consumed permit and all failed supplements remain preserved, never relabeled.
+Tag `cand-rmundpf2v-249c945f2220`; fingerprint `sha256:e6a481aeb691991fe38f89bc0d25f40bb73c67de7d1e639e89f2cb5e8c4d0eaa`.
+No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
-The final application gate passed 7,461 unit tests and 234 backend tests, with four existing
+The final application gate passed 7,462 unit tests and 234 backend tests, with four existing
 configuration skips, all required checks and production build. The notice portfolio repair
 preserves per-lease invalidation semantics while processing 311 leases in ten bounded transactions;
 its regression failed on the original fan-out and passed after repair. Mixed admission and
@@ -48,11 +48,10 @@ in the shared batch audit. Earlier failed attempts remain failed in immutable ev
 
 September 14 Features 1–6 and S113–S120 remain carried in this release.
 
-The owner subsequently requested an adversarial review and closure of confirmed gaps. A01–A04 are verified deployed. A fresh
-cumulative candidate is pending for A06: the shared Back to renewals control now uses a document
-GET to avoid the reproduced canceled client-navigation stream while preserving its exact view. The original permit stays consumed; the repair
-requires a new exact-run permit, all thirteen suites and every existing technical/safety gate.
-The current evidence is in `docs/evidence/adversary-review-2026-09-29.md`.
+The owner-requested adversarial review closed five confirmed findings through verified repairs
+and a cumulative deployment. The current permit is consumed and the queue is empty; original
+completed runs and every failed attempt retain their actual evidence. No technical or safety
+gate was lowered. Evidence: `docs/evidence/adversary-review-2026-09-29.md`.
 
 S113 F1-F5 is complete and deployed: one lease dashboard, typed corrections and supported Sheet/
 RentVine updates, restored operator-triggered RentCast preparation, supplied formatted/copyable
@@ -68,7 +67,7 @@ Persistent labeled insurance-flyer, renewal-information-form and seven legal-for
 S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger execution and own-receipt recovery are implemented and deployed. Real approved forms/catalog/mappings, managed Dotloop credentials/connection/selection and separately authorized exact-key activation remain gates. Both Dotloop keys remain closed. Signature work is a human handoff; document presence and submitted content hashes do not prove signatures or provider-owned content verification.
 
 - Project `pmi-kc-kb-prod`, service `pmi-kc-app`, region `us-central1`; canonical https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-- Captured predecessor: `pmi-kc-app-rmun4mghg-35be42b3c74f` / `843e222f436cee824ccb89cef23e8eea59d78d5d`, Sheet=false. Run-bound recovery: `pmi-kc-app-recovery-c639b73643ad4f5c`, receipt `99e968f2-faf8-438c-94c4-a41f779c7eb6`. No traffic rollback occurred.
+- Captured predecessor: `pmi-kc-app-rmunbakkw-d2963016189e` / `81c770fcb698b6650771f9a28c65c32a42060062`, Sheet=false. Run-bound recovery: `pmi-kc-app-recovery-89e38cd9b6dd498f`, receipt `4cc6d657-5f3e-4c54-bfff-48f8fd614d34`. No traffic rollback occurred.
 - Runtime remains Production + Live, managed runtime identity, eleven Spaces, paused Sheet
   write-back (false), false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
 - S82 conformance, S97 replay/ambiguity integrity, S98 normal append and owner-approved field

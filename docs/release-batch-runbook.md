@@ -8,26 +8,25 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-Run `c639b736-43ad-4f5c-bac5-2aa6857e973a` deployed all thirteen features and the A01–A04 adversarial repairs at
-`81c770fcb698b6650771f9a28c65c32a42060062` / `pmi-kc-app-rmunbakkw-d2963016189e` with 100% production traffic.
-Exact CI 36645026905 and the full 7,461-unit / 234-backend gate passed (four existing skips).
-Build `55684cf1-f71f-4629-a86a-d9219fbf724c` succeeded at 2026-09-29T23:52:14.751052Z.
-Candidate receipt issued 2026-09-29T23:57:30.062Z; promotion verified 2026-09-29T23:57:49.623Z.
-Observation passed two checkpoints in 392,418 ms; all 311 records matched with zero discrepancies,
-candidate 5xx or unresolved live effects. Eleven independent readback sections matched.
-Exact uploaded source matched all 2,175 Git blobs; all thirteen suites were included, with no
-private/unexpected file, missing runtime source or .git pointer.
+Run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` released all thirteen features and five confirmed adversarial repairs at
+`c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220` with 100% production traffic.
+Exact [CI 36650984450](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36650984450) passed.
+The final application gate passed 7,462 unit tests, four existing skips and all 234 backend tests.
+One application build `83925ea5-8230-4796-a2fd-cc4f8674d02f` succeeded at 2026-09-30T01:00:23.252385Z.
+Candidate receipt issued 2026-09-30T01:09:42.790Z; promotion verified 2026-09-30T01:10:01.479Z.
+Observation passed two checkpoints in 390,918 ms against the required 300,000 ms. All 311
+source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
+Eleven independent readback sections and all six guarded remote product checks passed.
+The actual uploaded source matched 2,176 exact Git blobs; all thirteen suites were included,
+with no unexpected/private file, missing runtime source or .git pointer.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag `cand-rmunbakkw-d2963016189e`; fingerprint `sha256:b77d4e40303aeaa889cfcdc07fe34e410c043608bfcf20ecda39f0e3bd73f601`.
-The separate product supplement passed five checks but failed return navigation on a canceled
-non-prefetch RSC read. A06's document-GET repair is local; a fresh cumulative candidate is pending.
-The completed run/consumed permit and all failed supplements remain preserved, never relabeled.
+Tag `cand-rmundpf2v-249c945f2220`; fingerprint `sha256:e6a481aeb691991fe38f89bc0d25f40bb73c67de7d1e639e89f2cb5e8c4d0eaa`.
+No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
-The original batch is complete and its permit consumed. The owner has now requested adversarial
-review and closure of confirmed gaps. Its corrective candidate is recorded as all thirteen suites
-in the current queue and must obtain a fresh run/permit and every existing gate below. Never reuse
-the completed permit or its receipts for the repair.
+The cumulative corrective release is complete, its permit consumed and its queue empty.
+Original completed runs remain preserved separately. This retained procedure does not authorize
+a new dispatch or reuse of a consumed permit; future authorized work requires current gates.
 
 ## Authorized replacement preparation
 
@@ -84,8 +83,8 @@ The thirteen features are cumulative commits on main:
 | 13  | S133 (F13) | External maintenance-agent handoff assessment               |
 
 Exact implementation provenance and receipts remain in the shared batch audit and Git history.
-The completed run `c639b736-43ad-4f5c-bac5-2aa6857e973a` carried all thirteen features in one application build and candidate.
-The original queue was cleared. The newly authorized corrective queue and current readiness are recorded in docs/loop-state.md.
+The completed run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` carried all thirteen features in one application build and candidate.
+The cumulative corrective queue is cleared after independent verification. An empty queue refuses fresh admission; docs/loop-state.md records the completed state.
 
 ## Before you start
 
@@ -104,7 +103,7 @@ gcloud beta billing projects describe pmi-kc-kb-prod --format="value(billingEnab
 
 Expect True and account `01A5A3-65CA5A-614D45`. Stop if billing is disabled.
 
-**2. Verify the watcher and checkpoint before any start.** Current run `c639b736-43ad-4f5c-bac5-2aa6857e973a` is complete,
+**2. Verify the watcher and checkpoint before any start.** Current run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` is complete,
 its permit consumed and its original receipts preserved. The stale S128-only checkpoint and later
 failed cumulative attempts were archived through checked retirement; none was relabeled a pass.
 Never overwrite an unfinished checkpoint or clear a build claim. Before another authorized run,
@@ -145,8 +144,8 @@ An earlier session expired under nine hours. Ordinary refresh readiness does not
 preflight's seven-hour enrollment budget; a release must begin within it. An expired rollback
 remains held until authentication returns. The separate 24-hour longevity proof remains open.
 
-**4. Prepare only an authorized current batch.** An empty queue must refuse admission. The owner-requested
-corrective review has a new cumulative thirteen-suite queue. Require its reviewed scope, green
+**4. Prepare only an authorized current batch.** An empty queue must refuse admission. This
+corrective review is complete; any future explicitly authorized batch requires reviewed scope, green
 exact-main CI, fresh prerequisites, compatible
 checkpoint and actual lock ownership. Never reuse this consumed permit, one-build claim or receipt.
 The local interlock refuses missing, malformed, held, expired, consumed or wrong-head permission
