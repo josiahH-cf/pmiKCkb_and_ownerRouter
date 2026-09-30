@@ -163,7 +163,37 @@ export function assessCredentials(probe, { identities, need, unattended = false 
       continue;
     }
     const fresh = credential === "gcloud" ? value.tokenFresh : value.fresh;
-    if (fresh === false && value.errorKind === "identity_probe_unavailable") {
+    if (fresh === false && value.errorKind === "permission_denied") {
+      items.push(
+        blocked(
+          credential,
+          "permission_denied",
+          "inspect the exact account and permission; token renewal cannot grant access",
+          {
+            identity,
+            kind,
+            detail: "Permission denial is not credential expiry",
+          },
+        ),
+      );
+    } else if (
+      fresh === false &&
+      ["token_probe_failed", "other"].includes(value.errorKind)
+    ) {
+      items.push(
+        blocked(
+          credential,
+          "auth_probe_failed",
+          "inspect the approved local authentication path, then re-run npm run auth:ensure -- --unattended",
+          {
+            identity,
+            kind,
+            detail:
+              "Token usability is unverified; do not assume re-enrollment is required",
+          },
+        ),
+      );
+    } else if (fresh === false && value.errorKind === "identity_probe_unavailable") {
       items.push(
         blocked(
           credential,

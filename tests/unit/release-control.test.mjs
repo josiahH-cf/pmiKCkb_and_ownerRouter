@@ -10,6 +10,7 @@ import {
   consumeReleasePermit,
   prepareReleasePermit,
   readReleasePermit,
+  releaseCheckTarget,
   writeReleasePermit,
 } from "../../scripts/release-control.mjs";
 
@@ -35,6 +36,16 @@ const ready = (permit) => ({
 });
 
 describe("release admission interlock", () => {
+  it("checks an unfinished exact run even when main has moved", () => {
+    const currentHead = () => "b".repeat(40);
+    expect(
+      releaseCheckTarget({ sha, runId: "bound", phase: "deploy" }, currentHead),
+    ).toEqual({ sha, runId: "bound" });
+    expect(releaseCheckTarget({ sha, phase: "complete" }, currentHead)).toEqual({
+      sha: "b".repeat(40),
+      runId: undefined,
+    });
+  });
   it("holds missing and malformed durable state without any provider work", () => {
     const stateRoot = root();
     expect(() => assertReleaseAdmission({ sha, stateRoot, nowMs: now })).toThrow(
@@ -61,14 +72,15 @@ describe("release admission interlock", () => {
         }),
       ).toThrow("release_held_not_admitted");
   });
-  it("requires an exact fresh all-ready 13-feature preflight for this prepared run", () => {
+  it("requires an exact fresh all-ready nonempty batch preflight for this prepared run", () => {
     const permit = prepareReleasePermit(sha, now);
     const invalid = [
       { verdict: "owner_action" },
       { headSha: "b".repeat(40) },
       { watcherTargetSha: "b".repeat(40) },
-      { batchSize: 12 },
-      { batchSize: 14 },
+      { batchSize: 0 },
+      { batchSize: -1 },
+      { batchSize: 1.5 },
       { runId: "different" },
       { checkedAt: new Date(now - 300001).toISOString() },
       { checkedAt: new Date(now + 1).toISOString() },
@@ -79,6 +91,30 @@ describe("release admission interlock", () => {
       expect(() =>
         admitReleasePermit(permit, { ...ready(permit), ...change }, now),
       ).toThrow("release_fresh_preflight_required");
+  });
+  it("admits a one-feature run and retains only that admitted scope after the preparation window", () => {
+    const prepared = prepareReleasePermit(sha, now);
+    const admitted = admitReleasePermit(
+      prepared,
+      { ...ready(prepared), batchSize: 1 },
+      now,
+    );
+    expect(() =>
+      assertReleaseAdmission({
+        sha,
+        runId: admitted.runId,
+        permit: admitted,
+        nowMs: Date.parse(admitted.expiresAt) + 1,
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertReleaseAdmission({
+        sha,
+        permit: prepared,
+        prepared: true,
+        nowMs: Date.parse(prepared.expiresAt) + 1,
+      }),
+    ).toThrow("release_permit_expired");
   });
   it("binds one durable admission to SHA, run and expiry, then consumes it permanently", () => {
     const stateRoot = root();
@@ -98,7 +134,7 @@ describe("release admission interlock", () => {
     ).toThrow("release_permit_target_mismatch");
     expect(() =>
       assertReleaseAdmission({ sha, stateRoot, nowMs: Date.parse(admitted.expiresAt) }),
-    ).toThrow("release_permit_expired");
+    ).not.toThrow();
     consumeReleasePermit({ sha, runId: admitted.runId, stateRoot });
     expect(() => assertReleaseAdmission({ sha, stateRoot, nowMs: now })).toThrow(
       "release_held_not_admitted",

@@ -10,5 +10,6 @@ catalog/mappings, managed connection/selection and exact-key activation remain s
 No signature API, legal content, provider grant or autonomous effect is inferred.
 
 S100 resident-draft needs its exact mapped/verified message and proof before S36. B-MNT1 and the
-separate authentication longevity proof remain localized. Preserve the canonical queue in
-docs/feature-suites/README.md. Documentation-only closure does not deploy or start the next suite.
+separate authentication longevity proof remain localized. Preserve the suite registry and
+Markdown intake in docs/feature-suites/README.md. Documentation-only closure does not deploy or
+start the next suite; intake entries require explicit execution direction.

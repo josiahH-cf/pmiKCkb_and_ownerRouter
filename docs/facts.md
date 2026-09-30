@@ -23,6 +23,19 @@ Tag `cand-rmundpf2v-249c945f2220`; fingerprint `sha256:e6a481aeb691991fe38f89bc0
 No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
+## Current runner maintenance
+
+Request 001 is owner-authorized operational maintenance, not an application feature or a grant to
+resume older suites. Its reported eight-hour authentication failure is a user observation, not a
+verified token lifetime. A fresh WSL `auth:ensure -- --unattended` readback verified renewable CLI
+and ADC access under `josiah@pmikcmetro.com` and usable GitHub access after an earlier failed probe.
+A fresh read-only Cloud Run service describe confirmed `pmi-kc-app-rmundpf2v-249c945f2220` still
+receives 100% traffic. The local code corrects a fixed thirteen-suite release assumption, a fixed
+seven-hour enrollment-age gate, and pre-dispatch authentication holds. The full local gate passed
+7,470 unit tests (four existing skips), 234 backend tests, all policy checks and a production build;
+mainline CI/merge and a new release for patched production transitive dependencies remain pending.
+No live provider effect or new authentication authority was used.
+
 The final application gate passed 7,462 unit tests and 234 backend tests, with four existing
 configuration skips, all required checks and production build. The notice portfolio repair
 preserves per-lease invalidation semantics while processing 311 leases in ten bounded transactions;
@@ -243,7 +256,15 @@ and their serving truth stays in the ledger above (F-S114 through F-S120). Ownin
 
 ## Upstream dependency references
 
-The September 29 adversarial repair selects Next.js/eslint-config-next 16.3.7, sharp 0.35.4, fast-uri 3.1.7, Hono 4.13.5 and ip-address 10.5.1, with compatible development-tool updates. The repaired lockfile has zero production audit findings and no high/critical development findings; the isolated Firebase CLI/OpenTelemetry moderate chain remains recorded. Final full verification, exact main CI and the cumulative A01–A04/A06 deployment passed; all 194 runtime traces exclude the development-only chain. The native return control passed the final six-case remote supplement with zero diagnostics. See docs/evidence/adversary-review-2026-09-29.md. The references below explain the earlier patches; they are not the currently selected version list.
+The September 29 serving release used Next.js/eslint-config-next 16.3.7, sharp 0.35.4, fast-uri
+3.1.7, Hono 4.13.5 and ip-address 10.5.1. Its full verification, exact main CI and cumulative
+A01–A04/A06 deployment passed; all 194 runtime traces excluded the development-only chain, and
+the native return control passed its six-case remote supplement. New September 30 advisories caused
+request 001's source lockfile to select fast-uri 3.1.8, ip-address 10.7.1 and brace-expansion
+5.0.12. Its `npm audit --omit=dev` now reports zero production findings; four development findings
+(three moderate, one high) remain outside that gate. The patched lockfile is not yet deployed.
+See docs/evidence/adversary-review-2026-09-29.md for the prior release's exact scope. The
+references below explain the earlier patches, not the current source selection.
 
 - fast-uri 3.1.6 security advisory and patched-version record:
   <https://github.com/fastify/fast-uri/security/advisories/GHSA-5jgf-p345-68v8>

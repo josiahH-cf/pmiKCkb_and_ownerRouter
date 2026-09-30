@@ -59,3 +59,19 @@ Updated: 2026-08-29.
 
 Current truth is a release requirement. Update or delete a document when its claim becomes false.
 Git history is the archive.
+
+## Runner continuity
+
+One explicit owner instruction carries its named feature or batch through planning, implementation,
+verification and authorized delivery. Changing phases does not require repeated consent. New scope,
+provider effects and protected decisions still require their own authority. The release permit and
+exact checkpoint are technical controls; a credential refresh cannot widen them. Resolve ordinary
+technical choices from current evidence and retain one concise blocker for a genuinely missing
+input.
+
+Use the approved WSL CLI and ADC stores for local release work; the deployed Cloud Run service
+uses its separate managed runtime identity. `auth:ensure` probes and renews ordinary access tokens
+at run start and each release phase. A fixed enrollment age is not proof of expiry. A pre-dispatch
+auth hold waits for a changed local enrollment, re-probes the exact identity and resumes the same
+checkpoint if usable. A phase with a possible external effect retains its in-flight reconciliation
+gate. Human reauthentication, permission denial and unknown provider errors stay distinct.

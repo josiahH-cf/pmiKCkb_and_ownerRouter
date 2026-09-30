@@ -86,8 +86,9 @@ release acceptance passed; no live customer completion or human usability verdic
 
 ## Active feature contracts
 
-Use `docs/feature-suites/README.md`, the sole current implementation queue. S113 F1-F5 is complete
-and deployed after actual backend/integrated verification, closure of all 33 in-scope findings,
+Use `docs/feature-suites/README.md` for the suite registry and Markdown feature intake. Its
+registered order is not an active execution queue. S113 F1-F5 is complete and deployed after
+actual backend/integrated verification, closure of all 33 in-scope findings,
 exact CI and every candidate/promotion/observation gate. It serves one dashboard, supported source
 corrections, restored RentCast preparation, supplied formatted/copyable drafts, governed Gmail
 recovery and audited manual progress. Blank labeled resource fields are accepted pending-team inputs.

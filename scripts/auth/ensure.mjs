@@ -65,7 +65,18 @@ function gcloudCapture(args, env) {
   }
 }
 
-/** Mint a token with prompts disabled and stdout discarded; only the exit code is meaningful. */
+/** Mint a token with prompts disabled and stdout discarded; classify only the failure stderr. */
+export function classifyGcloudTokenFailure(stderr) {
+  const value = String(stderr ?? "").toLowerCase();
+  if (/invalid_rapt|invalid_grant|reauth|run gcloud auth login/.test(value))
+    return "reauth";
+  if (/permission_denied|permission denied|not authorized|\b403\b/.test(value))
+    return "permission_denied";
+  if (/timed? ?out|deadline|unavailable|connection|network|\b429\b|\b5\d\d\b/.test(value))
+    return "identity_probe_unavailable";
+  return "token_probe_failed";
+}
+
 function gcloudTokenProbe(args, env) {
   const { file, prefix } = gcloudCommand(env);
   const result = spawnSync(file, [...prefix, ...args], {
@@ -80,6 +91,9 @@ function gcloudTokenProbe(args, env) {
     .filter(Boolean);
   return {
     ok: result.status === 0,
+    ...(result.status === 0
+      ? {}
+      : { errorKind: classifyGcloudTokenFailure(String(result.stderr ?? "")) }),
     error: redact(
       stderrLines.at(-1) ?? (result.error ? String(result.error.message) : ""),
     ),
@@ -129,7 +143,7 @@ export function probeGcloud(
     impersonation,
     storeAccounts,
     tokenFresh: token?.ok,
-    ...(token && !token.ok ? { errorKind: "reauth" } : {}),
+    ...(token && !token.ok ? { errorKind: token.errorKind ?? "token_probe_failed" } : {}),
   };
 }
 

@@ -20,6 +20,17 @@ Tag `cand-rmundpf2v-249c945f2220`; fingerprint `sha256:e6a481aeb691991fe38f89bc0
 No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
+## Current operational maintenance
+
+Request 001, governance simplification and unattended authentication renewal, is authorized for
+direct implementation and mainline merge. Focused tests passed. A fresh WSL unattended auth probe
+verified both CLI and ADC refresh under the approved managed identity, and a read-only Cloud Run
+describe confirmed the documented serving revision still has 100% traffic. The reported eight-hour
+failure remains a user observation, not a verified token lifetime. The mandatory production audit
+required three patched transitive dependency overrides; the new lockfile has zero production audit
+findings. The full local gate passed 7,470 unit tests (four existing skips), 234 backend tests, all
+policy checks and a production build. Mainline CI/merge and the dependency release remain pending.
+
 ## Verified corrective review
 
 Five confirmed adversarial findings are repaired and verified deployed: lifecycle uncertainty, policy calendar validation/presentation, source-upload hygiene, vulnerable production dependencies and return-navigation transport. All repairs passed focused regressions, full application verification, exact main CI and cumulative release gates. Independent source/runtime readbacks and all six guarded remote product checks passed. The same runner performed the authorized repairs; this is not an independent second-review signoff. See [the adversary review](evidence/adversary-review-2026-09-29.md).

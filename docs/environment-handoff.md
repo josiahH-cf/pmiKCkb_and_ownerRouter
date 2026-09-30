@@ -116,6 +116,16 @@ browser session and restored its ADC identity binding. CLI/ADC readiness and enr
 authentication on both origins passed. No password/code/passkey/CAPTCHA was entered; no policy,
 identity or permission scope changed.
 
+The September 30 operational-maintenance correction uses fresh approved CLI/ADC token probes,
+not a fixed enrollment-age budget. A fresh WSL `auth:ensure -- --unattended` check verified both
+CLI and ADC token refresh under `josiah@pmikcmetro.com` after an earlier failed probe; no new
+identity or policy was used. If Google requires interactive reauthentication later, the owner completes it;
+the watcher waits on one exact pre-dispatch auth checkpoint and re-probes after local enrollment
+changes. Permission denial, unknown probe failure and in-flight cloud ambiguity retain separate
+holds. The Cloud Run service's managed runtime identity is independent of this local store.
+A fresh read-only service describe confirmed the documented serving revision still has 100% traffic;
+it did not reverify product routes or every environment setting.
+
 ### Local release watcher
 
 Run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` completed exact `c541db723d3622234956a16e95765867733427cf`. Its permit is consumed and checkpoint

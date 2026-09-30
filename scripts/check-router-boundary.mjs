@@ -189,7 +189,9 @@ assertIncludes("docs/temp/README.md", [
 ]);
 
 assertIncludes("docs/feature-suites/README.md", [
-  "only current operating contracts",
+  "canonical intake register and suite index",
+  "not authorize implementation, deployment, provider activation, or resumption",
+  "Preserve completed and superseded entries as",
   "S64",
   "NOT authorized",
   "authoritative for planning",

@@ -17,12 +17,16 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseEnv } from "node:util";
 import { GoogleAuth } from "google-auth-library";
 import { ensureAuthenticated } from "./auth/ensure.mjs";
+import { credentialEnrollmentVersion } from "./auth/credential-store.mjs";
 import { resolveMonitoringConfig } from "./setup-monitoring.mjs";
 import { resolveBrowserExecutable } from "./lib/browser-executable.mjs";
 import {
   advanceRelease,
   evaluateRelease,
   browserEnrollmentChanged,
+  credentialEnrollmentChanged,
+  isAuthenticationOnlyHold,
+  parkAuthentication,
 } from "./release-watcher-plan.mjs";
 import { browserEnrollmentVersion } from "./auth/browser-enrollment.mjs";
 import {
@@ -475,15 +479,24 @@ export function createDriver({
     },
     authenticate: async () => {
       assertLock();
-      return (
-        (
-          await ensureAuth({
-            need: ["gcloud", "adc", "gh"],
-            unattended: true,
-            root: source,
-          })
-        ).exitCode === 0
-      );
+      const result = await ensureAuth({
+        need: ["gcloud", "adc", "gh"],
+        unattended: true,
+        root: source,
+      });
+      if (result.exitCode === 0) return true;
+      const blocked = result.items?.filter((item) => item.state !== "ok") ?? [];
+      if (blocked.some((item) => item.credential === "gh"))
+        throw new Error("github_authentication_required");
+      if (blocked.some((item) => item.code === "permission_denied"))
+        throw new Error("release_identity_permission_denied");
+      if (
+        blocked.some((item) =>
+          ["identity_probe_unavailable", "auth_probe_failed"].includes(item.code),
+        )
+      )
+        throw new Error("authentication_probe_unverified");
+      return false;
     },
     hasExactReceipt: async (cp) => {
       try {
@@ -977,8 +990,33 @@ export async function main(
       let cp = readState(checkpointPath);
       try {
         unlock.assertHeld();
-        if (cp?.operatorResumeRequired && !operatorResume)
+        const authOnlyHold = isAuthenticationOnlyHold(cp);
+        if (cp?.operatorResumeRequired && !operatorResume && !authOnlyHold)
           throw new Error("release_operator_resume_required");
+        if (authOnlyHold) {
+          const version = credentialEnrollmentVersion();
+          if (!operatorResume && !credentialEnrollmentChanged(cp, version)) {
+            const status = JSON.stringify({
+              sha: cp.sha,
+              phase: cp.phase,
+              blocked: "authentication_required",
+            });
+            if (status !== lastStatus) console.log(status);
+            lastStatus = status;
+            if (!watch || dryRun) return;
+            await new Promise((resolveWait) => setTimeout(resolveWait, 60_000));
+            continue;
+          }
+          // A changed store only permits a fresh probe of the same checkpoint. It is never proof
+          // of authentication, an additional release grant, or a reason to redispatch an effect.
+          cp = {
+            ...cp,
+            blocked: undefined,
+            operatorResumeRequired: false,
+            credentialEnrollmentVersion: undefined,
+          };
+          await driver.save(cp);
+        }
         if (operatorResume && cp) {
           cp = { ...cp, operatorResumeRequired: false };
           await driver.save(cp);
@@ -1045,7 +1083,10 @@ export async function main(
             if (status !== lastStatus) console.log(status);
             lastStatus = status;
             if (cp.blocked) {
-              cp = { ...cp, operatorResumeRequired: true };
+              const authOnly = isAuthenticationOnlyHold(cp);
+              cp = authOnly
+                ? parkAuthentication(cp, credentialEnrollmentVersion())
+                : { ...cp, operatorResumeRequired: true };
               await driver.save(cp);
               writeReceipt(
                 join(
@@ -1054,6 +1095,7 @@ export async function main(
                 ),
                 cp,
               );
+              if (authOnly) break;
               return;
             }
           }

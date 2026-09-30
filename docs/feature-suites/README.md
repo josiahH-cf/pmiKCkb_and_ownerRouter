@@ -1,13 +1,15 @@
 # Active feature suites
 
-S113 F1-F5 and the carried readiness/conformance changes are deployed in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`.
-Exact CI 34556917662 and all release gates passed. All 33 review findings are closed; actual backend and
-all seven compiled browser checks passed. Private sources and provider-effect boundaries remain.
-See `docs/status.md` and the S113 review evidence for the exact result.
+The last verified serving release (2026-09-30 readbacks) is `c541db723d3622234956a16e95765867733427cf` /
+`pmi-kc-app-rmundpf2v-249c945f2220`. It includes S113 F1-F5, the thirteen-feature batch,
+and five confirmed adversarial repairs. Exact CI 36650984450 and the documented release gates
+passed. See `docs/status.md` and `docs/evidence/adversary-review-2026-09-29.md` for scope and
+remaining private-source, provider-effect, and human-verdict boundaries.
 
-This directory contains only current operating contracts, genuine unfinished work, and one explicitly
-unauthorized proposal. Completed and superseded suite narratives were removed from the active tree on
-2026-08-26 and remain recoverable from Git at `1356918`.
+This directory contains current operating contracts, unfinished specifications, recent completed
+release contracts, and one explicitly unauthorized proposal. Older completed and superseded suite
+narratives were removed from the active tree on 2026-08-26 and remain recoverable from Git at
+`1356918`.
 
 Fifteen COMPLETE narratives were retired on 2026-09-07 after criterion-by-criterion ownership checks:
 S37, S52, S56, S59, S72, S74, S77, S78, S80, S81, S83, S84, S85, S86, and S99. Their status rows
@@ -20,12 +22,41 @@ narratives at `d61eecf3`. Their serving truth stays in `docs/facts.md` (F-S114�
 S113 remains active in the tree because `docs/README.md` still cites it as the current-core consolidation
 baseline. No candidate-only or blocked suite retired.
 
-## Canonical unattended implementation queue
+## Markdown feature intake
+
+This file is the canonical intake register and suite index. Store a clarified new feature contract
+in `docs/feature-suites/` and register it once in the suite table below. Use the template for a
+new suite; update an existing suite and its row when a request overlaps it. An intake status does
+not authorize implementation, deployment, provider activation, or resumption of earlier work.
+Those actions require a new explicit owner instruction and their existing gates.
+
+For each supplied Markdown batch or path, read requests in supplied order. Compare each request
+with current code/tests, available read-only runtime evidence, `docs/facts.md`, and the suite table
+before assigning status. Record the source path and heading (or supplied batch/item), stable intake
+order, matched suite, status, and the smallest open question or evidence link. Treat documentation
+and user reports as intent or reported state until verified. On a rescan, update the same entry;
+do not create a second suite for the same outcome. Preserve completed and superseded entries as
+history, never as a trigger to rerun them. Do not delete or rewrite unclear requests without asking.
+
+Intake status meanings: **pending clarification** has a material unresolved question and stays
+inert; **ready** has a clarified, recorded scope but still needs an explicit execution instruction;
+**completed** has implementation and delivery evidence for the requested outcome; **superseded**
+points to the newer entry or decision that replaced it. A dependency or missing external input
+must be recorded separately from intake clarity. Suite implementation and release statuses remain
+separate and retain their exact evidence scopes.
+
+| Intake order | Request / matched suite                                                                                    | Source                                                                               | Intake status | Evidence or next input                                                                                      |
+| ------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------- | ----------------------------------------------------------------------------------------------------------- |
+| 001          | Governance simplification and unattended authentication renewal; existing router, auth and release tooling | `pmi-new-features-9-30/001-governance-simplification-and-unattended-auth-renewal.md` | ready         | Direct execution authorized 2026-09-30; full local gate passed, with mainline CI/merge and release pending. |
+
+## Registered suite order and dependencies
 
 The owner's S113 priority is complete. F1 → F2 → F3 → F4 → F5 executed once, including actual
 backend/adversarial verification and exact production release. Blank informational/legal-location
-inputs remain accepted. The existing queue below retains its ownership and order; no new work is
-started by this closure. Resource-dependent provider activation remains separate.
+inputs remain accepted. The order below records prior sequencing and dependencies; it is not an
+active execution queue. Completed rows are not restarted, and specified or blocked rows remain
+inert until the owner explicitly directs execution. Resource-dependent provider activation remains
+separate.
 
 | Result   | Suite                                                           | Completion evidence                                                                                                  |
 | -------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -54,8 +85,8 @@ changes. No P1–P3 score is assigned without task-frequency evidence.**
 |     7 | S97 — Governed RentVine renewal writeback — **COMPLETE / DEPLOYED**                                      | S82 baseline, S83, S86                   | Generation/replay/readback/ambiguity integrity is serving; three exact keys retain prior proof authority. No proof rerun.                                                                                                                                                                                                                                                    |
 |     8 | S98 — Operating renewal Sheet execution integrity — **COMPLETE / DEPLOYED**                              | Existing S97 integrity                   | S113 normal append/field updates are serving with exact claims/receipt/readback and correction; row deletion/historical restore remain unavailable.                                                                                                                                                                                                                          |
 |     9 | S99 — RentVine Maintenance work-order writeback — **COMPLETE / DEPLOYED**                                | S83, S86, S98                            | Official read/create/status contracts, exact mapping/catalog/preview/confirm/receipt/recovery/correction gates, live proof, activation, release, and readback are green; no notification, vendor, attachment, chat-post, or send effect was added.                                                                                                                           |
-|    10 | S100 — RentVine work-order chat sync and resident draft — **BLOCKED**                                    | S83, S86, S99                            | Chat sync is complete, proven, open, and deployed. The remaining blockers are the agent-owned operation that links an existing RentVine work order to a ticket and a mapped resident with a verified email on a synchronized thread so the separately governed unsent-draft key can receive live proof and exact activation; no polling/webhook/chat-post/send is reachable. |
-|    11 | S51/S54 — Production assurance expansion — **ACTIVE / UNRELEASED**                                       | S82/S97/S98 remediation implementation   | Deterministic candidate, owner-approved Admin authenticated routes with Editor not_run, source reconciliation, monitoring readback, CI fixture coverage, promotion, and five-minute observation all pass.                                                                                                                                                                    |
+|    10 | S100 — RentVine work-order chat sync and resident draft — **BLOCKED**                                    | S83, S86, S99                            | Chat sync is complete, proven, open, and deployed. The remaining owner input is an exact existing work order with resident chat and a verified resident email; only then can the agent-owned link/sync, separately governed unsent-draft proof, close/readback and activation proceed. The owner input is tracked as B-S100; no polling/webhook/chat-post/send is reachable. |
+|    11 | S51/S54 — Production assurance expansion — **COMPLETE / DEPLOYED**                                       | S82/S97/S98 remediation implementation   | Deterministic candidate, owner-approved Admin authenticated routes with Editor not_run, source reconciliation, monitoring readback, CI fixture coverage, promotion, and five-minute observation all pass.                                                                                                                                                                    |
 |    12 | S102 — Tenant current rent from the active RentVine lease — **IMPLEMENTATION DEPLOYED**                  | S82 remediation released                 | Lease-detail `baseRentAmount` drives every consumer, unit rent is a labelled reference, null/discrepancy/refresh behavior preserved; focused, canonical, and rehearsal-browser gates green.                                                                                                                                                                                  |
 |    13 | S103 — Lease term and renewal eligibility — **IMPLEMENTATION DEPLOYED**                                  | S102                                     | Term projection, audited term review record, `periodic_review` disposition, desk/workspace/query term display, and assistant reuse green; no provider write.                                                                                                                                                                                                                 |
 |    14 | S104 — Renewal desk and workspace parity closure — **IMPLEMENTATION DEPLOYED**                           | S102, S103                               | Table/workspace parity and open/write/return continuation proofs green; S82 preservation green.                                                                                                                                                                                                                                                                              |
@@ -87,8 +118,8 @@ S82/S97/S98 conformance/integrity plus S102-S110/readiness and normal S106/S34 h
 S100 resident-draft still needs its exact input/proof/activation; S36 has not started. Actual Dotloop
 forms/connection/closed keys remain independent gates. S87-S95 and S101 remain specification-only.
 
-Default execution is serialized because suites update shared registries, shell components, and
-governance docs. The sole optional parallel group is bounded S90 and S91 domain work in isolated
+When explicitly authorized, execution is serialized because suites update shared registries,
+shell components, and governance docs. The sole optional parallel group is bounded S90 and S91 domain work in isolated
 worktrees after S82, S83, S88, and S89 are green, with one integration owner and serialized central
 registry/schema edits and delivery. All shared-checkout work; facts/status/plan/loop-state updates;
 S96/S85/S86; S83/S84/S82; S97-S100/S36; S82/S91; S94/S93; S95/S87; S87/S101; and every join gate

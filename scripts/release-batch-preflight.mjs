@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Read-only readiness check for the ONE batched release that ships every queued feature.
+// Read-only readiness check for one explicitly authorized batch of queued release items.
 //
 //   npm run release:batch-preflight            # human checklist + verdict
 //   npm run release:batch-preflight -- --json  # same result as JSON
 //
 // It runs no cloud command, changes no state, and never prints a secret value: it reads local git,
-// the two ignored env files (two flag values only), the watcher checkpoint, the WSL enrollment
-// marker, exact-run permit, fresh sanitized prerequisite receipt and Awaiting release queue in
+// the two ignored env files (two flag values only), the watcher checkpoint, exact-run permit,
+// fresh sanitized prerequisite receipt and Awaiting release queue in
 // docs/loop-state.md. The separate collector verifies approved auth, Admin browser readiness,
 // billing and unchanged cost controls; missing, stale or mismatched readbacks hold this preflight.
 //
@@ -32,25 +32,7 @@ const GH_BIN = existsSync("/mnt/c/Program Files/GitHub CLI/gh.exe")
   ? "/mnt/c/Program Files/GitHub CLI/gh.exe"
   : "gh";
 const DEMO_FLAG = "ASK_DEMO_MODE";
-/** Re-enrollment is owner-only and has been observed to expire under nine hours. */
-export const ENROLLMENT_BUDGET_HOURS = 7;
-
 export const PREFLIGHT_STATES = ["ready", "owner_action", "blocked", "unknown"];
-export const EXPECTED_BATCH = [
-  "S128:F08",
-  "S123:F02",
-  "S124:F03",
-  "S134:F14",
-  "S122:F01",
-  "S125:F04",
-  "S126:F06",
-  "S127:F07",
-  "S131:F11",
-  "S129:F09",
-  "S130:F10",
-  "S132:F12",
-  "S133:F13",
-];
 
 /**
  * The watcher takes `checkpoint.sha` while that checkpoint is neither complete nor terminal. This
@@ -62,19 +44,19 @@ export function watcherTargetSha(checkpoint, headSha) {
     : headSha;
 }
 
-/** Parse the numbered Awaiting release queue; returns [{ position, suite, approval }]. */
+/** Parse the numbered Awaiting release queue; S suites and numbered intake items are supported. */
 export function parseAwaitingReleaseQueue(loopState) {
   const section = loopState.split(/^## Awaiting release[^\n]*$/m)[1];
   if (!section) return [];
   const rows = [];
   for (const line of section.split("\n")) {
     if (line.startsWith("## ")) break;
-    const match = /^(\d+)\.\s+(S\d+)\s+\((F\d+)\)/.exec(line);
+    const match = /^(\d+)\.\s+(S\d+|\d{3})(?:\s+\((F\d+)\))?(?=\s|:|$)/.exec(line);
     if (match)
       rows.push({
         position: Number(match[1]),
         suite: match[2],
-        approval: match[3],
+        approval: match[3] ?? null,
         commits: [...line.matchAll(/`([a-f0-9]{7,40})`/g)].map((item) => item[1]),
       });
     else if (/^\d+\./.test(line))
@@ -101,7 +83,6 @@ export function evaluateBatchPreflight(input) {
     foundationPresent = true,
     queue = [],
     envFlags = {},
-    enrolledAtIso,
     nowIso,
     billingReEnabled,
   } = input;
@@ -258,22 +239,24 @@ export function evaluateBatchPreflight(input) {
     ),
   );
 
+  const exactQueue =
+    queue.length > 0 &&
+    new Set(queue.map((row) => row.suite)).size === queue.length &&
+    queue.every(
+      (row, index) =>
+        row.position === index + 1 &&
+        /^(?:S\d+|\d{3})$/.test(row.suite) &&
+        (row.approval === null || /^F\d+$/.test(row.approval)) &&
+        row.commits?.length > 0,
+    ) &&
+    input.queueAncestry === true;
   checks.push(
     check(
       "batch_scope",
-      queue.length === EXPECTED_BATCH.length &&
-        queue.every(
-          (row, index) =>
-            row.position === index + 1 &&
-            `${row.suite}:${row.approval}` === EXPECTED_BATCH[index] &&
-            row.commits?.length > 0,
-        ) &&
-        input.queueAncestry === true
-        ? "ready"
-        : "blocked",
-      `${queue.length} queued feature${queue.length === 1 ? "" : "s"} ride this one candidate`,
+      exactQueue ? "ready" : "blocked",
+      `${queue.length} queued item${queue.length === 1 ? "" : "s"} ride this one candidate`,
       queue.length
-        ? `${queue.map((row) => row.suite).join(", ")}. One Cloud Build and one candidate replace ${queue.length} separate release cycles.`
+        ? `${queue.map((row) => row.suite).join(", ")}. One Cloud Build and one candidate carry ${queue.length} approved release item${queue.length === 1 ? "" : "s"}.`
         : "No Awaiting release queue was parsed from docs/loop-state.md.",
     ),
   );
@@ -315,30 +298,6 @@ export function evaluateBatchPreflight(input) {
       demo.length === 0 ? "unknown" : demoOff ? "ready" : "blocked",
       demoOff ? "Demo answering stays off" : "An env file would ship demo answering on",
       demo.map(([name, value]) => `${name}: ${value}`).join("; ") || "Not readable.",
-    ),
-  );
-
-  let enrollmentState = "unknown";
-  let enrollmentSummary = "WSL enrollment age unknown";
-  let enrollmentDetail = "No enrollment marker was readable on this host.";
-  if (enrolledAtIso && nowIso) {
-    const hours = (Date.parse(nowIso) - Date.parse(enrolledAtIso)) / 3_600_000;
-    const fresh = Number.isFinite(hours) && hours >= 0 && hours < ENROLLMENT_BUDGET_HOURS;
-    enrollmentState = fresh ? "ready" : "owner_action";
-    enrollmentSummary = fresh
-      ? `WSL enrollment is ${hours.toFixed(1)} h old`
-      : `WSL enrollment is ${hours.toFixed(1)} h old, past the ${ENROLLMENT_BUDGET_HOURS} h budget`;
-    enrollmentDetail = `A release runs about 45 to 60 minutes and the session has expired under nine hours; an expiry mid-observation pauses a rollback on authentication_required.`;
-  }
-  checks.push(
-    check(
-      "auth_enrollment",
-      enrollmentState,
-      enrollmentSummary,
-      enrollmentDetail,
-      enrollmentState === "ready"
-        ? null
-        : "Re-enroll in WSL: npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com",
     ),
   );
 
@@ -459,7 +418,6 @@ export function readExactShaCi(headSha, { gh = GH_BIN, cwd = ROOT } = {}) {
 export function gatherBatchPreflight({
   root = ROOT,
   stateRoot = join(homedir(), ".local", "state", "pmi-kc-release"),
-  enrollmentPath = join(homedir(), ".config", "gcloud", "pmi-local-enrollment.json"),
   nowIso = new Date().toISOString(),
   ci,
   billingReEnabled,
@@ -520,7 +478,7 @@ export function gatherBatchPreflight({
     ].every((path) => git(["cat-file", "-e", `${headSha}:${path}`], root) !== null),
     queue,
     queueAncestry:
-      queue.length === 13 &&
+      queue.length > 0 &&
       queue.every(
         (row) =>
           row.commits.length > 0 &&
@@ -550,7 +508,6 @@ export function gatherBatchPreflight({
         }
       })(),
     prerequisite,
-    enrolledAtIso: readJson(enrollmentPath)?.enrolledAt ?? null,
     nowIso,
     billingReEnabled: prerequisite?.checks?.billing === "ready" ? true : billingReEnabled,
   };
@@ -566,7 +523,7 @@ const STATE_LABELS = {
 export function renderBatchPreflight(result) {
   const lines = [
     `Batched release preflight: ${result.verdict.toUpperCase().replace(/_/g, " ")}`,
-    `Head ${result.headSha ?? "unknown"} carries ${result.batchSize} queued feature${result.batchSize === 1 ? "" : "s"} in one candidate.`,
+    `Head ${result.headSha ?? "unknown"} carries ${result.batchSize} queued item${result.batchSize === 1 ? "" : "s"} in one candidate.`,
     "",
   ];
   for (const row of result.checks) {

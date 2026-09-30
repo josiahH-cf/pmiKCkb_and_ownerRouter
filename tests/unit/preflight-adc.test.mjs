@@ -16,7 +16,8 @@ describe("classifyAdcError", () => {
   });
 
   it("falls back to other for unrelated errors", () => {
-    expect(classifyAdcError("network timeout")).toBe("other");
+    expect(classifyAdcError("network timeout")).toBe("identity_probe_unavailable");
+    expect(classifyAdcError("PERMISSION_DENIED: no access")).toBe("permission_denied");
     expect(classifyAdcError(undefined)).toBe("other");
   });
 });
