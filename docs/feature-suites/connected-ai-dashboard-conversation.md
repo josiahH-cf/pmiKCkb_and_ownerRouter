@@ -4,6 +4,8 @@
 # S138 — Natural-language operational Dashboard conversation
 
 > Intake: ready, batch 002 item 005. Scope only; the serving three-intent assistant remains the verified baseline.
+>
+> Amendment 2026-10-01 (batch 004 intake): this suite is deployed and is the baseline for S146–S150. S146 changes the Dashboard composition, and S148 supersedes the session-local transcript choice below for the Dashboard conversation.
 
 **Goal.**
 

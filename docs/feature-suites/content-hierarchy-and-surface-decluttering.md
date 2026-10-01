@@ -3,7 +3,7 @@
 
 # S87 — Product-wide content hierarchy and surface decluttering
 
-> Status: Separate unimplemented product-wide layout proposal, outside batch 002. Re-scope old assistant dependencies before any explicit execution.
+> Status: Separate unimplemented product-wide layout proposal. Its Dashboard surface is superseded by S146–S147 (batch 004, 2026-10-01); re-scope other surfaces and old assistant dependencies before any explicit execution.
 
 **Goal.**
 

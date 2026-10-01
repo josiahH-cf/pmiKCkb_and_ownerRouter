@@ -3,7 +3,7 @@
 
 # S95 — Minimal Dashboard composition and relocation
 
-> Status: Separate unimplemented Dashboard layout proposal, outside batch 002. Re-scope old assistant dependencies before any explicit execution.
+> Status: Superseded for Dashboard composition and relocation by S146–S147 (batch 004, 2026-10-01); retained only as planning provenance. Its relocation table must not restart.
 
 **Goal.**
 

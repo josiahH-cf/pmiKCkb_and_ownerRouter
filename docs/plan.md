@@ -63,6 +63,22 @@ The documentation checks passed. The production dependency audit failure that fi
 intake was remediated separately by PR #95 before it was committed. Do not use the pending 001
 release permit as an intake approval.
 
+## Markdown batch 004: scoped, not started
+
+The six supplied requests 013–018 were read in order and registered as S146–S151, all `ready`, on
+2026-10-01. S138's conversation engine, S135/S137 access and context, S136's model, the knowledge
+path and the existing approval, connection, process and renewal screens are the verified baseline.
+The delta is an AI-first Dashboard without a process step (S146), five panel moves with one compact
+attention queue (S147), owner-scoped server-side history (S148), saved and pinned questions (S149),
+a model-free structured rerun (S150) and integrated validation (S151). Build order: S146 with S147,
+then S148, S149 and S150, with S151's checks built alongside; one cumulative release at the end.
+
+Owner decisions on 2026-10-01: Anticipated work moves to Internal Processes, and the
+post-deployment check may ask at most five read-only questions as the owner. Constraints recorded
+at intake: `/api/assistant/query` stays a read, persistence uses separate owner-scoped routes,
+verification accounts stay effect-free, and `firestore.rules` and `lib/auth` do not change. Intake
+grants no execution; the owner starts the run explicitly.
+
 ## Outcome
 
 Run `ab803f8a-4ffb-4568-9178-05ccb588a94c` released request 001 and batches 002 and 003 (twelve queued items: 001 and
