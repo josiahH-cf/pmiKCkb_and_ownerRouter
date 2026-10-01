@@ -4,12 +4,17 @@ Last updated: 2026-10-01 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-RELEASED: request 001 and batches 002 and 003 (S135–S145) are deployed together.
-Run ab803f8a-4ffb-4568-9178-05ccb588a94c; serving SHA 2ec46806bda10e799025e9919a2c1b14b7be3a5a.
-Revision pmi-kc-app-rmupi9ukm-9f056f091001; tag cand-rmupi9ukm-9f056f091001; traffic 100%.
-Fingerprint sha256:b4b6c1e393b5233588480a415bcaad1f7e633e277cfc58b99c2a3be6d2ccc631.
+RELEASED (interim, owner direction 2026-10-01): S108 and batch 004's S146–S148.
+Run 98f7e743-7345-4b74-a6a8-675fe9fac31f; serving SHA 2b53c5d5d889280d1fa0dc6aa1da3dc3e601d9d0.
+Revision pmi-kc-app-rmupw50tc-8189b32d3395; tag cand-rmupw50tc-8189b32d3395; traffic 100%.
+Fingerprint sha256:dc8804339fe5d29c0c1699e75ce30f40e0c15bf2031989421075ccaf33799da2.
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
 Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=false.
+Its first recovery assurance failed on a cold first render; a read-only diagnostic canary on the
+0% recovery target passed and the same-run resume passed every later phase (observation 414,515
+ms, 312 of 312 records matched; eleven readback sections, none unverified). Production traffic
+never left a verified revision. The full closure of this run's records follows batch 004's second
+release; until then status, plan, facts and the handoff still describe run ab803f8a.
 Request 001 run dc4e1ac8 (`41ad65cb`) and batch 002 run 6eb157e1 (`b1c6135c`) blocked when live
 renewal routes reached the 30-second canary navigation bound; both were archived as superseded.
 OWNER DECISION, 2026-10-01: PR #93's 60-second bound for the two live renewal routes only (merged
@@ -24,14 +29,13 @@ access on 2026-09-10; the owner creates the integration account and replies. B-A
 
 ## Awaiting release
 
-1. S108 RentVine maintenance-limit preapproval import (owner decision 2026-10-01, B-MNT1): `82e49596650372aae3ce60c547f977f738199c84`.
-2. S146 AI-first Dashboard workspace (batch 004): `87d6fd7c9d574a447b924b66c8fcb2203f0288cc`.
-3. S147 Dashboard panel relocation and compact attention queue (batch 004): `87d6fd7c9d574a447b924b66c8fcb2203f0288cc`.
-4. S148 Durable owner-scoped AI conversation history (batch 004): `fe78b0c98b0522899a0c440648b41b8075963f61`.
+1. S149 Saved and pinned questions (batch 004): `129c833ea54605fc607c825922624439bdc935e9`.
+2. S150 Answer reuse and structured rerun without model calls (batch 004): `129c833ea54605fc607c825922624439bdc935e9`.
+3. S151 Integrated validation checks and the owner's bounded live check (batch 004): `8552430886d3cd402bd7befda1abc1f86a3f8c24`, `404abdf3e7fa74565d0630c24f89ad12a15d05cf`, `b9d3d1d7bd3f9c28413e9d7edc65ae9a3576098e`.
 
-OWNER DIRECTION, 2026-10-01: release the latest stable batch 004 work now, with no downtime, so
-the console can be shown on a client call; S149–S151 follow in a later release. One candidate
-carries the queued items. Admit only after exact main CI on the release head, fresh prerequisites
+Run 98f7e743 shipped S108 and S146–S148 by owner direction (2026-10-01), so batch 004 ships in two
+candidates. The bounded live check runs after this second release. One candidate carries the
+queued items. Admit only after exact main CI on the release head, fresh prerequisites
 (a fresh owner WSL enrollment if the 2026-10-01 one has expired) and a new run-bound permit. No
 provider effect, key or activation is queued. S121 remains excluded.
 
