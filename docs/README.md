@@ -109,6 +109,7 @@ completion is distinct from provider verification; no live customer completion w
 
 ## Current evidence and templates
 
+- `docs/evidence/renewal-focus-batch-003-validation-2026-10-01.md` — S145 evidence map for the batch 003 renewal Focus suites, with tested environments, corrections and unverified seams.
 - `docs/evidence/connected-ai-batch-002-validation-2026-09-30.md` — S141 evidence map for the batch 002 Dashboard and email-refinement suites, with tested environments and unverified seams.
 - `docs/evidence/adversary-review-2026-09-29.md` — deployment-source inspection and verified corrective delivery, with remaining external/human boundaries stated explicitly.
 - `docs/evidence/batch-litmus-audit-2026-09-28.md` — all thirteen suites, the 118 supplied litmus references, original release receipts and their exact verification scopes.

@@ -2,7 +2,8 @@
 // view control stays mounted, so unsaved input, pending requests, previews and retry identities
 // survive switching views or tasks; Focus only hides everything in the workspace body except the
 // Focus pane and the chosen action's regions. Hiding is attribute-only and fully reversible: an
-// element this module did not hide is never shown, and React-owned attributes are left alone.
+// element this module did not hide is never shown, a disclosure it opened closes again, and
+// React-owned attributes are left alone.
 
 export const FOCUS_HIDDEN_ATTRIBUTE = "data-renewal-focus-hidden";
 const HIDDEN_BY_FOCUS = "data-renewal-focus-hid";
@@ -10,7 +11,7 @@ const HIDDEN_BY_FOCUS = "data-renewal-focus-hid";
 export interface FocusReveal {
   /** Hide every element outside the kept regions and their ancestor paths. */
   readonly apply: (keep: readonly Element[]) => void;
-  /** Show everything this reveal hid and stop watching the body. */
+  /** Show everything this reveal hid, close what it opened and stop watching the body. */
   readonly clear: () => void;
 }
 
@@ -18,6 +19,13 @@ export interface FocusReveal {
 export function createFocusReveal(body: HTMLElement): FocusReveal {
   let kept: readonly Element[] = [];
   const hidden = new Set<HTMLElement>();
+  const opened = new Set<HTMLDetailsElement>();
+  // A chosen disclosure opens so its controls are usable, as focusing it would.
+  const open = (details: HTMLDetailsElement) => {
+    if (details.open) return;
+    details.open = true;
+    opened.add(details);
+  };
   const show = (element: HTMLElement) => {
     element.removeAttribute(FOCUS_HIDDEN_ATTRIBUTE);
     if (element.hasAttribute(HIDDEN_BY_FOCUS)) {
@@ -50,13 +58,12 @@ export function createFocusReveal(body: HTMLElement): FocusReveal {
         if (!(child instanceof HTMLElement)) continue;
         if (keep.has(child)) {
           visible.add(child);
-          // A chosen disclosure opens so its controls are usable, as focusing it would.
-          if (child instanceof HTMLDetailsElement) child.open = true;
+          if (child instanceof HTMLDetailsElement) open(child);
           continue;
         }
         if (path.has(child)) {
           visible.add(child);
-          if (child instanceof HTMLDetailsElement) child.open = true;
+          if (child instanceof HTMLDetailsElement) open(child);
           visit(child);
           continue;
         }
@@ -91,6 +98,9 @@ export function createFocusReveal(body: HTMLElement): FocusReveal {
       observing = false;
       for (const element of hidden) show(element);
       hidden.clear();
+      // The Full view returns with each disclosure as the person left it.
+      for (const details of opened) details.open = false;
+      opened.clear();
       kept = [];
     },
   };

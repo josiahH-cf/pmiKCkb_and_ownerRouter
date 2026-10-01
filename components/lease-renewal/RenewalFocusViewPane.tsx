@@ -96,10 +96,15 @@ function stateText(action: RenewalAction, labels: (id: string) => string): strin
           ? "The recorded responses conflict. Review them in Full view."
           : "This step's records need review in Full view.";
     case "complete":
-      return "Recorded.";
+      return completedText(action);
     case "not_applicable":
       return "Not part of this lease's path.";
   }
+}
+
+// Only staff work is recorded by staff; a refreshed source or a provider confirms the rest.
+function completedText(action: RenewalAction): string {
+  return action.group === "staff_work" ? "Recorded." : "Done.";
 }
 
 export function RenewalFocusViewPane({
@@ -196,8 +201,8 @@ export function RenewalFocusViewPane({
       return;
     setAnnouncement(
       selected
-        ? `Recorded. Next: ${selected.label}.`
-        : "Recorded. Nothing else is ready for you on this lease.",
+        ? `${completedText(prior)} Next: ${selected.label}.`
+        : `${completedText(prior)} Nothing else is ready for you on this lease.`,
     );
     const active = document.activeElement;
     if (
