@@ -1,6 +1,6 @@
 # PMI KC facts
 
-Last reconciled: 2026-09-30.
+Last reconciled: 2026-10-01.
 
 This ledger contains present truth only. Historical delivery detail remains recoverable from Git and
 is not active guidance.
@@ -286,15 +286,20 @@ request 001's source lockfile to select fast-uri 3.1.8, ip-address 10.7.1 and br
 5.0.12. The PR #92 gate then reported zero production findings. A later September 30 recheck
 failed the unchanged production audit on four high `@grpc/grpc-js` findings
 (GHSA-m9gg-hp2v-232j, GHSA-f596-whhp-79r4) in the Firebase and Google client chains; PR #95
-(merged at `dc493dfe`) overrides `@grpc/grpc-js` to the patched 1.14.5. Its
+(merged at `dc493dfe`) overrides `@grpc/grpc-js` to the patched 1.14.5. An October 1 recheck
+failed the same unchanged audit on one moderate Hono advisory (GHSA-hxh3-vqpv-xpqv, unescaped
+strings in `hono/jsx` boundary components) in the `@google/genai` to
+`@modelcontextprotocol/sdk` chain; the source now overrides Hono to the patched 4.13.7. Its
 `npm audit --omit=dev` reports zero production findings; four development findings (three
-moderate, one high) remain outside that gate. The patched lockfile is not yet deployed.
+moderate, one high) remain outside that gate. Neither patched lockfile is deployed yet.
 See docs/evidence/adversary-review-2026-09-29.md for the prior release's exact scope. The
 references below explain the earlier patches, not the current source selection.
 
 - `@grpc/grpc-js` advisories and patched versions:
   <https://github.com/advisories/GHSA-m9gg-hp2v-232j>,
   <https://github.com/advisories/GHSA-f596-whhp-79r4>
+- Hono `hono/jsx` advisory and patched version:
+  <https://github.com/advisories/GHSA-hxh3-vqpv-xpqv>
 
 - fast-uri 3.1.6 security advisory and patched-version record:
   <https://github.com/fastify/fast-uri/security/advisories/GHSA-5jgf-p345-68v8>
