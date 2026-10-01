@@ -265,6 +265,19 @@ describe("S151 live-check log counting and output", () => {
     });
   });
 
+  it("reopens history in a fresh browser context, not another page of the first one", () => {
+    const source = readFileSync("scripts/check-production-ai-history.ts", "utf8");
+    const questions = source.indexOf('phase("questions"');
+    const reopen = source.indexOf('phase("reopen"');
+    const between = source.slice(questions, reopen);
+    expect(questions).toBeGreaterThan(0);
+    expect(reopen).toBeGreaterThan(questions);
+    expect(between).toMatch(/await context\.close\(\);/);
+    expect(between).toMatch(
+      /context = await launchGuardedOwnerBrowser\(options, tracker\);\s+const fresh = await context\.newPage\(\);/,
+    );
+  });
+
   it("leaves the release assurance guard and READ_POSTS untouched", () => {
     const source = readFileSync("scripts/check-production-ai-history.ts", "utf8");
     expect(source).not.toMatch(/launchGuardedManagedBrowser|READ_POSTS/);

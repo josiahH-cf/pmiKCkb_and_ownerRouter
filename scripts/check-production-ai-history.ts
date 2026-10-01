@@ -515,7 +515,7 @@ export async function runAiHistoryCheck(
   try {
     await verifyExactVersion(options);
     versionVerified.before = true;
-    const context = await launchGuardedOwnerBrowser(options, tracker);
+    let context = await launchGuardedOwnerBrowser(options, tracker);
     try {
       // Questions, asked through the real Dashboard and saved by it as the owner's own history.
       const page = await context.newPage();
@@ -536,7 +536,10 @@ export async function runAiHistoryCheck(
       });
       await page.close();
 
-      // A fresh page: reopening, listing, saving and pinning read stored data only.
+      // A fresh browser context on the same signed-in profile: nothing from the first one
+      // survives in memory, so reopening, listing, saving and pinning read stored data only.
+      await context.close();
+      context = await launchGuardedOwnerBrowser(options, tracker);
       const fresh = await context.newPage();
       fresh.setDefaultNavigationTimeout(ROUTE_BUDGET_MS);
       fresh.setDefaultTimeout(ROUTE_BUDGET_MS);
