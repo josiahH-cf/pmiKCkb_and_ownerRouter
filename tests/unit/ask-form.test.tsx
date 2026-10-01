@@ -395,10 +395,21 @@ describe("AskForm Dashboard conversation (S138)", () => {
     };
   }
 
+  // S148 adds one client operation id per submission (duplicate deliveries reuse its answer); the
+  // body still carries no actor, role, Space, process or filter.
   function assistantBodies(): Record<string, unknown>[] {
     return fetchMock.mock.calls
       .filter((entry) => String(entry[0]).includes("/api/assistant/query"))
-      .map((entry) => JSON.parse(String((entry[1] as RequestInit).body)));
+      .map((entry) => {
+        const body = JSON.parse(String((entry[1] as RequestInit).body)) as Record<
+          string,
+          unknown
+        >;
+        expect(body.operationId).toMatch(/^[A-Za-z0-9-]{8,64}$/);
+        const { operationId: _operationId, ...rest } = body;
+        void _operationId;
+        return rest;
+      });
   }
 
   it("answers from records, skips the knowledge answer, and carries the context into a follow-up", async () => {

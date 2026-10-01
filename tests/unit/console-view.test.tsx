@@ -21,6 +21,13 @@ vi.mock("@/lib/lease-renewal/renewal-review-board", () => ({
 vi.mock("@/lib/firestore/workflows", () => ({
   listProcessDefinitions: (...args: unknown[]) => listProcessDefinitions(...args),
 }));
+vi.mock("@/lib/firestore/assistant-history-read", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/firestore/assistant-history-read")>()),
+  listAssistantConversations: vi.fn(async () => ({
+    conversations: [],
+    nextCursor: null,
+  })),
+}));
 vi.mock("@/lib/lease-renewal/live-desk", () => ({
   loadLiveRenewalDesk: vi.fn(async () => {
     throw new Error("The Dashboard must not read the live renewal desk.");

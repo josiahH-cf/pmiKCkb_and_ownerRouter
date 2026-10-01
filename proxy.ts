@@ -27,6 +27,9 @@ async function applyRequestPolicies(request: NextRequest) {
     method: request.method,
     pathname: request.nextUrl.pathname,
     searchParams: request.nextUrl.searchParams,
+    // S148: a local Firestore emulator holds no real records, so the signed-in user's own
+    // history writes may land there under the automated harness.
+    firestoreEmulator: Boolean(process.env.FIRESTORE_EMULATOR_HOST?.trim()),
   });
   if (!decision.allowed) {
     return NextResponse.json(

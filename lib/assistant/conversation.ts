@@ -18,6 +18,8 @@ import {
   type ConversationContext,
   type ConversationPlan,
   type ConversationTurn,
+  type DatePreset,
+  type LeaseDateField,
   type PlanFilters,
   type PlanSubject,
 } from "@/lib/assistant/conversation-plan";
@@ -80,6 +82,42 @@ export interface AnswerGroup {
   readonly items: readonly AnswerItem[];
   readonly notes: readonly string[];
   readonly link: { readonly label: string; readonly href: string } | null;
+  /** S148: when the owning read served this data, as that read reports it. */
+  readonly asOf?: string | null;
+  /** S148: the owning read's own inclusive date coverage, when it is windowed. */
+  readonly coverage?: { readonly startIso: string; readonly endIso: string };
+  /** S148: the served snapshot's own currency, when the owning read reports one. */
+  readonly currency?: {
+    readonly state: "fresh" | "stale" | "expired";
+    readonly readAtIso: string;
+  };
+}
+
+/**
+ * S148/S149: the period a run actually used. A relative preset ("this month") re-evaluates on the
+ * America/Chicago business calendar each time it runs; an exact month stays fixed.
+ */
+export interface ExecutionRange {
+  readonly preset: DatePreset;
+  readonly month: string | null;
+  readonly intent: "relative" | "fixed";
+  readonly dateField: LeaseDateField | null;
+  readonly startIso: string | null;
+  readonly endIso: string;
+  readonly label: string;
+}
+
+/**
+ * S148/S149: what an answer executed, after follow-up merging, so a saved question keeps its
+ * resolved meaning (filters, people and record references), not only its words.
+ */
+export interface AnswerExecution {
+  readonly plan: ConversationPlan;
+  /** Previous-answer records a cross-subject follow-up was limited to. */
+  readonly relatedRefs: readonly OperationalRecordRef[];
+  /** The one record a detail follow-up asked about. */
+  readonly detailRef: OperationalRecordRef | null;
+  readonly range: ExecutionRange | null;
 }
 
 export interface ConversationAnswer {
@@ -97,6 +135,10 @@ export interface ConversationAnswer {
   readonly conversation: ConversationContext;
   /** True when the supplied context belonged to another sign-in and was discarded. */
   readonly contextReset: boolean;
+  /** S148: when this answer was produced. */
+  readonly answeredAtIso: string;
+  /** S148: the executed plan and period; null when nothing was executed (a question or a hand-off). */
+  readonly execution: AnswerExecution | null;
 }
 
 export interface ConversationRequest {
@@ -465,6 +507,17 @@ function readNotes(read: TypedSourceRead<OperationalSource>): string[] {
     : [];
 }
 
+/** S148: the owning read's own served time, coverage and currency, as structured fields. */
+function readProvenance(
+  read: TypedSourceRead<OperationalSource>,
+): Pick<AnswerGroup, "asOf" | "coverage" | "currency"> {
+  return {
+    asOf: read.asOf,
+    ...(read.coverage ? { coverage: read.coverage } : {}),
+    ...(read.currency ? { currency: read.currency } : {}),
+  };
+}
+
 /** A source that could not answer, or that the actor cannot see. It carries no count or label. */
 function statusGroup(read: TypedSourceRead<OperationalSource>): AnswerGroup {
   return {
@@ -480,6 +533,7 @@ function statusGroup(read: TypedSourceRead<OperationalSource>): AnswerGroup {
     items: [],
     notes: [],
     link: read.status === "unavailable" ? viewLink(read.source) : null,
+    ...readProvenance(read),
   };
 }
 
@@ -511,6 +565,7 @@ function finishGroup(input: {
     items,
     notes,
     link: input.link === undefined ? viewLink(input.read.source) : input.link,
+    ...readProvenance(input.read),
   };
 }
 
@@ -1676,6 +1731,7 @@ export async function runAssistantConversation(
   plan = completeClarification(plan, question, previous);
   const effective = mergeWithPrevious(plan, previous);
   plan = effective.plan;
+  let detailRef: OperationalRecordRef | null = null;
 
   const interpretation: string[] = [];
   if (contextReset) interpretation.push("Started a new conversation for this sign-in.");
@@ -1690,6 +1746,8 @@ export async function runAssistantConversation(
       clarification?: string | null;
       knowledgeQuestion?: string | null;
       awaiting?: AwaitingDetail | null;
+      /** True only when the plan was executed against the owning reads. */
+      executed?: boolean;
     } = {},
   ): ConversationAnswer => {
     const refs = groups
@@ -1717,6 +1775,10 @@ export async function runAssistantConversation(
         turns: [...turns, turn].slice(-MAX_CONTEXT_TURNS),
       },
       contextReset,
+      answeredAtIso: deps.nowIso,
+      execution: extra.executed
+        ? executionFor(plan, effective.relatedRefs, detailRef, deps.nowIso)
+        : null,
     };
     console.info(
       JSON.stringify({
@@ -1765,9 +1827,11 @@ export async function runAssistantConversation(
       ? respond("clarification", picked.text, [], { clarification: picked.text })
       : respond("answer", picked.text, []);
   if (picked?.kind === "ref") {
+    detailRef = picked.ref;
     const groups = await answerDetail(exec, picked.ref);
     return respond("answer", groups[0]?.summary ?? "", groups, {
       knowledgeQuestion: plan.kind === "mixed" ? question : null,
+      executed: true,
     });
   }
 
@@ -1821,7 +1885,32 @@ export async function runAssistantConversation(
       : `Here is what matches in ${new Set(groups.map((group) => group.source)).size} areas.`;
   return respond("answer", summary, groups, {
     knowledgeQuestion: plan.kind === "mixed" ? question : null,
+    executed: true,
   });
+}
+
+/** The executed plan and the concrete period it used at `nowIso`. */
+function executionFor(
+  plan: ConversationPlan,
+  relatedRefs: readonly OperationalRecordRef[],
+  detailRef: OperationalRecordRef | null,
+  nowIso: string,
+): AnswerExecution {
+  const range = plan.filters.range;
+  let resolved: ExecutionRange | null = null;
+  if (range) {
+    const business = resolveBusinessRange(range.preset, range.month, nowIso);
+    resolved = {
+      preset: range.preset,
+      month: range.month,
+      intent: range.preset === "month" ? "fixed" : "relative",
+      dateField: plan.filters.dateField,
+      startIso: business.startIso,
+      endIso: business.endIso,
+      label: business.label,
+    };
+  }
+  return { plan, relatedRefs: [...relatedRefs], detailRef, range: resolved };
 }
 
 function runSubject(
