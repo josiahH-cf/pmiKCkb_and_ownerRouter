@@ -30,6 +30,29 @@ export const LIVE_READONLY_ALLOWED_NON_SAFE_REQUESTS: ReadonlyMap<string, string
     ["POST /api/vendor/auth/session", "Create only the Vendor session cookie."],
   ]);
 
+/**
+ * S148: the signed-in user's own AI history writes. Under Live-read-only they are allowed only when
+ * every Firestore write goes to a local emulator (FIRESTORE_EMULATOR_HOST is set, as in the
+ * automated E2E harness), so the owner-scoped history path can be exercised end to end without
+ * touching a real project. Against a real project they stay refused like every other write.
+ */
+export const EMULATOR_ONLY_HISTORY_REQUESTS: readonly {
+  readonly method: string;
+  readonly pattern: RegExp;
+  readonly reason: string;
+}[] = [
+  {
+    method: "POST",
+    pattern: /^\/api\/assistant\/history\/turns$/,
+    reason: "Record a submitted question in the signed-in user's own emulator history.",
+  },
+  {
+    method: "PUT",
+    pattern: /^\/api\/assistant\/history\/turns\/[A-Za-z0-9-]{8,64}$/,
+    reason: "Finish one of the signed-in user's own emulator history turns.",
+  },
+];
+
 const SAFE_HTTP_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 export type LiveReadonlyRequestDecision =
@@ -51,6 +74,8 @@ export function decideLiveReadonlyRequest(input: {
   readonly method: string;
   readonly pathname: string;
   readonly searchParams?: Pick<URLSearchParams, "get">;
+  /** True only when Firestore is a local emulator (FIRESTORE_EMULATOR_HOST is set). */
+  readonly firestoreEmulator?: boolean;
 }): LiveReadonlyRequestDecision {
   const method = input.method.trim().toUpperCase();
 
@@ -87,6 +112,14 @@ export function decideLiveReadonlyRequest(input: {
 
   const key = `${method} ${input.pathname}`;
   if (LIVE_READONLY_ALLOWED_NON_SAFE_REQUESTS.has(key)) return { allowed: true };
+  if (
+    input.firestoreEmulator === true &&
+    EMULATOR_ONLY_HISTORY_REQUESTS.some(
+      (entry) => entry.method === method && entry.pattern.test(input.pathname),
+    )
+  ) {
+    return { allowed: true };
+  }
 
   return {
     allowed: false,

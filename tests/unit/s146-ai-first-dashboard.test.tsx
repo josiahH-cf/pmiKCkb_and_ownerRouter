@@ -120,7 +120,8 @@ describe("S146 AI-first Dashboard workspace", () => {
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("/api/assistant/query");
     const body = JSON.parse(String(init.body)) as Record<string, unknown>;
-    expect(Object.keys(body).sort()).toEqual(["conversation", "question"]);
+    // S148 adds only the submission's own operation id, used to reuse a duplicate's answer.
+    expect(Object.keys(body).sort()).toEqual(["conversation", "operationId", "question"]);
     expect(JSON.stringify(body)).not.toMatch(/process|space|workflow/i);
   });
 

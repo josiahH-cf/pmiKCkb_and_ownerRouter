@@ -1,34 +1,45 @@
 "use client";
 
-import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
-import Link from "next/link";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 import {
   useCallback,
   useEffect,
-  useId,
+  useLayoutEffect,
   useRef,
   useState,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { useAudioRecorder } from "@/components/hooks/useAudioRecorder";
-import { SourceStateBanner } from "@/components/source-state-banner/SourceStateBanner";
-import { BusyIndicator, Button, Field, Notice } from "@/components/ui";
-import { launchSpaces } from "@/lib/spaces";
-import type { AnswerGroup, ConversationAnswer } from "@/lib/assistant/conversation";
+import {
+  DashboardHistoryNav,
+  type HistoryListState,
+} from "@/components/ask/DashboardHistoryNav";
+import {
+  ANSWER_FAILED,
+  TurnView,
+  readErrorMessage,
+  type DashboardTurn,
+  type DashboardTurnState,
+} from "@/components/ask/DashboardTurnView";
+import { Button } from "@/components/ui";
+import {
+  beginHistoryTurn,
+  fetchConversation,
+  fetchHistoryPage,
+  finishHistoryTurn,
+  type HistoryConversationSummary,
+  type HistoryPageOutcome,
+  type RestoredConversation,
+} from "@/lib/assistant-history/client";
+import type { ConversationAnswer } from "@/lib/assistant/conversation";
 import type { ConversationContext } from "@/lib/assistant/conversation-plan";
-import { AskCorrectionKinds, type AskResponse } from "@/lib/schemas";
+import type { AskResponse } from "@/lib/schemas";
 
-type SelectOption = { label: string; value: string };
-
-type CorrectionKind = (typeof AskCorrectionKinds)[number];
-
-const CORRECTION_KIND_LABELS: Record<CorrectionKind, string> = {
-  wrong_fact: "Wrong fact",
-  wrong_source: "Wrong source",
-  missing_detail: "Missing detail",
-  wrong_process: "Wrong process",
-};
+export type {
+  DashboardTurn,
+  DashboardTurnState,
+} from "@/components/ask/DashboardTurnView";
 
 /** Existing example questions (the S138 question families); choosing one only fills the box. */
 export const DASHBOARD_EXAMPLE_QUESTIONS = [
@@ -37,6 +48,13 @@ export const DASHBOARD_EXAMPLE_QUESTIONS = [
   "What applications are connected?",
 ] as const;
 
+/**
+ * Where this page's conversations are kept. `saved`: the signed-in user's own server history.
+ * `verification`: a verification account, which is answered but never saved. `unavailable`: this
+ * environment refuses history writes (the local Live-read-only rehearsal).
+ */
+export type HistoryMode = "saved" | "verification" | "unavailable";
+
 async function blobToBase64(blob: Blob): Promise<string> {
   const buffer = await blob.arrayBuffer();
   let binary = "";
@@ -44,15 +62,6 @@ async function blobToBase64(blob: Blob): Promise<string> {
   for (let i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
   return btoa(binary);
 }
-
-const writableSpaceOptions = launchSpaces
-  .filter((space) => space.showInDirectory !== false && !space.readOnly)
-  .map((space) => ({ label: space.name, value: space.id }));
-const capturableStates = new Set([
-  "Partial Source",
-  "Open Placeholder",
-  "No Reliable Source Found",
-]);
 
 const subscribeToHydration = () => () => {};
 const clientReady = () => true;
@@ -66,31 +75,13 @@ export function newOperationId(): string {
   return `op-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
-/**
- * A turn's lifecycle on this page. `pending` while its requests run; `answered` once an answer
- * shows; `failed` when no answer arrived (the question is kept and Retry re-sends it); never a
- * completed answer unless one actually arrived.
- */
-export type DashboardTurnState = "pending" | "answered" | "failed";
-
-export interface DashboardTurn {
-  readonly id: string;
-  readonly question: string;
-  /** The conversation context sent with this question, kept so Retry asks exactly the same thing. */
-  readonly contextBefore: ConversationContext | null;
-  readonly state: DashboardTurnState;
-  readonly assistant: ConversationAnswer | null;
-  /** Set when the assistant could not answer but the knowledge answer may still show. */
-  readonly assistantUnavailable: boolean;
-  readonly knowledge: AskResponse | null;
-  /** The knowledge answer's own failure, shown on this turn. */
-  readonly knowledgeError: string | null;
-  readonly error: string | null;
-  readonly answeredAtIso: string | null;
-}
-
 export interface DashboardConversation {
+  /** This page's id for the conversation. */
   readonly id: string;
+  /** The first question's operation id, which names the conversation in history. */
+  readonly key: string | null;
+  /** The history id once a turn was saved or the conversation was reopened. */
+  readonly serverId: string | null;
   readonly startedAtIso: string;
   readonly turns: readonly DashboardTurn[];
   /** The latest server context, sent with the next question in this conversation. */
@@ -100,31 +91,94 @@ export interface DashboardConversation {
 function newConversation(): DashboardConversation {
   return {
     id: newOperationId(),
+    key: null,
+    serverId: null,
     startedAtIso: new Date().toISOString(),
     turns: [],
     context: null,
   };
 }
 
-const ANSWER_FAILED =
-  "The answer could not be loaded. Your question is kept, so you can try again.";
+const VERIFICATION_NOTE =
+  "History is not saved for verification accounts. Conversations last while this page stays open.";
+const UNAVAILABLE_NOTE =
+  "History is not saved in this environment. Conversations last while this page stays open.";
+
+/** A reopened conversation, shown exactly as stored; nothing in it is asked again. */
+function restoredConversation(restored: RestoredConversation): DashboardConversation {
+  const turns: DashboardTurn[] = restored.turns.map((turn) => {
+    const state: DashboardTurnState =
+      turn.displayState === "completed"
+        ? "answered"
+        : turn.displayState === "in_progress"
+          ? "in_progress"
+          : turn.displayState;
+    return {
+      id: turn.operationId,
+      question: turn.question,
+      contextBefore: null,
+      state,
+      assistant: turn.assistant,
+      assistantUnavailable: false,
+      knowledge: turn.knowledge,
+      knowledgeError: null,
+      error: null,
+      answeredAtIso: turn.answeredAtIso,
+      restored: true,
+      accessChanged: turn.accessChanged,
+      saveState: "saved",
+    };
+  });
+  // Follow-ups continue from the latest stored context; they re-read current records.
+  const lastContext =
+    [...restored.turns].reverse().find((turn) => turn.assistant)?.assistant
+      ?.conversation ?? null;
+  return {
+    id: newOperationId(),
+    key: restored.conversation.conversationKey,
+    serverId: restored.conversation.conversationId,
+    startedAtIso: restored.conversation.createdAtIso,
+    turns,
+    context: lastContext,
+  };
+}
 
 /**
- * S146 AI-first Dashboard workspace. The question box leads the main column; each question and its
- * answer appear below it in order, with their own loading, failure and retry state. Nothing here
- * selects, suggests, detects or starts a process: operational questions use the S138 assistant and
- * policy questions use the knowledge answer. Nothing submits on mount or when an earlier
- * conversation is reopened.
+ * S146/S148 AI-first Dashboard workspace. The question box leads the main column; each question and
+ * its answer appear below it in order, with their own loading, failure, retry and save state.
+ * Nothing here selects, suggests, detects or starts a process: operational questions use the S138
+ * assistant and policy questions use the knowledge answer. Nothing submits on mount, and reopening
+ * a conversation from history shows it as stored without asking again.
  */
-export function AskForm({ secondary }: Readonly<{ secondary?: ReactNode }>) {
+export function AskForm({
+  secondary,
+  historyMode = "unavailable",
+  ownerKey = "",
+  initialHistory = null,
+}: Readonly<{
+  secondary?: ReactNode;
+  historyMode?: HistoryMode;
+  ownerKey?: string;
+  /** The first history page, read on the server and streamed in; never fetched on mount. */
+  initialHistory?: Promise<HistoryPageOutcome> | null;
+}>) {
   // Until hydration, a native form submit would put the question in the page URL.
   const ready = useSyncExternalStore(subscribeToHydration, clientReady, serverReady);
+  const saving = historyMode === "saved";
   const [question, setQuestion] = useState("");
   const [conversations, setConversations] = useState<readonly DashboardConversation[]>(
     () => [newConversation()],
   );
   const [activeId, setActiveId] = useState(() => conversations[0].id);
   const [announcement, setAnnouncement] = useState("");
+  // Without a first page to wait for, the list offers its own retry instead of loading forever.
+  const [history, setHistory] = useState<HistoryListState>({
+    status: !saving ? "ok" : initialHistory ? "loading" : "failed",
+    entries: [],
+    nextCursor: null,
+    olderStatus: null,
+  });
+  const [opening, setOpening] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [dictationStatus, setDictationStatus] = useState("");
   const dictateButtonRef = useRef<HTMLButtonElement>(null);
@@ -132,11 +186,50 @@ export function AskForm({ secondary }: Readonly<{ secondary?: ReactNode }>) {
   const turnRefs = useRef(new Map<string, HTMLElement>());
   const typedSinceSubmit = useRef(false);
   const pendingFocus = useRef<string | null>(null);
+  // The latest conversations for async save steps; handlers also update it before their setState.
+  const conversationsRef = useRef(conversations);
+  useLayoutEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
 
   const active = conversations.find((entry) => entry.id === activeId) ?? conversations[0];
   const isPending = active.turns.some((turn) => turn.state === "pending");
   const earlier = conversations.filter(
     (entry) => entry.id !== active.id && entry.turns.length > 0,
+  );
+
+  // The first history page arrives with the page; reading it starts no request of its own.
+  useEffect(() => {
+    if (!saving || !initialHistory) return;
+    let current = true;
+    void initialHistory.then((outcome) => {
+      if (!current) return;
+      setHistory(
+        outcome.status === "ok" && outcome.page.ownerKey === ownerKey
+          ? {
+              status: "ok",
+              entries: outcome.page.conversations,
+              nextCursor: outcome.page.nextCursor,
+              olderStatus: null,
+            }
+          : { status: "failed", entries: [], nextCursor: null, olderStatus: null },
+      );
+    });
+    return () => {
+      current = false;
+    };
+  }, [initialHistory, ownerKey, saving]);
+
+  const updateConversation = useCallback(
+    (
+      conversationId: string,
+      update: (entry: DashboardConversation) => DashboardConversation,
+    ) => {
+      setConversations((previous) =>
+        previous.map((entry) => (entry.id === conversationId ? update(entry) : entry)),
+      );
+    },
+    [],
   );
 
   const updateTurn = useCallback(
@@ -146,21 +239,13 @@ export function AskForm({ secondary }: Readonly<{ secondary?: ReactNode }>) {
       update: (turn: DashboardTurn) => DashboardTurn,
       context?: ConversationContext | null,
     ) => {
-      setConversations((previous) =>
-        previous.map((entry) =>
-          entry.id !== conversationId
-            ? entry
-            : {
-                ...entry,
-                context: context === undefined ? entry.context : context,
-                turns: entry.turns.map((turn) =>
-                  turn.id === turnId ? update(turn) : turn,
-                ),
-              },
-        ),
-      );
+      updateConversation(conversationId, (entry) => ({
+        ...entry,
+        context: context === undefined ? entry.context : context,
+        turns: entry.turns.map((turn) => (turn.id === turnId ? update(turn) : turn)),
+      }));
     },
-    [],
+    [updateConversation],
   );
 
   // Move focus to a turn once its answer (or failure) is shown, unless the person has started
@@ -175,6 +260,65 @@ export function AskForm({ secondary }: Readonly<{ secondary?: ReactNode }>) {
       typedSinceSubmit.current && document.activeElement === questionRef.current;
     if (!typing) turnRefs.current.get(target)?.focus();
   }, [active.turns]);
+
+  function upsertHistoryEntry(entry: HistoryConversationSummary) {
+    setHistory((previous) => ({
+      ...previous,
+      status: previous.status === "loading" ? previous.status : "ok",
+      entries: [
+        entry,
+        ...previous.entries.filter(
+          (item) => item.conversationId !== entry.conversationId,
+        ),
+      ],
+    }));
+  }
+
+  async function saveTurn(conversationId: string, turnId: string) {
+    const conversation = conversationsRef.current.find(
+      (entry) => entry.id === conversationId,
+    );
+    const turn = conversation?.turns.find((entry) => entry.id === turnId);
+    if (!conversation?.key || !turn || turn.state !== "answered") return;
+    updateTurn(conversationId, turnId, (current) => ({
+      ...current,
+      saveState: "saving",
+    }));
+    const outcome = await finishHistoryTurn(turn.id, {
+      conversationKey: conversation.key,
+      question: turn.question,
+      state: "completed",
+      assistant: turn.assistant,
+      knowledge: turn.knowledge,
+    });
+    updateTurn(conversationId, turnId, (current) => ({
+      ...current,
+      saveState: outcome.status === "saved" ? "saved" : "failed",
+    }));
+    if (outcome.status === "saved") {
+      updateConversation(conversationId, (entry) => ({
+        ...entry,
+        serverId: outcome.conversationId,
+      }));
+      const latest = conversationsRef.current.find(
+        (entry) => entry.id === conversationId,
+      );
+      upsertHistoryEntry({
+        conversationId: outcome.conversationId,
+        conversationKey: conversation.key,
+        title: excerpt(latest?.turns[0]?.question ?? turn.question),
+        createdAtIso: conversation.startedAtIso,
+        updatedAtIso: new Date().toISOString(),
+        turnCount: latest?.turns.length ?? 1,
+        lastState: "completed",
+      });
+      setAnnouncement("Answer ready and saved to your history.");
+    } else {
+      setAnnouncement(
+        "Answer ready, but it is not saved to your history yet. Use Retry saving.",
+      );
+    }
+  }
 
   async function askKnowledge(
     asked: string,
@@ -208,11 +352,16 @@ export function AskForm({ secondary }: Readonly<{ secondary?: ReactNode }>) {
     try {
       // S138: operational questions are answered from the records this user can already see,
       // continuing this conversation. A policy or how-to question (or the policy half of a mixed
-      // question) also continues to the knowledge answer below.
+      // question) also continues to the knowledge answer below. S148: the operation id lets the
+      // server reuse this submission's answer for a duplicate delivery instead of asking again.
       const response = await fetch("/api/assistant/query", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ question: asked, conversation: turn.contextBefore }),
+        body: JSON.stringify({
+          question: asked,
+          conversation: turn.contextBefore,
+          operationId: turn.id,
+        }),
       });
       if (response.ok) {
         assistant = (await response.json()) as ConversationAnswer;
@@ -224,30 +373,38 @@ export function AskForm({ secondary }: Readonly<{ secondary?: ReactNode }>) {
       assistantUnavailable = true;
     }
 
-    if (assistant && !assistant.knowledgeQuestion) {
-      finishTurn(conversationId, turn.id, asked, {
-        state: "answered",
-        assistant,
-        assistantUnavailable: false,
-        knowledge: null,
-        knowledgeError: null,
-        error: null,
-        context: nextContext,
-      });
-      return;
-    }
-
-    const knowledge = await askKnowledge(asked);
+    let knowledge: { answer: AskResponse | null; error: string | null } = {
+      answer: null,
+      error: null,
+    };
+    if (!assistant || assistant.knowledgeQuestion) knowledge = await askKnowledge(asked);
     const answered = Boolean(assistant) || Boolean(knowledge.answer);
     finishTurn(conversationId, turn.id, asked, {
       state: answered ? "answered" : "failed",
       assistant,
-      assistantUnavailable,
+      assistantUnavailable: assistantUnavailable && answered,
       knowledge: knowledge.answer,
       knowledgeError: answered ? knowledge.error : null,
       error: answered ? null : (knowledge.error ?? ANSWER_FAILED),
       context: nextContext,
     });
+    if (!saving) return;
+    if (answered) {
+      await saveTurn(conversationId, turn.id);
+    } else {
+      const conversation = conversationsRef.current.find(
+        (entry) => entry.id === conversationId,
+      );
+      // The failed state is recorded so history never shows this question as answered.
+      if (conversation?.key)
+        void finishHistoryTurn(turn.id, {
+          conversationKey: conversation.key,
+          question: asked,
+          state: "failed",
+          assistant: null,
+          knowledge: null,
+        });
+    }
   }
 
   function finishTurn(
@@ -264,21 +421,27 @@ export function AskForm({ secondary }: Readonly<{ secondary?: ReactNode }>) {
       context: ConversationContext | null | undefined;
     },
   ) {
-    updateTurn(
-      conversationId,
-      turnId,
-      (turn) => ({
-        ...turn,
-        state: outcome.state,
-        assistant: outcome.assistant,
-        assistantUnavailable: outcome.assistantUnavailable,
-        knowledge: outcome.knowledge,
-        knowledgeError: outcome.knowledgeError,
-        error: outcome.error,
-        answeredAtIso: outcome.state === "answered" ? new Date().toISOString() : null,
-      }),
-      outcome.context,
+    const next: Partial<DashboardTurn> = {
+      state: outcome.state,
+      assistant: outcome.assistant,
+      assistantUnavailable: outcome.assistantUnavailable,
+      knowledge: outcome.knowledge,
+      knowledgeError: outcome.knowledgeError,
+      error: outcome.error,
+      answeredAtIso: outcome.state === "answered" ? new Date().toISOString() : null,
+    };
+    // Keep the ref current immediately so the save that follows sees the answer that was shown.
+    conversationsRef.current = conversationsRef.current.map((entry) =>
+      entry.id !== conversationId
+        ? entry
+        : {
+            ...entry,
+            turns: entry.turns.map((turn) =>
+              turn.id === turnId ? { ...turn, ...next } : turn,
+            ),
+          },
     );
+    updateTurn(conversationId, turnId, (turn) => ({ ...turn, ...next }), outcome.context);
     if (outcome.state === "answered") {
       // A late answer never discards newer typing: the box clears only if it still holds this
       // exact question.
@@ -304,21 +467,33 @@ export function AskForm({ secondary }: Readonly<{ secondary?: ReactNode }>) {
       knowledgeError: null,
       error: null,
       answeredAtIso: null,
+      restored: false,
+      accessChanged: false,
+      saveState: "none",
     };
     const conversationId = active.id;
-    setConversations((previous) =>
-      previous.map((entry) =>
-        entry.id === conversationId ? { ...entry, turns: [...entry.turns, turn] } : entry,
-      ),
-    );
+    const key = active.key ?? turn.id;
+    const update = (entry: DashboardConversation) =>
+      entry.id === conversationId
+        ? { ...entry, key, turns: [...entry.turns, turn] }
+        : entry;
+    conversationsRef.current = conversationsRef.current.map(update);
+    setConversations((previous) => previous.map(update));
     typedSinceSubmit.current = false;
     pendingFocus.current = turn.id;
     setAnnouncement("Working on your answer.");
+    // Recording the question first lets history show an interrupted question as interrupted.
+    if (saving)
+      void beginHistoryTurn({
+        operationId: turn.id,
+        conversationKey: key,
+        question: asked,
+      });
     await runTurn(conversationId, turn);
   }
 
   async function retry(conversationId: string, turn: DashboardTurn) {
-    if (turn.state !== "failed") return;
+    if (turn.state !== "failed" || turn.restored) return;
     updateTurn(conversationId, turn.id, (current) => ({
       ...current,
       state: "pending",
@@ -331,21 +506,95 @@ export function AskForm({ secondary }: Readonly<{ secondary?: ReactNode }>) {
 
   function startNewConversation() {
     const next = newConversation();
+    conversationsRef.current = [next, ...conversationsRef.current];
     setConversations((previous) => [next, ...previous]);
     setActiveId(next.id);
     setAnnouncement(
-      "Started a new conversation. The earlier one is listed under Conversations.",
+      saving
+        ? "Started a new conversation. The earlier one stays in your history."
+        : "Started a new conversation. The earlier one is listed under Conversations.",
     );
     requestAnimationFrame(() => questionRef.current?.focus());
+  }
+
+  function focusFirstTurn(conversation: DashboardConversation | undefined) {
+    requestAnimationFrame(() => {
+      const target = conversation?.turns[0];
+      if (target) turnRefs.current.get(target.id)?.focus();
+    });
   }
 
   function reopenConversation(id: string) {
     setActiveId(id);
     setAnnouncement("Opened an earlier conversation. Nothing was asked again.");
-    requestAnimationFrame(() => {
-      const target = conversations.find((entry) => entry.id === id)?.turns[0];
-      if (target) turnRefs.current.get(target.id)?.focus();
-    });
+    focusFirstTurn(conversations.find((entry) => entry.id === id));
+  }
+
+  async function openFromHistory(conversationId: string) {
+    const loaded = conversationsRef.current.find(
+      (entry) => entry.serverId === conversationId,
+    );
+    if (loaded) {
+      reopenConversation(loaded.id);
+      return;
+    }
+    setOpening(conversationId);
+    const restored = await fetchConversation(conversationId);
+    setOpening(null);
+    if (!restored || restored.ownerKey !== ownerKey) {
+      setAnnouncement(
+        "That conversation could not be opened just now. Nothing was changed.",
+      );
+      return;
+    }
+    const conversation = restoredConversation(restored);
+    conversationsRef.current = [conversation, ...conversationsRef.current];
+    setConversations((previous) => [conversation, ...previous]);
+    setActiveId(conversation.id);
+    setAnnouncement(
+      `Opened your conversation from ${formatBusinessTimestamp(restored.conversation.updatedAtIso)}. Nothing was asked again.`,
+    );
+    focusFirstTurn(conversation);
+  }
+
+  async function reloadHistory() {
+    setHistory((previous) => ({ ...previous, status: "loading" }));
+    const outcome = await fetchHistoryPage(null);
+    setHistory(
+      outcome.status === "ok" && outcome.page.ownerKey === ownerKey
+        ? {
+            status: "ok",
+            entries: outcome.page.conversations,
+            nextCursor: outcome.page.nextCursor,
+            olderStatus: null,
+          }
+        : { status: "failed", entries: [], nextCursor: null, olderStatus: null },
+    );
+  }
+
+  async function showOlderHistory() {
+    const cursor = history.nextCursor;
+    if (!cursor) return;
+    setHistory((previous) => ({ ...previous, olderStatus: "loading" }));
+    const outcome = await fetchHistoryPage(cursor);
+    if (outcome.status !== "ok" || outcome.page.ownerKey !== ownerKey) {
+      setHistory((previous) => ({ ...previous, olderStatus: "failed" }));
+      return;
+    }
+    setHistory((previous) => ({
+      ...previous,
+      entries: [
+        ...previous.entries,
+        ...outcome.page.conversations.filter(
+          (entry) =>
+            !previous.entries.some(
+              (item) => item.conversationId === entry.conversationId,
+            ),
+        ),
+      ],
+      nextCursor: outcome.page.nextCursor,
+      olderStatus: null,
+    }));
   }
 
   async function transcribeAudio(blob: Blob) {
@@ -528,7 +777,9 @@ export function AskForm({ secondary }: Readonly<{ secondary?: ReactNode }>) {
         {active.turns.length > 0 ? (
           <section aria-label="Conversation" className="dashboard-conversation">
             <p className="muted dashboard-conversation-note">
-              This conversation lasts while this page stays open.
+              {saving
+                ? "Each answer in this conversation is saved to your history."
+                : "This conversation lasts while this page stays open."}
             </p>
             <ol className="dashboard-turns">
               {active.turns.map((turn, index) => (
@@ -536,6 +787,7 @@ export function AskForm({ secondary }: Readonly<{ secondary?: ReactNode }>) {
                   <TurnView
                     index={index}
                     onRetry={() => void retry(active.id, turn)}
+                    onRetrySave={() => void saveTurn(active.id, turn.id)}
                     registerRef={(element) => {
                       if (element) turnRefs.current.set(turn.id, element);
                       else turnRefs.current.delete(turn.id);
@@ -550,29 +802,41 @@ export function AskForm({ secondary }: Readonly<{ secondary?: ReactNode }>) {
       </div>
 
       <div className="dashboard-secondary">
-        {earlier.length > 0 ? (
+        {saving ? (
+          <DashboardHistoryNav
+            activeConversationId={opening ?? active.serverId}
+            onOpen={(conversationId) => void openFromHistory(conversationId)}
+            onRetry={() => void reloadHistory()}
+            onShowOlder={() => void showOlderHistory()}
+            state={history}
+          />
+        ) : (
           <nav aria-label="Conversations" className="panel dashboard-nav">
             <h2>Conversations</h2>
-            <p className="muted">Earlier conversations from this visit.</p>
-            <ul className="dashboard-nav-list">
-              {earlier.map((entry) => (
-                <li key={entry.id}>
-                  <button
-                    className="link-button"
-                    onClick={() => reopenConversation(entry.id)}
-                    type="button"
-                  >
-                    {excerpt(entry.turns[0]?.question ?? "Conversation")}
-                  </button>
-                  <span className="muted">
-                    {formatBusinessTimestamp(entry.startedAtIso)} · {entry.turns.length}{" "}
-                    {entry.turns.length === 1 ? "question" : "questions"}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <p className="muted">
+              {historyMode === "verification" ? VERIFICATION_NOTE : UNAVAILABLE_NOTE}
+            </p>
+            {earlier.length > 0 ? (
+              <ul className="dashboard-nav-list">
+                {earlier.map((entry) => (
+                  <li key={entry.id}>
+                    <button
+                      className="link-button"
+                      onClick={() => reopenConversation(entry.id)}
+                      type="button"
+                    >
+                      {excerpt(entry.turns[0]?.question ?? "Conversation")}
+                    </button>
+                    <span className="muted">
+                      {formatBusinessTimestamp(entry.startedAtIso)} · {entry.turns.length}{" "}
+                      {entry.turns.length === 1 ? "question" : "questions"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </nav>
-        ) : null}
+        )}
         {secondary}
       </div>
     </div>
@@ -582,408 +846,4 @@ export function AskForm({ secondary }: Readonly<{ secondary?: ReactNode }>) {
 export function excerpt(text: string, max = 80): string {
   const clean = text.replace(/\s+/g, " ").trim();
   return clean.length > max ? `${clean.slice(0, max - 1).trimEnd()}…` : clean;
-}
-
-/** One question and everything shown for it, with its own pending, failure and retry state. */
-function TurnView({
-  turn,
-  index,
-  onRetry,
-  registerRef,
-}: Readonly<{
-  turn: DashboardTurn;
-  index: number;
-  onRetry: () => void;
-  registerRef: (element: HTMLElement | null) => void;
-}>) {
-  const headingId = `dashboard-turn-${index + 1}`;
-  return (
-    <article
-      aria-busy={turn.state === "pending" ? "true" : undefined}
-      aria-labelledby={headingId}
-      className="panel dashboard-turn"
-      data-state={turn.state}
-      ref={registerRef}
-      tabIndex={-1}
-    >
-      <p className="dashboard-turn-question" id={headingId}>
-        <span className="muted">You asked: </span>
-        {turn.question}
-      </p>
-      {turn.state === "pending" ? (
-        <BusyIndicator delayMs={0} label="Working on your answer" />
-      ) : null}
-      {turn.state === "failed" ? (
-        <Notice actionLabel="Retry" onAction={onRetry} tone="error">
-          {turn.error ?? ANSWER_FAILED}
-        </Notice>
-      ) : null}
-      {turn.assistant && turn.assistant.kind !== "knowledge" ? (
-        <section aria-label="Assistant answer" className="ui-stack">
-          <ConversationAnswerView answer={turn.assistant} />
-        </section>
-      ) : null}
-      {turn.assistantUnavailable && turn.knowledge ? (
-        <p className="muted">
-          The assistant could not answer just now, so only the knowledge answer is shown.
-        </p>
-      ) : null}
-      {turn.knowledge ? <KnowledgeAnswerView result={turn.knowledge} /> : null}
-      {turn.knowledgeError && turn.state === "answered" ? (
-        <p className="muted">{turn.knowledgeError}</p>
-      ) : null}
-    </article>
-  );
-}
-
-/** The knowledge answer for one turn, with its own capture and correction controls. */
-function KnowledgeAnswerView({ result }: Readonly<{ result: AskResponse }>) {
-  const [captureSpace, setCaptureSpace] = useState(
-    writableSpaceOptions[0]?.value ?? "lease-renewals",
-  );
-  const [captureStatus, setCaptureStatus] = useState("");
-  const [isCapturing, setIsCapturing] = useState(false);
-  // S32: file a plain-language correction on the answer. Proposed-only; changes nothing on its own.
-  const [showCorrection, setShowCorrection] = useState(false);
-  const [correctionKind, setCorrectionKind] = useState<CorrectionKind>("wrong_fact");
-  const [correctionNote, setCorrectionNote] = useState("");
-  const [correctionStatus, setCorrectionStatus] = useState("");
-  const [isCorrecting, setIsCorrecting] = useState(false);
-  const canCapture = capturableStates.has(result.source_state);
-  const idBase = useId();
-
-  async function captureTask() {
-    setIsCapturing(true);
-    setCaptureStatus("");
-    try {
-      const response = await fetch("/api/ask/capture", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          priority: "P1",
-          question: result.question,
-          source_state: result.source_state,
-          space_id: captureSpace,
-        }),
-      });
-      setCaptureStatus(
-        response.ok
-          ? "Capture task created."
-          : await readErrorMessage(response, "Capture failed."),
-      );
-    } catch {
-      setCaptureStatus("Capture failed.");
-    } finally {
-      setIsCapturing(false);
-    }
-  }
-
-  async function submitCorrection() {
-    if (correctionNote.trim() === "") return;
-    setIsCorrecting(true);
-    setCorrectionStatus("");
-    try {
-      const response = await fetch("/api/ask/correct", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          space_id: captureSpace,
-          question: result.question,
-          kind: correctionKind,
-          note: correctionNote.trim(),
-          source_state: result.source_state,
-          citations: result.citations,
-        }),
-      });
-      if (response.ok) {
-        // Proposed-only: nothing about the answer changes. An Admin reviews it separately.
-        setCorrectionStatus("Correction filed for review. The answer is unchanged.");
-        setCorrectionNote("");
-        setShowCorrection(false);
-      } else {
-        setCorrectionStatus(
-          await readErrorMessage(response, "Could not file the correction."),
-        );
-      }
-    } catch {
-      setCorrectionStatus("Could not file the correction.");
-    } finally {
-      setIsCorrecting(false);
-    }
-  }
-
-  return (
-    <section aria-label="Knowledge answer" className="ui-stack">
-      <SourceStateBanner state={result.source_state} />
-      <h2>Answer</h2>
-      <p>{result.answer}</p>
-      {result.answered_by ? (
-        <p className="muted">
-          Answered by {result.answered_by.model} · {result.answered_by.source_count}{" "}
-          {result.answered_by.source_count === 1 ? "source" : "sources"}
-        </p>
-      ) : null}
-      {result.handling_steps.length > 0 ? (
-        <>
-          <h3>Handling Steps</h3>
-          <ol>
-            {result.handling_steps.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
-        </>
-      ) : null}
-      {result.citations.length > 0 ? (
-        <>
-          <h3>Sources</h3>
-          <ul className="source-list">
-            {result.citations.map((citation) => (
-              <li key={citation.source_id}>
-                <a href={citation.url} rel="noreferrer" target="_blank">
-                  {citation.title}
-                </a>
-                {citation.last_reviewed_at ? (
-                  <span className="muted">
-                    {" "}
-                    · reviewed {formatReviewedDate(citation.last_reviewed_at)}
-                  </span>
-                ) : null}
-                {citation.freshness &&
-                (citation.freshness.status === "review-due" ||
-                  citation.freshness.status === "stale") ? (
-                  <span
-                    className={`freshness-chip freshness-${citation.freshness.status}`}
-                  >
-                    {" "}
-                    · {citation.freshness.status === "stale" ? "Stale" : "Review due"}
-                  </span>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : null}
-      {result.draft ? (
-        <>
-          <h3>Draft</h3>
-          <pre className="draft-box">{result.draft}</pre>
-        </>
-      ) : null}
-      {result.escalation_owner ? (
-        <p>
-          Escalation owner: <strong>{result.escalation_owner}</strong>
-        </p>
-      ) : null}
-      {canCapture ? (
-        <div className="capture-panel">
-          <h3>Capture Task</h3>
-          <SelectField
-            id={`${idBase}-capture-space`}
-            label="Space"
-            onChange={setCaptureSpace}
-            options={writableSpaceOptions}
-            value={captureSpace}
-          />
-          <button
-            className="secondary-button"
-            disabled={isCapturing}
-            onClick={() => void captureTask()}
-            type="button"
-          >
-            {isCapturing ? "Creating" : "Create Capture Task"}
-          </button>
-        </div>
-      ) : null}
-      {captureStatus ? <p className="muted">{captureStatus}</p> : null}
-      <div className="capture-panel">
-        {showCorrection ? (
-          <>
-            <h3>Suggest a correction</h3>
-            <SelectField
-              id={`${idBase}-correction-kind`}
-              label="What was wrong"
-              onChange={(value) => setCorrectionKind(value as CorrectionKind)}
-              options={AskCorrectionKinds.map((kind) => ({
-                label: CORRECTION_KIND_LABELS[kind],
-                value: kind,
-              }))}
-              value={correctionKind}
-            />
-            <Field htmlFor={`${idBase}-correction-note`} label="Correction">
-              <textarea
-                id={`${idBase}-correction-note`}
-                onChange={(event) => setCorrectionNote(event.target.value)}
-                rows={3}
-                value={correctionNote}
-              />
-            </Field>
-            <p className="muted">
-              Filing a correction changes nothing on its own. An Admin reviews it.
-            </p>
-            <div className="ui-row">
-              <button
-                className="secondary-button"
-                disabled={isCorrecting || correctionNote.trim() === ""}
-                onClick={() => void submitCorrection()}
-                type="button"
-              >
-                {isCorrecting ? "Filing" : "File correction"}
-              </button>
-              <button
-                className="link-button"
-                onClick={() => setShowCorrection(false)}
-                type="button"
-              >
-                Cancel
-              </button>
-            </div>
-          </>
-        ) : (
-          <button
-            className="link-button"
-            onClick={() => {
-              setShowCorrection(true);
-              setCorrectionStatus("");
-            }}
-            type="button"
-          >
-            Suggest a correction
-          </button>
-        )}
-        {correctionStatus ? <p className="muted">{correctionStatus}</p> : null}
-      </div>
-    </section>
-  );
-}
-
-function SelectField({
-  id,
-  label,
-  onChange,
-  options,
-  value,
-}: Readonly<{
-  id: string;
-  label: string;
-  onChange: (value: string) => void;
-  options: SelectOption[];
-  value: string;
-}>) {
-  return (
-    <Field htmlFor={id} label={label}>
-      <select id={id} onChange={(event) => onChange(event.target.value)} value={value}>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </Field>
-  );
-}
-
-/** Show just the calendar date when the review value is an ISO timestamp; otherwise show it verbatim. */
-function formatReviewedDate(value: string): string {
-  const match = value.match(/^\d{4}-\d{2}-\d{2}/);
-  return match ? formatCalendarDate(match[0]) : value;
-}
-
-async function readErrorMessage(response: Response, fallback: string) {
-  const payload = (await response.json().catch(() => ({}))) as { error?: unknown };
-
-  return typeof payload.error === "string" && payload.error.trim()
-    ? payload.error
-    : fallback;
-}
-
-/** One answer: every record, count and link comes from the owning service through the server. */
-export function ConversationAnswerView({
-  answer,
-}: Readonly<{ answer: ConversationAnswer }>) {
-  if (answer.kind === "knowledge") return null;
-  if (answer.kind === "clarification") {
-    return (
-      <>
-        <h2>One more detail</h2>
-        <p>{answer.clarification}</p>
-      </>
-    );
-  }
-  if (answer.kind === "unsupported") return <p className="muted">{answer.summary}</p>;
-  // Items are numbered across groups in answer order, the same order "the second one" refers to.
-  const starts = answer.groups.map(
-    (_, index) =>
-      1 +
-      answer.groups
-        .slice(0, index)
-        .reduce((total, group) => total + group.items.length, 0),
-  );
-  return (
-    <>
-      <h2>Answer</h2>
-      <p>{answer.summary}</p>
-      {answer.interpretation.length > 0 ? (
-        <ul className="muted">
-          {answer.interpretation.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
-        </ul>
-      ) : null}
-      {answer.groups.map((group, index) => (
-        <AnswerGroupView
-          group={group}
-          key={`${group.source}-${index}`}
-          showSummary={answer.groups.length > 1}
-          start={starts[index]}
-        />
-      ))}
-    </>
-  );
-}
-
-function AnswerGroupView({
-  group,
-  showSummary,
-  start,
-}: Readonly<{ group: AnswerGroup; showSummary: boolean; start: number }>) {
-  return (
-    <div className="ui-stack">
-      {showSummary ? (
-        <>
-          <h3>{group.title}</h3>
-          <p>{group.summary}</p>
-        </>
-      ) : null}
-      {group.items.length > 0 ? (
-        <ol className="ui-rows" start={start}>
-          {group.items.map((item) => (
-            <li key={`${item.ref.source}:${item.ref.id}`}>
-              <Link href={item.href}>{item.title}</Link>
-              <span className="muted"> · {item.detail}</span>
-              {item.blockers.length > 0 ? (
-                <span className="muted"> · {item.blockers.join("; ")}</span>
-              ) : null}
-              {item.facts && item.facts.length > 0 ? (
-                <ul className="muted">
-                  {item.facts.map((fact) => (
-                    <li key={fact}>{fact}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </li>
-          ))}
-        </ol>
-      ) : null}
-      {group.notes.map((note) => (
-        <p className="muted" key={note}>
-          {note}
-        </p>
-      ))}
-      {group.link ? (
-        <p>
-          <Link href={group.link.href}>{group.link.label}</Link>
-        </p>
-      ) : null}
-    </div>
-  );
 }
