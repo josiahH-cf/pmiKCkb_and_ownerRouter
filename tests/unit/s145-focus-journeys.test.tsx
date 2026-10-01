@@ -295,6 +295,42 @@ describe("S145 Focus journeys", { timeout: 300_000 }, () => {
     expect(routes.writes()).toEqual([]);
   });
 
+  it("records the optional comp preparation in the pane and returns to the required task", async () => {
+    const start = manualFixture();
+    const routes = stubRenewalRoutes(start);
+    const user = userEvent.setup();
+    render(workspaceElement({ manual: start }));
+    await settle();
+    await openFocus(user);
+    expect(heading()).toHaveTextContent("Owner outreach");
+    const ready = within(focusPane()).getByRole("navigation", {
+      name: "Other ready tasks",
+    });
+    await user.click(
+      within(ready).getByRole("button", { name: "Market rent comparison" }),
+    );
+    await settle();
+    expect(heading()).toHaveTextContent("Market rent comparison");
+    const comps = document.getElementById("renewal-section-comps")!;
+    expect(comps).toBeVisible();
+    await user.type(
+      within(comps).getByLabelText("Source of the comparison and review notes"),
+      "Comparable leases reviewed by staff",
+    );
+    await user.click(
+      within(comps).getByRole("button", { name: "Save comp preparation" }),
+    );
+    await settle();
+    // Saved staff work advances to the next ready task, the required outreach.
+    expect(routes.state()!.preparation).toBeTruthy();
+    expect(heading()).toHaveTextContent("Owner outreach");
+    const announcement = within(focusPane())
+      .getAllByRole("status")
+      .find((node) => node.getAttribute("aria-live") === "polite")!;
+    expect(announcement).toHaveTextContent("Recorded. Next: Owner outreach.");
+    expect(routes.writes()).toHaveLength(1);
+  });
+
   it("puts unverified rent first and moves on when a late source refresh confirms it", async () => {
     const start = manualFixture();
     const routes = stubRenewalRoutes(start);

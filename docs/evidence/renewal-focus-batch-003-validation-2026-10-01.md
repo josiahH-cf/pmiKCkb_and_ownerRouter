@@ -62,8 +62,9 @@ release readback. Human verdict: NOT RUN — no human observer.
 - **Journeys (unit):** in the Focus pane, the accepted branch runs to staff completion across a
   dirty-input switch, a Gmail return and a reload. An owner decline runs to the non-renewal
   handoff and completion. A tenant counter reopens the owner response, and new terms reopen the
-  offer. A concurrent save delivered by refresh re-derives the next task without a submission. A
-  late refresh that confirms the rent moves on with "Done", not "Recorded". After each journey,
+  offer. The optional comp preparation is saved from the pane, which then returns to the required
+  outreach. A concurrent save delivered by refresh re-derives the next task without a submission.
+  A late refresh that confirms the rent moves on with "Done", not "Recorded". After each journey,
   Full view shows the same records and summary label. No operation id was replayed.
 - **Store (backend):** the S144 emulator test advances one confirmed, read-back record at a time
   to completion and reopening. A stale revision and a wrong cycle are refused, and a duplicate is
