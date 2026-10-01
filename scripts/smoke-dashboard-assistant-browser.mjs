@@ -59,6 +59,7 @@ async function verifyAssistantQuestions() {
 
   const writes = [];
   const assistantCalls = [];
+  const historyWrites = [];
   page.on("request", (request) => {
     const path = new URL(request.url()).pathname;
     if (path === "/api/assistant/query") assistantCalls.push(path);
@@ -68,11 +69,23 @@ async function verifyAssistantQuestions() {
     ) {
       writes.push(`${request.method()} ${path}`);
     }
+    // S148/S149: the rehearsal never saves history, so the page never tries to.
+    if (
+      request.method() !== "GET" &&
+      (path.startsWith("/api/assistant/history") ||
+        path.startsWith("/api/assistant/saved"))
+    ) {
+      historyWrites.push(`${request.method()} ${path}`);
+    }
   });
 
   await signInAndOpen(page, "/");
   const field = page.locator("#question");
   await field.waitFor();
+  await page
+    .getByRole("navigation", { name: "Conversations" })
+    .getByText("History is not saved in this environment.", { exact: false })
+    .waitFor();
 
   const questions = [
     "What work is assigned to me today?",
@@ -118,11 +131,27 @@ async function verifyAssistantQuestions() {
     writes.length === 0,
     `Answering questions posted to a write route: ${writes.join(", ")}`,
   );
+  assert(
+    historyWrites.length === 0,
+    `The rehearsal tried to save history: ${historyWrites.join(", ")}`,
+  );
+  await assertNoHorizontalOverflow(page, "desktop Dashboard with answers");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(500);
+  await assertNoHorizontalOverflow(page, "390px Dashboard with answers");
   await page.screenshot({
     path: join(artifactDir, "dashboard-assistant.png"),
     fullPage: true,
   });
   await context.close();
+}
+
+async function assertNoHorizontalOverflow(page, label) {
+  const { scroll, client } = await page.evaluate(() => ({
+    scroll: document.documentElement.scrollWidth,
+    client: document.documentElement.clientWidth,
+  }));
+  assert(scroll <= client + 1, `${label} scrolls horizontally (${scroll} > ${client}).`);
 }
 
 async function ask(page, field, question) {
