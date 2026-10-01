@@ -24,8 +24,8 @@ describe("plan.md present-truth freshness", () => {
   });
 
   it("pins current production, the exact effect boundary, canonical endpoints, and terminal rule", () => {
-    expect(plan).toContain("2ec46806bda10e799025e9919a2c1b14b7be3a5a");
-    expect(plan).toContain("pmi-kc-app-rmupi9ukm-9f056f091001");
+    expect(plan).toContain("1402e51b4828d407f990a675f16e6a7ba47afb7b");
+    expect(plan).toContain("pmi-kc-app-rmuq2qvcc-8074bfd97707");
     expect(plan).toContain("Completed S97-S99 and S100 chat proofs are not rerun");
     expect(plan).toContain("S36 is queued behind complete S100");
     expect(plan).toContain("refuses row deletion and historical restore");

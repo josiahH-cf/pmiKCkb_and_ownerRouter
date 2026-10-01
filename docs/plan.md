@@ -1,6 +1,6 @@
 # Current plan
 
-Updated: 2026-10-01 (UTC). Request 001 and batches 002–003 are verified deployed by run `ab803f8a`, on top of the thirteen-feature batch and confirmed adversarial repairs.
+Updated: 2026-10-01 (UTC). Batch 004 (S146–S151) and S108's import are verified deployed by runs `98f7e743` and `729d5716`, on top of request 001, batches 002–003, the thirteen-feature batch and confirmed adversarial repairs.
 
 ## Direct maintenance request 001: released
 
@@ -63,7 +63,7 @@ The documentation checks passed. The production dependency audit failure that fi
 intake was remediated separately by PR #95 before it was committed. Do not use the pending 001
 release permit as an intake approval.
 
-## Markdown batch 004: scoped, not started
+## Markdown batch 004: released
 
 The six supplied requests 013–018 were read in order and registered as S146–S151, all `ready`, on
 2026-10-01. S138's conversation engine, S135/S137 access and context, S136's model, the knowledge
@@ -71,34 +71,46 @@ path and the existing approval, connection, process and renewal screens are the 
 The delta is an AI-first Dashboard without a process step (S146), five panel moves with one compact
 attention queue (S147), owner-scoped server-side history (S148), saved and pinned questions (S149),
 a model-free structured rerun (S150) and integrated validation (S151). Build order: S146 with S147,
-then S148, S149 and S150, with S151's checks built alongside; one cumulative release at the end.
+then S148, S149 and S150, with S151's checks built alongside; one cumulative release was planned at the end.
 
 Owner decisions on 2026-10-01: Anticipated work moves to Internal Processes, and the
 post-deployment check may ask at most five read-only questions as the owner. Constraints recorded
 at intake: `/api/assistant/query` stays a read, persistence uses separate owner-scoped routes,
-verification accounts stay effect-free, and `firestore.rules` and `lib/auth` do not change. Intake
-grants no execution; the owner starts the run explicitly.
+verification accounts stay effect-free, and `firestore.rules` and `lib/auth` do not change. The
+owner started the run on 2026-10-01.
+
+S146/S147 (PR #111), S148 (PR #112), S149/S150 (PR #113) and S151 (PR #115) merged after full
+local gates on their exact heads and exact CI. During the run the owner directed an interim
+no-downtime release for a client call: run `98f7e743` shipped S108 and S146–S148 at `2b53c5d5`,
+and run `729d5716` shipped S149–S151 at `1402e51b`. The owner's bounded live check passed on the
+serving revision. The AF-01 to AF-70 ledger is in
+`docs/evidence/ai-first-dashboard-batch-004-validation-2026-10-01.md`; AF-67 (one cumulative
+candidate) is No by the owner's direction.
 
 ## Outcome
 
-Run `ab803f8a-4ffb-4568-9178-05ccb588a94c` released request 001 and batches 002 and 003 (twelve queued items: 001 and
-S135–S145) at `2ec46806bda10e799025e9919a2c1b14b7be3a5a` / `pmi-kc-app-rmupi9ukm-9f056f091001` with 100% production traffic.
-Exact [CI 36860571425](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36860571425) passed.
-The gate on tree-identical PR head `7a61bf77` passed 7,738 unit tests, four existing skips and all 241 backend tests.
-One application build `326619ba-29a6-4aea-b753-bfcac0f543c4` succeeded at 2026-10-01T12:39:58.352Z.
-Candidate receipt issued 2026-10-01T12:46:11.864Z; promotion verified 2026-10-01T12:46:30.426Z.
-Observation passed two checkpoints in 392,911 ms against the required 300,000 ms. All 312
+Run `729d5716-bc5e-4e61-9932-c9107d1954f2` released batch 004's S149–S151 (three queued items) at `1402e51b4828d407f990a675f16e6a7ba47afb7b` / `pmi-kc-app-rmuq2qvcc-8074bfd97707` with 100% production traffic.
+Interim run `98f7e743-7345-4b74-a6a8-675fe9fac31f` released S108 and S146–S148 earlier the same day at `2b53c5d5` /
+`pmi-kc-app-rmupw50tc-8189b32d3395` by owner direction, so batch 004 shipped in two candidates.
+Exact [CI 36929714817](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36929714817) passed.
+Run `0aa79bfe` first carried the same code at `19d4590a`; its observation could not finish inside the 420 s evidence deadline, so it rolled back (verified, no downtime).
+The gate on PR head `d5b6967b` (the release head adds only that rollback record) passed 7,887 unit tests, four existing skips and all 273 backend tests.
+One application build `a3736e14-99d5-428f-bc0c-74673f48cdc1` succeeded at 2026-10-01T22:09:48.058Z.
+Candidate receipt issued 2026-10-01T22:14:46.913Z; promotion verified 2026-10-01T22:15:27.458Z.
+Observation passed two checkpoints in 419,630 ms against the required 300,000 ms. All 312
 source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
-Eleven independent readback sections matched, last at 2026-10-01T13:02:41Z. The read-only
-production Focus check passed on three live lease workspaces with zero mutation attempts.
+Eleven independent readback sections matched, last at 2026-10-01T22:22:18Z. The owner's bounded live check
+passed on the exact serving revision: 4 of at most five questions answered and saved to history with 4 model calls; history reopened in a fresh browser context, then save, pin, unpin and one structured rerun with zero model calls; zero business writes and 0 guard refusals.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag `cand-rmupi9ukm-9f056f091001`; fingerprint `sha256:b4b6c1e393b5233588480a415bcaad1f7e633e277cfc58b99c2a3be6d2ccc631`.
+Tag `cand-rmuq2qvcc-8074bfd97707`; fingerprint `sha256:56315f7704e0ef637f1ffd2c490d610a11a048e864241d319b824f39c572adf9`.
 No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
 ## Current implementation baseline
 
-Run `ab803f8a` added request 001 and S135–S145 to the deployed baseline; the gate on its
+Runs `98f7e743` and `729d5716` added S108 and batch 004 (S146–S151); the gate on the final batch 004
+head passed 7,887 unit tests and 273 backend tests. Run `ab803f8a` added request 001 and
+S135–S145 to the deployed baseline; the gate on its
 tree-identical PR head passed 7,738 unit tests and 241 backend tests. For the thirteen-feature
 batch, the final application gate passed 7,462 unit tests and 234 backend tests, with four existing
 configuration skips, all required checks and production build. The notice portfolio repair
@@ -164,7 +176,7 @@ Collect/read already available approved material first. Keep private sources, cu
 | B-DL3 and supplied-form accuracy | Owner supplies approved material covering seven families; reviewer checks applicable maps/output.                                                                                                  | Approved versioned originals/maps, actual filled-output comparison and recorded human accuracy verdict; manual fallback where unsupported. |
 | Dotloop live execution           | Owner separately authorizes exact-key proof/activation after prerequisites.                                                                                                                        | Exact confirmation, own attempt receipt and provider readback; signatures stay separate. No live proof in this release.                    |
 | B-S100                           | Owner chose work order 101756 (id 1756) on 2026-10-01; owner creates its app ticket, links id 1756 and syncs once.                                                                                 | Existing warned/confirmed sync, bounded draft proof, mandatory close/readback and separate authorized activation.                          |
-| B-MNT1                           | Owner chose RentVine's per-property maintenance limits on 2026-10-01; the Admin import (`82e49596`) awaits release, then an Admin confirms it.                                                     | Human-confirmed preapproval readback and separately authorized routing proof.                                                              |
+| B-MNT1                           | Owner chose RentVine's per-property maintenance limits on 2026-10-01; the Admin import (`82e49596`) is released (run `98f7e743`); an Admin previews and confirms it once.                          | Human-confirmed preapproval readback and separately authorized routing proof.                                                              |
 | B-MNT2                           | Closed 2026-10-01: Vendoroo's ROO agent with RentVine as the shared record; no connector.                                                                                                          | Recorded owner decision; no vendor material requested.                                                                                     |
 | Notice timing                    | Authorized policy owner confirms comparison anchor/counting convention using reviewed configuration.                                                                                               | Exact version/date-basis readback; classifications remain unavailable until approved.                                                      |
 | Rhino                            | Material owner supplies/approves applicable policy version and reviewed lease evidence.                                                                                                            | Actual wording/applicability review; fixtures cannot validate coverage or terms.                                                           |

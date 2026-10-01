@@ -8,23 +8,25 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-Run `ab803f8a-4ffb-4568-9178-05ccb588a94c` released request 001 and batches 002 and 003 (twelve queued items: 001 and
-S135–S145) at `2ec46806bda10e799025e9919a2c1b14b7be3a5a` / `pmi-kc-app-rmupi9ukm-9f056f091001` with 100% production traffic.
-Exact [CI 36860571425](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36860571425) passed.
-The gate on tree-identical PR head `7a61bf77` passed 7,738 unit tests, four existing skips and all 241 backend tests.
-One application build `326619ba-29a6-4aea-b753-bfcac0f543c4` succeeded at 2026-10-01T12:39:58.352Z.
-Candidate receipt issued 2026-10-01T12:46:11.864Z; promotion verified 2026-10-01T12:46:30.426Z.
-Observation passed two checkpoints in 392,911 ms against the required 300,000 ms. All 312
+Run `729d5716-bc5e-4e61-9932-c9107d1954f2` released batch 004's S149–S151 (three queued items) at `1402e51b4828d407f990a675f16e6a7ba47afb7b` / `pmi-kc-app-rmuq2qvcc-8074bfd97707` with 100% production traffic.
+Interim run `98f7e743-7345-4b74-a6a8-675fe9fac31f` released S108 and S146–S148 earlier the same day at `2b53c5d5` /
+`pmi-kc-app-rmupw50tc-8189b32d3395` by owner direction, so batch 004 shipped in two candidates.
+Exact [CI 36929714817](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36929714817) passed.
+Run `0aa79bfe` first carried the same code at `19d4590a`; its observation could not finish inside the 420 s evidence deadline, so it rolled back (verified, no downtime).
+The gate on PR head `d5b6967b` (the release head adds only that rollback record) passed 7,887 unit tests, four existing skips and all 273 backend tests.
+One application build `a3736e14-99d5-428f-bc0c-74673f48cdc1` succeeded at 2026-10-01T22:09:48.058Z.
+Candidate receipt issued 2026-10-01T22:14:46.913Z; promotion verified 2026-10-01T22:15:27.458Z.
+Observation passed two checkpoints in 419,630 ms against the required 300,000 ms. All 312
 source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
-Eleven independent readback sections matched, last at 2026-10-01T13:02:41Z. The read-only
-production Focus check passed on three live lease workspaces with zero mutation attempts.
+Eleven independent readback sections matched, last at 2026-10-01T22:22:18Z. The owner's bounded live check
+passed on the exact serving revision: 4 of at most five questions answered and saved to history with 4 model calls; history reopened in a fresh browser context, then save, pin, unpin and one structured rerun with zero model calls; zero business writes and 0 guard refusals.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag `cand-rmupi9ukm-9f056f091001`; fingerprint `sha256:b4b6c1e393b5233588480a415bcaad1f7e633e277cfc58b99c2a3be6d2ccc631`.
+Tag `cand-rmuq2qvcc-8074bfd97707`; fingerprint `sha256:56315f7704e0ef637f1ffd2c490d610a11a048e864241d319b824f39c572adf9`.
 No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
-Run `ab803f8a` (request 001 plus batches 002 and 003) is complete, its permit consumed and its
-queue empty.
+Run `729d5716` (batch 004's S149–S151, after interim run `98f7e743` shipped S108 and S146–S148 by
+owner direction) is complete, its permit consumed and its queue empty.
 Original completed runs remain preserved separately. This retained procedure does not authorize
 a new dispatch or reuse of a consumed permit; future authorized work requires current gates.
 The September 30 runner correction removes the former fixed thirteen-suite and seven-hour
@@ -90,6 +92,7 @@ The thirteen features are cumulative commits on main:
 Exact implementation provenance and receipts remain in the shared batch audit and Git history.
 The completed run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` carried all thirteen features in one application build and candidate.
 Run `ab803f8a-4ffb-4568-9178-05ccb588a94c` later carried request 001 and batches 002–003 (twelve queued items) in one build and candidate.
+Batch 004 shipped in two candidates by owner direction: run `98f7e743-7345-4b74-a6a8-675fe9fac31f` (S108, S146–S148) and run `729d5716-bc5e-4e61-9932-c9107d1954f2` (S149–S151).
 The cumulative corrective queue is cleared after independent verification. An empty queue refuses fresh admission; docs/loop-state.md records the completed state.
 
 ## Before you start
@@ -109,7 +112,7 @@ gcloud beta billing projects describe pmi-kc-kb-prod --format="value(billingEnab
 
 Expect True and account `01A5A3-65CA5A-614D45`. Stop if billing is disabled.
 
-**2. Verify the watcher and checkpoint before any start.** Current run `ab803f8a-4ffb-4568-9178-05ccb588a94c` is complete,
+**2. Verify the watcher and checkpoint before any start.** Current run `729d5716-bc5e-4e61-9932-c9107d1954f2` is complete,
 its permit consumed and its original receipts preserved. The stale S128-only checkpoint and later
 failed cumulative attempts were archived through checked retirement; none was relabeled a pass.
 Blocked runs `dc4e1ac8` and `6eb157e1` were archived the same way as superseded.
