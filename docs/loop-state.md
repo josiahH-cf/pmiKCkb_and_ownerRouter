@@ -15,12 +15,15 @@ Its first recovery assurance failed on a cold first render; a read-only diagnost
 ms, 312 of 312 records matched; eleven readback sections, none unverified). Production traffic
 never left a verified revision. The full closure of this run's records follows batch 004's second
 release; until then status, plan, facts and the handoff still describe run ab803f8a.
-Request 001 run dc4e1ac8 (`41ad65cb`) and batch 002 run 6eb157e1 (`b1c6135c`) blocked when live
-renewal routes reached the 30-second canary navigation bound; both were archived as superseded.
-OWNER DECISION, 2026-10-01: PR #93's 60-second bound for the two live renewal routes only (merged
-via PR #107; PR #93 closed unmerged) and one cumulative replacement run for batches 002 and 003.
-That run's first recovery assurance failed on a cold first Dashboard render (37.4 s against its
-30-second bound); a diagnosed same-run resume passed every later phase.
+ROLLED BACK (verified), 2026-10-01: run 0aa79bfe-784c-47d2-915a-0cbf0b2032be carried S149–S151 at
+19d4590a0137d5e108fa70e029f59dda59601afe (candidate pmi-kc-app-rmuq0csku-5c4a6f48ea75). Promotion
+was verified at about 21:12Z, but the observation's final checkpoint could not finish its
+reconciliation and runtime readback before the fixed 420 s evidence deadline: its 13-route canary
+took 114.8 s, every route rendered 2xx and the candidate served zero 5xx. Traffic returned to the
+run-bound recovery target pmi-kc-app-recovery-0aa79bfe784c47d2 (2b53c5d5, Sheet=false), verified
+by the watcher after a passing read-only rollback canary. Its cold first recovery assurance and
+cold first candidate smoke (one 504) had each passed on a diagnosed resume. The watcher refuses a
+rolled-back SHA, so this records commit heads the replacement run; the released code is unchanged.
 OWNER UNBLOCK PASS, 2026-10-01: B-MNT2 closed (Vendoroo's ROO via RentVine, no connector).
 B-MNT1: owner chose RentVine's per-property maintenance limits (30 of 121); the Admin import
 `82e49596` awaits release, then one Admin confirmation. B-S100: owner chose work order 101756
