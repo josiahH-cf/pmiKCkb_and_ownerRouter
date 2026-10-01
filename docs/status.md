@@ -65,6 +65,11 @@ in run `ab803f8a`, and the read-only production Focus check passed on three live
 with zero mutation attempts. Unverified: live staff-record saves, live Gmail and provider effects
 from Focus, and human verdicts.
 
+Batch 004 requests 013–018 are recorded in order as S146–S151 (intake ready). Nothing is
+implemented, tested or live-verified yet. The owner decided on 2026-10-01 that Anticipated work
+moves to Internal Processes and that the post-deployment check may ask at most five read-only
+questions as the owner. Execution waits for the owner's explicit start.
+
 ## Verified corrective review
 
 Five confirmed adversarial findings are repaired and verified deployed: lifecycle uncertainty, policy calendar validation/presentation, source-upload hygiene, vulnerable production dependencies and return-navigation transport. All repairs passed focused regressions, full application verification, exact main CI and cumulative release gates. Independent source/runtime readbacks and all six guarded remote product checks passed. The same runner performed the authorized repairs; this is not an independent second-review signoff. See [the adversary review](evidence/adversary-review-2026-09-29.md).

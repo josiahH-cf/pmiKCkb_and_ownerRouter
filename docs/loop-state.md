@@ -66,6 +66,14 @@ merged (PRs #101–#103, #105); its FV-01 to FV-102 ledger is in the batch 003 e
 Spec-shape, traceability, active-path, freshness, policy, redaction and formatting checks passed.
 The production audit failure that first held these docs was remediated by PR #95 (`dc493dfe`).
 
+Batch 004's six files 013–018 (`pmi-new-features-9-30/feature-batch-004-ai-first-dashboard-and-query-history/`) are registered once as
+S146–S151, all ready. Baseline: S138's conversation engine and the existing approval, connection,
+process and renewal screens. New: an AI-first Dashboard without a process step, five panel moves
+with one compact attention queue, owner-scoped history, saved and pinned questions, a model-free
+structured rerun and integrated validation. Owner decisions 2026-10-01: Anticipated work moves to
+Internal Processes; the post-deployment check may ask at most five read-only questions as the owner.
+Intake started no code, release or provider effect; execution waits for the owner's explicit start.
+
 ## Verified evidence
 
 Gate on PR head 7a61bf77 (tree-identical to 2ec46806): 7,738 unit tests, four existing skips,
@@ -113,4 +121,5 @@ Next: release the queued S108 import (`82e49596`) under a fresh enrollment; read
 probe; after the owner's B-S100 ticket, link and sync, verify the resident mapping read-only and
 open the bounded draft proof window. Future external/human work requires its actual inputs and
 existing exact-effect contracts. Consumed permits and historical receipts cannot admit another
-deployment.
+deployment. Batch 004 (S146–S151) is registered and ready; its execution waits for the owner's
+explicit start.
