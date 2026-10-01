@@ -1,6 +1,6 @@
 # Loop state
 
-Last updated: 2026-09-30 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-10-01 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
@@ -12,9 +12,16 @@ Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
 Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=false.
 Request 001 run dc4e1ac8-d8b9-4090-9258-e2ddb18f119f (`41ad65cb`) built zero-traffic candidate
 pmi-kc-app-rmuo61wve-fcdc2fc4b0d0, then blocked at assurance before receipt or promotion: live
-renewal routes exceeded the 30-second canary navigation bound. Its admitted permit expired
-unused; operator resume is required and failed evidence stays preserved outside Git. Draft PR
-#93 proposes a 60-second bound for two renewal routes and awaits owner review.
+renewal routes exceeded the 30-second canary navigation bound. It was archived as superseded by
+`b1c6135c`; failed evidence stays preserved outside Git. Draft PR #93 proposes a 60-second bound
+for two renewal routes and awaits owner review.
+
+Batch 002 run 6eb157e1-73e6-4e36-8a66-998cd06f31f3 (admitted at `b1c6135c`, checkout
+`~/pmi-kc-work/main`) is paused in its recovery phase: `managed_browser_enrollment_required`,
+operator resume required. Serving was unchanged on 2026-10-01 (read-only describe and
+`/api/version`). OWNER ACTION, asked once on 2026-10-01: attended, in WSL, run
+`npm run auth:enroll-canary -- --profile=$HOME/pmi-assurance/owner-admin --origin=https://pmi-kc-app-kq6wuvpiva-uc.a.run.app --email=josiah@pmikcmetro.com`,
+then the same with `--origin=https://cand-rmuo61wve-fcdc2fc4b0d0---pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
 
 ## Awaiting release
 
@@ -35,6 +42,17 @@ prerequisites and a new run-bound permit. No provider effect, key or activation 
 
 The prior cumulative corrective queue is cleared and its permit consumed. S121 remains excluded.
 Documentation/test-only closure must not start another deployment.
+
+## Queued behind batch 002
+
+Batch 003 and the later audit patch. Not admitted: these move into "Awaiting release" only after
+the batch 002 run completes and its closure clears that queue. Same row format then.
+
+1. Hono production advisory patch: `171610f959fff3470c0e3558e46747fd1daca6e7`, `2f8e0bb017ead2730d04f00e443d91cfbc9bf7c2` (PR #104).
+2. S142 dependency-aware renewal actions: `6530f51b91be8373e0cac293486e80154cf6a901` (PR #101).
+3. S143/S144 separate Focus view with in-pane actions: `d98f3fceb5d81989ca53145bc6d23528261be1f6` (PR #102).
+4. S145 baseline, validation and corrections: `6c806afe326a79161fe9fa9e7162fd4115008b0d`, `82344c39e67e95c8ba5b50b04f41f1b144ab6049`, `6bd240b64d006e40f601f6cf1d802915139ffa01`, `76ba54c5c270cc8420ca0b7c8782378cb681b174` (PR #103).
+5. S145 acceptance-run repairs and production Focus check: `2fdcbbe501de8851391ec4713e8b784c3ae604af`, `2f1dc347039f44a354de8d1acd257149a5770dc5` (PR #105).
 
 ## Feature intake
 
@@ -67,7 +85,8 @@ defaults. Serving Full view, one linked next action and cycle-bound manual progr
 multiple-ready dependency projection, separate Focus pane, in-pane lifecycle and its regression
 validation are new work. Fresh read-only traffic check still showed the documented serving revision
 at 100%; a newer candidate was not serving. `auth:ensure` returned READY for approved WSL CLI/ADC.
-No Focus code, provider effect or deployment was started by this intake.
+No Focus code, provider effect or deployment was started by this intake. Batch 003 has since
+merged (PRs #101–#103, #105); its FV-01 to FV-102 ledger is in the batch 003 evidence map.
 Spec-shape, traceability, active-path, freshness, policy, redaction and formatting checks passed.
 The production audit failure that first held these docs was remediated by PR #95 (`dc493dfe`).
 
@@ -111,8 +130,10 @@ a durable flakiness fix or a general production performance SLO.
 
 ## Continuation
 
-Next: the batch 002 cumulative release, which carries 001's merged changes; batch 003 follows
-with its own. The blocked run must be archived through the reviewed superseded-by procedure
-before a new run. Future external/human work
-requires its actual inputs and existing exact-effect contracts. Consumed permits and historical
-receipts cannot admit another deployment.
+Next: after the owner's two enrollments, resume run 6eb157e1 with the runbook's
+`node scripts/release-control.mjs --resume` from `~/pmi-kc-work/main`, follow it through
+observation and readbacks, and close it docs-only. Then move the batch 003 queue into "Awaiting
+release", confirm exact main CI, prepare and admit one cumulative run from a clean exact-head
+checkout, and run `scripts/check-production-focus.ts` on the serving revision. Future
+external/human work requires its actual inputs and existing exact-effect contracts. Consumed
+permits and historical receipts cannot admit another deployment.

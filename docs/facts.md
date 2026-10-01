@@ -146,7 +146,7 @@ production record was authorized for this release.
 
 ## Feature intake baseline — September 30
 
-Batch 003 requests 009–012 are registered as S142–S145 and not implemented; the owner's
+Batch 003 requests 009–012 were registered as S142–S145, not yet implemented at intake; the owner's
 2026-09-30 instruction authorizes executing batch 002, then batch 003. Current committed code has
 the S113 comprehensive dashboard,
 S127 linked next-action/issues and post-save focus, `renewal-process.ts` evidence prerequisites,
@@ -165,6 +165,20 @@ redaction and formatting checks. Its first full Linux gate stopped at the then-f
 dependency audit; PR #95 remediated that audit before this intake was committed. No dependency or
 application code was changed by this intake. The active 001 release and draft PR #93 remain
 separate.
+
+## Batch 003 Focus view — October 1
+
+Batch 003 (S142–S145) is merged to `main`: S142 via PR #101 (`f5368c2f`), S143/S144 via PR #102
+(`884b7759`), S145 via PR #103 (`752d7dda`), and the acceptance run's pane repairs, remaining
+verification and read-only production Focus check via PR #105 (`ef7e0956`). PR #104
+(`f449520e`) patched a Hono production advisory found by the run's fresh audit. Each merged head
+passed `verify.sh` and `test:e2e:core` on its exact commit and exact PR CI. The FV-01 to FV-102
+ledger is in `docs/evidence/renewal-focus-batch-003-validation-2026-10-01.md`: every local criterion passes at unit, backend or local compiled-browser
+level, and every production criterion is unverified because batch 003 is not deployed. A
+read-only describe on 2026-10-01 still showed `pmi-kc-app-rmundpf2v-249c945f2220` (`c541db72`) at
+100%. Batch 002's release run `6eb157e1-73e6-4e36-8a66-998cd06f31f3`, admitted at `b1c6135c`, is paused in its recovery phase on
+`managed_browser_enrollment_required`; the batch 003 release follows it. The run made no
+production record, provider effect, Gmail draft or send. Human verdict: NOT RUN.
 
 ## Supersede Log
 
