@@ -1,17 +1,61 @@
 # Open blockers
 
-Last reconciled: 2026-09-10; B-MNT2 added 2026-09-20. Read after `docs/loop-state.md`. Each hold names its owner and the
-readback needed to close it. Work independent of a hold continues; no substitute value is invented.
+Last reconciled: 2026-10-01 (owner unblock pass); B-MNT2 added 2026-09-20 and closed 2026-10-01.
+Read after `docs/loop-state.md`. Each hold names its owner and the readback needed to close it. Work
+independent of a hold continues; no substitute value is invented.
 
-| Id      | Blocks                                                    | Owner                               | Exact item to bring back                                                                                                                                                                                                                                                                                                                                                                                                                            | Completion evidence                                                                                                                                                                                       |
-| ------- | --------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| B-AUTH2 | Separate authentication longevity                         | release operator                    | Complete the unchanged-enrollment 24-hour elapsed-session proof.                                                                                                                                                                                                                                                                                                                                                                                    | S113 CLI/ADC, Admin browser assurance, promotion and observation passed; longevity is not implied by those gates.                                                                                         |
-| B-DL1   | S106 live readiness and S34 live provider work            | external                            | Approved Dotloop OAuth client id and secret through the recorded Secret Manager delivery path. Requested from support@dotloop.com on 2026-09-04; no follow-up sent.                                                                                                                                                                                                                                                                                 | Bound credentials exist and runtime configuration readback names no missing credential.                                                                                                                   |
-| B-DL2   | S106 live readiness and S34 live provider work            | owner                               | Connect the managed Dotloop account; choose a verified office profile, renewal template, transaction type, and initial status.                                                                                                                                                                                                                                                                                                                      | Profile/resource probes and selected-resource readback report ready; this does not open action keys.                                                                                                      |
-| B-DL3   | S34 approved artifact content and packet workflow binding | owner                               | Approved blank-form location and coverage of all seven artifact families, listed below.                                                                                                                                                                                                                                                                                                                                                             | Each family resolves to approved content and a verified participant/field mapping; no invented legal form.                                                                                                |
-| B-S100  | Resident-reply draft proof and S36                        | owner                               | One work-order identifier carrying resident chat and confirmation that the resident email is verified.                                                                                                                                                                                                                                                                                                                                              | Exact link and synchronization resolve an eligible message; then bounded draft proof, close/readback, and separate activation pass.                                                                       |
-| B-MNT1  | S108 live preapproval routing proof                       | owner                               | Unambiguous property identifiers, one amount per property, and effective dates.                                                                                                                                                                                                                                                                                                                                                                     | Admin-confirmed property preapproval reads back with amount/effective date and applies to verified evidence.                                                                                              |
-| B-MNT2  | S133 external maintenance-agent handoff feasibility       | owner; vendor account administrator | Owner: vendor legal name, product name and contract reference; account identifier and administrator; the data-processing and interface terms. Vendor account administrator: a written read-only access grant and scope; primary interface documentation; webhook or event documentation; export format documentation with one redacted sample; one authorized ticket link pattern. Requested in the S133 packet on 2026-09-20; no vendor contacted. | The packet's identity and vendor evidence rows read Supported or Unsupported from that material and the owner chooses manual link-only, read-only or a governed interface; this hold builds no connector. |
+| Id      | Blocks                                                    | Owner                           | Exact item to bring back                                                                                                                                                                                                                                                                           | Completion evidence                                                                                                                 |
+| ------- | --------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| B-AUTH2 | Separate authentication longevity                         | release operator                | Complete the unchanged-enrollment 24-hour elapsed-session proof. A fresh-shell CLI/ADC probe runs every 15 minutes from 2026-10-01 against the 08:24:48Z enrollment; on 2026-09-16 refresh was refused about 8.8 hours after enrollment.                                                           | S113 CLI/ADC, Admin browser assurance, promotion and observation passed; longevity is not implied by those gates.                   |
+| B-DL1   | S106 live readiness and S34 live provider work            | owner, then Dotloop API Support | Dotloop approved V2 API access on 2026-09-10. Owner: create the dedicated Dotloop integration account on a company role address and reply-all on the approval thread; after activation create the sandbox and production API clients and store the production client secret with the V-DL command. | Bound credentials exist and runtime configuration readback names no missing credential.                                             |
+| B-DL2   | S106 live readiness and S34 live provider work            | owner                           | Connect the managed Dotloop account; choose a verified office profile, renewal template, transaction type, and initial status.                                                                                                                                                                     | Profile/resource probes and selected-resource readback report ready; this does not open action keys.                                |
+| B-DL3   | S34 approved artifact content and packet workflow binding | owner                           | Approved blank-form location and coverage of all seven artifact families, listed below.                                                                                                                                                                                                            | Each family resolves to approved content and a verified participant/field mapping; no invented legal form.                          |
+| B-S100  | Resident-reply draft proof and S36                        | owner                           | Owner chose RentVine work order 101756 (API id 1756) on 2026-10-01 and confirmed its resident email. Owner creates its app ticket, links id 1756 and runs one manual sync; the agent then verifies the mapping before the proof window.                                                            | Exact link and synchronization resolve an eligible message; then bounded draft proof, close/readback, and separate activation pass. |
+| B-MNT1  | S108 live preapproval routing proof                       | owner                           | Owner chose RentVine's per-property maintenance limits on 2026-10-01 (30 of 121 active properties). The Admin import (`82e49596`) awaits release; an Admin then previews it and confirms once.                                                                                                     | Admin-confirmed property preapproval reads back with amount/effective date and applies to verified evidence.                        |
+
+## Owner unblock pass — October 1
+
+The owner asked to unblock every hold on 2026-10-01. Read-only evidence first reduced each ask to
+one decision or one owner step; the decisions below are recorded as given.
+
+- **B-DL1.** Dotloop approved V2 API access for PMI KC on 2026-09-10 (owner-supplied email, not in
+  Git). Dotloop's next steps: create a free Dotloop account dedicated to the integration on a
+  generic, company-owned role address, as Dotloop asks, reply-all on the
+  approval thread with that address, wait for API activation (Dotloop allows up to 3–5 business
+  days), then create one sandbox and one production API client with PMI KC's company details and
+  reply to Dotloop API Support so it completes each client's configuration. Each client uses the
+  redirect URI `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/connections/dotloop/callback` and the
+  scopes `account:read`, `profile:read`, `loop:read`, `loop:write` and `template:read`.
+- **B-MNT1.** RentVine stores `maintenanceLimitAmount` per property. A count-only read on 2026-10-01
+  found 121 active properties, 30 with a positive limit and 15 with maintenance notes (8 of them
+  with a limit). The owner chose to import those limits. The Admin import (S108 amendment,
+  `82e49596`) awaits release; an Admin then previews it, reads the flagged notes and confirms once.
+- **B-S100.** The owner chose RentVine work order 101756 (API id 1756, status Requested, resident
+  messages present, never a proof target) and confirmed its resident email. Production holds one
+  maintenance ticket and one work-order link, neither for id 1756. Owner steps in Maintenance:
+  create the app ticket for this issue with its verified unit, use **Link an existing work order**
+  with id `1756` (not Create work order), confirm the preview, then run **Sync resident messages**
+  once and confirm its read-marker warning. The agent then verifies the synchronized resident
+  mapping and email read-only before the bounded `gmail.maintenance_resident_reply.draft_create`
+  proof window, which creates one unsent draft for owner review, followed by close/readback and
+  separate activation.
+- **B-AUTH2.** A detached probe runs the approved unattended CLI/ADC check every 15 minutes in a
+  fresh shell against the 2026-10-01T08:24:48Z enrollment and stops at the first failure, an
+  enrollment change, or 25 hours. If the 2026-09-16 wall repeats, the owner decides between a Google
+  Workspace session-control change for the CLI/ADC clients and accepting the shorter session in the
+  release contract. The runner changes no session policy.
+- **B-DL2 and B-DL3** follow B-DL1. Proposed default for B-DL3: after the connection, the app's
+  loop-template discovery lists PMI KC's existing Dotloop templates, and the owner confirms which
+  template carries each of the seven artifact families instead of locating blank forms separately.
+
+## Closed decision item: B-MNT2
+
+The meeting notes' "Rue" is Vendoroo's AI agent ("ROO"). On 2026-10-01 the owner chose RentVine as
+the shared record: Vendoroo's native RentVine integration writes its work-order updates and messages
+into RentVine, which the app already reads. No direct connector is built and nothing is requested
+from Vendoroo. A count-only read on 2026-10-01 found no Vendoroo text in 500 recent work orders or
+120 recent chats, so its RentVine connection is not yet active. The S133 packet's other handoff
+options stay available if the owner later wants a direct interface.
 
 ## B-AUTH2: separate longevity proof
 
@@ -80,6 +124,18 @@ access is available, and B-DL2 connection is owner-initiated.
    preserve S96's exact preview/confirmation/credential-removal/readback contract. Report denied
    storage or cleanup as recovery needed, never connected success.
 5. Verify that both Dotloop action keys remain closed and no signature completion is inferred.
+
+Owner delivery command for the production client secret, run in WSL as the approved account. It
+reads the secret without echo, so it never enters a shell history, chat or Git, and adds the same
+per-secret accessor binding the four existing runtime secrets carry:
+
+```bash
+read -rs DOTLOOP_SECRET && printf '%s' "$DOTLOOP_SECRET" | gcloud secrets create DOTLOOP_OAUTH_CLIENT_SECRET --project=pmi-kc-kb-prod --replication-policy=automatic --data-file=- && unset DOTLOOP_SECRET && gcloud secrets add-iam-policy-binding DOTLOOP_OAUTH_CLIENT_SECRET --project=pmi-kc-kb-prod --member=serviceAccount:pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor
+```
+
+The non-secret `DOTLOOP_OAUTH_CLIENT_ID`, `DOTLOOP_OAUTH_REDIRECT_URI` and
+`DOTLOOP_OAUTH_CLIENT_SECRET_SECRET_ID=DOTLOOP_OAUTH_CLIENT_SECRET` then go in the reviewed
+production env file, and the next authorized release binds them.
 
 V-DL does not create a loop or upload a document. Those proofs require approved content/participants
 and separately authorized exact keys, previews, confirmations, receipts, and readbacks. Credential

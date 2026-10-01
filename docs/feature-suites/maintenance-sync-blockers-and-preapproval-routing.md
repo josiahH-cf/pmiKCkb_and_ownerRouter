@@ -4,6 +4,8 @@
 # S108 — Maintenance work-order alignment, blockers, and preapproval routing
 
 > Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. Verified provider snapshots and property-bound effective preapproval drive one waiting-on projection. Missing/conflicting/legacy property evidence remains unresolved. B-MNT1 live proof still needs exact properties, amounts and dates.
+>
+> Amendment 2026-10-01 (owner decision, B-MNT1): the RentVine maintenance-limit preapproval import is implemented and tested; its release is queued.
 
 **Goal.**
 
@@ -64,6 +66,15 @@ up to <amount>)`, the owner-notice draft control is not offered as a blocker, an
    listing ticket, unit, waiting-on, estimate/preapproval, assignee, last activity, and RentVine link.
 6. **Recorded conflict.** Photo and attachment synchronization into RentVine remains closed; photos
    stay in the app's Drive store with their links on the ticket.
+7. **RentVine maintenance-limit import (owner decision 2026-10-01, B-MNT1).** RentVine stores a
+   per-property `maintenanceLimitAmount`, and the owner chose it as the source of the app's
+   preapprovals. A Maintenance Admin previews every active property with an exact positive limit
+   (add, change amount, or already matches), sees each RentVine maintenance note, picks the
+   effective date and records every change in one cancel-first confirmation. The server re-reads
+   RentVine and records nothing unless the plan's hash still equals the confirmed preview, then
+   writes every change in one transaction through the same versioned, audited record, with a note
+   naming the RentVine source. Unreadable, duplicate or over-limit values are listed for manual
+   review. The import never clears an app preapproval and never writes to RentVine.
 
 **In scope / out of scope.**
 
@@ -93,6 +104,9 @@ draft entry, S109 intake handoff, S110 (out of V1 scope), S111 proof.
   fixture expecting a snapshot after a read fails today.
 - **ARCH-S108-2** — One waiting-on projection feeds queue, report, and S109 handoff; a preapproval
   fixture yields `none` where today the ticket would wait on the owner.
+- **ARCH-S108-3** — The import plan is a pure projection of RentVine's property limits and the
+  current app records, keyed by the RentVine property id the routing already uses; its hash covers
+  every amount, version, action, note and skip.
 
 **Behavior outcome (deterministic, fail-first).**
 
@@ -102,6 +116,9 @@ draft entry, S109 intake handoff, S110 (out of V1 scope), S111 proof.
   waits on the owner with the draft control.
 - **BEH-S108-3** — Differing app and provider statuses render both with a next action; neither side
   is overwritten.
+- **BEH-S108-4** — A `500.00` RentVine limit with no app record previews as Add and records 50,000
+  cents at version 1 after one confirmation; a property without a limit keeps its current app
+  preapproval.
 
 **Human litmus outcome.**
 
@@ -129,6 +146,7 @@ RentVine work order. Small jobs at preapproved properties do not wait on the own
 | MSYNC-02, MSYNC-05 one-way/conflict | `ARCH-S108-1`        | `BEH-S108-3`     | Every open item says what it is waiting on | Differing-status fixture               |
 | MSYNC-04 preapproval routing        | `ARCH-S108-2`        | `BEH-S108-2`     | Every open item says what it is waiting on | Threshold fixtures                     |
 | MSYNC-06 report                     | `ARCH-S108-2`        | `BEH-S108-1`     | Every open item says what it is waiting on | Report render test and browser smoke   |
+| MSYNC-07 RentVine limit import      | `ARCH-S108-3`        | `BEH-S108-4`     | Every open item says what it is waiting on | Plan, route, store and panel fixtures  |
 
 **Preservation set.**
 
@@ -141,6 +159,12 @@ owner-notice suites; `maintenance-ai-boundary.test.ts`.
 - **AC-S108-2** — `BEH-S108-2`: preapproval never sets `isOwnerApproved` or creates a provider effect.
 - **AC-S108-3** — `ARCH-S108-2`: a missing estimate can never be treated as within preapproval.
 - **AC-S108-4** — Only a current Admin can change a preapproval; changes are versioned and audited.
+- **AC-S108-5** — `ARCH-S108-3`: only an exact positive RentVine limit becomes an import row; an
+  absent, zero or unreadable limit never clears or changes an app preapproval.
+- **AC-S108-6** — `ARCH-S108-3`: a confirmation records nothing when RentVine or any app record
+  changed after the preview.
+- **AC-S108-7** — `BEH-S108-4`: only a current Admin can import; every recorded change is versioned
+  and audited with its RentVine source note.
 
 **Forbidden actions / hard gates.**
 

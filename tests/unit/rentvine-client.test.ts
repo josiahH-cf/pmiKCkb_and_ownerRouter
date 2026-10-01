@@ -231,3 +231,38 @@ describe("S113 recurring charge source classification", () => {
     });
   });
 });
+
+describe("S108 property page read (B-MNT1 import source)", () => {
+  it("reads one exact page of properties and unwraps each property envelope", async () => {
+    const { client, requests } = makeClient(() =>
+      jsonResponse(200, [
+        { property: { propertyID: "84", maintenanceLimitAmount: "500.00" }, token: "x" },
+        { property: { propertyID: "85", maintenanceLimitAmount: null }, token: "y" },
+      ]),
+    );
+    const rows = await client.listPropertiesPage(2, 100);
+    expect(requests).toHaveLength(1);
+    expect(requests[0].method).toBe("GET");
+    expect(requests[0].url).toBe(`${BASE_URL}/properties?page=2&pageSize=100`);
+    expect(rows).toEqual([
+      { propertyID: "84", maintenanceLimitAmount: "500.00" },
+      { propertyID: "85", maintenanceLimitAmount: null },
+    ]);
+  });
+
+  it("accepts bare property objects and refuses an unreadable list", async () => {
+    const bare = makeClient(() => jsonResponse(200, [{ propertyID: "86" }]));
+    expect(await bare.client.listPropertiesPage(1, 50)).toEqual([{ propertyID: "86" }]);
+    const odd = makeClient(() => jsonResponse(200, { unexpected: true }));
+    await expect(odd.client.listPropertiesPage(1, 50)).rejects.toBeInstanceOf(
+      RentVineError,
+    );
+  });
+
+  it("refuses an invalid page or page size before any request", async () => {
+    const { client, requests } = makeClient(() => jsonResponse(200, []));
+    await expect(client.listPropertiesPage(0, 100)).rejects.toBeInstanceOf(RentVineError);
+    await expect(client.listPropertiesPage(1, 101)).rejects.toBeInstanceOf(RentVineError);
+    expect(requests).toHaveLength(0);
+  });
+});

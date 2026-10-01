@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { MaintenancePreapprovalImport } from "@/components/maintenance/MaintenancePreapprovalImport";
 import { Card } from "@/components/ui";
 import { formatCalendarDate } from "@/lib/date-display";
 import {
@@ -206,6 +207,16 @@ export function MaintenancePreapprovalControl({
       <PreapprovalList
         onClear={(key) => setConfirming({ kind: "clear", propertyKey: key })}
         preapprovals={preapprovals}
+      />
+      <MaintenancePreapprovalImport
+        onRecorded={(records) => {
+          const recorded = new Set(records.map((entry) => entry.property_key));
+          setPreapprovals((current) => [
+            ...current.filter((entry) => !recorded.has(entry.property_key)),
+            ...records,
+          ]);
+          router.refresh();
+        }}
       />
     </Card>
   );

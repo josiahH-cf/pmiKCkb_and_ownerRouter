@@ -239,6 +239,26 @@ export function unwrapWorkOrders(body: unknown): RawWorkOrder[] {
   throw new RentVineError("Unexpected Rentvine work-order list response shape.", 0);
 }
 
+/**
+ * Unwrap a property list page. Each documented row is a `{ property }` envelope; a bare array of
+ * property objects or a named list envelope is tolerated the same way.
+ */
+export function unwrapProperties(body: unknown): RawProperty[] {
+  let rows: unknown[] | null = Array.isArray(body) ? body : null;
+  if (!rows && body && typeof body === "object") {
+    const obj = body as Record<string, unknown>;
+    for (const key of ["properties", "data", "results"]) {
+      if (Array.isArray(obj[key])) {
+        rows = obj[key] as unknown[];
+        break;
+      }
+    }
+  }
+  if (!rows)
+    throw new RentVineError("Unexpected Rentvine property list response shape.", 0);
+  return rows.map((row) => unwrapRecord(row, "property"));
+}
+
 /** Buffer one read so json() and text() can both be called without double-consuming the body. */
 export function createFetchTransport(
   options: { timeoutMs?: number; signal?: AbortSignal } = {},
@@ -479,6 +499,23 @@ export class RentVineClient {
     const response = await this.rawGet(path);
     this.ensureOk(response, path);
     return unwrapRecord(await response.json(), "property");
+  }
+
+  /**
+   * Read one page of properties (read-only). `page` starts at 1; `pageSize` is the honoured paging
+   * parameter, as for leases. A short page means the list is complete.
+   */
+  async listPropertiesPage(page: number, pageSize: number): Promise<RawProperty[]> {
+    if (!Number.isSafeInteger(page) || page < 1) {
+      throw new RentVineError("The property page must be a positive integer.", 0);
+    }
+    if (!Number.isSafeInteger(pageSize) || pageSize < 1 || pageSize > 100) {
+      throw new RentVineError("The property page size must be between 1 and 100.", 0);
+    }
+    const path = "properties";
+    const response = await this.rawGet(path, { page, pageSize });
+    this.ensureOk(response, path);
+    return unwrapProperties(await response.json());
   }
 
   /** Read a single portfolio by id (read-only). Unwraps the `{ portfolio }` envelope. */
