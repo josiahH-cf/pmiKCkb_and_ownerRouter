@@ -24,6 +24,12 @@ const baseUrl = requireLocalRehearsalOrigin(baseUrlInput);
 const ROUTE_BUDGET_MS = 180_000;
 const LEASES = Number(readArgument("--leases") ?? "2");
 const DIRTY_MARKER = "S145 unsaved input check";
+// Free-text controls a person types into: staff record fields, then message wording. Neither sends
+// anything on change; only their explicit record or save button would. A staff record field keeps no
+// edit state of its own, while the message editor notes that it needs review until it is saved.
+const STAFF_TEXT =
+  ".renewal-workspace-body [id^='renewal-manual-'] :is(input:not([type]), input[type='text'], textarea)";
+const FREE_TEXT = `${STAFF_TEXT}, .renewal-workspace-body [id^='renewal-card-message-'] textarea`;
 // Each page's in-flight fetch and XHR reads, tracked from the moment it opens.
 const inflightReads = new WeakMap();
 
@@ -236,6 +242,8 @@ async function verifyLease(href) {
     "A view scrolls horizontally.",
   );
   // Last, because each link moves to a fragment: the table of contents still reaches each section.
+  // Those fragment moves are navigations of their own, so switching's count is kept first.
+  const switchNavigations = navigations;
   const tocSections = await tableOfContents(page);
   await context.close();
   return {
@@ -252,7 +260,7 @@ async function verifyLease(href) {
     tableOfContentsSections: tocSections,
     writeRequests: writes.length,
     appRequests: appRequests.length,
-    navigations,
+    navigations: switchNavigations,
     pageErrors: pageErrors.length,
     consoleErrors: [...consoleErrors],
     horizontalScroll: false,
@@ -304,31 +312,25 @@ async function expectBaseline(page, baseline, when) {
   );
 }
 
-// Free-text controls a person types into: staff record fields first, then message wording. Neither
-// sends anything on change; only their explicit record or save button would.
-const FREE_TEXT = [
-  "[id^='renewal-manual-'] :is(input:not([type]), input[type='text'], textarea)",
-  "[id^='renewal-card-message-'] textarea",
-]
-  .map((selector) => `.renewal-workspace-body ${selector}`)
-  .join(", ");
-
 /** Types a marker into one visible free-text field in Full view, without submitting anything. */
 async function dirtyInput(page) {
   const candidates = page.locator(FREE_TEXT).filter({ visible: true });
   for (let index = 0; index < (await candidates.count()); index += 1) {
     const locator = candidates.nth(index);
     if (!(await locator.isEditable())) continue;
-    const original = await locator.inputValue();
-    await locator.fill(DIRTY_MARKER);
-    return { locator, original };
+    // Pinned to this element: the set of visible fields changes with the view.
+    const field = await locator.elementHandle();
+    const original = await field.inputValue();
+    await field.fill(DIRTY_MARKER);
+    return { locator: field, original };
   }
   return null;
 }
 
 /**
- * In Focus, choose the first task whose own revealed control takes free text, type a marker into it,
- * go to Full view and back, and require the same task and the same unsaved value, then restore it.
+ * In Focus, choose the first task whose own revealed control has a staff record text field, type a
+ * marker into it, go to Full view and back, and require the same task and the same unsaved value,
+ * then restore it. A staff record field keeps no edit state, so the Full view is then exact again.
  */
 async function focusTaskDirtyInput(page, pane, focusButton, fullButton) {
   await focusButton.click();
@@ -338,8 +340,10 @@ async function focusTaskDirtyInput(page, pane, focusButton, fullButton) {
   for (let index = 0; index < (await choices.count()); index += 1) {
     await choices.nth(index).click();
     await page.waitForTimeout(150);
-    const field = page.locator(FREE_TEXT).filter({ visible: true }).first();
-    if ((await field.count()) === 0 || !(await field.isEditable())) continue;
+    const visible = page.locator(STAFF_TEXT).filter({ visible: true }).first();
+    if ((await visible.count()) === 0 || !(await visible.isEditable())) continue;
+    // Pinned to this element: the set of visible fields changes with the view.
+    const field = await visible.elementHandle();
     const task = await pane.getAttribute("data-renewal-focus-action");
     const marker = `${DIRTY_MARKER} (Focus task)`;
     const original = await field.inputValue();

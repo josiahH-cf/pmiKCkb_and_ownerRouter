@@ -42,7 +42,7 @@ import {
 } from "./production-assurance-runtime";
 
 export const FOCUS_CHECK_SCHEMA_VERSION = "pmi-kc-focus-check.v1";
-const WORKSPACE_LINKS =
+export const WORKSPACE_LINKS =
   'tr[data-workspace-available="true"]:is([data-disposition="actionable"], [data-retention-state="tracked_incomplete"]) a.renewal-lease-link';
 const WORKSPACE_PATH = "/lease-renewal/live/desk/lease/";
 const ROUTE_BUDGET_MS = 180_000;
@@ -156,11 +156,21 @@ function assert(condition: unknown, code: string): asserts condition {
   if (!condition) throw new Error(code);
 }
 
+/**
+ * The in-page Full view signature. Under tsx, esbuild's keepNames wraps the shared function's inner
+ * helpers in `__name` calls, which the page does not define; an identity shim (a string, so it is
+ * never transformed) supplies it. Nothing else in the page changes and no request is made.
+ */
+async function signatureOf(page: Page): Promise<string> {
+  await page.evaluate("globalThis.__name ??= (target) => target");
+  return page.evaluate(pageFullViewSignature);
+}
+
 async function settledSignature(page: Page, inflight: Set<unknown>): Promise<string> {
-  let previous = await page.evaluate(pageFullViewSignature);
+  let previous = await signatureOf(page);
   for (let attempt = 0; attempt < 90; attempt += 1) {
     await page.waitForTimeout(2_000);
-    const current = await page.evaluate(pageFullViewSignature);
+    const current = await signatureOf(page);
     if (inflight.size === 0 && current === previous) return current;
     previous = current;
   }
@@ -168,10 +178,10 @@ async function settledSignature(page: Page, inflight: Set<unknown>): Promise<str
 }
 
 async function expectSignature(page: Page, baseline: string, code: string) {
-  let current = await page.evaluate(pageFullViewSignature);
+  let current = await signatureOf(page);
   for (let attempt = 0; attempt < 5 && current !== baseline; attempt += 1) {
     await page.waitForTimeout(1_000);
-    current = await page.evaluate(pageFullViewSignature);
+    current = await signatureOf(page);
   }
   if (current !== baseline)
     throw new Error(`${code}: ${describeSignatureDifference(baseline, current)}`);
@@ -198,7 +208,8 @@ async function pressWithoutScrolling(page: Page, name: string, key: "Enter" | "S
   await page.keyboard.press(key);
 }
 
-async function checkLease(
+/** One lease workspace's checks, or null when the page offers no view switch. */
+export async function checkLease(
   context: BrowserContext,
   origin: string,
   path: string,
