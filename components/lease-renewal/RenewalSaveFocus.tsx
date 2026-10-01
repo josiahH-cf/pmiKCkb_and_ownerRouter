@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
+import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import {
   RENEWAL_NEXT_ACTION_TARGET_ID,
   type RenewalIssueProjection,
@@ -44,6 +45,8 @@ export function RenewalSaveFocus({
   children: ReactNode;
 }) {
   const router = useRouter();
+  // S144: while the Focus view is shown it owns focus and advances on the recomputed projection.
+  const focusView = useRenewalFocusView()?.view === "focus";
   const [refreshing, startRefresh] = useTransition();
   const [saved, setSaved] = useState<{
     leaseId: string;
@@ -79,6 +82,7 @@ export function RenewalSaveFocus({
       return;
     }
     consumed.current = saved;
+    if (focusView) return;
     if (
       !focusRenewalDashboardControl(targetId, {
         allowButtons: false,
@@ -89,7 +93,17 @@ export function RenewalSaveFocus({
         allowButtons: false,
         focusContainer: true,
       });
-  }, [saved, leaseId, cycleId, revision, readable, projection, refreshing, targetId]);
+  }, [
+    saved,
+    leaseId,
+    cycleId,
+    revision,
+    readable,
+    projection,
+    refreshing,
+    targetId,
+    focusView,
+  ]);
   return (
     <Context.Provider
       value={(readback = {}) => {

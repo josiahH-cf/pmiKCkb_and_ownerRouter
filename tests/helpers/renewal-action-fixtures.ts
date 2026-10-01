@@ -43,6 +43,7 @@ export interface ActionFixtureOptions {
   readonly rentChargeStatus?: readonly RentChargeOutcomeRow[] | null;
   readonly termNeedsReview?: boolean;
   readonly workflowAvailable?: boolean;
+  readonly correctionPanel?: boolean;
 }
 
 export function actionFixture(options: ActionFixtureOptions = {}): {
@@ -127,7 +128,7 @@ export function actionFixture(options: ActionFixtureOptions = {}): {
     manualReadUnavailable: manual === "unreadable",
     unavailableSources: unavailable,
     rentChargeStatus: options.rentChargeStatus ?? null,
-    correctionPanel: true,
+    correctionPanel: options.correctionPanel ?? true,
   });
   return { workspace, snapshot };
 }

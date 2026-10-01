@@ -9,6 +9,8 @@ interface CardProps {
   children: ReactNode;
   className?: string;
   ariaLabel?: string;
+  /** Optional anchor for an in-page reference to this card. */
+  id?: string;
 }
 
 export function Card({
@@ -17,11 +19,12 @@ export function Card({
   children,
   className,
   ariaLabel,
+  id,
 }: Readonly<CardProps>) {
   const classes = ["panel", className].filter(Boolean).join(" ");
 
   return (
-    <section aria-label={ariaLabel} className={classes}>
+    <section aria-label={ariaLabel} className={classes} id={id}>
       {title || actions ? (
         <div className="panel-heading compact-heading">
           {typeof title === "string" ? (

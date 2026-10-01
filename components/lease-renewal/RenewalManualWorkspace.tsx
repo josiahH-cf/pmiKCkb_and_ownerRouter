@@ -34,6 +34,10 @@ interface ManualContext {
   state: RenewalWorkspaceState | null;
   leaseId: string;
   pending: boolean;
+  /** S144: true until current staff records are read back after a failed read. */
+  readUnavailable: boolean;
+  /** S144: the latest save or read outcome, shown again by the Focus view. */
+  message: string;
   record: (action: RenewalWorkspaceAction) => Promise<void>;
   prepareSource: (
     field: keyof typeof SHEET_FIELD_LABELS,
@@ -220,11 +224,16 @@ function ActiveManualProvider({
         state,
         leaseId,
         pending: pending || readUnavailable,
+        readUnavailable,
+        message,
         record,
         prepareSource,
       }}
     >
-      <Card title={renewalCardTitle("renewal-cycle", "Recorded renewal work")}>
+      <Card
+        id="renewal-card-manual-records"
+        title={renewalCardTitle("renewal-cycle", "Recorded renewal work")}
+      >
         <p>
           {readUnavailable
             ? "Current staff records could not be read. Reload before recording work"

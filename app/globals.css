@@ -1990,6 +1990,71 @@ textarea:disabled {
   box-shadow: inset 0 -3px 0 var(--action-primary);
 }
 
+/* S143: the lease-level Full view / Focus view switch. */
+.renewal-view-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.renewal-view-switch-button[aria-pressed="true"] {
+  background: var(--action-secondary-hover);
+  box-shadow: inset 0 -3px 0 var(--action-primary);
+}
+
+/* S143/S144: Focus view hides Full view regions in place, so no author display rule may show
+   them; everything stays mounted and returns unchanged in Full view. */
+.renewal-workspace-body [data-renewal-focus-hidden] {
+  display: none !important;
+}
+
+.renewal-focus-pane {
+  gap: var(--space-3);
+}
+
+.renewal-focus-pane > p,
+.renewal-focus-task > p {
+  margin: 0;
+}
+
+.renewal-focus-state {
+  font-weight: 600;
+}
+
+.renewal-focus-context {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+.renewal-focus-context dt {
+  color: var(--ui-text-muted);
+  font-weight: 500;
+}
+
+.renewal-focus-context dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.renewal-focus-prerequisites,
+.renewal-focus-advisories,
+.renewal-focus-ready ul,
+.renewal-focus-all ul {
+  display: grid;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.renewal-focus-group {
+  font-size: 1rem;
+  margin: var(--space-2) 0 0;
+}
+
 .renewal-section-nav .renewal-workspace-link {
   margin-bottom: 0;
 }

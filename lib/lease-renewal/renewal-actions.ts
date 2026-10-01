@@ -1063,7 +1063,8 @@ export function renewalGuidanceActionId(
 
 /**
  * Keep the actor's current selection while it is still outstanding; otherwise the primary action,
- * the headline, then any other action ready for this actor. Selection is presentation only.
+ * the headline, then (before completion) any other action ready for this actor. Selection is
+ * presentation only.
  */
 export function selectRenewalAction(
   projection: RenewalActionProjection,
@@ -1074,10 +1075,15 @@ export function selectRenewalAction(
     : undefined;
   if (selected && selected.status !== "complete" && selected.status !== "not_applicable")
     return selected.id;
+  const leading = projection.primaryActionId ?? projection.headlineActionId;
+  if (leading) return leading;
+  // A completed renewal leads with its outcome; optional work stays one choice away.
+  if (
+    projection.outcome.state === "complete_recorded_by_staff" ||
+    projection.outcome.state === "complete_verified"
+  )
+    return null;
   return (
-    projection.primaryActionId ??
-    projection.headlineActionId ??
-    projection.actions.find((action) => action.status === "ready_for_actor")?.id ??
-    null
+    projection.actions.find((action) => action.status === "ready_for_actor")?.id ?? null
   );
 }
