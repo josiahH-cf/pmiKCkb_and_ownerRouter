@@ -348,15 +348,31 @@ export function RenewalDashboardNavigation({
   return <div className="ui-stack renewal-guided-content">{children}</div>;
 }
 
+/**
+ * S144: a request to focus a dashboard control is first offered to the Focus view as a cancelable
+ * `renewal:focus-request` event, so a link to a control outside the revealed task can choose the
+ * task that owns it. Without a listener, or in Full view, nothing cancels it and focus proceeds
+ * exactly as before.
+ */
+export const RENEWAL_FOCUS_REQUEST_EVENT = "renewal:focus-request";
+
 /** Focus the unresolved control, opening enclosing disclosures without recording any progress. */
 export function focusRenewalDashboardControl(
   id: string,
   {
     allowButtons = true,
     focusContainer = false,
-  }: { allowButtons?: boolean; focusContainer?: boolean } = {},
+    viewRequest = true,
+  }: { allowButtons?: boolean; focusContainer?: boolean; viewRequest?: boolean } = {},
 ) {
   if (!id.startsWith("renewal-")) return false;
+  if (
+    viewRequest &&
+    !document.dispatchEvent(
+      new CustomEvent(RENEWAL_FOCUS_REQUEST_EVENT, { cancelable: true, detail: { id } }),
+    )
+  )
+    return true;
   const root = document.getElementById(id);
   if (
     !root ||

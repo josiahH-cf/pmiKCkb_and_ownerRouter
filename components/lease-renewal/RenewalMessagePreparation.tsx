@@ -682,6 +682,7 @@ function MessagePreparationEditor({
         `${channelLabel} message preparation`,
       )}
       ariaLabel={`${channelLabel} message preparation`}
+      id={`renewal-card-message-${channel}`}
     >
       <p className="muted">A person sends it; saving here does not record delivery.</p>
       {!cycleId ? <p>Select the current renewal cycle above to retain edits.</p> : null}

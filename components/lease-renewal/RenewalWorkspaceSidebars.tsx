@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { Icon } from "@/components/ui";
+import { useRenewalFocusView } from "./RenewalFocusViewContext";
 
 // S114: two separate, independent slide-out surfaces over the same projections the workspace
 // renders. The lease-information panel holds the consolidated header facts; the process-guide panel
@@ -99,6 +100,7 @@ export function RenewalWorkspaceSidebars({
   leaseInformation,
   processGuide = null,
   sectionNavigation = null,
+  viewSwitch = null,
 }: Readonly<{
   children: ReactNode;
   /** Compact lease identity that stays visible while the operator is lower on the page. */
@@ -109,6 +111,8 @@ export function RenewalWorkspaceSidebars({
   processGuide?: ReactNode;
   /** The existing five-section navigation; absent on an inspection-only lease. */
   sectionNavigation?: ReactNode;
+  /** S143: the lease-level Full view / Focus view switch, shown in both views. */
+  viewSwitch?: ReactNode;
 }>) {
   const instanceId = useId();
   const informationId = `${instanceId}-lease-information`;
@@ -119,6 +123,9 @@ export function RenewalWorkspaceSidebars({
   const [guideMounted, setGuideMounted] = useState(false);
   const informationToggleRef = useRef<HTMLButtonElement>(null);
   const guideToggleRef = useRef<HTMLButtonElement>(null);
+  // S143: Focus view shows one task, so the section navigation and the process guide step aside
+  // until Full view returns, with their own state intact.
+  const focusView = useRenewalFocusView()?.view === "focus";
 
   function toggleInformation() {
     setInformationMounted(true);
@@ -142,6 +149,7 @@ export function RenewalWorkspaceSidebars({
       <div className="renewal-workspace-toolbar">
         <div className="renewal-workspace-toolbar-row">
           <p className="renewal-workspace-identity">{identity}</p>
+          {viewSwitch}
           <div
             aria-label="Lease workspace panels"
             className="renewal-workspace-toggles"
@@ -157,7 +165,7 @@ export function RenewalWorkspaceSidebars({
             >
               Lease information
             </button>
-            {processGuide ? (
+            {processGuide && !focusView ? (
               <button
                 aria-controls={guideId}
                 aria-expanded={guideOpen}
@@ -171,7 +179,7 @@ export function RenewalWorkspaceSidebars({
             ) : null}
           </div>
         </div>
-        {sectionNavigation}
+        {focusView ? null : sectionNavigation}
       </div>
       <SlideOutPanel
         closeLabel="Close lease information"
@@ -191,7 +199,7 @@ export function RenewalWorkspaceSidebars({
           mounted={guideMounted}
           onClose={closeGuide}
           onNavigate={() => closeGuide("navigate")}
-          open={guideOpen}
+          open={guideOpen && !focusView}
           side="start"
           title="Process guide"
         >

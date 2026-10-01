@@ -351,6 +351,11 @@ export function resolveActionGraph(
       settle(id, "complete", "complete");
       continue;
     }
+    // An unreadable own source is the root cause; nothing else about the node can be established.
+    if (node.sourceUnavailable) {
+      settle(id, "unknown", "source_unavailable");
+      continue;
+    }
     if (node.applicability === "unknown") {
       settle(id, "unknown", "applicability_unknown");
       continue;
@@ -384,7 +389,6 @@ export function resolveActionGraph(
       );
     else if (evaluation.state === "unknown")
       settle(id, "unknown", "prerequisite_unknown", evaluation);
-    else if (node.sourceUnavailable) settle(id, "unknown", "source_unavailable");
     else if (node.waitingOn) settle(id, "waiting", "waiting");
     else if (node.actor === "actor") settle(id, "ready_for_actor", "ready");
     else if (node.actor === "other_actor") settle(id, "ready_for_other_actor", "ready");
