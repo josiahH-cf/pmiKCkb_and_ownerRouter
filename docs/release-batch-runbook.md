@@ -249,5 +249,5 @@ Each phase advances only on independent readback:
 
 The combined request 001 and batch 002 + 003 release is complete. The retained procedure does not reopen its queue or
 renew permission. Failed predecessors retain their exact reports and claims. B-DL1, B-DL2, B-DL3,
-B-S100, B-MNT1, B-MNT2 and B-AUTH2 retain their scoped external or human holds; they do not alter
+B-S100, B-MNT1 and B-AUTH2 retain their scoped external or human holds (B-MNT2 closed 2026-10-01); they do not alter
 the completed implementation/release verdict.

@@ -101,13 +101,17 @@ in the shared batch audit. Earlier failed attempts remain failed in immutable ev
 
 ## Remaining operational dependencies
 
-B-DL1, B-DL2, B-DL3, B-S100, B-MNT1, B-MNT2 and B-AUTH2 remain open at their exact
-external or human boundaries. Actual customer draft/form accuracy, approved notice-timing basis,
-Rhino wording/applicability, selected real cases, observed walkthroughs, human screen-reader and
-desktop full-page zoom verdicts remain unverified. Both Dotloop keys stay closed; signatures and
-provider acceptance remain separate. S36 stays behind complete S100. S121 was excluded.
-Historical K unit-store target/marker effects remain UNVERIFIED; absent Data Access logs do not
-prove zero effects. No customer draft/send, paid comparison, provider-proof rerun or synthetic
-production record was authorized for this release.
+B-DL1, B-DL2, B-DL3, B-S100, B-MNT1 and B-AUTH2 remain open at their exact external or human
+boundaries; B-MNT2 closed by owner decision on 2026-10-01. The 2026-10-01 owner unblock pass reduced
+the other holds to the owner steps in `docs/open-blockers.md`; the S108 RentVine maintenance-limit
+import (`82e49596`) awaits release. Actual customer draft/form accuracy, approved notice-timing
+basis, Rhino wording/applicability, selected real cases, observed walkthroughs, human screen-reader
+and desktop full-page zoom verdicts remain unverified. Both Dotloop keys stay closed; signatures and
+provider acceptance remain separate. S36 stays behind complete S100. S121 was excluded. Historical K
+unit-store target/marker effects remain UNVERIFIED; absent Data Access logs do not prove zero
+effects. No customer draft/send, paid comparison, provider-proof rerun or synthetic production
+record was authorized for this release.
 
-The completed corrective permit and run `ab803f8a`'s permit are consumed, and the Awaiting release queue is empty. No original receipt, completed permit or build claim is reused.
+The completed corrective permit and run `ab803f8a`'s permit are consumed; the Awaiting release queue
+holds the S108 RentVine maintenance-limit import (`82e49596`). No original receipt, completed permit
+or build claim is reused.

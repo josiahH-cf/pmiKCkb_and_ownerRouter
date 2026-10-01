@@ -16,13 +16,19 @@ OWNER DECISION, 2026-10-01: PR #93's 60-second bound for the two live renewal ro
 via PR #107; PR #93 closed unmerged) and one cumulative replacement run for batches 002 and 003.
 That run's first recovery assurance failed on a cold first Dashboard render (37.4 s against its
 30-second bound); a diagnosed same-run resume passed every later phase.
+OWNER UNBLOCK PASS, 2026-10-01: B-MNT2 closed (Vendoroo's ROO via RentVine, no connector).
+B-MNT1: owner chose RentVine's per-property maintenance limits (30 of 121); the Admin import
+`82e49596` awaits release, then one Admin confirmation. B-S100: owner chose work order 101756
+(id 1756); the owner creates its ticket, links id 1756 and syncs once. B-DL1: Dotloop approved API
+access on 2026-09-10; the owner creates the integration account and replies. B-AUTH2: probe running.
 
 ## Awaiting release
 
-None. Run ab803f8a consumed the twelve-item queue (001 and S135–S145); its permit is consumed.
-A future authorized batch needs its own exact queue, ancestral commits, exact main CI, fresh
-prerequisites and a new run-bound permit. No provider effect, key or activation is queued.
-S121 remains excluded.
+1. S108 RentVine maintenance-limit preapproval import (owner decision 2026-10-01, B-MNT1): `82e49596650372aae3ce60c547f977f738199c84`.
+
+One candidate carries the queued item. Admit only after exact main CI on the release head, fresh
+prerequisites (a fresh owner WSL enrollment if the 2026-10-01 one has expired) and a new run-bound
+permit. No provider effect, key or activation is queued. S121 remains excluded.
 
 ## Feature intake
 
@@ -85,15 +91,16 @@ Batch 002 evidence: docs/evidence/connected-ai-batch-002-validation-2026-09-30.m
 
 ## Remaining boundaries
 
-B-DL1, B-DL2, B-DL3, B-S100, B-MNT1, B-MNT2 and B-AUTH2 remain open at their exact
-external or human boundaries. Actual customer draft/form accuracy, approved notice-timing basis,
-Rhino wording/applicability, selected real cases, observed walkthroughs, human screen-reader and
-desktop full-page zoom verdicts remain unverified. Production AI inference, signed-in Dashboard
-parity, live staff-record saves and Gmail or provider effects from Focus remain unverified. Both
-Dotloop keys stay closed; signatures and provider acceptance remain separate. S36 stays behind complete S100. S121 was excluded.
-Historical K unit-store target/marker effects remain UNVERIFIED; absent Data Access logs do not
-prove zero effects. No customer draft/send, paid comparison, provider-proof rerun or synthetic
-production record was authorized for this release.
+B-DL1, B-DL2, B-DL3, B-S100, B-MNT1 and B-AUTH2 remain open at their exact external or human
+boundaries; B-MNT2 closed by owner decision on 2026-10-01. Actual customer draft/form accuracy,
+approved notice-timing basis, Rhino wording/applicability, selected real cases, observed
+walkthroughs, human screen-reader and desktop full-page zoom verdicts remain unverified. Production
+AI inference, signed-in Dashboard parity, live staff-record saves and Gmail or provider effects from
+Focus remain unverified. Both Dotloop keys stay closed; signatures and provider acceptance remain
+separate. S36 stays behind complete S100. S121 was excluded. Historical K unit-store target/marker
+effects remain UNVERIFIED; absent Data Access logs do not prove zero effects. No customer
+draft/send, paid comparison, provider-proof rerun or synthetic production record was authorized for
+this release.
 
 One earlier development-only moderate Firebase CLI/PubSub/OpenTelemetry advisory chain remained absent
 from all 194 runtime traces. PR #95 patched the later `@grpc/grpc-js` production audit failure, and PR #104 a Hono advisory.
@@ -102,7 +109,8 @@ a durable flakiness fix or a general production performance SLO.
 
 ## Continuation
 
-Next: no release is queued. Future external/human work requires its actual inputs and existing
-exact-effect contracts: an attended signed-in production Dashboard inference and parity check for
-S141, real cases for drafts, and the holds above. Consumed permits and historical receipts cannot
-admit another deployment.
+Next: release the queued S108 import (`82e49596`) under a fresh enrollment; read the B-AUTH2
+probe; after the owner's B-S100 ticket, link and sync, verify the resident mapping read-only and
+open the bounded draft proof window. Future external/human work requires its actual inputs and
+existing exact-effect contracts. Consumed permits and historical receipts cannot admit another
+deployment.
