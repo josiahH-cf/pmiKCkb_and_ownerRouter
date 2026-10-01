@@ -31,7 +31,7 @@ access on 2026-09-10; the owner creates the integration account and replies. B-A
 
 1. S149 Saved and pinned questions (batch 004): `129c833ea54605fc607c825922624439bdc935e9`.
 2. S150 Answer reuse and structured rerun without model calls (batch 004): `129c833ea54605fc607c825922624439bdc935e9`.
-3. S151 Integrated validation checks and the owner's bounded live check (batch 004): `8552430886d3cd402bd7befda1abc1f86a3f8c24`, `404abdf3e7fa74565d0630c24f89ad12a15d05cf`.
+3. S151 Integrated validation checks and the owner's bounded live check (batch 004): `8552430886d3cd402bd7befda1abc1f86a3f8c24`, `404abdf3e7fa74565d0630c24f89ad12a15d05cf`, `b9d3d1d7bd3f9c28413e9d7edc65ae9a3576098e`.
 
 Run 98f7e743 shipped S108 and S146–S148 by owner direction (2026-10-01), so batch 004 ships in two
 candidates. The bounded live check runs after this second release. One candidate carries the
