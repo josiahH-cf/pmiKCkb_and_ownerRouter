@@ -326,3 +326,146 @@ function sameAnswer(record: StoredTurnRecord, input: FinalizeTurnInput): boolean
     JSON.stringify(record.knowledge ?? null) === JSON.stringify(input.knowledge ?? null)
   );
 }
+
+// ---- S150 structured current runs ------------------------------------------------------------
+
+export const RerunTurnInputSchema = z
+  .object({
+    savedId: z.string().regex(/^[a-f0-9]{32}$/),
+    state: z.enum(["completed", "failed"]),
+    assistant: StoredAssistantAnswerSchema.nullable(),
+  })
+  .strict()
+  .refine((input) => (input.state === "completed") === Boolean(input.assistant), {
+    message: "A completed run carries its answer; a failed run carries none.",
+  });
+
+interface SavedQuestionLink {
+  readonly owner_uid: string;
+  readonly conversation_key: string;
+  readonly question: string;
+}
+
+/**
+ * Record one current run of a saved question as a new turn in that question's conversation. The
+ * earlier answer is never touched. Idempotent per operation: a duplicate delivery returns the turn
+ * already recorded, and a completed run is final. The saved item's pointer to its newest answer
+ * moves only when this run completed.
+ */
+export async function recordRerunTurn(
+  user: AuthenticatedUser,
+  operationId: string,
+  rawInput: unknown,
+  db: Firestore = getAdminFirestore(),
+  now: () => Date = () => new Date(),
+): Promise<TurnWriteResult & { readonly record: StoredTurnRecord }> {
+  const op = OperationIdSchema.parse(operationId);
+  const input = RerunTurnInputSchema.parse(rawInput);
+  assertSize(input);
+  const turnId = turnIdFor(user.uid, op);
+  const turnRef = userRoot(db, user)
+    .collection(ASSISTANT_HISTORY_COLLECTIONS.turns)
+    .doc(turnId);
+  const savedRef = userRoot(db, user)
+    .collection(ASSISTANT_HISTORY_COLLECTIONS.saved)
+    .doc(input.savedId);
+  return db.runTransaction(async (transaction) => {
+    const [turnSnapshot, savedSnapshot] = await transaction.getAll(turnRef, savedRef);
+    if (!savedSnapshot.exists) throw notFound();
+    const saved = savedSnapshot.data() as SavedQuestionLink;
+    if (saved.owner_uid !== user.uid) throw notFound();
+    const nowIso = now().toISOString();
+    let record: StoredTurnRecord;
+    let created = false;
+    if (turnSnapshot.exists) {
+      record = turnSnapshot.data() as StoredTurnRecord;
+      if (record.owner_uid !== user.uid || record.rerun_of !== input.savedId)
+        throw notFound();
+      if (record.state === "completed" || input.state === "failed") {
+        return {
+          conversationId: record.conversation_id,
+          turnId,
+          seq: record.seq,
+          state: record.state,
+          created: false,
+          record,
+        };
+      }
+    } else {
+      const placed = await appendTurn(
+        transaction,
+        db,
+        user,
+        { conversationKey: saved.conversation_key, question: saved.question },
+        nowIso,
+      );
+      record = {
+        owner_uid: user.uid,
+        turn_id: turnId,
+        operation_id: op,
+        conversation_id: placed.conversationId,
+        seq: placed.seq,
+        state: "submitted",
+        question: saved.question,
+        assistant: null,
+        knowledge: null,
+        answered_at: null,
+        created_at: nowIso,
+        updated_at: nowIso,
+        access_basis: accessBasis(user),
+        rerun_of: input.savedId,
+      };
+      created = true;
+    }
+    const conversationRef = userRoot(db, user)
+      .collection(ASSISTANT_HISTORY_COLLECTIONS.conversations)
+      .doc(record.conversation_id);
+    const conversation = created ? null : await transaction.get(conversationRef);
+    const next: StoredTurnRecord = {
+      ...record,
+      state: input.state,
+      assistant: input.state === "completed" ? input.assistant : null,
+      answered_at: input.state === "completed" ? nowIso : null,
+      updated_at: nowIso,
+      access_basis: accessBasis(user),
+    };
+    transaction.set(turnRef, next);
+    const conversationData = conversation?.data() as
+      | { turn_count?: number; record_version?: number }
+      | undefined;
+    if (created || (conversationData && conversationData.turn_count === record.seq)) {
+      transaction.set(
+        conversationRef,
+        {
+          last_state: input.state,
+          updated_at: nowIso,
+          sort_key: sortKey(nowIso, record.conversation_id),
+          record_version: (conversationData?.record_version ?? 1) + 1,
+        },
+        { merge: true },
+      );
+    }
+    if (input.state === "completed") {
+      // The saved definition (question, plan, period intent, pin, label) is unchanged; only its
+      // pointer to the newest answer moves.
+      transaction.set(
+        savedRef,
+        {
+          last_turn_id: turnId,
+          last_operation_id: op,
+          last_answered_at: nowIso,
+          updated_at: nowIso,
+        },
+        { merge: true },
+      );
+    }
+    return {
+      conversationId: record.conversation_id,
+      turnId,
+      seq: record.seq,
+      state: input.state,
+      created,
+      record: next,
+    };
+  });
+}

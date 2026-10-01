@@ -416,6 +416,37 @@ textarea:disabled {
   overflow-wrap: anywhere;
 }
 
+.dashboard-saved-label {
+  font-weight: 650;
+  margin: 0;
+}
+
+.dashboard-saved-pin {
+  background: var(--ui-selected-surface);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 750;
+  margin-right: 6px;
+  padding: 1px 8px;
+}
+
+.dashboard-saved-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}
+
+.dashboard-saved-rename {
+  display: grid;
+  gap: 6px;
+}
+
+.dashboard-saved-rename input {
+  box-sizing: border-box;
+  max-width: 100%;
+  width: 100%;
+}
+
 .dashboard-attention {
   display: grid;
   gap: 10px;

@@ -1,38 +1,29 @@
 import { AskForm, type HistoryMode } from "@/components/ask/AskForm";
 import { DashboardAttentionQueue } from "@/components/console/DashboardAttentionQueue";
-import type { HistoryPageOutcome } from "@/lib/assistant-history/client";
+import type {
+  HistoryPageOutcome,
+  SavedListOutcome,
+} from "@/lib/assistant-history/client";
 import {
   gatherAttentionQueue,
   unavailableAttentionQueue,
   type AttentionQueue,
 } from "@/lib/attention/attention-queue";
-import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import {
-  allowsMutation,
-  resolveEnvironmentDescriptor,
-} from "@/lib/environment/descriptor";
+import { historyModeFor } from "@/lib/assistant-history/route-support";
 import {
   historyOwnerKey,
   listAssistantConversations,
 } from "@/lib/firestore/assistant-history-read";
+import { listSavedQuestions } from "@/lib/firestore/assistant-saved-questions";
 
-/**
- * Where this user's Dashboard conversations are kept. Verification accounts are answered but never
- * saved. The local Live-read-only rehearsal refuses history writes unless Firestore is a local
- * emulator (the automated harness), so it says so instead of failing every save.
- */
+/** Where this user's Dashboard conversations are kept (shared with the query route). */
 export function resolveHistoryMode(
   user: AuthenticatedUser,
   env: Record<string, string | undefined> = process.env,
 ): HistoryMode {
-  if (isVerificationAccount(user)) return "verification";
-  const environment = resolveEnvironmentDescriptor(env);
-  if (!environment.ok) return "unavailable";
-  if (!allowsMutation(environment.descriptor) && !env.FIRESTORE_EMULATOR_HOST?.trim())
-    return "unavailable";
-  return "saved";
+  return historyModeFor(user, env);
 }
 
 /**
@@ -46,8 +37,9 @@ export function resolveHistoryMode(
  * Anticipated work moved there beside Start run, setup status lives in Connections and the Internal
  * Processes cards, and lease detail lives on the renewal desk.
  *
- * S148: the first page of the user's own history is read here and streamed in the same way; the
- * workspace is keyed by the signed-in user, so another account never sees this one's state.
+ * S148/S149: the first page of the user's own history and their saved questions are read here and
+ * streamed in the same way; the workspace is keyed by the signed-in user, so another account never
+ * sees this one's state.
  */
 export function ConsoleView({ user }: { user: AuthenticatedUser }) {
   const canApprove = can(user.role, "approve");
@@ -68,6 +60,17 @@ export function ConsoleView({ user }: { user: AuthenticatedUser }) {
         )
       : null;
 
+  const initialSaved: Promise<SavedListOutcome> | null =
+    historyMode === "saved"
+      ? listSavedQuestions(user).then(
+          (list): SavedListOutcome => ({
+            status: "ok",
+            list: { ownerKey, persisted: true, ...list },
+          }),
+          (): SavedListOutcome => ({ status: "failed" }),
+        )
+      : null;
+
   return (
     <section className="content console">
       <h1 className="section-title">Dashboard</h1>
@@ -78,6 +81,7 @@ export function ConsoleView({ user }: { user: AuthenticatedUser }) {
       <AskForm
         historyMode={historyMode}
         initialHistory={initialHistory}
+        initialSaved={initialSaved}
         key={ownerKey}
         ownerKey={ownerKey}
         secondary={

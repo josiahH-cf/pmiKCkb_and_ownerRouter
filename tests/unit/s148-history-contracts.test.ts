@@ -281,9 +281,17 @@ describe("S148 Live-read-only allows history writes only into a local emulator",
     for (const key of LIVE_READONLY_ALLOWED_NON_SAFE_REQUESTS.keys()) {
       expect(key).not.toMatch(/assistant\/history|assistant\/saved/);
     }
-    expect(EMULATOR_ONLY_HISTORY_REQUESTS.map((entry) => entry.method)).toEqual([
-      "POST",
-      "PUT",
+    // S148 turns, then S149 save and pin, then the S150 run: each the user's own history only.
+    expect(
+      EMULATOR_ONLY_HISTORY_REQUESTS.map(
+        (entry) => `${entry.method} ${entry.pattern.source}`,
+      ),
+    ).toEqual([
+      "POST ^\\/api\\/assistant\\/history\\/turns$",
+      "PUT ^\\/api\\/assistant\\/history\\/turns\\/[A-Za-z0-9-]{8,64}$",
+      "POST ^\\/api\\/assistant\\/saved$",
+      "PATCH ^\\/api\\/assistant\\/saved\\/[a-f0-9]{32}$",
+      "POST ^\\/api\\/assistant\\/saved\\/[a-f0-9]{32}\\/run$",
     ]);
   });
 });

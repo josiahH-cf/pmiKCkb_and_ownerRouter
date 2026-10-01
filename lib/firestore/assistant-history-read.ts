@@ -221,3 +221,19 @@ export async function readAssistantConversation(
     );
   return { conversation: toSummary(record), turns: views };
 }
+
+/** S150: one of this user's turns by operation id, or null. A read, used to replay a current run. */
+export async function readTurnByOperation(
+  user: AuthenticatedUser,
+  operationId: string,
+  db: Firestore = getAdminFirestore(),
+): Promise<StoredTurnRecord | null> {
+  if (!/^[A-Za-z0-9-]{8,64}$/.test(operationId)) return null;
+  const snapshot = await userRoot(db, user)
+    .collection(ASSISTANT_HISTORY_COLLECTIONS.turns)
+    .doc(turnIdFor(user.uid, operationId))
+    .get();
+  if (!snapshot.exists) return null;
+  const record = snapshot.data() as StoredTurnRecord;
+  return record.owner_uid === user.uid ? record : null;
+}

@@ -48,6 +48,9 @@ export type DashboardTurnState =
 /** Whether this turn's answer is in the signed-in user's history. */
 export type TurnSaveState = "none" | "saving" | "saved" | "failed";
 
+/** S149: whether this turn's question is among the user's saved questions. */
+export type QuestionSaveState = "none" | "saving" | "saved" | "failed";
+
 export interface DashboardTurn {
   readonly id: string;
   readonly question: string;
@@ -67,6 +70,11 @@ export interface DashboardTurn {
   /** Restored only: the viewer's access narrowed since, so stored records are hidden. */
   readonly accessChanged: boolean;
   readonly saveState: TurnSaveState;
+  /** S150: the saved question this turn ran for current results, or null. */
+  readonly rerunOf: string | null;
+  /** S149: an unstructured saved question asked again through the model path. */
+  readonly askedAgain: boolean;
+  readonly questionSave: QuestionSaveState;
 }
 
 export const ANSWER_FAILED =
@@ -77,12 +85,17 @@ export function TurnView({
   index,
   onRetry,
   onRetrySave,
+  canSaveQuestion = false,
+  onSaveQuestion,
   registerRef,
 }: Readonly<{
   turn: DashboardTurn;
   index: number;
   onRetry: () => void;
   onRetrySave: () => void;
+  /** S149: offered on an answered turn that is in history and is not itself a saved run. */
+  canSaveQuestion?: boolean;
+  onSaveQuestion?: () => void;
   registerRef: (element: HTMLElement | null) => void;
 }>) {
   const headingId = `dashboard-turn-${index + 1}`;
@@ -104,6 +117,18 @@ export function TurnView({
         <p className="muted dashboard-turn-history" data-testid="turn-history-label">
           Saved answer from {formatBusinessTimestamp(turn.answeredAtIso)}. It shows what
           was true then, not current results.
+        </p>
+      ) : null}
+      {turn.rerunOf && turn.state === "answered" && turn.answeredAtIso ? (
+        <p className="muted" data-testid="turn-rerun-label">
+          {turn.restored
+            ? "This was a current run of a saved question."
+            : `Current results, run ${formatBusinessTimestamp(turn.answeredAtIso)} from your saved question with no new interpretation.`}
+        </p>
+      ) : null}
+      {turn.askedAgain && !turn.restored ? (
+        <p className="muted" data-testid="turn-asked-again-label">
+          Asked again as a new question, so this answer was newly generated.
         </p>
       ) : null}
       {turn.restored && turn.accessChanged ? (
@@ -148,6 +173,9 @@ export function TurnView({
         <p className="muted">{turn.knowledgeError}</p>
       ) : null}
       <TurnSaveLine onRetrySave={onRetrySave} turn={turn} />
+      {canSaveQuestion && onSaveQuestion ? (
+        <QuestionSaveLine onSaveQuestion={onSaveQuestion} turn={turn} />
+      ) : null}
     </article>
   );
 }
@@ -173,6 +201,32 @@ function TurnSaveLine({
       </Notice>
     );
   return null;
+}
+
+function QuestionSaveLine({
+  turn,
+  onSaveQuestion,
+}: Readonly<{ turn: DashboardTurn; onSaveQuestion: () => void }>) {
+  if (turn.questionSave === "saved")
+    return (
+      <p className="muted" data-testid="turn-question-saved">
+        Saved to your questions.
+      </p>
+    );
+  if (turn.questionSave === "saving")
+    return <p className="muted">Saving the question…</p>;
+  return (
+    <div className="ui-row">
+      <button className="link-button" onClick={onSaveQuestion} type="button">
+        Save question
+      </button>
+      {turn.questionSave === "failed" ? (
+        <span className="muted">
+          This question could not be saved just now. Nothing was saved.
+        </span>
+      ) : null}
+    </div>
+  );
 }
 
 /** The knowledge answer for one turn, with its own capture and correction controls. */

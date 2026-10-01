@@ -13,6 +13,7 @@ import {
   type BusinessRange,
 } from "@/lib/assistant/business-dates";
 import {
+  ConversationPlanSchema,
   MAX_CONTEXT_TURNS,
   type AwaitingDetail,
   type ConversationContext,
@@ -120,6 +121,12 @@ export interface AnswerExecution {
   readonly range: ExecutionRange | null;
 }
 
+/**
+ * Who produced the plan an answer executed: the model, the deterministic interpreter, or (S150) a
+ * saved question's stored plan, run again with no interpretation at all.
+ */
+export type AnswerInterpretedBy = InterpretedBy | "stored_plan";
+
 export interface ConversationAnswer {
   readonly version: typeof ASSISTANT_CONVERSATION_VERSION;
   readonly kind: ConversationAnswerKind;
@@ -130,7 +137,7 @@ export interface ConversationAnswer {
   readonly clarification: string | null;
   /** When set, the Dashboard also asks the knowledge answer this question. */
   readonly knowledgeQuestion: string | null;
-  readonly interpretedBy: InterpretedBy;
+  readonly interpretedBy: AnswerInterpretedBy;
   /** The page-session context to send with the next question. */
   readonly conversation: ConversationContext;
   /** True when the supplied context belonged to another sign-in and was discarded. */
@@ -160,6 +167,9 @@ export interface ConversationDependencies {
   /** The model interpreter, or null to use the deterministic interpreter only. */
   readonly interpret: ModelInterpreter | null;
 }
+
+/** What executing an already-interpreted plan needs: never an interpreter. */
+export type PlanDependencies = Omit<ConversationDependencies, "interpret">;
 
 /** A stable, non-secret key that ties a page-session context to one sign-in. */
 export function conversationActorKey(actorUid: string): string {
@@ -1730,13 +1740,58 @@ export async function runAssistantConversation(
   } else plan = interpretDeterministically(question, previous, deps.nowIso);
   plan = completeClarification(plan, question, previous);
   const effective = mergeWithPrevious(plan, previous);
-  plan = effective.plan;
-  let detailRef: OperationalRecordRef | null = null;
 
   const interpretation: string[] = [];
   if (contextReset) interpretation.push("Started a new conversation for this sign-in.");
   if (effective.continued)
     interpretation.push("Continuing from your last question with fresh records.");
+
+  return answerPlan(
+    {
+      question,
+      plan: effective.plan,
+      previous,
+      turns,
+      relatedRefs: effective.relatedRefs,
+      continued: effective.continued,
+      contextReset,
+      interpretedBy,
+      interpretation,
+      storedDetailRef: null,
+    },
+    deps,
+  );
+}
+
+/** One interpreted (or stored) plan, ready to execute. */
+interface PlanRun {
+  readonly question: string;
+  /** Grounded and merged with any previous turn. */
+  readonly plan: ConversationPlan;
+  readonly previous: ConversationTurn | null;
+  readonly turns: readonly ConversationTurn[];
+  /** Previous-answer records a cross-subject follow-up is limited to. */
+  readonly relatedRefs: readonly OperationalRecordRef[];
+  readonly continued: boolean;
+  readonly contextReset: boolean;
+  readonly interpretedBy: AnswerInterpretedBy;
+  readonly interpretation: string[];
+  /** S150: the one record a saved detail question named; it is answered directly. */
+  readonly storedDetailRef: OperationalRecordRef | null;
+}
+
+/**
+ * Execute one plan against the actor-scoped reads and shape the answer. Shared by a new question
+ * (after interpretation) and by S150's stored-plan run (with no interpretation), so both paths use
+ * the same subject executors, filters, counts, links and business dates.
+ */
+async function answerPlan(
+  run: PlanRun,
+  deps: PlanDependencies,
+): Promise<ConversationAnswer> {
+  const { question, plan, previous, turns, contextReset, interpretedBy, interpretation } =
+    run;
+  let detailRef: OperationalRecordRef | null = null;
 
   const respond = (
     kind: ConversationAnswerKind,
@@ -1777,7 +1832,7 @@ export async function runAssistantConversation(
       contextReset,
       answeredAtIso: deps.nowIso,
       execution: extra.executed
-        ? executionFor(plan, effective.relatedRefs, detailRef, deps.nowIso)
+        ? executionFor(plan, run.relatedRefs, detailRef, deps.nowIso)
         : null,
     };
     console.info(
@@ -1786,7 +1841,7 @@ export async function runAssistantConversation(
         kind,
         interpretedBy,
         subjects: plan.subjects,
-        continued: effective.continued,
+        continued: run.continued,
         groups: groups.map((group) => ({
           source: group.source,
           status: group.status,
@@ -1807,7 +1862,7 @@ export async function runAssistantConversation(
   }
   if (plan.kind === "knowledge")
     return respond("knowledge", "", [], { knowledgeQuestion: question });
-  if (plan.kind === "unsupported" && !effective.continued)
+  if (plan.kind === "unsupported" && !run.continued)
     return respond("unsupported", UNSUPPORTED_SUMMARY, [], {
       knowledgeQuestion: question,
     });
@@ -1817,9 +1872,15 @@ export async function runAssistantConversation(
     nowIso: deps.nowIso,
     today: businessDateIso(deps.nowIso),
     plan,
-    relatedRefs: effective.relatedRefs,
+    relatedRefs: run.relatedRefs,
     interpretation,
   };
+
+  if (run.storedDetailRef) {
+    detailRef = run.storedDetailRef;
+    const groups = await answerDetail(exec, run.storedDetailRef);
+    return respond("answer", groups[0]?.summary ?? "", groups, { executed: true });
+  }
 
   const picked = pickPreviousRecord(plan, question, previous);
   if (picked?.kind === "message")
@@ -1887,6 +1948,105 @@ export async function runAssistantConversation(
     knowledgeQuestion: plan.kind === "mixed" ? question : null,
     executed: true,
   });
+}
+
+// ---- S150 stored-plan run ----------------------------------------------------------------------
+
+/**
+ * The subjects a saved question may run again without interpretation: lease lists and date ranges,
+ * assignments and My Work, recorded blockers, approval queues, and connection and freshness status.
+ * Anything else (knowledge, mixed, processes, maintenance, communications) needs a new answer.
+ */
+const STORED_PLAN_SUBJECTS: ReadonlySet<PlanSubject> = new Set([
+  "leases",
+  "work",
+  "approvals",
+  "connections",
+]);
+const STORED_PLAN_SOURCES: ReadonlySet<OperationalSource> = new Set([
+  "renewals",
+  "work",
+  "approvals",
+  "connections",
+]);
+
+export type StoredPlanSupport =
+  | { readonly supported: true; readonly plan: ConversationPlan }
+  | {
+      readonly supported: false;
+      readonly reason:
+        | "invalid"
+        | "not_operational"
+        | "unsupported_subject"
+        | "incomplete";
+    };
+
+/** Whether a stored plan can run as-is: schema-valid, operational, supported and complete. */
+export function storedPlanSupport(
+  plan: unknown,
+  detailRef: OperationalRecordRef | null,
+): StoredPlanSupport {
+  const parsed = ConversationPlanSchema.safeParse(plan);
+  if (!parsed.success) return { supported: false, reason: "invalid" };
+  const value = parsed.data;
+  if (value.kind !== "operational" || value.clarification !== null)
+    return { supported: false, reason: "not_operational" };
+  const subjects: PlanSubject[] = value.subjects.length
+    ? [...value.subjects]
+    : value.filters.stale
+      ? ["connections"]
+      : [];
+  if (
+    subjects.length === 0 ||
+    subjects.some((subject) => !STORED_PLAN_SUBJECTS.has(subject))
+  )
+    return { supported: false, reason: "unsupported_subject" };
+  if (detailRef && !STORED_PLAN_SOURCES.has(detailRef.source))
+    return { supported: false, reason: "unsupported_subject" };
+  if (value.followUp.ordinal !== null && !detailRef)
+    return { supported: false, reason: "incomplete" };
+  return { supported: true, plan: value };
+}
+
+export interface StoredPlanRequest {
+  /** The saved question's own words, kept for the answer's context; never reinterpreted. */
+  readonly question: string;
+  readonly plan: unknown;
+  readonly relatedRefs: readonly OperationalRecordRef[];
+  readonly detailRef: OperationalRecordRef | null;
+}
+
+/**
+ * S150: run a saved question's stored, schema-valid plan against current records with no
+ * interpretation step and no model call. Relative periods resolve at `deps.nowIso` on the business
+ * calendar, a named month stays fixed, "mine" is the signed-in actor, and every record comes from
+ * the same read-only executors as a new question. Throws when the plan cannot run as-is; callers
+ * check `storedPlanSupport` first.
+ */
+export async function runStoredPlan(
+  request: StoredPlanRequest,
+  deps: PlanDependencies,
+): Promise<ConversationAnswer> {
+  const support = storedPlanSupport(request.plan, request.detailRef);
+  if (!support.supported)
+    throw new Error(`Stored plan cannot run without interpretation (${support.reason}).`);
+  return answerPlan(
+    {
+      question: request.question.trim().slice(0, 500),
+      plan: support.plan,
+      previous: null,
+      turns: [],
+      relatedRefs: request.relatedRefs.slice(0, MAX_TURN_REFS),
+      continued: false,
+      contextReset: false,
+      interpretedBy: "stored_plan",
+      interpretation: [
+        "Ran your saved question again with current records; it was not reinterpreted.",
+      ],
+      storedDetailRef: request.detailRef,
+    },
+    deps,
+  );
 }
 
 /** The executed plan and the concrete period it used at `nowIso`. */
