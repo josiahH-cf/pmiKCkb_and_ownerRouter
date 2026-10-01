@@ -42,12 +42,12 @@ with one cumulative release at the end of each set. PR #95 merged the production
 after full local gates and exact CI. S141's local evidence is recorded; next is the cumulative
 release after archiving blocked run `dc4e1ac8` through the superseded-by procedure.
 
-## Markdown batch 003: merged, release queued behind batch 002
+## Markdown batch 003: merged, releasing with batch 002
 
 S142–S145 are merged (PRs #101, #102, #103 and #105) and the acceptance run's FV-01 to FV-102
-ledger is in `docs/evidence/renewal-focus-batch-003-validation-2026-10-01.md`. Next: after batch 002's release completes, one cumulative batch 003
-release, then the read-only production Focus check (`scripts/check-production-focus.ts`) on the
-exact serving revision and a docs-only closure.
+ledger is in `docs/evidence/renewal-focus-batch-003-validation-2026-10-01.md`. By owner decision on 2026-10-01, batches 002 and 003 ship in one
+cumulative replacement run with PR #93's two-route 60-second canary bound, then the read-only
+production Focus check (`scripts/check-production-focus.ts`) and a docs-only closure.
 
 The four supplied requests 009–012 were read in order and registered as S142–S145, all `ready`.
 S113/S127, the evidence process, manual cycle state and existing action services are the verified
