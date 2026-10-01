@@ -177,6 +177,9 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   "lib/lease-renewal/sheet-writeback-service.ts:buildLiveWritebackDeps:buildLiveRenewalConfig",
   "lib/lease-renewal/sheet-writeback/workspace-resolution.ts:resolveFreshOperatingSheetLeaseContext:buildLiveRenewalConfig",
   "lib/maintenance/live-unit-source.ts:loadLiveUnitCandidates:buildLiveRentVineConfig",
+  // S108 amendment (B-MNT1): the Admin preapproval import pages RentVine's property list
+  // read-only; recording the import is a separate exact-confirmed app-store write.
+  "lib/maintenance/rentvine-property-limits.ts:loadRentVinePropertyLimits:buildLiveRentVineConfig",
   // S68: source verification reads the cached complete lease portfolio and creates no effect.
   "lib/work-accountability/source-resolver.ts:readLiveRenewalLeaseVersion:buildLiveRentVineConfig",
   // 2026-08-26: bodyless, read-only operator discrepancy diagnostic.
