@@ -6,7 +6,7 @@ acceptance run. Each cell names the environment that produced it. "Unit" is the 
 revision fence. "Backend" is the Firestore emulator through the real staff-record store, or
 through the real workspace route handler. "Compiled browser" is the real application on the local
 rehearsal (Demo + live read-only, which refuses every write) in headless Chromium. "Production"
-cells are filled only from the batch 003 release readback. Human verdict: NOT RUN — no human
+cells come only from run `ab803f8a`'s release readbacks and the read-only production Focus check. Human verdict: NOT RUN — no human
 observer.
 
 ## Tested environments
@@ -42,9 +42,12 @@ observer.
   approved `josiah@pmikcmetro.com` identity, whose CLI/ADC refresh `auth:ensure` verified. Both
   checks wait for the page's own reads to finish before recording a baseline, and they print
   structure only: no lease identifier, party, address or amount.
-- **Production:** none. Batch 003 has not been released. A read-only describe at about 10:05 UTC
-  showed `pmi-kc-app-rmundpf2v-249c945f2220` at 100% traffic, and `/api/version` returned
-  `c541db723d3622234956a16e95765867733427cf`.
+- **Production:** run `ab803f8a-4ffb-4568-9178-05ccb588a94c` released batches 002 and 003 at
+  `2ec46806bda10e799025e9919a2c1b14b7be3a5a` / `pmi-kc-app-rmupi9ukm-9f056f091001` (100% traffic; promotion verified
+  2026-10-01T12:46:30.426Z; observation passed two checkpoints in 392,911 ms with all 312 records
+  matched). `scripts/check-production-focus.ts` ran at 2026-10-01T12:56:15Z on the canonical
+  origin in the managed owner-admin profile behind the release request guard. Eleven independent
+  readback sections matched, last at 2026-10-01T13:02:41Z.
 
 ## Fail-first
 
@@ -153,6 +156,13 @@ observer.
   real guarded browser (every non-GET and known state-changing GET refused before dispatch). All
   checks passed, including the desk return link, with zero mutation attempts and zero blocked
   requests. Only the exact-version readback and the managed profile differ in production.
+- **Production Focus check (`2ec46806`, 2026-10-01T12:56:15Z):** `/api/version` matched the exact
+  commit and revision before and after. On three live lease workspaces reached from the desk, Full
+  view was the default and Focus showed a task or result, hiding 14–16 Full view elements. All 29
+  tasks were chosen in Focus. Pointer, keyboard and phone-width round trips left the Full view
+  signature unchanged; the scrolled position, URL and desk return link survived. Switching sent
+  zero lease-renewal or write requests and caused no navigation or page error. Neither view
+  scrolled horizontally at 390 px or 1440 px. Mutation attempts: 0; blocked requests: none.
 - **Compiled browser, preservation:** the S111 guide smoke passed on `d98f3fce` and again on
   `2fdcbbe5`. It located 71 guide steps and preserved the desk view from desk to lease and back.
 - **Compiled browser, desk smoke (not a batch 003 change):** the S82 desk smoke failed its 20 s
@@ -164,27 +174,27 @@ observer.
 
 ## Acceptance map
 
-| Check     | Evidence                                                                                                                                           | Environment            | Result                                                               |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------- |
-| AC-S142-1 | Two joins blocked after the first shared prerequisite and ready after the second; reversed display order resolves prerequisites first              | Unit                   | Pass                                                                 |
-| AC-S142-2 | Alternatives and branches without phantom work; cycles, missing references, impossible conditions and unknown applicability diagnosed locally      | Unit                   | Pass                                                                 |
-| AC-S142-3 | Another actor, waiting effect, unreadable source, unrelated save and historical cycle stay distinct; stale, replayed and wrong-cycle saves refused | Unit; backend          | Pass                                                                 |
-| AC-S143-1 | Full view default; both switch orders return the recorded baseline; unsaved input kept; no navigation; desk return preserved                       | Unit; compiled browser | Pass, including unsaved input in a Focus task's staff field          |
-| AC-S143-2 | One task with lease context, other ready tasks and all work by status; actions completed in the pane                                               | Unit; compiled browser | Pass                                                                 |
-| AC-S143-3 | No request, save or navigation from switching or choosing; waiting, blocked, unreadable and complete stay distinct; focus and announcements        | Unit; compiled browser | Pass                                                                 |
-| AC-S144-1 | Every applicable action maps to its existing control and route; the pane sends exactly the Full view request                                       | Unit; backend          | Pass; live writes not exercised                                      |
-| AC-S144-2 | Confirmed save advances on readback, survives reload and appears in Full view; independent work stays offered                                      | Unit; backend          | Pass                                                                 |
-| AC-S144-3 | Concurrent change, double click, ambiguous effect and Gmail return keep input and evidence meaning without replay or a send claim                  | Unit; backend          | Pass; no live Gmail draft created                                    |
-| AC-S145-1 | Graph cases plus the server-rule matrix over reachable planner states, roles and cycles                                                            | Unit                   | Pass                                                                 |
-| AC-S145-2 | Journeys across branches, failures, re-entry and concurrency; store lifecycle                                                                      | Unit; backend          | Pass; live staff-record saves not exercised                          |
-| AC-S145-3 | Baseline, round trips, disclosures, copy output, keyboard and phone width; guide smoke                                                             | Unit; compiled browser | Pass; desk smoke budget failure is pre-existing (see Results)        |
-| AC-S145-4 | This map; serving readback required for any deployment claim                                                                                       | Unit; backend; browser | Local scopes pass; production pending the batch 003 release readback |
+| Check     | Evidence                                                                                                                                           | Environment            | Result                                                        |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------- |
+| AC-S142-1 | Two joins blocked after the first shared prerequisite and ready after the second; reversed display order resolves prerequisites first              | Unit                   | Pass                                                          |
+| AC-S142-2 | Alternatives and branches without phantom work; cycles, missing references, impossible conditions and unknown applicability diagnosed locally      | Unit                   | Pass                                                          |
+| AC-S142-3 | Another actor, waiting effect, unreadable source, unrelated save and historical cycle stay distinct; stale, replayed and wrong-cycle saves refused | Unit; backend          | Pass                                                          |
+| AC-S143-1 | Full view default; both switch orders return the recorded baseline; unsaved input kept; no navigation; desk return preserved                       | Unit; compiled browser | Pass, including unsaved input in a Focus task's staff field   |
+| AC-S143-2 | One task with lease context, other ready tasks and all work by status; actions completed in the pane                                               | Unit; compiled browser | Pass                                                          |
+| AC-S143-3 | No request, save or navigation from switching or choosing; waiting, blocked, unreadable and complete stay distinct; focus and announcements        | Unit; compiled browser | Pass                                                          |
+| AC-S144-1 | Every applicable action maps to its existing control and route; the pane sends exactly the Full view request                                       | Unit; backend          | Pass; live writes not exercised                               |
+| AC-S144-2 | Confirmed save advances on readback, survives reload and appears in Full view; independent work stays offered                                      | Unit; backend          | Pass                                                          |
+| AC-S144-3 | Concurrent change, double click, ambiguous effect and Gmail return keep input and evidence meaning without replay or a send claim                  | Unit; backend          | Pass; no live Gmail draft created                             |
+| AC-S145-1 | Graph cases plus the server-rule matrix over reachable planner states, roles and cycles                                                            | Unit                   | Pass                                                          |
+| AC-S145-2 | Journeys across branches, failures, re-entry and concurrency; store lifecycle                                                                      | Unit; backend          | Pass; live staff-record saves not exercised                   |
+| AC-S145-3 | Baseline, round trips, disclosures, copy output, keyboard and phone width; guide smoke                                                             | Unit; compiled browser | Pass; desk smoke budget failure is pre-existing (see Results) |
+| AC-S145-4 | This map; serving readback required for any deployment claim                                                                                       | Unit; backend; browser | Local scopes pass; production readbacks and Focus check pass  |
 
 ## Acceptance ledger (FV-01 to FV-102)
 
 Each entry gives the result, the environment, the evidence and the remaining gap. "No
-(unverified)" means not exercised; the missing evidence is named. Every production cell waits for
-the combined batch 002 + 003 release (owner decision, 2026-10-01).
+(unverified)" means not exercised; the missing evidence is named. Production cells come from run
+`ab803f8a`'s readbacks and the read-only production Focus check (2026-10-01).
 
 ### A. Delivery, records, run discipline
 
@@ -192,11 +202,13 @@ the combined batch 002 + 003 release (owner decision, 2026-10-01).
   `6530f51b`, `d98f3fce`, every PR #103 commit (`82344c39`, `6bd240b6`, `76ba54c5`, `ffdca2f2`)
   and both PR #105 commits (`2fdcbbe5`, `2f1dc347`). Each PR merged at its gated head: #101
   `6530f51b`, #102 `d98f3fce`, #103 `ffdca2f2`, #104 `2f8e0bb0`, #105 `2f1dc347`. Gap: none.
-- **FV-02** No (unverified) · Production. Serving is still `pmi-kc-app-rmundpf2v-249c945f2220`
-  (`c541db72`) at 100%. Gap: the batch 003 release, which waits for batch 002's run.
-- **FV-03** No (unverified) · Production. The read-only check exists and its per-lease routine
-  passed locally behind the real guard (three leases, zero mutation attempts). Gap: candidate
-  assurance, promotion, observation, readbacks and this check on the exact serving revision.
+- **FV-02** Yes · Production. Canonical and candidate-tag `/api/version` return `2ec46806bda10e799025e9919a2c1b14b7be3a5a`
+  / `pmi-kc-app-rmupi9ukm-9f056f091001`, which holds 100% traffic; every batch 003 commit and fix (FV-01) is an
+  ancestor of `2ec46806`. Gap: none.
+- **FV-03** Yes · Production. After candidate assurance, promotion, observation and readbacks,
+  `scripts/check-production-focus.ts` passed on the exact serving revision (version verified before
+  and after) on three live lease workspaces reached from the desk, behind the release request
+  guard: zero mutation attempts, no blocked request. Gap: none.
 - **FV-04** Yes · Unit; scratch reverts; full gate. Each of the four earlier corrections fails its
   regression test when reverted, and each acceptance-run repair fails first on `76ba54c5` (see
   Fail-first). The full gate passed on the fixed head `2f1dc347`. Gap: none locally.
@@ -215,10 +227,10 @@ the combined batch 002 + 003 release (owner decision, 2026-10-01).
 
 ### B. Full-view preservation
 
-- **FV-10** No (unverified) · Unit and compiled browser pass; production pending. The initial
+- **FV-10** Yes · Unit; compiled browser; production. The initial
   `view` is `"full"` and no lease-view preference is stored anywhere (search), so the "unless"
-  clause is N/A. Full was pressed on every fresh load in unit tests and on seven rehearsal loads.
-  Gap: the production check.
+  clause is N/A. Full was pressed on every fresh load in unit tests, on seven rehearsal loads and
+  on all three production workspaces, with no Focus pane by default. Gap: none.
 - **FV-11** Yes · Unit; compiled browser. Pre-existing workspace tests pass unchanged in the full
   gate, and the S111 guide smoke passed on `2fdcbbe5` without touching the switch.
 - **FV-12** Yes · Unit. The signature's `sectionIds` and `regions` order equals the `6c806afe`
@@ -259,9 +271,11 @@ the combined batch 002 + 003 release (owner decision, 2026-10-01).
   `aria-pressed`. The no-switch layout is unreachable for real leases: the live lease page is the
   only caller and always passes the staff record or its read failure; the old lease route
   redirects.
-- **FV-23** No (unverified) · Unit and compiled browser pass; production pending. Lease, cycle,
+- **FV-23** Yes · Unit; compiled browser; production. Lease, cycle,
   URL and desk return link were identical across both switch orders (unit; three leases in the
-  guarded routine). Gap: the production check.
+  guarded routine). In production the URL and desk return link were unchanged after pointer,
+  keyboard and phone round trips on three live workspaces, with zero navigations and the Full
+  view signature unchanged. Gap: none.
 - **FV-24** Yes · Unit; compiled browser. Switching and choosing sent zero lease-renewal requests
   and zero non-GET requests, caused no navigation or refresh and changed nothing in the store.
 - **FV-25** Yes · Unit; compiled browser. Unsaved values survive both orders in Full view fields
@@ -380,8 +394,9 @@ the combined batch 002 + 003 release (owner decision, 2026-10-01).
   says nothing is ready for this person.
 - **FV-76** Yes · Code search. No role check, claim, activation or approval gate guards Focus,
   and the route guard is unchanged.
-- **FV-77** Yes in code · Git. No flag, role, connector or registry change; the release readback
-  of `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=false` follows the release (FV-97).
+- **FV-77** Yes · Git; production. No flag, role, connector or registry change; the serving
+  revision reads `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=false` and matches its reviewed
+  configuration fingerprint (FV-97). Gap: none.
 - **FV-78** Yes · Code search; unit. No Focus file calls a send or fetch path, and drafts stay
   unsent.
 
@@ -404,9 +419,9 @@ the combined batch 002 + 003 release (owner decision, 2026-10-01).
 - **FV-87** Yes · Unit; backend. Exactly one effect for a repeated submission.
 - **FV-88** Yes · Unit. An ambiguous result keeps the context and recovers with the same operation
   before any repeat.
-- **FV-89** No (unverified) · Production. No production record or write was made by this run: its
-  only production requests were a read-only describe and `GET /api/version`. Gap: the production
-  check's guard report.
+- **FV-89** Yes · Production. The production Focus check's guard report reads zero mutation
+  attempts and no blocked request, and every workspace recorded zero write requests. No synthetic
+  record was created. Gap: none.
 - **FV-90** Yes · All environments run. No send or draft call reached production or Gmail; unit
   tests use fixtures, the rehearsal refuses writes and the guarded routine recorded zero mutation
   attempts. The production check runs under the same guard.
@@ -417,22 +432,31 @@ the combined batch 002 + 003 release (owner decision, 2026-10-01).
 
 - **FV-92** Yes · Logs outside Git. `verify.sh` and `test:e2e:core` exited 0 on the exact heads of
   PRs #101, #102, #103, #104 and #105.
-- **FV-93** No (unverified). `verify:dependencies` passed (0 vulnerabilities) on PR #105's head
-  and on the final `main`. Gap: the run at batch 003 admission.
-- **FV-94** No (unverified). CI is green on every PR head and every `main` merge commit. Gap: the
-  exact released SHA.
+- **FV-93** Yes · Local gate; CI. `verify:dependencies` passed (0 vulnerabilities) on PR #105's
+  head, on PR #107's head `7a61bf77` (tree-identical to the release head) and in the release head's
+  push CI 36860571425 (policy-build, finished 12:17 UTC), which admission at 12:23:39 UTC required.
+  Each later `main` push reruns it in CI. Gap: none.
+- **FV-94** Yes · GitHub. CI is green on every PR head and every `main` merge commit, including
+  the exact released SHA `2ec46806` (run 36860571425: quality, unit, firestore, policy-build and
+  verify passed). Gap: none.
 - **FV-95** Yes · Git. `b1c6135c..main` changes no protected path, Action Registry key or
   `production_allowed` flag, `app/api/**` route, Firestore rules, provider adapter or runtime
   flag, and adds no persisted Focus state.
-- **FV-96** No (unverified). Batch 002's run is unfinished and no batch 003 run is prepared;
-  `~/pmi-kc-work/main` and `b1c6135c` were not touched. Gap: one cumulative batch 003 candidate
-  after batch 002 completes.
-- **FV-97** No (unverified) · Production. Gap: post-promotion traffic, environment, identity,
-  Space maps, secret bindings and authorized-domain readbacks.
-- **FV-98** No (unverified) · Compiled browser passes; production pending. No horizontal overflow
+- **FV-96** Yes · Release state. Run `6eb157e1` reached an owner-directed outcome: it was
+  archived byte-for-byte as superseded at 12:15:49 UTC, before run `ab803f8a`'s permit was
+  prepared at 12:16:47 UTC, so runs never overlapped. `~/pmi-kc-work/main` and `b1c6135c` were
+  untouched while it was unfinished. One cumulative candidate carried batches 002 and 003 and
+  every fix. Gap: none.
+- **FV-97** Yes · Production. Independent readbacks at 13:02:41 UTC: canonical traffic 100% on
+  `pmi-kc-app-rmupi9ukm-9f056f091001`; environment production/live with `ASK_DEMO_MODE=false` and
+  `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=false`; the managed runtime identity, eleven paired Space
+  maps and four secret bindings match the reviewed configuration fingerprint; exactly one
+  candidate authorized domain. Gap: none.
+- **FV-98** Yes · Compiled browser; production. No horizontal overflow
   in either view at 390 px or desktop width on the three guarded loads, nor at 390 px (both views)
-  and desktop (Focus) on the four smoke loads; the switch worked at both widths. Gap: the
-  production check.
+  and desktop (Focus) on the four smoke loads; the switch worked at both widths. In production,
+  neither view scrolled horizontally at 390 px or 1440 px on three live workspaces, and the switch
+  worked at both widths. Gap: none.
 - **FV-99** Yes · Unit. Task changes, requirement changes and completions are announced in the
   polite region in evidence wording (repaired in PR #105).
 - **FV-100** Yes · Unit; compiled browser. A scrolled Full view returns to its position, "Show this
@@ -444,9 +468,6 @@ the combined batch 002 + 003 release (owner decision, 2026-10-01).
 
 ## Unverified seams
 
-- Production serving of Focus (FV-02, FV-03, FV-10, FV-23, FV-89, FV-93, FV-94, FV-96 to
-  FV-98): batch 003 is not deployed. It ships with batch 002 in one cumulative replacement run
-  (owner decision, 2026-10-01).
 - Live staff-record saves through Focus: the rehearsal refuses writes, and no synthetic production
   record is authorized. The emulator tests cover the store and the real route handler.
 - Live Gmail drafts and provider effects (RentVine or Sheet write-back) started from Focus

@@ -1,6 +1,6 @@
 # Batched release runbook
 
-Updated 2026-09-30 (UTC). One candidate must ship every queued feature.
+Updated 2026-10-01 (UTC). One candidate must ship every queued feature.
 
 The owner’s 2026-09-29 batch-scoped completion authorization is recorded in AGENTS.md. It permits
 necessary Cloud Build/Cloud Run actions, diagnosed and verified repairs, resumes/replacements,
@@ -8,30 +8,30 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-Run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` released all thirteen features and five confirmed adversarial repairs at
-`c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220` with 100% production traffic.
-Exact [CI 36650984450](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36650984450) passed.
-The final application gate passed 7,462 unit tests, four existing skips and all 234 backend tests.
-One application build `83925ea5-8230-4796-a2fd-cc4f8674d02f` succeeded at 2026-09-30T01:00:23.252385Z.
-Candidate receipt issued 2026-09-30T01:09:42.790Z; promotion verified 2026-09-30T01:10:01.479Z.
-Observation passed two checkpoints in 390,918 ms against the required 300,000 ms. All 311
+Run `ab803f8a-4ffb-4568-9178-05ccb588a94c` released request 001 and batches 002 and 003 (twelve queued items: 001 and
+S135–S145) at `2ec46806bda10e799025e9919a2c1b14b7be3a5a` / `pmi-kc-app-rmupi9ukm-9f056f091001` with 100% production traffic.
+Exact [CI 36860571425](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36860571425) passed.
+The gate on tree-identical PR head `7a61bf77` passed 7,738 unit tests, four existing skips and all 241 backend tests.
+One application build `326619ba-29a6-4aea-b753-bfcac0f543c4` succeeded at 2026-10-01T12:39:58.352Z.
+Candidate receipt issued 2026-10-01T12:46:11.864Z; promotion verified 2026-10-01T12:46:30.426Z.
+Observation passed two checkpoints in 392,911 ms against the required 300,000 ms. All 312
 source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
-Eleven independent readback sections and all six guarded remote product checks passed.
-The actual uploaded source matched 2,176 exact Git blobs; all thirteen suites were included,
-with no unexpected/private file, missing runtime source or .git pointer.
+Eleven independent readback sections matched, last at 2026-10-01T13:02:41Z. The read-only
+production Focus check passed on three live lease workspaces with zero mutation attempts.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag `cand-rmundpf2v-249c945f2220`; fingerprint `sha256:e6a481aeb691991fe38f89bc0d25f40bb73c67de7d1e639e89f2cb5e8c4d0eaa`.
+Tag `cand-rmupi9ukm-9f056f091001`; fingerprint `sha256:b4b6c1e393b5233588480a415bcaad1f7e633e277cfc58b99c2a3be6d2ccc631`.
 No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
-The cumulative corrective release is complete, its permit consumed and its queue empty.
+Run `ab803f8a` (request 001 plus batches 002 and 003) is complete, its permit consumed and its
+queue empty.
 Original completed runs remain preserved separately. This retained procedure does not authorize
 a new dispatch or reuse of a consumed permit; future authorized work requires current gates.
 The September 30 runner correction removes the former fixed thirteen-suite and seven-hour
 enrollment-age preflight assumptions. An explicitly authorized future batch still needs its own
 nonempty exact Awaiting release queue, ancestral commits, fresh CLI/ADC/browser prerequisites,
-new run-bound permit, lock, receipts and all release readbacks. The completed thirteen-suite run
-remains historical evidence and cannot be re-admitted.
+new run-bound permit, lock, receipts and all release readbacks. Completed runs remain historical
+evidence and cannot be re-admitted.
 
 ## Authorized replacement preparation
 
@@ -89,6 +89,7 @@ The thirteen features are cumulative commits on main:
 
 Exact implementation provenance and receipts remain in the shared batch audit and Git history.
 The completed run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` carried all thirteen features in one application build and candidate.
+Run `ab803f8a-4ffb-4568-9178-05ccb588a94c` later carried request 001 and batches 002–003 (twelve queued items) in one build and candidate.
 The cumulative corrective queue is cleared after independent verification. An empty queue refuses fresh admission; docs/loop-state.md records the completed state.
 
 ## Before you start
@@ -108,9 +109,10 @@ gcloud beta billing projects describe pmi-kc-kb-prod --format="value(billingEnab
 
 Expect True and account `01A5A3-65CA5A-614D45`. Stop if billing is disabled.
 
-**2. Verify the watcher and checkpoint before any start.** Current run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` is complete,
+**2. Verify the watcher and checkpoint before any start.** Current run `ab803f8a-4ffb-4568-9178-05ccb588a94c` is complete,
 its permit consumed and its original receipts preserved. The stale S128-only checkpoint and later
 failed cumulative attempts were archived through checked retirement; none was relabeled a pass.
+Blocked runs `dc4e1ac8` and `6eb157e1` were archived the same way as superseded.
 Never overwrite an unfinished checkpoint or clear a build claim. Before another authorized run,
 prove no watcher, inherited child or cloud operation remains unresolved, preserve every original
 checkpoint/permit/claim/receipt under the release lock, and verify actual traffic/tag bindings.
@@ -245,7 +247,7 @@ Each phase advances only on independent readback:
 4. Run the pinned environment-handoff-provider-table and plan-status-sync tests, prettier and
    document gates; commit/push documentation-only closure. It must not trigger another deployment.
 
-This thirteen-feature release is complete. The retained procedure does not reopen its queue or
+The combined request 001 and batch 002 + 003 release is complete. The retained procedure does not reopen its queue or
 renew permission. Failed predecessors retain their exact reports and claims. B-DL1, B-DL2, B-DL3,
 B-S100, B-MNT1, B-MNT2 and B-AUTH2 retain their scoped external or human holds; they do not alter
 the completed implementation/release verdict.

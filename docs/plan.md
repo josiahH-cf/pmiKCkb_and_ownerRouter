@@ -1,8 +1,8 @@
 # Current plan
 
-Updated: 2026-09-30 (UTC). The thirteen-feature batch and confirmed adversarial repairs are verified deployed. The separate 001 dependency release is blocked at assurance; batches 002–003 are owner-authorized for execution.
+Updated: 2026-10-01 (UTC). Request 001 and batches 002–003 are verified deployed by run `ab803f8a`, on top of the thirteen-feature batch and confirmed adversarial repairs.
 
-## Direct maintenance request 001: merged, release pending
+## Direct maintenance request 001: released
 
 The owner supplied `pmi-new-features-9-30/001-governance-simplification-and-unattended-auth-renewal.md`
 and explicitly directed implementation, push and merge to main, now completed. Scope was existing router,
@@ -24,11 +24,12 @@ Focused tests, `bash scripts/verify.sh` and host read-only checks passed. PR #92
 `41ad65cb` on 2026-09-30. New production dependency resolutions needed for the mandatory audit
 require a separately gated Cloud Run release. Its run `dc4e1ac8-d8b9-4090-9258-e2ddb18f119f`
 built a zero-traffic candidate and blocked at assurance when live renewal routes exceeded the
-30-second canary navigation bound; the admitted permit expired unused. Draft PR #93 proposes a
-60-second bound for those two routes and awaits owner review. The previous release's consumed
-permit remains historical.
+30-second canary navigation bound; the admitted permit expired unused. By owner decision on
+2026-10-01, PR #107 applied PR #93's 60-second bound to those two routes (PR #93 was closed
+unmerged), and run `ab803f8a` released request 001 with batches 002 and 003. The previous
+release's consumed permit remains historical.
 
-## Markdown batch 002: executing
+## Markdown batch 002: released
 
 All seven supplied requests 002–008 were read in order, mapped to S135–S141 and registered as
 `ready` in `docs/feature-suites/README.md`. The owner clarified that email requests 006–007 cover
@@ -39,15 +40,16 @@ Preserve S87/S94/S95 as separate proposals. On 2026-09-30 the owner explicitly i
 execution of batch 002, then batch 003, through implementation, mainline merge and deployment,
 with one cumulative release at the end of each set. PR #95 merged the production audit patch at
 `dc493dfe`; S136 (PR #96), S135/S137/S138 (PR #98) and S139/S140 (PR #99, `f43629aa`) merged
-after full local gates and exact CI. S141's local evidence is recorded; next is the cumulative
-release after archiving blocked run `dc4e1ac8` through the superseded-by procedure.
+after full local gates and exact CI. S141's local evidence is recorded. Run `ab803f8a` released
+batch 002 with batch 003 on 2026-10-01; S141's production inference cells were not run.
 
-## Markdown batch 003: merged, releasing with batch 002
+## Markdown batch 003: released
 
 S142–S145 are merged (PRs #101, #102, #103 and #105) and the acceptance run's FV-01 to FV-102
-ledger is in `docs/evidence/renewal-focus-batch-003-validation-2026-10-01.md`. By owner decision on 2026-10-01, batches 002 and 003 ship in one
-cumulative replacement run with PR #93's two-route 60-second canary bound, then the read-only
-production Focus check (`scripts/check-production-focus.ts`) and a docs-only closure.
+ledger is in `docs/evidence/renewal-focus-batch-003-validation-2026-10-01.md`. By owner decision on 2026-10-01, batches 002 and 003 shipped in one
+cumulative replacement run with PR #93's two-route 60-second canary bound: run `ab803f8a` at
+`2ec46806`. The read-only production Focus check (`scripts/check-production-focus.ts`) passed on
+the exact serving revision with zero mutation attempts.
 
 The four supplied requests 009–012 were read in order and registered as S142–S145, all `ready`.
 S113/S127, the evidence process, manual cycle state and existing action services are the verified
@@ -63,25 +65,26 @@ release permit as an intake approval.
 
 ## Outcome
 
-Run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` released all thirteen features and five confirmed adversarial repairs at
-`c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220` with 100% production traffic.
-Exact [CI 36650984450](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36650984450) passed.
-The final application gate passed 7,462 unit tests, four existing skips and all 234 backend tests.
-One application build `83925ea5-8230-4796-a2fd-cc4f8674d02f` succeeded at 2026-09-30T01:00:23.252385Z.
-Candidate receipt issued 2026-09-30T01:09:42.790Z; promotion verified 2026-09-30T01:10:01.479Z.
-Observation passed two checkpoints in 390,918 ms against the required 300,000 ms. All 311
+Run `ab803f8a-4ffb-4568-9178-05ccb588a94c` released request 001 and batches 002 and 003 (twelve queued items: 001 and
+S135–S145) at `2ec46806bda10e799025e9919a2c1b14b7be3a5a` / `pmi-kc-app-rmupi9ukm-9f056f091001` with 100% production traffic.
+Exact [CI 36860571425](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36860571425) passed.
+The gate on tree-identical PR head `7a61bf77` passed 7,738 unit tests, four existing skips and all 241 backend tests.
+One application build `326619ba-29a6-4aea-b753-bfcac0f543c4` succeeded at 2026-10-01T12:39:58.352Z.
+Candidate receipt issued 2026-10-01T12:46:11.864Z; promotion verified 2026-10-01T12:46:30.426Z.
+Observation passed two checkpoints in 392,911 ms against the required 300,000 ms. All 312
 source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
-Eleven independent readback sections and all six guarded remote product checks passed.
-The actual uploaded source matched 2,176 exact Git blobs; all thirteen suites were included,
-with no unexpected/private file, missing runtime source or .git pointer.
+Eleven independent readback sections matched, last at 2026-10-01T13:02:41Z. The read-only
+production Focus check passed on three live lease workspaces with zero mutation attempts.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag `cand-rmundpf2v-249c945f2220`; fingerprint `sha256:e6a481aeb691991fe38f89bc0d25f40bb73c67de7d1e639e89f2cb5e8c4d0eaa`.
+Tag `cand-rmupi9ukm-9f056f091001`; fingerprint `sha256:b4b6c1e393b5233588480a415bcaad1f7e633e277cfc58b99c2a3be6d2ccc631`.
 No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
 ## Current implementation baseline
 
-The final application gate passed 7,462 unit tests and 234 backend tests, with four existing
+Run `ab803f8a` added request 001 and S135–S145 to the deployed baseline; the gate on its
+tree-identical PR head passed 7,738 unit tests and 241 backend tests. For the thirteen-feature
+batch, the final application gate passed 7,462 unit tests and 234 backend tests, with four existing
 configuration skips, all required checks and production build. The notice portfolio repair
 preserves per-lease invalidation semantics while processing 311 leases in ten bounded transactions;
 its regression failed on the original fan-out and passed after repair. Mixed admission and

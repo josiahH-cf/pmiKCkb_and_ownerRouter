@@ -1,6 +1,6 @@
 # Environment and release handoff
 
-Updated 2026-09-30 (UTC).
+Updated 2026-10-01 (UTC).
 
 The owner’s 2026-09-29 batch-scoped completion authorization is recorded in AGENTS.md. It permits
 necessary Cloud Build/Cloud Run actions, diagnosed and verified repairs, resumes/replacements,
@@ -8,19 +8,18 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-Run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` released all thirteen features and five confirmed adversarial repairs at
-`c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220` with 100% production traffic.
-Exact [CI 36650984450](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36650984450) passed.
-The final application gate passed 7,462 unit tests, four existing skips and all 234 backend tests.
-One application build `83925ea5-8230-4796-a2fd-cc4f8674d02f` succeeded at 2026-09-30T01:00:23.252385Z.
-Candidate receipt issued 2026-09-30T01:09:42.790Z; promotion verified 2026-09-30T01:10:01.479Z.
-Observation passed two checkpoints in 390,918 ms against the required 300,000 ms. All 311
+Run `ab803f8a-4ffb-4568-9178-05ccb588a94c` released request 001 and batches 002 and 003 (twelve queued items: 001 and
+S135–S145) at `2ec46806bda10e799025e9919a2c1b14b7be3a5a` / `pmi-kc-app-rmupi9ukm-9f056f091001` with 100% production traffic.
+Exact [CI 36860571425](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36860571425) passed.
+The gate on tree-identical PR head `7a61bf77` passed 7,738 unit tests, four existing skips and all 241 backend tests.
+One application build `326619ba-29a6-4aea-b753-bfcac0f543c4` succeeded at 2026-10-01T12:39:58.352Z.
+Candidate receipt issued 2026-10-01T12:46:11.864Z; promotion verified 2026-10-01T12:46:30.426Z.
+Observation passed two checkpoints in 392,911 ms against the required 300,000 ms. All 312
 source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
-Eleven independent readback sections and all six guarded remote product checks passed.
-The actual uploaded source matched 2,176 exact Git blobs; all thirteen suites were included,
-with no unexpected/private file, missing runtime source or .git pointer.
+Eleven independent readback sections matched, last at 2026-10-01T13:02:41Z. The read-only
+production Focus check passed on three live lease workspaces with zero mutation attempts.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag `cand-rmundpf2v-249c945f2220`; fingerprint `sha256:e6a481aeb691991fe38f89bc0d25f40bb73c67de7d1e639e89f2cb5e8c4d0eaa`.
+Tag `cand-rmupi9ukm-9f056f091001`; fingerprint `sha256:b4b6c1e393b5233588480a415bcaad1f7e633e277cfc58b99c2a3be6d2ccc631`.
 No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
@@ -45,8 +44,8 @@ Five confirmed adversarial findings are repaired and verified deployed: lifecycl
 | Region                    | `us-central1`                                   |
 | Cloud Run service         | `pmi-kc-app`                                    |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`    |
-| Serving revision          | `pmi-kc-app-rmundpf2v-249c945f2220`             |
-| Serving commit            | `c541db723d3622234956a16e95765867733427cf`      |
+| Serving revision          | `pmi-kc-app-rmupi9ukm-9f056f091001`             |
+| Serving commit            | `2ec46806bda10e799025e9919a2c1b14b7be3a5a`      |
 | Traffic                   | 100%                                            |
 | Descriptor                | Production + Live                               |
 | Runtime identity          | project-managed PMI KC runtime service account  |
@@ -128,7 +127,7 @@ it did not reverify product routes or every environment setting.
 
 ### Local release watcher
 
-Run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` completed exact `c541db723d3622234956a16e95765867733427cf`. Its permit is consumed and checkpoint
+Run `ab803f8a-4ffb-4568-9178-05ccb588a94c` completed exact `2ec46806bda10e799025e9919a2c1b14b7be3a5a`. Its permit is consumed and checkpoint
 complete. The watcher exited; supplemental profile/lock ownership was released after verified
 cleanup. Failed runs and every original report/claim remain outside Git with their actual verdicts.
 The existing scheduled task remains unchanged; a consumed or missing permit cannot dispatch
@@ -163,13 +162,13 @@ The existing channel and recipient passed the historical 2026-09-08 monitoring r
 A future promotion still requires fresh monitoring READY for its exact release.
 
 `npm run release:watch:dry-run` is inspection only. The actual batch requires a prepared exact-SHA
-permit, fresh preflight GO for all thirteen suites and atomic admission under the release lock.
+permit, fresh preflight GO for every queued item and atomic admission under the release lock.
 The watcher checks the current green `main` SHA against that permit; it cannot advance to another
 head under the same permission. An unfinished checkpoint still pins its exact SHA and must be
 reconciled through the runbook before a new run. Never replace a failed checkpoint or dispatch claim
 to obtain another build.
-The last successful serialized release is the cumulative thirteen-feature run `89e38cd9-b6dd-498f-be87-1963e0ed2d03`,
-exact `c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220`. Recovery preparation, the one application build, candidate smoke,
+The last successful serialized release is the cumulative request 001 and batch 002 + 003 run `ab803f8a-4ffb-4568-9178-05ccb588a94c`,
+exact `2ec46806bda10e799025e9919a2c1b14b7be3a5a` / `pmi-kc-app-rmupi9ukm-9f056f091001`. Recovery preparation, the one application build, candidate smoke,
 configuration/domains, Admin assurance, reconciliation, promotion and observation passed.
 Earlier failures and their diagnosed repairs retain their actual outcomes in the shared batch
 audit and immutable external receipts. Historical rollback and superseded candidates are not
@@ -245,9 +244,9 @@ Compare the candidate's normalized runtime spec to the captured predecessor, all
 image and `APP_COMMIT_SHA` identity differences plus the explicitly authorized Sheet pause. Inspect
 provider-generated per-build provenance metadata separately.
 
-The serving candidate is `c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220`, tag `cand-rmundpf2v-249c945f2220`.
-Fingerprint: `sha256:e6a481aeb691991fe38f89bc0d25f40bb73c67de7d1e639e89f2cb5e8c4d0eaa`. Its captured predecessor is the original batch
-`pmi-kc-app-rmunbakkw-d2963016189e`; the run-bound paused recovery clone is described below.
+The serving candidate is `2ec46806bda10e799025e9919a2c1b14b7be3a5a` / `pmi-kc-app-rmupi9ukm-9f056f091001`, tag `cand-rmupi9ukm-9f056f091001`.
+Fingerprint: `sha256:b4b6c1e393b5233588480a415bcaad1f7e633e277cfc58b99c2a3be6d2ccc631`. Its captured predecessor is the thirteen-feature release
+`pmi-kc-app-rmundpf2v-249c945f2220`; the run-bound paused recovery clone is described below.
 Exact candidate/canonical identity, all candidate gates, promotion and final readbacks passed.
 
 Run the anonymous, GET-only candidate smoke before any authenticated browser check:
@@ -344,8 +343,8 @@ the predecessor's existing `.renewal-lease-link` when newer semantic markers are
 version/configuration, the complete Admin route manifest, diagnostics and monitoring remain
 required. Candidate-era semantic reconciliation cannot be imposed on a predecessor without those
 markers. The first run's 09:47:29.810Z supplemental receipt is historical d63f evidence only.
-The completed run's clone `pmi-kc-app-recovery-89e38cd9b6dd498f` passed preparation; receipt
-`4cc6d657-5f3e-4c54-bfff-48f8fd614d34` issued at 2026-09-30T00:54:59.331Z.
+The completed run's clone `pmi-kc-app-recovery-ab803f8a4ffb4568` passed preparation; receipt
+`17ad830b-c2cc-46b6-aa74-77c0d088237f` issued at 2026-10-01T12:33:52.991Z.
 No traffic recovery occurred; prepared recovery is not a rollback verdict.
 
 ## Promotion and observation
@@ -367,8 +366,8 @@ already-authorized exact receipt-bound recovery, but actual kernel lock and phas
 
 The watcher runs canonical observation with the bound promotion receipt, fingerprint, managed
 operator and explicit Admin profile. The observer rejects caller-supplied predecessor or promotion
-time. This batch's promotion verified at 2026-09-30T01:10:01.479Z; its observation passed
-with two checkpoints in 390,918 ms.
+time. This batch's promotion verified at 2026-10-01T12:46:30.426Z; its observation passed
+with two checkpoints in 392,911 ms.
 
 The runner executes immediate and end-of-300,000-ms Admin canaries and reconciliation. It may
 wait only through the specified two-minute monitoring-ingestion grace. It emits a bodyless decision
@@ -391,15 +390,15 @@ separately authorized exact-key activation passed its own gates.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmunbakkw-d2963016189e` from commit
-`81c770fcb698b6650771f9a28c65c32a42060062`. This predecessor reads Sheet=false; the supplemental receipt
+Captured predecessor: `pmi-kc-app-rmundpf2v-249c945f2220` from commit
+`c541db723d3622234956a16e95765867733427cf`. This predecessor reads Sheet=false; the supplemental receipt
 below is the current rollback authority. Older Sheet=true revisions cannot be directly restored.
 
-The verified run-bound recovery target is `pmi-kc-app-recovery-89e38cd9b6dd498f`,
-fingerprint `sha256:0cea04bb7dcfdc2cc033182a54fa36cd86b85f2b1f9b956d10d89f138d4ad572`, with Sheet=false. Receipt
-`4cc6d657-5f3e-4c54-bfff-48f8fd614d34` issued at 2026-09-30T00:54:59.331Z; reference hash
-`sha256:a92c178964ef6e7df92e888f3441b74a4adeddeac40f3aa0ded6acb94848300d`. The receipt binds original image/configuration, the sole
-allowed Sheet pause, target identity and preparation assurance to run `89e38cd9-b6dd-498f-be87-1963e0ed2d03`.
+The verified run-bound recovery target is `pmi-kc-app-recovery-ab803f8a4ffb4568`,
+fingerprint `sha256:45362256522e4ca5e2428637ff37f9735c1686786613513adb54fdf74e348e31`, with Sheet=false. Receipt
+`17ad830b-c2cc-46b6-aa74-77c0d088237f` issued at 2026-10-01T12:33:52.991Z; reference hash
+`sha256:0fed16d5e518f3be6f443ca4e8f29e889bda30f8b2800d45c2aef4717e751bb8`. The receipt binds original image/configuration, the sole
+allowed Sheet pause, target identity and preparation assurance to run `ab803f8a-4ffb-4568-9178-05ccb588a94c`.
 Forward restoration and rollback require fresh actual state and the exact receipt-bound
 contract. No traffic rollback occurred in the completed batch. A receipt never transfers to
 another run, and historical Sheet-enabled revisions are not current restoration targets.
