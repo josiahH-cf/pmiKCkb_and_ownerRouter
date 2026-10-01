@@ -431,6 +431,11 @@ describe("S148 Dashboard history in the workspace", () => {
       .setup()
       .click(screen.getByRole("button", { name: "Saved question 5" }));
     await screen.findByText("Stored answer.", { selector: "p" });
+    // Reopening moves focus to the opened turn on the next frame. Type the follow-up after that,
+    // as a person would, so no keystroke lands on the turn instead of the question box.
+    await waitFor(() =>
+      expect(document.activeElement?.closest("article.dashboard-turn")).not.toBeNull(),
+    );
 
     await ask("Only the second one");
     await screen.findByText("Saved to your history.");
