@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { ComponentProps } from "react";
 import { render, screen, within } from "@testing-library/react";
 import { expect, vi } from "vitest";
 
@@ -70,14 +71,32 @@ export interface RouteFake {
   readonly replace: (state: RenewalWorkspaceState) => void;
   /** Hold the next record response until the returned release is called. */
   readonly holdNextRecord: () => () => void;
+  /** Apply the next record on the server, then lose its response on the way back. */
+  readonly loseNextRecordResponse: () => void;
   readonly writes: () => FetchCall[];
 }
 
-export function stubRenewalRoutes(initial: RenewalWorkspaceState | null): RouteFake {
+export interface RouteFakeOptions {
+  /** Replace the message preparation read, e.g. with a reviewed, publishable preparation. */
+  readonly messagePreparation?: (
+    channel: "owner" | "tenant",
+    cycleId: string | null,
+  ) => Record<string, unknown>;
+  /** Answer a message preparation POST (draft preview, creation, save); default 404. */
+  readonly messagePost?: (body: Record<string, unknown> | null) => Response;
+  /** Answer any other lease-renewal route this test drives; default an empty JSON object. */
+  readonly other?: (call: FetchCall) => Response | null;
+}
+
+export function stubRenewalRoutes(
+  initial: RenewalWorkspaceState | null,
+  options: RouteFakeOptions = {},
+): RouteFake {
   let stored = initial;
   const calls: FetchCall[] = [];
   const replays = new Map<string, { hash: string; state: RenewalWorkspaceState }>();
   let hold: Promise<void> | null = null;
+  let loseResponse = false;
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
@@ -85,13 +104,18 @@ export function stubRenewalRoutes(initial: RenewalWorkspaceState | null): RouteF
       ? (JSON.parse(String(init.body)) as Record<string, unknown>)
       : null;
     calls.push({ method, url, body });
-    if (url.includes("/api/lease-renewal/message-preparation"))
+    if (url.includes("/api/lease-renewal/message-preparation")) {
+      if (method !== "GET")
+        return (
+          options.messagePost?.(body) ??
+          Response.json({ error: "Not handled by this test." }, { status: 404 })
+        );
+      const channel = url.includes("channel=owner") ? "owner" : "tenant";
       return Response.json(
-        preparation(
-          url.includes("channel=owner") ? "owner" : "tenant",
-          stored?.cycleId ?? null,
-        ),
+        options.messagePreparation?.(channel, stored?.cycleId ?? null) ??
+          preparation(channel, stored?.cycleId ?? null),
       );
+    }
     if (url.includes("/api/lease-renewal/document-handoff"))
       return Response.json({
         snapshot: null,
@@ -137,10 +161,15 @@ export function stubRenewalRoutes(initial: RenewalWorkspaceState | null): RouteF
           recordedAt: "2026-09-30T17:00:00.000Z",
         });
         replays.set(operationId, { hash, state: stored });
+        if (loseResponse) {
+          // The record is applied; only its response is lost on the way back.
+          loseResponse = false;
+          throw new TypeError("Failed to fetch");
+        }
         return Response.json({ state: stored, writeback_paused: true });
       }
     }
-    return Response.json({});
+    return options.other?.({ method, url, body }) ?? Response.json({});
   });
   vi.stubGlobal("fetch", fetchMock);
   return {
@@ -148,6 +177,9 @@ export function stubRenewalRoutes(initial: RenewalWorkspaceState | null): RouteF
     state: () => stored,
     replace: (state) => {
       stored = state;
+    },
+    loseNextRecordResponse: () => {
+      loseResponse = true;
     },
     holdNextRecord: () => {
       let release: () => void = () => undefined;
@@ -178,6 +210,8 @@ export interface WorkspaceRenderOptions {
   readonly workflowAvailable?: boolean;
   readonly rentChargeStatus?: readonly RentChargeOutcomeRow[];
   readonly sheetWritebackPaused?: boolean;
+  /** Any further existing RenewalWorkspace props, such as a provider panel or read failures. */
+  readonly extra?: Partial<ComponentProps<typeof RenewalWorkspace>>;
 }
 
 export function workspaceElement(options: WorkspaceRenderOptions = {}) {
@@ -188,6 +222,7 @@ export function workspaceElement(options: WorkspaceRenderOptions = {}) {
     options.workflowAvailable === false ? { ...base, workflowAvailable: false } : base;
   return (
     <RenewalWorkspace
+      {...options.extra}
       workspace={workspace}
       role={options.role ?? "Editor"}
       {...(options.rentChargeStatus

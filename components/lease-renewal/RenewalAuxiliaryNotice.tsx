@@ -49,9 +49,7 @@ export function RenewalAuxiliaryNotice({
       {compact ? null : (
         <ul className="renewal-auxiliary-failures">
           {failures.map((failure) => (
-            <li key={failure.key}>
-              {LABELS[failure.key]}: {statusLabel(failure.status)}
-            </li>
+            <li key={failure.key}>{renewalAuxiliaryFailureText(failure)}</li>
           ))}
         </ul>
       )}
@@ -62,6 +60,11 @@ export function RenewalAuxiliaryNotice({
   ) : (
     <Card title="Supporting information unavailable">{content}</Card>
   );
+}
+
+/** One failed supporting read in the notice's own words; the Focus view lists the same text. */
+export function renewalAuxiliaryFailureText(failure: RenewalAuxiliaryFailure): string {
+  return `${LABELS[failure.key]}: ${statusLabel(failure.status)}`;
 }
 
 function statusLabel(status: Exclude<RenewalAuxiliaryReadStatus, "available">): string {
