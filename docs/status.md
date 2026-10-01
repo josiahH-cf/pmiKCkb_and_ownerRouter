@@ -1,6 +1,6 @@
 # PMI KC current status
 
-Last updated: 2026-09-30 (UTC).
+Last updated: 2026-10-01 (UTC).
 
 ## Serving release
 
@@ -35,7 +35,8 @@ built a zero-traffic candidate and blocked at assurance when live renewal routes
 60-second bound for those two routes and awaits owner review.
 During batch 003 intake, a fresh mandatory production audit failed on four high
 `@grpc/grpc-js` findings in Firebase's dependency chain. PR #95 overrode `@grpc/grpc-js` to the
-patched 1.14.5 and merged at `dc493dfe` after its full gate and exact CI passed.
+patched 1.14.5 and merged at `dc493dfe` after its full gate and exact CI passed. On 2026-10-01 a fresh audit found a
+Hono advisory; PR #104 patched it and merged at `f449520e` after the same gates.
 
 ## Feature intake
 
@@ -48,17 +49,19 @@ Dashboard answers to the desk's own filtered views and recorded 43 real model ca
 `gemini-3.1-flash-lite`. The deployed Dashboard still handles three operational intents with
 `gemini-2.5-flash` until the batch 002 release.
 The overlapping old S88–S93/S101 assistant plans are superseded for this scope. No batch 002
-application effect, deployment, or provider activation has occurred.
+application effect, deployment, or provider activation has occurred. Its release run
+`6eb157e1-73e6-4e36-8a66-998cd06f31f3` (admitted at `b1c6135c`) is paused in its recovery phase until the owner's
+attended canary enrollments; production traffic did not change.
 
-Batch 003 requests 009–012 are recorded in order as S142–S145, authorized by the same instruction
-and not started. The current Full lease dashboard, single next-action
-guidance and cycle-bound manual progress are verified code/serving baseline; the derived
-multiple-ready projection, separate Focus view, complete in-pane actions and new regression
-validation are not implemented. No batch 003 intake question remains. Read-only Cloud Run traffic
-still showed `pmi-kc-app-rmundpf2v-249c945f2220` at 100%, and approved WSL CLI/ADC refresh
-returned READY. No application mutation or deployment occurred for this intake.
-The documentation-specific gates passed; the audit failure that first held this intake was
-remediated separately by PR #95.
+Batch 003 requests 009–012 are recorded in order as S142–S145 under the same instruction.
+Implemented and merged: S142 (PR #101, `f5368c2f`), S143/S144 (PR #102, `884b7759`), S145 (PR
+#103, `752d7dda`) and the acceptance run's repairs and production Focus check (PR #105,
+`ef7e0956`). Tested: every local FV criterion passes at unit, backend or local
+compiled-browser level (`docs/evidence/renewal-focus-batch-003-validation-2026-10-01.md`). Live-verified: not yet. The batch 003 release is queued
+behind batch 002's; read-only Cloud Run traffic on 2026-10-01 still showed
+`pmi-kc-app-rmundpf2v-249c945f2220` at 100%. Unverified: production serving and the production
+Focus check, live staff-record saves, live Gmail and provider effects from Focus, and human
+verdicts.
 
 ## Verified corrective review
 
@@ -102,4 +105,4 @@ Historical K unit-store target/marker effects remain UNVERIFIED; absent Data Acc
 prove zero effects. No customer draft/send, paid comparison, provider-proof rerun or synthetic
 production record was authorized for this release.
 
-The completed corrective permit is consumed and the Awaiting release queue is empty. No original receipt, completed permit or build claim is reused.
+The completed corrective permit is consumed; the Awaiting release queue holds batch 002 only. No original receipt, completed permit or build claim is reused.
