@@ -19,6 +19,8 @@ const baseUrl = requireLocalRehearsalOrigin(baseUrlInput);
 const ROUTE_BUDGET_MS = 180_000;
 const LEASES = Number(readArgument("--leases") ?? "2");
 const DIRTY_MARKER = "S145 unsaved input check";
+// Each page's in-flight fetch and XHR reads, tracked from the moment it opens.
+const inflightReads = new WeakMap();
 
 const cdpUrl = readArgument("--cdp-url") ?? process.env.DESK_BROWSER_CDP_URL?.trim();
 const browser = cdpUrl
@@ -76,6 +78,7 @@ async function verifyLease(href) {
   const page = await context.newPage();
   page.setDefaultNavigationTimeout(ROUTE_BUDGET_MS);
   page.setDefaultTimeout(ROUTE_BUDGET_MS);
+  trackReads(page);
   const pageErrors = [];
   const consoleErrors = new Set();
   page.on("pageerror", (error) => pageErrors.push(error.name));
@@ -117,21 +120,26 @@ async function verifyLease(href) {
     "The Focus pane is present before Focus view was chosen.",
   );
 
-  // Watch every write and every main-frame navigation from here on.
+  // The baseline includes the unsaved marker, so a lost edit fails the comparison too. The page's
+  // own reads finish first, so the comparison sees only what switching could have changed.
+  const dirty = await dirtyInput(page);
+  const baseline = await settledSignature(page);
+
+  // From here on, record every app request and every main-frame navigation.
   const writes = [];
+  const appRequests = [];
   let navigations = 0;
   page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
     if (!["GET", "HEAD", "OPTIONS"].includes(request.method()))
-      writes.push(`${request.method()} ${new URL(request.url()).pathname}`);
+      writes.push(`${request.method()} ${path}`);
+    // The shell's own notification poll is periodic and unrelated to the lease view.
+    if (path.startsWith("/api/lease-renewal/"))
+      appRequests.push(`${request.method()} ${path}`);
   });
   page.on("framenavigated", (frame) => {
     if (frame === page.mainFrame()) navigations += 1;
   });
-
-  // The baseline includes the unsaved marker, so a lost edit fails the comparison too. Late
-  // source reads settle first, so the comparison sees only what the switch could have changed.
-  const dirty = await dirtyInput(page);
-  const baseline = await settledSignature(page);
 
   // Pointer round trip.
   await focusButton.click();
@@ -190,6 +198,10 @@ async function verifyLease(href) {
     writes.length === 0,
     `Switching sent ${writes.length} write request(s): ${writes.join(", ")}.`,
   );
+  assert(
+    appRequests.length === 0,
+    `Switching sent ${appRequests.length} app request(s): ${appRequests.join(", ")}.`,
+  );
   assert(navigations === 0, `Switching navigated ${navigations} time(s).`);
   assert(
     pageErrors.length === 0,
@@ -210,6 +222,7 @@ async function verifyLease(href) {
     fullViewSignature: "unchanged",
     unsavedInput: dirty ? "kept" : "no unsaved-input field on this lease",
     writeRequests: writes.length,
+    appRequests: appRequests.length,
     navigations,
     pageErrors: pageErrors.length,
     consoleErrors: [...consoleErrors],
@@ -266,16 +279,32 @@ async function signature(page) {
   });
 }
 
-/** The signature once two readings two seconds apart agree (late reads have finished). */
+/**
+ * The signature once the page's own reads have finished and two readings two seconds apart agree.
+ * A cold rehearsal compiles and reads live sources for many seconds after the first paint.
+ */
 async function settledSignature(page) {
+  const inflight = inflightReads.get(page);
   let previous = await signature(page);
-  for (let attempt = 0; attempt < 45; attempt += 1) {
+  for (let attempt = 0; attempt < 90; attempt += 1) {
     await page.waitForTimeout(2_000);
     const current = await signature(page);
-    if (current === previous) return current;
+    if (inflight.size === 0 && current === previous) return current;
     previous = current;
   }
-  throw new Error("The lease page did not settle within 90 seconds.");
+  throw new Error("The lease page did not settle within 180 seconds.");
+}
+
+/** Track the page's in-flight fetch and XHR requests from the moment it opens. */
+function trackReads(page) {
+  const inflight = new Set();
+  inflightReads.set(page, inflight);
+  const done = (request) => inflight.delete(request);
+  page.on("request", (request) => {
+    if (["fetch", "xhr"].includes(request.resourceType())) inflight.add(request);
+  });
+  page.on("requestfinished", done);
+  page.on("requestfailed", done);
 }
 
 async function expectBaseline(page, baseline, when) {
