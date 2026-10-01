@@ -11,7 +11,7 @@ independent of a hold continues; no substitute value is invented.
 | B-DL2   | S106 live readiness and S34 live provider work            | owner                           | Connect the managed Dotloop account; choose a verified office profile, renewal template, transaction type, and initial status.                                                                                                                                                                     | Profile/resource probes and selected-resource readback report ready; this does not open action keys.                                |
 | B-DL3   | S34 approved artifact content and packet workflow binding | owner                           | Approved blank-form location and coverage of all seven artifact families, listed below.                                                                                                                                                                                                            | Each family resolves to approved content and a verified participant/field mapping; no invented legal form.                          |
 | B-S100  | Resident-reply draft proof and S36                        | owner                           | Owner chose RentVine work order 101756 (API id 1756) on 2026-10-01 and confirmed its resident email. Owner creates its app ticket, links id 1756 and runs one manual sync; the agent then verifies the mapping before the proof window.                                                            | Exact link and synchronization resolve an eligible message; then bounded draft proof, close/readback, and separate activation pass. |
-| B-MNT1  | S108 live preapproval routing proof                       | owner                           | Owner chose RentVine's per-property maintenance limits on 2026-10-01 (30 of 121 active properties). The Admin import (`82e49596`) awaits release; an Admin then previews it and confirms once.                                                                                                     | Admin-confirmed property preapproval reads back with amount/effective date and applies to verified evidence.                        |
+| B-MNT1  | S108 live preapproval routing proof                       | owner                           | Owner chose RentVine's per-property maintenance limits on 2026-10-01 (30 of 121 active properties). The Admin import (`82e49596`) is released (run `98f7e743`); an Admin previews it and confirms once.                                                                                            | Admin-confirmed property preapproval reads back with amount/effective date and applies to verified evidence.                        |
 
 ## Owner unblock pass — October 1
 
@@ -29,7 +29,8 @@ one decision or one owner step; the decisions below are recorded as given.
 - **B-MNT1.** RentVine stores `maintenanceLimitAmount` per property. A count-only read on 2026-10-01
   found 121 active properties, 30 with a positive limit and 15 with maintenance notes (8 of them
   with a limit). The owner chose to import those limits. The Admin import (S108 amendment,
-  `82e49596`) awaits release; an Admin then previews it, reads the flagged notes and confirms once.
+  `82e49596`) is released (run `98f7e743`); an Admin previews it, reads the flagged notes and
+  confirms once.
 - **B-S100.** The owner chose RentVine work order 101756 (API id 1756, status Requested, resident
   messages present, never a proof target) and confirmed its resident email. Production holds one
   maintenance ticket and one work-order link, neither for id 1756. Owner steps in Maintenance:

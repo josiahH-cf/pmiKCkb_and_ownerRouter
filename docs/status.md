@@ -4,18 +4,20 @@ Last updated: 2026-10-01 (UTC).
 
 ## Serving release
 
-Run `ab803f8a-4ffb-4568-9178-05ccb588a94c` released request 001 and batches 002 and 003 (twelve queued items: 001 and
-S135–S145) at `2ec46806bda10e799025e9919a2c1b14b7be3a5a` / `pmi-kc-app-rmupi9ukm-9f056f091001` with 100% production traffic.
-Exact [CI 36860571425](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36860571425) passed.
-The gate on tree-identical PR head `7a61bf77` passed 7,738 unit tests, four existing skips and all 241 backend tests.
-One application build `326619ba-29a6-4aea-b753-bfcac0f543c4` succeeded at 2026-10-01T12:39:58.352Z.
-Candidate receipt issued 2026-10-01T12:46:11.864Z; promotion verified 2026-10-01T12:46:30.426Z.
-Observation passed two checkpoints in 392,911 ms against the required 300,000 ms. All 312
+Run `729d5716-bc5e-4e61-9932-c9107d1954f2` released batch 004's S149–S151 (three queued items) at `1402e51b4828d407f990a675f16e6a7ba47afb7b` / `pmi-kc-app-rmuq2qvcc-8074bfd97707` with 100% production traffic.
+Interim run `98f7e743-7345-4b74-a6a8-675fe9fac31f` released S108 and S146–S148 earlier the same day at `2b53c5d5` /
+`pmi-kc-app-rmupw50tc-8189b32d3395` by owner direction, so batch 004 shipped in two candidates.
+Exact [CI 36929714817](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36929714817) passed.
+Run `0aa79bfe` first carried the same code at `19d4590a`; its observation could not finish inside the 420 s evidence deadline, so it rolled back (verified, no downtime).
+The gate on PR head `d5b6967b` (the release head adds only that rollback record) passed 7,887 unit tests, four existing skips and all 273 backend tests.
+One application build `a3736e14-99d5-428f-bc0c-74673f48cdc1` succeeded at 2026-10-01T22:09:48.058Z.
+Candidate receipt issued 2026-10-01T22:14:46.913Z; promotion verified 2026-10-01T22:15:27.458Z.
+Observation passed two checkpoints in 419,630 ms against the required 300,000 ms. All 312
 source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
-Eleven independent readback sections matched, last at 2026-10-01T13:02:41Z. The read-only
-production Focus check passed on three live lease workspaces with zero mutation attempts.
+Eleven independent readback sections matched, last at 2026-10-01T22:22:18Z. The owner's bounded live check
+passed on the exact serving revision: 4 of at most five questions answered and saved to history with 4 model calls; history reopened in a fresh browser context, then save, pin, unpin and one structured rerun with zero model calls; zero business writes and 0 guard refusals.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag `cand-rmupi9ukm-9f056f091001`; fingerprint `sha256:b4b6c1e393b5233588480a415bcaad1f7e633e277cfc58b99c2a3be6d2ccc631`.
+Tag `cand-rmuq2qvcc-8074bfd97707`; fingerprint `sha256:56315f7704e0ef637f1ffd2c490d610a11a048e864241d319b824f39c572adf9`.
 No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
@@ -65,10 +67,17 @@ in run `ab803f8a`, and the read-only production Focus check passed on three live
 with zero mutation attempts. Unverified: live staff-record saves, live Gmail and provider effects
 from Focus, and human verdicts.
 
-Batch 004 requests 013–018 are recorded in order as S146–S151 (intake ready). Nothing is
-implemented, tested or live-verified yet. The owner decided on 2026-10-01 that Anticipated work
-moves to Internal Processes and that the post-deployment check may ask at most five read-only
-questions as the owner. Execution waits for the owner's explicit start.
+Batch 004 requests 013–018 are recorded in order as S146–S151 and were executed on 2026-10-01
+under the owner's explicit start. Implemented and merged: S146/S147 (PR #111, `87d6fd7c`), S148
+(PR #112, `fe78b0c9`), S149/S150 (PR #113, `129c833e`) and S151's checks and live-check script
+(PR #115, `85524308` and `404abdf3`). Tested: each merge head passed `verify.sh` and
+`test:e2e:core` on its exact commit; the AF-01 to AF-70 ledger in
+`docs/evidence/ai-first-dashboard-batch-004-validation-2026-10-01.md` records the unit, backend,
+E2E and compiled-browser results. Live-verified: interim run `98f7e743` released S146–S148 by
+owner direction for a client call and run `729d5716` released S149–S151; the owner's bounded live
+check passed on `pmi-kc-app-rmuq2qvcc-8074bfd97707`. AF-67 (one cumulative candidate) is No by that owner direction.
+Unverified: human verdicts, and live knowledge answers inside the live check (its guard refuses
+`/api/ask`).
 
 ## Verified corrective review
 
@@ -76,7 +85,8 @@ Five confirmed adversarial findings are repaired and verified deployed: lifecycl
 
 ## Delivered batch
 
-Run `ab803f8a` delivered request 001 and S135–S145 (see Feature intake). Run
+Runs `98f7e743` and `729d5716` delivered S108 and batch 004 (S146–S151), and run `ab803f8a`
+request 001 and S135–S145 (see Feature intake). Run
 `89e38cd9-b6dd-498f-be87-1963e0ed2d03` at `c541db72` delivered the thirteen-feature batch below:
 
 - S128: Pause operating-Sheet writes while retaining reads and app-owned work.
@@ -109,14 +119,19 @@ in the shared batch audit. Earlier failed attempts remain failed in immutable ev
 B-DL1, B-DL2, B-DL3, B-S100, B-MNT1 and B-AUTH2 remain open at their exact external or human
 boundaries; B-MNT2 closed by owner decision on 2026-10-01. The 2026-10-01 owner unblock pass reduced
 the other holds to the owner steps in `docs/open-blockers.md`; the S108 RentVine maintenance-limit
-import (`82e49596`) awaits release. Actual customer draft/form accuracy, approved notice-timing
+import (`82e49596`) is released (run `98f7e743`) and awaits one Admin confirmation. Actual
+customer draft/form accuracy, approved notice-timing
 basis, Rhino wording/applicability, selected real cases, observed walkthroughs, human screen-reader
 and desktop full-page zoom verdicts remain unverified. Both Dotloop keys stay closed; signatures and
 provider acceptance remain separate. S36 stays behind complete S100. S121 was excluded. Historical K
 unit-store target/marker effects remain UNVERIFIED; absent Data Access logs do not prove zero
 effects. No customer draft/send, paid comparison, provider-proof rerun or synthetic production
-record was authorized for this release.
+record was authorized for this release. Batch 004's human usability, screen-reader and zoom
+verdicts are NOT RUN; live knowledge answers were outside its bounded live check. Release
+observation now has little margin: run 729d5716 passed 0.37 s inside the fixed 420 s evidence
+deadline and run 0aa79bfe missed it, because live-source routes take 16–22 s each; changing
+the deadline or the canary is an owner decision.
 
-The completed corrective permit and run `ab803f8a`'s permit are consumed; the Awaiting release queue
-holds the S108 RentVine maintenance-limit import (`82e49596`). No original receipt, completed permit
-or build claim is reused.
+The completed corrective permit and the permits of runs `ab803f8a`, `98f7e743` and `729d5716` are
+consumed; the Awaiting release queue is empty. No original receipt, completed permit or build
+claim is reused.
