@@ -18,6 +18,11 @@ batch 002 release readback. Human verdict: NOT RUN — no human observer.
 - **Checks:** `npm run smoke:dashboard-assistant-browser` (S138 question families and follow-ups)
   and `npm run smoke:connected-ai-browser` (S141 record parity and refinement route). Both print
   counts and statuses only, never record text.
+- **Production:** run `ab803f8a-4ffb-4568-9178-05ccb588a94c` deployed batches 002 and 003 at
+  `2ec46806` / `pmi-kc-app-rmupi9ukm-9f056f091001` (100% traffic) on 2026-10-01. A read-only revision
+  describe shows `GEMINI_MODEL_ANSWER` and `GEMINI_MODEL_CLASSIFY` set to `gemini-3.1-flash-lite`
+  with `GEMINI_MODEL_LOCATION=global`. No production model request or signed-in Dashboard
+  question was made.
 
 ## Local rehearsal results
 
@@ -54,9 +59,9 @@ it then passed. No product code changed.
 | AC-S135-1 | Refusal traced to the closed intent registry plus knowledge-only fallback; 5/5 fail-first questions; ordinary questions answered from records           | Unit; local rehearsal       | Pass                                                                                                          |
 | AC-S135-2 | Per-source status survives a failed source and labels its scope                                                                                         | Unit                        | Pass; no live source failed during rehearsal                                                                  |
 | AC-S135-3 | Existing `read` capability only; no new key, role or provider effect; only read-only posts                                                              | Unit; local rehearsal       | Pass                                                                                                          |
-| AC-S136-1 | Backend requests served by `gemini-3.1-flash-lite` on the global endpoint                                                                               | Local rehearsal; production | Local pass; production pending release readback                                                               |
+| AC-S136-1 | Backend requests served by `gemini-3.1-flash-lite` on the global endpoint                                                                               | Local rehearsal; production | Local pass; serving env reads it (2026-10-01); production inference not run                                   |
 | AC-S136-2 | One selection in server defaults, live-cost preflight, budget guard and deploy wrapper; structured plans and refinement JSON valid                      | Unit; local rehearsal       | Pass                                                                                                          |
-| AC-S136-3 | No retry on another model; observed latency and tokens above; serving env readback                                                                      | Unit; local rehearsal       | Local pass; deployment readback pending                                                                       |
+| AC-S136-3 | No retry on another model; observed latency and tokens above; serving env readback                                                                      | Unit; local rehearsal       | Local pass; serving env readback matched (2026-10-01)                                                         |
 | AC-S137-1 | Combined lease, assignment, blocker and approval questions with owning links                                                                            | Unit; local rehearsal       | Pass; live combinations limited to lease + blocked (demo Admin has no assignments)                            |
 | AC-S137-2 | Full counts with at most 25 listed; partial and unavailable reads labelled                                                                              | Unit; local rehearsal       | Pass; live counts were small (4)                                                                              |
 | AC-S137-3 | Actor-bound conversation context, reset for another sign-in; reads create no effect                                                                     | Unit; local rehearsal       | Pass                                                                                                          |
@@ -69,13 +74,14 @@ it then passed. No product code changed.
 | AC-S140-1 | One hint per drafted state, outside body and saved content                                                                                              | Unit/component              | Pass; no live draft created                                                                                   |
 | AC-S140-2 | Hint appears only after a created draft; no availability promise                                                                                        | Unit/component              | Pass                                                                                                          |
 | AC-S140-3 | Plain text, no link or Gemini account access                                                                                                            | Unit/component              | Pass                                                                                                          |
-| AC-S141-1 | Signed-in Dashboard parity, follow-ups and no hidden effects                                                                                            | Local rehearsal; production | Local pass; production pending                                                                                |
-| AC-S141-2 | Served model and endpoint from real inference                                                                                                           | Local rehearsal; production | Local pass; production pending                                                                                |
+| AC-S141-1 | Signed-in Dashboard parity, follow-ups and no hidden effects                                                                                            | Local rehearsal; production | Local pass; production not run                                                                                |
+| AC-S141-2 | Served model and endpoint from real inference                                                                                                           | Local rehearsal; production | Local pass; production env readback only; inference not run                                                   |
 | AC-S141-3 | Linked draft paths keep latest edits, report save/Gmail state and keep the hint out of content                                                          | Unit; backend; local route  | Pass within the limits above                                                                                  |
 
 ## Unverified seams
 
-- Production serving model, endpoint and inference until the batch 002 release readback.
+- Production inference and signed-in Dashboard parity: the serving configuration is read back,
+  but no production model request or Dashboard question was made.
 - Live renewal refinement through the screen: production holds no saved renewal message
   preparation, and creating one only for proof is not authorized.
 - Live Gmail draft creation from refined wording on any screen: no customer draft was
