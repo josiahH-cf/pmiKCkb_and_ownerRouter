@@ -282,7 +282,8 @@ export function currentManualOwnerTerms(state: RenewalWorkspaceState) {
     ? (state.ownerResponse.terms ?? null)
     : null;
 }
-const requiredRenewal: ManualActivity[] = [
+/** The renewal branch's required staff activities, in the order the summary checks them. */
+export const MANUAL_REQUIRED_RENEWAL: readonly ManualActivity[] = Object.freeze([
   "owner_outreach",
   "tenant_offer",
   "information_form",
@@ -298,7 +299,51 @@ const requiredRenewal: ManualActivity[] = [
   "filter",
   "utilities",
   "assisted_housing",
-];
+]);
+/** The tenant response recorded against the current terms; an earlier-terms answer is not current. */
+export function currentManualTenantOutcome(state: RenewalWorkspaceState) {
+  return state.tenantResponse &&
+    state.tenantResponse.termsRevision === state.termsRevision
+    ? state.tenantResponse.outcome
+    : null;
+}
+/** Either party's current decline takes the cycle to the non-renewal handoff. */
+export function manualNonRenewal(state: RenewalWorkspaceState | null): boolean {
+  return Boolean(
+    state &&
+    (state.ownerResponse?.outcome === "declined_non_renewal" ||
+      currentManualTenantOutcome(state) === "declined_nonrenewing"),
+  );
+}
+/**
+ * Done, or a permitted conditional Not applicable with its source reason and existing approved
+ * policy reference. A terms-dependent record from earlier terms is not current.
+ */
+export function manualActivitySatisfied(
+  state: RenewalWorkspaceState,
+  key: ManualActivity,
+): boolean {
+  const activity = currentStaffActivity(state, key);
+  return (
+    activity?.outcome === "done" ||
+    (activity?.outcome === "not_applicable" &&
+      MANUAL_ACTIVITIES[key].conditional &&
+      !!activity.reason?.trim() &&
+      !!activity.applicabilityPolicy?.trim())
+  );
+}
+/** The shared next-action wording for one staff-recorded activity, response or completion. */
+export function manualActionLabel(
+  key: ManualActivity | "owner_response" | "tenant_response" | "complete" | "cycle",
+): string {
+  return key in MANUAL_ACTIVITIES
+    ? MANUAL_ACTIVITIES[key as ManualActivity].label
+    : key === "owner_response"
+      ? "Record owner response and exact terms"
+      : key === "tenant_response"
+        ? "Record tenant response"
+        : "Review recorded completion";
+}
 export function manualRenewalSummary(state: RenewalWorkspaceState | null) {
   let nextActivity:
     | ManualActivity
@@ -307,20 +352,8 @@ export function manualRenewalSummary(state: RenewalWorkspaceState | null) {
     | "complete"
     | "cycle" = "cycle";
   let waitingParty: "staff" | "owner" | "tenant" = "staff";
-  const nonRenewal =
-    state?.ownerResponse?.outcome === "declined_non_renewal" ||
-    (state?.tenantResponse?.termsRevision === state?.termsRevision &&
-      state?.tenantResponse?.outcome === "declined_nonrenewing");
-  const satisfied = (key: ManualActivity) => {
-    const activity = currentStaffActivity(state!, key);
-    return (
-      activity?.outcome === "done" ||
-      (activity?.outcome === "not_applicable" &&
-        MANUAL_ACTIVITIES[key].conditional &&
-        !!activity.reason?.trim() &&
-        !!activity.applicabilityPolicy?.trim())
-    );
-  };
+  const nonRenewal = manualNonRenewal(state);
+  const satisfied = (key: ManualActivity) => manualActivitySatisfied(state!, key);
   if (state) {
     if (nonRenewal)
       nextActivity = satisfied("non_renewal_handoff")
@@ -333,14 +366,8 @@ export function manualRenewalSummary(state: RenewalWorkspaceState | null) {
         state.ownerResponse?.outcome === "revision_requested" ? "staff" : "owner";
     } else if (!satisfied("tenant_offer")) {
       nextActivity = "tenant_offer";
-    } else if (
-      state.tenantResponse?.termsRevision !== state.termsRevision ||
-      state.tenantResponse?.outcome !== "accepted"
-    ) {
-      const currentResponse =
-        state.tenantResponse?.termsRevision === state.termsRevision
-          ? state.tenantResponse?.outcome
-          : null;
+    } else if (currentManualTenantOutcome(state) !== "accepted") {
+      const currentResponse = currentManualTenantOutcome(state);
       nextActivity =
         currentResponse === "counter_change_requested"
           ? "owner_response"
@@ -350,7 +377,8 @@ export function manualRenewalSummary(state: RenewalWorkspaceState | null) {
         currentResponse === "needs_verification"
           ? "staff"
           : "tenant";
-    } else nextActivity = requiredRenewal.find((key) => !satisfied(key)) ?? "complete";
+    } else
+      nextActivity = MANUAL_REQUIRED_RENEWAL.find((key) => !satisfied(key)) ?? "complete";
   }
   const complete = Boolean(
     state?.completion &&

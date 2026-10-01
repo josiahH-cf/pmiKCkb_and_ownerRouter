@@ -1,4 +1,7 @@
-import { MANUAL_ACTIVITIES } from "@/lib/lease-renewal/workspace-state";
+import {
+  MANUAL_ACTIVITIES,
+  manualActionLabel,
+} from "@/lib/lease-renewal/workspace-state";
 // S82 desk guidance — one pure, serializable projection of current base rent, rent verification,
 // deterministic overall status, blockers, and the single safe next action for every table row.
 //
@@ -40,7 +43,7 @@ export type {
 } from "@/lib/lease-renewal/desk-model";
 
 /** Grounded control gates only; every other blocker link is plain phase navigation. */
-const EVIDENCE_CAPABILITY: Partial<Record<string, Capability>> = {
+export const DESK_EVIDENCE_CAPABILITY: Readonly<Partial<Record<string, Capability>>> = {
   "source-conflicts-resolved": "approve",
   "owner-decision": "edit",
 };
@@ -119,7 +122,8 @@ function rentVerification(input: DeskGuidanceInput): DeskRentVerification {
   return { state: "needs_verification", verifiedByResolutionDiffers: false, destination };
 }
 
-function blockedSubsteps(
+/** The current phase's blocked required substeps, in order; shared with the S142 projection. */
+export function deskBlockedSubsteps(
   process: RenewalProcessProjection,
 ): readonly RenewalSubstepProjection[] {
   const step = process.steps[process.currentStepIndex];
@@ -135,9 +139,9 @@ function blockersFrom(process: RenewalProcessProjection): DeskLeaseBlocker[] {
   if (!step) return [];
   const entries: DeskLeaseBlocker[] = [];
   const seenLabels = new Set<string>();
-  for (const substep of blockedSubsteps(process)) {
+  for (const substep of deskBlockedSubsteps(process)) {
     const capability = substep.missingEvidence
-      .map((key) => EVIDENCE_CAPABILITY[key])
+      .map((key) => DESK_EVIDENCE_CAPABILITY[key])
       .find((value): value is Capability => Boolean(value));
     const type: DeskBlockerType =
       substep.missingEvidence.length > 0 ? "evidence" : "dependency";
@@ -157,25 +161,72 @@ function blockersFrom(process: RenewalProcessProjection): DeskLeaseBlocker[] {
   return entries;
 }
 
-function overallStatus(input: DeskGuidanceInput): RenewalOverallStatus {
-  const process = input.process;
-  if (
+/** S142: the causes behind a Needs-verification status, in the order its guidance label names them. */
+export type DeskVerificationCause =
+  | "progress_unreadable"
+  | "read_incomplete"
+  | "data_expired"
+  | "disposition_review"
+  | "process_needs_verification"
+  | "rent_unverified";
+
+function processNeedsVerification(input: DeskGuidanceInput): boolean {
+  return (
+    !input.summary.manualProgress &&
+    (input.process?.status === "needs_verification" ||
+      input.process?.migrationRequired === true)
+  );
+}
+
+// A missing side or single-source contractual-rent comparison is not a proven conflict. Surface
+// it as Needs verification so the table tells the operator what kind of work remains; reserve
+// Blocked for an actual unresolved conflict or another causal process blocker.
+function rentUnverified(input: DeskGuidanceInput): boolean {
+  const rentCheck = input.dataCheck?.find((item) => item.fieldKey === "current_rent");
+  return rentCheck?.agreement === "missing" || rentCheck?.agreement === "single_source";
+}
+
+/** True when the lease's guidance is Needs verification; shared with the S142 action projection. */
+export function deskNeedsVerification(input: DeskGuidanceInput): boolean {
+  return (
     (input.progressStateAvailable === false && !input.summary.manualProgress) ||
     !input.readComplete ||
     input.currencyState === "expired" ||
     input.summary.disposition === "review" ||
-    (!input.summary.manualProgress &&
-      (process?.status === "needs_verification" || process?.migrationRequired === true))
-  ) {
-    return "needs_verification";
-  }
-  // A missing side or single-source contractual-rent comparison is not a proven conflict. Surface
-  // it as Needs verification so the table tells the operator what kind of work remains; reserve
-  // Blocked for an actual unresolved conflict or another causal process blocker.
-  const rentCheck = input.dataCheck?.find((item) => item.fieldKey === "current_rent");
-  if (rentCheck?.agreement === "missing" || rentCheck?.agreement === "single_source") {
-    return "needs_verification";
-  }
+    processNeedsVerification(input) ||
+    rentUnverified(input)
+  );
+}
+
+/**
+ * The cause the Needs-verification guidance label names, in its precedence. Only meaningful when
+ * `deskNeedsVerification` is true; the S142 projection maps it to the same recovery action.
+ */
+export function deskVerificationCause(input: DeskGuidanceInput): DeskVerificationCause {
+  if (input.progressStateAvailable === false) return "progress_unreadable";
+  if (!input.readComplete) return "read_incomplete";
+  if (input.currencyState === "expired") return "data_expired";
+  if (input.summary.disposition === "review") return "disposition_review";
+  if (processNeedsVerification(input) || !rentUnverified(input))
+    return "process_needs_verification";
+  return "rent_unverified";
+}
+
+/** S142: the guidance's Needs-verification cause for this exact input, or null. */
+export function deskGuidanceVerificationCause(
+  input: DeskGuidanceInput,
+): DeskVerificationCause | null {
+  return deskNeedsVerification(input) ? deskVerificationCause(input) : null;
+}
+
+/** The party wording the waiting guidance uses; shared with the S142 projection. */
+export function deskWaitingPartyLabel(party: string | null | undefined): string | null {
+  return party ? (WAITING_PARTY_LABEL[party] ?? null) : null;
+}
+
+function overallStatus(input: DeskGuidanceInput): RenewalOverallStatus {
+  const process = input.process;
+  if (deskNeedsVerification(input)) return "needs_verification";
   if (input.summary.manualProgress) {
     const manual = input.summary.manualProgress;
     if (manual.complete) return "complete";
@@ -207,12 +258,19 @@ function overallStatus(input: DeskGuidanceInput): RenewalOverallStatus {
   return "needs_review";
 }
 
-function readyAction(process: RenewalProcessProjection): DeskLeaseAction {
-  const step = process.steps[process.currentStepIndex];
-  const substep = step?.substeps.find(
+/** The current phase's first ready required substep; shared with the S142 projection. */
+export function deskReadySubstep(
+  process: RenewalProcessProjection,
+): RenewalSubstepProjection | undefined {
+  return process.steps[process.currentStepIndex]?.substeps.find(
     (candidate) =>
       candidate.applicable && candidate.requiredForStep && candidate.state === "ready",
   );
+}
+
+function readyAction(process: RenewalProcessProjection): DeskLeaseAction {
+  const step = process.steps[process.currentStepIndex];
+  const substep = deskReadySubstep(process);
   if (!step || !substep) {
     return {
       kind: "act",
@@ -226,7 +284,7 @@ function readyAction(process: RenewalProcessProjection): DeskLeaseAction {
     };
   }
   const capability = substep.missingEvidence
-    .map((key) => EVIDENCE_CAPABILITY[key])
+    .map((key) => DESK_EVIDENCE_CAPABILITY[key])
     .find((value): value is Capability => Boolean(value));
   return {
     kind: "act",
@@ -249,14 +307,7 @@ function action(input: DeskGuidanceInput, status: RenewalOverallStatus): DeskLea
           : key in MANUAL_ACTIVITIES
             ? MANUAL_ACTIVITIES[key as keyof typeof MANUAL_ACTIVITIES].section
             : "documents";
-    const label =
-      key in MANUAL_ACTIVITIES
-        ? MANUAL_ACTIVITIES[key as keyof typeof MANUAL_ACTIVITIES].label
-        : key === "owner_response"
-          ? "Record owner response and exact terms"
-          : key === "tenant_response"
-            ? "Record tenant response"
-            : "Review recorded completion";
+    const label = manualActionLabel(key);
     return {
       kind: manual.complete ? "complete" : status === "waiting" ? "waiting" : "act",
       label: manual.complete ? "Review completion recorded by staff." : label,
@@ -301,28 +352,29 @@ function action(input: DeskGuidanceInput, status: RenewalOverallStatus): DeskLea
         destination: { kind: "none" },
       };
     case "needs_verification": {
-      if (input.progressStateAvailable === false) {
+      const cause = deskVerificationCause(input);
+      if (cause === "progress_unreadable") {
         return {
           kind: "needs_verification",
           label: "Saved renewal progress could not be verified. Refresh before acting.",
           destination: { kind: "none" },
         };
       }
-      if (!input.readComplete) {
+      if (cause === "read_incomplete") {
         return {
           kind: "needs_verification",
           label: "The portfolio read did not complete. Refresh before acting.",
           destination: { kind: "none" },
         };
       }
-      if (input.currencyState === "expired") {
+      if (cause === "data_expired") {
         return {
           kind: "needs_verification",
           label: "Lease data is too old to act on. Refresh before acting.",
           destination: { kind: "none" },
         };
       }
-      if (input.summary.disposition === "review") {
+      if (cause === "disposition_review") {
         return {
           kind: "needs_verification",
           label: `${input.summary.reasonLabel}. Resolve it from an authoritative source.`,

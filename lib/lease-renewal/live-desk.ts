@@ -111,7 +111,11 @@ import {
   type RenewalDeskView,
   type RenewalLeaseWorkspace,
 } from "@/lib/lease-renewal/desk-model";
-import { buildDeskLeaseGuidance } from "@/lib/lease-renewal/desk-guidance";
+import {
+  buildDeskLeaseGuidance,
+  deskGuidanceVerificationCause,
+  type DeskGuidanceInput,
+} from "@/lib/lease-renewal/desk-guidance";
 import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
 import {
   buildRenewalDeskWindow,
@@ -1792,20 +1796,23 @@ export async function loadLiveRenewalLeaseWorkspace(
           })
         : null;
 
+    const guidanceInput: DeskGuidanceInput = {
+      summary: deskSummary,
+      process: workflowAvailable ? process : null,
+      dataCheck,
+      rentvineCurrentRent: deskSummary.currentRent,
+      rentDecision: currentRentDecision,
+      currencyState: currency.state,
+      readComplete: complete,
+    };
     const workspace: RenewalLeaseWorkspace = {
       summary: deskSummary,
       // S104: the desk row and this workspace read ONE guidance projection, from the same builder
       // and the same process/data-check/rent inputs, so the two surfaces cannot disagree about
       // status, blockers, or the next action for this lease.
-      guidance: buildDeskLeaseGuidance({
-        summary: deskSummary,
-        process: workflowAvailable ? process : null,
-        dataCheck,
-        rentvineCurrentRent: deskSummary.currentRent,
-        rentDecision: currentRentDecision,
-        currencyState: currency.state,
-        readComplete: complete,
-      }),
+      guidance: buildDeskLeaseGuidance(guidanceInput),
+      // S142: the Needs-verification cause the same input names, for the action projection.
+      verificationCause: deskGuidanceVerificationCause(guidanceInput),
       workflowAvailable,
       steps: RENEWAL_STEPS,
       currentStepIndex: process.currentStepIndex,

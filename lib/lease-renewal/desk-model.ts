@@ -18,6 +18,7 @@ import type { manualRenewalSummary } from "@/lib/lease-renewal/workspace-state";
 // `tests/helpers`; Production code imports only these shapes and presentation constants.
 
 import type { Capability } from "@/lib/auth/roles";
+import type { DeskVerificationCause } from "@/lib/lease-renewal/desk-guidance";
 import type {
   CohortDisposition,
   CohortReason,
@@ -401,6 +402,8 @@ export interface RenewalLeaseWorkspace {
    * blockers, or the next action locally.
    */
   guidance: DeskLeaseGuidance;
+  /** S142: the Needs-verification cause the same guidance input names; null or absent otherwise. */
+  verificationCause?: DeskVerificationCause | null;
   /** False only when this stable lease is open for source inspection outside an active/tracked flow. */
   workflowAvailable: boolean;
   steps: typeof RENEWAL_STEPS;

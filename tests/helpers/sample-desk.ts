@@ -26,7 +26,11 @@ import type {
   RenewalLeaseWorkspace,
 } from "@/lib/lease-renewal/desk-model";
 import { withRenewalDeskQueryKeys } from "@/lib/lease-renewal/desk-query";
-import { buildDeskLeaseGuidance } from "@/lib/lease-renewal/desk-guidance";
+import {
+  buildDeskLeaseGuidance,
+  deskGuidanceVerificationCause,
+  type DeskGuidanceInput,
+} from "@/lib/lease-renewal/desk-guidance";
 import {
   buildOwnerRenewalDraft,
   type OwnerDraftInput,
@@ -480,19 +484,21 @@ export function getRenewalLeaseWorkspace(
     complete: false,
   });
 
+  const guidanceInput: DeskGuidanceInput = {
+    summary,
+    process,
+    dataCheck: seed.dataCheck,
+    rentvineCurrentRent: summary.currentRent,
+    rentDecision: null,
+    currencyState: "fresh",
+    readComplete: true,
+  };
   return {
     summary,
     // S104: the sample workspace carries the same guidance projection the sample desk row does,
     // built by the one shared builder rather than a second local status derivation.
-    guidance: buildDeskLeaseGuidance({
-      summary,
-      process,
-      dataCheck: seed.dataCheck,
-      rentvineCurrentRent: summary.currentRent,
-      rentDecision: null,
-      currencyState: "fresh",
-      readComplete: true,
-    }),
+    guidance: buildDeskLeaseGuidance(guidanceInput),
+    verificationCause: deskGuidanceVerificationCause(guidanceInput),
     workflowAvailable: true,
     steps: RENEWAL_STEPS,
     currentStepIndex: process.currentStepIndex,
