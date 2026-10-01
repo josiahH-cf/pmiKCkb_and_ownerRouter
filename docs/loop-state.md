@@ -10,24 +10,22 @@ Revision pmi-kc-app-rmundpf2v-249c945f2220; tag cand-rmundpf2v-249c945f2220; tra
 Fingerprint sha256:e6a481aeb691991fe38f89bc0d25f40bb73c67de7d1e639e89f2cb5e8c4d0eaa.
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
 Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=false.
-Request 001 run dc4e1ac8-d8b9-4090-9258-e2ddb18f119f (`41ad65cb`) built zero-traffic candidate
-pmi-kc-app-rmuo61wve-fcdc2fc4b0d0, then blocked at assurance before receipt or promotion: live
-renewal routes exceeded the 30-second canary navigation bound. It was archived as superseded by
-`b1c6135c`; failed evidence stays preserved outside Git. Draft PR #93 proposes a 60-second bound
-for two renewal routes and awaits owner review.
-
-Batch 002 run 6eb157e1-73e6-4e36-8a66-998cd06f31f3 (admitted at `b1c6135c`, checkout
-`~/pmi-kc-work/main`) is paused in its recovery phase: `managed_browser_enrollment_required`,
-operator resume required. Serving was unchanged on 2026-10-01 (read-only describe and
-`/api/version`). OWNER ACTION, asked once on 2026-10-01: attended, in WSL, run
-`npm run auth:enroll-canary -- --profile=$HOME/pmi-assurance/owner-admin --origin=https://pmi-kc-app-kq6wuvpiva-uc.a.run.app --email=josiah@pmikcmetro.com`,
-then the same with `--origin=https://cand-rmuo61wve-fcdc2fc4b0d0---pmi-kc-app-kq6wuvpiva-uc.a.run.app`.
+Request 001 run dc4e1ac8 (`41ad65cb`) blocked at assurance when live renewal routes exceeded the
+30-second canary navigation bound; it was archived as superseded by `b1c6135c`.
+Batch 002 run 6eb157e1-73e6-4e36-8a66-998cd06f31f3 (`b1c6135c`) resumed after the owner's canary
+enrollments on 2026-10-01 and prepared recovery target pmi-kc-app-recovery-6eb157e173e64e36 at 0%
+under the reused tag cand-rmuo61wve-fcdc2fc4b0d0. It then blocked (`recovery_preparation_unverified`):
+the target's Admin canary timed out on the renewal desk (30,011 ms; the server took 29.4 s, and
+30.0 s on a read-only re-run, while canonical passed at 28.5 s). Production traffic did not change.
+OWNER DECISION, 2026-10-01: apply PR #93's 60-second navigation bound to the two live renewal
+routes only, archive run 6eb157e1 as superseded, and ship batches 002 and 003 in one cumulative
+replacement run, followed by the read-only production Focus check.
 
 ## Awaiting release
 
-1. 001 governance/auth continuity and patched dependencies: `474e5d7eccc5351a04b0b0dbed3ed8360062d748`, `afb5f92884edb7ea16c2c9f1b89ca12de3297f86`.
-   The owner authorized this operational change through mainline delivery; PR #95 patched the
-   later production audit failure.
+1. 001 governance/auth continuity, patched dependencies and the renewal canary bound: `474e5d7eccc5351a04b0b0dbed3ed8360062d748`, `afb5f92884edb7ea16c2c9f1b89ca12de3297f86`, `9107c856231b76f92a176eeb5121a436d0e6bcd9`.
+   PR #95 and PR #104 (`171610f959fff3470c0e3558e46747fd1daca6e7`, `2f8e0bb017ead2730d04f00e443d91cfbc9bf7c2`) patched later
+   production audit failures; the last commit applies PR #93's bound by owner decision.
 2. S135 Dashboard operational reads without extra AI restrictions: `6b21c7960ec1fa5d962442e98722a5fe40947afd`.
 3. S136 supported low-cost Gemini on the global endpoint: `d645168dab2e43f85e2cdfa561b35dca883d9ac6`.
 4. S137 shared actor-scoped operational context: `6b21c7960ec1fa5d962442e98722a5fe40947afd`.
@@ -35,31 +33,22 @@ then the same with `--origin=https://cand-rmuo61wve-fcdc2fc4b0d0---pmi-kc-app-kq
 6. S139 linked email draft refinement: `c1bfb09fcdba6047b74ed9a36f46dc87d0162d32`.
 7. S140 optional Gemini-in-Gmail hint: `c1bfb09fcdba6047b74ed9a36f46dc87d0162d32`.
 8. S141 integrated validation checks and evidence: `49f4a69596159f25bf988bdeed0b6c063e1b908e`.
+9. S142 dependency-aware renewal actions: `6530f51b91be8373e0cac293486e80154cf6a901`.
+10. S143 separate lease Focus view: `d98f3fceb5d81989ca53145bc6d23528261be1f6`, `82344c39e67e95c8ba5b50b04f41f1b144ab6049`, `2fdcbbe501de8851391ec4713e8b784c3ae604af`.
+11. S144 in-pane renewal action execution: `d98f3fceb5d81989ca53145bc6d23528261be1f6`, `82344c39e67e95c8ba5b50b04f41f1b144ab6049`, `2fdcbbe501de8851391ec4713e8b784c3ae604af`.
+12. S145 Focus-flow and Full-view regression validation: `6c806afe326a79161fe9fa9e7162fd4115008b0d`, `82344c39e67e95c8ba5b50b04f41f1b144ab6049`, `6bd240b64d006e40f601f6cf1d802915139ffa01`, `76ba54c5c270cc8420ca0b7c8782378cb681b174`, `2f1dc347039f44a354de8d1acd257149a5770dc5`.
 
-One cumulative candidate carries all eight items. Admit only after exact main CI on the release
-head, archiving blocked run dc4e1ac8 through the reviewed superseded-by procedure, fresh
+One cumulative replacement candidate carries all twelve items. Admit only after exact main CI on
+the release head, archiving run 6eb157e1 through the reviewed superseded-by procedure, fresh
 prerequisites and a new run-bound permit. No provider effect, key or activation is queued.
-
-The prior cumulative corrective queue is cleared and its permit consumed. S121 remains excluded.
-Documentation/test-only closure must not start another deployment.
-
-## Queued behind batch 002
-
-Batch 003 and the later audit patch. Not admitted: these move into "Awaiting release" only after
-the batch 002 run completes and its closure clears that queue. Same row format then.
-
-1. Hono production advisory patch: `171610f959fff3470c0e3558e46747fd1daca6e7`, `2f8e0bb017ead2730d04f00e443d91cfbc9bf7c2` (PR #104).
-2. S142 dependency-aware renewal actions: `6530f51b91be8373e0cac293486e80154cf6a901` (PR #101).
-3. S143/S144 separate Focus view with in-pane actions: `d98f3fceb5d81989ca53145bc6d23528261be1f6` (PR #102).
-4. S145 baseline, validation and corrections: `6c806afe326a79161fe9fa9e7162fd4115008b0d`, `82344c39e67e95c8ba5b50b04f41f1b144ab6049`, `6bd240b64d006e40f601f6cf1d802915139ffa01`, `76ba54c5c270cc8420ca0b7c8782378cb681b174` (PR #103).
-5. S145 acceptance-run repairs and production Focus check: `2fdcbbe501de8851391ec4713e8b784c3ae604af`, `2f1dc347039f44a354de8d1acd257149a5770dc5` (PR #105).
+Documentation/test-only closure must not start another deployment. S121 remains excluded.
 
 ## Feature intake
 
 Request 001 was supplied from `pmi-new-features-9-30/001-governance-simplification-and-unattended-auth-renewal.md`.
 The authorized governance/auth change passed its local gate and PR #92 merged at `41ad65cb` on
-2026-09-30. Its patched dependencies still need the separately gated Cloud Run release; draft PR
-#93 addresses a release timing issue and is not merged. No other suite is thereby resumed. A fresh
+2026-09-30. Its patched dependencies still need the gated Cloud Run release; PR #93's timing
+change was applied by owner decision on 2026-10-01. No other suite is thereby resumed. A fresh
 approved `auth:ensure` during batch 002 intake returned READY for WSL CLI and ADC under
 `josiah@pmikcmetro.com`. A read-only Cloud Run describe still showed the prior verified revision
 `pmi-kc-app-rmundpf2v-249c945f2220` at 100% traffic and answer/classify model settings of
@@ -130,10 +119,8 @@ a durable flakiness fix or a general production performance SLO.
 
 ## Continuation
 
-Next: after the owner's two enrollments, resume run 6eb157e1 with the runbook's
-`node scripts/release-control.mjs --resume` from `~/pmi-kc-work/main`, follow it through
-observation and readbacks, and close it docs-only. Then move the batch 003 queue into "Awaiting
-release", confirm exact main CI, prepare and admit one cumulative run from a clean exact-head
-checkout, and run `scripts/check-production-focus.ts` on the serving revision. Future
-external/human work requires its actual inputs and existing exact-effect contracts. Consumed
-permits and historical receipts cannot admit another deployment.
+Next: merge this queue, archive run 6eb157e1 through the superseded-by procedure, align the
+native and Windows checkouts to the exact head, prepare and admit one replacement run, follow it
+through observation and readbacks, run `scripts/check-production-focus.ts` on the serving
+revision, and close docs-only. Future external/human work requires its actual inputs and existing
+exact-effect contracts. Consumed permits and historical receipts cannot admit another deployment.

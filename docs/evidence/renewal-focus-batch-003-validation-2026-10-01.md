@@ -184,7 +184,7 @@ observer.
 
 Each entry gives the result, the environment, the evidence and the remaining gap. "No
 (unverified)" means not exercised; the missing evidence is named. Every production cell waits for
-the batch 003 release, which follows the paused batch 002 release.
+the combined batch 002 + 003 release (owner decision, 2026-10-01).
 
 ### A. Delivery, records, run discipline
 
@@ -445,8 +445,8 @@ the batch 003 release, which follows the paused batch 002 release.
 ## Unverified seams
 
 - Production serving of Focus (FV-02, FV-03, FV-10, FV-23, FV-89, FV-93, FV-94, FV-96 to
-  FV-98): batch 003 is not deployed. Its release follows the batch 002 release, whose run is
-  paused in its recovery phase on the owner's attended canary browser enrollment.
+  FV-98): batch 003 is not deployed. It ships with batch 002 in one cumulative replacement run
+  (owner decision, 2026-10-01).
 - Live staff-record saves through Focus: the rehearsal refuses writes, and no synthetic production
   record is authorized. The emulator tests cover the store and the real route handler.
 - Live Gmail drafts and provider effects (RentVine or Sheet write-back) started from Focus

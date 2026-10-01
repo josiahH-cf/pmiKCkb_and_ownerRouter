@@ -176,9 +176,12 @@ passed `verify.sh` and `test:e2e:core` on its exact commit and exact PR CI. The 
 ledger is in `docs/evidence/renewal-focus-batch-003-validation-2026-10-01.md`: every local criterion passes at unit, backend or local compiled-browser
 level, and every production criterion is unverified because batch 003 is not deployed. A
 read-only describe on 2026-10-01 still showed `pmi-kc-app-rmundpf2v-249c945f2220` (`c541db72`) at
-100%. Batch 002's release run `6eb157e1-73e6-4e36-8a66-998cd06f31f3`, admitted at `b1c6135c`, is paused in its recovery phase on
-`managed_browser_enrollment_required`; the batch 003 release follows it. The run made no
-production record, provider effect, Gmail draft or send. Human verdict: NOT RUN.
+100%. Batch 002's release run `6eb157e1-73e6-4e36-8a66-998cd06f31f3` (admitted at `b1c6135c`)
+blocked at recovery assurance after the owner's canary enrollments: the live renewal desk took
+about 30 seconds against the canary's 30-second bound (canonical passed at 28.5 s). The owner then
+decided (2026-10-01) to apply PR #93's 60-second bound to the two live renewal routes only and to
+ship batches 002 and 003 in one cumulative replacement run. The run made no production record,
+provider effect, Gmail draft or send. Human verdict: NOT RUN.
 
 ## Supersede Log
 
