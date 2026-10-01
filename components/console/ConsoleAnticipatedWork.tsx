@@ -6,9 +6,10 @@ import type {
   AnticipatedWorkGroup,
 } from "@/lib/anticipation/projection";
 
-// Permanent, honest posture: the lane is computed on Console load, never on a timer, and never executes.
+// Permanent, honest posture: the lane is computed only when someone asks for it in Internal Processes
+// (S147 moved it there from the Dashboard), never on a timer, and never executes.
 export const ANTICIPATION_CAPTION =
-  "Computed on request · it runs only when you open the Dashboard, and a person sends every message.";
+  "Computed on request from the default notice rules · it runs only when you ask here, and a person sends every message.";
 export const ANTICIPATION_ALL_CLEAR = "All clear. Nothing is coming up right now.";
 
 const URGENCY_LABEL: Record<AnticipatedUrgency, string> = {
@@ -20,7 +21,7 @@ const URGENCY_LABEL: Record<AnticipatedUrgency, string> = {
 };
 
 /**
- * The Console "Anticipated work" lane. A read-only projection of the coming-up / due work across the
+ * The "Anticipated work" lane, shown in Internal Processes beside Start run. A read-only projection of the coming-up / due work across the
  * owner-named processes. An Editor may start one ordinary app-plane run; other rows are read-only
  * deep links. Starting a run executes no provider, send, or system-of-record write.
  */

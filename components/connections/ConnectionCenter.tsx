@@ -23,6 +23,7 @@ export function ConnectionCenter({
   verifiableIds = [],
   dotloopReadiness,
   resourcePanel = null,
+  needsSetup,
 }: Readonly<{
   view: ConnectionCenterView;
   dotloopReadiness?: DotloopReadiness;
@@ -30,6 +31,11 @@ export function ConnectionCenter({
   verifiableIds?: readonly string[];
   /** S120: the page-supplied shared renewal resource entries, mounted after the documents group. */
   resourcePanel?: ReactNode;
+  /**
+   * S147: connectors this user's Spaces use that are unconfigured or partly configured. This list
+   * moved here from the Dashboard card; each row links to its connector card below.
+   */
+  needsSetup?: readonly { label: string; detail?: string; href: string }[];
 }>) {
   const groups = groupConnectionItems(view.items);
 
@@ -81,6 +87,24 @@ export function ConnectionCenter({
         <Metric label="Not connected" value={view.summary.none} />
         <Metric label="Closed by governance" value={view.summary.closed} />
       </div>
+
+      {needsSetup ? (
+        <section aria-label="Needs setup" className="panel">
+          <h2 className="section-subtitle">Needs setup</h2>
+          {needsSetup.length === 0 ? (
+            <p className="muted">Every connector is configured.</p>
+          ) : (
+            <ul className="connection-needs-setup">
+              {needsSetup.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href}>{item.label}</Link>
+                  {item.detail ? <span className="muted"> · {item.detail}</span> : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
 
       {groups.map((group) => (
         <div className="ui-stack" key={group.id}>

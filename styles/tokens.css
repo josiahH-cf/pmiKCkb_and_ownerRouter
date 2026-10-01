@@ -338,12 +338,6 @@
   padding: 5px 10px;
 }
 
-.ask-grid {
-  display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
-}
-
 .ask-form {
   display: grid;
   gap: 14px;
@@ -754,7 +748,6 @@
     width: 100%;
   }
 
-  .ask-grid,
   .field-row {
     grid-template-columns: 1fr;
   }

@@ -1,65 +1,52 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// The Console front door (rendered at both `/` and `/ask`). Mock the Firestore-backed process list
-// and the needs-decision gather (the action-deck approvals count) so the async server component
-// renders without touching firebase-admin.
+// The Dashboard front door (rendered at both `/` and `/ask`). S146/S147: the AI workspace leads,
+// the five operational panels are gone, and the compact attention queue streams into its own
+// boundary. The Firestore-backed reads are mocked so the server component renders without
+// firebase-admin; the approval list read is the one the queue gathers.
+const listApprovalQueue = vi.fn();
+const loadRenewalRunViews = vi.fn();
+const listProcessDefinitions = vi.fn();
+
+vi.mock("@/lib/firestore/approval-queue", () => ({
+  listApprovalQueue: (...args: unknown[]) => listApprovalQueue(...args),
+}));
+vi.mock("@/lib/lease-renewal/renewal-review-board", () => ({
+  loadRenewalRunViews: (...args: unknown[]) => loadRenewalRunViews(...args),
+}));
 vi.mock("@/lib/firestore/workflows", () => ({
-  listProcessDefinitions: vi.fn(async () => [
-    { id: "lease-renewal", name: "Lease Renewal", status: "Draft" },
-  ]),
+  listProcessDefinitions: (...args: unknown[]) => listProcessDefinitions(...args),
 }));
-vi.mock("@/lib/approval/needs-decision-gather", () => ({
-  gatherNeedsDecisionInbox: vi.fn(async () => ({
-    rows: [
-      {
-        kind: "renewal_flag",
-        key: "renewal_flag:run-1:current_rent",
-        label: "Current rent",
-        detail: "Run 1",
-        severity: "High",
-        href: "/lease-renewal/runs/run-1",
-      },
-      {
-        kind: "queue_item",
-        key: "queue_item:q1",
-        itemId: "q1",
-        canApproveInline: true,
-        label: "Approve renewal package",
-        detail: "Run 1",
-        severity: "Medium",
-        href: "/approval-queue?item_id=q1",
-      },
-    ],
-    counts: { total: 2, renewalFlags: 1, writebacksAwaiting: 0, queueItems: 1 },
-  })),
+vi.mock("@/lib/lease-renewal/live-desk", () => ({
+  loadLiveRenewalDesk: vi.fn(async () => {
+    throw new Error("The Dashboard must not read the live renewal desk.");
+  }),
 }));
-vi.mock("@/lib/console/environment", () => ({
-  resolveConsoleDataMode: vi.fn(() => ({ kind: "live" })),
-}));
-vi.mock("@/lib/console/live-data", () => ({
-  loadConsoleProjection: vi.fn(async () => ({
-    mode: { kind: "live" },
-    rows: [],
-    sourceHealth: [],
-  })),
-}));
-vi.mock("@/lib/lease-renewal/live-desk", async () => {
-  const { getRenewalDeskView } = await import("@/tests/helpers/sample-desk");
-  return {
-    loadLiveRenewalDesk: vi.fn(async () => ({
-      status: "ok",
-      view: getRenewalDeskView(),
-    })),
-  };
-});
 
 import { ConsoleView } from "@/components/console/ConsoleView";
-import { gatherNeedsDecisionInbox } from "@/lib/approval/needs-decision-gather";
-import { listProcessDefinitions } from "@/lib/firestore/workflows";
+
+const readyItem = {
+  id: "q1",
+  status: "Ready for Approval",
+  risk: "Low",
+  assignee_uid: "someone-else",
+  required_approver_uid: "u-admin",
+  action_needed: "Approve renewal package",
+  process_run_ref: { label: "Run 1" },
+  direct_link: "/approval-queue?item_id=q1",
+};
+
+beforeEach(() => {
+  listApprovalQueue.mockResolvedValue([readyItem]);
+  loadRenewalRunViews.mockResolvedValue([]);
+  listProcessDefinitions.mockResolvedValue([
+    { id: "lease-renewal", name: "Lease Renewal", status: "Draft" },
+  ]);
+});
 
 afterEach(() => {
   cleanup();
@@ -74,91 +61,115 @@ const maintenanceUser = {
   scopes: ["maintenance"],
 } as const;
 
-describe("ConsoleView", () => {
-  it("renders the Console front door with the grounded-answer form", async () => {
-    render(await ConsoleView({ user: adminUser as never }));
+// React 19 needs an awaited act scope to retry a boundary that suspended on the queue read.
+async function renderView(user: object) {
+  let result: ReturnType<typeof render> | undefined;
+  await act(async () => {
+    result = render(await ConsoleView({ user: user as never }));
+  });
+  return result!;
+}
+
+describe("ConsoleView (S146/S147 AI-first Dashboard)", () => {
+  it("leads with the Dashboard heading and the question box as the first primary element", async () => {
+    await renderView(adminUser);
 
     expect(
       screen.getByRole("heading", { name: "Dashboard", level: 1 }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText(/Question/)).toBeInTheDocument();
+    const question = screen.getByLabelText(/Question/);
+    const queue = await screen.findByRole("region", { name: "Waiting on you" });
+    expect(
+      question.compareDocumentPosition(queue) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     // SEU-2 (§A.1): the explanatory intro paragraph is gone; the surface is self-descriptive.
     expect(screen.queryByText(/never touches a system of record/)).toBeNull();
-    expect(screen.getByTestId("console-live-data-badge")).toHaveTextContent("Live data");
-    // A renewals-visible principal sees the read-only anticipation lane (S18).
-    expect(screen.getByRole("heading", { name: "Anticipated work" })).toBeInTheDocument();
   });
 
-  it("leads with the Ask portal and pushes Live Operations to the bottom (CON-1/CON-2, §E)", async () => {
-    render(await ConsoleView({ user: adminUser as never }));
+  it("ARCH-S146-1: renders the question box while the attention read is still pending", async () => {
+    listApprovalQueue.mockImplementation(() => new Promise(() => undefined));
+    loadRenewalRunViews.mockImplementation(() => new Promise(() => undefined));
 
-    const ask = screen.getByLabelText(/Question/);
-    const deck = screen.getByRole("heading", { name: "Needs your decision" });
-    const processes = screen.getByRole("heading", { name: "Processes" });
-    const liveBadge = screen.getByTestId("console-live-data-badge");
+    await renderView(adminUser);
 
-    // CON-1: the Ask portal comes before the action deck (it leads the Console).
-    expect(
-      ask.compareDocumentPosition(deck) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    // CON-2: Live Operations renders after the process strip (it is the bottom zone).
-    expect(
-      processes.compareDocumentPosition(liveBadge) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(screen.getByLabelText(/Question/)).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Get answer" })).toBeEnabled();
+    const loading = screen.getByRole("region", { name: "Waiting on you" });
+    expect(loading).toHaveAttribute("aria-busy", "true");
+    expect(within(loading).getByText(/Checking what is waiting on you/)).toBeVisible();
   });
 
-  it("surfaces the needs-your-decision area with the top row as a deep link (no click-to-reveal)", async () => {
-    render(await ConsoleView({ user: adminUser as never }));
+  it("AC-S147-4: a failed attention read shows no count and never blocks asking", async () => {
+    listApprovalQueue.mockRejectedValue(new Error("firestore down"));
+    loadRenewalRunViews.mockRejectedValue(new Error("firestore down"));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    await renderView(adminUser);
+
+    const queue = await screen.findByText(/could not be loaded just now/);
+    expect(queue).toBeVisible();
+    expect(screen.queryByTestId("attention-count")).toBeNull();
+    expect(screen.queryByText(/Nothing is waiting on you/)).toBeNull();
+    expect(screen.getByLabelText(/Question/)).toBeEnabled();
+  });
+
+  it("AC-S147-1: the five operational panels are absent, not collapsed", async () => {
+    const { container } = await renderView(adminUser);
+    await screen.findByRole("region", { name: "Waiting on you" });
+
+    for (const name of [
+      "Needs your decision",
+      "Connections to set up",
+      "Process setup",
+      "Anticipated work",
+      "Processes",
+      "Live operations",
+    ]) {
+      expect(screen.queryByRole("heading", { name })).toBeNull();
+    }
+    expect(screen.queryByTestId("console-live-data-badge")).toBeNull();
+    expect(container.querySelector("details")).toBeNull();
+    expect(screen.queryByRole("group", { name: "What needs your attention" })).toBeNull();
+  });
+
+  it("AC-S146-2: no process picker, and the Dashboard reads no process definitions", async () => {
+    await renderView(adminUser);
+    await screen.findByRole("region", { name: "Waiting on you" });
+
+    expect(screen.queryByLabelText("Process")).toBeNull();
+    expect(listProcessDefinitions).not.toHaveBeenCalled();
+  });
+
+  it("AC-S147-3: the queue lists the eligible item once with its link and inline Approve", async () => {
+    await renderView(adminUser);
 
     expect(
-      screen.getByRole("heading", { name: "Needs your decision" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Current rent" })).toHaveAttribute(
-      "href",
-      "/lease-renewal/runs/run-1",
+      await screen.findByRole("link", { name: "Approve renewal package" }),
+    ).toHaveAttribute("href", "/approval-queue?item_id=q1");
+    expect(screen.getAllByRole("link", { name: "Approve renewal package" })).toHaveLength(
+      1,
     );
-    // The old click-to-reveal command button is gone; the deck is always visible.
-    expect(screen.queryByRole("button", { name: /My approvals/ })).toBeNull();
-    // A4: an Admin (canApprove) gets an in-place Approve on the queue_item row.
     expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument();
-    // HARD STOP: no control ever executes an external action from the Console.
+    expect(screen.getByTestId("attention-count")).toHaveTextContent("1");
+    // HARD STOP: no control ever executes an external action from the Dashboard.
     expect(screen.queryByRole("button", { name: /send|execute|write/i })).toBeNull();
   });
 
-  it("shows the live processes as a read-only front door", async () => {
-    render(await ConsoleView({ user: adminUser as never }));
+  it("covers a maintenance-only user's own approval items instead of a fabricated zero", async () => {
+    listApprovalQueue.mockResolvedValue([
+      { ...readyItem, required_approver_uid: "someone", assignee_uid: "u-maintenance" },
+    ]);
+    await renderView(maintenanceUser);
 
-    expect(screen.getByRole("heading", { name: "Processes" })).toBeInTheDocument();
-  });
-
-  it("loads process definitions once for an editor so the process picker is populated", async () => {
-    render(await ConsoleView({ user: adminUser as never }));
-
-    expect(listProcessDefinitions).toHaveBeenCalledTimes(1);
-    // Editors get the ordinary process context picker, populated from the loaded definitions.
-    expect(screen.getByLabelText("Process")).toHaveTextContent("Lease Renewal");
-  });
-
-  it("removes renewals rows and process chips for a maintenance-only principal", async () => {
-    render(await ConsoleView({ user: maintenanceUser as never }));
-
-    expect(screen.queryByRole("link", { name: "Current rent" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Approve renewal package" })).toBeNull();
-    expect(screen.queryByRole("link", { name: /Lease Renewals/ })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Google Sheets" })).toBeNull();
-    expect(screen.getByRole("link", { name: "Google Drive" })).toHaveAttribute(
-      "href",
-      "/connections#connector-google_drive",
-    );
     expect(
-      screen
-        .getAllByRole("link", { name: /Maintenance Work Order Intake/ })
-        .every((link) => link.getAttribute("href") === "/maintenance"),
-    ).toBe(true);
+      await screen.findByRole("link", { name: "Approve renewal package" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Waiting on an approver/)).toBeInTheDocument();
+    expect(loadRenewalRunViews).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
-    expect(gatherNeedsDecisionInbox).not.toHaveBeenCalled();
-    // The renewal anticipation lane is renewals-scoped: a maintenance-only principal never sees it
-    // (removing the canSeeRenewals gate in ConsoleView would leak renewal work here and fail this).
-    expect(screen.queryByRole("heading", { name: "Anticipated work" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Open the full list" })).toHaveAttribute(
+      "href",
+      "/notifications",
+    );
   });
 });

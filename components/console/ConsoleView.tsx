@@ -1,240 +1,43 @@
-import { AskForm, type ProcessOption } from "@/components/ask/AskForm";
+import { AskForm } from "@/components/ask/AskForm";
+import { DashboardAttentionQueue } from "@/components/console/DashboardAttentionQueue";
 import {
-  ConsoleActionDeck,
-  type ConsoleDeckCard,
-} from "@/components/console/ConsoleActionDeck";
-import {
-  ConsoleProcessStrip,
-  type ConsoleProcessItem,
-} from "@/components/console/ConsoleProcessStrip";
-import { ConsoleAnticipatedWork } from "@/components/console/ConsoleAnticipatedWork";
-import { ConsoleLiveDataPanel } from "@/components/console/ConsoleLiveDataPanel";
-import type { ConnectionStatus } from "@/components/ui";
-import {
-  buildAnticipatedWork,
-  type AnticipatedWorkGroup,
-} from "@/lib/anticipation/projection";
-import { gatherDecisionAttention } from "@/lib/attention/decision-backlog";
-import {
-  resolveConnectionsState,
-  resolveCoverageState,
-} from "@/lib/ask/app-state-context";
+  gatherAttentionQueue,
+  unavailableAttentionQueue,
+  type AttentionQueue,
+} from "@/lib/attention/attention-queue";
 import { can } from "@/lib/auth/roles";
-import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
-import { readConnectorPresence } from "@/lib/connections/connector-presence";
-import { listProcessDefinitions } from "@/lib/firestore/workflows";
-import {
-  SPACE_CONNECTOR_IDS,
-  SPACE_CARD_STATE_LABEL,
-  computeSpaceCardState,
-  type SpaceCardState,
-} from "@/lib/space-card-state";
-import { launchSpaces, spaceHref } from "@/lib/spaces";
-import { resolveConsoleDataMode } from "@/lib/console/environment";
-import { loadConsoleProjection } from "@/lib/console/live-data";
-import { loadLiveRenewalDesk } from "@/lib/lease-renewal/live-desk";
-
-// Map the read-only Space card state onto a connection-style dot. Slice A keeps this dot palette
-// (connected / action / none); the richer green/red/amber/purple card-color scheme lands in Slice B.
-function toDotStatus(state: SpaceCardState): ConnectionStatus {
-  if (state === "has-a-process") return "connected";
-  if (state === "reference") return "none";
-  return "action";
-}
+import type { AuthenticatedUser } from "@/lib/auth/session";
 
 /**
- * The Console body — the app's action-first front door. Rendered at both `/` (home) and `/ask`
- * (the preserved route), so the Console is reachable from the brand/home and its own URL. Callers
- * wrap it in <AppShell> (this returns only the inner section, never the shell).
+ * The Dashboard body, rendered at both `/` (home) and `/ask` (the preserved route). Callers wrap it
+ * in <AppShell>.
  *
- * Assembles three zones from ONE read-only, non-fatal gather: an always-visible action deck (what
- * needs a decision / connections to set up / space coverage), the AI question + dictation box, and a
- * read-only strip of the Live processes. Editors additionally get the process picker for an ordinary
- * app-plane run (no system-of-record write). The one inline exception is the deck's Approve control:
- * for an Approver/Admin, a queue_item row records the app-plane approval decision in place via the
- * existing item PATCH (ConsoleActionDeck A4). That decision executes no external send and no
- * system-of-record write; every other action stays on its own gated surface, reached via a deep link.
+ * S146/S147: the AI workspace is the first primary element and nothing on this page waits for a
+ * panel read before it renders. The compact attention queue is the only standing non-AI panel; its
+ * read starts here and streams into its own boundary, so a slow or failed read shows its own state
+ * while the question box already works. Process browsing and run start live in Internal Processes,
+ * Anticipated work moved there beside Start run, setup status lives in Connections and the Internal
+ * Processes cards, and lease detail lives on the renewal desk.
  */
-export async function ConsoleView({ user }: { user: AuthenticatedUser }) {
-  const canUseProcessContext = can(user.role, "edit");
+export function ConsoleView({ user }: { user: AuthenticatedUser }) {
   const canApprove = can(user.role, "approve");
-  const canSeeRenewals = hasSpaceAccess(user, "renewals");
-  const now = new Date();
-  const end = new Date(now);
-  end.setUTCDate(end.getUTCDate() + 120);
-  // Start independent reads together. Scope checks and each reader's failure/freshness rules
-  // remain in place; only coverage waits for the process definitions it actually depends on.
-  const [consoleProjection, definitions, decision, anticipatedOutcome] =
-    await Promise.all([
-      loadConsoleProjection(user, resolveConsoleDataMode()),
-      listProcessDefinitions(user).catch(() => []),
-      canSeeRenewals
-        ? gatherDecisionAttention(user)
-        : Promise.resolve({
-            attention: { count: 0, signals: [] },
-            inbox: {
-              rows: [],
-              counts: { total: 0, renewalFlags: 0, writebacksAwaiting: 0, queueItems: 0 },
-            },
-          }),
-      canSeeRenewals
-        ? loadLiveRenewalDesk(
-            [
-              {
-                startIso: now.toISOString().slice(0, 10),
-                endIso: end.toISOString().slice(0, 10),
-              },
-            ],
-            now.toISOString(),
-          )
-        : Promise.resolve(null),
-    ]);
-  const visibleSpaces = launchSpaces.filter(
-    (space) =>
-      space.showInDirectory !== false &&
-      (user.scopes === undefined ||
-        (space.scope !== undefined && hasSpaceAccess(user, space.scope))),
+  // Started, not awaited: the page streams the question box first.
+  const attention: Promise<AttentionQueue> = gatherAttentionQueue(user).catch(() =>
+    unavailableAttentionQueue(),
   );
-  const visibleDefinitionIds = new Set(
-    visibleSpaces.flatMap((space) =>
-      space.processDefinitionId ? [space.processDefinitionId] : [],
-    ),
-  );
-  // The same definitions serve the process picker, coverage card and process strip.
-  const scopedDefinitions =
-    user.scopes === undefined
-      ? definitions
-      : definitions.filter((definition) => visibleDefinitionIds.has(definition.id));
-  const processes: ProcessOption[] = canUseProcessContext
-    ? scopedDefinitions.map((definition) => ({
-        id: definition.id,
-        name: definition.name,
-        status: definition.status,
-      }))
-    : [];
-
-  const definitionIds = new Set(scopedDefinitions.map((definition) => definition.id));
-  const startableDefinitionIds = new Set(
-    scopedDefinitions
-      .filter((definition) => definition.status !== "Retired")
-      .map((definition) => definition.id),
-  );
-  const presence = readConnectorPresence();
-
-  // Value-free app-state, gathered once and rendered server-side into the always-visible deck (no
-  // click-to-reveal, no client refetch). Approvals come from the SAME merged needs-decision gather
-  // every other surface answers from; every read is read-only and non-fatal.
-  const inbox = decision.inbox;
-  const connections = resolveConnectionsState();
-  const visibleConnectorIds = new Set(
-    visibleSpaces.flatMap((space) => SPACE_CONNECTOR_IDS[space.id] ?? []),
-  );
-  const connectionItems =
-    user.scopes === undefined
-      ? connections.items
-      : connections.items.filter((item) => {
-          const connectorId = item.href.split("#connector-")[1];
-          return connectorId !== undefined && visibleConnectorIds.has(connectorId);
-        });
-  const coverage = await resolveCoverageState(user, definitionIds);
-  const visibleSpaceHrefs = new Set(visibleSpaces.map((space) => spaceHref(space)));
-  const coverageItems =
-    user.scopes === undefined
-      ? coverage.items
-      : coverage.items.filter((item) => visibleSpaceHrefs.has(item.href));
-
-  // Each deck card speaks one shared attention lane (S17 B3/B7): the deck now uses the same vocabulary
-  // as the /notifications hub + the renewal desk. This suite adds NO scope filter of its own — the
-  // rows above are already S16-scope-filtered (AC-S16-4); B7 only stamps the lane.
-  const cards: ConsoleDeckCard[] = [
-    {
-      key: "approvals",
-      title: "Needs your decision",
-      lane: "decision",
-      count: decision.attention.count,
-      rows: inbox.rows.map((row) => ({
-        label: row.label,
-        detail: row.detail,
-        href: row.href,
-        itemId: row.canApproveInline ? row.itemId : undefined,
-      })),
-      emptyLabel: "Nothing needs your decision right now.",
-      seeAllHref: "/approval-queue",
-    },
-    {
-      key: "connections",
-      title: "Connections to set up",
-      lane: "connection",
-      count: connectionItems.length,
-      rows: connectionItems.map((item) => ({
-        label: item.label,
-        detail: item.detail,
-        href: item.href,
-      })),
-      emptyLabel: "Every connector is set up.",
-      seeAllHref: "/connections",
-    },
-    {
-      key: "coverage",
-      title: "Process setup",
-      lane: "coverage",
-      count: coverageItems.length,
-      rows: coverageItems.map((item) => ({
-        label: item.label,
-        detail: item.detail,
-        href: item.href,
-      })),
-      emptyLabel: "Every space has its process and connections.",
-      seeAllHref: "/spaces",
-    },
-  ];
-
-  const processItems: ConsoleProcessItem[] = visibleSpaces
-    .filter((space) => space.processDefinitionId)
-    .map((space) => {
-      const state = computeSpaceCardState(space, definitionIds, presence);
-      return {
-        id: space.id,
-        name: space.name,
-        category: space.processCategory,
-        stateLabel: SPACE_CARD_STATE_LABEL[state],
-        status: toDotStatus(state),
-        href: spaceHref(space),
-      };
-    });
-
-  // Project anticipated work from the real read-only renewal desk. Unavailable sources produce no
-  // rows; invented sample leases are never imported or substituted.
-  const anticipatedGroups: AnticipatedWorkGroup[] =
-    anticipatedOutcome?.status === "ok"
-      ? buildAnticipatedWork({
-          referenceDateIso: now.toISOString().slice(0, 10),
-          deskView: anticipatedOutcome.view,
-        }).groups
-      : [];
 
   return (
     <section className="content console">
       <h1 className="section-title">Dashboard</h1>
-      {/* CON-1 (Note 2 §E): the Ask-a-Question portal leads the Console as its primary action.
-          FTU-1/FTU-6: a single plain-language purpose line orients a first-time user without
-          bringing back the old multi-line intro. */}
       <p className="muted console-purpose">
-        Ask about a property, lease, or process. Open a task below to review its details
-        and next action.
+        Ask about the leases, work, approvals and processes you can see. Answers appear
+        below your question.
       </p>
-      <AskForm canUseProcessContext={canUseProcessContext} processes={processes} />
-      {/* Decks stay on the Console (owner decision D-3: keep here AND mirror in Notifications). */}
-      <ConsoleActionDeck canApprove={canApprove} cards={cards} />
-      <ConsoleAnticipatedWork
-        canStart={canUseProcessContext}
-        groups={anticipatedGroups}
-        startableDefinitionIds={startableDefinitionIds}
+      <AskForm
+        secondary={
+          <DashboardAttentionQueue canApprove={canApprove} initial={attention} />
+        }
       />
-      <ConsoleProcessStrip items={processItems} />
-      {/* CON-2 (Note 2 §E): Live Operations moves to the bottom as reference detail below the
-          action-first zones (progressive disclosure). */}
-      <ConsoleLiveDataPanel projection={consoleProjection} />
     </section>
   );
 }

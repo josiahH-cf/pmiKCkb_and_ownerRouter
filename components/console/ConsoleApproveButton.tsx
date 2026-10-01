@@ -2,12 +2,16 @@
 
 import { useState } from "react";
 
-// In-place Approve for a Console deck queue_item row (console overhaul A4). Records the app-plane
-// approval decision by PATCHing the EXISTING already-authed approval-queue item route with
-// {action:"approve"} (status to Approved). It never executes an external action: no send, no
-// system-of-record write, and High-risk items are refused server-side so the operator uses the full
-// surface. On failure it shows the server error inline; on success it shows a done state.
-export function ConsoleApproveButton({ itemId }: Readonly<{ itemId: string }>) {
+// In-place Approve for a Dashboard attention-queue row (console overhaul A4; S147 keeps it on the
+// compact queue). Records the app-plane approval decision by PATCHing the EXISTING already-authed
+// approval-queue item route with {action:"approve"} (status to Approved). It never executes an
+// external action: no send, no system-of-record write, and High-risk items are refused server-side
+// so the operator uses the full surface. On failure it shows the server error inline; on success it
+// shows a done state and tells the queue to refresh.
+export function ConsoleApproveButton({
+  itemId,
+  onApproved,
+}: Readonly<{ itemId: string; onApproved?: () => void }>) {
   const [pending, setPending] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -23,6 +27,7 @@ export function ConsoleApproveButton({ itemId }: Readonly<{ itemId: string }>) {
       });
       if (response.ok) {
         setDone(true);
+        onApproved?.();
       } else {
         const payload = (await response.json().catch(() => ({}))) as {
           error?: string;

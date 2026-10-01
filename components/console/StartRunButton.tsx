@@ -29,7 +29,9 @@ export function StartRunButton({
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ note: "Started from the Console anticipation lane." }),
+          body: JSON.stringify({
+            note: "Started from the Internal Processes anticipation lane.",
+          }),
         },
       );
       if (response.ok) {

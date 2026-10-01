@@ -59,9 +59,14 @@ describe("S84 primary-navigation manifest", () => {
     ]);
   });
 
-  it("keeps the transitional Dashboard copy paired to the pre-S95 composition", () => {
-    expect(ACTIVE_DASHBOARD_COMPOSITION).toBe("current-operations");
+  it("S146/S147: pairs the Dashboard copy to the AI-first composition", () => {
+    // S146/S147 replaced the current-operations panels with the AI workspace plus one compact
+    // attention queue, so the navigation description changes with it (S95's plan is superseded).
+    expect(ACTIVE_DASHBOARD_COMPOSITION).toBe("ai-first");
     expect(DASHBOARD_NAVIGATION_COPY[ACTIVE_DASHBOARD_COMPOSITION]).toBe(
+      "Ask AI about your work, and see what is waiting on you.",
+    );
+    expect(DASHBOARD_NAVIGATION_COPY["current-operations"]).toBe(
       "Ask about a property or process, and see work that needs attention.",
     );
     expect(DASHBOARD_NAVIGATION_COPY["shared-ai-work"]).toBe(

@@ -336,30 +336,95 @@ textarea:disabled {
   color: var(--ui-selected-text);
 }
 
-/* Console action deck (console overhaul, Slice A): the three always-visible front-door areas. */
-.console-deck {
-  margin-bottom: 20px;
+/* S146/S147 AI-first Dashboard: the question box and its answers lead the main column; history,
+   saved questions and the compact attention queue sit in a secondary column, which stacks below
+   the main column on narrow screens. Answers never sit beside or above the question box. */
+.dashboard-workspace {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  align-items: start;
 }
 
-.console-deck-card {
+.dashboard-main,
+.dashboard-secondary {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.dashboard-examples {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.dashboard-conversation {
+  display: grid;
+  gap: 12px;
+}
+
+.dashboard-conversation-note {
+  margin: 0;
+}
+
+.dashboard-turns {
+  display: grid;
+  gap: 14px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dashboard-turn {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-turn:focus-visible {
+  outline: 3px solid var(--ui-border-interactive);
+  outline-offset: 2px;
+}
+
+.dashboard-turn-question {
+  font-weight: 700;
+  margin: 0;
+}
+
+.dashboard-nav h2,
+.dashboard-attention h2 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.dashboard-nav-list,
+.dashboard-attention-list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dashboard-nav-list li,
+.dashboard-attention-list li {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-attention {
+  display: grid;
   gap: 10px;
 }
 
-.console-deck-card[data-status="action"] {
-  border-left: 3px solid var(--state-caution-border);
-}
-
-.console-deck-head {
+.dashboard-attention-head {
   align-items: center;
   display: flex;
   gap: 8px;
-}
-
-.console-deck-head h2 {
-  font-size: 1.05rem;
-  margin: 0;
 }
 
 .console-deck-count {
@@ -372,17 +437,17 @@ textarea:disabled {
   text-align: center;
 }
 
-.console-deck-list {
+.connection-needs-setup {
   display: grid;
   gap: 6px;
-  list-style: none;
   margin: 0;
-  padding: 0;
+  padding-left: 20px;
 }
 
-.console-deck-detail {
-  display: block;
-  font-size: 0.85rem;
+@media (max-width: 760px) {
+  .dashboard-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .field-label-row {
@@ -397,34 +462,9 @@ textarea:disabled {
   margin: 6px 0 0;
 }
 
-/* Console process strip: a compact front door to the live processes and their state. */
-.console-process-strip {
-  margin-top: 24px;
-}
-
 .console-strip-title {
   font-size: 1.1rem;
   margin: 0 0 12px;
-}
-
-.console-process-chip {
-  color: inherit;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  text-decoration: none;
-  transition:
-    border-color 120ms ease,
-    box-shadow 120ms ease;
-}
-
-.console-process-chip:hover {
-  border-color: var(--ui-border-interactive);
-  box-shadow: var(--elevation-raised);
-}
-
-.console-process-name {
-  font-weight: 700;
 }
 
 /* Anticipated-work lane (S18 process-auto-initiation). Read-only, request-computed. */

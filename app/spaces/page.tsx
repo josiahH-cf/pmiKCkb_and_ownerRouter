@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
+import { AnticipatedWorkSection } from "@/components/spaces/AnticipatedWorkSection";
 import {
   gatherNeedsDecisionInbox,
   renewalWaitingCount,
@@ -81,6 +82,9 @@ export default async function SpacesPage() {
             );
           })}
         </div>
+        {/* S147: Anticipated work moved here from the Dashboard (owner decision 2026-10-01). It
+            is renewals-scoped as before and computed only when asked, beside Start run. */}
+        {hasSpaceAccess(user, "renewals") ? <AnticipatedWorkSection /> : null}
       </section>
     </AppShell>
   );
