@@ -4,7 +4,7 @@ import { z } from "zod";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { runOncePerOperation } from "@/lib/api/assistant-operation-dedupe";
 import { assistantModelRateLimiter } from "@/lib/api/model-call-throttle";
-import { isVerificationAccount } from "@/lib/auth/canary-policy";
+import { historyModeFor } from "@/lib/assistant-history/route-support";
 import { requireCapability } from "@/lib/auth/session";
 import { ConversationContextSchema } from "@/lib/assistant/conversation-plan";
 import {
@@ -26,7 +26,8 @@ import { createServerOperationalContext } from "@/lib/operational-context/server
 // sends, drafts, starts a run, or refreshes a provider; the selected model only interprets wording.
 // S148: an optional client operation id names one submission. A duplicate delivery joins or reuses
 // that submission's answer on this instance, or replays its completed history turn, so it never
-// asks the model again. Replay is a read; history is saved through its own routes.
+// asks the model again. Replay is a read; history is saved through its own routes, and where
+// history is never saved (verification accounts, the Live-read-only rehearsal) nothing is read.
 export const dynamic = "force-dynamic";
 
 const RequestSchema = z
@@ -44,8 +45,7 @@ export async function POST(request: Request) {
   try {
     const user = await requireCapability("read");
     const body = await parseJsonBody(request, RequestSchema);
-    const persisted = !isVerificationAccount(user);
-    if (body.operationId && persisted) {
+    if (body.operationId && historyModeFor(user) === "saved") {
       const replay = await readCompletedTurnAnswer(user, body.operationId).catch(
         () => null,
       );

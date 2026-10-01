@@ -3,8 +3,11 @@
 // empty history or a saved answer. Every response names its owner key; a response for another
 // sign-in (a stale tab after an account change) is discarded by the caller.
 
+import type { SavedQuestionView } from "@/lib/assistant-history/saved-types";
 import type { ConversationAnswer } from "@/lib/assistant/conversation";
 import type { AskResponse } from "@/lib/schemas";
+
+export type { SavedQuestionView } from "@/lib/assistant-history/saved-types";
 
 export interface HistoryConversationSummary {
   readonly conversationId: string;
@@ -146,4 +149,129 @@ function withoutReplayMarker(answer: ConversationAnswer): ConversationAnswer {
   const copy = { ...answer } as ConversationAnswer & { replayed?: boolean };
   delete copy.replayed;
   return copy;
+}
+
+// ---- S149 saved questions and S150 current runs ------------------------------------------------
+
+export interface SavedList {
+  readonly ownerKey: string;
+  readonly persisted: boolean;
+  readonly items: readonly SavedQuestionView[];
+  readonly truncated: boolean;
+}
+
+export type SavedListOutcome =
+  | { readonly status: "ok"; readonly list: SavedList }
+  | { readonly status: "failed" };
+
+export async function fetchSavedQuestions(): Promise<SavedListOutcome> {
+  try {
+    const response = await fetch("/api/assistant/saved", { cache: "no-store" });
+    if (!response.ok) return { status: "failed" };
+    const list = await readJson<SavedList>(response);
+    return list ? { status: "ok", list } : { status: "failed" };
+  } catch {
+    return { status: "failed" };
+  }
+}
+
+export type SaveQuestionOutcome =
+  | {
+      readonly status: "saved";
+      readonly item: SavedQuestionView;
+      readonly created: boolean;
+    }
+  | { readonly status: "failed" };
+
+/** Save one answered history turn. Safe to retry: the same turn always names the same item. */
+export async function saveQuestionRequest(
+  operationId: string,
+): Promise<SaveQuestionOutcome> {
+  try {
+    const response = await fetch("/api/assistant/saved", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ operationId }),
+    });
+    if (!response.ok) return { status: "failed" };
+    const body = await readJson<{ item: SavedQuestionView; created: boolean }>(response);
+    return body
+      ? { status: "saved", item: body.item, created: body.created }
+      : { status: "failed" };
+  } catch {
+    return { status: "failed" };
+  }
+}
+
+export type UpdateSavedOutcome =
+  | { readonly status: "ok"; readonly item: SavedQuestionView; readonly changed: boolean }
+  | { readonly status: "conflict" }
+  | { readonly status: "failed" };
+
+export async function updateSavedQuestionRequest(
+  savedId: string,
+  change: { pinned?: boolean; label?: string; expectedVersion: number },
+): Promise<UpdateSavedOutcome> {
+  try {
+    const response = await fetch(`/api/assistant/saved/${encodeURIComponent(savedId)}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(change),
+    });
+    if (response.status === 409) return { status: "conflict" };
+    if (!response.ok) return { status: "failed" };
+    const body = await readJson<{ item: SavedQuestionView; changed: boolean }>(response);
+    return body
+      ? { status: "ok", item: body.item, changed: body.changed }
+      : { status: "failed" };
+  } catch {
+    return { status: "failed" };
+  }
+}
+
+export type RunSavedOutcome =
+  | {
+      readonly status: "ok";
+      readonly conversationId: string;
+      readonly turn: RestoredTurn;
+      readonly item: SavedQuestionView;
+      readonly replayed: boolean;
+    }
+  /** The saved question cannot run without a new interpretation; ask it again instead. */
+  | { readonly status: "unsupported" }
+  | { readonly status: "failed" };
+
+/** Run a saved question for current results. Safe to retry with the same operation id. */
+export async function runSavedQuestionRequest(
+  savedId: string,
+  operationId: string,
+): Promise<RunSavedOutcome> {
+  try {
+    const response = await fetch(
+      `/api/assistant/saved/${encodeURIComponent(savedId)}/run`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ operationId }),
+      },
+    );
+    if (response.status === 409) {
+      const body = await readJson<{ error_type?: string }>(response);
+      return body?.error_type === "structured_rerun_unsupported"
+        ? { status: "unsupported" }
+        : { status: "failed" };
+    }
+    if (!response.ok) return { status: "failed" };
+    const body = await readJson<{
+      conversationId: string;
+      turn: RestoredTurn;
+      item: SavedQuestionView;
+      replayed: boolean;
+    }>(response);
+    return body && body.turn.displayState === "completed"
+      ? { status: "ok", ...body }
+      : { status: "failed" };
+  } catch {
+    return { status: "failed" };
+  }
 }

@@ -21,6 +21,10 @@ vi.mock("@/lib/lease-renewal/renewal-review-board", () => ({
 vi.mock("@/lib/firestore/workflows", () => ({
   listProcessDefinitions: (...args: unknown[]) => listProcessDefinitions(...args),
 }));
+vi.mock("@/lib/firestore/assistant-saved-questions", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/firestore/assistant-saved-questions")>()),
+  listSavedQuestions: vi.fn(async () => ({ items: [], truncated: false })),
+}));
 vi.mock("@/lib/firestore/assistant-history-read", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/firestore/assistant-history-read")>()),
   listAssistantConversations: vi.fn(async () => ({

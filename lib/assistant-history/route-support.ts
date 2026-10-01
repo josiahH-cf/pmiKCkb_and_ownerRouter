@@ -6,6 +6,10 @@ import { NextResponse } from "next/server";
 
 import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import {
+  allowsMutation,
+  resolveEnvironmentDescriptor,
+} from "@/lib/environment/descriptor";
 
 export const VERIFICATION_NOT_PERSISTED_MESSAGE =
   "History is not saved for verification accounts.";
@@ -24,6 +28,26 @@ export function refuseVerificationWrite(user: AuthenticatedUser): NextResponse |
 
 export function isHistoryPersisted(user: AuthenticatedUser): boolean {
   return !isVerificationAccount(user);
+}
+
+/**
+ * Where this user's Dashboard conversations are kept here. Verification accounts are answered but
+ * never saved. The local Live-read-only rehearsal refuses history writes unless Firestore is a
+ * local emulator (the automated harness), so it keeps conversations for the page session only and
+ * nothing there reads history either.
+ */
+export type HistoryModeName = "saved" | "verification" | "unavailable";
+
+export function historyModeFor(
+  user: AuthenticatedUser,
+  env: Record<string, string | undefined> = process.env,
+): HistoryModeName {
+  if (isVerificationAccount(user)) return "verification";
+  const environment = resolveEnvironmentDescriptor(env);
+  if (!environment.ok) return "unavailable";
+  if (!allowsMutation(environment.descriptor) && !env.FIRESTORE_EMULATOR_HOST?.trim())
+    return "unavailable";
+  return "saved";
 }
 
 export type HistoryLogOperation =
