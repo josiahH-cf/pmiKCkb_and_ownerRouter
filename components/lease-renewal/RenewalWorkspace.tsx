@@ -91,6 +91,7 @@ import { RenewalDocumentHandoff } from "@/components/lease-renewal/RenewalDocume
 import { PacketTruthPanel } from "@/components/lease-renewal/PacketTruthPanel";
 import {
   RenewalAuxiliaryNotice,
+  renewalAuxiliaryFailureText,
   type RenewalAuxiliaryFailure,
 } from "@/components/lease-renewal/RenewalAuxiliaryNotice";
 import type { MoveOutDisposition } from "@/lib/lease-renewal/move-out-disposition";
@@ -282,6 +283,13 @@ export function RenewalWorkspace({
         kindLabel: issue.kindLabel,
         reason: issue.reason,
       })),
+    // The page-level notices Focus would otherwise hide: failed supporting reads and the move-out
+    // disposition, in the same words the Full view uses.
+    unavailableReads: auxiliaryFailures.map(renewalAuxiliaryFailureText),
+    moveOutNotice:
+      summary.moveOut && summary.moveOut.state !== "not_initiated"
+        ? summary.moveOut.label
+        : null,
   };
   const focusPane = actionSnapshot ? (
     <RenewalFocusViewPane facts={focusFacts} snapshot={actionSnapshot} />

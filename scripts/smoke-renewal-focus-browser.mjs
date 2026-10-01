@@ -8,6 +8,11 @@ import { resolveBrowserExecutable as findBrowserExecutable } from "./lib/browser
 
 import { chromium } from "playwright-core";
 
+import {
+  describeSignatureDifference,
+  pageFullViewSignature,
+} from "./lib/renewal-focus-signature.mjs";
+
 const baseUrlInput =
   readArgument("--base-url") ?? process.env.DESK_BROWSER_BASE_URL?.trim();
 if (!baseUrlInput) {
@@ -19,6 +24,12 @@ const baseUrl = requireLocalRehearsalOrigin(baseUrlInput);
 const ROUTE_BUDGET_MS = 180_000;
 const LEASES = Number(readArgument("--leases") ?? "2");
 const DIRTY_MARKER = "S145 unsaved input check";
+// Free-text controls a person types into: staff record fields, then message wording. Neither sends
+// anything on change; only their explicit record or save button would. A staff record field keeps no
+// edit state of its own, while the message editor notes that it needs review until it is saved.
+const STAFF_TEXT =
+  ".renewal-workspace-body [id^='renewal-manual-'] :is(input:not([type]), input[type='text'], textarea)";
+const FREE_TEXT = `${STAFF_TEXT}, .renewal-workspace-body [id^='renewal-card-message-'] textarea`;
 // Each page's in-flight fetch and XHR reads, tracked from the moment it opens.
 const inflightReads = new WeakMap();
 
@@ -149,9 +160,14 @@ async function verifyLease(href) {
     (await focusButton.getAttribute("aria-pressed")) === "true",
     "Focus view is not pressed.",
   );
-  const heading = (await page.locator("#renewal-focus-task-heading").innerText()).trim();
+  // One task, or the completed result when nothing is outstanding.
+  const taskHeading = page.locator("#renewal-focus-task-heading");
+  const heading =
+    (await taskHeading.count()) === 1
+      ? (await taskHeading.innerText()).trim()
+      : (await pane.locator(".renewal-focus-result").innerText()).trim();
   const hiddenInFocus = await page.locator("[data-renewal-focus-hidden]").count();
-  assert(heading.length > 0, "The Focus pane names no task.");
+  assert(heading.length > 0, "The Focus pane names no task or result.");
   assert(hiddenInFocus > 0, "Focus view did not narrow the page to one task.");
   const focusOverflow = await overflow(page);
   // Choosing each task is presentation only; it reveals that task's existing controls in place.
@@ -179,6 +195,14 @@ async function verifyLease(href) {
   await pane.waitFor({ state: "detached" });
   await expectBaseline(page, baseline, "after the keyboard round trip");
   const dirtyKept = dirty ? (await dirty.locator.inputValue()) === DIRTY_MARKER : null;
+
+  // A scrolled Full view comes back at the same position after a keyboard round trip.
+  const scrollRestored = await scrollRoundTrip(page);
+  await expectBaseline(page, baseline, "after the scrolled round trip");
+
+  // Unsaved input typed into the chosen Focus task's own control survives Focus, Full, Focus.
+  const focusDirty = await focusTaskDirtyInput(page, pane, focusButton, fullButton);
+  await expectBaseline(page, baseline, "after the Focus task input check");
 
   // Phone width: no horizontal page scroll in either view, and the same Full view on return.
   await page.setViewportSize({ width: 390, height: 844 });
@@ -209,9 +233,18 @@ async function verifyLease(href) {
   );
   assert(dirtyKept !== false, "Unsaved input did not survive the Focus round trips.");
   assert(
+    focusDirty.kept !== false,
+    "Unsaved input in a Focus task control did not survive the round trip.",
+  );
+  assert(scrollRestored, "The Full view scroll position did not come back.");
+  assert(
     !focusOverflow && !phoneFullOverflow && !phoneFocusOverflow,
     "A view scrolls horizontally.",
   );
+  // Last, because each link moves to a fragment: the table of contents still reaches each section.
+  // Those fragment moves are navigations of their own, so switching's count is kept first.
+  const switchNavigations = navigations;
+  const tocSections = await tableOfContents(page);
   await context.close();
   return {
     defaultView: "Full view",
@@ -221,9 +254,13 @@ async function verifyLease(href) {
     roundTrips: 3,
     fullViewSignature: "unchanged",
     unsavedInput: dirty ? "kept" : "no unsaved-input field on this lease",
+    unsavedFocusTaskInput:
+      focusDirty.kept === null ? "no free-text task control on this lease" : "kept",
+    scrollRestored,
+    tableOfContentsSections: tocSections,
     writeRequests: writes.length,
     appRequests: appRequests.length,
-    navigations,
+    navigations: switchNavigations,
     pageErrors: pageErrors.length,
     consoleErrors: [...consoleErrors],
     horizontalScroll: false,
@@ -232,51 +269,7 @@ async function verifyLease(href) {
 
 /** The same structural signature the S145 jsdom baseline uses, excluding the additive switch. */
 async function signature(page) {
-  return page.evaluate(() => {
-    const text = (node) => (node?.textContent ?? "").replace(/\s+/g, " ").trim();
-    const outside = (element) => !element.closest("[data-renewal-view-switch]");
-    const labelOf = (element) => {
-      const aria = element.getAttribute("aria-label");
-      if (aria) return aria.trim();
-      const labelledBy = element.getAttribute("aria-labelledby");
-      if (labelledBy)
-        return labelledBy
-          .split(/\s+/)
-          .map((id) => text(document.getElementById(id)))
-          .join(" ")
-          .trim();
-      const labels = element.labels;
-      if (labels && labels.length > 0) return text(labels[0]);
-      return "";
-    };
-    const root = document.querySelector("main") ?? document.body;
-    const all = (selector) => [...root.querySelectorAll(selector)].filter(outside);
-    const visible = (element) => element.getClientRects().length > 0;
-    return JSON.stringify({
-      regions: all("section[aria-label], [role='region'][aria-label]").map((element) =>
-        element.getAttribute("aria-label"),
-      ),
-      sectionIds: all("[id^='renewal-section-']").map((element) => element.id),
-      headings: all("h1, h2, h3, h4").map(
-        (element) => `${element.tagName.toLowerCase()}:${text(element)}`,
-      ),
-      controls: all("input, select, textarea").map(
-        (element) =>
-          `${element.tagName.toLowerCase()}:${element.getAttribute("type") ?? ""}:${labelOf(element)}:${element.value}`,
-      ),
-      buttons: all("button").map((element) => labelOf(element) || text(element)),
-      links: all("a[href]").map(
-        (element) =>
-          `${labelOf(element) || text(element)} -> ${element.getAttribute("href")}`,
-      ),
-      copy: all("[id^='renewal-section-']").map(
-        (element) => `${element.id}:${text(element)}`,
-      ),
-      visible: all("[id^='renewal-section-']").map((element) => visible(element)),
-      disclosures: all("details").map((element) => element.open),
-      hidden: root.querySelectorAll("[data-renewal-focus-hidden]").length,
-    });
-  });
+  return page.evaluate(pageFullViewSignature);
 }
 
 /**
@@ -315,46 +308,111 @@ async function expectBaseline(page, baseline, when) {
   }
   assert(
     current === baseline,
-    `The Full view changed ${when}: ${describeDifference(baseline, current)}.`,
+    `The Full view changed ${when}: ${describeSignatureDifference(baseline, current)}.`,
   );
 }
 
-/** Which parts differ, by key, count and section id only; never the page's values. */
-function describeDifference(before, after) {
-  const a = JSON.parse(before);
-  const b = JSON.parse(after);
-  const parts = [];
-  for (const key of Object.keys(a)) {
-    if (JSON.stringify(a[key]) === JSON.stringify(b[key])) continue;
-    if (!Array.isArray(a[key])) {
-      parts.push(`${key} ${a[key]}->${b[key]}`);
-      continue;
-    }
-    const indexes = [];
-    for (let index = 0; index < Math.max(a[key].length, b[key].length); index += 1)
-      if (JSON.stringify(a[key][index]) !== JSON.stringify(b[key][index]))
-        indexes.push(index);
-    const sections =
-      key === "copy" || key === "visible" || key === "sectionIds"
-        ? ` sections ${indexes.map((index) => a.sectionIds[index] ?? b.sectionIds[index]).join("|")}`
-        : "";
-    parts.push(
-      `${key} ${a[key].length}->${b[key].length} at [${indexes.slice(0, 8).join(",")}]${sections}`,
-    );
-  }
-  return parts.join("; ") || "no difference";
-}
-
-/** Types a marker into one free-text field of a staff form, without submitting anything. */
+/** Types a marker into one visible free-text field in Full view, without submitting anything. */
 async function dirtyInput(page) {
-  const candidates = page.locator(
-    ".renewal-workspace-body form input[type='text']:visible:not([readonly]):not([disabled]), .renewal-workspace-body form textarea:visible:not([readonly]):not([disabled])",
+  const candidates = page.locator(FREE_TEXT).filter({ visible: true });
+  for (let index = 0; index < (await candidates.count()); index += 1) {
+    const locator = candidates.nth(index);
+    if (!(await locator.isEditable())) continue;
+    // Pinned to this element: the set of visible fields changes with the view.
+    const field = await locator.elementHandle();
+    const original = await field.inputValue();
+    await field.fill(DIRTY_MARKER);
+    return { locator: field, original };
+  }
+  return null;
+}
+
+/**
+ * In Focus, choose the first task whose own revealed control has a staff record text field, type a
+ * marker into it, go to Full view and back, and require the same task and the same unsaved value,
+ * then restore it. A staff record field keeps no edit state, so the Full view is then exact again.
+ */
+async function focusTaskDirtyInput(page, pane, focusButton, fullButton) {
+  await focusButton.click();
+  await pane.waitFor();
+  await pane.locator("details.renewal-focus-all > summary").click();
+  const choices = pane.locator("[data-renewal-action-id] button");
+  for (let index = 0; index < (await choices.count()); index += 1) {
+    await choices.nth(index).click();
+    await page.waitForTimeout(150);
+    const visible = page.locator(STAFF_TEXT).filter({ visible: true }).first();
+    if ((await visible.count()) === 0 || !(await visible.isEditable())) continue;
+    // Pinned to this element: the set of visible fields changes with the view.
+    const field = await visible.elementHandle();
+    const task = await pane.getAttribute("data-renewal-focus-action");
+    const marker = `${DIRTY_MARKER} (Focus task)`;
+    const original = await field.inputValue();
+    await field.fill(marker);
+    await fullButton.click();
+    await pane.waitFor({ state: "detached" });
+    const keptInFull = (await field.inputValue()) === marker;
+    await focusButton.click();
+    await pane.waitFor();
+    const keptInFocus =
+      (await pane.getAttribute("data-renewal-focus-action")) === task &&
+      (await field.isVisible()) &&
+      (await field.inputValue()) === marker;
+    await field.fill(original);
+    await fullButton.click();
+    await pane.waitFor({ state: "detached" });
+    return { kept: keptInFull && keptInFocus };
+  }
+  await fullButton.click();
+  await pane.waitFor({ state: "detached" });
+  return { kept: null };
+}
+
+/** Scroll the Full view, switch by keyboard without moving it, and require the same position back. */
+async function scrollRoundTrip(page) {
+  const press = async (label, key) => {
+    await page.evaluate((name) => {
+      [...document.querySelectorAll("[data-renewal-view-switch] button")]
+        .find((button) => button.textContent?.trim() === name)
+        ?.focus({ preventScroll: true });
+    }, label);
+    await page.keyboard.press(key);
+  };
+  await page.evaluate(() =>
+    window.scrollTo(0, Math.floor(document.body.scrollHeight / 3)),
   );
-  if ((await candidates.count()) === 0) return null;
-  const locator = candidates.first();
-  const original = await locator.inputValue();
-  await locator.fill(DIRTY_MARKER);
-  return { locator, original };
+  await page.waitForTimeout(300);
+  const before = await page.evaluate(() => window.scrollY);
+  await press("Focus view", "Enter");
+  await page.getByRole("region", { name: "Focus view" }).waitFor();
+  await press("Full view", "Space");
+  await page.getByRole("region", { name: "Focus view" }).waitFor({ state: "detached" });
+  await page.waitForTimeout(300);
+  const restored = Math.abs((await page.evaluate(() => window.scrollY)) - before) <= 2;
+  await page.evaluate(() => window.scrollTo(0, 0));
+  return restored;
+}
+
+/** Each table-of-contents link moves focus into its own section; returns how many were checked. */
+async function tableOfContents(page) {
+  const links = page
+    .getByRole("navigation", { name: "Renewal dashboard sections" })
+    .getByRole("link");
+  const count = await links.count();
+  for (let index = 0; index < count; index += 1) {
+    const target = ((await links.nth(index).getAttribute("href")) ?? "").replace(
+      /^#/,
+      "",
+    );
+    await links.nth(index).click();
+    await page.waitForTimeout(300);
+    const inside = await page.evaluate(
+      (id) => Boolean(document.activeElement?.closest(`#${CSS.escape(id)}`)),
+      target,
+    );
+    assert(inside, "A table-of-contents link did not move focus into its section.");
+  }
+  assert(count > 0, "The table of contents offered no section link.");
+  return count;
 }
 
 async function overflow(page) {

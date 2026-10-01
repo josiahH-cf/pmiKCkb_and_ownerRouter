@@ -1,0 +1,252 @@
+{
+  "editor-cedar": [
+    {
+      "control": "page:Copy subject",
+      "output": ["text/plain:Lease Renewal for 318 Cedar Street, Unit 7"]
+    },
+    {
+      "control": "page:Copy formatted body",
+      "output": []
+    },
+    {
+      "control": "page:Copy plain text",
+      "output": []
+    },
+    {
+      "control": "page:Copy subject",
+      "output": ["text/plain:Lease Renewal for 318 Cedar Street, Unit 7"]
+    },
+    {
+      "control": "page:Copy formatted body",
+      "output": []
+    },
+    {
+      "control": "page:Copy plain text",
+      "output": []
+    },
+    {
+      "control": "lease-information:Copy address: 318 Cedar Ave, Unit 7",
+      "output": ["text/plain:318 Cedar Ave, Unit 7"]
+    },
+    {
+      "control": "lease-information:Copy lease ID: lease-318-cedar-7",
+      "output": ["text/plain:lease-318-cedar-7"]
+    },
+    {
+      "control": "lease-information:Copy lease end date: 09/30/2026",
+      "output": ["text/plain:09/30/2026"]
+    },
+    {
+      "control": "lease-information:Copy all tenant emails",
+      "output": []
+    },
+    {
+      "control": "lease-information:Copy all tenant names and emails",
+      "output": ["text/plain:the Nguyen household (no email on file)"]
+    },
+    {
+      "control": "lease-information:Copy tenant name: the Nguyen household",
+      "output": ["text/plain:the Nguyen household"]
+    }
+  ],
+  "admin-cedar": [
+    {
+      "control": "page:Copy subject",
+      "output": ["text/plain:Lease Renewal for 318 Cedar Street, Unit 7"]
+    },
+    {
+      "control": "page:Copy formatted body",
+      "output": []
+    },
+    {
+      "control": "page:Copy plain text",
+      "output": []
+    },
+    {
+      "control": "page:Copy subject",
+      "output": ["text/plain:Lease Renewal for 318 Cedar Street, Unit 7"]
+    },
+    {
+      "control": "page:Copy formatted body",
+      "output": []
+    },
+    {
+      "control": "page:Copy plain text",
+      "output": []
+    },
+    {
+      "control": "lease-information:Copy address: 318 Cedar Ave, Unit 7",
+      "output": ["text/plain:318 Cedar Ave, Unit 7"]
+    },
+    {
+      "control": "lease-information:Copy lease ID: lease-318-cedar-7",
+      "output": ["text/plain:lease-318-cedar-7"]
+    },
+    {
+      "control": "lease-information:Copy lease end date: 09/30/2026",
+      "output": ["text/plain:09/30/2026"]
+    },
+    {
+      "control": "lease-information:Copy all tenant emails",
+      "output": []
+    },
+    {
+      "control": "lease-information:Copy all tenant names and emails",
+      "output": ["text/plain:the Nguyen household (no email on file)"]
+    },
+    {
+      "control": "lease-information:Copy tenant name: the Nguyen household",
+      "output": ["text/plain:the Nguyen household"]
+    }
+  ],
+  "approver-cedar": [
+    {
+      "control": "page:Copy subject",
+      "output": ["text/plain:Lease Renewal for 318 Cedar Street, Unit 7"]
+    },
+    {
+      "control": "page:Copy formatted body",
+      "output": []
+    },
+    {
+      "control": "page:Copy plain text",
+      "output": []
+    },
+    {
+      "control": "page:Copy subject",
+      "output": ["text/plain:Lease Renewal for 318 Cedar Street, Unit 7"]
+    },
+    {
+      "control": "page:Copy formatted body",
+      "output": []
+    },
+    {
+      "control": "page:Copy plain text",
+      "output": []
+    },
+    {
+      "control": "lease-information:Copy address: 318 Cedar Ave, Unit 7",
+      "output": ["text/plain:318 Cedar Ave, Unit 7"]
+    },
+    {
+      "control": "lease-information:Copy lease ID: lease-318-cedar-7",
+      "output": ["text/plain:lease-318-cedar-7"]
+    },
+    {
+      "control": "lease-information:Copy lease end date: 09/30/2026",
+      "output": ["text/plain:09/30/2026"]
+    },
+    {
+      "control": "lease-information:Copy all tenant emails",
+      "output": []
+    },
+    {
+      "control": "lease-information:Copy all tenant names and emails",
+      "output": ["text/plain:the Nguyen household (no email on file)"]
+    },
+    {
+      "control": "lease-information:Copy tenant name: the Nguyen household",
+      "output": ["text/plain:the Nguyen household"]
+    }
+  ],
+  "editor-maple": [
+    {
+      "control": "page:Copy subject",
+      "output": ["text/plain:Lease Renewal for 318 Cedar Street, Unit 7"]
+    },
+    {
+      "control": "page:Copy formatted body",
+      "output": []
+    },
+    {
+      "control": "page:Copy plain text",
+      "output": []
+    },
+    {
+      "control": "page:Copy subject",
+      "output": ["text/plain:Lease Renewal for 318 Cedar Street, Unit 7"]
+    },
+    {
+      "control": "page:Copy formatted body",
+      "output": []
+    },
+    {
+      "control": "page:Copy plain text",
+      "output": []
+    },
+    {
+      "control": "lease-information:Copy address: 4821 Maple Ct, Unit 4",
+      "output": ["text/plain:4821 Maple Ct, Unit 4"]
+    },
+    {
+      "control": "lease-information:Copy lease ID: lease-4821-maple-4",
+      "output": ["text/plain:lease-4821-maple-4"]
+    },
+    {
+      "control": "lease-information:Copy lease end date: 08/31/2026",
+      "output": ["text/plain:08/31/2026"]
+    },
+    {
+      "control": "lease-information:Copy all tenant emails",
+      "output": []
+    },
+    {
+      "control": "lease-information:Copy all tenant names and emails",
+      "output": ["text/plain:the Delgado household (no email on file)"]
+    },
+    {
+      "control": "lease-information:Copy tenant name: the Delgado household",
+      "output": ["text/plain:the Delgado household"]
+    }
+  ],
+  "editor-walnut": [
+    {
+      "control": "page:Copy subject",
+      "output": ["text/plain:Lease Renewal for 318 Cedar Street, Unit 7"]
+    },
+    {
+      "control": "page:Copy formatted body",
+      "output": []
+    },
+    {
+      "control": "page:Copy plain text",
+      "output": []
+    },
+    {
+      "control": "page:Copy subject",
+      "output": ["text/plain:Lease Renewal for 318 Cedar Street, Unit 7"]
+    },
+    {
+      "control": "page:Copy formatted body",
+      "output": []
+    },
+    {
+      "control": "page:Copy plain text",
+      "output": []
+    },
+    {
+      "control": "lease-information:Copy address: 1207 Walnut St, Unit 2",
+      "output": ["text/plain:1207 Walnut St, Unit 2"]
+    },
+    {
+      "control": "lease-information:Copy lease ID: lease-1207-walnut-2",
+      "output": ["text/plain:lease-1207-walnut-2"]
+    },
+    {
+      "control": "lease-information:Copy lease end date: 08/31/2026",
+      "output": ["text/plain:08/31/2026"]
+    },
+    {
+      "control": "lease-information:Copy all tenant emails",
+      "output": []
+    },
+    {
+      "control": "lease-information:Copy all tenant names and emails",
+      "output": ["text/plain:M. Carter (no email on file)"]
+    },
+    {
+      "control": "lease-information:Copy tenant name: M. Carter",
+      "output": ["text/plain:M. Carter"]
+    }
+  ]
+}

@@ -11,6 +11,7 @@ import {
 import { createPortal } from "react-dom";
 
 import { formatCalendarDate } from "@/lib/date-display";
+import type { ActionGraphDiagnostic } from "@/lib/lease-renewal/action-graph";
 import {
   projectRenewalActions,
   selectRenewalAction,
@@ -52,9 +53,16 @@ export interface RenewalFocusFacts {
     readonly kindLabel: string;
     readonly reason: string;
   }[];
+  /** Supporting reads that failed on this page, in the Full view notice's own words. */
+  readonly unavailableReads?: readonly string[];
+  /** The move-out disposition the Full view states at the top of the page, if any. */
+  readonly moveOutNotice?: string | null;
 }
 
 const USD = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+
+/** The completed staff record and its existing Reopen control, shown once the renewal is complete. */
+const COMPLETION_RECORD_TARGET = "renewal-manual-complete";
 
 const GROUPS: readonly { status: RenewalActionStatus; label: string }[] = [
   { status: "ready_for_actor", label: "Ready for you" },
@@ -67,7 +75,41 @@ const GROUPS: readonly { status: RenewalActionStatus; label: string }[] = [
   { status: "not_applicable", label: "Not part of this lease's path" },
 ];
 
-function stateText(action: RenewalAction, labels: (id: string) => string): string {
+/** The concrete rule problem behind a diagnostic, named with the actions it involves. */
+function diagnosticText(
+  diagnostic: ActionGraphDiagnostic,
+  labels: (id: string) => string,
+): string {
+  switch (diagnostic.kind) {
+    case "dependency_cycle":
+      return `These steps each wait on another one of them: ${diagnostic.members.map(labels).join(", ")}.`;
+    case "missing_reference":
+      return `${labels(diagnostic.from)} names a prerequisite that is not defined: ${diagnostic.to}.`;
+    case "impossible_condition":
+      return `${labels(diagnostic.node)}. It needs: ${diagnostic.conditions.join("; ")}.`;
+    case "duplicate_node":
+      return `${labels(diagnostic.id)} is defined more than once.`;
+  }
+}
+
+/** The diagnostic that explains why this action itself is unresolved, when there is one. */
+function ownDiagnostic(
+  action: RenewalAction,
+  diagnostics: readonly ActionGraphDiagnostic[],
+): ActionGraphDiagnostic | undefined {
+  return diagnostics.find(
+    (diagnostic) =>
+      (diagnostic.kind === "dependency_cycle" &&
+        diagnostic.members.includes(action.id)) ||
+      (diagnostic.kind === "missing_reference" && diagnostic.from === action.id),
+  );
+}
+
+function stateText(
+  action: RenewalAction,
+  labels: (id: string) => string,
+  diagnostics: readonly ActionGraphDiagnostic[] = [],
+): string {
   switch (action.status) {
     case "ready_for_actor":
       return "Ready for you.";
@@ -89,12 +131,14 @@ function stateText(action: RenewalAction, labels: (id: string) => string): strin
           : action.reason === "prerequisite_unknown"
             ? "An earlier step could not be read, so this one waits for a refresh."
             : "Whether this applies needs a check.";
-    case "unresolved":
-      return action.reason === "no_control"
-        ? "This step is recorded outside this dashboard; its history is in Full view."
-        : action.reason === "impossible_condition"
-          ? "The recorded responses conflict. Review them in Full view."
-          : "This step's records need review in Full view.";
+    case "unresolved": {
+      if (action.reason === "no_control")
+        return "This step is recorded outside this dashboard; its history is in Full view.";
+      if (action.reason === "impossible_condition")
+        return "The recorded responses conflict. Review them in Full view.";
+      const diagnostic = ownDiagnostic(action, diagnostics);
+      return `${diagnostic ? `${diagnosticText(diagnostic, labels)} ` : ""}This step's records need review in Full view.`;
+    }
     case "complete":
       return completedText(action);
     case "not_applicable":
@@ -135,17 +179,29 @@ export function RenewalFocusViewPane({
   const focusView = view?.view === "focus";
   const selectedId = selectRenewalAction(projection, view?.selectedActionId ?? null);
   const selected = projection.actions.find((action) => action.id === selectedId) ?? null;
+  const complete =
+    projection.outcome.state === "complete_recorded_by_staff" ||
+    projection.outcome.state === "complete_verified";
   const reveal = useRef<FocusReveal | null>(null);
   const heading = useRef<HTMLHeadingElement | null>(null);
+  const result = useRef<HTMLParagraphElement | null>(null);
   const pendingFocus = useRef<string | null>(null);
   const focusHeading = useRef(false);
-  const previous = useRef<{ id: string | null; cycleId: string | null }>({
+  // True between a person choosing a task and the render that shows it.
+  const chosenByPerson = useRef(false);
+  const previous = useRef<{
+    id: string | null;
+    status: RenewalActionStatus | null;
+    cycleId: string | null;
+  }>({
     id: selectedId,
+    status: selected?.status ?? null,
     cycleId: projection.cycleId,
   });
   const [announcement, setAnnouncement] = useState("");
 
   // Reveal only the chosen action's existing regions; everything else stays mounted but hidden.
+  // A completed staff renewal shows its completion record, which holds the existing Reopen control.
   useLayoutEffect(() => {
     if (!focusView || !view?.slot) {
       reveal.current?.clear();
@@ -155,7 +211,12 @@ export function RenewalFocusViewPane({
     const body = view.slot.parentElement;
     if (!body) return;
     reveal.current ??= createFocusReveal(body);
-    const targets = (selected?.control?.targets ?? [])
+    const targetIds = selected
+      ? (selected.control?.targets ?? [])
+      : projection.outcome.state === "complete_recorded_by_staff"
+        ? [COMPLETION_RECORD_TARGET]
+        : [];
+    const targets = targetIds
       .map((id) => document.getElementById(id))
       .filter(
         (element): element is HTMLElement => element !== null && body.contains(element),
@@ -178,10 +239,17 @@ export function RenewalFocusViewPane({
     [],
   );
 
-  // A new cycle or a finished task never keeps a stale choice; a finished task moves on predictably.
+  // A new cycle or a finished task never keeps a stale choice; every change of the shown task, or of
+  // its state, is announced, and a change the person did not make moves focus predictably.
   useEffect(() => {
     const before = previous.current;
-    previous.current = { id: selectedId, cycleId: projection.cycleId };
+    previous.current = {
+      id: selectedId,
+      status: selected?.status ?? null,
+      cycleId: projection.cycleId,
+    };
+    const byPerson = chosenByPerson.current;
+    chosenByPerson.current = false;
     if (!view) return;
     if (before.cycleId !== projection.cycleId && view.selectedActionId) {
       view.setSelectedActionId(null);
@@ -195,24 +263,50 @@ export function RenewalFocusViewPane({
       (!chosen || chosen.status === "complete" || chosen.status === "not_applicable")
     )
       view.setSelectedActionId(null);
-    if (!focusView || !before.id || before.id === selectedId) return;
-    const prior = projection.actions.find((action) => action.id === before.id);
-    if (!prior || (prior.status !== "complete" && prior.status !== "not_applicable"))
+    if (!focusView) return;
+    const labels = (id: string) =>
+      projection.actions.find((action) => action.id === id)?.label ?? id;
+    if (before.id === selectedId) {
+      // The same task, changed by a save elsewhere or a refreshed source.
+      if (selected && before.status !== null && before.status !== selected.status)
+        setAnnouncement(
+          `${selected.label}: ${stateText(selected, labels, projection.diagnostics)}`,
+        );
       return;
+    }
+    const prior = before.id
+      ? projection.actions.find((action) => action.id === before.id)
+      : undefined;
+    const finished =
+      prior !== undefined &&
+      (prior.status === "complete" || prior.status === "not_applicable");
+    const next = selected
+      ? `Next: ${selected.label}. ${stateText(selected, labels, projection.diagnostics)}`
+      : complete
+        ? `${projection.outcome.label}. Every required step is recorded.`
+        : "Nothing else is ready for you on this lease.";
     setAnnouncement(
-      selected
-        ? `${completedText(prior)} Next: ${selected.label}.`
-        : `${completedText(prior)} Nothing else is ready for you on this lease.`,
+      finished
+        ? selected
+          ? `${completedText(prior)} Next: ${selected.label}.`
+          : `${completedText(prior)} ${complete ? `${projection.outcome.label}.` : "Nothing else is ready for you on this lease."}`
+        : byPerson && selected
+          ? `${selected.label}: ${stateText(selected, labels, projection.diagnostics)}`
+          : next,
     );
+    if (byPerson) return;
+    // After a completion, focus leaves the finished task's controls for the next task or the
+    // result; otherwise it moves only when it was lost. A control in the pane itself keeps it.
     const active = document.activeElement;
     if (
       !active ||
       active === document.body ||
       !document.contains(active) ||
-      active.closest("[data-renewal-focus-hidden]")
+      active.closest("[data-renewal-focus-hidden]") ||
+      (finished && !view.slot?.contains(active))
     )
-      heading.current?.focus();
-  }, [view, focusView, projection, selectedId, selected]);
+      (selected ? heading.current : result.current)?.focus();
+  }, [view, focusView, projection, selectedId, selected, complete]);
 
   // A link to a control outside the revealed task chooses the task that owns it, or returns to
   // Full view at that control; in Full view the request passes through unchanged.
@@ -231,27 +325,31 @@ export function RenewalFocusViewPane({
       );
       if (owner) {
         pendingFocus.current = id;
+        if (owner.id !== selectedId) chosenByPerson.current = true;
         view.setSelectedActionId(owner.id);
       } else view.showInFull(id);
     };
     document.addEventListener(RENEWAL_FOCUS_REQUEST_EVENT, onRequest);
     return () => document.removeEventListener(RENEWAL_FOCUS_REQUEST_EVENT, onRequest);
-  }, [view, projection]);
+  }, [view, projection, selectedId]);
 
   if (!view || !focusView || !view.slot) return null;
   const choose = (id: string) => {
     focusHeading.current = true;
+    if (id !== selectedId) chosenByPerson.current = true;
     view.setSelectedActionId(id);
   };
   return createPortal(
     <FocusPane
       announcement={announcement}
       choose={choose}
+      complete={complete}
       facts={facts}
       heading={heading}
       manualMessage={manual?.message ?? ""}
       manualState={manualState}
       projection={projection}
+      result={result}
       selected={selected}
       showInFull={() => view.showInFull(selected?.control?.targets[0] ?? null)}
     />,
@@ -262,21 +360,25 @@ export function RenewalFocusViewPane({
 function FocusPane({
   announcement,
   choose,
+  complete,
   facts,
   heading,
   manualMessage,
   manualState,
   projection,
+  result,
   selected,
   showInFull,
 }: Readonly<{
   announcement: string;
   choose: (id: string) => void;
+  complete: boolean;
   facts: RenewalFocusFacts;
   heading: RefObject<HTMLHeadingElement | null>;
   manualMessage: string;
   manualState: RenewalWorkspaceState | null;
   projection: RenewalActionProjection;
+  result: RefObject<HTMLParagraphElement | null>;
   selected: RenewalAction | null;
   showInFull: () => void;
 }>) {
@@ -297,9 +399,11 @@ function FocusPane({
     selected?.control &&
     !selected.control.refresh &&
     selected.control.targets.every((id) => !document.getElementById(id));
-  const complete =
-    projection.outcome.state === "complete_recorded_by_staff" ||
-    projection.outcome.state === "complete_verified";
+  const moveOutNotice =
+    facts.moveOutNotice &&
+    !facts.advisories.some((advisory) => advisory.reason === facts.moveOutNotice)
+      ? facts.moveOutNotice
+      : null;
   return (
     <section
       aria-label="Focus view"
@@ -323,7 +427,7 @@ function FocusPane({
             {selected.label}
           </h2>
           <p className="renewal-focus-state" data-renewal-focus-state={selected.status}>
-            {stateText(selected, labels)}
+            {stateText(selected, labels, projection.diagnostics)}
           </p>
           {selected.detail && selected.detail !== selected.label ? (
             <p className="muted">{selected.detail}</p>
@@ -383,12 +487,21 @@ function FocusPane({
           </p>
         </div>
       ) : (
-        <p>
+        <p className="renewal-focus-result" ref={result} tabIndex={-1}>
           {complete
             ? "Every required step is recorded."
             : "Nothing is ready for you on this lease right now."}
         </p>
       )}
+      {projection.diagnostics.length > 0 ? (
+        <ul aria-label="Rules that need review" className="renewal-focus-diagnostics">
+          {projection.diagnostics.map((diagnostic, index) => (
+            <li key={`${diagnostic.kind}-${index}`}>
+              {diagnosticText(diagnostic, labels)}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <dl className="renewal-focus-context">
         {manualState ? (
           <div>
@@ -427,10 +540,28 @@ function FocusPane({
           </div>
         ) : null}
       </dl>
+      {moveOutNotice ? (
+        <p className="renewal-notice" role="note">
+          {moveOutNotice}
+        </p>
+      ) : null}
       {facts.dataExpired ? (
         <p className="muted">
           Lease data is past the freshness limit; refresh before acting.
         </p>
+      ) : null}
+      {facts.unavailableReads && facts.unavailableReads.length > 0 ? (
+        <div role="note">
+          <p className="muted">
+            Some supporting renewal information could not be verified, so the actions that
+            depend on it are paused:
+          </p>
+          <ul aria-label="Supporting information unavailable">
+            {facts.unavailableReads.map((read) => (
+              <li key={read}>{read}</li>
+            ))}
+          </ul>
+        </div>
       ) : null}
       {facts.advisories.length > 0 ? (
         <ul className="renewal-focus-advisories" aria-label="Lease notes">
