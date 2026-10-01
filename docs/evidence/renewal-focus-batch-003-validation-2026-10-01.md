@@ -29,8 +29,9 @@ observer.
   with no browser, and its local-rehearsal descriptor reads live sources and refuses every write.
   So `tests/firestore/s145-focus-mounted-route.test.ts` renders the real workspace under jsdom and
   sends the pane's requests to the real `/api/lease-renewal/workspace` GET and POST handlers on the
-  Firestore emulator, with the real capability check and revision fence. The Next server between
-  a browser and that handler is the seam left.
+  Firestore emulator, with the real role table in the capability check and the real revision
+  fence. Seams left: the page loader's live RentVine and Sheet reads (a sample lease workspace
+  stands in), the session cookie, and Next's HTTP layer (the handlers receive standard requests).
 - **Compiled browser:** `npm run dev` on the WSL host on 2026-10-01 with a demo Editor session,
   each run on a fresh server. Before the acceptance run: the guide and desk smokes and a first
   Focus run used `d98f3fce` (00:42–00:51 UTC), the desk comparison used the pre-batch-003 code
@@ -114,8 +115,9 @@ observer.
   A late refresh that confirms the rent moves on with "Done", not "Recorded". After each journey,
   Full view shows the same records and summary label. No operation id was replayed.
 - **Acceptance run (unit):** 20 verification cases and 3 diagnostic cases. They cover keyboard
-  operation (Tab twice through the page without reaching hidden content, Enter on a task, Space on
-  "Show this task in Full view"), the last-task focus, the completion record's Reopen through the
+  operation (Tab to the end of the page and once more around it without reaching hidden content,
+  Enter on a task, Space on "Show this task in Full view"), the last-task focus, the completion
+  record's Reopen through the
   existing route, announcements, unsaved input across a colleague's save and a late refresh,
   pending, invalid and lost-response saves (the same operation id recovers once), a tenant counter
   and a tenant decline walked to completion, the document packet, the lease-date confirmation (the
@@ -124,11 +126,11 @@ observer.
 - **Store (backend):** the S144 emulator test advances one confirmed, read-back record at a time
   to completion and reopening. A stale revision and a wrong cycle are refused, and a duplicate is
   replayed once. Each of these leaves the projection unchanged. A new cycle leaves the earlier one
-  as history. Through the real route handler, a record made in Focus with unsaved input elsewhere
-  left the dependents blocked until the saved record read back. A double click sent one request.
-  A direct replay returned `duplicate` with the revision and activity count unchanged. A reload
-  showed the record in Full view and the next task in Focus. A stale revision was refused with the
-  entry and the task kept.
+  as history. Through the real route handler: typing without saving satisfied nothing and sent
+  nothing; a double click sent one request, and the pane advanced only on the route's readback; a
+  replay of the same operation returned `duplicate` with the revision and activity count
+  unchanged; a reload showed the record in Full view and the next task in Focus; and a stale
+  revision was refused (409) with the entry, the task and the store unchanged.
 - **Full view preservation (unit):** for five role, lease and step cases, the Full view returns to
   the recorded baseline after entering and leaving Focus in both orders. The switch works from
   the keyboard. Disclosure state returns as it was after every task is chosen. Every Copy
@@ -141,7 +143,8 @@ observer.
   phone-width round trips, the Full view signature, including every disclosure, was unchanged; a
   scrolled Full view came back at the same position; the table of contents reached all five
   sections. Switching sent no lease-renewal request and no write, and caused no navigation and no
-  page error. Neither view scrolled horizontally at 390 px or at desktop width. An unsaved value
+  page error. Neither view scrolled horizontally at 390 px, nor Focus at desktop width (the
+  guarded routine below also checked the Full view at desktop width). An unsaved value
   survived in a Full view field on three leases and in a Focus task's staff record field on one
   (Focus, Full, Focus). The only console error predates switching: a 409 from the RentVine
   write-back status read during page load.
@@ -449,8 +452,9 @@ the batch 003 release, which follows the paused batch 002 release.
 - Live Gmail drafts and provider effects (RentVine or Sheet write-back) started from Focus
   (FV-48, FV-58, FV-69): the controls and their exact confirmation and readback are unchanged and
   were tested only with fixtures.
-- The Next server between a browser and the workspace route: the E2E harness has no browser and
-  refuses writes, so the route ran in a backend test.
+- Around the workspace route: the page loader's live reads, the session cookie and Next's HTTP
+  layer. The E2E harness has no browser and refuses writes, so the route handlers ran in a backend
+  test.
 - An owner who keeps identical terms after a tenant counter: the existing S113 rule keeps the
   owner response outstanding, and Focus follows it. The tenant's later answer is recorded in Full
   view. No new rule was added.
