@@ -214,16 +214,21 @@ Each entry gives the result, the environment, the evidence and the remaining gap
   Fail-first). The full gate passed on the fixed head `2f1dc347`. Gap: none locally.
 - **FV-05** Yes · Records. The S142–S145 registry rows, intake rows, loop state, status, plan,
   facts and this map state implemented (commit and PR), tested (environment and result) and
-  live-verified (not yet) separately; the docs gates passed. Gap: live cells after the release.
+  live-verified separately; the live cells come from run `ab803f8a`'s readbacks and the production
+  Focus check, and S144 records that in-pane saves were not exercised live. The docs gates passed.
+  Gap: none.
 - **FV-06** Yes · Records. Every No (unverified) entry is listed under "Unverified seams" and in
   loop state and status, with its missing evidence. Human verdict: NOT RUN — no human observer.
 - **FV-07** Yes · Git. Only the S142–S145 and 009–012 rows changed; no other suite, provider
-  proof or queue row was reopened, and "Awaiting release" still lists only batch 002.
+  proof or queue row was reopened. By owner decision, batch 002's queued rows shipped with batch
+  003 in run `ab803f8a`, which consumed the queue; nothing earlier was requeued.
 - **FV-08** Yes · Code search; unit. No file batch 003 added imports an assistant, refinement,
   Gemini or model-routing module; its one-line change to `RenewalMessagePreparation.tsx` adds an
   `id`. Focus tests pass with no AI configured, and no action reads refinement output.
-- **FV-09** Yes · Run log. No per-feature or per-phase approval was requested. The only owner ask
-  is the canary enrollment pair, asked once and recorded in `docs/loop-state.md`.
+- **FV-09** Yes · Run log. No per-feature or per-phase approval was requested. The owner was
+  asked twice: once for the canary enrollment pair, and once, after run `6eb157e1` blocked, for
+  PR #93's navigation bound, which the run's boundaries reserved to the owner. Both answers are
+  recorded in `docs/loop-state.md`.
 
 ### B. Full-view preservation
 
@@ -424,14 +429,14 @@ Each entry gives the result, the environment, the evidence and the remaining gap
   record was created. Gap: none.
 - **FV-90** Yes · All environments run. No send or draft call reached production or Gmail; unit
   tests use fixtures, the rehearsal refuses writes and the guarded routine recorded zero mutation
-  attempts. The production check runs under the same guard.
+  attempts. The production check ran under the same guard and recorded zero mutation attempts.
 - **FV-91** Yes · Redaction gate; review. `verify:redaction` passes; the fixtures use sample data
   only, and smoke and check output prints structure only.
 
 ### H. Added by this audit
 
 - **FV-92** Yes · Logs outside Git. `verify.sh` and `test:e2e:core` exited 0 on the exact heads of
-  PRs #101, #102, #103, #104 and #105.
+  PRs #101, #102, #103, #104, #105, #106 (`7b453b07`) and #107 (`7a61bf77`).
 - **FV-93** Yes · Local gate; CI. `verify:dependencies` passed (0 vulnerabilities) on PR #105's
   head, on PR #107's head `7a61bf77` (tree-identical to the release head) and in the release head's
   push CI 36860571425 (policy-build, finished 12:17 UTC), which admission at 12:23:39 UTC required.
