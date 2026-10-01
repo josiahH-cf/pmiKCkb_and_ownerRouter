@@ -12,12 +12,13 @@ export const DASHBOARD_NAVIGATION_COPY = {
   "current-operations":
     "Ask about a property or process, and see work that needs attention.",
   "shared-ai-work": "Ask AI about current work, then open My Work to act.",
+  "ai-first": "Ask AI about your work, and see what is waiting on you.",
 } as const;
 
 export type DashboardComposition = keyof typeof DASHBOARD_NAVIGATION_COPY;
 
-/** S95 changes this value atomically with the shared Dashboard body; S84 remains truthful meanwhile. */
-export const ACTIVE_DASHBOARD_COMPOSITION: DashboardComposition = "current-operations";
+/** S146/S147 changed this value with the AI-first Dashboard body (it supersedes S95's plan). */
+export const ACTIVE_DASHBOARD_COMPOSITION: DashboardComposition = "ai-first";
 
 type PrimaryNavigationVisibility =
   | "all-staff"

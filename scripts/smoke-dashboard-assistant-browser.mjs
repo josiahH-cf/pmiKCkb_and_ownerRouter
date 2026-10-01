@@ -101,19 +101,14 @@ async function verifyAssistantQuestions() {
 
   await field.fill("what is our pet policy");
   await page.getByRole("button", { name: "Get answer" }).click();
-  // The previous operational answer carries its own "Answer" heading inside the thread, so wait
-  // for the thread to drop its latest operational region, then for the knowledge answer's own
-  // heading (a direct child of the result panel), before asserting.
-  try {
-    await page
-      .getByRole("region", { name: "Assistant answer" })
-      .waitFor({ state: "detached" });
-  } catch {
-    throw new Error(
-      "A policy question rendered an operational answer instead of the knowledge answer.",
-    );
-  }
-  await page.locator(".result-panel > h2", { hasText: /^Answer$/ }).waitFor();
+  // S146: every question keeps its own turn below the question box. The policy question's turn
+  // shows the knowledge answer and no operational answer region.
+  const policyTurn = turnFor(page, "what is our pet policy");
+  await policyTurn.getByRole("region", { name: "Knowledge answer" }).waitFor();
+  assert(
+    (await policyTurn.getByRole("region", { name: "Assistant answer" }).count()) === 0,
+    "A policy question rendered an operational answer instead of the knowledge answer.",
+  );
 
   assert(
     assistantCalls.length === questions.length + 1,
@@ -132,13 +127,19 @@ async function verifyAssistantQuestions() {
 
 async function ask(page, field, question) {
   await field.fill(question);
-  // The latest exchange is the one answer region; wait for THIS question, not the previous answer.
-  const answer = page
-    .getByRole("region", { name: "Assistant answer" })
-    .filter({ hasText: `You asked: ${question}` });
+  // S146: each question has its own turn below the question box; wait for THIS question's answer.
+  const answer = turnFor(page, question).getByRole("region", {
+    name: "Assistant answer",
+  });
   await page.getByRole("button", { name: "Get answer" }).click();
   await answer.waitFor();
   return answer.innerText();
+}
+
+function turnFor(page, question) {
+  return page
+    .locator("article.dashboard-turn")
+    .filter({ has: page.getByText(`You asked: ${question}`, { exact: true }) });
 }
 
 async function signInAndOpen(page, path) {

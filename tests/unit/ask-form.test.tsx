@@ -7,10 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { AskForm } from "@/components/ask/AskForm";
 
-// The action console's ask surface: process-aware (the four Ask metadata selects are gone), an
-// editor who picks a process launches an ordinary app-plane run alongside the grounded answer, and the
-// Dictate control is a first-class affordance. The always-visible action deck + process strip live
-// in their own server components (see console-action-deck.test.tsx), not here.
+// The Dashboard's AI workspace (S146): the four Ask metadata selects are gone, there is no process
+// picker, suggestion, detection or run start, and the Dictate control is a first-class affordance.
+// The compact attention queue is its own component (see dashboard-attention-queue.test.tsx).
 
 const ANSWER = {
   question: "How do renewals work?",
@@ -34,19 +33,6 @@ beforeEach(() => {
       return jsonResponse({ transcript: "spoken follow-up" });
     }
     if (url.includes("/api/ask")) return jsonResponse(ANSWER);
-    if (/\/api\/process-definitions\/[^/]+\/runs$/.test(url)) {
-      return jsonResponse(
-        {
-          run: {
-            id: "run-1",
-            process_name: "Lease Renewal",
-            status: "In Progress",
-            next_action: "Gather facts",
-          },
-        },
-        true,
-      );
-    }
     return jsonResponse({}, false);
   });
   vi.stubGlobal("fetch", fetchMock);
@@ -59,8 +45,8 @@ afterEach(() => {
 });
 
 describe("AskForm (action console)", () => {
-  it("drops the four Ask metadata selects and shows no process picker for read-only users", () => {
-    render(<AskForm canUseProcessContext={false} processes={[]} />);
+  it("drops the four Ask metadata selects and shows no process picker for any user", () => {
+    render(<AskForm />);
 
     expect(screen.queryByLabelText("Audience")).toBeNull();
     expect(screen.queryByLabelText("Channel")).toBeNull();
@@ -279,129 +265,9 @@ describe("AskForm (action console)", () => {
     expect(correctCalls).toHaveLength(1);
   });
 
-  it("resolves a live target and renders the reused gated composer for a renewal intent (S33 AC-S33-3)", async () => {
-    const user = userEvent.setup();
-    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.includes("/api/ask/live-target")) {
-        return jsonResponse({
-          status: "ok",
-          leaseId: "42",
-          addressLabel: "1234 Oak St",
-          route: {
-            actionKey: "gmail.renewal_notice.draft_create",
-            surface: "renewal-notice-draft",
-            href: "/lease-renewal/live/desk/lease/42",
-            label: "Start the renewal on the live desk",
-          },
-        });
-      }
-      if (url.includes("/api/ask")) return jsonResponse(ANSWER);
-      return jsonResponse({}, false);
-    });
-    render(
-      <AskForm
-        canUseProcessContext
-        processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
-      />,
-    );
-
-    await user.type(
-      screen.getByLabelText(/Question/),
-      "start the renewal for 1234 Oak St",
-    );
-    await user.click(screen.getByRole("button", { name: "Get answer" }));
-
-    // The single gated affordance appears and REUSES the desk composer (its own heading renders).
-    expect(
-      await screen.findByRole("heading", { name: "Start the renewal on the live desk" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Reviewed renewal messages")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Prepare owner message" })).toHaveAttribute(
-      "href",
-      "/lease-renewal/live/desk/lease/42#renewal-section-owner",
-    );
-    expect(screen.getByRole("link", { name: "Prepare tenant message" })).toHaveAttribute(
-      "href",
-      "/lease-renewal/live/desk/lease/42#renewal-section-tenant",
-    );
-    expect(
-      screen.queryByRole("button", { name: "Create Gmail draft" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Open the full lease workspace" }),
-    ).toHaveAttribute("href", "/lease-renewal/live/desk/lease/42");
-    // Ask asked the read-only target route with the detected process; it never posts to execute/send.
-    const targetCalls = fetchMock.mock.calls
-      .map((call) => String(call[0]))
-      .filter((url) => url.includes("/api/ask/live-target"));
-    expect(targetCalls).toHaveLength(1);
-    const sendCalls = fetchMock.mock.calls
-      .map((call) => String(call[0]))
-      .filter((url) => /\/send|writeback|\/execute/.test(url));
-    expect(sendCalls).toHaveLength(0);
-  });
-
-  it("shows the Connection Center link when live sources are not connected (S33 AC-S33-7)", async () => {
-    const user = userEvent.setup();
-    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.includes("/api/ask/live-target")) {
-        return jsonResponse({ status: "not_configured" });
-      }
-      if (url.includes("/api/ask")) return jsonResponse(ANSWER);
-      return jsonResponse({}, false);
-    });
-    render(
-      <AskForm
-        canUseProcessContext
-        processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
-      />,
-    );
-
-    await user.type(screen.getByLabelText(/Question/), "renew 1234 Oak St");
-    await user.click(screen.getByRole("button", { name: "Get answer" }));
-
-    expect(await screen.findByText(/Live sources are not connected/)).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Open Connection Center" }),
-    ).toBeInTheDocument();
-    // No live-desk composer appears when unconfigured.
-    expect(screen.queryByText("Renewal-notice draft")).toBeNull();
-  });
-
-  it("resolves no live target for a read-only user (no live affordance, S33 AC-S33-7)", async () => {
-    const user = userEvent.setup();
-    render(
-      <AskForm
-        canUseProcessContext={false}
-        processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
-      />,
-    );
-
-    await user.type(
-      screen.getByLabelText(/Question/),
-      "start the renewal for 1234 Oak St",
-    );
-    await user.click(screen.getByRole("button", { name: "Get answer" }));
-    await screen.findByText("Here is the grounded answer.");
-
-    // A read-only user never triggers the live-target read and sees no live affordance.
-    const targetCalls = fetchMock.mock.calls
-      .map((call) => String(call[0]))
-      .filter((url) => url.includes("/api/ask/live-target"));
-    expect(targetCalls).toHaveLength(0);
-    expect(screen.queryByText("Renewal-notice draft")).toBeNull();
-  });
-
   it("asks without a process and never starts a run", async () => {
     const user = userEvent.setup();
-    render(
-      <AskForm
-        canUseProcessContext
-        processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
-      />,
-    );
+    render(<AskForm />);
 
     await user.type(screen.getByLabelText(/Question/), "How do renewals work?");
     await user.click(screen.getByRole("button", { name: "Get answer" }));
@@ -416,54 +282,28 @@ describe("AskForm (action console)", () => {
     expect(askBody(fetchMock).process_id).toBeUndefined();
   });
 
-  it("launches an ordinary run when an editor selects a process and links to it", async () => {
+  it("S146: offers no process picker, suggestion, detection, run start or live-target read", async () => {
     const user = userEvent.setup();
-    render(
-      <AskForm
-        canUseProcessContext
-        processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
-      />,
-    );
-
-    await user.type(screen.getByLabelText(/Question/), "Start a renewal");
-    await user.selectOptions(screen.getByLabelText("Process"), "lease-renewal");
-    await user.click(screen.getByRole("button", { name: "Get answer" }));
-
-    expect(await screen.findByText("Run started")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "View the run" })).toHaveAttribute(
-      "href",
-      "/workflow-runs/run-1",
-    );
-
-    await waitFor(() => {
-      const calledUrls = fetchMock.mock.calls.map((call) => String(call[0]));
-      expect(
-        calledUrls.some((url) =>
-          url.includes("/api/process-definitions/lease-renewal/runs"),
-        ),
-      ).toBe(true);
-    });
-
-    // The answer is process-aware: the /api/ask body carries the selected process id.
-    expect(askBody(fetchMock).process_id).toBe("lease-renewal");
-  });
-
-  it("suggests a process via deterministic intent-detection and applies it on click", async () => {
-    const user = userEvent.setup();
-    render(
-      <AskForm
-        canUseProcessContext
-        processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
-      />,
-    );
+    render(<AskForm />);
 
     await user.type(
       screen.getByLabelText(/Question/),
-      "When is the lease up for renewal?",
+      "Start the renewal for the lease at 1234 Oak St",
     );
-    await user.click(await screen.findByRole("button", { name: "Use Lease Renewal" }));
+    expect(screen.queryByLabelText("Process")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Use / })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Detect process/ })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Get answer" }));
+    expect(await screen.findByText("Here is the grounded answer.")).toBeInTheDocument();
 
-    expect(screen.getByRole("button", { name: "Get answer" })).toBeInTheDocument();
+    const calledUrls = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(calledUrls.some((url) => url.includes("/api/processes/classify"))).toBe(false);
+    expect(calledUrls.some((url) => url.includes("/api/ask/live-target"))).toBe(false);
+    expect(
+      calledUrls.some((url) => /\/process-definitions\/[^/]+\/runs$/.test(url)),
+    ).toBe(false);
+    expect(screen.queryByText("Run started")).toBeNull();
+    expect(askBody(fetchMock).process_id).toBeUndefined();
   });
 });
 
@@ -569,15 +409,9 @@ describe("AskForm Dashboard conversation (S138)", () => {
         ? jsonResponse(replies.shift())
         : jsonResponse(ANSWER),
     );
-    render(
-      <AskForm
-        canUseProcessContext
-        processes={[{ id: "lease-renewal", name: "Lease Renewal", status: "Draft" }]}
-      />,
-    );
+    render(<AskForm />);
 
     await user.type(screen.getByLabelText(/Question/), "What leases are due this week?");
-    await user.selectOptions(screen.getByLabelText("Process"), "lease-renewal");
     await user.click(screen.getByRole("button", { name: "Get answer" }));
 
     const region = await screen.findByRole("region", { name: "Assistant answer" });
@@ -601,7 +435,11 @@ describe("AskForm Dashboard conversation (S138)", () => {
       { question: "What leases are due this week?", conversation: null },
       { question: "Only mine", conversation: CONTEXT_1 },
     ]);
-    expect(screen.getByText("Earlier in this conversation (1)")).toBeInTheDocument();
+    // S146: both turns stay visible below the question box, in the order they were asked.
+    const regions = screen.getAllByRole("region", { name: "Assistant answer" });
+    expect(regions).toHaveLength(2);
+    expect(regions[0]).toHaveTextContent("2 leases end this week.");
+    expect(regions[1]).toHaveTextContent("1 lease ends this week.");
   });
 
   it("continues a policy question to the knowledge answer", async () => {

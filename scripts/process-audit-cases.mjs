@@ -370,12 +370,13 @@ export const PROCESS_AUDIT_CASES = deepFreeze([
     guide_refs: ["guide#tabs.Console", "guide#cross-tab"],
     reviewer_refs: ["reviewer-pass#Console-4"],
     expected: {
-      user_action: "Open one value-free decision attention link.",
+      user_action:
+        "Open one value-free link in the Dashboard's compact Waiting on you queue (S147).",
       preconditions_and_role: "Admin; use only the documented app_only boundary.",
       data_mode: "app_only",
       app_validation: "The attention projection carries a permitted deep link only.",
       visible_result:
-        "The link lands on the owning run or queue surface rather than a dead summary.",
+        "The link lands on the owning run or queue surface rather than a dead summary; a failed read shows no count.",
       persisted_change: "No persisted change is expected.",
       downstream_handoff: "The owning record or next safe audit surface remains visible.",
       receipt_audit_or_idempotency_evidence:
@@ -386,7 +387,7 @@ export const PROCESS_AUDIT_CASES = deepFreeze([
     id: "CONSOLE-003",
     title: "Connection attention ownership",
     surface: "Console",
-    route: "/ask",
+    route: "/connections",
     process: "Attention and decisions",
     workflow_stage: "notice",
     role: "Admin",
@@ -398,7 +399,8 @@ export const PROCESS_AUDIT_CASES = deepFreeze([
     guide_refs: ["guide#tabs.Console", "guide#cross-tab"],
     reviewer_refs: [],
     expected: {
-      user_action: "Open one connection-setup attention link.",
+      user_action:
+        "Open one Needs setup link in Connections, where S147 moved the Dashboard card.",
       preconditions_and_role: "Admin; use only the documented app_only boundary.",
       data_mode: "app_only",
       app_validation: "The standing signal uses a value-free connector link.",
@@ -413,7 +415,7 @@ export const PROCESS_AUDIT_CASES = deepFreeze([
     id: "CONSOLE-004",
     title: "Space-coverage attention ownership",
     surface: "Console",
-    route: "/ask",
+    route: "/spaces",
     process: "Attention and decisions",
     workflow_stage: "notice",
     role: "Admin",
@@ -425,7 +427,8 @@ export const PROCESS_AUDIT_CASES = deepFreeze([
     guide_refs: ["guide#tabs.Console", "guide#cross-tab"],
     reviewer_refs: [],
     expected: {
-      user_action: "Open one Space-coverage attention link.",
+      user_action:
+        "Open one Internal Processes card whose state names missing coverage (moved from the Dashboard by S147).",
       preconditions_and_role: "Admin; use only the documented app_only boundary.",
       data_mode: "app_only",
       app_validation: "The standing signal links to an allowed Space.",
@@ -452,7 +455,8 @@ export const PROCESS_AUDIT_CASES = deepFreeze([
     guide_refs: ["guide#ask-start.Get-answer"],
     reviewer_refs: ["reviewer-pass#Console-1"],
     expected: {
-      user_action: "Submit a safe process question with Just ask selected.",
+      user_action:
+        "Submit a safe process question; the Dashboard has no process selection (S146).",
       preconditions_and_role: "Admin; use only the documented live_read boundary.",
       data_mode: "live_read",
       app_validation:
@@ -540,11 +544,14 @@ export const PROCESS_AUDIT_CASES = deepFreeze([
     guide_refs: ["guide#ask-start.Select-process"],
     reviewer_refs: [],
     expected: {
-      user_action: "Type a safe question containing a published process alias.",
+      user_action:
+        "Type a safe question containing a published process alias on the Dashboard.",
       preconditions_and_role: "Admin; use only the documented app_only boundary.",
       data_mode: "app_only",
-      app_validation: "The deterministic matcher proposes only an in-scope process.",
-      visible_result: "A visible suggestion can be accepted or overridden by the human.",
+      app_validation:
+        "S146 removed Dashboard process suggestion; process browsing stays in Internal Processes.",
+      visible_result:
+        "No process suggestion, picker or Use control appears, and the question is answered without one.",
       persisted_change: "No persisted change is expected.",
       downstream_handoff: "The owning record or next safe audit surface remains visible.",
       receipt_audit_or_idempotency_evidence:
@@ -567,13 +574,14 @@ export const PROCESS_AUDIT_CASES = deepFreeze([
     guide_refs: ["guide#ask-start.Select-process"],
     reviewer_refs: [],
     expected: {
-      user_action: "Invoke Detect process with AI for a safe question.",
+      user_action:
+        "Look for Detect process with AI on the Dashboard for a safe question.",
       preconditions_and_role: "Admin; use only the documented app_only boundary.",
       data_mode: "app_only",
       app_validation:
-        "Detection runs only after the explicit click and retains human selection authority.",
+        "S146 removed Dashboard process detection; no classify request is sent while asking.",
       visible_result:
-        "A process suggestion or honest no-match result appears without starting work.",
+        "No detection control appears and the answer arrives without starting work.",
       persisted_change: "No persisted change is expected.",
       downstream_handoff: "The owning record or next safe audit surface remains visible.",
       receipt_audit_or_idempotency_evidence:
@@ -662,7 +670,7 @@ export const PROCESS_AUDIT_CASES = deepFreeze([
       data_mode: "app_only",
       app_validation: "Only implemented controls are considered.",
       visible_result:
-        "Normal-language Get answer, process selection/detection, workflow-run, and Capture Task controls appear; no slash command is invented.",
+        "Normal-language Get answer, Dictate and Capture Task controls appear; no process selection, detection, workflow-run or slash command appears (S146).",
       persisted_change: "No persisted change is expected.",
       downstream_handoff: "The owning record or next safe audit surface remains visible.",
       receipt_audit_or_idempotency_evidence:
@@ -4470,9 +4478,9 @@ export const PROCESS_AUDIT_CASES = deepFreeze([
   // ---------------------------------------------------------------------------
   {
     id: "RETIRE-CONSOLE-001",
-    title: "Console process start is Live-only with no rehearsal-lane labeling",
+    title: "Process start is Live-only with no rehearsal-lane labeling",
     surface: "Console",
-    route: "/ask",
+    route: "/spaces",
     process: "Process initiation",
     workflow_stage: "process start",
     role: "Admin",
@@ -4485,7 +4493,7 @@ export const PROCESS_AUDIT_CASES = deepFreeze([
     reviewer_refs: ["reviewer-pass#Console-2"],
     expected: {
       user_action:
-        "Choose a process on Console and inspect the start control and its declared mode.",
+        "Use Start run in Internal Processes (the Dashboard has none since S146) and inspect its declared mode.",
       preconditions_and_role:
         "Admin on the deployed Production application; no rehearsal lane exists.",
       app_validation:

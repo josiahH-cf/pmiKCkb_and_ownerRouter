@@ -14,15 +14,21 @@ describe("S84 bounded navigation terminology", () => {
 
     expect(consoleView).toContain('<h1 className="section-title">Dashboard</h1>');
     expect(consoleView).not.toContain('<h1 className="section-title">Console</h1>');
+    // S147: Anticipated work moved to Internal Processes, so its caption names where it runs and
+    // that its counts use the default notice rules.
     expect(anticipated).toContain(
-      "Computed on request · it runs only when you open the Dashboard, and a person sends every message.",
+      "Computed on request from the default notice rules · it runs only when you ask here, and a person sends every message.",
     );
     expect(spaces).toContain('<h1 className="section-title">Internal Processes</h1>');
     expect(spaceDetail).toContain("Back to Internal Processes");
     expect(spaceDetail).toContain('href="/spaces"');
-    expect(source("components/ask/AskForm.tsx")).toContain("Started from the Console.");
+    // S146: the Dashboard no longer starts runs; S147: run start sits beside Anticipated work in
+    // Internal Processes, so the run note names that place.
+    expect(source("components/ask/AskForm.tsx")).not.toContain(
+      "Started from the Console.",
+    );
     expect(source("components/console/StartRunButton.tsx")).toContain(
-      "Started from the Console anticipation lane.",
+      "Started from the Internal Processes anticipation lane.",
     );
   });
 
