@@ -5,6 +5,7 @@ import { expect, vi } from "vitest";
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
 import type { Role } from "@/lib/auth/roles";
 import type { RentChargeOutcomeRow } from "@/lib/lease-renewal/rent-charge-outcomes";
+import type { RenewalLeaseWorkspace } from "@/lib/lease-renewal/desk-model";
 import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-message-preparation";
 import {
   planRenewalWorkspaceAction,
@@ -168,6 +169,8 @@ export async function settle(rounds = 5) {
 }
 
 export interface WorkspaceRenderOptions {
+  /** A workspace rebuilt by the real builders (e.g. from actionFixture); default: the sample lease. */
+  readonly workspace?: RenewalLeaseWorkspace;
   readonly leaseId?: string;
   readonly role?: Role;
   readonly manual?: RenewalWorkspaceState | null;
@@ -178,7 +181,9 @@ export interface WorkspaceRenderOptions {
 }
 
 export function workspaceElement(options: WorkspaceRenderOptions = {}) {
-  const base = getRenewalLeaseWorkspace(options.leaseId ?? "lease-318-cedar-7")!;
+  const base =
+    options.workspace ??
+    getRenewalLeaseWorkspace(options.leaseId ?? "lease-318-cedar-7")!;
   const workspace =
     options.workflowAvailable === false ? { ...base, workflowAvailable: false } : base;
   return (

@@ -28,6 +28,7 @@
     "smoke:dashboard-assistant-browser": "node scripts/smoke-dashboard-assistant-browser.mjs",
     "smoke:connected-ai-browser": "node scripts/smoke-connected-ai-browser.mjs",
     "smoke:renewal-guide-controls-browser": "node scripts/smoke-renewal-guide-controls-browser.mjs",
+    "smoke:renewal-focus-browser": "node scripts/smoke-renewal-focus-browser.mjs",
     "smoke:theme-browser": "node scripts/smoke-theme-browser.mjs",
     "smoke:work-browser": "node scripts/smoke-work-accountability-browser.mjs",
     "test:watch": "vitest",
