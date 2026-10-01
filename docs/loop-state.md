@@ -25,10 +25,15 @@ access on 2026-09-10; the owner creates the integration account and replies. B-A
 ## Awaiting release
 
 1. S108 RentVine maintenance-limit preapproval import (owner decision 2026-10-01, B-MNT1): `82e49596650372aae3ce60c547f977f738199c84`.
+2. S146 AI-first Dashboard workspace (batch 004): `87d6fd7c9d574a447b924b66c8fcb2203f0288cc`.
+3. S147 Dashboard panel relocation and compact attention queue (batch 004): `87d6fd7c9d574a447b924b66c8fcb2203f0288cc`.
+4. S148 Durable owner-scoped AI conversation history (batch 004): `fe78b0c98b0522899a0c440648b41b8075963f61`.
 
-One candidate carries the queued item. Admit only after exact main CI on the release head, fresh
-prerequisites (a fresh owner WSL enrollment if the 2026-10-01 one has expired) and a new run-bound
-permit. No provider effect, key or activation is queued. S121 remains excluded.
+OWNER DIRECTION, 2026-10-01: release the latest stable batch 004 work now, with no downtime, so
+the console can be shown on a client call; S149–S151 follow in a later release. One candidate
+carries the queued items. Admit only after exact main CI on the release head, fresh prerequisites
+(a fresh owner WSL enrollment if the 2026-10-01 one has expired) and a new run-bound permit. No
+provider effect, key or activation is queued. S121 remains excluded.
 
 ## Feature intake
 
