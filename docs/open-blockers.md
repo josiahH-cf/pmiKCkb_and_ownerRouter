@@ -188,6 +188,12 @@ These are engineering tasks with no owner step; none blocks a release.
   as a safety conflict). Binding reviews to the notice facts instead of the generation counter would
   remove the extra save but relaxes the deliberate generation binding, so it stays as built unless
   the owner decides otherwise. Draft claims keep their exact generation binding either way.
+- **Assurance session lifetime.** The app's session cookie lasts eight hours, and release
+  prerequisites only prove the Admin assurance profile is signed in when they run. Run 05c177b9's
+  session expired inside its final observation checkpoint, so it rolled back verified. Before
+  admitting a run, refresh it unattended (`npm run auth:ensure -- --need=canary --unattended`
+  with the Admin profile and canonical origin); it re-signs through the profile's Google session
+  without a person. Only a Google sign-out needs the owner (A6).
 - **Four emulator-only E2E suites.** `approval-queue`, `capture`, `process-definitions` and
   `work-accountability` fail with 409 when run with the Firestore emulator because the harness
   runs `demo` + `live_readonly`, which refuses writes by design. They run in no gate. The repair is
