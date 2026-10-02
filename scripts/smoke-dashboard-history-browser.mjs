@@ -9,8 +9,9 @@ import { resolveBrowserExecutable as findBrowserExecutable } from "./lib/browser
 // rerun (S146-S150). It runs only against a local server started with the automated harness
 // settings and a local Firestore emulator (scripts/run-dashboard-history-browser-smoke.mjs): demo
 // accounts, deterministic interpretation (no model), no provider credentials, so every write lands
-// in the emulator. It checks the real UI at desktop and 390 px: no horizontal overflow, the polite
-// live region and focus, history surviving a reload, save, pin and unpin, opening the last answer
+// in the emulator. It checks the real UI at desktop and 390 px: answers measured below the question
+// box (1360, 761, 759 and 390 px), no horizontal overflow, the polite live region and focus, history
+// surviving a reload, save, pin and unpin, opening the last answer
 // without asking again, a current run, injected failures (history save, pin, run) with their
 // retries, and that a second account sees none of it. Only history and saved-question writes are
 // allowed; any other non-GET request fails the smoke. Output is structural only.
@@ -112,6 +113,43 @@ function count(requests, key) {
   return requests.filter((entry) => entry === key).length;
 }
 
+// S146: every answer turn starts below the question box, overlaps its column and follows the
+// previous turn. Boxes are measured in page coordinates after the layout settles.
+async function answersBelowQuestionBox(page, label) {
+  const { form, turns } = await page.evaluate(async () => {
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+    const box = (element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        top: rect.top + window.scrollY,
+        bottom: rect.bottom + window.scrollY,
+        left: rect.left,
+        right: rect.right,
+      };
+    };
+    const question = document.querySelector('form[aria-label="Ask a question"]');
+    return {
+      form: question ? box(question) : null,
+      turns: [...document.querySelectorAll("article.dashboard-turn")].map(box),
+    };
+  });
+  const below =
+    form !== null &&
+    turns.length > 0 &&
+    turns.every((turn) => turn.top >= form.bottom - 1);
+  const inColumn =
+    form !== null &&
+    turns.every((turn) => turn.left < form.right && turn.right > form.left);
+  const ordered = turns.every(
+    (turn, index) => index === 0 || turn.top >= turns[index - 1].bottom - 1,
+  );
+  check(
+    `${label}: answer is shown below the question box`,
+    below && inColumn && ordered,
+    JSON.stringify({ turns: turns.length, below, inColumn, ordered }),
+  );
+}
+
 async function ask(page, question) {
   await page.locator("textarea#question").fill(question);
   await page.getByRole("button", { name: "Get answer" }).click();
@@ -149,9 +187,17 @@ async function desktopJourney() {
   // Ask, record and save.
   const turn = await ask(page, QUESTION);
   check(
-    "answer is shown below the question box",
+    "answer reaches the answered state",
     (await turn.getAttribute("data-state")) === "answered",
   );
+  // Measured, not inferred: the answer sits below the question box on both sides of the 760 px
+  // breakpoint, then the journey continues at desktop width.
+  await answersBelowQuestionBox(page, "desktop 1360px");
+  for (const width of [761, 759]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await answersBelowQuestionBox(page, `${width}px`);
+  }
+  await page.setViewportSize({ width: 1360, height: 1000 });
   await turn.getByText("Saved to your history.").waitFor();
   const announcer = await page.getByTestId("dashboard-announcer").textContent();
   check(
@@ -308,6 +354,7 @@ async function phoneLayout() {
     .first()
     .click();
   await page.getByTestId("turn-history-label").first().waitFor();
+  await answersBelowQuestionBox(page, "390px restored conversation");
   await page
     .getByRole("navigation", { name: "Saved questions" })
     .getByRole("button", { name: "Rename" })
