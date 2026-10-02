@@ -7,7 +7,9 @@ Last updated: 2026-10-02 (UTC). Read AGENTS.md and docs/facts.md first.
 RELEASED: batch 004 corrective repair (S147 Dashboard lease read order, S151 smoke) on 2026-10-02.
 Run 0eb2cfeb-a238-4b37-b35f-f999eadfacff; serving SHA df772b30c60043d5fe4c57ff2275990d18a535b3
 (records head; the code is PR #119's, merged at 7d2181bf).
-Revision pmi-kc-app-rmur4a2vc-185ba8b9f3b8; tag cand-rmur4a2vc-185ba8b9f3b8; traffic 100%.
+Revision pmi-kc-app-rmur4a2vc-185ba8b9f3b8; tag cand-rmur4a2vc-185ba8b9f3b8. Since 21:40Z the same
+code serves from run 05c177b9's run-bound recovery clone pmi-kc-app-recovery-05c177b97bde4a76 at
+100% (verified rollback; see Awaiting release).
 Fingerprint sha256:1e4fbc10f3abad951f40b37b07d47d526f67e30334ac237d148b0e7c63a7a6e2.
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
 Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=false.
@@ -32,6 +34,14 @@ OWNER DIRECTION, 2026-10-02: close the S113 gap and leave production, `main` and
 the same code; S152–S167 stay registered and not started. Run 0eb2cfeb consumed its own queue and
 permit. Admit only after exact main CI on the release head, fresh prerequisites and a new run-bound
 permit. No provider effect, key or activation is queued. S121 remains excluded.
+
+Run 05c177b9-7bde-4a76-a70d-3c5e85bf5d7f first carried this item at `9dc8469c` and rolled back
+verified (no downtime). Its immediate observation checkpoint passed; at 21:39:39Z, inside the
+final checkpoint, the Admin assurance profile's eight-hour app session expired (one 401 on
+`/api/notifications`, then auth_mismatch on every route). The candidate served zero 5xx. An
+unattended `auth:ensure` re-established the session at 21:43Z, and the same-run resume recorded
+ROLLED_BACK_VERIFIED at 21:45:54Z. Its checkpoint and permit are archived as superseded by this
+record's head, which carries one replacement run of the same code.
 
 ## Feature intake
 
