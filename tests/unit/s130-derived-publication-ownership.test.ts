@@ -40,6 +40,8 @@ const chunks = (t: Awaited<ReturnType<typeof setupSyntheticDerived>>) =>
   );
 
 describe("S130 exclusive staging bytes with immutable operation publication", () => {
+  // Builds and chunks a PDF larger than one publication chunk. Under full-suite load it took
+  // 3.4-5.5 s against vitest's 5 s default on 2026-10-02, so it carries the 20 s unit budget.
   it("a failed concurrent chunk writer cannot delete a peer's already-published same-operation output", async () => {
     const t = await setupSyntheticDerived();
     const pdf = await PDFDocument.load(t.original, { updateMetadata: false });
@@ -119,7 +121,7 @@ describe("S130 exclusive staging bytes with immutable operation publication", ()
       releaseFailure.release();
       await losing;
     }
-  });
+  }, 20_000);
 
   it.each([false, true])(
     "discards only a losing staging copy when a concurrent immutable record wins (different actor: %s)",
