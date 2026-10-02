@@ -87,6 +87,12 @@ revision; run `0eb2cfeb` released the corrective read-order repair on 2026-10-02
 `docs/evidence/ai-first-dashboard-batch-004-validation-2026-10-01.md`; AF-67 (one cumulative
 candidate) is No by the owner's direction.
 
+## October lease-renewal simplification and mobile: specified
+
+S152–S167 are ready, owner-confirmed full change specifications under renewal-simplification-mobile-2026-10 in docs/feature-suites/README.md. They extend the deployed owners; completed suites are not requeued. Product decisions are embedded, including intentional Sheet-policy and ordinary-staff access changes.
+
+This request authorizes authoring/registration and an outside-model execution prompt. No implementation, tests, provider effects, release queue or deployment has started; the specifications were committed as authored and registered on main on 2026-10-02. The owner supplies that prompt as the new explicit run instruction. The canonical index contains goal, shared decisions, files, and dependency order.
+
 ## Outcome
 
 Run `0eb2cfeb-a238-4b37-b35f-f999eadfacff` released batch 004's corrective repair (two queued items: the S147 Dashboard lease read order and the S151 answer-position smoke) at `df772b30c60043d5fe4c57ff2275990d18a535b3` / `pmi-kc-app-rmur4a2vc-185ba8b9f3b8` with 100% production traffic.

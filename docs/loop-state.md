@@ -33,12 +33,15 @@ remains excluded.
 
 ## Feature intake
 
-Request 001 and batches 002–004 (S135–S151) are released; their evidence is in docs/facts.md and
-the registered evidence ledgers. An S152–S167 intake (renewal simplification and mobile, F01–F16)
-was authored uncommitted in the Windows checkout on 2026-10-02 by another session. By owner
-decision it is parked unchanged on that checkout's local branch `intake/s152-s167` (`ac2a12bc`,
-not pushed), so it is not registered on main. Merge it with main before executing it; it starts
-only from the owner's execution prompt.
+S152–S167: full owner-confirmed specifications, ready / not implemented. Another session authored
+them on 2026-10-02; they were parked as written (`ac2a12bc`) and registered on main the same day.
+Canonical program: docs/feature-suites/README.md, handoff renewal-simplification-mobile-2026-10.
+No implementation, provider effect or release has started for them. The owner supplies the
+execution prompt to start this exact program; completed owners are not requeued.
+
+Request 001 and batches 002–004 (S135–S151) are released; their actual evidence is in docs/facts.md
+and the registered evidence ledgers. Focus/in-pane work is deployed; the new program changes its
+default, workflow/access gates, working persistence, Sheet policy and whole-app mobile usability.
 
 ## Verified evidence
 
