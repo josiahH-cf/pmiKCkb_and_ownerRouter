@@ -1,6 +1,6 @@
 # Loop state
 
-Last updated: 2026-10-01 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-10-02 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
@@ -20,12 +20,14 @@ inside the 420 s evidence deadline; PR #116 recorded it and run 729d5716 release
 The owner's bounded live check passed on pmi-kc-app-rmuq2qvcc-8074bfd97707: 4 of at most five questions answered and saved to history with 4 model calls; history reopened in a fresh browser context, then save, pin, unpin and one structured rerun with zero model calls; zero business writes and 0 guard refusals.
 AF-01 to AF-70: every criterion is Yes or evidenced N/A except AF-67 (No, by the owner's
 two-candidate direction). Ledger: docs/evidence/ai-first-dashboard-batch-004-validation-2026-10-01.md.
+Independent verification on 2026-10-02 re-derived merges, CI, readbacks, live-check log counts
+and each suite's behaviour (one falsification per suite); its corrections are in the ledger.
 Production traffic never left a verified revision.
 OWNER UNBLOCK PASS, 2026-10-01: B-MNT2 closed (Vendoroo's ROO via RentVine, no connector).
 B-MNT1: the Admin import `82e49596` is released (run 98f7e743); one Admin confirmation remains.
 B-S100: owner chose work order 101756 (id 1756); the owner creates its ticket, links id 1756 and
 syncs once. B-DL1: Dotloop approved API access on 2026-09-10; the owner creates the integration
-account and replies. B-AUTH2: probe running.
+account and replies. B-AUTH2: the 2026-10-01 probe stopped at its first failure at 16.06 h.
 
 ## Awaiting release
 
@@ -83,6 +85,8 @@ released (runs 98f7e743 and 729d5716).
 
 Gate on PR head d5b6967b (release head 1402e51b adds only docs): 7,887 unit tests, four existing skips,
 273 backend tests, test:e2e:core 32 passed (22 existing skips), production audit 0 findings.
+The docs-only merge heads de36d59f, 50801b7b and 2316dbb7 (trees of 2b53c5d5, 1402e51b and main)
+merged on docs gates and exact CI; on 2026-10-02 the full gate passed on each (2316dbb7 on its third run, after two failures of the known S113 journey flake).
 The first gate runs on b7bf7b14 and d5b6967b each failed one pre-existing backend-lane test (an S113 journey; an S145 Focus journey at 5,328 ms against the 5,000 ms default) and passed on one unchanged rerun.
 Exact CI 36929714817 passed on 1402e51b (quality, unit, firestore, policy-build, verify).
 One application build a3736e14-99d5-428f-bc0c-74673f48cdc1, successful at 2026-10-01T22:09:48.058Z.
@@ -99,7 +103,8 @@ Captured predecessor pmi-kc-app-recovery-0aa79bfe784c47d2 / 2b53c5d5d889280d1fa0
 Interim run 98f7e743: build 75cc1c9b-0bac-48de-a762-ef3a39dbbbf6 (2026-10-01T19:11:40Z), candidate
 receipt 06c73cc7-4a80-4229-925f-f0478e3300de, promotion verified 2026-10-01T19:18:35.092Z,
 observation 414,515 ms with 312 of 312 records, readbacks 2026-10-01T19:27:07Z.
-No traffic rollback occurred. Older Sheet=true revisions remain invalid direct restore targets.
+Run 729d5716 needed no traffic rollback; run 0aa79bfe's verified rollback is recorded above.
+Older Sheet=true revisions remain invalid direct restore targets.
 Original completed runs and all failed reports remain preserved with their actual outcomes.
 Evidence: docs/evidence/ai-first-dashboard-batch-004-validation-2026-10-01.md.
 Batch 003 evidence: docs/evidence/renewal-focus-batch-003-validation-2026-10-01.md.
@@ -126,8 +131,8 @@ a durable flakiness fix or a general production performance SLO.
 
 ## Continuation
 
-Next: the owner's one Admin confirmation of the released S108 import (B-MNT1); read the B-AUTH2
-probe; after the owner's B-S100 ticket, link and sync, verify the resident mapping read-only and
+Next: the owner's one Admin confirmation of the released S108 import (B-MNT1); the owner's B-AUTH2
+decision (probe stopped at 16.06 h; WSL CLI/ADC re-enrolled 2026-10-02 about 08:24Z); after the owner's B-S100 ticket, link and sync, verify the resident mapping read-only and
 open the bounded draft proof window. Future external/human work requires its actual inputs and
 existing exact-effect contracts. Consumed permits and historical receipts cannot admit another
 deployment. No feature batch is queued; batch 004 is released and verified.

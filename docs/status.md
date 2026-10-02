@@ -1,6 +1,6 @@
 # PMI KC current status
 
-Last updated: 2026-10-01 (UTC).
+Last updated: 2026-10-02 (UTC).
 
 ## Serving release
 
@@ -77,7 +77,11 @@ E2E and compiled-browser results. Live-verified: interim run `98f7e743` released
 owner direction for a client call and run `729d5716` released S149–S151; the owner's bounded live
 check passed on `pmi-kc-app-rmuq2qvcc-8074bfd97707`. AF-67 (one cumulative candidate) is No by that owner direction.
 Unverified: human verdicts, and live knowledge answers inside the live check (its guard refuses
-`/api/ask`).
+`/api/ask`). Independent verification on 2026-10-02 reproduced the readbacks, the live check's
+bodyless log counts and each suite's key behaviour (one falsification per suite). It also ran the
+full gate on the three docs-only merge heads (PRs #114, #116 and #117), which had merged on docs
+gates and exact CI only; each passed (2316dbb7 on its third run, after two failures of the known S113 journey flake). It corrected the stale records listed in the
+ledger.
 
 ## Verified corrective review
 
