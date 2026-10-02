@@ -474,14 +474,58 @@ five) and wrote nothing in production.
   Live-read-only harness refuses their writes (409). Neither those files nor the harness changed in
   batch 004, and `test:e2e:core` skips them; a separate task covers them.
 
+## Corrective release — 2026-10-02
+
+The release-check margin was a batch 004 regression, not only slow live routes. Across every
+release before batch 004 the canary's renewal desk took about 3 to 6 s (never above 12 s); in
+batch 004's releases it took 15.5, 21.9 and 28.7 s. Production request logs show the canary loads
+the Dashboard and the desk together: that concurrent desk load took 3.5–4.3 s before batch 004 and
+18–27.6 s after. The S147 attention queue became the Dashboard's first lease reader, and on a stale
+generation its admitted revalidation raises every notice marker's read floor before the roughly
+13 s provider read, so a desk read arriving meanwhile refused the cached admitted generation and
+waited. The old Dashboard had started a plain revalidation first.
+
+- **Repair (PR #119, `ad230cde`).** The attention queue starts a stale revalidation through the
+  plain reader before its admitted review read, for Renewals readers only; cold, fresh, expired,
+  invalidated, refreshing and backed-off caches and admitted readers keep the normal path, and the
+  plain generation is never accepted as admitted. No notice-safety rule changed. Five new unit
+  tests failed on the unchanged code and pass with the repair. The provider-boundary inventory
+  classifies the new caller as Product read-only (`39adfd24`).
+- **S151 smoke (`c547302d`).** "Answer is shown below the question box" now measures the question
+  box and every answer turn at 1360, 761 and 759 px and at 390 px on a restored conversation; the
+  smoke passed 32 of 32 checks.
+- **S145 Focus budget (`cb074c94`).** The two mounted Focus journeys carry the backend lane's
+  standard 20 s budget; their gate failure was the 5 s default timeout itself.
+- **Gate and CI.** The full gate on `39adfd24` passed: production audit 0 findings, 7,894 unit tests,
+  273 backend tests and 32 core E2E tests. PR CI passed 6 of 6, PR #119 merged at `7d2181bf` and
+  main CI 37013612502 passed.
+- **Run 175fee1d (rolled back, verified).** Recovery preparation first stopped on the cold recovery
+  target; a read-only diagnostic canary passed all 13 routes and the same-run resume passed. Build
+  `afe46e73-f4d6-4e5a-a6c2-a307fc427ff2` succeeded at 2026-10-02T14:05:05Z, candidate
+  `pmi-kc-app-rmur0tbib-a9b9f1768907` passed smoke, configuration, domains and assurance (receipt
+  `22543dd6-a820-4439-a592-464e67846849`), and promotion started at 14:12:24Z and was verified at
+  14:12:30Z. The immediate observation checkpoint failed 4 of 13 routes (My work, Connections,
+  Communications, approval queue) at 139,964 ms. Cloud Run request logs attribute every observed 500
+  to the predecessor `pmi-kc-app-rmuq2qvcc-8074bfd97707`: with no traffic and no tag it answered
+  requests still routed to it with instant 500s, the last 46 s after promotion started, while the
+  candidate answered the rest with 200 and served zero 5xx. All 312 records matched and the
+  candidate's renewal desk rendered in 4,524 ms, against 15.5 to 28.7 s in batch 004's releases.
+  Traffic returned to the run-bound recovery target `pmi-kc-app-recovery-175fee1d276c4e6f`
+  (1402e51b, Sheet=false). Its first verification timed out on a cold instance (a 32.4 s version
+  read against a 30 s timeout); a warm read-only rollback canary passed 13 of 13 routes and the
+  same-run resume verified it at 14:22:55Z. The replacement run carries the same code from a records
+  commit.
+
 ## Unverified seams
 
 - Cross-instance duplicate delivery: the in-flight join is per instance, and production runs one
   maximum instance (revision readback). Only during a promotion's brief two-revision window could a
   duplicate reach a second instance before the first answer is saved and make one more model call;
   replay from history covers every later duplicate. Not exercised.
-- Two pre-existing backend-lane tests failed once each in S151's local gates and passed on one
-  unchanged rerun of the full gate on the same head: the S113 counteroffer journey
+- (Updated 2026-10-02: the S145 journey now carries the lane's 20 s budget; the S113 refusal is a
+  notice-safety race that 30 s of idle time before the draft preview reproduces, tracked in
+  `docs/open-blockers.md` as a runner follow-up.) Two pre-existing backend-lane tests failed once
+  each in S151's local gates and passed on one unchanged rerun of the full gate on the same head: the S113 counteroffer journey
   (`tests/firestore/s113-sheet-route.test.ts`, the notice-safety generation check refused a draft
   step) on `b7bf7b14`, and the S145 Focus journey (`tests/firestore/s145-focus-mounted-route.test.ts`,
   5,328 ms against vitest's 5,000 ms default; 3,094–4,736 ms in the seven other runs) on
@@ -496,12 +540,10 @@ five) and wrote nothing in production.
 - Record-level parity on live data: the live check reports answers by structure only, so no
   customer data leaves it; record ids, filters and counts are compared with the data layer on
   controlled data (unit and E2E).
-- Release observation margin: run 729d5716 passed at 419,630 ms against the fixed 420,000 ms
-  evidence deadline (0.37 s to spare) and run 0aa79bfe missed it. The final checkpoint's 13-route
-  canary spends 16–22 s each on the Dashboard, renewal desk, renewal workspace, Internal Processes
-  and notifications, all reading live sources, so it leaves little room for the reconciliation
-  and runtime readback. These routes were as slow before batch 004. Changing the deadline or the
-  canary needs an owner decision; speeding up those routes is outside this batch.
+- Release observation margin (diagnosed 2026-10-02): run 729d5716 passed 0.37 s inside the
+  420,000 ms evidence deadline and run 0aa79bfe missed it. The cause was the batch 004 read-order
+  regression described under Corrective release. Run 175fee1d's candidate rendered the desk in
+  4,524 ms; the full margin is measured by the replacement release.
 - Live inline approval (AF-30): not exercised, because it would be a business write; the server
   re-check and the queue refresh are covered by unit tests.
 - Human usability, screen reader and full-page zoom verdicts: NOT RUN.

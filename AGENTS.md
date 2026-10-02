@@ -460,6 +460,11 @@ Active documentation is intentionally small. `docs/README.md` is the index.
 No force-push, history rewrite, release tag, or branch deletion. Do not deploy documentation-only
 changes unless they alter a served asset.
 
+External and human holds live only in `docs/open-blockers.md`, the unblock packet. A hold blocks
+only its named effect. Never stop, wait or ask about one unless the task exercises that effect or
+the owner reports its step done; development, tests, merges and releases proceed independently.
+When the owner reports a step, perform that row's follow-up and update the packet.
+
 ## Current routes
 
 - Documentation index: `docs/README.md`
