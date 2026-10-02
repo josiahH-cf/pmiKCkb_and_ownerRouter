@@ -4,35 +4,32 @@ Last updated: 2026-10-02 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-ROLLED BACK (verified), 2026-10-02: run 175fee1d-276c-4e6f-8ba5-569b336a40d8 carried the batch 004
-corrective repair at 7d2181bf9a9209734f9e37ae1becc66061496359 (candidate
-pmi-kc-app-rmur0tbib-a9b9f1768907). Recovery preparation, the one build, smoke, configuration,
-domains, candidate assurance and promotion passed. The observation's immediate checkpoint then
-failed 4 of 13 routes: for up to 46 s after promotion started, Cloud Run still routed some canonical
-requests to the predecessor pmi-kc-app-rmuq2qvcc-8074bfd97707, which (with no traffic and no tag)
-answered them with instant 500s. The candidate served zero 5xx, all 312 records matched and its
-renewal desk rendered in 4,524 ms (15.5–28.7 s in batch 004's releases), so the repair works.
-Traffic returned to the run-bound recovery target pmi-kc-app-recovery-175fee1d276c4e6f
-(1402e51b, Sheet=false); its first verification timed out on a cold instance (32.4 s version read
-against a 30 s timeout), and after a warm read-only rollback canary passed 13 of 13 routes the
-same-run resume verified it (ROLLED_BACK_VERIFIED). Production serves batch 004's code, as before
-the run. The watcher refuses a rolled-back SHA, so this records commit heads the replacement run;
-the released code is unchanged. Until its closure, status, plan, facts and the handoff still
-describe run 729d5716.
-Batch 004 (S146–S151) shipped in runs 98f7e743 and 729d5716; its AF-01 to AF-70 ledger and the
-2026-10-02 independent verification are in
+RELEASED: batch 004 corrective repair (S147 Dashboard lease read order, S151 smoke) on 2026-10-02.
+Run 0eb2cfeb-a238-4b37-b35f-f999eadfacff; serving SHA df772b30c60043d5fe4c57ff2275990d18a535b3
+(records head; the code is PR #119's, merged at 7d2181bf).
+Revision pmi-kc-app-rmur4a2vc-185ba8b9f3b8; tag cand-rmur4a2vc-185ba8b9f3b8; traffic 100%.
+Fingerprint sha256:1e4fbc10f3abad951f40b37b07d47d526f67e30334ac237d148b0e7c63a7a6e2.
+Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
+Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=false.
+Release-check margin restored: the observation decided at 396,284 ms against the 420 s evidence
+deadline, and the renewal desk check took 4,838 ms (28,729 ms in batch 004's last release). Batch
+004's own runs decided at 414,515 and 419,630 ms, and run 0aa79bfe missed the deadline; the S147
+attention queue had started the admitted lease refresh that a desk opened alongside the Dashboard
+then waited out.
+Run 175fee1d first carried the same code at 7d2181bf and rolled back verified: for up to 46 s after
+promotion started, Cloud Run still routed some canonical requests to the untagged predecessor,
+which answered them with instant 500s and failed the immediate checkpoint (candidate 5xx zero).
+Its records are preserved; its checkpoint and permit are archived as superseded by df772b30.
+Batch 004 (S146–S151) shipped in runs 98f7e743 and 729d5716; its AF-01 to AF-70 ledger, the
+2026-10-02 independent verification and both corrective runs are in
 docs/evidence/ai-first-dashboard-batch-004-validation-2026-10-01.md.
 
 ## Awaiting release
 
-1. S147 Dashboard lease read order (batch 004 corrective repair; release-check margin): `ad230cde51035a8da67f84fa23a2cad9c695f108`.
-2. S151 browser smoke measures answer position: `c547302daa5a2956276ce67899deb0d3563cf265`.
-
-OWNER DIRECTION, 2026-10-02: clear the remaining blockers and leave production on `main`. One
-candidate carries both items; runs 98f7e743 and 729d5716 consumed batch 004's own queue and
-permits, and run 175fee1d's permit is archived as superseded after its verified rollback. Admit
-the replacement only after exact main CI on its release head, fresh prerequisites and a new
-run-bound permit. No provider effect, key or activation is queued. S121 remains excluded.
+None. Run 0eb2cfeb consumed its queue (S147 read order `ad230cde`, S151 smoke `c547302d`) and its
+permit. A future authorized batch needs its own exact queue, ancestral commits, exact main CI, fresh
+prerequisites and a new run-bound permit. No provider effect, key or activation is queued. S121
+remains excluded.
 
 ## Feature intake
 
@@ -49,14 +46,18 @@ Gate on PR #119 head 39adfd24: production audit 0 findings, 7,894 unit tests (fo
 273 backend tests and test:e2e:core 32 passed (22 existing skips). The new read-order tests failed
 on the unchanged code (5 failures) and pass with the fix. The S151 browser smoke passed 32 of 32
 checks, including answer position measured at 1360, 761, 759 and 390 px.
-PR CI passed 6 of 6; PR #119 merged at 7d2181bf; exact main CI 37013612502 passed.
-Run 175fee1d: recovery receipt 253b6179-61ed-4daf-a31a-bae2f97d78d8 (its first preparation check
-stopped on the cold target; a read-only diagnostic canary passed 13 routes and the resume passed);
-build afe46e73-f4d6-4e5a-a6c2-a307fc427ff2 succeeded at 14:05:05Z; candidate receipt
-22543dd6-a820-4439-a592-464e67846849 issued at 14:12:07Z; promotion started 14:12:24Z and was
-verified at 14:12:30Z; the immediate checkpoint failed at 139,964 ms (admin_canary_failed,
-browser_diagnostic); ROLLED_BACK_VERIFIED at 14:22:55Z. Cloud Run request logs attribute every
-observed 500 to the predecessor, the last 46 s after promotion started.
+PR #120 (rollback record and unblock packet) merged at df772b30 after its full gate passed on
+tree-identical head 14087b40 (fourth run; the first three failed on the S113 race, a load-induced
+S130 timeout and a truncated ignored E2E types file) and PR CI 6 of 6; exact main CI 37025320585
+passed.
+Run 0eb2cfeb: recovery receipt edf82e83-c1fe-4c4b-94d7-7ca532d7b224 binds
+pmi-kc-app-recovery-0eb2cfeba2384b37 (its first preparation check stopped on the cold target; a
+read-only canary passed 13 routes and the resume passed); build 802d851f-54cb-42a2-aedf-80d04e2142de
+at 15:42:16Z; candidate receipt d964c0ca-3337-4caa-9b50-9f4be128b018 at 15:48:28Z; promotion
+verified 15:48:53Z; observation passed two checkpoints in 396,284 ms with all 312 records matched
+and zero candidate 5xx or unresolved live effects; Cloud Run logged zero 5xx from any revision in
+that window; eleven readback sections matched, last at 15:55:53Z. The captured predecessor is
+pmi-kc-app-recovery-175fee1d276c4e6f (1402e51b).
 Original completed runs and all failed reports remain preserved with their actual outcomes.
 Older Sheet=true revisions remain invalid direct restore targets.
 Evidence: docs/evidence/ai-first-dashboard-batch-004-validation-2026-10-01.md.
@@ -72,9 +73,8 @@ UNVERIFIED; absent Data Access logs do not prove zero effects.
 
 ## Continuation
 
-Next: the replacement run for the two queued items from this records commit, per
-docs/release-batch-runbook.md (archive run 175fee1d's terminal checkpoint and permit, prepare,
-prerequisites, preflight, admit). Owner decisions of 2026-10-02 (Q1–Q4) and every owner step are in
+Next: no queued work. Owner decisions of 2026-10-02 (Q1–Q4) and every owner step are in
 `docs/open-blockers.md`; act on a hold only when the owner reports its step done. Runner
-follow-ups with no owner step, including promotion routing skew, are described there. Consumed
-permits and historical receipts cannot admit another deployment.
+follow-ups with no owner step (the S113 notice-safety race, the four emulator-only E2E suites,
+promotion routing skew and cold recovery verification) are described there. Consumed permits and
+historical receipts cannot admit another deployment.

@@ -516,6 +516,23 @@ waited. The old Dashboard had started a plain revalidation first.
   same-run resume verified it at 14:22:55Z. The replacement run carries the same code from a records
   commit.
 
+- **Replacement release.** Run `0eb2cfeb-a238-4b37-b35f-f999eadfacff` released the same code from
+  records head `df772b30` as `pmi-kc-app-rmur4a2vc-185ba8b9f3b8` (tag `cand-rmur4a2vc-185ba8b9f3b8`,
+  fingerprint `sha256:1e4fbc10f3abad951f40b37b07d47d526f67e30334ac237d148b0e7c63a7a6e2`) with 100%
+  traffic. One application build `802d851f-54cb-42a2-aedf-80d04e2142de` succeeded at
+  2026-10-02T15:42:16.516Z; candidate receipt `d964c0ca-3337-4caa-9b50-9f4be128b018` was issued at
+  2026-10-02T15:48:28.020Z and promotion verified at 2026-10-02T15:48:53.296Z. Observation passed
+  two checkpoints in 396,284 ms, against 414,515 and 419,630 ms in batch 004's releases and run
+  0aa79bfe's missed deadline; the canary's renewal desk check took 4,838 ms, against 15.5 to 28.7 s
+  in batch 004's releases. All 312 records matched with zero candidate 5xx or unresolved live
+  effects, and eleven independent readback sections matched, last at 2026-10-02T15:55:53Z. Its first
+  recovery assurance stopped on the cold recovery target and passed on a diagnosed same-run resume
+  after a read-only canary passed 13 of 13 routes. Cloud Run request logs show zero 5xx from any
+  revision between promotion and the observation decision. The full gate on its records head
+  14087b40 passed on its fourth run; the first three failed on the S113 race, a load-induced 5 s
+  timeout in s130-derived-publication-ownership and a truncated ignored E2E types file, none related
+  to the docs-only diff.
+
 ## Unverified seams
 
 - Cross-instance duplicate delivery: the in-flight join is per instance, and production runs one
@@ -540,10 +557,9 @@ waited. The old Dashboard had started a plain revalidation first.
 - Record-level parity on live data: the live check reports answers by structure only, so no
   customer data leaves it; record ids, filters and counts are compared with the data layer on
   controlled data (unit and E2E).
-- Release observation margin (diagnosed 2026-10-02): run 729d5716 passed 0.37 s inside the
+- Release observation margin (resolved 2026-10-02): run 729d5716 passed 0.37 s inside the
   420,000 ms evidence deadline and run 0aa79bfe missed it. The cause was the batch 004 read-order
-  regression described under Corrective release. Run 175fee1d's candidate rendered the desk in
-  4,524 ms; the full margin is measured by the replacement release.
+  regression described under Corrective release; replacement run 0eb2cfeb decided at 396,284 ms.
 - Live inline approval (AF-30): not exercised, because it would be a business write; the server
   re-check and the queue refresh are covered by unit tests.
 - Human usability, screen reader and full-page zoom verdicts: NOT RUN.

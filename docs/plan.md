@@ -1,6 +1,6 @@
 # Current plan
 
-Updated: 2026-10-01 (UTC). Batch 004 (S146–S151) and S108's import are verified deployed by runs `98f7e743` and `729d5716`, on top of request 001, batches 002–003, the thirteen-feature batch and confirmed adversarial repairs.
+Updated: 2026-10-02 (UTC). Batch 004 (S146–S151) and S108's import are verified deployed by runs `98f7e743` and `729d5716`, with its corrective read-order repair by run `0eb2cfeb`, on top of request 001, batches 002–003, the thirteen-feature batch and confirmed adversarial repairs.
 
 ## Direct maintenance request 001: released
 
@@ -82,34 +82,34 @@ owner started the run on 2026-10-01.
 S146/S147 (PR #111), S148 (PR #112), S149/S150 (PR #113) and S151 (PR #115) merged after full
 local gates on their exact heads and exact CI. During the run the owner directed an interim
 no-downtime release for a client call: run `98f7e743` shipped S108 and S146–S148 at `2b53c5d5`,
-and run `729d5716` shipped S149–S151 at `1402e51b`. The owner's bounded live check passed on the
-serving revision. The AF-01 to AF-70 ledger is in
+and run `729d5716` shipped S149–S151 at `1402e51b`. The owner's bounded live check passed on that
+revision; run `0eb2cfeb` released the corrective read-order repair on 2026-10-02. The AF-01 to AF-70 ledger is in
 `docs/evidence/ai-first-dashboard-batch-004-validation-2026-10-01.md`; AF-67 (one cumulative
 candidate) is No by the owner's direction.
 
 ## Outcome
 
-Run `729d5716-bc5e-4e61-9932-c9107d1954f2` released batch 004's S149–S151 (three queued items) at `1402e51b4828d407f990a675f16e6a7ba47afb7b` / `pmi-kc-app-rmuq2qvcc-8074bfd97707` with 100% production traffic.
-Interim run `98f7e743-7345-4b74-a6a8-675fe9fac31f` released S108 and S146–S148 earlier the same day at `2b53c5d5` /
-`pmi-kc-app-rmupw50tc-8189b32d3395` by owner direction, so batch 004 shipped in two candidates.
-Exact [CI 36929714817](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36929714817) passed.
-Run `0aa79bfe` first carried the same code at `19d4590a`; its observation could not finish inside the 420 s evidence deadline, so it rolled back (verified, no downtime).
-The gate on PR head `d5b6967b` (the release head adds only that rollback record) passed 7,887 unit tests, four existing skips and all 273 backend tests.
-One application build `a3736e14-99d5-428f-bc0c-74673f48cdc1` succeeded at 2026-10-01T22:09:48.058Z.
-Candidate receipt issued 2026-10-01T22:14:46.913Z; promotion verified 2026-10-01T22:15:27.458Z.
-Observation passed two checkpoints in 419,630 ms against the required 300,000 ms. All 312
+Run `0eb2cfeb-a238-4b37-b35f-f999eadfacff` released batch 004's corrective repair (two queued items: the S147 Dashboard lease read order and the S151 answer-position smoke) at `df772b30c60043d5fe4c57ff2275990d18a535b3` / `pmi-kc-app-rmur4a2vc-185ba8b9f3b8` with 100% production traffic.
+Run `175fee1d` first carried the same code at `7d2181bf`; its immediate observation checkpoint failed while Cloud Run still routed some requests to the untagged predecessor, which answered them with 500s, so it rolled back (verified, no downtime).
+Batch 004 itself (S108 and S146–S151) shipped in runs `98f7e743` and `729d5716`; the batch 004 evidence ledger records those runs and run `0aa79bfe`'s verified rollback.
+Exact [CI 37025320585](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37025320585) passed.
+The gate on tree-identical PR head `14087b40` passed 7,894 unit tests, four existing skips, all 273 backend tests and 32 core E2E tests.
+One application build `802d851f-54cb-42a2-aedf-80d04e2142de` succeeded at 2026-10-02T15:42:16.516Z.
+Candidate receipt issued 2026-10-02T15:48:28.020Z; promotion verified 2026-10-02T15:48:53.296Z.
+Observation passed two checkpoints in 396,284 ms against the required 300,000 ms, inside the 420,000 ms evidence deadline. All 312
 source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
-Eleven independent readback sections matched, last at 2026-10-01T22:22:18Z. The owner's bounded live check
-passed on the exact serving revision: 4 of at most five questions answered and saved to history with 4 model calls; history reopened in a fresh browser context, then save, pin, unpin and one structured rerun with zero model calls; zero business writes and 0 guard refusals.
+Eleven independent readback sections matched, last at 2026-10-02T15:55:53Z. The owner's bounded AI history live check
+passed on batch 004's revision `pmi-kc-app-rmuq2qvcc-8074bfd97707` and was not rerun.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag `cand-rmuq2qvcc-8074bfd97707`; fingerprint `sha256:56315f7704e0ef637f1ffd2c490d610a11a048e864241d319b824f39c572adf9`.
+Tag `cand-rmur4a2vc-185ba8b9f3b8`; fingerprint `sha256:1e4fbc10f3abad951f40b37b07d47d526f67e30334ac237d148b0e7c63a7a6e2`.
 No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
 ## Current implementation baseline
 
-Runs `98f7e743` and `729d5716` added S108 and batch 004 (S146–S151); the gate on the final batch 004
-head passed 7,887 unit tests and 273 backend tests. Run `ab803f8a` added request 001 and
+Run `0eb2cfeb` added batch 004's corrective repair; the gate on its release head passed 7,894 unit
+tests and 273 backend tests. Runs `98f7e743` and `729d5716` added S108 and batch 004
+(S146–S151); the gate on the final batch 004 head passed 7,887 unit tests and 273 backend tests. Run `ab803f8a` added request 001 and
 S135–S145 to the deployed baseline; the gate on its
 tree-identical PR head passed 7,738 unit tests and 241 backend tests. For the thirteen-feature
 batch, the final application gate passed 7,462 unit tests and 234 backend tests, with four existing

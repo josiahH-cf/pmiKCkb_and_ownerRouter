@@ -177,10 +177,11 @@ These are engineering tasks with no owner step; none blocks a release.
 - **Promotion routing skew.** Run 175fee1d's immediate observation checkpoint failed because, for up
   to 46 s after promotion started, Cloud Run still routed some canonical requests to the
   predecessor, which (with no traffic and no tag) answered them with instant 500s; the candidate
-  served zero 5xx. The run rolled back verified. A replacement run usually passes. If it recurs, the
-  owner chooses between a longer immediate-checkpoint grace with a routing-convergence wait and
-  static-asset skew protection; the 60 s grace and canary thresholds are owner decisions, so the
-  runner does not change them.
+  served zero 5xx. The run rolled back verified. Replacement run 0eb2cfeb passed with the
+  predecessor still tagged (a retry's new recovery clone takes the rolled-back candidate's tag) and
+  zero 5xx from any revision. If it recurs, the owner chooses between a longer immediate-checkpoint
+  grace with a routing-convergence wait and static-asset skew protection; the 60 s grace and canary
+  thresholds are owner decisions, so the runner does not change them.
 - **Cold recovery verification.** A rollback's verification reads the version on a target that may
   be cold (32.4 s against a 30 s timeout in run 175fee1d). Warm the target with
   `~/pmi-kc-work/scripts/diag-canary-phase.sh <label> <canonical origin> <commit> <revision>
@@ -190,8 +191,9 @@ These are engineering tasks with no owner step; none blocks a release.
 
 - **Release-check margin (2026-10-02).** Not a hold. Batch 004 made the canary's renewal desk wait
   out an admitted lease refresh started by the Dashboard; PR #119 restored the Dashboard's plain
-  stale revalidation, and run 175fee1d's candidate rendered the desk in 4,524 ms (15.5 to 28.7 s in
-  batch 004's releases).
+  stale revalidation. Run 175fee1d's candidate rendered the desk in 4,524 ms (15.5 to 28.7 s in
+  batch 004's releases), and replacement run 0eb2cfeb's observation decided at 396,284 ms against
+  the 420,000 ms evidence deadline, with a 4,838 ms renewal desk check.
 - **B-MNT2 (2026-10-01).** Vendoroo's agent ("ROO") writes work-order updates into RentVine, which
   the app already reads; no connector is built and nothing is requested from Vendoroo.
 - **B-FLOW1, B-GOLD1 and B-REH1.** The audited manual journey, the golden-label correction and the
