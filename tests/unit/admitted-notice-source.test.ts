@@ -37,9 +37,8 @@ const seam = vi.hoisted(() => ({
 vi.mock("@/lib/firestore/renewal-notice-safety", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@/lib/firestore/renewal-notice-safety")>();
-  const { inheritNoticeReaderScope } = await import(
-    "@/lib/lease-renewal/notice-source-admission"
-  );
+  const { inheritNoticeReaderScope } =
+    await import("@/lib/lease-renewal/notice-source-admission");
   return {
     ...actual,
     reserveRenewalNoticeLease: async (
