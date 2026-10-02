@@ -26,10 +26,12 @@ docs/evidence/ai-first-dashboard-batch-004-validation-2026-10-01.md.
 
 ## Awaiting release
 
-None. Run 0eb2cfeb consumed its queue (S147 read order `ad230cde`, S151 smoke `c547302d`) and its
-permit. A future authorized batch needs its own exact queue, ancestral commits, exact main CI, fresh
-prerequisites and a new run-bound permit. No provider effect, key or activation is queued. S121
-remains excluded.
+1. S113 approval reads join their soft-TTL lease revalidation (notice-safety race): `cc78c127cf4259395617514909130baa5e98467b`.
+
+OWNER DIRECTION, 2026-10-02: close the S113 gap and leave production, `main` and every checkout on
+the same code; S152–S167 stay registered and not started. Run 0eb2cfeb consumed its own queue and
+permit. Admit only after exact main CI on the release head, fresh prerequisites and a new run-bound
+permit. No provider effect, key or activation is queued. S121 remains excluded.
 
 ## Feature intake
 
@@ -45,6 +47,16 @@ default, workflow/access gates, working persistence, Sheet policy and whole-app 
 
 ## Verified evidence
 
+S113 root cause (2026-10-02), two layers. Product: an approval read past the 60 s soft TTL returned
+the held lease generation while its own background revalidation's admission raised the notice
+floor 5 ms after that read's floor check, so the draft preview's safety check refused it (traced on
+the unfixed code). Approval reads (draft preview, notice review) now join that revalidation; display
+reads keep stale-while-revalidate, so the release-check margin is unaffected. Test: S124 binds each
+admitted generation to the reviewed draft, and the fresh-work journey (80–96 s in full gates)
+assumed its save, reload, preview and create shared one generation. It now admits the new
+generation at its reload, asserts the review that requires, re-reviews and drafts. No guard or wait
+changed. New unit tests fail on the unfixed code and pass with the fix; the journey passes with no
+idle, a 70 s stall before the reload and a 30 s idle before the preview.
 Gate on PR #119 head 39adfd24: production audit 0 findings, 7,894 unit tests (four existing skips),
 273 backend tests and test:e2e:core 32 passed (22 existing skips). The new read-order tests failed
 on the unchanged code (5 failures) and pass with the fix. The S151 browser smoke passed 32 of 32
@@ -76,8 +88,9 @@ UNVERIFIED; absent Data Access logs do not prove zero effects.
 
 ## Continuation
 
-Next: no queued work. Owner decisions of 2026-10-02 (Q1–Q4) and every owner step are in
+Next: release the S113 fix under Awaiting release; S152–S167 wait for the owner's execution
+prompt. Owner decisions of 2026-10-02 (Q1–Q4) and every owner step are in
 `docs/open-blockers.md`; act on a hold only when the owner reports its step done. Runner
-follow-ups with no owner step (the S113 notice-safety race, the four emulator-only E2E suites,
-promotion routing skew and cold recovery verification) are described there. Consumed permits and
+follow-ups with no owner step (the four emulator-only E2E suites, promotion routing skew and cold
+recovery verification) are described there. Consumed permits and
 historical receipts cannot admit another deployment.

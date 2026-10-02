@@ -50,6 +50,7 @@ async function readSharedAdmittedSource(
   slot: string,
   readMinimum: () => Promise<Minimum>,
   initialLeaseSnapshot?: AdmittedRead["snapshot"],
+  joinRevalidation = false,
 ): Promise<AdmittedRead> {
   let pending = scope.pending.get(slot);
   if (!pending) {
@@ -91,6 +92,7 @@ async function readSharedAdmittedSource(
             scope.context,
             minimum.leaseKeys,
             minimum.lease,
+            { joinRevalidation },
           ));
         if (initialLeaseSnapshot && read.snapshot !== initialLeaseSnapshot)
           replacedInitialLease = true;
@@ -184,6 +186,8 @@ export async function readAdmittedRenewalNoticeLease(
   await reserveRenewalNoticeLease(actor, leaseId, db);
   const reader = withRenewalNoticeAdmission(actor, rawReader, db);
   const key = renewalWorkspaceDocId(leaseId);
+  // Approval reads (draft preview, notice review) join a soft-TTL revalidation they trigger, so
+  // they never hold the generation that revalidation's admission is about to supersede.
   return readSharedAdmittedSource(
     reader,
     nowMs,
@@ -193,6 +197,8 @@ export async function readAdmittedRenewalNoticeLease(
       ...(await readRenewalNoticeSourceMinimum(actor, leaseId, db)),
       leaseKeys: [key],
     }),
+    undefined,
+    true,
   );
 }
 
