@@ -32,10 +32,14 @@ import { configuredNoticeReaderScope } from "@/lib/lease-renewal/notice-source-a
 
 const seam = vi.hoisted(() => ({
   afterReservation: null as null | (() => Promise<void>),
+  beforeLeaseAdmission: null as null | (() => Promise<void>),
 }));
 vi.mock("@/lib/firestore/renewal-notice-safety", async (importOriginal) => {
   const actual =
     await importOriginal<typeof import("@/lib/firestore/renewal-notice-safety")>();
+  const { inheritNoticeReaderScope } = await import(
+    "@/lib/lease-renewal/notice-source-admission"
+  );
   return {
     ...actual,
     reserveRenewalNoticeLease: async (
@@ -44,6 +48,25 @@ vi.mock("@/lib/firestore/renewal-notice-safety", async (importOriginal) => {
       const result = await actual.reserveRenewalNoticeLease(...args);
       await seam.afterReservation?.();
       return result;
+    },
+    // Lets a test hold a lease admission's durable commit, as a slower store transaction would.
+    withRenewalNoticeAdmission: (
+      ...args: Parameters<typeof actual.withRenewalNoticeAdmission>
+    ) => {
+      const wrapped = actual.withRenewalNoticeAdmission(...args);
+      if (!seam.beforeLeaseAdmission) return wrapped;
+      const held = new Proxy(wrapped, {
+        get(target, key, receiver) {
+          if (key === "beforeLeaseSourceRead")
+            return async (at: number) => {
+              await seam.beforeLeaseAdmission?.();
+              return target.beforeLeaseSourceRead(at);
+            };
+          return Reflect.get(target, key, receiver);
+        },
+      });
+      inheritNoticeReaderScope(held, args[1]);
+      return held;
     },
   };
 });
@@ -79,6 +102,7 @@ beforeEach(() => {
   clearLiveLeaseCache();
   clearLeaseStatusTableCache();
   seam.afterReservation = null;
+  seam.beforeLeaseAdmission = null;
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime("2026-09-29T12:00:00.000Z");
 });
@@ -405,6 +429,98 @@ describe("bounded lease-specific notice admission recovery", () => {
     const outcome = await observeRenewalNotice(actor, source, db);
     expect(outcome.ready).toBe(false);
     expect(outcome.disposition.reason).toBe("approval_safety_unavailable");
+  });
+
+  it("joins the soft-TTL revalidation an approval read starts instead of returning the generation it supersedes", async () => {
+    // S113 race: past the soft TTL, the approval read starts an admitted background refresh whose
+    // admission raises the notice floor. Returning the stale generation let that floor land after
+    // the read's own minimum check, so the draft preview was refused.
+    const { db, reader } = fixture();
+    const rows = {
+      rows: [
+        {
+          lease: {
+            leaseID: "9001",
+            leaseStatusID: "2",
+            tenants: [{ contactID: "9101" }],
+          },
+          unit: { unitID: "9201" },
+        },
+      ],
+      complete: true,
+      pages: 1,
+    };
+    reader.listAllLeasesExport.mockResolvedValue(rows);
+    reader.listLeaseStatuses.mockResolvedValue([
+      {
+        leaseStatusID: "2",
+        name: "Synthetic active",
+        primaryLeaseStatusID: "2",
+        isPendingMoveOutStatus: false,
+        isCompletedMoveOutStatus: false,
+        isPendingMoveInStatus: false,
+        isSystemStatus: true,
+      },
+    ]);
+    const verified = {
+      ...reader,
+      getLease: async () => ({
+        leaseStatusID: "2",
+        noticeDate: null,
+        expectedMoveOutDate: null,
+        moveOutDate: null,
+        isMonthToMonth: "0",
+      }),
+    };
+    const sourceOf = (
+      read: Awaited<ReturnType<typeof readAdmittedRenewalNoticeLease>>,
+    ) => ({
+      lease: read.snapshot.views[0],
+      statusTable: read.statusTable,
+      freshness: read.currency.state,
+      leaseReadAtMs: read.snapshot.readAtMs,
+      observedAtMs: Date.now(),
+      noticeAdmitted: read.snapshot.noticeAdmitted,
+      admittedLeaseKeys: read.snapshot.noticeAdmission?.leaseKeys,
+    });
+    const first = await readAdmittedRenewalNoticeLease(
+      actor,
+      "9001",
+      verified,
+      Date.now(),
+      db,
+    );
+    expect((await observeRenewalNotice(actor, sourceOf(first), db)).ready).toBe(true);
+
+    vi.setSystemTime(Date.now() + LEASE_EXPORT_TTL_MS + 1);
+    const admission = deferred<void>();
+    const provider = deferred<void>();
+    seam.beforeLeaseAdmission = () => admission.promise;
+    reader.listAllLeasesExport.mockImplementationOnce(async () => {
+      await provider.promise;
+      return rows;
+    });
+    const approval = readAdmittedRenewalNoticeLease(
+      actor,
+      "9001",
+      verified,
+      Date.now(),
+      db,
+    );
+    approval.catch(() => undefined);
+    for (let tick = 0; tick < 5; tick += 1)
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    admission.resolve();
+    for (let tick = 0; tick < 5; tick += 1)
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    provider.resolve();
+    const second = await approval;
+
+    expect(reader.listAllLeasesExport).toHaveBeenCalledTimes(2);
+    expect(second.snapshot.readAtMs).toBeGreaterThan(first.snapshot.readAtMs);
+    const outcome = await observeRenewalNotice(actor, sourceOf(second), db);
+    expect(outcome.ready).toBe(true);
+    expect(outcome.reason).toBeNull();
   });
 
   it("shares only factory-confirmed exact provider configuration across both live factories", () => {

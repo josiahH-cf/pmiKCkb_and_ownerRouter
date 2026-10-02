@@ -358,6 +358,7 @@ export async function readLiveLeaseSnapshotForAdmission(
   context: object,
   leaseKey: string | readonly string[],
   minimumReadAtMs = 0,
+  { joinRevalidation = false }: { joinRevalidation?: boolean } = {},
 ): Promise<LiveLeaseSnapshotResult> {
   if (!Number.isFinite(nowMs) || !Number.isFinite(minimumReadAtMs) || minimumReadAtMs < 0)
     throw new Error("A finite admission timestamp is required.");
@@ -371,6 +372,10 @@ export async function readLiveLeaseSnapshotForAdmission(
     // Preserve soft-TTL revalidation for a valid ordinary generation. A missing admission does
     // not need a normal failed-refresh fallback followed by another redundant forced attempt.
     await getLiveLeaseSnapshot(reader, nowMs);
+    // An approval read joins the revalidation instead of returning the stale generation: an
+    // admitted refresh raises every notice floor before its provider read, so the stale
+    // generation would be refused once that floor lands. Display reads keep stale-while-revalidate.
+    if (joinRevalidation && inflight) await inflight.catch(() => undefined);
     snapshot = current();
   }
   if (!snapshot) {

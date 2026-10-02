@@ -13,10 +13,12 @@ import {
   LEASE_EXPORT_TTL_MS,
   LEASE_REFRESH_BACKOFF_BASE_MS,
   liveLeaseSnapshotHasAdmission,
+  readLiveLeaseSnapshotForAdmission,
   refreshLiveLeaseSnapshotFromProvider,
   requireCurrentLeaseViews,
   revalidateStaleLiveLeaseSnapshot,
 } from "@/lib/lease-renewal/live-lease-cache";
+import { bindNoticeAdmissionContext } from "@/lib/lease-renewal/notice-source-admission";
 
 const flushAsync = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -475,5 +477,77 @@ describe("revalidateStaleLiveLeaseSnapshot (Dashboard read order)", () => {
     ).toBe(true);
     await flushAsync();
     expect(calls).toBe(3);
+  });
+});
+
+describe("readLiveLeaseSnapshotForAdmission (S113 approval reads)", () => {
+  const STALE_AT = 1_000 + LEASE_EXPORT_TTL_MS + 1;
+  const KEY = "lease-1";
+
+  function admittedGatedReader(context: object) {
+    let release: (() => void) | null = null;
+    let calls = 0;
+    const listAllLeasesExport = vi.fn(async (): Promise<LeaseExportReadResult> => {
+      calls += 1;
+      if (calls > 1) await new Promise<void>((resolve) => (release = resolve));
+      return { rows: [{ lease: { leaseID: calls } }], pages: 1, complete: true };
+    });
+    const beforeLeaseSourceRead = vi.fn(async (at: number) =>
+      bindNoticeAdmissionContext({ readAtMs: at, leaseKeys: [KEY] }, context),
+    );
+    return {
+      reader: { listAllLeasesExport, beforeLeaseSourceRead },
+      listAllLeasesExport,
+      release: () => release?.(),
+    };
+  }
+
+  it("an approval read joins the soft-TTL revalidation it starts and returns that generation", async () => {
+    const context = {};
+    const { reader, listAllLeasesExport, release } = admittedGatedReader(context);
+    const first = await readLiveLeaseSnapshotForAdmission(reader, 1_000, context, KEY);
+    expect(first.snapshot.readAtMs).toBe(1_000);
+
+    let settled = false;
+    const approval = readLiveLeaseSnapshotForAdmission(
+      reader,
+      STALE_AT,
+      context,
+      KEY,
+      0,
+      {
+        joinRevalidation: true,
+      },
+    ).finally(() => {
+      settled = true;
+    });
+    await flushAsync();
+    // The revalidation's admission has raised the notice floor; the stale generation is not served.
+    expect(listAllLeasesExport).toHaveBeenCalledTimes(2);
+    expect(settled).toBe(false);
+
+    release();
+    const served = await approval;
+    expect(served.snapshot.readAtMs).toBe(STALE_AT);
+    expect(served.snapshot.views[0].leaseID).toBe(2);
+    expect(served.currency.state).toBe("fresh");
+  });
+
+  it("a display read keeps stale-while-revalidate and returns the prior generation at once", async () => {
+    const context = {};
+    const { reader, listAllLeasesExport, release } = admittedGatedReader(context);
+    await readLiveLeaseSnapshotForAdmission(reader, 1_000, context, KEY);
+
+    const served = await readLiveLeaseSnapshotForAdmission(
+      reader,
+      STALE_AT,
+      context,
+      KEY,
+    );
+    expect(served.snapshot.readAtMs).toBe(1_000);
+    expect(served.currency.state).toBe("stale");
+    expect(listAllLeasesExport).toHaveBeenCalledTimes(2);
+    release();
+    await flushAsync();
   });
 });
