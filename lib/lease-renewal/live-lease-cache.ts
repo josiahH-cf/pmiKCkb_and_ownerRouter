@@ -281,6 +281,32 @@ export async function getLiveLeaseSnapshot(
   }
 }
 
+/**
+ * Start the background revalidation of a STALE generation through a plain reader, and report
+ * whether a read started. An admitted refresh raises every notice marker's read floor before it
+ * reads, so a desk or workspace read that arrives while it runs refuses the current admitted
+ * generation and waits the full provider read. A display-only caller (the Dashboard attention
+ * queue) therefore starts the revalidation itself without admission: later admitted callers see
+ * the refresh in flight, keep the current admitted generation and open no admission of their own.
+ * The plain generation it lands is never accepted as admitted, so admitted callers still read for
+ * themselves afterwards. A cold, fresh, expired, invalidated, refreshing or backed-off cache, and
+ * any admitted reader, are left to the normal read path.
+ */
+export function revalidateStaleLiveLeaseSnapshot(
+  reader: LeaseExportReader,
+  nowMs: number,
+  ttlMs: number = LEASE_EXPORT_TTL_MS,
+  maxAgeMs: number = LEASE_EXPORT_MAX_AGE_MS,
+): boolean {
+  if (typeof reader.beforeLeaseSourceRead === "function") return false;
+  if (!entry || entry.invalidated || inflight) return false;
+  if (failure !== null && nowMs < failure.nextRetryAtMs) return false;
+  if (classifyLeaseDataAge(entry.snapshot.readAtMs, nowMs, ttlMs, maxAgeMs) !== "stale")
+    return false;
+  readOnce(reader, nowMs).catch(() => {});
+  return true;
+}
+
 /** The cached live read (views + completeness). Kept for callers that need no currency detail. */
 export interface LiveLeaseRead {
   views: RawLease[];
