@@ -20,7 +20,10 @@ import {
 import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
 import { createPendingRequestTracker } from "../helpers/pending-requests";
 import { runAfterImmediateSourceDrain } from "../helpers/immediate-source-drain";
-import { clearLiveLeaseCache } from "@/lib/lease-renewal/live-lease-cache";
+import {
+  clearLiveLeaseCache,
+  invalidateLiveLeaseCache,
+} from "@/lib/lease-renewal/live-lease-cache";
 import { clearLeaseStatusTableCache } from "@/lib/lease-renewal/lease-status-table";
 import type { SheetWritebackWriter } from "@/lib/lease-renewal/sheet-writeback/execution-service";
 import type { FreshOperatingSheetLeaseContext } from "@/lib/lease-renewal/sheet-writeback/workspace-resolution";
@@ -3181,9 +3184,31 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           { timeout: 10_000 },
         );
         mounted.unmount();
+        // S124 binds each admitted lease generation to the reviewed draft audience, and an
+        // approval read admits a new generation once the 60 s soft TTL has passed. Admit that
+        // generation here, so the re-review and the draft below share one generation however
+        // long this journey has run under load, instead of racing the soft TTL.
+        await settleJourneyRequests();
+        invalidateLiveLeaseCache();
         mounted = await mountCurrent();
         const resumed = within(
           screen.getByRole("region", { name: "Tenant offer and response" }),
+        );
+        // Saved edits survive the reload; the new source generation asks for another review.
+        await resumed.findByText(/Preparation needs review/, {}, { timeout: 10_000 });
+        expect(
+          resumed.getByLabelText("Response request (optional wording edit)"),
+        ).toHaveValue("Please share your preferred next step.");
+        expect(
+          resumed.getByRole("button", { name: "Preview unsent Gmail draft" }),
+        ).toBeDisabled();
+        fireEvent.click(
+          resumed.getByRole("checkbox", {
+            name: "I reviewed these inputs and the current source facts for this message.",
+          }),
+        );
+        fireEvent.click(
+          resumed.getByRole("button", { name: "Save reviewed preparation" }),
         );
         await waitFor(
           () =>
@@ -3192,9 +3217,6 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             ).toBeEnabled(),
           { timeout: 10_000 },
         );
-        expect(
-          resumed.getByLabelText("Response request (optional wording edit)"),
-        ).toHaveValue("Please share your preferred next step.");
         Object.defineProperty(navigator, "clipboard", {
           configurable: true,
           value: {
