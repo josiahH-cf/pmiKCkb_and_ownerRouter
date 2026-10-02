@@ -1,6 +1,7 @@
 # Unblock packet
 
-Last reconciled: 2026-10-02 (owner unblock pass; decisions Q1–Q4 recorded below).
+Last reconciled: 2026-10-02 (owner unblock pass; decisions Q1–Q4 and the A2, A4 and A6 readbacks
+recorded below).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only the effect named in its row. No hold blocks development,
@@ -62,6 +63,13 @@ address. Dotloop then activates API access, which can take 3–5 business days (
 
 Done when the ticket shows work order 1756 linked and one completed sync.
 
+Readback 2026-10-02 (after A2 was reported done): production holds no ticket for work order
+101756, no link to work order 1756 and no synchronized message. Its maintenance tickets, links,
+prepared actions, activity and chat records are unchanged since 2026-09-02, and no execution was
+recorded that day. Redo the three steps on the production app
+(`https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`) signed in as `josiah@pmikcmetro.com`, completing
+each preview's confirmation. A local or demo app writes elsewhere and does not count.
+
 **A3. S108 preapproval import (B-MNT1).** Maintenance → Import from RentVine: **Preview RentVine
 maintenance limits**, read the "Left for manual review" notes, set **Effective from** (today unless
 you want a later date), then **Review the import** → **Record these preapprovals**. The preview
@@ -87,6 +95,10 @@ cd ~/pmi-kc-work/main && npm run auth:enroll:wsl -- --attended --account=josiah@
 Done when the command ends READY for WSL CLI and ADC. The Cloud console in a browser still asks
 for sign-in on its own schedule.
 
+Readback 2026-10-02 18:17Z: the WSL CLI refresh failed on Google's reauthentication wall while ADC
+still refreshed. A deploy needs both, so the next release waits for this command (step 4) even
+before the session exception exists.
+
 **A5. Record the notice timing basis (B-TIMING, Q2 = A).** Admin → notice timing basis: target
 **contractual lease-end date**, counting rule calendar days (target minus notice, exactly the
 threshold satisfies it), threshold **30**, and a review note naming who confirmed it and where.
@@ -101,6 +113,9 @@ cd ~/pmi-kc-work/main && npm run auth:ensure -- --need=canary --origins=https://
 
 A Chrome window opens for the sign-in. Done when the canary line reads ok for admin and the
 command ends READY. The runner never types a password, code or passkey.
+
+Readback 2026-10-02 (after A6 was reported done): the unattended, headless canary check reads the
+Admin profile signed in as Admin on the canonical origin (existing session); READY.
 
 ## External and waiting
 
