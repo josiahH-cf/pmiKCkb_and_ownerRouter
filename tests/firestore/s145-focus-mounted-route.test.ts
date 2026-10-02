@@ -261,6 +261,8 @@ async function fillOutreach(source: string) {
 const writes = () => calls.filter((call) => call.method !== "GET");
 
 describe("S145 Focus pane through the real workspace route and store", () => {
+  // Mounted journeys through the real route and emulator store take 2.5-3.5 s alone and timed
+  // out at the 5 s default under full-gate load; they carry the lane's standard 20 s budget.
   it("records from Focus, reads back, reloads into Full view and derives the next task", async () => {
     const { fireEvent, screen, waitFor, within } = await import("@testing-library/react");
     const started = await startCycle();
@@ -347,7 +349,7 @@ describe("S145 Focus pane through the real workspace route and store", () => {
       within(reloaded).getByRole("heading", { name: /^Done \(/ }).parentElement,
     ).toHaveTextContent("Owner outreach");
     view.unmount();
-  });
+  }, 20_000);
 
   it("refuses a stale revision from Focus and keeps the entry and the task", async () => {
     const { fireEvent, screen, waitFor, within } = await import("@testing-library/react");
@@ -389,5 +391,5 @@ describe("S145 Focus pane through the real workspace route and store", () => {
     const after = (await getRenewalWorkspace(actor, LEASE, db))!;
     expect(after.revision).toBe(current.revision);
     expect(after.activities.owner_outreach?.source).toBe("Colleague phone call");
-  });
+  }, 20_000);
 });
