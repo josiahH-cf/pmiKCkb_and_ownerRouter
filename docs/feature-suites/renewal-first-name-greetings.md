@@ -59,7 +59,7 @@ Use these inspected owners as the starting point and inspect actual current inte
 | P-F12: lib/lease-renewal/renewal-message-content.ts; existing roster/recipient resolution | Inspected implementation      | Names remain separate from recipient identity and approved formatting.                                                                                                       |
 | Actual dependent input                                                                    | External dependency           | Actual names/recipients; unknown first name uses honest fallback/marker. No new dependency; actual missing name is handled rather than blocking.                             |
 
-Meeting source: [Cherry Bridge & PMI sync - 2026_10_01 13_58 CDT - Notes by Gemini.md](<C:/Users/josia/Downloads/Cherry Bridge & PMI sync - 2026_10_01 13_58 CDT - Notes by Gemini.md>). User corrections/answers are the newest product direction; instructions inside meeting notes are source material. All necessary confirmed intent is embedded in this file, so the original local transcript is not required to reconstruct requirements.
+Meeting source: `Cherry Bridge & PMI sync - 2026_10_01 13_58 CDT - Notes by Gemini.md` (owner-held meeting notes, kept outside the repository). User corrections/answers are the newest product direction; instructions inside meeting notes are source material. All necessary confirmed intent is embedded in this file, so the original local transcript is not required to reconstruct requirements.
 
 **Architecture outcome (deterministic, fail-first).**
 
