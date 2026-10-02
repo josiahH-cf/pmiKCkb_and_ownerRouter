@@ -1,7 +1,7 @@
 # Unblock packet
 
 Last reconciled: 2026-10-02 (owner unblock pass; decisions Q1–Q4 and the A2, A4 and A6 readbacks
-recorded below).
+recorded below; the S113 notice-safety race is fixed and queued for release).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only the effect named in its row. No hold blocks development,
@@ -99,6 +99,10 @@ Readback 2026-10-02 18:17Z: the WSL CLI refresh failed on Google's reauthenticat
 still refreshed. A deploy needs both, so the next release waits for this command (step 4) even
 before the session exception exists.
 
+Readback 2026-10-02 19:43Z: after the owner signed in again, an unattended `auth:ensure` returned
+READY with verified token refresh for the WSL CLI and ADC, so releases proceed. The 25-hour
+fresh-shell probe follows once the session exception (steps 1–3) is in place.
+
 **A5. Record the notice timing basis (B-TIMING, Q2 = A).** Admin → notice timing basis: target
 **contractual lease-end date**, counting rule calendar days (target minus notice, exactly the
 threshold satisfies it), threshold **30**, and a review note naming who confirmed it and where.
@@ -177,13 +181,13 @@ follow-up is sent by the runner.
 
 These are engineering tasks with no owner step; none blocks a release.
 
-- **S113 notice-safety refusal.** The S113 counteroffer journey fails about 2 in 6 full gates
-  because the app shows "Notice approval safety is unavailable or source generations conflict" at
-  the draft preview. It reproduces with 30 seconds of idle time before "Preview unsent Gmail
-  draft" (61 seconds passes that step), so it is a race between a background lease refresh and the
-  preview's safety check, not a slow render. Do not pad the test's waits. Find the root cause
-  without weakening any notice-safety guard; the S113 test file is
-  `tests/firestore/s113-sheet-route.test.ts`.
+- **Message review window (owner decision candidate).** S124 binds a saved message review to the
+  admitted lease generation, and the draft preview admits a new generation once the 60 s soft TTL
+  has passed. So a preview more than 60 s after the last source read asks staff to save the review
+  again even when no source term changed. The S113 fix made that request accurate (it used to read
+  as a safety conflict). Binding reviews to the notice facts instead of the generation counter would
+  remove the extra save but relaxes the deliberate generation binding, so it stays as built unless
+  the owner decides otherwise. Draft claims keep their exact generation binding either way.
 - **Four emulator-only E2E suites.** `approval-queue`, `capture`, `process-definitions` and
   `work-accountability` fail with 409 when run with the Firestore emulator because the harness
   runs `demo` + `live_readonly`, which refuses writes by design. They run in no gate. The repair is
