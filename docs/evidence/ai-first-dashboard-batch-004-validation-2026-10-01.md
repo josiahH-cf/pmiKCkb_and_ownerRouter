@@ -156,7 +156,7 @@ stored_plan`. Through the real run route: zero model and interpreter calls and o
   records, zero candidate 5xx. Eleven readback sections, none unverified, at
   2026-10-01T19:27:07Z.
 - **Production, second run:** run `729d5716-bc5e-4e61-9932-c9107d1954f2` admitted `1402e51b4828d407f990a675f16e6a7ba47afb7b` (S149–S151). Build `a3736e14-99d5-428f-bc0c-74673f48cdc1`
-  succeeded at 2026-10-01T22:09:48.058Z. Its first recovery assurance failed on a cold first render (a read-only diagnostic canary on the new clone first reached the Dashboard's 30-second bound, then a warm pass rendered all 13 routes) and the same-run resume passed; the smoke, configuration, domains and candidate assurance passed first time, and the observation passed at 419,630 ms, 0.37 s inside the 420,000 ms evidence deadline. Before it, run `0aa79bfe-784c-47d2-915a-0cbf0b2032be` carried the same code at `19d4590a` (build `6103f767-8a80-4a02-865a-1f6bea8fa9d2`): after cold-start resumes at recovery assurance and at the candidate smoke (one 504 at the 60-second request timeout), it promoted at about 21:12Z, and its observation's final checkpoint could not finish the reconciliation and runtime readback before the deadline (13-route canary 114.8 s, all 2xx, zero candidate 5xx). It rolled back to `pmi-kc-app-recovery-0aa79bfe784c47d2` and the watcher verified the rollback after a passing read-only canary. PR #116 recorded the failure; the checkpoint was archived byte-for-byte as superseded by `1402e51b`, and the unused admitted run `c238e7e0` (nothing dispatched) was preserved. Candidate receipt `0917204b-1fb4-4e62-8989-f97273ef9e8e` issued
+  succeeded at 2026-10-01T22:09:48.058Z. Its first recovery assurance failed on a cold first render (a read-only diagnostic canary on the new clone first reached the Dashboard's 30-second bound, then a warm pass rendered all 13 routes) and the same-run resume passed; the smoke, configuration, domains and candidate assurance passed first time, and the observation passed at 419,630 ms, 0.37 s inside the 420,000 ms evidence deadline. Before it, run `0aa79bfe-784c-47d2-915a-0cbf0b2032be` carried the same code at `19d4590a` (build `6103f767-8a80-4a02-865a-1f6bea8fa9d2`): after cold-start resumes at recovery assurance and at the candidate smoke (one 504 at the 60-second request timeout), it promoted at about 21:12Z, and its observation's final checkpoint could not finish the reconciliation and runtime readback before the deadline (13-route canary 114.8 s, all 2xx, zero candidate 5xx). It rolled back to `pmi-kc-app-recovery-0aa79bfe784c47d2` and the watcher verified the rollback after a passing read-only canary. PR #116 recorded the failure; the checkpoint was archived byte-for-byte as superseded by `1402e51b`, and the unused admitted run `c238e7e0` (nothing dispatched) was preserved. Before that, a permit prepared for the rolled-back `19d4590a` (run `2b6e6fc8`) was refused at preflight because the watcher blocks a rolled-back SHA; nothing was admitted or dispatched, and the next `--prepare` (run `c238e7e0`, for `1402e51b`) replaced it. Candidate receipt `0917204b-1fb4-4e62-8989-f97273ef9e8e` issued
   2026-10-01T22:14:46.913Z; promotion verified 2026-10-01T22:15:27.458Z; observation two checkpoints in 419,630 ms,
   312 of 312 records, zero candidate 5xx. Eleven readback sections, none
   unverified, at 2026-10-01T22:22:18Z: canonical and tagged `/api/version` name `1402e51b4828d407f990a675f16e6a7ba47afb7b` / `pmi-kc-app-rmuq2qvcc-8074bfd97707`; 100%
@@ -208,7 +208,9 @@ two release runs' readbacks and the owner's bounded live check (2026-10-01).
   and `50801b7b`. Each PR merged at its gated head with `--match-head-commit`: #111 `87d6fd7c`,
   #112 `0367bb5e`, #113 `ea9fdb43`, #115 `d5b6967b`, and docs-only #114 `de36d59f` and #116
   `50801b7b` (the rollback record). This map's docs-only records PR merges the same way after
-  the docs gates and exact CI. Gap: none.
+  the docs gates and exact CI. Independent verification (2026-10-02): the docs-only heads #114,
+  #116 and #117 merged after the docs gates and exact CI, not the full gate named in AF-09; the
+  full gate then passed on each exact head (AF-09). Gap: none.
 - **AF-02** Yes · Production. Canonical traffic is 100% on `pmi-kc-app-rmuq2qvcc-8074bfd97707`; canonical and tagged `/api/version` name `1402e51b4828d407f990a675f16e6a7ba47afb7b` (PR #116's docs-only rollback record on top of PR #115's `19d4590a`), which descends from every batch 004 code merge; candidate receipt `0917204b-1fb4-4e62-8989-f97273ef9e8e`. The docs-only records PR does not deploy. Gap: none.
 - **AF-03** Yes · Production. Interim run 98f7e743 and run 729d5716 each passed candidate assurance, receipt-bound promotion and observation (two checkpoints; 414,515 ms and 419,630 ms against the 420,000 ms evidence deadline; all records matched); eleven readback sections matched with none unverified (19:27:07Z and 2026-10-01T22:22:18Z); the bounded live check passed on the exact serving revision. Between them, run 0aa79bfe carried the same code and rolled back verified when its observation could not finish inside that deadline. Gap: none.
 - **AF-04** Yes · Unit; full gate. The one correction after a slice landed (the rehearsal's
@@ -235,7 +237,11 @@ two release runs' readbacks and the owner's bounded live check (2026-10-01).
   (18:27–18:42), `d5b6967b` (20:24–20:37); logs in `~/pmi-kc-work/logs/b004-*`. On `b7bf7b14` and
   on `d5b6967b` the first run failed one pre-existing backend-lane test (an S113 journey, then an
   S145 Focus journey at 5,328 ms against the 5,000 ms default) and one unchanged rerun of the full
-  gate passed; `b7bf7b14` and `6cafaecb` were superseded before merge. Gap: none.
+  gate passed; `b7bf7b14` and `6cafaecb` were superseded before merge. The docs-only merge heads
+  `de36d59f` (#114), `50801b7b` (#116) and `2316dbb7` (#117) merged after the docs gates and exact
+  CI only; independent verification then ran the full gate on each exact commit on 2026-10-02
+  (logs `~/pmi-kc-work/logs/v004-g-*`) and each passed (`2316dbb7` on its third run; the first two failed only the pre-existing S113 counteroffer journey listed under Unverified seams). Their trees are those
+  of the released `2b53c5d5` and `1402e51b` and of the final `6c2d48ed`. Gap: none.
 - **AF-10** Yes · Release checkout. `npm run verify:dependencies` passed (0 vulnerabilities) on
   `2b53c5d5` at admission of run 98f7e743, on `19d4590a` at admission of run 0aa79bfe, on
   `1402e51b` at admission of run 729d5716, and on the final `main`. Gap: none.
@@ -256,7 +262,10 @@ two release runs' readbacks and the owner's bounded live check (2026-10-01).
 
 - **AF-14** Yes · Unit; compiled browser. The composer is first and answers render below it in
   order (`AC-S146-1` tests); the browser smoke saw the question box before any turn and answers
-  below it at 1360 px and 390 px, on both sides of the 760 px breakpoint. Gap: none.
+  below it at 1360 px and 390 px, on both sides of the 760 px breakpoint. Independent
+  verification found that the smoke check of that name tests only the answered state and that
+  its 390 px pass measures overflow only; a direct Chromium measurement on 2026-10-02 confirmed
+  the position at 1360, 761, 759 and 390 px (Independent verification). Gap: none.
 - **AF-15** Yes · Unit; E2E. The captured request body holds only `question`, `conversation` and
   `operationId`; the real route answers it through the harness server. Gap: none.
 - **AF-16** Yes · Unit. No process picker, suggestion, detection or run start on the Dashboard;
@@ -409,6 +418,62 @@ two release runs' readbacks and the owner's bounded live check (2026-10-01).
   pass unchanged; verification-account sessions write no history (403 and no documents). Gap:
   none.
 
+## Independent verification — 2026-10-02
+
+A separate pass re-derived the run's claims from Git, CI, receipts, Cloud Run, Cloud Logging and
+the tests, and repaired what it found. It asked no live question (the run used four of the owner's
+five) and wrote nothing in production.
+
+- **Git and CI.** Every slice and fix commit descends from `origin/main`, and each PR merged at its
+  reviewed head (the merge commit's second parent). PR CI is green on every merged head, and push CI on
+  the released `2b53c5d5` and `1402e51b`. The four code heads' full-gate logs show `verify_exit=0`
+  and `e2e_exit=0` (the S151 head after one rerun) with a zero-finding production audit. The
+  docs-only heads (#114 `de36d59f`, #116 `50801b7b`, #117 `2316dbb7`) had merged on the docs gates
+  and exact CI only; the full gate then passed on each exact commit (`2316dbb7` on its third run; the first two failed only the pre-existing S113 counteroffer journey listed under Unverified seams). Their trees
+  equal the released `2b53c5d5` and `1402e51b` and the final `6c2d48ed`.
+- **Production.** Readbacks at 2026-10-02T08:12:25Z matched in every section with none unverified:
+  `1402e51b` / `pmi-kc-app-rmuq2qvcc-8074bfd97707` at 100%, Production/Live, Demo=false,
+  Sheet=false, the managed identity, eleven Space maps, four secret bindings, the reviewed
+  fingerprint and exactly one candidate domain. The checkpoint is `complete`, the permit is
+  `consumed`, the revision's maximum scale is 1, and the captured predecessor
+  `pmi-kc-app-recovery-0aa79bfe784c47d2` serves `2b53c5d5` with Sheet=false. A read-only watcher
+  dry run reports `documentation_only` for `6c2d48ed`.
+- **Live check from Cloud Logging** (bodyless lines and request logs, 2026-10-01T16:50Z to
+  2026-10-02T08:15Z, counts only). In the live check's 22:20Z window the headless owner profile
+  posted 4 questions and the service logged exactly 4 `assistant.interpret` model calls, 4 history
+  begins and 4 finishes, 1 reopen, 1 save, 2 pin changes and 1 `stored_plan` run, with no further
+  model call. Apart from 4 session sign-ins, no other headless request in the window wrote
+  anything. Four other Dashboard questions (19:00Z to 20:10Z) and ordinary renewal-desk actions came
+  from an ordinary browser, that is, people using the app, not run tooling.
+- **Behaviour on the final tree.** `tests/e2e/ai-history.e2e.test.mjs` passed with the emulator (4
+  passed; the no-emulator case skipped) and the S151 browser smoke passed 28 of 28 checks. A direct
+  Chromium measurement on the harness (an uncommitted script) found both answers below the question
+  box, in its column and in order, with no side panel or overflow, at 1360, 761, 759 and 390 px; the
+  history column sits beside the main column at 761 px and below it at 759 px.
+- **One falsification per suite** at `6c2d48ed`, each run clean, then mutated, then reverted:
+
+  | Suite | Mutation                                       | Cited test                                          | Clean     | Mutated  |
+  | ----- | ---------------------------------------------- | --------------------------------------------------- | --------- | -------- |
+  | S146  | the question request carries `process_id`      | `tests/unit/s146-ai-first-dashboard.test.tsx`       | 8 passed  | 2 failed |
+  | S147  | every failed attention feed reads as all clear | `tests/unit/s147-attention-queue.test.ts`           | 8 passed  | 2 failed |
+  | S148  | a later failure overwrites a completed turn    | `tests/firestore/s148-assistant-history.test.ts`    | 15 passed | 1 failed |
+  | S148  | the owner key and owner checks are removed     | `tests/firestore/s148-assistant-history.test.ts`    | 15 passed | 1 failed |
+  | S149  | a repeated pin is no longer a no-op            | `tests/firestore/s149-s150-saved-questions.test.ts` | 12 passed | 1 failed |
+  | S150  | running a saved question asks the model again  | `tests/firestore/s149-s150-saved-questions.test.ts` | 12 passed | 3 failed |
+  | S151  | the live check allows a sixth question         | `tests/unit/s151-live-check.test.ts`                | 11 passed | 2 failed |
+
+- **Records corrected.** Four summary lines said no traffic rollback occurred; run 0aa79bfe's
+  verified rollback now appears beside them. The refused permit for `19d4590a` (run `2b6e6fc8`) is
+  recorded above. The B-AUTH2 records said the probe was running; it stopped at its first failure
+  16.06 hours after enrollment, and the owner re-enrolled WSL CLI/ADC on 2026-10-02.
+- **S33 live target.** Removing the Dashboard's process step also removed S33's process-driven
+  live-target affordance: three S33 AskForm tests were replaced by an S146 assertion that no
+  live-target read is sent. `/api/ask/live-target` remains, with no caller in the application.
+- **Outside batch 004.** With the emulator, the whole E2E suite also fails 13 tests in four
+  write-flow files (approval queue, capture, process definitions, work accountability): the
+  Live-read-only harness refuses their writes (409). Neither those files nor the harness changed in
+  batch 004, and `test:e2e:core` skips them; a separate task covers them.
+
 ## Unverified seams
 
 - Cross-instance duplicate delivery: the in-flight join is per instance, and production runs one
@@ -421,7 +486,11 @@ two release runs' readbacks and the owner's bounded live check (2026-10-01).
   step) on `b7bf7b14`, and the S145 Focus journey (`tests/firestore/s145-focus-mounted-route.test.ts`,
   5,328 ms against vitest's 5,000 ms default; 3,094–4,736 ms in the seven other runs) on
   `d5b6967b`. Neither file nor the code it runs is touched by batch 004, both passed in CI, and
-  both are flagged for a separate fix outside this batch.
+  both are flagged for a separate fix outside this batch. Independent verification saw the S113
+  journey fail twice more on `2316dbb7` (2026-10-02), both times at the default-timeout wait for
+  the creation confirmation after the draft preview (line 3215; line 3231 the first time). The
+  file passed 27 of 27 alone on that commit, and the third full gate passed. Every backend file
+  uses its own emulator project, so batch 004's new files cannot clear its data.
 - The knowledge answer (`/api/ask`) inside the live check: the check's guard refuses it, so live
   knowledge generation is covered only by tests and earlier evidence.
 - Record-level parity on live data: the live check reports answers by structure only, so no
@@ -433,4 +502,6 @@ two release runs' readbacks and the owner's bounded live check (2026-10-01).
   and notifications, all reading live sources, so it leaves little room for the reconciliation
   and runtime readback. These routes were as slow before batch 004. Changing the deadline or the
   canary needs an owner decision; speeding up those routes is outside this batch.
+- Live inline approval (AF-30): not exercised, because it would be a business write; the server
+  re-check and the queue refresh are covered by unit tests.
 - Human usability, screen reader and full-page zoom verdicts: NOT RUN.

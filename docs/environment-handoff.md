@@ -403,7 +403,8 @@ fingerprint `sha256:db9cd99a413a89550eae17e13bf74886b27bf90093df355643f9a7f07b39
 `sha256:7b84b34c03cb0576c06559cccfa2b9ac233c9fc7498e98cbc10dc485560e5ae8`. The receipt binds original image/configuration, the sole
 allowed Sheet pause, target identity and preparation assurance to run `729d5716-bc5e-4e61-9932-c9107d1954f2`.
 Forward restoration and rollback require fresh actual state and the exact receipt-bound
-contract. No traffic rollback occurred in the completed batch. A receipt never transfers to
+contract. Run 729d5716 needed no traffic rollback; batch 004's earlier run 0aa79bfe rolled back
+verified to its run-bound recovery target. A receipt never transfers to
 another run, and historical Sheet-enabled revisions are not current restoration targets.
 
 Historical recovery coordinates remain provenance only. The prior S113 release captured
