@@ -120,22 +120,15 @@ in the shared batch audit. Earlier failed attempts remain failed in immutable ev
 
 ## Remaining operational dependencies
 
-B-DL1, B-DL2, B-DL3, B-S100, B-MNT1 and B-AUTH2 remain open at their exact external or human
-boundaries; B-MNT2 closed by owner decision on 2026-10-01. The 2026-10-01 owner unblock pass reduced
-the other holds to the owner steps in `docs/open-blockers.md`; the S108 RentVine maintenance-limit
-import (`82e49596`) is released (run `98f7e743`) and awaits one Admin confirmation. Actual
-customer draft/form accuracy, approved notice-timing
-basis, Rhino wording/applicability, selected real cases, observed walkthroughs, human screen-reader
-and desktop full-page zoom verdicts remain unverified. Both Dotloop keys stay closed; signatures and
-provider acceptance remain separate. S36 stays behind complete S100. S121 was excluded. Historical K
-unit-store target/marker effects remain UNVERIFIED; absent Data Access logs do not prove zero
-effects. No customer draft/send, paid comparison, provider-proof rerun or synthetic production
-record was authorized for this release. Batch 004's human usability, screen-reader and zoom
-verdicts are NOT RUN; live knowledge answers were outside its bounded live check. Release
-observation now has little margin: run 729d5716 passed 0.37 s inside the fixed 420 s evidence
-deadline and run 0aa79bfe missed it, because live-source routes take 16–22 s each; changing
-the deadline or the canary is an owner decision.
+External and human holds (Dotloop B-DL1–B-DL3, B-S100, B-MNT1, B-AUTH2, the notice-timing
+basis, the release Admin browser sign-in and human verdicts) are listed once, with their exact
+owner steps and runner follow-ups, in `docs/open-blockers.md`. Each blocks only its named effect;
+none blocks development, tests, merges or releases.
+Historical K unit-store target/marker effects remain UNVERIFIED; absent Data Access logs do not
+prove zero effects. S121 was excluded.
 
-The completed corrective permit and the permits of runs `ab803f8a`, `98f7e743` and `729d5716` are
-consumed; the Awaiting release queue is empty. No original receipt, completed permit or build
-claim is reused.
+The permits of runs `ab803f8a`, `98f7e743` and `729d5716` are consumed. Run `175fee1d` rolled back
+verified on 2026-10-02 (promotion routing skew; see docs/loop-state.md) and its permit is archived
+as superseded; the Awaiting release queue holds batch 004's corrective repair (S147 read order,
+S151 smoke) for its replacement run. No original receipt, completed permit or build claim is
+reused.

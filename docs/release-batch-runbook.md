@@ -251,6 +251,6 @@ Each phase advances only on independent readback:
    document gates; commit/push documentation-only closure. It must not trigger another deployment.
 
 The combined request 001 and batch 002 + 003 release is complete. The retained procedure does not reopen its queue or
-renew permission. Failed predecessors retain their exact reports and claims. B-DL1, B-DL2, B-DL3,
-B-S100, B-MNT1 and B-AUTH2 retain their scoped external or human holds (B-MNT2 closed 2026-10-01); they do not alter
-the completed implementation/release verdict.
+renew permission. Failed predecessors retain their exact reports and claims. External and human
+holds live in `docs/open-blockers.md`; they do not alter the completed implementation or release
+verdict.

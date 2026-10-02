@@ -1,135 +1,152 @@
-# Open blockers
+# Unblock packet
 
-Last reconciled: 2026-10-01 (owner unblock pass); B-MNT2 added 2026-09-20 and closed 2026-10-01.
-Read after `docs/loop-state.md`. Each hold names its owner and the readback needed to close it. Work
-independent of a hold continues; no substitute value is invented.
+Last reconciled: 2026-10-02 (owner unblock pass; decisions Q1–Q4 recorded below).
 
-| Id      | Blocks                                                    | Owner                           | Exact item to bring back                                                                                                                                                                                                                                                                                                             | Completion evidence                                                                                                                 |
-| ------- | --------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| B-AUTH2 | Separate authentication longevity                         | release operator                | Complete the unchanged-enrollment 24-hour elapsed-session proof. The fresh-shell CLI/ADC probe of the 2026-10-01T08:24:48Z enrollment passed every 15 minutes through 15.81 hours and stopped at its first failure at 16.06 hours, when refresh was refused for reauthentication; on 2026-09-16 the refusal came at about 8.8 hours. | S113 CLI/ADC, Admin browser assurance, promotion and observation passed; longevity is not implied by those gates.                   |
-| B-DL1   | S106 live readiness and S34 live provider work            | owner, then Dotloop API Support | Dotloop approved V2 API access on 2026-09-10. Owner: create the dedicated Dotloop integration account on a company role address and reply-all on the approval thread; after activation create the sandbox and production API clients and store the production client secret with the V-DL command.                                   | Bound credentials exist and runtime configuration readback names no missing credential.                                             |
-| B-DL2   | S106 live readiness and S34 live provider work            | owner                           | Connect the managed Dotloop account; choose a verified office profile, renewal template, transaction type, and initial status.                                                                                                                                                                                                       | Profile/resource probes and selected-resource readback report ready; this does not open action keys.                                |
-| B-DL3   | S34 approved artifact content and packet workflow binding | owner                           | Approved blank-form location and coverage of all seven artifact families, listed below.                                                                                                                                                                                                                                              | Each family resolves to approved content and a verified participant/field mapping; no invented legal form.                          |
-| B-S100  | Resident-reply draft proof and S36                        | owner                           | Owner chose RentVine work order 101756 (API id 1756) on 2026-10-01 and confirmed its resident email. Owner creates its app ticket, links id 1756 and runs one manual sync; the agent then verifies the mapping before the proof window.                                                                                              | Exact link and synchronization resolve an eligible message; then bounded draft proof, close/readback, and separate activation pass. |
-| B-MNT1  | S108 live preapproval routing proof                       | owner                           | Owner chose RentVine's per-property maintenance limits on 2026-10-01 (30 of 121 active properties). The Admin import (`82e49596`) is released (run `98f7e743`); an Admin previews it and confirms once.                                                                                                                              | Admin-confirmed property preapproval reads back with amount/effective date and applies to verified evidence.                        |
+This is the one record of what the application waits on outside the code, and exactly how to
+clear each item. Every hold blocks only the effect named in its row. No hold blocks development,
+tests, merges, releases or another suite, so unattended runs do not read this file unless their task
+exercises a listed effect or the owner reports a step done. When the owner reports a step, the run
+performs that row's follow-up, records the readback here and removes the row. Never invent a
+substitute value, identifier, credential or human verdict to clear a hold.
 
-## Owner unblock pass — October 1
+## Holds at a glance
 
-The owner asked to unblock every hold on 2026-10-01. Read-only evidence first reduced each ask to
-one decision or one owner step; the decisions below are recorded as given.
+| Id        | Blocks only                                                         | Owner step                                  | Then the runner                                                                 |
+| --------- | ------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------- |
+| B-AUTH2   | Unattended local sessions longer than about 16 hours                | A4: session exception, then re-enroll WSL   | Runs the fresh-shell CLI/ADC probe to 25 hours and records the result           |
+| B-MNT1    | Preapproval-based maintenance routing (S108)                        | A3: preview and confirm the RentVine import | Reads back the recorded preapprovals and their effective date                   |
+| B-S100    | The resident-reply draft key, so S100 and then S36 completion       | A2: ticket, link work order 1756, one sync  | Verifies the resident mapping read-only, then runs the bounded draft proof (Q3) |
+| B-TIMING  | Approved 30-day notice classifications (they read Cannot determine) | A5: record the decided basis in Admin       | Reads back the saved basis version                                              |
+| B-DL1     | Dotloop credentials (S106 readiness, S34 provider work)             | A1: integration account, reply-all          | After activation and the V-DL secret command, binds and verifies the client     |
+| B-DL2     | The Dotloop connection and its selected resources                   | After B-DL1: connect and select resources   | Reads back profile/template readiness; both Dotloop keys stay closed            |
+| B-DL3     | Approved Dotloop form content for seven artifact families           | After B-DL2: confirm a template per family  | Verifies each family's mapping; no invented legal form                          |
+| B-BROWSER | Release assurance, only when Google signs the Admin profile out     | A6: sign the Admin profile back in          | Recollects prerequisites and continues the release                              |
+| B-HUMAN   | Human verdicts and real-case accuracy claims only                   | E2: observed sessions and real material     | Records each verdict with its evidence; nothing is inferred from tests          |
 
-- **B-DL1.** Dotloop approved V2 API access for PMI KC on 2026-09-10 (owner-supplied email, not in
-  Git). Dotloop's next steps: create a free Dotloop account dedicated to the integration on a
-  generic, company-owned role address, as Dotloop asks, reply-all on the
-  approval thread with that address, wait for API activation (Dotloop allows up to 3–5 business
-  days), then create one sandbox and one production API client with PMI KC's company details and
-  reply to Dotloop API Support so it completes each client's configuration. Each client uses the
-  redirect URI `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/connections/dotloop/callback` and the
-  scopes `account:read`, `profile:read`, `loop:read`, `loop:write` and `template:read`.
-- **B-MNT1.** RentVine stores `maintenanceLimitAmount` per property. A count-only read on 2026-10-01
-  found 121 active properties, 30 with a positive limit and 15 with maintenance notes (8 of them
-  with a limit). The owner chose to import those limits. The Admin import (S108 amendment,
-  `82e49596`) is released (run `98f7e743`); an Admin previews it, reads the flagged notes and
-  confirms once.
-- **B-S100.** The owner chose RentVine work order 101756 (API id 1756, status Requested, resident
-  messages present, never a proof target) and confirmed its resident email. Production holds one
-  maintenance ticket and one work-order link, neither for id 1756. Owner steps in Maintenance:
-  create the app ticket for this issue with its verified unit, use **Link an existing work order**
-  with id `1756` (not Create work order), confirm the preview, then run **Sync resident messages**
-  once and confirm its read-marker warning. The agent then verifies the synchronized resident
-  mapping and email read-only before the bounded `gmail.maintenance_resident_reply.draft_create`
-  proof window, which creates one unsent draft for owner review, followed by close/readback and
-  separate activation.
-- **B-AUTH2.** A detached probe ran the approved unattended CLI/ADC check every 15 minutes in a
-  fresh shell against the 2026-10-01T08:24:48Z enrollment. It passed through 15.81 hours and
-  stopped at its first failure at 16.06 hours (2026-10-02T00:28:26Z), when Google refused the CLI
-  and ADC refresh for reauthentication. The owner decides between a Google Workspace
-  session-control change for the CLI/ADC clients and accepting the shorter session in the release
-  contract. The owner re-enrolled WSL CLI/ADC on 2026-10-02. The runner changes no session policy.
-- **B-DL2 and B-DL3** follow B-DL1. Proposed default for B-DL3: after the connection, the app's
-  loop-template discovery lists PMI KC's existing Dotloop templates, and the owner confirms which
-  template carries each of the seven artifact families instead of locating blank forms separately.
+## Owner decisions
 
-## Closed decision item: B-MNT2
+Recorded on 2026-10-02 (`accept all recommendations`):
 
-The meeting notes' "Rue" is Vendoroo's AI agent ("ROO"). On 2026-10-01 the owner chose RentVine as
-the shared record: Vendoroo's native RentVine integration writes its work-order updates and messages
-into RentVine, which the app already reads. No direct connector is built and nothing is requested
-from Vendoroo. A count-only read on 2026-10-01 found no Vendoroo text in 500 recent work orders or
-120 recent chats, so its RentVine connection is not yet active. The S133 packet's other handoff
-options stay available if the owner later wants a direct interface.
+- **Q1 = A (B-AUTH2).** Exempt only the Google Cloud CLI and ADC clients, for
+  `josiah@pmikcmetro.com` only: an account-scoped Google Cloud session-control exception, then a
+  fresh WSL enrollment (A4). Google's default Cloud session length is 16 hours and admins can set
+  1–24 hours, so only the trusted-app exemption lets the 25-hour proof pass.
+- **Q2 = A (B-TIMING, S125).** The 30-day notice counts to the contractual lease-end date, in
+  calendar days from the notice date (target minus notice), with a 30-day threshold that exactly 30
+  meets. An Admin records it (A5); the runner never records policy.
+- **Q3 = A (B-S100).** After A2, the runner verifies the synchronized resident mapping and email
+  read-only, releases the bounded proof window for `gmail.maintenance_resident_reply.draft_create`,
+  the owner confirms one unsent reply draft in the app, and the runner closes the window and reads
+  it back. Final activation waits until the owner approves that draft.
+- **Q4 = A (repository).** The S152–S167 intake that another session authored uncommitted in the
+  Windows checkout is parked unchanged on that checkout's local branch `intake/s152-s167`
+  (`ac2a12bc`, 20 files, not pushed). It merges with `main` before anyone executes it.
 
-## B-AUTH2: separate longevity proof
+Earlier decisions stand: RentVine's per-property maintenance limits are the S108 source (B-MNT1,
+2026-10-01); RentVine work order 101756 (API id 1756) is the S100 target; B-MNT2 closed with
+Vendoroo's agent writing into RentVine and no direct connector.
 
-S113 release authentication and Admin assurance passed on both exact origins using the approved
-existing owner account/profile. Editor is not_run under explicit owner direction; backend role
-restrictions remain. No account, IAM, claim or store location changed. The separate 24-hour unchanged-enrollment
-longevity proof remains unverified and does not reopen completed S113 release acceptance.
+## Owner steps
 
-## Closed implementation item: B-FLOW1
+**A1. Dotloop integration account (B-DL1).** Create a free Dotloop account on a company-owned role
+address, not a person's mailbox. Reply-all on Dotloop's 2026-09-10 approval thread with that
+address. Dotloop then activates API access, which can take 3–5 business days (E1 continues).
 
-The complete audited manual journey and normal packet handoffs are implemented and deployed.
-Fresh and underway mounted backend journeys persist actual activity/cycles and owning desk readback.
-All 33 S113 review findings, all seven compiled checks and exact production release gates passed.
-Staff reports remain distinct from provider receipts. Normal S106/S34 preparation, approval, exact
-S21 bytes, S20 execution and own-receipt recovery passed deterministic adapter acceptance.
-Actual forms/catalog, connection and closed-key activation remain B-DL1/B-DL2/B-DL3, localized to
-dependent document effects. Blank labeled resource fields do not block manual work.
+**A2. S100 ticket, link and sync (B-S100).** In the app's Maintenance area, signed in as yourself:
 
-## Closed verification item: B-GOLD1
+1. Create the app ticket for work order 101756, with its verified unit.
+2. Choose **Link an existing work order** (not Create work order), enter id `1756` and confirm the
+   preview.
+3. Run **Sync resident messages** once and confirm its warning. The provider marks the retrieved
+   manager messages read and cannot undo that.
 
-On 2026-09-08, live Sheet values/formulas/link metadata and the exact RentVine lease readback did
-not establish the historical source association underlying one expected rent-conflict label.
-The owner reviewed the private evidence and explicitly approved removing that one expectation.
-The original capture and worksheet are preserved privately, all source values and the remaining
-label are unchanged, and every test assertion and ambiguous-name refusal remains intact.
-The golden harness passes 4/4 and the corrected full native unit suite passes 6,360 tests with four
-skipped. B-GOLD1 is closed and is not a Wednesday client ask.
+Done when the ticket shows work order 1756 linked and one completed sync.
 
-## Closed verification item: B-REH1
+**A3. S108 preapproval import (B-MNT1).** Maintenance → Import from RentVine: **Preview RentVine
+maintenance limits**, read the "Left for manual review" notes, set **Effective from** (today unless
+you want a later date), then **Review the import** → **Record these preapprovals**. The preview
+covered 30 of 121 active properties on 2026-10-01; the records are app-owned and correctable.
 
-All seven applicable compiled browser checks pass on the explicit native Node 22 Demo + Live-read-only
-runtime. The final R29 desk passes its full source cohort, sorting/filtering, inspection-only refusal,
-active dashboard/sections, term parity, exact return/Back, keyboard/targets and layout budgets. The
-42-step guide also passes. Source freshness and deadlines were not relaxed. B-REH1 is closed for
-local walkthrough acceptance; exact candidate assurance remains a separate mandatory release gate.
+**A4. Google Cloud session exception and re-enrollment (B-AUTH2, Q1 = A).** As a super admin in
+admin.google.com:
 
-## Wednesday inputs
+1. Directory → Organizational units: create a child of your current unit (for example "Release
+   automation") and move `josiah@pmikcmetro.com` into it.
+2. Security → Access and data control → API controls → Manage third-party app access: mark
+   **Google Cloud SDK** (`32555940559.apps.googleusercontent.com`) and **Google Auth Library**
+   (`764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com`) Trusted for that unit.
+3. Security → Access and data control → Google Cloud session control: select that unit, choose
+   Override, keep Require reauthentication, tick **Exempt Trusted apps**, save. Changes usually
+   apply within minutes and can take up to 24 hours.
+4. When no release is running, re-enroll in WSL:
 
-B-DL3 needs approved blank forms for standard lease, renewal extension, animal agreement,
-lead-based-paint disclosure, city addendum, HOA artifact, and owner acknowledgment. Bring a location
-and each file's coverage, publication version and approved field/participant/signature mappings.
-Approved catalog entries and participant/field mappings remain required inputs. Exact active S21
-bytes and the normal packet workflow are implemented/deployed. S106 provider revoke/readback and
-interrupted-refresh quarantine are deployed; ambiguous token outcomes remain explicit recovery holds. Credential arrival alone
-does not complete the packet workflow or authorize either closed Dotloop key.
+```bash
+cd ~/pmi-kc-work/main && npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com
+```
 
-B-S100 needs a maintenance work order, not a lease. The readiness slice implements the app-owned
-preview/confirmed existing-work-order link in production; no new live link proof was run. Imported links cannot fabricate provider creation receipts or correction authority.
-The resident-draft key remains closed. Completed proof targets must not be reused.
+Done when the command ends READY for WSL CLI and ADC. The Cloud console in a browser still asks
+for sign-in on its own schedule.
 
-B-MNT1 needs exact property identity as well as amount and effective date. Missing, conflicting,
-not-yet-effective, or unmatched evidence never grants preapproval. The new optional ticket property
-identity is server-derived; legacy records are not guessed or bulk backfilled.
+**A5. Record the notice timing basis (B-TIMING, Q2 = A).** Admin → notice timing basis: target
+**contractual lease-end date**, counting rule calendar days (target minus notice, exactly the
+threshold satisfies it), threshold **30**, and a review note naming who confirmed it and where.
+Save. Until then every notice timing reads Cannot determine.
+
+**A6. Sign the release Admin profile back in (B-BROWSER).** Needed only when a release
+prerequisite reports `admin_browser: blocked` because Google signed the profile out. In WSL:
+
+```bash
+cd ~/pmi-kc-work/main && npm run auth:ensure -- --need=canary --origins=https://pmi-kc-app-kq6wuvpiva-uc.a.run.app --admin-profile=/home/josiah/pmi-assurance/owner-admin --admin-email=josiah@pmikcmetro.com
+```
+
+A Chrome window opens for the sign-in. Done when the canary line reads ok for admin and the
+command ends READY. The runner never types a password, code or passkey.
+
+## External and waiting
+
+**E1. Dotloop after activation (B-DL1 → B-DL2 → B-DL3).**
+
+1. Create one sandbox and one production API client with PMI KC's company details. Each uses the
+   redirect URI `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/connections/dotloop/callback` and
+   the scopes `account:read`, `profile:read`, `loop:read`, `loop:write` and `template:read`.
+2. Reply to Dotloop API Support so it completes each client's configuration.
+3. Store the production client secret with the V-DL command below. It reads the secret without echo.
+4. The runner binds the non-secret client id and redirect in the reviewed production env file; the
+   next authorized release carries them (V-DL).
+5. Connect the managed account in Connections and choose a verified office profile, renewal
+   template, transaction type and initial status (B-DL2).
+6. For each of the seven artifact families (standard lease, renewal extension, animal agreement,
+   lead-based-paint disclosure, city addendum, HOA artifact, owner acknowledgment), confirm which
+   existing Dotloop template carries it, or supply the approved blank form with its version and
+   field, participant and signature mappings (B-DL3).
+
+Both Dotloop action keys stay closed until a separate exact-key proof and activation is authorized.
+Signature completion is never inferred.
+
+**E2. Human verdicts and real material (B-HUMAN).** These change verdicts, not code, and none blocks
+delivery: a human observer for screen-reader, desktop full-page zoom and batch 004 usability
+checks; a consented walkthrough with one or two real leases; the Rhino policy wording and
+applicability review with reviewed lease evidence; and a staff accuracy review of a real customer
+draft (recipients, sender, charges and terms). Live Gmail or provider effects from Focus and live
+staff-record saves stay unverified until a person performs them.
 
 ## V-DL: bounded verification after credentials arrive
 
 Trigger: B-DL1 credentials are delivered through the recorded binding path, authorized unattended
-access is available, and B-DL2 connection is owner-initiated.
+access is available, and the owner starts the B-DL2 connection.
 
-1. Verify the reviewed non-secret client id/redirect and Secret Manager client-secret binding;
-   verify vault configuration and actual existing runtime permission without adding a grant.
+1. Verify the reviewed non-secret client id/redirect and the Secret Manager client-secret binding;
+   verify vault configuration and the existing runtime permission without adding a grant.
 2. After the authorized release, read runtime configuration and named readiness failures.
-3. Let the owner complete OAuth and select verified resources. Read back profile/template readiness,
-   token metadata, and the current connection generation without exposing tokens or provider bodies.
-4. Check refresh/revocation/reconnect only through their existing explicit connection workflows and
-   preserve S96's exact preview/confirmation/credential-removal/readback contract. Report denied
-   storage or cleanup as recovery needed, never connected success.
-5. Verify that both Dotloop action keys remain closed and no signature completion is inferred.
+3. Let the owner complete OAuth and select verified resources. Read back profile/template
+   readiness, token metadata and the connection generation without exposing tokens or provider
+   bodies.
+4. Check refresh, revocation and reconnect only through their existing explicit workflows and keep
+   S96's preview/confirmation/credential-removal/readback contract. Report denied storage or
+   cleanup as recovery needed, never as connected.
+5. Verify both Dotloop action keys remain closed and no signature completion is inferred.
 
-Owner delivery command for the production client secret, run in WSL as the approved account. It
-reads the secret without echo, so it never enters a shell history, chat or Git, and adds the same
-per-secret accessor binding the four existing runtime secrets carry:
+Owner delivery command for the production client secret, run in WSL as the approved account:
 
 ```bash
 read -rs DOTLOOP_SECRET && printf '%s' "$DOTLOOP_SECRET" | gcloud secrets create DOTLOOP_OAUTH_CLIENT_SECRET --project=pmi-kc-kb-prod --replication-policy=automatic --data-file=- && unset DOTLOOP_SECRET && gcloud secrets add-iam-policy-binding DOTLOOP_OAUTH_CLIENT_SECRET --project=pmi-kc-kb-prod --member=serviceAccount:pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor
@@ -137,46 +154,47 @@ read -rs DOTLOOP_SECRET && printf '%s' "$DOTLOOP_SECRET" | gcloud secrets create
 
 The non-secret `DOTLOOP_OAUTH_CLIENT_ID`, `DOTLOOP_OAUTH_REDIRECT_URI` and
 `DOTLOOP_OAUTH_CLIENT_SECRET_SECRET_ID=DOTLOOP_OAUTH_CLIENT_SECRET` then go in the reviewed
-production env file, and the next authorized release binds them.
+production env file. V-DL creates no loop and uploads no document; those need approved content and
+separately authorized exact keys, previews, confirmations, receipts and readbacks. No support
+follow-up is sent by the runner.
 
-V-DL does not create a loop or upload a document. Those proofs require approved content/participants
-and separately authorized exact keys, previews, confirmations, receipts, and readbacks. Credential
-arrival and provider-fake tests do not grant that authority. No support follow-up is sent.
+## Runner follow-ups (not holds)
 
-## Current administrative readbacks
+These are engineering tasks with no owner step; none blocks a release.
 
-Exact S113 release `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4` passed monitoring, authorized-domain and runtime
-configuration checks. Managed alert recipient, runtime identity, eleven Spaces and action authority
-remain unchanged. Current individual directory inventory and vendor-account RentCast usage are not
-inferred from those checks; no paid comp request was made. See current release evidence.
+- **S113 notice-safety refusal.** The S113 counteroffer journey fails about 2 in 6 full gates
+  because the app shows "Notice approval safety is unavailable or source generations conflict" at
+  the draft preview. It reproduces with 30 seconds of idle time before "Preview unsent Gmail
+  draft" (61 seconds passes that step), so it is a race between a background lease refresh and the
+  preview's safety check, not a slow render. Do not pad the test's waits. Find the root cause
+  without weakening any notice-safety guard; the S113 test file is
+  `tests/firestore/s113-sheet-route.test.ts`.
+- **Four emulator-only E2E suites.** `approval-queue`, `capture`, `process-definitions` and
+  `work-accountability` fail with 409 when run with the Firestore emulator because the harness
+  runs `demo` + `live_readonly`, which refuses writes by design. They run in no gate. The repair is
+  a second harness pass under the existing `demo` + `demo` descriptor, not a guard change.
 
-## S113 unblock result — September 10
+- **Promotion routing skew.** Run 175fee1d's immediate observation checkpoint failed because, for up
+  to 46 s after promotion started, Cloud Run still routed some canonical requests to the
+  predecessor, which (with no traffic and no tag) answered them with instant 500s; the candidate
+  served zero 5xx. The run rolled back verified. A replacement run usually passes. If it recurs, the
+  owner chooses between a longer immediate-checkpoint grace with a routing-convergence wait and
+  static-asset skew protection; the 60 s grace and canary thresholds are owner decisions, so the
+  runner does not change them.
+- **Cold recovery verification.** A rollback's verification reads the version on a target that may
+  be cold (32.4 s against a 30 s timeout in run 175fee1d). Warm the target with
+  `~/pmi-kc-work/scripts/diag-canary-phase.sh <label> <canonical origin> <commit> <revision>
+<fingerprint> rollback` until it passes, then `release-control.mjs --resume`.
 
-The new private email PDFs clear the missing-source-template input: six pages were visually read,
-with hashes and normalized material preserved in the ignored source pack. They do not supply blank
-legal forms, the separately mentioned analysis file or machine-readable flyer/form destinations.
-Resolve existing runtime resources before requesting any missing link. Per-lease amounts and
-charge applicability stay sourced inputs, not invented global defaults.
+## Closed
 
-S113 F2.4–F5.1 closes agent-owned handoff ambiguity around RentVine scope, pending Sheet updates,
-RentCast repair, copy/Gmail separation, template formatting, cycle isolation and applicable completion.
-These features are deployed with mounted backend verification. Full units pass 6,528 tests
-(four existing skips), all 201 backend tests pass, and all compiled browser/review/release gates passed. Current approved WSL CLI/ADC refresh passes.
-
-B-DL1/B-DL2/B-DL3 still constrain actual Dotloop activation; current local client configuration is
-absent. S106/S34 now owns a concrete prepare/upload/open-provider/returned-artifact end state and
-its conditional deployment path. Full signature execution is separately unavailable in the current
-public API. A provider-issued documented signature capability would need exact endpoint/scopes,
-recipient effects, completion evidence and correction review; its absence does not block packet
-implementation or S113 manual completion. No credential, form, grant or provider effect was invented.
-
-### B-S113-LINKS — tenant resource destinations
-
-The PDF insurance-flyer URL returned 404 on HEAD and GET; its RBP flyer returned 200 with PDF
-content type. The transcribed information-form URL returned 404, but image-only source prevents
-asserting an exact id/deletion. A bounded official-site search found no verified replacement.
-Owner disposition: source collection is deferred. Implement persistent labeled link-entry boxes
-for the insurance flyer, information form and approved legal-form locations. Empty pending-team
-values are accepted for S113 implementation/release. Validate real entries when supplied; never
-export placeholders or use a location box as approved legal content. Only dependent final copy/
-packet effects wait for actual resources. No further Q1/Q2 request is needed.
+- **Release-check margin (2026-10-02).** Not a hold. Batch 004 made the canary's renewal desk wait
+  out an admitted lease refresh started by the Dashboard; PR #119 restored the Dashboard's plain
+  stale revalidation, and run 175fee1d's candidate rendered the desk in 4,524 ms (15.5 to 28.7 s in
+  batch 004's releases).
+- **B-MNT2 (2026-10-01).** Vendoroo's agent ("ROO") writes work-order updates into RentVine, which
+  the app already reads; no connector is built and nothing is requested from Vendoroo.
+- **B-FLOW1, B-GOLD1 and B-REH1.** The audited manual journey, the golden-label correction and the
+  local walkthrough acceptance are complete; Git history keeps their evidence.
+- **Tenant resource links (S113).** The owner deferred source collection. Labeled link boxes accept
+  real entries when supplied and never export placeholders or stand in for approved legal content.
