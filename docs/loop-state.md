@@ -31,21 +31,20 @@ account and replies. B-AUTH2: the 2026-10-01 probe stopped at its first failure 
 
 ## Awaiting release
 
-None. Runs 98f7e743 and 729d5716 consumed batch 004's queue (S146–S151, with S108 in the interim
-run); both permits are consumed. A future authorized batch needs its own exact queue, ancestral
-commits, exact main CI, fresh prerequisites and a new run-bound permit. No provider effect, key or
-activation is queued. S121 remains excluded.
+1. S147 Dashboard lease read order (batch 004 corrective repair; release-check margin): `ad230cde51035a8da67f84fa23a2cad9c695f108`.
+2. S151 browser smoke measures answer position: `c547302daa5a2956276ce67899deb0d3563cf265`.
+
+OWNER DIRECTION, 2026-10-02: clear the remaining blockers and leave production on `main`. One
+candidate carries both items; runs 98f7e743 and 729d5716 consumed batch 004's own queue and
+permits. Admit only after exact main CI on the release head, fresh prerequisites and a new run-bound
+permit. No provider effect, key or activation is queued. S121 remains excluded.
 
 ## Feature intake
 
 Request 001 was supplied from `pmi-new-features-9-30/001-governance-simplification-and-unattended-auth-renewal.md`.
 The authorized governance/auth change passed its local gate and PR #92 merged at `41ad65cb` on
 2026-09-30. Run ab803f8a released it with its patched dependencies and PR #93's timing change
-(applied by owner decision on 2026-10-01). No other suite is thereby resumed. A fresh
-approved `auth:ensure` during batch 002 intake returned READY for WSL CLI and ADC under
-`josiah@pmikcmetro.com`. A read-only Cloud Run describe still showed the prior verified revision
-`pmi-kc-app-rmundpf2v-249c945f2220` at 100% traffic and answer/classify model settings of
-`gemini-2.5-flash`. No new product-route assurance or model inference was run for this intake.
+(applied by owner decision on 2026-10-01). No other suite is thereby resumed.
 
 Batch 002's seven Markdown files were read in supplied order and registered once as S135–S141
 in `docs/feature-suites/README.md`.
@@ -135,4 +134,4 @@ Next: the owner's one Admin confirmation of the released S108 import (B-MNT1); t
 decision (probe stopped at 16.06 h; WSL CLI/ADC re-enrolled 2026-10-02 about 08:24Z); after the owner's B-S100 ticket, link and sync, verify the resident mapping read-only and
 open the bounded draft proof window. Future external/human work requires its actual inputs and
 existing exact-effect contracts. Consumed permits and historical receipts cannot admit another
-deployment. No feature batch is queued; batch 004 is released and verified.
+deployment. Batch 004 is released and verified; its corrective repair waits under Awaiting release.
