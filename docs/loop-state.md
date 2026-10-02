@@ -41,44 +41,16 @@ permit. No provider effect, key or activation is queued. S121 remains excluded.
 
 ## Feature intake
 
-Request 001 was supplied from `pmi-new-features-9-30/001-governance-simplification-and-unattended-auth-renewal.md`.
-The authorized governance/auth change passed its local gate and PR #92 merged at `41ad65cb` on
-2026-09-30. Run ab803f8a released it with its patched dependencies and PR #93's timing change
-(applied by owner decision on 2026-10-01). No other suite is thereby resumed.
+S152–S167: full owner-confirmed specifications, ready / not implemented. Canonical program:
+docs/feature-suites/README.md, handoff renewal-simplification-mobile-2026-10.
+October 2 request is authoring/registration plus an outside-model prompt; no implementation,
+auth/test/live probe, provider effect, commit/push or release was performed for this intake.
+The owner supplies the execution prompt to start this exact program; completed owners are not requeued.
+Existing awaiting-release repairs and their run/lock/permit remain separate and must be preserved.
 
-Batch 002's seven Markdown files were read in supplied order and registered once as S135–S141
-in `docs/feature-suites/README.md`.
-The owner clarified that 006–007 apply to all existing workflow-linked draft screens. S110's
-three-intent answer path and the earlier draft flows were the serving baseline until the batch 002
-release. Overlapping unimplemented S88–S93/S101 plans are superseded for this scope;
-S87/S94/S95 remain separate proposals.
-
-On 2026-09-30 the owner explicitly instructed execution of batch 002 (S135–S141), then batch 003
-(S142–S145), through implementation, mainline merge and deployment, with one cumulative release at
-the end of each set. PR #95 (production audit patch and S113 journey settle fix) merged at
-`dc493dfe`. S136 (PR #96), S135/S137/S138 (PR #98) and S139/S140 (PR #99) merged at `f43629aa`
-after full local gates and exact CI. S141's local rehearsal evidence is in
-`docs/evidence/connected-ai-batch-002-validation-2026-09-30.md`; production inference cells were not run.
-
-Batch 003's four files 009–012 are registered once as S142–S145, covered by the same instruction
-after batch 002. No prior-batch intake question remained; the owner accepts earlier
-defaults. Serving Full view, one linked next action and cycle-bound manual progress are baseline;
-multiple-ready dependency projection, separate Focus pane, in-pane lifecycle and its regression
-validation are new work. Fresh read-only traffic check still showed the documented serving revision
-at 100%; a newer candidate was not serving. `auth:ensure` returned READY for approved WSL CLI/ADC.
-No Focus code, provider effect or deployment was started by this intake. Batch 003 has since
-merged (PRs #101–#103, #105); its FV-01 to FV-102 ledger is in the batch 003 evidence map.
-Spec-shape, traceability, active-path, freshness, policy, redaction and formatting checks passed.
-The production audit failure that first held these docs was remediated by PR #95 (`dc493dfe`).
-
-Batch 004's six files 013–018 (`pmi-new-features-9-30/feature-batch-004-ai-first-dashboard-and-query-history/`) are registered once as
-S146–S151, all ready. Baseline: S138's conversation engine and the existing approval, connection,
-process and renewal screens. New: an AI-first Dashboard without a process step, five panel moves
-with one compact attention queue, owner-scoped history, saved and pinned questions, a model-free
-structured rerun and integrated validation. Owner decisions 2026-10-01: Anticipated work moves to
-Internal Processes; the post-deployment check may ask at most five read-only questions as the owner.
-The owner started execution on 2026-10-01; all six are merged (PRs #111–#113 and #115) and
-released (runs 98f7e743 and 729d5716).
+Request 001 and batches 002–004 (S135–S151) are released; their actual evidence is in docs/facts.md
+and the registered evidence ledgers. Focus/in-pane work is deployed; the new program changes its
+default, workflow/access gates, working persistence, Sheet policy and whole-app mobile usability.
 
 ## Verified evidence
 

@@ -1,6 +1,6 @@
 # Current plan
 
-Updated: 2026-10-01 (UTC). Batch 004 (S146–S151) and S108's import are verified deployed by runs `98f7e743` and `729d5716`, on top of request 001, batches 002–003, the thirteen-feature batch and confirmed adversarial repairs.
+Updated: 2026-10-02 (UTC). Batch 004 (S146–S151) and S108's import are verified deployed by runs `98f7e743` and `729d5716`, on top of request 001, batches 002–003, the thirteen-feature batch and confirmed adversarial repairs.
 
 ## Direct maintenance request 001: released
 
@@ -86,6 +86,12 @@ and run `729d5716` shipped S149–S151 at `1402e51b`. The owner's bounded live c
 serving revision. The AF-01 to AF-70 ledger is in
 `docs/evidence/ai-first-dashboard-batch-004-validation-2026-10-01.md`; AF-67 (one cumulative
 candidate) is No by the owner's direction.
+
+## October lease-renewal simplification and mobile: specified
+
+S152–S167 are ready, owner-confirmed full change specifications under renewal-simplification-mobile-2026-10 in docs/feature-suites/README.md. They extend the deployed owners; completed suites are not requeued. Product decisions are embedded, including intentional Sheet-policy and ordinary-staff access changes.
+
+This request authorizes authoring/registration and an outside-model execution prompt. No implementation, tests, authentication/live probes, provider effects, commit/push, release queue, or deployment started. The owner supplies that prompt as the new explicit run instruction. The canonical index contains goal, shared decisions, files, and dependency order.
 
 ## Outcome
 
