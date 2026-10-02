@@ -95,6 +95,36 @@ const maintenanceEditor = {
 } as never;
 
 describe("S147 attention queue gather", () => {
+  it("starts the stale lease revalidation before the review read, for Renewals readers only", async () => {
+    const order: string[] = [];
+    const revalidateLeaseSource = vi.fn((nowMs: number) => {
+      order.push(`revalidate:${nowMs}`);
+    });
+    const loadRunViews = vi.fn(async () => {
+      order.push("review");
+      return [];
+    });
+    await gatherAttentionQueue(admin, deps({ loadRunViews, revalidateLeaseSource }));
+    expect(order).toEqual([`revalidate:${NOW.getTime()}`, "review"]);
+
+    revalidateLeaseSource.mockClear();
+    await gatherAttentionQueue(maintenanceEditor, deps({ revalidateLeaseSource }));
+    expect(revalidateLeaseSource).not.toHaveBeenCalled();
+  });
+
+  it("keeps gathering when the revalidation cannot start", async () => {
+    const queue = await gatherAttentionQueue(
+      admin,
+      deps({
+        listQueue: async () => [],
+        revalidateLeaseSource: () => {
+          throw new Error("config unavailable");
+        },
+      }),
+    );
+    expect(queue.state).toBe("ok");
+  });
+
   it("reports an empty but complete read as ok with no rows", async () => {
     const queue = await gatherAttentionQueue(admin, deps({ listQueue: async () => [] }));
     expect(queue.state).toBe("ok");

@@ -12,8 +12,10 @@ import {
   LEASE_EXPORT_MAX_AGE_MS,
   LEASE_EXPORT_TTL_MS,
   LEASE_REFRESH_BACKOFF_BASE_MS,
+  liveLeaseSnapshotHasAdmission,
   refreshLiveLeaseSnapshotFromProvider,
   requireCurrentLeaseViews,
+  revalidateStaleLiveLeaseSnapshot,
 } from "@/lib/lease-renewal/live-lease-cache";
 
 const flushAsync = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -359,5 +361,119 @@ describe("S63 four-binding shape through the live read", () => {
     // current rent exists and zero is never coerced into one.
     expect(byId.get("fixture-lease-d")?.unitListedRent).toBe(0);
     expect(byId.get("fixture-lease-d")?.currentRent).toBeUndefined();
+  });
+});
+
+// The Dashboard attention queue revalidates a stale generation without notice admission before its
+// admitted review read, so a renewal desk read opened alongside it is not held behind a raised
+// notice floor (the pre-S147 read order). These cases pin the helper's narrow scope.
+describe("revalidateStaleLiveLeaseSnapshot (Dashboard read order)", () => {
+  const STALE_AT = 1_000 + LEASE_EXPORT_TTL_MS + 1;
+
+  function gatedReader() {
+    let release: (() => void) | null = null;
+    let calls = 0;
+    const listAllLeasesExport = vi.fn(async (): Promise<LeaseExportReadResult> => {
+      calls += 1;
+      if (calls > 1) await new Promise<void>((resolve) => (release = resolve));
+      return { rows: [{ lease: { leaseID: calls } }], pages: 1, complete: true };
+    });
+    return {
+      client: { listAllLeasesExport },
+      listAllLeasesExport,
+      release: () => release?.(),
+    };
+  }
+
+  function admitted<T extends object>(client: T) {
+    const beforeLeaseSourceRead = vi.fn(async (at: number) => ({
+      readAtMs: at,
+      leaseKeys: [],
+    }));
+    return { reader: { ...client, beforeLeaseSourceRead }, beforeLeaseSourceRead };
+  }
+
+  it("without it, an admitted caller's stale revalidation opens a notice admission", async () => {
+    const { client, release } = gatedReader();
+    await getLiveLeaseSnapshot(client, 1_000);
+    const { reader: admittedReader, beforeLeaseSourceRead } = admitted(client);
+    await getLiveLeaseSnapshot(admittedReader, STALE_AT);
+    expect(beforeLeaseSourceRead).toHaveBeenCalledTimes(1);
+    release();
+    await flushAsync();
+  });
+
+  it("starts one plain revalidation, and an admitted caller then serves the current generation without opening one", async () => {
+    const { client, listAllLeasesExport, release } = gatedReader();
+    await getLiveLeaseSnapshot(client, 1_000);
+
+    expect(revalidateStaleLiveLeaseSnapshot(client, STALE_AT)).toBe(true);
+    const { reader: admittedReader, beforeLeaseSourceRead } = admitted(client);
+    const served = await getLiveLeaseSnapshot(admittedReader, STALE_AT + 5);
+
+    expect(served.snapshot.views[0].leaseID).toBe(1);
+    expect(served.currency.state).toBe("stale");
+    expect(served.currency.refreshing).toBe(true);
+    expect(beforeLeaseSourceRead).not.toHaveBeenCalled();
+    expect(listAllLeasesExport).toHaveBeenCalledTimes(2);
+    // A second call while the plain read is in flight starts nothing.
+    expect(revalidateStaleLiveLeaseSnapshot(client, STALE_AT + 10)).toBe(false);
+    expect(listAllLeasesExport).toHaveBeenCalledTimes(2);
+
+    release();
+    await flushAsync();
+    const after = await getLiveLeaseSnapshot(client, STALE_AT + 20);
+    expect(after.snapshot.views[0].leaseID).toBe(2);
+    // The plain generation is never accepted where notice admission is required.
+    expect(liveLeaseSnapshotHasAdmission(after.snapshot, STALE_AT + 20, {}, [])).toBe(
+      false,
+    );
+  });
+
+  it("leaves a cold, fresh, expired or invalidated cache to the normal read path", async () => {
+    const { client, listAllLeasesExport } = reader();
+    expect(revalidateStaleLiveLeaseSnapshot(client, 1_000)).toBe(false);
+    expect(listAllLeasesExport).not.toHaveBeenCalled();
+
+    await getLiveLeaseSnapshot(client, 1_000);
+    expect(
+      revalidateStaleLiveLeaseSnapshot(client, 1_000 + LEASE_EXPORT_TTL_MS - 1),
+    ).toBe(false);
+    expect(
+      revalidateStaleLiveLeaseSnapshot(client, 1_000 + LEASE_EXPORT_MAX_AGE_MS),
+    ).toBe(false);
+    invalidateLiveLeaseCache();
+    expect(revalidateStaleLiveLeaseSnapshot(client, STALE_AT)).toBe(false);
+    expect(listAllLeasesExport).toHaveBeenCalledTimes(1);
+  });
+
+  it("never revalidates through an admitted reader", async () => {
+    const { client, listAllLeasesExport } = reader();
+    await getLiveLeaseSnapshot(client, 1_000);
+    const { reader: admittedReader, beforeLeaseSourceRead } = admitted(client);
+    expect(revalidateStaleLiveLeaseSnapshot(admittedReader, STALE_AT)).toBe(false);
+    expect(beforeLeaseSourceRead).not.toHaveBeenCalled();
+    expect(listAllLeasesExport).toHaveBeenCalledTimes(1);
+  });
+
+  it("respects the failed-refresh backoff", async () => {
+    let calls = 0;
+    const client = {
+      listAllLeasesExport: vi.fn(async (): Promise<LeaseExportReadResult> => {
+        calls += 1;
+        if (calls === 1)
+          return { rows: [{ lease: { leaseID: 1 } }], pages: 1, complete: true };
+        throw new Error("provider down");
+      }),
+    };
+    await getLiveLeaseSnapshot(client, 1_000);
+    expect(revalidateStaleLiveLeaseSnapshot(client, STALE_AT)).toBe(true);
+    await flushAsync();
+    expect(revalidateStaleLiveLeaseSnapshot(client, STALE_AT + 1)).toBe(false);
+    expect(
+      revalidateStaleLiveLeaseSnapshot(client, STALE_AT + LEASE_REFRESH_BACKOFF_BASE_MS),
+    ).toBe(true);
+    await flushAsync();
+    expect(calls).toBe(3);
   });
 });

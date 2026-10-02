@@ -15,6 +15,8 @@ import { buildWritebackApprovalQueue } from "@/lib/approval/writeback-approval-q
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { listApprovalQueue } from "@/lib/firestore/approval-queue";
 import type { ApprovalQueueItemRecord } from "@/lib/firestore/types";
+import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
+import { revalidateStaleLiveLeaseSnapshot } from "@/lib/lease-renewal/live-lease-cache";
 import { loadRenewalRunViews } from "@/lib/lease-renewal/renewal-review-board";
 import type { Severity } from "@/lib/lease-renewal/severity";
 
@@ -62,12 +64,18 @@ export interface AttentionQueueDependencies {
   readonly listQueue: (user: AuthenticatedUser) => Promise<ApprovalQueueItemRecord[]>;
   readonly loadRunViews: typeof loadRenewalRunViews;
   readonly now: () => Date;
+  /** Starts a stale lease revalidation without notice admission; see gatherAttentionQueue. */
+  readonly revalidateLeaseSource?: (nowMs: number) => void;
 }
 
 const defaultDependencies: AttentionQueueDependencies = {
   listQueue: (user) => listApprovalQueue(user),
   loadRunViews: loadRenewalRunViews,
   now: () => new Date(),
+  revalidateLeaseSource: (nowMs) => {
+    const config = buildLiveRenewalConfig();
+    if (config.ok) revalidateStaleLiveLeaseSnapshot(config.rentvineClient, nowMs);
+  },
 };
 
 function errorClass(error: unknown): string {
@@ -79,6 +87,17 @@ export async function gatherAttentionQueue(
   dependencies: AttentionQueueDependencies = defaultDependencies,
 ): Promise<AttentionQueue> {
   const canSeeRenewals = hasSpaceAccess(user, "renewals");
+  // Before the admitted review read below: when the shared lease generation is stale, start its
+  // revalidation without notice admission, as the Dashboard did before S147. Otherwise the review
+  // read's own admitted refresh raises the notice floor and a renewal desk opened alongside the
+  // Dashboard waits out the whole provider read.
+  if (canSeeRenewals) {
+    try {
+      dependencies.revalidateLeaseSource?.(dependencies.now().getTime());
+    } catch {
+      // Best effort: the admitted review read keeps its own refresh behavior.
+    }
+  }
   const [queueResult, viewsResult] = await Promise.allSettled([
     dependencies.listQueue(user),
     canSeeRenewals ? dependencies.loadRunViews(user) : Promise.resolve(null),
