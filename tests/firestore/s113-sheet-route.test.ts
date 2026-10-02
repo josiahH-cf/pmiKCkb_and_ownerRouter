@@ -3415,6 +3415,8 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       ).toBeGreaterThan(15);
       cleanup();
     },
-    120_000,
+    // The fresh journey admits a new lease generation and re-reviews before drafting (S124); those
+    // emulator transactions took it to 118 s of the former 120 s budget under full-gate load.
+    180_000,
   );
 });
