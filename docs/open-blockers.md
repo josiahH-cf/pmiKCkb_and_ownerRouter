@@ -40,8 +40,8 @@ Recorded on 2026-10-02 (`accept all recommendations`):
   the owner confirms one unsent reply draft in the app, and the runner closes the window and reads
   it back. Final activation waits until the owner approves that draft.
 - **Q4 = A (repository).** The S152–S167 intake that another session authored uncommitted in the
-  Windows checkout is parked unchanged on that checkout's local branch `intake/s152-s167`
-  (`ac2a12bc`, 20 files, not pushed). It merges with `main` before anyone executes it.
+  Windows checkout was parked unchanged as `ac2a12bc` (20 files) and, by owner direction later the
+  same day, merged with `main` as written. It starts only from the owner's execution prompt.
 
 Earlier decisions stand: RentVine's per-property maintenance limits are the S108 source (B-MNT1,
 2026-10-01); RentVine work order 101756 (API id 1756) is the S100 target; B-MNT2 closed with
