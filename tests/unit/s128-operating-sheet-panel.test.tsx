@@ -74,22 +74,27 @@ function renderPanel(writebackPaused: boolean) {
 describe("S128 OperatingSheetPanel pause surfacing", () => {
   it("shows the pause and hides the execute control while paused", () => {
     renderPanel(true);
-    expect(screen.getByText(/Operating-Sheet writes are paused by policy/i)).toBeTruthy();
-    expect(screen.getByText(/recorded in the app only/i)).toBeTruthy();
+    // S159: the switch being off is stated on the Sheet update only; app saves and reads go on.
+    expect(
+      screen.getAllByText(/Sheet updates are off by policy/i).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText(/save in the app, and Sheet reads continue/i)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /review and confirm/i })).toBeNull();
-    expect(screen.getByText(/Confirming this Sheet write is paused/i)).toBeTruthy();
+    expect(screen.getByText(/so this one waits/i)).toBeTruthy();
   });
 
   it("offers the execute control when writes are enabled", () => {
     renderPanel(false);
-    expect(screen.queryByText(/Operating-Sheet writes are paused by policy/i)).toBeNull();
+    expect(screen.queryAllByText(/Sheet updates are off by policy/i)).toHaveLength(0);
     expect(screen.getByRole("button", { name: /review and confirm/i })).toBeTruthy();
   });
 
   it("disables new proposal preparation during the pause", () => {
     renderPanel(true);
     expect(
-      screen.getByRole("button", { name: "Preview Sheet field update" }),
+      screen.getByRole("button", {
+        name: "Preview the Sheet update from the working current rent",
+      }),
     ).toBeDisabled();
   });
 

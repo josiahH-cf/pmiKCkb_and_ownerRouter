@@ -54,14 +54,14 @@ const PROCESS_GLOSSARY: readonly GlossaryItem[] = [
       {
         title: "Current source facts",
         explanation:
-          "Required for the affected action. Refresh stale or incomplete data and resolve the displayed conflicts. A correction is prepared here; a RentVine or Sheet change requires its own exact confirmation and readback.",
+          "Refresh stale or incomplete data here and review any difference between sources. Your working values are kept. A RentVine or Sheet change has its own exact confirmation and readback.",
         target: "renewal-step-verify-renewal",
       },
       {
-        title: "Reviewed cycle date and source",
+        title: "Recorded renewal work",
         explanation:
-          "Required before saving preparation or staff activity. Choose the reviewed lease-end or review date and its source. Saved values and activity belong to this lease and cycle.",
-        target: "renewal-manual-cycle",
+          "Everything staff record for this lease. Each entry saves on its own, and the first one starts the work record.",
+        target: "renewal-card-manual-records",
       },
     ],
   },
@@ -74,7 +74,7 @@ const PROCESS_GLOSSARY: readonly GlossaryItem[] = [
       {
         title: "RentCast automation",
         explanation:
-          "Optional provider lookup, started with Look up market comps (reference only). Review its evidence or enter your own sourced market numbers, then Save comp preparation. Opening the section does not run a lookup. Saved preparation supplies the owner message.",
+          "Optional provider lookup, started with Look up market comps (reference only). Review its evidence or enter your own sourced market numbers; the preparation saves by itself. Opening the section does not run a lookup. Saved preparation supplies the owner message.",
         target: "renewal-section-comps",
         children: [
           {
@@ -97,7 +97,7 @@ const PROCESS_GLOSSARY: readonly GlossaryItem[] = [
       {
         title: "Owner draft preparation",
         explanation:
-          "Review the approved wording, saved market evidence and required message inputs. Save message inputs before leaving the lease; the preview identifies missing values. Copy the reviewed content or exact-confirm an unsent Gmail draft. A person sends it.",
+          "Review the approved wording, saved market evidence and message inputs; entries save by themselves and the preview marks missing values. Copy the reviewed content or exact-confirm an unsent Gmail draft. A person sends it.",
         target: "renewal-section-owner",
         children: [
           {
@@ -356,6 +356,26 @@ export function RenewalDashboardNavigation({
  */
 export const RENEWAL_FOCUS_REQUEST_EVENT = "renewal:focus-request";
 
+let programmaticFocusMove = false;
+/**
+ * True while this module is moving focus itself (a refresh, a chosen task). An autosave that
+ * runs when a field is left must not treat that move as the person leaving the field.
+ */
+export function isProgrammaticFocusMove(): boolean {
+  return programmaticFocusMove;
+}
+/** Move focus as the page itself, never as the person leaving a field. */
+export function focusProgrammatically(target: HTMLElement) {
+  programmaticFocusMove = true;
+  try {
+    target.focus({ preventScroll: true });
+  } finally {
+    queueMicrotask(() => {
+      programmaticFocusMove = false;
+    });
+  }
+}
+
 /** Focus the unresolved control, opening enclosing disclosures without recording any progress. */
 export function focusRenewalDashboardControl(
   id: string,
@@ -421,7 +441,7 @@ export function focusRenewalDashboardControl(
   }
   if (!target.matches("input, select, textarea, button, summary, a[href], [tabindex]"))
     target.tabIndex = -1;
-  target.focus({ preventScroll: true });
+  focusProgrammatically(target);
   target.scrollIntoView?.({ block: "start" });
   return document.activeElement === target;
 }

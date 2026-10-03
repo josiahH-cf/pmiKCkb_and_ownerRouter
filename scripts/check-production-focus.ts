@@ -59,7 +59,7 @@ export interface FocusCheckOptions extends ProductionTarget {
 
 export interface LeaseFocusResult {
   readonly workspace: number;
-  readonly defaultView: "Full view";
+  readonly defaultView: "Full view" | "Focus view";
   readonly focusTaskShown: boolean;
   readonly elementsNarrowedInFocus: number;
   readonly tasksChosenInFocus: number;
@@ -246,13 +246,22 @@ export async function checkLease(
       (await page.getByRole("group", { name: "Lease view" }).count()) === 1,
       "focus_switch_not_one_group",
     );
-    assert(
-      (await full.getAttribute("aria-pressed")) === "true" &&
-        (await focus.getAttribute("aria-pressed")) === "false",
-      "full_view_not_default",
-    );
+    // S152: a lease opens in Focus view. An earlier revision opens in Full view; either is one
+    // exclusive selected view, and the round trips below always start from Full view.
+    const fullPressed = (await full.getAttribute("aria-pressed")) === "true";
+    const focusPressed = (await focus.getAttribute("aria-pressed")) === "true";
+    assert(fullPressed !== focusPressed, "view_default_not_exclusive");
+    const defaultView = focusPressed ? ("Focus view" as const) : ("Full view" as const);
     const pane = page.getByRole("region", { name: "Focus view" });
-    assert((await pane.count()) === 0, "focus_pane_present_by_default");
+    if (focusPressed) {
+      assert((await pane.count()) === 1, "focus_pane_missing_by_default");
+      await full.click();
+      assert(
+        (await full.getAttribute("aria-pressed")) === "true",
+        "full_view_not_pressed",
+      );
+    }
+    assert((await pane.count()) === 0, "focus_pane_present_in_full_view");
     const baseline = await settledSignature(page, inflight);
     const url = page.url();
     const deskReturn = () =>
@@ -351,7 +360,7 @@ export async function checkLease(
     assert(!anyScroll, "horizontal_scroll");
     return {
       workspace,
-      defaultView: "Full view",
+      defaultView,
       focusTaskShown,
       elementsNarrowedInFocus: narrowed,
       tasksChosenInFocus: tasks,

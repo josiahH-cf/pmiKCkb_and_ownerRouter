@@ -133,6 +133,8 @@ function documentSnapshot(
     id,
     exists: Boolean(data),
     data: () => (data ? structuredClone(data) : undefined),
+    /** Mirrors DocumentSnapshot.get for one top-level field. */
+    get: (field: string) => (data ? structuredClone(data)[field] : undefined),
   };
 }
 

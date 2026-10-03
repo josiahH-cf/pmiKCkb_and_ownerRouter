@@ -11,10 +11,10 @@ import { assertReleaseProcessLock, RELEASE_LOCK_FD_ENV } from "./release-lock.mj
 import { fingerprintRevisionRuntimeConfiguration } from "../lib/production-assurance/revision-fingerprint.mjs";
 import { GoogleAuth } from "google-auth-library";
 import {
-  readRecoveryBaseline,
-  verifyRecoveryAvailability,
-  revisionSheetPaused,
-} from "./release-recovery.mjs";
+  REVIEWED_CANDIDATE_SHEET_WRITEBACK,
+  revisionCarriesSheetWriteback,
+} from "../lib/production-assurance/sheet-writeback-expectation.mjs";
+import { readRecoveryBaseline, verifyRecoveryAvailability } from "./release-recovery.mjs";
 // S40 blue/green release wrapper. Delivery is three separate, individually reviewable invocations:
 //
 //   npm run release -- --environment=production --plan-only        # prints; never runs gcloud
@@ -36,6 +36,7 @@ import {
   buildDemoDeployCommand,
   buildRevisionTrafficCommand,
   createDeployRevisionSuffix,
+  parseGcloudMapFlag,
 } from "./deploy-demo-cloud-run.mjs";
 import {
   buildCandidateDeployPlan,
@@ -258,15 +259,14 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
 
   // The exact map that `--set-env-vars` will REPLACE the revision's environment with. Parsing it
   // back out is deliberate: it is what actually reaches the service, so it — not the ambient shell —
-  // is the authoritative input to the local-only refusal.
-  const resolvedDeployEnv = Object.fromEntries(
-    deploy.args
+  // is the authoritative input to the local-only refusal and to the reviewed operating-Sheet
+  // switch check. The deploy writes that map with gcloud's custom-delimiter syntax, so it is read
+  // back with the matching parser; a comma split would see none of its names.
+  const resolvedDeployEnv = Object.assign(
+    {},
+    ...deploy.args
       .filter((arg) => arg.startsWith("--set-env-vars="))
-      .flatMap((arg) => arg.slice("--set-env-vars=".length).split(","))
-      .map((pair) => {
-        const at = pair.indexOf("=");
-        return at === -1 ? [pair, ""] : [pair.slice(0, at), pair.slice(at + 1)];
-      }),
+      .map((arg) => parseGcloudMapFlag(arg)),
   );
 
   const target = {
@@ -666,7 +666,8 @@ export async function promoteProductionCandidate({
 
     try {
       // The same global executor is used by observer rollback and resume. It alone may shift
-      // traffic, to the already-assured Sheet=false target; the original baseline stays immutable.
+      // traffic, to the already-assured recovery target that keeps the captured predecessor's
+      // actual configuration; the original baseline stays immutable.
       await verifyRecovery(preparedRecovery);
     } catch {
       throw new Error(
@@ -681,12 +682,19 @@ export async function promoteProductionCandidate({
       );
     }
     throw new Error(
-      "Production promotion failed after traffic mutation; prepared paused recovery target restored and verified.",
+      "Production promotion failed after traffic mutation; prepared recovery target restored and verified.",
     );
   }
 }
 
-export async function verifyPreparedPromotionRecovery(candidate) {
+/** Last boundary before the promotion claim. The candidate must read back Ready, at its exact
+ * fingerprint and with the reviewed candidate operating-Sheet switch value; the prepared recovery
+ * target must still hold the captured predecessor's actual configuration. `client` is a
+ * deterministic test seam; the default is the approved credential. */
+export async function verifyPreparedPromotionRecovery(
+  candidate,
+  { client: suppliedClient } = {},
+) {
   if (!candidate.recoveryBaseline)
     throw new Error("supplemental_recovery_baseline_required");
   const receipt = readRecoveryBaseline(candidate.recoveryBaseline, {
@@ -695,9 +703,11 @@ export async function verifyPreparedPromotionRecovery(candidate) {
     service: candidate.service,
     sha: candidate.expectedCommit,
   });
-  const client = await new GoogleAuth({
-    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-  }).getClient();
+  const client =
+    suppliedClient ??
+    (await new GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    }).getClient());
   const revision = (
     await client.request({
       method: "GET",
@@ -705,7 +715,7 @@ export async function verifyPreparedPromotionRecovery(candidate) {
     })
   ).data;
   if (
-    !revisionSheetPaused(revision) ||
+    !revisionCarriesSheetWriteback(revision, REVIEWED_CANDIDATE_SHEET_WRITEBACK) ||
     fingerprintRevisionRuntimeConfiguration(revision) !==
       candidate.expectedConfigurationFingerprint ||
     !revision?.conditions?.some(
@@ -714,7 +724,7 @@ export async function verifyPreparedPromotionRecovery(candidate) {
     ) ||
     revision.reconciling === true
   )
-    throw new Error("candidate_sheet_pause_unverified");
+    throw new Error("candidate_sheet_writeback_unverified");
   await verifyRecoveryAvailability(receipt, {
     client,
     candidateRevision: candidate.expectedRevision,

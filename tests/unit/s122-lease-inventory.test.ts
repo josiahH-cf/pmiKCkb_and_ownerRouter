@@ -330,16 +330,25 @@ describe("S122 inspection independent of workflow eligibility (AC-S122-4)", () =
       disposition: "out_of_window",
       retention: { state: "outside" },
       currentRent: 1600,
-      processVersion: null,
-      workflowStepId: null,
-      nextAction: null,
     });
     expect(summary.addressLabel).toContain("Horizon Way");
     expect(summary.lifecycle?.category).toBe("later");
     expect(JSON.stringify(summary.sourceDestinations ?? {})).toContain("9010");
-    // Opening creates nothing: no workflow, no cycle, no draft, no live process state.
-    expect(workspace.workspace.workflowAvailable).toBe(false);
-    expect(workspace.workspace.live).toBeUndefined();
+    // S154 BEH-1/4 (b7693d4d): the lease years ahead opens with the normal working surface and
+    // the staff lane; its classification stays as context. Opening still creates nothing: no
+    // cycle, no staff record, no draft and no recorded decision.
+    expect(summary.processVersion).not.toBeNull();
+    expect(workspace.workspace.live).toMatchObject({
+      leaseId: "9010",
+      ownerDecision: null,
+      tenantOutcome: null,
+      complete: false,
+    });
+    expect(workspace.workspace.guidance).toMatchObject({
+      contract: "s156-staff-lane",
+      overallStatus: "ready",
+      action: { kind: "act", label: "Owner outreach" },
+    });
     expect(workspace.workspace.tenantDraft).toBeNull();
     expect(summary.manualProgress).toBeUndefined();
     // Every adapter call was a documented read.

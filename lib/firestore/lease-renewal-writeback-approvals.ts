@@ -1,18 +1,20 @@
 // KB-owned persistence for the Lease Renewal Phase-2 write-back APPROVAL control plane
-// (Q-WRITEBACK-METHOD). A resolution QUEUES an append-only proposed write-back; an Admin then
-// authorizes (Approve) or rejects (Return) that queued proposal here. Only the human decision and its
+// (Q-WRITEBACK-METHOD). A resolution QUEUES an append-only proposed write-back; the staff member
+// then records Approve or Return for that queued proposal here. Only the human decision and its
 // append-only Activity persist, in the KB's own Firestore, keyed by the flag's source_trigger_key.
 //
-// GOVERNANCE: this layer NEVER executes a sheet / system-of-record write. Approving records human
-// authorization for the future, separately-approved write; it does not perform it. Every record
-// carries `production_allowed:false` and `executed:false`, and the reachable states are the audited
-// FSM's non-executing subset (`writeback-approval.ts`). Admin-only: authorizing a write is strictly
-// more sensitive than resolving a flag (OQ-APPR-1 — approve is an admin-tier function).
+// GOVERNANCE: this layer NEVER executes a sheet / system-of-record write. Approving records a
+// human decision about the proposal; it does not perform the write and (S156/S160) is no longer a
+// prerequisite for any source update, which has its own exact confirmation. Every record carries
+// `production_allowed:false` and `executed:false`, and the reachable states are the audited FSM's
+// non-executing subset (`writeback-approval.ts`). S156/S167: Editor access is the only role
+// requirement; a verification account is refused before anything is written.
 
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
 
+import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
@@ -105,8 +107,8 @@ export interface WritebackApprovalBulkResult {
 }
 
 /**
- * Approve or return a queued write-back proposal (§4.0 admin-gated control plane). Requires the
- * Admin capability. Reads the resolution to confirm a QUEUED proposal exists, validates the
+ * Approve or return a queued write-back proposal (§4.0 control plane). Requires Editor access and
+ * refuses a verification account. Reads the resolution to confirm a QUEUED proposal exists, validates the
  * transition (rejecting double-approve / re-return), upserts the decision (idempotent by
  * source_trigger_key), and appends an append-only Activity entry. A re-resolution that changed the
  * proposed value makes any prior approval stale, so this treats it as a fresh decision rather than
@@ -117,13 +119,14 @@ export async function decideWritebackApproval(
   input: DecideWritebackApprovalInput,
   db: Firestore = getAdminFirestore(),
 ): Promise<LeaseRenewalWritebackApprovalRecord> {
-  assertCan(actor, "manageAdmin");
+  assertCan(actor, "edit");
+  assertNotVerificationAccount(actor);
   const parsed = DecideWritebackApprovalInputSchema.parse(input);
 
   const docId = resolutionDocId(parsed.source_trigger_key);
 
   // Read the exact resolution and existing approval in the same transaction that records the
-  // decision. The client token binds what the Admin actually reviewed, and the transaction prevents
+  // decision. The client token binds what the person actually reviewed, and the transaction prevents
   // a concurrent re-resolution from swapping the proposal between validation and persistence.
   await db.runTransaction(async (transaction) => {
     const ref = approvalRef(db, docId);
@@ -260,7 +263,7 @@ export async function decideWritebackApproval(
 /**
  * Decide MANY queued proposals in one request with ONE shared mandatory reason (S13 B2). Runs the
  * existing single-proposal transaction per key, so every invariant holds unchanged per item: the
- * Admin gate, resolve-before-approve, the transition table, the stale-snapshot rule, and one
+ * role gate, resolve-before-approve, the transition table, the stale-snapshot rule, and one
  * append-only Activity row per decision (each stamped with the shared reason + this decider). Items
  * are decided sequentially and independently: one item's failure (already approved, missing
  * resolution, wrong run) is reported for that item only and never blocks the rest. Never executes a
@@ -271,8 +274,9 @@ export async function decideWritebackApprovalsBulk(
   input: DecideWritebackApprovalsBulkInput,
   db: Firestore = getAdminFirestore(),
 ): Promise<WritebackApprovalBulkResult> {
-  // Fail fast for non-Admins before touching any item (the per-item call re-asserts this).
-  assertCan(actor, "manageAdmin");
+  // Fail fast before touching any item (the per-item call re-asserts both checks).
+  assertCan(actor, "edit");
+  assertNotVerificationAccount(actor);
   const parsed = DecideWritebackApprovalsBulkInputSchema.parse(input);
 
   // Dedupe while preserving order so a doubled key cannot record two Activity rows for one decision.
@@ -439,6 +443,16 @@ function assertCan(actor: AuthenticatedUser, capability: Parameters<typeof can>[
   if (!can(actor.role, capability)) {
     throw new EditableLayerError(
       "This user is not authorized for the requested write-back approval action.",
+      403,
+    );
+  }
+}
+
+/** Verification identities read everything and record nothing here. */
+function assertNotVerificationAccount(actor: AuthenticatedUser) {
+  if (isVerificationAccount(actor)) {
+    throw new EditableLayerError(
+      "Verification accounts cannot record write-back approval decisions.",
       403,
     );
   }

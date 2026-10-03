@@ -12,9 +12,10 @@ import { clearLiveLeaseCache } from "@/lib/lease-renewal/live-lease-cache";
 import { clearLeaseStatusTableCache } from "@/lib/lease-renewal/lease-status-table";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 
-// S139: accepted refined wording is saved with its preparation revision, survives a reload as the
-// message body, is cleared by a save without it, and turns stale (blocking the final body) when the
-// composition it was refined from changes. Live lease views are deterministic fixtures.
+// S139 as carried into S161: accepted refined wording is saved with its preparation revision,
+// survives a reload as the message body, is cleared by a save without it, and is KEPT word for word
+// (reported as stale, never withheld) when the composition it was refined from changes.
+// Live lease views are deterministic fixtures.
 
 vi.mock("@/lib/lease-renewal/live-config", async (original) => {
   const actual = await original<typeof import("@/lib/lease-renewal/live-config")>();
@@ -75,7 +76,7 @@ import {
   MESSAGE_PREPARATION_COLLECTIONS,
   saveMessagePreparation,
 } from "@/lib/firestore/renewal-message-preparations";
-import { startRenewalCycle } from "@/lib/firestore/renewal-workspace";
+import { ensureRenewalWorkRecord } from "@/lib/firestore/renewal-workspace";
 import { currentRenewalMessage } from "@/lib/lease-renewal/current-renewal-message";
 import { STALE_REFINED_BODY_MESSAGE } from "@/lib/lease-renewal/refined-message";
 
@@ -138,35 +139,19 @@ async function save(
       channel: "tenant",
       expectedRevision: current.saved?.revision ?? 0,
       operationId: randomUUID(),
-      sourceFingerprint: current.basis.sourceFingerprint,
-      reviewed: true,
       inputs: { ...current.inputs, signature },
       ...overrides,
     },
-    {
-      sourceFingerprint: current.basis.sourceFingerprint,
-      workspaceFingerprint: current.basis.workspaceFingerprint!,
-    },
+    {},
     db,
   );
 }
 
 describe("S139 refined wording persistence", () => {
-  it("saves with its revision, reloads as the body, clears without it, and goes stale when the composition changes", async () => {
-    const started = await startRenewalCycle(
-      editor,
-      {
-        leaseId: "701",
-        expectedCycleId: null,
-        expectedRevision: 0,
-        operationId: randomUUID(),
-        basis,
-        reason: "Cycle for the S139 emulator case.",
-      },
-      basis,
-      db,
-    );
-    const cycleId = started.state!.cycleId as string;
+  it("saves with its revision, reloads as the body, clears without it, and is kept when the composition changes", async () => {
+    // S154: a lease with recorded work, established by its first save rather than a cycle step.
+    const cycleId = (await ensureRenewalWorkRecord(editor, "701", db, async () => basis))
+      .cycleId;
     const fresh = await currentRenewalMessage(editor, "701", "tenant", db);
     await save(fresh, cycleId, {});
     const composed = await currentRenewalMessage(editor, "701", "tenant", db);
@@ -192,7 +177,8 @@ describe("S139 refined wording persistence", () => {
     expect(latest?.body_override).toMatchObject({ baseHash: composed.bodyBaseHash });
     expect(JSON.stringify(latest)).not.toContain("Thank you for renting with us.");
 
-    // A save whose inputs change the composition makes the carried wording stale: kept, not used.
+    // A save whose inputs change the composition reports the carried wording as stale: it is still
+    // the body, word for word (S161 R-S161-7), and nothing lists it as a gap.
     await save(reloaded, cycleId, {
       inputs: {
         ...reloaded.inputs,
@@ -202,8 +188,8 @@ describe("S139 refined wording persistence", () => {
     });
     const stale = await currentRenewalMessage(editor, "701", "tenant", db);
     expect(stale.bodyOverride).toMatchObject({ state: "stale", text: refined });
-    expect(stale.content.plainText).not.toContain("Thank you for renting with us.");
-    expect(stale.content.missing.map((item) => item.message)).toContain(
+    expect(stale.content.plainText).toBe(refined);
+    expect(stale.content.missing.map((item) => item.message)).not.toContain(
       STALE_REFINED_BODY_MESSAGE,
     );
 

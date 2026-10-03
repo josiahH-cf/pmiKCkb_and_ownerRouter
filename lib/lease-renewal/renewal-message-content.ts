@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { UNVERIFIED_PLACEHOLDER } from "@/lib/constants";
 import { formatCalendarDate } from "@/lib/date-display";
 
 /** Normalized from the owner's September 10 source pack; no example customer or sender values. */
@@ -69,7 +70,7 @@ export function responseRequestParagraph(
   };
 }
 
-/** Replace only the named reviewed fields; unresolved authoring tokens never reach copy. */
+/** Replace only the named fields; unresolved authoring tokens never reach copy. */
 function fillSuppliedCopy(template: string, values: Record<string, string>): string {
   return template.replace(/\{\{([a-z_]+)\}\}/g, (_match, key: string) => {
     if (!(key in values)) throw new Error(`Missing supplied-copy field ${key}.`);
@@ -180,13 +181,23 @@ export type RenewalMessageEdits = z.infer<typeof RenewalMessageEditsSchema>;
 export interface RenewalMessageFacts {
   channel: "owner" | "tenant";
   names: string[];
+  /**
+   * S163: the provider's own first name for each entry of `names`, index-aligned; null where the
+   * source records none. A first name is never derived from a display or company name.
+   */
+  firstNames?: Array<string | null>;
   address: string | null;
   currentBaseRent: { value: number; source: string } | null;
   leaseEndDate: string | null;
+  /**
+   * S156/S161: the renewal terms staff are working with (working terms first, then terms already
+   * recorded with an owner response). Any of the three may still be unknown; an unknown value is a
+   * named marker in the message, never a reason to withhold it.
+   */
   ownerTerms: {
-    rent: number;
-    effectiveDate: string;
-    endDate: string;
+    rent: number | null;
+    effectiveDate: string | null;
+    endDate: string | null;
     source: string;
   } | null;
   range: { low: number; high: number; source: string } | null;
@@ -212,6 +223,8 @@ export interface RenewalMessageContent {
   channel: "owner" | "tenant";
   subject: string;
   paragraphs: MessageRun[][];
+  /** S161: the values this message does not have yet. Each one is a named marker or a general
+   * wording in the text; none of them stops editing, copying or the unsent draft. */
   missing: Array<{ field: string; message: string }>;
   sourceRefs: string[];
   attachments: RenewalMessageFacts["attachments"];
@@ -219,172 +232,241 @@ export interface RenewalMessageContent {
   htmlBody: string;
 }
 
-/** Deterministic body preparation has no mailbox, provider, model, publication write or send dependency. */
+/**
+ * S161 (R-S161-4): the named fill-in marker for one value the message does not have yet, in the
+ * existing "Needs Verification: <fact>" convention. It stays in copied text and in the unsent draft
+ * so the person who sends the message sees exactly what is still open.
+ */
+export function missingValueMarker(fact: string): string {
+  return `[${UNVERIFIED_PLACEHOLDER.replace("<fact>", fact)}]`;
+}
+
+/** True when text still carries at least one named fill-in marker. */
+export function hasMissingValueMarker(text: string): boolean {
+  return text.includes(`[${UNVERIFIED_PLACEHOLDER.split("<fact>")[0]}`);
+}
+
+/**
+ * S163: the first names a greeting uses, and the people whose first name the source does not
+ * record. Nothing is split, guessed or carried over from a display or company name.
+ */
+export function greetingFirstNames(
+  facts: Pick<RenewalMessageFacts, "names" | "firstNames">,
+): { known: string[]; unknown: string[] } {
+  const known: string[] = [];
+  const unknown: string[] = [];
+  facts.names.forEach((name, index) => {
+    const first = shortText.safeParse(facts.firstNames?.[index] ?? "");
+    if (first.success) known.push(first.data);
+    else {
+      const label = shortText.safeParse(name);
+      unknown.push(label.success ? label.data : "one person on this lease");
+    }
+  });
+  return { known, unknown };
+}
+
+/**
+ * Deterministic body preparation has no mailbox, provider, model, publication write or send
+ * dependency. S161: composition never refuses. A value that is absent or unusable becomes a named
+ * marker in the text and one entry in `missing`; nothing is invented in its place.
+ */
 export function composeRenewalMessage(
   facts: RenewalMessageFacts,
   rawEdits: RenewalMessageEdits = { responseRequest: "" },
 ): RenewalMessageContent {
-  const edits = RenewalMessageEditsSchema.parse(rawEdits);
   const paragraphs: MessageRun[][] = [];
   const missing: RenewalMessageContent["missing"] = [];
   const refs = new Set<string>();
   const add = (value: string) => paragraphs.push([{ text: value }]);
-  const require = (field: string, message: string) => missing.push({ field, message });
-  const sourced = (ref: string) => refs.add(source.parse(ref));
-  const money = (value: number) =>
-    messageMoney
-      .parse(value)
-      .toLocaleString("en-US", { style: "currency", currency: "USD" });
-  const names = facts.names.map((name) => shortText.parse(name));
-  if (names.length) add(`Hello ${names.join(" and ")},`);
-  else {
-    add("Hello,");
-    require("names", "Verify the names for this channel.");
-  }
-  const address = facts.address ? shortText.parse(facts.address) : null;
-  if (!address) require("address", "Verify the property address.");
-  let subject = address
-    ? fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.subject, { property_address: address })
-    : "Lease Renewal";
+  const note = (field: string, message: string) => {
+    if (!missing.some((entry) => entry.field === field && entry.message === message))
+      missing.push({ field, message });
+  };
+  const sourced = (ref: string | null | undefined) => {
+    const parsed = source.safeParse(ref ?? "");
+    if (parsed.success) refs.add(parsed.data);
+  };
+  const text = (value: string | null | undefined) => {
+    const parsed = shortText.safeParse(value ?? "");
+    return parsed.success ? parsed.data : null;
+  };
+  const money = (value: number | null | undefined) => {
+    const parsed = messageMoney.safeParse(value);
+    return parsed.success
+      ? parsed.data.toLocaleString("en-US", { style: "currency", currency: "USD" })
+      : null;
+  };
+  const day = (value: string | null | undefined) => {
+    const parsed = date.safeParse(value ?? "");
+    return parsed.success ? formatCalendarDate(parsed.data) : null;
+  };
+  const link = (value: z.infer<typeof MessageLinkSchema> | null) => {
+    const parsed = MessageLinkSchema.safeParse(value);
+    return parsed.success ? parsed.data : null;
+  };
+  const editsResult = RenewalMessageEditsSchema.safeParse(rawEdits);
+  const edits = editsResult.success ? editsResult.data : { responseRequest: "" };
+  if (!editsResult.success)
+    note(
+      "responseRequest",
+      "The response request wording keeps the approved paragraph until amounts, dates, links and contacts are taken out of it.",
+    );
+
+  // S163: first names for owners and tenants alike; a person without a recorded first name is
+  // left out of the greeting and named in the callout, and the greeting stays editable.
+  const greeting = greetingFirstNames(facts);
+  add(greeting.known.length ? `Hello ${greeting.known.join(" and ")},` : "Hello,");
+  if (!facts.names.length)
+    note("names", "No first name is recorded, so the greeting is general.");
+  for (const person of greeting.unknown)
+    note(
+      "names",
+      greeting.known.length
+        ? `No first name is recorded for ${person}, so the greeting leaves that name out.`
+        : `No first name is recorded for ${person}, so the greeting is general.`,
+    );
+
+  const address = text(facts.address);
+  if (!address) note("address", "The property address is not available yet.");
+  const subject = fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.subject, {
+    property_address: address ?? missingValueMarker("property address"),
+  });
 
   if (facts.channel === "owner") {
-    if (address)
-      add(
-        fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.introduction, {
-          property_address: address,
-        }),
-      );
-    if (facts.currentBaseRent) {
-      sourced(facts.currentBaseRent.source);
-      add(
-        fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.currentRent, {
-          current_base_rent: money(facts.currentBaseRent.value),
-        }),
-      );
-    } else require("currentBaseRent", "Resolve and review current base rent.");
-    if (facts.range && facts.range.low <= facts.range.high) {
-      sourced(facts.range.source);
-      add(
-        fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.market, {
-          market_low: money(facts.range.low),
-          market_high: money(facts.range.high),
-        }),
-      );
-    } else require("range", "Review a low and high comparable rent with its source.");
+    add(
+      fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.introduction, {
+        property_address: address ?? missingValueMarker("property address"),
+      }),
+    );
+    const currentRent = money(facts.currentBaseRent?.value);
+    if (currentRent) sourced(facts.currentBaseRent!.source);
+    else note("currentBaseRent", "The current rent is not available yet.");
+    add(
+      fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.currentRent, {
+        current_base_rent: currentRent ?? missingValueMarker("current rent"),
+      }),
+    );
+    const low = money(facts.range?.low);
+    const high = money(facts.range?.high);
+    const rangeKnown = Boolean(low && high && facts.range!.low <= facts.range!.high);
+    if (rangeKnown) sourced(facts.range!.source);
+    else note("range", "The comparable rent range is not available yet.");
+    add(
+      fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.market, {
+        market_low: rangeKnown ? low! : missingValueMarker("low comparable rent"),
+        market_high: rangeKnown ? high! : missingValueMarker("high comparable rent"),
+      }),
+    );
     add(edits.responseRequest || SUPPLIED_RENEWAL_COPY.owner.request);
-    if (facts.comps.length) {
-      for (const comp of facts.comps) {
-        sourced(comp.source);
-        const text = `${shortText.parse(comp.address)} — ${money(comp.rent)} per month`;
-        paragraphs.push([
-          {
-            text,
-            ...(comp.url
-              ? {
-                  href: MessageLinkSchema.parse({ url: comp.url, source: comp.source })
-                    .url,
-                }
-              : {}),
-          },
-        ]);
-      }
-    } else if (!facts.attachments.length)
-      require("comps", "Include reviewed comparable evidence or an actual reviewed attachment.");
-    if (facts.sparseCompsQualification)
-      add(shortText.parse(facts.sparseCompsQualification));
-    if (facts.trend) add(shortText.parse(facts.trend));
-    if (facts.suggestedRent) {
-      sourced(facts.suggestedRent.source);
+    let listed = 0;
+    for (const comp of facts.comps) {
+      const label = text(comp.address);
+      const rent = money(comp.rent);
+      if (!label || !rent) continue;
+      sourced(comp.source);
+      const href = comp.url
+        ? link({ url: comp.url, source: comp.source })?.url
+        : undefined;
+      paragraphs.push([
+        { text: `${label} — ${rent} per month`, ...(href ? { href } : {}) },
+      ]);
+      listed += 1;
+    }
+    if (!listed && !facts.attachments.length) {
+      add(missingValueMarker("comparable listings"));
+      note("comps", "Comparable listings are not saved yet.");
+    }
+    const sparse = text(facts.sparseCompsQualification);
+    if (sparse) add(sparse);
+    const trend = text(facts.trend);
+    if (trend) add(trend);
+    const suggested = money(facts.suggestedRent?.value);
+    if (suggested) {
+      sourced(facts.suggestedRent!.source);
       add(
         fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.suggestion, {
-          suggested_rent: money(facts.suggestedRent.value),
+          suggested_rent: suggested,
         }),
       );
     }
     add(SUPPLIED_RENEWAL_COPY.owner.consideration);
     add(SUPPLIED_RENEWAL_COPY.owner.closing);
   } else {
-    subject = address
-      ? fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.subject, {
-          property_address: address,
-        })
-      : "Lease Renewal";
-    if (facts.leaseEndDate)
-      add(
-        SUPPLIED_RENEWAL_COPY.tenant.introduction.replace(
-          "{{lease_end_date}}",
-          formatCalendarDate(date.parse(facts.leaseEndDate)),
-        ),
-      );
-    else require("leaseEndDate", "Verify the current lease end date.");
-    if (facts.ownerTerms) {
-      sourced(facts.ownerTerms.source);
-      const start = date.parse(facts.ownerTerms.effectiveDate);
-      const end = date.parse(facts.ownerTerms.endDate);
-      if (end <= start) throw new Error("The approved lease end must follow its start.");
-      add(
-        fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.tenant.terms, {
-          rent: money(facts.ownerTerms.rent),
-          start: formatCalendarDate(start),
-          end: formatCalendarDate(end),
-        }),
-      );
-    } else
-      require("ownerTerms", "Record explicit owner approval of exact rent and dates.");
-    if (!facts.leaseOrigin)
-      require("leaseOrigin", "Review whether the current lease originated with PMI or a third party.");
-    else sourced(facts.leaseOrigin.source);
+    const leaseEnd = day(facts.leaseEndDate);
+    if (!leaseEnd) note("leaseEndDate", "The lease end date is not available yet.");
+    add(
+      fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.tenant.introduction, {
+        lease_end_date: leaseEnd ?? missingValueMarker("lease end date"),
+      }),
+    );
+    // S156/S161 (R-S161-2): the terms staff are working with fill the offer whether or not an
+    // owner response is recorded. Each unknown term is its own named marker.
+    const terms = facts.ownerTerms;
+    const rent = money(terms?.rent);
+    const start = day(terms?.effectiveDate);
+    const end = day(terms?.endDate);
+    if (terms && (rent || start || end)) sourced(terms.source);
+    if (!rent) note("ownerTerms", "The renewal rent is not entered yet.");
+    if (!start) note("ownerTerms", "The renewal start date is not entered yet.");
+    if (!end) note("ownerTerms", "The renewal end date is not entered yet.");
+    if (start && end && terms!.endDate! <= terms!.effectiveDate!)
+      note("ownerTerms", "The renewal end date is not after the start date.");
+    add(
+      fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.tenant.terms, {
+        rent: rent ?? missingValueMarker("renewal rent"),
+        start: start ?? missingValueMarker("renewal start date"),
+        end: end ?? missingValueMarker("renewal end date"),
+      }),
+    );
+    if (facts.leaseOrigin) sourced(facts.leaseOrigin.source);
     const ids = new Set<string>();
     const included: MessageCharge[] = [];
     for (const raw of facts.charges) {
-      const charge = MessageChargeSchema.parse(raw);
-      if (ids.has(charge.id))
-        throw new Error("A charge may appear only once in the reviewed message.");
+      const parsed = MessageChargeSchema.safeParse(raw);
+      if (!parsed.success || ids.has(parsed.data.id)) continue;
+      const charge = parsed.data;
       ids.add(charge.id);
-      if (charge.applicable === null)
-        require(`charge.${charge.id}`, `Review whether ${MESSAGE_CHARGES[charge.id]} applies.`);
-      if (charge.applicable === false && !charge.source)
-        require(`charge.${charge.id}`, `Record the source for why ${MESSAGE_CHARGES[charge.id]} does not apply.`);
+      // Only a charge staff marked as applying is listed. An unanswered charge adds no question.
       if (charge.applicable !== true) continue;
-      if (
-        charge.amount === null ||
-        charge.cadence === null ||
-        charge.effectiveDate === null ||
-        !charge.source ||
-        charge.comparison === "unverified"
-      ) {
-        require(`charge.${charge.id}`, `Review the amount, cadence, effective date, source and comparison for ${MESSAGE_CHARGES[charge.id]}.`);
-        continue;
-      }
       sourced(charge.source);
       included.push(charge);
     }
-    for (const id of Object.keys(MESSAGE_CHARGES) as Array<
-      keyof typeof MESSAGE_CHARGES
-    >) {
-      if (!ids.has(id))
-        require(`charge.${id}`, `Review whether ${MESSAGE_CHARGES[id]} applies.`);
-    }
-    for (const cadence of ["monthly", "one_time"] as const) {
+    // Recurring and one-time charges keep their own headings; a charge whose cadence is not
+    // entered yet is listed after them with that gap marked.
+    for (const cadence of ["monthly", "one_time", null] as const) {
       const selected = included.filter((charge) => charge.cadence === cadence);
       if (!selected.length) continue;
-      add(
-        cadence === "monthly"
-          ? SUPPLIED_RENEWAL_COPY.tenant.monthlyHeading
-          : SUPPLIED_RENEWAL_COPY.tenant.oneTimeHeading,
-      );
-      for (const charge of selected)
+      if (cadence)
+        add(
+          cadence === "monthly"
+            ? SUPPLIED_RENEWAL_COPY.tenant.monthlyHeading
+            : SUPPLIED_RENEWAL_COPY.tenant.oneTimeHeading,
+        );
+      for (const charge of selected) {
+        const label = MESSAGE_CHARGES[charge.id];
+        const amount = money(charge.amount);
+        const effective = day(charge.effectiveDate);
+        if (!amount)
+          note(`charge.${charge.id}`, `${label}: the amount is not entered yet.`);
+        if (!cadence)
+          note(`charge.${charge.id}`, `${label}: monthly or one time is not chosen yet.`);
+        if (!effective)
+          note(`charge.${charge.id}`, `${label}: the start date is not entered yet.`);
         add(
           fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.tenant.chargeLine, {
-            label: MESSAGE_CHARGES[charge.id],
-            amount: money(charge.amount!),
+            label,
+            amount: amount ?? missingValueMarker(`${label} amount`),
             cadence:
               cadence === "monthly"
                 ? SUPPLIED_RENEWAL_COPY.tenant.monthlyCadence
-                : SUPPLIED_RENEWAL_COPY.tenant.oneTimeCadence,
-            effective_date: formatCalendarDate(charge.effectiveDate!),
+                : cadence === "one_time"
+                  ? SUPPLIED_RENEWAL_COPY.tenant.oneTimeCadence
+                  : ` ${missingValueMarker(`${label} monthly or one time`)}`,
+            effective_date: effective ?? missingValueMarker(`${label} start date`),
           }),
         );
+      }
     }
     if (facts.otherChargesComparison) {
       sourced(facts.otherChargesComparison.source);
@@ -393,23 +475,25 @@ export function composeRenewalMessage(
     }
     const insurance = included.find((charge) => charge.id === "insurance");
     if (insurance && !facts.insuranceTransition)
-      require("insuranceTransition", "Review whether the supplied insurance transition wording applies.");
+      note(
+        "insuranceTransition",
+        "The insurance transition wording is left out until you choose whether it applies.",
+      );
     if (facts.insuranceTransition) {
       sourced(facts.insuranceTransition.source);
       if (facts.insuranceTransition.applicable) {
-        if (!insurance)
-          require("charge.insurance", "The applicable insurance transition requires its reviewed charge.");
-        if (facts.insuranceFlyer) {
-          sourced(facts.insuranceFlyer.source);
-          add(SUPPLIED_RENEWAL_COPY.tenant.insuranceChange);
+        add(SUPPLIED_RENEWAL_COPY.tenant.insuranceChange);
+        const flyer = link(facts.insuranceFlyer);
+        if (flyer) {
+          sourced(flyer.source);
           paragraphs.push([
-            {
-              text: SUPPLIED_RENEWAL_COPY.tenant.insuranceLinkLabel,
-              href: MessageLinkSchema.parse(facts.insuranceFlyer).url,
-            },
+            { text: SUPPLIED_RENEWAL_COPY.tenant.insuranceLinkLabel, href: flyer.url },
           ]);
-        } else
-          require("insuranceFlyer", "Add and verify the applicable insurance flyer link.");
+        } else {
+          // R-S161-9: a missing resource stays an explicit marker; no link is made up.
+          add(missingValueMarker("insurance flyer link"));
+          note("insuranceFlyer", "The insurance flyer link is not saved yet.");
+        }
       }
     }
     const rbp = included.find(
@@ -418,47 +502,50 @@ export function composeRenewalMessage(
         (charge.comparison === "changed" || charge.comparison === "new"),
     );
     if (rbp) {
-      if (facts.rbpFlyer) {
-        sourced(facts.rbpFlyer.source);
+      const flyer = link(facts.rbpFlyer);
+      if (flyer) {
+        sourced(flyer.source);
         paragraphs.push([
-          {
-            text: SUPPLIED_RENEWAL_COPY.tenant.rbpLinkLabel,
-            href: MessageLinkSchema.parse(facts.rbpFlyer).url,
-          },
+          { text: SUPPLIED_RENEWAL_COPY.tenant.rbpLinkLabel, href: flyer.url },
         ]);
-      } else
-        require("rbpFlyer", "Verify the applicable Resident Benefits Package flyer link.");
+      } else {
+        add(missingValueMarker("Resident Benefits Package information link"));
+        note("rbpFlyer", "The Resident Benefits Package link is not saved yet.");
+      }
     }
     add(edits.responseRequest || SUPPLIED_RENEWAL_COPY.tenant.response);
-    if (facts.informationForm) {
-      sourced(facts.informationForm.source);
-      add(SUPPLIED_RENEWAL_COPY.tenant.informationForm);
+    add(SUPPLIED_RENEWAL_COPY.tenant.informationForm);
+    const form = link(facts.informationForm);
+    if (form) {
+      sourced(form.source);
       paragraphs.push([
-        {
-          text: SUPPLIED_RENEWAL_COPY.tenant.informationLinkLabel,
-          href: MessageLinkSchema.parse(facts.informationForm).url,
-        },
+        { text: SUPPLIED_RENEWAL_COPY.tenant.informationLinkLabel, href: form.url },
       ]);
-    } else
-      require("informationForm", "Add and verify the renewal information form link when needed for the final message.");
+    } else {
+      add(missingValueMarker("renewal information form link"));
+      note("informationForm", "The renewal information form link is not saved yet.");
+    }
   }
   for (const attachment of facts.attachments) sourced(attachment.source);
   // Attachments stay outside copy: clipboard HTML does not transfer attachment bytes.
   add(SUPPLIED_RENEWAL_COPY.signoff);
-  if (facts.signature) {
-    const signature = ManagedMessageSignatureSchema.parse(facts.signature);
-    sourced(signature.source);
-    const lines: MessageRun[] = [{ text: signature.name, emphasis: "name" }];
-    if (signature.role) lines.push({ text: signature.role, emphasis: "role" });
-    for (const text of [signature.phone, signature.hours]) if (text) lines.push({ text });
-    lines.push({ text: signature.email, href: `mailto:${signature.email}` });
-    if (signature.website) {
-      sourced(signature.website.source);
-      lines.push({ text: signature.website.url, href: signature.website.url });
+  const signature = ManagedMessageSignatureSchema.safeParse(facts.signature);
+  if (signature.success) {
+    const value = signature.data;
+    sourced(value.source);
+    const lines: MessageRun[] = [{ text: value.name, emphasis: "name" }];
+    if (value.role) lines.push({ text: value.role, emphasis: "role" });
+    for (const line of [value.phone, value.hours]) if (line) lines.push({ text: line });
+    lines.push({ text: value.email, href: `mailto:${value.email}` });
+    if (value.website) {
+      sourced(value.website.source);
+      lines.push({ text: value.website.url, href: value.website.url });
     }
     paragraphs.push(lines);
-  } else
-    require("signature", "Review the current managed sender's signature; the example sender is not reused.");
+  } else {
+    add(missingValueMarker("sender signature"));
+    note("signature", "Your sender signature is not entered yet.");
+  }
   return {
     version: "v2.0",
     channel: facts.channel,

@@ -16,19 +16,6 @@ export const ACCESS_INTENT_MANIFEST = [
     return_to: "/lease-renewal/live/desk",
   },
   {
-    key: "renewal_corrections.review",
-    source_path: "components/lease-renewal/RenewalCorrections.tsx",
-    capability: "approve",
-    space: "renewals",
-    return_to: "/lease-renewal/live/desk",
-  },
-  {
-    key: "renewal_corrections.approve",
-    source_path: "components/lease-renewal/RenewalCorrections.tsx",
-    capability: "manageAdmin",
-    return_to: "/lease-renewal/live/desk",
-  },
-  {
     key: "renewal_resources.manage",
     source_path: "components/lease-renewal/RenewalResourceLocations.tsx",
     capability: "manageAdmin",
@@ -54,16 +41,19 @@ export const ACCESS_INTENT_MANIFEST = [
     return_to: "/lease-renewal/live/desk",
   },
   {
+    // S156/S167: an Editor records the reconciliation decision.
     key: "renewals.resolve_reconciliation",
     source_path: "app/lease-renewal/live/page.tsx",
-    capability: "approve",
+    capability: "edit",
     space: "renewals",
     return_to: "/lease-renewal/live/desk",
   },
   {
+    // S156/S167: an Editor records the pricing-suggestion decision.
     key: "renewals.manage",
     source_path: "app/lease-renewal/live/page.tsx",
-    capability: "manageAdmin",
+    capability: "edit",
+    space: "renewals",
     return_to: "/lease-renewal/live/desk",
   },
   {
@@ -158,7 +148,7 @@ export const ACCESS_INTENT_MANIFEST = [
   {
     key: "renewal_desk.resolve_reconciliation",
     source_path: "components/lease-renewal/RenewalDeskTable.tsx",
-    capability: "approve",
+    capability: "edit",
     space: "renewals",
     return_to: "/lease-renewal/live/desk",
   },

@@ -10,9 +10,10 @@ import { formatUsd } from "@/lib/lease-renewal/owner-draft";
 
 // S29 comp-derived rent-suggestion approval surface (owner decision D-RENT-SUGGEST). It shows the
 // server-computed SUGGESTED renewal rent number ALWAYS beside the comps that produced it, the current
-// approval state, and a per-number Approve / Return control that is Admin-only. A non-Admin sees the number
-// and its comps read-only with no approve affordance. A needs-verification suggestion renders the
-// "Needs Verification" text and NO number and NO control. Approving records human authorization to place
+// approval state, and a per-number Approve / Return control. S156/S167: the staff member doing the
+// work (Editor) records the decision alone; the server says who may, and a read-only caller sees the
+// number and its comps with no approve affordance. A needs-verification suggestion renders the
+// "Needs Verification" text and NO number and NO control. Approving records the decision to place
 // the number in the owner-notice DRAFT only; nothing is sent and no system of record is written.
 
 export interface RentSuggestionCompView {
@@ -193,8 +194,8 @@ export function RentSuggestionApproval({
         ) : null}
       </div>
       <p className="muted">
-        This number enters the owner email only after an Admin approves it, and a person
-        still reviews and sends the email.
+        This number enters the owner email once you approve it here, and a person still
+        reviews and sends the email.
       </p>
       {canApprove ? (
         <div className="ui-stack">
@@ -231,7 +232,7 @@ export function RentSuggestionApproval({
         </div>
       ) : (
         <p className="muted">
-          Only an Admin can approve this number.{" "}
+          Editor access is required to approve this number.{" "}
           <RequestAccessLink surface="renewals.manage" />
         </p>
       )}

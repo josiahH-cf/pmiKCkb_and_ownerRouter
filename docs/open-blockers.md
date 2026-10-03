@@ -121,6 +121,15 @@ command ends READY. The runner never types a password, code or passkey.
 Readback 2026-10-02 (after A6 was reported done): the unattended, headless canary check reads the
 Admin profile signed in as Admin on the canonical origin (existing session); READY.
 
+**A7. Phone same-tab sign-in redirect (optional, S165).** Only if staff report that the Google
+pop-up cannot open on a phone or in-app browser. In the Google Cloud console for
+`pmi-kc-kb-prod`: APIs & Services, Credentials, the OAuth 2.0 web client that Firebase Auth's
+Google provider uses, Authorized redirect URIs, add
+`https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/__/auth/handler`. Then tell the runner, who sets
+`NEXT_PUBLIC_FIREBASE_SAME_ORIGIN_AUTH_HOST=pmi-kc-app-kq6wuvpiva-uc.a.run.app` in the reviewed
+production env and releases. Order matters: the key before the URI breaks sign-in on that host.
+Until then phones use the pop-up, which the S152–S167 release already repairs.
+
 ## External and waiting
 
 **E1. Dotloop after activation (B-DL1 → B-DL2 → B-DL3).**

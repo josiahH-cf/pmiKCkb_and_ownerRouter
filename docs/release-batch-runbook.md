@@ -63,8 +63,8 @@ never substitute source or a receipt in the frozen run. S121 remains excluded.
    missing, ambiguous or changed bindings refuse dispatch; no historical hostname is a fallback.
 5. Prepare one new run for the exact current main SHA and all thirteen suites. Collect fresh
    authentication, billing/cost and environment evidence; require preflight GO and locked admission
-   through the existing one-watcher path. Prepare a new Sheet=false recovery target/receipt from
-   the canonical predecessor; verify Admin readiness on canonical and the exact recovery origin
+   through the existing one-watcher path. Prepare a new recovery target/receipt that keeps the
+   canonical predecessor's actual configuration; verify Admin readiness on canonical and the exact recovery origin
    before its guarded canary. Then build one replacement application candidate. The batch-scoped owner amendment
    permits diagnosed and verified replacements without a new decision solely for another attempt.
 
@@ -162,7 +162,8 @@ is not deployment authority. The prerequisite collector performs approved CLI/AD
 browser reads, billing and exact cost-control readbacks. Its sanitized immutable history and latest
 receipt remain outside Git. Unknown or stale evidence is not GO. Require explicitly queued ordered
 items, all queue commits ancestors of the head, equal native/Windows/remote main SHAs,
-exact green push CI, both ignored env files with explicit false flags in both checkouts, a compatible
+exact green push CI, both ignored env files in both checkouts with Demo explicitly false and the
+operating-Sheet switch at the reviewed candidate value, a compatible
 checkpoint, native tools, zero other watchers and an owned/free lock. Historical GO does not admit
 this batch. Resolve every reported failure before continuing.
 
@@ -190,8 +191,9 @@ Each phase advances only on independent readback:
 
 1. Prepare the clean exact-head checkout and original 100% traffic baseline.
 2. Prepare the recovery-only revision before the application build. Preserve the original predecessor's
-   full immutable configuration and resolved image digests, change only Sheet=false and revision
-   identity, and keep original serving traffic explicit. Persist one target before dispatch and use
+   full immutable configuration and resolved image digests, including its actual operating-Sheet
+   switch value, change only revision identity, and keep original serving traffic explicit. A
+   predecessor whose switch value cannot be read refuses. Persist one target before dispatch and use
    service-version conflict checks. Reuse its already-authorized candidate hostname by bounded tag
    reassignment. Exact Ready/configuration/digest/zero-traffic/unchanged-security readbacks plus guarded
    Admin assurance and monitoring issue a separate immutable supplemental receipt. The original
@@ -203,8 +205,8 @@ Each phase advances only on independent readback:
    can complete after 30 seconds. Every landmark, guarded-browser diagnostic, exact version, and
    reconciliation check remains required; all other routes keep a 30-second navigation bound.
 4. Immediately before claiming promotion, re-read the original 100% baseline and prepared recovery
-   target's Ready state, digest, configuration and explicit false Sheet flag. The candidate must also
-   read false and match its fingerprint. Version 5 candidate/promotion receipts bind the supplemental
+   target's Ready state, digest, configuration and the predecessor's recorded Sheet switch value. The
+   candidate must read the reviewed candidate value and match its fingerprint. Version 5 candidate/promotion receipts bind the supplemental
    recovery receipt identity/hash to this exact run; historical version 4 receipts remain readable.
 5. Promote the one exact candidate and complete the full 300,000 ms observation with required
    checkpoints. Follow status/readback evidence, never optimistic command text.
@@ -220,13 +222,13 @@ Each phase advances only on independent readback:
   already-authorized receipt-bound recovery after explicit resume and fresh authentication. The
   runner never enters credentials or changes policy.
 - Promotion compensation and observation rollback both invoke the same recovery executor. It accepts
-  only the immutable supplemental receipt and prepared Sheet=false target, persists one globally
+  only the immutable supplemental receipt and its prepared target, persists one globally
   shared traffic-attempt claim before dispatch, preserves tag bindings and checks the service etag.
   A lost response is reconciled against that target and stored operation. Unchanged traffic is not
   proof that a request was never dispatched. An unresolved claim never permits blind redispatch.
-- No recovery creates a replacement target on demand or restores the original Sheet-enabled revision.
-  ROLLED_BACK_VERIFIED requires exact canonical 100% traffic, identity/configuration/Sheet=false,
-  guarded Admin assurance and monitoring on the prepared target. Repeated terminal verification is
+- No recovery creates a replacement target on demand or rewrites the predecessor's Sheet switch value.
+  ROLLED_BACK_VERIFIED requires exact canonical 100% traffic, identity/configuration, the recorded
+  predecessor Sheet switch value, guarded Admin assurance and monitoring on the prepared target. Repeated terminal verification is
   read-only. Unexpected traffic, configuration drift or missing evidence remains blocked.
 - If a candidate build is ambiguous, read back the existing build/revision; do not create another build.
   Attempt counts alone require no new approval under the batch-scoped owner amendment. Diagnose
@@ -238,13 +240,15 @@ Each phase advances only on independent readback:
 1. Run `bash ~/pmi-kc-work/scripts/s120-readbacks.sh <head-sha> <revision>`. Review the helper for
    safe field selection; never print raw Identity Platform configuration or provider/customer data.
    The reviewed local helper SHA256 is
-   `0391875f006934b8b8ddd77973bd00cf8a1ca3fb8b84bf213d1802a40cf8a930`.
+   `844a715ae23409606b9041f0b1b0f809297910eff9a9acd22470ee7ec28dc4e8` (the S159 revision: its
+   Sheet gate expects the reviewed candidate value true; the prior helper
+   `0391875f006934b8b8ddd77973bd00cf8a1ca3fb8b84bf213d1802a40cf8a930` expected false).
    Its corrected map check requires eleven nonempty entries in each exact Space map with matching
-   keys, plus the unchanged runtime fingerprint and Sheet=false gates. Twenty-four synthetic
+   keys, plus the unchanged runtime fingerprint and the Sheet switch gate. Twenty-four synthetic
    sanitizer checks passed; the original variable-count defect and helper bytes remain preserved.
 2. Confirm canonical/tagged identity, exact 100% traffic and fingerprint, exactly one candidate
    authorized domain, and revision env production/live with ASK_DEMO_MODE=false and
-   LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=false. Read service identity, maps and bindings independently.
+   LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED at the reviewed candidate value. Read service identity, maps and bindings independently.
 3. Only after these pass, update facts, loop-state, status, plan and environment-handoff to the
    actual release evidence and clear the Awaiting release queue.
 4. Run the pinned environment-handoff-provider-table and plan-status-sync tests, prettier and

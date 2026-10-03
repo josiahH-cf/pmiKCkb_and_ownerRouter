@@ -104,14 +104,29 @@ describe("ordinary trusted publication after fixture retirement", () => {
     expect(version.contentRef.contentHash).toBe(version.contentHash);
   });
 
-  it("preserves authorization and Live-mode validation refusals", async () => {
-    const outOfScope: AuthenticatedUser = {
-      ...editor,
-      scopes: ["maintenance"],
-    };
+  it("validates any Editor's Renewals publication and preserves the identity and Live-mode refusals", async () => {
+    // S167: an Editor with a maintenance-only allowlist used to be refused actor_not_authorized
+    // here. Every staff Editor now validates a publication in any Space.
+    const otherEditor: AuthenticatedUser = { ...editor, uid: "editor-2" };
     await expect(
       validatePublication(
-        outOfScope,
+        otherEditor,
+        policy(),
+        envelope("authorized source"),
+        new FakePublicationScanner(),
+      ),
+    ).resolves.toMatchObject({
+      result: {
+        contentHash: createHash("sha256")
+          .update(new TextEncoder().encode("authorized source"))
+          .digest("hex"),
+        detectedMimeType: "text/markdown",
+      },
+    });
+    // The authorization refusal itself remains for an actor that carries no identity.
+    await expect(
+      validatePublication(
+        { ...editor, uid: "" },
         policy(),
         envelope("unauthorized source"),
         new FakePublicationScanner(),

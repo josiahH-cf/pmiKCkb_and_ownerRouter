@@ -121,14 +121,21 @@ async function verifyLease(href) {
     (await page.getByRole("group", { name: "Lease view" }).count()) === 1,
     "The lease view switch is not one accessible group.",
   );
+  // S152: a lease opens in Focus view with its task pane; the round trips start from Full view.
   assert(
-    (await fullButton.getAttribute("aria-pressed")) === "true" &&
-      (await focusButton.getAttribute("aria-pressed")) === "false",
-    "Full view is not the default.",
+    (await focusButton.getAttribute("aria-pressed")) === "true" &&
+      (await fullButton.getAttribute("aria-pressed")) === "false",
+    "Focus view is not the default.",
   );
   assert(
-    (await page.getByRole("region", { name: "Focus view" }).count()) === 0,
-    "The Focus pane is present before Focus view was chosen.",
+    (await page.getByRole("region", { name: "Focus view" }).count()) === 1,
+    "The Focus pane is missing when the lease opens.",
+  );
+  await fullButton.click();
+  assert(
+    (await fullButton.getAttribute("aria-pressed")) === "true" &&
+      (await page.getByRole("region", { name: "Focus view" }).count()) === 0,
+    "Full view did not replace the Focus pane.",
   );
 
   // The baseline includes the unsaved marker, so a lost edit fails the comparison too. The page's
@@ -247,7 +254,7 @@ async function verifyLease(href) {
   const tocSections = await tableOfContents(page);
   await context.close();
   return {
-    defaultView: "Full view",
+    defaultView: "Focus view",
     focusTask: heading,
     elementsNarrowedInFocus: hiddenInFocus,
     tasksChosenInFocus: tasks,

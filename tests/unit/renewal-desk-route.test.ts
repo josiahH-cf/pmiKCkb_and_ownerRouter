@@ -124,7 +124,9 @@ describe("S78 canonical renewal route", () => {
 
   it("uses only workspace-eligible rows and fails assurance when visible busy state never settles", () => {
     const table = source("components/lease-renewal/RenewalDeskTable.tsx");
-    expect(table).toContain('row.disposition !== "skip"');
+    // S154: every resolved lease row is workspace-eligible; a skipped classification is context.
+    expect(table).not.toContain('row.disposition !== "skip"');
+    expect(table).toContain("const workspaceAvailable = isStableLeaseId(row.id);");
     expect(table).toContain("data-workspace-available=");
 
     const selector =
@@ -133,9 +135,9 @@ describe("S78 canonical renewal route", () => {
     const canary = source("scripts/run-production-canary.ts");
     expect(browser).toContain(selector.replace(" a.renewal-lease-link", ""));
     expect(browser).toContain("`${WORKFLOW_ROW_SELECTOR} a.renewal-lease-link`");
-    expect(browser).toContain(
-      "Inspection-only source workspace and action refusal passed.",
-    );
+    // S154: a lease outside the worklist opens the same working surface; no inspection-only card.
+    expect(browser).toContain("Outside-worklist lease opened the full working surface.");
+    expect(browser).not.toContain('Inspection only", exact: true }).count()) === 1');
     expect(canary).toContain(selector);
     expect(canary).toContain("workspaceSelectorsForPhase");
     expect(canary).toMatch(/page\.locator\(selector\)\.first\(\)/);

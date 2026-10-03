@@ -301,7 +301,7 @@ describe("production promotion assurance gate", () => {
         }),
       ),
     ).rejects.toThrow(
-      "Production promotion failed after traffic mutation; prepared paused recovery target restored",
+      "Production promotion failed after traffic mutation; prepared recovery target restored",
     );
     expect(harness.trafficTargets).toEqual([RECEIPT.expectedRevision]);
     expect(harness.runCommand).toHaveBeenCalledTimes(3);
@@ -321,7 +321,7 @@ describe("production promotion assurance gate", () => {
     await expect(
       promoteProductionCandidate(promotionInput({ ...harness, commitReceiptOutput })),
     ).rejects.toThrow(
-      "Production promotion failed after traffic mutation; prepared paused recovery target restored",
+      "Production promotion failed after traffic mutation; prepared recovery target restored",
     );
     expect(harness.trafficTargets).toEqual([RECEIPT.expectedRevision]);
     expect(harness.runCommand).toHaveBeenCalledTimes(3);
@@ -403,7 +403,7 @@ describe("production promotion assurance gate", () => {
 
     await expect(
       promoteProductionCandidate(promotionInput({ runCommand, verifyRecovery })),
-    ).rejects.toThrow("prepared paused recovery target restored and verified");
+    ).rejects.toThrow("prepared recovery target restored and verified");
     expect(trafficTargets).toEqual([RECEIPT.expectedRevision]);
     expect(verifyRecovery).toHaveBeenCalledOnce();
   });

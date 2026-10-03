@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { PmiWordmark } from "@/components/brand/PmiWordmark";
 import { SignInPanel } from "@/components/auth/SignInPanel";
 import { Appearance } from "@/components/layout/Appearance";
+import { RETURN_TO_COOKIE, safeReturnPath } from "@/lib/auth/return-to";
 import { getCurrentUser } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
 import { PRODUCT_NAME } from "@/lib/constants";
@@ -17,14 +18,19 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   await redirectLoopbackIpToLocalhost();
 
   const user = await getSignedInUser();
+  const params = await searchParams;
+  const initialError = typeof params?.error === "string" ? params.error : null;
+  // S165: the page a signed-out person was opening, remembered by the request proxy. Validated
+  // here and again in the panel; anything that is not a path inside the staff app is dropped.
+  const returnTo = safeReturnPath((await cookies()).get(RETURN_TO_COOKIE)?.value);
 
   if (user) {
-    redirect("/");
+    // A signed-in account that a page refused arrives here with an error. Send it to the
+    // Dashboard, never back to the refused page, so the two redirects cannot chase each other.
+    redirect(initialError ? "/" : (returnTo ?? "/"));
   }
 
-  const params = await searchParams;
   const config = readServerConfig();
-  const initialError = typeof params?.error === "string" ? params.error : null;
 
   return (
     <main className="auth-page">
@@ -39,6 +45,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           allowedHostedDomain={config.allowedHostedDomain}
           initialError={initialError}
           localDemoEnabled={config.localDemoAuth}
+          returnTo={returnTo}
         />
       </section>
     </main>

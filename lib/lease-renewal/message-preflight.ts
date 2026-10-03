@@ -7,6 +7,10 @@ import type { MessageReadiness } from "@/lib/lease-renewal/message-readiness";
  * preparation itself uses. It is a read-only checklist: it never creates a draft, never sends, never
  * performs a paid lookup and never turns a technical pass into a live verdict. Items that only a
  * meeting can observe stay Pending meeting.
+ *
+ * S161/S162: it names no renewal cycle and no review step, because neither exists. Marked values
+ * and the sender signature are shown for information and never make the draft step unavailable;
+ * the draft step depends only on what the exact Gmail action itself needs.
  */
 
 export const PREFLIGHT_STATES = [
@@ -42,10 +46,6 @@ export interface MessagePreflightInput {
   readonly channel: "owner" | "tenant";
   readonly canEdit: boolean;
   readonly senderEmail: string | null;
-  readonly cycleId: string | null;
-  readonly saved: boolean;
-  readonly dirty: boolean;
-  readonly needsReview: boolean;
   readonly signatureOrigin: "none" | "saved" | "retained_sender";
   readonly signatureMatchesActor: boolean;
   readonly readiness: MessageReadiness | null;
@@ -104,6 +104,8 @@ export const PENDING_MEETING_ITEMS: readonly PreflightItem[] = [
 ];
 
 const GMAIL_ITEMS = new Set(["gmail_connection", "template"]);
+/** Shown for information; a marked value or an unsigned message never withholds a step. */
+const INFORMATION_ITEMS = new Set(["required_inputs", "signature"]);
 
 export function projectMessagePreflight(input: MessagePreflightInput): MessagePreflight {
   const items: PreflightItem[] = [];
@@ -122,68 +124,32 @@ export function projectMessagePreflight(input: MessagePreflightInput): MessagePr
           label: "Live source facts",
           state: "unavailable",
           detail: "The live lease facts have not been read on this surface yet.",
-          fallback: "Refresh the page; saved preparation is retained.",
-        },
-  );
-  items.push(
-    input.cycleId
-      ? {
-          id: "cycle",
-          label: "Reviewed renewal cycle",
-          state: "ready",
-          detail: `Preparation binds to cycle ${input.cycleId}.`,
-        }
-      : {
-          id: "cycle",
-          label: "Reviewed renewal cycle",
-          state: "missing_input",
-          detail: "Select and review the current renewal cycle before preparing.",
-          target: { kind: "control", id: "renewal-manual-cycle" },
+          fallback: "Refresh the page; your saved wording is kept.",
         },
   );
   const readiness = input.readiness;
-  const inputItems = readiness
-    ? readiness.items.filter((item) => item.field !== "review")
-    : [];
+  const marked = readiness?.items ?? [];
   items.push(
-    readiness && inputItems.length === 0
+    readiness && marked.length === 0
       ? {
           id: "required_inputs",
-          label: `Required ${audience} message inputs`,
+          label: `Values in the ${audience} message`,
           state: "ready",
-          detail: "Every required input is filled from its source or reviewed by staff.",
+          detail: "Every value in the message is filled in.",
         }
       : {
           id: "required_inputs",
-          label: `Required ${audience} message inputs`,
+          label: `Values in the ${audience} message`,
           state: "missing_input",
           detail: readiness
-            ? `${inputItems.length} input${inputItems.length === 1 ? "" : "s"} remain: ${inputItems
+            ? `${marked.length} ${marked.length === 1 ? "value is" : "values are"} marked: ${marked
                 .slice(0, 3)
                 .map((item) => item.target.label)
-                .join("; ")}${inputItems.length > 3 ? "; and more" : ""}.`
-            : "Readiness has not been computed yet.",
+                .join(
+                  "; ",
+                )}${marked.length > 3 ? "; and more" : ""}. The message can be edited, copied and drafted as it is.`
+            : "The message has not been read yet.",
           target: { kind: "control", id: `renewal-message-${input.channel}-readiness` },
-        },
-  );
-  items.push(
-    input.saved && !input.dirty && !input.needsReview
-      ? {
-          id: "review",
-          label: "Reviewed and saved against current facts",
-          state: "ready",
-          detail: "The saved review matches the current source facts.",
-        }
-      : {
-          id: "review",
-          label: "Reviewed and saved against current facts",
-          state: "missing_input",
-          detail: input.dirty
-            ? "Unsaved edits differ from the saved record."
-            : input.saved
-              ? "The saved review no longer matches the current source facts."
-              : "No preparation is saved for this cycle and audience.",
-          target: { kind: "control", id: `renewal-message-${input.channel}-reviewed` },
         },
   );
   items.push(
@@ -213,31 +179,26 @@ export function projectMessagePreflight(input: MessagePreflightInput): MessagePr
         ? {
             id: "signature",
             label: "Sender signature",
-            state: "not_verified",
-            detail:
-              "Filled from your retained signature; review and save it before final use.",
-            target: {
-              kind: "control",
-              id: `renewal-message-${input.channel}-signature-name`,
-            },
+            state: "ready",
+            detail: "Filled from your retained signature.",
           }
         : input.signatureOrigin === "saved"
           ? {
               id: "signature",
               label: "Sender signature",
-              state: "missing_input",
+              state: "not_verified",
               detail:
-                "The saved signature belongs to another sender; review it as yourself.",
+                "The saved signature was entered by another sender. It is shown as saved; use your own if you prefer.",
               target: {
                 kind: "control",
-                id: `renewal-message-${input.channel}-adopt-signature`,
+                id: `renewal-message-${input.channel}-signature-name`,
               },
             }
           : {
               id: "signature",
               label: "Sender signature",
               state: "missing_input",
-              detail: "No signature is saved for this preparation.",
+              detail: "No signature is entered; the message marks where it goes.",
               target: {
                 kind: "control",
                 id: `renewal-message-${input.channel}-signature-name`,
@@ -260,7 +221,7 @@ export function projectMessagePreflight(input: MessagePreflightInput): MessagePr
             ? input.recipients.reasons.join(" ")
             : "Recipients have not been resolved.",
           fallback:
-            "Resolve the contact at its source; the reviewed body still copies for another channel.",
+            "Resolve the contact at its source; the message still copies for another channel.",
         },
   );
   items.push(
@@ -277,7 +238,7 @@ export function projectMessagePreflight(input: MessagePreflightInput): MessagePr
           state: "unavailable",
           detail: input.publication.reason ?? "The template publication is not approved.",
           fallback:
-            "Preparation, review and local copy continue; the Gmail draft waits for the approved publication.",
+            "Editing and copy continue; the Gmail draft waits for the approved publication.",
         },
   );
   items.push(
@@ -295,7 +256,7 @@ export function projectMessagePreflight(input: MessagePreflightInput): MessagePr
           state: "unavailable",
           detail:
             "This session can read and copy only; creating a draft needs Editor access.",
-          fallback: "Ask an Editor to review and create the draft.",
+          fallback: "Ask an Editor to create the draft.",
         },
   );
   items.push(
@@ -313,7 +274,7 @@ export function projectMessagePreflight(input: MessagePreflightInput): MessagePr
           state: "unavailable",
           detail: "No managed Gmail destination is available for this sender.",
           fallback:
-            "Copy the reviewed formatted or plain body and connect Gmail on Connections; saved work is kept.",
+            "Copy the formatted or plain body and connect Gmail on Connections; saved work is kept.",
           target: { kind: "route", href: "/connections" },
         },
   );
@@ -349,7 +310,9 @@ export function projectMessagePreflight(input: MessagePreflightInput): MessagePr
       items.filter((item) => item.state === state).length,
     ]),
   ) as Record<PreflightState, number>;
-  const technical = items.filter((item) => item.state !== "pending_meeting");
+  const technical = items.filter(
+    (item) => item.state !== "pending_meeting" && !INFORMATION_ITEMS.has(item.id),
+  );
   const proceedWithoutGmail = technical.every(
     (item) => item.state === "ready" || GMAIL_ITEMS.has(item.id),
   );
@@ -358,8 +321,8 @@ export function projectMessagePreflight(input: MessagePreflightInput): MessagePr
     draftStepAvailable
       ? "The unsent-draft step can be attempted on explicit confirmation."
       : proceedWithoutGmail
-        ? "Preparation can proceed without Gmail; the unsent-draft step stays pending."
-        : "Resolve the listed items before the unsent-draft step."
+        ? "Editing and copy continue without Gmail; the unsent-draft step stays pending."
+        : "Editing and copy continue; the unsent-draft step waits for the listed items."
   }`;
   return { items, counts, proceedWithoutGmail, draftStepAvailable, summary };
 }
@@ -371,7 +334,7 @@ export function projectMessagePreflight(input: MessagePreflightInput): MessagePr
  */
 export const MESSAGE_PATH_EVIDENCE_MATRIX = [
   {
-    step: "Load the live facts, saved preparation and sender basis",
+    step: "Load the live facts, saved wording and sender basis",
     control: "components/lease-renewal/RenewalMessagePreparation.tsx",
     service: "lib/lease-renewal/current-renewal-message.ts",
     route: "app/api/lease-renewal/message-preparation/route.ts",
@@ -387,12 +350,13 @@ export const MESSAGE_PATH_EVIDENCE_MATRIX = [
     ],
   },
   {
-    step: "Route each missing input to its exact control and gate final copy",
+    step: "Name each missing value and route it to where it is recorded",
     control: "components/lease-renewal/RenewalMessagePreparation.tsx",
     service: "lib/lease-renewal/message-readiness.ts",
     tests: [
       "tests/unit/s120-message-readiness.test.ts",
-      "tests/unit/s120-message-preparation-controls.test.tsx",
+      "tests/unit/s161-editable-message-composition.test.ts",
+      "tests/unit/s161-s162-message-editor.test.tsx",
     ],
   },
   {
@@ -408,12 +372,13 @@ export const MESSAGE_PATH_EVIDENCE_MATRIX = [
     tests: ["tests/firestore/s120-sender-signature.test.ts"],
   },
   {
-    step: "Block a direct draft on the server for unresolved content, review, signature, template, recipients, a confirmed move-out or a policy gate",
+    step: "Refuse a direct draft on the server for notice safety, a confirmed move-out, the template publication, unresolved recipients or an unsaved message",
     control: "components/lease-renewal/RenewalMessagePreparation.tsx",
     service: "lib/lease-renewal/execution/supplied-renewal-draft-preview.ts",
     tests: [
       "tests/unit/s124-move-out-disposition.test.ts",
       "tests/unit/s129-draft-boundary.test.ts",
+      "tests/unit/s162-draft-as-displayed.test.ts",
     ],
   },
   {

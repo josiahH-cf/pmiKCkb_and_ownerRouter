@@ -7,6 +7,7 @@ import {
   type RenewalActionProjection,
 } from "@/lib/lease-renewal/renewal-actions";
 import {
+  MANUAL_ACTIVITIES,
   planRenewalWorkspaceAction,
   type RenewalWorkspaceAction,
   type RenewalWorkspaceState,
@@ -20,6 +21,9 @@ import {
 
 // S142 (ARCH-S142-1, BEH-S142-1, BEH-S142-2, AC-S142-1..3): the renewal action projection over
 // the real staff-recorded lane, S72 verification substeps, S127 guidance and S117 outcomes.
+// S154/S156 (b7693d4d, 8a3f929d): the staff lane leads on every lease, there is no reviewed-cycle
+// step, the listed order is a suggestion rather than a prerequisite chain, and completion is
+// always available as the staff's own record.
 
 function project(options: Parameters<typeof actionFixture>[0] = {}) {
   return projectRenewalActions(actionFixture(options).snapshot);
@@ -41,6 +45,20 @@ function ready(projection: RenewalActionProjection) {
     .map((entry) => entry.id);
 }
 
+function staffActions(projection: RenewalActionProjection) {
+  return projection.actions.filter((entry) => entry.group === "staff_work");
+}
+
+/** Every staff activity, response and the completion record: the whole advisory checklist. */
+const STAFF_KEYS = [
+  "owner_outreach",
+  "owner_response",
+  "tenant_offer",
+  "tenant_response",
+  ...AFTER_ACCEPTANCE,
+  "complete",
+] as const;
+
 function save(state: RenewalWorkspaceState, raw: RenewalWorkspaceAction) {
   return planRenewalWorkspaceAction(state, raw, {
     actorUid: "fixture-staff",
@@ -50,17 +68,25 @@ function save(state: RenewalWorkspaceState, raw: RenewalWorkspaceAction) {
 }
 
 describe("S142 renewal action projection", () => {
-  it("follows the guidance without a cycle and blocks staff work behind the reviewed cycle", () => {
-    const { snapshot } = actionFixture({ manual: null });
+  it("follows the process guidance only where no staff lane is mounted", () => {
+    // `manual: undefined` leaves the staff lane unmounted (a non-consolidated layout).
+    const { snapshot } = actionFixture({});
     const projection = projectRenewalActions(snapshot);
     expect(projection.lane).toBe("process");
-    // The sample lease still has an open recipient check; the guidance names it first.
+    // S156: the shared guidance suggests the first staff activity even here; without the staff
+    // lane's controls that suggestion is reported unresolved rather than guessed.
     expect(projection.headlineActionId).toBe(renewalGuidanceActionId(snapshot));
-    expect(projection.headlineActionId).toBe("evidence.confirm-renewal-recipients");
+    expect(projection.headlineActionId).toBe("process.guidance");
+    expect(action(projection, "process.guidance")).toMatchObject({
+      label: "Owner outreach",
+      status: "unresolved",
+      reason: "no_control",
+    });
+    // The sample lease still has an open recipient check, listed as verification work.
     expect(
       action(projection, "evidence.confirm-renewal-recipients").control?.handoff,
     ).toBe("external");
-    expect(status(projection, "manual.cycle")).toBe("ready_for_actor");
+    expect(staffActions(projection)).toEqual([]);
     const recipientsVerified = projectRenewalActions({
       ...snapshot,
       process: {
@@ -85,19 +111,50 @@ describe("S142 renewal action projection", () => {
       status: "unresolved",
       reason: "no_control",
     });
-    expect(recipientsVerified.primaryActionId).toBe("manual.cycle");
-    expect(action(projection, "manual.owner_outreach")).toMatchObject({
-      status: "dependency_blocked",
-      blockedBy: ["manual.cycle"],
-      resolvableVia: ["manual.cycle"],
-    });
+    expect(recipientsVerified.primaryActionId).toBeNull();
     expect(projection.outcome).toEqual({
       state: "in_progress",
       label: "Manual work not recorded",
     });
   });
 
-  it("starts a fresh cycle at owner outreach with comp preparation as optional work", () => {
+  it("S156 BEH-2 / ARCH-2: leads with the staff lane and readies every staff action on a lease with nothing recorded", () => {
+    const { snapshot } = actionFixture({ manual: null });
+    const projection = projectRenewalActions(snapshot);
+    expect(projection.lane).toBe("manual");
+    expect(projection.cycleId).toBeNull();
+    // The suggestion is the first staff activity; the guidance names the same action.
+    expect(projection.headlineActionId).toBe(renewalGuidanceActionId(snapshot));
+    expect(projection.headlineActionId).toBe("manual.owner_outreach");
+    expect(projection.primaryActionId).toBe("manual.owner_outreach");
+    // There is no reviewed-cycle step and no prerequisite chain between staff actions.
+    expect(projection.actions.map((entry) => entry.id)).not.toContain("manual.cycle");
+    for (const key of STAFF_KEYS) {
+      expect(action(projection, `manual.${key}`), key).toMatchObject({
+        status: "ready_for_actor",
+        prerequisites: [],
+        blockedBy: [],
+        unmetConditions: [],
+      });
+    }
+    expect(status(projection, "manual.non_renewal_handoff")).toBe("not_applicable");
+    expect(action(projection, "manual.preparation")).toMatchObject({
+      requirement: "optional",
+      status: "ready_for_actor",
+      prerequisites: [],
+    });
+    // The open recipient check stays listed as verification work; it holds nothing.
+    const recipients = action(projection, "evidence.confirm-renewal-recipients");
+    expect(recipients.status).not.toBe("complete");
+    for (const entry of projection.actions)
+      expect(entry.blockedBy, entry.id).not.toContain(recipients.id);
+    expect(projection.outcome).toEqual({
+      state: "in_progress",
+      label: "Manual work not recorded",
+    });
+  });
+
+  it("suggests owner outreach on a fresh record while the owner response and comp preparation stay available", () => {
     const projection = project({ manual: manualFixture() });
     expect(projection.lane).toBe("manual");
     expect(projection.headlineActionId).toBe("manual.owner_outreach");
@@ -106,12 +163,38 @@ describe("S142 renewal action projection", () => {
       requirement: "optional",
       status: "ready_for_actor",
     });
-    expect(status(projection, "manual.owner_response")).toBe("dependency_blocked");
+    // S156 BEH-1: the owner response is available before the outreach is recorded.
+    expect(status(projection, "manual.owner_response")).toBe("ready_for_actor");
     expect(action(projection, "manual.owner_outreach").ref).toEqual({
       leaseId: "lease-318-cedar-7",
       cycleId: "b4bc3b81-c402-4f62-a2e2-c605c67867fb",
       key: "owner_outreach",
     });
+  });
+
+  it("S156 BEH-1: a different available task can be chosen over the suggested one", () => {
+    const state = manualFixture();
+    const projection = project({ manual: state });
+    expect(projection.headlineActionId).toBe("manual.owner_outreach");
+    // Choosing the tenant offer keeps it selected: it is outstanding and ready.
+    expect(selectRenewalAction(projection, "manual.tenant_offer")).toBe(
+      "manual.tenant_offer",
+    );
+    // Recording it out of the suggested order is accepted and changes only its own status.
+    const after = project({
+      manual: save(state, {
+        kind: "activity",
+        activity: "tenant_offer",
+        outcome: "done",
+        source: "Offer handed over at the property",
+      }),
+    });
+    expect(status(after, "manual.tenant_offer")).toBe("complete");
+    expect(after.headlineActionId).toBe("manual.owner_outreach");
+    const changed = projection.actions
+      .filter((entry) => status(after, entry.id) !== entry.status)
+      .map((entry) => entry.id);
+    expect(changed).toEqual(["manual.tenant_offer"]);
   });
 
   it("waits on the owner after outreach and returns the response to staff on a revision", () => {
@@ -120,9 +203,13 @@ describe("S142 renewal action projection", () => {
       status: "waiting",
       waitingOn: "the owner",
     });
-    expect(waiting.primaryActionId).toBeNull();
     expect(waiting.headlineActionId).toBe("manual.owner_response");
-    expect(selectRenewalAction(waiting, null)).toBe("manual.owner_response");
+    // S156: the awaited response holds nothing else; the next staff task is already ready.
+    expect(status(waiting, "manual.tenant_offer")).toBe("ready_for_actor");
+    expect(waiting.primaryActionId).toBe("manual.tenant_offer");
+    expect(selectRenewalAction(waiting, "manual.owner_response")).toBe(
+      "manual.owner_response",
+    );
     const revision = project({
       manual: manualFixture({ owner: "revision_requested", done: ["owner_outreach"] }),
     });
@@ -130,6 +217,7 @@ describe("S142 renewal action projection", () => {
       status: "ready_for_actor",
       detail: "The owner requested a revision.",
     });
+    expect(revision.primaryActionId).toBe("manual.owner_response");
   });
 
   it("offers the approved terms to the tenant, then waits on the tenant", () => {
@@ -148,6 +236,7 @@ describe("S142 renewal action projection", () => {
       status: "waiting",
       waitingOn: "the tenant",
     });
+    expect(offered.headlineActionId).toBe("manual.tenant_response");
   });
 
   it("readies every independent post-acceptance activity at once", () => {
@@ -161,18 +250,22 @@ describe("S142 renewal action projection", () => {
     for (const key of AFTER_ACCEPTANCE)
       expect(status(projection, `manual.${key}`), key).toBe("ready_for_actor");
     expect(projection.primaryActionId).toBe("manual.information_form");
-    expect(status(projection, "manual.complete")).toBe("dependency_blocked");
+    // S156: completion is the staff's own record and is always available.
+    expect(status(projection, "manual.complete")).toBe("ready_for_actor");
   });
 
-  it("keeps two joins blocked after the first shared prerequisite save and readies them after the second", () => {
+  it("S156 BEH-2: keeps post-acceptance work available while the outreach and offer records are missing", () => {
     // Owner approval and the tenant acceptance are on record, but both the outreach and the offer
-    // records are missing: every post-acceptance activity needs both.
+    // records are missing: nothing waits on them.
     let state = manualFixture({ owner: "approved_terms", tenant: "accepted" });
     let projection = project({ manual: state });
-    expect(action(projection, "manual.documents").blockedBy).toEqual([
-      "manual.owner_outreach",
-      "manual.tenant_offer",
-    ]);
+    expect(action(projection, "manual.documents")).toMatchObject({
+      status: "ready_for_actor",
+      blockedBy: [],
+      prerequisites: [],
+    });
+    expect(status(projection, "manual.signatures")).toBe("ready_for_actor");
+    expect(projection.headlineActionId).toBe("manual.owner_outreach");
     state = save(state, {
       kind: "activity",
       activity: "owner_outreach",
@@ -180,11 +273,8 @@ describe("S142 renewal action projection", () => {
       source: "Owner call",
     });
     projection = project({ manual: state });
-    expect(action(projection, "manual.documents")).toMatchObject({
-      status: "dependency_blocked",
-      blockedBy: ["manual.tenant_offer"],
-    });
-    expect(status(projection, "manual.signatures")).toBe("dependency_blocked");
+    expect(status(projection, "manual.owner_outreach")).toBe("complete");
+    expect(projection.headlineActionId).toBe("manual.tenant_offer");
     state = save(state, {
       kind: "activity",
       activity: "tenant_offer",
@@ -194,9 +284,10 @@ describe("S142 renewal action projection", () => {
     projection = project({ manual: state });
     expect(status(projection, "manual.documents")).toBe("ready_for_actor");
     expect(status(projection, "manual.signatures")).toBe("ready_for_actor");
+    expect(projection.headlineActionId).toBe("manual.information_form");
   });
 
-  it("counts a permitted Not applicable and refuses an unsupported one", () => {
+  it("counts a conditional Not applicable without a policy attestation and refuses one on required work", () => {
     const permitted = project({
       manual: manualFixture({
         owner: "approved_terms",
@@ -206,6 +297,7 @@ describe("S142 renewal action projection", () => {
       }),
     });
     expect(status(permitted, "manual.rhino")).toBe("complete");
+    // S156 R-7: no approval checkbox or policy reference replaces the removed gate.
     const state = manualFixture({
       owner: "approved_terms",
       tenant: "accepted",
@@ -220,7 +312,17 @@ describe("S142 renewal action projection", () => {
       reason: "No Rhino policy",
       outcome: "not_applicable",
     };
-    expect(status(project({ manual: state }), "manual.rhino")).toBe("ready_for_actor");
+    expect(status(project({ manual: state }), "manual.rhino")).toBe("complete");
+    expect(MANUAL_ACTIVITIES.documents.conditional).toBe(false);
+    expect(() =>
+      save(state, {
+        kind: "activity",
+        activity: "documents",
+        outcome: "not_applicable",
+        source: "Fixture",
+        reason: "Not needed",
+      }),
+    ).toThrow(/Not applicable is available only for work that depends on the lease/);
   });
 
   it("uses the staff completion record, never an empty list, for completion", () => {
@@ -247,7 +349,7 @@ describe("S142 renewal action projection", () => {
     expect(complete.primaryActionId).toBeNull();
   });
 
-  it("reopens the owner response for a tenant counter and blocks the tenant answer behind it", () => {
+  it("reopens the owner response for a tenant counter while the tenant answer stays available", () => {
     const projection = project({
       manual: manualFixture({
         owner: "approved_terms",
@@ -256,13 +358,15 @@ describe("S142 renewal action projection", () => {
       }),
     });
     expect(projection.headlineActionId).toBe("manual.owner_response");
+    expect(projection.primaryActionId).toBe("manual.owner_response");
     expect(action(projection, "manual.owner_response")).toMatchObject({
       status: "ready_for_actor",
       detail: "The tenant requested a change to the current terms.",
     });
+    // S156: the counter is guidance; recording the tenant's answer is not held behind it.
     expect(action(projection, "manual.tenant_response")).toMatchObject({
-      status: "dependency_blocked",
-      blockedBy: ["manual.owner_response"],
+      status: "ready_for_actor",
+      blockedBy: [],
     });
   });
 
@@ -277,9 +381,11 @@ describe("S142 renewal action projection", () => {
     ]) {
       const projection = project({ manual: fixture });
       expect(projection.headlineActionId).toBe("manual.non_renewal_handoff");
+      expect(projection.primaryActionId).toBe("manual.non_renewal_handoff");
       for (const key of AFTER_ACCEPTANCE)
         expect(status(projection, `manual.${key}`), key).toBe("not_applicable");
-      expect(status(projection, "manual.complete")).toBe("dependency_blocked");
+      // Completion stays the staff's own record, available on either branch.
+      expect(status(projection, "manual.complete")).toBe("ready_for_actor");
       const handedOff = project({
         manual: {
           ...fixture,
@@ -296,6 +402,7 @@ describe("S142 renewal action projection", () => {
           },
         },
       });
+      expect(handedOff.headlineActionId).toBe("manual.complete");
       expect(handedOff.primaryActionId).toBe("manual.complete");
     }
   });
@@ -335,7 +442,9 @@ describe("S142 renewal action projection", () => {
     expect(status(projection, "manual.tenant_offer")).toBe("ready_for_actor");
     expect(status(projection, "manual.information_form")).toBe("complete");
     expect(status(projection, "manual.form_returned")).toBe("complete");
-    expect(status(projection, "manual.documents")).toBe("dependency_blocked");
+    // The stale documents record is reopened for the new terms and is ready again, not held.
+    expect(status(projection, "manual.documents")).toBe("ready_for_actor");
+    expect(projection.headlineActionId).toBe("manual.tenant_offer");
   });
 
   it("separates this actor, another authorized actor and a waiting provider effect", () => {
@@ -346,8 +455,8 @@ describe("S142 renewal action projection", () => {
         intent: "future",
         label: "RentVine lease renewal dates",
         state: "prepared",
-        stateLabel: "Prepared, awaiting Admin confirmation",
-        detail: "Renewal dates from the approved terms.",
+        stateLabel: "Prepared, awaiting staff confirmation",
+        detail: "Renewal dates from the working terms.",
         anchor: "#rentvine-updates-title",
         attention: true,
       },
@@ -380,28 +489,75 @@ describe("S142 renewal action projection", () => {
       rentChargeStatus: rows,
       role: "Admin",
     });
-    expect(status(editor, "support.rentvine:prepared")).toBe("ready_for_other_actor");
-    expect(action(editor, "support.rentvine:prepared").responsible).toBe("an Admin");
+    // S156/S160 (cafa02a7): ordinary staff confirm a prepared RentVine update themselves.
+    expect(status(editor, "support.rentvine:prepared")).toBe("ready_for_actor");
     expect(status(admin, "support.rentvine:prepared")).toBe("ready_for_actor");
     expect(status(editor, "support.rentvine:running")).toBe("waiting");
     expect(action(admin, "support.rentvine:ambiguous")).toMatchObject({
       status: "unknown",
       reason: "completion_unknown",
     });
+    // S156-6 / S167-4: resolving a source conflict is ordinary staff work; an Editor and an
+    // Approver both see it ready for themselves.
+    const conflict = (role: "Editor" | "Approver") =>
+      project({
+        manual: manualFixture({}, "lease-1207-walnut-2"),
+        leaseId: "lease-1207-walnut-2",
+        role,
+      });
+    expect(status(conflict("Editor"), "evidence.resolve-source-conflicts")).toBe(
+      "ready_for_actor",
+    );
+    expect(status(conflict("Approver"), "evidence.resolve-source-conflicts")).toBe(
+      "ready_for_actor",
+    );
   });
 
-  it("puts missing rent verification first while independent staff work stays ready", () => {
-    const projection = project({
-      manual: manualFixture(),
-      rentAgreement: "single_source",
+  it("S157 BEH-6/7: keeps a rent difference visible as evidence while the staff lane stays ready", () => {
+    const decision = (agreement: "agree" | "conflict" | "single_source" | "missing") => ({
+      currentRent: 1180,
+      currentRentEvidence: {
+        agreement,
+        currencyState: "fresh" as const,
+        readAtIso: "2026-09-30T17:00:00.000Z",
+      },
     });
-    expect(projection.headlineActionId).toBe("evidence.verify-base-rent");
-    expect(projection.primaryActionId).toBe("evidence.verify-base-rent");
-    const order = projection.actions.map((entry) => entry.id);
-    expect(order.indexOf("evidence.verify-base-rent")).toBeLessThan(
-      order.indexOf("manual.owner_outreach"),
-    );
-    expect(status(projection, "manual.owner_outreach")).toBe("ready_for_actor");
+    const agreeing = actionFixture({
+      manual: manualFixture(),
+      rentDecision: decision("agree"),
+    });
+    expect(agreeing.workspace.guidance.rentVerification.state).toBe("verified");
+    for (const rentAgreement of ["single_source", "conflict", "missing"] as const) {
+      const { snapshot, workspace } = actionFixture({
+        manual: manualFixture(),
+        rentAgreement,
+        rentDecision: decision(rentAgreement),
+      });
+      const projection = projectRenewalActions(snapshot);
+      // The difference is advisory evidence (rentVerification), never a status, a blocker or a
+      // prerequisite for the ordinary staff work.
+      expect(workspace.guidance.rentVerification.state, rentAgreement).toBe(
+        "needs_verification",
+      );
+      expect(workspace.guidance.rentVerification.destination, rentAgreement).toEqual({
+        kind: "workspace_phase",
+        stepId: "verify-renewal",
+      });
+      expect(workspace.guidance.overallStatus, rentAgreement).toBe("ready");
+      expect(workspace.guidance.isBlocked, rentAgreement).toBe(false);
+      expect(workspace.guidance.blockers, rentAgreement).toEqual([]);
+      expect(workspace.guidance.action, rentAgreement).toMatchObject({
+        kind: "act",
+        label: "Owner outreach",
+      });
+      expect(projection.headlineActionId, rentAgreement).toBe("manual.owner_outreach");
+      expect(projection.primaryActionId, rentAgreement).toBe("manual.owner_outreach");
+      expect(status(projection, "manual.owner_outreach"), rentAgreement).toBe(
+        "ready_for_actor",
+      );
+      // The verification work stays listed for the person who wants it.
+      expect(action(projection, "evidence.verify-base-rent").group).toBe("verification");
+    }
   });
 
   it("leads with the refresh for expired data without blocking recorded work", () => {
@@ -413,15 +569,23 @@ describe("S142 renewal action projection", () => {
 
   it("keeps an unreadable staff record local to staff-recorded work", () => {
     const projection = project({ manual: "unreadable" });
+    expect(projection.lane).toBe("process");
     expect(projection.outcome.state).toBe("unknown");
     expect(status(projection, "source.staff_records")).toBe("ready_for_actor");
-    expect(status(projection, "manual.cycle")).toBe("unknown");
-    expect(status(projection, "manual.owner_outreach")).toBe("unknown");
+    expect(projection.actions.map((entry) => entry.id)).not.toContain("manual.cycle");
+    // Every staff action waits only for the records to be read again.
+    for (const key of STAFF_KEYS) {
+      expect(action(projection, `manual.${key}`), key).toMatchObject({
+        status: "unknown",
+        prerequisites: [{ id: "source.staff_records", met: false }],
+      });
+    }
     expect(action(projection, "evidence.verify-base-rent").status).not.toBe("unknown");
   });
 
-  it("leads with a refresh when saved process progress is unreadable and no cycle exists", () => {
-    const projection = project({ manual: null, progressUnavailable: true });
+  it("leads with a refresh when saved process progress is unreadable and no staff lane is mounted", () => {
+    const projection = project({ progressUnavailable: true });
+    expect(projection.lane).toBe("process");
     expect(projection.headlineActionId).toBe("source.refresh");
     // Open process work cannot be relied on; evidence already verified from sources stays so.
     expect(action(projection, "evidence.confirm-renewal-recipients")).toMatchObject({
@@ -429,23 +593,44 @@ describe("S142 renewal action projection", () => {
       reason: "source_unavailable",
     });
     expect(status(projection, "evidence.verify-end-date")).toBe("complete");
-    expect(status(projection, "manual.cycle")).toBe("ready_for_actor");
+  });
+
+  it("keeps the staff lane ready when saved process progress is unreadable", () => {
+    // S154/S156: the staff record, not the S72 progress, guides the lease; unreadable progress
+    // affects only the process evidence.
+    const projection = project({ manual: null, progressUnavailable: true });
+    expect(projection.lane).toBe("manual");
+    expect(projection.headlineActionId).toBe("manual.owner_outreach");
+    expect(status(projection, "manual.owner_outreach")).toBe("ready_for_actor");
+    expect(status(projection, "manual.complete")).toBe("ready_for_actor");
   });
 
   it("redirects ordinary outreach to the non-renewal handoff for a confirmed move-out", () => {
     const projection = project({ manual: manualFixture(), moveOutInitiated: true });
     expect(projection.headlineActionId).toBe("issue.move_out_redirect");
     expect(action(projection, "issue.move_out_redirect").control?.targets).toEqual([
-      "renewal-manual-cycle",
+      "renewal-manual-non_renewal_handoff",
     ]);
+    // The redirect is advisory: the staff lane stays ready beneath it.
+    expect(status(projection, "manual.owner_outreach")).toBe("ready_for_actor");
+    expect(status(projection, "manual.non_renewal_handoff")).toBe("not_applicable");
   });
 
-  it("offers only source inspection on an inspection-only lease", () => {
-    const projection = project({ workflowAvailable: false, termNeedsReview: true });
-    expect(projection.lane).toBe("inspection_only");
-    expect(projection.outcome.state).toBe("inspection_only");
-    expect(projection.actions.map((entry) => entry.id)).toEqual(["source.term_review"]);
-    expect(selectRenewalAction(projection, null)).toBe("source.term_review");
+  it("S154 BEH-1/2: keeps the staff lane on a lease that needs a term review", () => {
+    // Before S154 a reviewed or out-of-window lease had an inspection-only lane with only the
+    // term review; now the term review is advisory beside the ordinary staff work.
+    const projection = project({ manual: null, termNeedsReview: true });
+    expect(projection.lane).toBe("manual");
+    expect(projection.outcome.state).toBe("in_progress");
+    expect(action(projection, "source.term_review")).toMatchObject({
+      requirement: "advisory",
+      status: "ready_for_actor",
+    });
+    expect(projection.headlineActionId).toBe("manual.owner_outreach");
+    expect(selectRenewalAction(projection, null)).toBe("manual.owner_outreach");
+    expect(selectRenewalAction(projection, "source.term_review")).toBe(
+      "source.term_review",
+    );
   });
 
   it("changes only the affected actions after an unrelated save and keeps stable references", () => {

@@ -1,5 +1,4 @@
 "use client";
-import { useRenewalSaveFocus } from "./RenewalSaveFocus";
 import { formatBusinessTimestamp, formatSourceCalendarDate } from "@/lib/date-display";
 
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
@@ -10,7 +9,13 @@ import {
   type ExternalDeskDestination,
 } from "@/lib/lease-renewal/desk-destinations";
 import { Button, Card, Field } from "@/components/ui";
+import {
+  AUTOSAVE_IDLE,
+  AutosaveStatus,
+  type AutosaveState,
+} from "@/components/lease-renewal/AutosaveStatus";
 import { useRenewalManualWorkspace } from "@/components/lease-renewal/RenewalManualWorkspace";
+import { useRenewalWorkingRecord } from "@/components/lease-renewal/RenewalWorkingRecord";
 import { useRenewalPolicy } from "@/components/lease-renewal/RenewalPolicyContext";
 import {
   policyMessageGates,
@@ -24,6 +29,8 @@ import { focusRenewalDashboardControl } from "@/components/lease-renewal/Renewal
 import {
   composeRenewalMessage,
   MESSAGE_CHARGES,
+  MessageChargeSchema,
+  RenewalMessageEditsSchema,
   RESPONSE_REQUEST_PLACEMENT,
   responseRequestParagraph,
   type MessageCharge,
@@ -36,6 +43,7 @@ import {
 } from "@/lib/lease-renewal/message-readiness";
 import {
   emptyMessagePreparationInputs,
+  MessagePreparationInputsSchema,
   type MessagePreparationInputs,
   type MessagePreparationRecord,
 } from "@/lib/lease-renewal/renewal-message-preparation";
@@ -47,7 +55,11 @@ import { formatRecipientsForCopy } from "@/lib/lease-renewal/recipient-resolutio
 import { RefineWithAi } from "@/components/email/RefineWithAi";
 import { GEMINI_IN_GMAIL_HINT } from "@/lib/email-refinement/hint";
 import {
+  AuthoredSubjectSchema,
+  RefinedBodySchema,
   STALE_REFINED_BODY_MESSAGE,
+  UNREADABLE_REFINED_BODY_MESSAGE,
+  applyAuthoredSubject,
   applyRefinedBody,
   type RefinedBody,
   type RefinedBodyState,
@@ -97,14 +109,16 @@ interface Preparation {
     outcome: RenewalNoticeDraftOutcome | null;
   } | null;
   senderEmail: string;
+  /** The work record this message is stored under; null until its first save establishes one. */
   cycleId: string | null;
   saved: MessagePreparationRecord | null;
   inputs: MessagePreparationInputs;
   facts: RenewalMessageFacts;
+  /** The server's own callout for the saved message; a more specific wording is carried over. */
+  content?: { missing?: Array<{ field: string; message: string }> };
   sourceFingerprint: string;
-  needsReview: boolean;
   signatureMatchesActor: boolean;
-  /** S120: where the current signature came from; a retained value is neither review nor binding. */
+  /** S120: where the current signature came from. */
   signatureOrigin?:
     | { kind: "none" }
     | { kind: "saved" }
@@ -113,11 +127,15 @@ interface Preparation {
   retainedSignature?: MessagePreparationInputs["signature"] | null;
   /** S120: current non-rent recurring charges a person may deliberately fill a charge from. */
   chargeInventory?: ChargeInventoryLine[] | null;
-  publication: { status: string; reason?: string };
-  /** S139: the saved refined wording and whether it still matches the current composition. */
+  publication: { status: string; ref?: string; reason?: string };
+  /** S139/S161: the saved authored body and whether the facts changed after it was written. */
   bodyOverride?: RefinedBodyState | null;
+  /** Hash of the body composed from the current facts; authored wording records it. */
+  bodyBaseHash?: string;
+  /** S161: the saved authored subject, or null for the composed subject. */
+  subjectOverride?: string | null;
   notices: string[];
-  /** S129: policy gates projected on the server from the same applicability the workspace shows. */
+  /** S129/S161: policy notes for this audience, listed as information. */
   policyGates?: Array<{ field: string; message: string }>;
 }
 
@@ -129,19 +147,21 @@ export function RenewalMessagePreparation({
   canEdit: boolean;
 }) {
   const context = useRenewalManualWorkspace();
+  const working = useRenewalWorkingRecord();
+  // S154: no cycle step precedes a message. The editor is the same one before and after the
+  // lease's work record exists, so nothing typed is lost when the first save establishes it.
   return context ? (
     <MessagePreparationEditor
-      key={`${context.leaseId}:${context.state?.cycleId ?? "pending"}:${channel}`}
+      key={`${context.leaseId}:${channel}`}
       leaseId={context.leaseId}
-      cycleId={context.state?.cycleId ?? null}
-      refreshBasis={`${context.state?.revision}:${context.state?.termsRevision}:${context.state?.preparation?.revision}`}
+      refreshBasis={`${context.state?.cycleId}:${context.state?.revision}:${context.state?.termsRevision}:${context.state?.preparation?.revision}:${working?.record?.revision ?? 0}`}
       channel={channel}
       canEdit={canEdit}
     />
   ) : null;
 }
 
-/** S139: the editor's starting refined wording from the saved state the server reports. */
+/** The server's saved authored body as editor state. */
 function savedOverride(saved: RefinedBodyState | null): {
   override: RefinedBody | null;
   state: RefinedBodyState["state"] | null;
@@ -172,34 +192,164 @@ function externalLink(destination: ExternalDeskDestination, text: string) {
   );
 }
 
+/** Key-order independent comparison of saved and local values. */
+function canonical(value: unknown): string {
+  return JSON.stringify(value, (_key, entry) =>
+    entry && typeof entry === "object" && !Array.isArray(entry)
+      ? Object.fromEntries(
+          Object.entries(entry as Record<string, unknown>).sort(([left], [right]) =>
+            left.localeCompare(right),
+          ),
+        )
+      : entry,
+  );
+}
+
+/** S161 (R-S161-5): a source staff leave blank is their own entry here; it is never asked for. */
+const STAFF_ENTRY_SOURCE = "Staff entry on the message";
+const NO_BASE_HASH = "0".repeat(64);
+const STALE_ATTACHMENT_MESSAGE =
+  "The selected screenshot is no longer the current one, so it is left off this message. Choose the current screenshot or clear the selection.";
+
+/**
+ * The inputs as they would be saved now. A finished entry is taken as typed. An unfinished or
+ * unusable entry stays in its control, is named in `unfinished`, and falls back to its last saved
+ * value here, so one half-typed field never holds back the rest of the message (S155).
+ */
+function savableInputs(
+  raw: MessagePreparationInputs,
+  saved: MessagePreparationInputs,
+): { inputs: MessagePreparationInputs; unfinished: string[] } {
+  const unfinished: string[] = [];
+  const sourceOr = (value: string | null | undefined) =>
+    value?.trim() || STAFF_ENTRY_SOURCE;
+  const edits = RenewalMessageEditsSchema.safeParse(raw.edits);
+  if (!edits.success) unfinished.push("Response request wording");
+  const charges = raw.charges.map((charge) => {
+    const parsed = MessageChargeSchema.safeParse({
+      ...charge,
+      source: charge.source?.trim() || null,
+    });
+    if (parsed.success) return parsed.data;
+    unfinished.push(`${MESSAGE_CHARGES[charge.id]} charge`);
+    return (
+      saved.charges.find((value) => value.id === charge.id) ?? {
+        id: charge.id,
+        applicable: null,
+        amount: null,
+        cadence: null,
+        effectiveDate: null,
+        source: null,
+        comparison: "unverified" as const,
+      }
+    );
+  });
+  let signature = saved.signature;
+  const typed = raw.signature;
+  if (!typed || !Object.values({ ...typed, source: "" }).some(Boolean)) signature = null;
+  else {
+    const parsed = MessagePreparationInputsSchema.shape.signature.safeParse({
+      ...typed,
+      source: sourceOr(typed.source),
+      website: typed.website
+        ? { url: typed.website.url, source: sourceOr(typed.website.source) }
+        : null,
+    });
+    if (parsed.success) signature = parsed.data;
+    else unfinished.push("Sender signature");
+  }
+  return {
+    inputs: {
+      edits: edits.success ? edits.data : saved.edits,
+      compScreenshotReceiptId: raw.compScreenshotReceiptId,
+      charges,
+      leaseOrigin: raw.leaseOrigin
+        ? { kind: raw.leaseOrigin.kind, source: sourceOr(raw.leaseOrigin.source) }
+        : null,
+      insuranceTransition: raw.insuranceTransition
+        ? {
+            applicable: raw.insuranceTransition.applicable,
+            source: sourceOr(raw.insuranceTransition.source),
+          }
+        : null,
+      otherChargesComparison: raw.otherChargesComparison
+        ? {
+            unchanged: raw.otherChargesComparison.unchanged,
+            source: sourceOr(raw.otherChargesComparison.source),
+          }
+        : null,
+      signature,
+    },
+    unfinished,
+  };
+}
+
+interface LocalMessage {
+  inputs: MessagePreparationInputs;
+  override: RefinedBody | null;
+  subjectText: string | null;
+}
+
+/** What one save would store for the local message, and what is still unfinished in it. */
+function savePayload(local: LocalMessage, server: Preparation) {
+  const effective = savableInputs(local.inputs, server.inputs);
+  const unfinished = [...effective.unfinished];
+  const savedBody = savedOverride(server.bodyOverride ?? null).override;
+  // Blank wording is not authored wording: the text then follows the standard wording.
+  const body = local.override?.text.trim()
+    ? RefinedBodySchema.safeParse(local.override)
+    : null;
+  const subject = local.subjectText?.trim()
+    ? AuthoredSubjectSchema.safeParse(local.subjectText)
+    : null;
+  if (body && !body.success) unfinished.push("Email body");
+  if (subject && !subject.success) unfinished.push("Subject");
+  return {
+    effective: effective.inputs,
+    unfinished,
+    /** The wording itself cannot be stored as typed, so a draft of it is not prepared yet. */
+    wordingUnfinished: Boolean((body && !body.success) || (subject && !subject.success)),
+    value: {
+      inputs: effective.inputs,
+      bodyOverride: body ? (body.success ? body.data : savedBody) : null,
+      subjectOverride: subject
+        ? subject.success
+          ? subject.data
+          : (server.subjectOverride ?? null)
+        : null,
+    },
+  };
+}
+
+/** The server's saved message in the same shape a save would send, for change detection. */
+function savedPayload(server: Preparation): string {
+  return canonical(
+    savePayload(
+      {
+        inputs: server.inputs,
+        override: savedOverride(server.bodyOverride ?? null).override,
+        subjectText: server.subjectOverride ?? null,
+      },
+      server,
+    ).value,
+  );
+}
+
 function MessagePreparationEditor({
   leaseId,
-  cycleId,
   refreshBasis,
   channel,
   canEdit,
 }: {
   leaseId: string;
-  cycleId: string | null;
   refreshBasis: string;
   channel: "owner" | "tenant";
   canEdit: boolean;
 }) {
-  const focusAfterSave = useRenewalSaveFocus();
   const [current, setCurrent] = useState<Preparation | null>(null);
   const [inputs, setInputs] = useState(emptyMessagePreparationInputs);
-  const [dirty, setDirty] = useState(false),
-    [reviewed, setReviewed] = useState(false);
-  const dirtyRef = useRef(false),
-    outstanding = useRef<{ payload: string; id: string } | null>(null);
-  const [pending, setPending] = useState(false),
-    [notice, setNotice] = useState("");
-  const [outcome, setOutcome] = useState<RenewalNoticeDraftOutcome | null>(null);
-  const [confirming, setConfirming] = useState(false);
-  const [loadedAtIso, setLoadedAtIso] = useState<string | null>(null);
-  const [adoptSignature, setAdoptSignature] = useState(false);
-  // S139: accepted refined wording for this message, its saved state, and the one prior value
-  // "Undo the last refinement" restores. Unsaved like any other edit until Save.
+  // S161: the authored body (typed here or accepted from a refinement) and the authored subject.
+  // Null means the text follows the standard wording composed from the current information.
   const [override, setOverride] = useState<RefinedBody | null>(null);
   const [overrideState, setOverrideState] = useState<RefinedBodyState["state"] | null>(
     null,
@@ -207,8 +357,27 @@ function MessagePreparationEditor({
   const [previousOverride, setPreviousOverride] = useState<
     RefinedBody | null | undefined
   >(undefined);
+  const [subjectText, setSubjectText] = useState<string | null>(null);
+  const [autosave, setAutosave] = useState<AutosaveState>(AUTOSAVE_IDLE);
+  const [commitTick, setCommitTick] = useState(0);
+  const [pending, setPending] = useState(false),
+    [notice, setNotice] = useState("");
+  const [outcome, setOutcome] = useState<RenewalNoticeDraftOutcome | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [loadedAtIso, setLoadedAtIso] = useState<string | null>(null);
   const base = useId();
   const loadSequence = useRef(0);
+  // Local entries the server has not confirmed, or cannot store yet. A refresh never replaces them.
+  const touchedRef = useRef(false);
+  const currentRef = useRef<Preparation | null>(null);
+  const localRef = useRef<LocalMessage>({ inputs, override, subjectText });
+  const lastSavedRef = useRef("");
+  const outstanding = useRef<{ payload: string; id: string } | null>(null);
+  const saving = useRef<Promise<void> | null>(null);
+  const queued = useRef(false);
+  // The save that runs a queued commit is the latest one, reached through a ref (the callback
+  // cannot name itself while it is being declared).
+  const runQueued = useRef<() => Promise<void>>(() => Promise.resolve());
   const readinessRef = useRef<HTMLDetailsElement | null>(null);
   const readinessSummaryId = `${MESSAGE_CONTROL_IDS.readiness(channel)}-summary`;
   // S131: the same applicability projection the policy panel shows; empty for an unrelated lease.
@@ -230,14 +399,26 @@ function MessagePreparationEditor({
         policy.facts,
       )
     : [];
-  // S129: the server projected the same gates from the saved state; a gate present on either side
-  // counts once, so a direct request and the local body agree.
-  const policyGatesForReadiness = [
+  // S129/S161: the server projected the same notes from the saved state; a note present on either
+  // side is listed once.
+  const policyNotes = [
     ...policyGates,
     ...(current?.policyGates ?? []).filter(
       (gate) => !policyGates.some((entry) => entry.field === gate.field),
     ),
   ];
+  useEffect(() => {
+    localRef.current = { inputs, override, subjectText };
+  });
+  /** Take the server's message as the local one. Only used while nothing local is unconfirmed. */
+  const adopt = useCallback((result: Preparation) => {
+    setInputs(result.inputs);
+    const saved = savedOverride(result.bodyOverride ?? null);
+    setOverride(saved.override);
+    setOverrideState(saved.state);
+    setPreviousOverride(undefined);
+    setSubjectText(result.subjectOverride ?? null);
+  }, []);
   const load = useCallback(() => {
     const sequence = ++loadSequence.current;
     return fetch(
@@ -245,10 +426,19 @@ function MessagePreparationEditor({
       { cache: "no-store" },
     ).then(async (response) => {
       const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error ?? "Message preparation could not be loaded.");
+      if (!response.ok) throw new Error(data.error ?? "The message could not be loaded.");
       const result = data as Preparation;
       if (sequence !== loadSequence.current) return;
+      // A read that started before a save finished never replaces that save's newer revision.
+      const known = currentRef.current;
+      if (
+        known &&
+        known.cycleId === result.cycleId &&
+        (result.saved?.revision ?? 0) < (known.saved?.revision ?? 0)
+      )
+        return;
+      currentRef.current = result;
+      lastSavedRef.current = savedPayload(result);
       setCurrent(result);
       setLoadedAtIso(new Date().toISOString());
       if (result.draftAttempt?.recoveryAvailable) {
@@ -261,21 +451,10 @@ function MessagePreparationEditor({
           });
         else if (result.draftAttempt.outcome) setOutcome(result.draftAttempt.outcome);
       }
-      if (!dirtyRef.current) {
-        setInputs(result.inputs);
-        const saved = savedOverride(result.bodyOverride ?? null);
-        setOverride(saved.override);
-        setOverrideState(saved.state);
-        setPreviousOverride(undefined);
-        setReviewed(false);
-      } else {
-        setReviewed(false);
-        setNotice(
-          "Source facts refreshed. Your edits are retained; review the current message before saving.",
-        );
-      }
+      // S161 (R-S161-7): refreshed facts never replace wording or entries still held here.
+      if (!touchedRef.current) adopt(result);
     });
-  }, [channel, leaseId]);
+  }, [adopt, channel, leaseId]);
   useEffect(() => {
     let active = true;
     load().catch((error) => {
@@ -285,25 +464,135 @@ function MessagePreparationEditor({
       active = false;
       loadSequence.current++;
     };
-  }, [load, cycleId, refreshBasis]); // source changes retain deliberate edits
-  function change(next: MessagePreparationInputs) {
-    setInputs(next);
-    dirtyRef.current = true;
-    setDirty(true);
-    setReviewed(false);
+  }, [load, refreshBasis]); // source and working changes refresh the facts; entries are kept
+
+  /**
+   * S155/S161: save the message as it stands. A completed entry saves by itself; nothing is
+   * reviewed or confirmed. One save runs at a time and a later entry saves after it, so an older
+   * response never replaces newer wording. A failed save keeps everything on screen and the same
+   * unchanged request is retried under the same operation id.
+   */
+  const runAutosave = useCallback(
+    (force = false): Promise<void> => {
+      const server = currentRef.current;
+      if (!canEdit || !server) return Promise.resolve();
+      if (saving.current) {
+        queued.current = true;
+        return saving.current;
+      }
+      const local = localRef.current;
+      const payload = savePayload(local, server);
+      const serialized = canonical(payload.value);
+      if (!force && serialized === lastSavedRef.current) return Promise.resolve();
+      const request = {
+        kind: "save",
+        leaseId,
+        channel,
+        ...(server.cycleId ? { cycleId: server.cycleId } : {}),
+        expectedRevision: server.saved?.revision ?? 0,
+        ...payload.value,
+      };
+      const requestKey = canonical(request);
+      if (outstanding.current?.payload !== requestKey)
+        outstanding.current = { payload: requestKey, id: crypto.randomUUID() };
+      const operationId = outstanding.current.id;
+      setAutosave({ phase: "saving" });
+      const run = (async () => {
+        try {
+          const response = await fetch("/api/lease-renewal/message-preparation", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...request, operationId }),
+          });
+          const data = (await response.json().catch(() => ({}))) as Preparation & {
+            error?: string;
+          };
+          if (!response.ok) {
+            setAutosave({
+              phase: "failed",
+              message: data.error ?? "The message could not be saved.",
+              conflict: response.status === 409,
+            });
+            return;
+          }
+          outstanding.current = null;
+          currentRef.current = data;
+          lastSavedRef.current = serialized;
+          setCurrent(data);
+          setLoadedAtIso(new Date().toISOString());
+          const latest = localRef.current;
+          // Everything entered was stored as typed and nothing newer was entered meanwhile.
+          if (
+            !payload.unfinished.length &&
+            canonical(savePayload(latest, data).value) === serialized
+          )
+            touchedRef.current = false;
+          const savedBody = data.bodyOverride ?? null;
+          if (
+            latest.override &&
+            savedBody &&
+            savedBody.state !== "unreadable" &&
+            savedBody.text === latest.override.text.trim()
+          )
+            setOverrideState(savedBody.state);
+          // S155: an entry made while this save was in flight is still unsaved; it saves next.
+          setAutosave(queued.current ? { phase: "saving" } : { phase: "saved" });
+        } catch {
+          setAutosave({
+            phase: "failed",
+            message: "The connection was interrupted.",
+          });
+        }
+      })().finally(() => {
+        saving.current = null;
+        if (queued.current) {
+          queued.current = false;
+          void runQueued.current();
+        }
+      });
+      saving.current = run;
+      return run;
+    },
+    [canEdit, channel, leaseId],
+  );
+  useEffect(() => {
+    runQueued.current = () => runAutosave();
+  }, [runAutosave]);
+  // A commit is requested after the entry is in state (a blur, a choice, a button), so the save
+  // that runs here always carries the latest values.
+  useEffect(() => {
+    if (commitTick > 0) void runAutosave();
+  }, [commitTick, runAutosave]);
+  const commit = () => setCommitTick((tick) => tick + 1);
+  /** Try again after a failure. After a conflict, read the other person's save first, then save this entry. */
+  async function retryAutosave() {
+    if (autosave.phase === "failed" && autosave.conflict)
+      await load().catch(() => undefined);
+    await runAutosave(true);
+  }
+  function touch() {
+    touchedRef.current = true;
+    if (autosave.phase !== "idle" && autosave.phase !== "saving")
+      setAutosave(AUTOSAVE_IDLE);
     if (outcome?.status === "preview") setOutcome(null);
     setConfirming(false);
   }
-  /** Refined wording is an ordinary unsaved edit: it needs review and a Save like any other. */
+  function change(next: MessagePreparationInputs) {
+    setInputs(next);
+    touch();
+  }
+  /** Authored wording is an ordinary entry: it is kept exactly and saves by itself. */
   function overrideChange(next: RefinedBody | null, remember = false) {
     if (remember) setPreviousOverride(override);
     setOverride(next);
-    setOverrideState(next ? "applied" : null);
-    dirtyRef.current = true;
-    setDirty(true);
-    setReviewed(false);
-    if (outcome?.status === "preview") setOutcome(null);
-    setConfirming(false);
+    setOverrideState(
+      next
+        ? overrideState === "stale" && next.baseHash === override?.baseHash
+          ? "stale"
+          : "applied"
+        : null,
+    );
+    touch();
   }
   function chargeChange(id: MessageCharge["id"], changeValue: Partial<MessageCharge>) {
     change({
@@ -317,7 +606,7 @@ function MessagePreparationEditor({
     const line = current?.chargeInventory?.find((value) => value.id === lineId);
     if (!line) return;
     // A deliberate fill from one named current charge. The comparison with the outgoing lease
-    // stays a human judgment, so it remains unverified until a person records it.
+    // stays a human judgment, so it remains open until a person records it.
     chargeChange(id, {
       applicable: true,
       amount: line.amount,
@@ -345,113 +634,85 @@ function MessagePreparationEditor({
       },
     });
   }
+  // The message is composed from what would be saved now, so what is shown, copied and drafted is
+  // one and the same text. Composition never refuses: a gap is a named marker and a callout line.
+  const payload = current
+    ? savePayload({ inputs, override, subjectText }, current)
+    : null;
   let content: ReturnType<typeof composeRenewalMessage> | null = null;
-  let contentError = "";
-  if (current) {
-    try {
-      content = composeRenewalMessage(
-        {
-          ...current.facts,
-          attachments:
-            inputs.compScreenshotReceiptId &&
-            inputs.compScreenshotReceiptId === current.availableCompScreenshot?.receiptId
-              ? [
-                  {
-                    filename: current.availableCompScreenshot.filename,
-                    source: `comp-screenshot-receipt:${inputs.compScreenshotReceiptId}`,
-                  },
-                ]
-              : [],
-          charges: inputs.charges.map((value) => ({
-            ...value,
-            source: value.source?.trim() || null,
-          })),
-          leaseOrigin: inputs.leaseOrigin?.source ? inputs.leaseOrigin : null,
-          insuranceTransition: inputs.insuranceTransition?.source
-            ? inputs.insuranceTransition
-            : null,
-          otherChargesComparison: inputs.otherChargesComparison?.source
-            ? inputs.otherChargesComparison
-            : null,
-          signature:
-            signature?.name && signature.source
-              ? {
-                  ...signature,
-                  email:
-                    current.signatureMatchesActor ||
-                    JSON.stringify(signature) !==
-                      JSON.stringify(current.saved?.inputs.signature)
-                      ? current.senderEmail
-                      : (current.saved?.signatureEmail ?? current.senderEmail),
-                }
-              : null,
-        },
-        inputs.edits,
-      );
-      if (
-        inputs.compScreenshotReceiptId &&
-        inputs.compScreenshotReceiptId !== current.availableCompScreenshot?.receiptId
-      )
-        content.missing.push({
-          field: "attachment",
-          message:
-            "Review the current screenshot or remove the unavailable attachment selection before final use.",
-        });
-    } catch (error) {
-      contentError =
-        error instanceof Error ? error.message : "Review the labeled inputs.";
-    }
+  if (current && payload) {
+    const effective = payload.effective;
+    content = composeRenewalMessage(
+      {
+        ...current.facts,
+        attachments:
+          inputs.compScreenshotReceiptId &&
+          inputs.compScreenshotReceiptId === current.availableCompScreenshot?.receiptId
+            ? [
+                {
+                  filename: current.availableCompScreenshot.filename,
+                  source: `comp-screenshot-receipt:${inputs.compScreenshotReceiptId}`,
+                },
+              ]
+            : [],
+        charges: effective.charges,
+        leaseOrigin: effective.leaseOrigin,
+        insuranceTransition: effective.insuranceTransition,
+        otherChargesComparison: effective.otherChargesComparison,
+        signature: effective.signature
+          ? {
+              ...effective.signature,
+              email:
+                current.signatureMatchesActor ||
+                canonical(effective.signature) !==
+                  canonical(current.saved?.inputs.signature ?? null)
+                  ? current.senderEmail
+                  : (current.saved?.signatureEmail ?? current.senderEmail),
+            }
+          : null,
+      },
+      effective.edits,
+    );
+    const serverRange = current.content?.missing?.find(
+      (entry) => entry.field === "range",
+    );
+    const localRange = content.missing.find((entry) => entry.field === "range");
+    if (serverRange && localRange) localRange.message = serverRange.message;
+    if (
+      inputs.compScreenshotReceiptId &&
+      inputs.compScreenshotReceiptId !== current.availableCompScreenshot?.receiptId
+    )
+      content.missing.push({ field: "attachment", message: STALE_ATTACHMENT_MESSAGE });
   }
-  // S139: refined wording is the body only while the facts it was refined from are unchanged: a
-  // local edit to the inputs or a server-reported change makes it stale, and stale wording blocks
-  // the final body instead of silently reverting or silently sending older facts.
-  const baseChanged =
-    current !== null && JSON.stringify(inputs) !== JSON.stringify(current.inputs);
-  const overrideStale = override !== null && (overrideState === "stale" || baseChanged);
-  if (content && override && overrideStale)
-    content.missing.push({ field: "refinedBody", message: STALE_REFINED_BODY_MESSAGE });
-  if (content && overrideState === "unreadable" && !override)
-    content.missing.push({
-      field: "refinedBody",
-      message: "The saved refined wording could not be read. Reload before drafting.",
-    });
-  const shownContent =
-    content && override && !overrideStale
-      ? applyRefinedBody(content, override.text)
-      : content;
+  // S161 (R-S161-7): authored wording is the body exactly as written, also after the information
+  // it started from changed. Only a deliberate return to the standard wording replaces it.
+  const authoredBody = override && override.text.trim() ? override.text : null;
+  const authoredSubject =
+    subjectText !== null && subjectText.trim() ? subjectText.trim() : null;
+  let shownContent = content;
+  if (shownContent && authoredBody)
+    shownContent = applyRefinedBody(shownContent, authoredBody);
+  if (shownContent && authoredSubject)
+    shownContent = applyAuthoredSubject(shownContent, authoredSubject);
+  const wordingChangedSince = Boolean(authoredBody && overrideState === "stale");
   const refineDisabledReason = !canEdit
     ? "Refining wording needs edit access to this renewal."
-    : !current?.saved
-      ? "Save this message once before refining its wording."
-      : baseChanged
-        ? "Save your changes first so the wording starts from the reviewed facts."
-        : null;
-  // S120 (R120.4): one readiness result from the same content, review and sender basis governs
-  // the missing-input list and the supported final-body exports.
-  const readiness = current
-    ? projectMessageReadiness({
-        channel,
-        missing: content?.missing ?? [],
-        contentError,
-        saved: Boolean(current.saved),
-        dirty,
-        needsReview: current.needsReview,
-        signatureMatchesActor: current.signatureMatchesActor,
-        signatureSaved: Boolean(current.saved?.inputs.signature),
-        policyGates: policyGatesForReadiness,
-      })
     : null;
-  const bodyReady = Boolean(readiness?.bodyReady && content);
-  // S129 (R-F09-07): the meeting preflight from the same facts, readiness and destinations.
+  // S161 (R-S161-4): the concise missing-value callout. It is information; nothing waits on it.
+  const readiness =
+    current && shownContent
+      ? projectMessageReadiness({
+          channel,
+          missing: shownContent.missing,
+          policyGates: policyNotes,
+        })
+      : null;
+  // S129 (R-F09-07): the meeting preflight from the same facts, callout and destinations.
   const preflight = current
     ? projectMessagePreflight({
         channel,
         canEdit,
         senderEmail: current.senderEmail,
-        cycleId,
-        saved: Boolean(current.saved),
-        dirty,
-        needsReview: current.needsReview,
         signatureOrigin: current.signatureOrigin?.kind ?? "none",
         signatureMatchesActor: current.signatureMatchesActor,
         readiness,
@@ -463,79 +724,13 @@ function MessagePreparationEditor({
         loadedAtIso,
       })
     : null;
-  function reviewMissing() {
-    const details = readinessRef.current;
-    if (!details) return;
-    details.open = true;
-    const first = details.querySelector<HTMLElement>("a[href]");
-    (first ?? details).focus({ preventScroll: true });
-    details.scrollIntoView?.({ block: "start" });
-  }
   function openMissingInput(item: MessageMissingInput) {
     if (item.target.kind === "control") focusRenewalDashboardControl(item.target.id);
   }
-  async function save() {
-    if (!current || !cycleId) return;
-    const request = {
-      kind: "save",
-      leaseId,
-      cycleId,
-      channel,
-      expectedRevision: current.saved?.revision ?? 0,
-      sourceFingerprint: current.sourceFingerprint,
-      reviewed,
-      adoptSignature,
-      inputs,
-      bodyOverride: override,
-    };
-    const serialized = JSON.stringify(request);
-    if (outstanding.current?.payload !== serialized)
-      outstanding.current = { payload: serialized, id: crypto.randomUUID() };
-    setPending(true);
-    setNotice("");
-    try {
-      const response = await fetch("/api/lease-renewal/message-preparation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...request, operationId: outstanding.current.id }),
-      });
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error ?? "The preparation could not be saved.");
-      setCurrent(data);
-      setInputs(data.inputs);
-      const saved = savedOverride((data as Preparation).bodyOverride ?? null);
-      setOverride(saved.override);
-      setOverrideState(saved.state);
-      setPreviousOverride(undefined);
-      setDirty(false);
-      dirtyRef.current = false;
-      setReviewed(false);
-      setAdoptSignature(false);
-      outstanding.current = null;
-      setNotice(
-        reviewed
-          ? "Preparation and review saved. No Gmail draft was created."
-          : "Edits saved. Review the current facts before a final export.",
-      );
-      focusAfterSave?.();
-    } catch (error) {
-      setNotice(
-        error instanceof Error ? error.message : "Save failed. Your edits remain here.",
-      );
-    } finally {
-      setPending(false);
-    }
-  }
+  /** S162 (R-S162-1/2/3): copy is exactly what is on screen, whatever the save is doing. */
   async function copy(kind: "subject" | "plain" | "formatted" | "recipients") {
     const content = shownContent;
     if (!content) return;
-    // The guarded final-body exports never put an unfinished body on the clipboard; the guard
-    // opens the actual missing items instead.
-    if ((kind === "plain" || kind === "formatted") && !bodyReady) {
-      reviewMissing();
-      return;
-    }
     try {
       if (kind === "recipients") {
         // S116: the complete To/Cc set, in the same order the draft carries it. Nothing is sent.
@@ -565,16 +760,19 @@ function MessagePreparationEditor({
           kind === "subject" ? content.subject : content.plainText,
         );
       setNotice(
-        `${kind === "subject" ? "Subject" : "Body"} copied. Attachments are separate. Nothing was sent.`,
+        `${kind === "subject" ? "Subject" : "Body"} copied as shown. Attachments are separate. Nothing was sent.`,
       );
     } catch {
       setNotice(
-        kind === "subject" || !bodyReady
-          ? "Clipboard access was denied. Select and copy the subject below; your preparation is retained."
-          : "Clipboard access was denied. Select and copy the subject or plain text below; your preparation is retained.",
+        "Clipboard access was denied. Select and copy the subject or body below; your wording is kept.",
       );
     }
   }
+  /**
+   * S162: the deliberate unsent-draft step. The preview request carries exactly what is displayed
+   * and, when it is not saved yet, the message itself, so the one action saves, binds and previews
+   * it. Creation stays a separate exact confirmation of that preview. Nothing is ever sent.
+   */
   async function draft(
     kind: "preview" | "create" | "reconcile",
     priorExecutionId?: string,
@@ -582,30 +780,62 @@ function MessagePreparationEditor({
     setPending(true);
     setConfirming(false);
     setNotice("");
-    const request = {
-      kind: "draft",
-      leaseId,
-      channel,
-      ...(kind === "create" && outcome?.status === "preview"
-        ? {
-            confirm: {
-              executionId: outcome.executionId,
-              previewHash: outcome.previewHash,
-            },
-          }
-        : {}),
-      ...(kind === "reconcile" &&
-      (priorExecutionId || (outcome && "executionId" in outcome))
-        ? {
-            reconcile: {
-              executionId:
-                priorExecutionId ??
-                (outcome && "executionId" in outcome ? outcome.executionId : ""),
-            },
-          }
-        : {}),
-    };
     try {
+      let preview: Record<string, unknown> = {};
+      let savedWith: string | null = null;
+      if (kind === "preview") {
+        // An autosave already on its way finishes first, so the two never save over each other.
+        await saving.current?.catch(() => undefined);
+        const server = currentRef.current;
+        if (!server || !shownContent) return;
+        const state = savePayload(localRef.current, server);
+        if (state.wordingUnfinished) {
+          setNotice(
+            "The wording has characters that cannot be saved, so no draft was prepared. Remove double braces and control characters, then preview again.",
+          );
+          return;
+        }
+        const serialized = canonical(state.value);
+        const needsSave = serialized !== lastSavedRef.current || !server.saved;
+        if (needsSave) savedWith = serialized;
+        preview = {
+          displayed: { subject: shownContent.subject, body: shownContent.plainText },
+          ...(needsSave
+            ? {
+                save: {
+                  ...(server.cycleId ? { cycleId: server.cycleId } : {}),
+                  expectedRevision: server.saved?.revision ?? 0,
+                  operationId: crypto.randomUUID(),
+                  ...state.value,
+                },
+              }
+            : {}),
+        };
+      }
+      const request = {
+        kind: "draft",
+        leaseId,
+        channel,
+        ...preview,
+        ...(kind === "create" && outcome?.status === "preview"
+          ? {
+              confirm: {
+                executionId: outcome.executionId,
+                previewHash: outcome.previewHash,
+              },
+            }
+          : {}),
+        ...(kind === "reconcile" &&
+        (priorExecutionId || (outcome && "executionId" in outcome))
+          ? {
+              reconcile: {
+                executionId:
+                  priorExecutionId ??
+                  (outcome && "executionId" in outcome ? outcome.executionId : ""),
+              },
+            }
+          : {}),
+      };
       const response = await fetch("/api/lease-renewal/message-preparation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -614,6 +844,11 @@ function MessagePreparationEditor({
       const data = await response.json();
       if (!response.ok && data.providerCallAttempted === false) {
         setNotice(data.error);
+        // The message was saved but reads differently now: show the current message.
+        if (data.code === "message_changed") {
+          if (savedWith) lastSavedRef.current = savedWith;
+          await load().catch(() => undefined);
+        }
         return;
       }
       if (!response.ok)
@@ -621,12 +856,18 @@ function MessagePreparationEditor({
           data.error ??
             "Gmail drafting is unavailable. Copy remains available; no new draft is confirmed.",
         );
+      if (savedWith) {
+        // The draft action saved the message. Read its new revision; what is on screen stays.
+        lastSavedRef.current = savedWith;
+        outstanding.current = null;
+        await load().catch(() => undefined);
+      }
       const parsed = RenewalNoticeDraftOutcomeSchema.parse(data);
       setOutcome(parsed);
       if (parsed.status === "blocked") setNotice(parsed.reasons.join(" "));
       if (parsed.status === "created")
         setNotice(
-          "An unsent Gmail draft was created and recorded. Review it in Gmail; a person sends it.",
+          "An unsent Gmail draft was created and recorded. Review it in Gmail before you send it; a person sends it.",
         );
       if (parsed.status === "needs_reconciliation" || parsed.status === "reconciliation")
         setNotice(parsed.reason);
@@ -651,29 +892,24 @@ function MessagePreparationEditor({
   const unresolved =
     outcome?.status === "needs_reconciliation" ||
     (outcome?.status === "reconciliation" && outcome.resolution !== "created");
+  // S162 (R-S162-5, R-S162-9): only what the exact Gmail action needs is asked of it. Missing
+  // business values, an unrecorded response and an unsaved message never withhold the step.
   const canDraft = Boolean(
     canEdit &&
     current &&
-    cycleId &&
-    bodyReady &&
+    shownContent &&
     current.publication.status === "approved" &&
     !unresolved,
   );
-  const paragraph = responseRequestParagraph(channel, inputs.edits);
+  const paragraph = responseRequestParagraph(
+    channel,
+    payload?.effective.edits ?? { responseRequest: "" },
+  );
   const signatureEdited =
-    JSON.stringify(signature ?? null) !==
-    JSON.stringify(current?.inputs.signature ?? null);
+    canonical(signature ?? null) !== canonical(current?.inputs.signature ?? null);
   const retainedDiffers =
     Boolean(current?.retainedSignature) &&
-    JSON.stringify(signature ?? null) !==
-      JSON.stringify(current?.retainedSignature ?? null);
-  const guardedProps = bodyReady
-    ? {}
-    : {
-        "aria-disabled": true as const,
-        "aria-describedby": readinessSummaryId,
-        title: "Not available until the listed inputs are resolved and reviewed.",
-      };
+    canonical(signature ?? null) !== canonical(current?.retainedSignature ?? null);
   const channelLabel = channel === "owner" ? "Owner" : "Tenant";
   return (
     <Card
@@ -684,8 +920,10 @@ function MessagePreparationEditor({
       ariaLabel={`${channelLabel} message preparation`}
       id={`renewal-card-message-${channel}`}
     >
-      <p className="muted">A person sends it; saving here does not record delivery.</p>
-      {!cycleId ? <p>Select the current renewal cycle above to retain edits.</p> : null}
+      <p className="muted">
+        Edit the subject and body directly; your wording saves by itself. A person sends
+        it; saving here does not record delivery.
+      </p>
       {notice ? <p role="status">{notice}</p> : null}
       {[...new Set(current?.notices ?? [])].map((value) => (
         <p key={value} className="muted">
@@ -703,13 +941,23 @@ function MessagePreparationEditor({
         <>
           <fieldset
             id={MESSAGE_CONTROL_IDS.inputs(channel)}
-            disabled={!canEdit || pending}
+            disabled={!canEdit}
             className="ui-stack"
+            onBlur={commit}
+            onChange={(event) => {
+              // A choice saves when it is made; typed text saves when its field is left.
+              const target = event.target as unknown;
+              if (
+                target instanceof HTMLSelectElement ||
+                (target instanceof HTMLInputElement && target.type === "checkbox")
+              )
+                commit();
+            }}
           >
             <Field
               htmlFor={`${base}-response`}
               label="Response request (optional wording edit)"
-              hint={`Replaces ${RESPONSE_REQUEST_PLACEMENT[channel]}. Blank keeps the approved wording. Amounts, dates, links and contacts stay in their labeled fields.`}
+              hint={`Replaces ${RESPONSE_REQUEST_PLACEMENT[channel]} in the standard wording. Blank keeps the approved wording. For amounts, dates, links or contacts, edit the email body itself.`}
             >
               <textarea
                 id={`${base}-response`}
@@ -727,7 +975,7 @@ function MessagePreparationEditor({
             {channel === "tenant" ? (
               <>
                 <details>
-                  <summary>Review lease origin and applicable charges</summary>
+                  <summary>Lease origin and charges (optional details)</summary>
                   <div className="ui-stack">
                     <Field
                       htmlFor={MESSAGE_CONTROL_IDS.origin(channel)}
@@ -748,7 +996,7 @@ function MessagePreparationEditor({
                           })
                         }
                       >
-                        <option value="">Needs review</option>
+                        <option value="">Not entered</option>
                         <option value="pmi">PMI lease</option>
                         <option value="third_party">Third-party lease</option>
                       </select>
@@ -756,7 +1004,7 @@ function MessagePreparationEditor({
                     {inputs.leaseOrigin ? (
                       <Field
                         htmlFor={`${base}-origin-source`}
-                        label="Lease-origin source"
+                        label="Lease-origin source (optional)"
                       >
                         <input
                           id={`${base}-origin-source`}
@@ -785,7 +1033,7 @@ function MessagePreparationEditor({
                           <summary>
                             {MESSAGE_CHARGES[charge.id]} ·{" "}
                             {charge.applicable === null
-                              ? "Needs review"
+                              ? "Not entered"
                               : charge.applicable
                                 ? "Applies"
                                 : "Does not apply"}
@@ -826,7 +1074,7 @@ function MessagePreparationEditor({
                                 data-testid={`renewal-message-charge-origin-${charge.id}`}
                               >
                                 Filled from RentVine recurring charge {filledFrom.label}.
-                                Confirm it applies and record the comparison yourself.
+                                Change anything that differs for the renewal.
                               </p>
                             ) : null}
                             <Field
@@ -849,7 +1097,7 @@ function MessagePreparationEditor({
                                   })
                                 }
                               >
-                                <option value="">Needs review</option>
+                                <option value="">Not entered</option>
                                 <option value="true">Applies</option>
                                 <option value="false">Does not apply</option>
                               </select>
@@ -890,7 +1138,7 @@ function MessagePreparationEditor({
                                       })
                                     }
                                   >
-                                    <option value="">Needs review</option>
+                                    <option value="">Not entered</option>
                                     <option value="monthly">Monthly</option>
                                     <option value="one_time">One time</option>
                                   </select>
@@ -924,7 +1172,7 @@ function MessagePreparationEditor({
                                       })
                                     }
                                   >
-                                    <option value="unverified">Needs comparison</option>
+                                    <option value="unverified">Not compared</option>
                                     <option value="unchanged">Unchanged</option>
                                     <option value="changed">Changed</option>
                                     <option value="new">New</option>
@@ -934,8 +1182,8 @@ function MessagePreparationEditor({
                             ) : null}
                             <Field
                               htmlFor={`${base}-${charge.id}-source`}
-                              label="Charge source"
-                              hint="Identify the record or approved policy used to confirm this charge and whether it applies."
+                              label="Charge source (optional)"
+                              hint="The record or policy this charge comes from, if you want to note it."
                             >
                               <input
                                 id={`${base}-${charge.id}-source`}
@@ -975,7 +1223,7 @@ function MessagePreparationEditor({
                           })
                         }
                       >
-                        <option value="">Needs review</option>
+                        <option value="">Not entered</option>
                         <option value="true">Applies</option>
                         <option value="false">Does not apply</option>
                       </select>
@@ -983,7 +1231,7 @@ function MessagePreparationEditor({
                     {inputs.insuranceTransition ? (
                       <Field
                         htmlFor={`${base}-insurance-source`}
-                        label="Insurance policy source"
+                        label="Insurance policy source (optional)"
                       >
                         <input
                           id={`${base}-insurance-source`}
@@ -1034,7 +1282,7 @@ function MessagePreparationEditor({
                     {inputs.otherChargesComparison ? (
                       <Field
                         htmlFor={`${base}-comparison-source`}
-                        label="Remaining-charges comparison source"
+                        label="Remaining-charges comparison source (optional)"
                       >
                         <input
                           id={`${base}-comparison-source`}
@@ -1059,37 +1307,21 @@ function MessagePreparationEditor({
               <summary>Managed sender signature · {current.senderEmail}</summary>
               <p className="muted" data-testid="renewal-message-signature-origin">
                 {signatureEdited
-                  ? "Edited here. Saving records this version for this message and retains it for your managed sender."
+                  ? "Edited here. It saves with this message and is kept for your managed sender."
                   : current.signatureOrigin?.kind === "retained_sender"
-                    ? `Filled from your retained sender signature (saved ${formatBusinessTimestamp(current.signatureOrigin.recordedAt)}). Edit here to override; saving binds it to this message.`
+                    ? `Filled from your retained sender signature (saved ${formatBusinessTimestamp(current.signatureOrigin.recordedAt)}). Edit here to change it.`
                     : current.signatureOrigin?.kind === "saved"
                       ? current.signatureMatchesActor
                         ? "Saved with this message as your signature for this managed sender."
-                        : "Saved with this message by another sender. Review it as your own or use your retained signature."
-                      : "Enter your signature once. It is retained for your managed sender across leases and cycles."}
+                        : "Saved with this message by another sender and shown as saved. Use your retained signature or edit it here if you prefer."
+                      : "Enter your signature once. It is kept for your managed sender across leases."}
               </p>
-              {!current.signatureMatchesActor && current.inputs.signature ? (
-                <label>
-                  <input
-                    id={MESSAGE_CONTROL_IDS.adoptSignature(channel)}
-                    type="checkbox"
-                    checked={adoptSignature}
-                    onChange={(event) => {
-                      setAdoptSignature(event.target.checked);
-                      setReviewed(false);
-                      setDirty(true);
-                      dirtyRef.current = true;
-                    }}
-                  />{" "}
-                  I reviewed this signature as my own for {current.senderEmail}.
-                </label>
-              ) : null}
               {retainedDiffers ? (
                 <Button
                   variant="secondary"
                   onClick={() => {
                     change({ ...inputs, signature: current.retainedSignature ?? null });
-                    setAdoptSignature(false);
+                    commit();
                   }}
                 >
                   Use my retained signature
@@ -1102,7 +1334,7 @@ function MessagePreparationEditor({
                     ["role", "Approved role / organization"],
                     ["phone", "Verified phone (optional)"],
                     ["hours", "Verified hours (optional)"],
-                    ["source", "Signature source"],
+                    ["source", "Signature source (optional)"],
                   ] as const
                 ).map(([field, label]) => {
                   const id =
@@ -1170,14 +1402,14 @@ function MessagePreparationEditor({
                           })
                         }
                       />
-                      Include this reviewed screenshot for the current renewal:{" "}
+                      Include this screenshot with the message:{" "}
                       {current.availableCompScreenshot.filename}
                     </label>
                     <a
                       className="text-link"
                       href={`/api/lease-renewal/message-attachment?leaseId=${encodeURIComponent(leaseId)}&receiptId=${encodeURIComponent(current.availableCompScreenshot.receiptId)}`}
                     >
-                      Download reviewed screenshot
+                      Download the screenshot
                     </a>
                     <p className="muted">
                       For a manually copied email, download and attach this file yourself.
@@ -1187,43 +1419,36 @@ function MessagePreparationEditor({
                   </>
                 ) : (
                   <p className="muted" id={MESSAGE_CONTROL_IDS.attachment} tabIndex={-1}>
-                    No current receipted screenshot is available. Review any analysis file
-                    separately before manually attaching it in Gmail.
+                    No current receipted screenshot is available. Attach any analysis file
+                    yourself in Gmail.
                   </p>
                 )}
                 {inputs.compScreenshotReceiptId &&
                 inputs.compScreenshotReceiptId !==
                   current.availableCompScreenshot?.receiptId ? (
                   <Button
-                    onClick={() => change({ ...inputs, compScreenshotReceiptId: null })}
+                    onClick={() => {
+                      change({ ...inputs, compScreenshotReceiptId: null });
+                      commit();
+                    }}
                   >
                     Remove unavailable attachment selection
                   </Button>
                 ) : null}
               </div>
             ) : null}
-            <label>
-              <input
-                id={MESSAGE_CONTROL_IDS.reviewed(channel)}
-                type="checkbox"
-                checked={reviewed}
-                onChange={(event) => setReviewed(event.target.checked)}
-              />{" "}
-              I reviewed these inputs and the current source facts for this message.
-            </label>
-            <Button disabled={!cycleId || Boolean(contentError)} onClick={save}>
-              {reviewed ? "Save reviewed preparation" : "Save edits"}
-            </Button>
           </fieldset>
-          {contentError ? <p role="alert">{contentError}</p> : null}
-          {current.needsReview || dirty ? (
-            <p className="muted">
-              Preparation needs review. Saved edits survive refresh; changed source terms
-              require another review.
+          {canEdit ? (
+            <AutosaveStatus state={autosave} subject="Message" onRetry={retryAutosave} />
+          ) : null}
+          {payload?.unfinished.length ? (
+            <p className="muted" data-testid="renewal-message-unfinished">
+              Not saved yet: {payload.unfinished.join(", ")}. Each entry saves by itself
+              once it is complete; everything else is already saved.
             </p>
           ) : null}
           {readiness ? (
-            readiness.bodyReady ? (
+            readiness.complete ? (
               <p className="muted" id={readinessSummaryId}>
                 {readiness.summary}
               </p>
@@ -1234,7 +1459,7 @@ function MessagePreparationEditor({
                 id={MESSAGE_CONTROL_IDS.readiness(channel)}
               >
                 <summary id={readinessSummaryId}>{readiness.summary}</summary>
-                <ol aria-label="Missing inputs" className="ui-rows">
+                <ul aria-label="Marked values" className="ui-rows">
                   {readiness.items.map((item) => (
                     <li key={`${item.field}:${item.message}`}>
                       {item.target.kind === "control" ? (
@@ -1253,7 +1478,7 @@ function MessagePreparationEditor({
                       : {item.message}
                     </li>
                   ))}
-                </ol>
+                </ul>
               </details>
             )
           ) : null}
@@ -1299,15 +1524,29 @@ function MessagePreparationEditor({
               </ul>
             </details>
           ) : null}
-          {/* The copy group stays mounted while the composer refuses the current inputs, so
-              the guarded exports keep their reachable explanation instead of vanishing. */}
+          {/* S162: copy uses exactly the subject and body shown here, with their markers,
+              whatever the save or the missing values are doing. */}
           <section
             aria-label="Copy the message"
             className="ui-stack-tight renewal-message-group"
           >
             <h3 className="renewal-message-group-title">Copy the message</h3>
-            <Field htmlFor={`${base}-subject`} label="Subject">
-              <input id={`${base}-subject`} readOnly value={content?.subject ?? ""} />
+            <Field htmlFor={MESSAGE_CONTROL_IDS.subject(channel)} label="Subject">
+              <input
+                id={MESSAGE_CONTROL_IDS.subject(channel)}
+                readOnly={!canEdit}
+                value={subjectText ?? content?.subject ?? ""}
+                onChange={(event) => {
+                  setSubjectText(
+                    event.target.value === content?.subject ? null : event.target.value,
+                  );
+                  touch();
+                }}
+                onBlur={() => {
+                  if (subjectText !== null && !subjectText.trim()) setSubjectText(null);
+                  commit();
+                }}
+              />
             </Field>
             {current?.recipients ? (
               current.recipients.status === "ready" ? (
@@ -1329,13 +1568,13 @@ function MessagePreparationEditor({
               )
             ) : null}
             <div className="ui-actions">
-              <Button disabled={!content} onClick={() => copy("subject")}>
+              <Button disabled={!shownContent} onClick={() => copy("subject")}>
                 Copy subject
               </Button>
-              <Button {...guardedProps} onClick={() => copy("formatted")}>
+              <Button disabled={!shownContent} onClick={() => copy("formatted")}>
                 Copy formatted body
               </Button>
-              <Button {...guardedProps} onClick={() => copy("plain")}>
+              <Button disabled={!shownContent} onClick={() => copy("plain")}>
                 Copy plain text
               </Button>
               {current?.recipients ? (
@@ -1344,11 +1583,6 @@ function MessagePreparationEditor({
                   onClick={() => copy("recipients")}
                 >
                   Copy recipients
-                </Button>
-              ) : null}
-              {!bodyReady ? (
-                <Button variant="secondary" onClick={reviewMissing}>
-                  Review missing inputs
                 </Button>
               ) : null}
             </div>
@@ -1387,75 +1621,48 @@ function MessagePreparationEditor({
           </section>
           {shownContent ? (
             <>
-              {!bodyReady && readiness ? (
-                <p className="muted">
-                  Unfinished preview: {readiness.summary}. The formatted body and plain
-                  text cannot be copied until they are resolved.
-                </p>
-              ) : null}
-              <div
-                aria-label={`${channel} formatted body`}
-                className="renewal-message-preview"
-                dangerouslySetInnerHTML={{ __html: shownContent.htmlBody }}
-              />
-              {bodyReady ? (
-                <details>
-                  <summary>Selectable plain text</summary>
-                  <textarea
-                    aria-label={`${channel} plain text body`}
-                    readOnly
-                    value={shownContent.plainText}
-                    rows={14}
-                  />
-                </details>
-              ) : null}
-              <fieldset
-                className="ui-stack-tight renewal-message-group"
-                disabled={!canEdit || pending}
+              <Field
+                htmlFor={MESSAGE_CONTROL_IDS.body(channel)}
+                label="Email body"
+                hint="Edit the wording directly. It is copied and drafted exactly as shown, and anything still marked stays marked."
               >
-                <RefineWithAi
-                  appliedNotice="Revision applied. Review it and save the message to keep it."
-                  currentBody={
-                    override && !overrideStale
-                      ? override.text
-                      : (content?.plainText ?? "")
+                <textarea
+                  id={MESSAGE_CONTROL_IDS.body(channel)}
+                  readOnly={!canEdit}
+                  rows={16}
+                  value={override ? override.text : (content?.plainText ?? "")}
+                  onChange={(event) =>
+                    overrideChange(
+                      event.target.value === content?.plainText
+                        ? null
+                        : {
+                            text: event.target.value,
+                            baseHash:
+                              override?.baseHash ?? current.bodyBaseHash ?? NO_BASE_HASH,
+                          },
+                    )
                   }
-                  disabledReason={refineDisabledReason}
-                  id={MESSAGE_CONTROL_IDS.refine(channel)}
-                  onApply={(revision) =>
-                    revision.baseHash
-                      ? overrideChange(
-                          { text: revision.body, baseHash: revision.baseHash },
-                          true,
-                        )
-                      : setNotice(
-                          "The revision could not be bound to this message. Refine again.",
-                        )
-                  }
-                  request={{ surface: "renewal_message", leaseId, channel }}
+                  onBlur={() => {
+                    if (override && !override.text.trim()) overrideChange(null);
+                    commit();
+                  }}
                 />
-                {override && !overrideStale ? (
-                  <>
-                    <Field
-                      htmlFor={`${base}-refined`}
-                      label="Refined email body"
-                      hint="This wording replaces the standard body for this saved version. You can edit it; amounts, dates, names and links stay as the facts show unless you change them here."
-                    >
-                      <textarea
-                        id={`${base}-refined`}
-                        onChange={(event) =>
-                          overrideChange({ ...override, text: event.target.value })
-                        }
-                        rows={14}
-                        value={override.text}
-                      />
-                    </Field>
+              </Field>
+              {authoredBody ? (
+                <div className="ui-stack-tight">
+                  <p className="muted" role="status">
+                    {wordingChangedSince
+                      ? STALE_REFINED_BODY_MESSAGE
+                      : "Your wording is kept exactly as written. It is not replaced when the lease information changes."}
+                  </p>
+                  {canEdit ? (
                     <div className="ui-actions">
                       {previousOverride !== undefined ? (
                         <Button
                           onClick={() => {
                             overrideChange(previousOverride);
                             setPreviousOverride(undefined);
+                            commit();
                           }}
                           type="button"
                           variant="secondary"
@@ -1464,33 +1671,52 @@ function MessagePreparationEditor({
                         </Button>
                       ) : null}
                       <Button
-                        onClick={() => overrideChange(null, true)}
+                        onClick={() => {
+                          overrideChange(null, true);
+                          commit();
+                        }}
                         type="button"
                         variant="secondary"
                       >
                         Return to the standard wording
                       </Button>
                     </div>
-                  </>
-                ) : null}
-                {override && overrideStale ? (
-                  <div className="ui-stack-tight" role="status">
-                    <p>{STALE_REFINED_BODY_MESSAGE}</p>
-                    <details>
-                      <summary>Earlier refined wording (kept for reference)</summary>
-                      <div className="draft-box">{override.text}</div>
-                    </details>
-                    <div className="ui-actions">
-                      <Button
-                        onClick={() => overrideChange(null, true)}
-                        type="button"
-                        variant="secondary"
-                      >
-                        Return to the standard wording
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
+                  ) : null}
+                </div>
+              ) : null}
+              {overrideState === "unreadable" && !override ? (
+                <p role="status">{UNREADABLE_REFINED_BODY_MESSAGE}</p>
+              ) : null}
+              <details open>
+                <summary>Formatted preview</summary>
+                <div
+                  aria-label={`${channel} formatted body`}
+                  className="renewal-message-preview"
+                  dangerouslySetInnerHTML={{ __html: shownContent.htmlBody }}
+                />
+              </details>
+              <fieldset
+                className="ui-stack-tight renewal-message-group"
+                disabled={!canEdit || pending}
+              >
+                <RefineWithAi
+                  appliedNotice="Revision applied to the email body. It saves by itself; edit it further if you like."
+                  currentBody={shownContent.plainText}
+                  disabledReason={refineDisabledReason}
+                  id={MESSAGE_CONTROL_IDS.refine(channel)}
+                  onApply={(revision) => {
+                    overrideChange(
+                      {
+                        text: revision.body,
+                        baseHash:
+                          revision.baseHash ?? current.bodyBaseHash ?? NO_BASE_HASH,
+                      },
+                      true,
+                    );
+                    commit();
+                  }}
+                  request={{ surface: "renewal_message", leaseId, channel }}
+                />
               </fieldset>
             </>
           ) : null}
@@ -1547,8 +1773,10 @@ function MessagePreparationEditor({
                 ) : (
                   <div role="group" aria-label="Confirm exact unsent draft">
                     <p>
-                      Create this exact reviewed unsent draft in the displayed managed
-                      mailbox?
+                      Create this exact unsent draft, with the recipients and wording
+                      shown above, in the displayed managed mailbox? Nothing is sent.
+                      Review it in Gmail before you send it; anything still marked stays
+                      marked in the draft.
                     </p>
                     <Button onClick={() => setConfirming(false)}>Cancel</Button>
                     <Button
@@ -1596,13 +1824,13 @@ function MessagePreparationEditor({
           {current.previousDraftAttempts?.length ? (
             <details>
               <summary>
-                Earlier renewal cycle Gmail attempts (
+                Earlier Gmail attempts for this lease (
                 {current.previousDraftAttempts.length})
               </summary>
               {current.previousDraftAttempts.map((attempt) => (
                 <div key={attempt.executionId}>
                   <p>
-                    Earlier renewal cycle: {attempt.state}. This attempt remains separate
+                    Earlier work record: {attempt.state}. This attempt remains separate
                     from the current message.
                   </p>
                   {attempt.recoveryAvailable ? (
@@ -1610,7 +1838,7 @@ function MessagePreparationEditor({
                       disabled={pending}
                       onClick={() => draft("reconcile", attempt.executionId)}
                     >
-                      Recover earlier-cycle Gmail attempt
+                      Recover earlier Gmail attempt
                     </Button>
                   ) : (
                     <p>Its original managed sender must recover this attempt.</p>

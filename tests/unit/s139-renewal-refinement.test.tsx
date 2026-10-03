@@ -8,10 +8,11 @@ import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-messa
 import type { RenewalMessageFacts } from "@/lib/lease-renewal/renewal-message-content";
 import { STALE_REFINED_BODY_MESSAGE } from "@/lib/lease-renewal/refined-message";
 
-// S139 on the renewal message preparation: "Refine with AI" works on the latest draft text,
-// accepted wording is an ordinary unsaved edit that Save carries, a late or failed answer never
-// replaces newer text, stale wording blocks the final body, and the drafted state shows the S140
-// hint once. S139 duplicate disclosure: the app cannot replace an earlier Gmail draft.
+// S139 on the renewal message preparation, as revised by S161: "Refine with AI" works on the latest
+// body text, accepted wording is written into the editable body and saves by itself, a late or
+// failed answer never replaces newer text, stale wording stays the body and is named, and the
+// drafted state shows the S140 hint once. S139 duplicate disclosure: the app cannot replace an
+// earlier Gmail draft.
 
 vi.mock("@/components/lease-renewal/RenewalManualWorkspace", () => ({
   useRenewalManualWorkspace: () => ({
@@ -89,7 +90,7 @@ function ready(overrides: Record<string, unknown> = {}) {
     inputs,
     facts,
     sourceFingerprint: "a".repeat(64),
-    needsReview: false,
+    bodyBaseHash: BASE_HASH,
     signatureMatchesActor: true,
     signatureOrigin: { kind: "saved" },
     retainedSignature: null,
@@ -98,6 +99,7 @@ function ready(overrides: Record<string, unknown> = {}) {
     notices: [],
     draftAttempt: null,
     bodyOverride: null,
+    subjectOverride: null,
     recipients: { status: "ready", to: "tenant@fixture.invalid", cc: [] },
     destinations: {
       gmailDrafts: {
@@ -114,6 +116,23 @@ function ready(overrides: Record<string, unknown> = {}) {
 
 type Handler = (url: string, init?: RequestInit) => unknown | Promise<unknown>;
 
+/** The default answer to an autosave: the saved message, as the server returns it. */
+const savedMessage: Handler = (_url, init) => {
+  const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+  return ready({
+    saved: {
+      ...ready().saved,
+      revision: Number(body.expectedRevision) + 1,
+      inputs: body.inputs,
+    },
+    inputs: body.inputs,
+    bodyOverride: body.bodyOverride
+      ? { state: "applied", ...(body.bodyOverride as object) }
+      : null,
+    subjectOverride: body.subjectOverride ?? null,
+  });
+};
+
 function stubFetch(handlers: { get?: () => unknown; refine?: Handler; post?: Handler }) {
   const calls: { url: string; body: Record<string, unknown> | null }[] = [];
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -126,11 +145,22 @@ function stubFetch(handlers: { get?: () => unknown; refine?: Handler; post?: Han
       const value = await handlers.refine?.(url, init);
       return value instanceof Response ? value : Response.json(value);
     }
-    if (init?.method === "POST") return Response.json(await handlers.post?.(url, init));
+    if (init?.method === "POST")
+      return Response.json(await (handlers.post ?? savedMessage)(url, init));
     return Response.json(handlers.get ? handlers.get() : ready());
   });
   vi.stubGlobal("fetch", fetchMock);
   return calls;
+}
+
+function clipboard() {
+  const writeText = vi.fn<(text: string) => Promise<void>>(async () => undefined);
+  const write = vi.fn<(items: unknown[]) => Promise<void>>(async () => undefined);
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText, write },
+  });
+  return { writeText, write };
 }
 
 function revised(body: string) {
@@ -170,22 +200,25 @@ describe("S139 renewal message refinement", () => {
     const calls = stubFetch({ refine: () => replies.shift() });
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
     await screen.findByLabelText("Refine with AI");
-    const composed = (
-      screen.getByLabelText("tenant plain text body") as HTMLTextAreaElement
-    ).value;
+    // S161: refinement is available to an editor at once; no save is asked for first.
+    expect(
+      screen.queryByText(/Save (this message|your changes) (once )?before/),
+    ).toBeNull();
+    expect(screen.queryByText(/needs edit access/)).toBeNull();
+    const body = screen.getByLabelText("Email body") as HTMLTextAreaElement;
+    const composed = body.value;
 
     await refine("Make this shorter");
     fireEvent.click(await screen.findByRole("button", { name: "Use this revision" }));
-    expect(screen.getByLabelText("Refined email body")).toHaveValue(first);
+    expect(body).toHaveValue(first);
 
     await refine("Make it warmer");
     fireEvent.click(await screen.findByRole("button", { name: "Use this revision" }));
-    expect(screen.getByLabelText("Refined email body")).toHaveValue(second);
+    expect(body).toHaveValue(second);
 
+    // A manual edit is made in the same body the revision was written into.
     const manual = `${second}\n\nSee you soon.`;
-    fireEvent.change(screen.getByLabelText("Refined email body"), {
-      target: { value: manual },
-    });
+    fireEvent.change(body, { target: { value: manual } });
     await refine("Add a sign-off");
     await screen.findByRole("button", { name: "Use this revision" });
 
@@ -204,7 +237,7 @@ describe("S139 renewal message refinement", () => {
     );
   });
 
-  it("saves the accepted wording with the message and keeps it after the save", async () => {
+  it("saves the accepted wording by itself and keeps it after the save", async () => {
     const refined = "Hi Fixture Tenant,\n\nYour renewal offer is ready.";
     const calls = stubFetch({
       refine: () => revised(refined),
@@ -215,15 +248,39 @@ describe("S139 renewal message refinement", () => {
     await screen.findByLabelText("Refine with AI");
     await refine("Shorten it");
     fireEvent.click(await screen.findByRole("button", { name: "Use this revision" }));
-    fireEvent.click(screen.getByRole("button", { name: /^Save/ }));
+    // Using the revision is the save: there is no Save button and nothing to review.
+    expect(screen.queryByRole("button", { name: /^Save/ })).toBeNull();
+    expect(
+      screen.getByText(
+        "Revision applied to the email body. It saves by itself; edit it further if you like.",
+      ),
+    ).toBeInTheDocument();
     await waitFor(() =>
       expect(calls.some((call) => call.body?.kind === "save")).toBe(true),
     );
     const save = calls.find((call) => call.body?.kind === "save")!.body!;
+    expect(save).toMatchObject({
+      kind: "save",
+      leaseId: "701",
+      channel: "tenant",
+      cycleId: "6c37bdcd-8264-4249-813f-0289307dd725",
+      expectedRevision: 2,
+    });
     expect(save.bodyOverride).toEqual({ text: refined, baseHash: BASE_HASH });
+    expect(save.reviewed).toBeUndefined();
+    expect(save.sourceFingerprint).toBeUndefined();
     await waitFor(() =>
-      expect(screen.getByLabelText("Refined email body")).toHaveValue(refined),
+      expect(document.querySelector('[data-autosave="saved"]')).not.toBeNull(),
     );
+    expect(screen.getByLabelText("Email body")).toHaveValue(refined);
+    expect(
+      screen.getByText(
+        "Your wording is kept exactly as written. It is not replaced when the lease information changes.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Undo the last refinement" }),
+    ).toBeInTheDocument();
   });
 
   it("never replaces newer edits with a late answer and keeps the draft when the assistant fails", async () => {
@@ -239,14 +296,14 @@ describe("S139 renewal message refinement", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Use this revision" }));
 
     await refine("Shorten it more");
-    fireEvent.change(screen.getByLabelText("Refined email body"), {
+    fireEvent.change(screen.getByLabelText("Email body"), {
       target: { value: "Refined once. Plus my own sentence." },
     });
     release(revised("A late answer."));
     expect(
       await screen.findByText(/changed while this revision was prepared/),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Refined email body")).toHaveValue(
+    expect(screen.getByLabelText("Email body")).toHaveValue(
       "Refined once. Plus my own sentence.",
     );
     expect(screen.queryByRole("button", { name: "Use this revision" })).toBeNull();
@@ -262,16 +319,19 @@ describe("S139 renewal message refinement", () => {
     });
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
     await screen.findByLabelText("Refine with AI");
-    const before = (
-      screen.getByLabelText("tenant plain text body") as HTMLTextAreaElement
-    ).value;
+    const before = (screen.getByLabelText("Email body") as HTMLTextAreaElement).value;
     await refine("Make this shorter");
     expect(await screen.findByText(/did not answer just now/)).toBeInTheDocument();
-    expect(screen.getByLabelText("tenant plain text body")).toHaveValue(before);
-    expect(screen.queryByLabelText("Refined email body")).toBeNull();
+    expect(screen.getByLabelText("Email body")).toHaveValue(before);
+    // The body is still the standard wording: no authored wording, nothing to return from.
+    expect(screen.queryByText(/Your wording is kept exactly as written/)).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Return to the standard wording" }),
+    ).toBeNull();
   });
 
-  it("blocks stale saved wording, keeps it for reference, and returns to the standard wording", async () => {
+  it("keeps stale saved wording as the body, says the information changed, and returns to the standard wording by itself", async () => {
+    const clip = clipboard();
     const calls = stubFetch({
       get: () =>
         ready({
@@ -285,20 +345,31 @@ describe("S139 renewal message refinement", () => {
     });
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
     expect(await screen.findByText(STALE_REFINED_BODY_MESSAGE)).toBeInTheDocument();
-    expect(screen.getByText("Older refined wording.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy plain text" })).toHaveAttribute(
-      "aria-disabled",
-      "true",
+    const body = screen.getByLabelText("Email body") as HTMLTextAreaElement;
+    expect(body).toHaveValue("Older refined wording.");
+    expect(screen.getByLabelText("tenant formatted body")).toHaveTextContent(
+      "Older refined wording.",
+    );
+    // S161 (R-S161-7): stale wording is still the body. Copy is not withheld and carries it.
+    const plain = screen.getByRole("button", { name: "Copy plain text" });
+    expect(plain).toBeEnabled();
+    expect(plain).not.toHaveAttribute("aria-disabled");
+    fireEvent.click(plain);
+    await waitFor(() =>
+      expect(clip.writeText).toHaveBeenCalledWith("Older refined wording."),
     );
     fireEvent.click(
       screen.getByRole("button", { name: "Return to the standard wording" }),
     );
-    fireEvent.click(screen.getByRole("button", { name: /^Save/ }));
+    // The deliberate return is saved by itself as no authored body; there is no Save button.
+    expect(screen.queryByRole("button", { name: /^Save/ })).toBeNull();
     await waitFor(() =>
       expect(
         calls.find((call) => call.body?.kind === "save")?.body?.bodyOverride,
       ).toBeNull(),
     );
+    expect(body.value).toContain("$1,100.00");
+    expect(screen.queryByText(STALE_REFINED_BODY_MESSAGE)).toBeNull();
   });
 
   it("discloses an earlier Gmail draft before creating another and shows the Gemini hint once", async () => {

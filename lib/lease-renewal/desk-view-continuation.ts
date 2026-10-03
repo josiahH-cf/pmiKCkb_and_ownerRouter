@@ -16,6 +16,11 @@ export const RENEWAL_DESK_ROUTE = "/lease-renewal/live/desk";
 export const RENEWAL_WORKSPACE_ROUTE_PREFIX = "/lease-renewal/live/desk/lease/";
 export const DESK_VIEW_PARAM = "deskView";
 export const DESK_VIEW_MAX_CODE_UNITS = 8192;
+/**
+ * S166: the explicit default view. The bare desk route is the ordinary entry, which opens the
+ * signed-in account's remembered view; `?v=2` alone always means the default view itself.
+ */
+export const EXPLICIT_DEFAULT_DESK_VIEW = "v=2";
 
 /** The canonical deskView value for a state, or null for the default desk (which omits it). */
 export function encodeDeskView(state: RenewalDeskQueryV2State): string | null {
@@ -31,6 +36,8 @@ export function validateDeskView(value: string | null | undefined): string | nul
   if (typeof value !== "string" || value === "") return null;
   if (value.length > DESK_VIEW_MAX_CODE_UNITS) return null;
   if (value.startsWith("?") || value.includes("#")) return null;
+  // S166: the explicit default view is the one valid continuation that carries no other key.
+  if (value === EXPLICIT_DEFAULT_DESK_VIEW) return value;
   let params: URLSearchParams;
   try {
     params = new URLSearchParams(value);
@@ -71,6 +78,15 @@ export function buildDeskHref(state: RenewalDeskQueryV2State): string {
   return canonical === "" ? RENEWAL_DESK_ROUTE : `${RENEWAL_DESK_ROUTE}?${canonical}`;
 }
 
+/**
+ * S166: a desk URL that always names its view, so a worklist control can choose the default view
+ * deliberately (`?v=2`) instead of landing on the ordinary entry.
+ */
+export function buildExplicitDeskHref(state: RenewalDeskQueryV2State): string {
+  const canonical = serializeRenewalDeskQueryV2(state);
+  return `${RENEWAL_DESK_ROUTE}?${canonical === "" ? EXPLICIT_DEFAULT_DESK_VIEW : canonical}`;
+}
+
 const STABLE_LEASE_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
 export function isStableLeaseId(value: string): boolean {
@@ -94,6 +110,18 @@ export function buildWorkspaceHref(input: WorkspaceHrefInput): string {
   const query = params.toString();
   const path = `${RENEWAL_WORKSPACE_ROUTE_PREFIX}${encodeURIComponent(input.leaseId)}`;
   return query === "" ? path : `${path}?${query}`;
+}
+
+/**
+ * S166: the workspace link for a lease result, or null when the record carries no resolved lease
+ * id. Callers show an unresolved result without a lease link; nothing is derived from a name.
+ */
+export function leaseWorkspaceHrefOrNull(
+  leaseId: string | null | undefined,
+  step?: string,
+): string | null {
+  if (typeof leaseId !== "string" || !isStableLeaseId(leaseId)) return null;
+  return buildWorkspaceHref({ leaseId, step, deskView: null });
 }
 
 /** The workspace's return link: exactly the canonical internal desk route for the carried view. */

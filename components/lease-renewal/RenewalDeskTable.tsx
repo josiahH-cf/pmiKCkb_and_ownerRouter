@@ -2,6 +2,9 @@
 // lease, with column-owned sort and filter controls, exact-value shortcuts, active-filter chips, a
 // Clear filters control, and truthful zero states. Server component: every control is a GET link or
 // GET form over the canonical `renewal-desk-query/v2` URL contract: no client state, no mutation.
+// S166: every control names its view explicitly (the default is `?v=2`), and the one client wrapper
+// remembers a deliberately chosen view for the signed-in account. S154: every resolved lease row
+// opens its workspace; a classification is context and a filter, never a reason to withhold a link.
 
 import { CALENDAR_DATE_DISPLAY_FORMAT, formatCalendarDate } from "@/lib/date-display";
 import Link from "next/link";
@@ -12,6 +15,10 @@ import {
   RenewalDeskGetForm,
   RenewalDeskSubmitButton,
 } from "@/components/lease-renewal/RenewalDeskGetForm";
+import {
+  RenewalDeskViewMemory,
+  RenewalDeskViewMemoryStatus,
+} from "@/components/lease-renewal/RenewalDeskViewMemory";
 import { Icon } from "@/components/ui/Icon";
 import { can, type Role } from "@/lib/auth/roles";
 import type {
@@ -35,10 +42,16 @@ import {
   type RenewalOverallStatus,
   type RenewalRentVerificationState,
 } from "@/lib/lease-renewal/desk-query-v2";
+import type {
+  DeskPreferenceMode,
+  RenewalDeskEntrySource,
+} from "@/lib/lease-renewal/desk-preferences";
 import {
-  buildDeskHref,
+  EXPLICIT_DEFAULT_DESK_VIEW,
+  buildExplicitDeskHref,
   buildWorkspaceHref,
   encodeDeskView,
+  isStableLeaseId,
 } from "@/lib/lease-renewal/desk-view-continuation";
 import {
   RENEWAL_DESK_WORKLIST_VIEWS,
@@ -205,9 +218,27 @@ export function DateInputHint({ value }: Readonly<{ value: string }>) {
   );
 }
 
+/**
+ * S166: a worklist control always names the view it opens, so choosing the default view is a
+ * deliberate `?v=2` link rather than the ordinary entry that opens the remembered view.
+ */
 function href(state: RenewalDeskQueryV2State): string {
-  return buildDeskHref(state);
+  return buildExplicitDeskHref(state);
 }
+
+/** S166: how the page chose this view and whether the account's view can be remembered here. */
+export interface RenewalDeskViewMemoryInput {
+  readonly source: RenewalDeskEntrySource;
+  /** The account's remembered non-default view, or null. */
+  readonly savedView: string | null;
+  readonly memory: DeskPreferenceMode;
+}
+
+const NO_VIEW_MEMORY: RenewalDeskViewMemoryInput = {
+  source: "explicit",
+  savedView: null,
+  memory: "unavailable",
+};
 
 /** Build stable, deduplicated choices from only rows in the current authorized projection. */
 export function buildDeskPartyFilterOptions(
@@ -557,7 +588,8 @@ function ActionCell({
   state: RenewalDeskQueryV2State;
 }>) {
   const { guidance } = row;
-  const canOpenWorkspace = row.id !== "" && row.disposition !== "skip";
+  // S154: every resolved lease opens its workspace, whatever its classification.
+  const canOpenWorkspace = isStableLeaseId(row.id);
   const rendersCausalBlockers =
     guidance.blockers.length > 0 &&
     (guidance.action.kind === "blocked" || guidance.action.kind === "needs_verification");
@@ -808,6 +840,7 @@ export function RenewalDeskTable({
   dependentStateComplete = true,
   viewCounts,
   sheetWritebackPaused = false,
+  viewMemory = NO_VIEW_MEMORY,
 }: Readonly<{
   rows: readonly DeskLeaseRow[];
   /** Preferred truthful count contract. */
@@ -830,8 +863,18 @@ export function RenewalDeskTable({
   viewCounts?: RenewalDeskWorklistViewCounts;
   /** S127/S128: operating-Sheet writes paused by owner policy; shown as a policy pause, never a failure. */
   sheetWritebackPaused?: boolean;
+  /** S166: the account's remembered view; omitted, the table neither shows nor saves one. */
+  viewMemory?: RenewalDeskViewMemoryInput;
 }>) {
-  const deskView = encodeDeskView(state);
+  const canonicalView = serializeRenewalDeskQueryV2(state);
+  // S166: the default view normally omits its continuation. While another view is remembered and
+  // this one came from an explicit link, the default carries itself so returning from a lease
+  // reopens this view instead of the remembered one.
+  const deskView =
+    encodeDeskView(state) ??
+    (viewMemory.source === "explicit" && viewMemory.savedView !== null
+      ? EXPLICIT_DEFAULT_DESK_VIEW
+      : null);
   const chips = buildActiveFilterChips(state);
   const filtersActive = hasActiveRenewalDeskFilters(state);
   const clearedHref = href(clearRenewalDeskFilters(state));
@@ -846,7 +889,12 @@ export function RenewalDeskTable({
     partyOptions ?? buildDeskPartyFilterOptions(rows, shortcuts);
 
   return (
-    <section aria-label="Renewal worklist" className="ui-stack">
+    <RenewalDeskViewMemory
+      currentView={canonicalView}
+      memory={viewMemory.memory}
+      savedView={viewMemory.savedView}
+      viewSource={viewMemory.source}
+    >
       <div className="renewal-table-toolbar">
         <nav
           aria-label={RENEWAL_DESK_WORKLIST_VIEW_CONTROL_LABEL}
@@ -925,6 +973,7 @@ export function RenewalDeskTable({
         {!shortcuts.available ? (
           <span className="muted">{PARTY_FILTERING_UNAVAILABLE_NOTICE}</span>
         ) : null}
+        <RenewalDeskViewMemoryStatus />
       </div>
 
       <div
@@ -1235,7 +1284,7 @@ export function RenewalDeskTable({
           </tbody>
         </table>
       </div>
-    </section>
+    </RenewalDeskViewMemory>
   );
 }
 
@@ -1253,7 +1302,7 @@ function RowIssueSummary({
   deskView: string | null;
   sheetWritebackPaused: boolean;
 }>) {
-  if (row.id === "" || row.disposition === "skip") return null;
+  if (!isStableLeaseId(row.id)) return null;
   const projected = projectRenewalIssues({
     guidance: row.guidance,
     summary: row,
@@ -1307,11 +1356,12 @@ function DeskRow({
   deskView: string | null;
 }>) {
   const { guidance } = row;
-  // Definitive cohort exclusions do not have a renewal workspace. Review and out-of-window rows do:
-  // those are precisely the leases for which an operator may need to verify/correct source facts.
-  // Keeping this predicate beside the rendered metadata lets browser assurance choose a destination
-  // that the server loader can truthfully resolve without depending on live row order.
-  const workspaceAvailable = row.id !== "" && row.disposition !== "skip";
+  // S154: every resolved real lease has the normal workspace link, including a lease the cohort
+  // classifies as skipped. The classification stays visible as context and as a filter; only a row
+  // with no resolved lease id has no link, because no lease link is ever made up. Keeping this
+  // predicate beside the rendered metadata lets browser assurance choose a destination the server
+  // loader can truthfully resolve without depending on live row order.
+  const workspaceAvailable = isStableLeaseId(row.id);
   const workspaceHref = workspaceAvailable
     ? buildWorkspaceHref({ leaseId: row.id, deskView })
     : null;
@@ -1334,6 +1384,7 @@ function DeskRow({
       data-action-kind={guidance.action.kind}
       data-blocker-count={String(guidance.blockers.length)}
       data-disposition={row.disposition}
+      data-guidance-contract={guidance.contract ?? undefined}
       data-is-blocked={guidance.isBlocked ? "true" : "false"}
       data-lease-id={row.id}
       data-manual-complete={
@@ -1368,6 +1419,16 @@ function DeskRow({
           {row.propertyNameLabel ? `${row.propertyNameLabel} · ` : ""}
           Lease {row.id || "Needs Verification"}
         </span>
+        {/* S154: a skipped classification is shown as context beside the working link. */}
+        {row.disposition === "skip" && row.reasonLabel ? (
+          <span
+            className="renewal-td-secondary"
+            data-renewal-field="disposition-context"
+            data-disposition={row.disposition}
+          >
+            {row.reasonLabel}
+          </span>
+        ) : null}
         <UnitIdentityDetails identity={row.identity} addressLabel={row.addressLabel} />
       </th>
       <td>
@@ -1490,6 +1551,14 @@ function DeskRow({
         ) : (
           <span>Needs Verification</span>
         )}
+        {typeof row.workingCurrentRent === "number" ? (
+          <div
+            className="muted"
+            data-renewal-working-rent={String(row.workingCurrentRent)}
+          >
+            Working {CURRENCY.format(row.workingCurrentRent)}
+          </div>
+        ) : null}
         {row.sourceDestinations?.rentvine ? (
           <a
             aria-label={`Open lease ${row.id} in RentVine in a new tab`}

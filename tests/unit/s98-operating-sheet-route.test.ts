@@ -8,10 +8,8 @@ import type {
   SheetWritebackWriter,
 } from "@/lib/lease-renewal/sheet-writeback/execution-service";
 import type { SheetWritebackProposal } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
-import type {
-  AuthorizedCurrentRentUpdate,
-  FreshOperatingSheetLeaseContext,
-} from "@/lib/lease-renewal/sheet-writeback/workspace-resolution";
+import type { FreshOperatingSheetLeaseContext } from "@/lib/lease-renewal/sheet-writeback/workspace-resolution";
+import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
 
 const HEADER = [
   "Have we confirmed pricing with the owner? ",
@@ -31,8 +29,13 @@ const mocks = vi.hoisted(() => ({
   writeFlagEnabled: true,
   writerMutations: [] as string[],
   resolveContext: vi.fn<(leaseId: string) => Promise<FreshOperatingSheetLeaseContext>>(),
-  resolveAuthorization: vi.fn<() => Promise<AuthorizedCurrentRentUpdate>>(),
+  // S160: the lease's working record (its working current rent) in place of any approval record.
+  workingRecord: null as RenewalWorkingRecord | null,
   progress: null as unknown,
+}));
+
+vi.mock("@/lib/firestore/renewal-sheet-working-inputs", () => ({
+  readSheetWorkingRecord: vi.fn(async () => mocks.workingRecord),
 }));
 
 vi.mock("@/lib/firestore/lease-renewal-progress", () => ({
@@ -146,7 +149,6 @@ vi.mock(
     >()),
     resolveFreshOperatingSheetLeaseContext: (leaseId: string) =>
       mocks.resolveContext(leaseId),
-    resolveAuthorizedCurrentRentUpdate: () => mocks.resolveAuthorization(),
   }),
 );
 
@@ -158,7 +160,6 @@ const state = {
 };
 const WORKSPACE_CONTEXT = `context-115-${"x".repeat(48)}`;
 const CANDIDATE_FINGERPRINT = `rcf1_${"a".repeat(64)}`;
-const AUTHORIZATION_TOKEN = `rwat1_${"b".repeat(64)}`;
 
 function currentColumns() {
   const resolution = resolveHeaders([state.header], RENEWAL_TAB_SCHEMAS.Renewals);
@@ -190,62 +191,26 @@ function freshContext(
   };
 }
 
-function currentAuthorization(): AuthorizedCurrentRentUpdate {
-  const authorization = {
-    sourceTriggerKey: "lease_renewal:reconcile:live-review:key:current_rent",
-    runId: "live-review",
-    fieldKey: "current_rent",
-    proposedValue: "1200",
-    sourceOfValue: "rentvine",
-    candidateFingerprint: CANDIDATE_FINGERPRINT,
-    resolutionUpdatedAt: "2026-09-02T11:58:00.000Z",
-    authorizationToken: AUTHORIZATION_TOKEN,
-    approvalId: "approval-key",
-    approvalUpdatedAt: "2026-09-02T11:59:00.000Z",
-    approvalDecidedByUid: "admin-2",
-  };
+/** S160: a working record holding the working current rent staff entered. */
+function workingRecord(currentRent: number | null): RenewalWorkingRecord {
   return {
-    authorization,
-    resolution: {
-      id: "resolution-key",
-      source_trigger_key: authorization.sourceTriggerKey,
-      run_id: "live-review",
-      field_key: "current_rent",
-      field_label: "Current rent",
-      candidate_fingerprint: CANDIDATE_FINGERPRINT,
-      severity: "High",
-      status: "Resolved",
-      resolution_kind: "pick_source",
-      chosen_source: "rentvine",
-      proposed_writeback: {
-        field_key: "current_rent",
-        value: "1200",
-        source_of_value: "rentvine",
-        status: "Queued",
-        production_allowed: false,
-      },
-      created_at: "2026-09-02T11:57:00.000Z",
-      updated_at: authorization.resolutionUpdatedAt,
-    },
-    approval: {
-      id: authorization.approvalId,
-      source_trigger_key: authorization.sourceTriggerKey,
-      run_id: "live-review",
-      field_key: "current_rent",
-      field_label: "Current rent",
-      candidate_fingerprint: CANDIDATE_FINGERPRINT,
-      resolution_updated_at: authorization.resolutionUpdatedAt,
-      severity: "High",
-      state: "Approved",
-      proposed_value: "1200",
-      source_of_value: "rentvine",
-      reason: "Use current RentVine base rent.",
-      decided_by_uid: authorization.approvalDecidedByUid,
-      production_allowed: false,
-      executed: false,
-      created_at: "2026-09-02T11:59:00.000Z",
-      updated_at: authorization.approvalUpdatedAt,
-    },
+    schemaVersion: "renewal-working-record/v1",
+    leaseId: "115",
+    revision: 1,
+    fields:
+      currentRent === null
+        ? {}
+        : {
+            current_rent: {
+              value: currentRent,
+              revision: 1,
+              eventId: "0f1c8f6e-6d1c-4bd3-9d7a-000000000001",
+              recordedAt: "2026-09-02T11:58:00.000Z",
+              recordedByUid: "editor-1",
+              recordedByLabel: "editor@pmikcmetro.com",
+              origin: "staff_entry",
+            },
+          },
   };
 }
 
@@ -348,7 +313,7 @@ function fakeDeps(): SheetWritebackDependencies {
       },
     }),
     writeFlagEnabled: () => mocks.writeFlagEnabled,
-    claimAuthorizedFieldUpdate: (input) =>
+    claimLeaseScopedFieldUpdate: (input) =>
       store.claim(input.executionId, input.previewHash),
     claimLeaseScopedAppend: async (input) => {
       const key = `${input.spreadsheetId}:${input.tabTitle}:${input.leaseId}`;
@@ -417,8 +382,7 @@ describe("S98 operating-sheet route", () => {
     state.rows = [];
     mocks.resolveContext.mockReset();
     mocks.resolveContext.mockImplementation(async (leaseId) => freshContext(leaseId));
-    mocks.resolveAuthorization.mockReset();
-    mocks.resolveAuthorization.mockResolvedValue(currentAuthorization());
+    mocks.workingRecord = workingRecord(1200);
     process.env.RENTVINE_API_BASE_URL = "https://rentvine.invalid";
     process.env.RENTVINE_API_KEY = "unit-key";
     process.env.RENTVINE_API_SECRET = "unit-secret";
@@ -473,7 +437,7 @@ describe("S98 operating-sheet route", () => {
     expect(mocks.writerMutations).toEqual([]);
   });
 
-  it("S113 prepares the exact approved current-rent field proposal without a provider mutation", async () => {
+  it("S113/S160 prepares the current-rent field proposal from the working current rent without a provider mutation", async () => {
     state.rows = [{ values: ["", "", "Existing Tenant", "", "999"], note: "" }];
     mocks.resolveContext.mockResolvedValue(
       freshContext("115", {
@@ -502,12 +466,12 @@ describe("S98 operating-sheet route", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ status: "proposed" });
     expect(mocks.resolveContext).toHaveBeenCalled();
-    expect(mocks.resolveAuthorization).toHaveBeenCalled();
     expect(mocks.proposals.get("115")?.effects[0].effect).toMatchObject({
       kind: "field_update",
       field: "current_rent",
       expectedValue: "999",
       afterValue: "1200",
+      staffIntent: { field: "current_rent", value: 1200 },
     });
     expect(mocks.writerMutations).toEqual([]);
   });
@@ -541,7 +505,7 @@ describe("S98 operating-sheet route", () => {
     expect(mocks.writerMutations).toEqual([]);
   });
 
-  it("never lets an Editor execute even with a valid confirmation", async () => {
+  it("S160: lets an Editor confirm a valid confirmation, and never a verification account", async () => {
     await post({
       operation: "propose",
       evidenceRef: "workspace:115",
@@ -549,6 +513,19 @@ describe("S98 operating-sheet route", () => {
     });
     const proposal = mocks.proposals.get("115")!;
     mocks.gateOpen = true;
+    mocks.user = {
+      uid: "canary-1",
+      email: "canary-editor@pmikcmetro.com",
+      role: "Editor",
+    };
+    const refused = await post({
+      operation: "execute",
+      previewHash: proposal.previewHash,
+      effectHash: proposal.effects[0].effectHash,
+      confirm: true,
+    });
+    expect(refused.status).toBe(403);
+    expect(mocks.writerMutations).toEqual([]);
     mocks.user = { uid: "editor-1", email: "editor@pmikcmetro.com", role: "Editor" };
     const execute = await post({
       operation: "execute",
@@ -556,8 +533,8 @@ describe("S98 operating-sheet route", () => {
       effectHash: proposal.effects[0].effectHash,
       confirm: true,
     });
-    expect(execute.status).toBeGreaterThanOrEqual(400);
-    expect(mocks.writerMutations).toEqual([]);
+    expect(execute.status).toBe(200);
+    expect(mocks.writerMutations).toEqual(["append"]);
   });
 
   it("executes one confirmed append once and reports the duplicate durably", async () => {
@@ -596,7 +573,7 @@ describe("S98 operating-sheet route", () => {
     expect(mocks.writerMutations.filter((entry) => entry === "append")).toHaveLength(1);
   });
 
-  it("refuses the append while the recorded owner response is not an approval (S105)", async () => {
+  it("S160: appends the row whatever the recorded owner response says (the S105 gate is retired)", async () => {
     await post({
       operation: "propose",
       evidenceRef: "workspace:115",
@@ -612,19 +589,7 @@ describe("S98 operating-sheet route", () => {
         effectHash: proposal.effects[0].effectHash,
         confirm: true,
       });
-      expect(response.status).toBe(409);
-      expect((await response.json()).error_type).toBe("owner_outcome_blocks_downstream");
-      expect(mocks.writerMutations).toHaveLength(0);
-      // The refusal came before the lease-scoped claim: once the owner approves, the same exact
-      // confirmation appends exactly once.
-      mocks.progress = null;
-      const approved = await post({
-        operation: "execute",
-        previewHash: proposal.previewHash,
-        effectHash: proposal.effects[0].effectHash,
-        confirm: true,
-      });
-      expect(approved.status).toBe(200);
+      expect(response.status).toBe(200);
       expect(mocks.writerMutations.filter((entry) => entry === "append")).toHaveLength(1);
     } finally {
       mocks.progress = null;
@@ -766,7 +731,7 @@ describe("S98 operating-sheet route", () => {
     expect(mocks.writerMutations).toEqual([]);
   });
 
-  it("refuses a current-rent preparation when the reviewed shared value differs from the fresh approved value", async () => {
+  it("S160: refuses a current-rent preparation when the amount the page showed differs from the working current rent", async () => {
     state.rows = [{ values: ["", "", "Existing Tenant", "", "999"], note: "" }];
     mocks.resolveContext.mockResolvedValue(
       freshContext("115", {

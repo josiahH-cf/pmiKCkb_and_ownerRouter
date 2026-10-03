@@ -124,7 +124,7 @@ export type StoredKnowledgeAnswer = z.infer<typeof StoredKnowledgeAnswerSchema>;
 /** The access a stored answer was produced under, compared on every reopen. */
 export interface AccessBasis {
   readonly role: AuthenticatedUser["role"];
-  /** Sorted Space scopes, or null for every Space. */
+  /** Null for every Space; a list only on answers stored before S167 opened every Space. */
   readonly scopes: readonly string[] | null;
 }
 
@@ -139,10 +139,9 @@ export function accessNarrowedSince(
   basis: AccessBasis,
   viewer: AuthenticatedUser,
 ): boolean {
-  if ((ROLE_RANK[viewer.role] ?? -1) < (ROLE_RANK[basis.role] ?? 0)) return true;
-  if (viewer.scopes === undefined) return false;
-  if (basis.scopes === null) return true;
-  return basis.scopes.some((scope) => !viewer.scopes!.includes(scope as never));
+  // S167: every staff account has every internal Space, so only a lower role narrows access. An
+  // answer stored under a Space allowlist was produced with less reach than the viewer has now.
+  return (ROLE_RANK[viewer.role] ?? -1) < (ROLE_RANK[basis.role] ?? 0);
 }
 
 const HIDDEN_SUMMARY =

@@ -29,6 +29,17 @@ export function externalPreviewHash(input: ExternalActionInput) {
   return hashExecutionPreview({ ...input.values });
 }
 
+/**
+ * S162 (R-S162-8): the content of an UNSENT draft may carry the named "Needs Verification: <fact>"
+ * fill-in markers that a person fills in or removes in Gmail before sending. Only the draft's own
+ * subject and body values of a `.draft_create` action are exempt. Recipients, the mailbox, every
+ * reference and every send or write keep refusing an unverified value.
+ */
+const UNSENT_DRAFT_CONTENT_VALUES = new Set(["subject", "body", "html_body"]);
+function allowsFillInMarker(definition: ExternalActionDefinition, key: string) {
+  return definition.key.endsWith(".draft_create") && UNSENT_DRAFT_CONTENT_VALUES.has(key);
+}
+
 export function validateExternalReadiness(
   definition: ExternalActionDefinition,
   input: ExternalActionInput,
@@ -45,10 +56,12 @@ export function validateExternalReadiness(
   }
   if (
     Object.keys(input.values).length === 0 ||
-    Object.values(input.values).some(
-      (value) =>
+    Object.entries(input.values).some(
+      ([key, value]) =>
         (typeof value === "string" &&
-          (!value.trim() || /needs verification/i.test(value))) ||
+          (!value.trim() ||
+            (!allowsFillInMarker(definition, key) &&
+              /needs verification/i.test(value)))) ||
         (typeof value === "number" && !Number.isFinite(value)),
     )
   ) {

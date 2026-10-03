@@ -1,6 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { describe, expect, it } from "vitest";
-import { AuthError, type AuthenticatedUser } from "@/lib/auth/session";
+import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { TemplateRecord } from "@/lib/firestore/types";
 import { SAMPLE_REPLY_TEMPLATES } from "@/lib/gmail-inbox-zero/sample-hub";
 import {
@@ -15,10 +15,10 @@ const admin: AuthenticatedUser = {
   hd: "pmikcmetro.com",
   role: "Admin",
 };
-const maintenanceScoped: AuthenticatedUser = {
+const editor: AuthenticatedUser = {
   ...admin,
-  uid: "scoped",
-  scopes: ["maintenance"],
+  uid: "editor",
+  role: "Editor",
 };
 
 function tpl(overrides: Partial<TemplateRecord> = {}): TemplateRecord {
@@ -79,11 +79,28 @@ describe("gmail reply template store (TMPL-3)", () => {
     await expect(resolveReplyTemplate(admin, "no-such-id", db)).resolves.toBeNull();
   });
 
-  it("propagates a space-scope denial instead of silently falling back to samples", async () => {
-    const db = seed(tpl({ space_id: "lease-renewals", status: "Approved" }));
-    await expect(
-      resolveReplyTemplate(maintenanceScoped, "tpl-x", db),
-    ).rejects.toBeInstanceOf(AuthError);
+  // S167: a maintenance-only account used to be refused this Lease Renewals template (AuthError).
+  it("resolves a stored Lease Renewals template for an ordinary Editor instead of a sample", async () => {
+    const db = seed(
+      tpl({ space_id: "lease-renewals", status: "Approved", body: "renewals body" }),
+    );
+    await expect(resolveReplyTemplate(editor, "tpl-x", db)).resolves.toMatchObject({
+      id: "tpl-x",
+      body: "renewals body",
+      status: "Approved",
+    });
+  });
+
+  it("propagates a non-404 store failure instead of silently falling back to samples", async () => {
+    const sample = SAMPLE_REPLY_TEMPLATES[0];
+    const failure = new Error("firestore unavailable");
+    const db = {
+      collection() {
+        throw failure;
+      },
+    } as unknown as Firestore;
+
+    await expect(resolveReplyTemplate(editor, sample.id, db)).rejects.toBe(failure);
   });
 
   it("resolves the seeded daily-inbox-triage reply pattern to a body identical to its sample (F-TMPL-2)", async () => {

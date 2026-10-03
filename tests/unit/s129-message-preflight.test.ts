@@ -13,28 +13,18 @@ import {
 
 // S129 (F09): the preflight is a read-only projection over the same inputs the preparation uses.
 // It distinguishes technically tested composition from unavailable live input and keeps the
-// human observations Pending meeting. Every value is synthetic; nothing reads a provider.
+// human observations Pending meeting. S161/S162: it names no cycle and no review step, and marked
+// values or an unsigned message are information that never withholds the draft step. Every value
+// is synthetic; nothing reads a provider.
 
 function ready(overrides: Partial<MessagePreflightInput> = {}): MessagePreflightInput {
   return {
     channel: "tenant",
     canEdit: true,
     senderEmail: "fixture-staff@pmikcmetro.com",
-    cycleId: "cycle-1",
-    saved: true,
-    dirty: false,
-    needsReview: false,
     signatureOrigin: "saved",
     signatureMatchesActor: true,
-    readiness: projectMessageReadiness({
-      channel: "tenant",
-      missing: [],
-      saved: true,
-      dirty: false,
-      needsReview: false,
-      signatureMatchesActor: true,
-      signatureSaved: true,
-    }),
+    readiness: projectMessageReadiness({ channel: "tenant", missing: [] }),
     recipients: {
       status: "ready",
       to: "tenant@fixture.invalid",
@@ -69,12 +59,13 @@ describe("S129 evidence matrix (AC-S129-1)", () => {
     const steps = MESSAGE_PATH_EVIDENCE_MATRIX.map((row) => row.step.toLowerCase());
     for (const needle of [
       "compose",
-      "missing input",
+      "missing value",
       "recipients",
       "signature",
       "confirm",
       "recover",
       "preflight",
+      "notice safety",
     ])
       expect(
         steps.some((step) => step.includes(needle)),
@@ -97,13 +88,13 @@ describe("S129 meeting preflight (AC-S129-7)", () => {
     expect(state(offline, "template")).toBe("unavailable");
     expect(
       offline.items.find((item) => item.id === "gmail_connection")?.fallback,
-    ).toMatch(/Copy the reviewed/);
+    ).toMatch(/Copy the formatted or plain body/);
     expect(offline.items.find((item) => item.id === "gmail_connection")?.target).toEqual({
       kind: "route",
       href: "/connections",
     });
     expect(offline.summary).toMatch(
-      /Preparation can proceed without Gmail; the unsent-draft step stays pending/,
+      /Editing and copy continue without Gmail; the unsent-draft step stays pending/,
     );
     const pending = offline.items.filter((item) => item.state === "pending_meeting");
     expect(pending.map((item) => item.id)).toEqual([
@@ -133,23 +124,14 @@ describe("S129 meeting preflight (AC-S129-7)", () => {
     const readiness = projectMessageReadiness({
       channel: "owner",
       missing: [
-        { field: "range", message: "Record the reviewed range." },
-        { field: "comps", message: "Add the reviewed comps." },
+        { field: "range", message: "The comparable rent range is not available yet." },
+        { field: "comps", message: "Comparable listings are not saved yet." },
       ],
-      saved: false,
-      dirty: true,
-      needsReview: true,
-      signatureMatchesActor: false,
-      signatureSaved: false,
     });
     const result = projectMessagePreflight(
       ready({
         channel: "owner",
         canEdit: false,
-        cycleId: null,
-        saved: false,
-        dirty: true,
-        needsReview: true,
         signatureOrigin: "retained_sender",
         readiness,
         recipients: { status: "blocked", reasons: ["No owner email is recorded."] },
@@ -161,24 +143,20 @@ describe("S129 meeting preflight (AC-S129-7)", () => {
     expect(result.proceedWithoutGmail).toBe(false);
     expect(result.draftStepAvailable).toBe(false);
     expect(state(result, "source_read")).toBe("unavailable");
-    expect(state(result, "cycle")).toBe("missing_input");
-    expect(result.items.find((item) => item.id === "cycle")?.target).toEqual({
-      kind: "control",
-      id: "renewal-manual-cycle",
-    });
+    // S161/S162: there is no cycle step and no review step to list.
+    expect(result.items.find((item) => item.id === "cycle")).toBeUndefined();
+    expect(result.items.find((item) => item.id === "review")).toBeUndefined();
     const inputs = result.items.find((item) => item.id === "required_inputs");
     expect(inputs).toMatchObject({
       state: "missing_input",
       target: { kind: "control", id: "renewal-message-owner-readiness" },
     });
-    expect(inputs?.detail).toMatch(/2 inputs remain: Market evidence: comp preparation/);
-    expect(result.items.find((item) => item.id === "review")).toMatchObject({
-      state: "missing_input",
-      detail: "Unsaved edits differ from the saved record.",
-    });
+    expect(inputs?.detail).toMatch(
+      /2 values are marked: Market evidence: comp preparation/,
+    );
     expect(result.items.find((item) => item.id === "signature")).toMatchObject({
-      state: "not_verified",
-      target: { kind: "control", id: "renewal-message-owner-signature-name" },
+      state: "ready",
+      detail: "Filled from your retained signature.",
     });
     expect(result.items.find((item) => item.id === "recipients")).toMatchObject({
       state: "unavailable",
@@ -186,7 +164,7 @@ describe("S129 meeting preflight (AC-S129-7)", () => {
     });
     expect(result.items.find((item) => item.id === "permitted_action")).toMatchObject({
       state: "unavailable",
-      fallback: "Ask an Editor to review and create the draft.",
+      fallback: "Ask an Editor to create the draft.",
     });
     expect(result.items.find((item) => item.id === "attempt_recovery")).toMatchObject({
       state: "not_verified",
@@ -196,14 +174,22 @@ describe("S129 meeting preflight (AC-S129-7)", () => {
       detail: "Move-out evidence unknown.",
     });
     expect(result.summary).toMatch(
-      /Resolve the listed items before the unsent-draft step/,
+      /Editing and copy continue; the unsent-draft step waits for the listed items/,
     );
     const another = projectMessagePreflight(
       ready({ signatureOrigin: "saved", signatureMatchesActor: false }),
     );
     expect(another.items.find((item) => item.id === "signature")).toMatchObject({
-      state: "missing_input",
-      target: { kind: "control", id: "renewal-message-tenant-adopt-signature" },
+      state: "not_verified",
+      target: { kind: "control", id: "renewal-message-tenant-signature-name" },
     });
+    // Marked values and another sender's signature are information: the draft step stays open.
+    const marked = projectMessagePreflight(
+      ready({ readiness, signatureOrigin: "none", signatureMatchesActor: false }),
+    );
+    expect(marked.draftStepAvailable).toBe(true);
+    expect(marked.proceedWithoutGmail).toBe(true);
+    expect(state(marked, "required_inputs")).toBe("missing_input");
+    expect(state(marked, "signature")).toBe("missing_input");
   });
 });

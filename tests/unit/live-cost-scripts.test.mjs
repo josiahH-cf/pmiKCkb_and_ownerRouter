@@ -749,6 +749,48 @@ describe("cheap live setup scripts", () => {
     expect(command.ok).toBe(true);
     const buildFlag = command.args.find((arg) => arg.startsWith("--set-build-env-vars"));
     expect(buildFlag).toContain("NEXT_PUBLIC_FIREBASE_PROJECT_ID=pmi-kc-kb-prod");
+    // S165: the same-origin sign-in helper stays off unless the reviewed env states it.
+    expect(buildFlag).not.toContain("NEXT_PUBLIC_FIREBASE_SAME_ORIGIN_AUTH_HOST");
+  });
+
+  it("S165: passes the optional same-origin sign-in host to the build only when the reviewed env states it", () => {
+    const reviewedEnv = {
+      NEXT_PUBLIC_FIREBASE_API_KEY: "public-api-key",
+      NEXT_PUBLIC_FIREBASE_APP_ID: "firebase-app-id",
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "pmi-kc-kb-prod.firebaseapp.com",
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: "pmi-kc-kb-prod",
+    };
+    const stated = buildDemoDeployCommand({
+      argv: ["--budget-confirmed", "--dry-run"],
+      env: deployEnv(),
+      localEnv: {
+        ...reviewedEnv,
+        NEXT_PUBLIC_FIREBASE_SAME_ORIGIN_AUTH_HOST: "pmi-kc-kb.example",
+      },
+    });
+
+    expect(stated.ok).toBe(true);
+    expect(stated.args.find((arg) => arg.startsWith("--set-build-env-vars"))).toContain(
+      "NEXT_PUBLIC_FIREBASE_SAME_ORIGIN_AUTH_HOST=pmi-kc-kb.example",
+    );
+    // A build-time public value only: it is not a runtime setting.
+    expect(stated.args.find((arg) => arg.startsWith("--set-env-vars"))).not.toContain(
+      "NEXT_PUBLIC_FIREBASE_SAME_ORIGIN_AUTH_HOST",
+    );
+
+    const malformed = buildDemoDeployCommand({
+      argv: ["--budget-confirmed", "--dry-run"],
+      env: deployEnv(),
+      localEnv: {
+        ...reviewedEnv,
+        NEXT_PUBLIC_FIREBASE_SAME_ORIGIN_AUTH_HOST: "https://pmi-kc-kb.example/",
+      },
+    });
+
+    expect(malformed.ok).toBe(false);
+    expect(malformed.errors).toContain(
+      "NEXT_PUBLIC_FIREBASE_SAME_ORIGIN_AUTH_HOST must be a bare host such as app.example.com.",
+    );
   });
 
   it("builds Agent Search data-store creation and import requests", () => {

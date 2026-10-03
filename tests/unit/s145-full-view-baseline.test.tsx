@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
@@ -27,6 +27,11 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 //
 // Record the baseline once from unchanged code with UPDATE_S145_BASELINE=1; never update it to
 // make a later change pass.
+// S152 program re-baseline (f2a50650, fe91d82a, 0f02e013): the owner-confirmed program changed
+// the Full view itself (Focus opens by default and Full view is reached through the switch, a
+// compact identity line with the tenants, "Suggested next", autosaved staff records and working
+// terms). The fixture was re-recorded once on those authorized rules and again pins the Full view
+// against accidental drift; a later authorized Full view change needs one more deliberate record.
 
 const BASELINE_PATH = join(__dirname, "..", "fixtures", "s145-full-view-baseline.json");
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
@@ -218,13 +223,12 @@ async function renderCase(testCase: BaselineCase) {
     />,
   );
   if (testCase.manual) {
-    await within(screen.getByRole("region", { name: "Owner approval" })).findByRole(
-      "region",
-      { name: "Owner message preparation" },
-    );
-    await within(
-      screen.getByRole("region", { name: "Tenant offer and response" }),
-    ).findByRole("region", { name: "Tenant message preparation" });
+    // S152: the consolidated lease opens in Focus view; the Full view is the view under test.
+    fireEvent.click(screen.getByRole("button", { name: "Full view" }));
+    await waitFor(() => {
+      expect(document.getElementById("renewal-card-message-owner")).not.toBeNull();
+      expect(document.getElementById("renewal-card-message-tenant")).not.toBeNull();
+    });
   }
   // Let every mount-time read settle before reading the DOM.
   for (let index = 0; index < 5; index += 1)

@@ -62,13 +62,46 @@ function validateSnapshot(value: DraftSnapshot) {
       value.snapshotHash
   )
     throw new EditableLayerError(
-      "The saved Gmail attempt does not match its exact reviewed snapshot.",
+      "The saved Gmail attempt does not match its exact confirmed snapshot.",
       409,
     );
   return value;
 }
 
-/** Persist the exact reviewed content before its one S20 claim, so recovery survives source changes. */
+/**
+ * S162: whether an attempt already prepared under this preview's exact action identity carries
+ * different content or a different basis. The action identity names the saved message revision, so
+ * this is true only when the same revision now reads differently (recipients, facts, resources or
+ * notice basis moved). The caller then saves a new revision so the new preview has its own attempt
+ * identity; an attempt is never overwritten and a consumed one is never reused.
+ */
+export async function preparedMessageDraftDiffers(
+  actor: AuthenticatedUser,
+  preview: ReadyPreview,
+  claimBasis: RenewalMessageClaimBasis,
+  db: Firestore = getAdminFirestore(),
+): Promise<boolean> {
+  if (!can(actor.role, "edit")) return false;
+  const executionId = expectedExternalS20ExecutionId({
+    ...preview.action,
+    authority: undefined,
+  });
+  const previewHash = hashExecutionPreview({ ...preview.action.values });
+  const snapshotHash = hashExecutionPreview({ preview, claimBasis });
+  const [snapshot, execution] = await Promise.all([
+    db.collection(MESSAGE_DRAFT_COLLECTIONS.snapshots).doc(executionId).get(),
+    db.collection("action_executions").doc(executionId).get(),
+  ]);
+  return (
+    (execution.exists && execution.get("preview_hash") !== previewHash) ||
+    (snapshot.exists &&
+      (snapshot.get("previewHash") !== previewHash ||
+        snapshot.get("snapshotHash") !== snapshotHash ||
+        snapshot.get("actorUid") !== actor.uid))
+  );
+}
+
+/** Persist the exact displayed content before its one S20 claim, so recovery survives source changes. */
 export async function savePreparedMessageDraft(
   actor: AuthenticatedUser,
   input: {
@@ -110,7 +143,7 @@ export async function savePreparedMessageDraft(
         previous.actorUid !== actor.uid
       )
         throw new EditableLayerError(
-          "This exact Gmail attempt belongs to a different reviewed snapshot or sender.",
+          "This exact Gmail attempt belongs to a different confirmed snapshot or sender.",
           409,
         );
       return;
@@ -126,7 +159,7 @@ export async function savePreparedMessageDraft(
           !["Succeeded", "Failed"].includes(prior.get("state")))
       )
         throw new EditableLayerError(
-          "Recover the previous Gmail attempt before preparing another draft for this cycle and channel.",
+          "Recover the previous Gmail attempt before preparing another draft for this message.",
           409,
         );
     }

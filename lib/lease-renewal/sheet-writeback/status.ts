@@ -57,10 +57,12 @@ export async function loadSheetWritebackEffectStatuses(
           }
         : {}),
       reversal_state: reversalState,
+      // S160: an update authorized by a reconciliation approval is a retired shape; only a
+      // staff-intent field update (including the working current rent) or an append executes.
       effect_executable:
         proposal.scope.kind === "lease_workspace" &&
         (entry.effect.kind === "row_append" ||
-          Boolean(entry.effect.staffIntent || entry.effect.authorization)),
+          Boolean(entry.effect.staffIntent && !entry.effect.authorization)),
       reversal_executable: false,
     });
   }

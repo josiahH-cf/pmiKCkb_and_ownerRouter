@@ -1,5 +1,4 @@
 import type { Role } from "@/lib/auth/roles";
-import type { SpaceScope } from "@/lib/constants";
 
 export const WORK_TASK_STATES = [
   "Not started",
@@ -243,7 +242,6 @@ export interface WorkAssignableUser {
   uid: string;
   email: string;
   role: Role;
-  scopes?: readonly SpaceScope[];
 }
 
 export interface WorkAccountabilitySnapshot {

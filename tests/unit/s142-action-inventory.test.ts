@@ -64,10 +64,8 @@ function everyAction(): RenewalAction[] {
         actionFixture({ ...environment, manual }).snapshot,
       ).actions)
         actions.set(action.id, action);
-  for (const action of projectRenewalActions(
-    actionFixture({ workflowAvailable: false, termNeedsReview: true }).snapshot,
-  ).actions)
-    actions.set(action.id, action);
+  // S154: an out-of-window or skipped lease has no inspection-only lane; the staff lane leads
+  // there too, so the term review is inventoried from the ordinary fixture above.
   return [...actions.values()];
 }
 
@@ -76,8 +74,8 @@ describe("S142 action inventory", () => {
 
   it("covers the staff lane, verification, recovery and source updates", () => {
     const ids = actions.map((action) => action.id);
+    // S154/S156 (b7693d4d): there is no reviewed-cycle step; staff actions need no order.
     for (const expected of [
-      "manual.cycle",
       "manual.preparation",
       "manual.owner_outreach",
       "manual.owner_response",

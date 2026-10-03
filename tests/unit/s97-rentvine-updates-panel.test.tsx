@@ -131,7 +131,7 @@ describe("S97 RentVine updates panel", () => {
     );
   });
 
-  it("routes a non-Admin to the access-request handoff instead of execute controls", () => {
+  it("S160 BEH-S160-1/4 (S156 BEH-S156-7): an Editor reaches the two-step exact confirmation with no access handoff, approval or attestation", () => {
     const reviewed = datesProposal();
     render(
       <RentvineUpdatesPanel
@@ -141,16 +141,22 @@ describe("S97 RentVine updates panel", () => {
         role="Editor"
       />,
     );
+    // S160 (cafa02a7): the panel projects the same `execute_source_write` row the route enforces,
+    // so the Editor sees the confirmation rather than an Admin handoff.
+    expect(screen.queryByText(/Admin action/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/needs Editor access/)).not.toBeInTheDocument();
     expect(
-      screen.getByText("Executing this source write is an Admin action.", {
-        exact: false,
-      }),
-    ).toBeInTheDocument();
-    const link = screen.getByRole("link", { name: "Request access" });
-    expect(link.getAttribute("href")).toContain(
-      "/admin/access?v=1&capability=manageAdmin",
-    );
-    expect(screen.queryByText("Review and confirm…")).not.toBeInTheDocument();
+      screen.queryByRole("link", { name: "Request access" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("Review and confirm…"));
+    expect(screen.getByText("Confirm this exact effect once")).toBeInTheDocument();
+    // The control sequence is review, then one exact confirmation: no checkbox stands in for a
+    // removed business approval.
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+    expect(
+      screen.queryByText(/I attest|I confirm that|approved by/i),
+    ).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("requires the two-step exact confirmation and posts the exact hashes once", async () => {

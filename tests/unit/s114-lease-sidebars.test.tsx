@@ -265,9 +265,9 @@ describe("S114 independent lease-information and process sidebars", () => {
     for (const id of ["lease-details", "comps", "owner", "tenant", "documents"]) {
       expect(hrefs).toContain(`#renewal-section-${id}`);
     }
+    // S156: the staff lane has no cycle node; the guide starts at the owner activities.
     for (const nested of [
       "#renewal-step-verify-renewal",
-      "#renewal-manual-cycle",
       "#renewal-manual-owner_response",
       "#renewal-manual-tenant_response",
       "#renewal-step-document-packet",
@@ -309,7 +309,7 @@ describe("S114 independent lease-information and process sidebars", () => {
         }
       />,
     );
-    const reason = screen.getByLabelText("Value source / reason");
+    const reason = screen.getByLabelText("Source or context (optional)");
     fireEvent.change(reason, {
       target: { value: "Unsaved note while checking a contact" },
     });
@@ -328,13 +328,24 @@ describe("S114 independent lease-information and process sidebars", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("AC-S114-4: keeps lease information reachable on an inspection-only lease without a process guide", () => {
-    const workspace = { ...workspaceWithParties(), workflowAvailable: false };
+  it("AC-S114-4 / S154 BEH-1: keeps lease information reachable beside the full working surface on every lease", () => {
+    // S154 (b7693d4d): there is no inspection-only lease. A lease outside the worklist keeps its
+    // section navigation and process guide like any other, and the information panel stays
+    // independently reachable.
+    const workspace = {
+      ...workspaceWithParties(),
+      summary: {
+        ...workspaceWithParties().summary,
+        disposition: "out_of_window" as const,
+        reason: "out_of_window" as const,
+        reasonLabel: "Outside this window",
+      },
+    };
     render(<RenewalWorkspace workspace={workspace} />);
     expect(
-      screen.queryByRole("navigation", { name: "Renewal dashboard sections" }),
-    ).toBeNull();
-    expect(screen.queryByRole("button", { name: "Process guide" })).toBeNull();
+      screen.getByRole("navigation", { name: "Renewal dashboard sections" }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Process guide" })).toBeVisible();
     const info = openInformation();
     expect(within(info).getByText("Tenants")).toBeVisible();
     expect(

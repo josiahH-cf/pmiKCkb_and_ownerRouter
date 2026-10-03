@@ -136,26 +136,24 @@ describe("S148 reopening applies the viewer's current access", () => {
     scopes,
   });
 
-  it("detects a narrowed role or Space set, and nothing else", () => {
+  // S167: every staff account has every internal Space, so only a lower role narrows access. A
+  // Space list on an answer stored before S167 was produced with less reach than the viewer has now.
+  it("detects a narrowed role and nothing else, whatever Space list the stored answer carries", () => {
     const editor = { ...admin, role: "Editor" as const };
+    const approver = { ...admin, role: "Approver" as const };
     expect(accessNarrowedSince(basis("Admin", null), editor)).toBe(true);
+    expect(accessNarrowedSince(basis("Admin", null), approver)).toBe(true);
+    expect(accessNarrowedSince(basis("Approver", null), editor)).toBe(true);
     expect(accessNarrowedSince(basis("Editor", null), admin)).toBe(false);
     expect(accessNarrowedSince(basis("Admin", null), admin)).toBe(false);
+    // An older answer stored under a Space allowlist reopens for the same role.
+    expect(accessNarrowedSince(basis("Admin", ["renewals"]), admin)).toBe(false);
     expect(
-      accessNarrowedSince(basis("Admin", null), { ...admin, scopes: ["renewals"] }),
-    ).toBe(true);
-    expect(
-      accessNarrowedSince(basis("Admin", ["renewals"]), {
-        ...admin,
-        scopes: ["maintenance", "renewals"],
-      }),
+      accessNarrowedSince(basis("Editor", ["maintenance", "renewals"]), editor),
     ).toBe(false);
-    expect(
-      accessNarrowedSince(basis("Admin", ["maintenance", "renewals"]), {
-        ...admin,
-        scopes: ["renewals"],
-      }),
-    ).toBe(true);
+    // The stored Space list never offsets a lower role.
+    expect(accessNarrowedSince(basis("Admin", ["renewals"]), editor)).toBe(true);
+    expect(accessNarrowedSince(basis("Approver", ["maintenance"]), editor)).toBe(true);
   });
 
   it("hides stored records and their references when access narrowed; otherwise returns the answer unchanged", async () => {
@@ -292,6 +290,8 @@ describe("S148 Live-read-only allows history writes only into a local emulator",
       "POST ^\\/api\\/assistant\\/saved$",
       "PATCH ^\\/api\\/assistant\\/saved\\/[a-f0-9]{32}$",
       "POST ^\\/api\\/assistant\\/saved\\/[a-f0-9]{32}\\/run$",
+      // S166: the signed-in account's own remembered worklist view, emulator only as well.
+      "POST ^\\/api\\/lease-renewal\\/desk-preferences$",
     ]);
   });
 });

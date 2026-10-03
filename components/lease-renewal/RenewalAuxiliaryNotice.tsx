@@ -13,6 +13,7 @@ const LABELS: Record<RenewalAuxiliaryReadKey, string> = {
   progress: "saved renewal progress",
   manual_workspace: "recorded manual cycle and preparation",
   work_status: "staff work status",
+  working_record: "Saved working values",
   packet: "document packet status",
   notice_policy: "notice timing policy",
   communications: "linked communication status",

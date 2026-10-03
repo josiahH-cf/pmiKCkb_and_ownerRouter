@@ -3,8 +3,26 @@ import {
   AuthError,
   authErrorResponse,
   createAuthenticatedSession,
+  getCurrentUser,
   getSessionCookieName,
 } from "@/lib/auth/session";
+
+/**
+ * S165: answers only whether this browser is holding a usable staff session. The sign-in page asks
+ * once after the session cookie is issued, so a browser that did not keep the cookie is told so
+ * instead of bouncing back to sign-in. It returns no identity, role or other account detail.
+ */
+export async function GET() {
+  const headers = { "cache-control": "no-store" };
+
+  try {
+    const user = await getCurrentUser();
+    return new NextResponse(null, { status: user ? 204 : 401, headers });
+  } catch {
+    // A present but refused identity (for example a disallowed hosted domain) is not a session.
+    return new NextResponse(null, { status: 401, headers });
+  }
+}
 
 export async function POST(request: Request) {
   try {

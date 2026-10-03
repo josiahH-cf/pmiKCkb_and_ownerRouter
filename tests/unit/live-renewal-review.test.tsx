@@ -150,11 +150,11 @@ describe("LiveRenewalReview", () => {
       "/lease-renewal/live#renewal-review-item-trigger-1",
     );
 
-    // Actionable now: the reused resolve form renders for an Admin on this High flag (slice 1b).
-    // LR-9 (§F/§A): the required Reason is marked (aria-required + asterisk) and the primary
-    // Resolve action is the prominent large button.
+    // Actionable now: the reused resolve form renders for an Editor on this High flag (slice 1b).
+    // LR-9 (§F/§A): the required Source is marked (asterisk) and the primary Resolve action is
+    // the prominent large button. S157: the reason is optional context, no longer required.
     expect(screen.getByRole("button", { name: "Resolve" })).toHaveClass("button--large");
-    expect(screen.getByRole("textbox", { name: /Reason/ })).toHaveAttribute(
+    expect(screen.getByRole("textbox", { name: /Reason/ })).not.toHaveAttribute(
       "aria-required",
       "true",
     );

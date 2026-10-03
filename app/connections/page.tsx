@@ -32,7 +32,7 @@ export default async function ConnectionsPage() {
   // A failed read renders as unknown, never as an empty settings record.
   const resourceSettings = await getRenewalResourceLocations(user).catch(() => null);
   // S147: the setup summary that used to sit on the Dashboard, with the same Space scoping.
-  const needsSetup = resolveConnectionsState(process.env, user).items;
+  const needsSetup = resolveConnectionsState(process.env).items;
 
   return (
     <AppShell user={user}>

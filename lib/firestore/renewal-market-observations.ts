@@ -11,9 +11,11 @@ import { can } from "@/lib/auth/roles";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import {
+  ensureRenewalWorkRecord,
   getRenewalWorkspace,
   RENEWAL_WORKSPACE_COLLECTIONS,
 } from "@/lib/firestore/renewal-workspace";
+import type { RenewalWorkBasis } from "@/lib/lease-renewal/workspace-state";
 import {
   capturedTrend,
   marketBasisFromCapturedResult,
@@ -21,13 +23,19 @@ import {
   type RenewalMarketObservation,
 } from "@/lib/lease-renewal/market-observation";
 
+// S154: a comp lookup needs no cycle step. The client may still name the work record it shows;
+// the server binds the retained evidence to the lease's current work record, established by this
+// save when none exists yet.
 export const CompCaptureSchema = z
-  .object({ cycleId: z.string().uuid(), compObservationId: z.string().uuid().optional() })
+  .object({
+    cycleId: z.string().uuid().nullable().optional(),
+    compObservationId: z.string().uuid().optional(),
+  })
   .strict();
-export async function assertCompCaptureCycle(
+/** Staff authority for retaining a lookup, and the exact comp identity a linked trend names. */
+export async function assertCompCaptureAllowed(
   actor: AuthenticatedUser,
   leaseId: string,
-  cycleId: string,
   compObservationId?: string,
   db: Firestore = getAdminFirestore(),
 ) {
@@ -37,13 +45,8 @@ export async function assertCompCaptureCycle(
       403,
     );
   assertMutationAllowed(requireEnvironmentDescriptor());
-  const state = await getRenewalWorkspace(actor, leaseId, db);
-  if (!state || state.cycleId !== cycleId)
-    throw new EditableLayerError(
-      "Select the current reviewed cycle before this lookup.",
-      409,
-    );
   if (compObservationId) {
+    const cycleId = (await getRenewalWorkspace(actor, leaseId, db))?.cycleId ?? null;
     const comp = await db
       .collection(RENEWAL_WORKSPACE_COLLECTIONS.observations)
       .doc(compObservationId)
@@ -55,7 +58,7 @@ export async function assertCompCaptureCycle(
       comp.get("operation") !== "comps"
     )
       throw new EditableLayerError(
-        "Select comps from this exact cycle before the linked trend lookup.",
+        "Choose comps saved with this lease's current work before the linked trend lookup.",
         409,
       );
   }
@@ -64,14 +67,20 @@ export async function assertCompCaptureCycle(
 export async function captureMarketObservation(
   actor: AuthenticatedUser,
   leaseId: string,
-  capture: z.infer<typeof CompCaptureSchema>,
+  requested: z.infer<typeof CompCaptureSchema>,
   operation: "comps" | "trend",
   payload: Record<string, unknown>,
   db: Firestore = getAdminFirestore(),
+  resolveBasis?: () => Promise<RenewalWorkBasis | null>,
 ) {
   if (!can(actor.role, "edit") || isVerificationAccount(actor))
     throw new EditableLayerError("Staff authority is required.", 403);
   assertMutationAllowed(requireEnvironmentDescriptor());
+  // The returned evidence is the actual save: it reuses the current work record or establishes it.
+  const capture = {
+    ...requested,
+    cycleId: (await ensureRenewalWorkRecord(actor, leaseId, db, resolveBasis)).cycleId,
+  };
   const id = randomUUID(),
     recordedAt = new Date().toISOString(),
     collection = db.collection(RENEWAL_WORKSPACE_COLLECTIONS.observations);

@@ -1,4 +1,5 @@
 import type { Capability, Role } from "@/lib/auth/roles";
+import { NON_RENEWAL_HANDOFF_TARGET_ID } from "@/lib/lease-renewal/renewal-issues";
 import {
   resolveActionGraph,
   type ActionGraphDiagnostic,
@@ -22,7 +23,6 @@ import {
 import {
   MANUAL_ACTIVITIES,
   MANUAL_REQUIRED_RENEWAL,
-  currentManualOwnerTerms,
   currentManualTenantOutcome,
   manualActionLabel,
   manualActivitySatisfied,
@@ -58,7 +58,7 @@ export type RenewalActionGroup =
   | "process"
   | "source_update"
   | "issue";
-export type RenewalActionLane = "manual" | "process" | "inspection_only";
+export type RenewalActionLane = "manual" | "process";
 
 /** One S72 verification substep, reduced to the facts the projection reads. */
 export interface RenewalActionSubstep {
@@ -101,7 +101,6 @@ export type RenewalActionManualInput =
 export interface RenewalActionSnapshot {
   readonly leaseId: string;
   readonly role: Role;
-  readonly workflowAvailable: boolean;
   /** The consolidated dashboard mounts the staff-recorded lane (every live lease page). */
   readonly manualLaneMounted: boolean;
   readonly manual: RenewalActionManualInput;
@@ -201,7 +200,6 @@ export interface RenewalActionProjection {
       | "in_progress"
       | "complete_recorded_by_staff"
       | "complete_verified"
-      | "inspection_only"
       | "unknown";
     readonly label: string;
   };
@@ -398,6 +396,8 @@ function manualDrafts(
   const readable = manual.readable;
   const state = manual.readable ? manual.state : null;
   const unknown = !readable;
+  // S156: a recorded completion leads; the other staff items stay available as optional work.
+  const recordedComplete = Boolean(state?.completion);
   const drafts: Draft[] = [];
   let position = 0;
   const staff = (
@@ -412,11 +412,11 @@ function manualDrafts(
   ) =>
     drafts.push({
       key,
-      anchor: extra.anchor ?? lane === "manual",
+      anchor: recordedComplete ? false : (extra.anchor ?? lane === "manual"),
       label,
       detail: extra.detail ?? null,
       group: "staff_work",
-      requirement: extra.requirement ?? "required",
+      requirement: recordedComplete ? "optional" : (extra.requirement ?? "required"),
       evidence,
       responsible: renewalResponsibleFor("edit"),
       control: control(targets, [MANUAL_WORKSPACE_ROUTE], "save_renewal_progress"),
@@ -432,7 +432,7 @@ function manualDrafts(
   if (!readable)
     drafts.push({
       key: "records",
-      anchor: false,
+      anchor: true,
       label: "Reload records and history",
       detail: "Current staff records could not be read. Reload before recording work.",
       group: "recovery",
@@ -453,18 +453,9 @@ function manualDrafts(
       },
     });
 
-  staff(
-    "cycle",
-    "Reviewed cycle date and source",
-    "A reviewed cycle date and source recorded for this lease.",
-    ["renewal-manual-cycle"],
-    {
-      priority: [RANK.working, 2],
-      applicability: "applicable",
-      completion: unknown ? "unknown" : state ? "complete" : "incomplete",
-      ...(readable ? {} : { requires: on("source.staff_records") }),
-    },
-  );
+  // S154/S156: no cycle step and no required order. Staff choose the work; the listed order is a
+  // suggestion. Only an unreadable record holds the staff actions, until it is read again.
+  const records = readable ? {} : { requires: on("source.staff_records") };
   staff(
     "preparation",
     "Market rent comparison",
@@ -474,7 +465,7 @@ function manualDrafts(
       priority: [RANK.optional, 0],
       applicability: "applicable",
       completion: unknown ? "unknown" : state?.preparation ? "complete" : "incomplete",
-      requires: on("manual.cycle"),
+      ...records,
     },
     { requirement: "optional", anchor: false },
   );
@@ -485,7 +476,7 @@ function manualDrafts(
   const satisfied = (key: ManualActivity) =>
     state ? manualActivitySatisfied(state, key) : false;
   const tenantOutcome = state ? currentManualTenantOutcome(state) : null;
-  const approved = state ? currentManualOwnerTerms(state) !== null : false;
+  const approved = state?.ownerResponse?.outcome === "approved_terms";
   // As in the summary, a current tenant counter reopens the owner response only once the offer is
   // on record; before that the offer is the next step.
   const counterReopen =
@@ -500,7 +491,6 @@ function manualDrafts(
   const branch = (done: boolean) =>
     done || !nonRenewal ? ("applicable" as const) : ("not_applicable" as const);
   const followUp = snapshot.regions.followUp ? ["renewal-card-follow-up"] : [];
-  const chain: string[] = ["manual.cycle"];
 
   const outreachDone = satisfied("owner_outreach");
   staff(
@@ -511,10 +501,9 @@ function manualDrafts(
     {
       applicability: branch(outreachDone),
       completion: completion(outreachDone),
-      requires: all(...chain.map(on)),
+      ...records,
     },
   );
-  chain.push("manual.owner_outreach");
   const ownerDone = (approved && !counterReopen) || ownerDeclined;
   staff(
     "owner_response",
@@ -524,7 +513,7 @@ function manualDrafts(
     {
       applicability: branch(ownerDone),
       completion: completion(ownerDone),
-      requires: all(...chain.map(on)),
+      ...records,
       waitingOn:
         summary?.nextActivity === "owner_response" && summary.waitingParty === "owner"
           ? "the owner"
@@ -539,7 +528,6 @@ function manualDrafts(
             : null,
     },
   );
-  chain.push("manual.owner_response");
   const offerDone = satisfied("tenant_offer");
   staff(
     "tenant_offer",
@@ -549,10 +537,9 @@ function manualDrafts(
     {
       applicability: branch(offerDone),
       completion: completion(offerDone),
-      requires: all(...chain.map(on)),
+      ...records,
     },
   );
-  chain.push("manual.tenant_offer");
   const tenantDecided =
     tenantOutcome === "accepted" || tenantOutcome === "declined_nonrenewing";
   staff(
@@ -563,7 +550,7 @@ function manualDrafts(
     {
       applicability: tenantDecided || !ownerDeclined ? "applicable" : "not_applicable",
       completion: completion(tenantDecided),
-      requires: all(...chain.map(on)),
+      ...records,
       waitingOn:
         summary?.nextActivity === "tenant_response" && summary.waitingParty === "tenant"
           ? "the tenant"
@@ -576,7 +563,6 @@ function manualDrafts(
           : null,
     },
   );
-  chain.push("manual.tenant_response");
   const afterAcceptance = MANUAL_REQUIRED_RENEWAL.slice(2);
   for (const key of afterAcceptance) {
     const done = satisfied(key);
@@ -593,7 +579,7 @@ function manualDrafts(
       {
         applicability: branch(done),
         completion: completion(done),
-        requires: all(...chain.map(on)),
+        ...records,
       },
     );
   }
@@ -605,42 +591,18 @@ function manualDrafts(
     {
       applicability: nonRenewal ? "applicable" : "not_applicable",
       completion: completion(satisfied("non_renewal_handoff")),
-      requires: on("manual.cycle"),
+      ...records,
     },
   );
   staff(
     "complete",
     manualActionLabel("complete"),
-    "A staff completion record at the current terms once the chosen branch's work is recorded.",
+    "A staff completion record. Staff decide when the renewal work is complete.",
     ["renewal-manual-complete"],
     {
       applicability: "applicable",
       completion: completion(summary?.complete === true),
-      requires: {
-        kind: "any",
-        of: [
-          all(
-            {
-              kind: "condition",
-              id: "renewal_branch",
-              label: "The renewal continues",
-              holds: unknown ? "unknown" : !nonRenewal,
-            },
-            ...[...chain.slice(1), ...afterAcceptance.map((key) => `manual.${key}`)].map(
-              on,
-            ),
-          ),
-          all(
-            {
-              kind: "condition",
-              id: "non_renewal_branch",
-              label: "The owner or tenant declined",
-              holds: unknown ? "unknown" : nonRenewal,
-            },
-            on("manual.non_renewal_handoff"),
-          ),
-        ],
-      },
+      ...records,
     },
   );
   // An owner decline and a current tenant acceptance satisfy two exclusive branches at once.
@@ -692,7 +654,7 @@ function sourceUpdateDrafts(snapshot: RenewalActionSnapshot): Draft[] {
         key: "rentvine",
         label: "RentVine updates",
         detail: "RentVine update status could not be read.",
-        responsible: renewalResponsibleFor("manageAdmin"),
+        responsible: renewalResponsibleFor("edit"),
         control: control(
           ["renewal-rent-and-charges"],
           ["/api/lease-renewal/rentvine-writeback"],
@@ -709,8 +671,8 @@ function sourceUpdateDrafts(snapshot: RenewalActionSnapshot): Draft[] {
       },
     ];
   return snapshot.rentvineUpdates.rows.map((row, index): Draft => {
-    // A prepared update waits for an Admin's exact confirmation; any other open state is prepared
-    // again by an Editor. A running or ambiguous effect is never retried from here.
+    // S160: a prepared update waits for staff's exact confirmation; any other open state is
+    // prepared again. A running or ambiguous effect is never retried from here.
     const execute = row.state === "prepared";
     const capability: RenewalCapabilityKey = execute
       ? "execute_source_write"
@@ -720,7 +682,7 @@ function sourceUpdateDrafts(snapshot: RenewalActionSnapshot): Draft[] {
       key: row.id,
       label: row.label,
       detail: `${row.stateLabel}. ${row.detail}`,
-      responsible: renewalResponsibleFor(execute ? "manageAdmin" : "edit"),
+      responsible: renewalResponsibleFor("edit"),
       control: control(
         ["renewal-rent-and-charges"],
         ["/api/lease-renewal/rentvine-writeback"],
@@ -800,10 +762,8 @@ function laneFor(
   snapshot: RenewalActionSnapshot,
   manual: RenewalActionManualInput,
 ): RenewalActionLane {
-  if (!snapshot.workflowAvailable) return "inspection_only";
-  return snapshot.manualLaneMounted && manual.readable && manual.state
-    ? "manual"
-    : "process";
+  // S154/S156: the staff lane leads on every lease, including one with nothing recorded yet.
+  return snapshot.manualLaneMounted && manual.readable ? "manual" : "process";
 }
 
 function referencedNodes(requirement: ActionGraphRequirement | undefined): string[] {
@@ -836,7 +796,7 @@ export function projectRenewalActions(
       : null;
 
   const drafts: Draft[] = [];
-  if (lane !== "inspection_only") {
+  {
     drafts.push(...verificationDrafts(snapshot, lane));
     if (cause === "disposition_review")
       drafts.push({
@@ -893,7 +853,7 @@ export function projectRenewalActions(
         evidence: "The non-renewal branch recorded for this cycle.",
         responsible: renewalResponsibleFor("edit"),
         control: control(
-          ["renewal-manual-cycle"],
+          [NON_RENEWAL_HANDOFF_TARGET_ID],
           [MANUAL_WORKSPACE_ROUTE],
           "save_renewal_progress",
         ),
@@ -905,7 +865,8 @@ export function projectRenewalActions(
           actor: actorFor("save_renewal_progress", snapshot.role),
         },
       });
-    if (lane === "process") drafts.push(...processGuidanceDrafts(snapshot, cause));
+    if (lane === "process" && !snapshot.manualLaneMounted)
+      drafts.push(...processGuidanceDrafts(snapshot, cause));
     if (snapshot.manualLaneMounted) drafts.push(...manualDrafts(snapshot, manual, lane));
     drafts.push(...sourceUpdateDrafts(snapshot));
   }
@@ -1006,17 +967,15 @@ export function projectRenewalActions(
   );
   const summary = state ? manualRenewalSummary(state) : null;
   const outcome: RenewalActionProjection["outcome"] =
-    lane === "inspection_only"
-      ? { state: "inspection_only", label: "Inspection only" }
-      : lane === "manual" && summary
-        ? summary.complete
-          ? { state: "complete_recorded_by_staff", label: summary.label }
-          : { state: "in_progress", label: summary.label }
-        : snapshot.manualLaneMounted && !manual.readable
-          ? { state: "unknown", label: "Current staff records could not be read" }
-          : snapshot.process?.status === "complete"
-            ? { state: "complete_verified", label: "Verified complete" }
-            : { state: "in_progress", label: manualRenewalSummary(null).label };
+    lane === "manual" && summary
+      ? summary.complete
+        ? { state: "complete_recorded_by_staff", label: summary.label }
+        : { state: "in_progress", label: summary.label }
+      : snapshot.manualLaneMounted && !manual.readable
+        ? { state: "unknown", label: "Current staff records could not be read" }
+        : snapshot.process?.status === "complete"
+          ? { state: "complete_verified", label: "Verified complete" }
+          : { state: "in_progress", label: manualRenewalSummary(null).label };
   return {
     version: RENEWAL_ACTIONS_VERSION,
     leaseId: snapshot.leaseId,
@@ -1039,7 +998,6 @@ export function renewalGuidanceActionId(
 ): string | null {
   const guidance = snapshot.guidance;
   const lane = laneFor(snapshot, manual);
-  if (lane === "inspection_only") return null;
   const state = manual.readable ? manual.state : null;
   if (lane === "process" && !snapshot.progressStateAvailable) return "source.refresh";
   if (guidance.status === "needs_verification") {
@@ -1051,8 +1009,9 @@ export function renewalGuidanceActionId(
   }
   if (guidance.redirectLabel) return "issue.move_out_redirect";
   if (guidance.kind === "complete") return null;
-  if (lane === "manual" && state)
-    return `manual.${manualRenewalSummary(state).nextActivity}`;
+  if (lane === "manual") return `manual.${manualRenewalSummary(state).nextActivity}`;
+  // Staff records that could not be read: the reload leads until they can.
+  if (snapshot.manualLaneMounted && !manual.readable) return "source.staff_records";
   const verifyIds = new Set(snapshot.process?.verify.map((substep) => substep.id) ?? []);
   if (guidance.substepId && verifyIds.has(guidance.substepId))
     return guidance.substepId === "confirm-source-currency"

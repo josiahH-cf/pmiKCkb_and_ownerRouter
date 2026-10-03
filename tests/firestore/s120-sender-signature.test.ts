@@ -98,7 +98,7 @@ import {
   MESSAGE_PREPARATION_COLLECTIONS,
   saveMessagePreparation,
 } from "@/lib/firestore/renewal-message-preparations";
-import { startRenewalCycle } from "@/lib/firestore/renewal-workspace";
+import { ensureRenewalWorkRecord } from "@/lib/firestore/renewal-workspace";
 import { currentRenewalMessage } from "@/lib/lease-renewal/current-renewal-message";
 
 const projectId = "pmi-kc-kb-s120-sender-signature-test";
@@ -153,21 +153,13 @@ afterAll(async () => {
   vi.unstubAllEnvs();
 });
 
+/** S154: a lease with recorded work, established by its first save rather than a cycle step. */
 async function cycle(actor: AuthenticatedUser, leaseId: string, dateIso: string) {
-  const started = await startRenewalCycle(
-    actor,
-    {
-      leaseId,
-      expectedCycleId: null,
-      expectedRevision: 0,
-      operationId: randomUUID(),
-      basis: { ...basis, dateIso },
-      reason: "Cycle for the S120 emulator case.",
-    },
-    { ...basis, dateIso },
-    db,
-  );
-  return started.state!.cycleId as string;
+  const established = await ensureRenewalWorkRecord(actor, leaseId, db, async () => ({
+    ...basis,
+    dateIso,
+  }));
+  return established.cycleId;
 }
 
 describe("S120 retained sender signature", () => {
@@ -187,14 +179,9 @@ describe("S120 retained sender signature", () => {
         channel: "tenant",
         expectedRevision: 0,
         operationId: randomUUID(),
-        sourceFingerprint: fresh.basis.sourceFingerprint,
-        reviewed: false,
         inputs: { ...fresh.inputs, signature },
       },
-      {
-        sourceFingerprint: fresh.basis.sourceFingerprint,
-        workspaceFingerprint: fresh.basis.workspaceFingerprint!,
-      },
+      {},
       db,
     );
     expect(saved.record?.signatureActorUid).toBe(editor.uid);
@@ -214,8 +201,7 @@ describe("S120 retained sender signature", () => {
     expect(next.signatureOrigin).toMatchObject({ kind: "retained_sender" });
     expect(next.facts.signature).toEqual({ ...signature, email: editor.email });
     expect(next.content.missing.map((item) => item.field)).not.toContain("signature");
-    // Filling is not review or sender binding: both still require this actor's explicit save.
-    expect(next.needsReview).toBe(true);
+    // Filling is not sender binding: that happens with this actor's save (S161: no review step).
     expect(next.signatureMatchesActor).toBe(false);
     expect(next.saved).toBeNull();
 
@@ -235,14 +221,9 @@ describe("S120 retained sender signature", () => {
         channel: "owner",
         expectedRevision: 0,
         operationId: randomUUID(),
-        sourceFingerprint: next.basis.sourceFingerprint,
-        reviewed: true,
         inputs: next.inputs,
       },
-      {
-        sourceFingerprint: next.basis.sourceFingerprint,
-        workspaceFingerprint: next.basis.workspaceFingerprint!,
-      },
+      {},
       db,
     );
     expect(bound.record?.signatureActorUid).toBe(editor.uid);
@@ -250,7 +231,6 @@ describe("S120 retained sender signature", () => {
     const after = await currentRenewalMessage(editor, "702", "owner", db);
     expect(after.signatureOrigin).toEqual({ kind: "saved" });
     expect(after.signatureMatchesActor).toBe(true);
-    expect(after.needsReview).toBe(false);
 
     // The other actor loads the saved message: the signature is shown as saved by someone else,
     // not adopted, and their own retained signature stays empty.

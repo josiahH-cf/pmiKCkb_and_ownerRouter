@@ -33,9 +33,8 @@ export type RentChargeIntent =
       readonly operation: "update_future" | "end_current" | "create_future";
       readonly chargeId: string;
       readonly terms: RenewalTerms;
-      readonly scheduleReview: string;
-      readonly cycleId: string;
-      readonly termsRevision: number;
+      /** Optional context for the preview; never required. */
+      readonly scheduleReview?: string;
       /** ISO end date for `end_current`; the operator reviews it explicitly. */
       readonly currentChargeEndDate?: string;
     };
@@ -231,12 +230,12 @@ function futurePlans(
         leaseId: context.leaseId,
         businessIntent: "future_rent",
         expectedPriorPreviewHash: context.priorHashes.rentvine,
-        evidenceRef: intent.scheduleReview,
-        renewalContext: {
-          cycleId: intent.cycleId,
-          termsRevision: intent.termsRevision,
-          scheduleReview: intent.scheduleReview,
-        },
+        ...(intent.scheduleReview?.trim()
+          ? {
+              evidenceRef: intent.scheduleReview.trim(),
+              renewalContext: { scheduleReview: intent.scheduleReview.trim() },
+            }
+          : {}),
         effects: [effect],
       },
     },

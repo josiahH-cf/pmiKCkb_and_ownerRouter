@@ -2,7 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -26,6 +26,9 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 // b1c6135c (the merge before batch 003), using only modules that existed there. On later code the
 // same output must come back byte for byte, before and after a Focus round trip, and the copied
 // text must carry no Focus view wording. Sample data only; never update the fixture to pass.
+// S162 re-recording (owner-approved program S152-S167): "Copy plain text" now puts the message on
+// the clipboard as displayed, with its "Needs Verification" markers, instead of nothing. Only those
+// entries changed; the lease-information entries and "Copy subject" are byte-identical.
 
 const FIXTURE_PATH = join(__dirname, "..", "fixtures", "s145-copy-output-baseline.json");
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
@@ -132,6 +135,13 @@ async function renderCase(testCase: CopyCase) {
       })}
     />,
   );
+  // S152 (f2a50650): the lease opens in Focus view, which hides the Full view regions in place
+  // (no accessible names), so the message cards are awaited by id and Full view is chosen.
+  await waitFor(() => {
+    expect(document.getElementById("renewal-card-message-owner")).not.toBeNull();
+    expect(document.getElementById("renewal-card-message-tenant")).not.toBeNull();
+  });
+  await userEvent.setup().click(screen.getByRole("button", { name: "Full view" }));
   await within(screen.getByRole("region", { name: "Owner approval" })).findByRole(
     "region",
     { name: "Owner message preparation" },

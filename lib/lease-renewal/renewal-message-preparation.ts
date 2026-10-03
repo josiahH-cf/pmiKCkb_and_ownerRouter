@@ -5,7 +5,10 @@ import {
   MessageLinkSchema,
   RenewalMessageEditsSchema,
 } from "@/lib/lease-renewal/renewal-message-content";
-import { RefinedBodySchema } from "@/lib/lease-renewal/refined-message";
+import {
+  AuthoredSubjectSchema,
+  RefinedBodySchema,
+} from "@/lib/lease-renewal/refined-message";
 
 const source = z.string().trim().min(1).max(240);
 export const MessagePreparationInputsSchema = z
@@ -68,19 +71,32 @@ export function emptyMessagePreparationInputs(): MessagePreparationInputs {
     signature: null,
   };
 }
+/**
+ * S161/S162: one autosave of a message. No cycle is asked for: the first save of a lease's message
+ * establishes its work record, and a later save may name the record it was editing so a change of
+ * record is detected. Nothing here is a review or an approval. The two retired fields are still
+ * accepted (and ignored) so a page loaded before this release keeps saving.
+ */
 export const SaveMessagePreparationSchema = z
   .object({
     leaseId: z.string().regex(/^[1-9]\d*$/),
-    cycleId: z.string().uuid(),
+    cycleId: z.string().uuid().optional(),
     channel: z.enum(["owner", "tenant"]),
     expectedRevision: z.number().int().nonnegative(),
     operationId: z.string().uuid(),
-    sourceFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
-    reviewed: z.boolean(),
+    /** Retired: source freshness no longer gates a save. */
+    sourceFingerprint: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
+    /** Retired: there is no review step. */
+    reviewed: z.boolean().optional(),
     adoptSignature: z.boolean().optional().default(false),
     inputs: MessagePreparationInputsSchema,
-    /** S139: accepted refined wording for this revision; null or absent keeps the composed body. */
+    /** The authored body for this revision; null or absent keeps the composed body. */
     bodyOverride: RefinedBodySchema.nullable().optional(),
+    /** S161: the authored subject for this revision; null or absent keeps the composed subject. */
+    subjectOverride: AuthoredSubjectSchema.nullable().optional(),
   })
   .strict();
 export const MessagePreparationRecordSchema = z

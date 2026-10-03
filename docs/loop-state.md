@@ -4,13 +4,19 @@ Last updated: 2026-10-02 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-RELEASED: batch 004 corrective repair (S147 Dashboard lease read order, S151 smoke) on 2026-10-02.
-Run 0eb2cfeb-a238-4b37-b35f-f999eadfacff; serving SHA df772b30c60043d5fe4c57ff2275990d18a535b3
-(records head; the code is PR #119's, merged at 7d2181bf).
-Revision pmi-kc-app-rmur4a2vc-185ba8b9f3b8; tag cand-rmur4a2vc-185ba8b9f3b8. Since 21:40Z the same
-code serves from run 05c177b9's run-bound recovery clone pmi-kc-app-recovery-05c177b97bde4a76 at
-100% (verified rollback; see Awaiting release).
-Fingerprint sha256:1e4fbc10f3abad951f40b37b07d47d526f67e30334ac237d148b0e7c63a7a6e2.
+RELEASED: the S113 approval-read fix (PR #124) on 2026-10-02 in run
+3a32f7a2-fd58-4652-b519-5a31517b0142 at main `090df5e16f54eadbd1a3afbf20836c6677fa2a19`.
+Revision pmi-kc-app-rmurivuzf-c061dc669374; tag cand-rmurivuzf-c061dc669374; 100% traffic
+(read back 2026-10-03T00:45Z). Candidate receipt 6089b9da-8a4b-45aa-abd8-b54b42ca4a71 at
+22:36:51Z; promotion verified 22:37:15Z; post-promotion observation passed at 22:43:45Z over 13
+routes; the run's checkpoint completed at 22:43:47Z; its permit is consumed. Predecessor
+pmi-kc-app-recovery-05c177b97bde4a76. Fingerprint
+sha256:3d341cc428b6006a1e3db858324a3c22ea7357d017957a9cf8b7a1f9b1831b75. That run's own
+independent readbacks and ledger closure belong to the session that ran it; this record states
+only what its local receipts and the live traffic read show.
+The earlier serving record (batch 004 corrective repair, run 0eb2cfeb at df772b30 /
+pmi-kc-app-rmur4a2vc-185ba8b9f3b8) stands as its history: its fingerprint was
+sha256:1e4fbc10f3abad951f40b37b07d47d526f67e30334ac237d148b0e7c63a7a6e2.
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
 Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=false.
 Release-check margin restored: the observation decided at 396,284 ms against the 420 s evidence
@@ -28,14 +34,18 @@ docs/evidence/ai-first-dashboard-batch-004-validation-2026-10-01.md.
 
 ## Awaiting release
 
-1. S113 approval reads join their soft-TTL lease revalidation (notice-safety race): `cc78c127cf4259395617514909130baa5e98467b`.
+1. S152 program (S152 to S167, lease-renewal simplification and mobile), one cumulative release: `9439c0fc`.
+   The candidate and promoted revision read `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true` from the
+   one reviewed S159 constant; the recovery target keeps the captured predecessor's actual value.
+   The reviewed env files in both checkouts carry true; the readback helper expects true.
 
-OWNER DIRECTION, 2026-10-02: close the S113 gap and leave production, `main` and every checkout on
-the same code; S152–S167 stay registered and not started. Run 0eb2cfeb consumed its own queue and
-permit. Admit only after exact main CI on the release head, fresh prerequisites and a new run-bound
-permit. No provider effect, key or activation is queued. S121 remains excluded.
+OWNER DIRECTION, 2026-10-02: the S113 gap is closed (run 3a32f7a2, above). The S152–S167 execution
+prompt of the same day authorizes this program's implementation and one cumulative release. Admit
+only after exact main CI on the release head, fresh prerequisites and a new run-bound permit. No
+provider effect, key or activation is queued. S121 remains excluded.
 
-Run 05c177b9-7bde-4a76-a70d-3c5e85bf5d7f first carried this item at `9dc8469c` and rolled back
+The S113 item (`cc78c127cf4259395617514909130baa5e98467b`) first rode run
+05c177b9-7bde-4a76-a70d-3c5e85bf5d7f at `9dc8469c`, which rolled back
 verified (no downtime). Its immediate observation checkpoint passed; at 21:39:39Z, inside the
 final checkpoint, the Admin assurance profile's eight-hour app session expired (one 401 on
 `/api/notifications`, then auth_mismatch on every route). The candidate served zero 5xx. An
@@ -45,11 +55,11 @@ record's head, which carries one replacement run of the same code.
 
 ## Feature intake
 
-S152–S167: full owner-confirmed specifications, ready / not implemented. Another session authored
-them on 2026-10-02; they were parked as written (`ac2a12bc`) and registered on main the same day.
-Canonical program: docs/feature-suites/README.md, handoff renewal-simplification-mobile-2026-10.
-No implementation, provider effect or release has started for them. The owner supplies the
-execution prompt to start this exact program; completed owners are not requeued.
+S152–S167: implemented on 2026-10-02 under the owner's execution prompt (handoff
+renewal-simplification-mobile-2026-10; canonical program docs/feature-suites/README.md) at
+`9439c0fc`, awaiting the one cumulative release above. Every suite extends its deployed owner; no
+provider effect, key or activation was used. Human verdicts: NOT RUN, no human observer. The
+optional phone same-tab redirect (S165) has one owner step, A7 in docs/open-blockers.md.
 
 Request 001 and batches 002–004 (S135–S151) are released; their actual evidence is in docs/facts.md
 and the registered evidence ledgers. Focus/in-pane work is deployed; the new program changes its
@@ -98,8 +108,10 @@ UNVERIFIED; absent Data Access logs do not prove zero effects.
 
 ## Continuation
 
-Next: release the S113 fix under Awaiting release; S152–S167 wait for the owner's execution
-prompt. Owner decisions of 2026-10-02 (Q1–Q4) and every owner step are in
+Next: release the S152–S167 program under Awaiting release (fresh prerequisites, exact main CI,
+a new run-bound permit, full observation, independent readbacks), then record the served
+revision, the Sheet switch readback and each suite's disposition. Owner decisions of 2026-10-02
+(Q1–Q4) and every owner step are in
 `docs/open-blockers.md`; act on a hold only when the owner reports its step done. Runner
 follow-ups with no owner step (the four emulator-only E2E suites, promotion routing skew and cold
 recovery verification) are described there. Consumed permits and

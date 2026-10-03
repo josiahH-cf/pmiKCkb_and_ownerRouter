@@ -14,6 +14,7 @@ import type { RenewalWritebackDependencies } from "@/lib/lease-renewal/writeback
 const local = vi.hoisted(() => ({
   db: null as Firestore | null,
   role: "Editor",
+  email: "s117-rv-staff@pmikcmetro.com",
   deps: null as RenewalWritebackDependencies | null,
 }));
 vi.mock("@/lib/firestore/admin", () => ({ getAdminFirestore: () => local.db }));
@@ -21,7 +22,7 @@ vi.mock("@/lib/auth/session", async (original) => ({
   ...(await original<typeof import("@/lib/auth/session")>()),
   requireCapabilityInSpace: async () => ({
     uid: "s117-rv-staff",
-    email: "s117-rv-staff@pmikcmetro.com",
+    email: local.email,
     hd: "pmikcmetro.com",
     role: local.role,
   }),
@@ -40,12 +41,17 @@ import {
 } from "@/lib/firestore/external-action-executions";
 import { claimActiveS97RenewalEffect } from "@/lib/firestore/s97-renewal-writeback-claim";
 import {
+  LEASE_BOUND_WORK_BASIS,
   getRenewalWorkspace,
-  startRenewalCycle,
   saveRenewalWorkspace,
 } from "@/lib/firestore/renewal-workspace";
+import { readEffectiveRenewalTerms } from "@/lib/firestore/renewal-effective-terms";
+import {
+  getRenewalWorkingRecord,
+  saveRenewalWorkingField,
+} from "@/lib/firestore/renewal-working-record";
 import { getRenewalWritebackProposal } from "@/lib/lease-renewal/writeback/proposal-store";
-import { futureRentExecutionReady } from "@/lib/lease-renewal/writeback/future-rent-intent";
+import { futureRentTermsCurrent } from "@/lib/lease-renewal/writeback/future-rent-intent";
 import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
 
 let app: App,
@@ -122,32 +128,21 @@ beforeEach(async () => {
   await environment.clearFirestore();
   writes = 0;
   local.role = "Editor";
+  local.email = "s117-rv-staff@pmikcmetro.com";
   charges = [CURRENT_RENT(), PET_RENT()];
   const basis = {
-      kind: "lease_end" as const,
-      dateIso: "2097-12-31",
-      source: "Emulator lease",
-    },
-    cycleId = randomUUID();
-  await startRenewalCycle(
-    actor,
-    {
-      leaseId: "81",
-      expectedCycleId: null,
-      expectedRevision: 0,
-      operationId: cycleId,
-      basis,
-      reason: "Reviewed emulator cycle",
-    },
-    basis,
-    db,
-  );
+    kind: "lease_end" as const,
+    dateIso: "2097-12-31",
+    source: "Emulator lease",
+  };
+  // S154: a lease with recorded work. The first save establishes the record; here it records an
+  // owner approval whose terms serve as the fallback effective terms for the future-rent tests.
   workspace = (
     await saveRenewalWorkspace(
       actor,
       {
         leaseId: "81",
-        cycleId,
+        cycleId: null,
         expectedRevision: 0,
         operationId: randomUUID(),
         action: {
@@ -158,6 +153,7 @@ beforeEach(async () => {
         },
       },
       db,
+      async () => basis,
     )
   ).state!;
   local.deps = {
@@ -186,8 +182,8 @@ beforeEach(async () => {
     claimActiveEffect: (input) => claimActiveS97RenewalEffect(db, input),
     assertCurrentRenewalTerms: async (proposal) =>
       !!proposal.renewalTerms &&
-      futureRentExecutionReady(
-        await getRenewalWorkspace(actor, "81", db),
+      futureRentTermsCurrent(
+        await readEffectiveRenewalTerms("81", db),
         proposal.renewalTerms,
       ),
     createWriter: () => ({
@@ -238,12 +234,8 @@ function futureBody() {
     leaseId: "81",
     expectedPriorPreviewHash: null,
     businessIntent: "future_rent",
-    renewalContext: {
-      cycleId: workspace.cycleId,
-      termsRevision: workspace.termsRevision,
-      scheduleReview: "Reviewed future schedule",
-    },
-    evidenceRef: "Reviewed exact owner terms",
+    // S156/S160: the server binds the preview to the working terms; the context is optional.
+    renewalContext: { scheduleReview: "Reviewed future schedule" },
     effects: [
       {
         kind: "recurring_charge_update",
@@ -258,7 +250,9 @@ async function records() {
     (doc) => doc.data(),
   );
 }
-async function recordTenantAcceptance() {
+async function recordOwnerResponse(
+  outcome: "revision_requested" | "no_response" | "approved_terms",
+) {
   const current = (await getRenewalWorkspace(actor, "81", db))!;
   await saveRenewalWorkspace(
     actor,
@@ -267,14 +261,41 @@ async function recordTenantAcceptance() {
       cycleId: current.cycleId,
       expectedRevision: current.revision,
       operationId: randomUUID(),
-      action: { kind: "tenant_response", outcome: "accepted", source: "Tenant email" },
+      action: { kind: "owner_response", outcome, source: "Owner call" },
     },
     db,
   );
 }
+/** S156: the lease-bound working terms, one independently saved field at a time. */
+async function saveWorkingTerms(values: {
+  rent?: number;
+  effectiveDate?: string;
+  endDate?: string;
+}) {
+  const fields = {
+    terms_rent: values.rent,
+    terms_effective_date: values.effectiveDate,
+    terms_end_date: values.endDate,
+  };
+  for (const [field, value] of Object.entries(fields)) {
+    if (value === undefined) continue;
+    const record = await getRenewalWorkingRecord(actor, "81", db);
+    await saveRenewalWorkingField(
+      actor,
+      {
+        leaseId: "81",
+        field,
+        value,
+        expectedRevision: record?.fields[field]?.revision ?? 0,
+        operationId: randomUUID(),
+      },
+      db,
+    );
+  }
+}
 
 describe("S117 exact RentVine operations through the owning route", () => {
-  it("AC-S117-2: an Editor prepares the exact current base-rent charge change and only an Admin confirms it once through the existing key", async () => {
+  it("S160 BEH-S160-1/5 (AC-S160-1, was AC-S117-2): an Editor prepares the exact current base-rent charge change and confirms it once through the existing key; a verification account never dispatches", async () => {
     const response = await post(currentBaseBody()),
       result = await response.json();
     expect(response.status, JSON.stringify(result)).toBe(200);
@@ -288,9 +309,24 @@ describe("S117 exact RentVine operations through the owning route", () => {
       effectHash: proposal.effects[0].effectHash,
       confirm: true,
     };
-    expect((await post(confirm)).status).toBe(403);
+    // S167 BEH-S167-7: a verification account is refused on execute, reconcile and reverse,
+    // whatever role it carries, before any writer or claim exists.
+    for (const role of ["Editor", "Admin"]) {
+      local.role = role;
+      local.email = "canary-editor@pmikcmetro.com";
+      for (const operation of ["execute", "reconcile", "reverse_preview"]) {
+        const bare = { ...confirm, confirm: undefined };
+        const refused = await post(
+          operation === "execute" ? { ...confirm, operation } : { ...bare, operation },
+        );
+        expect(refused.status, operation).toBe(403);
+        expect((await refused.json()).error).toMatch(/verification account/);
+      }
+    }
     expect(writes).toBe(0);
-    local.role = "Admin";
+    expect(await records()).toEqual([]);
+    local.role = "Editor";
+    local.email = "s117-rv-staff@pmikcmetro.com";
     const applied = await post(confirm),
       receipt = await applied.json();
     expect(applied.status, JSON.stringify(receipt)).toBe(200);
@@ -361,11 +397,13 @@ describe("S117 exact RentVine operations through the owning route", () => {
     expect(writes).toBe(0);
   });
 
-  it("AC-S117-3: a future-rent effect cannot be confirmed until the tenant's acceptance of those exact terms is recorded", async () => {
+  it("S156 BEH-S156-5 (AC-S156-1, was AC-S117-3): an Editor prepares and confirms a future-rent effect once with no tenant acceptance recorded", async () => {
     charges = [FUTURE_RENT()];
     const response = await post(futureBody());
     expect(response.status, JSON.stringify(await response.json())).toBe(200);
     const proposal = (await getRenewalWritebackProposal(actor, "81", db))!;
+    expect(proposal.renewalTerms).toMatchObject({ cycleId: workspace.cycleId, terms });
+    expect((await getRenewalWorkspace(actor, "81", db))!.tenantResponse).toBeNull();
     const confirm = {
       operation: "execute",
       leaseId: "81",
@@ -373,28 +411,61 @@ describe("S117 exact RentVine operations through the owning route", () => {
       effectHash: proposal.effects[0].effectHash,
       confirm: true,
     };
-    local.role = "Admin";
-    const refused = await post(confirm),
-      refusal = await refused.json();
-    expect(refused.status, JSON.stringify(refusal)).toBe(409);
-    expect(refusal.error_type).toBe("tenant_acceptance_required");
-    expect(writes).toBe(0);
-    expect(await records()).toEqual([]);
-    local.role = "Editor";
-    await recordTenantAcceptance();
-    local.role = "Admin";
     const applied = await post(confirm),
       result = await applied.json();
     expect(applied.status, JSON.stringify(result)).toBe(200);
     expect(writes).toBe(1);
     expect(charges[0].amount).toBe("1275.00");
+    // No acceptance or approval record was manufactured to hold the effect.
+    const after = (await getRenewalWorkspace(actor, "81", db))!;
+    expect(after.tenantResponse).toBeNull();
+    expect(after.ownerResponse?.outcome).toBe("approved_terms");
+    expect((await (await post(confirm)).json()).duplicate).toBe(true);
+    expect(writes).toBe(1);
   });
 
-  it("AC-S117-3: a later owner revision, a stale preview hash and a non-Admin cannot execute a prepared future-rent effect", async () => {
+  it("S156 BEH-S156-4 / S160 BEH-S160-1 (AC-S156-1): working terms alone, with no owner response and no prior work record, carry a future-rent effect to execution", async () => {
+    await environment.clearFirestore();
     charges = [FUTURE_RENT()];
+    await saveWorkingTerms(terms);
+    expect(await getRenewalWorkspace(actor, "81", db)).toBeNull();
+    const effective = await readEffectiveRenewalTerms("81", db);
+    expect(effective.complete).toEqual(terms);
+    expect(effective.sources).toEqual({
+      rent: "working",
+      effectiveDate: "working",
+      endDate: "working",
+    });
+    const response = await post({ ...futureBody(), renewalContext: undefined });
+    expect(response.status, JSON.stringify(await response.json())).toBe(200);
+    // Preparing established the work record on the lease (no source date is reachable here).
+    const established = (await getRenewalWorkspace(actor, "81", db))!;
+    expect(established.basis).toEqual(LEASE_BOUND_WORK_BASIS);
+    expect(established.ownerResponse).toBeNull();
+    expect(established.tenantResponse).toBeNull();
+    const proposal = (await getRenewalWritebackProposal(actor, "81", db))!;
+    expect(proposal.renewalTerms).toMatchObject({ cycleId: established.cycleId, terms });
+    expect(proposal.evidenceRef).toBe("Staff working value");
+    const applied = await post({
+      operation: "execute",
+      leaseId: "81",
+      previewHash: proposal.previewHash,
+      effectHash: proposal.effects[0].effectHash,
+      confirm: true,
+    });
+    expect(applied.status, JSON.stringify(await applied.json())).toBe(200);
+    expect(writes).toBe(1);
+    expect(charges[0].amount).toBe("1275.00");
+    const after = (await getRenewalWorkspace(actor, "81", db))!;
+    expect(after.ownerResponse).toBeNull();
+    expect(after.tenantResponse).toBeNull();
+  });
+
+  it("S160 BEH-S160-10 / S156 BEH-S156-8: a stale preview hash and changed working terms are refused before any attempt; an owner revision is a fact, not a gate", async () => {
+    charges = [FUTURE_RENT()];
+    await saveWorkingTerms(terms);
     expect((await post(futureBody())).status).toBe(200);
     const proposal = (await getRenewalWritebackProposal(actor, "81", db))!;
-    await recordTenantAcceptance();
     const confirm = {
       operation: "execute",
       leaseId: "81",
@@ -402,29 +473,25 @@ describe("S117 exact RentVine operations through the owning route", () => {
       effectHash: proposal.effects[0].effectHash,
       confirm: true,
     };
-    expect((await post(confirm)).status).toBe(403);
-    local.role = "Admin";
     expect((await post({ ...confirm, previewHash: "f".repeat(64) })).status).toBe(409);
-    local.role = "Editor";
-    const current = (await getRenewalWorkspace(actor, "81", db))!;
-    await saveRenewalWorkspace(
-      actor,
-      {
-        leaseId: "81",
-        cycleId: current.cycleId,
-        expectedRevision: current.revision,
-        operationId: randomUUID(),
-        action: {
-          kind: "owner_response",
-          outcome: "revision_requested",
-          source: "Owner call",
-        },
-      },
-      db,
-    );
-    local.role = "Admin";
-    expect((await post(confirm)).status).toBe(409);
+    // The owner asking for a revision changes no working term and blocks nothing.
+    await recordOwnerResponse("revision_requested");
+    // The working rent moved after the preview: the exact bound value is no longer current.
+    await saveWorkingTerms({ rent: 1300 });
+    const changed = await post(confirm),
+      refusal = await changed.json();
+    expect(changed.status, JSON.stringify(refusal)).toBe(409);
+    expect(refusal.error_type).toBe("renewal_terms_changed");
     expect(writes).toBe(0);
     expect(await records()).toEqual([]);
+    // Restoring the exact terms makes the same preview confirmable again, once.
+    await saveWorkingTerms({ rent: terms.rent });
+    const applied = await post(confirm);
+    expect(applied.status, JSON.stringify(await applied.json())).toBe(200);
+    expect(writes).toBe(1);
+    expect(charges[0].amount).toBe("1275.00");
+    expect((await getRenewalWorkspace(actor, "81", db))!.ownerResponse?.outcome).toBe(
+      "revision_requested",
+    );
   });
 });

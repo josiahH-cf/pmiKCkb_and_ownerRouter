@@ -21,11 +21,7 @@ export async function GET(_request: Request, context: RouteContext) {
     const user = await requireCapability("read");
     const { definitionId } = await context.params;
     const definition = await getProcessDefinition(user, definitionId);
-    if (user.scopes === undefined) {
-      assertProcessDefinitionAccess(user, definitionId);
-    } else {
-      assertProcessDefinitionRecordAccess(user, definition);
-    }
+    assertProcessDefinitionRecordAccess(user, definition);
     const runs = await listWorkflowRuns(user, { definitionId });
 
     return NextResponse.json({ definition, runs });
@@ -38,12 +34,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   try {
     const user = await requireCapability("edit");
     const { definitionId } = await context.params;
-    if (user.scopes === undefined) {
-      assertProcessDefinitionAccess(user, definitionId);
-    } else {
-      const current = await getProcessDefinition(user, definitionId);
-      assertProcessDefinitionRecordAccess(user, current);
-    }
+    assertProcessDefinitionAccess(user, definitionId);
     const input = await parseJsonBody(request, UpdateProcessDefinitionInputSchema);
     const definition = await updateProcessDefinition(user, definitionId, input);
     const runs = await listWorkflowRuns(user, { definitionId });

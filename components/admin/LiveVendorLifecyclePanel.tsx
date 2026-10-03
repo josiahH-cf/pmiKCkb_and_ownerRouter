@@ -406,23 +406,31 @@ export function LiveVendorLifecyclePanel({
               <code>{prepared.outcome.preview.previewHash}</code>
             </dd>
           </dl>
-          <table>
-            <caption>Every value bound to approval and execution</caption>
-            <thead>
-              <tr>
-                <th scope="col">Field</th>
-                <th scope="col">Exact value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {prepared.outcome.preview.fields.map((field) => (
-                <tr key={field.name}>
-                  <th scope="row">{field.label}</th>
-                  <td>{String(field.value)}</td>
+          {/* S165: the bound-value table scrolls inside its own region on a phone, never the page. */}
+          <div
+            aria-label="Values bound to approval and execution"
+            className="table-scroll"
+            role="region"
+            tabIndex={0}
+          >
+            <table>
+              <caption>Every value bound to approval and execution</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Field</th>
+                  <th scope="col">Exact value</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {prepared.outcome.preview.fields.map((field) => (
+                  <tr key={field.name}>
+                    <th scope="row">{field.label}</th>
+                    <td>{String(field.value)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <p className="muted">
             Keep this page open so this exact prepared preview remains available. Approval
             Queue opens in a new tab; return here after approval to execute it.

@@ -16,27 +16,27 @@ const WILDCARD_USER: AppUser = {
   lastSignInAt: null,
 };
 
+// A directory record that still carries the Space allowlist written before S167.
+const LEFTOVER_SCOPE_APPROVER: AppUser = {
+  ...WILDCARD_USER,
+  uid: "u2",
+  email: "approver@pmikcmetro.com",
+  role: "Approver",
+  scopes: ["maintenance"],
+};
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
-describe("UserManagementPanel space-scope editor", () => {
-  it("shows each user's role-derived capabilities, Spaces, and renewal authority", () => {
+// S167: every staff account has every internal Space, so the panel no longer edits a per-user
+// Space allowlist. It shows the role-derived access and keeps the confirmed role editor.
+describe("UserManagementPanel roster and role editor", () => {
+  it("shows each user's role-derived capabilities, All internal Spaces, and renewal authority", () => {
     render(
-      <UserManagementPanel
-        initialUsers={[
-          WILDCARD_USER,
-          {
-            ...WILDCARD_USER,
-            uid: "u2",
-            email: "approver@pmikcmetro.com",
-            role: "Approver",
-            scopes: ["maintenance"],
-          },
-        ]}
-      />,
+      <UserManagementPanel initialUsers={[WILDCARD_USER, LEFTOVER_SCOPE_APPROVER]} />,
     );
 
     const editor = screen.getByRole("region", {
@@ -46,113 +46,92 @@ describe("UserManagementPanel space-scope editor", () => {
     expect(editor).toHaveTextContent(
       "Inherited capabilitiesView app work, Create and update app work, Use governed workflow communications",
     );
-    expect(editor).toHaveTextContent("SpacesAll spaces");
+    expect(editor).toHaveTextContent("SpacesAll internal Spaces");
+    // S167: the staff member doing the work records the business decisions alone.
     expect(editor).toHaveTextContent(
-      "Derived renewal authorityRecord owner direction and app-owned renewal progress",
+      "Derived renewal authorityRecord owner direction and app-owned renewal progress, Resolve a renewal source reconciliation, Approve a comp-derived pricing suggestion",
     );
-    expect(editor).not.toHaveTextContent("Resolve a renewal source reconciliation");
+    expect(editor).not.toHaveTextContent(
+      "Manage renewal policy, users, connections, suspensions, and gates",
+    );
 
+    // S167: a maintenance-only allowlist used to show "Maintenance" and no renewal authority.
     const approver = screen.getByRole("region", {
       name: "Effective access for approver@pmikcmetro.com",
     });
-    expect(approver).toHaveTextContent("SpacesMaintenance");
+    expect(approver).toHaveTextContent("Individual roleApprover");
+    expect(approver).toHaveTextContent("SpacesAll internal Spaces");
     expect(approver).toHaveTextContent(
-      "Derived renewal authorityNone: no Renewals Space access",
+      "Derived renewal authorityRecord owner direction and app-owned renewal progress, Resolve a renewal source reconciliation, Approve a comp-derived pricing suggestion",
+    );
+    expect(approver).not.toHaveTextContent("None: no Renewals Space access");
+    // The Approver role still carries no Admin-only renewal authority.
+    expect(approver).not.toHaveTextContent(
+      "Manage renewal policy, users, connections, suspensions, and gates",
     );
   });
 
-  it("shows the All spaces wildcard, then submits a maintenance-only claim", async () => {
+  // S167: this panel used to offer All spaces / Renewals / Maintenance checkboxes, a reason box
+  // and a "Save space access" button that patched /api/admin/users/{uid}/scopes.
+  it("offers no Space allowlist controls for any user", () => {
+    render(
+      <UserManagementPanel initialUsers={[WILDCARD_USER, LEFTOVER_SCOPE_APPROVER]} />,
+    );
+
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+    expect(screen.queryByRole("button", { name: "Save space access" })).toBeNull();
+    expect(screen.queryByRole("textbox", { name: /space access/i })).toBeNull();
+    // The role editor is the only per-user control left: one select, reason and save per user.
+    expect(screen.getAllByRole("combobox", { name: "Role" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Save role" })).toHaveLength(2);
+    expect(screen.getAllByRole("textbox")).toHaveLength(2);
+  });
+
+  it("changes the role of a user with a leftover Space allowlist through the role endpoint only", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async () =>
-      jsonResponse({ user: { ...WILDCARD_USER, scopes: ["maintenance"] } }),
+      jsonResponse({ user: { ...LEFTOVER_SCOPE_APPROVER, role: "Editor" } }),
     );
     vi.stubGlobal("fetch", fetchMock);
-    render(<UserManagementPanel initialUsers={[WILDCARD_USER]} />);
+    render(<UserManagementPanel initialUsers={[LEFTOVER_SCOPE_APPROVER]} />);
 
-    const allSpaces = screen.getByRole("checkbox", {
-      name: "All spaces for worker@pmikcmetro.com",
-    });
-    const renewals = screen.getByRole("checkbox", {
-      name: "Renewals for worker@pmikcmetro.com",
-    });
-    const maintenance = screen.getByRole("checkbox", {
-      name: "Maintenance for worker@pmikcmetro.com",
-    });
-    expect(allSpaces).toBeChecked();
-    expect(renewals).toBeDisabled();
-    expect(maintenance).toBeDisabled();
-
-    await user.click(allSpaces);
-    expect(renewals).toBeChecked();
-    expect(maintenance).toBeChecked();
-    await user.click(renewals);
+    await user.selectOptions(screen.getByRole("combobox", { name: "Role" }), "Editor");
     await user.type(
       screen.getByRole("textbox", {
-        name: "Reason for changing space access for worker@pmikcmetro.com",
+        name: "Reason for changing approver@pmikcmetro.com",
       }),
-      "maintenance sub-user",
+      "no longer approves",
     );
-    await user.click(screen.getByRole("button", { name: "Save space access" }));
+    await user.click(screen.getByRole("button", { name: "Save role" }));
 
     expect(fetchMock).not.toHaveBeenCalled();
-    const dialog = screen.getByRole("dialog", {
-      name: "Confirm Space access change",
-    });
-    expect(dialog).toHaveTextContent("worker@pmikcmetro.com");
-    expect(dialog).toHaveTextContent("Current Spaces");
-    expect(dialog).toHaveTextContent("All spaces");
-    expect(dialog).toHaveTextContent("Proposed Spaces");
-    expect(dialog).toHaveTextContent("Maintenance");
-    expect(dialog).toHaveTextContent("maintenance sub-user");
+    const dialog = screen.getByRole("dialog", { name: "Confirm role change" });
+    expect(dialog).toHaveTextContent("approver@pmikcmetro.com");
+    expect(dialog).not.toHaveTextContent("Spaces");
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
-    await user.click(screen.getByRole("button", { name: "Confirm Space access change" }));
+    await user.click(screen.getByRole("button", { name: "Confirm role change" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(fetchMock).toHaveBeenCalledWith("/api/admin/users/u1/scopes", {
+    // S167: the scopes endpoint is never called from this panel.
+    expect(fetchMock).toHaveBeenCalledWith("/api/admin/users/u2", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        scopes: ["maintenance"],
-        reason: "maintenance sub-user",
-      }),
+      body: JSON.stringify({ role: "Editor", reason: "no longer approves" }),
     });
     expect(
       await screen.findByText(
-        "worker@pmikcmetro.com now has access to Maintenance. They re-sign-in to refresh.",
+        "approver@pmikcmetro.com is now Editor. They re-sign-in to refresh.",
       ),
     ).toBeInTheDocument();
-  });
-
-  it("sends null to clear a scoped claim for All spaces", async () => {
-    const scopedUser: AppUser = { ...WILDCARD_USER, scopes: ["maintenance"] };
-    const user = userEvent.setup();
-    const fetchMock = vi.fn(async () =>
-      jsonResponse({ user: { ...WILDCARD_USER, scopes: undefined } }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-    render(<UserManagementPanel initialUsers={[scopedUser]} />);
-
-    await user.click(
-      screen.getByRole("checkbox", {
-        name: "All spaces for worker@pmikcmetro.com",
-      }),
-    );
-    await user.type(
-      screen.getByRole("textbox", {
-        name: "Reason for changing space access for worker@pmikcmetro.com",
-      }),
-      "restore all spaces",
-    );
-    await user.click(screen.getByRole("button", { name: "Save space access" }));
-    expect(fetchMock).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "Confirm Space access change" }));
-
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    const [, requestInit] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(JSON.parse(String(requestInit.body))).toEqual({
-      scopes: null,
-      reason: "restore all spaces",
+    const region = screen.getByRole("region", {
+      name: "Effective access for approver@pmikcmetro.com",
     });
+    expect(region).toHaveTextContent("SpacesAll internal Spaces");
+    // S167: an Editor keeps the business decisions; only management stays Admin.
+    expect(region).toHaveTextContent("Resolve a renewal source reconciliation");
+    expect(region).not.toHaveTextContent(
+      "Manage renewal policy, users, connections, suspensions, and gates",
+    );
   });
 
   it("keeps the existing role editor behavior and endpoint", async () => {
@@ -188,50 +167,25 @@ describe("UserManagementPanel space-scope editor", () => {
     });
   });
 
-  it("prevents saving an empty explicit scope set", async () => {
-    const scopedUser: AppUser = { ...WILDCARD_USER, scopes: ["maintenance"] };
-    const user = userEvent.setup();
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-    render(<UserManagementPanel initialUsers={[scopedUser]} />);
-
-    await user.click(
-      screen.getByRole("checkbox", {
-        name: "Maintenance for worker@pmikcmetro.com",
-      }),
-    );
-    await user.type(
-      screen.getByRole("textbox", {
-        name: "Reason for changing space access for worker@pmikcmetro.com",
-      }),
-      "remove access",
-    );
-    await user.click(screen.getByRole("button", { name: "Save space access" }));
-
-    expect(
-      screen.getByText("Choose at least one space, or choose All spaces."),
-    ).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("shows a malformed existing claim as invalid instead of All spaces", () => {
+  // S167: a malformed claim used to show an "Invalid scope claim" warning and an unchecked
+  // All spaces box. The claim no longer affects the account, so the panel shows the same access.
+  it("shows All internal Spaces for a user whose leftover scope claim is malformed", () => {
     render(
       <UserManagementPanel
         initialUsers={[{ ...WILDCARD_USER, scopeClaimInvalid: true }]}
       />,
     );
 
-    expect(
-      screen.getByText(
-        "Invalid scope claim: choose valid access and save before this user signs in.",
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("checkbox", {
-        name: "All spaces for worker@pmikcmetro.com",
-      }),
-    ).not.toBeChecked();
-    expect(screen.getByRole("button", { name: "Save space access" })).toBeEnabled();
+    const region = screen.getByRole("region", {
+      name: "Effective access for worker@pmikcmetro.com",
+    });
+    expect(region).toHaveTextContent("SpacesAll internal Spaces");
+    expect(region).toHaveTextContent(
+      "Derived renewal authorityRecord owner direction and app-owned renewal progress",
+    );
+    expect(screen.queryByText(/Invalid scope claim/)).toBeNull();
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+    expect(screen.queryByRole("button", { name: "Save space access" })).toBeNull();
   });
 
   it("keeps an authority change inert when the user cancels", async () => {

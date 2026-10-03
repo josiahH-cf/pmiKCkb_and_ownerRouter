@@ -495,10 +495,31 @@ export function ConversationAnswerView({
 }: Readonly<{ answer: ConversationAnswer }>) {
   if (answer.kind === "knowledge") return null;
   if (answer.kind === "clarification") {
+    // S166: when several records match, they are listed to open now beside the question.
+    const matches = answer.groups.filter((group) => group.items.length > 0);
+    const offsets = matches.map(
+      (_, index) =>
+        1 +
+        matches.slice(0, index).reduce((total, group) => total + group.items.length, 0),
+    );
     return (
       <>
         <h2>One more detail</h2>
         <p>{answer.clarification}</p>
+        {matches.length > 0 ? (
+          <>
+            <h3>{MATCHING_LEASES_LABEL}</h3>
+            {matches.map((group, index) => (
+              <AnswerGroupView
+                group={group}
+                key={`${group.source}-${index}`}
+                listLabel={MATCHING_LEASES_LABEL}
+                showSummary={false}
+                start={offsets[index]}
+              />
+            ))}
+          </>
+        ) : null}
       </>
     );
   }
@@ -534,11 +555,20 @@ export function ConversationAnswerView({
   );
 }
 
+const MATCHING_LEASES_LABEL = "Matching leases you can open now";
+
 function AnswerGroupView({
   group,
   showSummary,
   start,
-}: Readonly<{ group: AnswerGroup; showSummary: boolean; start: number }>) {
+  listLabel,
+}: Readonly<{
+  group: AnswerGroup;
+  showSummary: boolean;
+  start: number;
+  /** Names the list when it stands beside a question rather than under a summary. */
+  listLabel?: string;
+}>) {
   return (
     <div className="ui-stack">
       {showSummary ? (
@@ -548,7 +578,7 @@ function AnswerGroupView({
         </>
       ) : null}
       {group.items.length > 0 ? (
-        <ol className="ui-rows" start={start}>
+        <ol aria-label={listLabel} className="ui-rows" start={start}>
           {group.items.map((item) => (
             <li key={`${item.ref.source}:${item.ref.id}`}>
               <Link href={item.href}>{item.title}</Link>

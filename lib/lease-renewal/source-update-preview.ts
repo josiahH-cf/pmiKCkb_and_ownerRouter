@@ -183,6 +183,14 @@ export function sheetPreviewFacts(
     readonly proposal: SheetWritebackClientProposal;
     readonly identity?: SourceUpdateIdentity | null;
     readonly leaseId?: string;
+    /**
+     * S158/S160: the exact cell this field update targets and whether the row is the one staff
+     * selected, when the page knows them; the preview then names the cell, not only the row.
+     */
+    readonly location?: {
+      readonly cell?: string | null;
+      readonly selected?: boolean;
+    } | null;
   },
 ): SourceUpdatePreviewFacts {
   const { proposal } = context;
@@ -201,9 +209,12 @@ export function sheetPreviewFacts(
     };
   }
   const rowNumber = str(effect.effect.rowNumber);
+  const cell = context.location?.cell;
+  const place = cell ? `cell ${cell} (row ${rowNumber})` : `row ${rowNumber}`;
+  const selected = context.location?.selected ? ", the row staff selected" : "";
   return {
     lease,
-    source: `Operating renewal Sheet, tab ${proposal.tab_title}, row ${rowNumber}, read ${formatBusinessTimestamp(proposal.source_read_at)}`,
+    source: `Operating renewal Sheet, tab ${proposal.tab_title}, ${place}${selected}, read ${formatBusinessTimestamp(proposal.source_read_at)}`,
     target: sheetFieldLabel(str(effect.effect.field)),
     current: str(effect.effect.expectedValue) || "(blank)",
     proposed: str(effect.effect.afterValue),

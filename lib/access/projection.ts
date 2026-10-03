@@ -25,24 +25,17 @@ export interface AccessEffectiveProjectionV1 {
 }
 
 export function sessionNormalizedAccess(user: AuthenticatedUser): NormalizedAccess {
-  return {
-    role: user.role,
-    scope: user.scopes
-      ? {
-          kind: "named_spaces",
-          space_ids: [...new Set(user.scopes)].sort(compareCodePoint),
-        }
-      : { kind: "all_spaces", space_ids: [] },
-  };
+  // S167: a staff session always has every existing internal Space.
+  return { role: user.role, scope: { kind: "all_spaces", space_ids: [] } };
 }
 
 export function compareSessionAndDirectoryAccess(
   session: AuthenticatedUser,
   directory: NormalizedAccess,
 ): AccessDirectorySyncState {
-  return JSON.stringify(sessionNormalizedAccess(session)) === JSON.stringify(directory)
-    ? "matched"
-    : "refresh_required";
+  // S167: a Space allowlist left in the directory no longer narrows a session, so only the role
+  // can be out of step with it.
+  return session.role === directory.role ? "matched" : "refresh_required";
 }
 
 export async function readDirectorySyncState(
@@ -82,8 +75,4 @@ export function buildAccessEffectiveProjection(
     authority_source: "current_session",
     directory_sync_state: directorySyncState,
   };
-}
-
-function compareCodePoint(left: string, right: string) {
-  return left < right ? -1 : left > right ? 1 : 0;
 }

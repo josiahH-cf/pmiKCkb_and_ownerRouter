@@ -25,7 +25,7 @@ export default async function AdminAccessPage({
 }) {
   const user = await requirePageCapability("read");
   const rawSearch = (await searchParams) ?? {};
-  const preselectionResult = readPreselection(rawSearch, user.role, user.scopes);
+  const preselectionResult = readPreselection(rawSearch, user.role);
   const directorySyncState = await readDirectorySyncState(user);
   const projection = buildAccessEffectiveProjection(user, directorySyncState);
 
@@ -52,7 +52,6 @@ export default async function AdminAccessPage({
           title="Understand and request my access"
         />
         <AccessCenter
-          currentScopes={user.scopes}
           historyUnavailable={historyUnavailable}
           initialHistory={history}
           isAdmin={can(user.role, "manageAdmin")}
@@ -69,7 +68,6 @@ export default async function AdminAccessPage({
 function readPreselection(
   raw: Record<string, SearchValue>,
   role: "Editor" | "Approver" | "Admin",
-  scopes: readonly ("renewals" | "maintenance")[] | undefined,
 ): { preselection?: AccessPreselection; notice?: string } {
   const keys = Object.keys(raw);
   if (keys.length === 0) return {};
@@ -95,10 +93,8 @@ function readPreselection(
     }
     space = raw.space;
   }
-  if (
-    can(role, capability) &&
-    (!space || scopes === undefined || scopes.includes(space))
-  ) {
+  // S167: every staff account has every internal Space, so only the capability can be missing.
+  if (can(role, capability)) {
     return { notice: "Requested access option is unavailable." };
   }
   let returnTo: string | undefined;

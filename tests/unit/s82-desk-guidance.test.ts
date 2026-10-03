@@ -17,6 +17,37 @@ import {
 } from "@/lib/lease-renewal/renewal-process";
 import type { RenewalFollowUpProjection } from "@/lib/lease-renewal/follow-up-projection";
 import type { LiveOwnerCurrentRentDecision } from "@/lib/lease-renewal/live-desk";
+import { DESK_GUIDANCE_CONTRACT } from "@/lib/lease-renewal/desk-guidance";
+import {
+  MANUAL_REQUIRED_RENEWAL,
+  emptyRenewalWorkspace,
+  manualRenewalSummary,
+  planRenewalWorkspaceAction,
+  type RenewalWorkspaceAction,
+} from "@/lib/lease-renewal/workspace-state";
+
+// S156/S157 (8a3f929d): the staff-recorded lane guides every worklist lease. Status is
+// needs_verification only for a stale or incomplete read, unreadable progress with nothing
+// recorded, or a flagged lease fact; otherwise it comes from the staff lane (complete, waiting,
+// ready). There is no Blocked status and no blocker list; a rent or source difference is
+// advisory evidence carried by `rentVerification`.
+
+/** The staff-lane summary after the given records, as the live desk row carries it. */
+function staffLane(...actions: RenewalWorkspaceAction[]) {
+  let state = emptyRenewalWorkspace("L-1", "b4bc3b81-c402-4f62-a2e2-c605c67867fb", {
+    kind: "lease_end",
+    dateIso: "2026-12-31",
+    source: "RentVine lease end",
+  });
+  let event = 0;
+  for (const action of actions)
+    state = planRenewalWorkspaceAction(state, action, {
+      actorUid: "fixture-staff",
+      recordedAt: "2026-09-01T12:00:00.000Z",
+      eventId: `00000000-0000-4000-8000-${String((event += 1)).padStart(12, "0")}`,
+    });
+  return manualRenewalSummary(state);
+}
 
 function verified(
   key: string,
@@ -248,9 +279,10 @@ describe("S82 rent display and verification", () => {
     ).toBe("unavailable");
   });
 
-  it("reserves Blocked for a conflict and labels a missing rent side Needs verification", () => {
+  it("S157 BEH-6/7: keeps a single-source or conflicting rent advisory, never a status", () => {
     const singleSource = buildDeskLeaseGuidance(
       input({
+        rentDecision: decision("single_source", 1500),
         dataCheck: [
           {
             fieldKey: "current_rent",
@@ -261,12 +293,15 @@ describe("S82 rent display and verification", () => {
         ],
       }),
     );
-    expect(singleSource.overallStatus).toBe("needs_verification");
-    expect(singleSource.isBlocked).toBe(true);
+    expect(singleSource.rentVerification.state).toBe("needs_verification");
+    expect(singleSource.overallStatus).toBe("ready");
+    expect(singleSource.isBlocked).toBe(false);
+    expect(singleSource.blockers).toEqual([]);
 
     const conflict = buildDeskLeaseGuidance(
       input({
         process: blockedProcess(),
+        rentDecision: decision("conflict", 1500),
         dataCheck: [
           {
             fieldKey: "current_rent",
@@ -277,15 +312,25 @@ describe("S82 rent display and verification", () => {
         ],
       }),
     );
-    expect(conflict.overallStatus).toBe("blocked");
+    // The difference stays visible through the verification destination; the row stays workable.
+    expect(conflict.rentVerification).toEqual({
+      state: "needs_verification",
+      verifiedByResolutionDiffers: false,
+      destination: { kind: "workspace_phase", stepId: "verify-renewal" },
+    });
+    expect(conflict.overallStatus).toBe("ready");
+    expect(conflict.isBlocked).toBe(false);
+    expect(conflict.action).toMatchObject({ kind: "act", label: "Owner outreach" });
   });
 });
 
 describe("S82 overall status precedence", () => {
-  it("orders needs_verification above blocked above complete", () => {
+  it("orders needs_verification above the staff lane and never produces Blocked", () => {
+    // S156: a blocked evidence graph no longer withholds work; the staff lane leads.
     const blocked = buildDeskLeaseGuidance(input({ process: blockedProcess() }));
-    expect(blocked.overallStatus).toBe("blocked");
-    expect(blocked.isBlocked).toBe(true);
+    expect(blocked.overallStatus).toBe("ready");
+    expect(blocked.isBlocked).toBe(false);
+    expect(blocked.contract).toBe(DESK_GUIDANCE_CONTRACT);
 
     const expired = buildDeskLeaseGuidance(
       input({ process: blockedProcess(), currencyState: "expired" }),
@@ -295,9 +340,21 @@ describe("S82 overall status precedence", () => {
     expect(expired.blockers).toEqual([]);
     expect(expired.action).toMatchObject({
       kind: "needs_verification",
-      label: expect.stringContaining("too old"),
+      label: "Lease data is out of date. Refresh to see current data.",
       destination: { kind: "none" },
     });
+    // An expired read outranks a recorded staff lane, including a completed one.
+    expect(
+      buildDeskLeaseGuidance(
+        input({
+          currencyState: "expired",
+          summary: {
+            ...input().summary,
+            manualProgress: staffLane({ kind: "complete", source: "Staff" }),
+          },
+        }),
+      ).overallStatus,
+    ).toBe("needs_verification");
 
     const incomplete = buildDeskLeaseGuidance(
       input({ process: blockedProcess(), readComplete: false }),
@@ -310,17 +367,18 @@ describe("S82 overall status precedence", () => {
     });
   });
 
-  it("reports complete, waiting, and ready from real process projections", () => {
-    expect(
-      buildDeskLeaseGuidance(input({ process: completeProcess() })).overallStatus,
-    ).toBe("complete");
-    const waiting = buildDeskLeaseGuidance(
-      input({
-        process: waitingProcess(),
-        summary: {
-          ...input().summary,
-          followUp: followUpWaitingOn("tenant"),
-        },
+  it("reports complete, waiting, and ready from the staff-recorded lane", () => {
+    const withLane = (manualProgress: ReturnType<typeof staffLane>) =>
+      buildDeskLeaseGuidance(input({ summary: { ...input().summary, manualProgress } }));
+    expect(withLane(staffLane({ kind: "complete", source: "Staff" })).overallStatus).toBe(
+      "complete",
+    );
+    const waiting = withLane(
+      staffLane({
+        kind: "activity",
+        activity: "owner_outreach",
+        outcome: "done",
+        source: "Owner call",
       }),
     );
     expect(waiting.overallStatus).toBe("waiting");
@@ -328,6 +386,18 @@ describe("S82 overall status precedence", () => {
     const ready = buildDeskLeaseGuidance(input());
     expect(ready.overallStatus).toBe("ready");
     expect(ready.isBlocked).toBe(false);
+    // The evidence graph's own complete, waiting and ready states are no longer the status: a
+    // lease with nothing recorded by staff is Ready for its first staff activity.
+    for (const process of [completeProcess(), waitingProcess(), readyProcess()]) {
+      const guidance = buildDeskLeaseGuidance(
+        input({
+          process,
+          summary: { ...input().summary, followUp: followUpWaitingOn("tenant") },
+        }),
+      );
+      expect(guidance.overallStatus).toBe("ready");
+      expect(guidance.action).toMatchObject({ kind: "act", label: "Owner outreach" });
+    }
   });
 
   it("treats a review-disposition row as fail-closed needs_verification", () => {
@@ -362,9 +432,18 @@ describe("S82 overall status precedence", () => {
     expect(unavailable.isBlocked).toBe(true);
     expect(unavailable.action).toEqual({
       kind: "needs_verification",
-      label: "Saved renewal progress could not be verified. Refresh before acting.",
+      label: "Saved renewal progress could not be read. Refresh to see it.",
       destination: { kind: "none" },
     });
+    // A readable staff record answers for itself; unreadable S72 progress then changes nothing.
+    const recorded = buildDeskLeaseGuidance(
+      input({
+        progressStateAvailable: false,
+        summary: { ...input().summary, manualProgress: staffLane() },
+      }),
+    );
+    expect(recorded.overallStatus).toBe("ready");
+    expect(recorded.action).toMatchObject({ kind: "act", label: "Owner outreach" });
   });
 
   it("keeps a merely non-actionable row needs_review and never isBlocked", () => {
@@ -386,28 +465,32 @@ describe("S82 overall status precedence", () => {
   });
 });
 
-describe("S82 blockers and the single safe next action", () => {
-  it("exposes every causal blocker with phase destinations and grounded capabilities", () => {
+describe("S82 guidance and the suggested next action", () => {
+  it("S156 ARCH-2: a blocked evidence graph withholds nothing from the staff lane", () => {
     const guidance = buildDeskLeaseGuidance(input({ process: blockedProcess() }));
-    expect(guidance.action).toEqual({ kind: "blocked" });
-    expect(guidance.blockers.length).toBeGreaterThan(0);
-    const labels = guidance.blockers.map((blocker) => blocker.label);
-    expect(labels).toContain(
-      "Contractual base rent is missing, stale, ambiguous, or conflicting.",
-    );
-    expect(labels).toContain("2 blocking source items remain.");
-    expect(new Set(labels).size).toBe(labels.length);
-    for (const blocker of guidance.blockers) {
-      expect(blocker.phaseId).toBe("verify-renewal");
-      expect(blocker.destination).toEqual({
+    expect(guidance.blockers).toEqual([]);
+    expect(guidance.isBlocked).toBe(false);
+    expect(guidance.contract).toBe("s156-staff-lane");
+    expect(guidance.action).toEqual({
+      kind: "act",
+      label: "Owner outreach",
+      destination: {
         kind: "workspace_phase",
-        stepId: "verify-renewal",
-      });
+        stepId: "owner-decision",
+        controlId: "renewal-manual-owner_outreach",
+      },
+    });
+  });
+
+  it("carries the staff-lane contract on every row", () => {
+    for (const guidance of [
+      buildDeskLeaseGuidance(input()),
+      buildDeskLeaseGuidance(input({ currencyState: "expired" })),
+      buildDeskLeaseGuidance(input({ process: null })),
+    ]) {
+      expect(guidance.contract).toBe("s156-staff-lane");
+      expect(guidance.blockers).toEqual([]);
     }
-    const reconciliation = guidance.blockers.find((blocker) =>
-      blocker.label.includes("blocking source items"),
-    );
-    expect(reconciliation?.requiredCapability).toBe("approve");
   });
 
   it("offers exactly one next control when unblocked", () => {
@@ -419,21 +502,79 @@ describe("S82 blockers and the single safe next action", () => {
     expect(guidance.action.label.length).toBeGreaterThan(0);
   });
 
-  it("routes waiting and complete rows to truthful review destinations", () => {
+  it("routes waiting and complete rows to the staff record they come from", () => {
     const waiting = buildDeskLeaseGuidance(
       input({
-        process: waitingProcess(),
-        summary: { ...input().summary, followUp: followUpWaitingOn("tenant") },
+        summary: {
+          ...input().summary,
+          followUp: followUpWaitingOn("tenant"),
+          manualProgress: staffLane(
+            {
+              kind: "activity",
+              activity: "owner_outreach",
+              outcome: "done",
+              source: "Owner call",
+            },
+            {
+              kind: "owner_response",
+              outcome: "approved_terms",
+              terms: { rent: 1550, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
+              source: "Owner email",
+            },
+            {
+              kind: "activity",
+              activity: "tenant_offer",
+              outcome: "done",
+              source: "Offer email",
+            },
+          ),
+        },
       }),
     );
-    expect(waiting.action).toMatchObject({
+    expect(waiting.overallStatus).toBe("waiting");
+    expect(waiting.action).toEqual({
       kind: "waiting",
-      label: expect.stringContaining("the tenant"),
+      label: "Record tenant response",
+      destination: {
+        kind: "workspace_phase",
+        stepId: "tenant-decision",
+        controlId: "renewal-manual-tenant_response",
+      },
     });
-    const complete = buildDeskLeaseGuidance(input({ process: completeProcess() }));
-    expect(complete.action).toMatchObject({
+    const complete = buildDeskLeaseGuidance(
+      input({
+        summary: {
+          ...input().summary,
+          manualProgress: staffLane(
+            {
+              kind: "owner_response",
+              outcome: "approved_terms",
+              terms: { rent: 1550, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
+              source: "Owner email",
+            },
+            { kind: "tenant_response", outcome: "accepted", source: "Tenant email" },
+            ...MANUAL_REQUIRED_RENEWAL.map(
+              (activity): RenewalWorkspaceAction => ({
+                kind: "activity",
+                activity,
+                outcome: "done",
+                source: "Staff",
+              }),
+            ),
+            { kind: "complete", source: "Staff" },
+          ),
+        },
+      }),
+    );
+    expect(complete.overallStatus).toBe("complete");
+    expect(complete.action).toEqual({
       kind: "complete",
-      destination: { kind: "workspace_phase", stepId: "compliance-close" },
+      label: "Review completion recorded by staff.",
+      destination: {
+        kind: "workspace_phase",
+        stepId: "compliance-close",
+        controlId: "renewal-manual-complete",
+      },
     });
   });
 });

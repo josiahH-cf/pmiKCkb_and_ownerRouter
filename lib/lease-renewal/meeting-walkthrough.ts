@@ -89,9 +89,9 @@ export const MEETING_PREFLIGHT_CHECKS: readonly MeetingPreflightCheckDefinition[
   },
   {
     id: "sheet_writeback_pause",
-    label: "Operating Sheet write-back paused (F08)",
+    label: "Operating Sheet updates available (S159)",
     effectFreeSource:
-      "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED reads false on the served revision; Sheet updates stay preview-only.",
+      "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED reads true on the served revision; each Sheet update is previewed and confirmed by staff.",
     holds: ["exact_source_update"],
   },
   {

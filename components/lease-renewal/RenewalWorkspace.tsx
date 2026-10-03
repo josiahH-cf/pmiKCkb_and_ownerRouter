@@ -18,6 +18,8 @@ import {
 } from "@/components/lease-renewal/RenewalSectionHeading";
 import { RenewalMessagePreparation } from "@/components/lease-renewal/RenewalMessagePreparation";
 import { RenewalNoticeReview } from "@/components/lease-renewal/RenewalNoticeReview";
+import { RenewalWorkingRecordProvider } from "@/components/lease-renewal/RenewalWorkingRecord";
+import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
 import {
   RenewalManualProvider,
   RenewalManualSection,
@@ -43,7 +45,10 @@ import type {
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { RenewalLeaseInformation } from "@/components/lease-renewal/RenewalLeaseInformation";
+import {
+  RenewalLeaseInformation,
+  type OperatingSheetLookupInput,
+} from "@/components/lease-renewal/RenewalLeaseInformation";
 import { RentAndCharges } from "@/components/lease-renewal/RentAndCharges";
 import type { RentChargeOutcomeRow } from "@/lib/lease-renewal/rent-charge-outcomes";
 import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
@@ -159,10 +164,13 @@ export function RenewalWorkspace({
   termReviewPanel = null,
   sheetDestination = null,
   sheetFieldDestinations = {},
+  sheetLookup = null,
   resourceLocationsPanel = null,
   manualState,
   manualReadUnavailable = false,
   manualCycleBasis = null,
+  workingRecord = null,
+  workingRecordUnavailable = false,
   auxiliaryFailures = [],
   resolutionDestinations = [],
   chargeInventory = null,
@@ -191,6 +199,9 @@ export function RenewalWorkspace({
   manualState?: RenewalWorkspaceState | null;
   manualReadUnavailable?: boolean;
   manualCycleBasis?: RenewalCycleBasis | null;
+  /** S157: the lease-bound working record the page read; null when none is saved yet. */
+  workingRecord?: RenewalWorkingRecord | null;
+  workingRecordUnavailable?: boolean;
   /** S107: this lease's consolidated confirmed-effect summary; null when nothing was confirmed. */
   attemptSummary?: RenewalAttemptSummary | null;
   /** The page-supplied discrepancy resolution panel, rendered inside the verify phase. */
@@ -209,6 +220,8 @@ export function RenewalWorkspace({
   /** Server-validated operating-Sheet link for the verify phase's source evidence. */
   sheetDestination?: ExternalDeskDestination | null;
   sheetFieldDestinations?: Record<string, string>;
+  /** S158: the current operating-Sheet lookup and signed context for lease information. */
+  sheetLookup?: OperatingSheetLookupInput | null;
   /** Symbolic supporting-read failures. Values/errors never enter this client-safe projection. */
   auxiliaryFailures?: readonly RenewalAuxiliaryFailure[];
   /** Exact Live-review anchors for unresolved source items in this lease. */
@@ -249,13 +262,13 @@ export function RenewalWorkspace({
   // S143: the Focus view is offered wherever the consolidated dashboard renders (every live lease
   // page) and on an inspection-only lease; it reads the same projections as the Full view.
   const consolidated = manualState !== undefined || manualReadUnavailable;
-  const focusAvailable = consolidated || !workspace.workflowAvailable;
+  const focusAvailable = consolidated;
   const actionSnapshot = focusAvailable
     ? buildRenewalActionSnapshot({
         workspace,
         role,
         issues: issueProjection,
-        manualLaneMounted: consolidated && workspace.workflowAvailable,
+        manualLaneMounted: consolidated,
         manualState,
         manualReadUnavailable,
         unavailableSources: unavailableKeys,
@@ -265,6 +278,7 @@ export function RenewalWorkspace({
     : null;
   const focusFacts: RenewalFocusFacts = {
     currentRent: workspace.guidance.currentBaseRent,
+    chargeInventory,
     endDateIso: summary.endDateIso,
     lifecycleLabel: summary.lifecycle
       ? `${summary.lifecycle.label}${summary.lifecycle.qualifier ? `: ${summary.lifecycle.qualifier}` : ""}`
@@ -282,7 +296,21 @@ export function RenewalWorkspace({
         id: issue.id,
         kindLabel: issue.kindLabel,
         reason: issue.reason,
-      })),
+      }))
+      // S157 (BEH-6) / S152 (AC-2): a current-rent difference between sources stays visible in
+      // Focus as advice; it holds nothing.
+      .concat(
+        workspace.guidance.rentVerification.state === "needs_verification"
+          ? [
+              {
+                id: "advisory:current_rent_sources",
+                kindLabel: "Source difference",
+                reason:
+                  "RentVine and the operating Sheet do not agree on the current rent, or one of them has no value. Your working value stays as entered; review both under Rent and charges.",
+              },
+            ]
+          : [],
+      ),
     // The page-level notices Focus would otherwise hide: failed supporting reads and the move-out
     // disposition, in the same words the Full view uses.
     unavailableReads: auxiliaryFailures.map(renewalAuxiliaryFailureText),
@@ -300,6 +328,7 @@ export function RenewalWorkspace({
     <RenewalLeaseInformation
       canEditWorkStatus={hasRenewalRoleAuthority("save_work_status", role)}
       sheetDestination={sheetDestination}
+      sheetLookup={sheetLookup}
       workStatus={workStatus}
       workspace={workspace}
     />
@@ -318,6 +347,11 @@ export function RenewalWorkspace({
   const compactIdentity = (
     <>
       <span className="renewal-workspace-identity-address">{summary.addressLabel}</span>
+      <span className="renewal-workspace-identity-tenants">
+        {summary.tenantNameLabels.length > 0
+          ? summary.tenantNameLabels.join(", ")
+          : summary.tenantNameLabel}
+      </span>
       <span className="renewal-workspace-identity-lease">
         Lease {summary.id}
         {summary.endDateIso ? ` · ends ${formatCalendarDate(summary.endDateIso)}` : ""}
@@ -346,54 +380,60 @@ export function RenewalWorkspace({
   );
 
   return (
-    <RenewalFocusViewProvider key={summary.id}>
-      <RenewalSaveFocus
+    <RenewalFocusViewProvider
+      initialView={focusAvailable ? "focus" : "full"}
+      key={summary.id}
+    >
+      <RenewalWorkingRecordProvider
+        canEdit={hasRenewalRoleAuthority("save_working_record", role)}
+        initialRecord={workingRecord}
         leaseId={summary.id}
-        cycleId={manualState?.cycleId ?? null}
-        revision={manualState?.revision ?? null}
-        readable={!manualReadUnavailable && progressStateAvailable}
-        projection={issueProjection}
-        targetId={postSaveTarget}
+        unavailable={workingRecordUnavailable}
       >
-        <div className="ui-stack">
-          <PageHeader
-            actions={
-              <>
-                <ModeChip tone="live">Live data</ModeChip>
-                {workspace.dataCurrency ? (
-                  <RenewalDeskRefresh
-                    readAtMs={Date.parse(workspace.dataCurrency.readAtIso)}
-                    ttlMs={LEASE_EXPORT_TTL_MS}
-                  />
-                ) : null}
-              </>
-            }
-            subtitle={`Lease ${summary.id}${summary.endDateIso ? ` · ends ${formatCalendarDate(summary.endDateIso)}` : ""}`}
-            title={summary.addressLabel}
-          />
-
-          <RenewalWorkspaceSidebars
-            identity={compactIdentity}
-            leaseInformation={leaseInformation}
-            processGuide={workspace.workflowAvailable ? <RenewalProcessGuide /> : null}
-            sectionNavigation={
-              workspace.workflowAvailable ? <RenewalSectionNavigation /> : null
-            }
-            viewSwitch={focusAvailable ? <RenewalFocusViewSwitch /> : null}
-          >
-            {focusAvailable ? <RenewalFocusViewSlot /> : null}
-            <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
-            <RenewalFocusHashTarget />
-            <MoveOutDispositionNotice disposition={summary.moveOut} />
-            {workspace.live ? (
-              <RenewalNoticeReview leaseId={summary.id} canEdit={can(role, "edit")} />
-            ) : null}
-            <MoveOutTimingPanel
-              sourceHref={summary.sourceDestinations?.rentvine?.href ?? null}
-              timing={summary.moveOutTiming}
+        <RenewalSaveFocus
+          leaseId={summary.id}
+          cycleId={manualState?.cycleId ?? null}
+          revision={manualState?.revision ?? null}
+          readable={!manualReadUnavailable && progressStateAvailable}
+          projection={issueProjection}
+          targetId={postSaveTarget}
+        >
+          <div className="ui-stack">
+            <PageHeader
+              actions={
+                <>
+                  <ModeChip tone="live">Live data</ModeChip>
+                  {workspace.dataCurrency ? (
+                    <RenewalDeskRefresh
+                      readAtMs={Date.parse(workspace.dataCurrency.readAtIso)}
+                      ttlMs={LEASE_EXPORT_TTL_MS}
+                    />
+                  ) : null}
+                </>
+              }
+              subtitle={`Lease ${summary.id}${summary.endDateIso ? ` · ends ${formatCalendarDate(summary.endDateIso)}` : ""}`}
+              title={summary.addressLabel}
             />
 
-            {workspace.workflowAvailable ? (
+            <RenewalWorkspaceSidebars
+              identity={compactIdentity}
+              leaseInformation={leaseInformation}
+              processGuide={<RenewalProcessGuide />}
+              sectionNavigation={<RenewalSectionNavigation />}
+              viewSwitch={focusAvailable ? <RenewalFocusViewSwitch /> : null}
+            >
+              {focusAvailable ? <RenewalFocusViewSlot /> : null}
+              <RenewalAuxiliaryNotice failures={auxiliaryFailures} />
+              <RenewalFocusHashTarget />
+              <MoveOutDispositionNotice disposition={summary.moveOut} />
+              {workspace.live ? (
+                <RenewalNoticeReview leaseId={summary.id} canEdit={can(role, "edit")} />
+              ) : null}
+              <MoveOutTimingPanel
+                sourceHref={summary.sourceDestinations?.rentvine?.href ?? null}
+                timing={summary.moveOutTiming}
+              />
+
               <div id={RENEWAL_NEXT_ACTION_TARGET_ID} tabIndex={-1}>
                 <DoThisNext
                   deskView={deskView}
@@ -403,44 +443,7 @@ export function RenewalWorkspace({
                   projected={issueProjection}
                 />
               </div>
-            ) : null}
 
-            {!workspace.workflowAvailable ? (
-              <>
-                {focusPane}
-                <Card title="Inspection only">
-                  <p className="muted" role="status">
-                    {summary.reasonLabel}. This lease is available for source inspection,
-                    but renewal progress, decisions, drafts, and source updates are
-                    unavailable here.
-                  </p>
-                </Card>
-                <section aria-label="Source facts" className="ui-stack">
-                  <PhaseContent
-                    chargeInventory={chargeInventory}
-                    compScreenshotExecutable={false}
-                    correctionPanel={null}
-                    dataExpired={dataExpired}
-                    discrepancyHistoryPanel={null}
-                    followUpControlsAvailable={false}
-                    packetSnapshot={null}
-                    packetStateAvailable={false}
-                    progressStateAvailable={false}
-                    rentSuggestionAvailable={false}
-                    rentChargeStatus={null}
-                    rentvineUpdatesPanel={null}
-                    resolutionDestinations={[]}
-                    role={role}
-                    sheetProposalPanel={null}
-                    sheetDestination={sheetDestination}
-                    sheetFieldDestinations={sheetFieldDestinations}
-                    stepId="verify-renewal"
-                    termReviewPanel={termReviewPanel}
-                    workspace={workspace}
-                  />
-                </section>
-              </>
-            ) : (
               <RenewalPolicyProvider
                 value={
                   policyMaterial && policyTodayIso
@@ -470,11 +473,11 @@ export function RenewalWorkspace({
                     {dataExpired ? (
                       <Card>
                         <div role="status">
-                          <h2 className="ui-card-title">Data too old to act on</h2>
+                          <h2 className="ui-card-title">Lease data is out of date</h2>
                           <p className="muted">
-                            This lease data is past the freshness limit, so recording a
-                            decision and composing drafts are paused. Use Refresh data
-                            above to reread the sources on this lease.
+                            The source values shown here were read a while ago. Refresh
+                            this lease to read them again. Your saved work stays
+                            available.
                           </p>
                         </div>
                       </Card>
@@ -568,10 +571,10 @@ export function RenewalWorkspace({
                   </RenewalDashboardNavigation>
                 </RenewalManualProvider>
               </RenewalPolicyProvider>
-            )}
-          </RenewalWorkspaceSidebars>
-        </div>
-      </RenewalSaveFocus>
+            </RenewalWorkspaceSidebars>
+          </div>
+        </RenewalSaveFocus>
+      </RenewalWorkingRecordProvider>
     </RenewalFocusViewProvider>
   );
 }
@@ -648,8 +651,7 @@ function DoThisNext({
     return (
       <Card title="Saved progress unavailable">
         <p className="muted">
-          Saved renewal progress could not be read. Refresh this page before relying on
-          the current phase or taking a progress-dependent action.
+          Saved renewal progress could not be read. Refresh this page to see it.
         </p>
       </Card>
     );
@@ -756,7 +758,7 @@ function DoThisNext({
     );
   }
   return (
-    <Card title="Do this next">
+    <Card title="Suggested next">
       {projected.primary.redirected ? (
         <p data-renewal-primary-redirect="non_renewal_handoff">
           {projected.primary.label}{" "}
@@ -770,7 +772,7 @@ function DoThisNext({
       ) : "label" in action ? (
         <p>{action.label}</p>
       ) : (
-        <p>Resolve the blockers below before continuing.</p>
+        <p>Review the items below.</p>
       )}
       {blockers}
       {projected.primary.redirected ? null : phaseLink}
@@ -889,7 +891,6 @@ function PhaseContent({
           >
             <RentAndCharges
               chargeInventory={chargeInventory}
-              controlsAvailable={workspace.workflowAvailable}
               rentChargeStatus={rentChargeStatus}
               summary={summary}
             />

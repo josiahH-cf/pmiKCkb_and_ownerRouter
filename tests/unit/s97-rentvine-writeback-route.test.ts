@@ -256,11 +256,13 @@ describe("S97 rentvine-writeback route", () => {
     expect(mocks.proposals.size).toBe(0);
   });
 
-  it("lets an Editor propose from fresh provider state but never execute", async () => {
+  it("S160 BEH-S160-1/5 (AC-S160-1): an Editor prepares and confirms a supported update once through the real route", async () => {
     mocks.user = { uid: "editor-1", email: "editor@pmikcmetro.com", role: "Editor" };
     const { previewHash, effectHash } = await proposeDatesChange();
     expect(mocks.proposals.get("4821")?.previewHash).toBe(previewHash);
-
+    mocks.gateOpen = true;
+    // No Approver/Admin handoff, pricing, reconciliation, owner-response, tenant-response or
+    // cycle record stands between the Editor's exact confirmation and the one-attempt claim.
     const execute = await post({
       operation: "execute",
       leaseId: "4821",
@@ -268,11 +270,78 @@ describe("S97 rentvine-writeback route", () => {
       effectHash,
       confirm: true,
     });
-    expect(execute.status).toBe(403);
-    const payload = (await execute.json()) as { error: string };
-    expect(payload.error).toContain("Admin authority is required");
-    expect(mocks.writerCalls).toEqual([]);
+    expect(execute.status).toBe(200);
+    const payload = (await execute.json()) as { status: string; duplicate: boolean };
+    expect(payload).toMatchObject({ status: "executed", duplicate: false });
+    expect(mocks.writerCalls.filter((call) => call === "updateLease")).toHaveLength(1);
+    const again = await post({
+      operation: "execute",
+      leaseId: "4821",
+      previewHash,
+      effectHash,
+      confirm: true,
+    });
+    expect(((await again.json()) as { duplicate: boolean }).duplicate).toBe(true);
+    expect(mocks.writerCalls.filter((call) => call === "updateLease")).toHaveLength(1);
   });
+
+  it("S160 BEH-S160-5 (AC-S160-1): the execute row asks for Editor authority and names no higher role", async () => {
+    // There is no internal role below Editor; a principal without Renewals access is refused by
+    // the Space check above (missing-Space denial). The governance row the route enforces is the
+    // same one the controls project, so a visible button never meets an obsolete refusal.
+    const { RENEWAL_GOVERNANCE_MATRIX } =
+      await import("@/lib/lease-renewal/role-action-governance");
+    const { can } = await import("@/lib/auth/roles");
+    expect(RENEWAL_GOVERNANCE_MATRIX.execute_source_write.roleCapability).toBe("edit");
+    expect(
+      can("Editor", RENEWAL_GOVERNANCE_MATRIX.execute_source_write.roleCapability),
+    ).toBe(true);
+    expect(RENEWAL_GOVERNANCE_MATRIX.execute_source_write.roleDeniedReason).not.toMatch(
+      /Admin authority/,
+    );
+  });
+
+  it.each([
+    { role: "Admin", email: "canary-admin@pmikcmetro.com" },
+    { role: "Editor", email: "canary-editor@pmikcmetro.com" },
+  ])(
+    "S167 BEH-S167-7 / S160 AC-S160-1: a verification account ($role) is refused on execute, reconcile and reverse",
+    async ({ role, email }) => {
+      const { previewHash, effectHash } = await proposeDatesChange();
+      mocks.gateOpen = true;
+      mocks.user = { uid: `canary-${role}`, email, role };
+      for (const body of [
+        { operation: "execute", leaseId: "4821", previewHash, effectHash, confirm: true },
+        { operation: "reconcile", leaseId: "4821", previewHash, effectHash },
+        { operation: "reverse_preview", leaseId: "4821", previewHash, effectHash },
+        {
+          operation: "reverse_execute",
+          leaseId: "4821",
+          previewHash,
+          effectHash,
+          reversal: {
+            reversalExecutionId: "reversal-1",
+            forwardExecutionId: "forward-1",
+            previewHash,
+            expiresAtIso: "2026-09-02T13:00:00.000Z",
+            kind: "restore_dates",
+          },
+          confirm: true,
+        },
+        { operation: "reverse_reconcile", leaseId: "4821", previewHash, effectHash },
+      ]) {
+        const response = await post(body);
+        expect(response.status).toBe(403);
+        const payload = (await response.json()) as { error: string };
+        expect(payload.error).toContain("A verification account reads this lease only");
+      }
+      expect(mocks.writerCalls).toEqual([]);
+      expect(mocks.projection).not.toHaveBeenCalled();
+      // The same account still reads status.
+      const status = await post({ operation: "status", leaseId: "4821" });
+      expect(status.status).toBe(200);
+    },
+  );
 
   it("derives a create baseline from canonical detail reads instead of trusting browser input", async () => {
     mocks.user = { uid: "editor-1", email: "editor@pmikcmetro.com", role: "Editor" };
@@ -414,11 +483,15 @@ describe("S97 rentvine-writeback route", () => {
     expect(mocks.writerCalls.filter((call) => call === "updateLease")).toHaveLength(1);
   });
 
-  it("refuses execution while the recorded owner response is not an approval (S105)", async () => {
+  it("S156 BEH-S156-5/6: a recorded owner outcome other than approval is a fact, not an execution gate", async () => {
     const { previewHash, effectHash } = await proposeDatesChange();
     mocks.gateOpen = true;
     mocks.progress = { ownerOutcome: { state: "revision_requested" } };
+    const { getRenewalProgress } = await import("@/lib/firestore/lease-renewal-progress");
+    vi.mocked(getRenewalProgress).mockClear();
     try {
+      // S105's owner-outcome refusal is retired (cafa02a7): the exact confirmation executes once;
+      // the confirmation binding, one-attempt claim and duplicate return are unchanged.
       const response = await post({
         operation: "execute",
         leaseId: "4821",
@@ -426,20 +499,19 @@ describe("S97 rentvine-writeback route", () => {
         effectHash,
         confirm: true,
       });
-      expect(response.status).toBe(409);
-      expect((await response.json()).error_type).toBe("owner_outcome_blocks_downstream");
-      expect(mocks.writerCalls).toHaveLength(0);
-      // The refusal came before the one-attempt claim: once the owner approves, the same exact
-      // confirmation executes exactly once.
-      mocks.progress = null;
-      const approved = await post({
+      expect(response.status).toBe(200);
+      expect((await response.json()).status).toBe("executed");
+      expect(mocks.writerCalls.filter((call) => call === "updateLease")).toHaveLength(1);
+      expect(getRenewalProgress).not.toHaveBeenCalled();
+      const again = await post({
         operation: "execute",
         leaseId: "4821",
         previewHash,
         effectHash,
         confirm: true,
       });
-      expect(approved.status).toBe(200);
+      expect(again.status).toBe(200);
+      expect(((await again.json()) as { duplicate: boolean }).duplicate).toBe(true);
       expect(mocks.writerCalls.filter((call) => call === "updateLease")).toHaveLength(1);
     } finally {
       mocks.progress = null;
@@ -502,7 +574,7 @@ describe("S97 rentvine-writeback route", () => {
     );
   });
 
-  it("refreshes and projects a successfully reconciled forward effect", async () => {
+  it("S160 BEH-S160-10 (AC-S160-3): a lost response is reconciled from the receipt without a blind redispatch", async () => {
     const { previewHash, effectHash } = await proposeDatesChange();
     mocks.gateOpen = true;
     mocks.writerFailsAfterApply = true;
@@ -544,6 +616,8 @@ describe("S97 rentvine-writeback route", () => {
     expect(response.headers.get("set-cookie")).toContain(
       `${RENEWAL_SOURCE_REFRESH_COOKIE}=`,
     );
+    // The provider was asked exactly once; reconciliation read the result back.
+    expect(mocks.writerCalls.filter((call) => call === "updateLease")).toHaveLength(1);
   });
 
   it("keeps a provider-successful effect successful when projection fails", async () => {

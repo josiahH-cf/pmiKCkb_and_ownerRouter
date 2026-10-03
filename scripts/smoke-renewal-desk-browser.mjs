@@ -291,42 +291,41 @@ async function verifyDeskAndWorkspace() {
 
   // Open a lease from the full-row primary label, walk one section, and return to the exact view.
   const deskUrlBefore = page.url();
-  // An out-of-window, untracked lease is deliberately inspection-only. Verify that branch
-  // separately; its source workspace must not masquerade as an active renewal dashboard.
-  const inspectionLink = page
+  // S154: a lease outside the worklist (out of window, under review, or outside by its source
+  // marker) is a real lease that opens the same working surface as any other. Verify that branch
+  // separately: no inspection-only card, the same section navigation, its data check in place.
+  const outsideWorklistLink = page
     .locator(
       'tbody tr[data-workspace-available="true"]:not([data-disposition="actionable"]):not([data-retention-state="tracked_incomplete"]) a.renewal-lease-link',
     )
     .first();
-  if (await inspectionLink.count()) {
+  if (await outsideWorklistLink.count()) {
     interactionStartedAt = performance.now();
-    await inspectionLink.click();
-    await page.getByRole("region", { name: "Source facts", exact: true }).waitFor();
+    await outsideWorklistLink.click();
+    await page.getByRole("navigation", { name: "Renewal dashboard sections" }).waitFor();
     assertWithinBudget(
       interactionStartedAt,
       DESK_INTERACTION_BUDGET_MS,
-      "Inspection workspace navigation",
+      "Outside-worklist workspace navigation",
     );
     assert(
       (await page
         .getByRole("heading", { name: "Inspection only", exact: true })
-        .count()) === 1 &&
-        (await page.getByText("Data check", { exact: true }).count()) >= 1 &&
+        .count()) === 0 &&
         (await page
           .getByRole("navigation", { name: "Renewal dashboard sections" })
-          .count()) === 0 &&
-        (await page
-          .getByRole("button", { name: "Create Gmail draft", exact: true })
-          .count()) === 0,
-      "The inspection-only lease lost its source facts or gained a workflow/draft control.",
+          .getByRole("link")
+          .count()) === 5 &&
+        (await page.getByText("Data check").count()) >= 1,
+      "A lease outside the worklist did not open the full working surface.",
     );
     await page.getByRole("link", { name: "← Back to renewals" }).click();
     await page.waitForURL((url) => url.toString() === deskUrlBefore);
     await table.waitFor();
-    process.stdout.write("Inspection-only source workspace and action refusal passed.\n");
+    process.stdout.write("Outside-worklist lease opened the full working surface.\n");
   } else {
     process.stdout.write(
-      "Inspection-only branch not present in the current source cohort.\n",
+      "Outside-worklist branch not present in the current source cohort.\n",
     );
   }
   const leaseLink = page.locator(`${WORKFLOW_ROW_SELECTOR} a.renewal-lease-link`).first();

@@ -19,6 +19,7 @@ import {
   RENEWAL_WORKSPACE_COLLECTIONS,
   getRenewalWorkspace,
   renewalWorkspaceDocId,
+  ensureRenewalWorkRecord,
   startRenewalCycle,
 } from "@/lib/firestore/renewal-workspace";
 import { projectRenewalWorkStatus } from "@/lib/lease-renewal/work-status";
@@ -271,20 +272,10 @@ describe("S119 staff work status store", () => {
   });
 
   it("AC-S119-2: associates the current cycle, keeps attribution across rollover and never completes or alters the workspace", async () => {
-    const started = await startRenewalCycle(
-      editor,
-      {
-        leaseId: "702",
-        expectedCycleId: null,
-        expectedRevision: 0,
-        operationId: OP(5),
-        basis,
-        reason: "Cycle for the S119 emulator case.",
-      },
-      basis,
-      db,
-    );
-    const firstCycle = started.state!.cycleId;
+    // S154: the current work record is established by a save, not a cycle step.
+    const firstCycle = (
+      await ensureRenewalWorkRecord(editor, "702", db, async () => basis)
+    ).cycleId;
     const saved = await saveRenewalWorkStatus(
       editor,
       {

@@ -10,6 +10,10 @@ import type { ReactNode } from "react";
 
 import { OVERALL_STATUS_LABEL } from "@/components/lease-renewal/RenewalDeskTable";
 import {
+  OperatingSheetLookup,
+  type OperatingSheetLookupCurrent,
+} from "@/components/lease-renewal/OperatingSheetLookup";
+import {
   RenewalCopyAudience,
   RenewalCopyValue,
 } from "@/components/lease-renewal/RenewalCopyValue";
@@ -139,13 +143,23 @@ function PartyGroup({
   );
 }
 
+/** S158: what the lease page read for the operating-Sheet lookup, plus the signed context. */
+export interface OperatingSheetLookupInput {
+  readonly workspaceContext: string | null;
+  /** The lookup the workspace currently uses; null when the Sheet read was unavailable. */
+  readonly current: OperatingSheetLookupCurrent | null;
+}
+
 export function RenewalLeaseInformation({
   sheetDestination = null,
+  sheetLookup = null,
   workspace,
   workStatus = null,
   canEditWorkStatus = false,
 }: Readonly<{
   sheetDestination?: ExternalDeskDestination | null;
+  /** S158: when supplied, the lookup control replaces the bare matched-row link. */
+  sheetLookup?: OperatingSheetLookupInput | null;
   workspace: RenewalLeaseWorkspace;
   /** S119: the staff work status read; null when the page did not attempt it. */
   workStatus?: RenewalWorkStatusPanelInput | null;
@@ -237,7 +251,8 @@ export function RenewalLeaseInformation({
         </dl>
       </section>
 
-      {/* S119: the staff work status is a separate app-owned note beside the derived status. */}
+      {/* S119/S164: the staff work status and its running log of status changes and notes are
+          app-owned staff information beside the derived status. */}
       {workStatus ? (
         <section aria-label="Staff work status" className="ui-stack-tight">
           <h3>Staff work status</h3>
@@ -247,8 +262,9 @@ export function RenewalLeaseInformation({
             read={workStatus}
           />
           <p className="muted">
-            This status is a staff note for finding and resuming work. It does not record
-            owner approval, a sent message, a signature, completion or a source update.
+            The status and notes are staff information for finding and resuming work. They
+            record what staff report, separately from owner approval, sent messages,
+            signatures, completion and source updates.
           </p>
         </section>
       ) : null}
@@ -334,27 +350,37 @@ export function RenewalLeaseInformation({
               verified RentVine filter destination).
             </div>
           </li>
-          <li>
-            {sheetDestination ? (
-              <>
-                <a
-                  className="text-link renewal-workspace-link"
-                  href={sheetDestination.href}
-                  rel={EXTERNAL_LINK_REL}
-                  target={EXTERNAL_LINK_TARGET}
-                >
-                  Matched operating Sheet row
-                </a>{" "}
-                <span className="muted">{sheetDestination.label}</span>
-              </>
-            ) : (
-              <span className="muted">
-                Matched operating Sheet row: not available until this lease resolves to
-                one exact row.
-              </span>
-            )}
-          </li>
+          {sheetLookup ? null : (
+            <li>
+              {sheetDestination ? (
+                <>
+                  <a
+                    className="text-link renewal-workspace-link"
+                    href={sheetDestination.href}
+                    rel={EXTERNAL_LINK_REL}
+                    target={EXTERNAL_LINK_TARGET}
+                  >
+                    Matched operating Sheet row
+                  </a>{" "}
+                  <span className="muted">{sheetDestination.label}</span>
+                </>
+              ) : (
+                <span className="muted">
+                  Matched operating Sheet row: not available until this lease resolves to
+                  one exact row.
+                </span>
+              )}
+            </li>
+          )}
         </ul>
+        {sheetLookup ? (
+          // S158: where the app looks in the operating Sheet, with the staff selection controls.
+          <OperatingSheetLookup
+            current={sheetLookup.current}
+            sheetDestination={sheetDestination}
+            workspaceContext={sheetLookup.workspaceContext}
+          />
+        ) : null}
         <p className="muted">
           Copying details here does not verify an address, approve a message or change a
           source.

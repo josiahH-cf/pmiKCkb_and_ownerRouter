@@ -112,16 +112,26 @@ describe("auth space-scope claims", () => {
     process.env.ALLOWED_HD = "pmikcmetro.com";
   });
 
-  it("preserves a non-empty array of known scopes", () => {
-    expect(
-      validateAuthClaims({
-        uid: "maintenance-editor",
-        email: "maintenance-editor@pmikcmetro.com",
-        hd: "pmikcmetro.com",
-        role: "Editor",
-        scopes: ["maintenance"],
-      }),
-    ).toMatchObject({ scopes: ["maintenance"] });
+  // S167: a scope claim left on an existing account is accepted and ignored. It used to be
+  // copied onto the user and to narrow the account to the listed Spaces.
+  it("ignores a known scope claim and leaves no scopes field on the user", () => {
+    const user = validateAuthClaims({
+      uid: "maintenance-editor",
+      email: "maintenance-editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+      scopes: ["maintenance"],
+    });
+
+    expect(user).toEqual({
+      uid: "maintenance-editor",
+      email: "maintenance-editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+    });
+    expect(Object.hasOwn(user, "scopes")).toBe(false);
+    expect(hasSpaceAccess(user, "maintenance")).toBe(true);
+    expect(hasSpaceAccess(user, "renewals")).toBe(true);
   });
 
   it.each([undefined, null, ""])(
@@ -135,39 +145,46 @@ describe("auth space-scope claims", () => {
         scopes,
       });
 
-      expect(user.scopes).toBeUndefined();
       expect(Object.hasOwn(user, "scopes")).toBe(false);
+      expect(hasSpaceAccess(user, "maintenance")).toBe(true);
+      expect(hasSpaceAccess(user, "renewals")).toBe(true);
     },
   );
 
+  // S167: a malformed leftover claim used to refuse the whole session with a 403.
   it.each([[], ["nope"], ["maintenance", "nope"], "maintenance", [null]])(
-    "rejects an invalid scope claim %#",
+    "admits a staff account whose leftover scope claim is malformed %#",
     (scopes) => {
-      expect(() =>
-        validateAuthClaims({
-          uid: "invalid-scope-editor",
-          email: "invalid-scope-editor@pmikcmetro.com",
-          hd: "pmikcmetro.com",
-          role: "Editor",
-          scopes,
-        }),
-      ).toThrow(expect.objectContaining({ status: 403 }));
+      const user = validateAuthClaims({
+        uid: "invalid-scope-editor",
+        email: "invalid-scope-editor@pmikcmetro.com",
+        hd: "pmikcmetro.com",
+        role: "Editor",
+        scopes,
+      });
+
+      expect(user).toEqual({
+        uid: "invalid-scope-editor",
+        email: "invalid-scope-editor@pmikcmetro.com",
+        hd: "pmikcmetro.com",
+        role: "Editor",
+      });
+      expect(hasSpaceAccess(user, "maintenance")).toBe(true);
+      expect(hasSpaceAccess(user, "renewals")).toBe(true);
     },
   );
 
-  it("copies a valid scope claim instead of retaining a mutable claims array", () => {
-    const scopes = ["maintenance"];
-    const user = validateAuthClaims({
-      uid: "maintenance-editor",
-      email: "maintenance-editor@pmikcmetro.com",
-      hd: "pmikcmetro.com",
-      role: "Editor",
-      scopes,
-    });
-
-    scopes[0] = "renewals";
-
-    expect(user.scopes).toEqual(["maintenance"]);
+  it("still refuses a Vendor identity that also carries a scope claim", () => {
+    expect(() =>
+      validateAuthClaims({
+        uid: "vendor-with-scopes",
+        email: "vendor-with-scopes@pmikcmetro.com",
+        hd: "pmikcmetro.com",
+        role: "Editor",
+        scopes: ["maintenance"],
+        vendor_id: "vendor:acme",
+      }),
+    ).toThrow(expect.objectContaining({ status: 403, code: "vendor_session" }));
   });
 });
 
@@ -242,7 +259,7 @@ describe("auth guards", () => {
     await expect(requireRole("Admin")).resolves.toMatchObject({ role: "Admin" });
   });
 
-  it("allows explicit access only to the user's assigned spaces", async () => {
+  it("admits an account with a maintenance-only claim to every Space", async () => {
     setAuthResolverForTest(() => ({
       uid: "maintenance-editor",
       email: "maintenance-editor@pmikcmetro.com",
@@ -250,14 +267,28 @@ describe("auth guards", () => {
       role: "Editor",
       scopes: ["maintenance"],
     }));
+    const admitted = {
+      uid: "maintenance-editor",
+      email: "maintenance-editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+    };
 
-    await expect(requireSpaceAccess("maintenance")).resolves.toMatchObject({
-      scopes: ["maintenance"],
-    });
-    await expect(requireSpaceAccess("renewals")).rejects.toMatchObject({ status: 403 });
+    await expect(requireSpaceAccess("maintenance")).resolves.toEqual(admitted);
+    // S167: the Renewals Space used to refuse this account with a 403.
+    await expect(requireSpaceAccess("renewals")).resolves.toEqual(admitted);
   });
 
-  it("keeps role and space checks orthogonal", async () => {
+  it("still refuses a Space request without a session", async () => {
+    setAuthResolverForTest(() => null);
+
+    await expect(requireSpaceAccess("renewals")).rejects.toMatchObject({ status: 401 });
+    await expect(requireCapabilityInSpace("read", "renewals")).rejects.toMatchObject({
+      status: 401,
+    });
+  });
+
+  it("keeps the role check in every Space for an account with a leftover claim", async () => {
     setAuthResolverForTest(() => ({
       uid: "maintenance-editor",
       email: "maintenance-editor@pmikcmetro.com",
@@ -268,14 +299,20 @@ describe("auth guards", () => {
 
     await expect(requireCapabilityInSpace("edit", "maintenance")).resolves.toMatchObject({
       role: "Editor",
-      scopes: ["maintenance"],
+    });
+    // S167: editing in Renewals used to be refused for this account.
+    await expect(requireCapabilityInSpace("edit", "renewals")).resolves.toMatchObject({
+      role: "Editor",
     });
     await expect(
       requireCapabilityInSpace("approve", "maintenance"),
     ).rejects.toMatchObject({ status: 403 });
-    await expect(requireCapabilityInSpace("edit", "renewals")).rejects.toMatchObject({
+    await expect(requireCapabilityInSpace("approve", "renewals")).rejects.toMatchObject({
       status: 403,
     });
+    await expect(
+      requireCapabilityInSpace("manageAdmin", "renewals"),
+    ).rejects.toMatchObject({ status: 403 });
   });
 
   it("keeps existing scope-less users authorized in every space", () => {
@@ -310,21 +347,29 @@ describe("Firebase session-cookie verification", () => {
     });
   });
 
-  it("threads valid space scopes from Firebase claims", async () => {
+  // S167: a scope claim on the Firebase session is no longer threaded onto the user.
+  it("ignores a space scope claim on Firebase session claims", async () => {
     setSessionCookieVerifierForTest(() =>
       makeFirebaseClaims({ scopes: ["maintenance"] }),
     );
 
-    await expect(authenticateSessionCookie("scoped-session")).resolves.toMatchObject({
-      scopes: ["maintenance"],
+    await expect(authenticateSessionCookie("scoped-session")).resolves.toEqual({
+      uid: "editor",
+      email: "editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
     });
   });
 
-  it("rejects invalid space scopes from Firebase claims", async () => {
+  // S167: an empty leftover claim used to refuse the session with a 403.
+  it("admits a Firebase session whose leftover scope claim is empty", async () => {
     setSessionCookieVerifierForTest(() => makeFirebaseClaims({ scopes: [] }));
 
-    await expect(authenticateSessionCookie("invalid-scopes")).rejects.toMatchObject({
-      status: 403,
+    await expect(authenticateSessionCookie("invalid-scopes")).resolves.toEqual({
+      uid: "editor",
+      email: "editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
     });
   });
 

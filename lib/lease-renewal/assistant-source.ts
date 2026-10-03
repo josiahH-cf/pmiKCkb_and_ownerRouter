@@ -2,6 +2,8 @@ import { readRenewalSheetGridsWithLinks } from "@/lib/lease-renewal/sheet-links"
 import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import { renewalNoticeObserver } from "./notice-read";
 import { listRenewalWorkspaces } from "@/lib/firestore/renewal-workspace";
+import { listRenewalWorkingRecords } from "@/lib/firestore/renewal-working-record";
+import { sheetRowBindingsFromWorkingRecords } from "@/lib/lease-renewal/sheet-lookup";
 import { listRenewalWorkStatuses } from "@/lib/firestore/renewal-work-status";
 // S110: the Renewals desk orchestration, extracted so exactly one code path produces the desk rows.
 //
@@ -59,15 +61,27 @@ export async function runRenewalAssistantSource(
     );
   // Start this render's fresh Sheet read before waiting for independent supporting stores.
   // Capture rejection immediately; failure remains a primary read_error, never an empty Sheet.
+  // S158: operator-selected Sheet rows ride on the Sheet read as bindings; the bulk working-record
+  // read is one Firestore list and starts first. A failed record read leaves the automatic match.
+  const workingReadPromise = readRenewalAuxiliary("working_record", () =>
+    listRenewalWorkingRecords(user),
+  );
   const sheetRead = liveConfig.ok
-    ? readRenewalSheetGridsWithLinks({
-        reader: liveConfig.sheetsReader,
-        spreadsheetId: liveConfig.spreadsheetId,
-        tabTitles: ["Lease Renewal"],
-      }).then(
-        (value) => value,
-        () => null,
-      )
+    ? workingReadPromise
+        .then((read) =>
+          readRenewalSheetGridsWithLinks({
+            reader: liveConfig.sheetsReader,
+            spreadsheetId: liveConfig.spreadsheetId,
+            tabTitles: ["Lease Renewal"],
+            rowBindings: sheetRowBindingsFromWorkingRecords(
+              renewalAuxiliaryValue(read, new Map()),
+            ),
+          }),
+        )
+        .then(
+          (value) => value,
+          () => null,
+        )
     : Promise.resolve(null);
   const leaseRead: Promise<
     Awaited<ReturnType<typeof readCoherentRenewalDisplaySource>> | undefined
@@ -147,6 +161,7 @@ export async function runRenewalAssistantSource(
         : ("unreadable" as const),
     links: renewalAuxiliaryValue(communicationsRead, []),
   };
+  const workingRead = await workingReadPromise;
   const auxiliaryFailures = renewalAuxiliaryFailures([
     manualRead,
     progressRead,
@@ -157,6 +172,7 @@ export async function runRenewalAssistantSource(
     termReviewsRead,
     packetRead,
     workStatusRead,
+    workingRead,
   ]);
 
   const leaseSnapshotResult = await leaseRead;
@@ -191,6 +207,7 @@ export async function runRenewalAssistantSource(
           timingBasis,
           renewalNoticeObserver(user),
           leaseSnapshotResult.statusTable,
+          renewalAuxiliaryValue(workingRead, new Map()),
         );
 
   return { outcome, auxiliaryFailures, coverage: window };

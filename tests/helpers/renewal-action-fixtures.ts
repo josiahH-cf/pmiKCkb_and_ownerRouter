@@ -8,6 +8,7 @@ import type {
   DeskReconItem,
   RenewalLeaseWorkspace,
 } from "@/lib/lease-renewal/desk-model";
+import type { LiveOwnerCurrentRentDecision } from "@/lib/lease-renewal/live-desk";
 import type { MoveOutDisposition } from "@/lib/lease-renewal/move-out-disposition";
 import type { RentChargeOutcomeRow } from "@/lib/lease-renewal/rent-charge-outcomes";
 import { buildRenewalActionSnapshot } from "@/lib/lease-renewal/renewal-action-snapshot";
@@ -37,12 +38,13 @@ export interface ActionFixtureOptions {
   readonly readComplete?: boolean;
   readonly dispositionReview?: boolean;
   readonly rentAgreement?: DeskReconItem["agreement"];
+  /** The reconciled current-rent decision the live workspace passes; default none. */
+  readonly rentDecision?: LiveOwnerCurrentRentDecision | null;
   readonly progressUnavailable?: boolean;
   readonly moveOutInitiated?: boolean;
   readonly unavailable?: readonly string[];
   readonly rentChargeStatus?: readonly RentChargeOutcomeRow[] | null;
   readonly termNeedsReview?: boolean;
-  readonly workflowAvailable?: boolean;
   readonly correctionPanel?: boolean;
 }
 
@@ -84,13 +86,14 @@ export function actionFixture(options: ActionFixtureOptions = {}): {
         }
       : {}),
   };
-  const workflowAvailable = options.workflowAvailable ?? base.workflowAvailable;
+  // S154: every real lease carries its full working surface; the process projection is always
+  // present and classification is context only (no inspection-only workspace).
   const guidanceInput: DeskGuidanceInput = {
     summary,
-    process: workflowAvailable ? base.process : null,
+    process: base.process,
     dataCheck,
     rentvineCurrentRent: summary.currentRent,
-    rentDecision: null,
+    rentDecision: options.rentDecision ?? null,
     currencyState: options.currency ?? "fresh",
     readComplete: options.readComplete ?? true,
   };
@@ -98,7 +101,6 @@ export function actionFixture(options: ActionFixtureOptions = {}): {
     ...base,
     summary,
     dataCheck,
-    workflowAvailable,
     guidance: buildDeskLeaseGuidance(guidanceInput),
     verificationCause: deskGuidanceVerificationCause(guidanceInput),
     dataCurrency: {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, render, screen, within } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -55,6 +55,9 @@ beforeEach(() => {
   router.refresh.mockClear();
   router.push.mockClear();
   router.replace.mockClear();
+  // S152: a lingering section hash from an earlier test would open the next lease in Full view
+  // at that section (the hash target's own behavior); each test opens a lease afresh.
+  window.location.hash = "";
 });
 
 afterEach(() => {
@@ -88,35 +91,37 @@ async function chooseFromAllWork(user: UserEvent, actionId: string) {
   await settle();
 }
 
+/** S156 (b7693d4d): the order is a suggestion; choose the task when another one is shown. */
+async function chooseTask(user: UserEvent, label: string) {
+  if (heading().textContent?.trim() === label) return;
+  const pane = focusPane();
+  const ready = within(pane).queryByRole("navigation", { name: "Other ready tasks" });
+  const offered = ready ? within(ready).queryByRole("button", { name: label }) : null;
+  if (offered) {
+    await user.click(offered);
+  } else {
+    const all = pane.querySelector<HTMLDetailsElement>("details.renewal-focus-all")!;
+    if (!all.open) await user.click(within(all).getByText(/^All renewal work/));
+    await user.click(within(all).getAllByRole("button", { name: label })[0]!);
+  }
+  await settle();
+  expect(heading()).toHaveTextContent(label);
+}
+
+// S155 (0f02e013): a staff record saves when its outcome is chosen; Not applicable needs no
+// reason, policy reference or attestation on a lease-dependent activity.
 async function recordActivity(
   user: UserEvent,
   key: ManualActivity,
   notApplicable = false,
 ) {
   const label = MANUAL_ACTIVITIES[key].label;
-  expect(heading()).toHaveTextContent(label);
+  await chooseTask(user, label);
   const form = document.getElementById(`renewal-manual-${key}`)!;
   expect(form).toBeVisible();
   await user.selectOptions(
     within(form).getByLabelText(`${label} outcome`),
     notApplicable ? "not_applicable" : "done",
-  );
-  await user.type(within(form).getByLabelText(/Source or channel/), `Record for ${key}`);
-  if (notApplicable) {
-    await user.type(
-      within(form).getByLabelText(/Source-based reason/),
-      "The lease carries no such obligation",
-    );
-    await user.type(
-      within(form).getByLabelText(/Approved policy or document/),
-      "Applicability rule v1",
-    );
-    await user.click(
-      within(form).getByRole("checkbox", { name: /I checked this lease/ }),
-    );
-  }
-  await user.click(
-    within(form).getByRole("button", { name: `Record ${label.toLowerCase()}` }),
   );
   await settle();
 }
@@ -125,45 +130,30 @@ async function recordResponse(
   user: UserEvent,
   audience: "owner" | "tenant",
   outcome: string,
-  rent = "1450",
 ) {
-  expect(heading()).toHaveTextContent(
+  await chooseTask(
+    user,
     audience === "owner"
       ? "Record owner response and exact terms"
       : "Record tenant response",
   );
   const form = document.getElementById(`renewal-manual-${audience}_response`)!;
   expect(form).toBeVisible();
+  // S156: the response is the recorded fact alone; working terms are saved on the lease.
+  expect(
+    within(form).queryByLabelText(/Exact owner-approved monthly base rent/),
+  ).toBeNull();
   await user.selectOptions(
     within(form).getByLabelText(
       audience === "owner" ? "Owner response" : "Tenant response",
     ),
     outcome,
   );
-  if (outcome === "approved_terms") {
-    const rentInput = within(form).getByLabelText(
-      /Exact owner-approved monthly base rent/,
-    );
-    await user.clear(rentInput);
-    await user.type(rentInput, rent);
-    fireEvent.change(within(form).getByLabelText(/Approved effective date/), {
-      target: { value: "2027-01-01" },
-    });
-    fireEvent.change(within(form).getByLabelText(/Approved term end date/), {
-      target: { value: "2027-12-31" },
-    });
-  }
-  const source = within(form).getByLabelText(/Response source or channel/);
-  await user.clear(source);
-  await user.type(source, `${audience} email`);
-  await user.click(
-    within(form).getByRole("button", { name: `Record ${audience} response` }),
-  );
   await settle();
 }
 
 async function recordCompletion(user: UserEvent) {
-  expect(heading()).toHaveTextContent("Review recorded completion");
+  await chooseTask(user, "Review recorded completion");
   const block = document.getElementById("renewal-manual-complete")!;
   expect(block).toBeVisible();
   await user.click(
@@ -278,8 +268,9 @@ describe(
         "Pet registration follow-up: Ready for you.",
       );
 
-      // A colleague records a tenant counter; the refreshed record reopens the owner response, so
-      // the chosen task now starts after it. The pane says so before anything can be submitted.
+      // A colleague records a tenant counter; the refreshed record reopens the owner response as
+      // the suggestion. S156: the chosen task stays ready (nothing starts after another task),
+      // and the reopened response is offered beside it before anything can be submitted.
       const counter = planRenewalWorkspaceAction(
         routes.state()!,
         {
@@ -297,10 +288,12 @@ describe(
       view.rerender(workspaceElement({ manual: counter }));
       await settle();
       expect(heading()).toHaveTextContent("Pet registration follow-up");
-      expect(within(focusPane()).getByText(/^Starts after: /)).toBeVisible();
-      expect(announcement()).toHaveTextContent(
-        /^Pet registration follow-up: Starts after: /,
-      );
+      expect(within(focusPane()).getByText("Ready for you.")).toBeVisible();
+      expect(within(focusPane()).queryByText(/^Starts after: /)).toBeNull();
+      expect(
+        within(focusPane()).getByRole("navigation", { name: "Other ready tasks" }),
+      ).toHaveTextContent("Record owner response and exact terms");
+      expect(manualRenewalSummary(routes.state()).nextActivity).toBe("owner_response");
       expect(workspaceWrites(routes)).toEqual([]);
     });
 
@@ -344,19 +337,21 @@ describe(
       const start = manualFixture();
       const routes = stubRenewalRoutes(start);
       const user = userEvent.setup();
+      // S157: a single-source rent is advisory; the staff lane leads from the start.
       const unverified = actionFixture({ manual: start, rentAgreement: "single_source" });
       const view = render(
         workspaceElement({ workspace: unverified.workspace, manual: start }),
       );
       await settle();
-      await openFocus(user);
-      expect(heading()).toHaveTextContent("Verify contractual base rent");
+      expect(heading()).toHaveTextContent("Owner outreach");
       const others = within(focusPane()).getByRole("navigation", {
         name: "Other ready tasks",
       });
-      await user.click(within(others).getByRole("button", { name: "Owner outreach" }));
+      await user.click(
+        within(others).getByRole("button", { name: "Tenant offer delivered" }),
+      );
       await settle();
-      const outreach = document.getElementById("renewal-manual-owner_outreach")!;
+      const outreach = document.getElementById("renewal-manual-tenant_offer")!;
       await user.type(
         within(outreach).getByLabelText(/Source or channel/),
         "Unsaved call note",
@@ -374,10 +369,10 @@ describe(
         }),
       );
       await settle();
-      expect(heading()).toHaveTextContent("Owner outreach");
+      expect(heading()).toHaveTextContent("Tenant offer delivered");
       expect(announcement().textContent).toBe(before);
 
-      // The late source refresh confirms the rent: the rent task is done, the choice and the entry stay.
+      // The late source refresh confirms the rent: the choice and the entry stay.
       view.rerender(
         workspaceElement({
           workspace: actionFixture({ manual: start }).workspace,
@@ -385,17 +380,10 @@ describe(
         }),
       );
       await settle();
-      expect(heading()).toHaveTextContent("Owner outreach");
+      expect(heading()).toHaveTextContent("Tenant offer delivered");
       expect(within(outreach).getByLabelText(/Source or channel/)).toHaveValue(
         "Unsaved call note",
       );
-      const ready = within(focusPane()).queryByRole("navigation", {
-        name: "Other ready tasks",
-      });
-      expect(ready?.textContent ?? "").not.toContain("Verify contractual base rent");
-      await chooseFromAllWork(user, "manual.owner_outreach");
-      const done = within(focusPane()).getByRole("heading", { name: /^Done \(/ });
-      expect(done.parentElement).toHaveTextContent("Verify contractual base rent");
       expect(workspaceWrites(routes)).toEqual([]);
     });
 
@@ -429,23 +417,37 @@ describe(
       ).toBeVisible();
     });
 
-    it("keeps a value typed in Full view through Focus and back, with no request (FV-25)", async () => {
+    it("keeps a value typed in Full view through Focus and back; only leaving the control saves it (FV-25)", async () => {
       const routes = stubRenewalRoutes(manualFixture());
       const user = userEvent.setup();
       await renderWorkspace({ manual: manualFixture() });
+      await user.click(screen.getByRole("button", { name: "Full view" }));
+      await settle();
       const offer = document.getElementById(
         "renewal-manual-tenant_offer",
       ) as HTMLDetailsElement;
       offer.open = true;
       const field = within(offer).getByLabelText(/Source or channel/);
       await user.type(field, "Typed in Full view");
-      const requests = routes.calls.length;
       await openFocus(user);
+      await settle(10);
       expect(offer).not.toBeVisible();
+      // S155: leaving the control saved the note once; the switch itself sent nothing more.
+      const saves = workspaceWrites(routes);
+      expect(saves).toHaveLength(1);
+      expect(saves[0]!.body?.action).toMatchObject({
+        activity: "tenant_offer",
+        source: "Typed in Full view",
+      });
+      const requests = routes.calls.length;
       await user.click(screen.getByRole("button", { name: "Full view" }));
       await settle();
       expect(field).toHaveValue("Typed in Full view");
       expect(field).toBeVisible();
+      await openFocus(user);
+      await user.click(screen.getByRole("button", { name: "Full view" }));
+      await settle();
+      expect(field).toHaveValue("Typed in Full view");
       expect(routes.calls.length).toBe(requests);
     });
   },
@@ -491,7 +493,7 @@ describe(
       const cycle = () => within(focusPane()).getByText("Cycle").nextElementSibling!;
       expect(title).toBeVisible();
       expect(cycle()).toHaveTextContent("Lease end 12/31/2026");
-      expect(within(focusPane()).getByText("Owner-approved terms")).toBeVisible();
+      expect(within(focusPane()).getByText("Working renewal terms")).toBeVisible();
       const others = within(focusPane()).getByRole("navigation", {
         name: "Other ready tasks",
       });
@@ -550,6 +552,8 @@ describe(
       stubRenewalRoutes(manualFixture());
       const user = userEvent.setup();
       await renderWorkspace({ manual: manualFixture() });
+      await user.click(screen.getByRole("button", { name: "Full view" }));
+      await settle();
       const walk = async () => {
         const nav = screen.getByRole("navigation", {
           name: "Renewal dashboard sections",
@@ -574,69 +578,61 @@ describe(
 );
 
 describe("S145 Focus verification: saves and recovery", { timeout: 120_000 }, () => {
+  // S155: typing a note first (unsaved until the control is left), then choosing the outcome
+  // saves one record carrying both.
   async function fillOutreach(user: UserEvent, source: string) {
     const form = document.getElementById("renewal-manual-owner_outreach")!;
+    await user.type(within(form).getByLabelText(/Source or channel/), source);
+    return form;
+  }
+  async function chooseDone(user: UserEvent, form: HTMLElement) {
     await user.selectOptions(
       within(form).getByLabelText("Owner outreach outcome"),
       "done",
     );
-    await user.type(within(form).getByLabelText(/Source or channel/), source);
-    return form;
   }
 
   it("keeps the task and the entered values visible while a save is pending (FV-54)", async () => {
     const routes = stubRenewalRoutes(manualFixture());
     const user = userEvent.setup();
     await renderWorkspace({ manual: manualFixture() });
-    await openFocus(user);
     const form = await fillOutreach(user, "Owner phone call");
     const release = routes.holdNextRecord();
-    const record = within(form).getByRole("button", { name: "Record owner outreach" });
-    await user.click(record);
+    await chooseDone(user, form);
     await settle();
     expect(heading()).toHaveTextContent("Owner outreach");
+    expect(within(form).getByText("Saving owner outreach")).toBeInTheDocument();
     expect(within(form).getByLabelText(/Source or channel/)).toHaveValue(
       "Owner phone call",
     );
     expect(within(form).getByLabelText("Owner outreach outcome")).toHaveValue("done");
-    expect(record).toBeDisabled();
     await act(async () => {
       release();
       await settle();
     });
-    expect(heading()).toHaveTextContent("Record owner response and exact terms");
+    expect(routes.state()!.activities.owner_outreach).toMatchObject({
+      outcome: "done",
+      source: "Owner phone call",
+    });
+    expect(heading()).toHaveTextContent("Tenant offer delivered");
   });
 
-  it("refuses invalid input without a request and without advancing (FV-55)", async () => {
+  it("keeps invalid working input typed without a request and without advancing (FV-55)", async () => {
+    // S155: an invalid entry stays in its control and saves nothing; the task is unchanged.
     const routes = stubRenewalRoutes(manualFixture({ done: ["owner_outreach"] }));
     const user = userEvent.setup();
     await renderWorkspace({ manual: manualFixture({ done: ["owner_outreach"] }) });
-    await openFocus(user);
+    await chooseTask(user, "Record owner response and exact terms");
     const form = document.getElementById("renewal-manual-owner_response")!;
-    await user.selectOptions(
-      within(form).getByLabelText("Owner response"),
-      "approved_terms",
-    );
-    await user.type(
-      within(form).getByLabelText(/Exact owner-approved monthly base rent/),
-      "1450",
-    );
-    fireEvent.change(within(form).getByLabelText(/Approved effective date/), {
-      target: { value: "2027-12-31" },
-    });
-    fireEvent.change(within(form).getByLabelText(/Approved term end date/), {
-      target: { value: "2027-01-01" },
-    });
-    await user.type(
-      within(form).getByLabelText(/Response source or channel/),
-      "Owner email",
-    );
-    const record = within(form).getByRole("button", { name: "Record owner response" });
-    // An end date before the effective date is not exact terms; the existing rule disables the save.
-    expect(record).toBeDisabled();
-    await user.click(record);
+    const rent = within(form).getByLabelText("Working monthly rent");
+    await user.type(rent, "about 1450");
+    await user.tab();
     await settle();
-    expect(workspaceWrites(routes)).toEqual([]);
+    expect(rent).toHaveValue("about 1450");
+    expect(
+      within(form).getByText(/Nothing was saved for this field/),
+    ).toBeInTheDocument();
+    expect(routes.writes()).toEqual([]);
     expect(heading()).toHaveTextContent("Record owner response and exact terms");
     expect(within(focusPane()).getByText("Waiting on the owner.")).toBeVisible();
   });
@@ -645,26 +641,23 @@ describe("S145 Focus verification: saves and recovery", { timeout: 120_000 }, ()
     const routes = stubRenewalRoutes(manualFixture());
     const user = userEvent.setup();
     await renderWorkspace({ manual: manualFixture() });
-    await openFocus(user);
-    const form = await fillOutreach(user, "Owner phone call");
+    const form = document.getElementById("renewal-manual-owner_outreach")!;
     routes.loseNextRecordResponse();
-    await user.click(within(form).getByRole("button", { name: "Record owner outreach" }));
+    await chooseDone(user, form);
     await settle();
     // The server applied it, but this page never saw a confirmed readback: no advance, no claim.
     expect(heading()).toHaveTextContent("Owner outreach");
-    expect(within(focusPane()).getByText("Failed to fetch")).toBeVisible();
-    expect(within(form).getByLabelText(/Source or channel/)).toHaveValue(
-      "Owner phone call",
-    );
+    expect(within(form).getByText(/The save did not finish\./)).toBeInTheDocument();
+    expect(within(form).getByLabelText("Owner outreach outcome")).toHaveValue("done");
     // Retrying the same entry reuses its operation, so the store replays the one record.
-    await user.click(within(form).getByRole("button", { name: "Record owner outreach" }));
+    await user.click(within(form).getByRole("button", { name: "Try again" }));
     await settle();
     const writes = workspaceWrites(routes);
     expect(writes).toHaveLength(2);
     expect(writes[1]!.body?.operationId).toBe(writes[0]!.body?.operationId);
     expect(routes.state()!.activities.owner_outreach?.outcome).toBe("done");
     expect(routes.state()!.revision).toBe(6);
-    expect(heading()).toHaveTextContent("Record owner response and exact terms");
+    expect(heading()).toHaveTextContent("Tenant offer delivered");
   });
 });
 
@@ -683,7 +676,9 @@ describe(
       await settle();
       await openFocus(user);
       await recordResponse(user, "tenant", "counter_change_requested");
-      await recordResponse(user, "owner", "approved_terms", "1425");
+      expect(manualRenewalSummary(routes.state()).nextActivity).toBe("owner_response");
+      await recordResponse(user, "owner", "approved_terms");
+      expect(routes.state()!.termsRevision).toBe(2);
       await recordActivity(user, "tenant_offer");
       await recordResponse(user, "tenant", "accepted");
       for (const key of AFTER_ACCEPTANCE)
@@ -755,7 +750,8 @@ describe(
       const pill = () =>
         within(document.getElementById("renewal-field-current_rent") ?? document.body);
 
-      // Unknown: one source only. The verification task leads and shows the source row.
+      // Unknown: one source only. S157: the staff lane leads; the difference stays visible in
+      // the rent working area once that work is chosen, and in Full view.
       const start = manualFixture();
       stubRenewalRoutes(start);
       render(
@@ -766,8 +762,10 @@ describe(
         }),
       );
       await settle();
-      await openFocus(user);
-      expect(heading()).toHaveTextContent("Verify contractual base rent");
+      expect(heading()).toHaveTextContent("Owner outreach");
+      expect(within(focusPane()).getByText("Ready for you.")).toBeVisible();
+      await user.click(screen.getByRole("button", { name: "Full view" }));
+      await settle();
       expect(document.getElementById("renewal-rent-and-charges")).toBeVisible();
       expect(pill().getByText("One source")).toBeVisible();
       cleanup();
@@ -783,7 +781,6 @@ describe(
         }),
       );
       await settle();
-      await openFocus(user);
       await chooseFromAllWork(user, "evidence.resolve-source-conflicts");
       expect(within(focusPane()).getByText("Ready for you.")).toBeVisible();
       const check = document.getElementById("renewal-card-data-check")!;
@@ -796,7 +793,6 @@ describe(
       stubRenewalRoutes(maple);
       render(workspaceElement({ leaseId: "lease-4821-maple-4", manual: maple }));
       await settle();
-      await openFocus(user);
       expect(heading()).not.toHaveTextContent("Verify contractual base rent");
       await chooseFromAllWork(user, "manual.owner_outreach");
       const done = within(focusPane()).getByRole("heading", { name: /^Done \(/ });
@@ -855,10 +851,12 @@ describe(
           },
         });
         if (focus) {
-          await openFocus(user);
           await chooseFromAllWork(user, "support.rentvine:dates");
           expect(heading()).toHaveTextContent("RentVine lease renewal dates");
           expect(within(focusPane()).getByText("Ready for you.")).toBeVisible();
+        } else {
+          await user.click(screen.getByRole("button", { name: "Full view" }));
+          await settle();
         }
         const area = document.getElementById("renewal-rent-and-charges")!;
         expect(area).toBeVisible();

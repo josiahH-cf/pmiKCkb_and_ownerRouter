@@ -18,6 +18,7 @@ import {
   manualRenewalSummary,
   planRenewalWorkspaceAction,
   type RenewalWorkspaceState,
+  workBasisDateIso,
 } from "@/lib/lease-renewal/workspace-state";
 import { leaseViewsFromExport } from "@/lib/integrations/rentvine/lease-mapper";
 import type { LiveLeaseSnapshotResult } from "@/lib/lease-renewal/live-lease-cache";
@@ -257,10 +258,10 @@ describe("S123 retained work across a source date change (AC-S123-1, AC-S123-3, 
     });
     // The recorded cycle identity and basis are history: the read rewrote nothing.
     expect(manual.get("4821")?.cycleId).toBe(CYCLE_A);
-    expect(manual.get("4821")?.basis.dateIso).toBe("2026-08-31");
+    expect(workBasisDateIso(manual.get("4821")!.basis)).toBe("2026-08-31");
   });
 
-  it("AC-S123-3: an external-only future-dated lease opens for inspection without a cycle and without a source-date claim", async () => {
+  it("AC-S123-3: an external-only future-dated lease opens workable without a cycle and without a source-date claim", async () => {
     const manual = new Map<string, RenewalWorkspaceState>();
     const desk = await loadLiveRenewalDesk(
       WINDOWS,
@@ -301,7 +302,11 @@ describe("S123 retained work across a source date change (AC-S123-1, AC-S123-3, 
     expect(workspace.workspace.summary.retention.state).toBe("outside");
     expect(workspace.workspace.summary.cycleSourceDate).toBeUndefined();
     expect(workspace.workspace.summary.manualProgress).toBeUndefined();
-    expect(workspace.workspace.workflowAvailable).toBe(false);
+    // S154 (b7693d4d, BEH-S154-1/2): an out-of-window lease is workable; the classification is
+    // context, not an inspection-only lane, and opening created no record.
+    expect(workspace.workspace).not.toHaveProperty("workflowAvailable");
+    expect(workspace.workspace.process).not.toBeNull();
+    expect(workspace.workspace.live).toMatchObject({ leaseId: "8004" });
     expect(manual.size).toBe(0);
   });
 
@@ -329,7 +334,7 @@ describe("S123 retained work across a source date change (AC-S123-1, AC-S123-3, 
       currentIso: "2027-08-31",
     });
     expect(workspace.workspace.summary.retention.state).toBe("tracked_incomplete");
-    expect(workspace.workspace.workflowAvailable).toBe(true);
+    expect(workspace.workspace.process).not.toBeNull();
     expect(manual.basis).toEqual({
       kind: "lease_end",
       dateIso: "2026-08-31",
@@ -344,19 +349,22 @@ describe("S123 retained work across a source date change (AC-S123-1, AC-S123-3, 
 });
 
 describe("S123 preservation: acceptance, dates, closure and cycle identity stay separate", () => {
-  it("AC-S123-2: tenant acceptance with future terms and missing signatures stays unfinished; only an audited closure completes it", () => {
+  it("AC-S123-2: tenant acceptance with future terms and missing signatures stays unfinished until staff record the closure", () => {
     const state = acceptedButUnsigned();
     const summary = manualRenewalSummary(state);
     expect(summary.complete).toBe(false);
     expect(summary.nextActivity).not.toBe("complete");
     expect(summary.label).toBe("Manual work in progress");
-    expect(() =>
-      planRenewalWorkspaceAction(
-        state,
-        { kind: "complete", source: "Premature" },
-        meta("early"),
-      ),
-    ).toThrow(/remain unfinished/);
+    // S156 (BEH-S156-7, 0f02e013): the checklist is guidance. A staff completion record is
+    // never refused; it is the audited closure, attributed to who recorded it.
+    const early = planRenewalWorkspaceAction(
+      state,
+      { kind: "complete", source: "Staff closed this renewal" },
+      meta("early"),
+    );
+    expect(manualRenewalSummary(early).complete).toBe(true);
+    expect(early.completion).toMatchObject({ actorUid: "operator", eventId: "early" });
+    expect(early.basis).toEqual(state.basis);
 
     let closed = state;
     const policy = { reason: "Fixture policy", applicabilityPolicy: "Approved policy 1" };
@@ -402,7 +410,7 @@ describe("S123 preservation: acceptance, dates, closure and cycle identity stay 
     expect(done.complete).toBe(true);
     expect(done.label).toBe("Completed: recorded by staff");
     expect(completed.completion?.actorUid).toBe("operator");
-    expect(completed.basis.dateIso).toBe("2026-08-31");
+    expect(workBasisDateIso(completed.basis)).toBe("2026-08-31");
   });
 
   it("AC-S123-5: a later cycle starts empty and an old status is attributed to the previous cycle", () => {

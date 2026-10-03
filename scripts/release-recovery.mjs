@@ -15,9 +15,45 @@ import {
   assertRecordedPredecessorBaseline,
 } from "./production-assurance-receipts.mjs";
 import { fingerprintRevisionRuntimeConfiguration } from "../lib/production-assurance/revision-fingerprint.mjs";
+import {
+  REVIEWED_CANDIDATE_SHEET_WRITEBACK,
+  SHEET_WRITEBACK_FLAG as FLAG,
+  isExactSheetWritebackValue,
+  readRevisionSheetWriteback,
+  revisionCarriesSheetWriteback,
+} from "../lib/production-assurance/sheet-writeback-expectation.mjs";
 
 export const RECOVERY_BASELINE_SCHEMA = "pmi-kc-recovery-baseline.v1";
-const FLAG = "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED";
+// `allowedDifference` states how the prepared recovery target may differ from the captured
+// predecessor. Both values stay readable under the same schema version:
+// - the historical S128 value: the tooling forced the target's operating-Sheet switch to false,
+//   whatever the predecessor carried. Receipts written that way keep that exact meaning.
+// - the S159 value: the target is the predecessor's actual configuration under a new revision
+//   identity, and `predecessorSheetWriteback` records the captured actual switch value.
+export const LEGACY_PAUSED_RECOVERY_DIFFERENCE =
+  "sheet_writeback_false_and_revision_identity";
+export const PREDECESSOR_ACTUAL_RECOVERY_DIFFERENCE = "revision_identity_only";
+const BASELINE_KEYS = [
+  "schemaVersion",
+  "receiptId",
+  "runId",
+  "sha",
+  "project",
+  "region",
+  "service",
+  "issuedAt",
+  "originalBaseline",
+  "originalFingerprint",
+  "targetRevision",
+  "targetFingerprint",
+  "imageDigests",
+  "allowedDifference",
+  "tag",
+  "tagOrigin",
+  "tagPreviousRevision",
+  "serviceControlsHash",
+  "assurance",
+];
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
 const SHA = /^[a-f0-9]{40}$/;
 const FP = /^sha256:[a-f0-9]{64}$/;
@@ -106,12 +142,15 @@ function onlyKeys(value, keys) {
   )
     throw new Error("recovery_receipt_invalid");
 }
-export function revisionSheetPaused(revision) {
-  if (!Array.isArray(revision?.containers) || !revision.containers.length) return false;
-  return revision.containers.every((container) => {
-    const flags = (container.env ?? []).filter((env) => env.name === FLAG);
-    return flags.length === 1 && flags[0].value === "false" && !flags[0].valueSource;
-  });
+/** The exact operating-Sheet switch value a receipt's recovery target must read back with. */
+export function recoveryTargetSheetWriteback(receipt) {
+  if (receipt?.allowedDifference === LEGACY_PAUSED_RECOVERY_DIFFERENCE) return "false";
+  if (
+    receipt?.allowedDifference !== PREDECESSOR_ACTUAL_RECOVERY_DIFFERENCE ||
+    !isExactSheetWritebackValue(receipt.predecessorSheetWriteback)
+  )
+    throw new Error("recovery_receipt_invalid");
+  return receipt.predecessorSheetWriteback;
 }
 function assertReady(revision, input, expectedRevision) {
   if (
@@ -338,7 +377,12 @@ async function verifyServiceControls(
       refuse();
     const revision = await getRevision(client, receipt, candidateRevision);
     assertReady(revision, receipt, candidateRevision);
-    if (!revisionSheetPaused(revision) || revision.containers.length !== 1) refuse();
+    // This revision is the candidate: it must carry the reviewed candidate value.
+    if (
+      !revisionCarriesSheetWriteback(revision, REVIEWED_CANDIDATE_SHEET_WRITEBACK) ||
+      revision.containers.length !== 1
+    )
+      refuse();
     const commits =
       revision.containers[0].env?.filter((entry) => entry.name === "APP_COMMIT_SHA") ??
       [];
@@ -415,9 +459,21 @@ function explicitTraffic(service) {
   );
 }
 
+/** Refuse a template (or expected readback) whose operating-Sheet switch is not exactly the
+ * captured predecessor's actual value. */
+export function assertRecoveryTemplatePreservesPredecessor(
+  template,
+  predecessorSheetWriteback,
+) {
+  if (!revisionCarriesSheetWriteback(template, predecessorSheetWriteback))
+    throw new Error("recovery_template_changes_predecessor_sheet_writeback");
+}
+
 /** Preserve the immutable predecessor, never the current service template. Resolve image tags
- * before calling this function. Unknown configuration fields fail closed instead of being dropped. */
-export function pausedPredecessorTemplate(source, expectedRevision, imageDigests) {
+ * before calling this function. Unknown configuration fields fail closed instead of being dropped.
+ * The operating-Sheet switch is part of that configuration: its captured actual value is kept
+ * exactly as the predecessor carries it, and a missing or unreadable value refuses. */
+export function predecessorActualTemplate(source, expectedRevision, imageDigests) {
   if (
     !NAME.test(expectedRevision) ||
     !Array.isArray(source?.containers) ||
@@ -429,17 +485,17 @@ export function pausedPredecessorTemplate(source, expectedRevision, imageDigests
   for (const key of Object.keys(source))
     if (!TEMPLATE_KEYS.has(key) && !OUTPUT_KEYS.has(key))
       throw new Error("recovery_unmapped_configuration_field");
-  const expected = clone(source);
-  expected.containers = expected.containers.map((container, index) => {
-    const env = container.env ?? [];
-    if (env.filter((row) => row.name === FLAG).length > 1)
+  for (const container of source.containers)
+    if ((container?.env ?? []).filter((row) => row?.name === FLAG).length > 1)
       throw new Error("recovery_sheet_flag_ambiguous");
-    return {
-      ...container,
-      image: imageDigests[index],
-      env: [...env.filter((row) => row.name !== FLAG), { name: FLAG, value: "false" }],
-    };
-  });
+  const predecessorSheetWriteback = readRevisionSheetWriteback(source);
+  if (predecessorSheetWriteback === null)
+    throw new Error("recovery_predecessor_sheet_writeback_unreadable");
+  const expected = clone(source);
+  expected.containers = expected.containers.map((container, index) => ({
+    ...container,
+    image: imageDigests[index],
+  }));
   const template = Object.fromEntries(
     Object.entries(expected).filter(([key]) => TEMPLATE_KEYS.has(key)),
   );
@@ -454,31 +510,24 @@ export function pausedPredecessorTemplate(source, expectedRevision, imageDigests
             !/^serving\.knative\.dev\//.test(name),
         ),
       );
-  return { template: { ...template, revision: expectedRevision }, expected };
+  assertRecoveryTemplatePreservesPredecessor(template, predecessorSheetWriteback);
+  assertRecoveryTemplatePreservesPredecessor(expected, predecessorSheetWriteback);
+  return {
+    template: { ...template, revision: expectedRevision },
+    expected,
+    predecessorSheetWriteback,
+  };
 }
 
 export function assertRecoveryBaseline(value, expected = {}) {
-  onlyKeys(value, [
-    "schemaVersion",
-    "receiptId",
-    "runId",
-    "sha",
-    "project",
-    "region",
-    "service",
-    "issuedAt",
-    "originalBaseline",
-    "originalFingerprint",
-    "targetRevision",
-    "targetFingerprint",
-    "imageDigests",
-    "allowedDifference",
-    "tag",
-    "tagOrigin",
-    "tagPreviousRevision",
-    "serviceControlsHash",
-    "assurance",
-  ]);
+  // A historical paused-recovery receipt has exactly the original key set. A receipt that keeps
+  // the predecessor's actual configuration must also record the captured switch value.
+  onlyKeys(
+    value,
+    value?.allowedDifference === LEGACY_PAUSED_RECOVERY_DIFFERENCE
+      ? BASELINE_KEYS
+      : [...BASELINE_KEYS, "predecessorSheetWriteback"],
+  );
   coordinates(value);
   assertRecordedPredecessorBaseline(value.originalBaseline, value.service);
   if (
@@ -505,7 +554,9 @@ export function assertRecoveryBaseline(value, expected = {}) {
     !Array.isArray(value.imageDigests) ||
     !value.imageDigests.length ||
     value.imageDigests.some((image) => !DIGEST.test(image)) ||
-    value.allowedDifference !== "sheet_writeback_false_and_revision_identity" ||
+    (value.allowedDifference !== LEGACY_PAUSED_RECOVERY_DIFFERENCE &&
+      (value.allowedDifference !== PREDECESSOR_ACTUAL_RECOVERY_DIFFERENCE ||
+        !isExactSheetWritebackValue(value.predecessorSheetWriteback))) ||
     !/^cand-[a-z0-9-]+$/.test(value.tag) ||
     !/^https:\/\/[^/]+$/.test(value.tagOrigin) ||
     !NAME.test(value.tagPreviousRevision)
@@ -614,6 +665,7 @@ export async function prepareRecoveryBaseline(
     },
     wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     resolveDigests = resolvePredecessorDigests,
+    buildTemplate = predecessorActualTemplate,
     persist = writeReceipt,
   },
 ) {
@@ -675,11 +727,15 @@ export async function prepareRecoveryBaseline(
   await assertAuthorizedOrigin();
   const imageDigests = await resolveDigests(client, input, source);
   const targetRevision = `${input.service}-recovery-${input.runId.replaceAll("-", "").slice(0, 16)}`;
-  const { template, expected } = pausedPredecessorTemplate(
-    source,
-    targetRevision,
-    imageDigests,
-  );
+  // The predecessor's actual operating-Sheet switch value is captured from the exact serving
+  // revision read above. It is rollback evidence: unreadable evidence refuses, and neither the
+  // dispatched template nor the expected readback may carry any other value.
+  const predecessorSheetWriteback = readRevisionSheetWriteback(source);
+  if (predecessorSheetWriteback === null)
+    throw new Error("recovery_predecessor_sheet_writeback_unreadable");
+  const { template, expected } = buildTemplate(source, targetRevision, imageDigests);
+  assertRecoveryTemplatePreservesPredecessor(template, predecessorSheetWriteback);
+  assertRecoveryTemplatePreservesPredecessor(expected, predecessorSheetWriteback);
   const targetFingerprint = fingerprint(expected);
   const intentPath = statePath(stateRoot, input.runId, "preparation-intent");
   const claimPath = statePath(stateRoot, input.runId, "preparation-dispatch");
@@ -841,7 +897,10 @@ export async function prepareRecoveryBaseline(
     }
   }
   assertReady(target, input, targetRevision);
-  if (!revisionSheetPaused(target) || fingerprint(target) !== targetFingerprint)
+  if (
+    !revisionCarriesSheetWriteback(target, predecessorSheetWriteback) ||
+    fingerprint(target) !== targetFingerprint
+  )
     throw new Error("recovery_configuration_mismatch");
   const after = await get(client, serviceName(input));
   assertServing(after, input.predecessorRevision);
@@ -871,7 +930,7 @@ export async function prepareRecoveryBaseline(
   await assertAuthorizedOrigin();
   if (
     fingerprint(finalTarget) !== targetFingerprint ||
-    !revisionSheetPaused(finalTarget) ||
+    !revisionCarriesSheetWriteback(finalTarget, predecessorSheetWriteback) ||
     serviceControlHash(finalService) !== intent.serviceControlsHash ||
     !equal(explicitTraffic(finalService), plannedTraffic) ||
     !finalService.trafficStatuses.some(
@@ -897,7 +956,8 @@ export async function prepareRecoveryBaseline(
     targetRevision,
     targetFingerprint,
     imageDigests,
-    allowedDifference: "sheet_writeback_false_and_revision_identity",
+    allowedDifference: PREDECESSOR_ACTUAL_RECOVERY_DIFFERENCE,
+    predecessorSheetWriteback,
     tag: input.tag,
     tagOrigin: input.tagOrigin,
     tagPreviousRevision: intent.tagPreviousRevision,
@@ -942,7 +1002,10 @@ export async function verifyRecoveryAvailability(
   if (
     fingerprint(original) !== receipt.originalFingerprint ||
     fingerprint(target) !== receipt.targetFingerprint ||
-    !revisionSheetPaused(target) ||
+    !revisionCarriesSheetWriteback(target, recoveryTargetSheetWriteback(receipt)) ||
+    // A receipt that records the predecessor's actual value stays true to the live predecessor.
+    (receipt.allowedDifference === PREDECESSOR_ACTUAL_RECOVERY_DIFFERENCE &&
+      !revisionCarriesSheetWriteback(original, receipt.predecessorSheetWriteback)) ||
     !equal(
       target.containers.map((container) => container.image),
       receipt.imageDigests,
@@ -1005,7 +1068,7 @@ export async function executeSafeRecovery(
   assertReady(target, receipt, receipt.targetRevision);
   if (
     fingerprint(target) !== receipt.targetFingerprint ||
-    !revisionSheetPaused(target) ||
+    !revisionCarriesSheetWriteback(target, recoveryTargetSheetWriteback(receipt)) ||
     !equal(
       target.containers.map((container) => container.image),
       receipt.imageDigests,
@@ -1030,8 +1093,8 @@ export async function executeSafeRecovery(
     } else {
       const serving = exactTraffic(service);
       // A promotion request with an ambiguous reply may still serve the original predecessor.
-      // That is not safe terminal recovery while its Sheet flag is true: shift only once to the
-      // already-prepared paused target, while preserving all traffic-tag bindings.
+      // Terminal recovery is still the already-prepared, assured target named by the receipt:
+      // shift only once to it, while preserving all traffic-tag bindings.
       if (
         !equal(serving, [{ revision: candidateRevision, percent: 100 }]) &&
         !equal(serving, [
@@ -1074,7 +1137,7 @@ export async function executeSafeRecovery(
   assertReady(recovered, receipt, receipt.targetRevision);
   assertServing(finalService, receipt.targetRevision);
   if (
-    !revisionSheetPaused(recovered) ||
+    !revisionCarriesSheetWriteback(recovered, recoveryTargetSheetWriteback(receipt)) ||
     fingerprint(recovered) !== receipt.targetFingerprint
   )
     throw new Error("recovery_final_readback_failed");

@@ -29,6 +29,12 @@ const TARGET = {
   service: "pmi-kc-app",
 };
 
+// S159: a production plan requires the resolved deploy map to carry the reviewed
+// operating-Sheet switch value, exactly as the deploy wrapper always forwards it.
+const REVIEWED_SHEET_ENV = Object.freeze({
+  LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: "true",
+});
+
 function planArgs(overrides = {}) {
   return {
     environment: "production",
@@ -275,6 +281,7 @@ describe("environment parameterisation (AC-S40-11)", () => {
     const plan = buildReleasePlan({
       args: planArgs({ environment: name }),
       deployArgs: ["run", "deploy", TARGET.service],
+      resolvedEnv: REVIEWED_SHEET_ENV,
       revisionName: "svc-rev-9",
       revisionSuffix: "abc123",
     });
@@ -306,6 +313,7 @@ describe("environment parameterisation (AC-S40-11)", () => {
     const plan = buildReleasePlan({
       args: planArgs(),
       deployArgs: ["run", "deploy", TARGET.service],
+      resolvedEnv: REVIEWED_SHEET_ENV,
       revisionName: "svc-rev-9",
       revisionSuffix: "abc123",
     });

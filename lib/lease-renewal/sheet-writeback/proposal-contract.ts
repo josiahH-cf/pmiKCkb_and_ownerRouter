@@ -367,9 +367,10 @@ function validateScope(input: SheetWritebackProposalInput): void {
     }
     if (input.scope.kind === "sealed_proof") continue;
     if (effect.staffIntent) {
+      // S160: a current-rent staff intent is the working current rent, bound again at execution
+      // and inside the one-attempt claim; no approval record accompanies it.
       const intent = parseSheetFieldIntent(effect.staffIntent);
       if (
-        intent.field === "current_rent" ||
         effect.authorization ||
         intent.field !== effect.field ||
         intent.source !== effect.source ||
@@ -378,7 +379,7 @@ function validateScope(input: SheetWritebackProposalInput): void {
       ) {
         fail(
           "authorization_invalid",
-          "Current rent requires its existing reconciliation approval.",
+          "The staff intent does not match the exact field, value and source of this update.",
         );
       }
       continue;

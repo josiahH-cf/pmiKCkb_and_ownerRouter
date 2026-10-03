@@ -4,8 +4,11 @@ import { currentRentCorrectionKey } from "@/lib/lease-renewal/current-rent-corre
 // The reconciliation FLAGS are recomputed from an injected ordinary Live run; only a
 // human RESOLUTION and its append-only Activity persist here, in the KB's own Firestore. The three
 // resolution paths are: pick a source, enter a corrected value, or "flag is wrong / the sheet is
-// already right". A plain-English reason is captured for every manual path; a Low/Medium acceptance
-// of the suggested source may instead use a value-free reason code whose label is stamped as reason.
+// already right". A plain-English reason is optional context (S156/S157): when staff give none, a
+// reason code's label or a neutral "no note" label is stamped so every record stays readable.
+//
+// S156/S167: the staff member doing the work records the decision alone. Editor access is the
+// only role requirement; a verification account is refused before anything is written.
 //
 // GOVERNANCE: this layer NEVER executes a sheet / system-of-record write. A pick-a-source or
 // corrected-value resolution only QUEUES a proposed write-back (`production_allowed: false`) for the
@@ -16,6 +19,7 @@ import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
 
+import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { parseCurrencyInput } from "@/lib/currency-input";
@@ -51,10 +55,9 @@ export const ResolveLeaseRenewalFlagInputSchema = z.object({
   kind: z.enum(["pick_source", "corrected_value", "flag_incorrect"]),
   chosen_source: z.string().min(1).optional(),
   corrected_value: z.string().min(1).optional(),
-  // D1 is flag-dependent, so the schema accepts an omitted reason and the pure
-  // resolutionReasonRequirement helper enforces the precise branch after the flag is loaded.
-  reason: z.string().trim().min(1, "A plain-English reason is required.").optional(),
-  // Additive enumerated reason code (S13 H2); required by D1 only on the safe code-only path.
+  // S157: a plain-English reason is optional context. Blank text counts as no reason.
+  reason: z.string().trim().optional(),
+  // Additive enumerated reason code (S13 H2); optional, with its meaning still checked.
   reason_code: z.enum(DECISION_REASON_CODES).optional(),
 });
 export type ResolveLeaseRenewalFlagInput = z.input<
@@ -76,13 +79,16 @@ export interface ResolvableFlag {
   candidate_sources: { source: string; value: string | number | boolean | null }[];
 }
 
+/** Stamped as the reason when staff recorded a decision without a note or a reason code. */
+export const RESOLUTION_NO_NOTE_LABEL = "Recorded without a note";
+
 /**
- * Enforce S14 D1 and return the nonblank reason text that must be persisted.
+ * Return the nonblank reason text that is persisted with a decision (S157: narrative optional).
  *
- * A reason code is sufficient only for a Low/Medium pick of the exact suggested source. When that
- * safe path omits free text, the code's operator-facing label becomes the audit reason verbatim.
- * Every High/Blocked decision and every manual override/correction/dismissal still requires free
- * text, even if a reason code is present. Pure: no Firestore, auth, or run lookup.
+ * Free text wins when given. Otherwise a reason code's operator-facing label is stamped verbatim,
+ * and with neither the neutral no-note label is stamped, so every record stays readable without a
+ * mandatory narrative. The accepted-suggestion code keeps its meaning: it is valid only for the
+ * exact suggested source of a Low/Medium flag. Pure: no Firestore, auth, or run lookup.
  */
 export function resolutionReasonRequirement(
   flag: ResolvableFlag,
@@ -98,23 +104,15 @@ export function resolutionReasonRequirement(
     Boolean(flag.suggested_source) &&
     input.chosen_source === flag.suggested_source;
 
-  if (!acceptsSuggestedSource) {
-    if (!reason) {
-      throw new EditableLayerError("A plain-English reason is required.", 400);
-    }
-    if (input.reason_code === "accepted_suggestion") {
-      throw new EditableLayerError(
-        "The accepted-suggestion reason code is only valid for the exact suggested source.",
-        400,
-      );
-    }
-    return reason;
+  if (!acceptsSuggestedSource && input.reason_code === "accepted_suggestion") {
+    throw new EditableLayerError(
+      "The accepted-suggestion reason code is only valid for the exact suggested source.",
+      400,
+    );
   }
-
-  if (!input.reason_code) {
-    throw new EditableLayerError("A reason code is required.", 400);
-  }
-  return reason ?? DECISION_REASON_CODE_LABELS[input.reason_code];
+  if (reason) return reason;
+  if (input.reason_code) return DECISION_REASON_CODE_LABELS[input.reason_code];
+  return RESOLUTION_NO_NOTE_LABEL;
 }
 
 export interface ResolutionPlan {
@@ -246,9 +244,10 @@ export type RunResolver = (
 ) => RenewalRunResult | null | Promise<RenewalRunResult | null>;
 
 /**
- * Resolve one reconciliation flag (§3.5). Requires the Approver capability; a High or Blocked flag
- * requires an Admin. Upserts the resolution (idempotent by source_trigger_key) and appends an
- * append-only Activity entry. Never executes a system-of-record write.
+ * Resolve one reconciliation flag (§3.5). Requires Editor access (S156/S167: no Approver or Admin
+ * handoff, whatever the severity); a verification account is refused. Upserts the resolution
+ * (idempotent by source_trigger_key) and appends an append-only Activity entry. Never executes a
+ * system-of-record write.
  */
 export async function resolveLeaseRenewalFlag(
   actor: AuthenticatedUser,
@@ -256,7 +255,8 @@ export async function resolveLeaseRenewalFlag(
   db: Firestore = getAdminFirestore(),
   getRun?: RunResolver,
 ): Promise<LeaseRenewalResolutionRecord> {
-  assertCan(actor, "approve");
+  assertCan(actor, "edit");
+  assertNotVerificationAccount(actor);
   const parsed = ResolveLeaseRenewalFlagInputSchema.parse(input);
 
   if (!getRun) {
@@ -280,16 +280,7 @@ export async function resolveLeaseRenewalFlag(
     throw new EditableLayerError("No open flag matches that key in this run.", 404);
   }
 
-  if (
-    (flag.severity === "High" || flag.severity === "Blocked") &&
-    !can(actor.role, "manageAdmin")
-  ) {
-    throw new EditableLayerError(
-      "High or Blocked flags can only be resolved by an Admin.",
-      403,
-    );
-  }
-
+  // The fingerprint binding stays: a decision never moves silently onto unseen source facts.
   if (parsed.candidate_fingerprint !== flag.candidate_fingerprint) {
     throw new EditableLayerError(
       "The source facts changed after this flag was displayed. Review the current candidates before deciding.",
@@ -487,6 +478,16 @@ function assertCan(actor: AuthenticatedUser, capability: Parameters<typeof can>[
   if (!can(actor.role, capability)) {
     throw new EditableLayerError(
       "This user is not authorized for the requested lease-renewal action.",
+      403,
+    );
+  }
+}
+
+/** Verification identities read everything and record nothing here. */
+function assertNotVerificationAccount(actor: AuthenticatedUser) {
+  if (isVerificationAccount(actor)) {
+    throw new EditableLayerError(
+      "Verification accounts cannot record lease-renewal decisions.",
       403,
     );
   }

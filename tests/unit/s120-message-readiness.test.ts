@@ -15,20 +15,15 @@ import {
 } from "@/lib/lease-renewal/renewal-message-content";
 import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-message-preparation";
 
-// S120 (R120.4, R120.5): one output-readiness result routes every genuine missing requirement to
-// its own control and governs the final body exports; the optional response-request wording
-// replaces exactly one specified paragraph. Values are synthetic.
+// S120 (R120.4, R120.5) as carried into S161: the missing-value callout routes every gap to its
+// own control, and the optional response-request wording replaces exactly one specified
+// paragraph. S161 made the callout information only: there is no review, save or sender item and
+// nothing in it withholds copy. Values are synthetic.
 
 function baseReadiness(channel: "owner" | "tenant") {
   return {
     channel,
     missing: [] as Array<{ field: string; message: string }>,
-    contentError: "",
-    saved: true,
-    dirty: false,
-    needsReview: false,
-    signatureMatchesActor: true,
-    signatureSaved: true,
   };
 }
 
@@ -37,6 +32,7 @@ function tenantFacts(): RenewalMessageFacts {
   return {
     channel: "tenant",
     names: ["Fixture Tenant"],
+    firstNames: ["Fixture"],
     address: "701 Fixture Lane",
     currentBaseRent: null,
     leaseEndDate: "2026-12-31",
@@ -80,6 +76,7 @@ function ownerFacts(): RenewalMessageFacts {
     ...tenantFacts(),
     channel: "owner",
     names: ["Fixture Owner"],
+    firstNames: ["Fixture"],
     currentBaseRent: { value: 1000, source: "reviewed:current-rent" },
     range: { low: 1000, high: 1200, source: "reviewed:range" },
     comps: [{ address: "Comparable 1", rent: 1100, source: "reviewed:comps" }],
@@ -97,7 +94,8 @@ describe("S120 message readiness", () => {
       ["range", "renewal-section-comps"],
       ["comps", "renewal-section-comps"],
       ["attachment", MESSAGE_CONTROL_IDS.attachment],
-      ["ownerTerms", "renewal-manual-owner_response"],
+      ["ownerTerms", "renewal-working-terms"],
+      ["marker", MESSAGE_CONTROL_IDS.body("tenant")],
       ["leaseOrigin", MESSAGE_CONTROL_IDS.origin("tenant")],
       ["charge.pet", MESSAGE_CONTROL_IDS.charge("tenant", "pet")],
       ["charge.insurance", MESSAGE_CONTROL_IDS.charge("tenant", "insurance")],
@@ -133,73 +131,25 @@ describe("S120 message readiness", () => {
     }
   });
 
-  it("AC-S120-4: the body is ready only when content, current review and the sender requirement are all satisfied; optional omissions never block", () => {
+  it("AC-S120-4 as carried into S161: the callout lists the message's gaps only; there is no review, save or sender item", () => {
     const ready = projectMessageReadiness(baseReadiness("tenant"));
-    expect(ready.bodyReady).toBe(true);
+    expect(ready.complete).toBe(true);
     expect(ready.items).toEqual([]);
-    expect(ready.summary).toMatch(/ready/i);
+    expect(ready.summary).toMatch(/filled in/i);
 
     const missing = projectMessageReadiness({
       ...baseReadiness("tenant"),
       missing: [
-        { field: "leaseOrigin", message: "Review the lease origin." },
-        { field: "charge.pet", message: "Review whether Pet rent applies." },
+        { field: "ownerTerms", message: "The renewal rent is not entered yet." },
+        { field: "charge.pet", message: "Pet rent: the amount is not entered yet." },
       ],
     });
-    expect(missing.bodyReady).toBe(false);
-    expect(missing.items.map((item) => item.field)).toEqual([
-      "leaseOrigin",
-      "charge.pet",
-    ]);
-    expect(missing.summary).toBe("2 inputs remain for final use");
-
-    const unsavedEdits = projectMessageReadiness({
-      ...baseReadiness("owner"),
-      dirty: true,
-    });
-    expect(unsavedEdits.bodyReady).toBe(false);
-    expect(unsavedEdits.items.map((item) => item.field)).toEqual(["review"]);
-    expect(unsavedEdits.items[0].target).toEqual({
-      kind: "control",
-      id: MESSAGE_CONTROL_IDS.reviewed("owner"),
-      label: expect.any(String),
-    });
-
-    const stale = projectMessageReadiness({
-      ...baseReadiness("owner"),
-      needsReview: true,
-    });
-    expect(stale.bodyReady).toBe(false);
-    expect(stale.items.map((item) => item.field)).toEqual(["review"]);
-
-    const neverSaved = projectMessageReadiness({
-      ...baseReadiness("owner"),
-      saved: false,
-      needsReview: true,
-      signatureMatchesActor: false,
-      signatureSaved: false,
-    });
-    // An unsaved preparation reports the one review item; it does not also blame the sender.
-    expect(neverSaved.items.map((item) => item.field)).toEqual(["review"]);
-
-    const otherSender = projectMessageReadiness({
-      ...baseReadiness("tenant"),
-      signatureMatchesActor: false,
-    });
-    expect(otherSender.bodyReady).toBe(false);
-    expect(otherSender.items.map((item) => item.field)).toEqual(["signature_actor"]);
-    expect(otherSender.items[0].target).toEqual({
-      kind: "control",
-      id: MESSAGE_CONTROL_IDS.adoptSignature("tenant"),
-      label: expect.any(String),
-    });
-
-    const invalid = projectMessageReadiness({
-      ...baseReadiness("tenant"),
-      contentError: "Use plain text without control characters or template tokens.",
-    });
-    expect(invalid.bodyReady).toBe(false);
-    expect(invalid.items[0].field).toBe("content");
+    expect(missing.complete).toBe(false);
+    expect(missing.items.map((item) => item.field)).toEqual(["ownerTerms", "charge.pet"]);
+    expect(missing.summary).toBe(
+      "2 values are marked in this message. You can edit, copy and draft it as it is.",
+    );
+    expect(JSON.stringify(missing)).not.toMatch(/review|approv|signature_actor/i);
   });
 
   it("AC-S120-4: a starting band cannot satisfy the comparison evidence, while optional wording and signature decorations are never listed", () => {
@@ -215,7 +165,7 @@ describe("S120 message readiness", () => {
         },
       ],
     });
-    expect(band.bodyReady).toBe(false);
+    expect(band.complete).toBe(false);
     expect(band.items[0].target).toMatchObject({ id: "renewal-section-comps" });
 
     const facts = ownerFacts();
@@ -281,11 +231,15 @@ describe("S120 message readiness", () => {
     expect(RESPONSE_REQUEST_PLACEMENT.owner).toMatch(/market/i);
     expect(RESPONSE_REQUEST_PLACEMENT.owner).toMatch(/comparable/i);
     expect(RESPONSE_REQUEST_PLACEMENT.tenant).toMatch(/information form/i);
-    // Facts stay in their labeled fields: prose with amounts, dates or links is still refused.
-    expect(() =>
-      composeRenewalMessage(tenant, {
-        responseRequest: "Rent is $1,300 from 2027-01-01.",
-      }),
-    ).toThrow();
+    // Facts stay out of this field: prose with amounts, dates or links keeps the approved
+    // paragraph and is named in the callout; the message itself still composes (S161).
+    const refused = composeRenewalMessage(tenant, {
+      responseRequest: "Rent is $1,300 from 2027-01-01.",
+    });
+    expect(refused.plainText).not.toContain("$1,300");
+    expect(refused.paragraphs[responseIndex][0].text).toBe(
+      SUPPLIED_RENEWAL_COPY.tenant.response,
+    );
+    expect(refused.missing.map((entry) => entry.field)).toContain("responseRequest");
   });
 });

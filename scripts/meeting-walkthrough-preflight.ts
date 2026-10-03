@@ -1,7 +1,7 @@
 // S132 (F12): print the meeting preflight from effect-free local evidence.
 //
-// Reads only the checkout's git identity, the F08 pause flag from the process environment and the
-// Dotloop OAuth configuration presence (environment only). Everything else is Not run unless an
+// Reads only the checkout's git identity, the operating-Sheet switch from the process environment
+// and the Dotloop OAuth configuration presence (environment only). Everything else is Not run unless an
 // evidence file supplies it, because those checks are observed on the served application by a
 // person. No provider is called, nothing is written, nothing is scheduled.
 //
@@ -24,6 +24,7 @@ import {
   type MeetingPreflightEvidence,
 } from "../lib/lease-renewal/meeting-walkthrough";
 import { SHEET_WRITEBACK_FLAG } from "../lib/lease-renewal/sheet-writeback-policy";
+import { REVIEWED_CANDIDATE_SHEET_WRITEBACK } from "../lib/production-assurance/sheet-writeback-expectation.mjs";
 
 export interface LocalEvidenceDeps {
   readonly readGitHead: () => string | null;
@@ -31,12 +32,16 @@ export interface LocalEvidenceDeps {
   readonly nowIso: () => string;
 }
 
-/** Effect-free local evidence: identity, the F08 pause flag and Dotloop configuration presence. */
+/**
+ * Effect-free local evidence: identity, the operating-Sheet switch and Dotloop configuration
+ * presence. S159: the switch is verified only when it reads the reviewed release value, the same
+ * exact string the runtime and the release gates compare. The check keeps its stored id.
+ */
 export function gatherLocalEvidence(deps: LocalEvidenceDeps): MeetingPreflightEvidence {
   const now = deps.nowIso();
   const head = deps.readGitHead();
-  const flag = deps.env[SHEET_WRITEBACK_FLAG]?.trim().toLowerCase();
-  const paused = flag === undefined || flag === "" || flag === "false" || flag === "0";
+  const flag = deps.env[SHEET_WRITEBACK_FLAG]?.trim();
+  const reviewed = flag === REVIEWED_CANDIDATE_SHEET_WRITEBACK;
   const dotloop = readDotloopOAuthConfig(deps.env);
   return {
     code_identity: head
@@ -50,15 +55,15 @@ export function gatherLocalEvidence(deps: LocalEvidenceDeps): MeetingPreflightEv
           evidence: "git rev-parse HEAD returned nothing",
           observedAtIso: now,
         },
-    sheet_writeback_pause: paused
+    sheet_writeback_pause: reviewed
       ? {
           state: "verified",
-          evidence: `${SHEET_WRITEBACK_FLAG} reads ${flag ?? "unset"} in this process environment`,
+          evidence: `${SHEET_WRITEBACK_FLAG} reads ${flag} in this process environment; matches the reviewed release value ${REVIEWED_CANDIDATE_SHEET_WRITEBACK}`,
           observedAtIso: now,
         }
       : {
           state: "failed",
-          evidence: `${SHEET_WRITEBACK_FLAG} reads ${flag} in this process environment; F08 requires false`,
+          evidence: `${SHEET_WRITEBACK_FLAG} reads ${flag === undefined || flag === "" ? "unset" : flag} in this process environment; the reviewed release value is ${REVIEWED_CANDIDATE_SHEET_WRITEBACK}`,
           observedAtIso: now,
         },
     dotloop_selection_keys: dotloop.configured

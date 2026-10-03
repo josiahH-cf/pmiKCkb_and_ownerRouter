@@ -16,6 +16,7 @@ import {
   RenewalDeskTable,
   buildDeskPartyFilterOptions,
   type DeskPartyShortcuts,
+  type RenewalDeskViewMemoryInput,
 } from "@/components/lease-renewal/RenewalDeskTable";
 import { Card, ModeChip, PageHeader } from "@/components/ui";
 import type { Role } from "@/lib/auth/roles";
@@ -100,6 +101,7 @@ export function RenewalDesk({
   partyFilters = NO_PARTY_ACCESS,
   auxiliaryFailures = [],
   sheetWritebackPaused = false,
+  viewMemory,
 }: Readonly<{
   view: RenewalDeskView;
   liveReviewHref?: string;
@@ -109,6 +111,8 @@ export function RenewalDesk({
   auxiliaryFailures?: readonly RenewalAuxiliaryFailure[];
   /** S127/S128: operating-Sheet writes paused by owner policy; shown as a policy pause, never a failure. */
   sheetWritebackPaused?: boolean;
+  /** S166: how the page chose this view and whether the account's view can be remembered. */
+  viewMemory?: RenewalDeskViewMemoryInput;
 }>) {
   const result = applyRenewalDeskQueryV2(view.items, query, partyFilters.matches);
   const partyOptions = buildDeskPartyFilterOptions(view.items, partyFilters);
@@ -192,6 +196,7 @@ export function RenewalDesk({
         totalLoaded={result.totalLoaded}
         viewCounts={viewCounts}
         sheetWritebackPaused={sheetWritebackPaused}
+        viewMemory={viewMemory}
       />
     </div>
   );

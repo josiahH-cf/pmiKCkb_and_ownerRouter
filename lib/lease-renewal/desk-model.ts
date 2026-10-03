@@ -107,6 +107,11 @@ export interface DeskIdentityFact {
 }
 
 export interface DeskPartyIdentity extends DeskIdentityFact {
+  /**
+   * S163: the provider's own first-name field for this person, when the source records one. It is
+   * never derived from the display label or a company name.
+   */
+  firstName?: DeskIdentityFact;
   email?: DeskIdentityFact;
   phone?: DeskIdentityFact;
   contactId?: DeskIdentityFact;
@@ -199,6 +204,11 @@ export interface DeskLeaseSummaryBase {
    * context and the lease information panel. Absent when the caller did not attempt the read.
    */
   workStatus?: RenewalWorkStatusProjection;
+  /**
+   * S153/S157: the staff working current rent, when one is retained. The RentVine contractual
+   * amount stays in `currentRent`; this never replaces it.
+   */
+  workingCurrentRent?: number | null;
   id: string;
   addressLabel: string;
   propertyNameLabel: string | null;
@@ -303,6 +313,8 @@ export interface DeskLeaseGuidance {
   readonly overallStatus: RenewalOverallStatus;
   readonly urgencyRank: number;
   readonly isBlocked: boolean;
+  /** The guidance rule set that produced this row; absent on rows built before S156. */
+  readonly contract?: string;
   readonly blockers: readonly DeskLeaseBlocker[];
   readonly action: DeskLeaseAction;
 }
@@ -404,8 +416,6 @@ export interface RenewalLeaseWorkspace {
   guidance: DeskLeaseGuidance;
   /** S142: the Needs-verification cause the same guidance input names; null or absent otherwise. */
   verificationCause?: DeskVerificationCause | null;
-  /** False only when this stable lease is open for source inspection outside an active/tracked flow. */
-  workflowAvailable: boolean;
   steps: typeof RENEWAL_STEPS;
   currentStepIndex: number;
   process: RenewalProcessProjection;

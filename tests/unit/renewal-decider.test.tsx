@@ -315,7 +315,7 @@ describe("RenewalDecider", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("keeps queued write-back approval Admin-only", async () => {
+  it("shows a reader the queued write-back without the confirm control (S167: Editors confirm)", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(progressResponse()));
     const queued: RenewalFlagView = {
       ...flag("rent", "Current rent"),
@@ -336,7 +336,7 @@ describe("RenewalDecider", () => {
     renderDecider(view([queued]), false);
 
     expect(
-      await screen.findByText("An Admin approves the queued write-back proposal."),
+      await screen.findByText("Staff review the queued write-back proposal."),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Approve write-back" }),

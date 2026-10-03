@@ -16,15 +16,15 @@ const editor: AuthenticatedUser = {
   email: "staff@pmikcmetro.com",
   hd: "pmikcmetro.com",
   role: "Editor",
-  scopes: ["renewals"],
 };
 
 describe("S83 current-session access projection", () => {
-  it("projects only current-session authority in catalog order", () => {
+  // S167: a session used to project the named Spaces of its allowlist ("Lease Renewals").
+  it("projects current-session role authority in catalog order, with every Space", () => {
     expect(buildAccessEffectiveProjection(editor, "matched")).toEqual({
       schema_version: "access-effective-projection-v1",
       role: "Editor",
-      space_access: { kind: "named", labels: ["Lease Renewals"] },
+      space_access: { kind: "all_spaces" },
       capability_labels: [
         "View app work",
         "Create and update app work",
@@ -35,13 +35,29 @@ describe("S83 current-session access projection", () => {
     });
   });
 
-  it("maps an absent scope claim only to All spaces", () => {
+  it("maps every role's session to All spaces", () => {
+    for (const role of ["Editor", "Approver", "Admin"] as const) {
+      expect(
+        buildAccessEffectiveProjection({ ...editor, role }, "matched").space_access,
+      ).toEqual({ kind: "all_spaces" });
+    }
+  });
+
+  // S167: a Space allowlist left in the directory no longer narrows a session, so only a role
+  // difference asks for a refresh.
+  it("treats a leftover directory Space allowlist as matched when the role agrees", () => {
     expect(
-      buildAccessEffectiveProjection(
-        { ...editor, role: "Approver", scopes: undefined },
-        "matched",
-      ).space_access,
-    ).toEqual({ kind: "all_spaces" });
+      compareSessionAndDirectoryAccess(editor, {
+        role: "Editor",
+        scope: { kind: "named_spaces", space_ids: ["maintenance"] },
+      }),
+    ).toBe("matched");
+    expect(
+      compareSessionAndDirectoryAccess(editor, {
+        role: "Approver",
+        scope: { kind: "named_spaces", space_ids: ["maintenance"] },
+      }),
+    ).toBe("refresh_required");
   });
 
   it("reports a newer directory grant as refresh-required without projecting it", () => {

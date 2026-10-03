@@ -52,9 +52,14 @@ const SCOPED_ROUTE_SCOPE = {
 //   - maintenance/intake/public is the HMAC-token-gated public ingress (A5); it writes only to the
 //     unverified quarantine collection via the no-actor writer.
 //   - version is a bodyless, no-store deployment-provenance read used by release smoke verification.
+//   - auth/helper (S165) relays Firebase's fixed Google sign-in helper pages from the app's own
+//     origin. It must answer before anyone is signed in, is GET only, forwards and relays no
+//     cookie or authorization, establishes no session, and answers 404 until the explicit
+//     same-origin key is set (tests/unit/s165-session-check-and-helper-route.test.ts).
 const ALLOW_UNAUTHENTICATED = new Set([
   "auth/session/route.ts",
   "auth/demo/route.ts",
+  "auth/helper/[...path]/route.ts",
   "vendor/auth/session/route.ts",
   "vendor/setup/route.ts",
   "maintenance/intake/public/route.ts",

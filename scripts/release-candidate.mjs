@@ -11,6 +11,11 @@
 // Every function here is pure: it builds argument vectors and refusals. Nothing in this file spawns
 // gcloud — the executable wrapper does that, and `--plan-only` is a branch that cannot reach it.
 
+import {
+  REVIEWED_CANDIDATE_SHEET_WRITEBACK,
+  SHEET_WRITEBACK_FLAG,
+} from "../lib/production-assurance/sheet-writeback-expectation.mjs";
+
 export const ENVIRONMENT_KIND_VAR = "ENVIRONMENT_KIND";
 export const DATA_CONTEXT_VAR = "DATA_CONTEXT";
 
@@ -252,14 +257,16 @@ export function buildRollbackPlan({ project, region, service, priorRevision } = 
   return buildPromotionPlan({ project, region, service, revision: priorRevision });
 }
 
-// S128 (F08): the operating-Sheet write switch. Must match lib/lease-renewal/sheet-writeback-policy.ts;
-// the deploy path (deploy-demo-cloud-run.mjs) forwards this exact name into every revision's env.
-export const SHEET_WRITEBACK_FLAG = "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED";
+// The operating-Sheet write switch. Must match lib/lease-renewal/sheet-writeback-policy.ts; the
+// deploy path (deploy-demo-cloud-run.mjs) forwards this exact name into every revision's env. The
+// reviewed value each release role must carry lives in
+// lib/production-assurance/sheet-writeback-expectation.mjs and nowhere else.
+export { SHEET_WRITEBACK_FLAG };
 
 /**
- * S128 (F08): read the operating-Sheet write flag from a `gcloud run revisions describe --format=json`
+ * Read the operating-Sheet write flag from a `gcloud run revisions describe --format=json`
  * revision object. Returns the exact string value, or null when the variable is absent. The runtime
- * treats anything but the exact "true" as off, so absent/null is a paused revision.
+ * treats anything but the exact "true" as off.
  */
 export function parseRevisionWritebackFlag(revision) {
   const env = revision?.spec?.containers?.[0]?.env;
@@ -269,12 +276,29 @@ export function parseRevisionWritebackFlag(revision) {
 }
 
 /**
- * S128 (F08): true when a revision would NOT dispatch operating-Sheet writes, i.e. its flag is not
- * exactly "true". This is the rollback-safety predicate: a rollback target must satisfy it, and the
- * candidate/promoted revision must satisfy it, or the pause was not preserved.
+ * S159: true only when the revision's flag is exactly the expected value for its release role:
+ * the reviewed candidate value for a candidate or promoted revision, the captured predecessor's
+ * actual value for a predecessor or recovery target. An absent, non-exact or unstated expectation
+ * is never a match.
  */
-export function revisionPausesSheetWriteback(revision) {
-  return parseRevisionWritebackFlag(revision) === "false";
+export function revisionSheetWritebackEquals(revision, expected) {
+  return (
+    (expected === "true" || expected === "false") &&
+    parseRevisionWritebackFlag(revision) === expected
+  );
+}
+
+/**
+ * S159: refuse a production candidate whose resolved deploy environment would not carry the
+ * reviewed candidate value. `resolved` is the exact replacing `--set-env-vars` map, so an unset
+ * name is a refusal too: the candidate must state the reviewed value explicitly.
+ */
+export function findCandidateSheetWritebackProblems(resolved = {}) {
+  const actual = resolved[SHEET_WRITEBACK_FLAG];
+  if (actual === REVIEWED_CANDIDATE_SHEET_WRITEBACK) return [];
+  return [
+    `${SHEET_WRITEBACK_FLAG} resolves to ${actual === undefined ? "no value" : JSON.stringify(actual)}, not the reviewed candidate value "${REVIEWED_CANDIDATE_SHEET_WRITEBACK}". Stage the reviewed value in the reviewed production env file; the reviewed value itself changes only in lib/production-assurance/sheet-writeback-expectation.mjs.`,
+  ];
 }
 
 /** Historical entry point retained as an explicit refusal. Image-only redeploy inherits the
@@ -369,6 +393,10 @@ export function buildReleasePlan({
       }
     }
   }
+
+  // S159: a production candidate carries the reviewed operating-Sheet switch value or no plan.
+  if (args.environment === "production")
+    errors.push(...findCandidateSheetWritebackProblems(resolvedEnv));
 
   if (errors.length > 0) {
     return { errors, steps: [], warnings };

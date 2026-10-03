@@ -12,6 +12,9 @@ import { createPortal } from "react-dom";
 
 import { formatCalendarDate } from "@/lib/date-display";
 import type { ActionGraphDiagnostic } from "@/lib/lease-renewal/action-graph";
+import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
+import { describeRenewalTerms } from "@/lib/lease-renewal/current-rent-display";
+import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
 import {
   projectRenewalActions,
   selectRenewalAction,
@@ -21,16 +24,16 @@ import {
   type RenewalActionSnapshot,
   type RenewalActionStatus,
 } from "@/lib/lease-renewal/renewal-actions";
+import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
+import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
 import {
-  currentManualOwnerTerms,
-  type RenewalWorkspaceState,
-} from "@/lib/lease-renewal/workspace-state";
-import {
+  focusProgrammatically,
   focusRenewalDashboardControl,
   RENEWAL_FOCUS_REQUEST_EVENT,
 } from "./RenewalDashboardNavigation";
 import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
+import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { createFocusReveal, type FocusReveal } from "./renewal-focus-reveal";
 
 /**
@@ -42,7 +45,14 @@ import { createFocusReveal, type FocusReveal } from "./renewal-focus-reveal";
  */
 
 export interface RenewalFocusFacts {
+  /** The contractual lease rent from the RentVine lease detail. */
   readonly currentRent: number | null;
+  /**
+   * S153: the recurring charge inventory the page read (null when that read failed, undefined
+   * when the page did not pass it), so the pane shows the same operational current rent as the
+   * Rent and charges card.
+   */
+  readonly chargeInventory?: RenewalChargeInventory | null;
   readonly endDateIso: string | null;
   readonly lifecycleLabel: string | null;
   readonly dataExpired: boolean;
@@ -228,7 +238,7 @@ export function RenewalFocusViewPane({
       focusRenewalDashboardControl(id, { viewRequest: false });
     } else if (focusHeading.current) {
       focusHeading.current = false;
-      heading.current?.focus();
+      if (heading.current) focusProgrammatically(heading.current);
     }
   });
   useEffect(
@@ -304,8 +314,10 @@ export function RenewalFocusViewPane({
       !document.contains(active) ||
       active.closest("[data-renewal-focus-hidden]") ||
       (finished && !view.slot?.contains(active))
-    )
-      (selected ? heading.current : result.current)?.focus();
+    ) {
+      const target = selected ? heading.current : result.current;
+      if (target) focusProgrammatically(target);
+    }
   }, [view, focusView, projection, selectedId, selected, complete]);
 
   // A link to a control outside the revealed task chooses the task that owns it, or returns to
@@ -382,12 +394,23 @@ function FocusPane({
   selected: RenewalAction | null;
   showInFull: () => void;
 }>) {
+  const working = useRenewalWorkingRecord();
   const labels = (id: string) =>
     projection.actions.find((action) => action.id === id)?.label ?? id;
   const otherReady = projection.actions.filter(
     (action) => action.status === "ready_for_actor" && action.id !== selected?.id,
   );
-  const terms = manualState ? currentManualOwnerTerms(manualState) : null;
+  // S153/S156: the same working-value precedence and renewal terms the Rent and charges card uses.
+  const workingRecord = working?.record ?? null;
+  const terms = describeRenewalTerms(
+    effectiveRenewalTerms(workingRecord, manualState),
+    (value) => USD.format(value),
+  );
+  const rent = operationalCurrentRent({
+    working: workingRecord,
+    inventory: facts.chargeInventory,
+    contractualRent: facts.currentRent,
+  });
   // The recovery that clears an unreadable source, when the projection names one.
   const recovery = projection.actions.find(
     (action) =>
@@ -507,22 +530,27 @@ function FocusPane({
           <div>
             <dt>Cycle</dt>
             <dd>
-              {manualState.basis.kind === "lease_end" ? "Lease end" : "Review date"}{" "}
-              {formatCalendarDate(manualState.basis.dateIso)}
+              {manualState.basis.kind === "lease_bound"
+                ? "Saved on the lease, no cycle date"
+                : `${manualState.basis.kind === "lease_end" ? "Lease end" : "Review date"} ${formatCalendarDate(manualState.basis.dateIso)}`}
             </dd>
           </div>
         ) : null}
         {terms ? (
           <div>
-            <dt>Owner-approved terms</dt>
-            <dd>
-              {USD.format(terms.rent)} from {formatCalendarDate(terms.effectiveDate)} to{" "}
-              {formatCalendarDate(terms.endDate)}
-            </dd>
+            <dt>Working renewal terms</dt>
+            <dd>{terms}</dd>
           </div>
         ) : null}
         <div>
-          <dt>Current base rent (RentVine)</dt>
+          <dt>Current rent</dt>
+          <dd data-current-rent-basis={rent.basis}>
+            {rent.amount === null ? "Needs Verification" : USD.format(rent.amount)}{" "}
+            <span className="muted">{rent.label}</span>
+          </dd>
+        </div>
+        <div>
+          <dt>Contractual lease rent (RentVine)</dt>
           <dd>
             {typeof facts.currentRent === "number"
               ? USD.format(facts.currentRent)
@@ -547,7 +575,7 @@ function FocusPane({
       ) : null}
       {facts.dataExpired ? (
         <p className="muted">
-          Lease data is past the freshness limit; refresh before acting.
+          Lease data is out of date. Refresh this lease to read the sources again.
         </p>
       ) : null}
       {facts.unavailableReads && facts.unavailableReads.length > 0 ? (

@@ -94,10 +94,7 @@ export async function loadNotificationHub(
 
   const standing: AttentionSignal[] =
     full && coverage
-      ? buildStandingSignals(
-          resolveConnectionsState(process.env, user).items,
-          coverage.items,
-        )
+      ? buildStandingSignals(resolveConnectionsState(process.env).items, coverage.items)
       : [];
 
   const review =

@@ -226,6 +226,22 @@ const V2_KEY_ORDER = [
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
 
+/**
+ * S166: every URL key that names a desk view: the version marker, each canonical key and the two
+ * legacy party labels. A URL carrying none of them is an ordinary entry, which opens the signed-in
+ * account's remembered view; `?v=2` alone is the explicit default view.
+ */
+const VIEW_NAMING_URL_KEYS: readonly string[] = ["v", ...V2_KEY_ORDER, "owner", "tenant"];
+
+/** True when the URL itself says which view to show, including the explicit default `?v=2`. */
+export function renewalDeskUrlNamesView(
+  input: URLSearchParams | SearchParamRecord,
+): boolean {
+  return VIEW_NAMING_URL_KEYS.some((key) =>
+    input instanceof URLSearchParams ? input.has(key) : input[key] !== undefined,
+  );
+}
+
 function firstValue(
   input: URLSearchParams | SearchParamRecord,
   key: string,

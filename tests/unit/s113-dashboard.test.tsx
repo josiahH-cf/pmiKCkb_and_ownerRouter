@@ -34,7 +34,7 @@ describe("S113 F1 consolidated dashboard", () => {
       />,
     );
     expect(screen.getByLabelText("Fact to correct")).toBeVisible();
-    expect(screen.getByLabelText("Value source / reason")).toBeVisible();
+    expect(screen.getByLabelText("Source or context (optional)")).toBeVisible();
     expect(screen.getByLabelText("Destinations")).toBeVisible();
     expect(screen.getByText("Retained prior correction decision")).not.toBeVisible();
     expect(
@@ -81,12 +81,22 @@ describe("S113 F1 consolidated dashboard", () => {
   });
 
   it("gives next actions a mounted keyboard-focusable target", () => {
+    // S156 (8a3f929d): the suggested next action is a staff-lane control, mounted by the
+    // consolidated dashboard. S152: the lease opens in Focus view, so the Full view link is read
+    // through the hidden tree; its target is the chosen task's own disclosure.
     const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
-    const { container } = render(<RenewalWorkspace workspace={workspace} />);
-    const action = screen.getByRole("link", { name: /^Go to / });
+    const { container } = render(
+      <RenewalWorkspace workspace={workspace} manualState={null} />,
+    );
+    const action = screen.getByRole("link", { name: /^Go to /, hidden: true });
     const fragment = new URL(action.getAttribute("href")!, "https://local.invalid").hash;
-    expect(fragment).not.toBe("");
-    expect(container.querySelector(fragment)).toHaveAttribute("tabindex", "-1");
+    expect(fragment).toBe("#renewal-manual-owner_outreach");
+    const target = container.querySelector(fragment);
+    expect(target).not.toBeNull();
+    focusRenewalDashboardControl(fragment.slice(1));
+    expect(target).toHaveAttribute("open");
+    expect(target!.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement).toHaveAttribute("data-renewal-next-control");
   });
   it("opens a disclosure and focuses its actual editable control", () => {
     render(

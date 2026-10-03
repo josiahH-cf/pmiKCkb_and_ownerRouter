@@ -1,4 +1,5 @@
 import { formatBusinessTimestamp } from "@/lib/date-display";
+import type { RenewalStatusNote } from "./work-status-notes";
 
 // S119: the staff work status. A bounded, app-owned lease annotation that says where staff report
 // the renewal work stands. It is projected once for the lease information panel, the compact lease
@@ -38,7 +39,6 @@ export const RENEWAL_WORK_STATUS_LABELS: Record<RenewalWorkStatus, string> = {
 
 export const RENEWAL_WORK_STATUS_SCHEMA_VERSION = "renewal-work-status/v1";
 export const RENEWAL_WORK_STATUS_CONTROL_LABEL = "Work status (recorded by staff)";
-export const RENEWAL_WORK_STATUS_SAVE_LABEL = "Save status";
 export const NOT_RECORDED_WORK_STATUS_LABEL = "Not recorded";
 export const UNAVAILABLE_WORK_STATUS_LABEL =
   "Not available: the saved status could not be read";
@@ -119,6 +119,11 @@ export interface RenewalWorkStatusPanelInput {
   readonly available: boolean;
   readonly record: RenewalWorkStatusRecord | null;
   readonly history: readonly RenewalWorkStatusActivity[];
+  /**
+   * S164: the lease's saved notes for the running Status log. Omitted when the page did not read
+   * them; the control then reads them itself through the same route.
+   */
+  readonly notes?: readonly RenewalStatusNote[];
   /** The current manual cycle id, null when none exists, undefined when it could not be read. */
   readonly currentCycleId: string | null | undefined;
 }

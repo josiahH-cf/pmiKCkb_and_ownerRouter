@@ -39,6 +39,64 @@ const fields = Object.keys(SHEET_FIELD_LABELS) as [
   SheetEditableField,
   ...SheetEditableField[],
 ];
+
+/**
+ * S160: a source note is optional. The stored intent still carries a nonempty source, so the
+ * server supplies this plain label when staff leave the note blank.
+ */
+export const STAFF_ENTRY_SOURCE_LABEL = "Staff entry";
+/** S160: the current-rent Sheet update's value is the lease's working current rent. */
+export const WORKING_CURRENT_RENT_SOURCE_LABEL = "Working current rent";
+
+function sheetFieldIntentValidation(
+  input: { field: SheetEditableField; value: string | number | boolean },
+  ctx: z.RefinementCtx,
+) {
+  const shape = sheetFieldShape(input.field);
+  let valid = true;
+  if (shape === "currency")
+    valid =
+      typeof input.value === "number" &&
+      input.value >= 0 &&
+      (input.field !== "current_rent" || input.value > 0) &&
+      Math.abs(Math.round(input.value * 100) - input.value * 100) < 0.00001;
+  else if (shape === "date")
+    valid =
+      typeof input.value === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(input.value) &&
+      Number.isFinite(Date.parse(input.value)) &&
+      new Date(input.value).toISOString().slice(0, 10) === input.value;
+  else if (shape === "yes_no" || shape === "boolean")
+    valid = typeof input.value === "boolean";
+  else
+    valid =
+      typeof input.value === "string" && !/^[=+@-]|[\u0000-\u001f]/.test(input.value);
+  if (!valid)
+    ctx.addIssue({
+      code: "custom",
+      path: ["value"],
+      message: "Enter a valid value for this business field.",
+    });
+}
+
+/**
+ * The request shape staff send: the source note may be left out or blank. It is normalized to
+ * the stored intent shape, which always carries a nonempty source.
+ */
+export const SheetFieldIntentInputSchema = z
+  .object({
+    field: z.enum(fields),
+    value: z.union([z.string().trim().min(1).max(500), z.number().finite(), z.boolean()]),
+    source: z.string().trim().max(240).optional(),
+  })
+  .strict()
+  .superRefine(sheetFieldIntentValidation)
+  .transform((input) => ({
+    field: input.field,
+    value: input.value,
+    source: input.source || STAFF_ENTRY_SOURCE_LABEL,
+  }));
+
 export const SheetFieldIntentSchema = z
   .object({
     field: z.enum(fields),
@@ -46,33 +104,7 @@ export const SheetFieldIntentSchema = z
     source: z.string().trim().min(1).max(240),
   })
   .strict()
-  .superRefine((input, ctx) => {
-    const shape = sheetFieldShape(input.field);
-    let valid = true;
-    if (shape === "currency")
-      valid =
-        typeof input.value === "number" &&
-        input.value >= 0 &&
-        (input.field !== "current_rent" || input.value > 0) &&
-        Math.abs(Math.round(input.value * 100) - input.value * 100) < 0.00001;
-    else if (shape === "date")
-      valid =
-        typeof input.value === "string" &&
-        /^\d{4}-\d{2}-\d{2}$/.test(input.value) &&
-        Number.isFinite(Date.parse(input.value)) &&
-        new Date(input.value).toISOString().slice(0, 10) === input.value;
-    else if (shape === "yes_no" || shape === "boolean")
-      valid = typeof input.value === "boolean";
-    else
-      valid =
-        typeof input.value === "string" && !/^[=+@-]|[\u0000-\u001f]/.test(input.value);
-    if (!valid)
-      ctx.addIssue({
-        code: "custom",
-        path: ["value"],
-        message: "Enter a valid value for this business field.",
-      });
-  });
+  .superRefine(sheetFieldIntentValidation);
 
 export type SheetFieldIntent = z.infer<typeof SheetFieldIntentSchema>;
 export function parseSheetFieldIntent(input: unknown): SheetFieldIntent {

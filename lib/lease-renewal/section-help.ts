@@ -27,6 +27,7 @@ export const SECTION_HELP_IDS = [
   "staff-work-tenant",
   "staff-work-documents",
   "owner-response",
+  "working-terms",
   "tenant-response",
   "message-preparation-owner",
   "message-preparation-tenant",
@@ -84,9 +85,9 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
       "Save the preparation. The owner message reuses it, and the reviewed PMI recommendation becomes the prepared Sheet Market value for Admin confirmation.",
     ],
     saves:
-      "Saved comparison figures with their origin, their source and any retained lookup result are stored with this lease and cycle for the owner message. A saved PMI recommendation prepares the exact Sheet Market value update; an Admin confirms it separately.",
+      "Saved comparison figures with their origin, their source and any retained lookup result are stored with this lease and cycle for the owner message. A saved PMI recommendation prepares the exact Sheet Market value update, which you confirm separately.",
     notDone:
-      "A comparison never sets the approved rent, changes a source or sends anything. The starting range is not market evidence, and a recommendation that is still the RentCast point estimate enters no message without the existing Admin approval. Opening the section, typing or saving spends no paid lookup.",
+      "A comparison never sets the renewal rent, changes a source or sends anything. The starting range is not market evidence, and a recommendation that is still the RentCast point estimate enters a message only after staff accept that exact number or enter their own. Opening the section, typing or saving spends no paid lookup.",
     next: {
       label: "Prepare the owner message in Owner approval.",
       targetId: "renewal-section-owner",
@@ -102,7 +103,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
       "Record the owner response with the exact approved rent, effective date and term end date.",
     ],
     saves:
-      "Saved preparation and the recorded owner response are stored with this cycle; the approved terms supply the tenant offer.",
+      "Saved preparation and the recorded owner response are stored with this lease; the working renewal terms supply the tenant offer.",
     notDone:
       "The app sends nothing and records no approval on its own. A saved message is not delivery, and a recorded response is staff evidence, not a provider receipt.",
     next: {
@@ -113,9 +114,9 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
   "section-tenant": {
     label: "Tenant offer and response",
     purpose:
-      "Use the owner's exact approved terms to prepare the tenant message, deliver it yourself, then record the tenant's actual response.",
+      "Use the working renewal terms to prepare the tenant message, deliver it yourself, then record the tenant's actual response.",
     steps: [
-      "Review the tenant message preparation built from the approved terms, charges and links; save your edits.",
+      "Review the tenant message built from the working terms, charges and links; your edits save as you go.",
       "Copy the message or create an unsent Gmail draft, then send it yourself in the right channel.",
       "Record delivery and the tenant's actual response with its source.",
     ],
@@ -131,7 +132,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
   "section-documents": {
     label: "Documents and completion",
     purpose:
-      "Check the approved terms and required forms, prepare the document packet, record delivery and signatures done outside the app, then finish the remaining checks.",
+      "Check the working terms and required forms, prepare the document packet, record delivery and signatures done outside the app, then finish the remaining checks.",
     steps: [
       "Confirm the resource links and packet truth show what this lease needs.",
       "Prepare or hand off the packet, then record documents, signatures and follow-ups as staff work.",
@@ -156,68 +157,62 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
     notDone:
       "Nothing is written to RentVine or the Sheet, no message is drafted, and no owner approval or signature is implied.",
     next: {
-      label: "Confirm the renewal cycle in Recorded renewal work.",
-      targetId: "renewal-manual-cycle",
+      label: "Record work in Recorded renewal work.",
+      targetId: "renewal-card-manual-records",
     },
   },
   "renewal-cycle": {
     label: "Recorded renewal work",
     purpose:
-      "One renewal cycle groups everything staff record for this lease: the cycle date, comparisons, message inputs, responses and completion. Confirm the cycle before recording work.",
-    steps: [
-      "Check the cycle date and its source shown below.",
-      "Tick the review box and confirm the cycle. Starting another cycle keeps the current one as history.",
-      "Use Continue recorded work to reach the next open item.",
-    ],
+      "Everything staff record for this lease: responses, activity, comparisons, message inputs and completion. Each entry saves on its own as soon as it is complete; the first one starts the work record.",
     saves:
-      "The confirmed cycle and every later staff record are stored with this lease; the history disclosure lists each saved entry with who recorded it and when.",
+      "Each staff record is stored with this lease, with who recorded it and when; the history disclosure lists every saved entry.",
     notDone:
-      "Confirming a cycle changes no source and sends nothing. Provider evidence stays separate from these staff records.",
+      "Recording work changes no source and sends nothing. Provider evidence stays separate from these staff records.",
   },
   "rent-and-charges": {
     label: "Rent and charges",
     purpose:
-      "The one working area for rent and charge facts. Current contractual base rent comes from the lease. Lease total (RentVine) adds the separate recurring charges. Unit listed rent is a reference figure, not a lease term. Each recurring charge is listed with its account classification and schedule.",
+      "The one working area for rent and charge facts. Current rent is what the tenant is billed: your working value if you entered one, otherwise the single current rent-account charge, otherwise the contractual lease rent, each labelled with where it came from. Contractual lease rent, Lease total (RentVine) and Unit listed rent keep their own meanings and are never added to the rent. Each recurring charge is listed with its account classification and billing period; charges outside the current schedule sit behind a disclosure.",
     steps: [
-      "Choose the intent: Correct a current fact for a value that is wrong today, or Prepare future approved rent for the owner-approved terms already recorded.",
-      "Enter or accept the prefilled value once and record its source or reason.",
-      "Prepare the destination previews, then an Admin confirms each exact effect under Review RentVine updates or Review Sheet updates.",
+      "Enter the working current rent when you know a different amount; it saves on its own and stays until you change it. The source values and any difference stay visible beside it.",
+      "Prepare RentVine rent charge update beside the working value when the one current rent charge differs from it, then review and confirm the exact effect under Review RentVine updates.",
+      "Use Prepare future renewal rent for the working renewal terms; today's billing stays as it is until the confirmed change takes effect.",
       "Read Update status by destination: it shows what is saved in the app, what is prepared, what applied with a receipt and what still needs attention.",
     ],
     saves:
-      "A correction or approved term is saved in the app first. Each Sheet or RentVine update is a separate prepared proposal that only an Admin confirmation applies; the app reads the result back afterwards.",
+      "A working value is saved in the app first. Each Sheet or RentVine update is a separate prepared proposal that only your exact confirmation applies; the app reads the result back afterwards.",
     notDone:
-      "A saved value is not a source update. A future offer does not change today's rent or the Sheet current rent. A confirmed charge change does not prove the lease base rent changed; a remaining difference is shown as a mismatch, never hidden.",
+      "A saved working value is not a source update, and a matching source value does not mean this app changed the source. A future offer does not change today's rent or the Sheet current rent. A confirmed charge change does not prove the contractual lease rent changed; a remaining difference is shown as a mismatch, never hidden.",
     next: {
-      label: "Start with Correct a current fact or Prepare future approved rent.",
-      targetId: "renewal-correct-a-fact",
+      label: "Start with the working current rent.",
+      targetId: "renewal-working-current-rent",
     },
   },
   "correct-a-fact": {
     label: "Correct a lease fact",
     purpose:
-      "Fixes a fact that is wrong today, such as the current base rent or the renewal date, by preparing a change to the operating Sheet, RentVine or both.",
+      "Compares the working current rent with each observed source and lets you adopt a source value, and prepares a change to the operating Sheet, RentVine or both for another fact that is wrong today, such as the renewal date.",
     steps: [
-      "Choose the fact, then use an observed source value or type the reviewed value.",
-      "Enter the value source or reason.",
-      "Choose the destination. Current rent to the Sheet first needs the saved current-rent proposal and the Admin approval shown in this card.",
-      "Prepare the destination previews, then review and confirm each one under Review Sheet updates or Review RentVine updates.",
+      "For the current rent, edit the working value in Rent and charges or use an observed source value here; no request, review or approval is needed.",
+      "For another fact, choose it, then use an observed source value or type the reviewed value. A source or context note is optional.",
+      "Choose the destination, prepare the previews, then review and confirm each one under Review Sheet updates or Review RentVine updates.",
     ],
     saves:
-      "Preparing saves a proposal in the app with the exact before and after values. An Admin confirms each destination separately and the app reads the result back.",
+      "Using a source value saves the working value in the app. Preparing saves a proposal in the app with the exact before and after values; you confirm each destination separately and the app reads the result back.",
     notDone:
-      "A saved proposal or approval does not change the Sheet or RentVine. Nothing is sent to the owner or tenant.",
+      "A saved working value or proposal does not change the Sheet or RentVine. Nothing is sent to the owner or tenant.",
     next: {
       label: "Review the prepared change under Review Sheet updates.",
       targetId: "operating-sheet-title",
     },
   },
   "future-rent": {
-    label: "Prepare future approved rent in RentVine",
+    label: "Prepare future renewal rent in RentVine",
     purpose:
-      "Prepares the owner-approved future rent as a RentVine recurring-charge change that starts on the approved effective date, leaving today's billing in place until then.",
+      "Prepares the working renewal rent as a RentVine recurring-charge change that starts on the working effective date, leaving today's billing in place until then.",
     steps: [
-      "Record the owner's exact approved rent and dates in Owner response and exact terms.",
+      "Enter the renewal rent, effective date and end date in Working renewal terms.",
       "Review the reviewed billing schedule shown here and save the future schedule preview.",
       "Record the tenant's acceptance of those exact terms under Tenant offer and response.",
       "An Admin confirms the exact RentVine effect under Review RentVine updates.",
@@ -291,7 +286,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
       "Save the preparation so the owner message can use it and the Sheet Market value can be prepared.",
     ],
     saves:
-      "Saved figures with their origin, their source and the retained lookup result stay with this cycle. The saved PMI recommendation prepares the exact Sheet Market value for Admin confirmation. A recommendation that is still the RentCast point estimate enters a message only through the existing Admin approval.",
+      "Saved figures with their origin, their source and the retained lookup result stay with this cycle. The saved PMI recommendation prepares the exact Sheet Market value for your confirmation. A recommendation that is still the RentCast point estimate enters a message only after staff accept that exact number or enter their own.",
     notDone:
       "A lookup or a saved figure never sets the renewal rent, and nothing is sent. The report links open RentCast's own report and are not a receipt of the saved result. Opening the section, typing or saving spends no paid lookup.",
   },
@@ -311,7 +306,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
   "tenant-offer": {
     label: "Tenant offer",
     purpose:
-      "Shows the tenant offer drafts for email, portal chat and text built from the approved terms, and lets you record the tenant's actual response.",
+      "Shows the tenant offer drafts for email, portal chat and text built from the working terms, and lets you record the tenant's actual response.",
     steps: [
       "Compose or review the tenant offer using the current message preparation.",
       "Deliver it yourself in the chosen channel.",
@@ -370,18 +365,22 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
       "A recorded signature or completion is staff evidence. It does not prove a signature in Dotloop or change any file bytes.",
   },
   "owner-response": {
-    label: "Owner response and exact terms",
+    label: "Owner response",
     purpose:
-      "Records what the owner actually answered and, when approved, the exact monthly base rent, effective date and term end date.",
-    steps: [
-      "Choose the response the owner gave.",
-      "For an approval, enter the exact rent and dates the owner approved.",
-      "Name the response source or channel and save.",
-    ],
+      "Records what the owner actually answered. The answer saves when you choose it; the source or channel is optional.",
     saves:
-      "The response and terms are stored with this cycle. Approved terms supply the tenant message, the future RentVine rent and the document packet.",
+      "The response is stored with this lease's recorded work. Working renewal terms are kept separately below and stay whatever the owner has answered.",
     notDone:
-      "Saving approves nothing on the owner's behalf and writes nothing to RentVine or the Sheet. Changed terms reopen later work for review.",
+      "Saving approves nothing on the owner's behalf and writes nothing to RentVine or the Sheet.",
+  },
+  "working-terms": {
+    label: "Working renewal terms",
+    purpose:
+      "The renewal rent and dates you are working with. Enter what you know, from a call, an email or your own review; each value saves on its own and stays until you change it.",
+    saves:
+      "Each value is stored on this lease with who entered it and when. New tenant messages, the future RentVine rent preview and the document packet use the saved values.",
+    notDone:
+      "Saving records no owner approval or tenant acceptance and writes nothing to RentVine or the Sheet. A source update is its own confirmed action.",
   },
   "tenant-response": {
     label: "Tenant response",
@@ -413,7 +412,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
   "message-preparation-tenant": {
     label: "Tenant message preparation",
     purpose:
-      "Builds the tenant offer from the approved terms, applicable charges, insurance wording and resource links. Review the inputs, save your edits, then copy the message or create an unsent Gmail draft.",
+      "Builds the tenant offer from the working terms, applicable charges, insurance wording and resource links. Review the inputs, edit the message, then copy it or create an unsent Gmail draft.",
     steps: [
       "Review lease origin and applicable charges; fill a charge from a current RentVine charge when it matches, and follow each remaining item under inputs remain for final use to its own control.",
       "Edit the optional response request wording if needed and save the reviewed preparation.",
@@ -503,7 +502,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
     saves:
       "The completion or reopening is stored with this cycle, with who recorded it and when.",
     notDone:
-      "Staff completion does not establish verified completion in RentVine, Gmail or Dotloop and cannot be recorded until the applicable checklist and outcome branch are done.",
+      "Staff completion does not establish verified completion in RentVine, Gmail or Dotloop. The checklist is guidance: record completion when the renewal is actually complete.",
   },
   "completion-checks": {
     label: "Completion checks",

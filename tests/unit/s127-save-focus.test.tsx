@@ -10,7 +10,10 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RenewalSaveFocus } from "@/components/lease-renewal/RenewalSaveFocus";
+import {
+  RenewalSaveFocus,
+  useRenewalSaveFocus,
+} from "@/components/lease-renewal/RenewalSaveFocus";
 import {
   RenewalManualProvider,
   RenewalManualSection,
@@ -129,30 +132,33 @@ function manualTree(
     </RenewalSaveFocus>
   );
 }
-function submitApproval() {
+/**
+ * S155/S156 (0f02e013): the owner response is a select that saves when chosen; there are no exact
+ * approved-terms fields and no record button. Working terms live in their own autosaved fields.
+ */
+function chooseApproval() {
   const owner = within(screen.getByRole("region", { name: "Owner fixture" }));
-  fireEvent.change(owner.getByLabelText("Owner response"), {
-    target: { value: "approved_terms" },
-  });
-  fireEvent.change(owner.getByLabelText("Exact owner-approved monthly base rent"), {
-    target: { value: "1250" },
-  });
-  fireEvent.change(owner.getByLabelText("Approved effective date"), {
-    target: { value: "2027-01-01" },
-  });
-  fireEvent.change(owner.getByLabelText("Approved term end date"), {
-    target: { value: "2027-12-31" },
-  });
-  fireEvent.change(owner.getByLabelText("Response source or channel"), {
-    target: { value: "Fixture exact approved terms" },
-  });
-  const button = owner.getByRole("button", { name: "Record owner response" });
-  button.focus();
-  fireEvent.click(button);
-  return button;
+  const select = owner.getByLabelText("Owner response");
+  select.focus();
+  fireEvent.change(select, { target: { value: "approved_terms" } });
+  return select;
 }
-describe("S127 successful app-save focus and authoritative refreshed issues", () => {
-  it("waits for actual save/readback and refreshed revision, opens the next unresolved control, and preserves a dirty sibling", async () => {
+
+/** A consumer that requests the post-save focus with the manual version fence, as a control would. */
+function SaveTrigger({ readback }: { readback?: { cycleId: string; revision: number } }) {
+  const focusAfterSave = useRenewalSaveFocus();
+  return (
+    <button
+      onClick={() => focusAfterSave?.(readback ? { manual: readback } : {})}
+      type="button"
+    >
+      Simulated app save
+    </button>
+  );
+}
+
+describe("S155 autosaved staff records keep focus and input", () => {
+  it("saves the chosen owner response without moving focus, preserves a dirty sibling, and refreshes once", async () => {
     const before = initial();
     let after = before;
     let complete!: () => void;
@@ -162,6 +168,7 @@ describe("S127 successful app-save focus and authoritative refreshed issues", ()
     const fetch = vi.fn(async (_url: string, options?: RequestInit) => {
       const body = JSON.parse(String(options?.body));
       expect(body.expectedRevision).toBe(before.revision);
+      expect(body.action).toEqual({ kind: "owner_response", outcome: "approved_terms" });
       after = planRenewalWorkspaceAction(before, body.action, {
         ...metadata,
         eventId: body.operationId,
@@ -174,35 +181,48 @@ describe("S127 successful app-save focus and authoritative refreshed issues", ()
     fireEvent.change(screen.getByLabelText("Unrelated draft note"), {
       target: { value: "Keep this unsaved note" },
     });
-    const button = submitApproval();
-    expect(button).toHaveFocus();
+    const select = chooseApproval();
+    expect(select).toHaveFocus();
+    expect(select).toHaveValue("approved_terms");
     expect(router.refresh).not.toHaveBeenCalled();
     await act(async () => complete());
-    await screen.findByText("Saved in app; Sheet updates paused.");
-    expect(router.refresh).toHaveBeenCalledTimes(1);
-    expect(button).toHaveFocus(); // The old server projection cannot choose the new destination.
+    await screen.findByText(
+      "Saved. Any listed Sheet update still needs its own confirmation.",
+    );
+    // S155: no focus move on save; the page refresh is scheduled, never a focus request.
+    expect(select).toHaveFocus();
     mounted.rerender(manualTree(after));
-    expect(button).toHaveFocus(); // Props alone cannot finish the still-pending refresh.
-    await act(async () => finishRefresh());
-    const next = screen.getByLabelText("Tenant offer delivered outcome");
-    await waitFor(() => expect(next).toHaveFocus());
-    expect(next.closest("details")).toHaveAttribute("open");
+    expect(select).toHaveFocus();
+    await waitFor(() => expect(router.refresh).toHaveBeenCalledTimes(1), {
+      timeout: 3000,
+    });
+    expect(select).toHaveFocus();
     expect(screen.getByLabelText("Unrelated draft note")).toHaveValue(
       "Keep this unsaved note",
     );
-    expect(
-      within(screen.getByRole("region", { name: "Owner fixture" })).getByLabelText(
-        "Response source or channel",
-      ),
-    ).toHaveValue("Fixture exact approved terms");
     expect(fetch).toHaveBeenCalledTimes(1);
+    // S156: the response is the recorded fact alone; no terms are manufactured to hold it.
+    expect(after.ownerResponse).toMatchObject({ outcome: "approved_terms" });
+    expect(after.ownerResponse?.terms).toBeUndefined();
+  });
+
+  it("S156 ARCH-1 / BEH-4: an owner approval recorded without exact terms moves the suggestion on to the tenant offer", () => {
+    // The owner response control offers no terms fields (working terms are saved on the lease
+    // independently), so the guidance must advance on the recorded approval itself.
+    const after = planRenewalWorkspaceAction(
+      initial(),
+      { kind: "owner_response", outcome: "approved_terms" },
+      metadata,
+    );
+    expect(after.ownerResponse?.terms).toBeUndefined();
+    expect(manualRenewalSummary(after).nextActivity).toBe("tenant_offer");
     expect(projection(after).primary.destination).toMatchObject({
       controlId: "renewal-manual-tenant_offer",
     });
   });
 
   it.each([403, 409, 500])(
-    "keeps failed %s save input and never queues focus on a later read",
+    "keeps failed %s save input with a retry and never moves focus",
     async (status) => {
       const state = initial();
       vi.stubGlobal(
@@ -212,82 +232,20 @@ describe("S127 successful app-save focus and authoritative refreshed issues", ()
         ),
       );
       const mounted = render(manualTree(state));
-      const button = submitApproval();
-      await screen.findByText("Review the changed record.");
+      const select = chooseApproval();
+      const owner = within(screen.getByRole("region", { name: "Owner fixture" }));
+      await owner.findByText(/Your entry is kept\./);
+      expect(
+        owner.getByRole("button", {
+          name: status === 409 ? "Save my entry" : "Try again",
+        }),
+      ).toBeInTheDocument();
       expect(router.refresh).not.toHaveBeenCalled();
       mounted.rerender(manualTree(state));
-      expect(button).toHaveFocus();
-      expect(screen.getByLabelText("Exact owner-approved monthly base rent")).toHaveValue(
-        "1250",
-      );
+      expect(select).toHaveFocus();
+      expect(select).toHaveValue("approved_terms");
     },
   );
-
-  it.each(["stale", "wrong_cycle", "unavailable", "other_lease"] as const)(
-    "retires a %s refreshed projection rather than stealing focus on a later ordinary reload",
-    async (kind) => {
-      const before = initial();
-      let after = before;
-      vi.stubGlobal(
-        "fetch",
-        vi.fn(async (_url, options) => {
-          const body = JSON.parse(options.body);
-          after = planRenewalWorkspaceAction(before, body.action, {
-            ...metadata,
-            eventId: body.operationId,
-          });
-          return Response.json({ state: after, writeback_paused: true });
-        }),
-      );
-      const mounted = render(manualTree(before));
-      submitApproval();
-      await screen.findByText("Saved in app; Sheet updates paused.");
-      const unsuitable =
-        kind === "wrong_cycle"
-          ? { ...after, cycleId: "different-cycle" }
-          : kind === "stale"
-            ? before
-            : after;
-      mounted.rerender(
-        manualTree(
-          unsuitable,
-          projection(unsuitable),
-          kind !== "unavailable",
-          kind === "other_lease" ? "702" : "701",
-        ),
-      );
-      await act(async () => finishRefresh());
-      const unrelated = screen.getByLabelText("Unrelated draft note");
-      unrelated.focus();
-      mounted.rerender(manualTree(after));
-      expect(unrelated).toHaveFocus();
-    },
-  );
-
-  it("retires a failed refresh with no new props before an unrelated later reload", async () => {
-    const before = initial();
-    let after = before;
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (_url, options) => {
-        const body = JSON.parse(options.body);
-        after = planRenewalWorkspaceAction(before, body.action, {
-          ...metadata,
-          eventId: body.operationId,
-        });
-        return Response.json({ state: after, writeback_paused: true });
-      }),
-    );
-    const mounted = render(manualTree(before));
-    submitApproval();
-    await screen.findByText("Saved in app; Sheet updates paused.");
-    await act(async () => finishRefresh()); // Failed/cancelled RSC: no new projection arrived.
-    const unrelated = screen.getByLabelText("Unrelated draft note");
-    unrelated.focus();
-    mounted.rerender(manualTree(after));
-    expect(unrelated).toHaveFocus();
-    expect(router.refresh).toHaveBeenCalledTimes(1);
-  });
 
   it("does not focus from mount or explicit records/history reload", async () => {
     const state = initial();
@@ -301,12 +259,170 @@ describe("S127 successful app-save focus and authoritative refreshed issues", ()
     button.focus();
     fireEvent.click(button);
     await screen.findByText(
-      "Current staff records read back. Review unsaved inputs before recording them.",
+      "Current staff records read back. Your unsaved entries are kept.",
     );
     mounted.rerender(manualTree(state));
     expect(button).toHaveFocus();
     expect(router.refresh).not.toHaveBeenCalled();
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("S127 successful app-save focus and authoritative refreshed issues", () => {
+  it("waits for the refreshed revision before opening the next unresolved control", async () => {
+    // Owner terms are on record; the simulated save records the tenant offer, so the refreshed
+    // projection names the tenant response control.
+    const before = planRenewalWorkspaceAction(
+      initial(),
+      {
+        kind: "owner_response",
+        outcome: "approved_terms",
+        terms: { rent: 1250, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
+      },
+      metadata,
+    );
+    const after = planRenewalWorkspaceAction(
+      before,
+      { kind: "activity", activity: "tenant_offer", outcome: "done" },
+      metadata,
+    );
+    const tree = (state: RenewalWorkspaceState) => (
+      <RenewalSaveFocus
+        leaseId="701"
+        cycleId={state.cycleId}
+        revision={state.revision}
+        readable
+        projection={projection(state)}
+        targetId={renewalPostSaveFocusTarget(projection(state), "Admin")}
+      >
+        <div id={RENEWAL_NEXT_ACTION_TARGET_ID} tabIndex={-1}>
+          Current next-action readback
+        </div>
+        <SaveTrigger readback={{ cycleId: after.cycleId, revision: after.revision }} />
+        <RenewalManualProvider leaseId="701" initialState={state} writebackPaused>
+          <section aria-label="Tenant fixture">
+            <RenewalManualSection section="tenant" />
+          </section>
+        </RenewalManualProvider>
+      </RenewalSaveFocus>
+    );
+    const mounted = render(tree(before));
+    const button = screen.getByRole("button", { name: "Simulated app save" });
+    button.focus();
+    fireEvent.click(button);
+    expect(router.refresh).toHaveBeenCalledTimes(1);
+    expect(button).toHaveFocus(); // The old server projection cannot choose the new destination.
+    mounted.rerender(tree(after));
+    expect(button).toHaveFocus(); // Props alone cannot finish the still-pending refresh.
+    await act(async () => finishRefresh());
+    expect(projection(after).primary.destination).toMatchObject({
+      controlId: "renewal-manual-tenant_response",
+    });
+    const next = screen.getByLabelText("Tenant response");
+    await waitFor(() => expect(next).toHaveFocus());
+  });
+
+  it.each(["stale", "wrong_cycle", "unavailable", "other_lease"] as const)(
+    "retires a %s refreshed projection rather than stealing focus on a later ordinary reload",
+    async (kind) => {
+      const before = initial();
+      const after = planRenewalWorkspaceAction(
+        before,
+        { kind: "owner_response", outcome: "approved_terms" },
+        metadata,
+      );
+      const tree = (
+        state: RenewalWorkspaceState,
+        projected = projection(state),
+        readable = true,
+        leaseId = "701",
+      ) => (
+        <RenewalSaveFocus
+          leaseId={leaseId}
+          cycleId={state.cycleId}
+          revision={state.revision}
+          readable={readable}
+          projection={projected}
+          targetId={renewalPostSaveFocusTarget(projected, "Admin")}
+        >
+          <div id={RENEWAL_NEXT_ACTION_TARGET_ID} tabIndex={-1}>
+            Current next-action readback
+          </div>
+          <label>
+            Unrelated draft note
+            <input aria-label="Unrelated draft note" defaultValue="" />
+          </label>
+          <SaveTrigger readback={{ cycleId: after.cycleId, revision: after.revision }} />
+          <RenewalManualProvider leaseId="701" initialState={state} writebackPaused>
+            <section aria-label="Tenant fixture">
+              <RenewalManualSection section="tenant" />
+            </section>
+          </RenewalManualProvider>
+        </RenewalSaveFocus>
+      );
+      const mounted = render(tree(before));
+      fireEvent.click(screen.getByRole("button", { name: "Simulated app save" }));
+      const unsuitable =
+        kind === "wrong_cycle"
+          ? { ...after, cycleId: "different-cycle" }
+          : kind === "stale"
+            ? before
+            : after;
+      mounted.rerender(
+        tree(
+          unsuitable,
+          projection(unsuitable),
+          kind !== "unavailable",
+          kind === "other_lease" ? "702" : "701",
+        ),
+      );
+      await act(async () => finishRefresh());
+      const unrelated = screen.getByLabelText("Unrelated draft note");
+      unrelated.focus();
+      mounted.rerender(tree(after));
+      expect(unrelated).toHaveFocus();
+    },
+  );
+
+  it("retires a failed refresh with no new props before an unrelated later reload", async () => {
+    const before = initial();
+    const after = planRenewalWorkspaceAction(
+      before,
+      { kind: "owner_response", outcome: "approved_terms" },
+      metadata,
+    );
+    const tree = (state: RenewalWorkspaceState) => (
+      <RenewalSaveFocus
+        leaseId="701"
+        cycleId={state.cycleId}
+        revision={state.revision}
+        readable
+        projection={projection(state)}
+        targetId={renewalPostSaveFocusTarget(projection(state), "Admin")}
+      >
+        <div id={RENEWAL_NEXT_ACTION_TARGET_ID} tabIndex={-1}>
+          Current next-action readback
+        </div>
+        <label>
+          Unrelated draft note
+          <input aria-label="Unrelated draft note" defaultValue="" />
+        </label>
+        <SaveTrigger />
+        <RenewalManualProvider leaseId="701" initialState={state} writebackPaused>
+          <section aria-label="Tenant fixture">
+            <RenewalManualSection section="tenant" />
+          </section>
+        </RenewalManualProvider>
+      </RenewalSaveFocus>
+    );
+    const mounted = render(tree(before));
+    fireEvent.click(screen.getByRole("button", { name: "Simulated app save" }));
+    await act(async () => finishRefresh()); // Failed/cancelled RSC: no new projection arrived.
+    const unrelated = screen.getByLabelText("Unrelated draft note");
+    unrelated.focus();
+    mounted.rerender(tree(after));
+    expect(unrelated).toHaveFocus();
+    expect(router.refresh).toHaveBeenCalledTimes(1);
   });
 
   it("covers a separate settings store save, focuses its refreshed issue, and retains another unfinished link", async () => {

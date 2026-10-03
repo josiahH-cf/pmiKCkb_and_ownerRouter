@@ -18,7 +18,6 @@ const editor: AuthenticatedUser = {
   email: "requester@pmikcmetro.com",
   hd: "pmikcmetro.com",
   role: "Editor",
-  scopes: ["maintenance"],
 };
 const otherEditor: AuthenticatedUser = {
   ...editor,
@@ -30,7 +29,6 @@ const admin: AuthenticatedUser = {
   uid: "admin-1",
   email: "admin@pmikcmetro.com",
   role: "Admin",
-  scopes: ["maintenance"],
 };
 
 describe("S83 durable access request service", () => {

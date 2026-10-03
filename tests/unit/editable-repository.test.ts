@@ -216,17 +216,17 @@ describe("editable Firestore repository", () => {
   });
 });
 
-describe("editable layer space-scope enforcement (SPACE-1/TMPL-4)", () => {
+// S167: every staff account has every internal Space, so the editable layer no longer refuses an
+// account by Space. The role still decides what the account may do there.
+describe("editable layer Space access for staff (SPACE-1/TMPL-4, S167)", () => {
   const maintenanceEditor: AuthenticatedUser = {
     ...editor,
     uid: "maint-editor",
-    scopes: ["maintenance"],
   };
 
-  it("denies a scoped principal cross-scope list/create/read/update of editable records", async () => {
+  // S167: each of these operations used to reject with an AuthError for a maintenance-only account.
+  it("lets an Editor list, create, read and update editable records in the Renewals Space", async () => {
     const db = fakeDb();
-    // Seed a renewals SOP as an unscoped admin (allowed), then confirm a maintenance-scoped editor
-    // cannot reach the renewals Space through any editable-layer operation.
     const renewalsSop = await createSop(
       admin,
       "lease-renewals",
@@ -234,26 +234,53 @@ describe("editable layer space-scope enforcement (SPACE-1/TMPL-4)", () => {
       db,
     );
 
-    await expect(
-      listSops(maintenanceEditor, "lease-renewals", db),
-    ).rejects.toBeInstanceOf(AuthError);
-    await expect(
-      createSop(
-        maintenanceEditor,
-        "lease-renewals",
-        { body_md: "# X", owner_uid: "o", title: "X" },
-        db,
-      ),
-    ).rejects.toBeInstanceOf(AuthError);
-    await expect(getSop(maintenanceEditor, renewalsSop.id, db)).rejects.toBeInstanceOf(
-      AuthError,
+    await expect(listSops(maintenanceEditor, "lease-renewals", db)).resolves.toHaveLength(
+      1,
     );
+    const created = await createSop(
+      maintenanceEditor,
+      "lease-renewals",
+      { body_md: "# X", owner_uid: "o", title: "X" },
+      db,
+    );
+    expect(created).toMatchObject({ space_id: "lease-renewals", status: "Draft" });
+    await expect(getSop(maintenanceEditor, renewalsSop.id, db)).resolves.toMatchObject({
+      id: renewalsSop.id,
+      space_id: "lease-renewals",
+    });
     await expect(
-      updateSop(maintenanceEditor, renewalsSop.id, { title: "Nope" }, db),
-    ).rejects.toBeInstanceOf(AuthError);
+      updateSop(maintenanceEditor, renewalsSop.id, { title: "Renamed" }, db),
+    ).resolves.toMatchObject({ title: "Renamed" });
+    await expect(listSops(maintenanceEditor, "lease-renewals", db)).resolves.toHaveLength(
+      2,
+    );
   });
 
-  it("still allows a scoped principal to work within its own Space", async () => {
+  it("keeps approval with the role in a Space the Editor can now reach", async () => {
+    const db = fakeDb();
+    const renewalsSop = await createSop(
+      admin,
+      "lease-renewals",
+      { body_md: "# R", owner_uid: "o", title: "R" },
+      db,
+    );
+
+    const refusal = await updateSop(
+      maintenanceEditor,
+      renewalsSop.id,
+      { status: "Approved" },
+      db,
+    ).catch((error: unknown) => error);
+
+    expect(refusal).toBeInstanceOf(EditableLayerError);
+    expect(refusal).not.toBeInstanceOf(AuthError);
+    expect(refusal).toMatchObject({ status: 403 });
+    await expect(getSop(admin, renewalsSop.id, db)).resolves.toMatchObject({
+      status: "Draft",
+    });
+  });
+
+  it("lets the same Editor work in the Maintenance Space", async () => {
     const db = fakeDb();
     const sop = await createSop(
       maintenanceEditor,
@@ -267,7 +294,7 @@ describe("editable layer space-scope enforcement (SPACE-1/TMPL-4)", () => {
     ).resolves.toHaveLength(1);
   });
 
-  it("still allows an unscoped principal to reach every Space", async () => {
+  it("still allows an Admin to reach every Space", async () => {
     const db = fakeDb();
     const sop = await createSop(
       admin,

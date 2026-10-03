@@ -158,6 +158,22 @@ function harness(overrides: Partial<FakeSheetState> = {}): Harness {
   const appendLifecycles = new Map<string, string>();
 
   const writer: SheetWritebackWriter = {
+    // S113/S160: a staff-intent field update reads the cell's exact representation before and
+    // after the one replacement; this double reports the plain string the fake sheet holds.
+    async getCellEvidence(_spreadsheetId, range) {
+      record("getCellEvidence", range);
+      const parsed = parseRange(range);
+      const value =
+        parsed.startRow === 1
+          ? (state.header[parsed.startColumn] ?? "")
+          : (state.rows[parsed.startRow - 2]?.values[parsed.startColumn] ?? "");
+      return {
+        value: { stringValue: value },
+        formattedValue: value,
+        numberFormat: null,
+        checkbox: false,
+      };
+    },
     async getValues(_spreadsheetId, range) {
       record("getValues", range);
       const parsed = parseRange(range);
@@ -343,19 +359,13 @@ function updateProposal(
         anchorTenantName: overrides.anchorTenantName ?? "Existing Tenant",
         expectedValue: overrides.expectedValue ?? "",
         afterValue: overrides.afterValue ?? "1200",
-        source: "RentVine base rent",
-        authorization: {
-          sourceTriggerKey: "lease_renewal:reconcile:live-review:key:current_rent",
-          runId: "live-review",
-          fieldKey: "current_rent",
-          proposedValue: overrides.afterValue ?? "1200",
-          sourceOfValue: "RentVine base rent",
-          candidateFingerprint: `rcf1_${"a".repeat(64)}`,
-          resolutionUpdatedAt: "2026-09-02T11:58:00.000Z",
-          authorizationToken: `rwat1_${"b".repeat(64)}`,
-          approvalId: "approval-current-rent",
-          approvalUpdatedAt: "2026-09-02T11:59:00.000Z",
-          approvalDecidedByUid: "admin-2",
+        // S160: the current-rent update carries the working current rent as a staff intent; the
+        // reconciliation approval shape is retired.
+        source: "Working current rent",
+        staffIntent: {
+          field: "current_rent",
+          value: Number(overrides.afterValue ?? "1200"),
+          source: "Working current rent",
         },
       },
     ],

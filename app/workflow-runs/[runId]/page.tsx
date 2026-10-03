@@ -35,7 +35,7 @@ export default async function WorkflowRunPage({ params }: WorkflowRunPageProps) 
   }
 
   if (run && !canAccessWorkflowRun(user, run)) {
-    redirect(primarySpaceHref(user));
+    redirect(primarySpaceHref());
   }
 
   if (run) {

@@ -1,21 +1,22 @@
 // KB-owned persistence for the Lease Renewal comp-derived rent-suggestion APPROVAL control plane
 // (S29, D-RENT-SUGGEST). The app computes a comp-derived SUGGESTED renewal rent number SERVER-SIDE from
-// the lease's own captured comp basis (never a client-supplied figure); an Admin then Approves (authorizes
-// placing that exact number in the owner-notice draft) or Returns it here. Only the human decision and its
-// append-only Activity persist, keyed by lease id.
+// the lease's own captured comp basis (never a client-supplied figure); the staff member then Approves
+// (records that exact number for the owner-notice draft) or Returns it here. Only the human decision and
+// its append-only Activity persist, keyed by lease id.
 //
-// GOVERNANCE: this layer NEVER executes a send or a system-of-record write. Approving records human
-// authorization to place the number in a DRAFT; a human still reviews and sends. Every record carries
+// GOVERNANCE: this layer NEVER executes a send or a system-of-record write. Approving records a human
+// decision to place the number in a DRAFT; a human still reviews and sends. Every record carries
 // `production_allowed:false` and `executed:false`, and the reachable states are the approval FSM's
-// non-executing subset (rent-suggestion-approval.ts). Admin-only: authorizing an owner-money number is
-// strictly more sensitive than any read (manageAdmin). The approved number is recomputed and re-verified
-// on every decision and every read, so a changed comp basis makes a prior approval stale by construction —
-// a different number is NEVER silently authorized.
+// non-executing subset (rent-suggestion-approval.ts). S156/S167: Editor access is the only role
+// requirement; a verification account is refused before anything is written. The approved number is
+// recomputed and re-verified on every decision and every read, so a changed comp basis makes a prior
+// approval stale by construction: a different number is NEVER silently authorized.
 
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
 
+import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
@@ -117,7 +118,7 @@ export async function resolveLeaseRentSuggestion(
 }
 
 /**
- * Approve or return the computed rent suggestion for a lease (Admin-gated control plane). Recomputes the
+ * Approve or return the computed rent suggestion for a lease (Editor control plane). Recomputes the
  * suggestion server-side, refuses when there is no defensible number, validates the transition (rejecting
  * double-approve / re-return), upserts the decision (idempotent by lease id), and appends an append-only
  * Activity entry. A recompute that changed the value or the comp sources makes any prior approval stale, so
@@ -131,7 +132,8 @@ export async function decideRentSuggestionApproval(
   portfolioId: string | null,
   db: Firestore = getAdminFirestore(),
 ): Promise<LeaseRenewalRentSuggestionApprovalRecord> {
-  assertCan(actor, "manageAdmin");
+  assertCan(actor, "edit");
+  assertNotVerificationAccount(actor);
   const parsed = DecideRentSuggestionApprovalInputSchema.parse(input);
   const leaseId = parsed.lease_id.trim();
   if (leaseId === "") {
@@ -156,8 +158,8 @@ export async function decideRentSuggestionApproval(
 
   const docId = approvalDocId(leaseId);
 
-  // Read the existing approval, validate the transition, and write — all inside ONE transaction, so a
-  // concurrent second Admin decision cannot both read "Awaiting Approval" and bypass the double-approve /
+  // Read the existing approval, validate the transition, and write, all inside ONE transaction, so a
+  // concurrent second decision cannot both read "Awaiting Approval" and bypass the double-approve /
   // re-return guard. An illegal transition throws inside the transaction and aborts it.
   await db.runTransaction(async (transaction) => {
     const ref = approvalRef(db, docId);
@@ -332,6 +334,16 @@ function assertCan(actor: AuthenticatedUser, capability: Parameters<typeof can>[
   if (!can(actor.role, capability)) {
     throw new EditableLayerError(
       "This user is not authorized for the requested rent-suggestion action.",
+      403,
+    );
+  }
+}
+
+/** Verification identities read everything and record nothing here. */
+function assertNotVerificationAccount(actor: AuthenticatedUser) {
+  if (isVerificationAccount(actor)) {
+    throw new EditableLayerError(
+      "Verification accounts cannot record rent-suggestion decisions.",
       403,
     );
   }

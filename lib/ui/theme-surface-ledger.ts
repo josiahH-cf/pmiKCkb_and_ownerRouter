@@ -134,6 +134,99 @@ export const THEME_EXPERIENCE_LEDGER = [
   ]),
 ] as const;
 
+/** S165: the phone widths (portrait, touch) at which every surface below is checked. */
+export const MOBILE_VIEWPORT_WIDTHS = [360, 390, 430] as const;
+
+type SurfaceId = (typeof THEME_EXPERIENCE_LEDGER)[number]["id"];
+
+/**
+ * S165: the specification's coverage matrix mapped onto the surface ledger. Every surface belongs
+ * to exactly one area; `tasks` is the existing work that must stay completable on a phone. This
+ * names what to check. It adds no route, task or permission.
+ */
+export const MOBILE_COVERAGE_AREAS: readonly {
+  readonly area: string;
+  readonly surfaces: readonly SurfaceId[];
+  readonly tasks: readonly string[];
+}[] = [
+  {
+    area: "Sign-in and session",
+    surfaces: ["SUR-01"],
+    tasks: [
+      "sign in with Google",
+      "return to the page being opened",
+      "recover from a failed sign-in",
+      "sign out",
+    ],
+  },
+  {
+    area: "Dashboard / AI",
+    surfaces: ["SUR-06"],
+    tasks: [
+      "ask a question and read the answer",
+      "open an operational link",
+      "open history",
+      "save, pin and reuse a question",
+    ],
+  },
+  {
+    area: "My Work / notifications",
+    surfaces: ["SUR-13", "SUR-17", "SUR-18"],
+    tasks: ["read", "open the linked work", "perform the linked permitted work"],
+  },
+  {
+    area: "Lease renewal",
+    surfaces: ["SUR-26", "SUR-27", "SUR-28", "SUR-29"],
+    tasks: [
+      "filter and sort the desk",
+      "open any lease",
+      "switch Focus and Full view",
+      "edit working values",
+      "correct a lookup",
+      "preview and confirm a source update",
+      "prepare comps",
+      "copy a message and create a draft",
+      "record progress and read the Status log",
+    ],
+  },
+  {
+    area: "Knowledge / processes",
+    surfaces: ["SUR-07", "SUR-08", "SUR-09", "SUR-10", "SUR-11", "SUR-12"],
+    tasks: ["open a Space and a page", "select and run a process", "work a workflow run"],
+  },
+  {
+    area: "Maintenance",
+    surfaces: ["SUR-16"],
+    tasks: [
+      "report and intake",
+      "read work-order information",
+      "record manual work",
+      "prepare communications",
+      "use supported source actions",
+    ],
+  },
+  {
+    area: "Communications / connections",
+    surfaces: ["SUR-14", "SUR-15"],
+    tasks: ["work workflow-linked Gmail", "review and verify a connection"],
+  },
+  {
+    area: "Administration",
+    surfaces: ["SUR-19", "SUR-20", "SUR-21", "SUR-22", "SUR-23", "SUR-24", "SUR-25"],
+    tasks: [
+      "manage users and access",
+      "review team work",
+      "manage Vendors",
+      "run migration and other Admin interactions",
+    ],
+  },
+  {
+    area: "Vendor",
+    surfaces: ["SUR-02", "SUR-03", "SUR-04", "SUR-05"],
+    tasks: ["complete setup", "sign in", "use the portal", "work an assigned ticket"],
+  },
+];
+
 export const THEME_MIGRATION_COHORTS = [
   { id: 1, owner: "root/public/vendor chrome" },
   { id: 2, owner: "shared controls and state primitives" },

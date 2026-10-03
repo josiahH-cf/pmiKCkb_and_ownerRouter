@@ -1,41 +1,54 @@
-import { formatSourceCalendarDate } from "@/lib/date-display";
-// S117 (R117.1, R117.2, R117.4): the Rent and charges card as the one working area.
+// S117 (R117.1, R117.2, R117.4) + S153: the Rent and charges card as the one working area.
 //
-// It shows the owning current values with their source, every recurring charge with its
-// account-derived classification, the intents an operator can start here, and each destination's
-// own update state. Server-safe: no hooks, no fetch. The editing controls themselves stay in the
-// page-supplied panels rendered beside this card inside the same working area.
+// It shows the operational current rent with its provenance, the single current rent-account
+// charge with its own billing period, the contractual, aggregate and listing amounts under their
+// own labels, every recurring charge with its account-derived classification (current charges
+// first, the rest behind a disclosure), the working current rent beside its sources, and each
+// destination's own update state. Server-safe: no hooks or fetch here; the working field, the
+// RentVine update offer and the live app-saved rows are the client pieces in RenewalCurrentRent.
 
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
+import {
+  RenewalCurrentRent,
+  RentChargeUpdateStatus,
+  WORKING_CURRENT_RENT_TARGET,
+} from "@/components/lease-renewal/RenewalCurrentRent";
 import { Card } from "@/components/ui";
+import {
+  CHARGE_CLASSIFICATION_LABELS,
+  chargeBillingPeriod,
+  chargeDisplayName,
+  chargeScheduleLabel,
+  chargeScheduleText,
+  splitChargesBySchedule,
+} from "@/lib/lease-renewal/current-rent-display";
 import {
   EXTERNAL_LINK_REL,
   EXTERNAL_LINK_TARGET,
 } from "@/lib/lease-renewal/desk-destinations";
 import type { RentChargeOutcomeRow } from "@/lib/lease-renewal/rent-charge-outcomes";
-import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
+import type {
+  RenewalChargeInventory,
+  RenewalChargeOption,
+} from "@/lib/lease-renewal/writeback/charge-inventory-model";
 
-function formatCurrencyReference(value: number): string {
-  return value.toFixed(2);
-}
-
-const CLASSIFICATION_LABELS = {
-  rent: "Rent account",
-  non_rent: "Other recurring charge",
-  unknown: "Account classification unavailable",
-} as const;
-
-function scheduleLabel(current: boolean | null): string {
-  if (current === true) return "within current schedule";
-  if (current === false) return "outside current schedule";
-  return "schedule boundary needs review";
+function ChargeRow({ charge }: Readonly<{ charge: RenewalChargeOption }>) {
+  return (
+    <li>
+      <strong>{chargeDisplayName(charge)}</strong>: {chargeScheduleText(charge)}.{" "}
+      {chargeBillingPeriod(charge)}.{" "}
+      <span className="muted">
+        {CHARGE_CLASSIFICATION_LABELS[charge.classification]};{" "}
+        {chargeScheduleLabel(charge.current)}.
+      </span>
+    </li>
+  );
 }
 
 export function RentAndCharges({
   summary,
   chargeInventory = null,
   rentChargeStatus = null,
-  controlsAvailable,
 }: Readonly<{
   summary: {
     currentRent: number | null;
@@ -45,75 +58,57 @@ export function RentAndCharges({
   };
   chargeInventory?: RenewalChargeInventory | null;
   rentChargeStatus?: readonly RentChargeOutcomeRow[] | null;
-  /** False for an inspection-only lease: the same facts and charges, no edit intents. */
-  controlsAvailable: boolean;
 }>) {
   const rentvine = summary.sourceDestinations?.rentvine ?? null;
   const rows = rentChargeStatus ?? [];
+  // The saved RentVine preview the page showed; a replacement prepared here is bound to it.
+  const rentvinePreviewHash =
+    rows.find((row) => row.destination === "rentvine" && row.previewHash)?.previewHash ??
+    null;
+  const charges = chargeInventory ? splitChargesBySchedule(chargeInventory) : null;
   return (
     <Card title={renewalCardTitle("rent-and-charges", "Rent and charges")}>
-      <dl className="ui-stack-tight">
-        <div>
-          <dt>Current contractual base rent</dt>
-          <dd>
-            {summary.currentRent == null
-              ? "Needs verification"
-              : formatCurrencyReference(summary.currentRent)}{" "}
-            <span className="muted">RentVine lease detail</span>
-          </dd>
-        </div>
-        <div>
-          <dt>Lease total (RentVine)</dt>
-          <dd>
-            {summary.leaseTotalRent == null
-              ? "Unavailable"
-              : formatCurrencyReference(summary.leaseTotalRent)}{" "}
-            <span className="muted">
-              RentVine lease total; the sum of active recurring charges
-            </span>
-          </dd>
-        </div>
-        <div>
-          <dt>Unit listed rent (reference)</dt>
-          <dd>
-            {summary.unitListedRent == null
-              ? "Unavailable"
-              : formatCurrencyReference(summary.unitListedRent)}{" "}
-            <span className="muted">
-              RentVine unit listing; a reference, not a lease term
-            </span>
-          </dd>
-        </div>
-      </dl>
+      <RenewalCurrentRent
+        chargeInventory={chargeInventory}
+        rentvineHref={rentvine?.href ?? null}
+        rentvinePreviewHash={rentvinePreviewHash}
+        summary={summary}
+      />
       <section aria-label="Recurring charges (RentVine)" className="ui-stack-tight">
         <h3>Recurring charges (RentVine)</h3>
-        {chargeInventory ? (
-          chargeInventory.charges.length > 0 ? (
-            <ul className="ui-rows">
-              {chargeInventory.charges.map((charge) => (
-                <li key={charge.id}>
-                  <strong>{charge.accountLabel ?? charge.projection.description}</strong>:{" "}
-                  {charge.projection.amount} every {charge.projection.frequency} month(s)
-                  on day {charge.projection.dayDue};{" "}
-                  {formatSourceCalendarDate(charge.projection.startDate)} to{" "}
-                  {formatSourceCalendarDate(charge.projection.endDate, "no end date")}.{" "}
-                  <span className="muted">
-                    {CLASSIFICATION_LABELS[charge.classification]};{" "}
-                    {scheduleLabel(charge.current)}.
-                  </span>
-                </li>
+        {charges ? (
+          charges.current.length > 0 ? (
+            <ul aria-label="Current charges" className="ui-rows">
+              {charges.current.map((charge) => (
+                <ChargeRow charge={charge} key={charge.id} />
               ))}
             </ul>
           ) : (
-            <p className="muted">No recurring charges returned for this lease.</p>
+            <p className="muted">
+              {chargeInventory!.charges.length === 0
+                ? "No recurring charges returned for this lease."
+                : "No recurring charge is within the current schedule."}
+            </p>
           )
         ) : (
           <p className="muted">The recurring charge list is unavailable right now.</p>
         )}
+        {charges && charges.other.length > 0 ? (
+          <details>
+            <summary>
+              Charges outside the current schedule ({charges.other.length})
+            </summary>
+            <ul aria-label="Earlier and future charges" className="ui-rows">
+              {charges.other.map((charge) => (
+                <ChargeRow charge={charge} key={charge.id} />
+              ))}
+            </ul>
+          </details>
+        ) : null}
         <p className="muted">
-          Individual charges do not redefine contractual base rent. One-time fees,
-          deposits, ledger history, party changes and insurance enrollment are outside
-          these RentVine actions
+          Each amount keeps its own meaning: other recurring charges are listed beside the
+          rent, never added to it. One-time fees, deposits, ledger history, party changes
+          and insurance enrollment are outside these RentVine actions
           {rentvine ? (
             <>
               ; handle those in the{" "}
@@ -130,64 +125,27 @@ export function RentAndCharges({
           .
         </p>
       </section>
-      {controlsAvailable ? (
-        <>
-          <ul aria-label="What to change" className="ui-rows">
-            <li>
-              <a className="text-link" href="#renewal-correct-a-fact">
-                Correct a current fact
-              </a>{" "}
-              <span className="muted">
-                Fixes a value that is wrong today. The app saves the reviewed value first;
-                each Sheet or RentVine update is then prepared and confirmed separately.
-              </span>
-            </li>
-            <li>
-              <a className="text-link" href="#renewal-future-rent">
-                Prepare future approved rent
-              </a>{" "}
-              <span className="muted">
-                Uses the owner-approved terms already recorded. Today&apos;s billing and
-                the Sheet current rent stay unchanged until the Admin-confirmed RentVine
-                change takes effect.
-              </span>
-            </li>
-          </ul>
-          <section aria-label="Update status by destination" className="ui-stack-tight">
-            <h3>Update status by destination</h3>
-            {rows.length === 0 ? (
-              <p className="muted">
-                No rent or charge update is recorded, prepared or waiting for this lease.
-              </p>
-            ) : (
-              <ul className="ui-rows">
-                {rows.map((row) => (
-                  <li
-                    key={row.id}
-                    data-outcome-state={row.state}
-                    data-outcome-destination={row.destination}
-                  >
-                    <div {...(row.state === "mismatch" ? { role: "status" } : {})}>
-                      <strong>{row.label}</strong>: {row.stateLabel}.{" "}
-                      <span className={row.attention ? undefined : "muted"}>
-                        {row.detail}
-                      </span>
-                      {row.anchor ? (
-                        <>
-                          {" "}
-                          <a className="text-link" href={row.anchor}>
-                            Review
-                          </a>
-                        </>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </>
-      ) : null}
+      <ul aria-label="What to change" className="ui-rows">
+        <li>
+          <a className="text-link" href={`#${WORKING_CURRENT_RENT_TARGET}`}>
+            Correct the current rent
+          </a>{" "}
+          <span className="muted">
+            Edit the working current rent above. It saves in the app by itself; RentVine
+            and the Sheet change only through a separately confirmed update.
+          </span>
+        </li>
+        <li>
+          <a className="text-link" href="#renewal-future-rent">
+            Prepare future renewal rent
+          </a>{" "}
+          <span className="muted">
+            Uses the working renewal terms. Today&apos;s billing and the Sheet current
+            rent stay unchanged until the confirmed RentVine change takes effect.
+          </span>
+        </li>
+      </ul>
+      <RentChargeUpdateStatus rows={rows} />
     </Card>
   );
 }

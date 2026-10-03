@@ -781,17 +781,13 @@ describe("S131 absent support is honest and local (AC-S131-4, AC-S131-6)", () =>
       ),
     ).toEqual([]);
     cover("gate.applicable_ready");
+    // S161: the note is listed as information with its control; it withholds nothing.
     const readiness = projectMessageReadiness({
       channel: "tenant",
       missing: [],
-      saved: true,
-      dirty: false,
-      needsReview: false,
-      signatureMatchesActor: true,
-      signatureSaved: true,
       policyGates: identified,
     });
-    expect(readiness.bodyReady).toBe(false);
+    expect(readiness.complete).toBe(false);
     expect(readiness.items).toEqual([
       expect.objectContaining({
         field: "policy.rhino",
@@ -802,17 +798,9 @@ describe("S131 absent support is honest and local (AC-S131-4, AC-S131-6)", () =>
         },
       }),
     ]);
-    expect(
-      projectMessageReadiness({
-        channel: "tenant",
-        missing: [],
-        saved: true,
-        dirty: false,
-        needsReview: false,
-        signatureMatchesActor: true,
-        signatureSaved: true,
-      }).bodyReady,
-    ).toBe(true);
+    expect(projectMessageReadiness({ channel: "tenant", missing: [] }).complete).toBe(
+      true,
+    );
   });
 
   it("records the follow-up as staff evidence only; a done task is never coverage", () => {

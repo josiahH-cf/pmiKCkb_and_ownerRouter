@@ -5,8 +5,10 @@ import {
   type RenewalWorkspaceAction,
 } from "@/lib/lease-renewal/workspace-state";
 import {
+  INDEPENDENT_UNRECORDED_STAFF_LANE,
   independentLeaseDetailIds,
   projectIndependentManualRenewal,
+  projectIndependentStaffLaneManualRenewal,
 } from "@/lib/production-assurance/manual-renewal-projection";
 import {
   validPhaseWorkspaceDestination,
@@ -166,5 +168,134 @@ describe("S113 independent production-assurance continuation", () => {
       overallStatus: "needs_verification",
       actionStepId: "verify-renewal",
     });
+    // S157: under the staff-lane rules the same missing source is evidence, never a status.
+    expect(
+      projectIndependentExpectedGuidanceState({
+        ...input,
+        contract: "staff_lane",
+        manual: projectIndependentStaffLaneManualRenewal(initial()),
+        rentExpectation: {
+          ...input.rentExpectation,
+          evidence: "missing_sheet",
+          rentVerification: "needs_verification",
+        },
+      }),
+    ).toEqual({
+      overallStatus: "ready",
+      actionStepId: "owner-decision",
+      actionFragment: "#renewal-manual-owner_outreach",
+      markerMismatches: 0,
+    });
+  });
+});
+
+describe("S156 staff-lane manual projection beside the predecessor projection", () => {
+  const outreach = () =>
+    act(initial(), { kind: "activity", activity: "owner_outreach", outcome: "done" });
+  const accepted = () => {
+    let state = act(outreach(), {
+      kind: "owner_response",
+      outcome: "approved_terms",
+      terms: { rent: 1300, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
+    });
+    state = act(state, { kind: "activity", activity: "tenant_offer", outcome: "done" });
+    return act(state, { kind: "tenant_response", outcome: "accepted" });
+  };
+
+  it("guides a lease with nothing recorded to the first staff activity", () => {
+    expect(INDEPENDENT_UNRECORDED_STAFF_LANE).toEqual({
+      complete: false,
+      nextActivity: "owner_outreach",
+      actionStepId: "owner-decision",
+    });
+    expect(projectIndependentStaffLaneManualRenewal(initial())).toMatchObject({
+      complete: false,
+      nextActivity: "owner_outreach",
+      actionStepId: "owner-decision",
+      pendingSourceUpdates: 0,
+    });
+  });
+
+  it("BEH-S156: completion is the staff record; the predecessor still required the checklist", () => {
+    const state = act(outreach(), { kind: "complete" });
+    expect(projectIndependentStaffLaneManualRenewal(state)).toMatchObject({
+      complete: true,
+      nextActivity: "complete",
+      actionStepId: "compliance-close",
+    });
+    expect(projectIndependentManualRenewal(state)).toMatchObject({
+      complete: false,
+      nextActivity: "owner_response",
+    });
+    // A later record or a later terms revision does not clear a recorded completion.
+    const later = act(state, { kind: "owner_response", outcome: "revision_requested" });
+    expect(later.termsRevision).toBeGreaterThan(state.termsRevision);
+    expect(projectIndependentStaffLaneManualRenewal(later).complete).toBe(true);
+    expect(projectIndependentManualRenewal(later).complete).toBe(false);
+    expect(
+      projectIndependentStaffLaneManualRenewal(act(later, { kind: "reopen" })).complete,
+    ).toBe(false);
+  });
+
+  it("BEH-S156: a conditional Not applicable needs no reason or policy under the staff lane only", () => {
+    const state = act(accepted(), {
+      kind: "activity",
+      activity: "information_form",
+      outcome: "not_applicable",
+    });
+    expect(projectIndependentStaffLaneManualRenewal(state).nextActivity).toBe(
+      "form_returned",
+    );
+    expect(projectIndependentManualRenewal(state).nextActivity).toBe("information_form");
+    // Not applicable never satisfies an activity that does not depend on the lease.
+    const current = accepted();
+    const notApplicable = {
+      ...current.activities.tenant_offer!,
+      outcome: "not_applicable" as const,
+    };
+    expect(
+      projectIndependentStaffLaneManualRenewal({
+        ...current,
+        activities: {
+          ...current.activities,
+          information_form: notApplicable,
+          form_returned: notApplicable,
+          documents: notApplicable,
+        },
+      }).nextActivity,
+    ).toBe("documents");
+  });
+
+  it("keeps an approval recorded without terms on the owner response in both rule sets", () => {
+    const state = act(outreach(), { kind: "owner_response", outcome: "approved_terms" });
+    // S156 BEH-4: the approval is the recorded answer; the staff lane moves on to the offer.
+    expect(projectIndependentStaffLaneManualRenewal(state)).toMatchObject({
+      nextActivity: "tenant_offer",
+      actionStepId: "tenant-decision",
+    });
+    expect(projectIndependentManualRenewal(state).nextActivity).toBe("owner_response");
+  });
+
+  it("maps every staff-lane activity to its workspace step and keeps a private digest", () => {
+    const state = accepted();
+    expect(projectIndependentStaffLaneManualRenewal(state)).toMatchObject({
+      nextActivity: "information_form",
+      actionStepId: "tenant-decision",
+    });
+    const declined = act(outreach(), {
+      kind: "owner_response",
+      outcome: "declined_non_renewal",
+    });
+    expect(projectIndependentStaffLaneManualRenewal(declined)).toMatchObject({
+      nextActivity: "non_renewal_handoff",
+      actionStepId: "compliance-close",
+    });
+    expect(projectIndependentStaffLaneManualRenewal(state).sourceDigest).toMatch(
+      /^[a-f0-9]{64}$/,
+    );
+    expect(
+      projectIndependentStaffLaneManualRenewal({ ...state, revision: state.revision + 1 })
+        .sourceDigest,
+    ).not.toBe(projectIndependentStaffLaneManualRenewal(state).sourceDigest);
   });
 });

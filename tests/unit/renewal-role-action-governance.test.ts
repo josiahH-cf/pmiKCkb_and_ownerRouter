@@ -73,7 +73,11 @@ const API_EXPECTATIONS = [
     "approve_source_write",
   ],
   ["app/api/lease-renewal/writeback-approvals/route.ts", "POST", "approve_source_write"],
-  ["app/api/lease-renewal/writeback-execute/route.ts", "POST", "execute_source_write"],
+  [
+    "app/api/lease-renewal/writeback-execute/route.ts",
+    "POST",
+    "execute_retired_generic_writeback",
+  ],
   [
     "app/api/lease-renewal/correction-review/route.ts",
     "POST",
@@ -103,6 +107,10 @@ const API_EXPECTATIONS = [
   ["app/api/lease-renewal/filled-artifact/route.ts", "POST", "approve_filled_artifact"],
   ["app/api/lease-renewal/work-status/route.ts", "GET", "read_workspace"],
   ["app/api/lease-renewal/work-status/route.ts", "POST", "save_work_status"],
+  ["app/api/lease-renewal/working-record/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/working-record/route.ts", "POST", "save_working_record"],
+  ["app/api/lease-renewal/desk-preferences/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/desk-preferences/route.ts", "POST", "save_desk_preference"],
 ] as const satisfies readonly (readonly [string, "GET" | "POST", RenewalCapabilityKey])[];
 
 describe("S80 renewal role and action governance", () => {
@@ -143,28 +151,28 @@ describe("S80 renewal role and action governance", () => {
     }
   });
 
-  it("keeps pricing, reconciliation, source approval, and Admin configuration at distinct stronger roles", () => {
-    expect(
-      evaluateRenewalAuthority("approve_pricing_suggestion", {
-        role: "Editor",
-        managedIdentity: true,
-        hasRenewalsSpace: true,
-      }),
-    ).toMatchObject({ code: "insufficient_role", effectConstructable: false });
-    expect(
-      evaluateRenewalAuthority("approve_pricing_suggestion", {
-        role: "Approver",
-        managedIdentity: true,
-        hasRenewalsSpace: true,
-      }),
-    ).toMatchObject({ code: "insufficient_role", effectConstructable: false });
-    expect(
-      evaluateRenewalAuthority("resolve_reconciliation", {
-        role: "Approver",
-        managedIdentity: true,
-        hasRenewalsSpace: true,
-      }),
-    ).toMatchObject({ code: "allowed", effectConstructable: true });
+  it("S156/S167: pricing, reconciliation and source approval are Editor rows; Admin configuration stays stronger", () => {
+    for (const capability of [
+      "approve_pricing_suggestion",
+      "resolve_reconciliation",
+      "approve_source_write",
+    ] as const) {
+      expect(RENEWAL_GOVERNANCE_MATRIX[capability].roleCapability).toBe("edit");
+      expect(
+        evaluateRenewalAuthority(capability, {
+          role: "Editor",
+          managedIdentity: true,
+          hasRenewalsSpace: true,
+        }),
+      ).toMatchObject({ code: "allowed", effectConstructable: true });
+      expect(
+        evaluateRenewalAuthority(capability, {
+          role: "Editor",
+          managedIdentity: true,
+          hasRenewalsSpace: false,
+        }),
+      ).toMatchObject({ code: "missing_space", effectConstructable: false });
+    }
     expect(
       evaluateRenewalAuthority("manage_renewal_configuration", {
         role: "Approver",
@@ -172,13 +180,9 @@ describe("S80 renewal role and action governance", () => {
         hasRenewalsSpace: true,
       }),
     ).toMatchObject({ code: "insufficient_role", effectConstructable: false });
-    expect(
-      evaluateRenewalAuthority("approve_source_write", {
-        role: "Admin",
-        managedIdentity: true,
-        hasRenewalsSpace: true,
-      }),
-    ).toMatchObject({ code: "allowed", effectConstructable: true });
+    expect(RENEWAL_GOVERNANCE_MATRIX.manage_renewal_configuration.roleCapability).toBe(
+      "manageAdmin",
+    );
   });
 
   it("treats identity, Space, role, exact action, suspension, confirmation, and quota as conjunctive", () => {
@@ -260,6 +264,84 @@ describe("S80 renewal role and action governance", () => {
     ).toMatchObject({ code: "action_closed", effectConstructable: false });
   });
 
+  it("S160 BEH-S160-1/5 (AC-S160-1): ordinary staff confirm a supported source update; the retired generic route stays Admin-only recovery", () => {
+    // S160 (cafa02a7): the exact-confirmed RentVine and operating-Sheet update rows ask for Editor
+    // authority. The exact keys, the confirmation binding and the external receipt are unchanged.
+    expect(RENEWAL_GOVERNANCE_MATRIX.execute_source_write).toMatchObject({
+      roleCapability: "edit",
+      effect: "external_write",
+      externalRequirement: "exact_action",
+      exactConfirmation: true,
+      audit: "external_receipt",
+    });
+    expect(RENEWAL_GOVERNANCE_MATRIX.execute_source_write.actionKeys).toEqual(
+      expect.arrayContaining([
+        "rentvine.lease.renewal_dates.update",
+        "rentvine.lease.recurring_charge.update",
+        "rentvine.lease.recurring_charge.create",
+      ]),
+    );
+    expect(RENEWAL_GOVERNANCE_MATRIX.execute_source_write.roleDeniedReason).toMatch(
+      /Editor access is required/,
+    );
+    expect(() =>
+      assertRenewalRoleAuthority("execute_source_write", "Editor"),
+    ).not.toThrow();
+    for (const role of ["Editor", "Approver", "Admin"] as const) {
+      expect(
+        evaluateRenewalAuthority("execute_source_write", {
+          role,
+          managedIdentity: true,
+          hasRenewalsSpace: true,
+          externalState: "ready",
+          exactConfirmation: true,
+        }),
+      ).toMatchObject({ code: "allowed", effectConstructable: true });
+      // A verification identity and a missing exact confirmation still stop the effect.
+      expect(
+        evaluateRenewalAuthority("execute_source_write", {
+          role,
+          managedIdentity: false,
+          hasRenewalsSpace: true,
+          externalState: "ready",
+          exactConfirmation: true,
+        }).effectConstructable,
+      ).toBe(false);
+      expect(
+        evaluateRenewalAuthority("execute_source_write", {
+          role,
+          managedIdentity: true,
+          hasRenewalsSpace: true,
+          externalState: "ready",
+          exactConfirmation: false,
+        }).effectConstructable,
+      ).toBe(false);
+    }
+    // The retired broad Sheet writeback key stays closed; its route row names Admin recovery only
+    // and no role can dispatch a new effect through it.
+    expect(RENEWAL_GOVERNANCE_MATRIX.execute_retired_generic_writeback).toMatchObject({
+      roleCapability: "manageAdmin",
+      effect: "external_write",
+      externalRequirement: "exact_action",
+      actionKeys: ["google_sheets.renewal_checklist.writeback"],
+      exactConfirmation: true,
+      audit: "external_receipt",
+    });
+    expect(() =>
+      assertRenewalRoleAuthority("execute_retired_generic_writeback", "Editor"),
+    ).toThrow(/Admin authority is required/);
+    expect(isActionExecutable("google_sheets.renewal_checklist.writeback")).toBe(false);
+    expect(
+      evaluateRenewalAuthority("execute_retired_generic_writeback", {
+        role: "Admin",
+        managedIdentity: true,
+        hasRenewalsSpace: true,
+        externalState: "closed",
+        exactConfirmation: true,
+      }),
+    ).toMatchObject({ code: "action_closed", effectConstructable: false });
+  });
+
   it("preserves the committed exact-key boundary independently of every role row", () => {
     expect(isActionExecutable("rentcast.rental_listings.search")).toBe(true);
     expect(isActionExecutable("gmail.renewal_notice.draft_create")).toBe(true);
@@ -321,19 +403,19 @@ describe("S80 renewal role and action governance", () => {
 
   it("uses the same specific refusal and safe next action at the direct API boundary", () => {
     expect(() =>
-      assertRenewalRoleAuthority("approve_pricing_suggestion", "Editor"),
-    ).toThrowError(
-      /Admin authority is required.*Leave the suggestion pending for Admin review/,
-    );
-    expect(() =>
-      assertRenewalRoleAuthority("resolve_reconciliation", "Editor"),
-    ).toThrowError(/Approver or Admin authority is required.*Defer the item/);
+      assertRenewalRoleAuthority("manage_renewal_configuration", "Editor"),
+    ).toThrowError(/Admin authority is required/);
     expect(() =>
       assertRenewalRoleAuthority("send_renewal_message", "Admin"),
     ).toThrowError(/never sends renewal messages.*send from Gmail/);
-    expect(() =>
-      assertRenewalRoleAuthority("approve_pricing_suggestion", "Admin"),
-    ).not.toThrow();
+    for (const capability of [
+      "approve_pricing_suggestion",
+      "resolve_reconciliation",
+      "approve_source_write",
+    ] as const) {
+      expect(() => assertRenewalRoleAuthority(capability, "Editor")).not.toThrow();
+      expect(() => assertRenewalRoleAuthority(capability, "Admin")).not.toThrow();
+    }
   });
 
   it("contains no per-person grant dimension and keeps role separate from every exact action key", () => {

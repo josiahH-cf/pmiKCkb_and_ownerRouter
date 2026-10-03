@@ -21,6 +21,7 @@ import {
   type SourceUpdateIdentity,
 } from "@/lib/lease-renewal/source-update-preview";
 import type { CurrentBaseReadback } from "@/lib/lease-renewal/writeback/current-base-readback";
+import { hasRenewalRoleAuthority } from "@/lib/lease-renewal/role-action-governance";
 import { can, type Role } from "@/lib/auth/roles";
 import type {
   RentvineWritebackClientEffect,
@@ -135,9 +136,9 @@ export function RentvineUpdatesPanel({
   /** S117: the lease named in every preview; null keeps the lease id only. */
   identity?: SourceUpdateIdentity | null;
   /**
-   * S117: server-derived readiness of a future-rent proposal (owner terms current and tenant
-   * acceptance recorded). False hides the confirmation; null means the page did not derive it and
-   * the server remains the only gate.
+   * S156/S160: whether a future-rent preview still matches the working renewal terms it was
+   * prepared from. False asks for a fresh preview; null means the page did not derive it and the
+   * server remains the only check.
    */
   futureRentExecutionReady?: boolean | null;
   /** S117: the refreshed base-rent comparison after a succeeded current-base charge update. */
@@ -164,6 +165,9 @@ export function RentvineUpdatesPanel({
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [chargeRefresh, setChargeRefresh] = useState<
+    "idle" | "pending" | "done" | "failed"
+  >("idle");
   const errorRef = useRef<HTMLParagraphElement>(null);
   const statusLoadedPreviewRef = useRef<string | null>(null);
 
@@ -181,12 +185,13 @@ export function RentvineUpdatesPanel({
   // every confirmation, so this flag is advisory copy only.
   const [mountedAtMs] = useState(() => Date.now());
   const editor = can(role, "edit");
-  const executor = can(role, "manageAdmin");
+  // S160: ordinary staff confirm a supported update; the server checks the same authority.
+  const executor = hasRenewalRoleAuthority("execute_source_write", role);
   const expired = proposal
     ? mountedAtMs > Date.parse(proposal.confirmation_expires_at)
     : false;
-  // S117: a future-rent effect needs the owner's current terms AND the tenant's recorded
-  // acceptance. The page derives that; the server re-checks it on every confirmation.
+  // S156/S160: a future-rent preview is confirmable while the working terms are unchanged. The
+  // page derives that; the server re-checks it on every confirmation.
   const futureBlocked =
     proposal?.business_intent === "future_rent" && futureRentExecutionReady === false;
   const proposalLifecycleLocked =
@@ -215,6 +220,19 @@ export function RentvineUpdatesPanel({
       queueMicrotask(() => errorRef.current?.focus());
     } finally {
       setPending(false);
+    }
+  }
+
+  // S152: the charge refresh is a deliberate read with its own truthful pending and result.
+  async function refreshCharges() {
+    setChargeRefresh("pending");
+    setError("");
+    setNotice("");
+    try {
+      await loadInventory();
+      setChargeRefresh("done");
+    } catch {
+      setChargeRefresh("failed");
     }
   }
 
@@ -548,9 +566,8 @@ export function RentvineUpdatesPanel({
                   ) : null}
                   {state === "not_started" && !expired && futureBlocked ? (
                     <p className="muted" role="status">
-                      Waiting for the recorded tenant acceptance of these exact terms. The
-                      Admin confirmation stays unavailable until that response is
-                      recorded.
+                      The working renewal terms changed after this preview was prepared.
+                      Prepare a fresh future-rent preview to confirm the current terms.
                     </p>
                   ) : null}
                   {executor ? (
@@ -638,7 +655,7 @@ export function RentvineUpdatesPanel({
                     </div>
                   ) : (
                     <p className="muted">
-                      Executing this source write is an Admin action.{" "}
+                      Confirming a source update needs Editor access.{" "}
                       <RequestAccessLink surface="renewal_workspace.execute_source_write" />
                     </p>
                   )}
@@ -668,9 +685,8 @@ export function RentvineUpdatesPanel({
             RentVine updates
           </RenewalSectionHeading>
           <p className="muted">
-            No RentVine update is waiting for review. An Editor prepares one below with
-            the exact approved changes and their source; an Admin confirms each effect
-            here.
+            No RentVine update is waiting for review. Prepare one below with the exact
+            changes, then confirm each effect here.
           </p>
         </div>
       )}
@@ -817,13 +833,23 @@ export function RentvineUpdatesPanel({
           <p className="muted">The current charge list has not been loaded.</p>
         )}
         <Button
-          type="button"
+          busy={chargeRefresh === "pending"}
+          busyLabel="Reading charges from RentVine"
           disabled={pending}
-          onClick={() => void run(loadInventory)}
-          variant="secondary"
+          onClick={() => void refreshCharges()}
+          type="button"
         >
-          Refresh verified charges
+          Refresh recurring charges
         </Button>
+        {chargeRefresh === "done" ? (
+          <p role="status">Recurring charges read from RentVine just now.</p>
+        ) : null}
+        {chargeRefresh === "failed" ? (
+          <p role="status">
+            The recurring charges could not be read. The list above is unchanged. Try
+            again.
+          </p>
+        ) : null}
         <p className="muted">
           One-time fees, deposit or ledger changes, party changes and insurance enrollment
           are outside these RentVine actions.
@@ -840,10 +866,10 @@ export function RentvineUpdatesPanel({
             }}
           >
             <p className="muted">
-              Enter only the exact approved changes. Saving reads fresh RentVine state,
-              validates every value against the supported field matrix, and replaces only
-              the exact generation shown above when it has no unresolved attempt. Nothing
-              is written to RentVine until an Admin confirms one effect at a time.
+              Enter only the exact changes. Saving reads fresh RentVine state, validates
+              every value against the supported field matrix, and replaces only the exact
+              generation shown above when it has no unresolved attempt. Nothing is written
+              to RentVine until you confirm one effect at a time.
             </p>
             <fieldset className="ui-stack" disabled={billingIntent === "current_base"}>
               <legend>Lease renewal dates</legend>
@@ -1057,11 +1083,11 @@ export function RentvineUpdatesPanel({
                 </Field>
               ))}
             </fieldset>
-            <Field htmlFor="s97-evidence-ref" label="Source of the reviewed terms">
+            <Field htmlFor="s97-evidence-ref" label="Source or context (optional)">
               <input
                 id="s97-evidence-ref"
                 onChange={(event) => setEvidenceRef(event.target.value)}
-                placeholder="Where these approved terms come from"
+                placeholder="Where these values come from"
                 value={evidenceRef}
               />
             </Field>

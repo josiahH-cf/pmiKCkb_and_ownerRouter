@@ -195,9 +195,8 @@ describe("S117 per-destination outcomes and current-base readback (ARCH-S117-3)"
       },
       nowMs: NOW,
     });
-    const app = rows.find((row) => row.destination === "app");
-    expect(app).toMatchObject({ state: "recorded", stateLabel: "Saved in the app" });
-    expect(app?.detail).toContain("1300.00");
+    // S157: app-saved working values are rendered live by the card, not projected here.
+    expect(rows.find((row) => row.destination === "app")).toBeUndefined();
     const staff = rows.find((row) => row.id === "sheet:staff:renewal_date");
     expect(staff).toMatchObject({ state: "unavailable", attention: true });
     expect(staff?.detail).toContain("2027-01-31");
@@ -212,6 +211,8 @@ describe("S117 per-destination outcomes and current-base readback (ARCH-S117-3)"
     });
     expect(rentvine?.detail).toContain("1300.00");
     expect(rentvine?.detail).toContain("1250.00");
+    expect(rentvine?.detail).not.toMatch(/base.rent (was )?(set|updated|changed) to/i);
+    expect(rentvine).toMatchObject({ previewHash: proposal.previewHash });
     const cell = rows.find((row) => row.id === `sheet:${"d".repeat(64)}`);
     expect(cell).toMatchObject({ state: "verified", attention: false });
     expect(cell?.detail).toContain("2027-01-31");
@@ -229,7 +230,7 @@ describe("S117 per-destination outcomes and current-base readback (ARCH-S117-3)"
     });
     expect(prepared[0]).toMatchObject({
       state: "prepared",
-      stateLabel: "Prepared, awaiting Admin confirmation",
+      stateLabel: "Prepared, awaiting confirmation",
       attention: false,
     });
     const expired = projectRentChargeOutcomes({
@@ -257,7 +258,6 @@ describe("S117 per-destination outcomes and current-base readback (ARCH-S117-3)"
       nowMs: NOW,
     });
     expect(rows.map((row) => [row.destination, row.state])).toEqual([
-      ["app", "recorded"],
       ["sheet", "unavailable"],
       ["rentvine", "failed"],
       ["sheet", "verified"],

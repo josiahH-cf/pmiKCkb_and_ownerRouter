@@ -5,6 +5,10 @@
 // end month). A month-to-month lease's periodic review is not a renewal and is not listed here; the
 // desk shows it under its periodic-review scope. They filter and project; they read no source of
 // their own and write nothing.
+//
+// S166: each projected lease links its own workspace by its real lease id and names the tenants the
+// row already carries, so a result can be told apart and opened. A row with no resolved lease id is
+// never given a lease link; it says so and opens the Renewals desk instead.
 
 import type { AssistantItem } from "@/lib/assistant/envelope";
 import {
@@ -12,7 +16,11 @@ import {
   renewalDeskItemIsBlocked,
   renewalDeskItemMatchesMonth,
 } from "@/lib/lease-renewal/desk-query-v2";
-import { buildWorkspaceHref } from "@/lib/lease-renewal/desk-view-continuation";
+import {
+  EXPLICIT_DEFAULT_DESK_VIEW,
+  RENEWAL_DESK_ROUTE,
+  leaseWorkspaceHrefOrNull,
+} from "@/lib/lease-renewal/desk-view-continuation";
 import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
 
 export function selectBlockedRenewalRows(
@@ -33,37 +41,57 @@ export function selectRenewalRowsInMonth(
   );
 }
 
+/** The Renewals desk's explicit default view, used when a row has no lease of its own to open. */
+const RENEWALS_DESK_HREF = `${RENEWAL_DESK_ROUTE}?${EXPLICIT_DEFAULT_DESK_VIEW}`;
+const MAX_TENANTS_NAMED = 3;
+
 export function projectRenewalItems(rows: readonly DeskLeaseRow[]): AssistantItem[] {
-  return rows.map((row) => ({
-    id: row.id,
-    title: row.addressLabel,
-    detail: renewalDetail(row),
-    blockers: row.guidance.blockers.map((blocker) => blocker.label),
-    href: leaseHref(row),
-  }));
+  return rows.map((row) => {
+    const href = leaseHref(row);
+    return {
+      id: row.id,
+      title: row.addressLabel,
+      detail: renewalDetail(row, href !== null),
+      blockers: row.guidance.blockers.map((blocker) => blocker.label),
+      href: href ?? RENEWALS_DESK_HREF,
+    };
+  });
 }
 
-function renewalDetail(row: DeskLeaseRow): string {
+/** The tenants this row already carries, so two leases at similar addresses can be told apart. */
+function tenantIdentity(row: DeskLeaseRow): string | null {
+  const names = (row.tenantNameLabels ?? []).filter((name) => name.trim() !== "");
+  if (names.length === 0) return null;
+  const shown = names.slice(0, MAX_TENANTS_NAMED).join(", ");
+  const more = names.length - MAX_TENANTS_NAMED;
+  return `${names.length === 1 ? "Tenant" : "Tenants"}: ${shown}${more > 0 ? ` and ${more} more` : ""}`;
+}
+
+function renewalDetail(row: DeskLeaseRow, leaseResolved: boolean): string {
   const when =
     row.endDateIso ??
     (typeof row.leaseTerm?.nextReviewIso === "string"
       ? row.leaseTerm.nextReviewIso
       : null);
   const date = when ? `ends ${when}` : "no end date recorded";
-  return `${row.reasonLabel} · ${date}`;
+  return [
+    tenantIdentity(row),
+    row.reasonLabel,
+    date,
+    leaseResolved ? null : "Lease record not resolved, so this opens the Renewals desk",
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(" · ");
 }
 
 /**
  * The exact owning link for one row: the lease workspace at the phase the desk would open, or the
- * workspace itself when the guidance names no phase. The assistant builds no provider URL.
+ * workspace itself when the guidance names no phase. Null when the row carries no resolved lease
+ * id. The assistant builds no provider URL and never derives a link from a name.
  */
-function leaseHref(row: DeskLeaseRow): string {
+function leaseHref(row: DeskLeaseRow): string | null {
   const action = row.guidance.action;
   const destination = "destination" in action ? action.destination : null;
   const stepId = destination?.kind === "workspace_phase" ? destination.stepId : undefined;
-  try {
-    return buildWorkspaceHref({ leaseId: row.id, step: stepId, deskView: null });
-  } catch {
-    return "/lease-renewal/live/desk?v=2";
-  }
+  return leaseWorkspaceHrefOrNull(row.id, stepId);
 }

@@ -27,6 +27,12 @@ function userWith(role: Role, uid: string): AuthenticatedUser {
 
 const admin = userWith("Admin", "admin-1");
 const editor = userWith("Editor", "editor-1");
+const canary: AuthenticatedUser = {
+  uid: "canary-editor",
+  email: "canary-editor@pmikcmetro.com",
+  hd: "pmikcmetro.com",
+  role: "Editor",
+};
 
 const LEASE_ID = "5001";
 
@@ -173,11 +179,11 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
     expect(await getRentSuggestionApproval(admin, LEASE_ID, fs())).toBeNull();
   });
 
-  it("is Admin-only — an Editor cannot approve, and no record is written", async () => {
+  it("S156/S167: an Editor approves alone, and a verification account cannot write a record", async () => {
     seedProgress(db, { range_low: 2200, range_high: 2500, pmi_number: 2300 });
     await expect(
       decideRentSuggestionApproval(
-        editor,
+        canary,
         { lease_id: LEASE_ID, decision: "approve", reason: "x" },
         null,
         null,
@@ -185,6 +191,20 @@ describe("decideRentSuggestionApproval — exact-number binding + stale-on-chang
       ),
     ).rejects.toThrow(EditableLayerError);
     expect(await getRentSuggestionApproval(admin, LEASE_ID, fs())).toBeNull();
+    await expect(
+      decideRentSuggestionApproval(
+        editor,
+        { lease_id: LEASE_ID, decision: "approve", reason: "Comps support this." },
+        null,
+        null,
+        fs(),
+      ),
+    ).resolves.toMatchObject({
+      state: "Approved",
+      decided_by_uid: "editor-1",
+      production_allowed: false,
+      executed: false,
+    });
   });
 
   it("requires a plain-English reason", async () => {
@@ -293,10 +313,10 @@ describe("owner-policy suggestion approval (AC-S62-3, AC-S62-4)", () => {
     expect(approval.method).toBe("owner_policy_percent");
     expect(approval.executed).toBe(false);
 
-    // Same Admin gate: an Editor cannot approve a policy number either.
+    // Same gate: a verification account cannot record a policy-number decision either.
     await expect(
       decideRentSuggestionApproval(
-        editor,
+        canary,
         { lease_id: LEASE_ID, decision: "approve", reason: "x" },
         2000,
         "27",

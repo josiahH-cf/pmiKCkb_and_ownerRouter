@@ -2068,9 +2068,36 @@ textarea:disabled {
   gap: var(--space-2);
 }
 
+/* S152: the selected view is unmistakable: filled, with the pressed state exposed to assistive
+   technology by aria-pressed. The other view stays a quiet secondary button. */
 .renewal-view-switch-button[aria-pressed="true"] {
-  background: var(--action-secondary-hover);
-  box-shadow: inset 0 -3px 0 var(--action-primary);
+  background: var(--action-primary);
+  border-color: var(--action-primary);
+  color: var(--action-primary-foreground);
+  font-weight: 700;
+}
+
+.renewal-view-switch-button[aria-pressed="true"]:hover:not(:disabled) {
+  background: var(--action-primary-hover);
+  border-color: var(--action-primary-hover);
+}
+
+/* S152: the lease switch keeps its own width; a later worklist rule reuses this class name. */
+.renewal-view-switch[data-renewal-view-switch] {
+  gap: var(--space-2);
+  width: auto;
+}
+
+/* S152: a section or control reached by a link or the section navigation lands below the sticky
+   workspace toolbar, with its heading fully visible. */
+.renewal-workspace-shell
+  :is([id], input, select, textarea, button, summary, a[href], [tabindex]) {
+  scroll-margin-top: var(--renewal-sticky-offset, 132px);
+}
+
+.renewal-workspace-identity-tenants {
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 /* S143/S144: Focus view hides Full view regions in place, so no author display rule may show
@@ -2295,6 +2322,49 @@ textarea:disabled {
   margin: 0;
 }
 
+/* S164: the staff status, the note area and the running Status log fill their container and wrap
+   long text, so the lease information panel never widens a phone-width page. */
+.renewal-work-status select {
+  width: 100%;
+}
+
+.renewal-status-note-input {
+  display: block;
+  min-height: 4.5rem;
+  resize: vertical;
+  width: 100%;
+}
+
+.renewal-status-note-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.renewal-work-status-history > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.renewal-status-log > li {
+  border-top: 1px solid var(--ui-border);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding-block: var(--space-2);
+}
+
+.renewal-status-log-text {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.renewal-status-log-meta {
+  font-size: var(--font-size-min);
+  margin: 0;
+}
+
 .renewal-info-parties li {
   display: grid;
   gap: var(--space-1);
@@ -2512,6 +2582,20 @@ textarea:disabled {
   display: inline-flex;
   min-height: 44px;
   padding: 6px 12px;
+}
+
+/* S166: the remembered-view line beside the worklist controls. */
+.renewal-view-memory {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.renewal-view-memory .text-link {
+  align-items: center;
+  display: inline-flex;
+  min-height: 44px;
 }
 
 .renewal-filter-chips {
@@ -3892,4 +3976,225 @@ textarea:disabled {
 
 .renewal-message-preview span {
   color: var(--action-link) !important;
+}
+
+/* ==========================================================================================
+   S165 mobile: the existing application is completable from a phone browser (360 to 430 px
+   wide, portrait, touch). Everything in this block is additive and sits last in the cascade.
+   No rule here hides a control (BEH-S165-10); each one keeps an input, action, link or table
+   reachable with the onscreen keyboard open or a finger instead of a pointer. The renewal
+   Focus/Full view switch and the renewal section scroll margins are owned elsewhere and are
+   not restated here.
+   ========================================================================================== */
+
+/* Phone browsers grow and shrink their own toolbars; the dynamic viewport unit follows them, so
+   a full-height shell neither overflows the visible area nor leaves a gap. Browsers without dvh
+   keep the vh rule declared earlier. */
+.page,
+.auth-page,
+.vendor-theme-shell {
+  min-height: 100dvh;
+}
+
+/* viewport-fit=cover (lib/ui/app-viewport.ts) exposes the safe-area insets. One rule on the body
+   keeps every shell's content clear of a notch or rounded corner; fixed controls below add their
+   own inset. The insets are zero where there is no cutout. */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Long unbroken values (hashes, setup keys, links, ids) wrap instead of widening the page. */
+:where(code, .mono) {
+  overflow-wrap: anywhere;
+}
+
+/* Every table scrolls inside its own labelled region; the page itself never scrolls sideways.
+   Containing the overscroll keeps a horizontal swipe on the table from turning into the
+   browser's back gesture. */
+.table-wrap,
+.table-scroll,
+.renewal-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* Dialogs follow the visible area (keyboard open, toolbar shown) and scroll inside themselves.
+   The zero-specificity rule applies to any dialog that sets no height of its own. */
+:where(.ui-dialog-backdrop > *) {
+  max-height: calc(100dvh - (2 * var(--space-4)));
+  overflow-y: auto;
+}
+
+.ui-dialog-backdrop {
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+}
+
+.ui-confirmation-dialog {
+  max-height: calc(100dvh - 2rem);
+}
+
+.renewal-th-filter-panel {
+  max-height: min(70dvh, 640px);
+}
+
+/* The fixed feedback control stays clear of the home indicator and rounded corners. */
+.report-issue-trigger {
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  right: max(20px, env(safe-area-inset-right));
+}
+
+/* Slide-out panels: full width on a phone without a viewport-width overflow, and their content
+   clears the home indicator. */
+.renewal-slide-panel {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.ui-tablist {
+  overscroll-behavior-x: contain;
+}
+
+/* The sign-in page's in-app browser note and link copy (components/auth/SignInPanel.tsx). */
+.auth-browser-note {
+  background: var(--state-reference-surface);
+  border: 1px solid var(--state-reference-border);
+  border-radius: var(--radius-md);
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.auth-browser-note p {
+  margin: 0;
+}
+
+.auth-browser-note .secondary-button {
+  justify-self: start;
+}
+
+.auth-link-field {
+  display: grid;
+  font-weight: 600;
+  gap: var(--space-1);
+}
+
+.auth-link-field input {
+  width: 100%;
+}
+
+/* A calm note (what to do while the Google window is open, an earlier sign-in that ended) is
+   not an error. */
+.auth-message[role="status"] {
+  background: var(--state-reference-surface);
+  border-left-color: var(--state-reference-border);
+}
+
+@media (max-width: 760px) {
+  .ui-dialog-backdrop {
+    padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  }
+
+  /* Tablet: the sticky lease toolbar may not take more than part of the screen; the rest of it
+     scrolls inside the toolbar. */
+  .renewal-workspace-toolbar {
+    max-height: 40dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 720px) {
+  .renewal-slide-panel {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  /* Room below the last action so it can scroll clear of the fixed feedback control. */
+  .content {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+
+  .report-issue-trigger {
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    padding: 8px 14px;
+    right: max(12px, env(safe-area-inset-right));
+  }
+
+  /* Phone: the lease toolbar (identity, panel toggles, view switch, section links) scrolls with
+     the page instead of staying pinned, so a focused field and its actions keep the screen. */
+  .renewal-workspace-toolbar {
+    max-height: none;
+    overflow-y: visible;
+    position: static;
+  }
+
+  /* The pinned lease column keeps the row identifiable while the other columns scroll, but it
+     never takes more than half of a phone screen from them. */
+  .renewal-table th:first-child,
+  .renewal-table td:first-child,
+  .renewal-table tbody th[scope="row"] {
+    max-width: 46vw;
+    overflow-wrap: anywhere;
+  }
+
+  .ui-dialog-backdrop {
+    padding-bottom: max(var(--space-2), env(safe-area-inset-bottom));
+  }
+
+  .auth-page {
+    padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+  }
+}
+
+/* A short viewport is the onscreen keyboard (the layout resizes with it) or a phone held
+   sideways. Floating controls then stop covering the field being edited: the feedback control
+   joins the end of the page and the lease toolbar scrolls with it. Both stay on the page. */
+@media (max-height: 520px) {
+  .report-issue-trigger {
+    display: block;
+    margin: 0 var(--space-4) var(--space-4) auto;
+    position: static;
+    width: fit-content;
+  }
+
+  .renewal-workspace-toolbar {
+    max-height: none;
+    overflow-y: visible;
+    position: static;
+  }
+}
+
+/* Touch: every control reaches the shared minimum target; the few that were smaller grow. */
+@media (pointer: coarse) {
+  .compact-button,
+  .renewal-copy-button,
+  .work-actions button,
+  .work-inline-form button,
+  .work-form-grid button {
+    min-height: var(--target-min);
+  }
+}
+
+/* No hover on a touch screen: an explanation that desktop shows in a hover title is shown as
+   text under its label. The title attribute stays for assistive technology and for pointers. */
+@media (hover: none) {
+  .renewal-lifecycle[title]::after {
+    color: var(--ui-text-muted);
+    content: attr(title);
+    flex-basis: 100%;
+    font-size: var(--font-size-min);
+    font-weight: 400;
+  }
+
+  [data-renewal-field="move-out-timing"][title]::after,
+  .renewal-issue-summary[title]::after {
+    color: var(--ui-text-muted);
+    content: attr(title);
+    display: block;
+    font-size: var(--font-size-min);
+    font-weight: 400;
+    margin-top: 2px;
+  }
 }

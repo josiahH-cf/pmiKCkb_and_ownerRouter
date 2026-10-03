@@ -1,83 +1,36 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 import { RenewalCorrections } from "@/components/lease-renewal/RenewalCorrections";
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
 import type { RentChargeOutcomeRow } from "@/lib/lease-renewal/rent-charge-outcomes";
-import type {
-  RenewalChargeInventory,
-  RenewalChargeOption,
-} from "@/lib/lease-renewal/writeback/charge-inventory-model";
+import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
+import {
+  FUTURE_RENT,
+  fixtureCharge,
+  fixtureInventory,
+  fixtureWorkingRecord,
+} from "@/tests/helpers/rent-charge-fixtures";
 import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 
 afterEach(cleanup);
 
-function charge(
-  id: string,
-  overrides: Omit<Partial<RenewalChargeOption>, "projection"> & {
-    projection?: Partial<RenewalChargeOption["projection"]>;
-  } = {},
-): RenewalChargeOption {
-  const { projection, ...rest } = overrides;
-  return {
-    id,
-    accountId: "9",
-    accountLabel: "Rent account",
-    classification: "rent",
-    current: true,
-    ...rest,
-    projection: {
-      leaseRecurringChargeID: id,
-      leaseID: "4821",
-      accountID: "9",
-      amount: "1180.00",
-      description: "Rent",
-      dayDue: "1",
-      frequency: "1",
-      startDate: "2026-01-01",
-      endDate: null,
-      nextChargeDate: "2026-10-01",
-      isMoveInCharge: "0",
-      isFromImport: "0",
-      rentIncreaseID: null,
-      importSourceKey: null,
-      recurringStatusID: 1,
-      ...projection,
-    },
-  };
-}
+// S117 (R117.1, R117.4) as carried into S153/S157: the one Rent and charges working area with the
+// operational current rent, its labelled sources, the charges, the working value and each
+// destination's own update state. Every value is synthetic.
 
-const inventory: RenewalChargeInventory = {
-  leaseId: "4821",
-  asOfDate: "2026-09-16",
-  leaseDates: {
-    startDate: "2026-01-01",
-    endDate: "2026-12-31",
-    increaseEligibilityDate: null,
-  },
-  charges: [
-    charge("301"),
-    charge("303", {
-      accountLabel: null,
-      current: false,
-      projection: {
-        amount: "1300.00",
-        startDate: "2027-01-01",
-        endDate: "2027-12-31",
-        recurringStatusID: 2,
-        description: "Future rent",
-      },
-    }),
-    charge("302", {
-      accountId: "12",
-      accountLabel: null,
-      classification: "non_rent",
-      projection: { accountID: "12", amount: "35.00", description: "Rent" },
-    }),
-  ],
-};
+const inventory = fixtureInventory([
+  fixtureCharge("301"),
+  FUTURE_RENT,
+  fixtureCharge("302", {
+    accountId: "12",
+    accountLabel: null,
+    classification: "non_rent",
+    projection: { accountID: "12", amount: "35.00", description: "Rent" },
+  }),
+]);
 
 const rows: RentChargeOutcomeRow[] = [
   {
@@ -88,9 +41,10 @@ const rows: RentChargeOutcomeRow[] = [
     state: "mismatch",
     stateLabel: "Charge applied; lease base rent still differs",
     detail:
-      "Charge applied at 1300.00; the lease's contractual base rent still reads 1180.00. Review the lease in RentVine and refresh this lease before relying on the rent shown.",
+      "Charge applied at 1300.00 and read back. The lease's contractual lease rent still reads 1180.00; RentVine has no general base-rent setter, so that amount changes only in the RentVine lease record.",
     anchor: "#rentvine-updates-title",
     attention: true,
+    previewHash: "a".repeat(64),
   },
   {
     id: "sheet:d",
@@ -98,46 +52,47 @@ const rows: RentChargeOutcomeRow[] = [
     intent: "current",
     label: "Sheet Renewal date",
     state: "prepared",
-    stateLabel: "Prepared, awaiting Admin confirmation",
+    stateLabel: "Prepared, awaiting confirmation",
     detail: "Row 41: 2026-12-31 to 2027-01-31.",
     anchor: "#operating-sheet-title",
     attention: false,
   },
 ];
 
-function renderArea(overrides: { workflowAvailable?: boolean } = {}) {
-  const base = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
-  const workspace =
-    overrides.workflowAvailable === false ? { ...base, workflowAvailable: false } : base;
-  return render(
+function renderArea(options: { workingRecord?: RenewalWorkingRecord | null } = {}) {
+  const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
+  const view = render(
     <RenewalWorkspace
       workspace={workspace}
-      role="Admin"
+      role="Editor"
       selectedStepId="verify-renewal"
       manualState={null}
       chargeInventory={inventory}
       rentChargeStatus={rows}
+      workingRecord={options.workingRecord ?? null}
       correctionPanel={
         <RenewalCorrections
           leaseId={workspace.summary.id}
-          role="Admin"
+          role="Editor"
           dataCheck={workspace.dataCheck}
           sheetValues={null}
           workspaceContext={null}
           inventory={inventory}
           sheetPreviewHash={null}
           rentvinePreviewHash={null}
-          reviewHref={null}
         />
       }
       rentvineUpdatesPanel={<div>RentVine proposal controls</div>}
       operatingSheetPanel={<div>Sheet proposal controls</div>}
     />,
   );
+  // S152: Focus view is the default; the working area is the same mounted region in Full view.
+  fireEvent.click(screen.getByRole("button", { name: "Full view" }));
+  return view;
 }
 
 describe("S117 Rent and charges working area (R117.1, R117.4)", () => {
-  it("AC-S117-1: Rent and charges is one working area inside Lease details with distinct current, reference, charge and future values", () => {
+  it("AC-S117-1: Rent and charges is one working area inside Lease details with distinct current, contractual, reference, charge and future values", () => {
     const { container } = renderArea();
     const details = screen.getByRole("region", { name: "Lease details" });
     const area = within(details).getByRole("region", {
@@ -145,47 +100,62 @@ describe("S117 Rent and charges working area (R117.1, R117.4)", () => {
     });
     expect(within(area).getByRole("heading", { name: "Rent and charges" })).toBeVisible();
     for (const label of [
-      "Current contractual base rent",
+      "Current rent",
+      "Current rent charge (RentVine)",
+      "Contractual lease rent",
       "Lease total (RentVine)",
       "Unit listed rent (reference)",
     ]) {
       expect(within(area).getByText(label)).toBeInTheDocument();
     }
+    const operational = area.querySelector('[data-rent-fact="operational"]');
+    expect(operational).toHaveTextContent("1180.00");
+    expect(operational).toHaveTextContent("RentVine rent-account recurring charge");
     const charges = within(area).getByRole("region", {
       name: "Recurring charges (RentVine)",
     });
-    const items = within(charges).getAllByRole("listitem");
-    expect(items).toHaveLength(3);
-    const current = items.find((item) =>
-      /within current schedule/.test(item.textContent ?? ""),
-    );
-    expect(current?.textContent).toContain("Rent account");
-    expect(current?.textContent).toContain("1180.00");
-    const future = items.find((item) => /Future rent/.test(item.textContent ?? ""));
-    expect(future?.textContent).toContain("outside current schedule");
-    const other = items.find((item) =>
-      /Other recurring charge/.test(item.textContent ?? ""),
-    );
-    expect(other?.textContent).toContain("35.00");
-    expect(other?.textContent).not.toContain("Rent account");
+    const current = within(
+      within(charges).getByRole("list", { name: "Current charges" }),
+    ).getAllByRole("listitem");
+    expect(current).toHaveLength(2);
+    expect(current[0]).toHaveTextContent("Rent account");
+    expect(current[0]).toHaveTextContent("1180.00");
+    expect(current[0]).toHaveTextContent("within current schedule");
+    expect(current[1]).toHaveTextContent("Other recurring charge");
+    expect(current[1]).toHaveTextContent("35.00");
+    expect(current[1]).not.toHaveTextContent("Rent account");
+    const others = within(
+      within(charges).getByRole("list", { name: "Earlier and future charges" }),
+    ).getAllByRole("listitem");
+    expect(others).toHaveLength(1);
+    expect(others[0]).toHaveTextContent("1300.00");
+    expect(others[0]).toHaveTextContent("Billing period: 01/01/2027 to 12/31/2027");
+    expect(others[0]).toHaveTextContent("outside current schedule");
 
     expect(
-      within(area).getByRole("link", { name: "Correct a current fact" }),
-    ).toHaveAttribute("href", "#renewal-correct-a-fact");
+      within(area).getByRole("link", { name: "Correct the current rent" }),
+    ).toHaveAttribute("href", "#renewal-working-current-rent");
     expect(
-      within(area).getByRole("link", { name: "Prepare future approved rent" }),
+      within(area).getByRole("link", { name: "Prepare future renewal rent" }),
     ).toHaveAttribute("href", "#renewal-future-rent");
+    const working = container.querySelector("#renewal-working-current-rent");
+    expect(working).not.toBeNull();
+    expect(
+      within(working as HTMLElement).getByLabelText("Working current rent"),
+    ).toBeEnabled();
     const correct = container.querySelector("#renewal-correct-a-fact");
     expect(correct).not.toBeNull();
     expect(
       within(correct as HTMLElement).getByLabelText("Fact to correct"),
     ).toBeInTheDocument();
-    const future2 = container.querySelector("#renewal-future-rent");
-    expect(future2?.textContent).toContain("Prepare future approved rent in RentVine");
+    const future = container.querySelector("#renewal-future-rent");
+    expect(future?.textContent).toContain("Prepare future renewal rent in RentVine");
+    expect(area).toContainElement(working as HTMLElement);
     expect(area).toContainElement(correct as HTMLElement);
-    expect(area).toContainElement(future2 as HTMLElement);
+    expect(area).toContainElement(future as HTMLElement);
     expect(area).toContainElement(screen.getByText("RentVine proposal controls"));
     expect(area).toContainElement(screen.getByText("Sheet proposal controls"));
+    expect(area.textContent).not.toMatch(/approved|Admin/);
 
     const dataCheck = within(details).getByRole("heading", { name: "Data check" });
     expect(
@@ -194,7 +164,9 @@ describe("S117 Rent and charges working area (R117.1, R117.4)", () => {
   });
 
   it("AC-S117-4: update status by destination shows each destination's own state and a base-rent mismatch as attention, never as synchronized", () => {
-    renderArea();
+    renderArea({
+      workingRecord: fixtureWorkingRecord({ current_rent: { value: 1300, revision: 1 } }),
+    });
     const area = screen.getByRole("region", { name: "Rent and charges working area" });
     const status = within(area).getByRole("region", {
       name: "Update status by destination",
@@ -209,25 +181,13 @@ describe("S117 Rent and charges working area (R117.1, R117.4)", () => {
       within(status)
         .getByText(/Sheet Renewal date/)
         .closest("li")?.textContent,
-    ).toContain("Prepared, awaiting Admin confirmation");
+    ).toContain("Prepared, awaiting confirmation");
+    const app = within(status)
+      .getByText(/Working current rent/)
+      .closest("li");
+    expect(app).toHaveAttribute("data-outcome-state", "recorded");
+    expect(app?.textContent).toContain("Saved in the app");
     expect(status.textContent).not.toMatch(/synchroniz/i);
-    expect(within(status).getAllByRole("link", { name: "Review" })).toHaveLength(2);
-  });
-
-  it("AC-S117-1: an inspection-only lease shows the same facts and charges without edit controls", () => {
-    renderArea({ workflowAvailable: false });
-    const area = screen.getByRole("region", { name: "Rent and charges working area" });
-    expect(
-      within(
-        within(area).getByRole("region", { name: "Recurring charges (RentVine)" }),
-      ).getAllByRole("listitem"),
-    ).toHaveLength(3);
-    expect(
-      within(area).queryByRole("link", { name: "Correct a current fact" }),
-    ).toBeNull();
-    expect(
-      within(area).queryByRole("region", { name: "Update status by destination" }),
-    ).toBeNull();
-    expect(screen.queryByLabelText("Fact to correct")).toBeNull();
+    expect(within(status).getAllByRole("link", { name: "Review" })).toHaveLength(3);
   });
 });

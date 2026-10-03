@@ -23,9 +23,12 @@ import { parseEnv } from "node:util";
 
 import { evaluateRelease } from "./release-watcher-plan.mjs";
 import { assertReleaseAdmission, readReleasePermit } from "./release-control.mjs";
+import {
+  REVIEWED_CANDIDATE_SHEET_WRITEBACK,
+  SHEET_WRITEBACK_FLAG,
+} from "../lib/production-assurance/sheet-writeback-expectation.mjs";
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
-const SHEET_WRITEBACK_FLAG = "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED";
 const REPOSITORY = "josiahH-cf/pmiKCkb_and_ownerRouter";
 /** The watcher uses the Windows GitHub CLI from WSL when it is present; match it. */
 const GH_BIN = existsSync("/mnt/c/Program Files/GitHub CLI/gh.exe")
@@ -261,28 +264,39 @@ export function evaluateBatchPreflight(input) {
     ),
   );
 
-  const paused = Object.entries(envFlags)
+  // S159: the candidate carries the one reviewed operating-Sheet switch value. Both env files, in
+  // this checkout and in its mirror, must state exactly that value; anything else is refused. The
+  // captured predecessor's actual value is not staged here: recovery preparation reads it from the
+  // serving revision and keeps it unchanged.
+  const reviewedSheet = REVIEWED_CANDIDATE_SHEET_WRITEBACK;
+  const staged = Object.entries(envFlags)
     .filter(([name]) => name.endsWith(SHEET_WRITEBACK_FLAG))
-    .map(([name, value]) => [name, String(value).trim() !== "true"]);
+    .map(([name, value]) => [name, value === reviewedSheet]);
   const requiredFlagKeys = [".env.local", ".env.production.local"].map(
     (file) => `${file}:${SHEET_WRITEBACK_FLAG}`,
   );
-  const allPaused = requiredFlagKeys.every(
-    (key) => envFlags[key] === "false" && input.mirroredEnvFlags?.[key] === "false",
+  const allReviewed = requiredFlagKeys.every(
+    (key) =>
+      envFlags[key] === reviewedSheet && input.mirroredEnvFlags?.[key] === reviewedSheet,
   );
   checks.push(
     check(
-      "sheet_pause",
-      paused.length === 0 ? "unknown" : allPaused ? "ready" : "blocked",
-      allPaused
-        ? "The operating-Sheet pause (S128) is staged false everywhere it is read"
-        : "An env file would ship the operating-Sheet write flag enabled",
-      paused.length
-        ? paused
-            .map(([name, safe]) => `${name}: ${safe ? "paused" : "ENABLED"}`)
+      "sheet_switch",
+      staged.length === 0 ? "unknown" : allReviewed ? "ready" : "blocked",
+      allReviewed
+        ? `The operating-Sheet switch is staged ${reviewedSheet}, the reviewed candidate value, everywhere it is read`
+        : "An env file would ship an operating-Sheet switch value other than the reviewed one",
+      staged.length
+        ? staged
+            .map(
+              ([name, matches]) =>
+                `${name}: ${matches ? `reviewed (${reviewedSheet})` : "DIFFERS"}`,
+            )
             .join("; ")
         : "Neither ignored env file was readable from this host.",
-      allPaused ? null : `Set ${SHEET_WRITEBACK_FLAG}=false before any deploy.`,
+      allReviewed
+        ? null
+        : `Set ${SHEET_WRITEBACK_FLAG}=${reviewedSheet} in .env.local and .env.production.local, in both checkouts, before any deploy.`,
     ),
   );
 

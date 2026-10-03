@@ -31,7 +31,8 @@ export const LIVE_READONLY_ALLOWED_NON_SAFE_REQUESTS: ReadonlyMap<string, string
   ]);
 
 /**
- * S148-S150: the signed-in user's own AI history writes. Under Live-read-only they are allowed only when
+ * S148-S150: the signed-in user's own AI history writes, and S166: the signed-in account's own
+ * remembered worklist view. Under Live-read-only they are allowed only when
  * every Firestore write goes to a local emulator (FIRESTORE_EMULATOR_HOST is set, as in the
  * automated E2E harness), so the owner-scoped history path can be exercised end to end without
  * touching a real project. Against a real project they stay refused like every other write.
@@ -66,6 +67,12 @@ export const EMULATOR_ONLY_HISTORY_REQUESTS: readonly {
     pattern: /^\/api\/assistant\/saved\/[a-f0-9]{32}\/run$/,
     reason:
       "S150: run a saved question read-only and record the result in emulator history.",
+  },
+  {
+    method: "POST",
+    pattern: /^\/api\/lease-renewal\/desk-preferences$/,
+    reason:
+      "S166: remember the signed-in account's own worklist view in the emulator store.",
   },
 ];
 

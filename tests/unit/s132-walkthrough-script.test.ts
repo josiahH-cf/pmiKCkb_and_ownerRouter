@@ -32,9 +32,10 @@ describe("S132 AC-S132-3: side-by-side script names only real controls", () => {
       "Fact to correct",
       "Rent and charges working area",
       "Copy formatted body",
-      "Record owner response",
+      // S155/S156: the owner and tenant answers are choices that save at once, not Record buttons.
+      "Owner response",
       "Copy plain text",
-      "Record tenant response",
+      "Tenant response",
       "Reload document readiness and attempts",
       "Preview exact Dotloop packet creation",
       "Record staff completion",

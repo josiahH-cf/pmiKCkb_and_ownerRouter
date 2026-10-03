@@ -118,6 +118,16 @@ function isCredentialSuspect(grid: RawGrid, fingerprintCredential: boolean): boo
   return looksLikeCredentialHeaders(grid.slice(0, 3).flat().join(" "));
 }
 
+/**
+ * S158: the same hard exclusion this boundary applies, for one tab's grid read on its own (the
+ * operator's tab picker and selected-location read). A credential tab is never offered or read.
+ */
+export function isCredentialTabGrid(grid: RawGrid): boolean {
+  const { cleaned } = dropDividers(grid, []);
+  if (cleaned.length === 0) return false;
+  return isCredentialSuspect(cleaned, fingerprintTab(cleaned).credentialBearing);
+}
+
 function nameHint(fieldKey: string): NormalizedType | undefined {
   return fieldKey.includes("name") || fieldKey === "owner" ? "name" : undefined;
 }

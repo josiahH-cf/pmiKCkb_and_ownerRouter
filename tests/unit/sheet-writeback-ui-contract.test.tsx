@@ -235,6 +235,7 @@ describe("Sheet write-back UI action contract", () => {
         approval={RETURNED}
         isAdmin={true}
         runId={RUN_ID}
+        legacyRecoveryAdmin={true}
         showLegacyWritebackRecovery={true}
         sourceTriggerKey={SOURCE_TRIGGER_KEY}
         writebackEnabled={true}
@@ -254,6 +255,7 @@ describe("Sheet write-back UI action contract", () => {
         }}
         isAdmin={true}
         runId={RUN_ID}
+        legacyRecoveryAdmin={true}
         showLegacyWritebackRecovery={true}
         sourceTriggerKey={SOURCE_TRIGGER_KEY}
         writebackEnabled={true}
@@ -1056,6 +1058,7 @@ function renderApprovalControl(
       approval={approval}
       isAdmin={true}
       runId={RUN_ID}
+      legacyRecoveryAdmin={true}
       showLegacyWritebackRecovery={true}
       sourceTriggerKey={SOURCE_TRIGGER_KEY}
       writebackEnabled={writebackEnabled}

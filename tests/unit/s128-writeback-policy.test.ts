@@ -6,12 +6,12 @@ import {
   isSheetWritebackEnabled,
 } from "@/lib/lease-renewal/sheet-writeback-policy";
 import {
-  assertRevisionPausesSheetWriteback,
+  assertRevisionSheetWritebackForRole,
   readRevisionWritebackFlag,
 } from "@/lib/production-assurance/revision-configuration";
 
-// S128 (F08): the server-owned pause is exactly the inverse of the reviewed write switch, and the
-// assurance readback refuses any exact revision that would still dispatch operating-Sheet writes.
+// S128 (F08): the server-owned pause is exactly the inverse of the reviewed write switch. S159: the
+// assurance readback holds each exact revision to the switch value reviewed for its release role.
 
 describe("S128 operating-sheet write pause policy", () => {
   const original = process.env[SHEET_WRITEBACK_FLAG];
@@ -50,15 +50,25 @@ describe("S128 revision writeback readback", () => {
     expect(readRevisionWritebackFlag(v2Revision(undefined))).toBeNull();
   });
 
-  it("passes assertion for a paused revision and returns the flag for evidence", () => {
-    expect(assertRevisionPausesSheetWriteback(v2Revision("false"))).toBe("false");
-    expect(assertRevisionPausesSheetWriteback(v2Revision(undefined))).toBeNull();
+  it("passes a predecessor that actually reads false and returns the value for evidence", () => {
+    expect(
+      assertRevisionSheetWritebackForRole(v2Revision("false"), "predecessor", {
+        predecessorActual: "false",
+      }),
+    ).toBe("false");
+    expect(() =>
+      assertRevisionSheetWritebackForRole(v2Revision(undefined), "predecessor", {
+        predecessorActual: "false",
+      }),
+    ).toThrow(/revision_writeback_expectation_mismatch/);
   });
 
-  it("refuses a revision that would still dispatch writes", () => {
-    expect(() => assertRevisionPausesSheetWriteback(v2Revision("true"))).toThrow(
-      /revision_writeback_not_paused/,
-    );
+  it("refuses a false-predecessor recovery target that would dispatch writes", () => {
+    expect(() =>
+      assertRevisionSheetWritebackForRole(v2Revision("true"), "recovery_target", {
+        predecessorActual: "false",
+      }),
+    ).toThrow(/revision_writeback_expectation_mismatch/);
   });
 
   it("refuses an unreadable or ambiguous revision configuration", () => {

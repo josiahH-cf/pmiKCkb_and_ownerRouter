@@ -91,6 +91,13 @@ const approver: AuthenticatedUser = {
   role: "Approver",
 };
 
+const editor: AuthenticatedUser = {
+  uid: "editor-1",
+  email: "editor-1@example.com",
+  hd: "example.com",
+  role: "Editor",
+};
+
 const admin: AuthenticatedUser = {
   uid: "admin-1",
   email: "admin-1@example.com",
@@ -230,26 +237,26 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
     });
   });
 
-  it("preserves the Admin-only gate for High flags", async () => {
+  it("S156/S167: an Editor resolves a High flag alone, with or without a note", async () => {
     const db = new ResolutionTestFirestore();
 
     await expect(
       resolveLeaseRenewalFlag(
-        approver,
+        editor,
         {
           run_id: SIMULATION_RUN_ID,
           source_trigger_key: HIGH_KEY,
           candidate_fingerprint: HIGH_FINGERPRINT,
           kind: "pick_source",
           chosen_source: "rentvine",
-          reason: "Confirmed against the signed lease.",
         },
         db as unknown as Firestore,
         getSimulationRun,
       ),
-    ).rejects.toMatchObject({
-      status: 403,
-      message: "High or Blocked flags can only be resolved by an Admin.",
+    ).resolves.toMatchObject({
+      status: "Resolved",
+      resolved_by_uid: "editor-1",
+      reason: "Recorded without a note",
     });
 
     await expect(
@@ -266,7 +273,11 @@ describe("resolveLeaseRenewalFlag reason audit", () => {
         db as unknown as Firestore,
         getSimulationRun,
       ),
-    ).resolves.toMatchObject({ status: "Resolved", resolved_by_uid: "admin-1" });
+    ).resolves.toMatchObject({
+      status: "Resolved",
+      resolved_by_uid: "admin-1",
+      reason: "Confirmed against the signed lease.",
+    });
   });
 
   it("rejects render-to-POST source drift without persisting an unseen decision", async () => {
@@ -333,16 +344,9 @@ describe("S113 explicit correction of agreeing current sources", () => {
       intent: "current_fact_correction" as const,
     };
     const db = new ResolutionTestFirestore();
-    await expect(
-      resolveLeaseRenewalFlag(
-        approver,
-        input,
-        db as unknown as Firestore,
-        async () => run,
-      ),
-    ).rejects.toMatchObject({ status: 403 });
+    // S156/S167: an Editor records the correction alone; no Admin handoff for a High severity.
     const saved = await resolveLeaseRenewalFlag(
-      admin,
+      editor,
       input,
       db as unknown as Firestore,
       async () => run,
@@ -351,6 +355,7 @@ describe("S113 explicit correction of agreeing current sources", () => {
       source_trigger_key: key,
       severity: "High",
       corrected_value: "1500.00",
+      resolved_by_uid: "editor-1",
       proposed_writeback: { status: "Queued", production_allowed: false },
     });
     expect(run.flags).toEqual([]);

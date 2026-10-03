@@ -11,7 +11,6 @@ import { SpaceDetailClient } from "@/components/spaces/SpaceDetailClient";
 import { TrustedPublicationPanel } from "@/components/spaces/TrustedPublicationPanel";
 import { can } from "@/lib/auth/roles";
 import { primarySpaceHref, requirePageCapability } from "@/lib/auth/page-guards";
-import { hasSpaceAccess } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
 import { CONNECTORS, type ConnectorDef } from "@/lib/connections/connector-catalog";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
@@ -34,6 +33,7 @@ import {
 import { buildWelcomeDraft } from "@/lib/move-in/welcome-draft";
 import { buildEvidencePacket } from "@/lib/move-out/evidence-packet";
 import { SPACE_CONNECTOR_IDS } from "@/lib/space-card-state";
+import { canAccessLaunchSpace } from "@/lib/space-scope-resources";
 import { launchSpaces } from "@/lib/spaces";
 
 /** The domain-specific desk Card(s) for a Space, if any:
@@ -81,11 +81,8 @@ export default async function SpaceDetailPage({
     notFound();
   }
 
-  if (
-    user.scopes !== undefined &&
-    (space.scope === undefined || !hasSpaceAccess(user, space.scope))
-  ) {
-    redirect(primarySpaceHref(user));
+  if (!canAccessLaunchSpace(user, space)) {
+    redirect(primarySpaceHref());
   }
 
   const config = readServerConfig();

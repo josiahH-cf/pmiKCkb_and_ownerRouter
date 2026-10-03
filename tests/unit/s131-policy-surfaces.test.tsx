@@ -107,7 +107,7 @@ function renderWorkspace(
 ) {
   const value = getRenewalLeaseWorkspace("lease-318-cedar-7");
   if (!value) throw new Error("sample workspace missing");
-  return render(
+  const view = render(
     <RenewalWorkspace
       role="Editor"
       workspace={value}
@@ -123,6 +123,9 @@ function renderWorkspace(
       workStatus={{ available: true, record: null, history: [], currentCycleId: null }}
     />,
   );
+  // S152: the lease opens in Focus view; the policy panel is a Full view surface.
+  fireEvent.click(screen.getByRole("button", { name: "Full view" }));
+  return view;
 }
 
 describe("S131 workspace policy panel (AC-S131-1, AC-S131-4, AC-S131-6)", () => {

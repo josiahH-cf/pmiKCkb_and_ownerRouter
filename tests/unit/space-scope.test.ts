@@ -20,8 +20,10 @@ afterEach(() => {
   setAuthResolverForTest(null);
 });
 
+// S167: every authenticated internal staff account has every existing internal Space. A scope
+// claim left on an account is ignored; the role alone decides what the account may do.
 describe("space-scope authorization core", () => {
-  it("treats an absent scope claim as the backward-compatible all-spaces wildcard", () => {
+  it("gives an account without a scope claim every Space", () => {
     const user = validateAuthClaims({
       uid: "existing-editor",
       email: "existing-editor@pmikcmetro.com",
@@ -29,12 +31,13 @@ describe("space-scope authorization core", () => {
       role: "Editor",
     });
 
-    expect(user.scopes).toBeUndefined();
+    expect(Object.hasOwn(user, "scopes")).toBe(false);
     expect(hasSpaceAccess(user, "renewals")).toBe(true);
     expect(hasSpaceAccess(user, "maintenance")).toBe(true);
   });
 
-  it("freezes and canonicalizes the scope authority objects at runtime", () => {
+  // S167: the claim used to be canonicalized, frozen onto the user and to deny Renewals.
+  it("drops a duplicated scope claim from the user and keeps the Space catalog frozen", () => {
     const user = validateAuthClaims({
       uid: "scoped-editor",
       email: "scoped-editor@pmikcmetro.com",
@@ -43,15 +46,20 @@ describe("space-scope authorization core", () => {
       scopes: ["maintenance", "maintenance"],
     });
 
-    expect(user.scopes).toEqual(["maintenance"]);
-    expect(Object.isFrozen(user.scopes)).toBe(true);
+    expect(user).toEqual({
+      uid: "scoped-editor",
+      email: "scoped-editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+    });
     expect(Object.isFrozen(SPACE_SCOPES)).toBe(true);
     expect(Object.isFrozen(SPACE_SCOPE_HOME)).toBe(true);
-    expect(() => (user.scopes as SpaceScope[]).push("renewals")).toThrow();
-    expect(hasSpaceAccess(user, "renewals")).toBe(false);
+    expect(hasSpaceAccess(user, "maintenance")).toBe(true);
+    expect(hasSpaceAccess(user, "renewals")).toBe(true);
   });
 
-  it("allows the assigned space and denies every unassigned space", async () => {
+  // S167: Renewals used to refuse this account with a 403.
+  it("admits a maintenance-only claim account to every Space", async () => {
     setAuthResolverForTest(() => ({
       uid: "maintenance-editor",
       email: "maintenance-editor@pmikcmetro.com",
@@ -60,15 +68,46 @@ describe("space-scope authorization core", () => {
       scopes: ["maintenance"],
     }));
 
-    await expect(requireSpaceAccess("maintenance")).resolves.toMatchObject({
+    for (const scope of SPACE_SCOPES) {
+      const user = await requireSpaceAccess(scope);
+      expect(user).toEqual({
+        uid: "maintenance-editor",
+        email: "maintenance-editor@pmikcmetro.com",
+        hd: "pmikcmetro.com",
+        role: "Editor",
+      });
+    }
+  });
+
+  it("admits only a Space that exists, with the observable JSON 403 shape otherwise", async () => {
+    setAuthResolverForTest(() => ({
+      uid: "maintenance-editor",
+      email: "maintenance-editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
       scopes: ["maintenance"],
+    }));
+
+    // S167: an edit in Renewals used to be the 403 Space miss for this account.
+    await expect(requireCapabilityInSpace("edit", "renewals")).resolves.toMatchObject({
+      role: "Editor",
     });
-    await expect(requireSpaceAccess("renewals")).rejects.toMatchObject({
-      status: 403,
+
+    let response: Response | undefined;
+
+    try {
+      await requireCapabilityInSpace("edit", "not-a-space" as SpaceScope);
+    } catch (error) {
+      response = authErrorResponse(error);
+    }
+
+    expect(response?.status).toBe(403);
+    await expect(response?.json()).resolves.toEqual({
+      error: "This user is not authorized for the requested space.",
     });
   });
 
-  it("returns the observable JSON 403 shape for an API scope miss", async () => {
+  it("returns the observable JSON 403 shape for a role miss in an open Space", async () => {
     setAuthResolverForTest(() => ({
       uid: "maintenance-editor",
       email: "maintenance-editor@pmikcmetro.com",
@@ -80,18 +119,18 @@ describe("space-scope authorization core", () => {
     let response: Response | undefined;
 
     try {
-      await requireCapabilityInSpace("edit", "renewals");
+      await requireCapabilityInSpace("approve", "renewals");
     } catch (error) {
       response = authErrorResponse(error);
     }
 
     expect(response?.status).toBe(403);
     await expect(response?.json()).resolves.toEqual({
-      error: "This user is not authorized for the requested space.",
+      error: "This user is not authorized for the requested action.",
     });
   });
 
-  it("never lets an in-scope assignment grant a capability denied by the role", async () => {
+  it("never lets an open Space grant a capability denied by the role", async () => {
     setAuthResolverForTest(() => ({
       uid: "maintenance-editor",
       email: "maintenance-editor@pmikcmetro.com",
@@ -100,8 +139,10 @@ describe("space-scope authorization core", () => {
       scopes: ["maintenance"],
     }));
 
-    await expect(
-      requireCapabilityInSpace("approve", "maintenance"),
-    ).rejects.toMatchObject({ status: 403 });
+    for (const scope of SPACE_SCOPES) {
+      await expect(requireCapabilityInSpace("approve", scope)).rejects.toMatchObject({
+        status: 403,
+      });
+    }
   });
 });

@@ -250,7 +250,7 @@ describe("RenewalDesk data currency", () => {
 });
 
 describe("RenewalWorkspace (S113 dashboard with S82 evidence)", () => {
-  it("renders five section destinations, every section and one Do-this-next card", () => {
+  it("renders five section destinations, every section and one Suggested-next card", () => {
     const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
     render(<RenewalWorkspace workspace={workspace} />);
     expect(
@@ -269,7 +269,7 @@ describe("RenewalWorkspace (S113 dashboard with S82 evidence)", () => {
     ]) {
       expect(screen.getByRole("region", { name })).toBeInTheDocument();
     }
-    expect(screen.getAllByText("Do this next")).toHaveLength(1);
+    expect(screen.getAllByText("Suggested next")).toHaveLength(1);
     expect(screen.queryByText(/renewal-v1/)).not.toBeInTheDocument();
     expect(screen.getByText("Document preparation")).toBeInTheDocument();
   });
@@ -282,7 +282,7 @@ describe("RenewalWorkspace (S113 dashboard with S82 evidence)", () => {
       expect(
         screen.getByRole("navigation", { name: "Renewal dashboard sections" }),
       ).toBeInTheDocument();
-      expect(screen.getByText("Do this next")).toBeInTheDocument();
+      expect(screen.getByText("Suggested next")).toBeInTheDocument();
       expect(
         screen.queryByRole("button", { name: /Confirm.*upload/i }),
       ).not.toBeInTheDocument();

@@ -78,7 +78,7 @@ describe("RenewalWorkspace next action is the shared desk guidance (S104)", () =
       },
     };
     render(<RenewalWorkspace workspace={{ ...base, guidance }} />);
-    expect(screen.getByRole("heading", { name: "Do this next" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Suggested next" })).toBeInTheDocument();
     expect(
       screen.getByText("Record the tenant's source-backed answer in Tenant decision."),
     ).toBeInTheDocument();
@@ -106,7 +106,7 @@ describe("RenewalWorkspace next action is the shared desk guidance (S104)", () =
       action: { kind: "blocked" },
     };
     render(<RenewalWorkspace workspace={{ ...base, guidance }} />);
-    expect(screen.getByRole("heading", { name: "Do this next" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Suggested next" })).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Owner decision evidence is missing" }),
     ).toHaveAttribute("href", expect.stringContaining("step=owner-decision"));
@@ -262,13 +262,13 @@ describe("RenewalWorkspace live mode", () => {
     ).toHaveAttribute("href", "/lease-renewal/live#renewal-review-item-current-rent");
   });
 
-  it("keeps an untracked out-of-window workspace inspection-only", () => {
+  it("S154 BEH-S154-1/2 (AC-S154-1): an out-of-window lease opened directly is workable, with its classification kept as context", () => {
     const current = getRenewalLeaseWorkspace("lease-1207-walnut-2");
     if (!current) throw new Error("Missing sample workspace.");
+    // S154 (b7693d4d): there is no inspection-only lane. The window classification stays on the
+    // summary for display and filters; every control the page mounts renders.
     const workspace: RenewalLeaseWorkspace = {
       ...current,
-      workflowAvailable: false,
-      live: undefined,
       tenantDraft: null,
       summary: {
         ...current.summary,
@@ -312,19 +312,20 @@ describe("RenewalWorkspace live mode", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Inspection only" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Inspection only" })).toBeNull();
+    expect(screen.queryByText(/inspection only/i)).toBeNull();
+    expect(workspace.summary.retention.state).toBe("outside");
+    expect(screen.getByRole("region", { name: "Lease details" })).toBeInTheDocument();
     expect(
-      screen.queryByRole("navigation", { name: "Renewal phases" }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("region", { name: "Documents and completion" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Suggested next" })).toBeInTheDocument();
+    expect(screen.getByText("Discrepancy controls")).toBeInTheDocument();
+    expect(screen.getByText("Sheet proposal controls")).toBeInTheDocument();
+    expect(screen.getByText("RentVine proposal controls")).toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", { name: "Do this next" }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText("Discrepancy controls")).not.toBeInTheDocument();
-    expect(screen.queryByText("Sheet proposal controls")).not.toBeInTheDocument();
-    expect(screen.queryByText("RentVine proposal controls")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: "Review and resolve this source item" }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("link", { name: "Review and resolve this source item" }),
+    ).toHaveAttribute("href", "/lease-renewal/live#renewal-review-item-current-rent");
     expect(
       screen.getByRole("link", { name: "Open this lease in RentVine" }),
     ).toHaveAttribute("href", "https://pmikcmetro.rentvine.com/leases/4821");

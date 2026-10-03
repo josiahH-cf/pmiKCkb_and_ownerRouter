@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 import type { CommunicationsRetentionFields } from "@/lib/gmail-hub/retention-policy";
+import {
+  EXPLICIT_DEFAULT_DESK_VIEW,
+  RENEWAL_DESK_ROUTE,
+  leaseWorkspaceHrefOrNull,
+} from "@/lib/lease-renewal/desk-view-continuation";
 
 export const WORKFLOW_COMMUNICATION_LANES = ["renewals", "maintenance"] as const;
 export type WorkflowCommunicationLane = (typeof WORKFLOW_COMMUNICATION_LANES)[number];
@@ -185,7 +190,12 @@ export function workflowEntityHref(
     case "renewal_run":
       return `/lease-renewal/runs/${encodeURIComponent(input.entity_id)}`;
     case "renewal_lease":
-      return `/lease-renewal/live/desk/lease/${encodeURIComponent(input.entity_id)}`;
+      // S166: the one real-id workspace link. A record whose id is not a lease id opens the
+      // Renewals desk rather than a made-up lease path.
+      return (
+        leaseWorkspaceHrefOrNull(input.entity_id) ??
+        `${RENEWAL_DESK_ROUTE}?${EXPLICIT_DEFAULT_DESK_VIEW}`
+      );
     case "workflow_run":
       return `/workflow-runs/${encodeURIComponent(input.entity_id)}`;
   }

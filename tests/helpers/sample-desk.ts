@@ -499,7 +499,6 @@ export function getRenewalLeaseWorkspace(
     // built by the one shared builder rather than a second local status derivation.
     guidance: buildDeskLeaseGuidance(guidanceInput),
     verificationCause: deskGuidanceVerificationCause(guidanceInput),
-    workflowAvailable: true,
     steps: RENEWAL_STEPS,
     currentStepIndex: process.currentStepIndex,
     process,

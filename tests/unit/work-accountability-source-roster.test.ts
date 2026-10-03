@@ -70,11 +70,10 @@ describe("S68 bounded source adapters", () => {
     });
   });
 
-  it("fails before returning source evidence when the canonical Space is inaccessible", async () => {
-    const scopedActor: AuthenticatedUser = {
-      ...wildcardActor,
-      scopes: ["renewals"],
-    };
+  // S167: an account with a renewals-only allowlist used to be refused (403) once the source's
+  // canonical Maintenance Space was known. Every staff account now reaches that Space, so the
+  // resolver answers from ownership alone.
+  it("resolves a Maintenance-owned source for any staff account and withholds the link under the wrong Space", async () => {
     const resolver = new ExistingWorkSourceResolver(
       undefined,
       readers({
@@ -87,12 +86,30 @@ describe("S68 bounded source adapters", () => {
       }),
     );
     await expect(
-      resolver.resolve(scopedActor, {
+      resolver.resolve(wildcardActor, {
         type: "workflow_run",
         id: "run-1",
         space_id: "lease-renewals",
       }),
-    ).rejects.toMatchObject({ status: 403 });
+    ).resolves.toEqual({
+      source: { type: "workflow_run", id: "run-1", status: "unverified" },
+    });
+    await expect(
+      resolver.resolve(wildcardActor, {
+        type: "workflow_run",
+        id: "run-1",
+        space_id: "maintenance-work-order-intake",
+      }),
+    ).resolves.toEqual({
+      space_id: "maintenance-work-order-intake",
+      source: {
+        type: "workflow_run",
+        id: "run-1",
+        link: "/workflow-runs/run-1",
+        version: "2026-08-11T12:00:00.000Z",
+        status: "verified",
+      },
+    });
   });
 
   it("turns missing records into explicit unverified identities", async () => {
@@ -142,7 +159,9 @@ describe("S68 bounded source adapters", () => {
 });
 
 describe("S68 assignable staff roster", () => {
-  it("keeps active managed internal identities and rejects disabled, vendor, external, and malformed claims", async () => {
+  // S167: an account whose leftover scope claim is malformed used to be dropped from the roster.
+  // The claim no longer affects the account, so it stays assignable; no entry carries scopes.
+  it("keeps active managed internal identities whatever scope claim is left, and rejects disabled, vendor, and external identities", async () => {
     const auth = fakeAuth([
       { uid: "ok", email: "ok@pmikcmetro.com", customClaims: { role: "Approver" } },
       { uid: "disabled", email: "disabled@pmikcmetro.com", disabled: true },
@@ -162,13 +181,9 @@ describe("S68 assignable staff roster", () => {
       config: readServerConfig({}),
       auth,
     });
-    expect(roster).toEqual([
-      {
-        uid: "ok",
-        email: "ok@pmikcmetro.com",
-        role: "Approver",
-        scopes: undefined,
-      },
+    expect(roster).toStrictEqual([
+      { uid: "bad-scope", email: "bad@pmikcmetro.com", role: "Editor" },
+      { uid: "ok", email: "ok@pmikcmetro.com", role: "Approver" },
     ]);
   });
 

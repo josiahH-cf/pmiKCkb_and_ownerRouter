@@ -16,17 +16,23 @@ import { RenewalMarketBasisSchema } from "@/lib/lease-renewal/market-basis-schem
 import { SheetFieldIntentSchema } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import {
   CycleBasisSchema,
+  LeaseBoundBasisSchema,
   MANUAL_ACTIVITIES,
   RenewalTermsSchema,
   RenewalWorkspaceActionSchema,
   emptyRenewalWorkspace,
   planRenewalWorkspaceAction,
+  workBasisDateIso,
   type RenewalCycleBasis,
+  type RenewalWorkBasis,
   type RenewalWorkspaceState,
 } from "@/lib/lease-renewal/workspace-state";
 
 export const RENEWAL_WORKSPACE_COLLECTIONS = {
   head: "lease_renewal_workspaces",
+  // S154: a work record saved while the source reported no lease end or review date. It lives
+  // apart from the dated heads so every reader of that collection keeps its exact dated shape.
+  leaseBoundHead: "lease_renewal_lease_bound_workspaces",
   cycles: "lease_renewal_workspace_cycles",
   activity: "lease_renewal_workspace_activity",
   observations: "lease_renewal_market_observations",
@@ -115,11 +121,13 @@ const stateSchema = z
     ),
   })
   .strict();
+const leaseBoundStateSchema = stateSchema.extend({ basis: LeaseBoundBasisSchema });
 export { stateSchema as RenewalWorkspaceStateSchema };
 export const SaveRenewalWorkspaceSchema = z
   .object({
     leaseId,
-    cycleId: z.string().uuid(),
+    // S154: null when the editor holds no work record yet; the first save establishes it.
+    cycleId: z.string().uuid().nullable(),
     expectedRevision: z.number().int().nonnegative(),
     operationId: z.string().uuid(),
     action: RenewalWorkspaceActionSchema,
@@ -146,8 +154,13 @@ function assertActor(actor: AuthenticatedUser, write = false) {
   )
     throw new EditableLayerError("Renewals staff authority is required.", 403);
 }
+function parseAnyState(raw: unknown): RenewalWorkspaceState {
+  return (raw as { basis?: { kind?: unknown } } | null)?.basis?.kind === "lease_bound"
+    ? leaseBoundStateSchema.parse(raw)
+    : stateSchema.parse(raw);
+}
 function parseState(raw: unknown, id: string): RenewalWorkspaceState {
-  const state = stateSchema.parse(raw);
+  const state = parseAnyState(raw);
   if (state.leaseId !== id)
     throw new EditableLayerError(
       "The saved workspace identity does not match this lease.",
@@ -155,32 +168,69 @@ function parseState(raw: unknown, id: string): RenewalWorkspaceState {
     );
   return state;
 }
+/** Both work-record heads of one lease, for a reader that needs them inside its transaction. */
+export function renewalWorkspaceHeadRefs(db: Firestore, id: string) {
+  return headRefs(db, id);
+}
+/** The current work record from both head snapshots: a dated cycle first, else lease-bound. */
+export function currentRenewalWorkspaceState(
+  db: Firestore,
+  id: string,
+  dated: FirebaseFirestore.DocumentSnapshot,
+  leaseBound: FirebaseFirestore.DocumentSnapshot,
+): RenewalWorkspaceState | null {
+  return currentHead(headRefs(db, id), dated, leaseBound, id)?.state ?? null;
+}
+function headRefs(db: Firestore, id: string) {
+  const docId = renewalWorkspaceDocId(id);
+  return {
+    dated: db.collection(RENEWAL_WORKSPACE_COLLECTIONS.head).doc(docId),
+    leaseBound: db.collection(RENEWAL_WORKSPACE_COLLECTIONS.leaseBoundHead).doc(docId),
+  };
+}
+/** The current head: a dated cycle when one exists, otherwise the lease-bound record. */
+function currentHead(
+  refs: ReturnType<typeof headRefs>,
+  dated: FirebaseFirestore.DocumentSnapshot,
+  leaseBound: FirebaseFirestore.DocumentSnapshot,
+  id: string,
+) {
+  if (dated.exists) return { ref: refs.dated, state: parseState(dated.data(), id) };
+  if (leaseBound.exists)
+    return { ref: refs.leaseBound, state: parseState(leaseBound.data(), id) };
+  return null;
+}
 export async function getRenewalWorkspace(
   actor: AuthenticatedUser,
   id: string,
   db: Firestore = getAdminFirestore(),
 ): Promise<RenewalWorkspaceState | null> {
   assertActor(actor);
-  const snapshot = await db
-    .collection(RENEWAL_WORKSPACE_COLLECTIONS.head)
-    .doc(renewalWorkspaceDocId(id))
-    .get();
-  return snapshot.exists ? parseState(snapshot.data(), id) : null;
+  const refs = headRefs(db, id);
+  const [dated, leaseBound] = await Promise.all([
+    refs.dated.get(),
+    refs.leaseBound.get(),
+  ]);
+  return currentHead(refs, dated, leaseBound, id)?.state ?? null;
 }
 export async function listRenewalWorkspaces(
   actor: AuthenticatedUser,
   db: Firestore = getAdminFirestore(),
 ) {
   assertActor(actor);
-  const docs = await db.collection(RENEWAL_WORKSPACE_COLLECTIONS.head).get();
-  return new Map(
-    docs.docs.map((doc) => {
-      const state = stateSchema.parse(doc.data());
-      if (doc.id !== renewalWorkspaceDocId(state.leaseId))
-        throw new EditableLayerError("A saved workspace identity is invalid.", 409);
-      return [state.leaseId, state as RenewalWorkspaceState];
-    }),
-  );
+  const [dated, leaseBound] = await Promise.all([
+    db.collection(RENEWAL_WORKSPACE_COLLECTIONS.head).get(),
+    db.collection(RENEWAL_WORKSPACE_COLLECTIONS.leaseBoundHead).get(),
+  ]);
+  const result = new Map<string, RenewalWorkspaceState>();
+  // Lease-bound records first so a dated cycle established later takes their place.
+  for (const doc of [...leaseBound.docs, ...dated.docs]) {
+    const state = parseAnyState(doc.data());
+    if (doc.id !== renewalWorkspaceDocId(state.leaseId))
+      throw new EditableLayerError("A saved workspace identity is invalid.", 409);
+    result.set(state.leaseId, state);
+  }
+  return result;
 }
 export async function listRenewalWorkspaceActivity(
   actor: AuthenticatedUser,
@@ -261,21 +311,61 @@ export async function startRenewalCycle(
   });
   return { state: await getRenewalWorkspace(actor, input.leaseId, db) };
 }
-/** Atomic optimistic concurrency + immutable request identity. No provider receipt or completion flag. */
+/** The basis recorded when no source basis can be resolved: lease-bound, with no date. */
+export const LEASE_BOUND_WORK_BASIS: RenewalWorkBasis = Object.freeze({
+  kind: "lease_bound",
+  source: "No lease end or review date was available when this work was first saved",
+});
+/**
+ * S154: whether saved work on a completed record belongs to a new cycle. Only a real, different
+ * source date starts one; an unresolved or unchanged basis keeps the existing record.
+ */
+function startsNewCycle(current: RenewalWorkspaceState, basis: RenewalWorkBasis | null) {
+  const nextDate = basis ? workBasisDateIso(basis) : null;
+  return Boolean(
+    current.completion && nextDate && nextDate !== workBasisDateIso(current.basis),
+  );
+}
+/**
+ * Atomic optimistic concurrency + immutable request identity. No provider receipt or completion
+ * flag. S154: the first actual save establishes the work record from the lease's real basis, so no
+ * cycle step precedes ordinary recording; opening a lease creates nothing.
+ */
 export async function saveRenewalWorkspace(
   actor: AuthenticatedUser,
   raw: unknown,
   db: Firestore = getAdminFirestore(),
+  resolveBasis?: () => Promise<RenewalWorkBasis | null>,
 ) {
   assertActor(actor, true);
   const input = SaveRenewalWorkspaceSchema.parse(raw),
     requestHash = hashExecutionPreview({ actorUid: actor.uid, ...input });
-  const head = db
-      .collection(RENEWAL_WORKSPACE_COLLECTIONS.head)
-      .doc(renewalWorkspaceDocId(input.leaseId)),
+  const refs = headRefs(db, input.leaseId),
     event = db.collection(RENEWAL_WORKSPACE_COLLECTIONS.activity).doc(input.operationId);
+  // The source basis is read before the transaction: only when no record exists yet, or when new
+  // work arrives on a completed record. Reopening or completing stays on the record it names.
+  const [preDated, preLeaseBound] = await Promise.all([
+    refs.dated.get(),
+    refs.leaseBound.get(),
+  ]);
+  const pre = currentHead(refs, preDated, preLeaseBound, input.leaseId);
+  const continuesRecord =
+    input.action.kind === "reopen" || input.action.kind === "complete";
+  let sourceBasis: RenewalWorkBasis | null = null;
+  if (!pre || (pre.state.completion && !continuesRecord)) {
+    try {
+      sourceBasis = (await resolveBasis?.()) ?? null;
+    } catch {
+      // An unavailable source never blocks the save or supplies a guessed date.
+      sourceBasis = null;
+    }
+  }
   const duplicate = await db.runTransaction(async (tx) => {
-    const [snapshot, prior] = await Promise.all([tx.get(head), tx.get(event)]);
+    const [dated, leaseBound, prior] = await Promise.all([
+      tx.get(refs.dated),
+      tx.get(refs.leaseBound),
+      tx.get(event),
+    ]);
     if (prior.exists) {
       if (prior.get("request_hash") !== requestHash)
         throw new EditableLayerError(
@@ -284,16 +374,25 @@ export async function saveRenewalWorkspace(
         );
       return true;
     }
-    if (!snapshot.exists)
-      throw new EditableLayerError("Select the reviewed renewal cycle first.", 409);
-    const current = parseState(snapshot.data(), input.leaseId);
-    if (current.cycleId !== input.cycleId || current.revision !== input.expectedRevision)
+    const head = currentHead(refs, dated, leaseBound, input.leaseId);
+    const current = head?.state ?? null;
+    if (
+      (current?.cycleId ?? null) !== input.cycleId ||
+      (current?.revision ?? 0) !== input.expectedRevision
+    )
       throw new EditableLayerError(
-        "Another operator changed this cycle. Reload and review the current record.",
+        "Another operator changed this record. Your entry is kept; reload and review the current record.",
         409,
       );
     const now = new Date().toISOString();
-    const next = planRenewalWorkspaceAction(current, input.action, {
+    const establish =
+      !current || (!continuesRecord && startsNewCycle(current, sourceBasis));
+    const basis = sourceBasis ?? LEASE_BOUND_WORK_BASIS;
+    const base = establish
+      ? emptyRenewalWorkspace(input.leaseId, randomUUID(), basis)
+      : current;
+    const cycleId = base.cycleId;
+    const next = planRenewalWorkspaceAction(base, input.action, {
       eventId: input.operationId,
       actorUid: actor.uid,
       recordedAt: now,
@@ -315,11 +414,11 @@ export async function saveRenewalWorkspace(
         if (
           !observation.exists ||
           observation.get("lease_id") !== input.leaseId ||
-          observation.get("cycle_id") !== input.cycleId ||
+          observation.get("cycle_id") !== cycleId ||
           observation.get("operation") !== "comps"
         )
           throw new EditableLayerError(
-            "Select comp evidence retrieved for this exact lease and cycle.",
+            "Select comp evidence retrieved for this exact lease and work record.",
             409,
           );
         const market = RenewalMarketBasisSchema.parse(observation.get("market"));
@@ -345,7 +444,7 @@ export async function saveRenewalWorkspace(
         !next.preparation?.market.provider ||
         !observation.exists ||
         observation.get("lease_id") !== input.leaseId ||
-        observation.get("cycle_id") !== input.cycleId ||
+        observation.get("cycle_id") !== cycleId ||
         observation.get("operation") !== "trend" ||
         observation.get("comp_observation_id") !== next.preparation.observationId
       )
@@ -369,21 +468,93 @@ export async function saveRenewalWorkspace(
       if (attachment) next.preparation.market.compScreenshotRef = attachment.ref;
     }
     const valid = parseState(next, input.leaseId);
-    tx.set(head, valid);
-    tx.set(db.collection(RENEWAL_WORKSPACE_COLLECTIONS.cycles).doc(input.cycleId), valid);
+    const target = valid.basis.kind === "lease_bound" ? refs.leaseBound : refs.dated;
+    if (establish)
+      // The prior cycle document and its activity stay exactly as recorded.
+      tx.create(db.collection(RENEWAL_WORKSPACE_COLLECTIONS.activity).doc(randomUUID()), {
+        lease_id: input.leaseId,
+        cycle_id: cycleId,
+        actor_uid: actor.uid,
+        recorded_at: now,
+        action: {
+          kind: "start_cycle",
+          basis: base.basis,
+          reason: "Established by the first saved work",
+        },
+        previous_cycle_id: current?.cycleId ?? null,
+        next_state: base,
+      });
+    tx.set(target, valid);
+    tx.set(db.collection(RENEWAL_WORKSPACE_COLLECTIONS.cycles).doc(cycleId), valid);
     tx.create(event, {
       lease_id: input.leaseId,
-      cycle_id: input.cycleId,
+      cycle_id: cycleId,
       actor_uid: actor.uid,
       recorded_at: now,
       request_hash: requestHash,
       action: input.action,
-      previous_revision: current.revision,
+      previous_revision: base.revision,
       next_state: valid,
     });
     return false;
   });
   return { state: await getRenewalWorkspace(actor, input.leaseId, db), duplicate };
+}
+
+/**
+ * S154: the current work record, established empty when a deliberate save other than a staff
+ * record needs one to bind to (saved comp evidence, a saved message). It follows the same basis
+ * rule as the first recorded action and never replaces an existing record.
+ */
+export async function ensureRenewalWorkRecord(
+  actor: AuthenticatedUser,
+  id: string,
+  db: Firestore = getAdminFirestore(),
+  resolveBasis?: () => Promise<RenewalWorkBasis | null>,
+): Promise<RenewalWorkspaceState> {
+  assertActor(actor, true);
+  const existing = await getRenewalWorkspace(actor, id, db);
+  if (existing) return existing;
+  let sourceBasis: RenewalWorkBasis | null = null;
+  try {
+    sourceBasis = (await resolveBasis?.()) ?? null;
+  } catch {
+    sourceBasis = null;
+  }
+  const refs = headRefs(db, id);
+  await db.runTransaction(async (tx) => {
+    const [dated, leaseBound] = await Promise.all([
+      tx.get(refs.dated),
+      tx.get(refs.leaseBound),
+    ]);
+    if (currentHead(refs, dated, leaseBound, id)) return;
+    const base = parseState(
+      emptyRenewalWorkspace(id, randomUUID(), sourceBasis ?? LEASE_BOUND_WORK_BASIS),
+      id,
+    );
+    tx.create(db.collection(RENEWAL_WORKSPACE_COLLECTIONS.activity).doc(randomUUID()), {
+      lease_id: id,
+      cycle_id: base.cycleId,
+      actor_uid: actor.uid,
+      recorded_at: new Date().toISOString(),
+      action: {
+        kind: "start_cycle",
+        basis: base.basis,
+        reason: "Established by the first saved work",
+      },
+      previous_cycle_id: null,
+      next_state: base,
+    });
+    tx.set(base.basis.kind === "lease_bound" ? refs.leaseBound : refs.dated, base);
+    tx.set(db.collection(RENEWAL_WORKSPACE_COLLECTIONS.cycles).doc(base.cycleId), base);
+  });
+  const state = await getRenewalWorkspace(actor, id, db);
+  if (!state)
+    throw new EditableLayerError(
+      "The work record could not be read back. Your entry is kept; save it again.",
+      409,
+    );
+  return state;
 }
 
 /** Server-derived source status, conditional on the same current staff event and cycle. */
@@ -402,13 +573,16 @@ export async function recordWorkspaceSourceStatus(
   db: Firestore = getAdminFirestore(),
 ) {
   assertActor(actor, true);
-  const head = db
-    .collection(RENEWAL_WORKSPACE_COLLECTIONS.head)
-    .doc(renewalWorkspaceDocId(input.leaseId));
+  const refs = headRefs(db, input.leaseId);
   const audit = db.collection(RENEWAL_WORKSPACE_COLLECTIONS.activity).doc(randomUUID());
   await db.runTransaction(async (tx) => {
-    const snapshot = await tx.get(head);
-    const current = snapshot.exists ? parseState(snapshot.data(), input.leaseId) : null;
+    const [dated, leaseBound] = await Promise.all([
+      tx.get(refs.dated),
+      tx.get(refs.leaseBound),
+    ]);
+    const located = currentHead(refs, dated, leaseBound, input.leaseId);
+    const current = located?.state ?? null;
+    const head = located?.ref ?? refs.dated;
     const entry = current?.sourceUpdates[input.field];
     if (
       !current ||

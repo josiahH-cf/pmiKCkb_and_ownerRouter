@@ -1,10 +1,11 @@
 "use client";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 
-// Shared lease-renewal flag actions (slice 1b). The resolve form and the Admin approve / return /
+// Shared lease-renewal flag actions (slice 1b). The resolve form and the approve / return /
 // revoke write-back controls were extracted verbatim from LeaseRenewalRunClient so both the run page
-// and the owner-gated live review reuse the SAME actionable controls. Behavior-preserving: the
-// rendered DOM, class names, aria-labels, and button/label text are unchanged from the run page.
+// and the live review reuse the SAME actionable controls. S156/S167: the staff member doing the
+// work records both decisions alone, whatever the flag's severity; a reason is optional context on
+// a resolution. Neither record is a prerequisite for a source update.
 //
 // This is a client module. It imports server-shaped view types with `import type` ONLY and never
 // value-imports a firebase-admin module (gotcha 4); nothing here executes a system-of-record write.
@@ -41,25 +42,26 @@ const KIND_LABEL: Record<ResolveKind, string> = {
 
 // The resolution-display line + the resolve form for one flag, extracted verbatim from FlagCard so the
 // run page and the live review share one actionable control. Renders a fragment (no wrapper element)
-// so the surrounding DOM is unchanged. The POST gates at "read"; the data layer enforces the
-// Approver/Admin rule, the required reason, and the no-execute write-back gate.
+// so the surrounding DOM is unchanged. The POST gates at "read" in the Renewals Space; the data
+// layer enforces Editor access, the verification-account refusal and the no-execute write-back gate.
 export function FlagResolveForm({
   flag,
   runId,
   canResolve,
-  isAdmin,
 }: {
   flag: RenewalFlagView;
   runId: string;
+  /** True when the signed-in role carries the resolve_reconciliation capability (Editor). */
   canResolve: boolean;
-  isAdmin: boolean;
+  /** Accepted from existing mounts; no severity needs a second person any more (S156/S167). */
+  isAdmin?: boolean;
 }) {
   const router = useRouter();
   const focusAfterSave = useRenewalSaveFocus();
   // Unique per instance so multiple resolve forms on one page don't collide on field ids.
   const fieldId = useId();
-  const requiresAdmin = flag.severity === "High" || flag.severity === "Blocked";
-  const canResolveThis = canResolve && (!requiresAdmin || isAdmin);
+  // A High or Blocked flag still asks for one deliberate confirmation of the exact decision.
+  const highSeverity = flag.severity === "High" || flag.severity === "Blocked";
 
   const [kind, setKind] = useState<ResolveKind>(
     flag.candidates.length > 0 ? "pick_source" : "corrected_value",
@@ -84,23 +86,16 @@ export function FlagResolveForm({
     kind === "pick_source" &&
     Boolean(flag.suggestedWinner) &&
     chosenSource === flag.suggestedWinner?.source;
-  const requiresFreeTextReason = !acceptsSuggestedSource;
+  // S157: a reason is optional context; the accepted-suggestion code keeps its meaning.
+  const showsFreeTextReason = !acceptsSuggestedSource;
 
   function requestSubmit() {
     setError(null);
-    if (requiresFreeTextReason && !reason.trim()) {
-      setError("A plain-English reason is required.");
-      return;
-    }
-    if (!requiresFreeTextReason && !reasonCode) {
-      setError("Choose a reason code.");
-      return;
-    }
     if (kind === "corrected_value" && !correctedValue.trim()) {
       setError("Enter the corrected value.");
       return;
     }
-    if (requiresAdmin) {
+    if (highSeverity) {
       setConfirmationOpen(true);
       return;
     }
@@ -170,116 +165,104 @@ export function FlagResolveForm({
       ) : null}
 
       {canResolve ? (
-        canResolveThis ? (
-          <div className="lr-resolve-form">
-            <label>
-              Resolution
+        <div className="lr-resolve-form">
+          <label>
+            Resolution
+            <select
+              value={kind}
+              onChange={(event) => {
+                const nextKind = event.target.value as ResolveKind;
+                setKind(nextKind);
+                if (nextKind !== "pick_source") setReasonCode("");
+              }}
+            >
+              {flag.candidates.length > 0 ? (
+                <option value="pick_source">{KIND_LABEL.pick_source}</option>
+              ) : null}
+              <option value="corrected_value">{KIND_LABEL.corrected_value}</option>
+              <option value="flag_incorrect">{KIND_LABEL.flag_incorrect}</option>
+            </select>
+          </label>
+
+          <ReasonCodeSelect value={reasonCode} onChange={setReasonCode} />
+
+          {kind === "pick_source" ? (
+            <Field htmlFor={`${fieldId}-source`} label="Source" required>
               <select
-                value={kind}
+                id={`${fieldId}-source`}
+                value={chosenSource}
                 onChange={(event) => {
-                  const nextKind = event.target.value as ResolveKind;
-                  setKind(nextKind);
-                  if (nextKind !== "pick_source") setReasonCode("");
+                  const nextSource = event.target.value;
+                  setChosenSource(nextSource);
+                  setReasonCode(
+                    nextSource === flag.suggestedWinner?.source &&
+                      (flag.severity === "Low" || flag.severity === "Medium")
+                      ? "accepted_suggestion"
+                      : "",
+                  );
                 }}
               >
-                {flag.candidates.length > 0 ? (
-                  <option value="pick_source">{KIND_LABEL.pick_source}</option>
-                ) : null}
-                <option value="corrected_value">{KIND_LABEL.corrected_value}</option>
-                <option value="flag_incorrect">{KIND_LABEL.flag_incorrect}</option>
+                {flag.candidates.map((candidate, index) => (
+                  <option key={`${candidate.source}-${index}`} value={candidate.source}>
+                    {displaySourceLabel(candidate.sourceSystem)} ({candidate.value})
+                  </option>
+                ))}
               </select>
-            </label>
+            </Field>
+          ) : null}
 
-            <ReasonCodeSelect
-              required={!requiresFreeTextReason}
-              value={reasonCode}
-              onChange={setReasonCode}
-            />
-
-            {kind === "pick_source" ? (
-              <Field htmlFor={`${fieldId}-source`} label="Source" required>
-                <select
-                  id={`${fieldId}-source`}
-                  value={chosenSource}
-                  onChange={(event) => {
-                    const nextSource = event.target.value;
-                    setChosenSource(nextSource);
-                    setReasonCode(
-                      nextSource === flag.suggestedWinner?.source &&
-                        (flag.severity === "Low" || flag.severity === "Medium")
-                        ? "accepted_suggestion"
-                        : "",
-                    );
-                  }}
-                >
-                  {flag.candidates.map((candidate, index) => (
-                    <option key={`${candidate.source}-${index}`} value={candidate.source}>
-                      {displaySourceLabel(candidate.sourceSystem)} ({candidate.value})
-                    </option>
-                  ))}
-                </select>
-              </Field>
-            ) : null}
-
-            {kind === "corrected_value" ? (
-              <Field htmlFor={`${fieldId}-corrected`} label="Corrected value" required>
-                <input
-                  id={`${fieldId}-corrected`}
-                  type="text"
-                  value={correctedValue}
-                  onChange={(event) => setCorrectedValue(event.target.value)}
-                />
-              </Field>
-            ) : null}
-
-            {requiresFreeTextReason ? (
-              <Field
-                hint="Plain-English reason for this choice."
-                htmlFor={`${fieldId}-reason`}
-                label="Reason"
-                required
-              >
-                <textarea
-                  id={`${fieldId}-reason`}
-                  value={reason}
-                  onChange={(event) => setReason(event.target.value)}
-                  rows={2}
-                />
-              </Field>
-            ) : null}
-
-            {error ? <p className="lr-error">{error}</p> : null}
-
-            <button
-              ref={resolveButtonRef}
-              className="primary-button button--large"
-              type="button"
-              disabled={submitting}
-              onClick={requestSubmit}
-            >
-              {submitting ? "Saving…" : flag.resolution ? "Re-resolve" : "Resolve"}
-            </button>
-            {confirmationOpen ? (
-              <ResolutionConfirmationDialog
-                fieldLabel={flag.fieldLabel}
-                kindLabel={KIND_LABEL[kind]}
-                onCancel={() => setConfirmationOpen(false)}
-                onConfirm={() => void performSubmit()}
-                restoreFocusRef={resolveButtonRef}
-                severity={flag.severity === "High" ? "High" : "Blocked"}
-                submitting={submitting}
+          {kind === "corrected_value" ? (
+            <Field htmlFor={`${fieldId}-corrected`} label="Corrected value" required>
+              <input
+                id={`${fieldId}-corrected`}
+                type="text"
+                value={correctedValue}
+                onChange={(event) => setCorrectedValue(event.target.value)}
               />
-            ) : null}
-          </div>
-        ) : (
-          <p className="muted">
-            An Admin must resolve High and Blocked flags.{" "}
-            <RequestAccessLink surface="renewals.manage" />
-          </p>
-        )
+            </Field>
+          ) : null}
+
+          {showsFreeTextReason ? (
+            <Field
+              hint="Optional plain-English context for this choice."
+              htmlFor={`${fieldId}-reason`}
+              label="Reason (optional)"
+            >
+              <textarea
+                id={`${fieldId}-reason`}
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                rows={2}
+              />
+            </Field>
+          ) : null}
+
+          {error ? <p className="lr-error">{error}</p> : null}
+
+          <button
+            ref={resolveButtonRef}
+            className="primary-button button--large"
+            type="button"
+            disabled={submitting}
+            onClick={requestSubmit}
+          >
+            {submitting ? "Saving…" : flag.resolution ? "Re-resolve" : "Resolve"}
+          </button>
+          {confirmationOpen ? (
+            <ResolutionConfirmationDialog
+              fieldLabel={flag.fieldLabel}
+              kindLabel={KIND_LABEL[kind]}
+              onCancel={() => setConfirmationOpen(false)}
+              onConfirm={() => void performSubmit()}
+              restoreFocusRef={resolveButtonRef}
+              severity={flag.severity === "High" ? "High" : "Blocked"}
+              submitting={submitting}
+            />
+          ) : null}
+        </div>
       ) : (
         <p className="muted">
-          Approver or Admin access is required to resolve flags.{" "}
+          Editor access is required to record a resolution.{" "}
           <RequestAccessLink surface="renewals.resolve_reconciliation" />
         </p>
       )}
@@ -366,9 +349,9 @@ function ResolutionConfirmationDialog({
   );
 }
 
-// Read-only append-only write-back proposal (Q-WRITEBACK-METHOD). Value-bearing — shown only inside the
+// Read-only append-only write-back proposal (Q-WRITEBACK-METHOD). Value-bearing: shown only inside the
 // authenticated run evidence. It never executes: the write is append-only (a new column), never an
-// overwrite, and stays gated. Resolving the flag QUEUES it; an Admin then approves it below.
+// overwrite, and stays gated. Resolving the flag QUEUES it; the decision below is an optional record.
 export function WritebackProposalCard({
   proposal,
   queued,
@@ -408,30 +391,34 @@ export function WritebackProposalCard({
       </p>
       {ready && !queued ? (
         <p className="muted">
-          Resolve the flag below to queue this proposal for an Admin&apos;s approval; the
-          Sheet write itself stays gated.
+          Resolve the flag below to queue this proposal; the Sheet write itself stays a
+          separately confirmed update.
         </p>
       ) : null}
     </div>
   );
 }
 
-// Admin-only approval control for a QUEUED write-back proposal (Phase-2 control plane). Approving
-// records human authorization for the future, gated write — it does NOT execute anything. The
-// available decisions mirror the approval state machine exactly (approve/revoke from the current
-// state); the reason is mandatory and audited.
+// Approval control for a QUEUED write-back proposal (Phase-2 control plane). Approving records the
+// staff decision about the proposal; it does NOT execute anything and (S156/S160) no source update
+// waits on it. The available decisions mirror the approval state machine exactly (approve/revoke
+// from the current state); the reason is recorded with the decision.
 export function WritebackApprovalControl({
   approval,
   runId,
   sourceTriggerKey,
   isAdmin,
+  legacyRecoveryAdmin = false,
   writebackEnabled = false,
   showLegacyWritebackRecovery = false,
 }: {
   approval: RenewalWritebackApprovalView;
   runId: string;
   sourceTriggerKey: string;
+  /** True when the signed-in role carries approve_source_write (Editor, S156/S167). */
   isAdmin: boolean;
+  /** True only for an actual Admin; the retired legacy recovery stays Admin-only. */
+  legacyRecoveryAdmin?: boolean;
   /** When true (admin feature flag on), an Approved proposal offers the live confirm-target write. */
   writebackEnabled?: boolean;
   /** Opt-in historical recovery only; current review surfaces keep the retired broad action hidden. */
@@ -554,10 +541,13 @@ export function WritebackApprovalControl({
           </p>
         </div>
       ) : (
-        <p className="muted">An Admin approves the queued write-back proposal.</p>
+        <p className="muted">
+          Editor access is required to record a decision on the queued write-back
+          proposal.
+        </p>
       )}
 
-      {isAdmin && showLegacyWritebackRecovery ? (
+      {legacyRecoveryAdmin && showLegacyWritebackRecovery ? (
         <SheetWritebackButton
           approvalUpdatedAt={approval.updatedAt}
           key={`${approval.updatedAt ?? "unknown"}:${approval.state}:${String(approval.stale)}:${String(writebackEnabled)}`}
@@ -570,9 +560,9 @@ export function WritebackApprovalControl({
         />
       ) : isAdmin ? (
         <p className="muted">
-          This legacy broad Sheet action is retired. Use the lease workspace’s Operating
-          Sheet phase for an exact missing-row append. Fixed-row field updates remain
-          unavailable.
+          This legacy broad Sheet action is retired. Use the lease workspace&apos;s
+          Operating Sheet phase for an exact missing-row append. Fixed-row field updates
+          remain unavailable.
         </p>
       ) : null}
 

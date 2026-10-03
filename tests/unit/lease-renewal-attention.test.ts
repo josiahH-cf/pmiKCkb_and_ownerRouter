@@ -40,8 +40,11 @@ describe("buildRenewalAttention", () => {
     const items = buildRenewalAttention(view.actionable);
 
     expect(items[0].urgency).toBe("high");
-    expect(items[0].headline).toMatch(/source conflict/);
-    expect(items[0].actionLabel).toBe("Resolve conflicts");
+    // S157 BEH-7 (8a3f929d): a source difference is advisory; the headline names it as
+    // something to review, never as a hold on continuing.
+    expect(items[0].headline).toBe("1 source difference to review");
+    expect(items[0].headline).not.toMatch(/resolve before|before you can continue/i);
+    expect(items[0].actionLabel).toBe("Review differences");
     const ranks = items.map((item) => ({ high: 0, medium: 1 })[item.urgency]);
     expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
   });
@@ -60,6 +63,16 @@ describe("buildRenewalAttention", () => {
     // 'soon' has a later-alphabet address but the sooner deadline must still win.
     const items = buildRenewalAttention([later, soon]);
     expect(items.map((item) => item.leaseId)).toEqual(["soon", "later"]);
+  });
+
+  it("S157 BEH-7: words several source differences as items to review, with no hold on work", () => {
+    const [item] = buildRenewalAttention([summary({ id: "diff", openConflicts: 2 })]);
+    expect(item).toMatchObject({
+      headline: "2 source differences to review",
+      actionLabel: "Review differences",
+      urgency: "high",
+    });
+    expect(item.headline).not.toMatch(/conflict|resolve|continue/i);
   });
 
   it("excludes progressing leases (past the owner decision, no conflict)", () => {

@@ -1,12 +1,14 @@
 import { EditableLayerError } from "@/lib/firestore/errors";
-import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
+import { ensureRenewalWorkRecord } from "@/lib/firestore/renewal-workspace";
+import { readEffectiveRenewalTerms } from "@/lib/firestore/renewal-effective-terms";
+import { resolveRenewalWorkBasis } from "@/lib/lease-renewal/workspace-cycle-context";
+import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
   assertFutureRentSchedule,
-  futureRentExecutionReady,
   futureRentInventoryHash,
-  futureRentWorkspaceMatches,
+  futureRentTermsCurrent,
 } from "@/lib/lease-renewal/writeback/future-rent-intent";
 import { NextResponse } from "next/server";
 import { loadRenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory";
@@ -18,11 +20,7 @@ import {
   EnvironmentContextError,
   requireEnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
-import {
-  getRenewalProgress,
-  recordRenewalProcessEvidence,
-} from "@/lib/firestore/lease-renewal-progress";
-import { ownerOutcomeBlocksDownstream } from "@/lib/lease-renewal/renewal-progress";
+import { recordRenewalProcessEvidence } from "@/lib/firestore/lease-renewal-progress";
 import {
   ActionNotExecutableError,
   ActionRuntimeSuspendedError,
@@ -156,23 +154,30 @@ const ProposedChargeCreateSchema = z
   })
   .strict();
 
+/** Stored where an earlier revision expects a nonempty source note; describes, never attests. */
+const STAFF_SOURCE_UPDATE_LABEL = "Staff working value";
+const FUTURE_RENT_DEFAULT_REVIEW_LABEL = "Prepared from the working renewal terms";
+
 const BodySchema = z.discriminatedUnion("operation", [
   z.object({ operation: z.literal("options"), leaseId: LeaseIdSchema }).strict(),
   z
     .object({
       operation: z.literal("propose"),
       businessIntent: z.enum(["current_base", "future_rent"]).optional(),
+      // S156/S160: the server binds a future-rent preview to the current working terms. The
+      // earlier client fields are still accepted so an open page keeps working; none is required.
       renewalContext: z
         .object({
-          cycleId: z.string().uuid(),
-          termsRevision: z.number().int().positive(),
-          scheduleReview: z.string().trim().min(1).max(240),
+          cycleId: z.string().uuid().optional(),
+          termsRevision: z.number().int().positive().optional(),
+          scheduleReview: z.string().trim().max(240).optional(),
         })
         .strict()
         .optional(),
       leaseId: LeaseIdSchema,
       expectedPriorPreviewHash: HashSchema.nullable(),
-      evidenceRef: z.string().trim().min(1).max(500),
+      // S157: a narrative is optional context, never a prerequisite.
+      evidenceRef: z.string().trim().max(500).optional(),
       effects: z
         .array(
           z.discriminatedUnion("kind", [
@@ -365,19 +370,24 @@ async function assembleProposal(
   }
   let renewalTerms;
   if (body.businessIntent === "future_rent") {
-    const state = await getRenewalWorkspace(user, body.leaseId);
-    if (
-      !body.renewalContext ||
-      state?.cycleId !== body.renewalContext.cycleId ||
-      state?.termsRevision !== body.renewalContext.termsRevision ||
-      state?.ownerResponse?.outcome !== "approved_terms" ||
-      !state.ownerResponse.terms
-    )
-      throw new RenewalWritebackServiceError("confirmation_invalid");
+    // S156: the working renewal terms are the terms. No owner approval, tenant acceptance or
+    // cycle step is required; an incomplete term is a missing input to this one operation only.
+    const current = await readEffectiveRenewalTerms(body.leaseId);
+    if (!current.complete)
+      throw new EditableLayerError(
+        `Enter ${current.missing.join(", ")} in Working renewal terms, then prepare this preview again.`,
+        409,
+      );
+    const workRecord = await ensureRenewalWorkRecord(user, body.leaseId, undefined, () =>
+      resolveRenewalWorkBasis(user, body.leaseId),
+    );
     const inventory = await loadRenewalChargeInventory(deps.reads, body.leaseId);
     renewalTerms = {
-      ...body.renewalContext,
-      terms: state.ownerResponse.terms,
+      cycleId: workRecord.cycleId,
+      termsRevision: current.revision,
+      scheduleReview:
+        body.renewalContext?.scheduleReview || FUTURE_RENT_DEFAULT_REVIEW_LABEL,
+      terms: current.complete,
       inventoryHash: futureRentInventoryHash(inventory),
     };
     if (effects.length !== 1)
@@ -402,7 +412,7 @@ async function assembleProposal(
     actorRole: user.role,
     leaseState,
     sourceReadAtIso: new Date().toISOString(),
-    evidenceRef: body.evidenceRef,
+    evidenceRef: body.evidenceRef || STAFF_SOURCE_UPDATE_LABEL,
     effects,
     nowMs: Date.now(),
   });
@@ -587,6 +597,13 @@ async function handleRequest(request: Request, statusOnly: boolean) {
     }
 
     assertRenewalRoleAuthority("execute_source_write", user.role);
+    // S160: ordinary staff confirm supported updates. A verification account never dispatches,
+    // reconciles or reverses one, whatever its role.
+    if (isVerificationAccount(user))
+      throw new EditableLayerError(
+        "A verification account reads this lease only. Sign in with a staff account to update a source.",
+        403,
+      );
     const proposal =
       body.operation === "execute"
         ? await loadProposalOr404(user, body.leaseId)
@@ -670,48 +687,23 @@ async function handleRequest(request: Request, statusOnly: boolean) {
       if (body.previewHash !== proposal.previewHash) {
         throw new RenewalWritebackServiceError("confirmation_invalid");
       }
-      // S117 (R117.2, AC-S117-3): a future-rent effect needs the owner's terms to still be current
-      // AND the tenant's recorded acceptance of that exact terms revision. Both are checked before
-      // the one-attempt claim; nothing here checks a box on anyone's behalf.
-      if (proposal.businessIntent === "future_rent") {
-        const workspaceState = await getRenewalWorkspace(user, proposal.leaseId);
-        if (
-          !proposal.renewalTerms ||
-          !futureRentWorkspaceMatches(workspaceState, proposal.renewalTerms)
-        ) {
-          return NextResponse.json(
-            {
-              error:
-                "The owner-approved terms changed. Prepare a fresh future-rent preview from the current terms.",
-              error_type: "renewal_terms_changed",
-            },
-            { status: 409 },
-          );
-        }
-        if (!futureRentExecutionReady(workspaceState, proposal.renewalTerms)) {
-          return NextResponse.json(
-            {
-              error:
-                "Record the tenant's acceptance of these exact terms before this RentVine effect can be confirmed.",
-              error_type: "tenant_acceptance_required",
-            },
-            { status: 409 },
-          );
-        }
-      }
-      // S105: a confirmed RentVine effect carries the owner's approved terms into the system of
-      // record. While the recorded owner response is not an approval, execution is refused before
-      // the one-attempt claim, so a stale confirmation cannot ride a superseded decision.
-      const downstreamBlock =
-        proposal.businessIntent === "current_base" ||
-        proposal.businessIntent === "future_rent"
-          ? null
-          : ownerOutcomeBlocksDownstream(
-              await getRenewalProgress(user, proposal.leaseId),
-            );
-      if (downstreamBlock) {
+      // S156/S160: a future-rent effect stays confirmable while the working renewal terms are
+      // still the exact amount and dates it was prepared from. That is value integrity, checked
+      // again inside the one-attempt claim. No approval or acceptance record is consulted.
+      if (
+        proposal.businessIntent === "future_rent" &&
+        (!proposal.renewalTerms ||
+          !futureRentTermsCurrent(
+            await readEffectiveRenewalTerms(proposal.leaseId),
+            proposal.renewalTerms,
+          ))
+      ) {
         return NextResponse.json(
-          { error: downstreamBlock, error_type: "owner_outcome_blocks_downstream" },
+          {
+            error:
+              "The working renewal terms changed after this preview was prepared. Prepare a fresh future-rent preview from the current terms.",
+            error_type: "renewal_terms_changed",
+          },
           { status: 409 },
         );
       }

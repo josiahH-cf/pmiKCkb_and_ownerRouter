@@ -1,11 +1,13 @@
-import { formatCalendarDate, formatSourceCalendarDate } from "@/lib/date-display";
+import { formatSourceCalendarDate } from "@/lib/date-display";
 // S117 (R117.2, R117.4, AC-S117-4): one per-destination status projection for Rent and charges.
 //
-// Every row says where a value lives right now: saved in the app, prepared for an Admin, applied
-// with a receipt, read back, declined, uncertain, or unavailable with its retained reason. The rows
-// are projected from records the page already reads; nothing here executes, retries or reconciles.
-// A prepared or drifted row is never described as synchronized, and a succeeded charge update with
-// a differing base rent is its own attention row.
+// Every row says where a value lives right now: saved in the app, prepared for confirmation,
+// applied with a receipt, read back, declined, uncertain, or unavailable with its retained reason.
+// The rows are projected from records the page already reads; nothing here executes, retries or
+// reconciles. A prepared or drifted row is never described as synchronized, and a succeeded charge
+// update with a differing contractual rent is its own attention row that never claims a base-rent
+// setter was used (S153 BEH-10). The app-saved working values are rendered live by the card from
+// the working record (S157), so no app row is projected here.
 
 import type { RenewalAttemptRecord } from "@/lib/lease-renewal/execution/attempt-continuation";
 import {
@@ -49,13 +51,15 @@ export interface RentChargeOutcomeRow {
   readonly anchor: string | null;
   /** True when a person must act or look before relying on the displayed value. */
   readonly attention: boolean;
+  /** The saved RentVine preview this row belongs to; a replacement is bound to it (S160). */
+  readonly previewHash?: string;
 }
 
 export const RENT_CHARGE_STATE_LABELS: Readonly<Record<RentChargeOutcomeState, string>> =
   {
     recorded: "Saved in the app",
     pending: "Waiting to be prepared",
-    prepared: "Prepared, awaiting Admin confirmation",
+    prepared: "Prepared, awaiting confirmation",
     expired: "Preview expired; prepare it again",
     running: "Awaiting a durable outcome",
     succeeded: "Applied with receipt",
@@ -96,10 +100,12 @@ function sheetFieldLabel(field: string): string {
 function row(
   input: Omit<RentChargeOutcomeRow, "stateLabel" | "attention">,
 ): RentChargeOutcomeRow {
+  const { previewHash, ...rest } = input;
   return {
-    ...input,
+    ...rest,
     stateLabel: RENT_CHARGE_STATE_LABELS[input.state],
     attention: ATTENTION.has(input.state),
+    ...(previewHash ? { previewHash } : {}),
   };
 }
 
@@ -140,24 +146,6 @@ export function projectRentChargeOutcomes(input: {
 }): RentChargeOutcomeRow[] {
   const rows: RentChargeOutcomeRow[] = [];
   const manual = input.manualState ?? null;
-
-  const terms =
-    manual?.ownerResponse?.outcome === "approved_terms"
-      ? manual.ownerResponse.terms
-      : null;
-  if (terms) {
-    rows.push(
-      row({
-        id: "app:approved-terms",
-        destination: "app",
-        intent: "future",
-        label: "Approved future rent (app record)",
-        state: "recorded",
-        detail: `${money(terms.rent)} effective ${formatCalendarDate(terms.effectiveDate)} to ${formatCalendarDate(terms.endDate)}. Saved in the app only; today's rent and the Sheet current rent are unchanged until a confirmed source update.`,
-        anchor: "#renewal-future-rent",
-      }),
-    );
-  }
 
   for (const [field, entry] of Object.entries(manual?.sourceUpdates ?? {})) {
     const state: RentChargeOutcomeState =
@@ -202,14 +190,17 @@ export function projectRentChargeOutcomes(input: {
       let state = attemptState(attempt, expired);
       let detail = describeRentvineEffect(entry.effect);
       if (state === "succeeded" && intent === "current") {
+        // S153 BEH-10: the charge readback and the contractual amount are reported separately; a
+        // charge receipt never proves the contractual rent changed, and RentVine exposes no
+        // general base-rent setter for this app to have used.
         const readback = input.currentBaseReadback;
         if (readback.state === "charge_applied_base_rent_differs") {
           state = "mismatch";
-          detail = `Charge applied at ${readback.chargeAmount}; the lease's contractual base rent still reads ${money(readback.baseRent)}. Review the lease in RentVine and refresh this lease before relying on the rent shown.`;
+          detail = `Charge applied at ${readback.chargeAmount} and read back. The lease's contractual lease rent still reads ${money(readback.baseRent)}; RentVine has no general base-rent setter, so that amount changes only in the RentVine lease record. Refresh this lease after reviewing it there.`;
         } else if (readback.state === "charge_applied_base_rent_matches") {
-          detail = `Charge applied at ${readback.chargeAmount}; the refreshed lease base rent reads the same amount.`;
+          detail = `Charge applied at ${readback.chargeAmount} and read back; the refreshed contractual lease rent reads the same amount.`;
         } else if (readback.state === "charge_applied_base_rent_unavailable") {
-          detail = `Charge applied at ${readback.chargeAmount}; the refreshed lease base rent could not be read, so agreement is unproven.`;
+          detail = `Charge applied at ${readback.chargeAmount} and read back; the refreshed contractual lease rent could not be read, so the comparison is not available.`;
         }
       }
       rows.push(
@@ -221,6 +212,7 @@ export function projectRentChargeOutcomes(input: {
           state,
           detail,
           anchor: "#rentvine-updates-title",
+          previewHash: rentvine.previewHash,
         }),
       );
     }

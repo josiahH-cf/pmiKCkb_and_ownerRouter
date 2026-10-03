@@ -9,7 +9,7 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { buildConnectionView } from "@/lib/connections/connection-status";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
 import { listProcessDefinitions } from "@/lib/firestore/workflows";
-import { SPACE_CONNECTOR_IDS, computeSpaceCardState } from "@/lib/space-card-state";
+import { computeSpaceCardState } from "@/lib/space-card-state";
 import {
   canAccessLaunchSpace,
   canAccessMappedScope,
@@ -78,24 +78,13 @@ export async function resolveApprovalsState(
  *  runs) is NOT an operator setup gap, so it is excluded to keep the list actionable. */
 export function resolveConnectionsState(
   env: Record<string, string | undefined> = process.env,
-  user?: AuthenticatedUser,
 ): AppStateResult {
   const view = buildConnectionView(readConnectorPresence(env));
-  let gaps = view.items.filter(
+  const gaps = view.items.filter(
     (item) =>
       item.status.state === "none" ||
       item.status.configuredCount < item.status.requiredCount,
   );
-  if (user?.scopes !== undefined) {
-    const visibleConnectorIds = new Set(
-      launchSpaces
-        .filter(
-          (space) => space.showInDirectory !== false && canAccessLaunchSpace(user, space),
-        )
-        .flatMap((space) => SPACE_CONNECTOR_IDS[space.id] ?? []),
-    );
-    gaps = gaps.filter((item) => visibleConnectorIds.has(item.def.id));
-  }
 
   return {
     query: "connections",
@@ -172,7 +161,7 @@ export async function resolveAppState(
     case "approvals":
       return resolveApprovalsState(user);
     case "connections":
-      return resolveConnectionsState(process.env, user);
+      return resolveConnectionsState(process.env);
     case "coverage":
       return resolveCoverageState(user);
   }

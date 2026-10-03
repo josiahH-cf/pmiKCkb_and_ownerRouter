@@ -5,6 +5,14 @@ import {
   requireRevisionConfigurationFingerprint,
 } from "./runtime-observation";
 import { assuranceAbortSignal } from "./deadline";
+import {
+  SHEET_WRITEBACK_FLAG,
+  expectedSheetWriteback,
+  readRevisionSheetWriteback,
+  type SheetWritebackEvidence,
+  type SheetWritebackRole,
+  type SheetWritebackValue,
+} from "./sheet-writeback-expectation.mjs";
 
 const GOOGLE_SHEET_ID = /^[A-Za-z0-9_-]{20,200}$/;
 const MANAGED_SUBJECT = /^[a-z0-9][a-z0-9._%+-]{0,63}@pmikcmetro\.com$/i;
@@ -201,12 +209,10 @@ export function extractRevisionBoundRenewalSheetConfig(
   return Object.freeze({ spreadsheetId, impersonateServiceAccount, dwdSubject });
 }
 
-const SHEET_WRITEBACK_FLAG = "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED";
-
 /**
- * S128 (F08): read the operating-Sheet write flag from an exact verified revision. Returns the flag's
- * exact string value across containers, or null when the variable is absent (which the runtime treats
- * as off). A value present in more than one container with disagreeing values is a configuration fault.
+ * Read the operating-Sheet write flag from an exact verified revision. Returns the flag's exact
+ * string value across containers, or null when the variable is absent (which the runtime treats as
+ * off). A value present in more than one container with disagreeing values is a configuration fault.
  */
 export function readRevisionWritebackFlag(revision: unknown): string | null {
   if (!isRecord(revision) || !Array.isArray(revision.containers)) {
@@ -232,14 +238,24 @@ export function readRevisionWritebackFlag(revision: unknown): string | null {
 }
 
 /**
- * S128 (F08): assert the exact revision would NOT dispatch operating-Sheet writes. The runtime treats
- * anything but the exact "true" as off, so absent/other is paused. Throws when the revision still
- * enables writes; returns the observed flag value (or null) for the assurance evidence ledger.
+ * S159 (R-S159-11): assert the exact revision carries the operating-Sheet switch value reviewed for
+ * its release role. A candidate or promoted revision must read the reviewed candidate value; a
+ * predecessor or recovery target must read the captured predecessor's actual value, which the
+ * caller supplies as evidence and which is never assumed. An absent, non-exact or different value
+ * refuses for every role; a malformed or disagreeing revision keeps its own distinct refusal.
+ * Returns the verified value for the assurance evidence ledger.
  */
-export function assertRevisionPausesSheetWriteback(revision: unknown): string | null {
-  const flag = readRevisionWritebackFlag(revision);
-  if (flag === "true") throw new Error("revision_writeback_not_paused");
-  return flag;
+export function assertRevisionSheetWritebackForRole(
+  revision: unknown,
+  role: SheetWritebackRole,
+  evidence: SheetWritebackEvidence = {},
+): SheetWritebackValue {
+  const expected = expectedSheetWriteback(role, evidence);
+  readRevisionWritebackFlag(revision);
+  if (readRevisionSheetWriteback(revision) !== expected) {
+    throw new Error("revision_writeback_expectation_mismatch");
+  }
+  return expected;
 }
 
 /** Fetch, fingerprint, and reduce one revision to only its process-memory Sheet coordinates. */

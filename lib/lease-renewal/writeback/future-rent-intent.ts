@@ -1,8 +1,9 @@
 import { z } from "zod";
+import { RenewalTermsSchema } from "@/lib/lease-renewal/workspace-state";
 import {
-  RenewalTermsSchema,
-  type RenewalWorkspaceState,
-} from "@/lib/lease-renewal/workspace-state";
+  sameRenewalTerms,
+  type EffectiveRenewalTerms,
+} from "@/lib/lease-renewal/effective-terms";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { chargeDateIso, type RenewalChargeInventory } from "./charge-inventory-model";
 import type { RenewalWritebackEffectInput } from "./proposal-contract";
@@ -25,36 +26,17 @@ export function futureRentInventoryHash(inventory: RenewalChargeInventory): stri
       .map(({ id, classification, projection }) => ({ id, classification, projection })),
   });
 }
-export function futureRentWorkspaceMatches(
-  raw: unknown,
-  binding: FutureRentBinding,
-): boolean {
-  const state = raw as RenewalWorkspaceState | null;
-  return (
-    !!state &&
-    state.cycleId === binding.cycleId &&
-    state.termsRevision === binding.termsRevision &&
-    state.ownerResponse?.outcome === "approved_terms" &&
-    state.ownerResponse.terms?.rent === binding.terms.rent &&
-    state.ownerResponse.terms?.effectiveDate === binding.terms.effectiveDate &&
-    state.ownerResponse.terms?.endDate === binding.terms.endDate
-  );
-}
 /**
- * S117 (R117.2, AC-S117-3): a future-rent effect may be confirmed only while the owner's approved
- * terms are still current AND the tenant's acceptance of that same terms revision is recorded.
- * Preparation still needs the owner terms only; nothing here checks a box on anyone's behalf.
+ * S156/S160: a future-rent preview stays confirmable while the working renewal terms are still the
+ * exact amount and dates it was prepared from. Owner approval and tenant acceptance are recorded
+ * facts only; neither is checked here. The stored binding keeps its original shape so an earlier
+ * revision still reads it.
  */
-export function futureRentExecutionReady(
-  raw: unknown,
+export function futureRentTermsCurrent(
+  current: EffectiveRenewalTerms,
   binding: FutureRentBinding,
 ): boolean {
-  if (!futureRentWorkspaceMatches(raw, binding)) return false;
-  const state = raw as RenewalWorkspaceState;
-  return (
-    state.tenantResponse?.outcome === "accepted" &&
-    state.tenantResponse.termsRevision === state.termsRevision
-  );
+  return sameRenewalTerms(current.complete, binding.terms);
 }
 /** One reviewed schedule operation at a time. No assumed provider end-date inclusivity. */
 export function assertFutureRentSchedule(
@@ -111,7 +93,9 @@ export function assertFutureRentSchedule(
       current!.current !== false ||
       current!.projection.recurringStatusID !== 2
     )
-      fail("Only the approved amount on the exact future rent schedule can be changed.");
+      fail(
+        "Only the working renewal amount on the exact future rent schedule can be changed.",
+      );
   } else if (effect.kind === "recurring_charge_create") {
     if (
       !rentCharges.some((charge) => charge.accountId === effect.create.accountID) ||
@@ -121,7 +105,7 @@ export function assertFutureRentSchedule(
       chargeDateIso(effect.create.endDate ?? null) !== terms.endDate
     )
       fail(
-        "A future charge must use a verified rent account and the exact approved amount and term dates.",
+        "A future charge must use a verified rent account and the exact working amount and term dates.",
       );
   }
   const selected = effect.kind === "recurring_charge_update" ? effect.chargeId : null;
@@ -140,7 +124,7 @@ export function assertFutureRentSchedule(
     const end = chargeDateIso(effect.before.endDate);
     if (end !== terms.endDate)
       fail(
-        "The selected future schedule end must match the approved term; correct its schedule separately in the existing exact charge controls.",
+        "The selected future schedule end must match the working term end; correct its schedule separately in the existing exact charge controls.",
       );
   }
 }

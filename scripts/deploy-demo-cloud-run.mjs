@@ -15,6 +15,10 @@ import { validateProductionCutoverConfig } from "./preflight-production-cutover.
 import { resolveMaintenanceIntakeSecretBindings } from "./runtime-secret-bindings.mjs";
 import { assertReleaseAdmission, releaseHead } from "./release-control.mjs";
 import { assertReleaseProcessLock } from "./release-lock.mjs";
+import {
+  REVIEWED_CANDIDATE_SHEET_WRITEBACK,
+  SHEET_WRITEBACK_FLAG as SHEET_WRITEBACK_ENV_NAME,
+} from "../lib/production-assurance/sheet-writeback-expectation.mjs";
 
 // Live cheap-live target: the prod project `pmi-kc-kb-prod` running the Cloud Run service
 // historically named `pmi-kc-app` (https://pmi-kc-app-kq6wuvpiva-uc.a.run.app). The
@@ -293,7 +297,6 @@ const SHEET_WRITEBACK_ACTION_KEYS = [
   "google_sheets.renewal_checklist.row_append",
   "google_sheets.renewal_checklist.field_update",
 ];
-const SHEET_WRITEBACK_ENV_NAME = "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED";
 
 /**
  * Read one action's committed `production_allowed` out of the seed by text, returning null when the
@@ -379,12 +382,45 @@ export function formatGcloudMapFlag(
   return `${flagName}=^${delimiter}^${entries.join(delimiter)}`;
 }
 
+/**
+ * Inverse of formatGcloudMapFlag: read `--flag=^<delimiter>^KEY=value<delimiter>KEY=value` back
+ * into the exact map gcloud will apply. A body without the custom-delimiter prefix uses gcloud's
+ * default comma. Values keep every character after their first "=", so JSON maps survive intact.
+ */
+export function parseGcloudMapFlag(
+  argument,
+  { unescapeJsonQuotes = process.platform === "win32" } = {},
+) {
+  const text = String(argument ?? "");
+  const start = text.indexOf("=");
+  const body = start === -1 ? "" : text.slice(start + 1);
+  const custom = /^\^(.)\^/.exec(body);
+  const pairs = custom ? body.slice(3).split(custom[1]) : body.split(",");
+  const values = {};
+  for (const pair of pairs) {
+    if (!pair) continue;
+    const at = pair.indexOf("=");
+    const value = at === -1 ? "" : pair.slice(at + 1);
+    values[at === -1 ? pair : pair.slice(0, at)] = unescapeJsonQuotes
+      ? value.replace(/\\"/g, '"')
+      : value;
+  }
+  return values;
+}
+
 const PUBLIC_BUILD_KEYS = [
   "NEXT_PUBLIC_FIREBASE_API_KEY",
   "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
   "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
   "NEXT_PUBLIC_FIREBASE_APP_ID",
 ];
+
+// S165: optional and absent by default. It names the one app host whose own /__/auth/handler is
+// registered as a Google redirect address, which lets sign-in use a same-tab redirect on phones.
+// Setting it before that address is registered would break sign-in on that host, so it is passed
+// only when the reviewed deploy env states it, and only as a bare host.
+const OPTIONAL_PUBLIC_BUILD_KEYS = ["NEXT_PUBLIC_FIREBASE_SAME_ORIGIN_AUTH_HOST"];
+const BARE_HOST_PATTERN = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::\d{1,5})?$/;
 
 // The reviewed deploy env is authoritative for NEXT_PUBLIC_* Firebase build config: these values are
 // inlined into the client bundle and identify the Firebase project. A stale ambient process.env value
@@ -397,7 +433,7 @@ function resolvePublicBuildEnv(
 ) {
   const resolved = {};
 
-  for (const key of PUBLIC_BUILD_KEYS) {
+  for (const key of [...PUBLIC_BUILD_KEYS, ...OPTIONAL_PUBLIC_BUILD_KEYS]) {
     const local = readString(reviewedEnv[key]);
     const ambient = readString(env[key]);
 
@@ -427,6 +463,21 @@ function readRequiredBuildEnv(env, errors) {
 
     if (!value) {
       errors.push(`${name} must be set for the Cloud Run build.`);
+      continue;
+    }
+
+    values[name] = value;
+  }
+
+  for (const name of OPTIONAL_PUBLIC_BUILD_KEYS) {
+    const value = readString(env[name]);
+
+    if (!value) {
+      continue;
+    }
+
+    if (!BARE_HOST_PATTERN.test(value)) {
+      errors.push(`${name} must be a bare host such as app.example.com.`);
       continue;
     }
 
@@ -507,12 +558,14 @@ function readRuntimeEnv(env, project, region, searchLocation, sourceCommit) {
     RENEWAL_SHEET_ID: withDefault("RENEWAL_SHEET_ID", ""),
     SHEETS_IMPERSONATE_SA: withDefault("SHEETS_IMPERSONATE_SA", ""),
     SHEETS_DWD_SUBJECT: withDefault("SHEETS_DWD_SUBJECT", ""),
-    // Phase C: the live append-only Sheet write-back stays OFF unless this is explicitly "true" (and the
-    // SA's domain-wide-delegation grant carries the read/WRITE Sheets scope). Default off → deploying the
-    // code writes nothing to the operational sheet until an admin turns it on.
+    // S159: the operating-Sheet switch defaults to the one reviewed candidate value. An explicit
+    // value in the reviewed env file is still forwarded as written, so the release gates compare
+    // what was actually staged and refuse a candidate that differs from the reviewed value. Either
+    // way validateSheetWritebackGateCoupling refuses "true" while one of the two exact Action
+    // Registry keys is closed, and no deploy value opens a retired key.
     LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: withDefault(
-      "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED",
-      "false",
+      SHEET_WRITEBACK_ENV_NAME,
+      REVIEWED_CANDIDATE_SHEET_WRITEBACK,
     ),
     // S59: the market-comp provider selector. Default manual (the operator's own numbers); an
     // explicit "rentcast" survives this wrapper's replacing --set-env-vars map so the deployed

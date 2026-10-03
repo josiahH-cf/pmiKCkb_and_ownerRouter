@@ -10,6 +10,8 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
   vi.restoreAllMocks();
+  // S165: the idle clock is shared between tabs through local storage; isolate each test.
+  window.localStorage.clear();
 });
 
 describe("SessionTimeout (NOTIF-6)", () => {

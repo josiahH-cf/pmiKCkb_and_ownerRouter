@@ -152,11 +152,13 @@ describe("S123 workspace source-date notice (AC-S123-4)", () => {
       "Owner-approved terms recorded on this cycle: $1,250.00 from 09/01/2026 to 08/31/2027",
     );
     // The recorded basis line is history and still shows the recorded date, never the new one.
-    expect(screen.getByText(/Cycle based on lease end 08\/31\/2026/)).toBeInTheDocument();
-    // The start control still offers the current verified lease end for a deliberate new cycle.
-    expect(screen.getByLabelText("Verified lease end for this cycle")).toHaveValue(
-      "2027-08-31",
-    );
+    expect(
+      screen.getByText(/Work recorded against lease end 08\/31\/2026/),
+    ).toBeInTheDocument();
+    // S154 (0f02e013): there is no start-cycle control. New work on a completed record with a
+    // changed source date starts its own record at the first save; nothing is offered here.
+    expect(screen.queryByLabelText("Verified lease end for this cycle")).toBeNull();
+    expect(screen.queryByRole("button", { name: /cycle/i })).toBeNull();
   });
 
   it("says previous terms were not recorded when the changed cycle carries no owner terms", () => {
@@ -207,7 +209,7 @@ describe("S123 workspace source-date notice (AC-S123-4)", () => {
     expect(note).toHaveTextContent("the recorded date is kept");
   });
 
-  it("shows nothing about a source change when no cycle is recorded", () => {
+  it("shows nothing about a source change when no work is recorded", () => {
     render(
       <RenewalManualProvider
         leaseId="701"
@@ -222,11 +224,37 @@ describe("S123 workspace source-date notice (AC-S123-4)", () => {
       </RenewalManualProvider>,
     );
     expect(document.querySelector("[data-renewal-cycle-source-date]")).toBeNull();
+    // S154 (BEH-S154-3): no cycle confirmation precedes ordinary recording.
     expect(
       screen.getByText(
-        "Confirm the reviewed cycle below to record work against this lease.",
+        "Record any item below when it happens. Each entry saves on its own.",
       ),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/Confirm the reviewed cycle/)).toBeNull();
+  });
+
+  it("S154 BEH-S154-9: a lease-bound record states that it carries no cycle date and claims no source change", () => {
+    render(
+      <RenewalManualProvider
+        leaseId="701"
+        initialState={emptyRenewalWorkspace("701", CYCLE, {
+          kind: "lease_bound",
+          source:
+            "No lease end or review date was available when this work was first saved",
+        })}
+        cycleBasis={{
+          kind: "lease_end",
+          dateIso: "2027-08-31",
+          source: "RentVine lease end",
+        }}
+      >
+        <span />
+      </RenewalManualProvider>,
+    );
+    expect(
+      screen.getByText(/Work saved on this lease without a cycle date/),
+    ).toBeInTheDocument();
+    expect(document.querySelector("[data-renewal-cycle-source-date]")).toBeNull();
   });
 });
 

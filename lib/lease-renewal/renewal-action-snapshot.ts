@@ -1,8 +1,6 @@
 import type { Role } from "@/lib/auth/roles";
 import {
   DESK_EVIDENCE_CAPABILITY,
-  deskBlockedSubsteps,
-  deskReadySubstep,
   deskWaitingPartyLabel,
 } from "@/lib/lease-renewal/desk-guidance";
 import type { RenewalLeaseWorkspace } from "@/lib/lease-renewal/desk-model";
@@ -52,7 +50,7 @@ export function buildRenewalActionSnapshot(
 ): RenewalActionSnapshot {
   const { workspace, issues } = input;
   const { summary, guidance } = workspace;
-  const process = workspace.workflowAvailable ? workspace.process : null;
+  const process = workspace.process;
   const action = guidance.action;
   const destinationStep =
     "destination" in action && action.destination.kind === "workspace_phase"
@@ -60,14 +58,7 @@ export function buildRenewalActionSnapshot(
       : null;
   const currentStep = process?.steps[process.currentStepIndex] ?? null;
   // The one substep the process-lane guidance names, chosen by the guidance's own helpers.
-  const substepId =
-    process && !summary.manualProgress
-      ? guidance.overallStatus === "blocked"
-        ? (deskBlockedSubsteps(process)[0]?.id ?? null)
-        : action.kind === "act"
-          ? (deskReadySubstep(process)?.id ?? null)
-          : null
-      : null;
+  const substepId: string | null = null;
   const verify = process?.steps.find((step) => step.id === "verify-renewal");
   const term = summary.leaseTerm;
   const rentvineReadable =
@@ -76,7 +67,6 @@ export function buildRenewalActionSnapshot(
   return {
     leaseId: summary.id,
     role: input.role,
-    workflowAvailable: workspace.workflowAvailable,
     manualLaneMounted: input.manualLaneMounted,
     manual: input.manualReadUnavailable
       ? { readable: false }
@@ -149,7 +139,7 @@ export function buildRenewalActionSnapshot(
     regions: {
       followUp: Boolean(workspace.followUp),
       correction: input.correctionPanel,
-      documentPacket: workspace.workflowAvailable,
+      documentPacket: true,
     },
   };
 }

@@ -242,7 +242,9 @@ describe("S122 table-owned worklist views (AC-S122-2, AC-S122-3)", () => {
     expect(wider.getAttribute("href")).toContain("lease=Horizon");
     expect(wider).toHaveTextContent("1");
     const fewer = actions.getByRole("link", { name: "Remove these filters" });
-    expect(fewer.getAttribute("href")).toBe("/lease-renewal/live/desk");
+    // S166: a worklist control names the default view explicitly; the bare route is the ordinary
+    // entry that opens the account's remembered view.
+    expect(fewer.getAttribute("href")).toBe("/lease-renewal/live/desk?v=2");
     // The toolbar's own clear control is unchanged and still unique.
     expect(screen.getByRole("link", { name: "Clear filters" })).toBeInTheDocument();
     cleanup();

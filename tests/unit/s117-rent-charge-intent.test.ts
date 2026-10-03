@@ -162,7 +162,7 @@ describe("S117 typed current and future rent/charge intents (ARCH-S117-1)", () =
     }
   });
 
-  it("AC-S117-1: a future preparation targets RentVine only with the recorded terms and never the Sheet or current base", () => {
+  it("AC-S117-1: a future preparation targets RentVine only with the working terms and never the Sheet or current base", () => {
     const update = planRentChargeRequests(
       {
         scope: "future",
@@ -170,22 +170,20 @@ describe("S117 typed current and future rent/charge intents (ARCH-S117-1)", () =
         chargeId: "303",
         terms,
         scheduleReview: "Reviewed future schedule",
-        cycleId: "0f6a8a5e-2f2c-4c1e-9a52-7c1f0e2f5b11",
-        termsRevision: 2,
       },
       context,
     );
     expect(update).toHaveLength(1);
+    // S156/S160 (cafa02a7): the server binds a future-rent preview to the lease's current working
+    // terms, so the browser names no cycle or terms revision. Optional context travels as the
+    // schedule review and evidence note only.
     expect(update[0]).toMatchObject({
       destination: "rentvine",
       route: "rentvine-writeback",
       body: {
         businessIntent: "future_rent",
-        renewalContext: {
-          cycleId: "0f6a8a5e-2f2c-4c1e-9a52-7c1f0e2f5b11",
-          termsRevision: 2,
-          scheduleReview: "Reviewed future schedule",
-        },
+        evidenceRef: "Reviewed future schedule",
+        renewalContext: { scheduleReview: "Reviewed future schedule" },
         effects: [
           {
             kind: "recurring_charge_update",
@@ -195,6 +193,21 @@ describe("S117 typed current and future rent/charge intents (ARCH-S117-1)", () =
         ],
       },
     });
+    const updateBody = (update[0] as { body: Record<string, unknown> }).body;
+    expect(updateBody.renewalContext).not.toHaveProperty("cycleId");
+    expect(updateBody.renewalContext).not.toHaveProperty("termsRevision");
+    // S157: the narrative is optional; a preparation without one carries no context fields.
+    const plain = planRentChargeRequests(
+      { scope: "future", operation: "update_future", chargeId: "303", terms },
+      context,
+    );
+    expect(plain[0]).toMatchObject({
+      destination: "rentvine",
+      body: { businessIntent: "future_rent" },
+    });
+    const plainBody = (plain[0] as { body: Record<string, unknown> }).body;
+    expect(plainBody).not.toHaveProperty("evidenceRef");
+    expect(plainBody).not.toHaveProperty("renewalContext");
     const create = planRentChargeRequests(
       {
         scope: "future",
@@ -202,8 +215,6 @@ describe("S117 typed current and future rent/charge intents (ARCH-S117-1)", () =
         chargeId: "301",
         terms,
         scheduleReview: "Reviewed",
-        cycleId: "0f6a8a5e-2f2c-4c1e-9a52-7c1f0e2f5b11",
-        termsRevision: 2,
       },
       context,
     );
@@ -237,8 +248,6 @@ describe("S117 typed current and future rent/charge intents (ARCH-S117-1)", () =
         chargeId: "301",
         terms,
         scheduleReview: "Reviewed",
-        cycleId: "0f6a8a5e-2f2c-4c1e-9a52-7c1f0e2f5b11",
-        termsRevision: 2,
         currentChargeEndDate: "2026-12-31",
       },
       context,
