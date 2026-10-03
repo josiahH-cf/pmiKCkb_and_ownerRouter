@@ -26,15 +26,15 @@ const CURRENT_PROVIDERS = [
 describe("current provider and environment documentation", () => {
   it("pins the exact serving environment instead of a historical cutover target", () => {
     expect(handoff).toContain(
-      "| Serving revision          | `pmi-kc-app-rmur4a2vc-185ba8b9f3b8`",
+      "| Serving revision          | `pmi-kc-app-rmusp7ehl-7ea8703905ca`",
     );
     expect(handoff).toContain(
-      "| Serving commit            | `df772b30c60043d5fe4c57ff2275990d18a535b3`",
+      "| Serving commit            | `e106a88a50d541b4a012111019b09c2183f6ce20`",
     );
     expect(handoff).toContain(
-      "Captured predecessor: `pmi-kc-app-recovery-175fee1d276c4e6f` from commit",
+      "Captured predecessor: `pmi-kc-app-rmurivuzf-c061dc669374` from commit",
     );
-    expect(handoff).toContain("1402e51b4828d407f990a675f16e6a7ba47afb7b");
+    expect(handoff).toContain("090df5e16f54eadbd1a3afbf20836c6677fa2a19");
     expect(handoff).toContain("Forward restoration");
     expect(handoff).toContain("Production + Live");
     expect(handoff).toContain("Sheet write-back");
@@ -55,7 +55,7 @@ describe("current provider and environment documentation", () => {
       "RentVine | Complete lease reads; work-order reads; authoritative lease/unit/portfolio data | Exact S97 renewal, S99 work-order, and S100 chat-sync keys are open",
     );
     expect(normalizedIntegrations).toContain(
-      "Google Sheets | Operating renewal read source and exact append/update target | Both exact keys remain open; S128 switch false pauses all operating-Sheet mutations; reads and app-owned work remain available",
+      "Google Sheets | Operating renewal read source and exact append/update target | Both exact keys remain open; the reviewed S159 switch value true serves normal append and recognized-field updates behind exact confirmation; false pauses all operating-Sheet mutations; reads and app-owned work remain available",
     );
     expect(normalizedIntegrations).toContain(
       "RentCast | Reference rental listings/market data with cache, usage counter, cap 50 | Exact read key open; never sets offered rent",

@@ -1,6 +1,6 @@
 # Current plan
 
-Updated: 2026-10-02 (UTC). Batch 004 (S146–S151) and S108's import are verified deployed by runs `98f7e743` and `729d5716`, with its corrective read-order repair by run `0eb2cfeb`, on top of request 001, batches 002–003, the thirteen-feature batch and confirmed adversarial repairs.
+Updated: 2026-10-03 (UTC). The S152–S167 program is verified deployed by run `47fabb7c`. Batch 004 (S146–S151) and S108's import are verified deployed by runs `98f7e743` and `729d5716`, with its corrective read-order repair by run `0eb2cfeb` and the S113 approval-read fix by run `3a32f7a2`, on top of request 001, batches 002–003, the thirteen-feature batch and confirmed adversarial repairs.
 
 ## Direct maintenance request 001: released
 
@@ -87,36 +87,36 @@ revision; run `0eb2cfeb` released the corrective read-order repair on 2026-10-02
 `docs/evidence/ai-first-dashboard-batch-004-validation-2026-10-01.md`; AF-67 (one cumulative
 candidate) is No by the owner's direction.
 
-## October lease-renewal simplification and mobile: implemented, awaiting release
+## October lease-renewal simplification and mobile: released
 
 S152–S167 are owner-confirmed full change specifications under renewal-simplification-mobile-2026-10 in docs/feature-suites/README.md. They extend the deployed owners; completed suites are not requeued. Product decisions are embedded, including intentional Sheet-policy and ordinary-staff access changes.
 
 The owner's execution prompt of 2026-10-02 started the program. It was built in the registered dependency order on one branch (S167 access, S154/S155 workability and autosave, S157 working values, S158 Sheet lookup, S159 switch and tooling, S156 staff lane, S160 source actions, S153 rent meanings, S152 views, S161–S163 messages, S164 Status log, S166 links and preferences, S165 mobile throughout) by eleven bounded worker slices merged into the program head `ba3f9719`. Shared foundations: a lease-bound working record (`lease_renewal_working_records`), `effectiveRenewalTerms` (working values over recorded owner terms), `operationalCurrentRent` (working, single rent charge, then contractual), the `s156-staff-lane` desk row contract that the production reconciliation oracle verifies, and `lib/production-assurance/sheet-writeback-expectation.mjs` as the one reviewed Sheet switch expectation. Removed gates: cycle start and reviewed-cycle checkboxes, Save buttons for ordinary fields, business approvals (`approve_pricing_suggestion`, `resolve_reconciliation`, `approve_source_write`, `execute_source_write` are Editor work), owner/tenant acceptance prerequisites for RentVine future rent, the blanket Sheet pause, the Sheet-first ordering of the retired generic write-back route (now Admin-only `google_sheets.renewal_checklist.writeback`), and per-Space staff allowlists. Kept: exact preview and confirmation of every external effect, target/value/timing checks, one-attempt claims, receipts, readback and recovery; Admin user management; Vendor scope; verification-account refusals; private account records; closed and retired keys closed; `firestore.rules` deny-all with the new collections' rules.
 
-Release plan: one cumulative run through the existing machinery after exact main CI on the merged head, with the candidate and promoted revision reading `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true` and the recovery target keeping the captured predecessor's actual value. No provider mutation, live customer draft, paid comp request, synthetic production record or new proof target is part of the release. After verified completion: independent readbacks, the suite dispositions in docs/feature-suites/README.md, and the owner's optional phone redirect step (A7).
+Release: run `47fabb7c` shipped the program on 2026-10-03 in one cumulative candidate at `e106a88a` through the existing machinery after exact main CI. The promoted revision reads `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true` and the recovery target keeps the captured predecessor's actual value (false). Run `a83ed59b` had stopped at candidate assurance because the release canary still required the lease's Full view on open; PR #128 corrected that contract and the stopped run is archived as superseded. No provider mutation, live customer draft, paid comp request, synthetic production record or new proof target was part of the release. Independent readbacks passed and the suite dispositions are in docs/feature-suites/README.md. Remaining: the owner's optional phone redirect step (A7) and the two owner decision candidates in docs/open-blockers.md.
 
 ## Outcome
 
-Since 2026-10-02T22:37Z production serves run `3a32f7a2`'s `090df5e16f54eadbd1a3afbf20836c6677fa2a19` / `pmi-kc-app-rmurivuzf-c061dc669374` (the S113 approval-read fix, Sheet=false; see docs/loop-state.md). The record below is the release before it and stays as that run's history until the S152–S167 release replaces both.
-
-Run `0eb2cfeb-a238-4b37-b35f-f999eadfacff` released batch 004's corrective repair (two queued items: the S147 Dashboard lease read order and the S151 answer-position smoke) at `df772b30c60043d5fe4c57ff2275990d18a535b3` / `pmi-kc-app-rmur4a2vc-185ba8b9f3b8` with 100% production traffic.
-Run `175fee1d` first carried the same code at `7d2181bf`; its immediate observation checkpoint failed while Cloud Run still routed some requests to the untagged predecessor, which answered them with 500s, so it rolled back (verified, no downtime).
-Batch 004 itself (S108 and S146–S151) shipped in runs `98f7e743` and `729d5716`; the batch 004 evidence ledger records those runs and run `0aa79bfe`'s verified rollback.
-Exact [CI 37025320585](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37025320585) passed.
-The gate on tree-identical PR head `14087b40` passed 7,894 unit tests, four existing skips, all 273 backend tests and 32 core E2E tests.
-One application build `802d851f-54cb-42a2-aedf-80d04e2142de` succeeded at 2026-10-02T15:42:16.516Z.
-Candidate receipt issued 2026-10-02T15:48:28.020Z; promotion verified 2026-10-02T15:48:53.296Z.
-Observation passed two checkpoints in 396,284 ms against the required 300,000 ms, inside the 420,000 ms evidence deadline. All 312
+Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` released the S152–S167 program (one queued item: lease-renewal simplification and mobile, sixteen suites) at `e106a88a50d541b4a012111019b09c2183f6ce20` / `pmi-kc-app-rmusp7ehl-7ea8703905ca` with 100% production traffic.
+Run `a83ed59b` first carried the program at `b11f5fe0`; it stopped at candidate assurance because the release canary still required the lease's Full view on open while S152 opens a lease in Focus view. It never changed traffic and is archived as superseded; PR #128 corrected the canary's lease-workspace contract.
+The release before it, run `3a32f7a2` (the S113 approval-read fix at `090df5e16f54eadbd1a3afbf20836c6677fa2a19` / `pmi-kc-app-rmurivuzf-c061dc669374`, 2026-10-02), is this run's captured predecessor.
+Exact [CI 37142116030](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37142116030) passed.
+The gate on tree-identical PR head `1b0df6fd` passed 8,541 unit tests, four existing skips, all 319 backend tests and 32 core E2E tests.
+One application build `e8264109-67cd-4414-9d2b-c897f027c905` succeeded at 2026-10-03T18:13:16.303Z.
+Candidate receipt issued 2026-10-03T18:26:00.305Z; promotion verified 2026-10-03T18:26:19.642Z.
+Observation passed two checkpoints in 387,784 ms against the required 300,000 ms, inside the 420,000 ms evidence deadline. All 312
 source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
-Eleven independent readback sections matched, last at 2026-10-02T15:55:53Z. The owner's bounded AI history live check
-passed on batch 004's revision `pmi-kc-app-rmuq2qvcc-8074bfd97707` and was not rerun.
-Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag `cand-rmur4a2vc-185ba8b9f3b8`; fingerprint `sha256:1e4fbc10f3abad951f40b37b07d47d526f67e30334ac237d148b0e7c63a7a6e2`.
+Eleven independent readback sections matched, last at 2026-10-03T18:32:54Z. A read-only production Focus check then passed on
+three lease workspaces: Focus view is the default, with zero mutation attempts.
+Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=true are verified.
+Tag `cand-rmusp7ehl-7ea8703905ca`; fingerprint `sha256:7061589ec47f2338497f9efd9dea1817dfdcc6f2ba4192b30b573e35d725448b`.
 No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
 ## Current implementation baseline
 
+Run `47fabb7c` added the S152–S167 program; the gate on its tree-identical PR head passed 8,541
+unit tests and 319 backend tests.
 Run `0eb2cfeb` added batch 004's corrective repair; the gate on its release head passed 7,894 unit
 tests and 273 backend tests. Runs `98f7e743` and `729d5716` added S108 and batch 004
 (S146–S151); the gate on the final batch 004 head passed 7,887 unit tests and 273 backend tests. Run `ab803f8a` added request 001 and

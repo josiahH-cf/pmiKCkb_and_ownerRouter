@@ -4,69 +4,60 @@ Last updated: 2026-10-03 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-RELEASED: the S113 approval-read fix (PR #124) on 2026-10-02 in run
-3a32f7a2-fd58-4652-b519-5a31517b0142 at main `090df5e16f54eadbd1a3afbf20836c6677fa2a19`.
-Revision pmi-kc-app-rmurivuzf-c061dc669374; tag cand-rmurivuzf-c061dc669374; 100% traffic
-(read back 2026-10-03T00:45Z). Candidate receipt 6089b9da-8a4b-45aa-abd8-b54b42ca4a71 at
-22:36:51Z; promotion verified 22:37:15Z; post-promotion observation passed at 22:43:45Z over 13
-routes; the run's checkpoint completed at 22:43:47Z; its permit is consumed. Predecessor
-pmi-kc-app-recovery-05c177b97bde4a76. Fingerprint
-sha256:3d341cc428b6006a1e3db858324a3c22ea7357d017957a9cf8b7a1f9b1831b75. That run's own
-independent readbacks and ledger closure belong to the session that ran it; this record states
-only what its local receipts and the live traffic read show.
-The earlier serving record (batch 004 corrective repair, run 0eb2cfeb at df772b30 /
-pmi-kc-app-rmur4a2vc-185ba8b9f3b8) stands as its history: its fingerprint was
-sha256:1e4fbc10f3abad951f40b37b07d47d526f67e30334ac237d148b0e7c63a7a6e2.
+RELEASED: the S152–S167 program (lease-renewal simplification and mobile) on 2026-10-03 in run
+47fabb7c-b26b-4032-b993-f6bc49c66abd at main `e106a88a50d541b4a012111019b09c2183f6ce20`.
+Revision pmi-kc-app-rmusp7ehl-7ea8703905ca; tag cand-rmusp7ehl-7ea8703905ca; 100% traffic.
+Build e8264109-67cd-4414-9d2b-c897f027c905 at 18:13:16Z; candidate receipt
+5b837019-2126-423c-b7fa-70bbbe9b550f at 18:26:00Z; promotion verified 18:26:19Z; observation
+passed two checkpoints in 387,784 ms over 13 routes with all 312 records matched and zero
+candidate 5xx or unresolved live effects; the checkpoint completed at 18:32:44Z; its permit is
+consumed; eleven readback sections matched, last at 18:32:54Z. Fingerprint
+sha256:7061589ec47f2338497f9efd9dea1817dfdcc6f2ba4192b30b573e35d725448b.
+Captured predecessor pmi-kc-app-rmurivuzf-c061dc669374 (run 3a32f7a2, the S113 approval-read fix
+at `090df5e16f54eadbd1a3afbf20836c6677fa2a19`, Sheet=false, fingerprint
+sha256:3d341cc428b6006a1e3db858324a3c22ea7357d017957a9cf8b7a1f9b1831b75). Recovery receipt
+55c77605-9945-4617-bfab-c160d6ff366a binds pmi-kc-app-recovery-47fabb7cb26b4032, which keeps the
+predecessor's Sheet=false.
 Canonical: https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=false.
-Release-check margin restored: the observation decided at 396,284 ms against the 420 s evidence
-deadline, and the renewal desk check took 4,838 ms (28,729 ms in batch 004's last release). Batch
-004's own runs decided at 414,515 and 419,630 ms, and run 0aa79bfe missed the deadline; the S147
-attention queue had started the admitted lease refresh that a desk opened alongside the Dashboard
-then waited out.
-Run 175fee1d first carried the same code at 7d2181bf and rolled back verified: for up to 46 s after
-promotion started, Cloud Run still routed some canonical requests to the untagged predecessor,
-which answered them with instant 500s and failed the immediate checkpoint (candidate 5xx zero).
-Its records are preserved; its checkpoint and permit are archived as superseded by df772b30.
-Batch 004 (S146–S151) shipped in runs 98f7e743 and 729d5716; its AF-01 to AF-70 ledger, the
-2026-10-02 independent verification and both corrective runs are in
-docs/evidence/ai-first-dashboard-batch-004-validation-2026-10-01.md.
+Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=true.
+A read-only production Focus check passed on three lease workspaces afterwards: Focus view is the
+default, with zero mutation attempts.
+Run 47fabb7c stopped twice on a cold target (recovery preparation at 18:05Z, candidate assurance
+at 18:18Z). Each time a read-only canary passed 13 routes warm, the reconciliation oracle matched
+312 records on the candidate, and the same-run resume passed.
+Run a83ed59b-d5cc-4922-b736-fe57b86ff2a7 first carried the program at `b11f5fe0` and stopped at
+candidate assurance: the release canary required the lease's Full view section navigation on
+open, and S152 opens a lease in Focus view. No promotion occurred and traffic never changed. PR
+#128 (`1b0df6fd`) gave the canary the Focus-default contract, and the corrected canary passed
+read-only on that run's zero-traffic candidate. Its records are preserved; its checkpoint and
+permit are archived as superseded by e106a88a.
+Earlier serving records (run 3a32f7a2; batch 004's corrective run 0eb2cfeb at df772b30) stand as
+history in Git and in docs/evidence/ai-first-dashboard-batch-004-validation-2026-10-01.md.
 
 ## Awaiting release
 
-1. S152 program (S152 to S167, lease-renewal simplification and mobile), one cumulative release: `ba3f9719`.
-   The candidate and promoted revision read `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true` from the
-   one reviewed S159 constant; the recovery target keeps the captured predecessor's actual value.
-   The reviewed env files in both checkouts carry true; the readback helper expects true.
-
-OWNER DIRECTION, 2026-10-02: the S113 gap is closed (run 3a32f7a2, above). The S152–S167 execution
-prompt of the same day authorizes this program's implementation and one cumulative release. Admit
-only after exact main CI on the release head, fresh prerequisites and a new run-bound permit. No
-provider effect, key or activation is queued. S121 remains excluded.
-
-The S113 item (`cc78c127cf4259395617514909130baa5e98467b`) first rode run
-05c177b9-7bde-4a76-a70d-3c5e85bf5d7f at `9dc8469c`, which rolled back
-verified (no downtime). Its immediate observation checkpoint passed; at 21:39:39Z, inside the
-final checkpoint, the Admin assurance profile's eight-hour app session expired (one 401 on
-`/api/notifications`, then auth_mismatch on every route). The candidate served zero 5xx. An
-unattended `auth:ensure` re-established the session at 21:43Z, and the same-run resume recorded
-ROLLED_BACK_VERIFIED at 21:45:54Z. Its checkpoint and permit are archived as superseded by this
-record's head, which carries one replacement run of the same code.
+None. Run 47fabb7c consumed its queue (the S152 program item `ba3f9719`, with PR #127's review
+repairs and PR #128's canary correction on the release head) and its permit. A future authorized
+batch needs its own exact queue, ancestral commits, exact main CI, fresh prerequisites and a new
+run-bound permit. No provider effect, key or activation is queued. S121 remains excluded.
 
 ## Feature intake
 
-S152–S167: implemented on 2026-10-02 under the owner's execution prompt (handoff
-renewal-simplification-mobile-2026-10; canonical program docs/feature-suites/README.md) at
-`ba3f9719`, awaiting the one cumulative release above. Every suite extends its deployed owner; no
-provider effect, key or activation was used. Human verdicts: NOT RUN, no human observer. The
-optional phone same-tab redirect (S165) has one owner step, A7 in docs/open-blockers.md.
+S152–S167: released on 2026-10-03 (run 47fabb7c, above) under the owner's execution prompt
+(handoff renewal-simplification-mobile-2026-10; canonical program docs/feature-suites/README.md;
+program commit `ba3f9719`). Every suite extends its deployed owner; no provider effect, key or
+activation was used. Human verdicts: NOT RUN, no human observer. The optional phone same-tab
+redirect (S165) has one owner step, A7 in docs/open-blockers.md.
 
 Request 001 and batches 002–004 (S135–S151) are released; their actual evidence is in docs/facts.md
-and the registered evidence ledgers. Focus/in-pane work is deployed; the new program changes its
-default, workflow/access gates, working persistence, Sheet policy and whole-app mobile usability.
+and the registered evidence ledgers. The released program changed the Focus default,
+workflow/access gates, working persistence, Sheet policy and whole-app mobile usability.
 
 ## Verified evidence
 
+PR #128 gate on head 1b0df6fd: 8,541 unit tests (four existing skips), 319 backend tests and
+test:e2e:core 32 passed (22 existing skips); PR CI and exact main CI 37142116030 passed. The new
+Focus-default canary case and its ten refusals are in tests/unit/s113-canary-landmarks.test.ts.
 S113 root cause (2026-10-02), two layers. Product: an approval read past the 60 s soft TTL returned
 the held lease generation while its own background revalidation's admission raised the notice
 floor 5 ms after that read's floor check, so the draft preview's safety check refused it (traced on
@@ -108,11 +99,11 @@ UNVERIFIED; absent Data Access logs do not prove zero effects.
 
 ## Continuation
 
-Next: release the S152–S167 program under Awaiting release (fresh prerequisites, exact main CI,
-a new run-bound permit, full observation, independent readbacks), then record the served
-revision, the Sheet switch readback and each suite's disposition. Owner decisions of 2026-10-02
-(Q1–Q4) and every owner step are in
-`docs/open-blockers.md`; act on a hold only when the owner reports its step done. Runner
+Next: no release is queued. Open items are the two owner decision candidates (an uncertain Sheet
+field update that holds a lease's Sheet lane; the document packet's terms source), the optional
+phone redirect step A7 and human verdicts, all in `docs/open-blockers.md`; act on a hold only when
+the owner reports its step done. Owner decisions of 2026-10-02 (Q1–Q4) are there too. Runner
 follow-ups with no owner step (the four emulator-only E2E suites, promotion routing skew and cold
-recovery verification) are described there. Consumed permits and
+recovery verification) are described there. A change to what a route shows on open must update
+the release canary's landmark contract in the same change. Consumed permits and
 historical receipts cannot admit another deployment.

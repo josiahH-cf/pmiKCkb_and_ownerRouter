@@ -68,8 +68,8 @@ S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger 
 
 - Project `pmi-kc-kb-prod`, service `pmi-kc-app`, region `us-central1`; canonical https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
 - Captured predecessor: `pmi-kc-app-rmunbakkw-d2963016189e` / `81c770fcb698b6650771f9a28c65c32a42060062`, Sheet=false. Run-bound recovery: `pmi-kc-app-recovery-89e38cd9b6dd498f`, receipt `4cc6d657-5f3e-4c54-bfff-48f8fd614d34`. No traffic rollback occurred.
-- Runtime remains Production + Live, managed runtime identity, eleven Spaces, paused Sheet
-  write-back (false), false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
+- Runtime remains Production + Live, managed runtime identity, eleven Spaces, Sheet write-back
+  true since the S152–S167 release (run `47fabb7c`; the recovery target keeps false), false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
 - S82 conformance, S97 replay/ambiguity integrity, S98 normal append and owner-approved field
   updates, S102-S110/readiness corrections and S51/S54 assurance are serving. Row deletion and
   historical restore/proof mutations remain unavailable. Matching observations cannot establish
@@ -349,8 +349,8 @@ to exact human-confirmed source-of-truth updates. S97, S98, S99, and the S100 ch
 their bounded per-key proof windows, mandatory close/readback, and separate final activations. An
 open key is authority, not proof that the provider currently exposes every safety primitive.
 Serving S113 supports normal field updates under the explicit owner-approved contract above.
-The deployed S128 batch pauses operating-Sheet effects while preserving reads and app-owned saves;
-the serving revision reads Sheet=false until the S152–S167 release. S159 (implemented, queued)
+The S128 batch paused operating-Sheet effects while preserving reads and app-owned saves. S159,
+released on 2026-10-03 in run `47fabb7c` (the serving revision reads Sheet=true),
 resumes the existing normal append and recognized-field updates through the narrow switch and the
 two open exact keys: candidate and promoted revisions read the one reviewed value
 (`lib/production-assurance/sheet-writeback-expectation.mjs`, true) and the recovery target keeps the
