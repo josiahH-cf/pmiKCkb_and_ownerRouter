@@ -3,7 +3,7 @@
 
 # S159 — Remove Sheet workflow friction and restore supported updates
 
-> Status: SPECIFIED / NOT IMPLEMENTED. Owner-confirmed F08 change; authoring and registration only. Implementation, tests, authentication probes, provider effects, and release were not executed for this intake.
+> Status: IMPLEMENTED / AWAITING RELEASE. Owner-confirmed F08 change; implemented on 2026-10-02 under the owner's execution prompt (program commit `ba3f9719`, merged to main in PR #126) and queued for one cumulative release. No provider effect was used; human verdict NOT RUN.
 
 **Goal.**
 
@@ -91,7 +91,7 @@ Meeting source: `Cherry Bridge & PMI sync - 2026_10_01 13_58 CDT - Notes by Gemi
 
 **If this was built correctly:** Edit and prepare work while the Sheet is unavailable or disagrees. When you choose a supported Sheet update, see the exact target and result. A failed update leaves your app work intact and does not undo another successful destination.
 
-- Model verdict: no implementation verdict issued at specification intake. The execution runner records PASS or FAIL with the actual supporting evidence.
+- Model verdict: PASS on the full local gate and exact main CI for the program head (unit, backend, core E2E; counts in docs/facts.md, Current feature). Per-suite evidence is the F-row for this suite in docs/facts.md. Live verification follows the release.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

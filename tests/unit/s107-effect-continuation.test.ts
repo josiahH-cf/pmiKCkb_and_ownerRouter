@@ -88,7 +88,7 @@ describe("S107 load-time reconciliation is read-only (ARCH-S107-2 / AC-S107-1)",
     expect(RENEWAL_CONTINUATION_MIN_AGE_MS).toBe(2 * 60 * 1_000);
   });
 
-  it("projects an orphaned running attempt as needing an Admin's reconciliation, never settling it", () => {
+  it("projects an orphaned running attempt as needing a staff reconciliation, never settling it", () => {
     const summary = projectRenewalAttemptSummary({
       leaseId: "4821",
       attempts: [attempt({ executionId: "orphan" })],
@@ -97,7 +97,10 @@ describe("S107 load-time reconciliation is read-only (ARCH-S107-2 / AC-S107-1)",
     expect(summary.reconcilableCount).toBe(1);
     expect(summary.inFlight).toBe(true);
     expect(summary.lastAttemptState).toBe("running");
-    expect(summary.nextAction).toMatch(/An Admin reconciles it from its exact receipt/);
+    expect(summary.nextAction).toMatch(
+      /Reconcile it from its exact receipt under Review RentVine updates or Review Sheet updates/,
+    );
+    expect(summary.nextAction).not.toMatch(/Admin/);
     // A young running attempt is simply in flight.
     const young = projectRenewalAttemptSummary({
       leaseId: "4821",
@@ -154,7 +157,7 @@ describe("S107 load-time reconciliation is read-only (ARCH-S107-2 / AC-S107-1)",
     });
     expect(writes).toEqual([]);
     expect(summary.reconcilableCount).toBe(1);
-    expect(summary.nextAction).toMatch(/An Admin reconciles it/);
+    expect(summary.nextAction).toMatch(/Reconcile it from its exact receipt/);
   });
 
   it("keeps the continuation modules free of any effect-family service import", () => {

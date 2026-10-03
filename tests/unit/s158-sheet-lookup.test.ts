@@ -326,6 +326,40 @@ describe("S158 selected-location read (ARCH-S158-1/2)", () => {
     });
     expect(view.row?.problem).toMatch(/permission/i);
   });
+
+  it("BEH-S158-6: a selection is never read when the tabs could not be listed and classified", async () => {
+    // The list read fails once while single-range reads still answer. A saved selection that
+    // names a credential tab must not be reached through the failed check.
+    const requested: string[] = [];
+    const reader: SheetsValuesReader = {
+      async listTabTitles() {
+        throw new Error("Sheets metadata read failed (HTTP 429).");
+      },
+      async batchGet(_spreadsheetId, ranges) {
+        requested.push(...ranges);
+        return {
+          valueRanges: ranges.map((range) => ({
+            range,
+            values: [["frontdesk", "secret"]],
+          })),
+        };
+      },
+    };
+    const view = await readOperatingSheetLookup({
+      reader,
+      spreadsheetId: "configured-workbook",
+      binding: binding({
+        sheet_row: { tabTitle: "Door Codes", rowNumber: 2 },
+        "sheet_cell.current_rent": { tabTitle: "Door Codes", cell: "B2" },
+      }),
+    });
+    expect(view.tabs.state).toBe("unavailable");
+    expect(view.row).toMatchObject({ state: "problem", tabTitle: "Door Codes" });
+    expect(view.row?.problem).toMatch(/was not read/i);
+    for (const cell of view.cells) expect(cell.state).toBe("problem");
+    expect(requested).toEqual([]);
+    expect(JSON.stringify(view)).not.toContain("secret");
+  });
 });
 
 describe("S158 the selection wins in the desk join (coordinator helper)", () => {

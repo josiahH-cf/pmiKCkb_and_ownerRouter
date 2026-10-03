@@ -3273,7 +3273,10 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         fireEvent.click(
           within(form).getByRole("button", { name: "Save renewal information form" }),
         );
-        await screen.findByText("Link saved and read back.");
+        // The save writes and reads back through the emulator; under full-gate load it needs the
+        // journey's emulator budget like the other emulator-backed waits here. No safety check
+        // depends on this wait.
+        await screen.findByText("Link saved and read back.", {}, { timeout: 10_000 });
         expect(
           (await postMessageRoute(messageRequest({ kind: "publish", channel: "tenant" })))
             .status,

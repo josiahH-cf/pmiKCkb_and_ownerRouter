@@ -20,8 +20,8 @@ corresponding section. **← Back to renewals** returns to the same filtered des
 card heading has a small **i** control, **About …**, that opens plain-language help: purpose, the
 real steps, what saving records and what does not happen. Opening help changes nothing.
 
-The compact lease identity, the section links and two panel buttons stay at the top of the page while
-you scroll. **Lease information** opens a side panel with the full property, unit, dates, term, base
+The compact lease identity, the view switch and **Lease information** stay at the top of the page
+while you scroll; in Full view the section links and **Process guide** join them. **Lease information** opens a side panel with the full property, unit, dates, term, base
 rent and reference amounts, owners, tenants, known contacts, status and validated source records.
 Each value is separately selectable with a **Copy** control beside it, and **Copy all owner emails**
 or **Copy all tenant emails** copies every source-backed address for that one audience; a party with
@@ -38,7 +38,7 @@ The renewal table's
 **Filter status** disclosure filters by that same saved status, including Not recorded, alongside
 the owner, tenant, date and scope filters, and the filter comes back with you from a lease. The
 staff status is a note for resuming work: it never records owner approval, a sent message, a
-signature, completion or a source update. **Process guide** opens a separate panel that lists every
+signature, completion or a source update. In Full view, **Process guide** opens a separate panel that lists every
 section and its real controls; selecting an entry jumps to that control without recording progress.
 Open, close or navigate either panel freely: nothing is saved, sent or verified by the panels, and
 your unsaved edits stay on the page.
@@ -93,7 +93,7 @@ fresh preview and confirmation. A correction is a new action, with the earlier e
 
 ## Comps and messages
 
-Use **Comps** before requesting owner approval. The low and high start from the current
+Use **Market rent comparison** before requesting owner approval. The low and high start from the current
 contractual base rent (20% through $750, easing to 15% at $2,500) and are labeled **Starting range
 from current rent, not market evidence**; the radius starts at five miles. Deliberately run the
 existing RentCast lookup and review its comp/trend evidence; the preparation saves by itself after
@@ -114,7 +114,7 @@ customer values.
 
 Contacts, the current rent, the working renewal terms, the reviewed comparison and your retained
 sender signature are filled from their sources; each filled value shows where it came from.
-**Review missing inputs** lists every remaining marker with a link to the control that resolves it.
+The **Marked values** list names every remaining marker with a link to the control that resolves it.
 **Copy formatted body** and **Copy plain text** copy the message exactly as displayed, markers
 included; the subject stays copyable on its own. If clipboard access fails for a ready body, the selectable plain text remains
 available. Plain text can be pasted into the appropriate manual portal or text channel after
@@ -178,8 +178,10 @@ Every staff account has every internal Space. An Editor records ordinary work, w
 preparations and unsent drafts, resolves reconciliation differences, and prepares and confirms the
 supported Sheet and RentVine updates with their exact previews, receipts and readbacks; no
 business approval or hand-off to another role remains. Admin keeps user management, resource
-locations, connections, suspensions and gates. Vendor scope, verification-account refusals and
-private account records are unchanged. A role alone does not enable a key.
+locations, connections, suspensions and gates. An Approver or Admin still publishes the reviewed
+renewal wording (needed for a Gmail draft), approves a filled document output and records packet
+provider readback. Vendor scope, verification-account refusals and private account records are
+unchanged. A role alone does not enable a key.
 
 Local rehearsal is Demo + Live-read-only and refuses persistence/provider effects. Use it for
 inspection and navigation. Deterministic isolated integration tests exercise effect controls; they
@@ -187,8 +189,9 @@ are not live customer proofs. Never create a customer record just to make a cont
 
 ## Step-to-control map
 
-The browser smoke uses exact semantic controls and named scopes. `workspace:` retains an old step
-URL while showing the full dashboard. Required rows must be visible; conditional rows report their
+The browser smoke uses exact semantic controls and named scopes. `workspace:` rows are located in
+**Full view** (a lease opens in Focus view; the smoke selects Full view first), on the old step
+URL. Required rows must be visible; conditional rows report their
 availability separately. An absent conditional control does not prove provider readiness.
 
 | Step | Page                       | Control (exact visible text)                  | Role     | Scope                                             | Availability | What you should see                                                                                                                           |
@@ -207,7 +210,7 @@ availability separately. An absent conditional control does not prove provider r
 | 12   | workspace:verify-renewal   | Open this lease in RentVine                   | link     | -                                                 | conditional  | The exact lease record on the configured RentVine host, independent of any Sheet link.                                                        |
 | 13   | workspace:verify-renewal   | Open the operating renewal Sheet              | link     | -                                                 | conditional  | The configured source Sheet.                                                                                                                  |
 | 14   | workspace:verify-renewal   | Fact to correct                               | label    | region:Correct a lease fact                       | required     | Choose a supported business fact.                                                                                                             |
-| 15   | workspace:verify-renewal   | Value source / reason                         | label    | region:Correct a lease fact                       | required     | Record the source of the correction.                                                                                                          |
+| 15   | workspace:verify-renewal   | Source or context (optional)                  | label    | region:Correct a lease fact                       | required     | Add the source of the correction when you have one.                                                                                           |
 | 16   | workspace:verify-renewal   | Destinations                                  | label    | region:Correct a lease fact                       | required     | Show exact supported destinations.                                                                                                            |
 | 17   | workspace:verify-renewal   | Working current rent                          | label    | region:Rent and charges working area              | required     | Type what the tenant pays today; it saves in the app by itself and shows its difference from each source.                                     |
 | 18   | workspace:verify-renewal   | Review and confirm…                           | button   | article:Review Sheet updates                      | conditional  | Exact Sheet before/after.                                                                                                                     |
@@ -260,7 +263,7 @@ availability separately. An absent conditional control does not prove provider r
 | 66   | workspace:verify-renewal   | Status log                                    | summary  | complementary:Lease information                   | conditional  | Status changes and notes together, newest first, each with its recorder and time.                                                             |
 | 67   | /lease-renewal             | Work status (recorded by staff)               | label    | -                                                 | conditional  | Filter the table by the saved staff status, including Not recorded, inside Filter status.                                                     |
 | 68   | workspace:document-packet  | Manage shared resource links in Connections   | link     | region:Renewal resource links                     | required     | The lease shows each shared entry's current state and opens its exact Connections entry; no edit form is repeated per lease.                  |
-| 69   | workspace:owner-decision   | Review missing inputs                         | button   | region:Owner message preparation                  | conditional  | Present while final copy is unavailable; it opens the actual missing items, each linked to its own control.                                   |
+| 69   | workspace:owner-decision   | Marked values                                 | list     | region:Owner message preparation                  | conditional  | Present while the message carries Needs Verification markers; each item links to the control that resolves it.                                |
 | 70   | workspace:tenant-decision  | Response request (optional wording edit)      | label    | region:Tenant message preparation                 | required     | Its help names the exact paragraph the wording replaces; the current paragraph is shown under it.                                             |
 | 71   | workspace:document-packet  | Current facts for this packet                 | region   | region:Document preparation and signature handoff | required     | Property, parties, lease end, approved terms and pending source updates with their origin and links; nothing is filled into a PDF or Dotloop. |
 | 72   | /connections               | Resident benefits package flyer               | label    | region:Renewal resource links                     | required     | Persistent labeled blank or reviewed location, maintained once for every lease.                                                               |

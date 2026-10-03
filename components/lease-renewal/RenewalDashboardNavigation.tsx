@@ -25,11 +25,11 @@ function activityItem(activity: ManualActivity, explanation: string): GlossaryIt
     title: definition.label,
     explanation: `${explanation} ${
       definition.conditional
-        ? "When this does not apply, record Not applicable with the reason and existing approved policy or artifact."
+        ? "When this does not apply, record Not applicable; a comment is optional."
         : activity === "non_renewal_handoff"
           ? "Required only for a declined renewal."
-          : "Required for the renewal branch."
-    } Record the actual source or channel. Saving documents staff work; it does not perform or verify an external action.`,
+          : "Record it when it happens; nothing else waits on it."
+    } The source or channel is optional. Saving documents staff work; it does not perform or verify an external action.`,
     target:
       activity === "non_renewal_handoff"
         ? "renewal-section-documents"
@@ -68,7 +68,7 @@ const PROCESS_GLOSSARY: readonly GlossaryItem[] = [
   {
     title: "2. Lease owner approval",
     explanation:
-      "Prepare the recommendation, contact the owner, then record the actual response. Only explicit approval of exact terms supplies the tenant offer; a market estimate does not approve rent.",
+      "Prepare the recommendation, contact the owner, then record the actual response. The working renewal terms supply the tenant offer; a market estimate does not approve rent.",
     target: "renewal-section-owner",
     children: [
       {
@@ -85,12 +85,12 @@ const PROCESS_GLOSSARY: readonly GlossaryItem[] = [
           {
             title: "Market range and PMI recommendation",
             explanation:
-              "Enter the reviewed low, high and PMI number as available; these are optional preparation fields. The preparation source is required. Saved numbers enter the owner draft; they do not become owner-approved terms.",
+              "Enter the reviewed low, high and PMI number as available; these are optional preparation fields. The source is optional. Saved numbers enter the owner draft; they do not become owner-approved terms.",
           },
           {
             title: "Trend and analysis reference",
             explanation:
-              "Available trend evidence and an optional analysis reference support the saved recommendation. Review the displayed source and omissions before saving.",
+              "Available trend evidence and an optional analysis reference support the saved recommendation. Review the displayed source and omissions; the preparation saves by itself.",
           },
         ],
       },
@@ -114,13 +114,13 @@ const PROCESS_GLOSSARY: readonly GlossaryItem[] = [
       {
         title: "Owner response and exact terms",
         explanation:
-          "Record the response and its source. Approval requires monthly base rent, effective date and term end date. These saved terms supply the tenant message and document handoff. Changed terms require downstream work to be reviewed again; no response keeps the cycle waiting.",
+          "Record the response; it saves when chosen and its source is optional. The rent and dates live in Working renewal terms.",
         target: "renewal-manual-owner_response",
         children: [
           {
             title: "Approved rent and dates",
             explanation:
-              "Use the owner's actual approved values. Market preparation remains separate. A declined renewal leads to the non-renewal handoff; a revision request returns work to the owner stage.",
+              "Use the owner's actual approved values. Market preparation remains separate. A declined renewal leads to the non-renewal handoff; a revision request is guidance for the next owner conversation.",
           },
         ],
       },
@@ -129,13 +129,13 @@ const PROCESS_GLOSSARY: readonly GlossaryItem[] = [
   {
     title: "3. Tenant offer and response",
     explanation:
-      "Use current owner-approved terms to prepare the tenant offer, record delivery, then record the actual tenant response. Acceptance advances to documents; a counter returns to owner review and a decline goes to the non-renewal handoff.",
+      "Use the working renewal terms to prepare the tenant offer, then record delivery and the tenant's actual response, in any order.",
     target: "renewal-section-tenant",
     children: [
       {
         title: "Tenant message inputs",
         explanation:
-          "Save factual inputs and review the resulting draft. Rent and dates come from the approved terms. Required missing inputs stay visible; copying or creating an unsent draft does not record delivery.",
+          "Entries save by themselves. Rent and dates come from the working renewal terms. Missing values stay visible as markers. Copying or creating an unsent draft does not record delivery.",
         children: [
           {
             title: "Separate charges and policy sources",
@@ -152,12 +152,12 @@ const PROCESS_GLOSSARY: readonly GlossaryItem[] = [
       },
       activityItem(
         "tenant_offer",
-        "Record delivery of the offer with the current approved terms.",
+        "Record delivery of the offer built from the working renewal terms.",
       ),
       {
         title: "Tenant response",
         explanation:
-          "Required to advance the chosen branch. Record the actual response and source against the current approved terms. Waiting or Needs verification remains incomplete.",
+          "Record the tenant's actual response; it saves when chosen and its source is optional. Waiting or Needs verification remains incomplete.",
         target: "renewal-manual-tenant_response",
       },
       activityItem(
@@ -173,7 +173,7 @@ const PROCESS_GLOSSARY: readonly GlossaryItem[] = [
   {
     title: "4. Documents and signatures",
     explanation:
-      "After tenant acceptance, use the current approved terms and verified resource locations to prepare the required documents. The document handoff shows the available facts and missing resources. Staff-recorded progress stays distinct from provider-verified execution.",
+      "Use the working renewal terms and verified resource locations to prepare the required documents. The document handoff shows the available facts and missing resources. Staff-recorded progress stays distinct from provider-verified execution.",
     target: "renewal-section-documents",
     children: [
       {
@@ -207,7 +207,7 @@ const PROCESS_GLOSSARY: readonly GlossaryItem[] = [
   {
     title: "5. Follow-up and completion",
     explanation:
-      "Complete each applicable follow-up or document why it does not apply. Once the current branch is ready, explicitly record staff completion. Pending source updates remain visible separately.",
+      "Complete each applicable follow-up or record Not applicable. Record staff completion when the renewal is actually complete. Pending source updates remain visible separately.",
     target: "renewal-section-documents",
     children: [
       activityItem(
@@ -230,7 +230,7 @@ const PROCESS_GLOSSARY: readonly GlossaryItem[] = [
       {
         title: "Record staff completion",
         explanation:
-          "Required to finish the staff checklist after the applicable branch and current terms are complete. This records a staff attestation, not verified completion in RentVine, Gmail or Dotloop.",
+          "Record it when the renewal is actually complete; the checklist is guidance. This records a staff attestation, not verified completion in RentVine, Gmail or Dotloop.",
         target: "renewal-manual-complete",
       },
     ],

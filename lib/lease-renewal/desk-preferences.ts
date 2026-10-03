@@ -33,6 +33,9 @@ export type DeskPreferenceMode = "saved" | "verification" | "unavailable";
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
 
+/** Desk query keys that carry typed text (a name, an address); never part of a remembered view. */
+const FREE_TEXT_DESK_KEYS = ["q", "lease"] as const;
+
 /**
  * The canonical view to remember for one submitted desk query, "" for the default view, or null
  * when the value is not a version 2 desk query at all. Unknown keys and invalid values fall back
@@ -49,6 +52,9 @@ export function canonicalDeskPreferenceView(query: unknown): string | null {
     return null;
   }
   if (params.get("v") !== "2") return null;
+  // Typed search text can name a person or an address. A remembered view is filters and sort
+  // only, so the free-text keys are left out before the view is made canonical.
+  for (const key of FREE_TEXT_DESK_KEYS) params.delete(key);
   return serializeRenewalDeskQueryV2(parseRenewalDeskQueryV2(params));
 }
 

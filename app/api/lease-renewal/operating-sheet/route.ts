@@ -337,6 +337,11 @@ async function handleRequest(request: Request, read: "status" | "lookup" | null)
 
     if (body.operation === "discard") {
       assertRenewalRoleAuthority("propose_source_write", user.role);
+      if (isVerificationAccount(user))
+        throw new EditableLayerError(
+          "A verification account reads this lease only. Sign in with a staff account to prepare a source update.",
+          403,
+        );
       await discardSheetWritebackProposal(
         user,
         spreadsheetId,
@@ -354,6 +359,11 @@ async function handleRequest(request: Request, read: "status" | "lookup" | null)
 
     if (body.operation === "propose") {
       assertRenewalRoleAuthority("propose_source_write", user.role);
+      if (isVerificationAccount(user))
+        throw new EditableLayerError(
+          "A verification account reads this lease only. Sign in with a staff account to prepare a source update.",
+          403,
+        );
       if (!deps.writeFlagEnabled()) {
         return NextResponse.json(
           {

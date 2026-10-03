@@ -112,7 +112,10 @@ describe("S120 document facts propagation", () => {
     );
     await screen.findByText(/Approved forms and mappings are pending/);
     const region = screen.getByRole("region", { name: "Current facts for this packet" });
-    expect(region).toHaveTextContent(/Not recorded/);
+    // S156: the owner response records the answer only; the packet does not read the working
+    // renewal terms yet, and the card says so instead of sending staff in a circle.
+    expect(region).toHaveTextContent(/Not available for the packet yet/);
+    expect(region).toHaveTextContent(/does not read the working renewal terms/);
     expect(
       within(region).getByRole("link", { name: /Record the owner response/ }),
     ).toHaveAttribute("href", "#renewal-manual-owner_response");

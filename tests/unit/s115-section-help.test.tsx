@@ -179,6 +179,50 @@ describe("S115 plain-language section help", () => {
     }
   });
 
+  it("S152-S167: the help and the process guide follow the staff lane, with no removed Save, cycle or Admin-confirmation step", () => {
+    const removed = [
+      /reviewed (renewal )?cycle/i,
+      /cycle choice/i,
+      /Record lease term/,
+      /Save the preparation|save the reviewed preparation|save your edits/i,
+      /Save; the next open activity/,
+      /inputs remain for final use/,
+      /for Admin confirmation|Only the Admin confirmation|Admin confirmation and readback/,
+      /An Admin (confirms|chooses)|lets an Admin apply/,
+      /exact approved rent/,
+      /acceptance of those exact terms/,
+    ];
+    for (const id of SECTION_HELP_IDS) {
+      const help = SECTION_HELP[id];
+      const text = [help.purpose, ...(help.steps ?? []), help.saves, help.notDone].join(
+        " ",
+      );
+      for (const pattern of removed) {
+        expect(text, `${id}: ${pattern}`).not.toMatch(pattern);
+      }
+    }
+    // A source update is confirmed by the person doing the work; autosave replaces Save.
+    expect(SECTION_HELP["sheet-updates"].steps?.[1]).toBe(
+      "Choose Review and confirm, then Confirm this exact effect once.",
+    );
+    expect(SECTION_HELP["lease-term"].steps?.[2]).toBe(
+      "The choice saves by itself; a context note is optional.",
+    );
+    const guide = read("components/lease-renewal/RenewalDashboardNavigation.tsx");
+    for (const stale of [
+      "Required for the renewal branch",
+      "Record the actual source or channel",
+      "Only explicit approval of exact terms",
+      "The preparation source is required",
+      "Approval requires monthly base rent",
+      "Required to advance the chosen branch",
+      "After tenant acceptance",
+      "Required to finish the staff checklist",
+    ]) {
+      expect(guide, stale).not.toContain(stale);
+    }
+  });
+
   it("AC-S115-2: the affected work areas each host their own About control", () => {
     // Without staff records the workspace shows the decision, offer and draft cards.
     renderWorkspace();

@@ -103,8 +103,12 @@ function tabProblem(
   tabTitle: string,
   titles: readonly string[] | null,
   credential: ReadonlySet<string>,
+  tabsProblem: string | null,
 ): string | null {
-  if (titles === null) return null;
+  // The tabs could not be listed and classified, so this tab is not known to be one the app
+  // reads. Nothing is read from it: a credential tab must never be reached through a failed check.
+  if (titles === null)
+    return `${tabsProblem ?? "The workbook's tab list could not be read just now."} This selection was not read.`;
   if (credential.has(tabTitle))
     return `Tab "${tabTitle}" is not one the app reads. Choose a tab from the list.`;
   if (!titles.includes(tabTitle))
@@ -154,7 +158,7 @@ export async function readOperatingSheetLookup(input: {
       selectedBy: binding.row.selectedBy,
       selectedAtIso: binding.row.selectedAtIso,
     };
-    const problem = tabProblem(tabTitle, titles, credential);
+    const problem = tabProblem(tabTitle, titles, credential, tabsProblem);
     if (problem) row = { ...base, state: "problem", problem };
     else {
       try {
@@ -213,7 +217,7 @@ export async function readOperatingSheetLookup(input: {
       selectedBy: selection.selectedBy,
       selectedAtIso: selection.selectedAtIso,
     };
-    const problem = tabProblem(tabTitle, titles, credential);
+    const problem = tabProblem(tabTitle, titles, credential, tabsProblem);
     if (problem || !parseSheetCell(cell)) {
       cells.push({
         ...base,

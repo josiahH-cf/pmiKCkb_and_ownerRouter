@@ -42,7 +42,13 @@ export function safeReturnPath(value: unknown): string | null {
   const queryIndex = withoutHash.indexOf("?");
   const pathname = queryIndex === -1 ? withoutHash : withoutHash.slice(0, queryIndex);
 
-  if (pathname.includes("//") || pathname.split("/").includes("..")) {
+  // A dot segment (plain or percent-encoded) or an encoded separator could resolve to an
+  // excluded path after the browser or the router normalizes it.
+  if (
+    pathname.includes("//") ||
+    /%2f|%5c/i.test(pathname) ||
+    pathname.split("/").some((segment) => /^(\.|%2e){1,2}$/i.test(segment))
+  ) {
     return null;
   }
 

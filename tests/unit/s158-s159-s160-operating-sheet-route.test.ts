@@ -1016,6 +1016,19 @@ describe("S160 ordinary staff confirm supported Sheet updates", () => {
     }
     expect(mocks.writerMutations).toEqual([]);
     expect(store.records.size).toBe(0);
+    // Nor does it prepare, replace or discard a proposal: the staff proposal stays as it was.
+    for (const role of ["Editor", "Admin"]) {
+      mocks.user = { uid: "canary", email: "canary-editor@pmikcmetro.com", role };
+      const prepared = await propose({ intent: "update_working_current_rent" });
+      expect(prepared.status).toBe(403);
+      expect((await payloadOf(prepared)).error).toMatch(/verification account/i);
+      const discarded = await post({
+        operation: "discard",
+        previewHash: proposal.previewHash,
+      });
+      expect(discarded.status).toBe(403);
+    }
+    expect(activeProposal().previewHash).toBe(proposal.previewHash);
   });
 
   it("BEH-S160-11: an unsupported precise operation is declined locally and other work continues", async () => {

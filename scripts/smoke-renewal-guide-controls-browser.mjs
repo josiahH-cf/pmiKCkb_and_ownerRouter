@@ -88,6 +88,12 @@ async function verifyGuideControls() {
       response && response.status() < 500,
       `The guide names ${path}, which returned an error response.`,
     );
+    if (path.startsWith("workspace:")) {
+      // S152: a lease opens in Focus view; the guide's workspace rows are located in Full view.
+      const fullView = page.getByRole("button", { name: "Full view", exact: true });
+      await fullView.waitFor({ state: "visible", timeout: 90_000 });
+      await fullView.click();
+    }
     for (const step of pageSteps) {
       const availability = await assertGuideControl(page, step);
       process.stdout.write(

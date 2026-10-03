@@ -387,10 +387,11 @@ reconciliation schema.
 
 After a passed observation, independently read back traffic, Ready state, service account,
 Production + Live descriptor, exact Space maps, expected secret references, allowance 50, current
-Sheet/action/runtime state, bounded routes, and `/api/version`. The batch requires the operating-Sheet
-switch explicitly false; both exact Registry keys retain their authority but cannot override the
-pause. The legacy copy-only setting and broad Sheet action remain absent/closed. S113 replaces the older candidate's blanket normal-field refusal: normal field updates
-require the exact current proposal, Admin confirmation, claim and receipt/readback. Row deletion and
+Sheet/action/runtime state, bounded routes, and `/api/version`. The readback expects the reviewed
+switch value (false on the serving S128 revision; S159: true on the queued candidate and promoted
+revisions); both exact Registry keys retain their authority and never override a false switch. The legacy copy-only setting and broad Sheet action remain absent/closed. S113 replaces the older candidate's blanket normal-field refusal: normal field updates
+require the exact current proposal, the confirming staff member's exact confirmation (Admin on the
+serving revision; Editor once S152–S167 is released), claim and receipt/readback. Row deletion and
 historical fixed-row reversal remain refused; normal append keeps its exact lease-scoped claim.
 Read-only managed canaries must not perform a source write to demonstrate these paths; route/store
 acceptance and actual operational receipts remain distinct evidence. The Registry remains 48 keys/16 open unless a
