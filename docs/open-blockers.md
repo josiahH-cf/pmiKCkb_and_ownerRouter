@@ -217,6 +217,13 @@ These are engineering tasks with no owner step; none blocks a release.
   attempt per target), live again with S159. Candidate change: let a staff member archive an
   ambiguous field generation, since the per-target claim already refuses a second write to the
   same cell. Until decided, a lease in this state needs a runner readback and a manual clear.
+- **Document packet terms source (owner decision candidate).** The document packet still takes
+  its rent and dates from terms recorded with the owner response (`lib/lease-documents/live-input.ts`),
+  and the S156 owner response records the answer only; the terms now live in Working renewal terms.
+  Until decided, a packet evaluation for newly worked leases shows no approved terms, and the lease
+  page says so. Candidate change: with a recorded owner approval, let the packet read the working
+  renewal terms. It changes what fills a legal document, so it waits for the owner. No packet can
+  execute today either way (B-DL1 to B-DL3, both Dotloop keys closed).
 - **Promotion routing skew.** Run 175fee1d's immediate observation checkpoint failed because, for up
   to 46 s after promotion started, Cloud Run still routed some canonical requests to the
   predecessor, which (with no traffic and no tag) answered them with instant 500s; the candidate

@@ -375,7 +375,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
     purpose:
       "The renewal rent and dates you are working with. Enter what you know, from a call, an email or your own review; each value saves on its own and stays until you change it.",
     saves:
-      "Each value is stored on this lease with who entered it and when. New tenant messages, the future RentVine rent preview and the document packet use the saved values.",
+      "Each value is stored on this lease with who entered it and when. New tenant messages and the future RentVine rent preview use the saved values. The document packet does not read them yet.",
     notDone:
       "Saving records no owner approval or tenant acceptance and writes nothing to RentVine or the Sheet. A source update is its own confirmed action.",
   },

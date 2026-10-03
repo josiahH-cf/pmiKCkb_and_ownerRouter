@@ -116,7 +116,8 @@ function PacketFacts({
             </>
           ) : (
             <>
-              Not recorded ·{" "}
+              Not available for the packet yet. The packet reads terms recorded with the
+              owner response and does not read the working renewal terms ·{" "}
               <a className="text-link" href="#renewal-manual-owner_response">
                 Record the owner response
               </a>
