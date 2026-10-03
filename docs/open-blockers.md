@@ -1,7 +1,8 @@
 # Unblock packet
 
 Last reconciled: 2026-10-02 (owner unblock pass; decisions Q1–Q4 and the A2, A4 and A6 readbacks
-recorded below; the S113 notice-safety race is fixed and queued for release).
+recorded below; the S113 notice-safety race is fixed and released in run `3a32f7a2`; S152–S167 are implemented and
+queued for release).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only the effect named in its row. No hold blocks development,
@@ -41,7 +42,8 @@ Recorded on 2026-10-02 (`accept all recommendations`):
   it back. Final activation waits until the owner approves that draft.
 - **Q4 = A (repository).** The S152–S167 intake that another session authored uncommitted in the
   Windows checkout was parked unchanged as `ac2a12bc` (20 files) and, by owner direction later the
-  same day, merged with `main` as written. It starts only from the owner's execution prompt.
+  same day, merged with `main` as written. The owner's execution prompt of 2026-10-02 started it;
+  it is implemented and awaits one cumulative release.
 
 Earlier decisions stand: RentVine's per-property maintenance limits are the S108 source (B-MNT1,
 2026-10-01); RentVine work order 101756 (API id 1756) is the S100 target; B-MNT2 closed with
@@ -208,6 +210,13 @@ These are engineering tasks with no owner step; none blocks a release.
   runs `demo` + `live_readonly`, which refuses writes by design. They run in no gate. The repair is
   a second harness pass under the existing `demo` + `demo` descriptor, not a guard change.
 
+- **Uncertain Sheet field update (owner decision candidate).** A field update whose response is
+  lost stays `ambiguous`: the Sheet may hold the new value, the app cannot prove which attempt
+  wrote it, and that lease accepts no further Sheet proposal, replacement or discard until the
+  runner clears the record from its receipt. This is the S113 contract (fail-closed, at most one
+  attempt per target), live again with S159. Candidate change: let a staff member archive an
+  ambiguous field generation, since the per-target claim already refuses a second write to the
+  same cell. Until decided, a lease in this state needs a runner readback and a manual clear.
 - **Promotion routing skew.** Run 175fee1d's immediate observation checkpoint failed because, for up
   to 46 s after promotion started, Cloud Run still routed some canonical requests to the
   predecessor, which (with no traffic and no tag) answered them with instant 500s; the candidate

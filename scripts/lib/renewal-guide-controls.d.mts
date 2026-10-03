@@ -10,6 +10,7 @@ export interface GuideStep {
     | "heading"
     | "combobox"
     | "region"
+    | "list"
     | "label"
     | "phase"
     | "summary";

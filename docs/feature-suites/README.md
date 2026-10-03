@@ -256,9 +256,9 @@ deployment or a provider effect.
 
 ## Lease renewal simplification and mobile — October 2026
 
-**Handoff:** renewal-simplification-mobile-2026-10. **Intake:** ready. **Implementation:** IMPLEMENTED at `ba3f9719` / AWAITING RELEASE (one cumulative run).
+**Handoff:** renewal-simplification-mobile-2026-10. **Intake:** ready. **Implementation:** IMPLEMENTED at `ba3f9719` (main `8babc814`, PR #126) / AWAITING RELEASE (one cumulative run).
 
-The owner requested all 16 confirmed changes in the existing loop format and one execution prompt for an outside model. This authoring request does not start implementation, authentication, tests, cloud operations, or deployment. The execution prompt becomes the explicit program instruction when the owner gives it to a runner.
+The owner requested all 16 confirmed changes in the existing loop format and one execution prompt for an outside model. The authoring request did not start implementation; the owner's execution prompt of 2026-10-02 did. The program is implemented (commit `ba3f9719`, merged to main at `8babc814` in PR #126) and queued for one cumulative release.
 
 **Refined goal.**
 
@@ -328,9 +328,9 @@ Primary meeting: `Cherry Bridge & PMI sync - 2026_10_01 13_58 CDT - Notes by Gem
 
 Use docs/autonomous-agent-runner.md and the full feature-suite template. All 16 files carry architecture/behavior outcomes, one row per requirement, human litmus, preservation, adversarial cases, standalone dependency scope, and terminal states. These are existing loop handoff obligations, not a separate verification product.
 
-The outside runner refreshes implementation/serving evidence. This authoring pass created no implementation verdict, effect, green-gate claim, release permit, or activation. No material product question remains. Missing runtime inputs park exact actions; ambiguous effects require reconciliation.
+The execution runner recorded implementation evidence in docs/facts.md (F-S152 to F-S167); serving evidence follows the release. No provider effect or activation was used. No material product question remains. Missing runtime inputs park exact actions; ambiguous effects require reconciliation.
 
-Necessary protected auth/rules/action-gate edits and Sheet resumption are scoped by the future explicit execution instruction. Preserve identities, stores, billing, unrelated security settings, closed keys, and no-send boundaries. Human observations remain NOT RUN unless actually performed.
+Necessary protected auth/rules/action-gate edits and Sheet resumption are scoped by the owner's execution instruction of 2026-10-02. Preserve identities, stores, billing, unrelated security settings, closed keys, and no-send boundaries. Human observations remain NOT RUN unless actually performed.
 
 ## Renewal completion bundle (owner direction 2026-09-03)
 

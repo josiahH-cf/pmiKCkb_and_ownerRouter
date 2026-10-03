@@ -105,13 +105,13 @@ describe("S132 AC-S132-3: side-by-side script names only real controls", () => {
       expect(row.expectedOutput).not.toMatch(/\b(created|sent|signed|completed)\b/i);
   });
 
-  it("the script's Sheet row keeps F08 preview-only", () => {
+  it("the script's Sheet row stops at the preview (S159 makes confirmation available; the walkthrough does not use it)", () => {
     const sheetRow = script.rows.find((row) =>
       row.control.includes("Preview Owner emails update"),
     )!;
     expect(sheetRow.permittedEffect).toBe("none");
-    expect(sheetRow.expectedOutput).toMatch(/F08/);
-    expect(sheetRow.safeRecovery).toMatch(/preview-only/);
+    expect(sheetRow.expectedOutput).toMatch(/stops at the preview/);
+    expect(sheetRow.safeRecovery).toMatch(/nothing reached the Sheet/);
   });
 });
 

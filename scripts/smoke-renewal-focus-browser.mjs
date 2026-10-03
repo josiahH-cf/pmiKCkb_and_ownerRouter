@@ -57,7 +57,7 @@ assert(
 for (const [index, result] of results.entries())
   process.stdout.write(`Lease workspace ${index + 1}: ${JSON.stringify(result)}\n`);
 process.stdout.write(
-  `S145 Focus view browser smoke passed on ${results.length} live lease workspace(s): Full view is the default, Focus shows one task, and the Full view returns to the same signature by pointer and keyboard at desktop and phone widths with no write request, navigation or page error.\n`,
+  `S145 Focus view browser smoke passed on ${results.length} live lease workspace(s): Focus view is the default, Focus shows one task, and the Full view returns to the same signature by pointer and keyboard at desktop and phone widths with no write request, navigation or page error.\n`,
 );
 
 async function workspaceLinks() {

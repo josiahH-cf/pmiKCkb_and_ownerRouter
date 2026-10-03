@@ -97,6 +97,8 @@ Release plan: one cumulative run through the existing machinery after exact main
 
 ## Outcome
 
+Since 2026-10-02T22:37Z production serves run `3a32f7a2`'s `090df5e16f54eadbd1a3afbf20836c6677fa2a19` / `pmi-kc-app-rmurivuzf-c061dc669374` (the S113 approval-read fix, Sheet=false; see docs/loop-state.md). The record below is the release before it and stays as that run's history until the S152–S167 release replaces both.
+
 Run `0eb2cfeb-a238-4b37-b35f-f999eadfacff` released batch 004's corrective repair (two queued items: the S147 Dashboard lease read order and the S151 answer-position smoke) at `df772b30c60043d5fe4c57ff2275990d18a535b3` / `pmi-kc-app-rmur4a2vc-185ba8b9f3b8` with 100% production traffic.
 Run `175fee1d` first carried the same code at `7d2181bf`; its immediate observation checkpoint failed while Cloud Run still routed some requests to the untagged predecessor, which answered them with 500s, so it rolled back (verified, no downtime).
 Batch 004 itself (S108 and S146–S151) shipped in runs `98f7e743` and `729d5716`; the batch 004 evidence ledger records those runs and run `0aa79bfe`'s verified rollback.

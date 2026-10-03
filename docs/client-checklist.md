@@ -78,8 +78,8 @@ no broader domain pruning occurred. Current release assurance has passed.
 | Work                                                               | Required authority                                                                   |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
 | Read, proposals, ordinary renewal progress, eligible unsent drafts | Editor plus Renewals access                                                          |
-| Resolve reconciliation decisions                                   | Approver or Admin plus Renewals access                                               |
-| Approve pricing/source changes; execute or reconcile S97/S98       | Admin plus Renewals access                                                           |
+| Resolve reconciliation decisions                                   | Editor once S152–S167 is released; Approver or Admin on the serving revision         |
+| Approve pricing/source changes; execute or reconcile S97/S98       | Editor with exact preview and confirmation once S152–S167 is released; Admin today   |
 | Apply staff access                                                 | A different current Admin through S83 with exact confirmation and directory readback |
 
 Individual directory evidence remains excluded. The runner does not create or change an identity.
@@ -88,8 +88,9 @@ Editor browser coverage remains not_run with backend role restrictions preserved
 tracks only the separate 24-hour unchanged-enrollment longevity proof. The maintained Wednesday
 handouts record the verified S113 delivery and retain the user-supplied meeting identity.
 
-The transcript's no-approval claim does not match recorded governance. Direct lease changes are
-allowed only under their exact-key, role, preview, confirmation, receipt, readback, and correction
+S156/S160/S167 (implemented, queued for release) remove the renewal business approvals and the
+elevated-role hand-off: the staff member doing the work records and confirms. Direct lease changes
+remain allowed only under their exact-key, preview, confirmation, receipt, readback, and correction
 contracts. Permission to implement/deploy does not remove any of those controls.
 
 ## Existing policy inputs

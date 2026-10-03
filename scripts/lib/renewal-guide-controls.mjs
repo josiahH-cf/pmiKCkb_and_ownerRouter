@@ -50,6 +50,7 @@ export function parseGuideSteps(markdown) {
         "heading",
         "combobox",
         "region",
+        "list",
         "label",
         "phase",
         "summary",

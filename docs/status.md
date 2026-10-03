@@ -1,8 +1,10 @@
 # PMI KC current status
 
-Last updated: 2026-10-02 (UTC).
+Last updated: 2026-10-03 (UTC).
 
 ## Serving release
+
+Since 2026-10-02T22:37Z production serves run `3a32f7a2`'s `090df5e16f54eadbd1a3afbf20836c6677fa2a19` / `pmi-kc-app-rmurivuzf-c061dc669374` (the S113 approval-read fix, Sheet=false; see docs/loop-state.md). The record below is the release before it and stays as that run's history until the S152–S167 release replaces both.
 
 Run `0eb2cfeb-a238-4b37-b35f-f999eadfacff` released batch 004's corrective repair (two queued items: the S147 Dashboard lease read order and the S151 answer-position smoke) at `df772b30c60043d5fe4c57ff2275990d18a535b3` / `pmi-kc-app-rmur4a2vc-185ba8b9f3b8` with 100% production traffic.
 Run `175fee1d` first carried the same code at `7d2181bf`; its immediate observation checkpoint failed while Cloud Run still routed some requests to the untagged predecessor, which answered them with 500s, so it rolled back (verified, no downtime).
@@ -95,8 +97,9 @@ with exact confirmation; editable marked messages, as-displayed copy and unsent 
 first-name greetings; the autosaved Status log; whole-app mobile layout and the phone sign-in
 repair; actual lease links and account-durable desk preferences; existing internal Spaces open to
 ordinary staff with Admin management, Vendor scope, verification restrictions and private records
-kept). Tested: the full unit, backend and core E2E gates on the exact head (counts in
-docs/facts.md), the production reconciliation oracle under the `s156-staff-lane` row contract,
+kept). Merged to main at `8babc814` (PR #126). Tested: the full unit, backend and core E2E gates
+on the tree-identical head `0c5391c8` (8,531 unit, 319 backend, 32 core E2E; docs/facts.md), exact
+main CI 37105832848, a fresh-context review with five repairs on 2026-10-03, the production reconciliation oracle under the `s156-staff-lane` row contract,
 and fail-first logs for each slice outside Git. Live-verified: not yet; the program waits in the
 Awaiting release queue for one cumulative release. Unverified: human verdicts (NOT RUN, no human
 observer), a physical phone sign-in, and the optional same-tab redirect, which needs owner step A7.
