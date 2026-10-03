@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import { PMI_COMPANY, PRODUCT_NAME } from "@/lib/constants";
+import { APP_VIEWPORT } from "@/lib/ui/app-viewport";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/ui/theme";
 
 // Official PMI primary typeface ("Use Poppins from Google for all print and digital applications
@@ -18,6 +19,9 @@ export const metadata: Metadata = {
   title: `${PRODUCT_NAME} · ${PMI_COMPANY}`,
   description: "Internal source-backed knowledge base for PMI KC Metro.",
 };
+
+// S165: one explicit phone viewport for every page (safe areas, keyboard-aware layout, zoom kept).
+export const viewport: Viewport = APP_VIEWPORT;
 
 export default function RootLayout({
   children,

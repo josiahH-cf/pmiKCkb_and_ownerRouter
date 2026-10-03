@@ -3,7 +3,13 @@ import type {
   PredecessorBaseline,
   RecoveryBaselineReference,
 } from "./production-assurance-receipts.mjs";
+import type { SheetWritebackValue } from "../lib/production-assurance/sheet-writeback-expectation.mjs";
 type Client = Awaited<ReturnType<GoogleAuth["getClient"]>>;
+/** Historical S128 receipts: the tooling forced the recovery target's Sheet switch to false. */
+export type LegacyPausedRecoveryDifference =
+  "sheet_writeback_false_and_revision_identity";
+/** S159 receipts: the target is the predecessor's actual configuration under a new identity. */
+export type PredecessorActualRecoveryDifference = "revision_identity_only";
 export interface RecoveryBaseline {
   readonly schemaVersion: "pmi-kc-recovery-baseline.v1";
   readonly receiptId: string;
@@ -18,7 +24,11 @@ export interface RecoveryBaseline {
   readonly targetRevision: string;
   readonly targetFingerprint: string;
   readonly imageDigests: readonly string[];
-  readonly allowedDifference: "sheet_writeback_false_and_revision_identity";
+  readonly allowedDifference:
+    | LegacyPausedRecoveryDifference
+    | PredecessorActualRecoveryDifference;
+  /** The captured predecessor's actual switch value. Absent only on a historical receipt. */
+  readonly predecessorSheetWriteback?: SheetWritebackValue;
   readonly tag: string;
   readonly tagOrigin: string;
   readonly tagPreviousRevision: string;
@@ -42,7 +52,25 @@ export interface RecoveryTarget {
 }
 export const RECOVERY_BASELINE_SCHEMA: RecoveryBaseline["schemaVersion"];
 export function recoveryHash(value: unknown): string;
-export function revisionSheetPaused(value: unknown): boolean;
+export const LEGACY_PAUSED_RECOVERY_DIFFERENCE: LegacyPausedRecoveryDifference;
+export const PREDECESSOR_ACTUAL_RECOVERY_DIFFERENCE: PredecessorActualRecoveryDifference;
+/** The exact switch value this receipt's recovery target must read back with. */
+export function recoveryTargetSheetWriteback(
+  receipt: Pick<RecoveryBaseline, "allowedDifference" | "predecessorSheetWriteback">,
+): SheetWritebackValue;
+export function assertRecoveryTemplatePreservesPredecessor(
+  template: unknown,
+  predecessorSheetWriteback: unknown,
+): void;
+export function predecessorActualTemplate(
+  source: unknown,
+  expectedRevision: string,
+  imageDigests: readonly string[],
+): {
+  template: Record<string, unknown>;
+  expected: Record<string, unknown>;
+  predecessorSheetWriteback: SheetWritebackValue;
+};
 export function assertRecoveryBaseline(
   value: unknown,
   expected?: Partial<RecoveryBaseline>,

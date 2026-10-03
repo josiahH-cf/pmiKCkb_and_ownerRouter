@@ -6,11 +6,17 @@ import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Field } from "@/components/ui";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
+import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
+import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
 import { planRentChargeRequests } from "@/lib/lease-renewal/rent-charge-intent";
 import {
   chargeDateIso,
   type RenewalChargeInventory,
 } from "@/lib/lease-renewal/writeback/charge-inventory-model";
+
+// S156/S160: the future renewal rent is prepared from the working renewal terms, beside them, by
+// the staff member doing the work. No owner-approval, tenant-acceptance or attestation step sits
+// in front of the preview; the exact RentVine effect is still confirmed separately, once.
 export function RenewalFutureRent({
   initialInventory,
   initialPreviewHash,
@@ -19,6 +25,7 @@ export function RenewalFutureRent({
   initialPreviewHash: string | null;
 }) {
   const context = useRenewalManualWorkspace(),
+    working = useRenewalWorkingRecord(),
     id = useId(),
     router = useRouter();
   const [inventory, setInventory] = useState(initialInventory),
@@ -26,21 +33,15 @@ export function RenewalFutureRent({
     [selected, setSelected] = useState(""),
     [review, setReview] = useState(""),
     [end, setEnd] = useState(""),
-    [reviewed, setReviewed] = useState(false),
     [pending, setPending] = useState(false),
     [notice, setNotice] = useState(""),
     [previewHash, setPreviewHash] = useState(initialPreviewHash);
-  const state = context?.state,
-    terms =
-      state?.ownerResponse?.outcome === "approved_terms"
-        ? state.ownerResponse.terms
-        : null,
+  const state = context?.state ?? null,
+    current = effectiveRenewalTerms(working?.record ?? null, state),
+    terms = current.complete,
     charge = inventory?.charges.find(
       (entry) => entry.id === selected && entry.classification === "rent",
-    ),
-    tenantAccepted =
-      state?.tenantResponse?.outcome === "accepted" &&
-      state.tenantResponse.termsRevision === state.termsRevision;
+    );
   async function post(body: Record<string, unknown>) {
     const response = await fetch("/api/lease-renewal/rentvine-writeback", {
       method: "POST",
@@ -70,11 +71,10 @@ export function RenewalFutureRent({
     const result = await post({ operation: "options", leaseId: context.leaseId });
     if (!result.inventory) throw new Error("The charge inventory is unavailable.");
     setInventory(result.inventory);
-    setReviewed(false);
-    setNotice("Charge inventory reloaded. Review the schedule before preparing it.");
+    setNotice("Charge inventory reloaded.");
   }
   async function prepare() {
-    if (!state || !terms || !charge || !review.trim() || !reviewed) return;
+    if (!context || !terms || !charge) return;
     // S117 (ARCH-S117-1): one typed *future* intent; the mapper cannot emit a Sheet body or a
     // current-base correction.
     const [plan] = planRentChargeRequests(
@@ -88,13 +88,11 @@ export function RenewalFutureRent({
               : "create_future",
         chargeId: charge.id,
         terms,
-        scheduleReview: review,
-        cycleId: state.cycleId,
-        termsRevision: state.termsRevision,
+        ...(review.trim() ? { scheduleReview: review.trim() } : {}),
         ...(operation === "end_current" && end ? { currentChargeEndDate: end } : {}),
       },
       {
-        leaseId: state.leaseId,
+        leaseId: context.leaseId,
         workspaceContext: null,
         sheetRowAvailable: false,
         priorHashes: { sheet: null, rentvine: previewHash },
@@ -109,9 +107,8 @@ export function RenewalFutureRent({
         "No current schedule preview was saved. Check the connection and reload.",
       );
     setPreviewHash(result.proposal.preview_hash);
-    setReviewed(false);
     setNotice(
-      "Future schedule preview saved. An Admin must separately confirm this exact RentVine effect below. Current Sheet rent is unchanged.",
+      "Future schedule preview saved. Confirm this exact RentVine effect below. Current billing and the current Sheet rent are unchanged.",
     );
     router.refresh();
   }
@@ -119,32 +116,28 @@ export function RenewalFutureRent({
   return (
     <details>
       <summary>
-        Prepare future approved rent in RentVine{" "}
+        Prepare future renewal rent in RentVine{" "}
         <RenewalSectionHelp id="future-rent" inSummary />
       </summary>
       <div className="ui-stack">
         {!terms ? (
           <p>
-            <a href="#renewal-manual-owner_response">
-              Record explicit owner approval of the exact amount and dates first.
-            </a>
+            <a href="#renewal-working-terms">
+              Enter {current.missing.join(", ")} in Working renewal terms
+            </a>{" "}
+            to prepare this preview. Everything else on this lease stays available.
           </p>
         ) : (
           <>
             <p>
-              Approved monthly base rent: {terms.rent.toFixed(2)} · effective{" "}
+              Working renewal rent: {terms.rent.toFixed(2)} · effective{" "}
               {formatCalendarDate(terms.effectiveDate)} · term end{" "}
-              {formatCalendarDate(terms.endDate)}. Current Sheet rent is unchanged.
-            </p>
-            <p className="muted">
-              Tenant response:{" "}
-              {tenantAccepted
-                ? "accepted for these exact terms."
-                : "acceptance of these exact terms is not recorded yet. A saved schedule preview waits for it before the Admin confirmation."}
+              {formatCalendarDate(terms.endDate)}. Current billing and the current Sheet
+              rent are unchanged before the effective date.
             </p>
             <Button
               variant="secondary"
-              disabled={pending || context.pending}
+              disabled={pending}
               onClick={() => void run(refresh)}
             >
               Reload RentVine billing schedules
@@ -156,7 +149,6 @@ export function RenewalFutureRent({
                 onChange={(event) => {
                   setOperation(event.target.value);
                   setSelected("");
-                  setReviewed(false);
                 }}
               >
                 <option value="update_future">
@@ -166,21 +158,16 @@ export function RenewalFutureRent({
                   Change a dated current rent charge’s end, separately
                 </option>
                 <option value="create_future">
-                  Create the approved future charge from a reviewed rent billing schedule
+                  Create the future charge from an existing rent billing schedule
                 </option>
               </select>
             </Field>
-            <Field
-              htmlFor={`${id}-charge`}
-              label="Reviewed rent billing schedule"
-              required
-            >
+            <Field htmlFor={`${id}-charge`} label="Rent billing schedule" required>
               <select
                 id={`${id}-charge`}
                 value={selected}
                 onChange={(event) => {
                   setSelected(event.target.value);
-                  setReviewed(false);
                   const charge = inventory?.charges.find(
                     (entry) => entry.id === event.target.value,
                   );
@@ -212,25 +199,18 @@ export function RenewalFutureRent({
             </Field>
             {operation === "end_current" ? (
               <>
-                <Field
-                  htmlFor={`${id}-end`}
-                  label="Reviewed current-charge end date"
-                  required
-                >
+                <Field htmlFor={`${id}-end`} label="Current-charge end date" required>
                   <input
                     id={`${id}-end`}
                     type="date"
                     value={end}
-                    onChange={(event) => {
-                      setEnd(event.target.value);
-                      setReviewed(false);
-                    }}
+                    onChange={(event) => setEnd(event.target.value)}
                   />
                 </Field>
                 <p>
                   An open-ended charge cannot gain an end date through the existing
-                  reversible contract. Review that exact change in RentVine, then reload.
-                  No date is inferred automatically.
+                  reversible contract. Make that exact change in RentVine, then reload. No
+                  date is inferred automatically.
                 </p>
               </>
             ) : null}
@@ -244,11 +224,11 @@ export function RenewalFutureRent({
               </p>
             ) : null}
             <p>
-              Review every rent schedule below. Resolve overlaps and check gaps and
-              end-date boundaries in the provider; the app does not assume whether an end
-              date bills that day. Each end/change and create is separately confirmed,
-              receipted and read back. A completed first effect is not undone if a later
-              effect is unavailable.
+              Every rent schedule is listed below. The preview checks overlaps, gaps and
+              end-date boundaries against these schedules and never assumes whether an end
+              date bills that day. Each end, change and create is confirmed separately,
+              receipted and read back. A completed first effect is kept if a later effect
+              is unavailable.
             </p>
             <ul>
               {inventory?.charges
@@ -265,33 +245,18 @@ export function RenewalFutureRent({
                   </li>
                 ))}
             </ul>
-            <Field htmlFor={`${id}-review`} label="Schedule review source" required>
+            <Field htmlFor={`${id}-review`} label="Context for this preview (optional)">
               <input
                 id={`${id}-review`}
                 maxLength={240}
                 value={review}
-                onChange={(event) => {
-                  setReview(event.target.value);
-                  setReviewed(false);
-                }}
+                onChange={(event) => setReview(event.target.value)}
               />
             </Field>
-            <label>
-              <input
-                type="checkbox"
-                checked={reviewed}
-                onChange={(event) => setReviewed(event.target.checked)}
-              />
-              I checked the approved amount, effective dates, all rent schedules, gaps and
-              provider end-date boundaries for this one operation.
-            </label>
             <Button
               disabled={
                 pending ||
-                context.pending ||
                 !charge ||
-                !review.trim() ||
-                !reviewed ||
                 (operation === "end_current" && (!end || !charge.projection.endDate))
               }
               onClick={() => void run(prepare)}

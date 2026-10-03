@@ -434,7 +434,7 @@ describe("S82 row cells and exact-value shortcuts", () => {
     );
   });
 
-  it("keeps review leases inspectable and makes definitive skips non-navigable", () => {
+  it("keeps review and skipped leases navigable (S154) and never links a row without a lease id", () => {
     render(
       <RenewalDeskTable
         role="Editor"
@@ -449,25 +449,33 @@ describe("S82 row cells and exact-value shortcuts", () => {
             reason: "no_end_date",
             reasonLabel: "No end date on file",
           }),
+          row("", { addressLabel: "Unresolved Main St" }),
         ]}
         shortcuts={shortcuts}
         sourceReadOk
         state={state}
-        totalBeforeQuery={2}
+        totalBeforeQuery={3}
       />,
     );
 
     const review = screen.getByRole("link", { name: "REVIEW Main St" });
     expect(review.closest("tr")).toHaveAttribute("data-workspace-available", "true");
+    // S154: a skipped classification stays visible as context and no longer withholds the link.
+    const skip = screen.getByRole("link", { name: "SKIP Main St" });
+    expect(skip).toHaveAttribute("href", "/lease-renewal/live/desk/lease/SKIP");
+    const skipRow = skip.closest("tr");
+    expect(skipRow).toHaveAttribute("data-workspace-available", "true");
+    expect(skipRow).toHaveAttribute("data-disposition", "skip");
     expect(
-      document.querySelector('tr[data-workspace-available="true"] a.renewal-lease-link'),
-    ).toBe(review);
-    expect(screen.queryByRole("link", { name: "SKIP Main St" })).toBeNull();
-    const skipRow = screen.getByText("SKIP Main St").closest("tr");
-    expect(skipRow).toHaveAttribute("data-workspace-available", "false");
+      skipRow?.querySelector('[data-renewal-field="disposition-context"]'),
+    ).toHaveTextContent("Month-to-month");
+    // Only a row with no resolved lease id has no workspace link.
+    expect(screen.queryByRole("link", { name: "Unresolved Main St" })).toBeNull();
+    const unresolved = screen.getByText("Unresolved Main St").closest("tr");
+    expect(unresolved).toHaveAttribute("data-workspace-available", "false");
     expect(
-      [...(skipRow?.querySelectorAll("a") ?? [])].some((link) =>
-        link.getAttribute("href")?.includes("/desk/lease/SKIP"),
+      [...(unresolved?.querySelectorAll("a") ?? [])].some((link) =>
+        link.getAttribute("href")?.includes("/desk/lease/"),
       ),
     ).toBe(false);
   });
@@ -698,7 +706,7 @@ describe("S82 action cell", () => {
     ).toBeNull();
     const request = screen.getByRole("link", { name: "Request access" });
     const handoff = new URL(`https://example.invalid${request.getAttribute("href")}`);
-    expect(handoff.searchParams.get("capability")).toBe("approve");
+    expect(handoff.searchParams.get("capability")).toBe("edit");
     const returnTo = new URL(
       handoff.searchParams.get("return_to")!,
       "https://example.invalid",
@@ -708,7 +716,7 @@ describe("S82 action cell", () => {
     expect(returnTo.searchParams.get("overallStatus")).toBe("blocked");
   });
 
-  it("renders needs-verification causal blockers while definitive skips stay unlinked", () => {
+  it("renders needs-verification causal blockers as workspace links, for skipped rows too (S154)", () => {
     const blockerGuidance: Partial<DeskLeaseGuidance> = {
       overallStatus: "needs_verification",
       urgencyRank: OVERALL_STATUS_URGENCY_RANK.needs_verification,
@@ -768,10 +776,15 @@ describe("S82 action cell", () => {
       name: "Review the current source conflict.",
     });
     expect(eligible.getAttribute("href")).toContain("step=verify-renewal");
-    const skipText = screen.getByText("Review the definitive skip evidence.");
-    expect(skipText.closest("a")).toBeNull();
-    expect(skipText.closest("tr")).toHaveAttribute("data-workspace-available", "false");
-    expect(skipText.closest("li")).toHaveAttribute("data-blocker-id", "skip-check:0");
+    // S154: the skipped row's blocker opens that lease's workspace like any other row's.
+    const skipLink = screen.getByRole("link", {
+      name: "Review the definitive skip evidence.",
+    });
+    expect(skipLink.getAttribute("href")).toContain(
+      "/lease-renewal/live/desk/lease/SKIP?step=verify-renewal",
+    );
+    expect(skipLink.closest("tr")).toHaveAttribute("data-workspace-available", "true");
+    expect(skipLink.closest("li")).toHaveAttribute("data-blocker-id", "skip-check:0");
   });
 
   it("links eligible review work to verification but leaves unread progress non-actionable", () => {
@@ -871,7 +884,7 @@ describe("S82 action cell", () => {
     const request = screen.getByRole("link", { name: "Request access" });
     const href = request.getAttribute("href") ?? "";
     expect(href).toContain("/admin/access?");
-    expect(href).toContain("capability=approve");
+    expect(href).toContain("capability=edit");
     const handoff = new URL(`https://example.invalid${href}`);
     const returnTo = handoff.searchParams.get("return_to");
     expect(returnTo).not.toBeNull();

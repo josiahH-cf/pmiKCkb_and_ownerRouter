@@ -138,7 +138,8 @@ The runner may implement in-scope repairs, commit/push green slices, preserve an
 attempts through the reviewed procedure, and resume or replace after diagnosis and verification.
 Every candidate carries all thirteen features. Keep one watcher on the real release lock, one
 application build per run, exact-main green CI, fresh prerequisites and locked preflight GO,
-Sheet=false recovery/candidate/promoted revisions, guarded assurance, exact reconciliation,
+the reviewed Sheet switch value on candidate and promoted revisions (S159: true) with the recovery
+target keeping the captured predecessor's actual value, guarded assurance, exact reconciliation,
 receipt-bound promotion, the full 300,000 ms observation and independent final readbacks.
 Keep the queue until verified delivery. Never alter an admitted checkout, reuse a consumed claim,
 reassign an old receipt, guess a host binding, or relabel a failed outcome. Every failed run and its
@@ -348,9 +349,13 @@ to exact human-confirmed source-of-truth updates. S97, S98, S99, and the S100 ch
 their bounded per-key proof windows, mandatory close/readback, and separate final activations. An
 open key is authority, not proof that the provider currently exposes every safety primitive.
 Serving S113 supports normal field updates under the explicit owner-approved contract above.
-The deployed S128 batch pauses operating-Sheet effects while preserving reads and app-owned saves.
-The promoted revision and prepared recovery target read Sheet=false. Row deletion and historical restore remain unavailable, and
-completed receipts retain their original meaning.
+The deployed S128 batch pauses operating-Sheet effects while preserving reads and app-owned saves;
+the serving revision reads Sheet=false until the S152–S167 release. S159 (implemented, queued)
+resumes the existing normal append and recognized-field updates through the narrow switch and the
+two open exact keys: candidate and promoted revisions read the one reviewed value
+(`lib/production-assurance/sheet-writeback-expectation.mjs`, true) and the recovery target keeps the
+captured predecessor's actual value. Enablement executes no backlog. Row deletion and historical
+restore remain unavailable, and completed receipts retain their original meaning.
 No activation is a generic method/path/body, bulk,
 autonomous, model-triggered, or send grant.
 

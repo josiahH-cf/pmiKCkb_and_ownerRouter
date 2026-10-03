@@ -569,10 +569,13 @@ describe("S148 history routes (real handlers, emulator store)", () => {
     expect(state.interpretCalls).toBe(0);
   });
 
-  it("hides stored records when the viewer's access has narrowed since the answer", async () => {
+  // S167: only a lower role narrows access; a staff session carries no Space allowlist. The answer
+  // is stored under the Admin role (access basis scopes: null) and reopened by the same account as
+  // an Editor.
+  it("hides stored records when the viewer's role has narrowed since the answer", async () => {
     const answer = await answerFor(owner, "What leases are due this week?");
     await finalizeAssistantTurn(owner, OP(21), completed(OP(21), "Leases?", answer), db);
-    state.user = { ...owner, role: "Editor", scopes: ["maintenance"] };
+    state.user = { ...owner, role: "Editor" };
     const conversationId = conversationIdFor(owner.uid, OP(21));
     const opened = await openRoute(
       request(`/api/assistant/history/${conversationId}`, "GET"),

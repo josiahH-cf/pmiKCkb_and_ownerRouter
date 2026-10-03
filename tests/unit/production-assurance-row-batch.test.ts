@@ -131,6 +131,80 @@ describe("batched complete-cohort DOM evidence", () => {
   });
 });
 
+describe("S156 guidance contract marker on each rendered row", () => {
+  const MARKER = "s156-staff-lane";
+
+  it("captures the row marker, and null when the revision renders none", async () => {
+    const { page, expected } = fixture(3, false);
+    document
+      .querySelector("tr[data-lease-id='2']")!
+      .setAttribute("data-guidance-contract", MARKER);
+    document
+      .querySelector("tr[data-lease-id='3']")!
+      .setAttribute("data-guidance-contract", "");
+    const result = await readRowsFromPage(
+      page,
+      "https://candidate.example",
+      expected,
+      null,
+      new AbortController().signal,
+    );
+    expect(result.rows.map((row) => row.guidanceContract)).toEqual([null, MARKER, ""]);
+    expect(result.fieldMismatches).toBe(0);
+  });
+
+  it("reads a marked row's staff completion label against the staff-lane expectation", async () => {
+    const complete = (marked: boolean) => {
+      const built = fixture(1, false);
+      const row = document.querySelector("tr[data-lease-id='1']")!;
+      if (marked) row.setAttribute("data-guidance-contract", MARKER);
+      row.setAttribute("data-status", "complete");
+      const cell = row.querySelector("td[data-status]")!;
+      cell.setAttribute("data-status", "complete");
+      cell
+        .querySelector("a")!
+        .setAttribute(
+          "href",
+          "/lease-renewal/live/desk?v=2&overallStatus=complete&scope=all",
+        );
+      cell.querySelector(".renewal-status-badge > span")!.textContent =
+        "Completed: recorded by staff";
+      return built;
+    };
+    const rows = (staffComplete: boolean) =>
+      [
+        { leaseId: "1", workspaceExpected: false, manual: { complete: staffComplete } },
+      ] as unknown as Parameters<typeof readRowsFromPage>[2];
+    const read = async (
+      marked: boolean,
+      guidance?: Parameters<typeof readRowsFromPage>[5],
+    ) =>
+      (
+        await readRowsFromPage(
+          complete(marked).page,
+          "https://candidate.example",
+          // The predecessor expectation: this record is not complete under its rules.
+          rows(false),
+          null,
+          new AbortController().signal,
+          guidance,
+        )
+      ).fieldMismatches;
+
+    // A marked row is read against the staff-lane expectation for the same lease.
+    expect(await read(true, { staffLaneRows: rows(true) })).toBe(0);
+    // An unmarked row keeps the predecessor expectation, whatever the staff lane expects.
+    expect(await read(false, { staffLaneRows: rows(true) })).toBe(1);
+    // The caller's contract outranks the rendered marker in both directions.
+    expect(
+      await read(false, { staffLaneRows: rows(true), expectedContract: MARKER }),
+    ).toBe(0);
+    expect(
+      await read(true, { staffLaneRows: rows(true), expectedContract: "none" }),
+    ).toBe(1);
+  });
+});
+
 describe("independent semantic and displayed renewal-date evidence", () => {
   async function observedDate(markup: string) {
     const { page, expected } = fixture(1, false);

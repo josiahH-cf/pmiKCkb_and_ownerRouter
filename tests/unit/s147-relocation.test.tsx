@@ -45,7 +45,9 @@ import { GET as anticipatedWorkRoute } from "@/app/api/anticipated-work/route";
 import SpacesPage from "@/app/spaces/page";
 import { ConnectionCenter } from "@/components/connections/ConnectionCenter";
 import { resolveConnectionsState } from "@/lib/ask/app-state-context";
+import { AuthError } from "@/lib/auth/session";
 import { buildConnectionView } from "@/lib/connections/connection-status";
+import { SPACE_CONNECTOR_IDS } from "@/lib/space-card-state";
 import { getRenewalDeskView } from "@/tests/helpers/sample-desk";
 
 const admin = {
@@ -54,12 +56,12 @@ const admin = {
   hd: "pmikcmetro.com",
   role: "Admin",
 };
-const maintenanceEditor = {
+// S167: every staff account has every internal Space, so an Editor carries no Space allowlist.
+const editor = {
   uid: "u-maint",
   email: "maint@pmikcmetro.com",
   hd: "pmikcmetro.com",
   role: "Editor",
-  scopes: ["maintenance"],
 };
 
 afterEach(() => {
@@ -90,11 +92,21 @@ describe("S147 Anticipated work in Internal Processes", () => {
     expect(loadLiveRenewalDesk).not.toHaveBeenCalled();
   });
 
-  it("keeps the lane renewals-scoped, as on the Dashboard", async () => {
-    requireCapability.mockResolvedValue(maintenanceEditor);
+  // S167: the lane used to be hidden from an account without the Renewals Space.
+  it("shows the lane to an Editor, still reading nothing until asked", async () => {
+    requireCapability.mockResolvedValue(editor);
     listProcessDefinitions.mockResolvedValue([]);
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
     render(await SpacesPage());
-    expect(screen.queryByRole("region", { name: "Anticipated work" })).toBeNull();
+
+    const lane = screen.getByRole("region", { name: "Anticipated work" });
+    expect(
+      within(lane).getByRole("button", { name: "Show anticipated work" }),
+    ).toBeEnabled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(loadLiveRenewalDesk).not.toHaveBeenCalled();
   });
 
   it("computes on request and puts Start run beside each startable family", async () => {
@@ -157,11 +169,45 @@ describe("S147 Anticipated work in Internal Processes", () => {
 });
 
 describe("S147 anticipated-work route", () => {
-  it("refuses a user without Renewals access before any read", async () => {
-    requireCapability.mockResolvedValue(maintenanceEditor);
+  // S167: an account without the Renewals Space used to get a 403 before any read, and a scoped
+  // account could start only the processes of the Spaces it could open.
+  it("computes anticipated work for an Editor and offers every active process to start", async () => {
+    requireCapability.mockResolvedValue(editor);
+    listProcessDefinitions.mockResolvedValue([
+      { id: "lease-renewal", name: "Lease Renewal", status: "Draft" },
+      { id: "custom-move-in", name: "Custom move-in", status: "Draft" },
+      { id: "owner-renewal-outreach", name: "Owner outreach", status: "Retired" },
+    ]);
+    loadLiveRenewalDesk.mockResolvedValue({ status: "ok", view: getRenewalDeskView() });
+
     const response = await anticipatedWorkRoute();
-    expect(response.status).toBe(403);
+    const body = (await response.json()) as {
+      status: string;
+      groups: unknown[];
+      canStart: boolean;
+      startableDefinitionIds: string[];
+    };
+
+    expect(response.status).toBe(200);
+    expect(requireCapability).toHaveBeenCalledWith("read");
+    expect(loadLiveRenewalDesk).toHaveBeenCalledTimes(1);
+    expect(listProcessDefinitions).toHaveBeenCalledWith(editor);
+    expect(body.status).toBe("ok");
+    expect(body.groups.length).toBeGreaterThan(0);
+    expect(body.canStart).toBe(true);
+    expect(body.startableDefinitionIds).toEqual(["lease-renewal", "custom-move-in"]);
+  });
+
+  it("refuses an unauthenticated request before any read", async () => {
+    requireCapability.mockRejectedValue(
+      new AuthError("Authentication is required.", 401),
+    );
+
+    const response = await anticipatedWorkRoute();
+
+    expect(response.status).toBe(401);
     expect(loadLiveRenewalDesk).not.toHaveBeenCalled();
+    expect(listProcessDefinitions).not.toHaveBeenCalled();
   });
 
   it("projects the same families from the read-only 120-day desk", async () => {
@@ -230,12 +276,17 @@ describe("S147 connection setup summary in Connections", () => {
     }
   });
 
-  it("applies the same Space scoping the Dashboard card used", () => {
-    const all = resolveConnectionsState({}).items.map((item) => item.href);
-    const scoped = resolveConnectionsState({}, maintenanceEditor as never).items.map(
-      (item) => item.href,
-    );
-    expect(scoped.length).toBeLessThan(all.length);
-    expect(scoped.every((href) => all.includes(href))).toBe(true);
+  // S167: the summary used to be narrowed to the connectors of the Spaces a scoped account could
+  // open. It now takes no user and lists every connector that needs setup.
+  it("lists every connector that needs setup, with no Space filter", () => {
+    const hrefs = resolveConnectionsState({}).items.map((item) => item.href);
+    const spaceConnectorIds = new Set(Object.values(SPACE_CONNECTOR_IDS).flat());
+
+    for (const connectorId of spaceConnectorIds) {
+      expect(hrefs).toContain(`/connections#connector-${connectorId}`);
+    }
+    // Connectors that belong to no single Space are listed too.
+    expect(hrefs.length).toBeGreaterThan(spaceConnectorIds.size);
+    expect(new Set(hrefs).size).toBe(hrefs.length);
   });
 });

@@ -9,13 +9,13 @@ import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state"
  * S118 (R118.3, R118.4): the market evidence the comparison-based owner message may carry.
  * A starting range from current rent is never comparable-rent evidence, and a recommendation
  * that is still RentCast's returned point estimate enters the message only through the existing
- * Admin approval of that exact number or after staff enter their own reviewed recommendation.
+ * staff acceptance of that exact number or after staff enter their own reviewed recommendation.
  */
 export const STARTING_RANGE_MESSAGE_REQUIREMENT =
   "The saved low and high are the starting range from current rent, not market evidence. Review actual comparable rents with their source.";
 
 export const PROVIDER_RECOMMENDATION_NOTICE =
-  "The saved PMI recommendation is the RentCast point estimate as returned. It enters the owner message only after an Admin approves that exact number, or after staff enter a reviewed recommendation with its source.";
+  "The saved PMI recommendation is the RentCast point estimate as returned. It enters the owner message only after staff accept that exact number, or enter a reviewed recommendation with its source.";
 
 export interface MessageMarketEvidenceInput {
   preparation: RenewalWorkspaceState["preparation"];

@@ -114,13 +114,21 @@ const radius = () =>
 const lookupButton = () =>
   screen.getByRole("button", { name: "Look up market comps (reference only)" });
 
+// S155 (8c39cd23): preparation saves by itself when focus leaves the form; there is no Save
+// button. The optional source note is the completed entry that triggers this save; the action it
+// carries is the one the form holds at that moment.
 async function save(onSave: ReturnType<typeof vi.fn>) {
-  fireEvent.change(screen.getByLabelText("Source of the comparison and review notes"), {
-    target: { value: "Reviewed on 2026-09-16" },
-  });
-  fireEvent.click(screen.getByRole("button", { name: "Save comp preparation" }));
-  await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-  return onSave.mock.calls[0][0] as Record<string, unknown>;
+  expect(screen.queryByRole("button", { name: "Save comp preparation" })).toBeNull();
+  const before = onSave.mock.calls.length;
+  const source = screen.getByLabelText(
+    "Source of the comparison and review notes (optional)",
+  );
+  fireEvent.change(source, { target: { value: "Reviewed on 2026-09-16" } });
+  fireEvent.blur(source);
+  await waitFor(() => expect(onSave.mock.calls.length).toBeGreaterThan(before));
+  const action = onSave.mock.calls.at(-1)![0] as Record<string, unknown>;
+  expect(action).toMatchObject({ source: "Reviewed on 2026-09-16" });
+  return action;
 }
 
 describe("S118 comparison preparation defaults, deliberate lookup and honest basis", () => {

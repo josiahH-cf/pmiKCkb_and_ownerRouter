@@ -139,6 +139,8 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   "lib/lease-renewal/current-renewal-message.ts:currentRenewalMessage:buildLiveRenewalConfig",
   "lib/lease-renewal/current-renewal-message.ts:currentRenewalMessage:buildLiveRentVineConfig",
   "lib/lease-renewal/workspace-cycle-context.ts:resolveRenewalCycleBasis:buildLiveRentVineConfig",
+  // S154: the work-basis read when a first save establishes a lease's work record (read-only).
+  "lib/lease-renewal/workspace-cycle-context.ts:resolveRenewalWorkBasis:buildLiveRentVineConfig",
   "app/api/ask/live-target/route.ts:POST:buildLiveRentVineConfig",
   // S58: the demand-driven refresh route (read-only; forces/revalidates the shared lease read).
   "app/api/lease-renewal/notice-review/route.ts:source:buildLiveRentVineConfig",
@@ -146,6 +148,9 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   "app/api/lease-renewal/renewal-notice-draft/route.ts:POST:buildLiveRentVineConfig",
   // S73: owner draft verification performs the canonical RentVine-versus-Sheet read.
   "app/api/lease-renewal/renewal-notice-draft/route.ts:loadOwnerCurrentRentDecision:buildLiveRenewalConfig",
+  // S158: the operator Sheet lookup reads exactly the saved location through the configured
+  // workbook's read-only reader; the route constructs no writer on this path.
+  "app/api/lease-renewal/operating-sheet/route.ts:handleRequest:buildLiveRenewalConfig",
   // S58: the currency assertion before recording progress (read-only; refuses expired data).
   "app/api/lease-renewal/renewal-progress/route.ts:defaultAssertLeaseDataCurrent:buildLiveRentVineConfig",
   // S62: the Admin rule surface verifies a portfolio id against the live read (read-only).

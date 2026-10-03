@@ -1,4 +1,5 @@
 "use client";
+import { isProgrammaticFocusMove } from "./RenewalDashboardNavigation";
 import { formatCalendarDate, formatBusinessTimestamp } from "@/lib/date-display";
 import {
   RenewalSectionHeading,
@@ -6,38 +7,50 @@ import {
 } from "@/components/lease-renewal/RenewalSectionHeading";
 import {
   createContext,
+  useCallback,
   useContext,
+  useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { useRenewalSaveFocus } from "./RenewalSaveFocus";
+import { AUTOSAVE_IDLE, AutosaveStatus, type AutosaveState } from "./AutosaveStatus";
+import { WorkingDateField, WorkingMoneyField } from "./RenewalWorkingRecord";
 import { Button, Card, Field } from "@/components/ui";
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
 import {
   currentManualOwnerTerms,
   MANUAL_ACTIVITIES,
+  STAFF_RECORD_SOURCE,
   currentStaffActivity,
+  manualActionLabel,
   manualRenewalSummary,
   type ManualActivity,
   type RenewalCycleBasis,
   type RenewalWorkspaceAction,
   type RenewalWorkspaceState,
 } from "@/lib/lease-renewal/workspace-state";
-import { parseCurrencyInput } from "@/lib/currency-input";
 import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 
 interface ManualContext {
   writebackPaused: boolean;
   state: RenewalWorkspaceState | null;
   leaseId: string;
+  /** True while current staff records are unread or a deliberate action is in flight. */
   pending: boolean;
   /** S144: true until current staff records are read back after a failed read. */
   readUnavailable: boolean;
   /** S144: the latest save or read outcome, shown again by the Focus view. */
   message: string;
+  /** S155: the saving / saved / failed state of each independently saved record. */
+  states: Readonly<Record<string, AutosaveState>>;
+  /**
+   * Saves one staff record. S154: the first save establishes the lease's work record, so no cycle
+   * step comes first. It resolves when the save is confirmed and rejects when it is not.
+   */
   record: (action: RenewalWorkspaceAction) => Promise<void>;
   prepareSource: (
     field: keyof typeof SHEET_FIELD_LABELS,
@@ -60,12 +73,44 @@ export function RenewalManualProvider(props: ManualProviderProps) {
   return props.initialState === undefined && !props.unavailable ? (
     <>{props.children}</>
   ) : (
+    // The provider stays mounted when the first save establishes the work record, so entries in
+    // other controls are never lost to a remount.
     <ActiveManualProvider
-      key={`${props.leaseId}:${props.unavailable ? "unavailable" : (props.initialState?.cycleId ?? "pending")}`}
+      key={`${props.leaseId}:${props.unavailable ? "unavailable" : "ready"}`}
       {...props}
     />
   );
 }
+
+/** The independently saved record an action belongs to; its status and retries are keyed by it. */
+export function manualRecordKey(action: RenewalWorkspaceAction): string {
+  return action.kind === "activity"
+    ? `activity:${action.activity}`
+    : action.kind === "complete" || action.kind === "reopen"
+      ? "completion"
+      : action.kind;
+}
+function recordEvent(state: RenewalWorkspaceState | null, key: string): string | null {
+  if (!state) return null;
+  if (key.startsWith("activity:"))
+    return state.activities[key.slice(9) as ManualActivity]?.eventId ?? null;
+  if (key === "owner_response") return state.ownerResponse?.eventId ?? null;
+  if (key === "tenant_response") return state.tenantResponse?.eventId ?? null;
+  if (key === "completion") return state.completion?.eventId ?? null;
+  return state.preparation ? String(state.preparation.revision) : null;
+}
+function newerState(
+  current: RenewalWorkspaceState | null,
+  candidate: RenewalWorkspaceState | null | undefined,
+) {
+  if (!candidate) return current;
+  return !current ||
+    candidate.cycleId !== current.cycleId ||
+    candidate.revision >= current.revision
+    ? candidate
+    : current;
+}
+
 function ActiveManualProvider({
   leaseId,
   initialState,
@@ -74,32 +119,198 @@ function ActiveManualProvider({
   writebackPaused = false,
   unavailable = false,
 }: ManualProviderProps) {
-  const focusAfterSave = useRenewalSaveFocus();
-  const [pausedReadback, setPaused] = useState(false);
-  // Either server observation can impose the pause. A refreshed page never erases a newer API
-  // pause; after resumption, a fresh API readback must also clear it before preparing source work.
-  const paused = writebackPaused || pausedReadback;
+  const [pausedReadback, setPaused] = useState<boolean | null>(null);
+  // The freshest server observation of the Sheet switch wins: a save or reload response is newer
+  // than the page that rendered this provider.
+  const paused = pausedReadback ?? writebackPaused;
   const [readUnavailable, setReadUnavailable] = useState(unavailable);
   const [recordedState, setState] = useState(initialState ?? null),
-    [pending, setPending] = useState(false),
+    [deliberate, setDeliberate] = useState(false),
     [message, setMessage] = useState("");
+  const [states, setStates] = useState<Record<string, AutosaveState>>({});
   const [history, setHistory] = useState<Array<Record<string, unknown>> | null>(null);
-  const outstanding = useRef<{ key: string; id: string } | null>(null),
-    router = useRouter();
-  const state =
-    initialState &&
-    recordedState &&
-    initialState.cycleId === recordedState.cycleId &&
-    initialState.revision > recordedState.revision
-      ? initialState
-      : recordedState;
+  const router = useRouter();
+  const state = useMemo(
+    () =>
+      initialState &&
+      recordedState &&
+      initialState.cycleId === recordedState.cycleId &&
+      initialState.revision > recordedState.revision
+        ? initialState
+        : (recordedState ?? initialState ?? null),
+    [initialState, recordedState],
+  );
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+  // S154: a page refresh that shows a different work record (a new cycle established by a save,
+  // or the first record) replaces what this provider recorded; a refresh of the same record keeps
+  // the newer revision through the memo above.
+  const seenInitialCycle = useRef(initialState?.cycleId ?? null);
+  useEffect(() => {
+    const cycleId = initialState?.cycleId ?? null;
+    if (cycleId === seenInitialCycle.current) return;
+    seenInitialCycle.current = cycleId;
+    setState(initialState ?? null);
+    setStates({});
+  }, [initialState]);
+  const readUnavailableRef = useRef(readUnavailable);
+  useEffect(() => {
+    readUnavailableRef.current = readUnavailable;
+  }, [readUnavailable]);
+  // One save at a time, in the order staff made them, each against the latest saved revision.
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const outstanding = useRef(new Map<string, { key: string; id: string }>());
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    },
+    [],
+  );
+  const setRecordState = useCallback((key: string, value: AutosaveState) => {
+    setStates((current) => ({ ...current, [key]: value }));
+  }, []);
+  const applyState = useCallback((next: RenewalWorkspaceState | null | undefined) => {
+    stateRef.current = newerState(stateRef.current, next);
+    setState((current) => newerState(current, next));
+  }, []);
+  // The rest of the page (guidance, desk status) follows saved work without taking focus away
+  // from the control staff are typing in.
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(() => router.refresh(), 1200);
+  }, [router]);
+
+  const readCurrent = useCallback(async () => {
+    const response = await fetch(
+      `/api/lease-renewal/workspace?leaseId=${encodeURIComponent(leaseId)}`,
+    );
+    const value = await response.json();
+    if (typeof value.writeback_paused === "boolean") setPaused(value.writeback_paused);
+    if (!response.ok)
+      throw new Error(value.error ?? "Current records could not be read.");
+    return value as {
+      state: RenewalWorkspaceState | null;
+      activity: Array<Record<string, unknown>>;
+    };
+  }, [leaseId]);
+
+  const run = useCallback(
+    async (key: string, action: RenewalWorkspaceAction): Promise<void> => {
+      if (readUnavailableRef.current) {
+        const text = "Reload current staff records before recording work.";
+        setMessage(text);
+        setRecordState(key, { phase: "failed", message: text });
+        throw new Error(text);
+      }
+      setRecordState(key, { phase: "saving" });
+      setMessage("");
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const basis = stateRef.current;
+        const payload = {
+          operation: "record",
+          leaseId,
+          cycleId: basis?.cycleId ?? null,
+          expectedRevision: basis?.revision ?? 0,
+          action,
+        };
+        const payloadKey = JSON.stringify(payload);
+        const prior = outstanding.current.get(key);
+        const operationId = prior?.key === payloadKey ? prior.id : crypto.randomUUID();
+        outstanding.current.set(key, { key: payloadKey, id: operationId });
+        let response: Response;
+        let result: {
+          state?: RenewalWorkspaceState | null;
+          error?: string;
+          writeback_paused?: boolean;
+        };
+        try {
+          response = await fetch("/api/lease-renewal/workspace", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ ...payload, operationId }),
+          });
+          result = await response.json();
+        } catch {
+          // The response was lost. The same request stays outstanding so saving the same entry
+          // again returns the first result instead of recording it twice.
+          const text = "The save did not finish.";
+          setMessage(`${text} Your entry is kept.`);
+          setRecordState(key, { phase: "failed", message: text });
+          throw new Error(text);
+        }
+        if (typeof result.writeback_paused === "boolean")
+          setPaused(result.writeback_paused);
+        if (response.ok) {
+          outstanding.current.delete(key);
+          applyState(result.state);
+          setRecordState(key, { phase: "saved" });
+          setMessage("Saved. Any listed Sheet update still needs its own confirmation.");
+          scheduleRefresh();
+          return;
+        }
+        // A refused request was never stored; a later save uses a new request.
+        outstanding.current.delete(key);
+        if (response.status === 409 && attempt === 0) {
+          // Someone saved first. Read the current record: if this same item changed, it is a
+          // real conflict to show; if only other items changed, save again on the new revision.
+          let latest: RenewalWorkspaceState | null;
+          let readable = true;
+          try {
+            latest = (await readCurrent()).state;
+          } catch {
+            latest = null;
+            readable = false;
+          }
+          const changedHere =
+            !readable ||
+            recordEvent(latest, key) !== recordEvent(basis, key) ||
+            (basis !== null && latest !== null && latest.cycleId !== basis.cycleId);
+          if (readable) {
+            stateRef.current = latest;
+            setState(latest);
+          }
+          if (!changedHere) continue;
+          const text =
+            "Another operator changed this item. Review the current record, then save your entry again if it still applies.";
+          setMessage(text);
+          setRecordState(key, { phase: "failed", message: text, conflict: true });
+          scheduleRefresh();
+          throw new Error(text);
+        }
+        const text = result.error ?? "The record could not be saved.";
+        setMessage(text);
+        setRecordState(key, {
+          phase: "failed",
+          message: text,
+          conflict: response.status === 409,
+        });
+        throw new Error(text);
+      }
+    },
+    [applyState, leaseId, readCurrent, scheduleRefresh, setRecordState],
+  );
+
+  const record = useCallback(
+    (action: RenewalWorkspaceAction) => {
+      const key = manualRecordKey(action);
+      const result = queue.current.then(() => run(key, action));
+      queue.current = result.catch(() => undefined);
+      return result;
+    },
+    [run],
+  );
+
   async function prepareSource(field: keyof typeof SHEET_FIELD_LABELS, eventId: string) {
     if (paused) {
-      setMessage("Saved in app; Sheet updates paused.");
+      setMessage("Saved in the app. Sheet updates are paused.");
       return;
     }
-    if (!state) return;
-    setPending(true);
+    const current = stateRef.current;
+    if (!current) return;
+    setDeliberate(true);
     try {
       const response = await fetch("/api/lease-renewal/workspace", {
         method: "POST",
@@ -107,7 +318,7 @@ function ActiveManualProvider({
         body: JSON.stringify({
           operation: "prepare_source",
           leaseId,
-          cycleId: state.cycleId,
+          cycleId: current.cycleId,
           field,
           eventId,
         }),
@@ -116,116 +327,51 @@ function ActiveManualProvider({
       if (typeof result.writeback_paused === "boolean")
         setPaused(result.writeback_paused);
       if (!response.ok)
-        throw new Error(result.error ?? "This source proposal could not be prepared.");
-      setState(result.state);
+        throw new Error(result.error ?? "This Sheet update could not be prepared.");
+      applyState(result.state);
       setMessage(
-        "Source preparation read back. Review its exact Sheet confirmation in Lease details.",
+        "Sheet update prepared. Review and confirm its exact change under Lease details.",
       );
       router.refresh();
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "This source proposal could not be prepared.",
+          : "This Sheet update could not be prepared.",
       );
     } finally {
-      setPending(false);
+      setDeliberate(false);
     }
-  }
-  async function submit(payload: Record<string, unknown>) {
-    if (readUnavailable) {
-      setMessage("Reload current staff records before recording work.");
-      return;
-    }
-    const key = JSON.stringify(payload);
-    if (outstanding.current?.key !== key)
-      outstanding.current = { key, id: crypto.randomUUID() };
-    const operationId = outstanding.current.id;
-    setPending(true);
-    setMessage("");
-    try {
-      const response = await fetch("/api/lease-renewal/workspace", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          ...payload,
-          leaseId,
-          operationId,
-        }),
-      });
-      const result = await response.json();
-      if (typeof result.writeback_paused === "boolean")
-        setPaused(result.writeback_paused);
-      if (!response.ok)
-        throw new Error(result.error ?? "The activity could not be recorded.");
-      setState(result.state);
-      outstanding.current = null;
-      setMessage(
-        result.writeback_paused
-          ? "Saved in app; Sheet updates paused."
-          : "Staff record saved and read back. Any listed Sheet update still needs its own confirmation.",
-      );
-      if (
-        !result.state ||
-        !focusAfterSave?.({
-          manual: { cycleId: result.state.cycleId, revision: result.state.revision },
-        })
-      )
-        router.refresh();
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "The recording response was lost. Retry the same entry to recover it.",
-      );
-      throw error;
-    } finally {
-      setPending(false);
-    }
-  }
-  async function record(action: RenewalWorkspaceAction) {
-    if (!state) return;
-    await submit({
-      operation: "record",
-      cycleId: state.cycleId,
-      expectedRevision: state.revision,
-      action,
-    });
   }
   async function reload() {
-    setPending(true);
+    setDeliberate(true);
     try {
-      const response = await fetch(
-        `/api/lease-renewal/workspace?leaseId=${encodeURIComponent(leaseId)}`,
-      );
-      const value = await response.json();
-      if (typeof value.writeback_paused === "boolean") setPaused(value.writeback_paused);
-      if (!response.ok)
-        throw new Error(value.error ?? "Current records could not be read.");
+      const value = await readCurrent();
+      stateRef.current = value.state;
       setState(value.state);
       setReadUnavailable(false);
       setHistory(value.activity);
-      outstanding.current = null;
-      setMessage(
-        "Current staff records read back. Review unsaved inputs before recording them.",
-      );
+      outstanding.current.clear();
+      setMessage("Current staff records read back. Your unsaved entries are kept.");
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Current records could not be read.",
       );
     } finally {
-      setPending(false);
+      setDeliberate(false);
     }
   }
+  const summary = manualRenewalSummary(state);
   return (
     <Context.Provider
       value={{
         writebackPaused: paused,
         state,
         leaseId,
-        pending: pending || readUnavailable,
+        pending: deliberate || readUnavailable,
         readUnavailable,
         message,
+        states,
         record,
         prepareSource,
       }}
@@ -237,43 +383,31 @@ function ActiveManualProvider({
         <p>
           {readUnavailable
             ? "Current staff records could not be read. Reload before recording work"
-            : manualRenewalSummary(state).label}
+            : summary.label}
           . Provider evidence is shown separately below.
         </p>
         {state ? (
           <p>
-            Cycle based on{" "}
-            {state.basis.kind === "lease_end" ? "lease end" : "review date"}{" "}
-            {formatCalendarDate(state.basis.dateIso)} · {state.basis.source}.
+            {state.basis.kind === "lease_bound"
+              ? `Work saved on this lease without a cycle date · ${state.basis.source}.`
+              : `Work recorded against ${state.basis.kind === "lease_end" ? "lease end" : "review date"} ${formatCalendarDate(state.basis.dateIso)} · ${state.basis.source}.`}
           </p>
-        ) : null}
+        ) : readUnavailable ? null : (
+          <p id="renewal-manual-cycle" tabIndex={-1}>
+            Record any item below when it happens. Each entry saves on its own.
+          </p>
+        )}
         {state ? (
           <CycleSourceDateNote state={state} cycleBasis={cycleBasis ?? null} />
         ) : null}
-        <CycleControl
-          current={state}
-          basis={cycleBasis ?? null}
-          pending={pending || readUnavailable}
-          start={async (basis) =>
-            submit({
-              operation: "start_cycle",
-              basis,
-              expectedCycleId: state?.cycleId ?? null,
-              expectedRevision: state?.revision ?? 0,
-              reason: state
-                ? "Staff explicitly started the next reviewed renewal cycle"
-                : "Staff selected the reviewed current renewal cycle",
-            })
-          }
-        />
         {state ? (
           <p>
-            <a href={`#renewal-manual-${manualRenewalSummary(state).nextActivity}`}>
-              Continue recorded work
+            <a href={`#renewal-manual-${summary.nextActivity}`}>
+              Suggested next: {manualActionLabel(summary.nextActivity)}
             </a>
           </p>
         ) : null}
-        <Button onClick={() => void reload()} disabled={pending} variant="secondary">
+        <Button onClick={() => void reload()} disabled={deliberate} variant="secondary">
           Reload records and history
         </Button>
         {message ? <p role="status">{message}</p> : null}
@@ -304,8 +438,8 @@ function ActiveManualProvider({
 const USD = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 /**
  * S123 (R-F02-04): when RentVine now reports a different lease end than the recorded cycle, say
- * so beside the recorded basis and terms. The recorded facts stay as written; a new cycle is a
- * separate explicit start. Nothing renders while the provider still reports the recorded date.
+ * so beside the recorded basis and terms. The recorded facts stay as written. Nothing renders
+ * while the provider still reports the recorded date.
  */
 function CycleSourceDateNote({
   state,
@@ -331,89 +465,6 @@ function CycleSourceDateNote({
     </p>
   );
 }
-function CycleControl({
-  current,
-  basis,
-  pending,
-  start,
-}: {
-  current: RenewalWorkspaceState | null;
-  basis: RenewalCycleBasis | null;
-  pending: boolean;
-  start: (basis: RenewalCycleBasis) => Promise<void>;
-}) {
-  const id = useId(),
-    [date, setDate] = useState(basis?.dateIso ?? ""),
-    [source, setSource] = useState(basis?.source ?? ""),
-    [reviewed, setReviewed] = useState(false);
-  const form = (
-    <div id="renewal-manual-cycle" className="ui-stack" tabIndex={-1}>
-      <p>
-        {current
-          ? "Starting another cycle preserves this cycle as history. Its approvals and completion will not carry over."
-          : "Confirm the reviewed cycle below to record work against this lease."}
-      </p>
-      <Field
-        htmlFor={`${id}-date`}
-        label={
-          basis?.kind === "lease_end"
-            ? "Verified lease end for this cycle"
-            : "Reviewed periodic-review date"
-        }
-        required={basis?.kind !== "lease_end"}
-      >
-        <input
-          data-renewal-next-control
-          id={`${id}-date`}
-          type="date"
-          value={date}
-          readOnly={basis?.kind === "lease_end"}
-          onChange={(event) => setDate(event.target.value)}
-        />
-      </Field>
-      <Field
-        htmlFor={`${id}-source`}
-        label="Cycle date source"
-        required={basis?.kind !== "lease_end"}
-      >
-        <input
-          id={`${id}-source`}
-          value={source}
-          readOnly={basis?.kind === "lease_end"}
-          onChange={(event) => setSource(event.target.value)}
-        />
-      </Field>
-      <label>
-        <input
-          type="checkbox"
-          checked={reviewed}
-          onChange={(event) => setReviewed(event.target.checked)}
-        />
-        I reviewed this cycle and want to record work against it.
-      </label>
-      <Button
-        disabled={pending || !date || !source.trim() || !reviewed}
-        onClick={() =>
-          void start(
-            basis?.kind === "lease_end"
-              ? basis
-              : { kind: "review_date", dateIso: date, source },
-          ).catch(() => undefined)
-        }
-      >
-        {current ? "Start new renewal cycle" : "Use this reviewed cycle"}
-      </Button>
-    </div>
-  );
-  return current ? (
-    <details>
-      <summary>Start a new renewal cycle</summary>
-      {form}
-    </details>
-  ) : (
-    form
-  );
-}
 const ACTIVITIES_BEFORE_RESPONSE: readonly ManualActivity[] = [
   "owner_outreach",
   "tenant_offer",
@@ -426,8 +477,8 @@ export function RenewalManualSection({
   const context = useRenewalManualWorkspace();
   if (!context) return null;
   const { state } = context;
-  if (!state)
-    return <p>Manual recording is available after selecting the reviewed cycle above.</p>;
+  if (context.readUnavailable && !state)
+    return <p>Reload current staff records above before recording work.</p>;
   const summary = manualRenewalSummary(state);
   const activities = Object.entries(MANUAL_ACTIVITIES)
     .filter(
@@ -444,18 +495,13 @@ export function RenewalManualSection({
   const afterResponse = activities.filter(
     (key) => !ACTIVITIES_BEFORE_RESPONSE.includes(key),
   );
-  const activityForm = (key: ManualActivity) => (
-    <ActivityForm key={`${state.cycleId}-${key}`} activity={key} />
-  );
+  const activityForm = (key: ManualActivity) => <ActivityForm key={key} activity={key} />;
+  const completionState = context.states.completion ?? AUTOSAVE_IDLE;
   return (
     <Card title={renewalCardTitle(`staff-work-${section}`, "Work recorded by staff")}>
       {beforeResponse.map(activityForm)}
-      {section === "owner" ? (
-        <ResponseForm key={`owner-${state.cycleId}`} audience="owner" />
-      ) : null}
-      {section === "tenant" ? (
-        <ResponseForm key={`tenant-${state.cycleId}`} audience="tenant" />
-      ) : null}
+      {section === "owner" ? <ResponseForm audience="owner" /> : null}
+      {section === "tenant" ? <ResponseForm audience="tenant" /> : null}
       {afterResponse.map(activityForm)}
       {section === "documents" ? (
         <>
@@ -465,23 +511,17 @@ export function RenewalManualSection({
             </RenewalSectionHeading>
             <p>
               {summary.complete
-                ? "This cycle is completed by staff attestation. This does not establish verified completion in RentVine, Gmail or Dotloop."
+                ? "This renewal is recorded complete by staff. That record is separate from verified completion in RentVine, Gmail or Dotloop."
                 : summary.nextActivity === "complete"
-                  ? "The applicable manual checklist is ready for an explicit staff completion record."
-                  : "Complete the applicable manual checklist and required outcome branch first."}
+                  ? "Record completion when the renewal work is complete."
+                  : `Suggested next: ${manualActionLabel(summary.nextActivity)}. Record completion whenever the renewal work is complete.`}
             </p>
             <Button
               data-renewal-next-control
-              disabled={
-                context.pending ||
-                (!summary.complete && summary.nextActivity !== "complete")
-              }
+              disabled={context.pending}
               onClick={() =>
                 void context
-                  .record({
-                    kind: summary.complete ? "reopen" : "complete",
-                    source: "Staff reviewed the current cycle checklist",
-                  })
+                  .record({ kind: summary.complete ? "reopen" : "complete" })
                   .catch(() => undefined)
               }
             >
@@ -489,11 +529,12 @@ export function RenewalManualSection({
                 ? "Reopen recorded completion"
                 : "Record staff completion"}
             </Button>
+            <AutosaveStatus state={completionState} subject="Completion" />
           </div>
           <RenewalSectionHeading id="source-updates" as="h3">
             Source updates
           </RenewalSectionHeading>
-          {Object.values(state.sourceUpdates).length ? (
+          {state && Object.values(state.sourceUpdates).length ? (
             <ul>
               {Object.values(state.sourceUpdates).map((update) => (
                 <li key={update.eventId}>
@@ -502,8 +543,8 @@ export function RenewalManualSection({
                   {update.state === "verified"
                     ? "Read back after confirmed update"
                     : context.writebackPaused
-                      ? "Saved in app; Sheet updates paused"
-                      : "Pending separate Sheet confirmation"}
+                      ? "Saved in the app. Sheet updates are paused"
+                      : "Saved in the app. The Sheet changes only when you confirm its update"}
                   {update.reason ? ` · ${update.reason}` : ""}.{" "}
                   <a href="#renewal-step-verify-renewal">Review Sheet updates</a>
                   {update.state !== "verified" ? (
@@ -514,51 +555,114 @@ export function RenewalManualSection({
                         void context.prepareSource(update.intent.field, update.eventId)
                       }
                     >
-                      Prepare saved{" "}
-                      {SHEET_FIELD_LABELS[update.intent.field].toLowerCase()} value
+                      Prepare the Sheet update for{" "}
+                      {SHEET_FIELD_LABELS[update.intent.field].toLowerCase()}
                     </Button>
                   ) : null}
                 </li>
               ))}
             </ul>
           ) : (
-            <p>No source update recorded for this cycle.</p>
+            <p>No source update is recorded for this lease.</p>
           )}
         </>
       ) : null}
     </Card>
   );
 }
+function toLocalDateTime(iso: string | undefined): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+function savedSource(source: string | undefined): string {
+  return source && source !== STAFF_RECORD_SOURCE ? source : "";
+}
 function ActivityForm({ activity }: { activity: ManualActivity }) {
   const context = useRenewalManualWorkspace()!,
-    state = context.state!,
+    state = context.state,
     definition = MANUAL_ACTIVITIES[activity],
-    current = currentStaffActivity(state, activity),
-    historical = state.activities[activity];
+    current = state ? currentStaffActivity(state, activity) : null,
+    historical = state?.activities[activity];
   const id = useId(),
     [outcome, setOutcome] = useState(current?.outcome ?? "not_started"),
-    [source, setSource] = useState(current?.source ?? ""),
+    [source, setSource] = useState(savedSource(current?.source)),
     [reason, setReason] = useState(current?.reason ?? ""),
-    [applicabilityPolicy, setApplicabilityPolicy] = useState(
-      current?.applicabilityPolicy ?? "",
-    ),
-    [policyReviewed, setPolicyReviewed] = useState(false),
-    [occurredAt, setOccurredAt] = useState("");
+    [occurredAt, setOccurredAt] = useState(toLocalDateTime(current?.occurredAt));
+  // The fields the person has typed in since the last save. A newer saved record (another
+  // operator, a new work record) refreshes every other field, so a later autosave never carries a
+  // stale value over a colleague's entry.
+  const [touched, setTouched] = useState<ReadonlySet<string>>(() => new Set());
+  const touch = (field: string) =>
+    setTouched((current) => (current.has(field) ? current : new Set(current).add(field)));
+  const setDirty = (value: boolean) => {
+    if (!value) setTouched(new Set());
+  };
+  const savedEvent = current?.eventId ?? null;
+  const [seenEvent, setSeenEvent] = useState(savedEvent);
+  if (savedEvent !== seenEvent) {
+    setSeenEvent(savedEvent);
+    if (!touched.has("outcome")) setOutcome(current?.outcome ?? "not_started");
+    if (!touched.has("source")) setSource(savedSource(current?.source));
+    if (!touched.has("reason")) setReason(current?.reason ?? "");
+    if (!touched.has("occurredAt")) setOccurredAt(toLocalDateTime(current?.occurredAt));
+  }
   const isNext = manualRenewalSummary(state).nextActivity === activity;
+  const key = `activity:${activity}`;
+  const saveState = context.states[key] ?? AUTOSAVE_IDLE;
+  type Outcome = typeof outcome;
+  function save(next: Partial<{ outcome: Outcome }> = {}) {
+    const value = next.outcome ?? outcome;
+    const when = occurredAt ? new Date(occurredAt) : null;
+    void context
+      .record({
+        kind: "activity",
+        activity,
+        outcome: value,
+        ...(source.trim() ? { source: source.trim() } : {}),
+        ...(reason.trim() ? { reason: reason.trim() } : {}),
+        ...(when && !Number.isNaN(when.getTime())
+          ? { occurredAt: when.toISOString() }
+          : {}),
+      })
+      .then(() => setDirty(false))
+      .catch(() => undefined);
+  }
+  // A text entry saves when the person leaves the control and it differs from the saved record.
+  // Focus moved by the page itself (a refresh, a chosen task) keeps the entry as a draft.
+  function saveDetail() {
+    if (isProgrammaticFocusMove()) return;
+    if (
+      source.trim() === savedSource(current?.source) &&
+      reason.trim() === (current?.reason ?? "") &&
+      occurredAt === toLocalDateTime(current?.occurredAt)
+    ) {
+      setDirty(false);
+      return;
+    }
+    save();
+  }
   return (
     <details id={`renewal-manual-${activity}`} open={isNext || undefined}>
       <summary>
         {definition.label} :{" "}
         {current?.outcome.replaceAll("_", " ") ??
-          (historical ? "Needs review after changed terms" : "Not recorded")}
+          (historical ? "Recorded before the terms changed" : "Not recorded")}
       </summary>
       <div className="ui-stack">
         <Field htmlFor={`${id}-outcome`} label={`${definition.label} outcome`}>
           <select
             data-renewal-next-control
+            disabled={context.pending}
             id={`${id}-outcome`}
             value={outcome}
-            onChange={(event) => setOutcome(event.target.value as typeof outcome)}
+            onChange={(event) => {
+              const value = event.target.value as Outcome;
+              setOutcome(value);
+              save({ outcome: value });
+            }}
           >
             <option value="not_started">Not started</option>
             <option value="waiting">Waiting</option>
@@ -570,95 +674,52 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
         </Field>
         <Field
           htmlFor={`${id}-source`}
-          label="Source or channel"
-          hint="Identify the actual email, call, document or system record that supports this entry."
-          required
+          label="Source or channel (optional)"
+          hint="For example a call, an email or a document."
         >
           <input
+            disabled={context.pending}
             id={`${id}-source`}
+            maxLength={240}
             value={source}
-            onChange={(event) => setSource(event.target.value)}
+            onBlur={saveDetail}
+            onChange={(event) => {
+              setSource(event.target.value);
+              touch("source");
+            }}
           />
         </Field>
-        <Field
-          htmlFor={`${id}-reason`}
-          label={
-            outcome === "not_applicable"
-              ? "Source-based reason this is not applicable"
-              : "Comment (optional)"
-          }
-          required={outcome === "not_applicable"}
-        >
+        <Field htmlFor={`${id}-reason`} label="Comment (optional)">
           <input
+            disabled={context.pending}
             id={`${id}-reason`}
+            maxLength={1000}
             value={reason}
-            onChange={(event) => setReason(event.target.value)}
+            onBlur={saveDetail}
+            onChange={(event) => {
+              setReason(event.target.value);
+              touch("reason");
+            }}
           />
         </Field>
-        {outcome === "not_applicable" ? (
-          <>
-            <Field
-              htmlFor={`${id}-policy`}
-              label="Approved policy or document supporting Not applicable"
-              required
-            >
-              <input
-                id={`${id}-policy`}
-                value={applicabilityPolicy}
-                maxLength={240}
-                onChange={(event) => {
-                  setApplicabilityPolicy(event.target.value);
-                  setPolicyReviewed(false);
-                }}
-              />
-            </Field>
-            <label>
-              <input
-                type="checkbox"
-                checked={policyReviewed}
-                onChange={(event) => setPolicyReviewed(event.target.checked)}
-              />
-              I checked this lease against the cited existing approved rule and it permits
-              Not applicable. I am recording that review, not granting an exception.
-            </label>
-            <p>
-              If applicability or policy is unknown, keep this work Not started or
-              Waiting. Required documents and signatures cannot be waived here; their
-              document requirements remain in the packet review.
-            </p>
-          </>
-        ) : null}
         <Field htmlFor={`${id}-when`} label="When the work happened (optional)">
           <input
+            disabled={context.pending}
             type="datetime-local"
             id={`${id}-when`}
             value={occurredAt}
-            onChange={(event) => setOccurredAt(event.target.value)}
+            onBlur={saveDetail}
+            onChange={(event) => {
+              setOccurredAt(event.target.value);
+              touch("occurredAt");
+            }}
           />
         </Field>
-        <Button
-          disabled={
-            context.pending ||
-            !source.trim() ||
-            (outcome === "not_applicable" &&
-              (!reason.trim() || !applicabilityPolicy.trim() || !policyReviewed))
-          }
-          onClick={() =>
-            void context
-              .record({
-                kind: "activity",
-                activity,
-                outcome,
-                source,
-                ...(reason ? { reason } : {}),
-                ...(outcome === "not_applicable" ? { applicabilityPolicy } : {}),
-                ...(occurredAt ? { occurredAt: new Date(occurredAt).toISOString() } : {}),
-              })
-              .catch(() => undefined)
-          }
-        >
-          Record {definition.label.toLowerCase()}
-        </Button>
+        <AutosaveStatus
+          onRetry={() => save()}
+          state={saveState}
+          subject={definition.label}
+        />
         {current ? (
           <p>
             Recorded {formatBusinessTimestamp(current.recordedAt)} by {current.actorUid}.
@@ -671,80 +732,89 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
 }
 function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
   const context = useRenewalManualWorkspace()!,
-    state = context.state!,
-    current = audience === "owner" ? state.ownerResponse : state.tenantResponse;
+    state = context.state,
+    current = audience === "owner" ? state?.ownerResponse : state?.tenantResponse;
+  const initialOutcome = audience === "owner" ? "no_response" : "awaiting_response";
   const id = useId(),
-    [outcome, setOutcome] = useState(
-      current?.outcome ?? (audience === "owner" ? "no_response" : "awaiting_response"),
-    ),
-    [source, setSource] = useState(current?.source ?? ""),
-    [rent, setRent] = useState(state.ownerResponse?.terms?.rent.toString() ?? ""),
-    [effective, setEffective] = useState(state.ownerResponse?.terms?.effectiveDate ?? ""),
-    [end, setEnd] = useState(state.ownerResponse?.terms?.endDate ?? "");
-  const parsed = parseCurrencyInput(rent),
-    approved = audience === "owner" && outcome === "approved_terms";
+    [outcome, setOutcome] = useState<string>(current?.outcome ?? initialOutcome),
+    [source, setSource] = useState(savedSource(current?.source));
+  const [dirty, setDirty] = useState(false);
+  const savedEvent = current?.eventId ?? null;
+  const [seenEvent, setSeenEvent] = useState(savedEvent);
+  if (savedEvent !== seenEvent) {
+    setSeenEvent(savedEvent);
+    if (!dirty) {
+      setOutcome(current?.outcome ?? initialOutcome);
+      setSource(savedSource(current?.source));
+    }
+  }
+  const key = audience === "owner" ? "owner_response" : "tenant_response";
+  const saveState = context.states[key] ?? AUTOSAVE_IDLE;
   const options =
     audience === "owner"
       ? [
           ["no_response", "No response"],
-          ["approved_terms", "Explicit approval of exact terms"],
+          ["approved_terms", "Approved"],
           ["revision_requested", "Revision requested"],
           ["declined_non_renewal", "Declined / non-renewal"],
         ]
       : [
           ["awaiting_response", "Awaiting response"],
-          ["accepted", "Accepted current exact terms"],
+          ["accepted", "Accepted"],
           ["counter_change_requested", "Counter / change requested"],
           ["declined_nonrenewing", "Declined / not renewing"],
           ["needs_verification", "Needs verification"],
         ];
-  const valid =
-    !!source.trim() &&
-    (!approved || (parsed.ok && parsed.value > 0 && !!effective && end > effective));
-  async function save() {
+  function save(nextOutcome: string = outcome) {
+    const common = source.trim() ? { source: source.trim() } : {};
     const action: RenewalWorkspaceAction =
       audience === "owner"
         ? {
             kind: "owner_response",
-            outcome: outcome as
+            outcome: nextOutcome as
               | "approved_terms"
               | "revision_requested"
               | "declined_non_renewal"
               | "no_response",
-            source,
-            ...(approved && parsed.ok
-              ? { terms: { rent: parsed.value, effectiveDate: effective, endDate: end } }
-              : {}),
+            ...common,
           }
         : {
             kind: "tenant_response",
-            outcome: outcome as
+            outcome: nextOutcome as
               | "awaiting_response"
               | "accepted"
               | "counter_change_requested"
               | "declined_nonrenewing"
               | "needs_verification",
-            source,
+            ...common,
           };
-    await context.record(action);
+    void context
+      .record(action)
+      .then(() => setDirty(false))
+      .catch(() => undefined);
   }
+  const recordedTerms = audience === "owner" ? state?.ownerResponse?.terms : undefined;
   return (
     <div id={`renewal-manual-${audience}_response`} tabIndex={-1} className="ui-stack">
       <RenewalSectionHeading
         id={audience === "owner" ? "owner-response" : "tenant-response"}
         as="h3"
       >
-        {audience === "owner" ? "Owner response and exact terms" : "Tenant response"}
+        {audience === "owner" ? "Owner response" : "Tenant response"}
       </RenewalSectionHeading>
       <Field
         htmlFor={`${id}-outcome`}
         label={`${audience === "owner" ? "Owner" : "Tenant"} response`}
       >
         <select
+          disabled={context.pending}
           id={`${id}-outcome`}
           data-renewal-next-control
           value={outcome}
-          onChange={(event) => setOutcome(event.target.value as typeof outcome)}
+          onChange={(event) => {
+            setOutcome(event.target.value);
+            save(event.target.value);
+          }}
         >
           {options.map(([value, label]) => (
             <option key={value} value={value}>
@@ -753,58 +823,56 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
           ))}
         </select>
       </Field>
-      {approved ? (
-        <>
-          <Field
-            htmlFor={`${id}-rent`}
-            label="Exact owner-approved monthly base rent"
-            required
-          >
-            <input
-              id={`${id}-rent`}
-              inputMode="decimal"
-              value={rent}
-              onChange={(event) => setRent(event.target.value)}
-            />
-          </Field>
-          <Field htmlFor={`${id}-effective`} label="Approved effective date" required>
-            <input
-              id={`${id}-effective`}
-              type="date"
-              value={effective}
-              onChange={(event) => setEffective(event.target.value)}
-            />
-          </Field>
-          <Field htmlFor={`${id}-end`} label="Approved term end date" required>
-            <input
-              id={`${id}-end`}
-              type="date"
-              value={end}
-              onChange={(event) => setEnd(event.target.value)}
-            />
-          </Field>
-        </>
-      ) : null}
-      <Field htmlFor={`${id}-source`} label="Response source or channel" required>
+      <Field htmlFor={`${id}-source`} label="Response source or channel (optional)">
         <input
+          disabled={context.pending}
           id={`${id}-source`}
+          maxLength={240}
           value={source}
-          onChange={(event) => setSource(event.target.value)}
+          onBlur={() => {
+            if (source.trim() === savedSource(current?.source)) setDirty(false);
+            else save();
+          }}
+          onChange={(event) => {
+            setSource(event.target.value);
+            setDirty(true);
+          }}
         />
       </Field>
-      <Button
-        disabled={context.pending || !valid}
-        onClick={() => void save().catch(() => undefined)}
-      >
-        Record {audience} response
-      </Button>
+      <AutosaveStatus
+        onRetry={() => save()}
+        state={saveState}
+        subject={audience === "owner" ? "Owner response" : "Tenant response"}
+      />
       {current ? (
         <p>
           Recorded {formatBusinessTimestamp(current.recordedAt)} by {current.actorUid}.{" "}
-          {current.termsRevision !== state.termsRevision
-            ? "Needs review after changed terms."
+          {state && current.termsRevision !== state.termsRevision
+            ? "Recorded before the owner response changed."
             : ""}
         </p>
+      ) : null}
+      {audience === "owner" ? (
+        <div className="ui-stack" id="renewal-working-terms">
+          <RenewalSectionHeading id="working-terms" as="h3">
+            Working renewal terms
+          </RenewalSectionHeading>
+          <p className="muted">
+            Enter what you know. Each value saves on its own and stays until you change
+            it.
+          </p>
+          <WorkingMoneyField field="terms_rent" label="Working monthly rent" />
+          <WorkingDateField field="terms_effective_date" label="Working effective date" />
+          <WorkingDateField field="terms_end_date" label="Working term end date" />
+          {recordedTerms ? (
+            <p className="muted">
+              Owner-approved terms recorded earlier on this cycle:{" "}
+              {USD.format(recordedTerms.rent)} from{" "}
+              {formatCalendarDate(recordedTerms.effectiveDate)} to{" "}
+              {formatCalendarDate(recordedTerms.endDate)}.
+            </p>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

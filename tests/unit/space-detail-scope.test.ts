@@ -1,4 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const editor = {
+  uid: "maintenance-editor",
+  email: "maintenance-editor@pmikcmetro.com",
+  hd: "pmikcmetro.com",
+  role: "Editor",
+} as const;
 
 vi.mock("next/navigation", () => ({
   notFound: vi.fn(() => {
@@ -9,27 +16,66 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 vi.mock("@/lib/auth/page-guards", () => ({
-  primarySpaceHref: vi.fn(() => "/maintenance"),
+  primarySpaceHref: vi.fn(() => "/"),
   requirePageCapability: vi.fn(async () => ({
     uid: "maintenance-editor",
     email: "maintenance-editor@pmikcmetro.com",
     hd: "pmikcmetro.com",
     role: "Editor",
-    scopes: ["maintenance"],
   })),
+}));
+// The page's Firestore-backed reads, doubled so the page can be built for an admitted account.
+vi.mock("@/lib/firestore/approved-templates", () => ({
+  getApprovedTemplate: vi.fn(async () => null),
+}));
+vi.mock("@/lib/firestore/operational-pages", () => ({
+  listPublishedOperationalPages: vi.fn(async () => []),
+}));
+vi.mock("@/lib/firestore/workflows", () => ({
+  getProcessDefinition: vi.fn(async () => null),
+  listWorkflowRuns: vi.fn(async () => []),
+}));
+vi.mock("@/lib/firestore/workflow-run-step-checks", () => ({
+  listStepChecksForRun: vi.fn(async () => []),
 }));
 
 import SpaceDetailPage from "@/app/spaces/[spaceId]/page";
-import { redirect } from "next/navigation";
+import { requirePageCapability } from "@/lib/auth/page-guards";
+import { getApprovedTemplate } from "@/lib/firestore/approved-templates";
+import { listPublishedOperationalPages } from "@/lib/firestore/operational-pages";
+import { notFound, redirect } from "next/navigation";
 
-describe("Space detail scope boundary", () => {
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+// S167: every staff account has every internal Space. An account that used to hold a
+// maintenance-only allowlist was redirected away from these Spaces before rendering.
+describe("Space detail access boundary", () => {
   it.each(["lease-renewals", "move-in"])(
-    "redirects a maintenance-only principal away from %s before rendering",
+    "opens %s for an Editor and reads it as that Editor, with no redirect",
     async (spaceId) => {
-      await expect(
-        SpaceDetailPage({ params: Promise.resolve({ spaceId }) }),
-      ).rejects.toThrow("NEXT_REDIRECT:/maintenance");
-      expect(redirect).toHaveBeenLastCalledWith("/maintenance");
+      const page = await SpaceDetailPage({ params: Promise.resolve({ spaceId }) });
+
+      expect(redirect).not.toHaveBeenCalled();
+      expect(notFound).not.toHaveBeenCalled();
+      expect(requirePageCapability).toHaveBeenCalledWith("read");
+      expect(page.props.user).toEqual(editor);
+      expect(listPublishedOperationalPages).toHaveBeenCalledWith(editor, spaceId);
+      if (spaceId === "move-in") {
+        expect(getApprovedTemplate).toHaveBeenCalledWith(editor, {
+          spaceId: "move-in",
+          name: "Move-In Welcome Email",
+        });
+      }
     },
   );
+
+  it("still returns not found for a Space that does not exist, before any read", async () => {
+    await expect(
+      SpaceDetailPage({ params: Promise.resolve({ spaceId: "no-such-space" }) }),
+    ).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(redirect).not.toHaveBeenCalled();
+    expect(listPublishedOperationalPages).not.toHaveBeenCalled();
+  });
 });

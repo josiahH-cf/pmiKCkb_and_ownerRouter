@@ -31,25 +31,38 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("Spaces directory scope filter", () => {
-  it("renders only the mapped Maintenance card for a maintenance-only principal", async () => {
-    vi.mocked(requirePageCapability).mockResolvedValue({
+describe("Spaces directory for staff", () => {
+  // S167: an account with a maintenance-only allowlist used to see one Maintenance card and no
+  // renewal waiting count. Every staff account now sees every directory Space.
+  it("renders every launch card for an Editor, mapped to a desk or not", async () => {
+    const editor = {
       uid: "maintenance-editor",
       email: "maintenance-editor@pmikcmetro.com",
       hd: "pmikcmetro.com",
-      role: "Editor",
-      scopes: ["maintenance"],
-    });
+      role: "Editor" as const,
+    };
+    vi.mocked(requirePageCapability).mockResolvedValue(editor);
 
     render(await SpacesPage());
 
+    const directorySpaces = launchSpaces.filter(
+      (space) => space.showInDirectory !== false,
+    );
+    expect(screen.getAllByRole("link")).toHaveLength(directorySpaces.length);
+    for (const space of directorySpaces) {
+      expect(screen.getByRole("heading", { name: space.name })).toBeInTheDocument();
+    }
     expect(
       screen.getByRole("heading", { name: "Maintenance Work Order Intake" }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Lease Renewals" })).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Move-In" })).toBeNull();
-    expect(screen.getAllByRole("link")).toHaveLength(1);
-    expect(gatherNeedsDecisionInbox).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { name: "Lease Renewals" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Move-In" })).toBeInTheDocument();
+    // A Space kept out of the directory stays out for everyone.
+    expect(
+      screen.queryByRole("heading", { name: "Workflow Communications" }),
+    ).not.toBeInTheDocument();
+    expect(gatherNeedsDecisionInbox).toHaveBeenCalledTimes(1);
+    expect(gatherNeedsDecisionInbox).toHaveBeenCalledWith(editor);
   });
 
   it("preserves every launch card for a wildcard principal", async () => {

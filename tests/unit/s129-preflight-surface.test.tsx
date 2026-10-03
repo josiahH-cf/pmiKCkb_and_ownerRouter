@@ -7,9 +7,10 @@ import { RenewalMessagePreparation } from "@/components/lease-renewal/RenewalMes
 import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-message-preparation";
 import type { RenewalMessageFacts } from "@/lib/lease-renewal/renewal-message-content";
 
-// S129 (F09, R-F09-07): the mounted preparation shows the meeting preflight from the same facts
-// and readiness it uses, proceeds through preparation with Gmail unavailable, keeps the unsent-draft
-// step pending, and never requests a draft on its own. Values are synthetic; fetch is stubbed.
+// S129 (F09, R-F09-07), as revised by S161/S162: the mounted preparation shows the meeting preflight
+// from the same facts and callout it uses, proceeds through editing and copy with Gmail unavailable,
+// keeps the unsent-draft step pending, lists marked values and policy notes as information only,
+// and never requests a draft on its own. Values are synthetic; fetch is stubbed.
 
 vi.mock("@/components/lease-renewal/RenewalManualWorkspace", () => ({
   useRenewalManualWorkspace: () => ({
@@ -54,6 +55,8 @@ function preparation(options: { ready: boolean; gmail: boolean; policyGate?: boo
   const facts: RenewalMessageFacts = {
     channel: "tenant",
     names: ["Fixture Tenant"],
+    // S163: a complete message has a recorded first name for its greeting.
+    firstNames: options.ready ? ["Fixture"] : [null],
     address: "701 Fixture Lane",
     currentBaseRent: null,
     leaseEndDate: "2026-12-31",
@@ -94,7 +97,9 @@ function preparation(options: { ready: boolean; gmail: boolean; policyGate?: boo
     inputs,
     facts,
     sourceFingerprint: "a".repeat(64),
-    needsReview: !options.ready,
+    bodyBaseHash: "b".repeat(64),
+    bodyOverride: null,
+    subjectOverride: null,
     signatureMatchesActor: options.ready,
     signatureOrigin: { kind: options.ready ? "saved" : "none" },
     retainedSignature: null,
@@ -143,7 +148,7 @@ function stubFetch(payload: unknown) {
 }
 
 describe("S129 mounted meeting preflight (AC-S129-3, AC-S129-7)", () => {
-  it("proceeds through a reviewed preparation with Gmail unavailable and keeps the draft step pending, requesting no draft", async () => {
+  it("proceeds through a complete message with Gmail unavailable and keeps the draft step pending, requesting no draft", async () => {
     const calls = stubFetch(preparation({ ready: true, gmail: false }));
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
     const details = await screen.findByText(/Meeting preflight:/);
@@ -152,26 +157,45 @@ describe("S129 mounted meeting preflight (AC-S129-3, AC-S129-7)", () => {
     expect(panel).toHaveAttribute("data-renewal-preflight", "proceed");
     expect(panel).toHaveAttribute("data-renewal-preflight-draft", "pending");
     expect(details).toHaveTextContent(
-      /Preparation can proceed without Gmail; the unsent-draft step stays pending/,
+      /Editing and copy continue without Gmail; the unsent-draft step stays pending\./,
     );
     const items = Array.from(panel.querySelectorAll("[data-renewal-preflight-item]"));
+    const ids = items.map((item) => item.getAttribute("data-renewal-preflight-item"));
     const stateOf = (id: string) =>
       items
         .find((item) => item.getAttribute("data-renewal-preflight-item") === id)
         ?.getAttribute("data-renewal-preflight-state");
+    // S161/S162: no renewal cycle and no review step exist, so neither is a preflight item.
+    expect(ids).not.toContain("cycle");
+    expect(ids).not.toContain("review");
     expect(stateOf("required_inputs")).toBe("ready");
-    expect(stateOf("review")).toBe("ready");
+    expect(
+      panel.querySelector('[data-renewal-preflight-item="required_inputs"]'),
+    ).toHaveTextContent(
+      "Values in the tenant message. Every value in the message is filled in.",
+    );
+    expect(stateOf("signature")).toBe("ready");
     expect(stateOf("sender")).toBe("ready");
     expect(stateOf("recipients")).toBe("ready");
     expect(stateOf("gmail_connection")).toBe("unavailable");
+    expect(
+      panel.querySelector('[data-renewal-preflight-item="gmail_connection"]'),
+    ).toHaveTextContent(
+      "Fallback: Copy the formatted or plain body and connect Gmail on Connections; saved work is kept.",
+    );
     expect(stateOf("template")).toBe("unavailable");
+    expect(
+      panel.querySelector('[data-renewal-preflight-item="template"]'),
+    ).toHaveTextContent(
+      "Fallback: Editing and copy continue; the Gmail draft waits for the approved publication.",
+    );
     expect(stateOf("meeting_draft")).toBe("pending_meeting");
     expect(within(panel).getByRole("link", { name: "Open the page" })).toHaveAttribute(
       "href",
       "/connections",
     );
     expect(panel.textContent).toMatch(/Not observed/);
-    // The final body copies locally; the draft preview stays unavailable and nothing was requested.
+    // The body copies locally; the draft preview stays unavailable and nothing was requested.
     expect(
       screen.getByRole("button", { name: "Copy formatted body" }),
     ).not.toHaveAttribute("aria-disabled");
@@ -181,29 +205,48 @@ describe("S129 mounted meeting preflight (AC-S129-3, AC-S129-7)", () => {
     expect(calls).toEqual(["GET /api/lease-renewal/message-preparation"]);
   });
 
-  it("lists the missing inputs and a server policy gate as reasons before the draft step", async () => {
-    stubFetch(preparation({ ready: false, gmail: true, policyGate: true }));
+  it("lists the marked values and a server policy gate as information and leaves the draft step available", async () => {
+    const calls = stubFetch(preparation({ ready: false, gmail: true, policyGate: true }));
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
     const details = await screen.findByText(/Meeting preflight:/);
     const panel = details.closest("details")!;
-    expect(panel).toHaveAttribute("data-renewal-preflight", "blocked");
+    // S162 (R-S162-5): marked values and policy notes never withhold the unsent-draft step.
+    expect(panel).toHaveAttribute("data-renewal-preflight", "proceed");
+    expect(panel).toHaveAttribute("data-renewal-preflight-draft", "available");
     expect(details).toHaveTextContent(
-      /Resolve the listed items before the unsent-draft step/,
+      /The unsent-draft step can be attempted on explicit confirmation\./,
     );
     const inputs = panel.querySelector('[data-renewal-preflight-item="required_inputs"]');
     expect(inputs).toHaveAttribute("data-renewal-preflight-state", "missing_input");
-    expect(inputs).toHaveTextContent(/inputs remain/);
-    const readiness = screen.getByRole("list", { name: "Missing inputs" });
+    expect(inputs).toHaveTextContent(
+      /Values in the tenant message\. 4 values are marked:/,
+    );
+    expect(inputs).toHaveTextContent(
+      "The message can be edited, copied and drafted as it is.",
+    );
+    expect(
+      panel.querySelector('[data-renewal-preflight-item="signature"]'),
+    ).toHaveAttribute("data-renewal-preflight-state", "missing_input");
+    const readiness = screen.getByRole("list", { name: "Marked values" });
+    expect(readiness.closest("details")).toHaveTextContent(
+      "4 values are marked in this message. You can edit, copy and draft it as it is.",
+    );
     expect(
       within(readiness).getByRole("link", {
         name: "Rhino policy content and applicability",
       }),
     ).toHaveAttribute("href", "#renewal-policy-content-rhino");
+    expect(readiness).toHaveTextContent(
+      "Review whether the Rhino policy applies to this lease before final use.",
+    );
+    expect(readiness).toHaveTextContent("Your sender signature is not entered yet.");
     expect(
       panel.querySelector('[data-renewal-preflight-item="gmail_connection"]'),
     ).toHaveAttribute("data-renewal-preflight-state", "ready");
     expect(
       screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeDisabled();
+    ).toBeEnabled();
+    // Nothing was requested: the surface only shows the preflight and the editable message.
+    expect(calls).toEqual(["GET /api/lease-renewal/message-preparation"]);
   });
 });

@@ -39,7 +39,13 @@ export const RecordLeaseTermReviewInputSchema = z
       .trim()
       .regex(/^\d{4}-\d{2}-\d{2}$/, "An anchor date must be an exact ISO calendar date.")
       .optional(),
-    reason: z.string().trim().min(3).max(2_000),
+    // S156/S157: a narrative is optional context. The stored record keeps a nonempty label.
+    reason: z
+      .string()
+      .trim()
+      .max(2_000)
+      .optional()
+      .transform((value) => (value && value.length > 0 ? value : "Staff record")),
     source_fingerprint: z.string().trim().regex(LEASE_TERM_SOURCE_FINGERPRINT_PATTERN),
   })
   .strict();

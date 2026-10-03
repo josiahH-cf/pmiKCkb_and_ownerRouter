@@ -87,29 +87,29 @@ function deps(
 }
 
 const admin = { uid: "u-admin", role: "Admin", email: "admin@pmikcmetro.com" } as never;
-const maintenanceEditor = {
+// S167: every staff account has the Renewals Space, so an Editor is eligible for both feeds.
+const editor = {
   uid: "u-maint",
   role: "Editor",
   email: "maint@pmikcmetro.com",
-  scopes: ["maintenance"],
 } as never;
 
 describe("S147 attention queue gather", () => {
-  it("starts the stale lease revalidation before the review read, for Renewals readers only", async () => {
-    const order: string[] = [];
-    const revalidateLeaseSource = vi.fn((nowMs: number) => {
-      order.push(`revalidate:${nowMs}`);
-    });
-    const loadRunViews = vi.fn(async () => {
-      order.push("review");
-      return [];
-    });
-    await gatherAttentionQueue(admin, deps({ loadRunViews, revalidateLeaseSource }));
-    expect(order).toEqual([`revalidate:${NOW.getTime()}`, "review"]);
-
-    revalidateLeaseSource.mockClear();
-    await gatherAttentionQueue(maintenanceEditor, deps({ revalidateLeaseSource }));
-    expect(revalidateLeaseSource).not.toHaveBeenCalled();
+  // S167: the revalidation used to be skipped for an account without the Renewals Space.
+  it("starts the stale lease revalidation before the review read, for every staff account", async () => {
+    for (const user of [admin, editor]) {
+      const order: string[] = [];
+      const revalidateLeaseSource = vi.fn((nowMs: number) => {
+        order.push(`revalidate:${nowMs}`);
+      });
+      const loadRunViews = vi.fn(async () => {
+        order.push("review");
+        return [];
+      });
+      await gatherAttentionQueue(user, deps({ loadRunViews, revalidateLeaseSource }));
+      expect(order).toEqual([`revalidate:${NOW.getTime()}`, "review"]);
+      expect(loadRunViews).toHaveBeenCalledWith(user);
+    }
   });
 
   it("keeps gathering when the revalidation cannot start", async () => {
@@ -160,10 +160,12 @@ describe("S147 attention queue gather", () => {
     expect(queue.unavailableFeeds).toEqual(["approval_queue", "renewal_reviews"]);
   });
 
-  it("covers a user without Renewals access from their own approval items, never a fixed zero", async () => {
+  // S167: an account without the Renewals Space used to skip the renewal review read and be sent
+  // to Notifications for the full list.
+  it("covers an Editor from their own approval items and the renewal review feed, never a fixed zero", async () => {
     const loadRunViews = vi.fn(async () => []);
     const queue = await gatherAttentionQueue(
-      maintenanceEditor,
+      editor,
       deps({
         listQueue: async () => [
           item({ assignee_uid: "u-maint", required_approver_uid: "u-approver" }),
@@ -171,26 +173,31 @@ describe("S147 attention queue gather", () => {
         loadRunViews,
       }),
     );
-    expect(loadRunViews).not.toHaveBeenCalled();
+    expect(loadRunViews).toHaveBeenCalledTimes(1);
     expect(queue.state).toBe("ok");
     expect(queue.rows.map((row) => row.key)).toEqual(["queue_item:q1"]);
     // An Editor who submitted the item sees it but does not decide it.
     expect(queue.rows[0].authority).toBe("view");
-    expect(queue.seeAllHref).toBe("/notifications");
+    expect(queue.seeAllHref).toBe("/approval-queue");
   });
 
-  it("a non-renewals user whose only feed failed is unavailable, not all clear", async () => {
+  // S167: an Editor's approval read used to be its only feed, so its failure was "unavailable".
+  it("an Editor whose approval read failed is partial, and unavailable only when both feeds fail, never all clear", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
-    const queue = await gatherAttentionQueue(
-      maintenanceEditor,
-      deps({
-        listQueue: async () => {
-          throw new Error("firestore down");
-        },
-      }),
+    const failing = async () => {
+      throw new Error("firestore down");
+    };
+    const partial = await gatherAttentionQueue(editor, deps({ listQueue: failing }));
+    expect(partial.state).toBe("partial");
+    expect(partial.unavailableFeeds).toEqual(["approval_queue"]);
+
+    const unavailable = await gatherAttentionQueue(
+      editor,
+      deps({ listQueue: failing, loadRunViews: failing }),
     );
-    expect(queue.state).toBe("unavailable");
-    expect(queue.rows).toEqual([]);
+    expect(unavailable.state).toBe("unavailable");
+    expect(unavailable.unavailableFeeds).toEqual(["approval_queue", "renewal_reviews"]);
+    expect(unavailable.rows).toEqual([]);
   });
 
   it("keeps view access distinct from approval authority", async () => {

@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { buildSuppliedRenewalDraftPreview } from "@/lib/lease-renewal/execution/supplied-renewal-draft-preview";
 
-// S129 (F09, R-F09-03, R-F09-05): the server preview is the one boundary a draft request crosses.
-// A missing required resource, an unreviewed snapshot, a confirmed move-out and a policy gate each
-// block it there, so no direct request or old reviewed snapshot can bypass the local readiness.
+// S129 (F09, R-F09-03, R-F09-05) as carried into S162: the server preview is the one boundary a
+// draft request crosses. A confirmed move-out, an unapproved publication and an unread attempt
+// history still refuse it there, so no direct request can bypass them. S161/S162 retired the
+// business-completeness, review-record, signature-sender and policy-note refusals: those are
+// markers and information on the message, never a reason to withhold its unsent draft.
 // Values are synthetic; no Gmail client is constructed and nothing is created.
 
 const actor: AuthenticatedUser = {
@@ -29,16 +31,21 @@ function current(overrides: Record<string, unknown> = {}): Current {
       contentHash: "a".repeat(64),
     },
     draftJournalAvailable: true,
-    needsReview: false,
     signatureMatchesActor: true,
     lease: {},
     basis: {
+      noticeSafety: {
+        scopeHash: "b".repeat(64),
+        version: 1,
+        semanticHash: "c".repeat(64),
+      },
       sourceFingerprint: "s",
       workspaceFingerprint: null,
       resourceFingerprint: "r",
     },
     attachment: null,
     moveOut: null,
+    bodyOverride: null,
     policyGates: [],
     inputs: { edits: { responseRequest: "" } },
     ...overrides,
@@ -51,54 +58,19 @@ function blockedReasons(value: Current) {
   return preview.status === "blocked" ? preview.reasons : [];
 }
 
-describe("S129 server draft boundary (AC-S129-3, AC-S129-5, AC-S129-8)", () => {
-  it("blocks a direct draft on a policy gate exactly as the local body is blocked", () => {
-    const reasons = blockedReasons(
-      current({
-        policyGates: [
-          {
-            field: "policy.rhino",
-            message:
-              "Review whether the Rhino policy applies to this lease before final use: Rhino policy: pending approved policy material.",
-          },
-        ],
-      }),
-    );
-    expect(reasons).toContain(
-      "Review whether the Rhino policy applies to this lease before final use: Rhino policy: pending approved policy material.",
-    );
-    // An unrelated lease carries no gate, so the policy scaffold never blocks ordinary renewals here.
-    const none = buildSuppliedRenewalDraftPreview(actor, current({ policyGates: [] }));
-    if (none.status === "blocked")
-      expect(none.reasons.some((reason) => /Rhino/.test(reason))).toBe(false);
-    const absent = buildSuppliedRenewalDraftPreview(
-      actor,
-      current({ policyGates: undefined }),
-    );
-    if (absent.status === "blocked")
-      expect(absent.reasons.some((reason) => /Rhino/.test(reason))).toBe(false);
+describe("S129 server draft boundary (AC-S129-3, AC-S129-5, AC-S129-8) under S162", () => {
+  it("lists a policy note as information and never refuses the draft for it", () => {
+    const note =
+      "Review whether the Rhino policy applies to this lease before final use: Rhino policy: pending approved policy material.";
+    // The empty lease fixture has no recipients, so the only refusals are recipient ones.
+    for (const gates of [[{ field: "policy.rhino", message: note }], [], undefined]) {
+      const reasons = blockedReasons(current({ policyGates: gates }));
+      expect(reasons.some((reason) => /Rhino/.test(reason))).toBe(false);
+      expect(reasons.every((reason) => /email|recipient/i.test(reason))).toBe(true);
+    }
   });
 
-  it("keeps the existing refusals: a missing required flyer, an old reviewed snapshot, a confirmed move-out and an unapproved template", () => {
-    expect(
-      blockedReasons(
-        current({
-          content: {
-            channel: "tenant",
-            missing: [
-              {
-                field: "insuranceFlyer",
-                message: "Add and verify the applicable insurance flyer link.",
-              },
-            ],
-            sourceRefs: [],
-          },
-        }),
-      ),
-    ).toContain("Add and verify the applicable insurance flyer link.");
-    expect(blockedReasons(current({ needsReview: true }))).toContain(
-      "Review and save the message against its current source facts.",
-    );
+  it("keeps the existing refusals: a confirmed move-out, an unapproved template and an unread attempt history", () => {
     expect(
       blockedReasons(
         current({
@@ -116,11 +88,29 @@ describe("S129 server draft boundary (AC-S129-3, AC-S129-5, AC-S129-8)", () => {
         }),
       ),
     ).toContain("Publication readback pending.");
-    expect(blockedReasons(current({ signatureMatchesActor: false }))).toContain(
-      "Review the signature for the signed-in managed sender.",
-    );
     expect(blockedReasons(current({ draftJournalAvailable: false }))).toContain(
       "Reload the Gmail attempt history before preparing a new draft.",
     );
+  });
+
+  it("no longer refuses for a missing resource, an old review record or another sender's signature", () => {
+    const reasons = blockedReasons(
+      current({
+        content: {
+          channel: "tenant",
+          missing: [
+            {
+              field: "insuranceFlyer",
+              message: "The insurance flyer link is not saved yet.",
+            },
+          ],
+          sourceRefs: [],
+        },
+        needsReview: true,
+        signatureMatchesActor: false,
+      }),
+    );
+    expect(reasons).not.toContain("The insurance flyer link is not saved yet.");
+    expect(reasons.join(" ")).not.toMatch(/review|signature/i);
   });
 });

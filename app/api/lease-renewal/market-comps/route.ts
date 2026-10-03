@@ -1,9 +1,10 @@
 import {
   CompCaptureSchema,
-  assertCompCaptureCycle,
+  assertCompCaptureAllowed,
   captureMarketObservation,
 } from "@/lib/firestore/renewal-market-observations";
 import { NextResponse } from "next/server";
+import { resolveRenewalWorkBasis } from "@/lib/lease-renewal/workspace-cycle-context";
 import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
@@ -286,10 +287,9 @@ export async function POST(request: Request) {
       "renewals",
     );
     if (raw.operation === "trend") z.string().uuid().parse(capture.compObservationId);
-    await assertCompCaptureCycle(
+    await assertCompCaptureAllowed(
       actor,
       leaseId,
-      capture.cycleId,
       raw.operation === "trend" ? capture.compObservationId : undefined,
     );
     const { capture: _, ...body } = raw;
@@ -309,6 +309,8 @@ export async function POST(request: Request) {
         capture,
         body.operation === "trend" ? "trend" : "comps",
         payload,
+        undefined,
+        () => resolveRenewalWorkBasis(actor, leaseId),
       );
       return NextResponse.json({ ...payload, observationId });
     } catch {

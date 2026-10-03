@@ -62,6 +62,8 @@ const editor = {
   uid: "editor-uid",
 };
 
+// S167: claims an existing account may still carry. The scope claim is ignored, so every data
+// layer call below receives the same user as the claim-free `editor`.
 const maintenanceEditor = {
   ...editor,
   scopes: ["maintenance"] as const,
@@ -258,7 +260,7 @@ describe("notifications routes", () => {
     expect(families.find((f) => f.key === "approval_queue")?.muted).toBe(false);
   });
 
-  it("GET returns a maintenance-only user's OWN approval notifications, personal and scope-independent (F-NOTIF-3)", async () => {
+  it("GET returns the OWN approval and maintenance notifications of an account with a leftover maintenance-only claim (F-NOTIF-3)", async () => {
     setAuthResolverForTest(() => maintenanceEditor);
     vi.mocked(getNotificationPreferences).mockResolvedValue({
       uid: "editor-uid",
@@ -268,7 +270,7 @@ describe("notifications routes", () => {
       digest_lanes: [],
       email_enabled: false,
     });
-    // The maintenance-only user is the recipient of an approval item (recipient-only read).
+    // The account is the recipient of an approval item (recipient-only read).
     vi.mocked(listApprovalQueueNotifications).mockResolvedValue([approvalRecord()]);
     vi.mocked(listMaintenanceTicketNotifications).mockResolvedValue([
       maintenanceRecord(),
@@ -278,14 +280,16 @@ describe("notifications routes", () => {
     expect(response.status).toBe(200);
     const body = await response.json();
 
-    // Approval notifications are recipient-only by default (LR-02), so a user without renewals scope
-    // still sees their own; maintenance is fetched on its own scope. The hub never opts into the Admin
-    // cross-recipient view.
+    // Approval notifications are recipient-only by default (LR-02): the hub reads them as the caller
+    // and never opts into the Admin cross-recipient view. S167: the caller carries no Space allowlist.
     expect(listApprovalQueueNotifications).toHaveBeenCalledWith(
-      maintenanceEditor,
+      editor,
       expect.not.objectContaining({ adminAll: true }),
     );
     expect(listMaintenanceTicketNotifications).toHaveBeenCalledOnce();
+    expect(vi.mocked(listMaintenanceTicketNotifications).mock.calls[0][0]).toEqual(
+      editor,
+    );
     const sources = body.notifications.map((item: { source: string }) => item.source);
     expect(sources).toContain("approval_queue");
     expect(sources).toContain("maintenance_ticket");
@@ -294,7 +298,8 @@ describe("notifications routes", () => {
     );
   });
 
-  it("GET does not read or return maintenance notifications for a renewals-only user", async () => {
+  // S167: a renewals-only claim used to skip the maintenance read and hide its family.
+  it("GET reads and returns maintenance notifications for an account with a leftover renewals-only claim", async () => {
     setAuthResolverForTest(() => renewalsEditor);
     vi.mocked(getNotificationPreferences).mockResolvedValue({
       uid: "editor-uid",
@@ -305,19 +310,26 @@ describe("notifications routes", () => {
       email_enabled: false,
     });
     vi.mocked(listApprovalQueueNotifications).mockResolvedValue([approvalRecord()]);
+    vi.mocked(listMaintenanceTicketNotifications).mockResolvedValue([
+      maintenanceRecord(),
+    ]);
 
     const response = await GET(new Request("http://localhost/api/notifications"));
     expect(response.status).toBe(200);
     const body = await response.json();
 
     expect(listApprovalQueueNotifications).toHaveBeenCalledOnce();
-    expect(listMaintenanceTicketNotifications).not.toHaveBeenCalled();
-    expect(body.notifications.map((item: { source: string }) => item.source)).toEqual([
-      "approval_queue",
-    ]);
-    expect(body.families.map((family: { key: string }) => family.key)).not.toContain(
-      "maintenance_tickets",
+    expect(listMaintenanceTicketNotifications).toHaveBeenCalledOnce();
+    expect(vi.mocked(listMaintenanceTicketNotifications).mock.calls[0][0]).toEqual(
+      editor,
     );
+    expect(
+      body.notifications.map((item: { source: string }) => item.source).sort(),
+    ).toEqual(["approval_queue", "maintenance_ticket"]);
+    const families = body.families.map((family: { key: string }) => family.key);
+    expect(families).toContain("maintenance_tickets");
+    // The role still gates the Admin-only family.
+    expect(families).not.toContain("team_review");
   });
 
   // AC-S17-6 (family gating): the team_review family is served ONLY to an Admin; an editor never sees it.
@@ -380,19 +392,23 @@ describe("notifications routes", () => {
     expect(markGmailWorkflowNotificationRead).not.toHaveBeenCalled();
   });
 
-  it("mark-all-read always includes the caller's own approval notifications, even without renewals scope (F-NOTIF-3)", async () => {
-    setAuthResolverForTest(() => maintenanceEditor);
+  it("mark-all-read sweeps the caller's own approval and maintenance notifications whatever scope claim is left (F-NOTIF-3)", async () => {
+    setAuthResolverForTest(() => renewalsEditor);
     vi.mocked(listApprovalQueueNotifications).mockResolvedValue([]);
     vi.mocked(listMaintenanceTicketNotifications).mockResolvedValue([]);
 
     const response = await markAllRead();
     expect(response.status).toBe(200);
     // Approval notifications are personal (recipient-only by default, LR-02), so they are always swept
-    // for the caller without opting into any cross-recipient view.
-    expect(listApprovalQueueNotifications).toHaveBeenCalledWith(maintenanceEditor, {
+    // for the caller without opting into any cross-recipient view. S167: the caller is the claim-free
+    // user, and a renewals-only claim no longer skips the maintenance sweep.
+    expect(listApprovalQueueNotifications).toHaveBeenCalledWith(editor, {
       unreadOnly: true,
     });
-    expect(listMaintenanceTicketNotifications).toHaveBeenCalled();
+    expect(listMaintenanceTicketNotifications).toHaveBeenCalledOnce();
+    expect(vi.mocked(listMaintenanceTicketNotifications).mock.calls[0][0]).toEqual(
+      editor,
+    );
   });
 
   it("mark-read dispatches to the maintenance writer for a maintenance source", async () => {
@@ -418,26 +434,38 @@ describe("notifications routes", () => {
     expect(markMaintenanceTicketNotificationRead).not.toHaveBeenCalled();
   });
 
-  it("mark-read lets a recipient act on their own approval notification regardless of scope, but still gates maintenance (F-NOTIF-3)", async () => {
-    // A maintenance-only user is the recipient of an approval notification: they can mark it read
-    // even without renewals scope (the writer enforces recipient ownership).
+  it("mark-read lets a recipient act on their own approval and maintenance notifications whatever scope claim is left (F-NOTIF-3)", async () => {
+    // An account with a leftover maintenance-only claim is the recipient of an approval
+    // notification: it can mark it read (the writer enforces recipient ownership).
     setAuthResolverForTest(() => maintenanceEditor);
     vi.mocked(markApprovalQueueNotificationRead).mockResolvedValue(undefined as never);
 
     const approvalResponse = await POST(jsonReq({ source: "approval_queue", id: "a-1" }));
     expect(approvalResponse.status).toBe(200);
-    expect(markApprovalQueueNotificationRead).toHaveBeenCalledWith(
-      maintenanceEditor,
-      "a-1",
-    );
+    expect(markApprovalQueueNotificationRead).toHaveBeenCalledWith(editor, "a-1");
 
-    // Maintenance notifications are not recipient-only here, so they remain space-scoped.
+    // S167: a renewals-only claim used to refuse the maintenance mark-read with a 403. The request
+    // now reaches the maintenance writer, which keeps its own recipient-ownership check.
     setAuthResolverForTest(() => renewalsEditor);
+    vi.mocked(markMaintenanceTicketNotificationRead).mockResolvedValue(
+      undefined as never,
+    );
     const maintenanceResponse = await POST(
       jsonReq({ source: "maintenance_ticket", id: "m-1" }),
     );
-    expect(maintenanceResponse.status).toBe(403);
+    expect(maintenanceResponse.status).toBe(200);
+    expect(markMaintenanceTicketNotificationRead).toHaveBeenCalledOnce();
+    expect(markMaintenanceTicketNotificationRead).toHaveBeenCalledWith(editor, "m-1");
+  });
+
+  it("mark-read refuses an unauthenticated caller before any writer runs", async () => {
+    setAuthResolverForTest(() => null);
+
+    const response = await POST(jsonReq({ source: "maintenance_ticket", id: "m-1" }));
+
+    expect(response.status).toBe(401);
     expect(markMaintenanceTicketNotificationRead).not.toHaveBeenCalled();
+    expect(markApprovalQueueNotificationRead).not.toHaveBeenCalled();
   });
 
   it("preferences GET and PATCH round-trip the self-scoped record", async () => {

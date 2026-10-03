@@ -4,11 +4,12 @@ import {
   SHEET_WRITEBACK_FLAG,
   buildPausedRollbackRedeployPlan,
   parseRevisionWritebackFlag,
-  revisionPausesSheetWriteback,
+  revisionSheetWritebackEquals,
 } from "../../scripts/release-candidate.mjs";
 
-// S128 (F08): the pure rollback-safety builders. A rollback must never restore a revision that would
-// still dispatch operating-Sheet writes; these functions read the flag and build the paused redeploy.
+// S128 (F08) introduced these pure readers. S159 replaces the blanket "must be false" predicate with
+// an exact comparison against the value expected for the revision's release role; the retired
+// image-only rollback redeploy stays refused.
 
 function revision(flagValue) {
   const env = [{ name: "APP_COMMIT_SHA", value: "a".repeat(40) }];
@@ -28,14 +29,21 @@ describe("S128 revision write-flag readback", () => {
     expect(parseRevisionWritebackFlag(null)).toBeNull();
   });
 
-  it("treats a trimmed true as writing (matching the runtime), requires an explicit false pause", () => {
-    // The runtime enables writes on the trimmed exact "true", so the guard must too: a " true "
-    // revision WOULD write and is therefore not paused (the guard would redeploy it flag-false).
-    expect(revisionPausesSheetWriteback(revision("true"))).toBe(false);
-    expect(revisionPausesSheetWriteback(revision(" true "))).toBe(false);
-    expect(revisionPausesSheetWriteback(revision("false"))).toBe(true);
-    expect(revisionPausesSheetWriteback(revision("TRUE"))).toBe(false);
-    expect(revisionPausesSheetWriteback(revision(undefined))).toBe(false);
+  it("matches only the exact expected value for the revision's release role", () => {
+    // A predecessor or recovery target that actually reads false matches false and never true.
+    expect(revisionSheetWritebackEquals(revision("false"), "false")).toBe(true);
+    expect(revisionSheetWritebackEquals(revision("false"), "true")).toBe(false);
+    // A candidate or promoted revision matches the reviewed true and never false.
+    expect(revisionSheetWritebackEquals(revision("true"), "true")).toBe(true);
+    expect(revisionSheetWritebackEquals(revision("true"), "false")).toBe(false);
+    // A non-exact or absent value, or an unstated expectation, is never a match.
+    for (const expected of ["true", "false"]) {
+      expect(revisionSheetWritebackEquals(revision(" true "), expected)).toBe(false);
+      expect(revisionSheetWritebackEquals(revision("TRUE"), expected)).toBe(false);
+      expect(revisionSheetWritebackEquals(revision(undefined), expected)).toBe(false);
+    }
+    expect(revisionSheetWritebackEquals(revision("true"), undefined)).toBe(false);
+    expect(revisionSheetWritebackEquals(revision("true"), "TRUE")).toBe(false);
   });
 });
 

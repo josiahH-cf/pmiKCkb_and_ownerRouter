@@ -282,12 +282,29 @@ describe("S137 server wiring reads as the actor, once per request", () => {
     return createServerOperationalContext(user, new Date(TEST_NOW));
   }
 
-  it("refuses renewal and approval reads without Renewals access, before any read", async () => {
-    const ctx = await context({ ...editor, scopes: ["maintenance"] });
-    expect((await ctx.read("renewals")).status).toBe("not_authorized");
-    expect((await ctx.read("approvals")).status).toBe("not_authorized");
-    expect(loaders.loadRenewalAssistantSource).not.toHaveBeenCalled();
-    expect(loaders.listApprovalQueue).not.toHaveBeenCalled();
+  // S167: an account without the Renewals Space used to get not_authorized here before any read.
+  // Every staff account now reads both sources, still as the signed-in actor.
+  it("reads renewals and approvals for an Editor as the actor, with no Space refusal", async () => {
+    loaders.loadRenewalAssistantSource.mockResolvedValue({
+      outcome: { status: "read_error" },
+      coverage: undefined,
+      auxiliaryFailures: [],
+    });
+    loaders.listApprovalQueue.mockResolvedValue([]);
+    loaders.loadRenewalRunViews.mockResolvedValue([]);
+    const ctx = await context(editor);
+
+    const renewals = await ctx.read("renewals");
+    const approvals = await ctx.read("approvals");
+
+    expect(renewals.status).toBe("unavailable");
+    expect(approvals.status).toBe("ok");
+    expect(loaders.loadRenewalAssistantSource).toHaveBeenCalledWith(
+      editor,
+      new Date(TEST_NOW),
+    );
+    expect(loaders.listApprovalQueue).toHaveBeenCalledWith(editor);
+    expect(loaders.loadRenewalRunViews).toHaveBeenCalledWith(editor);
   });
 
   it("reads each source at most once per request", async () => {

@@ -7,6 +7,8 @@ import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import {
   PRODUCTION_RECONCILIATION_DESK_VIEW,
   countIndependentActionDestinationMismatches,
+  countIndependentStaffLaneActionMismatches,
+  countIndependentStaffLaneStatusMismatches,
   countIndependentStatusMismatches,
   countIndependentWorkspaceDestinationMismatches,
   independentCurrentRentResolutionTriggerKey,
@@ -974,6 +976,180 @@ describe("production renewal destination structure", () => {
           accessHrefs: [access],
         },
       }),
+    ).toBeGreaterThan(0);
+  });
+
+  it("S154: an opened lease outside the worklist carries the same three destinations", () => {
+    const primary = `/lease-renewal/live/desk/lease/115?deskView=${deskView}`;
+    const verify = `/lease-renewal/live/desk/lease/115?step=verify-renewal&deskView=${deskView}`;
+    const owner = `/lease-renewal/live/desk/lease/115?step=owner-decision&deskView=${deskView}`;
+    const count = (observed: {
+      primaryHrefs?: string[];
+      baseRentPhaseHrefs?: string[];
+      rentVerificationPhaseHrefs?: string[];
+      workspaceAvailable?: string;
+    }) =>
+      countIndependentWorkspaceDestinationMismatches({
+        workspaceExpected: true,
+        leaseId: "115",
+        origin: ORIGIN,
+        // No rent comparison is attached to it, so its rent stays needing verification.
+        expectedRentVerification: "needs_verification",
+        observed: {
+          workspaceAvailable: "true",
+          primaryHrefs: [primary],
+          baseRentPhaseHrefs: [verify],
+          rentVerificationPhaseHrefs: [verify],
+          ...observed,
+        },
+      });
+    expect(count({})).toBe(0);
+    for (const patch of [
+      { workspaceAvailable: "false" },
+      { primaryHrefs: [] },
+      { baseRentPhaseHrefs: [] },
+      { rentVerificationPhaseHrefs: [] },
+      { baseRentPhaseHrefs: [verify, verify] },
+      { baseRentPhaseHrefs: [owner] },
+      { rentVerificationPhaseHrefs: [owner] },
+    ]) {
+      expect(count(patch)).toBeGreaterThan(0);
+    }
+  });
+
+  it("S156: staff-lane status keeps the rent evidence and refuses every blocked signal", () => {
+    const conflict = projectIndependentRentExpectation({
+      leaseId: "115",
+      rentvineCurrentRent: 1250,
+      sheetFact: { sourceUrl: SOURCE_URL, currentRent: 1300 },
+      resolutions: [],
+    });
+    const observed = {
+      rentVerification: "needs_verification",
+      verifiedByResolutionDiffers: "false",
+      overallStatus: "ready",
+      isBlocked: "false",
+      blockerCount: 0,
+    };
+    expect(countIndependentStaffLaneStatusMismatches(conflict, "ready", observed)).toBe(
+      0,
+    );
+    // The same render is exactly what the predecessor rules refuse, and the reverse.
+    expect(countIndependentStatusMismatches(conflict, observed)).toBeGreaterThan(0);
+    const predecessorRender = {
+      ...observed,
+      overallStatus: "blocked",
+      isBlocked: "true",
+      blockerCount: 1,
+    };
+    expect(countIndependentStatusMismatches(conflict, predecessorRender)).toBe(0);
+    expect(
+      countIndependentStaffLaneStatusMismatches(conflict, "ready", predecessorRender),
+    ).toBeGreaterThan(0);
+    for (const patch of [
+      { rentVerification: "verified" },
+      { verifiedByResolutionDiffers: "true" },
+      { isBlocked: "true" },
+      { isBlocked: null },
+      { blockerCount: 1 },
+    ]) {
+      expect(
+        countIndependentStaffLaneStatusMismatches(conflict, "ready", {
+          ...observed,
+          ...patch,
+        }),
+      ).toBe(1);
+    }
+    // Needs verification is the one status that carries the flag, still with no blockers.
+    const flagged = {
+      ...observed,
+      overallStatus: "needs_verification",
+      isBlocked: "true",
+    };
+    expect(
+      countIndependentStaffLaneStatusMismatches(conflict, "needs_verification", flagged),
+    ).toBe(0);
+    expect(
+      countIndependentStaffLaneStatusMismatches(conflict, "needs_verification", {
+        ...flagged,
+        isBlocked: "false",
+      }),
+    ).toBe(1);
+  });
+
+  it("S156: staff-lane action kind, destination and capability follow the expected status", () => {
+    const action = (patch: Record<string, unknown> = {}) => ({
+      actionKind: "act",
+      destinationKind: "workspace_phase",
+      stepId: "owner-decision",
+      requiredCapability: "none",
+      declaredBlockerCount: "0",
+      blockers: [],
+      phaseHrefs: [],
+      accessHrefs: [],
+      ...patch,
+    });
+    const count = (
+      expectedOverallStatus: string,
+      expectedStepId: string | null,
+      observed: ReturnType<typeof action>,
+    ) =>
+      countIndependentStaffLaneActionMismatches({
+        expectedOverallStatus,
+        expectedStepId,
+        observed,
+      });
+    expect(count("ready", "owner-decision", action())).toBe(0);
+    expect(
+      count("waiting", "tenant-decision", {
+        ...action(),
+        actionKind: "waiting",
+        stepId: "tenant-decision",
+      }),
+    ).toBe(0);
+    // Complete follows the lane's own step; it is no longer pinned to the closing step.
+    expect(
+      count("complete", "owner-decision", { ...action(), actionKind: "complete" }),
+    ).toBe(0);
+    expect(
+      count("needs_verification", "verify-renewal", {
+        ...action(),
+        actionKind: "needs_verification",
+        stepId: "verify-renewal",
+      }),
+    ).toBe(0);
+    expect(
+      count("needs_review", null, {
+        ...action(),
+        actionKind: "review",
+        destinationKind: "none",
+        stepId: "none",
+      }),
+    ).toBe(0);
+    for (const patch of [
+      { actionKind: "blocked" },
+      { actionKind: "review" },
+      { destinationKind: "none" },
+      { stepId: "tenant-decision" },
+      { requiredCapability: "approve" },
+      { declaredBlockerCount: "1" },
+      { declaredBlockerCount: null },
+      {
+        blockers: [
+          {
+            href: null,
+            destinationKind: "workspace_phase",
+            phaseId: "verify-renewal",
+            stepId: "verify-renewal",
+          },
+        ],
+      },
+    ]) {
+      expect(count("ready", "owner-decision", action(patch))).toBeGreaterThan(0);
+    }
+    // Blocked is never an expected staff-lane status, so no render can satisfy it.
+    expect(
+      count("blocked", null, { ...action(), actionKind: "blocked" }),
     ).toBeGreaterThan(0);
   });
 

@@ -64,7 +64,9 @@ describe("S82 preserved copy roles remain", () => {
     expect(workspace).toContain("Current blockers");
     expect(workspace).toContain("Recording is paused while the lease data is past");
     expect(workspace).toContain("DRAFT_BANNER");
-    expect(workspace).toContain("Do this next");
+    // S152/S156 (fe91d82a): the next-action card is advisory, titled "Suggested next".
+    expect(workspace).toContain("Suggested next");
+    expect(workspace).not.toContain("Do this next");
     expect(workspace).toContain("renewalDashboardTarget");
     expect(source("components/lease-renewal/RenewalDashboardNavigation.tsx")).toContain(
       "Renewal dashboard sections",

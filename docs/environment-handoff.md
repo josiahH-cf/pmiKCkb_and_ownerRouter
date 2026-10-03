@@ -39,31 +39,37 @@ Five confirmed adversarial findings are repaired and verified deployed: lifecycl
 
 ## Production
 
-| Item                      | Value                                           |
-| ------------------------- | ----------------------------------------------- |
-| Project                   | `pmi-kc-kb-prod`                                |
-| Region                    | `us-central1`                                   |
-| Cloud Run service         | `pmi-kc-app`                                    |
-| URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`    |
-| Serving revision          | `pmi-kc-app-rmur4a2vc-185ba8b9f3b8`             |
-| Serving commit            | `df772b30c60043d5fe4c57ff2275990d18a535b3`      |
-| Traffic                   | 100%                                            |
-| Descriptor                | Production + Live                               |
-| Runtime identity          | project-managed PMI KC runtime service account  |
-| Spaces                    | 11                                              |
-| Sheet write-back          | false; S128 operating-Sheet pause               |
-| Legacy copy-only Sheet id | not configured                                  |
-| RentCast                  | selected; allowance 50                          |
-| Action Registry           | 48 exact keys; 16 open and 32 closed            |
-| Retired broad action ids  | non-executable; only exact proven keys are open |
-| Demo flags                | false                                           |
+| Item                      | Value                                                                               |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| Project                   | `pmi-kc-kb-prod`                                                                    |
+| Region                    | `us-central1`                                                                       |
+| Cloud Run service         | `pmi-kc-app`                                                                        |
+| URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`                                        |
+| Serving revision          | `pmi-kc-app-rmur4a2vc-185ba8b9f3b8`                                                 |
+| Serving commit            | `df772b30c60043d5fe4c57ff2275990d18a535b3`                                          |
+| Traffic                   | 100%                                                                                |
+| Descriptor                | Production + Live                                                                   |
+| Runtime identity          | project-managed PMI KC runtime service account                                      |
+| Spaces                    | 11                                                                                  |
+| Sheet write-back          | false on the serving revision (S128 pause); the queued S152–S167 release reads true |
+| Legacy copy-only Sheet id | not configured                                                                      |
+| RentCast                  | selected; allowance 50                                                              |
+| Action Registry           | 48 exact keys; 16 open and 32 closed                                                |
+| Retired broad action ids  | non-executable; only exact proven keys are open                                     |
+| Demo flags                | false                                                                               |
 
 Secret names are bound through Secret Manager. Values never belong in this file.
 
 S113's normal append/field-update implementations remain deployed with fresh server-resolved
 target/value checks, exact confirmation, one-attempt claims, receipt/readback and separately
 confirmed correction. S128 currently pauses all operating-Sheet mutation dispatch, including
-append, updates and corrections. Row deletion and historical restore remain unavailable.
+append, updates and corrections. The queued S152–S167 release (S159) resumes the existing normal
+append and recognized-field updates: candidate and promoted revisions read the reviewed switch
+value true and the recovery target keeps the predecessor's actual value. Row deletion and
+historical restore remain unavailable.
+The optional build-time key `NEXT_PUBLIC_FIREBASE_SAME_ORIGIN_AUTH_HOST` (bare canonical host)
+enables the same-tab sign-in redirect on phones and in-app browsers (S165); set it only after the
+owner adds the canonical `/__/auth/handler` redirect URI (owner step A7), never before.
 
 ## Local host and authentication
 
@@ -237,12 +243,12 @@ enrollment command it names; do not bridge a token by hand.
 Use the ordered admission and watcher procedure in `docs/release-batch-runbook.md`. The local
 implementation requires the exact admitted run and actual inherited lock for every mutation-capable
 entry. Standalone execute/promote commands are not a substitute for that procedure. Before the one
-application Cloud Build, prepare and verify the paused recovery baseline described below. Its
+application Cloud Build, prepare and verify the recovery baseline described below. Its
 zero-traffic predecessor clone uses the captured image digests and does not require another build.
 
 Capture the returned exact candidate revision, candidate tag, candidate origin, and predecessor.
 Compare the candidate's normalized runtime spec to the captured predecessor, allowing only reviewed
-image and `APP_COMMIT_SHA` identity differences plus the explicitly authorized Sheet pause. Inspect
+image and `APP_COMMIT_SHA` identity differences plus the reviewed operating-Sheet switch value. Inspect
 provider-generated per-build provenance metadata separately.
 
 The serving candidate is `df772b30c60043d5fe4c57ff2275990d18a535b3` / `pmi-kc-app-rmur4a2vc-185ba8b9f3b8`, tag `cand-rmur4a2vc-185ba8b9f3b8`.
@@ -335,7 +341,7 @@ reviewed in-place repair to the committed definitions rather than a rerun of set
 Before the application build, the watcher captures the still-serving predecessor's exact commit,
 revision, complete reviewed configuration, resolved container image digests and 100% traffic in an
 immutable original baseline. The shared recovery module prepares one zero-traffic clone from that predecessor configuration,
-changing revision identity and enforcing Sheet=false. The current predecessor already reads false. It does not use the current service template or build a new predecessor image.
+changing only revision identity and keeping the predecessor's actual Sheet switch value. The current predecessor reads false. It does not use the current service template or build a new predecessor image.
 Ready state, exact configuration/digests, version, tagged Admin assurance, monitoring and unchanged
 original traffic must pass before a separate immutable supplemental recovery receipt is issued.
 
@@ -353,7 +359,7 @@ No traffic recovery occurred; prepared recovery is not a rollback verdict.
 
 Promotion runs only inside the admitted watcher's exact promotion checkpoint. Immediately before
 its durable one-attempt claim, the release command revalidates kernel lock/admission, fresh candidate
-assurance, the still-serving original's 100% traffic/configuration and the prepared paused target's
+assurance, the still-serving original's 100% traffic/configuration and the prepared recovery target's
 Ready state, digests, configuration and receipt. It reads back exact candidate 100% traffic before
 committing the version-5 promotion receipt. No caller may substitute another predecessor, recovery
 target, fingerprint or run identity.
@@ -362,7 +368,7 @@ Post-traffic promotion failure and observer rollback now use the same receipt-bo
 executor. A globally shared durable claim precedes the one traffic request. Lost replies and restart
 reconcile that exact target and retained operation; they cannot dispatch another target or retry an
 ambiguous traffic change. Recovery succeeds only after exact target traffic/version/configuration,
-Sheet=false, Admin assurance and monitoring pass. Authentication failure preserves the recovery
+the recorded predecessor Sheet switch value, Admin assurance and monitoring pass. Authentication failure preserves the recovery
 intent for the owner's attended enrollment. Held or expired forward permission does not revoke
 already-authorized exact receipt-bound recovery, but actual kernel lock and phase proof remain required.
 
@@ -374,8 +380,8 @@ with two checkpoints in 396,284 ms.
 The runner executes immediate and end-of-300,000-ms Admin canaries and reconciliation. It may
 wait only through the specified two-minute monitoring-ingestion grace. It emits a bodyless decision
 and never changes traffic in observation mode. A `rollback_required` result invokes the shared
-recovery flow under the watcher lock. Its durable target is the supplemental receipt's paused
-revision and fingerprint; it never verifies a replacement against the original enabled revision's
+recovery flow under the watcher lock. Its durable target is the supplemental receipt's prepared
+revision and fingerprint; it never verifies a replacement against another revision's
 identity. Do not claim that an older predecessor implements the candidate's new Renewal Desk
 reconciliation schema.
 
@@ -421,9 +427,10 @@ A routine release preserves:
 - managed runtime service account;
 - eleven Space maps;
 - existing Secret Manager bindings, including the S82 `RENEWAL_DESK_PARTY_FILTER_KEY` reference;
-- operating-Sheet exact keys remain unchanged; the S128 batch explicitly sets the switch false
-  and requires every candidate, promoted revision and rollback target to preserve the pause.
-  Fixed-row deletion and historical restore remain refused;
+- operating-Sheet exact keys remain unchanged; the serving S128 batch sets the switch false, and
+  the queued S159 release sets it true on candidate and promoted revisions from the one reviewed
+  constant while the rollback target keeps the predecessor's actual value. Fixed-row deletion and
+  historical restore remain refused;
 - local/Demo auth false;
 - RentCast provider and allowance 50;
 - no legacy copy-only Sheet setting; renewal-comp storage unchanged unless separately authorized;

@@ -278,15 +278,25 @@ describe("Workflow Communications route boundaries (AC-GW-1, AC-GW-3, AC-GW-5)",
     expect(tracker.clientsCreated()).toBe(0);
   });
 
-  it("denies a maintenance-scoped user access to renewal communication", async () => {
+  // S167: a maintenance-only claim used to refuse renewal communication with a 403 at the Space
+  // check. The claim is now ignored, so the request reaches the same later gate as any other staff
+  // account: the simulation run is refused before a Gmail client exists.
+  it("treats an account with a leftover maintenance-only claim like any staff account for renewal communication", async () => {
     const tracker = installDependencies();
-    setAuthResolverForTest(async () => ({ ...actor, scopes: ["maintenance"] }));
+    setAuthResolverForTest(async () => actor);
+    const unclaimed = await getThreads(
+      threadsRequest(renewalContext("gmail.mailbox.read")),
+    );
+    const unclaimedBody = await unclaimed.json();
 
+    setAuthResolverForTest(async () => ({ ...actor, scopes: ["maintenance"] }));
     const response = await getThreads(
       threadsRequest(renewalContext("gmail.mailbox.read")),
     );
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(409);
+    expect(response.status).toBe(unclaimed.status);
+    await expect(response.json()).resolves.toEqual(unclaimedBody);
     expect(tracker.clientsCreated()).toBe(0);
   });
 

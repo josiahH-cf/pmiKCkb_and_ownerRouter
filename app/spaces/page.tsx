@@ -14,15 +14,13 @@ import {
   SPACE_CARD_STATE_TONE,
   computeSpaceCardState,
 } from "@/lib/space-card-state";
+import { canAccessLaunchSpace } from "@/lib/space-scope-resources";
 import { launchSpaces, spaceHref } from "@/lib/spaces";
 
 export default async function SpacesPage() {
   const user = await requirePageCapability("read");
   const visibleSpaces = launchSpaces.filter(
-    (space) =>
-      space.showInDirectory !== false &&
-      (user.scopes === undefined ||
-        (space.scope !== undefined && hasSpaceAccess(user, space.scope))),
+    (space) => space.showInDirectory !== false && canAccessLaunchSpace(user, space),
   );
 
   // Real card state (A-IA-V2): reflect whether each Space has its process and connections. Both reads

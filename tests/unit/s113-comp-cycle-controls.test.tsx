@@ -9,6 +9,8 @@ vi.mock("@/components/lease-renewal/RenewalManualWorkspace", () => ({
     leaseId: "701",
     state: { cycleId: state.cycleId },
     record: vi.fn(),
+    // S155: the provider carries the per-record autosave states the form shows.
+    states: {},
   }),
 }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
@@ -17,7 +19,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   state.cycleId = "first";
 });
-it("does not show the preceding cycle's comps while the next cycle's read is pending", async () => {
+it("does not show the preceding work record's comps while the next record's read is pending", async () => {
   vi.stubGlobal(
     "fetch",
     vi.fn(async () =>

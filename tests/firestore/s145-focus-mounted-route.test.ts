@@ -61,8 +61,8 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
   getRenewalWorkspace,
   listRenewalWorkspaceActivity,
+  ensureRenewalWorkRecord,
   saveRenewalWorkspace,
-  startRenewalCycle,
 } from "@/lib/firestore/renewal-workspace";
 import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-message-preparation";
 import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
@@ -197,27 +197,15 @@ async function settle(rounds = 8) {
     await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+/** S154: a lease with recorded work. The record is established by a save, never a cycle step. */
 async function startCycle(): Promise<RenewalWorkspaceState> {
-  const started = await startRenewalCycle(
-    actor,
-    {
-      leaseId: LEASE,
-      expectedCycleId: null,
-      expectedRevision: 0,
-      operationId: "5c8e2a1b-7d3f-4e6a-9b0c-000000000201",
-      basis,
-      reason: "Staff selected the reviewed current renewal cycle",
-    },
-    basis,
-    db,
-  );
-  return started.state!;
+  return ensureRenewalWorkRecord(actor, LEASE, db, async () => basis);
 }
 
 /** Mount the real dashboard for lease 318 from a staff record, as the lease page does. */
 async function mount(state: RenewalWorkspaceState | null) {
   const { createElement: h } = await import("react");
-  const { render, screen, within } = await import("@testing-library/react");
+  const { render, screen } = await import("@testing-library/react");
   const { RenewalWorkspace } =
     await import("@/components/lease-renewal/RenewalWorkspace");
   const base = actionFixture({ manual: state }).workspace;
@@ -225,10 +213,8 @@ async function mount(state: RenewalWorkspaceState | null) {
   const view = render(
     h(RenewalWorkspace, { workspace, role: testState.role, manualState: state }),
   );
-  await within(screen.getByRole("region", { name: "Owner approval" })).findByRole(
-    "region",
-    { name: "Owner message preparation" },
-  );
+  // S152: the lease opens in Focus view; the view switch is the sign the dashboard rendered.
+  await screen.findByRole("button", { name: "Full view" });
   await settle();
   return view;
 }
@@ -246,16 +232,22 @@ async function paneHeading() {
   });
 }
 
-async function fillOutreach(source: string) {
+/** Types the source note only; typing alone saves nothing (S155). */
+async function typeOutreachSource(source: string) {
   const { fireEvent, within } = await import("@testing-library/react");
   const form = document.getElementById("renewal-manual-owner_outreach")!;
-  fireEvent.change(within(form).getByLabelText("Owner outreach outcome"), {
-    target: { value: "done" },
-  });
   fireEvent.change(within(form).getByLabelText(/Source or channel/), {
     target: { value: source },
   });
   return form;
+}
+
+/** Choosing the outcome is the completed entry: it saves by itself (S155 BEH-S155-1). */
+async function chooseOutreachDone(form: HTMLElement) {
+  const { fireEvent, within } = await import("@testing-library/react");
+  fireEvent.change(within(form).getByLabelText("Owner outreach outcome"), {
+    target: { value: "done" },
+  });
 }
 
 const writes = () => calls.filter((call) => call.method !== "GET");
@@ -267,31 +259,34 @@ describe("S145 Focus pane through the real workspace route and store", () => {
     const { fireEvent, screen, waitFor, within } = await import("@testing-library/react");
     const started = await startCycle();
     let view = await mount(started);
-    expect(screen.getByRole("button", { name: "Full view" })).toHaveAttribute(
+    // S152: a lease opens in Focus view; Full view is one click away and shows the same work.
+    expect(screen.getByRole("button", { name: "Focus view" })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
     await openFocus();
     expect(await paneHeading()).toHaveTextContent("Owner outreach");
 
-    // Typing without saving satisfies nothing: the dependents stay blocked and nothing is sent.
-    const form = await fillOutreach("Owner phone call");
+    // Typing without leaving the control saves nothing. S156 (BEH-S156-2): the owner response is
+    // independently available; nothing is held behind the outreach record.
+    const form = await typeOutreachSource("Owner phone call");
     const pane = screen.getByRole("region", { name: "Focus view" });
     fireEvent.click(within(pane).getByText(/^All renewal work/));
     expect(
-      within(pane).getByRole("heading", { name: /^Starts after earlier work/ })
-        .parentElement,
-    ).toHaveTextContent("Record owner response and exact terms");
+      within(pane).queryByRole("heading", { name: /^Starts after earlier work/ }),
+    ).toBeNull();
+    expect(
+      within(pane).getByRole("heading", { name: /^Ready for you/ }).parentElement,
+    ).toHaveTextContent("Record owner response");
     expect(writes()).toEqual([]);
+    expect(screen.queryByRole("button", { name: "Record owner outreach" })).toBeNull();
 
-    // A double click sends one request; the pane advances only on the route's readback.
-    const record = within(form).getByRole("button", { name: "Record owner outreach" });
-    fireEvent.click(record);
-    fireEvent.click(record);
+    // Choosing the outcome sends one request; the pane advances only on the route's readback.
+    // S156 (BEH-S156-1): the owner response now waits on the owner, so the next task offered to
+    // staff is the tenant offer, which needs no earlier step.
+    await chooseOutreachDone(form);
     await waitFor(async () =>
-      expect(await paneHeading()).toHaveTextContent(
-        "Record owner response and exact terms",
-      ),
+      expect(await paneHeading()).toHaveTextContent("Tenant offer delivered"),
     );
     expect(writes()).toHaveLength(1);
     const sent = writes()[0]!;
@@ -301,7 +296,12 @@ describe("S145 Focus pane through the real workspace route and store", () => {
       leaseId: LEASE,
       cycleId: started.cycleId,
       expectedRevision: started.revision,
-      action: { kind: "activity", activity: "owner_outreach", outcome: "done" },
+      action: {
+        kind: "activity",
+        activity: "owner_outreach",
+        outcome: "done",
+        source: "Owner phone call",
+      },
     });
     const stored = (await getRenewalWorkspace(actor, LEASE, db))!;
     expect(stored.revision).toBe(started.revision + 1);
@@ -331,6 +331,8 @@ describe("S145 Focus pane through the real workspace route and store", () => {
     ).json();
     expect(reread.state.revision).toBe(stored.revision);
     view = await mount(reread.state);
+    fireEvent.click(screen.getByRole("button", { name: "Full view" }));
+    await settle();
     expect(screen.getByRole("button", { name: "Full view" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -339,12 +341,15 @@ describe("S145 Focus pane through the real workspace route and store", () => {
       document.querySelector("#renewal-manual-owner_outreach > summary"),
     ).toHaveTextContent("Owner outreach : done");
     await openFocus();
-    expect(await paneHeading()).toHaveTextContent(
-      "Record owner response and exact terms",
-    );
+    // S156 (BEH-S156-1): the suggested task is advisory. The finished outreach is not offered
+    // again; the owner response waits on the owner while the other work stays available.
+    expect(await paneHeading()).toHaveTextContent("Tenant offer delivered");
     const reloaded = screen.getByRole("region", { name: "Focus view" });
-    expect(within(reloaded).getByText("Waiting on the owner.")).toBeVisible();
     fireEvent.click(within(reloaded).getByText(/^All renewal work/));
+    expect(
+      within(reloaded).getByRole("heading", { name: /^Waiting on someone else/ })
+        .parentElement,
+    ).toHaveTextContent("Record owner response");
     expect(
       within(reloaded).getByRole("heading", { name: /^Done \(/ }).parentElement,
     ).toHaveTextContent("Owner outreach");
@@ -352,7 +357,7 @@ describe("S145 Focus pane through the real workspace route and store", () => {
   }, 20_000);
 
   it("refuses a stale revision from Focus and keeps the entry and the task", async () => {
-    const { fireEvent, screen, waitFor, within } = await import("@testing-library/react");
+    const { screen, waitFor, within } = await import("@testing-library/react");
     const started = await startCycle();
     // Another operator records the outreach after this page was rendered.
     await saveRenewalWorkspace(
@@ -375,19 +380,22 @@ describe("S145 Focus pane through the real workspace route and store", () => {
     await mount(started);
     await openFocus();
     expect(await paneHeading()).toHaveTextContent("Owner outreach");
-    const form = await fillOutreach("My phone call");
-    fireEvent.click(within(form).getByRole("button", { name: "Record owner outreach" }));
+    const form = await typeOutreachSource("My phone call");
+    await chooseOutreachDone(form);
     await waitFor(() => expect(writes()).toHaveLength(1));
+    // S155 (BEH-S155-6): the same item changed elsewhere, so the conflict is shown, the entry is
+    // kept and the current record is read back for review; nothing is merged or retried blindly.
     await waitFor(() =>
       expect(
         within(screen.getByRole("region", { name: "Focus view" })).getByText(
-          /Another operator changed this cycle/,
+          /Another operator changed this item/,
         ),
       ).toBeVisible(),
     );
     expect(writes()[0]!.status).toBe(409);
-    expect(await paneHeading()).toHaveTextContent("Owner outreach");
+    expect(writes()).toHaveLength(1);
     expect(within(form).getByLabelText(/Source or channel/)).toHaveValue("My phone call");
+    expect(within(form).getByLabelText("Owner outreach outcome")).toHaveValue("done");
     const after = (await getRenewalWorkspace(actor, LEASE, db))!;
     expect(after.revision).toBe(current.revision);
     expect(after.activities.owner_outreach?.source).toBe("Colleague phone call");

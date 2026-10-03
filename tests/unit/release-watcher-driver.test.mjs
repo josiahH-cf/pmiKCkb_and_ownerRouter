@@ -51,10 +51,12 @@ function harness({
   serviceReadback,
   candidateAssured = false,
   assertLock,
-  // S128 (F08): the captured predecessor's operating-Sheet write flag as read back from its revision.
-  // Default "false" so existing rollback tests take the ordinary traffic-shift path unchanged.
+  // S159: the captured predecessor's ACTUAL operating-Sheet switch value. The prepared recovery
+  // target keeps it; "false" is the production truth at the S159 release and "true" is a later
+  // release whose predecessor already runs enabled.
   predecessorWritebackFlag = "false",
-  redeployedWritebackFlag = "false",
+  // A recovery target whose readback gained a second, different switch entry after preparation.
+  redeployedWritebackFlag = predecessorWritebackFlag,
 } = {}) {
   const root = mkdtempSync(join(tmpdir(), "pmi-watcher-driver-"));
   roots.push(root);
@@ -64,8 +66,12 @@ function harness({
   );
   const checkpointPath = join(root, "checkpoint.json");
   let serving = initialTraffic ?? revision;
-  const recovery = recoveryFixture(root, { prepared: true, serving });
-  if (redeployedWritebackFlag !== "false")
+  const recovery = recoveryFixture(root, {
+    prepared: true,
+    serving,
+    predecessorSheetWriteback: predecessorWritebackFlag,
+  });
+  if (redeployedWritebackFlag !== predecessorWritebackFlag)
     recovery.state.revisions.get(recovery.target).containers[0].env.push({
       name: "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED",
       value: redeployedWritebackFlag,
@@ -129,7 +135,7 @@ function harness({
           },
         ),
       };
-    // S128 (F08): revision runtime readback for the rollback write-flag guard.
+    // Revision runtime readback: each revision reports its own operating-Sheet switch value.
     if (bin === "gcloud" && args.includes("describe") && args.includes("revisions")) {
       const name = args[args.indexOf("describe") + 1];
       const flag =
@@ -152,7 +158,7 @@ function harness({
         }),
       };
     }
-    // S128 (F08): the paused-rollback redeploy reuses the predecessor image with the flag pinned off.
+    // The retired image-only rollback redeploy; no current path may reach it.
     if (bin === "gcloud" && args.includes("deploy")) {
       serving = redeployedRevision;
       return { status: 0, stdout: "" };
@@ -523,7 +529,21 @@ describe("release watcher command-path recovery", () => {
     ).toBe(false);
     expect(h.recovery.state.patches).toHaveLength(1);
   });
-  it("refuses unrelated traffic, a changed pause and an unbound recovery receipt", async () => {
+  it("rolls back to a recovery target that keeps a true predecessor's switch (S159 next release)", async () => {
+    const h = harness({ rollback: true, predecessorWritebackFlag: "true" });
+    expect(await h.driver.observe(h.cp)).toMatchObject({
+      reason: "rolled_back_verified",
+    });
+    expect(h.recovery.state.patches).toHaveLength(1);
+    expect(
+      h.recovery.state.revisions
+        .get(h.recovery.target)
+        .containers[0].env.filter(
+          (entry) => entry.name === "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED",
+        ),
+    ).toEqual([{ name: "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED", value: "true" }]);
+  });
+  it("refuses unrelated traffic, a changed Sheet switch and an unbound recovery receipt", async () => {
     const unrelated = harness({
       rollback: true,
       initialTraffic: `${service}-another-release`,

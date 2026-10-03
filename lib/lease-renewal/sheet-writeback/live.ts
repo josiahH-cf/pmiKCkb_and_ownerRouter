@@ -7,7 +7,6 @@ import {
 } from "@/lib/environment/descriptor";
 import { FirestoreExternalExecutionStore } from "@/lib/firestore/external-action-executions";
 import {
-  claimAuthorizedS98FieldUpdate,
   claimLeaseScopedS113FieldUpdate,
   claimLeaseScopedS98Append,
   settleLeaseScopedS98Append,
@@ -65,7 +64,6 @@ export function buildLiveSheetWritebackDeps(
     }),
     writeFlagEnabled: isSheetWritebackEnabled,
     runtimeBinding: readSheetWritebackRuntimeBinding,
-    claimAuthorizedFieldUpdate: (input) => claimAuthorizedS98FieldUpdate(db, input),
     claimLeaseScopedFieldUpdate: (input) => claimLeaseScopedS113FieldUpdate(db, input),
     claimLeaseScopedAppend: (input) => claimLeaseScopedS98Append(db, input),
     settleLeaseScopedAppend: (input) => settleLeaseScopedS98Append(db, input),

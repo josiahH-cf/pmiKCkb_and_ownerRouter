@@ -65,11 +65,10 @@ afterEach(() => {
 });
 
 const adminUser = { uid: "u-admin", role: "Admin", email: "admin@pmikcmetro.com" };
-const maintenanceUser = {
+const editorUser = {
   uid: "u-maintenance",
   role: "Editor",
   email: "maintenance@pmikcmetro.com",
-  scopes: ["maintenance"],
 } as const;
 
 // React 19 needs an awaited act scope to retry a boundary that suspended on the queue read.
@@ -166,21 +165,25 @@ describe("ConsoleView (S146/S147 AI-first Dashboard)", () => {
     expect(screen.queryByRole("button", { name: /send|execute|write/i })).toBeNull();
   });
 
-  it("covers a maintenance-only user's own approval items instead of a fabricated zero", async () => {
+  // S167: an account without the Renewals Space used to skip the renewal review read and be sent
+  // to Notifications for the full list. Every staff account now gets both feeds and the queue link.
+  it("covers an Editor's own approval items with both feeds and no Approve control", async () => {
     listApprovalQueue.mockResolvedValue([
       { ...readyItem, required_approver_uid: "someone", assignee_uid: "u-maintenance" },
     ]);
-    await renderView(maintenanceUser);
+    await renderView(editorUser);
 
     expect(
       await screen.findByRole("link", { name: "Approve renewal package" }),
     ).toBeInTheDocument();
     expect(screen.getByText(/Waiting on an approver/)).toBeInTheDocument();
-    expect(loadRenewalRunViews).not.toHaveBeenCalled();
+    expect(loadRenewalRunViews).toHaveBeenCalledTimes(1);
+    expect(loadRenewalRunViews).toHaveBeenCalledWith(editorUser);
+    // The role still decides: an Editor never gets the inline Approve control.
     expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
     expect(screen.getByRole("link", { name: "Open the full list" })).toHaveAttribute(
       "href",
-      "/notifications",
+      "/approval-queue",
     );
   });
 });

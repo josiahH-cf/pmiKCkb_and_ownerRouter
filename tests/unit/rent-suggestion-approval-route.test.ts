@@ -8,9 +8,9 @@ import {
 } from "@/lib/firestore/lease-renewal-progress";
 import { FakeFirestore } from "../helpers/fake-firestore";
 
-// The route runs the REAL Admin-gated control plane against a FakeFirestore (getAdminFirestore mocked).
-// Only the session gate (which supplies the user) and the admin Firestore handle are mocked, so the 403
-// for a non-Admin and the single-Activity-row for an Admin are proven end-to-end through the route.
+// The route runs the REAL control plane against a FakeFirestore (getAdminFirestore mocked). Only
+// the session gate (which supplies the user) and the admin Firestore handle are mocked, so the 403
+// for a verification account and the single-Activity-row for an Editor are proven end-to-end.
 const mocks = vi.hoisted(() => ({
   requireCapabilityInSpace: vi.fn(),
   db: undefined as unknown,
@@ -30,8 +30,13 @@ import { GET, POST } from "@/app/api/lease-renewal/rent-suggestion/route";
 function userWith(role: Role, uid: string): AuthenticatedUser {
   return { uid, email: `${uid}@example.com`, hd: "example.com", role };
 }
-const admin = userWith("Admin", "admin-1");
 const editor = userWith("Editor", "editor-1");
+const canary: AuthenticatedUser = {
+  uid: "canary-editor",
+  email: "canary-editor@pmikcmetro.com",
+  hd: "pmikcmetro.com",
+  role: "Editor",
+};
 
 const LEASE_ID = "5001";
 
@@ -67,16 +72,14 @@ function post(body: unknown) {
 }
 
 describe("rent-suggestion route (AC-S29-3)", () => {
-  it("returns 403 and writes NO approval record when an Editor tries to approve", async () => {
-    mocks.requireCapabilityInSpace.mockResolvedValue(editor);
+  it("returns 403 and writes NO approval record when a verification account tries to approve", async () => {
+    mocks.requireCapabilityInSpace.mockResolvedValue(canary);
     const res = await post({ lease_id: LEASE_ID, decision: "approve", reason: "x" });
     expect(res.status).toBe(403);
-    // S80 first proves Renewals Space/read access, then returns the matrix's specific Admin refusal;
-    // the data layer repeats the stronger rule if a caller ever reaches it.
+    // S80 first proves Renewals Space/read access; S167 then refuses the verification identity.
     expect(mocks.requireCapabilityInSpace).toHaveBeenCalledWith("read", "renewals");
     await expect(res.clone().json()).resolves.toEqual({
-      error:
-        "Admin authority is required to approve a comp-derived pricing suggestion. Leave the suggestion pending for Admin review; no offer is changed.",
+      error: "Verification accounts cannot record rent-suggestion decisions.",
     });
     const stored = db.store.get(
       `lease_renewal_rent_suggestion_approvals/${progressDocId(LEASE_ID)}`,
@@ -84,8 +87,8 @@ describe("rent-suggestion route (AC-S29-3)", () => {
     expect(stored).toBeUndefined();
   });
 
-  it("returns 200 and records exactly one Activity row for an Admin approve", async () => {
-    mocks.requireCapabilityInSpace.mockResolvedValue(admin);
+  it("returns 200 and records exactly one Activity row for an Editor approve", async () => {
+    mocks.requireCapabilityInSpace.mockResolvedValue(editor);
     const res = await post({
       lease_id: LEASE_ID,
       decision: "approve",

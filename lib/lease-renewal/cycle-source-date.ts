@@ -1,5 +1,5 @@
 import { formatCalendarDate, parseCalendarDate } from "@/lib/date-display";
-import type { RenewalCycleBasis } from "@/lib/lease-renewal/workspace-state";
+import type { RenewalWorkBasis } from "@/lib/lease-renewal/workspace-state";
 
 /**
  * S123 (F02, R-F02-04): the recorded cycle basis compared with the lease end the provider reports
@@ -25,6 +25,13 @@ export type CycleSourceDateChange =
       label: string;
     }
   | {
+      /** S154: work saved while the source reported no lease end or review date. */
+      state: "lease_bound";
+      recordedIso: null;
+      currentIso: string | null;
+      label: string;
+    }
+  | {
       state: "current_unavailable";
       recordedIso: string;
       currentIso: null;
@@ -39,7 +46,7 @@ function cleanIso(value: string | null | undefined): string | null {
 }
 
 export function projectCycleSourceDateChange(
-  basis: RenewalCycleBasis | null | undefined,
+  basis: RenewalWorkBasis | null | undefined,
   currentEndDateIso: string | null | undefined,
 ): CycleSourceDateChange {
   const currentIso = cleanIso(currentEndDateIso);
@@ -53,6 +60,16 @@ export function projectCycleSourceDateChange(
         : currentEndDateIso?.trim()
           ? "Previous terms were not recorded for this lease. Invalid date in the current RentVine lease end; check the source."
           : "Previous terms were not recorded for this lease. RentVine currently reports no lease end.",
+    };
+  }
+  if (basis.kind === "lease_bound") {
+    return {
+      state: "lease_bound",
+      recordedIso: null,
+      currentIso,
+      label: currentIso
+        ? `This work was saved on the lease without a cycle date. RentVine currently reports lease end ${formatCalendarDate(currentIso)}.`
+        : "This work was saved on the lease without a cycle date. RentVine currently reports no lease end.",
     };
   }
   const recordedIso = basis.dateIso;

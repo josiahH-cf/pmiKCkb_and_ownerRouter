@@ -311,7 +311,7 @@ describe("S117 dense exact preview at the decision point (R117.3)", () => {
     ).toBeVisible();
   });
 
-  it("AC-S117-3: a future-rent effect waits for the recorded tenant acceptance before an Admin can confirm it", () => {
+  it("S156 BEH-S156-5/7 (AC-S156-1): a future-rent effect is confirmable by staff while the working terms are unchanged; changed terms ask for a fresh preview, never an acceptance record", () => {
     const proposal = rentvineProposal("future_rent", [
       chargeEffect({ amount: "1300.00" }),
     ]);
@@ -323,13 +323,18 @@ describe("S117 dense exact preview at the decision point (R117.3)", () => {
         initialInventory={inventory}
         initialProposal={proposal}
         leaseId="4821"
-        role="Admin"
+        role="Editor"
       />,
     );
+    // S156/S160 (cafa02a7): the only reason a prepared future-rent effect waits is that the
+    // working renewal terms moved after the preview. No tenant acceptance is awaited.
     expect(screen.queryByRole("button", { name: "Review and confirm…" })).toBeNull();
     expect(
-      screen.getByText(/Waiting for the recorded tenant acceptance of these exact terms/),
+      screen.getByText(
+        /The working renewal terms changed after this preview was prepared/,
+      ),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/tenant acceptance/i)).not.toBeInTheDocument();
     rerender(
       <RentvineUpdatesPanel
         futureRentExecutionReady
@@ -338,10 +343,17 @@ describe("S117 dense exact preview at the decision point (R117.3)", () => {
         initialInventory={inventory}
         initialProposal={proposal}
         leaseId="4821"
-        role="Admin"
+        role="Editor"
       />,
     );
-    expect(screen.getByRole("button", { name: "Review and confirm…" })).toBeVisible();
+    const review = screen.getByRole("button", { name: "Review and confirm…" });
+    expect(review).toBeVisible();
+    fireEvent.click(review);
+    expect(
+      screen.getByRole("button", { name: "Confirm this exact effect once" }),
+    ).toBeVisible();
+    // No approval checkbox or attestation stands between the review and the confirmation.
+    expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
   });
 
   it("AC-S117-4: a succeeded charge update with a differing base rent shows a fresh mismatch instead of a synchronized claim", () => {

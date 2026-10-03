@@ -57,7 +57,9 @@ function preparation() {
     inputs,
     facts,
     sourceFingerprint: "a".repeat(64),
-    needsReview: true,
+    bodyBaseHash: "b".repeat(64),
+    bodyOverride: null,
+    subjectOverride: null,
     signatureMatchesActor: false,
     publication: { status: "unpublished", reason: "Exact publication pending." },
     notices: [],
@@ -87,7 +89,6 @@ function readyPreparation() {
   return {
     ...base,
     inputs,
-    needsReview: false,
     signatureMatchesActor: true,
     saved: { revision: 1, inputs, signatureEmail: base.senderEmail },
     facts: {
@@ -99,9 +100,9 @@ function readyPreparation() {
   };
 }
 describe("S113 mounted message preparation", () => {
-  it("offers all copy modes without Gmail once the body is ready, with selectable fallback after clipboard denial", async () => {
-    // S120 (R120.4): the final-body exports open only for a reviewed, complete body; Gmail
-    // publication stays a separate gate and never blocks local copy.
+  it("offers all copy modes without Gmail, with the editable body as the fallback after clipboard denial", async () => {
+    // S162: the body exports copy exactly what is displayed; Gmail publication stays a separate
+    // gate and never blocks local copy. A denied clipboard points to the editable body itself.
     const fetch = vi.fn(async () => Response.json(readyPreparation()));
     vi.stubGlobal("fetch", fetch);
     Object.defineProperty(navigator, "clipboard", {
@@ -128,13 +129,16 @@ describe("S113 mounted message preparation", () => {
       screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
     ).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Copy plain text" }));
-    await screen.findByText(/Clipboard access was denied/);
+    await screen.findByText(
+      "Clipboard access was denied. Select and copy the subject or body below; your wording is kept.",
+    );
+    expect((screen.getByLabelText("Email body") as HTMLTextAreaElement).value).toEqual(
+      expect.stringContaining("$1,100.00"),
+    );
     expect(
-      (screen.getByLabelText("tenant plain text body") as HTMLTextAreaElement).value,
-    ).toEqual(expect.stringContaining("$1,100.00"));
-    expect(
-      (screen.getByLabelText("tenant plain text body") as HTMLTextAreaElement).value,
+      (screen.getByLabelText("Email body") as HTMLTextAreaElement).value,
     ).not.toEqual(expect.stringContaining("{{"));
+    expect(screen.getByLabelText("Email body")).not.toHaveAttribute("readonly");
     expect(fetch).toHaveBeenCalledTimes(1);
   });
   it("keeps an unclaimed preview confirmable after an explicit Gmail setup refusal", async () => {
@@ -160,7 +164,6 @@ describe("S113 mounted message preparation", () => {
     const ready = {
       ...base,
       inputs,
-      needsReview: false,
       signatureMatchesActor: true,
       publication: { status: "approved" },
       saved: { inputs, signatureEmail: base.senderEmail },
@@ -225,12 +228,16 @@ describe("S113 mounted message preparation", () => {
     expect(requests).toHaveLength(2);
     expect(requests[1].confirm?.executionId).toBe(`exec_${"a".repeat(40)}`);
   });
-  it("retains deliberate edits while changed owner terms recompute the message and require review", async () => {
+  it("retains deliberate edits while changed owner terms recompute the message, then saves them by itself", async () => {
     const first = preparation();
     let current = first;
+    const posts: Array<Record<string, unknown>> = [];
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => Response.json(current)),
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        if (init?.body) posts.push(JSON.parse(String(init.body)));
+        return Response.json(current);
+      }),
     );
     const mounted = render(<RenewalMessagePreparation channel="tenant" canEdit />);
     const prose = await screen.findByLabelText(
@@ -239,12 +246,15 @@ describe("S113 mounted message preparation", () => {
     fireEvent.change(prose, {
       target: { value: "Please share your preferred next step." },
     });
-    // S120: an unfinished preparation shows its formatted preview; the selectable plain-text
-    // export opens only once the body is ready.
+    // S161: the message with its marked values is shown and editable; the formatted preview and
+    // the editable body carry the same wording.
     expect(screen.getByLabelText("tenant formatted body")).toHaveTextContent(
       "Please share your preferred next step.",
     );
-    expect(screen.queryByLabelText("tenant plain text body")).toBeNull();
+    expect((screen.getByLabelText("Email body") as HTMLTextAreaElement).value).toContain(
+      "Please share your preferred next step.",
+    );
+    expect(posts).toHaveLength(0);
     current = {
       ...first,
       sourceFingerprint: "b".repeat(64),
@@ -258,10 +268,33 @@ describe("S113 mounted message preparation", () => {
       ),
     );
     expect(prose).toHaveValue("Please share your preferred next step.");
-    expect(screen.getByRole("checkbox")).not.toBeChecked();
+    const body = screen.getByLabelText("Email body") as HTMLTextAreaElement;
+    expect(body.value).toContain("$1,200.00");
+    expect(body.value).toContain("Please share your preferred next step.");
+    // No review step exists; the draft waits only on the template publication.
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    expect(screen.queryByText(/Your edits are retained/)).toBeNull();
     expect(
       screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
     ).toBeDisabled();
-    expect(screen.getByText(/Your edits are retained/)).toBeInTheDocument();
+    // Leaving the field saves the entry as typed, naming the work record the server reported.
+    fireEvent.blur(prose);
+    await waitFor(() => expect(posts).toHaveLength(1));
+    expect(posts[0]).toMatchObject({
+      kind: "save",
+      leaseId: "701",
+      channel: "tenant",
+      cycleId: "6c37bdcd-8264-4249-813f-0289307dd725",
+      expectedRevision: 0,
+      inputs: { edits: { responseRequest: "Please share your preferred next step." } },
+      bodyOverride: null,
+      subjectOverride: null,
+    });
+    expect(posts[0]!.reviewed).toBeUndefined();
+    expect(posts[0]!.sourceFingerprint).toBeUndefined();
+    await waitFor(() =>
+      expect(document.querySelector('[data-autosave="saved"]')).not.toBeNull(),
+    );
+    expect(prose).toHaveValue("Please share your preferred next step.");
   });
 });

@@ -17,13 +17,14 @@ vi.mock("@/lib/navigation/primary-navigation-projection", () => ({
 }));
 
 import { AppShell } from "@/components/layout/AppShell";
+import { validateAuthClaims } from "@/lib/auth/session";
 
 afterEach(() => {
   cleanup();
   vi.unstubAllEnvs();
 });
 
-describe("AppShell space-scoped navigation", () => {
+describe("AppShell role-based navigation", () => {
   it("renders the explicit Live-read-only badge and hides the persistent write control", async () => {
     vi.stubEnv("ENVIRONMENT_KIND", "demo");
     vi.stubEnv("DATA_CONTEXT", "live_readonly");
@@ -44,46 +45,53 @@ describe("AppShell space-scoped navigation", () => {
     expect(screen.queryByRole("button", { name: "Feedback" })).toBeNull();
   });
 
-  it("hides the renewals queue but exposes self-service Admin access to a maintenance-only principal", async () => {
+  // S167: a maintenance-only claim used to hide the Approval Queue and Lease Renewal links.
+  it("shows an Editor with a leftover maintenance-only claim every Space link and self-service Admin access", async () => {
+    vi.stubEnv("ALLOWED_HD", "pmikcmetro.com");
     render(
       await AppShell({
-        user: {
+        user: validateAuthClaims({
           uid: "maintenance-editor",
           email: "maintenance-editor@pmikcmetro.com",
           hd: "pmikcmetro.com",
           role: "Editor",
           scopes: ["maintenance"],
-        } as const,
+        }),
         children: <main>Maintenance home</main>,
       }),
     );
 
     fireEvent.click(screen.getByRole("button", { name: "My Work" }));
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Approval Queue" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Approval Queue" })).toHaveAttribute(
+      "href",
+      "/approval-queue",
+    );
     fireEvent.click(screen.getByRole("button", { name: "Operations" }));
     expect(screen.getByRole("link", { name: "Internal Processes" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Maintenance" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Lease Renewal" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Lease Renewal" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Admin" }));
     expect(screen.getByRole("link", { name: "Connections" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Approval Queue" })).toBeNull();
+    // The role still keeps a non-Admin on the self-service access page.
     expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute(
       "href",
       "/admin/access",
     );
   });
 
-  it("lets an Admin without Renewals scope reach only the global access lane", async () => {
+  // S167: this Admin used to reach only the access-request lane of the Approval Queue.
+  it("gives an Admin with a leftover maintenance-only claim the full Approval Queue and Admin", async () => {
+    vi.stubEnv("ALLOWED_HD", "pmikcmetro.com");
     render(
       await AppShell({
-        user: {
+        user: validateAuthClaims({
           uid: "scoped-admin",
           email: "scoped-admin@pmikcmetro.com",
           hd: "pmikcmetro.com",
           role: "Admin",
           scopes: ["maintenance"],
-        },
+        }),
         children: <main>Maintenance Admin</main>,
       }),
     );
@@ -91,8 +99,10 @@ describe("AppShell space-scoped navigation", () => {
     fireEvent.click(screen.getByRole("button", { name: "My Work" }));
     expect(screen.getByRole("link", { name: "Approval Queue" })).toHaveAttribute(
       "href",
-      "/approval-queue?view=access",
+      "/approval-queue",
     );
+    fireEvent.click(screen.getByRole("button", { name: "Operations" }));
+    expect(screen.getByRole("link", { name: "Lease Renewal" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Admin" }));
     expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute("href", "/admin");
   });

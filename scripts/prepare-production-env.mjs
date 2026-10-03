@@ -3,6 +3,10 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { validateExecutableActionRuntimeRequirements } from "./action-runtime-requirements.mjs";
 import { resolveMaintenanceIntakeSecretBindings } from "./runtime-secret-bindings.mjs";
+import {
+  REVIEWED_CANDIDATE_SHEET_WRITEBACK,
+  SHEET_WRITEBACK_FLAG,
+} from "../lib/production-assurance/sheet-writeback-expectation.mjs";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -31,6 +35,8 @@ const COPY_KEYS = [
   "NEXT_PUBLIC_FIREBASE_APP_ID",
   "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
   "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
+  // S165: optional; copied only when the reviewed local env states it.
+  "NEXT_PUBLIC_FIREBASE_SAME_ORIGIN_AUTH_HOST",
   "RENEWAL_COMP_DRIVE_FOLDER_ID",
   "RENEWAL_COMP_SHARED_DRIVE_ID",
   "RENEWAL_SHEET_ID",
@@ -137,6 +143,9 @@ export function buildProductionEnv({
   output.KB_APPROVAL_NOTIFICATIONS_ENABLED = notificationsEnabled ? "true" : "false";
   output.LOCAL_DEMO_AUTH = "false";
   output.MODEL_PROVIDER = "gemini";
+  // S159: the reviewed production env states the reviewed candidate operating-Sheet switch value
+  // explicitly. It is never copied from the source env, whose value is local working state.
+  output[SHEET_WRITEBACK_FLAG] = REVIEWED_CANDIDATE_SHEET_WRITEBACK;
   output.SPACE_PROVISIONING_ENABLED = readBoolean(sourceEnv.SPACE_PROVISIONING_ENABLED)
     ? "true"
     : "false";

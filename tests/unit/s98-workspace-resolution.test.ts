@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import type {
-  LeaseRenewalResolutionRecord,
-  LeaseRenewalWritebackApprovalRecord,
-} from "@/lib/firestore/types";
 import { hashSheetHeader } from "@/lib/lease-renewal/sheet-writeback/execution-service";
 import {
   buildSheetWritebackProposal,
@@ -14,8 +10,8 @@ import {
 import {
   SheetWorkspaceResolutionError,
   assertProposalMatchesFreshLeaseContext,
-  authorizedCurrentRentUpdateFromRecords,
   effectForFreshLeaseContext,
+  effectForWorkingCurrentRent,
   exactOperatingSheetRowIndexes,
   type FreshOperatingSheetLeaseContext,
 } from "@/lib/lease-renewal/sheet-writeback/workspace-resolution";
@@ -50,70 +46,14 @@ function context(overrides: Partial<FreshOperatingSheetLeaseContext> = {}) {
   } satisfies FreshOperatingSheetLeaseContext;
 }
 
-function resolution(
-  overrides: Partial<LeaseRenewalResolutionRecord> = {},
-): LeaseRenewalResolutionRecord {
-  return {
-    id: "resolution-key",
-    source_trigger_key: TRIGGER,
-    run_id: "live-review",
-    field_key: "current_rent",
-    field_label: "Current rent",
-    candidate_fingerprint: FINGERPRINT,
-    severity: "High",
-    status: "Resolved",
-    resolution_kind: "pick_source",
-    chosen_source: "rentvine",
-    reason: "RentVine is the confirmed current source.",
-    resolved_by_uid: "editor-1",
-    proposed_writeback: {
-      field_key: "current_rent",
-      value: "1200",
-      source_of_value: "rentvine",
-      status: "Queued",
-      production_allowed: false,
-    },
-    created_at: "2026-09-02T11:00:00.000Z",
-    updated_at: "2026-09-02T11:30:00.000Z",
-    ...overrides,
-  };
-}
-
-function approval(
-  overrides: Partial<LeaseRenewalWritebackApprovalRecord> = {},
-): LeaseRenewalWritebackApprovalRecord {
-  return {
-    id: "approval-key",
-    source_trigger_key: TRIGGER,
-    run_id: "live-review",
-    field_key: "current_rent",
-    field_label: "Current rent",
-    candidate_fingerprint: FINGERPRINT,
-    resolution_updated_at: "2026-09-02T11:30:00.000Z",
-    severity: "High",
-    state: "Approved",
-    proposed_value: "1200",
-    source_of_value: "rentvine",
-    reason: "Use the exact RentVine base rent.",
-    decided_by_uid: "admin-2",
-    production_allowed: false,
-    executed: false,
-    created_at: "2026-09-02T11:31:00.000Z",
-    updated_at: "2026-09-02T11:31:00.000Z",
-    ...overrides,
-  };
-}
+// S160: the current-rent update is bound to the lease's working current rent; no resolution or
+// approval record takes part. The value is the binding.
+const WORKING = { workingCurrentRent: 1200 };
 
 function proposal(
   current = context(),
-  resolutionRecord = resolution(),
-  approvalRecord = approval(),
+  workingCurrentRent = 1200,
 ): SheetWritebackProposal {
-  const authorized = authorizedCurrentRentUpdateFromRecords(
-    current,
-    resolutionRecord,
-    approvalRecord,
-  );
   return buildSheetWritebackProposal({
     generationId: "proposal-12345678",
     spreadsheetId: "sheet-live-1",
@@ -127,7 +67,7 @@ function proposal(
     actorRole: "Editor",
     sourceReadAtIso: current.sourceReadAtIso,
     evidenceRef: "workspace:115:fresh-live-join",
-    effects: [effectForFreshLeaseContext(current, authorized, "op-12345678")],
+    effects: [effectForWorkingCurrentRent(current, workingCurrentRent)],
     nowMs: Date.parse("2026-09-02T12:00:00.000Z"),
   });
 }
@@ -203,58 +143,76 @@ describe("S98 exact lease-workspace binding", () => {
     );
   });
 
-  it("accepts only the exact current source, resolution, approval, row, value, and source", () => {
+  it("S160: accepts only the exact current row, value and source for the working current rent", () => {
     const current = context();
-    const authorized = authorizedCurrentRentUpdateFromRecords(
-      current,
-      resolution(),
-      approval(),
-    );
     expect(() =>
-      assertProposalMatchesFreshLeaseContext(proposal(current), current, authorized),
+      assertProposalMatchesFreshLeaseContext(proposal(current), current, WORKING),
     ).not.toThrow();
+    expect(proposal(current).effects[0].effect).toMatchObject({
+      field: "current_rent",
+      expectedValue: "999",
+      afterValue: "1200",
+      source: "Working current rent",
+      staffIntent: { field: "current_rent", value: 1200 },
+    });
   });
 
-  it("rejects source drift before a provider effect", () => {
-    const drifted = context({
-      row: {
-        ...context().row!,
-        currentRentCandidateFingerprint: `rcf1_${"c".repeat(64)}`,
+  it("S160: rejects a changed or cleared working current rent before a provider effect", () => {
+    const current = context();
+    expectCode(
+      () =>
+        assertProposalMatchesFreshLeaseContext(proposal(current), current, {
+          workingCurrentRent: 1250,
+        }),
+      "working_value_changed",
+    );
+    expectCode(
+      () =>
+        assertProposalMatchesFreshLeaseContext(proposal(current), current, {
+          workingCurrentRent: null,
+        }),
+      "working_value_missing",
+    );
+    expectCode(() => effectForWorkingCurrentRent(current, null), "working_value_missing");
+  });
+
+  it("S160: a Sheet cell that already shows the working value has nothing to update", () => {
+    expectCode(() => effectForWorkingCurrentRent(context(), 999), "no_change");
+  });
+
+  it("S158: a selected location that is read-only refuses the update with its own limit", () => {
+    const limited = context({
+      targetRefusal: {
+        code: "selected_row_not_writable",
+        message: "Row 41 stays readable, but the app does not update it.",
       },
     });
     expectCode(
-      () => authorizedCurrentRentUpdateFromRecords(drifted, resolution(), approval()),
-      "resolution_stale",
+      () => effectForWorkingCurrentRent(limited, 1200),
+      "selected_row_not_writable",
+    );
+    expectCode(
+      () => assertProposalMatchesFreshLeaseContext(proposal(context()), limited, WORKING),
+      "proposal_stale",
     );
   });
 
-  it("rejects a same-value re-resolution until an Admin approves that exact generation", () => {
-    const rerResolved = resolution({ updated_at: "2026-09-02T11:45:00.000Z" });
+  it("S116/S158: an append is prepared only from a confirmed absence", () => {
     expectCode(
-      () => authorizedCurrentRentUpdateFromRecords(context(), rerResolved, approval()),
-      "approval_stale",
+      () => effectForFreshLeaseContext(context(), "op-12345678"),
+      "row_state_mismatch",
     );
-  });
-
-  it("rejects a returned or stale approval", () => {
-    expectCode(
-      () =>
-        authorizedCurrentRentUpdateFromRecords(
-          context(),
-          resolution(),
-          approval({ state: "Returned for Revision" }),
-        ),
-      "approval_stale",
-    );
+    const absent = context({ association: { kind: "absent_confirmed" }, row: null });
+    expect(effectForFreshLeaseContext(absent, "op-12345678")).toMatchObject({
+      kind: "row_append",
+      leaseId: "115",
+      propertyId: "84",
+      tenantName: "Exact Tenant",
+    });
   });
 
   it("rejects cross-lease scope, edited row number, value, and source", () => {
     const current = context();
-    const authorized = authorizedCurrentRentUpdateFromRecords(
-      current,
-      resolution(),
-      approval(),
-    );
     const exact = proposal(current);
     const mutations: SheetWritebackProposal[] = [
       { ...exact, scope: { kind: "lease_workspace", leaseId: "116", propertyId: "85" } },
@@ -288,7 +246,7 @@ describe("S98 exact lease-workspace binding", () => {
     ];
     for (const changed of mutations) {
       expectCode(
-        () => assertProposalMatchesFreshLeaseContext(changed, current, authorized),
+        () => assertProposalMatchesFreshLeaseContext(changed, current, WORKING),
         "proposal_stale",
       );
     }

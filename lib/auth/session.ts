@@ -15,12 +15,16 @@ export const AUTH_ABSOLUTE_MAX_AGE_SECONDS = 12 * 60 * 60;
 export const LOCAL_DEMO_SESSION_VALUE = "local-demo";
 export const LOCAL_DEMO_ROLES: readonly Role[] = ["Editor", "Approver", "Admin"];
 
+/**
+ * An authenticated internal staff principal. S167: every such account has every existing
+ * internal Space, so the session carries no Space allowlist. A `scopes` claim left on an existing
+ * account is neither read nor required; Vendor and verification boundaries are enforced separately.
+ */
 export interface AuthenticatedUser {
   uid: string;
   email: string;
   hd: string;
   role: Role;
-  scopes?: readonly SpaceScope[];
 }
 
 export interface AuthClaims {
@@ -28,6 +32,7 @@ export interface AuthClaims {
   email?: unknown;
   hd?: unknown;
   role?: unknown;
+  /** S167: a Space allowlist left on an existing account. Accepted and ignored. */
   scopes?: unknown;
   vendor?: unknown;
   vendor_id?: unknown;
@@ -235,8 +240,13 @@ export async function requireCapability(capability: Capability) {
   return user;
 }
 
+/**
+ * S167: an authenticated internal staff account reaches every existing internal Space. The check
+ * stays at each Space boundary so a route still names the Space it serves; it admits any existing
+ * Space and grants no capability, which remains the role's alone.
+ */
 export function hasSpaceAccess(user: AuthenticatedUser, scope: SpaceScope) {
-  return user.scopes === undefined || user.scopes.includes(scope);
+  return user.uid.length > 0 && SPACE_SCOPES.includes(scope);
 }
 
 export async function requireSpaceAccess(scope: SpaceScope) {
@@ -267,7 +277,6 @@ export function validateAuthClaims(claims: AuthClaims): AuthenticatedUser {
   const email = readRequiredString(claims.email, "email");
   const hd = readRequiredString(claims.hd, "hd").toLowerCase();
   const role = readRole(claims.role);
-  const scopes = readSpaceScopes(claims.scopes);
   const allowedHd = getAllowedHostedDomain();
 
   // External Vendor principals are authenticated and authorized by the separate
@@ -289,13 +298,7 @@ export function validateAuthClaims(claims: AuthClaims): AuthenticatedUser {
     throw new AuthError("Google Workspace hosted domain is not allowed.", 403);
   }
 
-  return {
-    uid,
-    email,
-    hd,
-    role,
-    ...(scopes === undefined ? {} : { scopes }),
-  };
+  return { uid, email, hd, role };
 }
 
 function validateFirebaseAuthClaims(claims: FirebaseAuthClaims): AuthenticatedUser {
@@ -317,7 +320,6 @@ function validateFirebaseAuthClaims(claims: FirebaseAuthClaims): AuthenticatedUs
     email,
     hd,
     role: readFirebaseRole(claims.role),
-    scopes: claims.scopes,
     vendor: claims.vendor,
     vendor_id: claims.vendor_id,
     data_mode: claims.data_mode,
@@ -469,26 +471,4 @@ function readRole(value: unknown): Role {
   }
 
   throw new AuthError("Missing or invalid authenticated user role.", 403);
-}
-
-function readSpaceScopes(value: unknown): readonly SpaceScope[] | undefined {
-  if (value === undefined || value === null || value === "") {
-    return undefined;
-  }
-
-  if (!Array.isArray(value) || value.length === 0) {
-    throw new AuthError("Missing or invalid authenticated user scopes.", 403);
-  }
-
-  const scopes = Array.from(value);
-
-  if (!scopes.every(isSpaceScope)) {
-    throw new AuthError("Missing or invalid authenticated user scopes.", 403);
-  }
-
-  return Object.freeze(SPACE_SCOPES.filter((scope) => scopes.includes(scope)));
-}
-
-function isSpaceScope(value: unknown): value is SpaceScope {
-  return SPACE_SCOPES.includes(value as SpaceScope);
 }

@@ -7,9 +7,12 @@ import {
   RENEWAL_WORKSPACE_COLLECTIONS,
   RenewalWorkspaceStateSchema,
 } from "../lib/firestore/renewal-workspace";
+import { LeaseBoundBasisSchema } from "../lib/lease-renewal/workspace-state";
 import {
+  INDEPENDENT_UNRECORDED_STAFF_LANE,
   independentLeaseDetailIds,
   projectIndependentManualRenewal,
+  projectIndependentStaffLaneManualRenewal,
   type IndependentManualRenewal,
 } from "../lib/production-assurance/manual-renewal-projection";
 import { execFileSync } from "node:child_process";
@@ -54,7 +57,11 @@ import { LEASE_RENEWAL_PROGRESS_COLLECTIONS } from "../lib/firestore/lease-renew
 import { LEASE_RENEWAL_COLLECTIONS } from "../lib/firestore/lease-renewal-resolutions";
 import { buildLiveRentVineConfig } from "../lib/lease-renewal/live-config";
 import {
+  INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
   countIndependentActionDestinationMismatches,
+  countIndependentContractMarkerMismatches,
+  countIndependentStaffLaneActionMismatches,
+  countIndependentStaffLaneStatusMismatches,
   countIndependentStatusMismatches,
   countIndependentWorkspaceDestinationMismatches,
   independentSourceDigest,
@@ -63,8 +70,11 @@ import {
   projectIndependentRentExpectation,
   projectIndependentRentVineRows,
   projectIndependentSheetLinks,
+  resolveIndependentGuidanceContract,
   validRenderedRentvineSourceDestination,
   type IndependentActionDestinationObservation,
+  type IndependentExpectedContractMarker,
+  type IndependentGuidanceContract,
   type IndependentRenderedStatus,
   type IndependentRentExpectation,
   type IndependentRenewalSourceRow,
@@ -129,11 +139,18 @@ export interface IndependentRenderedProcessState {
 export interface IndependentExpectedGuidanceState {
   readonly overallStatus: IndependentExpectedOverallStatus;
   readonly actionStepId: string | null;
+  /** S156 staff lane only: the exact control fragment the action must land on, or null. */
+  readonly actionFragment?: string | null;
   readonly markerMismatches: number;
 }
 
-interface ExpectedProjectionRow extends IndependentRenewalSourceRow {
+export interface ExpectedProjectionRow extends IndependentRenewalSourceRow {
   readonly manual: IndependentManualRenewal | null;
+  /**
+   * Predecessor rules: the lease is in no definitive source exclusion and has an id. S154
+   * staff-lane rules: the lease has an id; a source exclusion keeps it outside the worklist but
+   * it still opens.
+   */
   readonly workspaceExpected: boolean;
   readonly dispositionExpected:
     | "actionable"
@@ -147,7 +164,7 @@ interface ExpectedProjectionRow extends IndependentRenewalSourceRow {
   readonly rentExpectation: IndependentRentExpectation;
 }
 
-interface RenderedProjectionRow extends IndependentRenewalSourceRow {
+export interface RenderedProjectionRow extends IndependentRenewalSourceRow {
   readonly endDateDisplayMatches: boolean;
   readonly manual: {
     complete: string | null;
@@ -161,20 +178,28 @@ interface RenderedProjectionRow extends IndependentRenewalSourceRow {
   readonly workspace: IndependentWorkspaceDestinationObservation;
   readonly action: IndependentActionDestinationObservation;
   readonly statusFilterHrefs: readonly (string | null)[];
+  /** S156: the row's `data-guidance-contract`; null when the revision renders none. */
+  readonly guidanceContract: string | null;
 }
 
-interface DirectProjection {
+/** One rule set's expectation over the same independently read sources. */
+export interface ContractDirectProjection {
   readonly rows: readonly ExpectedProjectionRow[];
-  readonly sourceRecords: number;
-  readonly projectedRecords: number;
-  readonly rentvine: SourceReadState;
-  readonly sheet: SourceReadState;
   readonly decision: SourceReadState;
   /** Process-memory-only; excluded from evidence serialization. */
   readonly sourceDigest: string | null;
 }
 
-interface RenderedProjection {
+export interface DirectProjection extends ContractDirectProjection {
+  /** `rows`, `decision` and `sourceDigest` hold the predecessor-contract expectation. */
+  readonly staffLane: ContractDirectProjection;
+  readonly sourceRecords: number;
+  readonly projectedRecords: number;
+  readonly rentvine: SourceReadState;
+  readonly sheet: SourceReadState;
+}
+
+export interface RenderedProjection {
   readonly rows: readonly RenderedProjectionRow[];
   readonly application: SourceReadState;
   readonly invalidDestinations: number;
@@ -191,9 +216,33 @@ export interface LiveReconciliationOptions extends ProductionTarget {
   readonly region: string;
   readonly service: string;
   readonly expectedConfigurationFingerprint: string;
+  /**
+   * S156: the guidance contract every desk row must render. A candidate or promoted check of a
+   * revision built from this source passes the staff-lane marker; a check of a revision built
+   * before S156 passes "none". Absent, each row is read under the rules its own marker names and
+   * a page that mixes markers is a mismatch.
+   */
+  readonly expectedGuidanceContract?: IndependentExpectedContractMarker;
   readonly deadlineAtMs?: number;
   readonly abortSignal?: AbortSignal;
   readonly assuranceContext?: VerifiedProductionAssuranceContext;
+}
+
+const EXPECTED_GUIDANCE_CONTRACTS: ReadonlySet<string> = new Set([
+  INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
+  "none",
+]);
+
+/** `--expected-guidance-contract=s156-staff-lane|none`; absent means select by the rendered marker. */
+export function resolveExpectedGuidanceContract(argv: readonly string[]): {
+  readonly expectedGuidanceContract?: IndependentExpectedContractMarker;
+} {
+  const value = readArg(argv, "--expected-guidance-contract");
+  if (value === undefined) return {};
+  if (!EXPECTED_GUIDANCE_CONTRACTS.has(value)) {
+    throw new Error("expected_guidance_contract_invalid");
+  }
+  return { expectedGuidanceContract: value as IndependentExpectedContractMarker };
 }
 
 interface IndependentSourceClients {
@@ -285,19 +334,44 @@ async function readIndependentLiveReviewResolutions(
   });
 }
 
-interface IndependentDecisionFacts {
+export interface IndependentDecisionFacts {
+  /** Dated work records under the predecessor rules; exactly what the predecessor reads. */
   readonly manualByLease?: ReadonlyMap<string, IndependentManualRenewal>;
+  /**
+   * S154/S156: both work-record heads under the staff-lane rules, a dated record taking the
+   * place of a lease-bound record of the same lease. Null when the lease-bound head collection
+   * could not be read or holds an invalid record: that fails only a staff-lane verdict, never
+   * the predecessor's.
+   */
+  readonly staffLaneManualByLease?: ReadonlyMap<string, IndependentManualRenewal> | null;
   readonly resolutions: readonly Readonly<Record<string, unknown>>[];
   readonly trackedIncompleteLeaseIds: ReadonlySet<string>;
+}
+
+/** The lease-bound head shape: the shared persisted schema with the dateless basis. */
+const LeaseBoundWorkspaceStateSchema = RenewalWorkspaceStateSchema.extend({
+  basis: LeaseBoundBasisSchema,
+});
+
+/** The app accepts either basis in either head collection; the staff-lane read mirrors that. */
+function parseIndependentWorkRecord(raw: unknown) {
+  return (raw as { basis?: { kind?: unknown } } | null)?.basis?.kind === "lease_bound"
+    ? LeaseBoundWorkspaceStateSchema.parse(raw)
+    : RenewalWorkspaceStateSchema.parse(raw);
 }
 
 export async function readIndependentDecisionFacts(
   firestore: Firestore,
 ): Promise<IndependentDecisionFacts> {
-  const [resolutions, progress, manual] = await Promise.all([
+  const [resolutions, progress, manual, leaseBound] = await Promise.all([
     readIndependentLiveReviewResolutions(firestore),
     firestore.collection(LEASE_RENEWAL_PROGRESS_COLLECTIONS.progress).get(),
     firestore.collection(RENEWAL_WORKSPACE_COLLECTIONS.head).get(),
+    // Read-only and bounded like the heads above; a failure here is a staff-lane fact only.
+    firestore
+      .collection(RENEWAL_WORKSPACE_COLLECTIONS.leaseBoundHead)
+      .get()
+      .catch(() => null),
   ]);
   const trackedIncompleteLeaseIds = new Set<string>();
   const seenLeaseIds = new Set<string>();
@@ -316,14 +390,43 @@ export async function readIndependentDecisionFacts(
     if (!value.complete) trackedIncompleteLeaseIds.add(leaseId);
   }
   const manualByLease = new Map<string, IndependentManualRenewal>();
+  const datedByLease = new Map<string, IndependentManualRenewal>();
   for (const document of manual.docs) {
     const state = RenewalWorkspaceStateSchema.parse(document.data());
     const expectedId = createHash("sha256").update(state.leaseId).digest("hex");
     if (document.id !== expectedId || manualByLease.has(state.leaseId))
       throw new Error("independent_manual_read_invalid");
     manualByLease.set(state.leaseId, projectIndependentManualRenewal(state));
+    datedByLease.set(state.leaseId, projectIndependentStaffLaneManualRenewal(state));
   }
-  return { resolutions, trackedIncompleteLeaseIds, manualByLease };
+  let staffLaneManualByLease: Map<string, IndependentManualRenewal> | null = null;
+  if (leaseBound) {
+    try {
+      staffLaneManualByLease = new Map<string, IndependentManualRenewal>();
+      for (const document of leaseBound.docs) {
+        const state = parseIndependentWorkRecord(document.data());
+        const expectedId = createHash("sha256").update(state.leaseId).digest("hex");
+        if (document.id !== expectedId || staffLaneManualByLease.has(state.leaseId))
+          throw new Error("independent_lease_bound_read_invalid");
+        staffLaneManualByLease.set(
+          state.leaseId,
+          projectIndependentStaffLaneManualRenewal(state),
+        );
+      }
+      // A dated record established later takes the place of the lease-bound record.
+      for (const [leaseId, record] of datedByLease) {
+        staffLaneManualByLease.set(leaseId, record);
+      }
+    } catch {
+      staffLaneManualByLease = null;
+    }
+  }
+  return {
+    resolutions,
+    trackedIncompleteLeaseIds,
+    manualByLease,
+    staffLaneManualByLease,
+  };
 }
 
 async function createIndependentSourceClients(
@@ -452,6 +555,7 @@ export function aggregateReadStates(
 function directProjectionDigest(
   rows: readonly ExpectedProjectionRow[],
   sheetDigest: string,
+  contract: IndependentGuidanceContract = "predecessor",
 ): string {
   const base = independentSourceDigest(rows, sheetDigest);
   const decisions = [...rows]
@@ -466,7 +570,9 @@ function directProjectionDigest(
       rentExpectation: row.rentExpectation,
       manual: row.manual,
     }));
-  return createHash("sha256").update(JSON.stringify({ base, decisions })).digest("hex");
+  return createHash("sha256")
+    .update(JSON.stringify({ base, decisions, contract }))
+    .digest("hex");
 }
 
 export async function runProductionReconciliation(
@@ -478,6 +584,12 @@ export async function runProductionReconciliation(
     const expectedConfigurationFingerprint = requireRevisionConfigurationFingerprint(
       options.expectedConfigurationFingerprint,
     );
+    if (
+      options.expectedGuidanceContract !== undefined &&
+      !EXPECTED_GUIDANCE_CONTRACTS.has(options.expectedGuidanceContract)
+    ) {
+      throw new Error("expected_guidance_contract_invalid");
+    }
     assertLocalSourceAdapterIdentity(options.expectedCommit, readLocalRepositoryState());
     const assuranceContext =
       options.assuranceContext ??
@@ -545,7 +657,7 @@ async function reconcileWithIndependentClients(
     // launch path or a context that resolves after the race could outlive reconciliation cleanup.
     rendered = await readRenderedProjection(
       options,
-      before.rows,
+      before,
       clients.expectedRentvineHost,
       deadlineAtMs,
       abortSignal,
@@ -557,30 +669,78 @@ async function reconcileWithIndependentClients(
   } catch {
     return unavailableReconciliationReport(options);
   }
+  // S156: only the rule sets the rendered page is read under decide whether the decision read
+  // was complete and stable; a predecessor page never depends on the lease-bound head read.
+  const applied = appliedGuidanceContracts(
+    rendered.rows,
+    options.expectedGuidanceContract,
+  );
+  const beforeApplied = appliedDirectProjection(before, applied);
+  const afterApplied = appliedDirectProjection(after, applied);
   const sourceDrift =
     before.rentvine !== "complete" ||
     before.sheet !== "complete" ||
-    before.decision !== "complete" ||
+    beforeApplied.decision !== "complete" ||
     after.rentvine !== "complete" ||
     after.sheet !== "complete" ||
-    after.decision !== "complete"
+    afterApplied.decision !== "complete"
       ? "unknown"
-      : before.sourceDigest !== null && before.sourceDigest === after.sourceDigest
+      : beforeApplied.sourceDigest !== null &&
+          beforeApplied.sourceDigest === afterApplied.sourceDigest
         ? "stable"
         : "changed";
-  const counts = compareProjectionRows(before, rendered, options.role, options.origin);
+  const counts = compareProjectionRows(
+    before,
+    rendered,
+    options.role,
+    options.origin,
+    options.expectedGuidanceContract,
+  );
   const reconciliation = evaluateReconciliation({
     rentvine: aggregateReadStates(before.rentvine, after.rentvine),
     sheet: aggregateReadStates(before.sheet, after.sheet),
     application: aggregateReadStates(
-      before.decision,
+      beforeApplied.decision,
       rendered.application,
-      after.decision,
+      afterApplied.decision,
     ),
     sourceDrift,
     counts,
   });
   return reportForReconciliation(options, reconciliation);
+}
+
+/**
+ * The rule sets the rendered rows are read under. A caller-named contract applies to every row;
+ * otherwise each row's own marker selects. With no rows to read, both rule sets must have read
+ * cleanly so an empty page never passes on a partial decision read.
+ */
+function appliedGuidanceContracts(
+  rows: readonly RenderedProjectionRow[],
+  expected: IndependentExpectedContractMarker | undefined,
+): ReadonlySet<IndependentGuidanceContract> {
+  if (expected !== undefined) {
+    return new Set([resolveIndependentGuidanceContract(null, expected)]);
+  }
+  if (rows.length === 0) return new Set(["predecessor", "staff_lane"]);
+  return new Set(
+    rows.map((row) => resolveIndependentGuidanceContract(row.guidanceContract)),
+  );
+}
+
+function appliedDirectProjection(
+  projection: DirectProjection,
+  applied: ReadonlySet<IndependentGuidanceContract>,
+): Pick<ContractDirectProjection, "decision" | "sourceDigest"> {
+  const parts = [...applied]
+    .sort()
+    .map((contract) => (contract === "staff_lane" ? projection.staffLane : projection));
+  return {
+    decision: aggregateReadStates(...parts.map((part) => part.decision)),
+    sourceDigest: parts.every((part) => part.sourceDigest !== null)
+      ? parts.map((part) => part.sourceDigest).join(":")
+      : null,
+  };
 }
 
 function unavailableReconciliationReport(
@@ -713,84 +873,119 @@ async function readDirectProjection(
         expectedRentvineHost,
       )
     : [];
-  let decision: SourceReadState = decisionRead.ok ? "complete" : "unavailable";
-  let rows: ExpectedProjectionRow[] = [];
-  if (rentvineRead.ok) {
-    try {
-      rows = buildExpectedProjectionRows(
-        baseRows,
-        rentvineRead.value.rows,
-        sheetRead.ok ? sheetRead.value : null,
-        decisionRead.ok
-          ? decisionRead.value
-          : { resolutions: [], trackedIncompleteLeaseIds: new Set() },
-        referenceDateIso,
-        leaseDetails,
-      );
-    } catch {
-      decision = "unavailable";
-      rows = buildExpectedProjectionRows(
-        baseRows,
-        rentvineRead.value.rows,
-        sheetRead.ok ? sheetRead.value : null,
-        { resolutions: [], trackedIncompleteLeaseIds: new Set() },
-        referenceDateIso,
-        leaseDetails,
-      );
+  const projectContract = (
+    contract: IndependentGuidanceContract,
+  ): ContractDirectProjection => {
+    const emptyDecisions: IndependentDecisionFacts = {
+      resolutions: [],
+      trackedIncompleteLeaseIds: new Set(),
+    };
+    // S156: the staff-lane expectation needs both work-record heads; a predecessor expectation
+    // never depends on the lease-bound head read.
+    let decision: SourceReadState =
+      decisionRead.ok &&
+      (contract === "predecessor" || decisionRead.value.staffLaneManualByLease !== null)
+        ? "complete"
+        : "unavailable";
+    let rows: ExpectedProjectionRow[] = [];
+    if (rentvineRead.ok) {
+      try {
+        rows = buildExpectedProjectionRows(
+          baseRows,
+          rentvineRead.value.rows,
+          sheetRead.ok ? sheetRead.value : null,
+          decisionRead.ok ? decisionRead.value : emptyDecisions,
+          referenceDateIso,
+          leaseDetails,
+          contract,
+        );
+      } catch {
+        decision = "unavailable";
+        rows = buildExpectedProjectionRows(
+          baseRows,
+          rentvineRead.value.rows,
+          sheetRead.ok ? sheetRead.value : null,
+          emptyDecisions,
+          referenceDateIso,
+          leaseDetails,
+          contract,
+        );
+      }
     }
-  }
+    return {
+      rows,
+      decision,
+      sourceDigest:
+        rentvineRead.ok && sheetRead.ok && decision === "complete"
+          ? directProjectionDigest(rows, sheetRead.value.sourceDigest, contract)
+          : null,
+    };
+  };
+  const predecessor = projectContract("predecessor");
+  const staffLane = projectContract("staff_lane");
   return {
-    rows,
+    ...predecessor,
+    staffLane,
     sourceRecords: rentvineRead.ok ? rentvineRead.value.rows.length : 0,
-    projectedRecords: rows.length,
+    projectedRecords: predecessor.rows.length,
     rentvine: rentvineRead.ok
       ? rentvineRead.value.complete
         ? "complete"
         : "partial"
       : "unavailable",
     sheet: sheetRead.ok ? "complete" : "unavailable",
-    decision,
-    sourceDigest:
-      rentvineRead.ok && sheetRead.ok && decision === "complete"
-        ? directProjectionDigest(rows, sheetRead.value.sourceDigest)
-        : null,
   };
 }
 
-function buildExpectedProjectionRows(
+/**
+ * The independent expectation of every source row under one rule set. The predecessor rules are
+ * exactly those the predecessor revision was verified with. S154/S156 staff-lane rules differ only
+ * in which work records exist (both heads, staff-lane summary) and in that a lease outside the
+ * worklist by its source marker still opens.
+ */
+export function buildExpectedProjectionRows(
   baseRows: readonly IndependentRenewalSourceRow[],
   rentvineRows: readonly Record<string, unknown>[],
   sheet: IndependentSheetProjection | null,
   decisions: IndependentDecisionFacts,
   referenceDateIso: string,
   leaseDetails: ReadonlyMap<string, Readonly<Record<string, unknown>>> = new Map(),
+  contract: IndependentGuidanceContract = "predecessor",
 ): ExpectedProjectionRow[] {
+  const manualRecords =
+    contract === "staff_lane"
+      ? (decisions.staffLaneManualByLease ?? null)
+      : (decisions.manualByLease ?? null);
   return baseRows.map((row, index) => {
     const sourceRow = rentvineRows[index] ?? {};
-    const workspaceExpected = independentWorkspaceExpected(sourceRow, leaseDetails);
+    // The worklist cohort decision is the same under both rule sets: an id and no definitive
+    // source exclusion. Only the staff-lane rules let an excluded lease open its workspace.
+    const worklistEligible = independentWorkspaceExpected(sourceRow, leaseDetails);
+    const workspaceExpected =
+      contract === "staff_lane" ? row.leaseId !== "" : worklistEligible;
     const dispositionExpected = independentDispositionExpected(
       row,
-      workspaceExpected,
+      worklistEligible,
       referenceDateIso,
     );
     // A definitive source skip outranks obsolete app-owned progress. It never creates a process,
     // action, or retained-incomplete workflow in the independent expectation. S103: a month-to-month
     // lease follows the annual review rhythm, so obsolete progress never retains it either.
     const manual =
-      workspaceExpected && dispositionExpected !== "skip"
-        ? (decisions.manualByLease?.get(row.leaseId) ?? null)
+      worklistEligible && dispositionExpected !== "skip"
+        ? (manualRecords?.get(row.leaseId) ?? null)
         : null;
     const manualPending =
       !!manual && (!manual.complete || manual.pendingSourceUpdates > 0);
     const trackedIncomplete =
-      workspaceExpected &&
+      worklistEligible &&
       dispositionExpected !== "periodic_review" &&
       decisions.trackedIncompleteLeaseIds.has(row.leaseId);
     const retentionExpected = independentRetentionExpected(
       row,
       trackedIncomplete,
       referenceDateIso,
-      workspaceExpected,
+      worklistEligible,
       manualPending,
     );
     const rentReconciliationExpected =
@@ -809,8 +1004,10 @@ function buildExpectedProjectionRows(
           verifiedByResolutionDiffers: false,
           resolvedValue: null,
         };
+    // The rent comparison is attached to worklist-eligible rows under both rule sets; an opened
+    // excluded lease still shows its rent as needing verification.
     const rentExpectation = projectIndependentExpectedRentState({
-      workspaceExpected,
+      workspaceExpected: worklistEligible,
       dispositionExpected,
       sourceExpectation,
     });
@@ -928,12 +1125,114 @@ function independentRetentionExpected(
   return trackedIncomplete || manualPending ? "tracked_incomplete" : "outside";
 }
 
+const PROCESS_STATUSES: ReadonlySet<string> = new Set([
+  "active",
+  "waiting",
+  "counter_reopened",
+  "needs_verification",
+  "non_renewal_handoff_required",
+  "non_renewal_handoff",
+  "complete",
+  "migration_required",
+]);
+const STEP_STATES: ReadonlySet<string> = new Set([
+  "not_started",
+  "blocked",
+  "ready",
+  "complete",
+]);
+const WAITING_PARTIES: ReadonlySet<string> = new Set([
+  "none",
+  "team",
+  "owner",
+  "tenant",
+  "document_coordinator",
+  "unresolved_source",
+]);
+
+/**
+ * The process-marker vocabulary and presence checks shared by both rule sets: markers exist
+ * exactly for the worklist cohort and name documented values. The predecessor rules add the
+ * unresolved-rent coupling in `projectIndependentExpectedGuidanceState` itself.
+ */
+function countProcessMarkerVocabularyMismatches(
+  processExpected: boolean,
+  processState: IndependentRenderedProcessState,
+): number {
+  let markerMismatches = WAITING_PARTIES.has(processState.waitingParty ?? "") ? 0 : 1;
+  if (processExpected) {
+    if (!PROCESS_STATUSES.has(processState.processStatus ?? "")) markerMismatches += 1;
+    if (!WORKSPACE_STEPS.has(processState.currentStepId ?? "")) {
+      markerMismatches += 1;
+    }
+    if (!STEP_STATES.has(processState.currentStepState ?? "")) markerMismatches += 1;
+  } else if (
+    processState.processStatus !== "none" ||
+    processState.currentStepId !== "none" ||
+    processState.currentStepState !== "none"
+  ) {
+    markerMismatches += 1;
+  }
+  return markerMismatches;
+}
+
+/**
+ * S156/S157 staff-lane rules. Needs verification comes only from a flagged lease fact (the
+ * page-level causes are read as application state); otherwise the staff lane decides: the
+ * recorded work, else the unrecorded lane for a worklist lease, else Needs review outside the
+ * worklist. No rent difference, missing source or process state changes the status, and the
+ * process markers no longer order the work, so only their vocabulary and presence are verified.
+ */
+function projectIndependentStaffLaneGuidanceState(input: {
+  readonly dispositionExpected: ExpectedProjectionRow["dispositionExpected"];
+  readonly processExpected: boolean;
+  readonly processState: IndependentRenderedProcessState;
+  readonly manual?: IndependentManualRenewal | null;
+}): Required<IndependentExpectedGuidanceState> {
+  const markerMismatches = countProcessMarkerVocabularyMismatches(
+    input.processExpected,
+    input.processState,
+  );
+  if (input.dispositionExpected === "review") {
+    return {
+      overallStatus: "needs_verification",
+      actionStepId: "verify-renewal",
+      actionFragment: null,
+      markerMismatches,
+    };
+  }
+  const lane =
+    input.manual ?? (input.processExpected ? INDEPENDENT_UNRECORDED_STAFF_LANE : null);
+  if (!lane) {
+    return {
+      overallStatus: "needs_review",
+      actionStepId: null,
+      actionFragment: null,
+      markerMismatches,
+    };
+  }
+  return {
+    overallStatus: lane.complete
+      ? "complete"
+      : ["owner_response", "tenant_response"].includes(lane.nextActivity)
+        ? "waiting"
+        : "ready",
+    actionStepId: lane.actionStepId,
+    actionFragment: `#renewal-manual-${lane.nextActivity}`,
+    markerMismatches,
+  };
+}
+
 /**
  * Derive the exact desk status/action from independently checked source precedence plus separate
  * app-owned S72 markers. The process markers verify S72-to-guidance parity only: they do not claim
  * to independently corroborate actor-scoped Gmail, notice-policy, or packet truth.
+ *
+ * The default (predecessor) rules below are exactly those the predecessor revision was verified
+ * with. `contract: "staff_lane"` applies the S156/S157 rules instead.
  */
 export function projectIndependentExpectedGuidanceState(input: {
+  readonly contract?: IndependentGuidanceContract;
   readonly dispositionExpected: ExpectedProjectionRow["dispositionExpected"];
   readonly retentionExpected: IndependentRenewalRetentionState;
   readonly processExpected: boolean;
@@ -942,43 +1241,20 @@ export function projectIndependentExpectedGuidanceState(input: {
   readonly processState: IndependentRenderedProcessState;
   readonly manual?: IndependentManualRenewal | null;
 }): IndependentExpectedGuidanceState {
-  const processStatuses = new Set([
-    "active",
-    "waiting",
-    "counter_reopened",
-    "needs_verification",
-    "non_renewal_handoff_required",
-    "non_renewal_handoff",
-    "complete",
-    "migration_required",
-  ]);
-  const stepStates = new Set(["not_started", "blocked", "ready", "complete"]);
-  const waitingParties = new Set([
-    "none",
-    "team",
-    "owner",
-    "tenant",
-    "document_coordinator",
-    "unresolved_source",
-  ]);
+  if (input.contract === "staff_lane")
+    return projectIndependentStaffLaneGuidanceState(input);
   const { processState } = input;
   const unresolvedRent =
     input.rentReconciliationExpected &&
     input.rentExpectation.rentVerification === "needs_verification";
-  let markerMismatches = waitingParties.has(processState.waitingParty ?? "") ? 0 : 1;
-  if (input.processExpected) {
-    if (!processStatuses.has(processState.processStatus ?? "")) markerMismatches += 1;
-    if (!WORKSPACE_STEPS.has(processState.currentStepId ?? "")) {
-      markerMismatches += 1;
-    }
-    if (!stepStates.has(processState.currentStepState ?? "")) markerMismatches += 1;
-    if (unresolvedRent && processState.currentStepId !== "verify-renewal") {
-      markerMismatches += 1;
-    }
-  } else if (
-    processState.processStatus !== "none" ||
-    processState.currentStepId !== "none" ||
-    processState.currentStepState !== "none"
+  let markerMismatches = countProcessMarkerVocabularyMismatches(
+    input.processExpected,
+    processState,
+  );
+  if (
+    input.processExpected &&
+    unresolvedRent &&
+    processState.currentStepId !== "verify-renewal"
   ) {
     markerMismatches += 1;
   }
@@ -1131,7 +1407,7 @@ function independentDispositionExpected(
 
 async function readRenderedProjection(
   options: LiveReconciliationOptions,
-  expectedRows: readonly ExpectedProjectionRow[],
+  direct: DirectProjection,
   expectedRentvineHost: string | null,
   deadlineAtMs: number,
   abortSignal: AbortSignal,
@@ -1209,9 +1485,15 @@ async function readRenderedProjection(
     const result = await readRowsFromPage(
       page,
       options.origin,
-      expectedRows,
+      direct.rows,
       expectedRentvineHost,
       abortSignal,
+      {
+        staffLaneRows: direct.staffLane.rows,
+        ...(options.expectedGuidanceContract
+          ? { expectedContract: options.expectedGuidanceContract }
+          : {}),
+      },
     );
     rendered = { ...result, application };
   } catch {
@@ -1431,7 +1713,18 @@ const RENEWAL_DOM_ATTRIBUTES = [
   "data-action-step-id",
   "data-action-required-capability",
   "data-blocker-count",
+  "data-guidance-contract",
 ] as const;
+
+/**
+ * S156: which expectation a rendered row is read against while the page is read. The
+ * predecessor expectation is `expectedRows`; the staff-lane expectation is `staffLaneRows`
+ * (absent means no staff-lane row is known). `expectedContract` outranks the rendered marker.
+ */
+export interface RenderedRowGuidanceSelection {
+  readonly staffLaneRows?: readonly ExpectedProjectionRow[];
+  readonly expectedContract?: IndependentExpectedContractMarker;
+}
 
 export async function readRowsFromPage(
   page: Page,
@@ -1439,10 +1732,14 @@ export async function readRowsFromPage(
   expectedRows: readonly ExpectedProjectionRow[],
   expectedRentvineHost: string | null,
   abortSignal: AbortSignal,
+  guidance: RenderedRowGuidanceSelection = {},
 ): Promise<Pick<RenderedProjection, "rows" | "invalidDestinations" | "fieldMismatches">> {
   let invalidDestinations = 0;
   let fieldMismatches = 0;
   const expectedByLease = new Map(expectedRows.map((row) => [row.leaseId, row] as const));
+  const staffLaneByLease = new Map(
+    (guidance.staffLaneRows ?? []).map((row) => [row.leaseId, row] as const),
+  );
   abortSignal.throwIfAborted();
   const snapshot = await captureAssuranceDom(
     page,
@@ -1497,7 +1794,15 @@ export async function readRowsFromPage(
           "data-manual-pending-source-updates",
         ),
       };
-      const expected = expectedByLease.get(leaseId);
+      const guidanceContract = await row.getAttribute("data-guidance-contract");
+      const expected = (
+        resolveIndependentGuidanceContract(
+          guidanceContract,
+          guidance.expectedContract,
+        ) === "staff_lane"
+          ? staffLaneByLease
+          : expectedByLease
+      ).get(leaseId);
       const primaryWorkspace = leaseCell.locator(".renewal-lease-link");
       const workspaceAvailable = await row.getAttribute("data-workspace-available");
       const address = await readRenderedLeaseAddress(leaseCell);
@@ -1675,6 +1980,7 @@ export async function readRowsFromPage(
           workspace,
           action,
           statusFilterHrefs,
+          guidanceContract,
         },
         invalidDestinations: rowInvalidDestinations,
         fieldMismatches: rowFieldMismatches,
@@ -1742,8 +2048,9 @@ async function readRenderedRenewalDate(
   };
 }
 
-/** Skipped leases intentionally have no workspace link. Check cardinality before textContent so
- * their plain source address is read immediately, while missing/duplicate identity markup fails. */
+/** A predecessor row outside the worklist has no workspace link (S154 rows link every lease with
+ * an id). Check cardinality before textContent so a plain source address is read immediately,
+ * while missing/duplicate identity markup fails. */
 export async function readRenderedLeaseAddress(
   leaseCell: ReturnType<Page["locator"]>,
 ): Promise<string> {
@@ -1847,11 +2154,17 @@ async function partyValues(
   return fallback ? [fallback] : [];
 }
 
-function compareProjectionRows(
+/**
+ * Compare the rendered desk with the independent expectation. S156: each rendered row is read
+ * under the rule set its marker names (or the caller-named contract), and the page's markers are
+ * counted so a mixed, missing or unexpected marker is a mismatch in its own right.
+ */
+export function compareProjectionRows(
   direct: DirectProjection,
   rendered: RenderedProjection,
   role: AssuranceRole,
   origin: string,
+  expectedGuidanceContract?: IndependentExpectedContractMarker,
 ): ReconciliationCounts {
   const counts = { ...emptyReconciliationCounts() };
   counts.sourceRecords = direct.sourceRecords;
@@ -1859,7 +2172,12 @@ function compareProjectionRows(
   counts.renderedRecords = rendered.rows.length;
   counts.invalidDestinations = rendered.invalidDestinations;
   counts.fieldMismatches = rendered.fieldMismatches;
+  counts.fieldMismatches += countIndependentContractMarkerMismatches(
+    rendered.rows.map((row) => row.guidanceContract),
+    expectedGuidanceContract,
+  );
   const expected = indexRows(direct.rows);
+  const staffLaneExpected = indexRows(direct.staffLane.rows);
   const observed = indexRows(rendered.rows);
   counts.duplicateApplicationKeys = observed.duplicates;
   for (const [key, expectedRows] of expected.byKey) {
@@ -1876,91 +2194,193 @@ function compareProjectionRows(
     }
     const limit = Math.min(expectedRows.length, actualRows.length);
     for (let index = 0; index < limit; index += 1) {
-      const expectedRow = expectedRows[index];
       const observedRow = actualRows[index];
-      const expectedGuidance = projectIndependentExpectedGuidanceState({
-        dispositionExpected: expectedRow.dispositionExpected,
-        retentionExpected: expectedRow.retentionExpected,
-        processExpected: expectedRow.processExpected,
-        rentReconciliationExpected: expectedRow.rentReconciliationExpected,
-        rentExpectation: expectedRow.rentExpectation,
-        processState: observedRow.processState,
-        manual: expectedRow.manual,
-      });
-      counts.fieldMismatches += countFieldMismatches(expectedRow, observedRow);
-      const expectedManual = expectedRow.manual;
-      if (
-        observedRow.manual.complete !==
-        (expectedManual ? String(expectedManual.complete) : "none")
-      )
-        counts.fieldMismatches++;
-      if (observedRow.manual.nextActivity !== (expectedManual?.nextActivity ?? "none"))
-        counts.fieldMismatches++;
-      if (
-        observedRow.manual.pendingSourceUpdates !==
-        (expectedManual ? String(expectedManual.pendingSourceUpdates) : "none")
-      )
-        counts.fieldMismatches++;
-      counts.fieldMismatches += countDispositionMismatches(
-        expectedRow.dispositionExpected,
-        observedRow.disposition,
+      const contract = resolveIndependentGuidanceContract(
+        observedRow.guidanceContract,
+        expectedGuidanceContract,
       );
-      counts.fieldMismatches += countIndependentExpectedRowStateMismatches({
-        expectedRetention: expectedRow.retentionExpected,
-        expectedOverallStatus: expectedGuidance.overallStatus,
-        observedRetention: observedRow.retentionState,
-        observedOverallStatus: observedRow.status.overallStatus,
-      });
-      counts.fieldMismatches += expectedGuidance.markerMismatches;
-      counts.fieldMismatches +=
-        !expectedRow.manual &&
-        observedRow.processState.processStatus === "migration_required"
-          ? countIndependentMigrationHoldMismatches(
-              expectedRow.rentExpectation,
-              observedRow.status,
-            )
-          : !expectedRow.manual &&
-              expectedRow.rentReconciliationExpected &&
-              expectedRow.dispositionExpected !== "review" &&
-              !(
-                expectedRow.rentExpectation.evidence === "conflict" &&
-                expectedGuidance.overallStatus === "needs_verification"
-              )
-            ? countIndependentStatusMismatches(
-                expectedRow.rentExpectation,
-                observedRow.status,
-              )
-            : countCoreStatusMismatches(expectedRow.rentExpectation, observedRow.status);
-      counts.fieldMismatches += countActionStatusMismatches(observedRow);
-      counts.invalidDestinations += countIndependentWorkspaceDestinationMismatches({
-        workspaceExpected: expectedRow.workspaceExpected,
-        leaseId: expectedRow.leaseId,
+      // Both expectations are built from the same source rows in the same order.
+      const expectedRow =
+        contract === "staff_lane"
+          ? staffLaneExpected.byKey.get(key)?.[index]
+          : expectedRows[index];
+      if (!expectedRow) {
+        counts.fieldMismatches += 1;
+        continue;
+      }
+      const rowCounts = countIndependentRowGuidanceMismatches({
+        contract,
+        expectedRow,
+        observedRow,
+        role,
         origin,
-        observed: observedRow.workspace,
-        expectedRentVerification: expectedRow.rentExpectation.rentVerification,
-        expectedRentvineSourceUrl: expectedRow.rentvineRecordUrl ?? null,
       });
-      counts.invalidDestinations += expectedRow.workspaceExpected
-        ? countIndependentActionDestinationMismatches({
-            leaseId: expectedRow.leaseId,
-            origin,
-            observed: observedRow.action,
-            accessHandoffExpected: accessHandoffExpected(role, observedRow.action),
-            ...(expectedRow.manual &&
-            ["ready", "waiting", "complete"].includes(expectedGuidance.overallStatus)
-              ? { expectedFragment: `#renewal-manual-${expectedRow.manual.nextActivity}` }
-              : {}),
-            ...(expectedGuidance.actionStepId
-              ? { expectedStep: expectedGuidance.actionStepId }
-              : {}),
-          })
-        : countIneligibleActionDestinationMismatches(observedRow.action);
+      counts.fieldMismatches += rowCounts.fieldMismatches;
+      counts.invalidDestinations += rowCounts.invalidDestinations;
     }
   }
   for (const [key, actualRows] of observed.byKey) {
     if (!expected.byKey.has(key)) counts.unexpectedInApplication += actualRows.length;
   }
   return counts;
+}
+
+/** The checks both rule sets share: identity, values, staff-record markers, disposition. */
+function countSharedRowMismatches(
+  expectedRow: ExpectedProjectionRow,
+  observedRow: RenderedProjectionRow,
+): number {
+  let fieldMismatches = countFieldMismatches(expectedRow, observedRow);
+  const expectedManual = expectedRow.manual;
+  if (
+    observedRow.manual.complete !==
+    (expectedManual ? String(expectedManual.complete) : "none")
+  )
+    fieldMismatches++;
+  if (observedRow.manual.nextActivity !== (expectedManual?.nextActivity ?? "none"))
+    fieldMismatches++;
+  if (
+    observedRow.manual.pendingSourceUpdates !==
+    (expectedManual ? String(expectedManual.pendingSourceUpdates) : "none")
+  )
+    fieldMismatches++;
+  fieldMismatches += countDispositionMismatches(
+    expectedRow.dispositionExpected,
+    observedRow.disposition,
+  );
+  return fieldMismatches;
+}
+
+/**
+ * One rendered row against its expectation under one rule set. The predecessor branch is exactly
+ * the check the predecessor revision was verified with; the staff-lane branch asserts the S156/S157
+ * facts: status from the staff lane, no blockers, the flag only for Needs verification, the
+ * action kind, destination and control of the expected next activity, no capability gate, and
+ * the unchanged rent evidence with its exact destinations.
+ */
+export function countIndependentRowGuidanceMismatches(input: {
+  readonly contract: IndependentGuidanceContract;
+  readonly expectedRow: ExpectedProjectionRow;
+  readonly observedRow: RenderedProjectionRow;
+  readonly role: AssuranceRole;
+  readonly origin: string;
+}): { readonly fieldMismatches: number; readonly invalidDestinations: number } {
+  const { expectedRow, observedRow, role, origin } = input;
+  if (input.contract === "staff_lane") {
+    const expectedGuidance = projectIndependentExpectedGuidanceState({
+      contract: "staff_lane",
+      dispositionExpected: expectedRow.dispositionExpected,
+      retentionExpected: expectedRow.retentionExpected,
+      processExpected: expectedRow.processExpected,
+      rentReconciliationExpected: expectedRow.rentReconciliationExpected,
+      rentExpectation: expectedRow.rentExpectation,
+      processState: observedRow.processState,
+      manual: expectedRow.manual,
+    });
+    let fieldMismatches = countSharedRowMismatches(expectedRow, observedRow);
+    fieldMismatches += countIndependentExpectedRowStateMismatches({
+      expectedRetention: expectedRow.retentionExpected,
+      expectedOverallStatus: expectedGuidance.overallStatus,
+      observedRetention: observedRow.retentionState,
+      observedOverallStatus: observedRow.status.overallStatus,
+    });
+    fieldMismatches += expectedGuidance.markerMismatches;
+    fieldMismatches += countIndependentStaffLaneStatusMismatches(
+      expectedRow.rentExpectation,
+      expectedGuidance.overallStatus,
+      observedRow.status,
+    );
+    fieldMismatches += countIndependentStaffLaneActionMismatches({
+      expectedOverallStatus: expectedGuidance.overallStatus,
+      expectedStepId: expectedGuidance.actionStepId,
+      observed: observedRow.action,
+    });
+    let invalidDestinations = countIndependentWorkspaceDestinationMismatches({
+      workspaceExpected: expectedRow.workspaceExpected,
+      leaseId: expectedRow.leaseId,
+      origin,
+      observed: observedRow.workspace,
+      expectedRentVerification: expectedRow.rentExpectation.rentVerification,
+      expectedRentvineSourceUrl: expectedRow.rentvineRecordUrl ?? null,
+    });
+    invalidDestinations += expectedRow.workspaceExpected
+      ? countIndependentActionDestinationMismatches({
+          leaseId: expectedRow.leaseId,
+          origin,
+          observed: observedRow.action,
+          // No staff-lane suggestion is gated by a capability, so there is never a handoff.
+          accessHandoffExpected: false,
+          ...(expectedGuidance.actionFragment
+            ? { expectedFragment: expectedGuidance.actionFragment }
+            : {}),
+          ...(expectedGuidance.actionStepId
+            ? { expectedStep: expectedGuidance.actionStepId }
+            : {}),
+        })
+      : countIneligibleActionDestinationMismatches(observedRow.action);
+    return { fieldMismatches, invalidDestinations };
+  }
+
+  const expectedGuidance = projectIndependentExpectedGuidanceState({
+    dispositionExpected: expectedRow.dispositionExpected,
+    retentionExpected: expectedRow.retentionExpected,
+    processExpected: expectedRow.processExpected,
+    rentReconciliationExpected: expectedRow.rentReconciliationExpected,
+    rentExpectation: expectedRow.rentExpectation,
+    processState: observedRow.processState,
+    manual: expectedRow.manual,
+  });
+  let fieldMismatches = countSharedRowMismatches(expectedRow, observedRow);
+  fieldMismatches += countIndependentExpectedRowStateMismatches({
+    expectedRetention: expectedRow.retentionExpected,
+    expectedOverallStatus: expectedGuidance.overallStatus,
+    observedRetention: observedRow.retentionState,
+    observedOverallStatus: observedRow.status.overallStatus,
+  });
+  fieldMismatches += expectedGuidance.markerMismatches;
+  fieldMismatches +=
+    !expectedRow.manual && observedRow.processState.processStatus === "migration_required"
+      ? countIndependentMigrationHoldMismatches(
+          expectedRow.rentExpectation,
+          observedRow.status,
+        )
+      : !expectedRow.manual &&
+          expectedRow.rentReconciliationExpected &&
+          expectedRow.dispositionExpected !== "review" &&
+          !(
+            expectedRow.rentExpectation.evidence === "conflict" &&
+            expectedGuidance.overallStatus === "needs_verification"
+          )
+        ? countIndependentStatusMismatches(
+            expectedRow.rentExpectation,
+            observedRow.status,
+          )
+        : countCoreStatusMismatches(expectedRow.rentExpectation, observedRow.status);
+  fieldMismatches += countActionStatusMismatches(observedRow);
+  let invalidDestinations = countIndependentWorkspaceDestinationMismatches({
+    workspaceExpected: expectedRow.workspaceExpected,
+    leaseId: expectedRow.leaseId,
+    origin,
+    observed: observedRow.workspace,
+    expectedRentVerification: expectedRow.rentExpectation.rentVerification,
+    expectedRentvineSourceUrl: expectedRow.rentvineRecordUrl ?? null,
+  });
+  invalidDestinations += expectedRow.workspaceExpected
+    ? countIndependentActionDestinationMismatches({
+        leaseId: expectedRow.leaseId,
+        origin,
+        observed: observedRow.action,
+        accessHandoffExpected: accessHandoffExpected(role, observedRow.action),
+        ...(expectedRow.manual &&
+        ["ready", "waiting", "complete"].includes(expectedGuidance.overallStatus)
+          ? { expectedFragment: `#renewal-manual-${expectedRow.manual.nextActivity}` }
+          : {}),
+        ...(expectedGuidance.actionStepId
+          ? { expectedStep: expectedGuidance.actionStepId }
+          : {}),
+      })
+    : countIneligibleActionDestinationMismatches(observedRow.action);
+  return { fieldMismatches, invalidDestinations };
 }
 
 function indexRows<Row extends IndependentRenewalSourceRow>(
@@ -2178,6 +2598,7 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     const report = await runProductionReconciliation({
       ...resolveProductionTarget(argv),
       ...resolveReconciliationCoordinates(argv),
+      ...resolveExpectedGuidanceContract(argv),
       role: resolveRole(argv),
       profile: resolveManagedProfile(argv),
       headed: hasArg(argv, "--headed"),

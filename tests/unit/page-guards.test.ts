@@ -12,6 +12,7 @@ import {
   requirePageRole,
   requirePageSpaceAccess,
 } from "@/lib/auth/page-guards";
+import { SPACE_SCOPES, type SpaceScope } from "@/lib/constants";
 import { redirect } from "next/navigation";
 
 // redirect() never returns in Next; emulate that by throwing a tagged sentinel so the
@@ -46,7 +47,6 @@ const maintenanceEditor: AuthenticatedUser = {
   email: "maintenance-editor@pmikcmetro.com",
   hd: "pmikcmetro.com",
   role: "Editor",
-  scopes: ["maintenance"],
 };
 
 afterEach(() => {
@@ -108,22 +108,23 @@ describe("page auth guards", () => {
     expect(redirect).toHaveBeenCalledWith("/sign-in?error=forbidden");
   });
 
-  it("returns a scoped user when the requested page is in scope", async () => {
+  // S167: a Renewals page used to redirect this Editor to its primary Space.
+  it("returns the signed-in Editor for every Space page without a redirect", async () => {
     vi.mocked(requireUser).mockResolvedValue(maintenanceEditor);
 
-    await expect(requirePageSpaceAccess("maintenance")).resolves.toEqual(
-      maintenanceEditor,
-    );
+    for (const scope of SPACE_SCOPES) {
+      await expect(requirePageSpaceAccess(scope)).resolves.toEqual(maintenanceEditor);
+    }
     expect(redirect).not.toHaveBeenCalled();
   });
 
-  it("redirects an authenticated scope miss to the user's primary space", async () => {
+  it("sends a page for a Space that does not exist to the Dashboard", async () => {
     vi.mocked(requireUser).mockResolvedValue(maintenanceEditor);
 
-    await expect(requirePageSpaceAccess("renewals")).rejects.toThrow(
-      "NEXT_REDIRECT:/maintenance",
+    await expect(requirePageSpaceAccess("not-a-space" as SpaceScope)).rejects.toThrow(
+      "NEXT_REDIRECT:/",
     );
-    expect(redirect).toHaveBeenCalledWith("/maintenance");
+    expect(redirect).toHaveBeenCalledWith("/");
   });
 
   it("redirects an unauthenticated space request to sign-in", async () => {
@@ -137,14 +138,8 @@ describe("page auth guards", () => {
     expect(redirect).toHaveBeenCalledWith("/sign-in");
   });
 
-  it("selects the first explicit space as primary and keeps wildcard users on Console", () => {
-    expect(primarySpaceHref(maintenanceEditor)).toBe("/maintenance");
-    expect(
-      primarySpaceHref({
-        ...maintenanceEditor,
-        scopes: ["renewals", "maintenance"],
-      }),
-    ).toBe("/lease-renewal");
-    expect(primarySpaceHref(adminUser)).toBe("/");
+  // S167: no account has a primary Space any more, so the fallback is always the Dashboard.
+  it("uses the Dashboard as the fallback destination for every account", () => {
+    expect(primarySpaceHref()).toBe("/");
   });
 });

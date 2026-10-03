@@ -15,7 +15,10 @@ import {
   SaveRenewalWorkspaceSchema,
   StartRenewalCycleSchema,
 } from "@/lib/firestore/renewal-workspace";
-import { resolveRenewalCycleBasis } from "@/lib/lease-renewal/workspace-cycle-context";
+import {
+  resolveRenewalCycleBasis,
+  resolveRenewalWorkBasis,
+} from "@/lib/lease-renewal/workspace-cycle-context";
 
 const Body = z.discriminatedUnion("operation", [
   z
@@ -83,34 +86,16 @@ export async function POST(request: Request) {
       );
     }
     const { operation: _, ...value } = input;
-    const result = await saveRenewalWorkspace(actor, value);
-    if (isOperatingSheetWritebackPaused()) {
-      return NextResponse.json({
-        ...result,
-        writeback_paused: true,
-        sourcePreparation: "Saved in app; Sheet updates paused.",
-      });
-    }
-    const entry = Object.values(result.state?.sourceUpdates ?? {}).find(
-      (item) => item.eventId === value.operationId,
+    // S154/S155: the first actual save establishes the work record from the lease's real basis.
+    // Saving is application persistence only: it reads and writes no Sheet. A pending Sheet value
+    // is prepared when staff deliberately ask for it (prepare_source), and confirmed separately.
+    const result = await saveRenewalWorkspace(actor, value, undefined, () =>
+      resolveRenewalWorkBasis(actor, value.leaseId),
     );
-    if (entry && !result.duplicate) {
-      try {
-        result.state = await prepareWorkspaceSheetUpdate(actor, {
-          leaseId: value.leaseId,
-          cycleId: value.cycleId,
-          field: entry.intent.field,
-          eventId: entry.eventId,
-        });
-      } catch {
-        return NextResponse.json({
-          ...result,
-          sourcePreparation:
-            "Pending. The staff record was saved; reload its source update before continuing.",
-        });
-      }
-    }
-    return NextResponse.json({ ...result, writeback_paused: false });
+    return NextResponse.json({
+      ...result,
+      writeback_paused: isOperatingSheetWritebackPaused(),
+    });
   } catch (error) {
     return apiErrorResponse(error);
   }

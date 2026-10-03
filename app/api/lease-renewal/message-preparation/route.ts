@@ -1,6 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import {
   getMessageDraftSnapshot,
+  preparedMessageDraftDiffers,
   recordMessageDraftOutcome,
   savePreparedMessageDraft,
 } from "@/lib/firestore/renewal-message-drafts";
@@ -8,7 +10,7 @@ import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
-import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { requireCapabilityInSpace, type AuthenticatedUser } from "@/lib/auth/session";
 import { currentRenewalMessage } from "@/lib/lease-renewal/current-renewal-message";
 import { SaveMessagePreparationSchema } from "@/lib/lease-renewal/renewal-message-preparation";
 import { saveMessagePreparation } from "@/lib/firestore/renewal-message-preparations";
@@ -26,6 +28,7 @@ import { GovernedDraftConnectionError } from "@/lib/external-execution/governed-
 import { buildLiveCompScreenshotRuntime } from "@/lib/lease-renewal/comp-screenshot-runtime";
 import { resolveRenewalDraftCompScreenshotAttachment } from "@/lib/lease-renewal/comp-screenshot-attachment-runtime";
 import type { RenewalDraftAttachmentIdentity } from "@/lib/lease-renewal/execution/renewal-draft-attachment";
+import { resolveRenewalWorkBasis } from "@/lib/lease-renewal/workspace-cycle-context";
 
 const identity = z
   .object({
@@ -33,12 +36,24 @@ const identity = z
     channel: z.enum(["owner", "tenant"]),
   })
   .strict();
+/** The message state a draft request carries so its own action can save it (S162 R-S162-7). */
+const draftSave = SaveMessagePreparationSchema.omit({ leaseId: true, channel: true });
 const command = z.discriminatedUnion("kind", [
   SaveMessagePreparationSchema.extend({ kind: z.literal("save") }),
   z.object({ kind: z.literal("publish"), channel: z.enum(["owner", "tenant"]) }).strict(),
   identity
     .extend({
       kind: z.literal("draft"),
+      /**
+       * S162: exactly what the person sees when they ask for the draft. The preview is refused
+       * when the saved message does not read back as this subject and body.
+       */
+      displayed: z
+        .object({ subject: z.string().max(400), body: z.string().max(40_000) })
+        .strict()
+        .optional(),
+      /** The unsaved message state, saved inside this explicit draft action before the preview. */
+      save: draftSave.optional(),
       confirm: RenewalDraftConfirmationSchema.optional(),
       reconcile: RenewalDraftReconciliationSchema.optional(),
     })
@@ -47,7 +62,8 @@ const command = z.discriminatedUnion("kind", [
       "Confirm and reconcile are separate operations.",
     ),
 ]);
-function publicPreparation(current: Awaited<ReturnType<typeof currentRenewalMessage>>) {
+type Current = Awaited<ReturnType<typeof currentRenewalMessage>>;
+function publicPreparation(current: Current) {
   return {
     availableCompScreenshot: current.availableCompScreenshot,
     draftAttempt: current.draftAttempt,
@@ -63,10 +79,11 @@ function publicPreparation(current: Awaited<ReturnType<typeof currentRenewalMess
     inputs: current.inputs,
     facts: current.facts,
     content: current.content,
-    // S139: the saved refined wording and whether it still matches the current composition.
+    // S139/S161: the saved authored wording, and the hash of the composition it would start from.
     bodyOverride: current.bodyOverride,
+    bodyBaseHash: current.bodyBaseHash,
+    subjectOverride: current.subjectOverride,
     sourceFingerprint: current.basis.sourceFingerprint,
-    needsReview: current.needsReview,
     signatureMatchesActor: current.signatureMatchesActor,
     publication: {
       status: current.publication.status,
@@ -78,6 +95,25 @@ function publicPreparation(current: Awaited<ReturnType<typeof currentRenewalMess
     notices: current.notices,
     policyGates: current.policyGates,
   };
+}
+function claimBasisOf(current: Current) {
+  return {
+    noticeSafety: current.basis.noticeSafety ?? undefined,
+    workspaceFingerprint: current.basis.workspaceFingerprint!,
+    sourceFingerprint: current.basis.sourceFingerprint,
+    resourceFingerprint: current.basis.resourceFingerprint,
+    preparationRevision: current.saved!.revision,
+  };
+}
+/** A refusal that happened before any Gmail call, in the shape the message card reports. */
+function refusedBeforeGmail(error: string, code: string, status = 409) {
+  return NextResponse.json({ error, code, providerCallAttempted: false }, { status });
+}
+function saveMessage(actor: AuthenticatedUser, value: unknown, leaseId: string) {
+  // S154: the first saved message establishes the lease's work record from its real basis.
+  return saveMessagePreparation(actor, value, {
+    resolveBasis: () => resolveRenewalWorkBasis(actor, leaseId),
+  });
 }
 export async function GET(request: Request) {
   try {
@@ -114,6 +150,17 @@ export async function POST(request: Request) {
         contentHash: publication.contentHash,
       });
     }
+    if (input.kind === "save") {
+      // S161: an autosave. It needs no cycle, no review and no current source read to be stored.
+      const { kind: _kind, ...save } = input;
+      const result = await saveMessage(actor, save, input.leaseId);
+      return NextResponse.json({
+        duplicate: result.duplicate,
+        ...publicPreparation(
+          await currentRenewalMessage(actor, input.leaseId, input.channel),
+        ),
+      });
+    }
     const draftDeps = {
       actor,
       loadLease: async () => null,
@@ -132,7 +179,7 @@ export async function POST(request: Request) {
         );
       },
     };
-    if (input.kind === "draft" && input.reconcile) {
+    if (input.reconcile) {
       // Recovery reads the exact persisted attempt even when source facts, links or the active cycle changed.
       const saved = await getMessageDraftSnapshot(
         actor,
@@ -160,26 +207,71 @@ export async function POST(request: Request) {
         headers: { "Cache-Control": "private, no-store" },
       });
     }
-    const current = await currentRenewalMessage(actor, input.leaseId, input.channel);
-    if (input.kind === "save") {
-      const { kind: _kind, ...save } = input;
-      if (!current.basis.workspaceFingerprint)
-        throw new EditableLayerError(
-          "Select the current renewal cycle before saving its message.",
-          409,
+    if (input.save && !input.confirm) {
+      // S162 (R-S162-7): the explicit draft action saves the displayed message itself. A failed
+      // save is reported as that failure; nothing is previewed from an older saved state.
+      try {
+        await saveMessage(
+          actor,
+          { ...input.save, leaseId: input.leaseId, channel: input.channel },
+          input.leaseId,
         );
-      const result = await saveMessagePreparation(actor, save, {
-        sourceFingerprint: current.basis.sourceFingerprint,
-        workspaceFingerprint: current.basis.workspaceFingerprint,
-      });
-      return NextResponse.json({
-        duplicate: result.duplicate,
-        ...publicPreparation(
-          await currentRenewalMessage(actor, input.leaseId, input.channel),
-        ),
-      });
+      } catch (error) {
+        if (error instanceof EditableLayerError)
+          return refusedBeforeGmail(
+            `The message could not be saved, so no draft was prepared. Your wording is kept on screen. ${error.message}`,
+            "message_save_failed",
+            error.status,
+          );
+        throw error;
+      }
     }
-    const preview = buildSuppliedRenewalDraftPreview(actor, current);
+    let current = await currentRenewalMessage(actor, input.leaseId, input.channel);
+    if (
+      !input.confirm &&
+      input.displayed &&
+      (current.content.subject !== input.displayed.subject ||
+        current.content.plainText !== input.displayed.body)
+    )
+      return refusedBeforeGmail(
+        "The message changed after it was shown here, so no draft was prepared. The current message is loading; preview the draft again from it.",
+        "message_changed",
+      );
+    let preview = buildSuppliedRenewalDraftPreview(actor, current);
+    if (
+      !input.confirm &&
+      preview.status === "ready" &&
+      current.saved &&
+      current.workspace &&
+      current.basis.workspaceFingerprint &&
+      (await preparedMessageDraftDiffers(actor, preview, claimBasisOf(current)))
+    ) {
+      // S162: the same saved revision now reads with different recipients, facts or resources than
+      // an attempt already prepared under it. A new revision gives this preview its own attempt
+      // identity instead of colliding with the earlier one; the wording itself is unchanged.
+      await saveMessage(
+        actor,
+        {
+          leaseId: input.leaseId,
+          cycleId: current.workspace.cycleId,
+          channel: input.channel,
+          expectedRevision: current.saved.revision,
+          operationId: randomUUID(),
+          inputs: current.saved.inputs,
+          bodyOverride:
+            current.bodyOverride && current.bodyOverride.state !== "unreadable"
+              ? {
+                  text: current.bodyOverride.text,
+                  baseHash: current.bodyOverride.baseHash,
+                }
+              : null,
+          subjectOverride: current.subjectOverride,
+        },
+        input.leaseId,
+      );
+      current = await currentRenewalMessage(actor, input.leaseId, input.channel);
+      preview = buildSuppliedRenewalDraftPreview(actor, current);
+    }
     if (input.confirm) {
       const saved = await getMessageDraftSnapshot(
         actor,
@@ -191,19 +283,10 @@ export async function POST(request: Request) {
       if (
         saved.snapshot.previewHash !== input.confirm.previewHash ||
         saved.snapshot.snapshotHash !==
-          hashExecutionPreview({
-            preview,
-            claimBasis: {
-              noticeSafety: current.basis.noticeSafety ?? undefined,
-              workspaceFingerprint: current.basis.workspaceFingerprint,
-              sourceFingerprint: current.basis.sourceFingerprint,
-              resourceFingerprint: current.basis.resourceFingerprint,
-              preparationRevision: current.saved?.revision,
-            },
-          })
+          hashExecutionPreview({ preview, claimBasis: claimBasisOf(current) })
       )
         throw new EditableLayerError(
-          "The exact reviewed message changed. Reload and preview its current facts.",
+          "The message changed after this preview. Preview the draft again to confirm the current message.",
           409,
         );
       if (saved.execution.state === "Succeeded" && saved.snapshot.outcome)
@@ -223,7 +306,6 @@ export async function POST(request: Request) {
         leaseId: input.leaseId,
         offer: { channel: input.channel },
         ...(input.confirm ? { confirm: input.confirm } : {}),
-        ...(input.reconcile ? { reconcile: input.reconcile } : {}),
       },
       { email: actor.email, sourceRef: `session:${actor.uid}` },
       {
@@ -233,15 +315,12 @@ export async function POST(request: Request) {
     );
     if (outcome.status === "preview" && preview.status === "ready" && current.workspace) {
       if (!current.saved || !current.basis.workspaceFingerprint)
-        throw new EditableLayerError("The reviewed message basis is unavailable.", 409);
+        throw new EditableLayerError(
+          "The saved message could not be read back. Preview the draft again.",
+          409,
+        );
       const snapshot = await savePreparedMessageDraft(actor, {
-        claimBasis: {
-          noticeSafety: current.basis.noticeSafety ?? undefined,
-          workspaceFingerprint: current.basis.workspaceFingerprint,
-          sourceFingerprint: current.basis.sourceFingerprint,
-          resourceFingerprint: current.basis.resourceFingerprint,
-          preparationRevision: current.saved.revision,
-        },
+        claimBasis: claimBasisOf(current),
         leaseId: input.leaseId,
         cycleId: current.workspace.cycleId,
         channel: input.channel,

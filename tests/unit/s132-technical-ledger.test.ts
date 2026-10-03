@@ -79,10 +79,10 @@ describe("S132 AC-S132-9: preservation checks exist unchanged", () => {
 });
 
 describe("S132 AC-S132-2: the local preflight script is effect-free", () => {
-  it("gathers only identity, the F08 flag and Dotloop configuration presence; the rest stays Not run", () => {
+  it("gathers only identity, the operating-Sheet switch and Dotloop configuration presence; the rest stays Not run", () => {
     const local = gatherLocalEvidence({
       readGitHead: () => "abcdef0123456789",
-      env: { LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: "false" },
+      env: { LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: "true" },
       nowIso: () => NOW,
     });
     expect(Object.keys(local).sort()).toEqual([
@@ -112,11 +112,11 @@ describe("S132 AC-S132-2: the local preflight script is effect-free", () => {
     expect(rendered).toMatch(/how to gather:/);
   });
 
-  it("fails the F08 check when the flag reads true and never reports Dotloop as verified from env alone", () => {
+  it("fails the switch check when the flag differs from the reviewed value and never reports Dotloop as verified from env alone", () => {
     const local = gatherLocalEvidence({
       readGitHead: () => null,
       env: {
-        LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: "true",
+        LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED: "false",
         DOTLOOP_OAUTH_CLIENT_ID: "x",
         DOTLOOP_OAUTH_CLIENT_SECRET: "secret-value-zq9",
         DOTLOOP_OAUTH_REDIRECT_URI: "https://example.test/cb",
@@ -125,7 +125,9 @@ describe("S132 AC-S132-2: the local preflight script is effect-free", () => {
     });
     expect(local.code_identity?.state).toBe("failed");
     expect(local.sheet_writeback_pause?.state).toBe("failed");
-    expect(local.sheet_writeback_pause?.evidence).toMatch(/F08 requires false/);
+    expect(local.sheet_writeback_pause?.evidence).toMatch(
+      /reviewed release value is true/,
+    );
     expect(local.dotloop_selection_keys?.state).toBe("pending_external_input");
     expect(JSON.stringify(local)).not.toContain("secret-value-zq9");
     expect(local.dotloop_selection_keys?.evidence).toMatch(/OAuth configured/);

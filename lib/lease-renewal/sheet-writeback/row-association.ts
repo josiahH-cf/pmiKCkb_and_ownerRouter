@@ -19,6 +19,16 @@ export type OperatingSheetAmbiguityReason =
   | "plausible_unlinked_row"
   | "metadata_incomplete";
 
+/** S158: why an operator-selected location stays read-only for updates. */
+export type OperatorSelectionLimit =
+  | "other_tab"
+  | "header_row"
+  | "outside_rows"
+  | "blank_row"
+  | "proof_row"
+  | "other_lease"
+  | "other_column";
+
 export type OperatingSheetRowAssociation =
   | { kind: "exact_link"; rowNumber: number }
   | { kind: "app_note"; rowNumber: number }
@@ -28,6 +38,18 @@ export type OperatingSheetRowAssociation =
       reason: OperatingSheetAmbiguityReason;
       /** 1-based physical Sheet rows a person should look at; absent for a read-level reason. */
       rowNumbers?: number[];
+    }
+  | {
+      /**
+       * S158: the location staff selected governs this read or update. It is labelled as a
+       * selection, never as a match; `limit` names why it is read-only when it is.
+       */
+      kind: "operator_selected";
+      via: "row" | "cell";
+      tabTitle: string;
+      rowNumber: number;
+      cell?: string;
+      limit: OperatorSelectionLimit | null;
     };
 
 export interface OperatingSheetRowAssociationInput {
@@ -171,6 +193,7 @@ export function appendIntentRefusal(
 ): "row_state_mismatch" | "row_join_ambiguous" | null {
   if (association.kind === "absent_confirmed") return null;
   if (association.kind === "ambiguous") return "row_join_ambiguous";
+  // S158: a selected row means staff say the lease has a row; the app never adds a second one.
   return "row_state_mismatch";
 }
 

@@ -1,14 +1,14 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { describe, expect, it } from "vitest";
 
-import { AuthError, type AuthenticatedUser } from "@/lib/auth/session";
+import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getApprovedTemplate } from "@/lib/firestore/approved-templates";
 import type { TemplateRecord } from "@/lib/firestore/types";
 import { FakeFirestore } from "../helpers/fake-firestore";
 
 // F-TMPL-2: getApprovedTemplate reads the approved store for composers/process copy. It returns only
-// Approved + active records, falls back to null on a 404 (unseeded/Draft-only), and PROPAGATES a scope
-// denial (AuthError) so a caller never silently masks a real access failure as "nothing seeded".
+// Approved + active records and falls back to null on a 404 (unseeded/Draft-only). S167: every staff
+// account has every internal Space, so an ordinary Editor reads the approved copy of any Space.
 
 const admin: AuthenticatedUser = {
   uid: "admin-1",
@@ -17,13 +17,12 @@ const admin: AuthenticatedUser = {
   role: "Admin",
 };
 
-// A scoped Editor who can reach maintenance only; move-in and daily-inbox-triage carry no scope, so
-// this principal is denied there (mirrors editable-layer space-scope enforcement).
-const scopedToMaintenance: AuthenticatedUser = {
+// An ordinary Editor. move-in and daily-inbox-triage map to no operator desk, which used to deny
+// an account holding a maintenance-only allowlist.
+const editor: AuthenticatedUser = {
   ...admin,
-  uid: "scoped-1",
+  uid: "editor-1",
   role: "Editor",
-  scopes: ["maintenance"],
 };
 
 function templateDoc(
@@ -128,7 +127,8 @@ describe("getApprovedTemplate (F-TMPL-2)", () => {
     ).toBeNull();
   });
 
-  it("propagates a scope denial (AuthError) instead of masking it as null", async () => {
+  // S167: both lookups used to reject with a scope denial (AuthError) for a maintenance-only account.
+  it("resolves an Approved template in an unmapped Space for an ordinary Editor", async () => {
     const db = new FakeFirestore();
     seed(
       db,
@@ -140,15 +140,18 @@ describe("getApprovedTemplate (F-TMPL-2)", () => {
     );
     const cast = db as unknown as Firestore;
 
-    await expect(
-      getApprovedTemplate(
-        scopedToMaintenance,
-        { spaceId: "move-in", name: "Move-In Welcome Email" },
-        cast,
-      ),
-    ).rejects.toBeInstanceOf(AuthError);
-    await expect(
-      getApprovedTemplate(scopedToMaintenance, { templateId: "approved-welcome" }, cast),
-    ).rejects.toBeInstanceOf(AuthError);
+    const byName = await getApprovedTemplate(
+      editor,
+      { spaceId: "move-in", name: "Move-In Welcome Email" },
+      cast,
+    );
+    expect(byName).toMatchObject({ id: "approved-welcome", space_id: "move-in" });
+
+    const byId = await getApprovedTemplate(
+      editor,
+      { templateId: "approved-welcome" },
+      cast,
+    );
+    expect(byId).toMatchObject({ id: "approved-welcome", status: "Approved" });
   });
 });

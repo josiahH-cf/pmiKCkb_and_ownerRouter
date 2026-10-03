@@ -368,7 +368,7 @@ describe("S130 persisted actual output and exact reviewed transport", () => {
       product_retention_class: "indefinite",
     });
   });
-  it("refuses forged output hashes, wrong roles/spaces, stale sources, corrupt chunks and superseded outputs", async () => {
+  it("refuses forged output hashes, wrong roles, stale sources, corrupt chunks and superseded outputs while any staff role reads", async () => {
     const t = await setup(),
       record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
     await expect(
@@ -388,9 +388,16 @@ describe("S130 persisted actual output and exact reviewed transport", () => {
       ),
     ).rejects.toThrow(/cannot access/);
     await expect(t.read(record.id + "wrong")).rejects.toThrow(/current/);
+    // S167: a read by an account without the Renewals Space used to be refused here. Every staff
+    // account now reads the current artifact; the Editor role is still refused the approval above.
     await expect(
-      readCurrentDerivedArtifact({ ...admin, scopes: [] }, t.request, t.db, t.deps),
-    ).rejects.toThrow(/cannot access/);
+      readCurrentDerivedArtifact(
+        { ...admin, uid: "editor-2", role: "Editor" },
+        t.request,
+        t.db,
+        t.deps,
+      ),
+    ).resolves.toMatchObject({ id: record.id, outputHash: record.outputHash });
     const chunks = [...t.fake.store.keys()].filter((key) =>
       key.startsWith("publication_content_chunks/"),
     );

@@ -45,6 +45,26 @@ export const CycleBasisSchema = z
   })
   .strict();
 export type RenewalCycleBasis = z.infer<typeof CycleBasisSchema>;
+/**
+ * S154: a work record for a lease whose source reports no lease end or review date when work is
+ * first saved. It carries no date, so none is invented to satisfy the dated cycle shape.
+ */
+export const LeaseBoundBasisSchema = z
+  .object({ kind: z.literal("lease_bound"), source: text })
+  .strict();
+export type RenewalLeaseBoundBasis = z.infer<typeof LeaseBoundBasisSchema>;
+export type RenewalWorkBasis = RenewalCycleBasis | RenewalLeaseBoundBasis;
+export function parseRenewalWorkBasis(basis: unknown): RenewalWorkBasis {
+  return (basis as { kind?: unknown } | null)?.kind === "lease_bound"
+    ? LeaseBoundBasisSchema.parse(basis)
+    : CycleBasisSchema.parse(basis);
+}
+/** The recorded basis date, or null for a lease-bound record that has none. */
+export function workBasisDateIso(basis: RenewalWorkBasis): string | null {
+  return basis.kind === "lease_bound" ? null : basis.dateIso;
+}
+/** S156: the label stored when staff record work without naming a source or channel. */
+export const STAFF_RECORD_SOURCE = "Staff record";
 export const MANUAL_ACTIVITIES = {
   owner_outreach: { label: "Owner outreach", section: "owner", conditional: false },
   tenant_offer: {
@@ -117,7 +137,9 @@ const activityKeys = Object.keys(MANUAL_ACTIVITIES) as [
   ...ManualActivity[],
 ];
 const common = {
-  source: text.max(240),
+  // S156: staff knowledge from a call or outside work needs no narrative; the store labels an
+  // unnamed source as a plain staff record.
+  source: text.max(240).optional(),
   reason: z.string().trim().max(1000).optional(),
   occurredAt: z.string().datetime({ offset: true }).optional(),
 };
@@ -195,7 +217,7 @@ export interface RenewalWorkspaceState {
   schemaVersion: "renewal-workspace/v1";
   leaseId: string;
   cycleId: string;
-  basis: RenewalCycleBasis;
+  basis: RenewalWorkBasis;
   revision: number;
   termsRevision: number;
   ownerResponse:
@@ -244,13 +266,13 @@ export interface RenewalWorkspaceState {
 export function emptyRenewalWorkspace(
   leaseId: string,
   cycleId: string,
-  basis: RenewalCycleBasis,
+  basis: RenewalWorkBasis,
 ): RenewalWorkspaceState {
   return {
     schemaVersion: "renewal-workspace/v1",
     leaseId,
     cycleId,
-    basis: CycleBasisSchema.parse(basis),
+    basis: parseRenewalWorkBasis(basis),
     revision: 0,
     termsRevision: 0,
     ownerResponse: null,
@@ -316,8 +338,8 @@ export function manualNonRenewal(state: RenewalWorkspaceState | null): boolean {
   );
 }
 /**
- * Done, or a permitted conditional Not applicable with its source reason and existing approved
- * policy reference. A terms-dependent record from earlier terms is not current.
+ * Done, or Not applicable on a conditional activity. A terms-dependent record from earlier terms
+ * is not current. This feeds guidance only; it never makes other work unavailable.
  */
 export function manualActivitySatisfied(
   state: RenewalWorkspaceState,
@@ -326,20 +348,17 @@ export function manualActivitySatisfied(
   const activity = currentStaffActivity(state, key);
   return (
     activity?.outcome === "done" ||
-    (activity?.outcome === "not_applicable" &&
-      MANUAL_ACTIVITIES[key].conditional &&
-      !!activity.reason?.trim() &&
-      !!activity.applicabilityPolicy?.trim())
+    (activity?.outcome === "not_applicable" && MANUAL_ACTIVITIES[key].conditional)
   );
 }
 /** The shared next-action wording for one staff-recorded activity, response or completion. */
 export function manualActionLabel(
-  key: ManualActivity | "owner_response" | "tenant_response" | "complete" | "cycle",
+  key: ManualActivity | "owner_response" | "tenant_response" | "complete",
 ): string {
   return key in MANUAL_ACTIVITIES
     ? MANUAL_ACTIVITIES[key as ManualActivity].label
     : key === "owner_response"
-      ? "Record owner response and exact terms"
+      ? "Record owner response"
       : key === "tenant_response"
         ? "Record tenant response"
         : "Review recorded completion";
@@ -349,8 +368,8 @@ export function manualRenewalSummary(state: RenewalWorkspaceState | null) {
     | ManualActivity
     | "owner_response"
     | "tenant_response"
-    | "complete"
-    | "cycle" = "cycle";
+    // S154/S156: with nothing recorded yet the suggestion is simply the first staff activity.
+    | "complete" = "owner_outreach";
   let waitingParty: "staff" | "owner" | "tenant" = "staff";
   const nonRenewal = manualNonRenewal(state);
   const satisfied = (key: ManualActivity) => manualActivitySatisfied(state!, key);
@@ -360,7 +379,8 @@ export function manualRenewalSummary(state: RenewalWorkspaceState | null) {
         ? "complete"
         : "non_renewal_handoff";
     else if (!satisfied("owner_outreach")) nextActivity = "owner_outreach";
-    else if (!currentManualOwnerTerms(state)) {
+    // S156: the owner's approval is the recorded answer; exact terms live on the working record.
+    else if (state.ownerResponse?.outcome !== "approved_terms") {
       nextActivity = "owner_response";
       waitingParty =
         state.ownerResponse?.outcome === "revision_requested" ? "staff" : "owner";
@@ -380,31 +400,24 @@ export function manualRenewalSummary(state: RenewalWorkspaceState | null) {
     } else
       nextActivity = MANUAL_REQUIRED_RENEWAL.find((key) => !satisfied(key)) ?? "complete";
   }
-  const complete = Boolean(
-    state?.completion &&
-    state.completion.termsRevision === state.termsRevision &&
-    nextActivity === "complete",
-  );
+  // S156: completion is the staff record itself. The suggested next activity is guidance and
+  // neither grants nor withholds it; once completion is recorded, nothing is suggested next.
+  const complete = Boolean(state?.completion);
+  if (complete) nextActivity = "complete";
   const pendingSourceUpdates = Object.values(state?.sourceUpdates ?? {}).filter(
     (entry) => entry.state !== "verified",
   ).length;
-  const stageIndex =
-    nextActivity === "cycle"
-      ? 0
-      : ["owner_outreach", "owner_response"].includes(nextActivity)
-        ? 1
-        : [
-              "tenant_offer",
-              "tenant_response",
-              "information_form",
-              "form_returned",
-            ].includes(nextActivity)
-          ? 2
-          : ["documents", "document_delivery"].includes(nextActivity)
-            ? 3
-            : nextActivity === "signatures"
-              ? 4
-              : 5;
+  const stageIndex = ["owner_outreach", "owner_response"].includes(nextActivity)
+    ? 1
+    : ["tenant_offer", "tenant_response", "information_form", "form_returned"].includes(
+          nextActivity,
+        )
+      ? 2
+      : ["documents", "document_delivery"].includes(nextActivity)
+        ? 3
+        : nextActivity === "signatures"
+          ? 4
+          : 5;
   return {
     step: { ...RENEWAL_STEPPER_STEPS[stageIndex], index: stageIndex },
     complete,
@@ -414,7 +427,7 @@ export function manualRenewalSummary(state: RenewalWorkspaceState | null) {
     pendingSourceUpdates,
     label: complete
       ? "Completed: recorded by staff"
-      : nextActivity === "cycle"
+      : !state
         ? "Manual work not recorded"
         : nextActivity === "complete"
           ? "Ready for staff completion"
@@ -463,11 +476,12 @@ export function manualActionSheetIntent(
     field = "renewal_completed";
     outcome = "not_started";
   }
+  const source = action.source ?? STAFF_RECORD_SOURCE;
   if (action.kind === "preparation") {
     // S118 (R118.3): the saved PMI recommendation is the one figure the Sheet market value
     // takes; the low/high range stays app evidence. Preparing is not writing.
     return action.pmiNumber !== undefined
-      ? { field: "market_value", value: action.pmiNumber, source: action.source }
+      ? { field: "market_value", value: action.pmiNumber, source }
       : null;
   }
   if (!field || !outcome) return null;
@@ -484,7 +498,7 @@ export function manualActionSheetIntent(
           waiting: "Waiting — recorded by staff",
           not_started: "Not started — recorded by staff",
         }[outcome] ?? outcome);
-  return { field, value, source: action.source };
+  return { field, value, source };
 }
 export function planRenewalWorkspaceAction(
   current: RenewalWorkspaceState,
@@ -500,9 +514,10 @@ export function planRenewalWorkspaceAction(
     activities: { ...current.activities },
     sourceUpdates: { ...current.sourceUpdates },
   };
+  const source = action.source ?? STAFF_RECORD_SOURCE;
   let record: StaffRecord = {
     ...meta,
-    source: action.source,
+    source,
     termsRevision: current.termsRevision,
     ...(action.reason ? { reason: action.reason } : {}),
     ...(action.occurredAt ? { occurredAt: action.occurredAt } : {}),
@@ -510,40 +525,37 @@ export function planRenewalWorkspaceAction(
   if (action.kind === "activity") {
     if (
       action.outcome === "not_applicable" &&
-      (!MANUAL_ACTIVITIES[action.activity].conditional ||
-        !action.reason ||
-        !action.applicabilityPolicy)
+      !MANUAL_ACTIVITIES[action.activity].conditional
     )
       throw new EditableLayerError(
-        "Required work cannot be waived. A permitted not-applicable decision needs its source, reason and existing approved policy or predicate reference.",
+        "Not applicable is available only for work that depends on the lease. Record this work as Not started, Waiting or Done.",
         400,
       );
     next.activities[action.activity] = {
       ...record,
       outcome: action.outcome,
-      ...(action.outcome === "not_applicable"
+      ...(action.outcome === "not_applicable" && action.applicabilityPolicy
         ? { applicabilityPolicy: action.applicabilityPolicy }
         : {}),
     };
-    next.completion = null;
   } else if (action.kind === "owner_response") {
-    if (action.outcome === "approved_terms" && !action.terms)
-      throw new EditableLayerError(
-        "Record the exact owner-approved rent and effective terms.",
-        400,
-      );
+    // S156: an owner response is the recorded fact alone. Working terms are saved independently
+    // on the lease, so an approval needs no terms and none are manufactured to hold them.
     if (action.outcome !== "approved_terms" && action.terms)
       throw new EditableLayerError(
         "Only explicit owner approval can carry approved terms.",
         400,
       );
+    // An approval recorded without terms keeps the terms already on record (S156 BEH-4).
+    const terms =
+      action.terms ??
+      (action.outcome === "approved_terms" ? current.ownerResponse?.terms : undefined);
     const changed =
       JSON.stringify(current.ownerResponse?.terms ?? null) !==
-        JSON.stringify(action.terms ?? null) ||
+        JSON.stringify(terms ?? null) ||
       current.ownerResponse?.outcome !== action.outcome;
     if (changed) {
       next.termsRevision++;
-      next.completion = null;
       for (const activity of TERMS_DEPENDENT_MANUAL) {
         const field = SHEET_ACTIVITY[activity];
         if (field) delete next.sourceUpdates[field];
@@ -555,17 +567,12 @@ export function planRenewalWorkspaceAction(
     next.ownerResponse = {
       ...record,
       outcome: action.outcome,
-      ...(action.terms ? { terms: action.terms } : {}),
+      ...(terms ? { terms } : {}),
     };
   } else if (action.kind === "tenant_response") {
     next.tenantResponse = { ...record, outcome: action.outcome };
-    next.completion = null;
   } else if (action.kind === "complete") {
-    if (manualRenewalSummary(current).nextActivity !== "complete")
-      throw new EditableLayerError(
-        "Applicable manual obligations remain unfinished.",
-        409,
-      );
+    // S156: staff record completion when their actual work is complete; the checklist is guidance.
     next.completion = record;
   } else if (action.kind === "reopen") {
     next.completion = null;
@@ -589,7 +596,7 @@ export function planRenewalWorkspaceAction(
     // The store resolves provider observations and screenshots. Browser numbers never become provider facts.
     next.preparation = {
       market,
-      source: action.source,
+      source,
       recordedAt: meta.recordedAt,
       recordedByUid: meta.actorUid,
       revision: next.revision,

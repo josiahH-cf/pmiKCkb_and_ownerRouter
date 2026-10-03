@@ -17,7 +17,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it("shows the exact term-review control only with edit authority and keeps missing evidence disabled", () => {
+it("shows the exact term-review control only with edit authority and saves nothing for an unfinished entry", async () => {
+  // S155 (7faed032): the term saves when it is chosen; there is no separate record button, and
+  // a month-to-month choice without its start date stays typed and sends nothing.
+  const fetchMock = vi.fn(async () => Response.json({ ok: true }));
+  vi.stubGlobal("fetch", fetchMock);
   const props = {
     leaseId: "fixture-lease",
     term: fixedTermProjection(),
@@ -25,8 +29,27 @@ it("shows the exact term-review control only with edit authority and keeps missi
   };
   const view = render(<LeaseTermReviewControl {...props} canEdit={false} />);
   expect(screen.queryByRole("button", { name: "Record lease term" })).toBeNull();
+  expect(screen.queryByLabelText("Lease term")).toBeNull();
+  expect(screen.getByText(/needs Editor access/)).toBeInTheDocument();
   view.rerender(<LeaseTermReviewControl {...props} canEdit />);
-  expect(screen.getByRole("button", { name: "Record lease term" })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: "Record lease term" })).toBeNull();
+  const select = screen.getByLabelText("Lease term");
+  fireEvent.change(select, { target: { value: "month_to_month" } });
+  expect(select).toHaveValue("month_to_month");
+  expect(fetchMock).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText(/Month-to-month since/), {
+    target: { value: "2026-01-15" },
+  });
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+  expect(
+    JSON.parse(
+      String((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body),
+    ),
+  ).toMatchObject({
+    lease_id: "fixture-lease",
+    term: "month_to_month",
+    anchor_date: "2026-01-15",
+  });
 });
 
 it("shows the exact owner-response control without treating absent evidence as permission", () => {

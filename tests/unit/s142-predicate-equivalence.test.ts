@@ -27,6 +27,11 @@ import {
 // the unchanged helpers before any predicate is extracted for the dependency projection. The
 // extraction must leave every output identical. Record once with UPDATE_S142_EQUIVALENCE=1 on
 // unchanged code; never update it to make a later change pass.
+// S156/S157 re-baseline (0f02e013, 8a3f929d): the owner-confirmed program changed the predicates
+// themselves (no completion gate, Not applicable without a policy attestation, the staff lane as
+// the guidance's status, no Blocked status or blocker list, advisory rent differences). The
+// fixture was re-recorded once on those authorized rules; it again pins every output against
+// accidental drift from here on.
 
 const FIXTURE_PATH = join(__dirname, "..", "fixtures", "s142-predicate-equivalence.json");
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";

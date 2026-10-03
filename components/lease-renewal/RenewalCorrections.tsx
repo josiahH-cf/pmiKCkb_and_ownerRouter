@@ -1,17 +1,18 @@
 "use client";
 import { useRenewalSaveFocus } from "./RenewalSaveFocus";
-import { formatBusinessTimestamp, formatSourceCalendarDate } from "@/lib/date-display";
 
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
-import { currentRentReviewFromDisposition } from "@/lib/lease-renewal/correction-review";
 import type { RenewalDiscrepancyDisposition } from "@/lib/firestore/renewal-discrepancy-dispositions";
 import { RenewalFutureRent } from "./RenewalFutureRent";
+import { WORKING_CURRENT_RENT_TARGET } from "./RenewalCurrentRent";
+import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Field } from "@/components/ui";
 import { can, type Role } from "@/lib/auth/roles";
 import { parseCurrencyInput } from "@/lib/currency-input";
+import { formatMoneyReference } from "@/lib/lease-renewal/current-rent-display";
 import type { DeskReconItem } from "@/lib/lease-renewal/desk-model";
 import { planRentChargeRequests } from "@/lib/lease-renewal/rent-charge-intent";
 import {
@@ -20,7 +21,18 @@ import {
   parseSheetFieldIntent,
   type SheetEditableField,
 } from "@/lib/lease-renewal/sheet-writeback/field-intent";
+import { workingCurrentRent } from "@/lib/lease-renewal/working-record";
 import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
+
+// S157 (BEH-1/3/6/8/9): the current rent is corrected by editing the working current rent in the
+// Rent and charges card; it saves by itself with no request, review handoff, reconciliation
+// approval or mandatory narrative. This card compares that working value with each observed
+// source, lets staff adopt an observed value as an application edit, and keeps the existing
+// prepare-a-preview flow for the other recognized facts, which an Editor completes alone: the
+// prepared Sheet or RentVine change is reviewed and confirmed once, in its own panel.
+
+/** Stored where the Sheet field contract expects a nonempty source note; describes, never attests. */
+const STAFF_ENTRY_SOURCE_LABEL = "Staff entry";
 
 async function post(route: string, body: Record<string, unknown>) {
   const response = await fetch(`/api/lease-renewal/${route}`, {
@@ -33,6 +45,39 @@ async function post(route: string, body: Record<string, unknown>) {
     throw new Error(result.error ?? "This preparation could not be saved.");
   return result;
 }
+
+interface ObservedSource {
+  readonly label: string;
+  readonly raw: string;
+  readonly amount: number | null;
+}
+
+function observedCurrentRentSources(
+  item: DeskReconItem | undefined,
+  sheetValues: Record<string, string> | null,
+): ObservedSource[] {
+  const sources: ObservedSource[] = (item?.candidates ?? []).map((candidate) => {
+    const parsed = parseCurrencyInput(candidate.value);
+    return {
+      label: candidate.source,
+      raw: candidate.value,
+      amount: parsed.ok && parsed.value > 0 ? parsed.value : null,
+    };
+  });
+  const sheetListed = item?.candidates.some(
+    (candidate) => candidate.sourceSystem === "Google Sheets",
+  );
+  if (sheetValues && "current_rent" in sheetValues && !sheetListed) {
+    const parsed = parseCurrencyInput(sheetValues.current_rent);
+    sources.push({
+      label: "Operating Sheet",
+      raw: sheetValues.current_rent,
+      amount: parsed.ok && parsed.value > 0 ? parsed.value : null,
+    });
+  }
+  return sources;
+}
+
 export function RenewalCorrections({
   leaseId,
   role,
@@ -42,8 +87,6 @@ export function RenewalCorrections({
   inventory,
   sheetPreviewHash,
   rentvinePreviewHash,
-  reviewHref,
-  dispositions = [],
 }: {
   leaseId: string;
   role: Role;
@@ -53,14 +96,17 @@ export function RenewalCorrections({
   inventory: RenewalChargeInventory | null;
   sheetPreviewHash: string | null;
   rentvinePreviewHash: string | null;
-  reviewHref: string | null;
+  /** No longer used (S157): the review handoff is gone. Accepted so existing mounts still compile. */
+  reviewHref?: string | null;
+  /** No longer used (S157): proposals for review are not recorded. Accepted for existing mounts. */
   dispositions?: RenewalDiscrepancyDisposition[];
 }) {
   const id = useId(),
     router = useRouter();
   const focusAfterSave = useRenewalSaveFocus();
+  const working = useRenewalWorkingRecord();
   // S117 (R117.1): a known RentVine value is prefilled with its source shown; the operator can
-  // edit it, and the source/reason stays a manual, required input.
+  // edit it. The source or context note is optional.
   function prefillFor(target: SheetEditableField) {
     const item = dataCheck.find((entry) => entry.fieldKey === target);
     const rentvine = item?.candidates.filter((candidate) =>
@@ -70,28 +116,18 @@ export function RenewalCorrections({
       ? { value: rentvine[0].value, confidence: rentvine[0].confidence }
       : null;
   }
-  const [field, setField] = useState<SheetEditableField>("current_rent"),
-    [value, setValue] = useState(() => prefillFor("current_rent")?.value ?? ""),
+  // The current rent is edited in the Rent and charges card, so the form opens on the renewal date.
+  const [field, setField] = useState<SheetEditableField>("renewal_date"),
+    [value, setValue] = useState(() => prefillFor("renewal_date")?.value ?? ""),
     [source, setSource] = useState(""),
     [destination, setDestination] = useState("sheet"),
-    [chargeId, setChargeId] = useState(""),
     [pending, setPending] = useState(false),
     [notice, setNotice] = useState(""),
-    [approval, setApproval] = useState<{
-      token: string;
-      value: string;
-      source: string;
-    } | null>(null),
-    [confirmApproval, setConfirmApproval] = useState(false),
     [prepared, setPrepared] = useState<Record<string, string>>({}),
     [hashes, setHashes] = useState({
       sheet: sheetPreviewHash,
       rentvine: rentvinePreviewHash,
     });
-  const proposedReview = [...dispositions]
-    .reverse()
-    .map(currentRentReviewFromDisposition)
-    .find(Boolean);
   const shape = sheetFieldShape(field),
     observed = dataCheck.find((entry) => entry.fieldKey === field),
     currency = parseCurrencyInput(value),
@@ -99,6 +135,11 @@ export function RenewalCorrections({
     rvSupported = field === "current_rent" || field === "renewal_date",
     selectedSheet = destination !== "rentvine",
     selectedRentvine = destination !== "sheet";
+  const workingRent = workingCurrentRent(working?.record);
+  const currentRentSources = observedCurrentRentSources(
+    dataCheck.find((entry) => entry.fieldKey === "current_rent"),
+    sheetValues,
+  );
   function edit(nextValue: string, nextSource = source) {
     if (shape === "boolean" || shape === "yes_no")
       nextValue = /^(yes|true)$/i.test(nextValue.trim())
@@ -113,8 +154,6 @@ export function RenewalCorrections({
     }
     setValue(nextValue);
     setSource(nextSource);
-    setApproval(null);
-    setConfirmApproval(false);
     setPrepared({});
   }
   const prefill = prefillFor(field);
@@ -122,9 +161,8 @@ export function RenewalCorrections({
     setField(nextField);
     edit(prefillFor(nextField)?.value ?? "");
     setSource("");
-    setChargeId("");
-    if (nextField !== "current_rent" && nextField !== "renewal_date")
-      setDestination("sheet");
+    setNotice("");
+    if (nextField !== "renewal_date") setDestination("sheet");
   }
   async function run(operation: () => Promise<void>) {
     setPending(true);
@@ -141,71 +179,19 @@ export function RenewalCorrections({
       setPending(false);
     }
   }
-  async function requestReview() {
-    if (!observed?.candidateFingerprint || !currency.ok || numeric <= 0 || !source.trim())
-      throw new Error("Select a valid current-rent value and its reviewed source first.");
-    await post("correction-review", {
-      schemaVersion: "renewal-current-rent-review/v1",
-      leaseId,
-      value: numeric,
-      source,
-      destination: selectedRentvine ? "both" : "sheet",
-      candidateFingerprint: observed.candidateFingerprint,
+  async function adopt(entry: ObservedSource) {
+    if (!working || entry.amount === null) return;
+    await working.save("current_rent", entry.amount, {
+      origin: "adopted_source",
+      sourceLabel: entry.label,
     });
-    setNotice(
-      "Saved for an Admin to review on this lease. The proposed amount and source remain available after reload; no approval or provider write was made.",
-    );
-    if (!focusAfterSave?.()) router.refresh();
-  }
-  async function resolveRent() {
-    if (
-      !observed?.sourceTriggerKey ||
-      !observed.candidateFingerprint ||
-      !currency.ok ||
-      numeric <= 0 ||
-      !source.trim()
-    )
-      throw new Error(
-        "Select the current source decision and a valid amount and source first.",
-      );
-    const result = await post("resolve", {
-      run_id: "live-review",
-      intent: "current_fact_correction",
-      source_trigger_key: observed.sourceTriggerKey,
-      candidate_fingerprint: observed.candidateFingerprint,
-      kind: "corrected_value",
-      corrected_value: numeric.toFixed(2),
-      reason: source,
-    });
-    if (!result.authorization_token)
-      throw new Error(
-        "The saved decision has no current approval handoff. Reload this lease.",
-      );
-    setApproval({ token: result.authorization_token, value: numeric.toFixed(2), source });
-    setNotice(
-      "Current-rent decision saved. An Admin must review its approval before the separately confirmed Sheet update.",
-    );
-    focusAfterSave?.();
-  }
-  async function approveRent() {
-    if (!approval || !observed?.sourceTriggerKey) return;
-    await post("writeback-approvals", {
-      run_id: "live-review",
-      source_trigger_key: observed.sourceTriggerKey,
-      authorization_token: approval.token,
-      decision: "approve",
-      reason: approval.source,
-    });
-    setConfirmApproval(false);
-    setNotice(
-      "This exact current-rent decision is approved. Prepare the destination preview; approval has not written to either source.",
-    );
-    focusAfterSave?.();
   }
   async function prepare() {
+    if (!value.trim()) throw new Error("Enter or select the reviewed value.");
+    const note = source.trim();
     const intent = parseSheetFieldIntent({
       field,
-      source,
+      source: note || STAFF_ENTRY_SOURCE_LABEL,
       value:
         shape === "currency"
           ? numeric
@@ -213,7 +199,6 @@ export function RenewalCorrections({
             ? value === "true"
             : value,
     });
-    if (!value.trim()) throw new Error("Enter or select the reviewed value.");
     // S117 (ARCH-S117-1): one typed *current* intent; the mapper cannot emit a future-rent body.
     const plans = planRentChargeRequests(
       {
@@ -225,7 +210,6 @@ export function RenewalCorrections({
           ...(selectedSheet ? (["sheet"] as const) : []),
           ...(selectedRentvine ? (["rentvine"] as const) : []),
         ],
-        chargeId,
       },
       {
         leaseId,
@@ -239,7 +223,9 @@ export function RenewalCorrections({
       const target = plan.destination;
       try {
         if ("refusal" in plan) throw new Error(plan.refusal);
-        const result = await post(plan.route, plan.body);
+        // S157: a narrative is optional context; it travels only when staff typed one.
+        const { evidenceRef, ...body } = plan.body;
+        const result = await post(plan.route, note ? { ...body, evidenceRef } : body);
         if (!result.proposal?.preview_hash)
           throw new Error(
             "No saved preview was returned. Check this source connection and reload.",
@@ -250,7 +236,7 @@ export function RenewalCorrections({
         }));
         setPrepared((previous) => ({
           ...previous,
-          [target]: "Saved: awaiting its separate exact confirmation below",
+          [target]: "Saved: review and confirm its exact effect below",
         }));
       } catch (error) {
         setPrepared((previous) => ({
@@ -262,7 +248,7 @@ export function RenewalCorrections({
         }));
       }
     }
-    router.refresh();
+    if (!focusAfterSave?.()) router.refresh();
   }
   return (
     <>
@@ -270,11 +256,6 @@ export function RenewalCorrections({
         title={renewalCardTitle("correct-a-fact", "Correct a lease fact")}
         ariaLabel="Correct a lease fact"
       >
-        <p>
-          <a href="#renewal-manual-owner_response">
-            Record future owner-approved renewal terms
-          </a>
-        </p>
         <Field htmlFor={`${id}-field`} label="Fact to correct">
           <select
             id={`${id}-field`}
@@ -295,246 +276,192 @@ export function RenewalCorrections({
               ))}
           </select>
         </Field>
-        <div aria-label="Observed source values">
-          {observed?.candidates.map((candidate, index) => (
-            <p key={`${candidate.source}-${index}`}>
-              <Button
-                variant="secondary"
-                onClick={() => edit(candidate.value, `Reviewed ${candidate.source}`)}
-              >
-                Use {candidate.source}: {candidate.value || "blank"}
-              </Button>
-            </p>
-          ))}
-          {sheetValues &&
-          field in sheetValues &&
-          !observed?.candidates.some(
-            (candidate) => candidate.sourceSystem === "Google Sheets",
-          ) ? (
+        {field === "current_rent" ? (
+          <div className="ui-stack-tight" data-current-rent-correction>
             <p>
-              <Button
-                variant="secondary"
-                onClick={() => edit(sheetValues[field], "Reviewed operating Sheet")}
-              >
-                Use operating Sheet: {sheetValues[field] || "blank"}
-              </Button>
+              The current rent is corrected by editing the working current rent. It saves
+              on its own and stays until you change it.{" "}
+              <a className="text-link" href={`#${WORKING_CURRENT_RENT_TARGET}`}>
+                Edit the working current rent
+              </a>
             </p>
-          ) : null}
-        </div>
-        <Field
-          htmlFor={`${id}-value`}
-          label={`Reviewed ${SHEET_FIELD_LABELS[field].toLowerCase()}`}
-          required
-        >
-          {shape === "yes_no" || shape === "boolean" ? (
-            <select
-              id={`${id}-value`}
-              value={value}
-              onChange={(event) => edit(event.target.value)}
-            >
-              <option value="">Select recorded value</option>
-              <option value="true">Yes</option>
-              <option value="false">No</option>
-            </select>
-          ) : (
-            <input
-              id={`${id}-value`}
-              type={shape === "date" ? "date" : "text"}
-              inputMode={shape === "currency" ? "decimal" : undefined}
-              value={value}
-              onChange={(event) => edit(event.target.value)}
-            />
-          )}
-        </Field>
-        {prefill && value === prefill.value ? (
-          <p className="muted">
-            Prefilled from RentVine ({prefill.confidence}); edit it if the reviewed value
-            differs. The source or reason below is still yours to record.
-          </p>
-        ) : null}
-        <Field htmlFor={`${id}-source`} label="Value source / reason" required>
-          <input
-            id={`${id}-source`}
-            maxLength={240}
-            value={source}
-            onChange={(event) => edit(value, event.target.value)}
-          />
-        </Field>
-        <Field htmlFor={`${id}-destination`} label="Destinations">
-          <select
-            id={`${id}-destination`}
-            value={destination}
-            onChange={(event) => {
-              setDestination(event.target.value);
-              setPrepared({});
-            }}
-          >
-            <option value="sheet">Operating Sheet</option>
-            <option value="rentvine" disabled={!rvSupported}>
-              RentVine
-            </option>
-            <option value="both" disabled={!rvSupported}>
-              Both, confirmed separately
-            </option>
-          </select>
-        </Field>
-        {selectedRentvine && field === "current_rent" ? (
-          <>
-            <Field htmlFor={`${id}-charge`} label="Current rent billing item" required>
-              <select
-                id={`${id}-charge`}
-                value={chargeId}
-                onChange={(event) => setChargeId(event.target.value)}
-              >
-                <option value="">Choose the reviewed current charge</option>
-                {inventory?.charges
-                  .filter(
-                    (charge) =>
-                      charge.classification === "rent" && charge.current === true,
-                  )
-                  .map((charge) => (
-                    <option key={charge.id} value={charge.id}>
-                      {charge.accountLabel ?? charge.projection.description} :{" "}
-                      {charge.projection.amount} ·{" "}
-                      {formatSourceCalendarDate(charge.projection.startDate)} to{" "}
-                      {formatSourceCalendarDate(charge.projection.endDate, "open-ended")}
-                    </option>
-                  ))}
-              </select>
-            </Field>
-            <p>
-              This updates the selected recurring charge. Refreshed lease base rent is
-              checked separately; RentVine exposes no general base-rent setter.
-            </p>
-          </>
-        ) : null}
-        {selectedRentvine && field === "renewal_date" ? (
-          <p>
-            The Sheet’s renewal date maps to the reviewed RentVine lease end date for this
-            update. Fresh lease start and increase-eligibility dates remain unchanged.
-          </p>
-        ) : null}
-        {field === "current_rent" && selectedSheet ? (
-          <div className="ui-stack">
-            <p>
-              The existing current-rent reconciliation and Admin approval are required
-              before a Sheet preview.
-            </p>
-            {proposedReview ? (
-              <div>
-                <p>
-                  Staff-proposed current rent: {proposedReview.value.toFixed(2)} ·{" "}
-                  {proposedReview.source} ·{" "}
-                  {formatBusinessTimestamp(proposedReview.recordedAt)}.
-                  {proposedReview.candidateFingerprint !== observed?.candidateFingerprint
-                    ? " Source facts changed; review the current sources before a decision."
-                    : " Awaiting current-source review and approval."}
-                </p>
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    edit(proposedReview.value.toFixed(2), proposedReview.source);
-                    setDestination(proposedReview.destination);
-                  }}
-                >
-                  Use saved current-rent proposal
-                </Button>
-              </div>
-            ) : null}
-            <Button
-              variant="secondary"
-              disabled={
-                pending || !observed?.candidateFingerprint || !value || !source.trim()
-              }
-              onClick={() => void run(requestReview)}
-            >
-              Save current-rent proposal for review
-            </Button>
-            {can(role, "approve") && observed?.sourceTriggerKey ? (
-              <Button
-                variant="secondary"
-                disabled={pending || !value || !source.trim()}
-                onClick={() => void run(resolveRent)}
-              >
-                Save current-rent decision for approval
-              </Button>
+            {currentRentSources.length > 0 ? (
+              <ul aria-label="Observed current rent by source" className="ui-rows">
+                {currentRentSources.map((entry) => {
+                  const state =
+                    entry.amount === null
+                      ? "unreadable"
+                      : workingRent === null
+                        ? "no_working_value"
+                        : entry.amount === workingRent
+                          ? "matches"
+                          : "differs";
+                  return (
+                    <li data-source-comparison={state} key={entry.label}>
+                      <strong>{entry.label}</strong>: {entry.raw || "blank"}.{" "}
+                      <span className="muted">
+                        {state === "unreadable"
+                          ? "Not a currency amount."
+                          : state === "no_working_value"
+                            ? "No working value is saved yet."
+                            : state === "matches"
+                              ? "Matches the working value."
+                              : `Differs from the working value ${formatMoneyReference(workingRent!)}. The working value stays until you change it.`}
+                      </span>
+                      {working?.canEdit &&
+                      entry.amount !== null &&
+                      state !== "matches" ? (
+                        <>
+                          {" "}
+                          <Button
+                            onClick={() => void adopt(entry)}
+                            size="compact"
+                            variant="tertiary"
+                          >
+                            Use the {entry.label} value
+                          </Button>
+                        </>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ul>
             ) : (
-              <p>
-                {reviewHref ? (
-                  <a href={reviewHref}>Open current-rent review handoff</a>
-                ) : (
-                  "A current source decision must be available before this Sheet correction."
-                )}
-              </p>
+              <p className="muted">No observed current rent is available to compare.</p>
             )}
-            {!can(role, "approve") ? (
-              <p>
-                Current-rent decisions require Approver access.{" "}
-                <RequestAccessLink surface="renewal_corrections.review" />
-              </p>
-            ) : null}
-            {approval && !can(role, "manageAdmin") ? (
-              <p>
-                Approval of this value requires Admin access.{" "}
-                <RequestAccessLink surface="renewal_corrections.approve" />
-              </p>
-            ) : null}
-            {approval && can(role, "manageAdmin") ? (
-              confirmApproval ? (
-                <div role="group" aria-label="Confirm current-rent approval">
-                  <p>
-                    Approve current base rent {approval.value} from {approval.source}.
-                    This approves a proposal; provider writes still require their exact
-                    confirmations.
-                  </p>
+            <p className="muted">
+              Using a source value changes the working value in this app only. RentVine
+              changes only through Prepare RentVine rent charge update beside the working
+              current rent; the Sheet changes only under{" "}
+              <a className="text-link" href="#operating-sheet-title">
+                Review Sheet updates
+              </a>
+              .
+            </p>
+          </div>
+        ) : (
+          <>
+            <div aria-label="Observed source values">
+              {observed?.candidates.map((candidate, index) => (
+                <p key={`${candidate.source}-${index}`}>
                   <Button
                     variant="secondary"
-                    onClick={() => setConfirmApproval(false)}
-                    disabled={pending}
+                    onClick={() => edit(candidate.value, `Reviewed ${candidate.source}`)}
                   >
-                    Cancel approval
+                    Use {candidate.source}: {candidate.value || "blank"}
                   </Button>
-                  <Button onClick={() => void run(approveRent)} disabled={pending}>
-                    Confirm approval of this value
+                </p>
+              ))}
+              {sheetValues &&
+              field in sheetValues &&
+              !observed?.candidates.some(
+                (candidate) => candidate.sourceSystem === "Google Sheets",
+              ) ? (
+                <p>
+                  <Button
+                    variant="secondary"
+                    onClick={() => edit(sheetValues[field], "Reviewed operating Sheet")}
+                  >
+                    Use operating Sheet: {sheetValues[field] || "blank"}
                   </Button>
-                </div>
+                </p>
+              ) : null}
+            </div>
+            <Field
+              htmlFor={`${id}-value`}
+              label={`Reviewed ${SHEET_FIELD_LABELS[field].toLowerCase()}`}
+              required
+            >
+              {shape === "yes_no" || shape === "boolean" ? (
+                <select
+                  id={`${id}-value`}
+                  value={value}
+                  onChange={(event) => edit(event.target.value)}
+                >
+                  <option value="">Select recorded value</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
               ) : (
-                <Button variant="secondary" onClick={() => setConfirmApproval(true)}>
-                  Review approval of {approval.value}
-                </Button>
-              )
+                <input
+                  id={`${id}-value`}
+                  type={shape === "date" ? "date" : "text"}
+                  inputMode={shape === "currency" ? "decimal" : undefined}
+                  value={value}
+                  onChange={(event) => edit(event.target.value)}
+                />
+              )}
+            </Field>
+            {prefill && value === prefill.value ? (
+              <p className="muted">
+                Prefilled from RentVine ({prefill.confidence}); edit it if the reviewed
+                value differs.
+              </p>
             ) : null}
-          </div>
-        ) : null}
-        <Button
-          disabled={pending || !can(role, "edit") || !value.trim() || !source.trim()}
-          onClick={() => void run(prepare)}
-        >
-          Prepare selected destination previews
-        </Button>
-        {!can(role, "edit") ? (
-          <p>
-            Preparing corrections requires Editor access.{" "}
-            <RequestAccessLink surface="renewal_corrections.edit" />
-          </p>
-        ) : null}
-        {notice ? <p role="status">{notice}</p> : null}
-        <ul aria-label="Destination preparation results">
-          {Object.entries(prepared).map(([target, result]) => (
-            <li key={target}>
-              <a
-                href={
-                  target === "sheet"
-                    ? "#operating-sheet-title"
-                    : "#rentvine-updates-title"
-                }
+            <Field htmlFor={`${id}-source`} label="Source or context (optional)">
+              <input
+                id={`${id}-source`}
+                maxLength={240}
+                value={source}
+                onChange={(event) => edit(value, event.target.value)}
+              />
+            </Field>
+            <Field htmlFor={`${id}-destination`} label="Destinations">
+              <select
+                id={`${id}-destination`}
+                value={destination}
+                onChange={(event) => {
+                  setDestination(event.target.value);
+                  setPrepared({});
+                }}
               >
-                {target === "sheet" ? "Operating Sheet" : "RentVine"}
-              </a>
-              : {result}
-            </li>
-          ))}
-        </ul>
+                <option value="sheet">Operating Sheet</option>
+                <option value="rentvine" disabled={!rvSupported}>
+                  RentVine
+                </option>
+                <option value="both" disabled={!rvSupported}>
+                  Both, confirmed separately
+                </option>
+              </select>
+            </Field>
+            {selectedRentvine && field === "renewal_date" ? (
+              <p>
+                The Sheet&apos;s renewal date maps to the reviewed RentVine lease end date
+                for this update. Fresh lease start and increase-eligibility dates remain
+                unchanged.
+              </p>
+            ) : null}
+            <Button
+              disabled={pending || !can(role, "edit") || !value.trim()}
+              onClick={() => void run(prepare)}
+            >
+              Prepare selected destination previews
+            </Button>
+            {!can(role, "edit") ? (
+              <p>
+                Preparing corrections requires Editor access.{" "}
+                <RequestAccessLink surface="renewal_corrections.edit" />
+              </p>
+            ) : null}
+            {notice ? <p role="status">{notice}</p> : null}
+            <ul aria-label="Destination preparation results">
+              {Object.entries(prepared).map(([target, result]) => (
+                <li key={target}>
+                  <a
+                    href={
+                      target === "sheet"
+                        ? "#operating-sheet-title"
+                        : "#rentvine-updates-title"
+                    }
+                  >
+                    {target === "sheet" ? "Operating Sheet" : "RentVine"}
+                  </a>
+                  : {result}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </Card>
       <div id="renewal-future-rent" tabIndex={-1}>
         <RenewalFutureRent

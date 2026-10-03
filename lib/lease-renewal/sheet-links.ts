@@ -22,6 +22,8 @@ import type {
   ReadRenewalSheetOptions,
   SheetsValuesReader,
 } from "@/lib/google-sheets/read-client";
+import { applyOperatorRowBindings } from "@/lib/lease-renewal/sheet-lookup";
+import type { WorkingSheetRow } from "@/lib/lease-renewal/working-record";
 
 export interface TablesWithJoinIds {
   tables: RawGrid[];
@@ -133,6 +135,15 @@ export interface RenewalSheetReadWithLinks extends TablesWithJoinIds {
   titles: string[];
 }
 
+export interface ReadRenewalSheetWithLinksOptions extends ReadRenewalSheetOptions {
+  /**
+   * S158: each lease's operator-selected row (from `sheetRowBindingsFromWorkingRecords`). The
+   * selected physical row joins its lease by id before proof rows are dropped, so the desk and
+   * the lease workspace read the same row. A row linked to another lease is never taken.
+   */
+  rowBindings?: ReadonlyMap<string, WorkingSheetRow>;
+}
+
 /**
  * Read the in-scope tabs as evaluated values plus a FORMULA hyperlink layer (both read-only) →
  * titles + display grids + per-row RentVine join ids. Throws if the injected reader has no FORMULA
@@ -140,7 +151,7 @@ export interface RenewalSheetReadWithLinks extends TablesWithJoinIds {
  * literal `=...` text.
  */
 export async function readRenewalSheetGridsWithLinks(
-  options: ReadRenewalSheetOptions,
+  options: ReadRenewalSheetWithLinksOptions,
 ): Promise<RenewalSheetReadWithLinks> {
   const reader: SheetsValuesReader = options.reader;
   if (!reader.batchGetFormulas) {
@@ -164,6 +175,15 @@ export async function readRenewalSheetGridsWithLinks(
     formulaResponse,
     richLinksByTab ? titles.map((title) => richLinksByTab[title]) : undefined,
   );
+  // S158: the operators' row selections win in the join layer, on physical rows, before any
+  // proof row is dropped below. The Sheet itself is never changed.
+  if (options.rowBindings && options.rowBindings.size > 0) {
+    result.tableJoinIds = applyOperatorRowBindings({
+      titles,
+      tableJoinIds: result.tableJoinIds,
+      bindings: options.rowBindings,
+    }).tableJoinIds;
+  }
   // S98: rows machine-marked with the exact proof-note prefix are excluded from every downstream
   // projection. The live reader supplies the note layer; a reader without it changes nothing.
   if (reader.batchGetNotes) {

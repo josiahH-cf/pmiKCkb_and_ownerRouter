@@ -39,11 +39,11 @@ import {
 import { claimActiveS97RenewalEffect } from "@/lib/firestore/s97-renewal-writeback-claim";
 import {
   getRenewalWorkspace,
-  startRenewalCycle,
   saveRenewalWorkspace,
 } from "@/lib/firestore/renewal-workspace";
+import { readEffectiveRenewalTerms } from "@/lib/firestore/renewal-effective-terms";
 import { getRenewalWritebackProposal } from "@/lib/lease-renewal/writeback/proposal-store";
-import { futureRentWorkspaceMatches } from "@/lib/lease-renewal/writeback/future-rent-intent";
+import { futureRentTermsCurrent } from "@/lib/lease-renewal/writeback/future-rent-intent";
 import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
 let app: App,
   db: Firestore,
@@ -80,30 +80,18 @@ beforeEach(async () => {
   writes = 0;
   local.role = "Editor";
   const basis = {
-      kind: "lease_end" as const,
-      dateIso: "2097-12-31",
-      source: "Emulator lease",
-    },
-    cycleId = randomUUID();
-  await startRenewalCycle(
-    actor,
-    {
-      leaseId: "81",
-      expectedCycleId: null,
-      expectedRevision: 0,
-      operationId: cycleId,
-      basis,
-      reason: "Reviewed emulator cycle",
-    },
-    basis,
-    db,
-  );
+    kind: "lease_end" as const,
+    dateIso: "2097-12-31",
+    source: "Emulator lease",
+  };
+  // S154: the first save establishes the lease's work record; no cycle step precedes it. The
+  // recorded owner approval supplies the fallback effective terms for these future-rent tests.
   workspace = (
     await saveRenewalWorkspace(
       actor,
       {
         leaseId: "81",
-        cycleId,
+        cycleId: null,
         expectedRevision: 0,
         operationId: randomUUID(),
         action: {
@@ -114,6 +102,7 @@ beforeEach(async () => {
         },
       },
       db,
+      async () => basis,
     )
   ).state!;
   charge = {
@@ -155,8 +144,8 @@ beforeEach(async () => {
     claimActiveEffect: (input) => claimActiveS97RenewalEffect(db, input),
     assertCurrentRenewalTerms: async (proposal) =>
       !!proposal.renewalTerms &&
-      futureRentWorkspaceMatches(
-        await getRenewalWorkspace(actor, "81", db),
+      futureRentTermsCurrent(
+        await readEffectiveRenewalTerms("81", db),
         proposal.renewalTerms,
       ),
     createWriter: () => ({
@@ -193,11 +182,8 @@ function proposalBody() {
     expectedPriorPreviewHash: null,
     businessIntent: "future_rent",
     renewalContext: {
-      cycleId: workspace.cycleId,
-      termsRevision: workspace.termsRevision,
       scheduleReview: "Reviewed future schedule",
     },
-    evidenceRef: "Reviewed exact owner terms",
     effects: [
       {
         kind: "recurring_charge_update",
@@ -216,9 +202,10 @@ async function prepared() {
   return stored;
 }
 describe("S113 actual future-rent route and persisted business intent", () => {
-  it("hands an Editor preparation to an Admin for one separately confirmed receipted effect", async () => {
+  it("S160 BEH-S160-1/4 (AC-S160-1): an Editor prepares and separately confirms one receipted effect with no acceptance or approval handoff", async () => {
     const proposal = await prepared();
     expect(writes).toBe(0);
+    expect(proposal.renewalTerms?.cycleId).toBe(workspace.cycleId);
     const confirm = {
       operation: "execute",
       leaseId: "81",
@@ -226,29 +213,9 @@ describe("S113 actual future-rent route and persisted business intent", () => {
       effectHash: proposal.effects[0].effectHash,
       confirm: true,
     };
-    expect((await post(confirm)).status).toBe(403);
-    expect(writes).toBe(0);
-    // S117 (AC-S117-3): the tenant's acceptance of these exact terms is recorded before the
-    // Admin confirmation; without it the route refuses before claiming the attempt.
-    local.role = "Admin";
-    expect((await (await post(confirm)).json()).error_type).toBe(
-      "tenant_acceptance_required",
-    );
-    expect(writes).toBe(0);
-    local.role = "Editor";
-    const accepted = (await getRenewalWorkspace(actor, "81", db))!;
-    await saveRenewalWorkspace(
-      actor,
-      {
-        leaseId: "81",
-        cycleId: accepted.cycleId,
-        expectedRevision: accepted.revision,
-        operationId: randomUUID(),
-        action: { kind: "tenant_response", outcome: "accepted", source: "Tenant email" },
-      },
-      db,
-    );
-    local.role = "Admin";
+    // S156 (BEH-S156-5): no tenant acceptance is recorded and none is required; the exact
+    // confirmation is the deliberate human step, and it is taken by the same Editor.
+    expect((await getRenewalWorkspace(actor, "81", db))!.tenantResponse).toBeNull();
     const response = await post(confirm),
       result = await response.json();
     expect(response.status, JSON.stringify(result)).toBe(200);
@@ -279,8 +246,10 @@ describe("S113 actual future-rent route and persisted business intent", () => {
     });
     expect(writes).toBe(1);
   });
-  it("refuses changed owner terms before consuming the attempt", async () => {
+  it("refuses changed effective terms before consuming the attempt (renewal_terms_changed)", async () => {
     const proposal = await prepared();
+    // The recorded approval was the only source of the terms; replacing it with a revision
+    // request leaves no complete terms, so the bound value is no longer current.
     await saveRenewalWorkspace(
       actor,
       {
@@ -296,24 +265,21 @@ describe("S113 actual future-rent route and persisted business intent", () => {
       },
       db,
     );
-    local.role = "Admin";
-    expect(
-      (
-        await post({
-          operation: "execute",
-          leaseId: "81",
-          previewHash: proposal.previewHash,
-          effectHash: proposal.effects[0].effectHash,
-          confirm: true,
-        })
-      ).status,
-    ).toBe(409);
+    const refused = await post({
+      operation: "execute",
+      leaseId: "81",
+      previewHash: proposal.previewHash,
+      effectHash: proposal.effects[0].effectHash,
+      confirm: true,
+    });
+    expect(refused.status).toBe(409);
+    expect((await refused.json()).error_type).toBe("renewal_terms_changed");
     expect(writes).toBe(0);
     expect(
       (await db.collection(EXTERNAL_EXECUTION_COLLECTIONS.records).get()).empty,
     ).toBe(true);
   });
-  it("rejects an unapproved amount at preparation before saving a proposal", async () => {
+  it("rejects an amount other than the working renewal rent at preparation before saving a proposal", async () => {
     const body = proposalBody();
     body.effects[0].changes.amount = "1276.00";
     expect((await post(body)).status).toBe(409);

@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { AuthenticatedUser } from "@/lib/auth/session";
+import { validateAuthClaims, type AuthenticatedUser } from "@/lib/auth/session";
 import {
   ACTIVE_DASHBOARD_COMPOSITION,
   DASHBOARD_NAVIGATION_COPY,
@@ -12,23 +12,37 @@ import {
 } from "@/lib/navigation/primary-navigation";
 import { isPrimaryNavigationItemActive } from "@/lib/navigation/primary-navigation-contract";
 
+// S167: every staff account has every internal Space. These helpers sign an account in through
+// the real claim validation with the scope claim an existing account may still carry, so each
+// navigation assertion proves the leftover claim no longer filters a destination.
 const editor = (scopes: readonly string[]): AuthenticatedUser =>
-  ({
+  validateAuthClaims({
     uid: "editor-1",
     email: "editor-1@pmikcmetro.com",
     hd: "pmikcmetro.com",
     role: "Editor",
     scopes,
-  }) as AuthenticatedUser;
+  });
 
 const admin = (scopes?: readonly string[]): AuthenticatedUser =>
-  ({
+  validateAuthClaims({
     uid: "admin-1",
     email: "admin-1@pmikcmetro.com",
     hd: "pmikcmetro.com",
     role: "Admin",
     ...(scopes ? { scopes } : {}),
-  }) as AuthenticatedUser;
+  });
+
+const ALL_OPERATIONS = ["Lease Renewal", "Maintenance", "Internal Processes"];
+const originalAllowedHd = process.env.ALLOWED_HD;
+
+beforeEach(() => {
+  process.env.ALLOWED_HD = "pmikcmetro.com";
+});
+
+afterEach(() => {
+  process.env.ALLOWED_HD = originalAllowedHd;
+});
 
 describe("S84 primary-navigation manifest", () => {
   it("owns exactly the requested groups and nine ordered destination definitions", () => {
@@ -74,80 +88,66 @@ describe("S84 primary-navigation manifest", () => {
     );
   });
 
-  it("filters destinations by current Space and role truth without dead controls", () => {
-    const maintenanceOnly = resolvePrimaryNavigation(editor(["maintenance"]));
-    expect(labels(maintenanceOnly, "my-work")).toEqual(["My Work", "Dashboard"]);
-    expect(labels(maintenanceOnly, "operations")).toEqual([
-      "Maintenance",
-      "Internal Processes",
-    ]);
-    expect(labels(maintenanceOnly, "admin")).toEqual([
-      "Admin",
-      "Connections",
-      "Communications",
-    ]);
-    expect(findItem(maintenanceOnly, "admin")).toMatchObject({
-      href: "/admin/access",
-      description: "View your access and request the permissions you need.",
-    });
-
-    const renewalsOnly = resolvePrimaryNavigation(editor(["renewals"]));
-    expect(labels(renewalsOnly, "my-work")).toEqual([
-      "My Work",
-      "Dashboard",
-      "Approval Queue",
-    ]);
-    expect(labels(renewalsOnly, "operations")).toEqual([
-      "Lease Renewal",
-      "Internal Processes",
-    ]);
-    expect(findItem(renewalsOnly, "approval-queue")).toMatchObject({
-      href: "/approval-queue",
-      description: "See requests waiting for an approval decision.",
-    });
+  // S167: a maintenance-only claim used to hide Lease Renewal and the Approval Queue, and a
+  // renewals-only claim used to hide Maintenance.
+  it("shows an Editor every Space destination whatever scope claim is left, keeping role truth", () => {
+    for (const leftoverClaim of [["maintenance"], ["renewals"]]) {
+      const groups = resolvePrimaryNavigation(editor(leftoverClaim));
+      expect(labels(groups, "my-work")).toEqual([
+        "My Work",
+        "Dashboard",
+        "Approval Queue",
+      ]);
+      expect(labels(groups, "operations")).toEqual(ALL_OPERATIONS);
+      expect(labels(groups, "admin")).toEqual(["Admin", "Connections", "Communications"]);
+      // The role still decides the Admin destination: a non-Admin gets self-service access only.
+      expect(findItem(groups, "admin")).toMatchObject({
+        href: "/admin/access",
+        description: "View your access and request the permissions you need.",
+      });
+      expect(findItem(groups, "approval-queue")).toMatchObject({
+        href: "/approval-queue",
+        description: "See requests waiting for an approval decision.",
+      });
+    }
   });
 
+  // S167: the Operations and Approval Queue columns used to vary with the scope claim.
   it.each([
-    ["Editor", [], ["Internal Processes"], false],
-    ["Editor", ["renewals"], ["Lease Renewal", "Internal Processes"], true],
-    ["Approver", ["maintenance"], ["Maintenance", "Internal Processes"], false],
-    [
-      "Approver",
-      ["renewals", "maintenance"],
-      ["Lease Renewal", "Maintenance", "Internal Processes"],
-      true,
-    ],
-    ["Admin", undefined, ["Lease Renewal", "Maintenance", "Internal Processes"], true],
+    ["Editor", [], "/admin/access"],
+    ["Editor", ["renewals"], "/admin/access"],
+    ["Approver", ["maintenance"], "/admin/access"],
+    ["Approver", ["renewals", "maintenance"], "/admin/access"],
+    ["Admin", undefined, "/admin"],
   ] as const)(
-    "resolves the %s actor and Space matrix without weakening visibility",
-    (role, scopes, operations, hasQueue) => {
-      const user = {
+    "resolves the %s actor with leftover claim %j to every Space and its role's Admin target",
+    (role, scopes, adminHref) => {
+      const user = validateAuthClaims({
         uid: `${role.toLowerCase()}-matrix`,
         email: `${role.toLowerCase()}-matrix@pmikcmetro.com`,
         hd: "pmikcmetro.com",
         role,
         ...(scopes === undefined ? {} : { scopes: [...scopes] }),
-      } as AuthenticatedUser;
-      const resolved = resolvePrimaryNavigation(user);
-      expect(labels(resolved, "operations")).toEqual(operations);
-      expect(
-        Boolean(
-          resolved
-            .flatMap((group) => group.items)
-            .find((item) => item.id === "approval-queue"),
-        ),
-      ).toBe(hasQueue);
+      });
+      const resolved = resolvePrimaryNavigation(user, { pendingAccessRequestCount: 2 });
+      expect(labels(resolved, "operations")).toEqual(ALL_OPERATIONS);
+      expect(findItem(resolved, "approval-queue").href).toBe("/approval-queue");
+      // Role truth is unchanged: only an Admin reaches Admin itself or sees the pending count.
+      expect(findItem(resolved, "admin").href).toBe(adminHref);
+      expect(Boolean(findItem(resolved, "admin").badge)).toBe(role === "Admin");
+      expect(Boolean(findItem(resolved, "approval-queue").badge)).toBe(role === "Admin");
     },
   );
 
-  it("routes an Admin without Renewals to only the access lane and reuses one pending projection", () => {
+  // S167: this Admin used to be routed to the access-only lane without Lease Renewal.
+  it("gives an Admin with a leftover maintenance-only claim the full queue and reuses one pending projection", () => {
     const groups = resolvePrimaryNavigation(admin(["maintenance"]), {
       pendingAccessRequestCount: 7,
     });
 
     expect(findItem(groups, "approval-queue")).toMatchObject({
-      href: "/approval-queue?view=access",
-      description: "Review access requests waiting for an Admin decision.",
+      href: "/approval-queue",
+      description: "Review work and access requests waiting for a decision.",
       badge: { value: 7, label: "7 pending access requests" },
     });
     expect(findItem(groups, "admin")).toMatchObject({
@@ -155,7 +155,7 @@ describe("S84 primary-navigation manifest", () => {
       description: "Manage people, access, policies, and app readiness.",
       badge: { value: 7, label: "7 pending access requests" },
     });
-    expect(labels(groups, "operations")).not.toContain("Lease Renewal");
+    expect(labels(groups, "operations")).toEqual(ALL_OPERATIONS);
   });
 
   it("never exposes the Admin count to non-Admins and never fabricates zero on read failure", () => {
@@ -172,7 +172,8 @@ describe("S84 primary-navigation manifest", () => {
     expect(findItem(unavailable, "admin").badge).toBeUndefined();
   });
 
-  it("omits a future group if actor filtering removes every child", () => {
+  // S167: actor filtering used to remove this renewals-only group for a maintenance-only claim.
+  it("keeps a renewals-only group for a leftover maintenance-only claim and omits a group with no destinations", () => {
     const renewalsOnlyGroup = [
       {
         id: "operations",
@@ -192,8 +193,18 @@ describe("S84 primary-navigation manifest", () => {
       },
     ] as const;
 
+    const resolved = resolvePrimaryNavigation(
+      editor(["maintenance"]),
+      {},
+      renewalsOnlyGroup,
+    );
+    expect(resolved.map((group) => group.id)).toEqual(["operations"]);
+    expect(labels(resolved, "operations")).toEqual(["Lease Renewal"]);
+
     expect(
-      resolvePrimaryNavigation(editor(["maintenance"]), {}, renewalsOnlyGroup),
+      resolvePrimaryNavigation(editor(["maintenance"]), {}, [
+        { ...renewalsOnlyGroup[0], items: [] },
+      ]),
     ).toEqual([]);
   });
 

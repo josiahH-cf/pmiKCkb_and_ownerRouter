@@ -38,7 +38,7 @@ import {
   inclusiveRangeDays,
   type RenewalDeskQueryV2State,
 } from "@/lib/lease-renewal/desk-query-v2";
-import { buildDeskHref } from "@/lib/lease-renewal/desk-view-continuation";
+import { buildExplicitDeskHref } from "@/lib/lease-renewal/desk-view-continuation";
 import {
   OPERATIONAL_SOURCE_VIEWS,
   type ApprovalRecordFacts,
@@ -313,6 +313,8 @@ function completeClarification(
   };
   switch (previous.awaiting) {
     case "person": {
+      // S166: pointing at a listed match ("the second one") chooses that record; it is not a name.
+      if (plan.followUp.ordinal !== null && previous.refs.length > 0) return plan;
       const reply = plan.filters.people.length
         ? [...plan.filters.people]
         : [cleanNameReply(question)].filter(Boolean);
@@ -600,6 +602,8 @@ interface PeopleResolution {
   readonly ambiguous: ReadonlyArray<{
     readonly name: string;
     readonly options: readonly string[];
+    /** S166: every person the name matched, so their records can be listed, never picked. */
+    readonly candidates: readonly PersonCandidate[];
   }>;
   /** False when other staff members' assignments are not visible to this actor. */
   readonly staffVisible: boolean;
@@ -644,7 +648,11 @@ async function resolvePeople(
   }
   const matches = new Map<string, PersonCandidate[]>();
   const unmatched: string[] = [];
-  const ambiguous: { name: string; options: string[] }[] = [];
+  const ambiguous: {
+    name: string;
+    options: string[];
+    candidates: PersonCandidate[];
+  }[] = [];
   for (const name of people) {
     const found = candidates.filter((candidate) => {
       if (nameMatches(name, candidate.label)) return true;
@@ -666,7 +674,11 @@ async function resolvePeople(
           pool.find((candidate) => candidate.key === key) as PersonCandidate,
         ),
       );
-      ambiguous.push({ name, options: [...new Set(options)].slice(0, 5) });
+      ambiguous.push({
+        name,
+        options: [...new Set(options)].slice(0, 5),
+        candidates: pool,
+      });
     }
   }
   return { matches, unmatched, ambiguous, staffVisible };
@@ -701,6 +713,8 @@ type Outcome =
       readonly kind: "clarify";
       readonly question: string;
       readonly awaiting: AwaitingDetail | null;
+      /** S166: the actual matches to open now, listed beside the question. */
+      readonly groups?: AnswerGroup[];
     };
 
 function openTasksByLease(
@@ -880,9 +894,13 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
       read.records.map((record) => record.facts),
     );
     const question = ambiguityQuestion(resolution);
-    if (question) return { kind: "clarify", question, awaiting: "person" };
     notes.push(...peopleNotes(resolution, exec));
-    const found = [...resolution.matches.values()].flat();
+    // S166: when a name matches several people, nobody is picked. Every matching person's leases
+    // are listed, each with its own link and the person it matched, beside the question.
+    const found = [
+      ...[...resolution.matches.values()].flat(),
+      ...resolution.ambiguous.flatMap((entry) => entry.candidates),
+    ];
     const partyLabels = new Set(
       found
         .filter((candidate) => candidate.role !== "staff")
@@ -918,6 +936,36 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
         extraDetail.set(record.ref.id, [...new Set(reasons)].join(", "));
       return reasons.length > 0;
     });
+    if (question) {
+      const matched = records.map((record) =>
+        toItem(record, extraDetail.get(record.ref.id)),
+      );
+      const named = quoteList(filters.people);
+      return {
+        kind: "clarify",
+        question,
+        awaiting: "person",
+        groups: matched.length
+          ? [
+              finishGroup({
+                read,
+                matched,
+                summary: sentence(
+                  matched.length,
+                  ["lease", "leases"],
+                  [
+                    ...clauses,
+                    [`matches a person named ${named}`, `match people named ${named}`],
+                  ],
+                ),
+                notes,
+                status,
+                link: null,
+              }),
+            ]
+          : [],
+      };
+    }
     const names = [...resolution.matches.keys()];
     const verb =
       filters.peopleMatch === "assigned"
@@ -947,7 +995,12 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
         summary: sentence(matched.length, ["lease", "leases"], clauses),
         notes,
         status,
-        link: { label: "Open these on the Renewals desk", href: buildDeskHref(desk) },
+        // S166: the link names its view, so the unfiltered worklist opens the default view the
+        // answer described rather than the account's remembered view.
+        link: {
+          label: "Open these on the Renewals desk",
+          href: buildExplicitDeskHref(desk),
+        },
       }),
     ],
   };
@@ -1934,7 +1987,7 @@ async function answerPlan(
       };
     }
     if (outcome.kind === "clarify")
-      return respond("clarification", outcome.question, [], {
+      return respond("clarification", outcome.question, outcome.groups ?? [], {
         clarification: outcome.question,
         awaiting: outcome.awaiting,
       });

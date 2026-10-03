@@ -13,7 +13,6 @@ const actor: AuthenticatedUser = {
   email: "user@pmikcmetro.com",
   hd: "pmikcmetro.com",
   role: "Editor",
-  scopes: ["maintenance"],
 };
 
 describe("Gmail workflow attention (AC-GW-10, AC-GW-12)", () => {

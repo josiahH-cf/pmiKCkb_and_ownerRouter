@@ -51,26 +51,21 @@ export function RenewalCompPreparation({
     return () => controller.abort();
   }, [leaseId, cycleId]);
   if (!context) return null;
-  if (!context.state)
-    return (
-      <Card title={renewalCardTitle("market-evidence", "Market evidence")}>
-        <p>
-          Select the reviewed cycle above before saving comps. Opening this section makes
-          no paid lookup.
-        </p>
-      </Card>
-    );
+  // S154: comps are available on every lease. With nothing recorded yet, the first retained
+  // lookup or saved preparation establishes the work record.
   const { state } = context,
-    currentObservations = observations.filter((value) => value.cycleId === state.cycleId),
+    currentObservations = state
+      ? observations.filter((value) => value.cycleId === state.cycleId)
+      : [],
     selected =
       currentObservations.find(
-        (value) => value.id === state.preparation?.observationId,
+        (value) => value.id === state?.preparation?.observationId,
       ) ?? currentObservations.find((value) => value.market.provider);
   return (
     <Card title={renewalCardTitle("market-evidence", "Market evidence")}>
       {error ? <p role="alert">{error}</p> : null}
       <OwnerDecisionForm
-        key={state.cycleId}
+        key={state?.cycleId ?? "unrecorded"}
         leaseId={context.leaseId}
         current={null}
         currentRent={currentRent}
@@ -78,14 +73,15 @@ export function RenewalCompPreparation({
         compScreenshotExecutable={compScreenshotExecutable}
         marketSubject={marketSubject}
         preparation={{
-          cycleId: state.cycleId,
-          market: state.preparation?.market,
-          source: state.preparation?.source,
-          analysisReference: state.preparation?.analysisReference,
+          cycleId: state?.cycleId ?? null,
+          market: state?.preparation?.market,
+          source: state?.preparation?.source,
+          analysisReference: state?.preparation?.analysisReference,
           initialLookup: selected
             ? { ...selected.result, observationId: selected.id }
             : null,
           onSave: context.record,
+          saveState: context.states.preparation,
         }}
       />
     </Card>

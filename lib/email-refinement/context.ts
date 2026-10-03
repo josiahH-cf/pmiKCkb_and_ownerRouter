@@ -10,6 +10,7 @@ import { getWorkOrderChatMessage } from "@/lib/firestore/rentvine-work-order-cha
 import { rentVineAccountCode } from "@/lib/integrations/rentvine/client";
 import { currentRenewalMessage } from "@/lib/lease-renewal/current-renewal-message";
 import {
+  greetingFirstNames,
   MESSAGE_CHARGES,
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
@@ -34,16 +35,17 @@ export function renewalRefinementFacts(facts: RenewalMessageFacts): RefinementFa
   const add = (label: string, value: string | null | undefined) => {
     if (value && value.trim()) out.push({ label, value });
   };
-  add("Recipient names", facts.names.join(", "));
+  // S163: the greeting uses first names, so those are the names a revision may rely on.
+  add("Recipient first names", greetingFirstNames(facts).known.join(", "));
   add("Property address", facts.address);
   if (facts.currentBaseRent) add("Current base rent", usd(facts.currentBaseRent.value));
   if (facts.leaseEndDate) add("Lease end date", formatCalendarDate(facts.leaseEndDate));
+  // S156/S161: the terms staff are working with; each is offered only when it is known.
   if (facts.ownerTerms) {
-    add("Approved renewal rent", usd(facts.ownerTerms.rent));
-    add(
-      "Renewal term",
-      `${formatCalendarDate(facts.ownerTerms.effectiveDate)} through ${formatCalendarDate(facts.ownerTerms.endDate)}`,
-    );
+    const { rent, effectiveDate, endDate } = facts.ownerTerms;
+    if (rent !== null) add("Renewal rent", usd(rent));
+    if (effectiveDate) add("Renewal start date", formatCalendarDate(effectiveDate));
+    if (endDate) add("Renewal end date", formatCalendarDate(endDate));
   }
   if (facts.range)
     add("Comparable rent range", `${usd(facts.range.low)} to ${usd(facts.range.high)}`);
@@ -83,25 +85,35 @@ export function renewalRefinementFacts(facts: RenewalMessageFacts): RefinementFa
   return out;
 }
 
+/**
+ * S163: the phrases a revision must keep when they are in the draft: the greeting's first names
+ * (the body no longer carries full names), the property address and the sender's name.
+ */
+export function renewalRefinementProtectedPhrases(facts: RenewalMessageFacts): string[] {
+  return [
+    ...greetingFirstNames(facts).known,
+    ...(facts.address ? [facts.address] : []),
+    ...(facts.signature ? [facts.signature.name] : []),
+  ];
+}
+
+/**
+ * S161 (R-S161-13): refinement stays optional and needs no saved record; it reads the current facts
+ * and returns a proposal the person may apply to the editable body.
+ */
 export async function renewalRefinementContext(
   actor: AuthenticatedUser,
   leaseId: string,
   channel: "owner" | "tenant",
 ): Promise<RefinementContext> {
   const current = await currentRenewalMessage(actor, leaseId, channel);
-  if (!current.saved)
-    throw new EditableLayerError("Save this message before refining its wording.", 409);
   return {
     purpose:
       channel === "owner"
         ? "A lease renewal message to the property owner about this year's renewal."
         : "A lease renewal offer message to the tenant.",
     facts: renewalRefinementFacts(current.facts),
-    protectedPhrases: [
-      ...current.facts.names,
-      ...(current.facts.address ? [current.facts.address] : []),
-      ...(current.facts.signature ? [current.facts.signature.name] : []),
-    ],
+    protectedPhrases: renewalRefinementProtectedPhrases(current.facts),
     baseHash: current.bodyBaseHash,
   };
 }

@@ -7,6 +7,9 @@ import {
   getRenewalWorkStatus,
   listRenewalWorkStatusActivity,
 } from "@/lib/firestore/renewal-work-status";
+import { getRenewalWorkingRecord } from "@/lib/firestore/renewal-working-record";
+import { listRenewalStatusNotes } from "@/lib/firestore/renewal-status-notes";
+import { sheetRowBindingsFromWorkingRecords } from "@/lib/lease-renewal/sheet-lookup";
 import { createHash } from "node:crypto";
 import { getRenewalResourceLocations } from "@/lib/firestore/renewal-resource-locations";
 import { RenewalResourceLinksSummary } from "@/components/lease-renewal/RenewalResourceLinksSummary";
@@ -35,7 +38,8 @@ import {
 import { loadWorkspaceAttemptState } from "@/lib/lease-renewal/execution/workspace-continuation";
 import { projectRentChargeOutcomes } from "@/lib/lease-renewal/rent-charge-outcomes";
 import { projectCurrentBaseReadback } from "@/lib/lease-renewal/writeback/current-base-readback";
-import { futureRentExecutionReady } from "@/lib/lease-renewal/writeback/future-rent-intent";
+import { futureRentTermsCurrent } from "@/lib/lease-renewal/writeback/future-rent-intent";
+import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
 import { loadSheetWritebackEffectStatuses } from "@/lib/lease-renewal/sheet-writeback/status";
 import { FirestoreExternalExecutionStore } from "@/lib/firestore/external-action-executions";
 import { getAdminFirestore } from "@/lib/firestore/admin";
@@ -73,6 +77,10 @@ import {
 } from "@/lib/lease-renewal/live-desk";
 import { resolveFreshOperatingSheetLeaseContext } from "@/lib/lease-renewal/sheet-writeback/workspace-resolution";
 import { audienceEmailRoster } from "@/lib/lease-renewal/sheet-writeback/audience-emails";
+import {
+  operatingSheetLookupCurrent,
+  sheetFieldCells,
+} from "@/lib/lease-renewal/sheet-writeback/lookup-target";
 import { buildOperatingSheetCellDestination } from "@/lib/lease-renewal/desk-destinations";
 import { validateDeskView } from "@/lib/lease-renewal/desk-view-continuation";
 import {
@@ -153,6 +161,10 @@ export default async function LiveRenewalLeaseWorkspacePage({
         resolveFreshOperatingSheetLeaseContext(leaseId),
       )
     : Promise.resolve(unavailableRenewalAuxiliary("sheet_fields"));
+  // S157: the lease-bound working record. Its own read, so a failure affects only working values.
+  const workingRecordReadPromise = readRenewalAuxiliary("working_record", () =>
+    getRenewalWorkingRecord(user, leaseId),
+  );
   // Independent genuine reads start after both access guards, alongside the lease snapshot.
   // Every result retains its typed failure; there is no cache or provider effect on navigation.
   const supportingReads = Promise.all([
@@ -194,11 +206,14 @@ export default async function LiveRenewalLeaseWorkspacePage({
     // S119: the saved staff work status and its history. An unavailable read renders as
     // unavailable, never as Not recorded, and disables saving until it is re-read.
     readRenewalAuxiliary("work_status", async () => {
-      const [record, history] = await Promise.all([
+      // S164: the notes ride on the same read; a failed notes read leaves the control to read
+      // them itself, and never hides the status.
+      const [record, history, notes] = await Promise.all([
         getRenewalWorkStatus(user, leaseId),
         listRenewalWorkStatusActivity(user, leaseId),
+        listRenewalStatusNotes(user, leaseId).catch(() => undefined),
       ]);
-      return { record, history };
+      return { record, history, notes };
     }),
     // S125: the reviewed notice timing basis (this read never throws).
     readMoveOutTimingBasisSnapshot(),
@@ -292,6 +307,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
       : false;
   const resolutions = renewalAuxiliaryValue(resolutionsRead, []);
   const termReview = renewalAuxiliaryValue(termReviewRead, null);
+  const workingRecordRead = await workingRecordReadPromise;
   const outcome = await loadLiveRenewalLeaseWorkspace(
     leaseId,
     readTimestamp,
@@ -318,6 +334,11 @@ export default async function LiveRenewalLeaseWorkspacePage({
     timingBasis,
     renewalNoticeObserver(user),
     preparedNoticeStatusTable,
+    sheetRowBindingsFromWorkingRecords(
+      [renewalAuxiliaryValue(workingRecordRead, null)].filter(
+        (record): record is NonNullable<typeof record> => record !== null,
+      ),
+    ),
   );
   const dispositions = renewalAuxiliaryValue(dispositionsRead, []);
   const writebackProposal = renewalAuxiliaryValue(writebackProposalRead, null);
@@ -370,7 +391,13 @@ export default async function LiveRenewalLeaseWorkspacePage({
   });
   const futureReady =
     writebackProposal?.businessIntent === "future_rent" && writebackProposal.renewalTerms
-      ? futureRentExecutionReady(manualState, writebackProposal.renewalTerms)
+      ? futureRentTermsCurrent(
+          effectiveRenewalTerms(
+            renewalAuxiliaryValue(workingRecordRead, null),
+            manualState,
+          ),
+          writebackProposal.renewalTerms,
+        )
       : null;
   const sourceUpdateIdentity =
     outcome.status === "ok"
@@ -388,6 +415,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
   });
   const auxiliaryFailures = renewalAuxiliaryFailures([
     manualRead,
+    workingRecordRead,
     progressRead,
     packetRead,
     policyRead,
@@ -425,6 +453,8 @@ export default async function LiveRenewalLeaseWorkspacePage({
             marketSubject={marketSubject}
             manualState={manualRead.status === "available" ? manualRead.value : undefined}
             manualReadUnavailable={manualRead.status !== "available"}
+            workingRecord={renewalAuxiliaryValue(workingRecordRead, null)}
+            workingRecordUnavailable={workingRecordRead.status !== "available"}
             workStatus={{
               available: workStatusRead.status === "available",
               record:
@@ -433,6 +463,10 @@ export default async function LiveRenewalLeaseWorkspacePage({
                   : null,
               history:
                 workStatusRead.status === "available" ? workStatusRead.value.history : [],
+              notes:
+                workStatusRead.status === "available"
+                  ? workStatusRead.value.notes
+                  : undefined,
               currentCycleId:
                 manualRead.status === "available"
                   ? (manualRead.value?.cycleId ?? null)
@@ -509,6 +543,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
                         }
                       : null
                   }
+                  fieldCells={sheetFieldCells(sheetFields)}
                   identity={sourceUpdateIdentity}
                   initialFieldValues={sheetFields?.row?.fieldValues}
                   initialProposal={
@@ -569,6 +604,10 @@ export default async function LiveRenewalLeaseWorkspacePage({
             })}
             selectedStepId={stepParam}
             sheetDestination={sheetDestination}
+            sheetLookup={{
+              workspaceContext: sheetWorkspaceContext,
+              current: operatingSheetLookupCurrent(sheetFields, OPERATING_SHEET_TAB),
+            }}
             sheetFieldDestinations={Object.fromEntries(
               [...(sheetFields?.columns ?? [])].flatMap(([field, columnIndex]) => {
                 const destination = buildOperatingSheetCellDestination({

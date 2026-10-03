@@ -114,6 +114,12 @@ export function effectForAudienceEmailIntent(
   audience: Audience,
 ): SheetFieldUpdateEffectInput {
   const view = audienceEmailRoster(context, audience);
+  // S158: a selected location that is readable but not a target refuses with its own limit.
+  if (context.targetRefusal)
+    throw new SheetWorkspaceResolutionError(
+      context.targetRefusal.code,
+      context.targetRefusal.message,
+    );
   if (view.state === "column_missing")
     throw new SheetWorkspaceResolutionError("email_column_missing");
   if (view.state === "roster_blocked")

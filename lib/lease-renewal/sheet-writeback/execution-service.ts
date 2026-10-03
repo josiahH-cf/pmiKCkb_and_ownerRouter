@@ -129,12 +129,6 @@ export interface SheetWritebackDependencies {
   writeFlagEnabled(): boolean;
   /** Trusted server identity; tests may inject an isolated revision, never a client value. */
   runtimeBinding?: () => SheetWritebackRuntimeBinding | null;
-  /** Firestore-only exact resolution/approval claim for a normal field update. */
-  claimAuthorizedFieldUpdate?: (input: {
-    executionId: string;
-    previewHash: string;
-    authorization: NonNullable<SheetFieldUpdateEffectInput["authorization"]>;
-  }) => Promise<"claimed" | "duplicate" | "blocked">;
   /** Active generation plus exact target serialization for normal field updates. */
   claimLeaseScopedFieldUpdate?: (input: {
     executionId: string;

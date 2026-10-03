@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
+import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { can } from "@/lib/auth/roles";
 import { requireCapabilityInSpace, type AuthenticatedUser } from "@/lib/auth/session";
+import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   reserveRenewalNoticeLease,
   withRenewalNoticeAdmission,
@@ -78,21 +80,22 @@ export async function GET(request: Request) {
     );
     const approval = await getRentSuggestionApproval(user, leaseId);
     const activity = await listRentSuggestionApprovalActivity(user, leaseId);
-    // The server is the source of truth for who may approve; the client renders the control from this.
-    const canApprove = can(
-      user.role,
-      renewalRoleCapability("approve_pricing_suggestion"),
-    );
+    // The server is the source of truth for who may approve; the client renders the control from
+    // this. S156/S167: an Editor decides alone; a verification account never records a decision.
+    const canApprove =
+      can(user.role, renewalRoleCapability("approve_pricing_suggestion")) &&
+      !isVerificationAccount(user);
     return NextResponse.json({ suggestion, approval, activity, canApprove });
   } catch (error) {
     return apiErrorResponse(error);
   }
 }
 
-// Approve or return the comp-derived rent suggestion (S29 control plane). The route gates at "read"; the
-// route and data layer both enforce the Admin-only rule, the required reason, the
-// server-side recompute, and the no-execute invariant. No system-of-record write and no send happen here:
-// approving only records human authorization to place the number in the owner-notice DRAFT.
+// Approve or return the comp-derived rent suggestion (S29 control plane). The route gates at "read"
+// in the Renewals Space; S156/S167: Editor access is the only role requirement, and the route and
+// data layer both refuse a verification account and keep the required reason, the server-side
+// recompute, and the no-execute invariant. No system-of-record write and no send happen here:
+// approving only records the decision to place the number in the owner-notice DRAFT.
 export async function POST(request: Request) {
   try {
     const user = await requireCapabilityInSpace(
@@ -100,6 +103,11 @@ export async function POST(request: Request) {
       "renewals",
     );
     assertRenewalRoleAuthority("approve_pricing_suggestion", user.role);
+    if (isVerificationAccount(user))
+      throw new EditableLayerError(
+        "Verification accounts cannot record rent-suggestion decisions.",
+        403,
+      );
     const input = await parseJsonBody(request, DecideRentSuggestionApprovalInputSchema);
     const facts = await resolveLeaseLiveFacts(user, input.lease_id);
     const approval = await decideRentSuggestionApproval(

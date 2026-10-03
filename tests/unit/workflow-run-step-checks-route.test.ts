@@ -163,7 +163,9 @@ describe("workflow-run step-checks API route", () => {
     );
   });
 
-  it("denies a scoped maintenance sub-user a run outside its scope (403, no write)", async () => {
+  // S167: a maintenance-only claim used to refuse this Move-In run with a 403 and no write. The
+  // claim is ignored, so the step check is written as a claim-free Editor.
+  it("lets an Editor with a leftover maintenance-only claim check a step on a Move-In run", async () => {
     setAuthResolverForTest(() => ({
       email: "maint@pmikcmetro.com",
       hd: "pmikcmetro.com",
@@ -171,8 +173,17 @@ describe("workflow-run step-checks API route", () => {
       scopes: ["maintenance"],
       uid: "maint-1",
     }));
+    const admitted = {
+      email: "maint@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+      uid: "maint-1",
+    };
     vi.mocked(getWorkflowRun).mockResolvedValue(
       workflowRun({ definition_id: "move-in" }),
+    );
+    vi.mocked(setWorkflowRunStepCheck).mockResolvedValue(
+      check({ checked_by_uid: "maint-1" }),
     );
 
     const response = await POST_STEP_CHECK(
@@ -180,7 +191,31 @@ describe("workflow-run step-checks API route", () => {
       runContext("run-1"),
     );
 
+    expect(response.status).toBe(201);
+    expect(getWorkflowRun).toHaveBeenCalledWith(admitted, "run-1");
+    expect(setWorkflowRunStepCheck).toHaveBeenCalledTimes(1);
+    expect(setWorkflowRunStepCheck).toHaveBeenCalledWith(admitted, {
+      step_id: "step-1",
+      status: "Checked",
+      run_id: "run-1",
+    });
+  });
+
+  it("refuses a verification account's step check before the run is read (403, no write)", async () => {
+    setAuthResolverForTest(() => ({
+      email: "canary-editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+      uid: "canary-editor",
+    }));
+
+    const response = await POST_STEP_CHECK(
+      jsonRequest({ step_id: "step-1", status: "Checked" }),
+      runContext("run-1"),
+    );
+
     expect(response.status).toBe(403);
+    expect(getWorkflowRun).not.toHaveBeenCalled();
     expect(setWorkflowRunStepCheck).not.toHaveBeenCalled();
   });
 });

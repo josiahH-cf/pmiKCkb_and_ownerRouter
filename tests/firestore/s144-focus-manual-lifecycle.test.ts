@@ -106,18 +106,23 @@ async function start(expected: RenewalWorkspaceState | null) {
   return started.state!;
 }
 
-async function record(state: RenewalWorkspaceState, action: RenewalWorkspaceAction) {
+/** S154: with no record yet, the first save establishes it from the lease's real basis. */
+async function record(
+  state: RenewalWorkspaceState | null,
+  action: RenewalWorkspaceAction,
+) {
   operation += 1;
   const saved = await saveRenewalWorkspace(
     editor,
     {
       leaseId: LEASE,
-      cycleId: state.cycleId,
-      expectedRevision: state.revision,
+      cycleId: state?.cycleId ?? null,
+      expectedRevision: state?.revision ?? 0,
       operationId: OP(operation),
       action,
     },
     db,
+    async () => basis,
   );
   expect(saved.duplicate).toBe(false);
   return (await readBack())!;
@@ -134,20 +139,23 @@ async function refusal(promise: Promise<unknown>) {
 
 describe("S144 Focus path through the staff-record store", () => {
   it("advances one confirmed, read-back record at a time to staff completion and back", async () => {
-    // Before any cycle the reviewed cycle is the staff lane's first ready action (the sample lease
-    // also has an open recipient check, which the guidance names first).
-    expect(
-      project(await readBack()).actions.find((a) => a.id === "manual.cycle")?.status,
-    ).toBe("ready_for_actor");
-    let state = await start(null);
-    expect(project(state).primaryActionId).toBe("manual.owner_outreach");
+    // S154 (BEH-S154-3): with nothing recorded there is no cycle action; the staff lane's first
+    // activity is ready and the first save establishes the work record.
+    const untouched = project(await readBack());
+    expect(untouched.actions.find((a) => a.id === "manual.cycle")).toBeUndefined();
+    expect(untouched.actions.find((a) => a.id === "manual.owner_outreach")?.status).toBe(
+      "ready_for_actor",
+    );
+    expect(await readBack()).toBeNull();
 
-    state = await record(state, {
+    let state = await record(null, {
       kind: "activity",
       activity: "owner_outreach",
       outcome: "done",
       source: "Owner phone call",
     });
+    expect(state.basis).toEqual(basis);
+    expect(state.revision).toBe(1);
     let projection = project(state);
     expect(projection.headlineActionId).toBe("manual.owner_response");
     expect(projection.actions.find((a) => a.id === "manual.owner_response")?.status).toBe(
@@ -174,11 +182,21 @@ describe("S144 Focus path through the staff-record store", () => {
       source: "Tenant email",
     });
     projection = project(state);
+    // S156 (BEH-S156-2/7): every remaining activity is available at once, and the completion
+    // record is never held behind the checklist; the list remains guidance.
     expect(
-      projection.actions.filter(
-        (a) => a.id.startsWith("manual.") && a.status === "ready_for_actor",
+      new Set(
+        projection.actions
+          .filter((a) => a.id.startsWith("manual.") && a.status === "ready_for_actor")
+          .map((a) => a.id),
       ),
-    ).toHaveLength(AFTER_ACCEPTANCE.length + 1);
+    ).toEqual(
+      new Set([
+        ...AFTER_ACCEPTANCE.map((activity) => `manual.${activity}`),
+        "manual.preparation",
+        "manual.complete",
+      ]),
+    );
 
     for (const activity of AFTER_ACCEPTANCE) {
       const before = project(state);
@@ -217,13 +235,13 @@ describe("S144 Focus path through the staff-record store", () => {
   });
 
   it("refuses a stale revision, replays a duplicate once and refuses a wrong cycle", async () => {
-    let state = await start(null);
-    state = await record(state, {
+    const state = await record(null, {
       kind: "activity",
       activity: "owner_outreach",
       outcome: "done",
       source: "Owner phone call",
     });
+    const establishingOperation = OP(operation);
     const before = project(state);
     const activityCount = (
       await db.collection(RENEWAL_WORKSPACE_COLLECTIONS.activity).get()
@@ -251,14 +269,15 @@ describe("S144 Focus path through the staff-record store", () => {
     expect(stale.status).toBe(409);
     expect(project(await readBack())).toEqual(before);
 
-    // The exact same request replayed after a lost response is answered once, not applied twice.
+    // The exact same request replayed after a lost response is answered once, not applied twice:
+    // the establishing save still names no cycle, and the replay returns the established record.
     const replay = await saveRenewalWorkspace(
       editor,
       {
         leaseId: LEASE,
-        cycleId: state.cycleId,
+        cycleId: null,
         expectedRevision: 0,
-        operationId: OP(2),
+        operationId: establishingOperation,
         action: {
           kind: "activity",
           activity: "owner_outreach",
@@ -267,8 +286,10 @@ describe("S144 Focus path through the staff-record store", () => {
         },
       },
       db,
+      async () => basis,
     );
     expect(replay.duplicate).toBe(true);
+    expect(replay.state?.cycleId).toBe(state.cycleId);
     expect((await db.collection(RENEWAL_WORKSPACE_COLLECTIONS.activity).get()).size).toBe(
       activityCount,
     );
@@ -297,13 +318,13 @@ describe("S144 Focus path through the staff-record store", () => {
   });
 
   it("starts a new cycle without reviving the earlier one", async () => {
-    let first = await start(null);
-    first = await record(first, {
+    const first = await record(null, {
       kind: "activity",
       activity: "owner_outreach",
       outcome: "done",
       source: "Owner phone call",
     });
+    // The retained explicit cycle start keeps the earlier record as history.
     const second = await start(first);
     expect(second.cycleId).not.toBe(first.cycleId);
     const projection = project(second);

@@ -22,6 +22,9 @@ import {
 // predicates, so for every generated state the projection's headline is the action the guidance
 // names. The one principled difference: when the named action is itself waiting on an unmet
 // prerequisite, the projection leads to that resolvable prerequisite instead.
+// S156 (8a3f929d, 0f02e013): the staff lane leads on every lease, there is no prerequisite chain
+// between staff actions, and a staff completion record is accepted over unfinished guidance
+// items. The guidance then names completion (no next action), and the projection must agree.
 
 const OWNER = [
   undefined,

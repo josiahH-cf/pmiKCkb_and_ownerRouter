@@ -1,4 +1,5 @@
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { canAccessSpaceId } from "@/lib/space-scope-resources";
 import type { ConsoleDataMode } from "@/lib/console/environment";
 import { createRentvineConsoleProvider } from "@/lib/console/rentvine-live-provider";
 
@@ -99,9 +100,7 @@ const defaultFactories: ConsoleProviderFactories = {
 };
 
 function canSeeRow(actor: AuthenticatedUser, row: ConsoleOperationalRow) {
-  if (actor.scopes === undefined) return true;
-  const requiredScope = row.spaceId === "lease-renewals" ? "renewals" : "maintenance";
-  return actor.scopes.includes(requiredScope);
+  return canAccessSpaceId(actor, row.spaceId);
 }
 
 // F-CONS-4: reduce the linked message to a presence indicator for the landing view. Subject, sender,

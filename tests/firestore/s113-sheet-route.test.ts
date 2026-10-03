@@ -395,16 +395,17 @@ describe("S113 actual Sheet backend with persisted attempt and provider double",
     expect(mutations).toBe(1);
     expect(marketValue).toBe("1100");
   });
-  it("keeps confirmation unavailable to an Editor without consuming an attempt", async () => {
+  it("S160: lets an Editor confirm the exact update once (the verification-account refusal is pinned in s160-sheet-working-rent)", async () => {
     const proposal = await propose(1100);
-    testState.role = "Editor";
-    expect((await post(confirmation(proposal))).status).toBe(403);
-    expect(mutations).toBe(0);
     const executionId = sheetWritebackExecutionId(proposal, proposal.effects[0]);
+    testState.role = "Editor";
+    expect((await post(confirmation(proposal))).status).toBe(200);
+    expect(mutations).toBe(1);
     expect(
-      (await db.collection(EXTERNAL_EXECUTION_COLLECTIONS.records).doc(executionId).get())
-        .exists,
-    ).toBe(false);
+      (
+        await db.collection(EXTERNAL_EXECUTION_COLLECTIONS.records).doc(executionId).get()
+      ).get("state"),
+    ).toBe("succeeded");
   });
 });
 
@@ -519,6 +520,12 @@ vi.mock("@/lib/lease-renewal/workspace-cycle-context", () => ({
     dateIso: "2026-12-31",
     source: "RentVine lease end",
   }),
+  // S154: the first saved work establishes the record from the same deterministic basis.
+  resolveRenewalWorkBasis: async () => ({
+    kind: "lease_end",
+    dateIso: "2026-12-31",
+    source: "RentVine lease end",
+  }),
 }));
 function workspaceRequest(body: unknown) {
   return new Request("http://local.test/api/lease-renewal/workspace", {
@@ -559,6 +566,25 @@ async function recordManual(
   const result = await response.json();
   expect(response.status, JSON.stringify(result)).toBe(200);
   return { ...result, state: result.state as RenewalWorkspaceState, input };
+}
+/** S155/S160: a recorded value stays pending until staff deliberately prepare its Sheet update. */
+async function prepareSource(
+  state: RenewalWorkspaceState,
+  field: string,
+  eventId: string,
+) {
+  const response = await postWorkspaceRoute(
+    workspaceRequest({
+      operation: "prepare_source",
+      leaseId: state.leaseId,
+      cycleId: state.cycleId,
+      field,
+      eventId,
+    }),
+  );
+  const result = await response.json();
+  expect(response.status, JSON.stringify(result)).toBe(200);
+  return result.state as RenewalWorkspaceState;
 }
 describe("S113 actual manual route and durable cycle state", () => {
   it("records a complete staff journey without creating provider receipts or changing legacy completion", async () => {
@@ -692,7 +718,7 @@ describe("S113 actual manual route and durable cycle state", () => {
       ).get("next_state.ownerResponse.terms.rent"),
     ).toBe(1250);
   });
-  it("refuses missing exact approval and browser-forged provider fields before persisting", async () => {
+  it("records an approval without terms (S156) and refuses browser-forged provider fields before persisting", async () => {
     const state = await startManual();
     const base = {
       operation: "record",
@@ -701,6 +727,7 @@ describe("S113 actual manual route and durable cycle state", () => {
       expectedRevision: 0,
       operationId: randomUUID(),
     };
+    // S156 BEH-4: the approval is the recorded answer; exact terms live on the working record.
     expect(
       (
         await postWorkspaceRoute(
@@ -714,7 +741,7 @@ describe("S113 actual manual route and durable cycle state", () => {
           }),
         )
       ).status,
-    ).toBe(400);
+    ).toBe(200);
     expect(
       (
         await postWorkspaceRoute(
@@ -729,8 +756,9 @@ describe("S113 actual manual route and durable cycle state", () => {
         )
       ).status,
     ).toBe(400);
+    // The cycle start and the recorded approval; nothing from the refused provider fields.
     expect((await db.collection(RENEWAL_WORKSPACE_COLLECTIONS.activity).get()).size).toBe(
-      1,
+      2,
     );
   });
 });
@@ -914,6 +942,13 @@ describe("S118 saved comparison preparation prepares the Sheet market value for 
       recommendationBasis: "provider",
     });
     expect(Object.keys(state.sourceUpdates)).toEqual(["market_value"]);
+    // S155: saving reads and writes no Sheet; the value waits until staff prepare it.
+    expect(state.sourceUpdates.market_value.state).toBe("pending");
+    state = await prepareSource(
+      state,
+      "market_value",
+      state.sourceUpdates.market_value.eventId,
+    );
     expect(state.sourceUpdates.market_value).toMatchObject({
       state: "prepared",
       intent: {
@@ -1007,11 +1042,9 @@ describe("S113 recorded activity prepares its value for separate source confirma
       outcome: "done",
       source: "Reviewed local fixture pet record",
     });
-    expect(saved).toMatchObject({
-      writeback_paused: true,
-      sourcePreparation: "Saved in app; Sheet updates paused.",
-    });
+    expect(saved).toMatchObject({ writeback_paused: true });
     expect(saved.state.activities.pet.outcome).toBe("done");
+    expect(saved.state.sourceUpdates.pet_registered.state).toBe("pending");
     expect(saved.state.sourceUpdates.pet_registered.proposalId).toBeUndefined();
     expect((await db.collection("operating_sheet_proposals").get()).empty).toBe(true);
     expect(
@@ -1042,7 +1075,7 @@ describe("S113 recorded activity prepares its value for separate source confirma
     expect(mutations).toBe(0);
   });
 
-  it("lets an Editor record once, then an Admin confirm and read back the same typed field", async () => {
+  it("lets an Editor record once, then confirm and read back the same typed field", async () => {
     usePetField();
     testState.role = "Editor";
     let state = await startManual();
@@ -1053,6 +1086,8 @@ describe("S113 recorded activity prepares its value for separate source confirma
       source: "Reviewed pet registration",
     });
     state = recorded.state;
+    expect(state.sourceUpdates.pet_registered.state).toBe("pending");
+    state = await prepareSource(state, "pet_registered", recorded.input.operationId);
     expect(state.sourceUpdates.pet_registered).toMatchObject({
       state: "prepared",
       intent: {
@@ -1069,9 +1104,7 @@ describe("S113 recorded activity prepares its value for separate source confirma
       scope,
       db,
     ))!;
-    expect((await post(confirmation(proposal))).status).toBe(403);
-    expect(mutations).toBe(0);
-    testState.role = "Admin";
+    // S160: the Editor who recorded the fact confirms the exact Sheet update; no Admin hand-off.
     const confirmed = await post(confirmation(proposal));
     expect(await confirmed.json()).toMatchObject({
       status: "executed",
@@ -1097,14 +1130,13 @@ describe("S113 recorded activity prepares its value for separate source confirma
   it("supersedes an unattempted stale staff proposal, preserving the record and refusing the old confirmation", async () => {
     usePetField();
     let state = await startManual();
-    state = (
-      await recordManual(state, {
-        kind: "activity",
-        activity: "pet",
-        outcome: "done",
-        source: "Pet record",
-      })
-    ).state;
+    const first = await recordManual(state, {
+      kind: "activity",
+      activity: "pet",
+      outcome: "done",
+      source: "Pet record",
+    });
+    state = await prepareSource(first.state, "pet_registered", first.input.operationId);
     const old = (await getSheetWritebackProposal(
       actor,
       spreadsheetId,
@@ -1112,14 +1144,13 @@ describe("S113 recorded activity prepares its value for separate source confirma
       scope,
       db,
     ))!;
-    state = (
-      await recordManual(state, {
-        kind: "activity",
-        activity: "pet",
-        outcome: "waiting",
-        source: "Corrected current pet record",
-      })
-    ).state;
+    const second = await recordManual(state, {
+      kind: "activity",
+      activity: "pet",
+      outcome: "waiting",
+      source: "Corrected current pet record",
+    });
+    state = await prepareSource(second.state, "pet_registered", second.input.operationId);
     expect((await post(confirmation(old))).status).toBe(404);
     expect(mutations).toBe(0);
     const fresh = (await getSheetWritebackProposal(
@@ -1264,6 +1295,8 @@ vi.mock("@/lib/lease-renewal/live-config", async (original) => {
               {
                 contactID: "703",
                 name: "Emulator Tenant",
+                // S163: the provider first-name field feeds the greeting.
+                firstName: "Emulator",
                 email: "tenant@fixture-rental.net",
               },
             ],
@@ -1421,33 +1454,21 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
       email: "second-s113-operator@pmikcmetro.com",
     };
     const current = await currentRenewalMessage(nextActor, "701", "tenant", db);
+    expect(current.signatureMatchesActor).toBe(false);
     const body = {
       leaseId: "701",
       cycleId: state.cycleId,
       channel: "tenant",
       expectedRevision: 1,
       operationId: randomUUID(),
-      sourceFingerprint: current.basis.sourceFingerprint,
-      reviewed: true,
       inputs: result.inputs,
     };
-    const preserved = await saveMessagePreparation(
-      nextActor,
-      body,
-      {
-        sourceFingerprint: current.basis.sourceFingerprint,
-        workspaceFingerprint: current.basis.workspaceFingerprint!,
-      },
-      db,
-    );
+    const preserved = await saveMessagePreparation(nextActor, body, {}, db);
     expect(preserved.record?.signatureActorUid).toBe(actor.uid);
     const adopted = await saveMessagePreparation(
       nextActor,
       { ...body, expectedRevision: 2, operationId: randomUUID(), adoptSignature: true },
-      {
-        sourceFingerprint: current.basis.sourceFingerprint,
-        workspaceFingerprint: current.basis.workspaceFingerprint!,
-      },
+      {},
       db,
     );
     expect(adopted.record?.signatureActorUid).toBe(nextActor.uid);
@@ -1555,11 +1576,11 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
       expect(messageTransport.creates).toBe(0);
     },
   );
-  it("retains edits, exact review and publication through reload, then verifies rich MIME and one receipt", async () => {
+  it("retains edits and publication through reload, then verifies rich MIME and one receipt", async () => {
     const { save, result } = await preparedMessage();
     expect(messageTransport.creates).toBe(0);
     expect(result.content.missing).toEqual([]);
-    expect(result.needsReview).toBe(false);
+    expect(result.content.plainText.startsWith("Hello Emulator,")).toBe(true);
     expect(result.publication.status).toBe("approved");
     expect((await (await postMessageRoute(messageRequest(save))).json()).duplicate).toBe(
       true,
@@ -1601,14 +1622,13 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
     expect(execution.get("result_code")).toMatch(
       /^external_receipt:succeeded:[a-f0-9]{64}$/,
     );
-    expect((await readMessage()).saved.reviewedSourceFingerprint).toBe(
-      result.sourceFingerprint,
-    );
+    // S161: there is no review record; the stored field keeps its shape for the previous release.
+    expect((await readMessage()).saved.reviewedSourceFingerprint).toBeNull();
     expect(
       (await db.collection(MESSAGE_PREPARATION_COLLECTIONS.activity).get()).size,
     ).toBe(1);
   });
-  it("preserves prose after changed owner terms, refuses stale save/confirmation and keeps copy after Gmail failure", async () => {
+  it("preserves prose after changed owner terms, refuses the stale confirmation exactly and keeps copy after Gmail failure", async () => {
     const { state, save, result } = await preparedMessage();
     const preview = await (
       await postMessageRoute(
@@ -1623,40 +1643,31 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
     });
     const reread = await readMessage();
     expect(reread.inputs).toEqual(result.inputs);
-    expect(reread.needsReview).toBe(true);
     expect(reread.content.plainText).toContain("$1,200.00");
-    expect(
-      (
-        await postMessageRoute(
-          messageRequest({ ...save, operationId: randomUUID(), expectedRevision: 1 }),
-        )
-      ).status,
-    ).toBe(409);
-    const refused = await (
-      await postMessageRoute(
-        messageRequest({
-          kind: "draft",
-          leaseId: "701",
-          channel: "tenant",
-          confirm: { executionId: preview.executionId, previewHash: preview.previewHash },
-        }),
-      )
-    ).json();
-    expect(refused.status).toBe("blocked");
+    // S161: changed terms never refuse a save, and the saved entries stay exactly as they were.
+    const resaved = await postMessageRoute(
+      messageRequest({
+        ...save,
+        cycleId: next.state.cycleId,
+        operationId: randomUUID(),
+        expectedRevision: 1,
+      }),
+    );
+    expect(resaved.status).toBe(200);
+    expect((await resaved.json()).inputs).toEqual(result.inputs);
+    // S162: the earlier preview no longer reads as the current message, so confirming it is
+    // refused exactly, before any Gmail call; a new preview is needed.
+    const refusedResponse = await postMessageRoute(
+      messageRequest({
+        kind: "draft",
+        leaseId: "701",
+        channel: "tenant",
+        confirm: { executionId: preview.executionId, previewHash: preview.previewHash },
+      }),
+    );
+    expect(refusedResponse.status).toBe(409);
+    expect((await refusedResponse.json()).error).toContain("changed after this preview");
     expect(messageTransport.creates).toBe(0);
-    expect(
-      (
-        await postMessageRoute(
-          messageRequest({
-            ...save,
-            cycleId: next.state.cycleId,
-            sourceFingerprint: reread.sourceFingerprint,
-            expectedRevision: 1,
-            operationId: randomUUID(),
-          }),
-        )
-      ).status,
-    ).toBe(200);
     const fresh = await (
       await postMessageRoute(
         messageRequest({ kind: "draft", leaseId: "701", channel: "tenant" }),
@@ -1724,7 +1735,7 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
       terms: { rent: 1300, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
       source: "Emulator subsequent owner terms",
     });
-    expect((await readMessage()).needsReview).toBe(true);
+    expect((await readMessage()).content.plainText).toContain("$1,300.00");
     const recovered = await (
       await postMessageRoute(
         messageRequest({
@@ -2206,6 +2217,13 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         await import("@/app/api/lease-renewal/document-handoff/route");
       const { GET: screenshotGet } =
         await import("@/app/api/lease-renewal/comp-screenshot/route");
+      const { GET: getWorkingRecordRoute, POST: postWorkingRecordRoute } =
+        await import("@/app/api/lease-renewal/working-record/route");
+      const { getRenewalWorkingRecord } =
+        await import("@/lib/firestore/renewal-working-record");
+      const { workingEntry } = await import("@/lib/lease-renewal/working-record");
+      const { getMessagePreparation } =
+        await import("@/lib/firestore/renewal-message-preparations");
       const leaseSource = buildLiveRentVineConfig();
       if (!leaseSource.ok) throw new Error("Deterministic source missing");
       const sheet = [header, ["Emulator Tenant", "1000", "1000"]];
@@ -2360,6 +2378,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         "/api/lease-renewal/resource-locations": "resource_locations",
         "/api/lease-renewal/document-handoff": "document_handoff",
         "/api/lease-renewal/comp-screenshot": "comp_screenshot",
+        "/api/lease-renewal/working-record": "working_record",
       } as const;
       type BridgeRoute =
         | (typeof routePaths)[keyof typeof routePaths]
@@ -2758,6 +2777,10 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           return postResourceRoute(request);
         if (url.pathname.endsWith("/document-handoff")) return documentGet(request);
         if (url.pathname.endsWith("/comp-screenshot")) return screenshotGet(request);
+        if (url.pathname.endsWith("/working-record"))
+          return request.method === "GET"
+            ? getWorkingRecordRoute(request)
+            : postWorkingRecordRoute(request);
         throw new Error(`Unexpected journey HTTP path: ${url.pathname}`);
       };
       vi.stubGlobal("fetch", (input: string | Request, init?: RequestInit) => {
@@ -2821,6 +2844,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       async function mountCurrent() {
         await settleJourneyRequests();
         const state = await getRenewalWorkspace(actor, "701", db);
+        const workingRecord = await getRenewalWorkingRecord(actor, "701", db);
         const loaded = await loadLiveRenewalLeaseWorkspace(
           "701",
           now,
@@ -2839,7 +2863,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         if (loaded.status !== "ok") throw new Error(loaded.status);
         const sheetStatus = await (await post({ operation: "status" })).json();
         const resources = await getRenewalResourceLocations(actor, db);
-        return render(
+        const result = render(
           h(
             "div",
             null,
@@ -2874,6 +2898,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
                 dateIso: "2026-12-31",
                 source: "RentVine lease end",
               },
+              workingRecord,
               resourceLocationsPanel: h(RenewalResourceLocations, {
                 role: journeyRole,
                 initialSettings: resources,
@@ -2881,6 +2906,11 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             }),
           ),
         );
+        // S152: the lease opens in Focus view, which hides the Full view regions in place. This
+        // journey works the Full view, as a person who chose it does; the choice saves nothing.
+        fireEvent.click(screen.getByRole("button", { name: "Full view" }));
+        await screen.findByRole("region", { name: "Lease details" });
+        return result;
       }
       let mounted = await mountCurrent();
       for (const name of [
@@ -2894,32 +2924,75 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       expect(screen.getByLabelText("Insurance flyer")).toHaveValue("");
       expect(screen.getByLabelText("Renewal information form")).toHaveValue("");
       expect(requests.filter((request) => request.startsWith("POST"))).toEqual([]);
-      if (start === "fresh") {
-        fireEvent.click(
-          screen.getByRole("checkbox", {
-            name: "I reviewed this cycle and want to record work against it.",
-          }),
-        );
-        fireEvent.click(screen.getByRole("button", { name: "Use this reviewed cycle" }));
-        await waitFor(async () =>
-          expect(await getRenewalWorkspace(actor, "701", db)).not.toBeNull(),
-        );
-      }
-      await screen.findByRole("button", { name: "Record owner response" });
+      // S154: there is no cycle step. Opening the lease records nothing; the first saved work
+      // establishes the work record from the lease's real basis.
+      if (start === "fresh")
+        expect(await getRenewalWorkspace(actor, "701", db)).toBeNull();
+      await within(
+        screen.getByRole("region", { name: "Owner approval" }),
+      ).findByLabelText("Owner response");
       const change = (node: HTMLElement, value: string) =>
         fireEvent.change(node, { target: { value } });
+      // S155: a text entry saves by itself when the person leaves the control.
+      const enter = (node: HTMLElement, value: string) => {
+        change(node, value);
+        fireEvent.blur(node);
+      };
+      const currentRevision = async () =>
+        (await getRenewalWorkspace(actor, "701", db))?.revision ?? -1;
+      const tenantCard = () => document.getElementById("renewal-card-message-tenant")!;
+      // Each autosave round-trips the emulator; the same budget as the journey's other waits.
+      async function savedAfter(before: number) {
+        await waitFor(
+          async () => expect(await currentRevision()).toBeGreaterThan(before),
+          { timeout: 10_000 },
+        );
+        return currentRevision();
+      }
       if (start === "fresh") {
+        // S154/S155: the staff member records the outreach call they made. This first saved
+        // work establishes the lease's work record from its real basis; no cycle was chosen.
+        const outreach = within(
+          document.getElementById("renewal-manual-owner_outreach")! as HTMLElement,
+        );
+        change(outreach.getByLabelText("Owner outreach outcome"), "done");
+        await savedAfter(-1);
+        const established = (await getRenewalWorkspace(actor, "701", db))!;
+        expect(established.basis).toEqual({
+          kind: "lease_end",
+          dateIso: "2026-12-31",
+          source: "RentVine lease end",
+        });
+        expect(established.activities.owner_outreach?.outcome).toBe("done");
+        expect(
+          (
+            await db
+              .collection(RENEWAL_WORKSPACE_COLLECTIONS.activity)
+              .where("cycle_id", "==", established.cycleId)
+              .get()
+          ).docs.map((entry) => entry.get("action.reason")),
+        ).toContain("Established by the first saved work");
+        await waitFor(
+          () =>
+            expect(
+              document
+                .getElementById("renewal-manual-owner_outreach")!
+                .querySelector('[data-autosave="saved"]'),
+            ).not.toBeNull(),
+          { timeout: 10_000 },
+        );
+
         // Mounted correction, proposal reload and confirmation use the normal backend.
         change(screen.getByLabelText("Fact to correct"), "market_value");
         change(screen.getByLabelText("Reviewed market value"), "1100");
         change(
-          screen.getByLabelText("Value source / reason"),
+          screen.getByLabelText("Source or context (optional)"),
           "Reviewed fixture market analysis",
         );
         fireEvent.click(
           screen.getByRole("button", { name: "Prepare selected destination previews" }),
         );
-        await screen.findByText(/Saved: awaiting its separate exact confirmation/);
+        await screen.findByText(/Saved: review and confirm its exact effect below/);
         expect(mutations).toBe(0);
         mounted.unmount();
         mounted = await mountCurrent();
@@ -2966,7 +3039,26 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             { timeout: 10_000 },
           ),
         );
-        await waitFor(() => expect(compRequests).toBe(2));
+        // S154: the lookup is retained on the work record in the emulator before the route
+        // answers, and the trend call follows that answer; the same budget as the other
+        // emulator-backed waits in this journey.
+        await waitFor(() => expect(compRequests).toBe(2), {
+          timeout: 10_000,
+          onTimeout: (error) =>
+            new Error(
+              `Comp lookup diagnostics: ${JSON.stringify({
+                compRequests,
+                marketComps: routeCounts.market_comps,
+                marketCompsFailures: routeFailures.market_comps,
+                workspace: routeCounts.workspace,
+                retentionFailed: comps.queryAllByText(/saving its evidence failed/)
+                  .length,
+                providerHttp: comps.queryAllByText(/RentCast response: HTTP/).length,
+                comparableRents: comps.queryAllByText(/Comparable rents/).length,
+              })}`,
+              { cause: error },
+            ),
+        });
         // The button is named "Looking up…" until the route records the attempt in the emulator;
         // give it the same budget as the other emulator-backed waits in this journey.
         await waitFor(
@@ -2978,26 +3070,37 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             ).toBeEnabled(),
           { timeout: 10_000 },
         );
-        change(
-          comps.getByLabelText("Source of the comparison and review notes"),
-          "Reviewed retained fixture RentCast results",
+        // S155: the preparation that links the retained evidence saved by itself; the page shows
+        // the retained basis once it reads back.
+        await waitFor(
+          async () =>
+            expect(
+              (await getRenewalWorkspace(actor, "701", db))?.preparation?.market.provider
+                ?.pointEstimate,
+            ).toBe(1300),
+          { timeout: 10_000 },
         );
-        await settleJourneyRequests();
-        fireEvent.click(comps.getByRole("button", { name: "Save comp preparation" }));
-        // The record route saves the preparation and then prepares its Sheet update as a second
-        // write. Wait for the provider's own read-back (issued after the route responds) before
-        // re-reading the cycle, so the remounted workspace never starts from the revision between
-        // those two writes.
-        await screen.findByText(
-          /Staff record saved and read back/,
+        await comps.findByText(
+          /Retained provider basis: RentCast/,
           {},
           { timeout: 10_000 },
         );
-        await waitFor(async () =>
-          expect(
-            (await getRenewalWorkspace(actor, "701", db))?.preparation?.market.provider
-              ?.pointEstimate,
-          ).toBe(1300),
+        await settleJourneyRequests();
+        const beforeNotes = await currentRevision();
+        enter(
+          comps.getByLabelText("Source of the comparison and review notes (optional)"),
+          "Reviewed retained fixture RentCast results",
+        );
+        await savedAfter(beforeNotes);
+        await waitFor(
+          async () =>
+            expect(
+              (await getRenewalWorkspace(actor, "701", db))?.preparation,
+            ).toMatchObject({
+              source: "Reviewed retained fixture RentCast results",
+              market: { provider: { pointEstimate: 1300 } },
+            }),
+          { timeout: 10_000 },
         );
         expect((await getRenewalWorkspace(actor, "701", db))?.ownerResponse).toBeNull();
         expect(
@@ -3029,60 +3132,93 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         ).toBe(1300);
         expect(screen.getByText(/Retained provider basis: RentCast/)).toBeInTheDocument();
       }
+      /**
+       * S155/S156: a response is recorded by choosing it, and its source saves when that field is
+       * left; nothing waits on a Record button. S157: the owner-approved terms are the working
+       * terms, each saved on its own; the approval itself carries no terms.
+       */
       async function respond(
         audience: "owner" | "tenant",
         outcome: string,
-        rent = "1100",
+        source: string,
+        terms?: { rent: string; effectiveDate?: string; endDate?: string },
       ) {
         const root = within(
           screen.getByRole("region", {
             name: audience === "owner" ? "Owner approval" : "Tenant offer and response",
           }),
         );
+        const key = audience === "owner" ? "ownerResponse" : "tenantResponse";
+        await settleJourneyRequests();
+        let revision = await currentRevision();
         const control = root.getByLabelText(
           audience === "owner" ? "Owner response" : "Tenant response",
-        );
-        change(control, outcome);
-        if (audience === "owner" && outcome === "approved_terms") {
-          change(root.getByLabelText("Exact owner-approved monthly base rent"), rent);
-          change(root.getByLabelText("Approved effective date"), "2027-01-01");
-          change(root.getByLabelText("Approved term end date"), "2027-12-31");
+        ) as HTMLSelectElement;
+        if (control.value !== outcome) {
+          change(control, outcome);
+          revision = await savedAfter(revision);
+          expect((await getRenewalWorkspace(actor, "701", db))![key]?.outcome).toBe(
+            outcome,
+          );
         }
-        change(
-          root.getByLabelText("Response source or channel"),
-          "Actual fixture phone response",
-        );
-        await settleJourneyRequests();
-        const before = (await getRenewalWorkspace(actor, "701", db))!.revision;
-        fireEvent.click(
-          root.getByRole("button", { name: `Record ${audience} response` }),
-        );
-        // The record round-trips the emulator and then reloads both message preparations and
-        // the document handoff; give these waits the journey's emulator budget like the others.
+        if (terms) {
+          if (terms.effectiveDate)
+            change(root.getByLabelText("Working effective date"), terms.effectiveDate);
+          if (terms.endDate)
+            change(root.getByLabelText("Working term end date"), terms.endDate);
+          enter(root.getByLabelText("Working monthly rent"), terms.rent);
+          await waitFor(
+            async () => {
+              const record = await getRenewalWorkingRecord(actor, "701", db);
+              expect(workingEntry(record, "terms_rent")?.value).toBe(Number(terms.rent));
+              if (terms.effectiveDate)
+                expect(workingEntry(record, "terms_effective_date")?.value).toBe(
+                  terms.effectiveDate,
+                );
+              if (terms.endDate)
+                expect(workingEntry(record, "terms_end_date")?.value).toBe(terms.endDate);
+            },
+            { timeout: 10_000 },
+          );
+        }
+        enter(root.getByLabelText("Response source or channel (optional)"), source);
+        await savedAfter(revision);
         await waitFor(
           async () =>
-            expect(
-              (await getRenewalWorkspace(actor, "701", db))!.revision,
-            ).toBeGreaterThan(before),
+            expect((await getRenewalWorkspace(actor, "701", db))![key]).toMatchObject({
+              outcome,
+              source,
+            }),
           { timeout: 10_000 },
         );
+        // The response's own status line confirms the save; its controls stay usable throughout.
         await waitFor(
           () =>
             expect(
-              root.getByRole("button", { name: `Record ${audience} response` }),
-            ).not.toBeDisabled(),
+              document
+                .getElementById(`renewal-manual-${audience}_response`)!
+                .querySelector(".autosave-status"),
+            ).toHaveAttribute("data-autosave", "saved"),
           { timeout: 10_000 },
         );
+        expect(control).toBeEnabled();
       }
-      await respond("owner", "approved_terms");
+      await respond("owner", "approved_terms", "Actual fixture phone response", {
+        rent: "1100",
+        effectiveDate: "2027-01-01",
+        endDate: "2027-12-31",
+      });
+      // S156: the recorded approval is the answer alone; the terms live on the working record.
+      expect(
+        (await getRenewalWorkspace(actor, "701", db))!.ownerResponse!.terms,
+      ).toBeUndefined();
       if (start === "fresh") {
         const tenantRegion = screen.getByRole("region", {
           name: "Tenant offer and response",
         });
         const tenant = within(tenantRegion);
-        // The tenant preparation reloads after the owner response is recorded; wait for it.
-        // S120: the unfinished preparation shows its formatted preview; the selectable plain
-        // text and the body copy open only once every input is reviewed and saved.
+        // The tenant preparation reloads after the working terms are saved; wait for it.
+        // S161: the message is editable and copyable at once, with each absent value marked.
         await waitFor(
           () =>
             expect(tenant.getByLabelText("tenant formatted body")).toHaveTextContent(
@@ -3116,17 +3252,17 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             },
           },
         );
+        // The publication is still pending, so only the Gmail step waits; copy is open.
         expect(
           tenant.getByRole("button", { name: "Preview unsent Gmail draft" }),
         ).toBeDisabled();
         expect(tenant.getByLabelText("tenant formatted body").textContent).not.toContain(
           "https://example",
         );
-        expect(tenant.queryByLabelText("tenant plain text body")).toBeNull();
-        expect(tenant.getByRole("button", { name: "Copy plain text" })).toHaveAttribute(
-          "aria-disabled",
-          "true",
-        );
+        expect(
+          (tenant.getByLabelText("Email body") as HTMLTextAreaElement).value,
+        ).toContain("[Needs Verification: renewal information form link]");
+        expect(tenant.getByRole("button", { name: "Copy plain text" })).toBeEnabled();
         // Pending team links do not block inspection/copy; save a verified fixture destination through its control.
         const form = screen.getByLabelText("Renewal information form").closest("form")!;
         change(
@@ -3150,39 +3286,43 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         // The remounted preparation loads through the emulator-backed route; same budget as
         // the journey's other reloads.
         await message.findByLabelText("Current lease origin", {}, { timeout: 10_000 });
+        // S161/S155: entries save by themselves (a choice on change, text on blur); there is no
+        // review checkbox and no Save button.
         change(message.getByLabelText("Current lease origin"), "pmi");
-        change(
-          message.getByLabelText("Lease-origin source"),
-          "Reviewed fixture original lease",
-        );
         for (const control of message.getAllByLabelText("Does this charge apply?"))
           change(control, "false");
-        for (const control of message.getAllByLabelText("Charge source"))
-          change(control, "Reviewed fixture original charge schedule");
         change(message.getByLabelText("Sender name"), "Emulator Staff");
-        change(
-          message.getByLabelText("Signature source"),
-          "Fixture managed staff declaration",
-        );
         change(
           message.getByLabelText("Response request (optional wording edit)"),
           "Please share your preferred next step.",
         );
-        fireEvent.click(
-          message.getByRole("checkbox", {
-            name: "I reviewed these inputs and the current source facts for this message.",
-          }),
+        fireEvent.blur(
+          message.getByLabelText("Response request (optional wording edit)"),
         );
-        fireEvent.click(
-          message.getByRole("button", { name: "Save reviewed preparation" }),
-        );
+        // The choices above each started a save, and the typed entries queued behind the one in
+        // flight. The stored message is the evidence that every entry reached the server, and the
+        // card's status line confirms it, before this lease is left.
+        const messageCycle = (await getRenewalWorkspace(actor, "701", db))!.cycleId;
         await waitFor(
-          () =>
+          async () => {
             expect(
-              message.getByRole("button", { name: "Preview unsent Gmail draft" }),
-            ).toBeEnabled(),
+              (await getMessagePreparation(actor, "701", messageCycle, "tenant", db))
+                ?.inputs,
+            ).toMatchObject({
+              edits: { responseRequest: "Please share your preferred next step." },
+              signature: { name: "Emulator Staff" },
+              leaseOrigin: { kind: "pmi" },
+            });
+            expect(
+              tenantCard().querySelector('[data-autosave="saved"]'),
+              "autosave confirmed",
+            ).not.toBeNull();
+          },
           { timeout: 10_000 },
         );
+        expect(
+          message.getByRole("button", { name: "Preview unsent Gmail draft" }),
+        ).toBeEnabled();
         mounted.unmount();
         // S124 binds each admitted lease generation to the reviewed draft audience, and an
         // approval read admits a new generation once the 60 s soft TTL has passed. Admit that
@@ -3194,29 +3334,18 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         const resumed = within(
           screen.getByRole("region", { name: "Tenant offer and response" }),
         );
-        // Saved edits survive the reload; the new source generation asks for another review.
-        await resumed.findByText(/Preparation needs review/, {}, { timeout: 10_000 });
-        expect(
-          resumed.getByLabelText("Response request (optional wording edit)"),
-        ).toHaveValue("Please share your preferred next step.");
-        expect(
-          resumed.getByRole("button", { name: "Preview unsent Gmail draft" }),
-        ).toBeDisabled();
-        fireEvent.click(
-          resumed.getByRole("checkbox", {
-            name: "I reviewed these inputs and the current source facts for this message.",
-          }),
-        );
-        fireEvent.click(
-          resumed.getByRole("button", { name: "Save reviewed preparation" }),
-        );
+        // Saved entries survive the reload; the new source generation asks for nothing.
         await waitFor(
           () =>
             expect(
-              resumed.getByRole("button", { name: "Preview unsent Gmail draft" }),
-            ).toBeEnabled(),
+              resumed.getByLabelText("Response request (optional wording edit)"),
+            ).toHaveValue("Please share your preferred next step."),
           { timeout: 10_000 },
         );
+        expect(resumed.getByLabelText("Sender name")).toHaveValue("Emulator Staff");
+        expect(
+          resumed.getByRole("button", { name: "Preview unsent Gmail draft" }),
+        ).toBeEnabled();
         Object.defineProperty(navigator, "clipboard", {
           configurable: true,
           value: {
@@ -3228,7 +3357,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         fireEvent.click(resumed.getByRole("button", { name: "Copy plain text" }));
         await resumed.findByText(/Clipboard access was denied/);
         expect(
-          (resumed.getByLabelText("tenant plain text body") as HTMLTextAreaElement).value,
+          (resumed.getByLabelText("Email body") as HTMLTextAreaElement).value,
         ).toContain("https://fixture-rental.net/form");
         fireEvent.click(
           resumed.getByRole("button", { name: "Preview unsent Gmail draft" }),
@@ -3251,7 +3380,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           resumed.getByRole("button", { name: "Create this unsent draft" }),
         );
         await resumed.findByText(
-          "An unsent Gmail draft was created and recorded. Review it in Gmail; a person sends it.",
+          "An unsent Gmail draft was created and recorded. Review it in Gmail before you send it; a person sends it.",
         );
         expect(messageTransport.creates).toBe(1);
         expect(decodeRawDraft(messageTransport.raw).to).toBe("tenant@fixture-rental.net");
@@ -3262,15 +3391,29 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         expect(durable.size).toBe(1);
         expect(durable.docs[0].get("state")).toBe("Succeeded");
       }
-      await respond("tenant", "counter_change_requested");
+      await respond(
+        "tenant",
+        "counter_change_requested",
+        "Actual fixture tenant counter by email",
+      );
       expect(
         manualRenewalSummary((await getRenewalWorkspace(actor, "701", db))!).complete,
       ).toBe(false);
+      // S156: the order of work is guidance. Completion stays available and unrecorded; the
+      // counter recorded nothing it did not say.
       expect(
         screen.getByRole("button", { name: "Record staff completion" }),
-      ).toBeDisabled();
-      await respond("owner", "approved_terms", "1150");
-      await respond("tenant", "accepted");
+      ).toBeEnabled();
+      expect(screen.getAllByText(/Suggested next: /).length).toBeGreaterThan(0);
+      // The owner answers the counter: the working rent changes, and the renewed approval is
+      // recorded with its own source.
+      await respond(
+        "owner",
+        "approved_terms",
+        "Actual fixture phone approval of the counter",
+        { rent: "1150" },
+      );
+      await respond("tenant", "accepted", "Actual fixture tenant acceptance by email");
       for (const [activity, definition] of Object.entries(MANUAL_ACTIVITIES)) {
         if (activity === "non_renewal_handoff") continue;
         const details = document.getElementById(
@@ -3278,29 +3421,38 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         )! as HTMLDetailsElement;
         details.open = true;
         const group = within(details);
+        await settleJourneyRequests();
+        // S155: the chosen outcome saves at once; the source saves when its field is left.
+        let revision = await currentRevision();
         change(group.getByLabelText(`${definition.label} outcome`), "done");
-        change(
-          group.getByLabelText("Source or channel"),
+        revision = await savedAfter(revision);
+        enter(
+          group.getByLabelText("Source or channel (optional)"),
           "Fixture record of work completed outside the app",
         );
-        await settleJourneyRequests();
-        const before = (await getRenewalWorkspace(actor, "701", db))!.revision;
-        fireEvent.click(
-          group.getByRole("button", { name: `Record ${definition.label.toLowerCase()}` }),
-        );
-        await waitFor(async () =>
-          expect((await getRenewalWorkspace(actor, "701", db))!.revision).toBeGreaterThan(
-            before,
-          ),
-        );
-        await waitFor(() =>
-          expect(
-            group.getByRole("button", {
-              name: `Record ${definition.label.toLowerCase()}`,
+        await savedAfter(revision);
+        await waitFor(
+          async () =>
+            expect(
+              (await getRenewalWorkspace(actor, "701", db))!.activities[
+                activity as keyof typeof MANUAL_ACTIVITIES
+              ],
+            ).toMatchObject({
+              outcome: "done",
+              source: "Fixture record of work completed outside the app",
             }),
-          ).not.toBeDisabled(),
+          { timeout: 10_000 },
         );
+        expect(group.getByLabelText(`${definition.label} outcome`)).toBeEnabled();
       }
+      // S155/S160: saving reads and writes no Sheet. Every recorded value waits as pending until
+      // staff prepare it deliberately, and nothing was confirmed.
+      const recordedWork = (await getRenewalWorkspace(actor, "701", db))!;
+      expect(manualRenewalSummary(recordedWork).pendingSourceUpdates).toBeGreaterThan(0);
+      expect(
+        Object.values(recordedWork.sourceUpdates).map((update) => update.state),
+      ).toEqual(Object.values(recordedWork.sourceUpdates).map(() => "pending"));
+      expect(mutations).toBe(start === "fresh" ? 1 : 0);
       await settleJourneyRequests();
       fireEvent.click(screen.getByRole("button", { name: "Record staff completion" }));
       await waitFor(async () =>
@@ -3308,7 +3460,6 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           manualRenewalSummary((await getRenewalWorkspace(actor, "701", db))!).complete,
         ).toBe(true),
       );
-      // Completion first persists its staff record, then resolves the associated Sheet proposal.
       // Remount only after the actual control receives the route's final state, otherwise the
       // new provider can start from the intermediate revision and correctly refuse a later edit.
       await waitFor(
@@ -3318,15 +3469,24 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           ).toBeEnabled(),
         { timeout: 10_000 },
       );
+      // S156: completion is the staff record itself; the independent staff-lane oracle reads it
+      // that way. The predecessor oracle still parses the same stored record.
       const independentlyRead = await readIndependentDecisionFacts(db);
-      expect(independentlyRead.manualByLease?.get("701")).toMatchObject({
+      const completedState = (await getRenewalWorkspace(actor, "701", db))!;
+      expect(independentlyRead.staffLaneManualByLease?.get("701")).toMatchObject({
+        cycleId: completedState.cycleId,
+        revision: completedState.revision,
         complete: true,
         nextActivity: "complete",
         actionStepId: "compliance-close",
       });
-      expect(independentlyRead.manualByLease?.get("701")?.sourceDigest).toMatch(
+      expect(independentlyRead.staffLaneManualByLease?.get("701")?.sourceDigest).toMatch(
         /^[a-f0-9]{64}$/,
       );
+      expect(independentlyRead.manualByLease?.get("701")).toMatchObject({
+        cycleId: completedState.cycleId,
+        revision: completedState.revision,
+      });
 
       mounted.unmount();
       mounted = await mountCurrent();
@@ -3334,7 +3494,9 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         screen.getByRole("button", { name: "Reopen recorded completion" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByText(/does not establish verified completion/),
+        screen.getByText(
+          /separate from verified completion in RentVine, Gmail or Dotloop/,
+        ),
       ).toBeInTheDocument();
       expect(
         screen.getByRole("link", { name: "← Back to renewals" }).getAttribute("href"),
@@ -3356,13 +3518,35 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       expect(desk.status).toBe("ok");
       expect(JSON.stringify(desk)).toContain("Completed: recorded by staff");
       if (start === "already underway") {
-        await respond("owner", "declined_non_renewal");
+        // S156: completion is the staff record itself. Work that resumes reopens it; the owner's
+        // decline and the non-renewal handoff are then recorded as they happen.
+        await settleJourneyRequests();
+        const reopenFrom = await currentRevision();
+        fireEvent.click(
+          screen.getByRole("button", { name: "Reopen recorded completion" }),
+        );
+        await savedAfter(reopenFrom);
         expect(
           manualRenewalSummary((await getRenewalWorkspace(actor, "701", db))!).complete,
         ).toBe(false);
+        await screen.findByRole(
+          "button",
+          { name: "Record staff completion" },
+          { timeout: 10_000 },
+        );
+        await respond("owner", "declined_non_renewal", "Fixture owner decline by phone");
+        expect(
+          manualRenewalSummary((await getRenewalWorkspace(actor, "701", db))!),
+        ).toMatchObject({ complete: false, nonRenewal: true });
         expect(
           screen.getByRole("button", { name: "Record staff completion" }),
-        ).toBeDisabled();
+        ).toBeEnabled();
+        // The handoff activity appears once the decline is on record.
+        await waitFor(() =>
+          expect(
+            document.getElementById("renewal-manual-non_renewal_handoff"),
+          ).not.toBeNull(),
+        );
         const handoff = document.getElementById(
           "renewal-manual-non_renewal_handoff",
         )! as HTMLDetailsElement;
@@ -3374,15 +3558,6 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           ),
           "done",
         );
-        change(
-          controls.getByLabelText("Source or channel"),
-          "Fixture reviewed non-renewal handoff",
-        );
-        fireEvent.click(
-          controls.getByRole("button", {
-            name: `Record ${MANUAL_ACTIVITIES.non_renewal_handoff.label.toLowerCase()}`,
-          }),
-        );
         await waitFor(
           async () =>
             expect(
@@ -3391,6 +3566,12 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             ).toBe("done"),
           { timeout: 5000 },
         );
+        const handoffFrom = await currentRevision();
+        enter(
+          controls.getByLabelText("Source or channel (optional)"),
+          "Fixture reviewed non-renewal handoff",
+        );
+        await savedAfter(handoffFrom);
         await waitFor(
           () =>
             expect(
@@ -3398,6 +3579,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             ).toBeEnabled(),
           { timeout: 10_000 },
         );
+        await settleJourneyRequests();
         fireEvent.click(screen.getByRole("button", { name: "Record staff completion" }));
         await waitFor(async () =>
           expect(

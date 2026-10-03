@@ -7,31 +7,40 @@ import {
   resolveSeparatedRenewalDraftRecipient,
   type RenewalDraftPreview,
 } from "@/lib/lease-renewal/execution/renewal-draft-preview";
+import { UNREADABLE_REFINED_BODY_MESSAGE } from "@/lib/lease-renewal/refined-message";
 import { RenewalCopySelectionSchema } from "@/lib/lease-renewal/renewal-copy-contract";
 
-/** Same recipient resolver, exact action and executor as the legacy composer; only the supplied copy version differs. */
+export const UNSAVED_MESSAGE_DRAFT_REASON =
+  "The message could not be saved, so no draft was prepared. Preview the draft again from the message on screen.";
+
+/**
+ * Same recipient resolver, exact action and executor as the legacy composer; only the supplied copy
+ * version differs.
+ *
+ * S162: the preview is built from the saved message exactly as it is displayed, markers included.
+ * Business completeness, a recorded owner or tenant response, a review record, the signature's
+ * saving sender and a policy note are not prerequisites. What still refuses the draft, here on the
+ * server so a stale or direct request cannot pass it: notice safety, the staff non-renewal
+ * decision, a confirmed move-out, unresolved recipients, the approved publication, an unread
+ * attempt history, and a message that is not saved or whose saved wording cannot be read.
+ */
 export function buildSuppliedRenewalDraftPreview(
   actor: AuthenticatedUser,
   current: Awaited<ReturnType<typeof currentRenewalMessage>>,
 ): RenewalDraftPreview {
   const { content, saved, workspace, publication } = current;
   const channel = content.channel;
-  const reasons = content.missing.map((value) => value.message);
+  const reasons: string[] = [];
   const noticeBlock = manualNonRenewalReason(workspace) ?? current.noticeBlock;
   if (noticeBlock) reasons.push(noticeBlock);
   if (!current.basis.noticeSafety)
     reasons.push("Current notice approval safety must be verified before drafting.");
   if (!current.draftJournalAvailable)
     reasons.push("Reload the Gmail attempt history before preparing a new draft.");
-  if (!workspace) reasons.push("Select and review the current renewal cycle.");
-  if (current.needsReview)
-    reasons.push("Review and save the message against its current source facts.");
-  if (!current.signatureMatchesActor)
-    reasons.push("Review the signature for the signed-in managed sender.");
+  if (!workspace || !saved) reasons.push(UNSAVED_MESSAGE_DRAFT_REASON);
+  if (current.bodyOverride?.state === "unreadable")
+    reasons.push(UNREADABLE_REFINED_BODY_MESSAGE);
   if (publication.status !== "approved") reasons.push(publication.reason);
-  // S129 (R-F09-03): a policy gate from the server-side applicability projection blocks a direct
-  // draft request exactly as it blocks the local final body.
-  reasons.push(...(current.policyGates ?? []).map((gate) => gate.message));
   // S124 (R-F03-03): a confirmed provider notice blocks a new ordinary renewal draft here, on the
   // server, so a stale client request cannot bypass it. Unknown evidence is a notice, not a block.
   if (current.moveOut?.state === "initiated") reasons.push(current.moveOut.label);

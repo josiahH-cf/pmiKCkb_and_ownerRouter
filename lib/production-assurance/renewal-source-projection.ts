@@ -10,6 +10,18 @@ const HYPERLINK_FORMULA =
   /^=HYPERLINK\(\s*"((?:[^"\\]|\\.)*)"\s*(?:,\s*"((?:[^"\\]|\\.)*)")?\s*\)$/i;
 const WORKSPACE_PREFIX = "/lease-renewal/live/desk/lease/";
 export const PRODUCTION_RECONCILIATION_DESK_VIEW = "v=2&scope=all";
+/**
+ * S156: the value a revision following the staff-lane guidance rules renders on each desk row as
+ * `data-guidance-contract`. An independent literal: the oracle never imports the application's
+ * own constant. A predecessor revision renders no such attribute.
+ */
+export const INDEPENDENT_STAFF_LANE_CONTRACT_MARKER = "s156-staff-lane";
+/** The rule set one desk row is verified under. */
+export type IndependentGuidanceContract = "predecessor" | "staff_lane";
+/** What a caller may require of every row: the staff-lane marker, or no marker at all. */
+export type IndependentExpectedContractMarker =
+  | typeof INDEPENDENT_STAFF_LANE_CONTRACT_MARKER
+  | "none";
 const MAX_HEADER_SCAN_ROWS = 6;
 const CURRENT_RENT_HEADER = "current rent";
 const CURRENT_RENT_FIELD = "current_rent";
@@ -482,11 +494,13 @@ export function independentMonthToMonthSignal(
 }
 
 /**
- * Mirror only the definitive cohort exclusions needed to decide whether a workspace may exist.
- * Missing/off-cycle/out-of-window dates are deliberately not exclusions: operators may need the
- * workspace to resolve those facts. S103: a month-to-month lease is never excluded; it keeps an
- * inspection-only workspace on the annual review rhythm, so its signal outranks every skip signal
- * exactly as the application's cohort order does.
+ * Mirror only the definitive cohort exclusions: an id and no definitive skip signal. Under the
+ * predecessor rules this also decides whether a workspace may exist; under the S154 staff-lane
+ * rules it decides only worklist membership, since every lease with an id opens (the runner
+ * derives that from the id). Missing/off-cycle/out-of-window dates are deliberately not
+ * exclusions: operators may need the workspace to resolve those facts. S103: a month-to-month
+ * lease is never excluded; it follows the annual review rhythm, so its signal outranks every skip
+ * signal exactly as the application's cohort order does.
  */
 export function independentWorkspaceExpected(
   exportRow: Readonly<Record<string, unknown>>,
@@ -595,6 +609,109 @@ export function countIndependentStatusMismatches(
       observed.overallStatus,
     );
     if (observed.isBlocked !== (expectedBlocked ? "true" : "false")) mismatches += 1;
+  }
+  return mismatches;
+}
+
+/**
+ * The rule set one rendered row is read under. A caller that knows which revision it assures
+ * names the contract and every row is held to it. Otherwise the rendered marker selects: no
+ * marker is the predecessor; any marker, known or not, is never read under the predecessor rules
+ * (an unknown one is counted by `countIndependentContractMarkerMismatches`).
+ */
+export function resolveIndependentGuidanceContract(
+  marker: string | null,
+  expected?: IndependentExpectedContractMarker,
+): IndependentGuidanceContract {
+  if (expected !== undefined) return expected === "none" ? "predecessor" : "staff_lane";
+  return marker === null ? "predecessor" : "staff_lane";
+}
+
+/**
+ * Count rows whose marker contradicts the page. With a caller-named contract every row must
+ * render exactly that marker (or none). Without one, every row must render the same recognised
+ * marker state: an unrecognised value counts, and a page that mixes marked and unmarked rows
+ * counts its smaller group, so a mixed page can never reconcile.
+ */
+export function countIndependentContractMarkerMismatches(
+  markers: readonly (string | null)[],
+  expected?: IndependentExpectedContractMarker,
+): number {
+  if (expected !== undefined) {
+    const required = expected === "none" ? null : expected;
+    return markers.filter((marker) => marker !== required).length;
+  }
+  const unmarked = markers.filter((marker) => marker === null).length;
+  const staffLane = markers.filter(
+    (marker) => marker === INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
+  ).length;
+  return markers.length - unmarked - staffLane + Math.min(unmarked, staffLane);
+}
+
+/**
+ * S156/S157 staff-lane status contract. The rent evidence is verified exactly as before, and it
+ * no longer explains the status: the flag is true only for Needs verification and no row carries
+ * a blocker. The caller compares the status itself against the independently expected one.
+ */
+export function countIndependentStaffLaneStatusMismatches(
+  expected: IndependentRentExpectation,
+  expectedOverallStatus: string,
+  observed: IndependentRenderedStatus,
+): number {
+  let mismatches = 0;
+  if (observed.rentVerification !== expected.rentVerification) mismatches += 1;
+  if (
+    observed.verifiedByResolutionDiffers !==
+    (expected.verifiedByResolutionDiffers ? "true" : "false")
+  ) {
+    mismatches += 1;
+  }
+  if (
+    observed.isBlocked !==
+    (expectedOverallStatus === "needs_verification" ? "true" : "false")
+  ) {
+    mismatches += 1;
+  }
+  if (observed.blockerCount !== 0) mismatches += 1;
+  return mismatches;
+}
+
+const STAFF_LANE_ACTION_KIND_BY_STATUS: Readonly<Record<string, string>> = Object.freeze({
+  needs_verification: "needs_verification",
+  complete: "complete",
+  waiting: "waiting",
+  ready: "act",
+  needs_review: "review",
+});
+
+/**
+ * S156 staff-lane action contract: the kind follows the expected status, the destination is the
+ * expected workspace step (or none), no capability gates the suggestion, and no blocker is
+ * declared or rendered. Blocked is not a staff-lane status, so it has no acceptable action.
+ */
+export function countIndependentStaffLaneActionMismatches(input: {
+  readonly expectedOverallStatus: string;
+  readonly expectedStepId: string | null;
+  readonly observed: IndependentActionDestinationObservation;
+}): number {
+  const { observed } = input;
+  let mismatches = 0;
+  if (
+    !Object.hasOwn(STAFF_LANE_ACTION_KIND_BY_STATUS, input.expectedOverallStatus) ||
+    observed.actionKind !== STAFF_LANE_ACTION_KIND_BY_STATUS[input.expectedOverallStatus]
+  ) {
+    mismatches += 1;
+  }
+  if (
+    observed.destinationKind !==
+    (input.expectedStepId === null ? "none" : "workspace_phase")
+  ) {
+    mismatches += 1;
+  }
+  if (observed.stepId !== (input.expectedStepId ?? "none")) mismatches += 1;
+  if (observed.requiredCapability !== "none") mismatches += 1;
+  if (observed.declaredBlockerCount !== "0" || observed.blockers.length !== 0) {
+    mismatches += 1;
   }
   return mismatches;
 }

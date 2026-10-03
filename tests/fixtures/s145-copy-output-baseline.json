@@ -10,7 +10,9 @@
     },
     {
       "control": "page:Copy plain text",
-      "output": []
+      "output": [
+        "text/plain:Hello,\n\nWe have a renewal coming up for 318 Cedar Street, Unit 7.\n\nWe are currently charging them [Needs Verification: current rent] per month.\n\nI am seeing similar comps in the area ranging from [Needs Verification: low comparable rent] to [Needs Verification: high comparable rent].\n\nTake a look below at similar units currently available in that price range and let us know how you want to proceed with this year's rent increase.\n\n[Needs Verification: comparable listings]\n\nWhen considering an increase, it is important to find a balance. Raising the rent significantly can lead to tenant dissatisfaction and potential vacancy. However, leaving the rent unchanged can be detrimental in the long run, as it fails to keep pace with the inevitable increases in insurance and property taxes.\n\nI look forward to hearing how you would like to proceed.\n\nKindest Regards,\n\n[Needs Verification: sender signature]"
+      ]
     },
     {
       "control": "page:Copy subject",
@@ -22,7 +24,9 @@
     },
     {
       "control": "page:Copy plain text",
-      "output": []
+      "output": [
+        "text/plain:Hello,\n\nYour lease ends on 12/31/2026. Please let us know whether you plan to stay or leave. Your renewal offer is below.\n\nRent: [Needs Verification: renewal rent] per month, effective [Needs Verification: renewal start date]. Renewal term: [Needs Verification: renewal start date] through [Needs Verification: renewal end date].\n\nPlease let us know if you plan to stay or leave as soon as possible, and we'll get the documents out if you plan to stay.\n\nPlease complete the renewal information form so we have your updated information.\n\n[Needs Verification: renewal information form link]\n\nKindest Regards,\n\n[Needs Verification: sender signature]"
+      ]
     },
     {
       "control": "lease-information:Copy address: 318 Cedar Ave, Unit 7",
@@ -60,7 +64,9 @@
     },
     {
       "control": "page:Copy plain text",
-      "output": []
+      "output": [
+        "text/plain:Hello,\n\nWe have a renewal coming up for 318 Cedar Street, Unit 7.\n\nWe are currently charging them [Needs Verification: current rent] per month.\n\nI am seeing similar comps in the area ranging from [Needs Verification: low comparable rent] to [Needs Verification: high comparable rent].\n\nTake a look below at similar units currently available in that price range and let us know how you want to proceed with this year's rent increase.\n\n[Needs Verification: comparable listings]\n\nWhen considering an increase, it is important to find a balance. Raising the rent significantly can lead to tenant dissatisfaction and potential vacancy. However, leaving the rent unchanged can be detrimental in the long run, as it fails to keep pace with the inevitable increases in insurance and property taxes.\n\nI look forward to hearing how you would like to proceed.\n\nKindest Regards,\n\n[Needs Verification: sender signature]"
+      ]
     },
     {
       "control": "page:Copy subject",
@@ -72,7 +78,9 @@
     },
     {
       "control": "page:Copy plain text",
-      "output": []
+      "output": [
+        "text/plain:Hello,\n\nYour lease ends on 12/31/2026. Please let us know whether you plan to stay or leave. Your renewal offer is below.\n\nRent: [Needs Verification: renewal rent] per month, effective [Needs Verification: renewal start date]. Renewal term: [Needs Verification: renewal start date] through [Needs Verification: renewal end date].\n\nPlease let us know if you plan to stay or leave as soon as possible, and we'll get the documents out if you plan to stay.\n\nPlease complete the renewal information form so we have your updated information.\n\n[Needs Verification: renewal information form link]\n\nKindest Regards,\n\n[Needs Verification: sender signature]"
+      ]
     },
     {
       "control": "lease-information:Copy address: 318 Cedar Ave, Unit 7",
@@ -110,7 +118,9 @@
     },
     {
       "control": "page:Copy plain text",
-      "output": []
+      "output": [
+        "text/plain:Hello,\n\nWe have a renewal coming up for 318 Cedar Street, Unit 7.\n\nWe are currently charging them [Needs Verification: current rent] per month.\n\nI am seeing similar comps in the area ranging from [Needs Verification: low comparable rent] to [Needs Verification: high comparable rent].\n\nTake a look below at similar units currently available in that price range and let us know how you want to proceed with this year's rent increase.\n\n[Needs Verification: comparable listings]\n\nWhen considering an increase, it is important to find a balance. Raising the rent significantly can lead to tenant dissatisfaction and potential vacancy. However, leaving the rent unchanged can be detrimental in the long run, as it fails to keep pace with the inevitable increases in insurance and property taxes.\n\nI look forward to hearing how you would like to proceed.\n\nKindest Regards,\n\n[Needs Verification: sender signature]"
+      ]
     },
     {
       "control": "page:Copy subject",
@@ -122,7 +132,9 @@
     },
     {
       "control": "page:Copy plain text",
-      "output": []
+      "output": [
+        "text/plain:Hello,\n\nYour lease ends on 12/31/2026. Please let us know whether you plan to stay or leave. Your renewal offer is below.\n\nRent: [Needs Verification: renewal rent] per month, effective [Needs Verification: renewal start date]. Renewal term: [Needs Verification: renewal start date] through [Needs Verification: renewal end date].\n\nPlease let us know if you plan to stay or leave as soon as possible, and we'll get the documents out if you plan to stay.\n\nPlease complete the renewal information form so we have your updated information.\n\n[Needs Verification: renewal information form link]\n\nKindest Regards,\n\n[Needs Verification: sender signature]"
+      ]
     },
     {
       "control": "lease-information:Copy address: 318 Cedar Ave, Unit 7",
@@ -160,7 +172,9 @@
     },
     {
       "control": "page:Copy plain text",
-      "output": []
+      "output": [
+        "text/plain:Hello,\n\nWe have a renewal coming up for 318 Cedar Street, Unit 7.\n\nWe are currently charging them [Needs Verification: current rent] per month.\n\nI am seeing similar comps in the area ranging from [Needs Verification: low comparable rent] to [Needs Verification: high comparable rent].\n\nTake a look below at similar units currently available in that price range and let us know how you want to proceed with this year's rent increase.\n\n[Needs Verification: comparable listings]\n\nWhen considering an increase, it is important to find a balance. Raising the rent significantly can lead to tenant dissatisfaction and potential vacancy. However, leaving the rent unchanged can be detrimental in the long run, as it fails to keep pace with the inevitable increases in insurance and property taxes.\n\nI look forward to hearing how you would like to proceed.\n\nKindest Regards,\n\n[Needs Verification: sender signature]"
+      ]
     },
     {
       "control": "page:Copy subject",
@@ -172,7 +186,9 @@
     },
     {
       "control": "page:Copy plain text",
-      "output": []
+      "output": [
+        "text/plain:Hello,\n\nYour lease ends on 12/31/2026. Please let us know whether you plan to stay or leave. Your renewal offer is below.\n\nRent: [Needs Verification: renewal rent] per month, effective [Needs Verification: renewal start date]. Renewal term: [Needs Verification: renewal start date] through [Needs Verification: renewal end date].\n\nPlease let us know if you plan to stay or leave as soon as possible, and we'll get the documents out if you plan to stay.\n\nPlease complete the renewal information form so we have your updated information.\n\n[Needs Verification: renewal information form link]\n\nKindest Regards,\n\n[Needs Verification: sender signature]"
+      ]
     },
     {
       "control": "lease-information:Copy address: 4821 Maple Ct, Unit 4",
@@ -210,7 +226,9 @@
     },
     {
       "control": "page:Copy plain text",
-      "output": []
+      "output": [
+        "text/plain:Hello,\n\nWe have a renewal coming up for 318 Cedar Street, Unit 7.\n\nWe are currently charging them [Needs Verification: current rent] per month.\n\nI am seeing similar comps in the area ranging from [Needs Verification: low comparable rent] to [Needs Verification: high comparable rent].\n\nTake a look below at similar units currently available in that price range and let us know how you want to proceed with this year's rent increase.\n\n[Needs Verification: comparable listings]\n\nWhen considering an increase, it is important to find a balance. Raising the rent significantly can lead to tenant dissatisfaction and potential vacancy. However, leaving the rent unchanged can be detrimental in the long run, as it fails to keep pace with the inevitable increases in insurance and property taxes.\n\nI look forward to hearing how you would like to proceed.\n\nKindest Regards,\n\n[Needs Verification: sender signature]"
+      ]
     },
     {
       "control": "page:Copy subject",
@@ -222,7 +240,9 @@
     },
     {
       "control": "page:Copy plain text",
-      "output": []
+      "output": [
+        "text/plain:Hello,\n\nYour lease ends on 12/31/2026. Please let us know whether you plan to stay or leave. Your renewal offer is below.\n\nRent: [Needs Verification: renewal rent] per month, effective [Needs Verification: renewal start date]. Renewal term: [Needs Verification: renewal start date] through [Needs Verification: renewal end date].\n\nPlease let us know if you plan to stay or leave as soon as possible, and we'll get the documents out if you plan to stay.\n\nPlease complete the renewal information form so we have your updated information.\n\n[Needs Verification: renewal information form link]\n\nKindest Regards,\n\n[Needs Verification: sender signature]"
+      ]
     },
     {
       "control": "lease-information:Copy address: 1207 Walnut St, Unit 2",

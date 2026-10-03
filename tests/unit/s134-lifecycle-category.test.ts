@@ -907,8 +907,10 @@ describe("S134 desk integration and preservation (AC-S134-1, AC-S134-4, AC-S134-
       if (workspace.status !== "ok") throw new Error(workspace.status);
       expect(workspace.workspace.summary.lifecycle?.category).toBe("unknown");
       expect(workspace.workspace.summary.queryKeys.lifecycle).toBe("unknown");
-      if (leaseId === "4821") expect(workspace.workspace.live?.complete).toBe(false);
-      else expect(workspace.workspace.live).toBeUndefined();
+      // S154 (b7693d4d): the out-of-window lease 8004 carries the same live evidence controls as
+      // an in-window lease; the unbound legacy completion is still refused on both.
+      expect(workspace.workspace.live?.complete).toBe(false);
+      expect(workspace.workspace.live?.leaseId).toBe(leaseId);
       expect(JSON.stringify(progress)).toBe(before);
     },
   );

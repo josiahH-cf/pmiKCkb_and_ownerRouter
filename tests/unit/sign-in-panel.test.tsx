@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   getRedirectResult: vi.fn(() => Promise.resolve(null)),
   onAuthStateChanged: vi.fn(),
   signOut: vi.fn(),
+  redirectAvailable: vi.fn(() => true),
 }));
 
 vi.mock("firebase/auth", () => ({
@@ -29,6 +30,7 @@ vi.mock("firebase/auth", () => ({
 vi.mock("@/lib/firebase/client", () => ({
   getFirebaseClientAuth: vi.fn(() => ({ name: "test-auth" })),
   hasFirebaseBrowserConfig: vi.fn(() => true),
+  firebaseRedirectSignInAvailable: mocks.redirectAvailable,
 }));
 
 import { SignInPanel } from "@/components/auth/SignInPanel";
@@ -87,9 +89,14 @@ describe("SignInPanel unauthorized-account copy", () => {
 // FB-HVSESSION-013: a popup-blocking browser could not sign in at all before this fallback existed.
 // Hit live during the 2026-08-24 audit: the controlled browser returned auth/popup-blocked on the
 // only control the page has, with no way forward.
+// S165: the full-page redirect can only return to the app when the sign-in helper is served from
+// the app's own origin, so the fallback is used in that arrangement and nowhere else. The
+// cross-origin behaviour (an instruction instead of a redirect that cannot return) is pinned in
+// tests/unit/s165-mobile-sign-in.test.tsx.
 describe("SignInPanel popup-blocked fallback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.redirectAvailable.mockReturnValue(true);
     mocks.getRedirectResult.mockResolvedValue(null);
     mocks.onAuthStateChanged.mockImplementation((_auth, cb) => {
       cb(null);
@@ -129,11 +136,25 @@ describe("SignInPanel popup-blocked fallback", () => {
     expect(mocks.signInWithRedirect).not.toHaveBeenCalled();
   });
 
+  it("does not start a redirect that cannot return when the helper is on another origin", async () => {
+    mocks.redirectAvailable.mockReturnValue(false);
+    mocks.signInWithPopup.mockRejectedValue({ code: "auth/popup-blocked" });
+
+    render(<SignInPanel allowedHostedDomain="pmikcmetro.com" />);
+    await userEvent.click(screen.getByRole("button", { name: /sign in with google/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/Allow pop-ups/);
+    expect(mocks.signInWithRedirect).not.toHaveBeenCalled();
+  });
+
   it("surfaces a failed redirect return instead of a silent sign-in page", async () => {
     mocks.getRedirectResult.mockRejectedValue(new Error("Domain not allowed."));
 
     render(<SignInPanel allowedHostedDomain="pmikcmetro.com" />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Domain not allowed.");
+    // S165: the reason is plain product copy; the provider's own message is not shown.
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Google sign-in did not finish.");
+    expect(alert).not.toHaveTextContent("Domain not allowed.");
   });
 });

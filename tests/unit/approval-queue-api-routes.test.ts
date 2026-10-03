@@ -157,10 +157,10 @@ describe("Approval Queue API routes", () => {
     expect(transitionApprovalQueueItemWithWorkflowSync).not.toHaveBeenCalled();
   });
 
-  // A PATCH mutation is gated by BOTH capability and renewals-space access — an actor without renewals
-  // access is rejected before the transition runs. (This proves the space+capability gate fires; the
-  // edit-vs-read altitude itself is pinned by the source guard below, since no role has read-without-edit.)
-  it("rejects a PATCH mutation from an actor without renewals space access", async () => {
+  // S167: every staff account has the Renewals Space, so a scope claim left on the account no longer
+  // refuses the PATCH at the boundary. The action reaches the repository, whose per-action role
+  // checks (approve, deny, assign) are unchanged, with a user that carries no Space allowlist.
+  it("admits a PATCH from an Editor with a leftover maintenance-only claim", async () => {
     setAuthResolverForTest(() => ({
       email: "editor@pmikcmetro.com",
       hd: "pmikcmetro.com",
@@ -168,9 +168,43 @@ describe("Approval Queue API routes", () => {
       uid: "editor-9",
       scopes: ["maintenance"],
     }));
+    vi.mocked(transitionApprovalQueueItemWithWorkflowSync).mockResolvedValue(
+      queueItem({ status: "Returned" }),
+    );
+    vi.mocked(listApprovalQueueActivity).mockResolvedValue([activityEntry()]);
 
     const response = await PATCH_ITEM(
-      jsonRequest({ action: "approve", confirm_high_risk: true }),
+      jsonRequest({ action: "return", reason: "Needs the corrected rent." }),
+      itemContext("item-1"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(transitionApprovalQueueItemWithWorkflowSync).toHaveBeenCalledTimes(1);
+    expect(transitionApprovalQueueItemWithWorkflowSync).toHaveBeenCalledWith(
+      {
+        email: "editor@pmikcmetro.com",
+        hd: "pmikcmetro.com",
+        role: "Editor",
+        uid: "editor-9",
+      },
+      "item-1",
+      { action: "return", reason: "Needs the corrected rent." },
+    );
+  });
+
+  // The capability gate still fires at the boundary: a verification account can only read, so its
+  // PATCH is rejected before the transition runs. (The edit-vs-read altitude itself is pinned by the
+  // source guard below, since no role has read-without-edit.)
+  it("rejects a PATCH mutation from a verification account before the transition runs", async () => {
+    setAuthResolverForTest(() => ({
+      email: "canary-editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+      uid: "canary-editor",
+    }));
+
+    const response = await PATCH_ITEM(
+      jsonRequest({ action: "return", reason: "Needs the corrected rent." }),
       itemContext("item-1"),
     );
 

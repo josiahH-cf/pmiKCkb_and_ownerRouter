@@ -103,7 +103,7 @@ function userRoot(db: Firestore, user: AuthenticatedUser) {
 }
 
 function accessBasis(user: AuthenticatedUser) {
-  return { role: user.role, scopes: user.scopes ? [...user.scopes].sort() : null };
+  return { role: user.role, scopes: null };
 }
 
 function assertSize(value: unknown) {

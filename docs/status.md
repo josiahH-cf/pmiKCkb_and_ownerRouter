@@ -84,6 +84,23 @@ ledger. On 2026-10-02 run `0eb2cfeb` released the corrective repair (after run `
 verified): the S147 Dashboard lease read order that had consumed the release-check margin, and
 answer-position checks in the S151 smoke.
 
+S152–S167 (lease-renewal simplification and mobile) were executed on 2026-10-02 under the
+owner's execution prompt. Implemented: all sixteen suites on one branch at `ba3f9719`, extending
+the deployed owners (Focus default and selected view controls; operational current rent with
+charge evidence; every lease workable with the work record established on the first actual save;
+per-field autosave; the staff lane with no forced stages or business approvals; lease-bound
+working values with visible differences; operator Sheet row and cell lookup; the reviewed S159
+switch value true for candidate and promoted revisions; ordinary-staff supported source updates
+with exact confirmation; editable marked messages, as-displayed copy and unsent Gmail drafts,
+first-name greetings; the autosaved Status log; whole-app mobile layout and the phone sign-in
+repair; actual lease links and account-durable desk preferences; existing internal Spaces open to
+ordinary staff with Admin management, Vendor scope, verification restrictions and private records
+kept). Tested: the full unit, backend and core E2E gates on the exact head (counts in
+docs/facts.md), the production reconciliation oracle under the `s156-staff-lane` row contract,
+and fail-first logs for each slice outside Git. Live-verified: not yet; the program waits in the
+Awaiting release queue for one cumulative release. Unverified: human verdicts (NOT RUN, no human
+observer), a physical phone sign-in, and the optional same-tab redirect, which needs owner step A7.
+
 ## Verified corrective review
 
 Five confirmed adversarial findings are repaired and verified deployed: lifecycle uncertainty, policy calendar validation/presentation, source-upload hygiene, vulnerable production dependencies and return-navigation transport. All repairs passed focused regressions, full application verification, exact main CI and cumulative release gates. Independent source/runtime readbacks and all six guarded remote product checks passed. The same runner performed the authorized repairs; this is not an independent second-review signoff. See [the adversary review](evidence/adversary-review-2026-09-29.md).
@@ -131,4 +148,4 @@ prove zero effects. S121 was excluded.
 
 The permits of runs `ab803f8a`, `98f7e743`, `729d5716` and `0eb2cfeb` are consumed; run `175fee1d`
 rolled back verified on 2026-10-02 and its permit is archived as superseded. The Awaiting release
-queue is empty. No original receipt, completed permit or build claim is reused.
+queue holds the S152–S167 program. No original receipt, completed permit or build claim is reused.

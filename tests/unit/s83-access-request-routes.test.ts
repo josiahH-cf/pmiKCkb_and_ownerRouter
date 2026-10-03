@@ -34,13 +34,15 @@ import {
 import { resolveAccessRequestAfterCorrection } from "@/lib/access/apply-service";
 import { setAuthResolverForTest } from "@/lib/auth/session";
 
+// S167 (0f02e013): a session carries no Space allowlist. An existing account may still present a
+// `scopes` claim; it is accepted and ignored, never forwarded to a service.
 const actor = {
   uid: "editor-1",
   email: "editor@pmikcmetro.com",
   hd: "pmikcmetro.com",
   role: "Editor" as const,
-  scopes: ["renewals" as const],
 };
+const legacyScopedClaims = { ...actor, scopes: ["renewals"] };
 const admin = {
   ...actor,
   uid: "admin-1",
@@ -99,8 +101,8 @@ describe("S83 requester API transport", () => {
     expect(previewAccessRequest).not.toHaveBeenCalled();
   });
 
-  it("returns the strict ready Preview variant at HTTP 200", async () => {
-    setAuthResolverForTest(() => actor);
+  it("returns the strict ready Preview variant at HTTP 200 (S167 BEH-S167-2: a legacy scopes claim is ignored)", async () => {
+    setAuthResolverForTest(() => legacyScopedClaims);
     vi.mocked(previewAccessRequest).mockResolvedValue({
       schema_version: "access-request-preview-response-v1",
       status: "ready",
@@ -112,6 +114,7 @@ describe("S83 requester API transport", () => {
     const response = await previewPost(jsonRequest("/preview", previewBody()));
     expect(response.status).toBe(200);
     expect(previewAccessRequest).toHaveBeenCalledWith(actor, previewBody());
+    expect(vi.mocked(previewAccessRequest).mock.calls[0][0]).not.toHaveProperty("scopes");
   });
 
   it("maps each Submit union to its exact HTTP status", async () => {

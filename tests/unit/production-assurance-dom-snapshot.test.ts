@@ -25,6 +25,24 @@ describe("coherent memory-only assurance DOM snapshots", () => {
     expect(evaluate).toHaveBeenCalledOnce();
   });
 
+  it("S156: captures a planned attribute as null when the element does not render it", async () => {
+    document.body.innerHTML =
+      '<table><tbody><tr data-lease-id="1" data-guidance-contract="s156-staff-lane"></tr><tr data-lease-id="2"></tr></tbody></table>';
+    const evaluate = async (read: (input: unknown) => unknown, input: unknown) =>
+      read(input);
+    const snapshot = await captureAssuranceDom(
+      { evaluate } as unknown as Page,
+      { "tr[data-lease-id]": {} },
+      ["data-lease-id", "data-guidance-contract"],
+    );
+    const rows = snapshot.locator("tr[data-lease-id]");
+    expect(await rows.nth(0).getAttribute("data-guidance-contract")).toBe(
+      "s156-staff-lane",
+    );
+    expect(await rows.nth(1).getAttribute("data-guidance-contract")).toBeNull();
+    expect(await rows.nth(1).getAttribute("data-lease-id")).toBe("2");
+  });
+
   it("refuses unplanned reads and missing or duplicate single-element assertions", async () => {
     document.body.innerHTML = "<section><span>A</span><span>B</span></section>";
     const evaluate = async (read: (input: unknown) => unknown, input: unknown) =>

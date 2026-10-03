@@ -73,7 +73,7 @@ describe("RentSuggestionApproval (AC-S29-6)", () => {
     // ...but there is no approve/return affordance.
     expect(screen.queryByRole("button", { name: /Approve this number/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Return for revision/ })).toBeNull();
-    expect(screen.getByText(/Only an Admin can approve/)).toBeInTheDocument();
+    expect(screen.getByText(/Editor access is required to approve/)).toBeInTheDocument();
   });
 
   it("renders Needs Verification with NO number and NO approve control when comps are absent", () => {

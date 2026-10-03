@@ -2,13 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   composeRenewalMessage,
   MESSAGE_CHARGES,
+  missingValueMarker,
   type RenewalMessageFacts,
 } from "@/lib/lease-renewal/renewal-message-content";
+
+// S113 supplied content as carried into S161/S163: the greeting uses recorded first names, an
+// absent value is a named marker instead of a withheld paragraph, and composition never refuses.
 
 function facts(channel: "owner" | "tenant"): RenewalMessageFacts {
   return {
     channel,
     names: ["Example <Tenant>"],
+    firstNames: ["Example <First>"],
     address: "123 Fixture Lane",
     currentBaseRent: { value: 1100, source: "reviewed:base-rent" },
     leaseEndDate: "2026-10-31",
@@ -74,8 +79,9 @@ describe("S113 supplied message content", () => {
     expect(message.plainText).toContain(
       "Verified comp <one> — $1,200.00 per month: https://example.invalid/comp",
     );
-    expect(message.htmlBody).toContain("Example &lt;Tenant&gt;");
-    expect(message.htmlBody).not.toContain("<Tenant>");
+    expect(message.htmlBody).toContain("Hello Example &lt;First&gt;,");
+    expect(message.htmlBody).not.toContain("<First>");
+    expect(message.plainText).not.toContain("Example <Tenant>");
     expect(message.htmlBody).toContain("<strong>Example Staff</strong>");
     expect(message.plainText.match(/Example Staff/g)).toHaveLength(1);
     expect(message.plainText).not.toMatch(
@@ -137,8 +143,11 @@ describe("S113 supplied message content", () => {
     };
     message = composeRenewalMessage(input);
     expect(message.plainText.match(/All other charges stay the same./g)).toHaveLength(1);
+    // S161: a repeated charge is listed once; composition never refuses.
     input.charges.push(input.charges.find((charge) => charge.id === "insurance")!);
-    expect(() => composeRenewalMessage(input)).toThrow(/only once/);
+    expect(
+      composeRenewalMessage(input).plainText.match(/Insurance: \$12.34/g),
+    ).toHaveLength(1);
   });
 
   it("keeps useful preparation with blank links, missing signatures, unavailable terms and unresolved charges", () => {
@@ -157,25 +166,43 @@ describe("S113 supplied message content", () => {
       ]),
     );
     expect(message.plainText).toContain("Your lease ends on 10/31/2026");
+    // S161: each absent value is a named marker; nothing is invented and no link is made up.
+    expect(message.plainText).toContain(missingValueMarker("renewal rent"));
+    expect(message.plainText).toContain(missingValueMarker("sender signature"));
+    expect(message.plainText).toContain(
+      missingValueMarker("renewal information form link"),
+    );
+    expect(message.plainText).toContain(
+      `Resident Benefits Package: ${missingValueMarker("Resident Benefits Package amount")}`,
+    );
     expect(message.plainText).not.toMatch(
-      /https:|\{\{|placeholder|example-staff@|\$1,150|Resident Benefits Package:/,
+      /https:|\{\{|placeholder|example-staff@|\$1,150/,
     );
     expect(message.htmlBody).not.toContain("href=");
   });
 
-  it("keeps edited prose separate from facts and refuses executable or unresolved link content", () => {
+  it("keeps edited prose separate from facts and never renders executable or unresolved link content", () => {
     expect(
       composeRenewalMessage(facts("owner"), {
         responseRequest: "Please share your preferred next step.",
       }).plainText,
     ).toContain("Please share your preferred next step.");
-    expect(() =>
-      composeRenewalMessage(facts("owner"), { responseRequest: "Set rent to $900." }),
-    ).toThrow();
+    // S161: refused prose keeps the approved paragraph; an unusable link becomes its marker.
+    const refused = composeRenewalMessage(facts("owner"), {
+      responseRequest: "Set rent to $900.",
+    });
+    expect(refused.plainText).not.toContain("$900");
+    expect(refused.missing.map((value) => value.field)).toContain("responseRequest");
     const input = facts("tenant");
     input.informationForm = { url: "javascript:alert(1)", source: "reviewed:invalid" };
-    expect(() => composeRenewalMessage(input)).toThrow();
+    let message = composeRenewalMessage(input);
+    expect(message.plainText).not.toContain("javascript:");
+    expect(message.plainText).toContain(
+      missingValueMarker("renewal information form link"),
+    );
     input.informationForm.url = "https://user:secret@example.invalid/form";
-    expect(() => composeRenewalMessage(input)).toThrow();
+    message = composeRenewalMessage(input);
+    expect(message.plainText).not.toContain("secret");
+    expect(message.htmlBody).not.toContain('href="https://user');
   });
 });

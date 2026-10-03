@@ -9,7 +9,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { recoveryFixture } from "../helpers/release-recovery-fixture.mjs";
+import {
+  recoveryFixture,
+  setSheetWriteback,
+} from "../helpers/release-recovery-fixture.mjs";
+import { REVIEWED_CANDIDATE_SHEET_WRITEBACK } from "../../lib/production-assurance/sheet-writeback-expectation.mjs";
 import {
   executeSafeRecovery,
   prepareRecoveryBaseline,
@@ -91,7 +95,11 @@ async function fixture() {
     name: h.build.name,
     sourceLocation: "gs://isolated-source/candidate.tgz#101",
   };
-  const revision = copy(h.recovered);
+  // S159: the candidate carries the reviewed value while the predecessor keeps its own.
+  const revision = setSheetWriteback(
+    copy(h.recovered),
+    REVIEWED_CANDIDATE_SHEET_WRITEBACK,
+  );
   revision.name = original.name + "/revisions/" + h.candidate;
   revision.containers[0].image = imageDigest;
   revision.containers[0].env.find((entry) => entry.name === "APP_COMMIT_SHA").value =
@@ -132,7 +140,7 @@ async function fixture() {
   return h;
 }
 
-describe("exact source-build provenance across paused recovery", () => {
+describe("exact source-build provenance across predecessor recovery", () => {
   it("keeps the old strict path and requires new proof for the actual two-leaf deployment transition", async () => {
     const h = await fixture();
     await expect(
@@ -399,13 +407,13 @@ describe("exact source-build provenance across paused recovery", () => {
       },
     ],
     [
-      "candidate Sheet enabled",
+      "candidate Sheet switch differing from the reviewed value",
       (h) => {
         h.state.revisions
           .get(h.candidate)
           .containers[0].env.find(
             (e) => e.name === "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED",
-          ).value = "true";
+          ).value = "false";
       },
     ],
     [

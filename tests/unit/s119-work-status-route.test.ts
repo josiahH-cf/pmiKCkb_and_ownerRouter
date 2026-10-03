@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   saveRenewalWorkStatus: vi.fn(),
   getRenewalWorkStatus: vi.fn(),
   listRenewalWorkStatusActivity: vi.fn(),
+  listRenewalStatusNotes: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/session", async (importActual) => {
@@ -26,6 +27,13 @@ vi.mock("@/lib/firestore/renewal-work-status", async (importActual) => {
     getRenewalWorkStatus: mocks.getRenewalWorkStatus,
     listRenewalWorkStatusActivity: mocks.listRenewalWorkStatusActivity,
   };
+});
+
+// S164: the same route also returns the lease's notes; they are read from their own store.
+vi.mock("@/lib/firestore/renewal-status-notes", async (importActual) => {
+  const actual =
+    await importActual<typeof import("@/lib/firestore/renewal-status-notes")>();
+  return { ...actual, listRenewalStatusNotes: mocks.listRenewalStatusNotes };
 });
 
 import { GET, POST } from "@/app/api/lease-renewal/work-status/route";
@@ -73,6 +81,7 @@ beforeEach(() => {
   });
   mocks.getRenewalWorkStatus.mockResolvedValue(saved);
   mocks.listRenewalWorkStatusActivity.mockResolvedValue([]);
+  mocks.listRenewalStatusNotes.mockResolvedValue([]);
 });
 
 afterEach(() => vi.clearAllMocks());
@@ -186,7 +195,11 @@ describe("S119 work status route", () => {
     );
     expect(response.status).toBe(200);
     expect(mocks.requireCapabilityInSpace).toHaveBeenCalledWith("read", "renewals");
-    await expect(response.json()).resolves.toEqual({ record: saved, history: [] });
+    await expect(response.json()).resolves.toEqual({
+      record: saved,
+      history: [],
+      notes: [],
+    });
     const malformed = await GET(
       new Request("http://localhost/api/lease-renewal/work-status?leaseId=abc"),
     );

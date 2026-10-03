@@ -16,7 +16,8 @@ import { focusRenewalDashboardControl } from "./RenewalDashboardNavigation";
 /**
  * S143: the lease-level Full view / Focus view switch. The view, the chosen task and the saved
  * Full view scroll position are page-local presentation state: switching never saves, submits,
- * navigates, writes a preference or calls a provider, and Full view is always the default.
+ * navigates, writes a preference or calls a provider. S152: a lease opens in Focus view; both
+ * views support the same work and neither is an edit, review or locked mode.
  */
 
 export type RenewalWorkspaceView = "full" | "focus";
@@ -38,11 +39,18 @@ export function useRenewalFocusView() {
   return useContext(FocusViewContext);
 }
 
-export function RenewalFocusViewProvider({ children }: { children: ReactNode }) {
-  const [view, setViewState] = useState<RenewalWorkspaceView>("full");
+export function RenewalFocusViewProvider({
+  children,
+  initialView = "focus",
+}: {
+  children: ReactNode;
+  /** S152: Focus unless the surface has no Focus view to show. */
+  initialView?: RenewalWorkspaceView;
+}) {
+  const [view, setViewState] = useState<RenewalWorkspaceView>(initialView);
   const [selectedActionId, setSelectedActionId] = useState<string | null>(null);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
-  const current = useRef<RenewalWorkspaceView>("full");
+  const current = useRef<RenewalWorkspaceView>(initialView);
   const scrollY = useRef<number | null>(null);
   const fullTarget = useRef<string | null>(null);
   const setView = useCallback((next: RenewalWorkspaceView) => {
@@ -105,20 +113,22 @@ export function RenewalFocusViewSwitch() {
       role="group"
     >
       <button
-        aria-pressed={context.view === "full"}
-        className="secondary-button renewal-view-switch-button"
-        onClick={() => choose("full")}
-        type="button"
-      >
-        Full view
-      </button>
-      <button
         aria-pressed={context.view === "focus"}
         className="secondary-button renewal-view-switch-button"
+        data-selected={context.view === "focus" ? "true" : undefined}
         onClick={() => choose("focus")}
         type="button"
       >
         Focus view
+      </button>
+      <button
+        aria-pressed={context.view === "full"}
+        className="secondary-button renewal-view-switch-button"
+        data-selected={context.view === "full" ? "true" : undefined}
+        onClick={() => choose("full")}
+        type="button"
+      >
+        Full view
       </button>
       <span className="sr-only" role="status">
         {announcement}

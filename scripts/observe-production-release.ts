@@ -26,7 +26,7 @@ import {
   PRODUCTION_ASSURANCE_SCHEMA_VERSION,
   addDiagnostic,
   assuranceAbortSignal,
-  assertRevisionPausesSheetWriteback,
+  assertRevisionSheetWritebackForRole,
   closedObservationInterval,
   corroborateMonitoringCounts,
   createAssuranceDeadline,
@@ -70,6 +70,12 @@ import { runProductionCanary } from "./run-production-canary";
 import { PredecessorExceptionObserver } from "../lib/production-assurance/predecessor-exception-observer";
 import { isApprovedPredecessor } from "../lib/production-assurance/predecessor-exception.mjs";
 import { runProductionReconciliation } from "./run-production-reconciliation";
+
+/**
+ * S156: the desk guidance contract this checkout renders. Every assured revision built from this
+ * checkout must mark each desk row with it; the oracle refuses an unmarked or mixed page.
+ */
+const OBSERVED_GUIDANCE_CONTRACT = "s156-staff-lane" as const;
 
 const DEFAULT_PROJECT = "pmi-kc-kb-prod";
 const DEFAULT_REGION = "us-central1";
@@ -273,6 +279,8 @@ export async function observeProductionRelease(
       : null;
     const initialReconciliation = await runProductionReconciliation({
       ...target,
+      // S156: the promoted revision renders the staff-lane guidance contract on every row.
+      expectedGuidanceContract: OBSERVED_GUIDANCE_CONTRACT,
       role: "Admin",
       profile: adminProfile,
       phase: "post_promotion",
@@ -367,6 +375,7 @@ export async function observeProductionRelease(
       : null;
     const finalReconciliation = await runProductionReconciliation({
       ...target,
+      expectedGuidanceContract: OBSERVED_GUIDANCE_CONTRACT,
       role: "Admin",
       profile: adminProfile,
       phase: "post_promotion",
@@ -1022,6 +1031,7 @@ export async function prepareCandidateAssuranceReceipt(
       ...target,
       ...coordinates,
       expectedConfigurationFingerprint,
+      expectedGuidanceContract: OBSERVED_GUIDANCE_CONTRACT,
       role: "Admin",
       profile: adminProfile,
       phase: "candidate",
@@ -1195,20 +1205,21 @@ async function readRuntimeSnapshot(
       deadlineAtMs,
       abortSignal,
     );
-    // S128 (F08): the served revision must both match the reviewed fingerprint AND read back with
-    // operating-Sheet writes paused. A revision that would still dispatch writes fails configuration
-    // verification, so candidate, promoted, and rollback observations all require the flag false.
+    // S159: this snapshot observes the promoted revision. It must both match the reviewed
+    // fingerprint AND read back with the reviewed candidate operating-Sheet switch value. A
+    // missing, unreadable or different value fails configuration verification. The recovery
+    // target is held to the captured predecessor's actual value by the recovery receipt instead.
     const fingerprintMatches =
       fingerprintRevisionRuntimeConfiguration(revision) ===
       observation.expectedConfigurationFingerprint;
-    let writebackPaused = false;
+    let writebackReviewed = false;
     try {
-      assertRevisionPausesSheetWriteback(revision);
-      writebackPaused = true;
+      assertRevisionSheetWritebackForRole(revision, "promoted");
+      writebackReviewed = true;
     } catch {
-      writebackPaused = false;
+      writebackReviewed = false;
     }
-    configurationVerified = fingerprintMatches && writebackPaused;
+    configurationVerified = fingerprintMatches && writebackReviewed;
   } catch {
     // Version, service-origin, traffic, or revision-configuration failure is an immediate
     // configuration failure. Monitoring sampling never resets a successful result below.
@@ -1335,9 +1346,10 @@ export async function captureRevisionConfigurationFingerprint(
       deadlineAtMs,
       deadline.signal,
     );
-    // S128 (F08): refuse to fingerprint a candidate that would still dispatch operating-Sheet writes,
-    // so the pause is bound into the exact configuration promoted and observed downstream.
-    assertRevisionPausesSheetWriteback(revision);
+    // S159: refuse to fingerprint a candidate whose operating-Sheet switch differs from the
+    // reviewed candidate value, so that value is bound into the exact configuration promoted and
+    // observed downstream.
+    assertRevisionSheetWritebackForRole(revision, "candidate");
     return fingerprintRevisionRuntimeConfiguration(revision);
   } finally {
     deadline.dispose();

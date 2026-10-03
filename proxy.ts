@@ -11,6 +11,11 @@ import {
   allowsVerificationRequest,
   isVerificationAccount,
 } from "@/lib/auth/canary-policy";
+import {
+  RETURN_TO_COOKIE,
+  RETURN_TO_MAX_AGE_SECONDS,
+  returnPathForSignedOutRequest,
+} from "@/lib/auth/return-to";
 
 /**
  * S56's request-wide local rehearsal fence. The matcher includes both API and page routes so a
@@ -67,7 +72,26 @@ async function applyRequestPolicies(request: NextRequest) {
       );
     }
   }
-  return NextResponse.next();
+  const response = NextResponse.next();
+  // S165: a signed-out person opening an app page is sent to /sign-in by the page guard. Remember
+  // the page (path only, validated, ten minutes) so sign-in returns them to it. This grants
+  // nothing: the destination page still runs its own guard after sign-in.
+  const returnPath = returnPathForSignedOutRequest({
+    method: request.method,
+    pathname: request.nextUrl.pathname,
+    search: request.nextUrl.search,
+    hasSession: Boolean(session),
+    header: (name) => request.headers.get(name),
+  });
+  if (returnPath) {
+    response.cookies.set(RETURN_TO_COOKIE, returnPath, {
+      maxAge: RETURN_TO_MAX_AGE_SECONDS,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
+  return response;
 }
 
 export const config = {

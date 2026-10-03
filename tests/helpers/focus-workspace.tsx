@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { ComponentProps } from "react";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { expect, vi } from "vitest";
 
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
@@ -86,6 +86,8 @@ export interface RouteFakeOptions {
   readonly messagePost?: (body: Record<string, unknown> | null) => Response;
   /** Answer any other lease-renewal route this test drives; default an empty JSON object. */
   readonly other?: (call: FetchCall) => Response | null;
+  /** Refuse every staff record with this status and error (a failed autosave keeps its entry). */
+  readonly refuseRecords?: { readonly status: number; readonly error: string };
 }
 
 export function stubRenewalRoutes(
@@ -129,6 +131,11 @@ export function stubRenewalRoutes(
         return Response.json({ state: stored, activity: [], observations: [] });
       if (body?.operation === "record") {
         if (hold) await hold;
+        if (options.refuseRecords)
+          return Response.json(
+            { error: options.refuseRecords.error },
+            { status: options.refuseRecords.status },
+          );
         const operationId = String(body.operationId);
         const request: Record<string, unknown> = { ...body };
         delete request.operationId;
@@ -207,7 +214,6 @@ export interface WorkspaceRenderOptions {
   readonly role?: Role;
   readonly manual?: RenewalWorkspaceState | null;
   readonly manualReadUnavailable?: boolean;
-  readonly workflowAvailable?: boolean;
   readonly rentChargeStatus?: readonly RentChargeOutcomeRow[];
   readonly sheetWritebackPaused?: boolean;
   /** Any further existing RenewalWorkspace props, such as a provider panel or read failures. */
@@ -215,11 +221,10 @@ export interface WorkspaceRenderOptions {
 }
 
 export function workspaceElement(options: WorkspaceRenderOptions = {}) {
-  const base =
+  // S154: there is no inspection-only workspace; every lease renders its full working surface.
+  const workspace =
     options.workspace ??
     getRenewalLeaseWorkspace(options.leaseId ?? "lease-318-cedar-7")!;
-  const workspace =
-    options.workflowAvailable === false ? { ...base, workflowAvailable: false } : base;
   return (
     <RenewalWorkspace
       {...options.extra}
@@ -238,11 +243,11 @@ export function workspaceElement(options: WorkspaceRenderOptions = {}) {
 
 export async function renderWorkspace(options: WorkspaceRenderOptions = {}) {
   const view = render(workspaceElement(options));
-  const workspace = { workflowAvailable: options.workflowAvailable !== false };
-  if (workspace.workflowAvailable && !options.manualReadUnavailable) {
-    await within(screen.getByRole("region", { name: "Owner approval" })).findByRole(
-      "region",
-      { name: "Owner message preparation" },
+  if (!options.manualReadUnavailable) {
+    // S152: the lease opens in Focus view, which hides the Full view regions in place (a hidden
+    // region has no accessible name), so the owner message preparation card is awaited by id.
+    await waitFor(() =>
+      expect(document.getElementById("renewal-card-message-owner")).not.toBeNull(),
     );
   }
   await settle();
@@ -254,4 +259,11 @@ export function focusPane() {
   const pane = screen.getByRole("region", { name: "Focus view" });
   expect(pane).toBeVisible();
   return pane;
+}
+
+/** The lease-level view switch button; S152 marks the selected view with aria-pressed. */
+export function viewButton(name: "Focus view" | "Full view") {
+  return within(screen.getByRole("group", { name: "Lease view" })).getByRole("button", {
+    name,
+  });
 }

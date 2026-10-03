@@ -419,7 +419,7 @@ export function RenewalDeciderCard({
           </Button>
         </div>
       ) : approvalPending && !isAdmin ? (
-        <p className="muted">An Admin approves the queued write-back proposal.</p>
+        <p className="muted">Staff review the queued write-back proposal.</p>
       ) : approvalPending && flag.writebackApproval ? (
         <WritebackApprovalControl
           approval={flag.writebackApproval}

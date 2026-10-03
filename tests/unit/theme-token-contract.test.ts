@@ -144,7 +144,16 @@ describe("S85 semantic token graph", () => {
     const uses = [...allCss.matchAll(/var\(--([a-z0-9-]+)/gi)].map((match) => match[1]);
     // next/font defines --font-poppins on <html> at runtime (official PMI typeface); every css
     // use carries an explicit fallback family, so the reference is safe without a css definition.
-    const externallyDefined = new Set(["font-poppins"]);
+    // S152 (f2a50650): the workspace shell measures its sticky toolbar and sets
+    // --renewal-sticky-offset at runtime; the scroll-margin rule carries an explicit fallback.
+    const externallyDefined = new Set(["font-poppins", "renewal-sticky-offset"]);
+    expect(componentCss).toMatch(/var\(--renewal-sticky-offset,\s*\d+px\)/);
+    expect(
+      readFileSync(
+        join(root, "components/lease-renewal/RenewalWorkspaceSidebars.tsx"),
+        "utf8",
+      ),
+    ).toContain('"--renewal-sticky-offset"');
     expect(
       [...new Set(uses.filter((name) => !definitions.has(name)))].filter(
         (name) => !externallyDefined.has(name),

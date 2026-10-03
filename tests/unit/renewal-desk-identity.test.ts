@@ -40,6 +40,11 @@ describe("S78 source-backed renewal desk identity", () => {
         {
           label: "Jordan Maple",
           sourceRef: "rentvine:lease:4821:tenants[0].firstName+lastName",
+          // S163: the provider's first-name field rides along for the greeting.
+          firstName: {
+            label: "Jordan",
+            sourceRef: "rentvine:lease:4821:tenants[0].firstName",
+          },
         },
         {
           label: "Riley Maple",
@@ -54,6 +59,10 @@ describe("S78 source-backed renewal desk identity", () => {
         {
           label: "Avery Owner",
           sourceRef: "rentvine:lease:4821:portfolio.owners[1].firstName+lastName",
+          firstName: {
+            label: "Avery",
+            sourceRef: "rentvine:lease:4821:portfolio.owners[1].firstName",
+          },
         },
       ],
     });

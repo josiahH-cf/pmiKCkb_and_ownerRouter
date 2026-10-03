@@ -2,14 +2,13 @@ import { randomUUID } from "node:crypto";
 import {
   RENEWAL_WORKSPACE_COLLECTIONS,
   renewalWorkspaceDocId,
-  startRenewalCycle,
   saveRenewalWorkspace,
-  getRenewalWorkspace,
 } from "@/lib/firestore/renewal-workspace";
+import { readEffectiveRenewalTerms } from "@/lib/firestore/renewal-effective-terms";
 import { loadRenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory";
 import {
   futureRentInventoryHash,
-  futureRentWorkspaceMatches,
+  futureRentTermsCurrent,
 } from "@/lib/lease-renewal/writeback/future-rent-intent";
 import { deleteApp, initializeApp, type App } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
@@ -254,29 +253,17 @@ describe("S97 active proposal generation and lifecycle", () => {
     expect(writes).toBe(1);
     expect(charge.amount).toBe("1275.00");
   });
-  it("binds future terms to the actual workspace head at claim and receipts the existing future-charge update", async () => {
+  it("binds future terms to the current effective terms at claim and receipts the existing future-charge update", async () => {
     vi.stubEnv("ENVIRONMENT_KIND", "production");
     vi.stubEnv("DATA_CONTEXT", "live");
-    const cycleId = randomUUID();
-    const started = await startRenewalCycle(
-      actor,
-      {
-        leaseId: "115",
-        expectedCycleId: null,
-        expectedRevision: 0,
-        operationId: cycleId,
-        basis: { kind: "lease_end", dateIso: "2026-12-31", source: "Emulator lease" },
-        reason: "Reviewed cycle",
-      },
-      { kind: "lease_end", dateIso: "2026-12-31", source: "Emulator lease" },
-      db,
-    );
+    // S154: the first save establishes the work record; S156: the recorded approval supplies the
+    // effective terms only because no working term was entered on the lease.
     const saved = await saveRenewalWorkspace(
       actor,
       {
         leaseId: "115",
-        cycleId,
-        expectedRevision: started.state!.revision,
+        cycleId: null,
+        expectedRevision: 0,
         operationId: randomUUID(),
         action: {
           kind: "owner_response",
@@ -286,7 +273,13 @@ describe("S97 active proposal generation and lifecycle", () => {
         },
       },
       db,
+      async () => ({
+        kind: "lease_end",
+        dateIso: "2026-12-31",
+        source: "Emulator lease",
+      }),
     );
+    const cycleId = saved.state!.cycleId;
     vi.unstubAllEnvs();
     const now = Date.parse("2026-09-10T12:00:00.000Z");
     let charge = {
@@ -343,7 +336,9 @@ describe("S97 active proposal generation and lifecycle", () => {
     const headRef = db
       .collection(RENEWAL_WORKSPACE_COLLECTIONS.head)
       .doc(renewalWorkspaceDocId("115"));
-    await headRef.update({ termsRevision: binding.termsRevision + 1 });
+    // S156/S160: the claim re-reads the effective terms inside its transaction; a different rent
+    // than the one the preview was prepared from blocks the attempt before any record exists.
+    await headRef.update({ "ownerResponse.terms.rent": 1300 });
     expect(
       await claimActiveS97RenewalEffect(db, {
         proposal: persisted,
@@ -380,7 +375,7 @@ describe("S97 active proposal generation and lifecycle", () => {
       now: () => now,
       reads,
       assertCurrentRenewalTerms: async () =>
-        futureRentWorkspaceMatches(await getRenewalWorkspace(actor, "115", db), binding),
+        futureRentTermsCurrent(await readEffectiveRenewalTerms("115", db), binding),
       gateFor: () => ({
         isExecutable: async () => true,
         run: async (effect) => effect(),

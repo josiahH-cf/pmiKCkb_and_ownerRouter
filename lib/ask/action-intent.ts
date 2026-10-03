@@ -5,6 +5,8 @@
 // closed key (e.g. gmail.renewal_notice.send) never surfaces a live affordance. Ask becomes a faster front
 // door into the existing preview/confirm/receipt gate, never a way around it.
 
+import { leaseWorkspaceHrefOrNull } from "@/lib/lease-renewal/desk-view-continuation";
+
 export const RENEWAL_DRAFT_ACTION_KEY = "gmail.renewal_notice.draft_create";
 export const MAINTENANCE_OWNER_DRAFT_ACTION_KEY =
   "gmail.maintenance_owner_notice.draft_create";
@@ -69,10 +71,13 @@ export function resolveAskAction(input: ResolveAskActionInput): AskActionRoute |
   if (mapping.surface === "renewal-notice-draft") {
     // A live renewal route requires an authoritative single-lease target (never a best-guess lease).
     if (!target) return null;
+    // S166: the one real-id workspace link; a target without a lease id yields no route.
+    const href = leaseWorkspaceHrefOrNull(target.leaseId);
+    if (href === null) return null;
     return {
       actionKey: mapping.key,
       surface: mapping.surface,
-      href: `/lease-renewal/live/desk/lease/${encodeURIComponent(target.leaseId)}`,
+      href,
       label: mapping.label,
     };
   }

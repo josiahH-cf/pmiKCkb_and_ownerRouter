@@ -536,7 +536,7 @@ describe("loadLiveRenewalDesk", () => {
       progress,
     );
     if (trackedWorkspace.status !== "ok") throw new Error(trackedWorkspace.status);
-    expect(trackedWorkspace.workspace.workflowAvailable).toBe(true);
+    expect(trackedWorkspace.workspace.live).toBeDefined();
     expect(trackedWorkspace.workspace.summary.retention.state).toBe("tracked_incomplete");
   });
 
@@ -949,7 +949,7 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
     ).toBe(result.workspace.readiness.checks.length);
   });
 
-  it("keeps review and periodic-review leases inspectable but returns not_found for unknown or skipped leases", async () => {
+  it("S154 BEH-1/2/4: opens review, periodic-review and skipped leases with the staff lane; only an unknown lease is not_found", async () => {
     const unknown = await loadLiveRenewalLeaseWorkspace(
       "does-not-exist",
       READ_TS,
@@ -958,24 +958,34 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
     expect(unknown).toEqual({ status: "not_found" });
 
     clearLiveLeaseCache();
-    // S103: 7003 is month-to-month → periodic_review → inspection-only, never an actionable
-    // renewal workspace, but its term, anchor, and review date stay visible and correctable.
+    // S154 (0f02e013, b7693d4d): 7003 is month-to-month (periodic_review). Its classification
+    // stays as context, and its term, anchor and review date stay visible, but the lease opens
+    // with the full working surface and the staff lane rather than an inspection-only view.
     const periodic = await loadLiveRenewalLeaseWorkspace(
       "7003",
       READ_TS,
       okConfig() as unknown as WorkspaceConfigArg,
     );
     if (periodic.status !== "ok") throw new Error(periodic.status);
-    expect(periodic.workspace.workflowAvailable).toBe(false);
+    expect(periodic.workspace.summary.disposition).toBe("periodic_review");
     expect(periodic.workspace.summary.leaseTerm).toMatchObject({
       term: "month_to_month",
       anchorDateIso: "2025-08-15",
       nextReviewIso: "2026-08-15",
       reviewState: "scheduled",
     });
+    expect(periodic.workspace.live).toMatchObject({ leaseId: "7003", complete: false });
+    expect(periodic.workspace.process.version).toBe(RENEWAL_PROCESS_VERSION);
+    expect(periodic.workspace.guidance).toMatchObject({
+      contract: "s156-staff-lane",
+      isBlocked: false,
+      blockers: [],
+      action: { kind: "act", label: "Owner outreach" },
+    });
 
     clearLiveLeaseCache();
-    // A definitive cohort exclusion still has no workspace at all.
+    // A definitive source marker keeps the lease outside the worklist, but it is still a real
+    // lease that opens and can be worked; opening performs reads only.
     const skipped = await loadLiveRenewalLeaseWorkspace(
       "9007",
       READ_TS,
@@ -995,7 +1005,20 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
         complete: true,
       })) as unknown as WorkspaceConfigArg,
     );
-    expect(skipped).toEqual({ status: "not_found" });
+    if (skipped.status !== "ok") throw new Error(skipped.status);
+    expect(skipped.workspace.summary).toMatchObject({
+      disposition: "skip",
+      retention: {
+        state: "outside",
+        label: "Outside the renewal worklist by its source marker",
+      },
+    });
+    expect(skipped.workspace.live).toMatchObject({ leaseId: "9007", complete: false });
+    expect(skipped.workspace.guidance).toMatchObject({
+      contract: "s156-staff-lane",
+      blockers: [],
+      action: { kind: "act", label: "Owner outreach" },
+    });
 
     clearLiveLeaseCache();
     const review = await loadLiveRenewalLeaseWorkspace(
@@ -1020,15 +1043,17 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
     if (review.status === "ok") {
       expect(review.workspace.summary.disposition).toBe("review");
       expect(review.workspace.summary.reason).toBe("no_end_date");
-      expect(review.workspace.workflowAvailable).toBe(false);
-      expect(review.workspace.summary).toMatchObject({
-        processVersion: null,
-        workflowStepId: null,
-        stageIndex: -1,
-        stageLabel: null,
-        nextAction: null,
+      // The flagged fact is advisory evidence with its verification destination; the lease
+      // still carries its process projection and live evidence controls.
+      expect(review.workspace.summary.processVersion).toBe(RENEWAL_PROCESS_VERSION);
+      expect(review.workspace.summary.workflowStepId).not.toBeNull();
+      expect(review.workspace.live).toMatchObject({ leaseId: "9006" });
+      expect(review.workspace.guidance.overallStatus).toBe("needs_verification");
+      expect(review.workspace.guidance.action).toMatchObject({
+        kind: "needs_verification",
+        destination: { kind: "workspace_phase", stepId: "verify-renewal" },
       });
-      expect(review.workspace.live).toBeUndefined();
+      expect(review.workspace.guidance.blockers).toEqual([]);
     }
   });
 
@@ -1054,19 +1079,25 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
       okConfig() as unknown as WorkspaceConfigArg,
     );
     if (workspace.status !== "ok") throw new Error(workspace.status);
+    // S154 BEH-2: the classification and window stay as context and worklist filters; the
+    // opened lease carries the normal workspace, its process projection and the staff lane.
     expect(workspace.workspace.summary).toMatchObject({
       disposition: deskRow?.disposition,
       reason: deskRow?.reason,
       retention: { state: deskRow?.retention.state },
-      processVersion: null,
-      workflowStepId: null,
-      stageIndex: -1,
-      stageLabel: null,
-      nextAction: null,
+      processVersion: RENEWAL_PROCESS_VERSION,
     });
-    expect(workspace.workspace.workflowAvailable).toBe(false);
-    expect(workspace.workspace.live).toBeUndefined();
+    expect(workspace.workspace.summary.workflowStepId).not.toBeNull();
+    expect(workspace.workspace.summary.stageIndex).toBeGreaterThanOrEqual(0);
+    expect(workspace.workspace.live).toMatchObject({ leaseId: "8004", complete: false });
+    expect(workspace.workspace.guidance).toMatchObject({
+      contract: "s156-staff-lane",
+      overallStatus: "ready",
+      action: { kind: "act", label: "Owner outreach" },
+    });
+    // Opening creates nothing: no owner decision, so no tenant draft is manufactured.
     expect(workspace.workspace.tenantDraft).toBeNull();
+    expect(workspace.workspace.live?.ownerDecision).toBeNull();
   });
 
   it("keeps duplicated no-id fallback names fail-closed and identical across desk/workspace", async () => {
@@ -1127,7 +1158,9 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
         workspace.workspace.dataCheck.find((item) => item.fieldKey === "current_rent"),
       ).toMatchObject({ agreement: "missing" });
       expect(workspace.workspace.currentRent).toBe(1250);
-      expect(workspace.workspace.workflowAvailable).toBe(false);
+      expect(workspace.workspace.guidance.rentVerification.state).toBe(
+        "needs_verification",
+      );
     }
   });
 
@@ -1339,18 +1372,13 @@ describe("live renewal workspace + versioned evidence progress", () => {
     expect(row?.workflowStepId).toBe(selected.id);
     expect(row?.stageLabel).toBe(workspace.workspace.summary.stageLabel);
     expect(row?.nextAction).toBe(workspace.workspace.summary.nextAction);
-    expect(row?.guidance.blockers.map((blocker) => blocker.label)).toEqual([
-      ...new Set(
-        selected.substeps
-          .filter(
-            (substep) =>
-              substep.applicable &&
-              substep.requiredForStep &&
-              substep.state === "blocked",
-          )
-          .flatMap((substep) => substep.blockers),
-      ),
-    ]);
+    // S156: the evidence graph's blocked substeps are no longer projected as blockers on either
+    // surface; the desk row and the workspace carry the same staff-lane guidance.
+    expect(row?.guidance.blockers).toEqual([]);
+    expect(workspace.workspace.guidance.blockers).toEqual([]);
+    expect(row?.guidance.contract).toBe("s156-staff-lane");
+    expect(row?.guidance.overallStatus).toBe(workspace.workspace.guidance.overallStatus);
+    expect(row?.guidance.action).toEqual(workspace.workspace.guidance.action);
   });
 
   it("keeps an unavailable packet read distinct from a proved missing packet", () => {
@@ -1561,7 +1589,7 @@ describe("live renewal workspace + versioned evidence progress", () => {
 });
 
 describe("S82 desk guidance rows", () => {
-  it("attaches honest guidance: verified agreeing rent, blocked conflict, fail-closed no-match", async () => {
+  it("attaches honest guidance: verified agreeing rent, advisory conflict, fail-closed no-match", async () => {
     const result = await loadLiveRenewalDesk(
       WINDOWS,
       READ_TS,
@@ -1576,19 +1604,29 @@ describe("S82 desk guidance rows", () => {
     expect(agreeing?.guidance.rentVerification.state).toBe("verified");
     expect(agreeing?.guidance.rentVerification.verifiedByResolutionDiffers).toBe(false);
 
+    // S157 BEH-6/7 (8a3f929d): the conflicting rent stays visible as rentVerification with its
+    // verification destination, while the row's status and action stay available.
     const conflicting = byId.get("5001");
     expect(conflicting?.guidance.currentBaseRent).toBe(1400);
-    expect(conflicting?.guidance.rentVerification.state).toBe("needs_verification");
-    expect(conflicting?.guidance.overallStatus).toBe("blocked");
-    expect(conflicting?.guidance.isBlocked).toBe(true);
-    expect(conflicting?.guidance.action).toEqual({ kind: "blocked" });
-    expect(conflicting?.guidance.blockers.length).toBeGreaterThan(0);
-    for (const blocker of conflicting?.guidance.blockers ?? []) {
-      expect(blocker.destination).toEqual({
+    expect(conflicting?.guidance.rentVerification).toEqual({
+      state: "needs_verification",
+      verifiedByResolutionDiffers: false,
+      destination: { kind: "workspace_phase", stepId: "verify-renewal" },
+    });
+    expect(conflicting?.openConflicts).toBe(1);
+    expect(conflicting?.guidance.overallStatus).toBe("ready");
+    expect(conflicting?.guidance.isBlocked).toBe(false);
+    expect(conflicting?.guidance.blockers).toEqual([]);
+    expect(conflicting?.guidance.action).toEqual({
+      kind: "act",
+      label: "Owner outreach",
+      destination: {
         kind: "workspace_phase",
-        stepId: "verify-renewal",
-      });
-    }
+        stepId: "owner-decision",
+        controlId: "renewal-manual-owner_outreach",
+      },
+    });
+    expect(conflicting?.guidance.contract).toBe("s156-staff-lane");
 
     const noMatch = byId.get("6002");
     expect(noMatch?.guidance.rentVerification.state).toBe("needs_verification");
@@ -1651,7 +1689,9 @@ describe("S82 desk guidance rows", () => {
     expect(reopened?.openConflicts).toBe(1);
     expect(reopened?.guidance.rentVerification.state).toBe("needs_verification");
     expect(reopened?.guidance.rentVerification.verifiedByResolutionDiffers).toBe(false);
-    expect(reopened?.guidance.overallStatus).toBe("blocked");
+    // The reopened difference is advisory: the row stays Ready for its staff work.
+    expect(reopened?.guidance.overallStatus).toBe("ready");
+    expect(reopened?.guidance.isBlocked).toBe(false);
     expect(reopened?.workflowStepId).toBe("verify-renewal");
   });
 

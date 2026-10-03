@@ -1,8 +1,9 @@
 // S119: the app-owned staff work status store. One current record per lease plus append-only
 // activity, with the same versioned-save conventions as the renewal workspace: server-derived
 // actor, expected-revision conflict detection and duplicate-operation protection. It reads the
-// workspace head only to record which cycle was current; it never creates, advances or completes a
-// cycle and it reaches no provider.
+// lease's current work record (dated or lease-bound) only to record which one was current; it never
+// creates, advances or completes a work record and it reaches no provider. S164: notes in the
+// Status log live in their own store (renewal-status-notes.ts) and never move this revision.
 
 import {
   assertMutationAllowed,
@@ -174,19 +175,25 @@ export async function saveRenewalWorkStatus(
   const event = db
     .collection(RENEWAL_WORK_STATUS_COLLECTIONS.activity)
     .doc(input.operationId);
+  // S154: the current work record is the dated head when one exists, otherwise the lease-bound
+  // record saved for a lease with no source date. A lease with neither is saved without one.
   const workspaceHead = db
     .collection(RENEWAL_WORKSPACE_COLLECTIONS.head)
     .doc(renewalWorkStatusDocId(input.leaseId));
+  const leaseBoundHead = db
+    .collection(RENEWAL_WORKSPACE_COLLECTIONS.leaseBoundHead)
+    .doc(renewalWorkStatusDocId(input.leaseId));
   const duplicate = await db.runTransaction(async (tx) => {
-    const [snapshot, prior, workspace] = await Promise.all([
+    const [snapshot, prior, dated, leaseBound] = await Promise.all([
       tx.get(head),
       tx.get(event),
       tx.get(workspaceHead),
+      tx.get(leaseBoundHead),
     ]);
     if (prior.exists) {
       if (prior.get("request_hash") !== requestHash)
         throw new EditableLayerError(
-          "This recorded status request changed. Reload before saving it again.",
+          "This status save changed after it was first sent. Your choice is kept; save it again.",
           409,
         );
       return true;
@@ -194,9 +201,10 @@ export async function saveRenewalWorkStatus(
     const current = snapshot.exists ? parseRecord(snapshot.data(), input.leaseId) : null;
     if ((current?.revision ?? 0) !== input.expectedRevision)
       throw new EditableLayerError(
-        "Another operator saved this status. Reload to review the current value before saving.",
+        "Another operator saved this status. Your choice is kept; review the current value before saving again.",
         409,
       );
+    const workspace = dated.exists ? dated : leaseBound;
     const rawCycleId = workspace.exists ? workspace.get("cycleId") : null;
     const cycleId =
       typeof rawCycleId === "string" && z.string().uuid().safeParse(rawCycleId).success

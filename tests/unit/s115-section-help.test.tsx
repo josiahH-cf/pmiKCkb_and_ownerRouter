@@ -202,7 +202,7 @@ describe("S115 plain-language section help", () => {
     }
     cleanup();
     resetTransientLayersForTests();
-    // With a confirmed cycle the manual-work cards, response forms and market evidence render.
+    // With recorded work the manual-work cards, response forms and market evidence render.
     const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
     renderWorkspace({
       manualState: emptyRenewalWorkspace(
@@ -211,6 +211,9 @@ describe("S115 plain-language section help", () => {
         { kind: "lease_end", dateIso: "2026-12-31", source: "RentVine lease end" },
       ),
     });
+    // S152 (f2a50650): a lease with recorded work opens in Focus view; the section help lives on
+    // the Full view's headings.
+    fireEvent.click(screen.getByRole("button", { name: "Full view" }));
     for (const label of [
       "Recorded renewal work",
       "Work recorded by staff: owner",
@@ -219,7 +222,10 @@ describe("S115 plain-language section help", () => {
       "Owner message preparation",
       "Tenant message preparation",
       "Document preparation and signature handoff",
-      "Owner response and exact terms",
+      // S156 (0f02e013): the owner response is a recorded fact; the working terms are their own
+      // lease-bound area beside it.
+      "Owner response",
+      "Working renewal terms",
       "Tenant response",
       "Staff completion",
       "Source updates",
@@ -241,12 +247,14 @@ describe("S115 plain-language section help", () => {
     );
     expect(screen.getAllByText(DRAFT_BANNER).length).toBeGreaterThan(0);
     const workspace = read("components/lease-renewal/RenewalWorkspace.tsx");
+    // S152/S156 (fe91d82a): the next-action card and stale-data copy are advisory; the lists,
+    // the paused-recording note and the send-time verification copy stay visible.
     for (const kept of [
       "Current blockers",
       "Recording is paused while the lease data is past",
-      "Do this next",
+      "Suggested next",
       "Needs verification before sending",
-      "Data too old to act on",
+      "Lease data is out of date",
     ]) {
       expect(workspace).toContain(kept);
     }
@@ -260,10 +268,14 @@ describe("S115 plain-language section help", () => {
 
   it("AC-S115-3: genuinely manual required fields carry the required cue and their exact labels still resolve", () => {
     renderWorkspace();
-    const source = screen.getByLabelText("Value source / reason");
+    const source = screen.getByLabelText("Reviewed renewal date");
     expect(source).toHaveAttribute("aria-required", "true");
     expect(source.closest(".field")?.querySelector(".field-required")?.textContent).toBe(
       "*",
+    );
+    // S157: the source or context note is optional, never a required narrative.
+    expect(screen.getByLabelText("Source or context (optional)")).not.toHaveAttribute(
+      "aria-required",
     );
     expect(screen.getByLabelText("Fact to correct")).not.toHaveAttribute("aria-required");
     expect(screen.getByLabelText("Destinations")).toBeVisible();
@@ -273,18 +285,18 @@ describe("S115 plain-language section help", () => {
   it("AC-S115-4: opening help makes no request, keeps unsaved edits and never shows an action key as instruction", () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     renderWorkspace();
-    const source = screen.getByLabelText("Value source / reason");
+    const source = screen.getByLabelText("Source or context (optional)");
     fireEvent.change(source, { target: { value: "Owner call 2026-09-16" } });
     for (const label of ["Correct a lease fact", "Lease term", "Data check"]) {
       act(() => screen.getByRole("button", { name: `About ${label}` }).focus());
       fireEvent.keyDown(document, { key: "Escape" });
     }
     expect(fetchSpy).not.toHaveBeenCalled();
-    expect(screen.getByLabelText("Value source / reason")).toHaveValue(
+    expect(screen.getByLabelText("Source or context (optional)")).toHaveValue(
       "Owner call 2026-09-16",
     );
     expect(screen.queryByText(/google_sheets\.renewal_checklist/)).toBeNull();
-    expect(screen.getByText(/No Sheet update is waiting for review/)).toBeInTheDocument();
+    expect(screen.getByText(/No Sheet update is waiting/)).toBeInTheDocument();
   });
 
   it("AC-S115-4: section navigation focuses a real control instead of a help trigger and closes open help", () => {

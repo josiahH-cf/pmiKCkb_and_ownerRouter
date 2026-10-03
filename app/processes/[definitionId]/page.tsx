@@ -26,7 +26,7 @@ export default async function ProcessDefinitionPage({
       listWorkflowRuns(user, { definitionId }),
     ]);
     if (!canAccessProcessDefinition(user, definition)) {
-      redirect(primarySpaceHref(user));
+      redirect(primarySpaceHref());
     }
   } catch {
     loadError = true;

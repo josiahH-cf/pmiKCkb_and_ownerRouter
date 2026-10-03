@@ -1,13 +1,15 @@
 import { currentRentCorrectionKey } from "@/lib/lease-renewal/current-rent-correction";
 // Fresh, server-only S98 lease→Sheet resolution. Normal product proposals never accept a row,
 // tenant, property, field, value, or source from browser JSON: they are rebuilt from the exact
-// RentVine hyperlink join, the current source candidates, and the current human decision records.
+// RentVine hyperlink join, the current source candidates, the lease's saved lookup selection
+// (S158) and the lease's working current rent (S160).
 
 import {
   sheetCellRepresentationPreserved,
   type SheetCellEvidence,
 } from "@/lib/google-sheets/cell-evidence";
 import {
+  WORKING_CURRENT_RENT_SOURCE_LABEL,
   parseSheetFieldIntent,
   sheetIntentValue,
   type SheetFieldIntent,
@@ -16,14 +18,8 @@ import {
   hashSheetHeader,
   sheetCellValueMatches,
 } from "@/lib/lease-renewal/sheet-writeback/execution-service";
-import type { AuthenticatedUser } from "@/lib/auth/session";
 import { canonicalJson } from "@/lib/execution/preview-hash";
-import { getLeaseRenewalResolution } from "@/lib/firestore/lease-renewal-resolutions";
-import { getWritebackApproval } from "@/lib/firestore/lease-renewal-writeback-approvals";
-import type {
-  LeaseRenewalResolutionRecord,
-  LeaseRenewalWritebackApprovalRecord,
-} from "@/lib/firestore/types";
+import { readSheetWorkingRecord } from "@/lib/firestore/renewal-sheet-working-inputs";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
 import { RENTVINE_SOURCE, leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
 import { RENEWAL_TAB_SCHEMAS, resolveHeaders } from "@/lib/lease-renewal/headers";
@@ -33,14 +29,27 @@ import { LIVE_REVIEW_RUN_ID } from "@/lib/lease-renewal/live-review";
 import { renewalDecisionRecordKey } from "@/lib/lease-renewal/pipeline";
 import { renewalReconciliationSourceTriggerKey } from "@/lib/lease-renewal/approval-queue-mapping";
 import {
+  NO_SHEET_LOOKUP_BINDING,
+  applyOperatorRowBindings,
+  columnLetters,
+  parseSheetCell,
+  quoteSheetTab,
+  sheetCellA1,
+  sheetLookupBinding,
+  type OperatingSheetLookupBinding,
+} from "@/lib/lease-renewal/sheet-lookup";
+import {
   PROOF_NOTE_PREFIX,
   parseRowNote,
-  type SheetFieldUpdateAuthorization,
   type SheetFieldUpdateEffectInput,
   type SheetRowAppendEffectInput,
   type SheetWritebackProposal,
 } from "@/lib/lease-renewal/sheet-writeback/proposal-contract";
 import { OPERATING_SHEET_TAB } from "@/lib/lease-renewal/sheet-writeback/live";
+import {
+  describeOperatorSelectionLimit,
+  resolveOperatorSheetTarget,
+} from "@/lib/lease-renewal/sheet-writeback/lookup-target";
 import {
   appendIntentRefusal,
   associateOperatingSheetRow,
@@ -51,10 +60,11 @@ import {
   effectForAudienceEmailIntent,
   type AudienceRosters,
 } from "@/lib/lease-renewal/sheet-writeback/audience-emails";
-import { SheetWorkspaceResolutionError } from "@/lib/lease-renewal/sheet-writeback/resolution-error";
+import {
+  SheetWorkspaceResolutionError,
+  type SheetWorkspaceResolutionCode,
+} from "@/lib/lease-renewal/sheet-writeback/resolution-error";
 import { sheetResponsesToTablesWithJoinIds } from "@/lib/lease-renewal/sheet-links";
-import { writebackApprovalMatchesResolution } from "@/lib/lease-renewal/writeback-approval";
-import { writebackAuthorizationTokenForResolution } from "@/lib/lease-renewal/writeback-authorization-token";
 
 export { SheetWorkspaceResolutionError } from "@/lib/lease-renewal/sheet-writeback/resolution-error";
 
@@ -68,10 +78,21 @@ export interface FreshOperatingSheetLeaseContext {
   tenantColumnIndex: number;
   tabId?: number | null;
   /**
-   * S116: the one fresh lease/row association. `row` is present exactly for an exact row; an
-   * ambiguous association keeps `row` null and refuses both append and update.
+   * S116/S158: the one fresh lease/row association. `row` is present exactly for an exact row or
+   * a readable operator-selected row; an ambiguous association keeps `row` null and refuses both
+   * append and update.
    */
   association: OperatingSheetRowAssociation;
+  /**
+   * S158: set when the operator-selected location governing this read is readable but not an
+   * eligible update target. Every effect builder refuses with exactly this message.
+   */
+  targetRefusal?: {
+    code: "selected_row_not_writable" | "selected_cell_not_writable";
+    message: string;
+  } | null;
+  /** S158: the A1 cell a field's selected cell points at on the operating tab, when one applies. */
+  fieldCells?: Record<string, string>;
   /**
    * S116 (R116.3): the complete source-backed address set per audience from the fresh lease
    * roster, or the refusal a person resolves at the source. Absent when the roster was not read.
@@ -91,10 +112,12 @@ export interface FreshOperatingSheetLeaseContext {
   };
 }
 
-export interface AuthorizedCurrentRentUpdate {
-  resolution: LeaseRenewalResolutionRecord;
-  approval: LeaseRenewalWritebackApprovalRecord;
-  authorization: SheetFieldUpdateAuthorization;
+export interface ResolveFreshLeaseContextOptions {
+  /**
+   * The lease's saved lookup selection. Omitted: it is read from the working record. Null: the
+   * automatic lookup. A caller revalidating an effect passes the selection it previewed with.
+   */
+  binding?: OperatingSheetLookupBinding | null;
 }
 
 /**
@@ -216,16 +239,32 @@ function filteredForPipeline(
   return { filteredTables, filteredJoins };
 }
 
+/** The lease's saved lookup selection, or a refusal that names the unreadable selection. */
+async function loadLookupBinding(leaseId: string): Promise<OperatingSheetLookupBinding> {
+  try {
+    return sheetLookupBinding(await readSheetWorkingRecord(leaseId));
+  } catch {
+    throw new SheetWorkspaceResolutionError("lookup_unavailable");
+  }
+}
+
 /** One complete, fresh, read-only source rebuild for a canonical lease workspace. */
 export async function resolveFreshOperatingSheetLeaseContext(
   leaseId: string,
   readAtIso = new Date().toISOString(),
   inspectField?: string,
+  options: ResolveFreshLeaseContextOptions = {},
 ): Promise<FreshOperatingSheetLeaseContext> {
   const config = buildLiveRenewalConfig();
   if (!config.ok || !config.sheetsReader.batchGetFormulas) {
     throw new SheetWorkspaceResolutionError("source_unavailable");
   }
+  // S158: the operator's selection is read before the Sheet so that an unreadable selection is
+  // reported as such, never silently replaced by the automatic lookup.
+  const binding =
+    options.binding !== undefined
+      ? (options.binding ?? NO_SHEET_LOOKUP_BINDING)
+      : await loadLookupBinding(leaseId);
   try {
     const [evaluated, formulas, notesByTab, richLinksByTab, lease] = await Promise.all([
       config.sheetsReader.batchGet(config.spreadsheetId, [OPERATING_SHEET_TAB]),
@@ -266,9 +305,18 @@ export async function resolveFreshOperatingSheetLeaseContext(
       notes: notesByTab !== null,
       cellLinks: richLinksByTab !== undefined,
     };
+    // S158: the selected row wins in the read pipeline's join as well, so the same row carries the
+    // lease's Sheet facts here and on the desk. A row that links to another lease is never taken.
+    const joinsForPipeline = binding.row
+      ? applyOperatorRowBindings({
+          titles: [OPERATING_SHEET_TAB],
+          tableJoinIds: joined.tableJoinIds,
+          bindings: new Map([[leaseId, binding.row.value]]),
+        }).tableJoinIds
+      : joined.tableJoinIds;
     const { filteredTables, filteredJoins } = filteredForPipeline(
       joined.tables,
-      joined.tableJoinIds,
+      joinsForPipeline,
       [rawNotes],
     );
     const live = await runLiveRenewalReview({
@@ -305,45 +353,90 @@ export async function resolveFreshOperatingSheetLeaseContext(
       throw new SheetWorkspaceResolutionError("source_unavailable");
     }
 
-    // S116: one association governs everything below. Only an exact row (lease link or the app's
-    // own note) yields a row; every other state keeps `row` null and is reported as it is.
-    const association = associateOperatingSheetRow({
+    // S158: the operator's selection governs this read, or this one field's update, when one
+    // exists; otherwise one automatic association governs everything below. Only an exact row or
+    // a readable selected row yields a row; every other state keeps `row` null.
+    const target = resolveOperatorSheetTarget({
+      binding,
+      inspectField,
+      operatingTabTitle: OPERATING_SHEET_TAB,
       rawTable,
       rawJoins,
       rawNotes,
       headerRowIndex: headerResolution.headerRowIndex,
+      columns,
       tenantColumnIndex,
       leaseId,
       propertyId,
-      unitId: unitIdOf(lease),
-      tenantName: candidates[0].joinValue,
-      layers,
     });
+    const association: OperatingSheetRowAssociation =
+      target.kind === "automatic"
+        ? associateOperatingSheetRow({
+            rawTable,
+            rawJoins,
+            rawNotes,
+            headerRowIndex: headerResolution.headerRowIndex,
+            tenantColumnIndex,
+            leaseId,
+            propertyId,
+            unitId: unitIdOf(lease),
+            tenantName: candidates[0].joinValue,
+            layers,
+          })
+        : {
+            kind: "operator_selected",
+            via: target.via,
+            tabTitle: target.tabTitle,
+            rowNumber: target.rowNumber,
+            ...(target.cell ? { cell: target.cell } : {}),
+            limit: target.limit,
+          };
+    const targetRefusal =
+      target.kind === "selected" && target.limit !== null
+        ? {
+            code:
+              target.via === "cell"
+                ? ("selected_cell_not_writable" as const)
+                : ("selected_row_not_writable" as const),
+            message: describeOperatorSelectionLimit(target),
+          }
+        : null;
     const rosters: AudienceRosters = {
       owner: audienceRosterFromLease(lease, "owner"),
       tenant: audienceRosterFromLease(lease, "tenant"),
     };
-    if (association.kind !== "exact_link" && association.kind !== "app_note") {
-      return {
-        leaseId,
-        propertyId,
-        tenantName: candidates[0].joinValue,
-        sourceReadAtIso: readAtIso,
-        header,
-        columns,
-        tenantColumnIndex,
-        tabId,
-        association,
-        rosters,
-        row: null,
-      };
-    }
+    // A selected row stays readable for its values unless it is not a row of this tab at all.
+    const selectedReadable =
+      target.kind === "selected" &&
+      !["other_tab", "header_row", "outside_rows", "proof_row"].includes(
+        target.limit ?? "",
+      );
+    const rawRowIndex =
+      association.kind === "exact_link" || association.kind === "app_note"
+        ? association.rowNumber - 1
+        : selectedReadable
+          ? target.rowNumber - 1
+          : null;
+    const base = {
+      leaseId,
+      propertyId,
+      tenantName: candidates[0].joinValue,
+      sourceReadAtIso: readAtIso,
+      header,
+      columns,
+      tenantColumnIndex,
+      tabId,
+      association,
+      targetRefusal,
+      rosters,
+    };
+    if (rawRowIndex === null) return { ...base, row: null };
 
-    const rawRowIndex = association.rowNumber - 1;
     const row = rawTable[rawRowIndex] ?? [];
     const note = rawNotes[rawRowIndex]?.[tenantColumnIndex] ?? "";
     const parsedNote = note ? parseRowNote(note) : null;
     if (
+      target.kind === "automatic" &&
       parsedNote &&
       (parsedNote.proof ||
         parsedNote.leaseId !== leaseId ||
@@ -351,23 +444,60 @@ export async function resolveFreshOperatingSheetLeaseContext(
     ) {
       throw new SheetWorkspaceResolutionError("row_state_mismatch");
     }
+    const ownNote =
+      parsedNote &&
+      !parsedNote.proof &&
+      parsedNote.leaseId === leaseId &&
+      parsedNote.propertyId === propertyId
+        ? parsedNote
+        : null;
+    const formulaFields = [...columns]
+      .filter(([, index]) =>
+        String(
+          formulas.valueRanges?.[0]?.values?.[rawRowIndex]?.[index] ?? "",
+        ).startsWith("="),
+      )
+      .map(([field]) => field);
+    // S158: a selected cell that holds a formula stays readable and is refused as a target here,
+    // with the limit named, rather than failing later as a generic row-state mismatch.
+    const refusal =
+      targetRefusal ??
+      (target.kind === "selected" &&
+      target.via === "cell" &&
+      inspectField &&
+      formulaFields.includes(inspectField)
+        ? {
+            code: "selected_cell_not_writable" as const,
+            message: `Cell ${target.cell} on tab "${target.tabTitle}" stays readable, but the app does not update it: it holds a formula. Your working values are unchanged.`,
+          }
+        : null);
     let cellEvidence: Record<string, SheetCellEvidence> | undefined;
-    if (inspectField && columns.has(inspectField)) {
+    if (inspectField && columns.has(inspectField) && !refusal) {
       if (!config.sheetsReader.getCellEvidence)
         throw new SheetWorkspaceResolutionError("source_unavailable");
-      let col = columns.get(inspectField)! + 1,
-        letters = "";
-      while (col > 0) {
-        letters = String.fromCharCode(65 + ((col - 1) % 26)) + letters;
-        col = Math.floor((col - 1) / 26);
-      }
       const cell = await config.sheetsReader.getCellEvidence(
         config.spreadsheetId,
-        `'${OPERATING_SHEET_TAB.replaceAll("'", "''")}'!${letters}${rawRowIndex + 1}`,
+        `${quoteSheetTab(OPERATING_SHEET_TAB)}!${columnLetters(columns.get(inspectField)!)}${rawRowIndex + 1}`,
       );
       if (cell.formattedValue !== (row[columns.get(inspectField)!] ?? ""))
         throw new SheetWorkspaceResolutionError("row_state_mismatch");
       cellEvidence = { [inspectField]: cell };
+    }
+    const fieldValues = Object.fromEntries(
+      [...columns].map(([field, index]) => [field, row[index] ?? ""]),
+    );
+    // S158 (BEH-S158-3): a selected cell changes only its own field's displayed value, read from
+    // the same tab read; a cell on another tab is read by the lookup itself.
+    const fieldCells: Record<string, string> = {};
+    for (const [field, selection] of Object.entries(binding.cells)) {
+      if (field === inspectField || selection.value.tabTitle !== OPERATING_SHEET_TAB)
+        continue;
+      const cell = parseSheetCell(selection.value.cell);
+      if (!cell || cell.rowNumber - 1 >= rawTable.length) continue;
+      const notes = rawNotes[cell.rowNumber - 1] ?? [];
+      if (notes.some((entry) => entry?.startsWith(PROOF_NOTE_PREFIX))) continue;
+      fieldValues[field] = rawTable[cell.rowNumber - 1]?.[cell.columnIndex] ?? "";
+      fieldCells[field] = sheetCellA1(cell.columnIndex, cell.rowNumber);
     }
     const recordKey = renewalDecisionRecordKey(expectedJoin, {
       tab: "Renewals",
@@ -386,33 +516,18 @@ export async function resolveFreshOperatingSheetLeaseContext(
           currentRentCorrectionKey(outcome, LIVE_REVIEW_RUN_ID)) === sourceTriggerKey,
     );
     return {
-      leaseId,
-      propertyId,
-      tenantName: candidates[0].joinValue,
-      sourceReadAtIso: readAtIso,
-      header,
-      columns,
-      tenantColumnIndex,
-      tabId,
-      association,
-      rosters,
+      ...base,
+      targetRefusal: refusal,
+      ...(Object.keys(fieldCells).length > 0 ? { fieldCells } : {}),
       row: {
         ...(cellEvidence ? { cellEvidence } : {}),
         rowNumber: rawRowIndex + 1,
-        rowKey: parsedNote?.operationId ?? null,
+        rowKey: ownNote?.operationId ?? null,
         anchorTenantName: row[tenantColumnIndex] ?? "",
         currentRentValue: row[rentColumnIndex] ?? "",
         currentRentAgreement: currentRentOutcome?.reconciliation.agreement,
-        fieldValues: Object.fromEntries(
-          [...columns].map(([field, index]) => [field, row[index] ?? ""]),
-        ),
-        formulaFields: [...columns]
-          .filter(([, index]) =>
-            String(
-              formulas.valueRanges?.[0]?.values?.[rawRowIndex]?.[index] ?? "",
-            ).startsWith("="),
-          )
-          .map(([field]) => field),
+        fieldValues,
+        formulaFields,
         currentRentSourceTriggerKey: currentRentOutcome ? sourceTriggerKey : null,
         currentRentCandidateFingerprint: currentRentOutcome?.candidateFingerprint ?? null,
       },
@@ -423,82 +538,16 @@ export async function resolveFreshOperatingSheetLeaseContext(
   }
 }
 
-/** Load the exact current human resolution and current Admin approval for this fresh discrepancy. */
-export async function resolveAuthorizedCurrentRentUpdate(
-  actor: AuthenticatedUser,
-  context: FreshOperatingSheetLeaseContext,
-): Promise<AuthorizedCurrentRentUpdate> {
-  const sourceTriggerKey = context.row?.currentRentSourceTriggerKey;
-  const candidateFingerprint = context.row?.currentRentCandidateFingerprint;
-  if (!sourceTriggerKey || !candidateFingerprint) {
-    throw new SheetWorkspaceResolutionError("resolution_missing");
-  }
-  const [resolution, approval] = await Promise.all([
-    getLeaseRenewalResolution(actor, sourceTriggerKey),
-    getWritebackApproval(actor, sourceTriggerKey),
-  ]);
-  return authorizedCurrentRentUpdateFromRecords(context, resolution, approval);
-}
-
-/** Pure validation used by both the live loader and adversarial source/decision drift tests. */
-export function authorizedCurrentRentUpdateFromRecords(
-  context: FreshOperatingSheetLeaseContext,
-  resolution: LeaseRenewalResolutionRecord | null,
-  approval: LeaseRenewalWritebackApprovalRecord | null,
-): AuthorizedCurrentRentUpdate {
-  const sourceTriggerKey = context.row?.currentRentSourceTriggerKey;
-  const candidateFingerprint = context.row?.currentRentCandidateFingerprint;
-  if (!sourceTriggerKey || !candidateFingerprint) {
-    throw new SheetWorkspaceResolutionError("resolution_missing");
-  }
-  if (!resolution?.updated_at || !resolution.proposed_writeback) {
-    throw new SheetWorkspaceResolutionError("resolution_missing");
-  }
-  if (
-    resolution.run_id !== LIVE_REVIEW_RUN_ID ||
-    resolution.field_key !== "current_rent" ||
-    resolution.source_trigger_key !== sourceTriggerKey ||
-    resolution.candidate_fingerprint !== candidateFingerprint ||
-    resolution.status !== "Resolved" ||
-    resolution.proposed_writeback.status !== "Queued"
-  ) {
-    throw new SheetWorkspaceResolutionError("resolution_stale");
-  }
-  if (
-    !approval ||
-    approval.state !== "Approved" ||
-    !writebackApprovalMatchesResolution(resolution, approval)
-  ) {
-    throw new SheetWorkspaceResolutionError("approval_stale");
-  }
-  const authorizationToken = writebackAuthorizationTokenForResolution(resolution);
-  if (!authorizationToken || !approval.updated_at) {
-    throw new SheetWorkspaceResolutionError("approval_stale");
-  }
-  return {
-    resolution,
-    approval,
-    authorization: {
-      sourceTriggerKey,
-      runId: resolution.run_id,
-      fieldKey: resolution.field_key,
-      proposedValue: resolution.proposed_writeback.value,
-      sourceOfValue: resolution.proposed_writeback.source_of_value,
-      candidateFingerprint,
-      resolutionUpdatedAt: resolution.updated_at,
-      authorizationToken,
-      approvalId: approval.id,
-      approvalUpdatedAt: approval.updated_at,
-      approvalDecidedByUid: approval.decided_by_uid,
-    },
-  };
+/** The working current rent an update was prepared from; the value is the binding, not a role. */
+export interface WorkingCurrentRentInput {
+  readonly workingCurrentRent: number | null;
 }
 
 /** Revalidate every immutable term before the claim/effect. Throws on any source/decision drift. */
 export function assertProposalMatchesFreshLeaseContext(
   proposal: SheetWritebackProposal,
   context: FreshOperatingSheetLeaseContext,
-  authorized: AuthorizedCurrentRentUpdate | null,
+  working: WorkingCurrentRentInput | null,
   after = false,
 ): void {
   if (
@@ -526,7 +575,11 @@ export function assertProposalMatchesFreshLeaseContext(
     }
     return;
   }
-  if (!context.row || context.row.formulaFields?.includes(effect.field)) {
+  if (
+    !context.row ||
+    context.targetRefusal ||
+    context.row.formulaFields?.includes(effect.field)
+  ) {
     throw new SheetWorkspaceResolutionError("proposal_stale");
   }
   if (after) {
@@ -563,81 +616,116 @@ export function assertProposalMatchesFreshLeaseContext(
       throw new SheetWorkspaceResolutionError("proposal_stale");
     return;
   }
-  if (effect.staffIntent) {
-    const expected = effectForSheetFieldIntent(context, effect.staffIntent);
+  if (effect.staffIntent && !effect.authorization) {
+    let expected: SheetFieldUpdateEffectInput;
+    try {
+      expected = effectForSheetFieldIntent(context, effect.staffIntent, {
+        workingCurrentRent: working?.workingCurrentRent ?? null,
+      });
+    } catch (error) {
+      // S160: a changed working value is reported as exactly that, never as a generic drift.
+      if (
+        error instanceof SheetWorkspaceResolutionError &&
+        (error.code === "working_value_changed" || error.code === "working_value_missing")
+      )
+        throw error;
+      throw new SheetWorkspaceResolutionError("proposal_stale");
+    }
     if (canonicalJson(effect) !== canonicalJson(expected))
       throw new SheetWorkspaceResolutionError("proposal_stale");
     return;
   }
-  if (!authorized) {
-    throw new SheetWorkspaceResolutionError("proposal_stale");
-  }
-  const expected: SheetFieldUpdateEffectInput = {
-    kind: "field_update",
-    field: "current_rent",
-    rowNumber: context.row.rowNumber,
-    rowKey: context.row.rowKey,
-    anchorTenantName: context.row.anchorTenantName,
-    expectedValue: context.row.currentRentValue,
-    afterValue: authorized.authorization.proposedValue,
-    source: authorized.authorization.sourceOfValue,
-    authorization: authorized.authorization,
-  };
-  if (canonicalJson(effect) !== canonicalJson(expected)) {
-    throw new SheetWorkspaceResolutionError("proposal_stale");
-  }
+  // S160: an update authorized by a reconciliation approval is a retired shape; it is never
+  // confirmable again. Staff prepare a fresh preview from the working current rent instead.
+  throw new SheetWorkspaceResolutionError("proposal_stale");
 }
 
-/** Construct the one server-derived effect allowed for the fresh workspace state. */
+/** Construct the one server-derived append allowed for the fresh workspace state. */
 export function effectForFreshLeaseContext(
   context: FreshOperatingSheetLeaseContext,
-  authorized: AuthorizedCurrentRentUpdate | null,
   operationId: string,
-): SheetRowAppendEffectInput | SheetFieldUpdateEffectInput {
-  if (!context.row) {
-    return {
-      kind: "row_append",
-      mode: "normal",
-      operationId,
-      leaseId: context.leaseId,
-      propertyId: context.propertyId,
-      tenantName: context.tenantName,
-      fields: {},
-    };
+): SheetRowAppendEffectInput {
+  const refusal = appendIntentRefusal(context.association);
+  if (context.row || refusal) {
+    throw new SheetWorkspaceResolutionError(refusal ?? "row_state_mismatch");
   }
-  if (!authorized) throw new SheetWorkspaceResolutionError("approval_stale");
-  if (context.row.formulaFields?.includes("current_rent"))
-    throw new SheetWorkspaceResolutionError("row_state_mismatch");
   return {
-    kind: "field_update",
-    field: "current_rent",
-    rowNumber: context.row.rowNumber,
-    rowKey: context.row.rowKey,
-    anchorTenantName: context.row.anchorTenantName,
-    expectedValue: context.row.currentRentValue,
-    afterValue: authorized.authorization.proposedValue,
-    source: authorized.authorization.sourceOfValue,
-    authorization: authorized.authorization,
+    kind: "row_append",
+    mode: "normal",
+    operationId,
+    leaseId: context.leaseId,
+    propertyId: context.propertyId,
+    tenantName: context.tenantName,
+    fields: {},
   };
+}
+
+/** S160: the current-rent Sheet update prepared from the lease's working current rent. */
+export function effectForWorkingCurrentRent(
+  context: FreshOperatingSheetLeaseContext,
+  workingCurrentRent: number | null,
+): SheetFieldUpdateEffectInput {
+  if (workingCurrentRent === null)
+    throw new SheetWorkspaceResolutionError("working_value_missing");
+  return effectForSheetFieldIntent(
+    context,
+    {
+      field: "current_rent",
+      value: workingCurrentRent,
+      source: WORKING_CURRENT_RENT_SOURCE_LABEL,
+    },
+    { workingCurrentRent },
+  );
+}
+
+function refuse(code: SheetWorkspaceResolutionCode, message?: string): never {
+  throw new SheetWorkspaceResolutionError(code, message);
 }
 
 export function effectForSheetFieldIntent(
   context: FreshOperatingSheetLeaseContext,
   raw: SheetFieldIntent,
+  options: { workingCurrentRent?: number | null } = {},
 ): SheetFieldUpdateEffectInput {
   const intent = parseSheetFieldIntent(raw);
-  if (
-    !context.row ||
-    intent.field === "current_rent" ||
-    !context.columns.has(intent.field) ||
-    !context.row.fieldValues ||
-    context.row.formulaFields?.includes(intent.field)
-  ) {
-    throw new SheetWorkspaceResolutionError("row_state_mismatch");
+  // S158: a selected location that is readable but not a target refuses with its own limit.
+  if (context.targetRefusal)
+    refuse(context.targetRefusal.code, context.targetRefusal.message);
+  if (!context.row)
+    refuse(
+      "row_state_mismatch",
+      "The app has no Sheet row for this lease to update. Choose this lease's row under Operating Sheet lookup in Lease information, or add the row.",
+    );
+  if (!context.columns.has(intent.field))
+    refuse(
+      "row_state_mismatch",
+      "The operating tab has no recognized column for this field, so the app does not update it.",
+    );
+  if (context.row.formulaFields?.includes(intent.field))
+    refuse(
+      "row_state_mismatch",
+      "This Sheet cell holds a formula, so the app does not replace it. The current read stays available.",
+    );
+  if (intent.field === "current_rent") {
+    // S160: the current-rent update is bound to the working current rent, never a typed amount.
+    const working = options.workingCurrentRent ?? null;
+    if (working === null) refuse("working_value_missing");
+    if (working !== intent.value) refuse("working_value_changed");
   }
-  const expectedValue = context.row.fieldValues[intent.field];
+  const expectedValue =
+    context.row.fieldValues?.[intent.field] ??
+    (intent.field === "current_rent" ? context.row.currentRentValue : undefined);
   if (expectedValue === undefined)
-    throw new SheetWorkspaceResolutionError("row_state_mismatch");
+    refuse(
+      "row_state_mismatch",
+      "The operating tab has no recognized column for this field, so the app does not update it.",
+    );
+  const afterValue = sheetIntentValue(
+    intent,
+    expectedValue,
+    context.row.cellEvidence?.[intent.field]?.checkbox,
+  );
+  if (sheetCellValueMatches(afterValue, expectedValue)) refuse("no_change");
   return {
     kind: "field_update",
     field: intent.field,
@@ -645,11 +733,7 @@ export function effectForSheetFieldIntent(
     rowKey: context.row.rowKey,
     anchorTenantName: context.row.anchorTenantName,
     expectedValue,
-    afterValue: sheetIntentValue(
-      intent,
-      expectedValue,
-      context.row.cellEvidence?.[intent.field]?.checkbox,
-    ),
+    afterValue,
     ...(context.row.cellEvidence?.[intent.field]
       ? { cellEvidence: context.row.cellEvidence[intent.field] }
       : {}),

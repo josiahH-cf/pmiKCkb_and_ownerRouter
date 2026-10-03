@@ -8,7 +8,7 @@ type ScopedAskInput = {
   process_id?: string;
 };
 
-/** Only operator desks with an explicit S16 scope are mappable for restricted principals. */
+/** The operator-desk scope a Space maps to, when it has one. */
 export function mappedScopeForSpaceId(spaceId: string): SpaceScope | undefined {
   return launchSpaces.find((space) => space.id === spaceId)?.scope;
 }
@@ -33,22 +33,15 @@ export function spaceIdForProcessDefinition(
   return definition.space_id ?? mappedSpaceIdForProcessDefinitionId(definition.id);
 }
 
-export function defaultSpaceIdForScope(scope: SpaceScope): string {
-  const spaceId = launchSpaces.find((space) => space.scope === scope)?.id;
-  if (!spaceId) {
-    throw new AuthError("This user has no mapped space for the requested action.", 403);
-  }
-  return spaceId;
-}
-
+/**
+ * S167: every existing internal Space is open to an authenticated staff account, whether or not
+ * the Space maps to an operator-desk scope. Callers keep naming the Space they serve.
+ */
 export function canAccessMappedScope(
   user: AuthenticatedUser,
   scope: SpaceScope | undefined,
 ): boolean {
-  if (user.scopes === undefined) {
-    return true;
-  }
-  return scope !== undefined && hasSpaceAccess(user, scope);
+  return scope === undefined ? user.uid.length > 0 : hasSpaceAccess(user, scope);
 }
 
 export function canAccessLaunchSpace(
@@ -83,12 +76,8 @@ export function canAccessWorkflowRun(
   user: AuthenticatedUser,
   run: Pick<WorkflowRunRecord, "definition_id"> & { space_id?: string },
 ): boolean {
-  if (user.scopes === undefined) {
-    return true;
-  }
-  // New runs retain the exact Space authority resolved from their definition at creation. Prefer
-  // that immutable binding so custom definitions remain usable and a mismatched definition id can
-  // never widen access. Legacy runs without the field keep the established definition-id mapping.
+  // New runs retain the exact Space resolved from their definition at creation; legacy runs without
+  // the field keep the established definition-id mapping.
   if (run.space_id) {
     return canAccessSpaceId(user, run.space_id);
   }
@@ -126,13 +115,6 @@ export function assertWorkflowRunAccess(
   }
 }
 
-/** New process definitions have no space id, so an explicitly scoped user cannot create one. */
-export function assertWildcardResourceAccess(user: AuthenticatedUser): void {
-  if (user.scopes !== undefined) {
-    throwScopeDenied();
-  }
-}
-
 export function filterProcessDefinitionsForUser(
   user: AuthenticatedUser,
   definitions: readonly ProcessDefinitionRecord[],
@@ -150,48 +132,20 @@ export function filterWorkflowRunsForUser(
 }
 
 /**
- * Trust-boundary normalization for Ask. Wildcard users keep the historical whole-KB behavior.
- * Explicitly scoped users must use a mapped space/process, and an omitted space is derived from the
- * mapped process or their primary scope so retrieval can never fan out across the whole corpus.
+ * S167: Ask keeps the whole-KB behavior for every staff account, so a request is no longer
+ * narrowed to one Space. The Space and process boundaries are still named here.
  */
 export function scopeAskRequest<T extends ScopedAskInput>(
   user: AuthenticatedUser,
   request: T,
 ): T & { space?: string } {
-  if (user.scopes === undefined) {
-    return request;
-  }
-
-  const requestedSpaceScope = request.space
-    ? mappedScopeForSpaceId(request.space)
-    : undefined;
-  const processScope = request.process_id
-    ? mappedScopeForProcessDefinitionId(request.process_id)
-    : undefined;
-
   if (request.space) {
     assertSpaceIdAccess(user, request.space);
   }
   if (request.process_id) {
     assertProcessDefinitionAccess(user, request.process_id);
   }
-  if (
-    requestedSpaceScope !== undefined &&
-    processScope !== undefined &&
-    requestedSpaceScope !== processScope
-  ) {
-    throwScopeDenied();
-  }
-
-  const effectiveScope = requestedSpaceScope ?? processScope ?? user.scopes[0];
-  if (!effectiveScope || !hasSpaceAccess(user, effectiveScope)) {
-    throwScopeDenied();
-  }
-
-  return {
-    ...request,
-    space: request.space ?? defaultSpaceIdForScope(effectiveScope),
-  };
+  return request;
 }
 
 function throwScopeDenied(): never {

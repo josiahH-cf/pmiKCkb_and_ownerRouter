@@ -28,6 +28,13 @@ function userWith(role: Role, uid: string): AuthenticatedUser {
 
 const admin = userWith("Admin", "admin-1");
 const approver = userWith("Approver", "approver-1");
+const editor = userWith("Editor", "editor-1");
+const canary: AuthenticatedUser = {
+  uid: "canary-editor",
+  email: "canary-editor@pmikcmetro.com",
+  hd: "pmikcmetro.com",
+  role: "Editor",
+};
 
 const RUN_ID = "run-1";
 const KEY = "lease_renewal:reconcile:run-1:current_rent";
@@ -235,10 +242,21 @@ describe("decideWritebackApproval", () => {
     ).rejects.toThrow("A plain-English reason is required.");
   });
 
-  it("is Admin-only — an Approver cannot authorize a write-back", async () => {
+  it("S156/S167: an Editor or Approver records the decision alone; a verification account is refused", async () => {
     seedResolution(db);
-    await expect(decide(approver, "approve")).rejects.toThrow(EditableLayerError);
-    expect(await getWritebackApproval(admin, KEY, fs())).toBeNull();
+    await expect(decide(editor, "approve")).resolves.toMatchObject({
+      state: "Approved",
+      decided_by_uid: "editor-1",
+      production_allowed: false,
+      executed: false,
+    });
+    await expect(decide(approver, "return")).resolves.toMatchObject({
+      state: "Returned for Revision",
+      decided_by_uid: "approver-1",
+    });
+    await expect(decide(canary, "approve")).rejects.toThrow(EditableLayerError);
+    const key = `${LEASE_RENEWAL_WRITEBACK_COLLECTIONS.approvals}/${resolutionDocId(KEY)}`;
+    expect(db.store.get(key)).toMatchObject({ decided_by_uid: "approver-1" });
   });
 
   it("refuses to approve when no resolution queued a proposal", async () => {
@@ -515,10 +533,10 @@ describe("decideWritebackApprovalsBulk", () => {
     }
   });
 
-  it("is Admin-only and fails fast before recording anything", async () => {
+  it("refuses a verification account and fails fast before recording anything", async () => {
     seedResolution(db);
     seedResolutionForKey(KEY2, "renewal_date");
-    await expect(bulk(approver, [KEY, KEY2])).rejects.toThrow(EditableLayerError);
+    await expect(bulk(canary, [KEY, KEY2])).rejects.toThrow(EditableLayerError);
     expect(await getWritebackApproval(admin, KEY, fs())).toBeNull();
     expect(await getWritebackApproval(admin, KEY2, fs())).toBeNull();
   });

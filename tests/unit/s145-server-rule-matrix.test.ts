@@ -31,6 +31,8 @@ import { FIXTURE_CYCLE_ID, actionFixture } from "@/tests/helpers/renewal-action-
 // projection must agree with the planner's completion and not-applicable checks, the manual lane's
 // satisfaction predicate and the workspace route's role guard. A new cycle never revives the old
 // one, and independent ready work can be recorded in any order.
+// S154/S156 (b7693d4d, 0f02e013): there is no cycle step, no prerequisite chain between staff
+// actions and no completion gate; the planner accepts any record and completion at any time.
 
 const ACTIVITIES = Object.keys(MANUAL_ACTIVITIES) as ManualActivity[];
 const WORKSPACE_ROUTE = "/api/lease-renewal/workspace";
@@ -176,6 +178,14 @@ function recordFor(
 const manualActions = (projection: RenewalActionProjection) =>
   projection.actions.filter((action) => action.id.startsWith("manual."));
 
+/** Completed states whose projection still leads with a task; asserted empty per scenario. */
+let completionDrift: string[] = [];
+function expectNoCompletionDrift() {
+  const drift = completionDrift;
+  completionDrift = [];
+  expect(drift).toEqual([]);
+}
+
 /** The invariants every reachable state must hold. */
 function checkState(state: RenewalWorkspaceState, trail: string) {
   const projection = project(state);
@@ -197,7 +207,19 @@ function checkState(state: RenewalWorkspaceState, trail: string) {
   expect(projection.outcome.state === "complete_recorded_by_staff", context).toBe(
     summary.complete,
   );
-  if (summary.complete) expect(projection.primaryActionId, context).toBeNull();
+  // A completed renewal leads with its outcome: the guidance names no next action, so neither
+  // may the projection (the Focus pane would otherwise open an unfinished task on a completed
+  // lease). Collected rather than thrown so the other invariants are still checked.
+  if (summary.complete && projection.primaryActionId !== null)
+    completionDrift.push(`${context}: primary ${projection.primaryActionId}`);
+  if (summary.complete && projection.headlineActionId !== null)
+    completionDrift.push(`${context}: headline ${projection.headlineActionId}`);
+  // S156: no staff action waits on another staff action; only an unreadable record holds them.
+  for (const action of manualActions(projection)) {
+    expect(action.status, `${context} ${action.id}`).not.toBe("dependency_blocked");
+    expect(action.blockedBy, `${context} ${action.id}`).toEqual([]);
+    expect(action.prerequisites, `${context} ${action.id}`).toEqual([]);
+  }
 
   for (const action of manualActions(projection)) {
     const key = action.ref.key;
@@ -315,6 +337,7 @@ describe(
         expect(reached, next).toContain(next);
       expect(completed).toBeGreaterThan(0);
       expect(nonRenewal).toBeGreaterThan(0);
+      expectNoCompletionDrift();
     });
 
     it("matches the workspace route role guard for every role", () => {
@@ -400,12 +423,11 @@ describe(
           const changed = before
             .filter((a) => after.find((b) => b.id === a.id)?.status !== a.status)
             .map((a) => a.id);
-          expect(changed.filter((id) => id !== "manual.complete")).toEqual([
-            `manual.${activity}`,
-          ]);
-          expect(
-            byId(project(state), "manual.complete")?.status === "ready_for_actor",
-          ).toBe(index === order.length - 1);
+          expect(changed).toEqual([`manual.${activity}`]);
+          // S156: completion is always the staff's to record, in any order.
+          expect(byId(project(state), "manual.complete")?.status, String(index)).toBe(
+            "ready_for_actor",
+          );
         }
         outcomes.add(
           JSON.stringify(
@@ -453,8 +475,10 @@ describe(
       expect(byId(project(unchanged), "manual.owner_response")?.status).toBe(
         "ready_for_actor",
       );
+      expect(project(unchanged).headlineActionId).toBe("manual.owner_response");
+      // S156: the standing counter is guidance; the tenant answer stays recordable.
       expect(byId(project(unchanged), "manual.tenant_response")?.status).toBe(
-        "dependency_blocked",
+        "ready_for_actor",
       );
     });
 
@@ -476,12 +500,15 @@ describe(
         new Set(manualActions(projection).map((action) => action.ref.cycleId)),
       ).toEqual(new Set([fresh.cycleId]));
       expect(projection.primaryActionId).toBe("manual.owner_outreach");
-      // Only the new cycle itself is on record; no earlier completion carries over.
+      // Nothing is on record for the new cycle; no earlier record or completion carries over,
+      // and there is no reviewed-cycle step to be complete.
       expect(
         manualActions(projection)
           .filter((action) => action.status === "complete")
           .map((action) => action.id),
-      ).toEqual(["manual.cycle"]);
+      ).toEqual([]);
+      expect(projection.actions.map((action) => action.id)).not.toContain("manual.cycle");
+      expectNoCompletionDrift();
     });
   },
 );

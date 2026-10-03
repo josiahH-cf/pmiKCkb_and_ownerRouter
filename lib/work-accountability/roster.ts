@@ -16,17 +16,14 @@ export async function listWorkAssignableUsers(
   if (config.localDemoAuth) {
     return LOCAL_DEMO_ROLES.map((role) => {
       const user = localDemoUser(role);
-      return { uid: user.uid, email: user.email, role, scopes: user.scopes };
+      return { uid: user.uid, email: user.email, role };
     });
   }
 
   const hostedDomain = config.allowedHostedDomain.toLowerCase();
   return (await listAppUsers(dependencies.auth))
     .filter(
-      (user) =>
-        !user.disabled &&
-        !user.scopeClaimInvalid &&
-        user.email.toLowerCase().endsWith(`@${hostedDomain}`),
+      (user) => !user.disabled && user.email.toLowerCase().endsWith(`@${hostedDomain}`),
     )
-    .map(({ uid, email, role, scopes }) => ({ uid, email, role, scopes }));
+    .map(({ uid, email, role }) => ({ uid, email, role }));
 }

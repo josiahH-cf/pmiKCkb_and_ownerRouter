@@ -8,6 +8,10 @@ import { useEffect, useRef, useState } from "react";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { SourceUpdatePreview } from "@/components/lease-renewal/SourceUpdatePreview";
 import {
+  WorkingMoneyField,
+  useRenewalWorkingRecord,
+} from "@/components/lease-renewal/RenewalWorkingRecord";
+import {
   sheetPreviewFacts,
   type SourceUpdateIdentity,
 } from "@/lib/lease-renewal/source-update-preview";
@@ -15,7 +19,6 @@ import {
   SHEET_AUDIENCE_EMAIL_FIELDS,
   SHEET_FIELD_LABELS,
   sheetFieldShape,
-  parseSheetFieldIntent,
   type SheetEditableField,
 } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import type { AudienceEmailRosterView } from "@/lib/lease-renewal/sheet-writeback/audience-emails";
@@ -29,7 +32,11 @@ import {
   describeOperatingSheetAmbiguity,
   type OperatingSheetRowAssociation,
 } from "@/lib/lease-renewal/sheet-writeback/row-association";
+import { describeOperatorSelectionLimit } from "@/lib/lease-renewal/sheet-writeback/lookup-target";
 import type { SheetWritebackEffectStatusView } from "@/lib/lease-renewal/sheet-writeback/status";
+import { hasRenewalRoleAuthority } from "@/lib/lease-renewal/role-action-governance";
+import { parseSheetCell } from "@/lib/lease-renewal/sheet-lookup";
+import { workingCurrentRent } from "@/lib/lease-renewal/working-record";
 
 export type SheetWritebackEffectStatus = SheetWritebackEffectStatusView;
 
@@ -139,14 +146,18 @@ export function OperatingSheetPanel({
   initialProposal,
   initialEffects = null,
   initialFieldValues = {},
+  fieldCells = {},
   writebackPaused = false,
 }: Readonly<{
   role: Role;
   /**
-   * BEH-S98-1 / BEH-S116-2: update is offered only on an exact row, append only after a confirmed
-   * absence, and an ambiguous association explains itself and offers neither.
+   * BEH-S98-1 / BEH-S116-2 / S158: update is offered on an exact row or an eligible selected
+   * row, append only after a confirmed absence; an ambiguous association or a read-only
+   * selection explains itself and offers neither.
    */
   association: OperatingSheetRowAssociation;
+  /** S158/S160: the A1 cell each field's update targets on the operating tab, when known. */
+  fieldCells?: Record<string, string>;
   /** S116 (Q3A): per-audience email field views computed server-side from the fresh roster. */
   audienceEmails?: Readonly<Record<"owner" | "tenant", AudienceEmailRosterView>> | null;
   /** S117: the lease named in every preview; null keeps the lease id only. */
@@ -156,14 +167,20 @@ export function OperatingSheetPanel({
   initialEffects?: SheetWritebackEffectStatus[] | null;
   initialFieldValues?: Record<string, string>;
   /**
-   * S128 (F08): operating-Sheet writes and new proposals are paused. App-owned records still
-   * save, reads and read-only reconciliation continue, but no execute or reversal write can dispatch.
+   * S128/S159: the server-owned Sheet update switch is off. App-owned records still save, reads
+   * and read-only reconciliation continue; only the Sheet update itself is unavailable.
    */
   writebackPaused?: boolean;
 }>) {
   const router = useRouter();
+  const workingRecord = useRenewalWorkingRecord();
+  const workingRent = workingCurrentRent(workingRecord?.record);
+  const selection = association.kind === "operator_selected" ? association : null;
+  const selectionLimited = selection !== null && selection.limit !== null;
   const hasSheetRow =
-    association.kind === "exact_link" || association.kind === "app_note";
+    association.kind === "exact_link" ||
+    association.kind === "app_note" ||
+    (selection !== null && selection.limit === null);
   const ambiguous = association.kind === "ambiguous" ? association : null;
   const [proposal, setProposal] = useState(initialProposal);
   // S128 (F08): server-owned pause state; the initial prop drives first paint, status reads refresh it.
@@ -197,7 +214,8 @@ export function OperatingSheetPanel({
   const errorRef = useRef<HTMLParagraphElement>(null);
 
   const editor = can(role, "edit");
-  const executor = can(role, "manageAdmin");
+  // S160: ordinary staff confirm a supported Sheet update; no Admin or approval hand-off.
+  const executor = hasRenewalRoleAuthority("execute_source_write", role);
   const [mountedAtMs] = useState(() => Date.now());
   const expired = proposal
     ? mountedAtMs > Date.parse(proposal.confirmation_expires_at)
@@ -288,39 +306,41 @@ export function OperatingSheetPanel({
     setProposal(payload.proposal as SheetWritebackClientProposal);
     setEffects(null);
     setNotice(
-      "Audience email proposal saved from the current RentVine roster. Review the exact replacement below; an Admin confirms the Sheet update.",
+      "Audience email proposal saved from the current RentVine roster. Review the exact replacement below, then confirm it.",
     );
   }
 
   async function proposeField() {
+    // S160: the current-rent update is prepared from the saved working current rent on the
+    // server; nothing is retyped here. Any other field sends its typed value; the note is optional.
     const payload = await postSheet(
       workspaceContext,
       field === "current_rent"
         ? {
             operation: "propose",
-            intent: "update_approved_current_rent",
+            intent: "update_working_current_rent",
             expectedPriorPreviewHash: proposal?.preview_hash ?? null,
           }
         : {
             operation: "propose",
             intent: "update_field",
             expectedPriorPreviewHash: proposal?.preview_hash ?? null,
-            fieldIntent: parseSheetFieldIntent({
+            fieldIntent: {
               field,
-              source,
               value:
                 shape === "currency"
                   ? Number(value)
                   : shape === "yes_no" || shape === "boolean"
                     ? value === "true"
                     : value,
-            }),
+              ...(source.trim() ? { source: source.trim() } : {}),
+            },
           },
     );
     setProposal(payload.proposal as SheetWritebackClientProposal);
     setEffects(null);
     setNotice(
-      "Field proposal saved. Review the current value and exact replacement below; an Admin confirms the source update.",
+      "Field proposal saved. Review the current value and exact replacement below, then confirm it.",
     );
   }
 
@@ -391,6 +411,16 @@ export function OperatingSheetPanel({
   const statusByHash = new Map(
     (effects ?? []).map((entry) => [entry.effect_hash, entry] as const),
   );
+  // S158/S160 (BEH-S160-3): name the exact cell and whether it is the row staff selected, when
+  // the page's read targets the same row as the saved preview.
+  function previewLocation(effect: SheetWritebackClientEffect) {
+    const rowNumber = Number(effect.effect.rowNumber);
+    const cell = fieldCells[String(effect.effect.field)];
+    return {
+      cell: cell && parseSheetCell(cell)?.rowNumber === rowNumber ? cell : null,
+      selected: selection !== null && selection.rowNumber === rowNumber,
+    };
+  }
   const proposalLifecycleLocked =
     proposal !== null &&
     (effects === null ||
@@ -399,13 +429,12 @@ export function OperatingSheetPanel({
   return (
     <article aria-labelledby="operating-sheet-title" className="panel ui-stack">
       {paused ? (
-        // S128 (F08): the proactive owner-policy pause. App-owned records still save; reads
-        // and read-only reconciliation continue; no execute or reversal write can dispatch.
+        // S128/S159: the server-owned switch is off. Working values and staff progress save in
+        // the app; reads and read-only reconciliation continue; only this Sheet update waits.
         <p className="muted" role="status">
-          Operating-Sheet writes are paused by policy. Staff progress is recorded in the
-          app only; new Sheet proposals are unavailable. Reads and comparisons continue.
-          After an authorized resume, review the current target and prepare a fresh
-          proposal.
+          Sheet updates are off by policy right now. Your working values and recorded
+          progress save in the app, and Sheet reads continue; preparing or confirming a
+          Sheet update waits until the switch is on. After that, prepare a fresh preview.
         </p>
       ) : null}
       {proposal ? (
@@ -444,7 +473,11 @@ export function OperatingSheetPanel({
                   </div>
                   {effect.kind === "field_update" ? (
                     <SourceUpdatePreview
-                      facts={sheetPreviewFacts(effect, { proposal, identity })}
+                      facts={sheetPreviewFacts(effect, {
+                        proposal,
+                        identity,
+                        location: previewLocation(effect),
+                      })}
                     />
                   ) : (
                     <ul>
@@ -517,9 +550,9 @@ export function OperatingSheetPanel({
                       paused &&
                       status?.effect_executable !== false ? (
                         <p className="muted" role="status">
-                          Confirming this Sheet write is paused by policy. The reviewed
-                          value stays visible as history. An authorized resume requires a
-                          fresh target review, proposal and confirmation.
+                          Sheet updates are off by policy, so this one waits. The reviewed
+                          value stays visible. Once the switch is on, prepare a fresh
+                          preview and confirm it.
                         </p>
                       ) : null}
                       {state === "ambiguous" || state === "running" ? (
@@ -558,7 +591,7 @@ export function OperatingSheetPanel({
                     </div>
                   ) : (
                     <p className="muted">
-                      Executing this Sheet write is an Admin action.{" "}
+                      Confirming a Sheet update needs Editor access.{" "}
                       <RequestAccessLink surface="renewal_workspace.execute_source_write" />
                     </p>
                   )}
@@ -583,20 +616,35 @@ export function OperatingSheetPanel({
           </RenewalSectionHeading>
           <p className="muted">
             {ambiguous
-              ? "No Sheet update can be prepared for this lease until its Sheet row is confirmed."
-              : editor && hasSheetRow
-                ? "No Sheet update is waiting for review. To prepare one, enter the reviewed value and its source under Correct an operating Sheet field below and preview the change; the proposal is saved here for an Admin to confirm."
-                : editor
-                  ? "No Sheet update is waiting for review. To prepare one, use Add Sheet row below; the row is built from RentVine identity and saved here for an Admin to confirm."
-                  : "No Sheet update is waiting for review. An Editor prepares one; an Admin confirms it here."}
+              ? "No Sheet update is prepared for this lease yet: the app has not found its one Sheet row."
+              : selectionLimited
+                ? "No Sheet update is prepared for this lease yet: the selected location is read-only for updates."
+                : editor && hasSheetRow
+                  ? "No Sheet update is waiting. To prepare one, choose the field under Correct an operating Sheet field below and preview the change; you then confirm it here."
+                  : editor
+                    ? "No Sheet update is waiting. To prepare one, use Add Sheet row below; the row is built from RentVine identity and you then confirm it here."
+                    : "No Sheet update is waiting. Staff with Editor access prepare and confirm one here."}
           </p>
         </div>
       )}
 
       {ambiguous ? (
-        // BEH-S116-2: an ambiguous association is explained in plain English with the correction
-        // a person makes in the Sheet; the app offers neither an append nor an update.
-        <p role="status">{describeOperatingSheetAmbiguity(ambiguous)}</p>
+        // BEH-S116-2 / S158: an ambiguous association is explained in plain English with the
+        // correction a person makes in the Sheet or in the app; the app offers neither an append
+        // nor an update until then.
+        <p role="status">
+          {describeOperatingSheetAmbiguity(ambiguous)} Or choose this lease&apos;s row
+          under Operating Sheet lookup in Lease information.
+        </p>
+      ) : null}
+      {selection && selectionLimited ? (
+        // S158 (BEH-S158-10): the selected location stays readable; the limit is stated here and
+        // nothing else on the lease waits on it.
+        <p role="status">
+          {describeOperatorSelectionLimit({ ...selection, kind: "selected" })} Choose
+          another location under Operating Sheet lookup in Lease information, or use the
+          automatic lookup.
+        </p>
       ) : null}
 
       {editor && hasSheetRow && audienceEmails ? (
@@ -651,7 +699,7 @@ export function OperatingSheetPanel({
         </section>
       ) : null}
 
-      {editor && !ambiguous ? (
+      {editor && !ambiguous && !selectionLimited ? (
         <details>
           <summary>
             {hasSheetRow ? "Correct an operating Sheet field" : "Add Sheet row"}
@@ -691,10 +739,31 @@ export function OperatingSheetPanel({
                 </Field>
                 <p>Observed Sheet value: {initialFieldValues[field] || "Blank"}</p>
                 {field === "current_rent" ? (
-                  <p className="muted">
-                    Current base rent uses the existing reviewed source decision. Resolve
-                    and approve the source comparison, then prepare that exact value here.
-                  </p>
+                  // S160 (BEH-S160-2): the update is offered beside the working current rent and
+                  // prepared from it on the server; nothing is retyped or approved elsewhere.
+                  <div className="ui-stack-tight">
+                    {workingRecord ? (
+                      <WorkingMoneyField field="current_rent" />
+                    ) : (
+                      <p className="muted">
+                        Enter the working current rent in Rent and charges first. This
+                        Sheet update uses that value.
+                      </p>
+                    )}
+                    {workingRent === null ? (
+                      <p className="muted">
+                        Enter the working current rent above to prepare this update. The
+                        Sheet update uses that value; nothing else on this lease waits on
+                        it.
+                      </p>
+                    ) : (
+                      <p className="muted">
+                        Preview replaces the Sheet&apos;s current base rent with the
+                        working current rent shown above. You confirm the exact change
+                        afterwards.
+                      </p>
+                    )}
+                  </div>
                 ) : (
                   <>
                     <Field label="New value" htmlFor="sheet-field-value" required>
@@ -728,16 +797,15 @@ export function OperatingSheetPanel({
                       )}
                     </Field>
                     <Field
-                      label="Source of this value"
+                      hint="Optional. Where this value came from, if you want it on record."
+                      label="Note about this value"
                       htmlFor="sheet-field-source"
-                      required
                     >
                       <input
                         id="sheet-field-source"
                         value={source}
                         onChange={(event) => setSource(event.target.value)}
                         maxLength={240}
-                        required
                       />
                     </Field>
                   </>
@@ -753,12 +821,18 @@ export function OperatingSheetPanel({
             <div className="ui-actions">
               <Button
                 disabled={
-                  paused || pending || !workspaceContext || proposalLifecycleLocked
+                  paused ||
+                  pending ||
+                  !workspaceContext ||
+                  proposalLifecycleLocked ||
+                  (hasSheetRow && field === "current_rent" && workingRent === null)
                 }
                 type="submit"
               >
                 {hasSheetRow
-                  ? "Preview Sheet field update"
+                  ? field === "current_rent"
+                    ? "Preview the Sheet update from the working current rent"
+                    : "Preview Sheet field update"
                   : "Prepare exact missing-row append"}
               </Button>
               {proposal ? (

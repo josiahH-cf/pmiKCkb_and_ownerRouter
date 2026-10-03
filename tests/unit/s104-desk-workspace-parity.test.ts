@@ -147,11 +147,36 @@ describe("S104 desk and workspace parity (ARCH-S104-1 / BEH-S104-1)", () => {
     expect(workspace.summary.reasonLabel).toBe(row.reasonLabel);
   });
 
-  it("keeps an inspection-only lease honest on both surfaces", async () => {
+  it("S154 BEH-2: keeps a periodic-review lease workable with the same guidance on both surfaces", async () => {
+    // S154 (b7693d4d): there is no inspection-only workspace. The classification stays as desk
+    // context; the opened lease carries the normal workspace and the staff lane, and the desk
+    // row shows the same guidance.
     const { row, workspace } = await surfacesFor("7003");
     expect(row.disposition).toBe("periodic_review");
-    expect(workspace.workflowAvailable).toBe(false);
-    expect(workspace.guidance).toEqual(row.guidance);
+    expect(workspace.summary.disposition).toBe("periodic_review");
+    expect(workspace.live).toMatchObject({ leaseId: "7003" });
+    expect(workspace.guidance).toMatchObject({
+      contract: "s156-staff-lane",
+      overallStatus: "ready",
+      isBlocked: false,
+      blockers: [],
+      action: { kind: "act", label: "Owner outreach" },
+    });
+    // The shared facts agree on both surfaces: the rent, its verification state, the contract
+    // and the absence of blockers.
+    expect(row.guidance.currentBaseRent).toBe(workspace.guidance.currentBaseRent);
+    expect(row.guidance.rentVerification).toEqual(workspace.guidance.rentVerification);
+    expect(row.guidance.contract).toBe(workspace.guidance.contract);
+    expect(row.guidance.blockers).toEqual([]);
+    expect(row.guidance.isBlocked).toBe(false);
+    // The desk row keeps the classification as its context (no process is projected for a row
+    // outside the worklist), so its status reads as the review reason rather than the staff lane.
+    expect(row.guidance.overallStatus).toBe("needs_review");
+    expect(row.guidance.action).toEqual({
+      kind: "review",
+      label: "Month-to-month",
+      destination: { kind: "none" },
+    });
   });
 });
 

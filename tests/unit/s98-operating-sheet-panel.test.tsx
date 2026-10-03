@@ -108,8 +108,11 @@ describe("S98 operating-sheet panel", () => {
     expect(screen.getByText("Correct an operating Sheet field")).toBeInTheDocument();
     expect(screen.queryByText("Add Sheet row")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Exact Sheet row number")).not.toBeInTheDocument();
+    // S160: the default field is current rent, prepared from the working current rent.
     expect(
-      screen.getByRole("button", { name: "Preview Sheet field update" }),
+      screen.getByRole("button", {
+        name: "Preview the Sheet update from the working current rent",
+      }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /approved rent correction/i }),
@@ -282,7 +285,7 @@ describe("S98 operating-sheet panel", () => {
     });
   });
 
-  it("hands non-Admin roles to the exact execute access-request surface", () => {
+  it("S160: offers every staff role the same confirmation instead of an access request", () => {
     const proposal = appendProposal();
     for (const role of ["Editor", "Approver"] as const) {
       const { unmount } = render(
@@ -295,10 +298,8 @@ describe("S98 operating-sheet panel", () => {
         />,
       );
       expect(screen.getByText("Add Sheet row")).toBeInTheDocument();
-      expect(
-        screen.getByText(/Executing this Sheet write is an Admin action/),
-      ).toBeInTheDocument();
-      expect(screen.queryByText("Review and confirm…")).not.toBeInTheDocument();
+      expect(screen.queryByText(/Admin action/)).not.toBeInTheDocument();
+      expect(screen.getByText("Review and confirm…")).toBeInTheDocument();
       unmount();
     }
   });

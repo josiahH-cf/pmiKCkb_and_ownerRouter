@@ -24,8 +24,14 @@ import {
 } from "@/lib/firestore/renewal-message-preparations";
 import {
   getMessageBodyOverride,
+  getMessageSubjectOverride,
   resolveMessageBodyOverride,
+  resolveMessageSubjectOverride,
 } from "@/lib/firestore/renewal-message-body-overrides";
+import { getRenewalWorkingRecord } from "@/lib/firestore/renewal-working-record";
+import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
+import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
+import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
 import { getRenewalResourceLocations } from "@/lib/firestore/renewal-resource-locations";
 import { getRetainedSenderSignature } from "@/lib/firestore/renewal-sender-signatures";
 import { loadRenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory";
@@ -34,7 +40,6 @@ import {
   getSuppliedRenewalPublication,
   suppliedRenewalPublication,
 } from "@/lib/firestore/renewal-message-publication";
-import { listResolutionsForRun } from "@/lib/firestore/lease-renewal-resolutions";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
@@ -43,14 +48,17 @@ import {
 } from "@/lib/lease-renewal/live-config";
 import { LeaseDataExpiredError } from "@/lib/lease-renewal/live-lease-cache";
 import {
+  leaseCurrentRent,
   leaseEndDateIso,
   leasePortfolioId,
   leaseViewId,
 } from "@/lib/integrations/rentvine/lease-mapper";
 import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
 import { projectMessageMarketEvidence } from "@/lib/lease-renewal/message-market-evidence";
-import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
-import { loadLiveOwnerCurrentRentDecision } from "@/lib/lease-renewal/live-desk";
+import {
+  greetingPartyNames,
+  projectRenewalDeskIdentity,
+} from "@/lib/lease-renewal/desk-identity";
 import {
   composeRenewalMessage,
   type RenewalMessageFacts,
@@ -105,7 +113,18 @@ export interface MessageChargeInventoryLine {
   sourceRef: string;
 }
 
-/** Read-only assembly. Missing Gmail or publication readiness never prevents body preparation. */
+/** The label a message's working terms carry as their source. */
+export const WORKING_TERMS_MESSAGE_SOURCE = "Working renewal terms";
+
+/**
+ * Read-only assembly. Missing Gmail or publication readiness never prevents body preparation.
+ *
+ * S161: the message is assembled from whatever is available. Renewal terms are the terms staff are
+ * working with (S156), current rent is the one shared operational meaning (S153/S157), and no
+ * renewal cycle, owner approval, tenant acceptance or review record is a prerequisite (S154/S156).
+ * A lease with no work record yet still reads a complete, editable message; its first save
+ * establishes the record. Authored subject and body are returned exactly as saved.
+ */
 export async function currentRenewalMessage(
   actor: AuthenticatedUser,
   leaseId: string,
@@ -115,13 +134,14 @@ export async function currentRenewalMessage(
   const config = buildLiveRentVineConfig();
   if (!config.ok)
     throw new EditableLayerError(
-      "Live RentVine is unavailable. Saved preparation is retained; refresh when the lease source is available.",
+      "Live RentVine is unavailable. Your saved wording is kept; refresh when the lease source is available.",
       409,
     );
   const nowMs = Date.now();
   const [
     leaseRead,
     workspace,
+    working,
     resources,
     publication,
     retainedSignature,
@@ -129,12 +149,13 @@ export async function currentRenewalMessage(
   ] = await Promise.all([
     readAdmittedRenewalNoticeLease(actor, leaseId, config.rentvineClient, nowMs, db),
     getRenewalWorkspace(actor, leaseId, db),
+    getRenewalWorkingRecord(actor, leaseId, db).catch(() => "unavailable" as const),
     getRenewalResourceLocations(actor, db).catch(() => null),
     getSuppliedRenewalPublication(actor, channel, db).catch(() => ({
       ...suppliedRenewalPublication(channel),
       status: "unavailable" as const,
       reason:
-        "Current supplied-template publication could not be read. Preparation remains available; Gmail export waits for that readback.",
+        "Current supplied-template publication could not be read. Editing and copy continue; the Gmail draft waits for that readback.",
     })),
     getRetainedSenderSignature(actor, db).catch(() => null),
     // S129/S131: the policy material snapshot never throws.
@@ -165,10 +186,14 @@ export async function currentRenewalMessage(
     db,
   );
   const moveOut = noticeSafety.disposition;
+  // The notice marker is scoped to the dated work record. A work record saved without a date
+  // (S154) lives beside the dated heads, so its notice scope carries no record id.
+  const noticeScopeCycleId =
+    workspace && workspace.basis.kind !== "lease_bound" ? workspace.cycleId : null;
   const noticeBlock =
     manualNonRenewalReason(workspace) ??
     noticeSafety.reason ??
-    (noticeSafety.cycleId !== (workspace?.cycleId ?? null)
+    (noticeSafety.cycleId !== noticeScopeCycleId
       ? "The renewal cycle changed. Reload and review the message."
       : null);
   const identity = projectRenewalDeskIdentity(lease);
@@ -188,8 +213,8 @@ export async function currentRenewalMessage(
     signatureOrigin.kind === "retained_sender"
       ? { ...savedInputs, signature: retainedSignature!.signature }
       : savedInputs;
-  // S129 (R-F09-03): the same policy applicability the workspace shows, projected on the server
-  // so a direct draft request cannot bypass a policy block; an unrelated lease yields no gate.
+  // S129/S161: the same policy applicability the workspace shows. It is listed with the message
+  // as information; it withholds neither the message nor its draft, and an unrelated lease has none.
   const policyGates = policyMessageGates(
     projectPolicyApplicability({
       productKey: "rhino",
@@ -214,7 +239,7 @@ export async function currentRenewalMessage(
       ]).catch(() => {
         draftJournalAvailable = false;
         notices.push(
-          "The Gmail attempt history could not be read. Copy remains available; reload history before preparing a new Gmail attempt.",
+          "The Gmail attempt history could not be read. Editing and copy continue; reload history before preparing a new Gmail attempt.",
         );
         return [null, []] as const;
       })
@@ -225,7 +250,7 @@ export async function currentRenewalMessage(
           .runTransaction((tx) => resolveCurrentCompScreenshotAttachment(tx, db, leaseId))
           .catch(() => {
             notices.push(
-              "The stored comp attachment could not be read. Message copy remains available; the attachment waits for readback.",
+              "The stored comp attachment could not be read. Editing and copy continue; the attachment waits for readback.",
             );
             return null;
           })
@@ -237,66 +262,73 @@ export async function currentRenewalMessage(
       : null;
   if (!resources)
     notices.push(
-      "Shared resource settings could not be read. Saved links are not assumed empty; this preparation omits unresolved links.",
+      "Shared resource settings could not be read. Saved links are not assumed empty; this message marks the links it could not read.",
     );
-  let currentBaseRent: RenewalMessageFacts["currentBaseRent"] = null;
+  if (working === "unavailable")
+    notices.push(
+      "The working information for this lease could not be read. The message shows source values until it reads back.",
+    );
+  const workingRecord = working === "unavailable" ? null : working;
   const renewalConfig = buildLiveRenewalConfig();
-  // S120 (R120.2): the current non-rent recurring charges, offered as a deliberate fill source for
-  // the tenant charge fields. A failed read is a notice, never an empty inventory.
+  // One read of the current recurring charges serves both audiences: the tenant charge fields may
+  // be filled from a named non-rent charge (S120), and the owner message's current rent uses the
+  // single current rent-account charge (S153). A failed read is a notice, never an empty inventory.
+  let inventory: RenewalChargeInventory | null | undefined = undefined;
   let chargeInventory: MessageChargeInventoryLine[] | null = null;
-  if (channel === "tenant" && renewalConfig.ok) {
+  if (renewalConfig.ok) {
     try {
-      const inventory = await loadRenewalChargeInventory(
-        renewalConfig.rentvineClient,
-        leaseId,
-      );
-      chargeInventory = inventory.charges
-        .filter((charge) => charge.classification !== "rent")
-        .map((charge) => ({
-          id: charge.id,
-          label: charge.accountLabel ?? charge.projection.description,
-          amount: Number(charge.projection.amount),
-          frequency: Number(charge.projection.frequency) || 1,
-          startDate: chargeDateIso(charge.projection.startDate),
-          current: charge.current,
-          sourceRef: `rentvine:lease:${leaseId}:recurring-charge:${charge.id}`,
-        }))
-        .filter((line) => Number.isFinite(line.amount) && line.amount >= 0);
+      inventory = await loadRenewalChargeInventory(renewalConfig.rentvineClient, leaseId);
     } catch {
+      inventory = null;
       notices.push(
         "The current RentVine recurring charges could not be read. Charge fields stay manual until they are read back.",
       );
     }
   }
-  if (channel === "owner" && renewalConfig.ok) {
-    try {
-      const resolutions = await listResolutionsForRun(actor, "live-review", db);
-      const result = await loadLiveOwnerCurrentRentDecision(
-        actor,
-        leaseId,
-        new Date(nowMs).toISOString(),
-        renewalConfig,
-        resolutions,
-      );
-      if (
-        result.status === "ok" &&
-        result.decision.currentRent !== null &&
-        result.decision.currentRentEvidence.currencyState === "fresh" &&
-        ["agree", "resolved"].includes(result.decision.currentRentEvidence.agreement)
-      ) {
-        currentBaseRent = {
-          value: result.decision.currentRent,
-          source:
-            result.decision.currentRentEvidence.resolvedSource ??
-            "Fresh RentVine and operating Sheet reconciliation",
-        };
-      }
-    } catch {
+  if (channel === "tenant" && inventory)
+    chargeInventory = inventory.charges
+      .filter((charge) => charge.classification !== "rent")
+      .map((charge) => ({
+        id: charge.id,
+        label: charge.accountLabel ?? charge.projection.description,
+        amount: Number(charge.projection.amount),
+        frequency: Number(charge.projection.frequency) || 1,
+        startDate: chargeDateIso(charge.projection.startDate),
+        current: charge.current,
+        sourceRef: `rentvine:lease:${leaseId}:recurring-charge:${charge.id}`,
+      }))
+      .filter((line) => Number.isFinite(line.amount) && line.amount >= 0);
+  // S153/S157 (BEH-S157-10): current rent in a newly prepared owner message has the one shared
+  // meaning: the working value staff entered, then the single current rent-account charge, then the
+  // contractual lease amount under its own label. Nothing is summed, split or chosen among several.
+  let currentBaseRent: RenewalMessageFacts["currentBaseRent"] = null;
+  if (channel === "owner") {
+    const rent = operationalCurrentRent({
+      working: workingRecord,
+      inventory,
+      contractualRent: leaseCurrentRent(lease) ?? null,
+    });
+    if (rent.amount !== null)
+      currentBaseRent = { value: rent.amount, source: rent.label };
+    if (rent.basis !== "working" && rent.attention)
       notices.push(
-        "Current base-rent reconciliation is unavailable. Other preparation is retained.",
+        rent.amount === null
+          ? rent.attention
+          : `${rent.attention} The current rent in this message is the ${rent.label}.`,
       );
-    }
   }
+  // S156 (R-S161-2): the terms staff are working with, field by field, with terms already recorded
+  // on an owner response as the fallback. An owner response is a recorded fact, not a prerequisite.
+  const terms = effectiveRenewalTerms(workingRecord, workspace);
+  const termsKnown =
+    terms.rent !== null || terms.effectiveDate !== null || terms.endDate !== null;
+  const termsSource = !termsKnown
+    ? null
+    : Object.values(terms.sources).every(
+          (source) => source === null || source === "owner_response",
+        ) && workspace?.ownerResponse
+      ? workspace.ownerResponse.source
+      : WORKING_TERMS_MESSAGE_SOURCE;
   const market = workspace?.preparation?.market;
   const ownerMarket = market ? ownerDraftMarketFromBasis(market) : {};
   // S118 (R118.3): a recommendation that is still the returned point estimate needs the existing
@@ -338,19 +370,25 @@ export async function currentRenewalMessage(
       : signatureOrigin.kind === "retained_sender" && inputs.signature
         ? { ...inputs.signature, email: actor.email }
         : null;
+  // S163: greeting first names come from the provider's own first-name field for each person.
+  const greeting = greetingPartyNames(
+    channel === "owner" ? identity.owners : identity.tenants,
+  );
   const facts: RenewalMessageFacts = {
     channel,
-    names: (channel === "owner" ? identity.owners : identity.tenants).map(
-      (value) => value.label,
-    ),
+    names: greeting.names,
+    firstNames: greeting.firstNames,
     address: identity.address?.label ?? null,
     currentBaseRent,
     leaseEndDate: leaseEndDateIso(lease) ?? null,
-    ownerTerms:
-      workspace?.ownerResponse?.outcome === "approved_terms" &&
-      workspace.ownerResponse.terms
-        ? { ...workspace.ownerResponse.terms, source: workspace.ownerResponse.source }
-        : null,
+    ownerTerms: termsSource
+      ? {
+          rent: terms.rent,
+          effectiveDate: terms.effectiveDate,
+          endDate: terms.endDate,
+          source: termsSource,
+        }
+      : null,
     range: marketEvidence.range,
     suggestedRent: marketEvidence.suggestedRent,
     // The provider's measured attributes are retained; no street address is invented when absent.
@@ -391,6 +429,7 @@ export async function currentRenewalMessage(
       channel,
       noticeSafety: noticeSafety.basis,
       names: facts.names,
+      firstNames: facts.firstNames,
       address: facts.address,
       currentBaseRent,
       leaseEndDate: facts.leaseEndDate,
@@ -416,39 +455,41 @@ export async function currentRenewalMessage(
       : null,
   };
   const composed = composeRenewalMessage(facts, inputs.edits);
-  // S139: accepted refined wording replaces the composed body text for its own saved revision only
-  // while the composition it started from is unchanged; otherwise it blocks drafting, kept visible.
-  const savedOverride =
+  if (marketEvidence.rangeRequirement) {
+    // R118.4: the starting range alone is not comparable evidence; the callout says so.
+    const entry = composed.missing.find((item) => item.field === "range");
+    if (entry) entry.message = marketEvidence.rangeRequirement;
+  }
+  if (inputs.compScreenshotReceiptId && !attachment)
+    composed.missing.push({
+      field: "attachment",
+      message:
+        "The selected screenshot is no longer the current one, so it is left off this message. Choose the current screenshot or clear the selection.",
+    });
+  // S139/S161: authored wording is the body for its own saved revision, exactly as written, also
+  // after the composition it started from changed. An authored subject follows the same rule.
+  const [savedOverride, savedSubject] =
     saved && workspace
-      ? await getMessageBodyOverride(
-          actor,
-          leaseId,
-          workspace.cycleId,
-          channel,
-          db,
-        ).catch(() => "unreadable" as const)
-      : null;
+      ? await Promise.all([
+          getMessageBodyOverride(actor, leaseId, workspace.cycleId, channel, db).catch(
+            () => "unreadable" as const,
+          ),
+          getMessageSubjectOverride(actor, leaseId, workspace.cycleId, channel, db).catch(
+            () => null,
+          ),
+        ])
+      : [null, null];
   const refined = resolveMessageBodyOverride(
     composed,
     saved?.revision ?? null,
     savedOverride,
   );
-  const content = refined.content;
-  if (marketEvidence.rangeRequirement) {
-    // R118.4: the starting range alone satisfies neither evidence requirement; say which one.
-    const entry = content.missing.find((item) => item.field === "range");
-    if (entry) entry.message = marketEvidence.rangeRequirement;
-    else
-      content.missing.push({ field: "range", message: marketEvidence.rangeRequirement });
-  }
-  if (inputs.compScreenshotReceiptId && !attachment)
-    content.missing.push({
-      field: "attachment",
-      message:
-        "The selected screenshot receipt is no longer current. Review its replacement or remove the attachment selection.",
-    });
-  const needsReview =
-    !saved || saved.reviewedSourceFingerprint !== basis.sourceFingerprint;
+  const authoredSubject = resolveMessageSubjectOverride(
+    refined.content,
+    saved?.revision ?? null,
+    savedSubject,
+  );
+  const content = authoredSubject.content;
   const signatureMatchesActor =
     saved?.signatureActorUid === actor.uid &&
     saved.signatureEmail?.toLowerCase() === actor.email.toLowerCase();
@@ -504,12 +545,13 @@ export async function currentRenewalMessage(
     inputs,
     facts,
     content,
-    /** S139: the composed body before refined wording, and the refined wording's state. */
+    /** S139/S161: the composed body before authored wording, and the authored wording's state. */
     composedContent: composed,
     bodyBaseHash: refined.baseHash,
     bodyOverride: refined.state,
+    /** S161: the authored subject for this saved revision, or null for the composed subject. */
+    subjectOverride: authoredSubject.subject,
     basis,
-    needsReview,
     signatureMatchesActor,
     publication,
     notices,

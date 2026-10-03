@@ -140,37 +140,42 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
   },
   approve_pricing_suggestion: {
     label: "Approve a comp-derived pricing suggestion",
-    roleCapability: "manageAdmin",
+    // S156/S167: the staff member doing the work records this optional decision alone.
+    roleCapability: "edit",
     effect: "app_owned_approval",
     externalRequirement: "none",
     actionKeys: [],
     exactConfirmation: false,
     audit: "app_activity",
     roleDeniedReason:
-      "Admin authority is required to approve a comp-derived pricing suggestion.",
-    safeNextAction: "Leave the suggestion pending for Admin review; no offer is changed.",
+      "Editor access is required to record a pricing-suggestion decision.",
+    safeNextAction: "Leave the suggestion as shown; no offer is changed.",
   },
   resolve_reconciliation: {
     label: "Resolve a renewal source reconciliation",
-    roleCapability: "approve",
+    // S156/S167: an Editor records the reconciliation decision; no Approver or Admin handoff.
+    roleCapability: "edit",
     effect: "app_owned_approval",
     externalRequirement: "none",
     actionKeys: [],
     exactConfirmation: false,
     audit: "app_activity",
-    roleDeniedReason: "Approver or Admin authority is required to resolve source facts.",
-    safeNextAction: "Defer the item and leave it for an Approver or Admin.",
+    roleDeniedReason:
+      "Editor access is required to record a source reconciliation decision.",
+    safeNextAction: "Leave the item as shown; the sources stay unchanged.",
   },
   approve_source_write: {
     label: "Approve a separately governed source-write proposal",
-    roleCapability: "manageAdmin",
+    // S156/S167: an optional Editor record; it is no longer a prerequisite for a source update.
+    roleCapability: "edit",
     effect: "app_owned_approval",
     externalRequirement: "none",
     actionKeys: [],
     exactConfirmation: false,
     audit: "app_activity",
-    roleDeniedReason: "Admin authority is required to approve a source-write proposal.",
-    safeNextAction: "Leave the proposal queued for Admin review; no source is changed.",
+    roleDeniedReason:
+      "Editor access is required to record a source-write proposal decision.",
+    safeNextAction: "Leave the proposal queued as shown; no source is changed.",
   },
   propose_source_write: {
     label: "Assemble and save one typed RentVine update proposal",
@@ -186,7 +191,9 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
   },
   execute_source_write: {
     label: "Execute an exact-confirmed renewal source write",
-    roleCapability: "manageAdmin",
+    // S160: ordinary staff confirm a supported source update; the exact keys, the confirmation
+    // binding, the one-attempt claim and the verification-account refusal are unchanged.
+    roleCapability: "edit",
     effect: "external_write",
     externalRequirement: "exact_action",
     // S97: the exact successor keys replace the retired broad writeback identifier.
@@ -201,9 +208,24 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     exactConfirmation: true,
     audit: "external_receipt",
     roleDeniedReason:
-      "Admin authority is required before a source write can be reviewed.",
+      "Editor access is required to confirm a source update. Ask an Admin to review your role.",
     safeNextAction:
-      "Keep the exact dry preview; a closed action key cannot be overridden by any role.",
+      "Keep the exact preview; a closed action key cannot be overridden by any role.",
+  },
+  execute_retired_generic_writeback: {
+    label: "Recover an effect of the retired generic Sheet writeback route",
+    // The retired broad key stays closed in the committed seed, so no role can dispatch a new
+    // effect here. Admin authority still reaches effect-free recovery of an earlier attempt.
+    roleCapability: "manageAdmin",
+    effect: "external_write",
+    externalRequirement: "exact_action",
+    actionKeys: ["google_sheets.renewal_checklist.writeback"],
+    exactConfirmation: true,
+    audit: "external_receipt",
+    roleDeniedReason:
+      "Admin authority is required to recover an effect of the retired generic route.",
+    safeNextAction:
+      "Use the exact RentVine or operating Sheet update beside the working value.",
   },
   draft_create: {
     label: "Preview and exact-confirm one unsent renewal Gmail draft",
@@ -326,15 +348,38 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
       "Read the retained evidence or ask an Approver or Admin to refresh the provider record.",
   },
   save_work_status: {
-    label: "Save the staff work status annotation for one lease",
+    label: "Save the staff work status annotation or a Status log note for one lease",
     roleCapability: "edit",
     effect: "app_owned_write",
     externalRequirement: "none",
     actionKeys: [],
     exactConfirmation: false,
     audit: "app_activity",
-    roleDeniedReason: "Editor access is required to save the staff work status.",
+    roleDeniedReason:
+      "Editor access is required to save the staff work status or a note.",
     safeNextAction: "Continue read-only or ask an Admin to review your role.",
+  },
+  save_working_record: {
+    label: "Save lease-bound working information for one lease",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to save working information.",
+    safeNextAction: "Continue read-only or ask an Admin to review your role.",
+  },
+  save_desk_preference: {
+    label: "Remember the signed-in account's own worklist view",
+    roleCapability: "read",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Renewal workspace read access is required to remember a view.",
+    safeNextAction: "Use the worklist with its default view.",
   },
   send_renewal_message: {
     label: "Send a renewal message from the application",
@@ -619,7 +664,7 @@ export const RENEWAL_CONTROL_INVENTORY = [
     enforcementSources: ["app/api/lease-renewal/correction-review/route.ts"],
   },
   {
-    control: "Prepare current-cycle message and Gmail draft",
+    control: "Edit the owner or tenant message and create its unsent Gmail draft",
     source: "components/lease-renewal/RenewalMessagePreparation.tsx",
     capability: "draft_create",
     enforcementSources: ["app/api/lease-renewal/message-preparation/route.ts"],
@@ -641,6 +686,32 @@ export const RENEWAL_CONTROL_INVENTORY = [
     source: "components/lease-renewal/RenewalWorkStatusControl.tsx",
     capability: "save_work_status",
     enforcementSources: ["app/api/lease-renewal/work-status/route.ts"],
+  },
+  {
+    control: "Save a status note",
+    source: "components/lease-renewal/RenewalWorkStatusControl.tsx",
+    capability: "save_work_status",
+    enforcementSources: ["app/api/lease-renewal/work-status/route.ts"],
+  },
+  {
+    control: "Save a working value or working renewal term",
+    source: "components/lease-renewal/RenewalWorkingRecord.tsx",
+    capability: "save_working_record",
+    enforcementSources: ["app/api/lease-renewal/working-record/route.ts"],
+  },
+  {
+    control: "Remember the account's worklist view",
+    source: "components/lease-renewal/RenewalDeskViewMemory.tsx",
+    capability: "save_desk_preference",
+    enforcementSources: ["app/api/lease-renewal/desk-preferences/route.ts"],
+  },
+  {
+    // S158: the selected operating-Sheet row or cell is a working-record field; the read of that
+    // location goes through the operating-sheet route's GET under read_workspace.
+    control: "Select the operating Sheet row or cell the app reads for this lease",
+    source: "components/lease-renewal/OperatingSheetLookup.tsx",
+    capability: "save_working_record",
+    enforcementSources: ["app/api/lease-renewal/working-record/route.ts"],
   },
 ] as const satisfies readonly RenewalControlInventoryEntry[];
 
@@ -856,7 +927,7 @@ export const RENEWAL_ROUTE_INVENTORY = [
     kind: "api",
     source: "app/api/lease-renewal/writeback-execute/route.ts",
     method: "POST",
-    capability: "execute_source_write",
+    capability: "execute_retired_generic_writeback",
   },
   {
     kind: "api",
@@ -959,5 +1030,29 @@ export const RENEWAL_ROUTE_INVENTORY = [
     source: "app/api/lease-renewal/work-status/route.ts",
     method: "POST",
     capability: "save_work_status",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/working-record/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/working-record/route.ts",
+    method: "POST",
+    capability: "save_working_record",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/desk-preferences/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/desk-preferences/route.ts",
+    method: "POST",
+    capability: "save_desk_preference",
   },
 ] as const satisfies readonly RenewalRouteInventoryEntry[];

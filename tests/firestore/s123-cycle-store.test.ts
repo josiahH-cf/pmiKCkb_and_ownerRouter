@@ -15,6 +15,7 @@ import {
   listRenewalWorkspaceActivity,
   listRenewalWorkspaces,
   renewalWorkspaceDocId,
+  ensureRenewalWorkRecord,
   saveRenewalWorkspace,
   startRenewalCycle,
 } from "@/lib/firestore/renewal-workspace";
@@ -272,25 +273,21 @@ describe("S123 cycle store", () => {
   });
 
   it("AC-S123-6: racing saves yield one recoverable conflict; a lost response is resolved by replay without a duplicate milestone", async () => {
-    await startRenewalCycle(
+    // S154: the lease's work record is established by its first deliberate save, not a cycle step.
+    const established = await ensureRenewalWorkRecord(
       editor,
-      {
-        leaseId: "4821",
-        expectedCycleId: null,
-        expectedRevision: 0,
-        operationId: OP(20),
-        basis: recordedBasis,
-        reason: "Cycle for the race.",
-      },
-      recordedBasis,
+      "4821",
       db,
+      async () => recordedBasis,
     );
+    expect(established.basis).toEqual(recordedBasis);
+    const cycleId = established.cycleId;
     const save = (actor: AuthenticatedUser, operationId: string, source: string) =>
       saveRenewalWorkspace(
         actor,
         {
           leaseId: "4821",
-          cycleId: OP(20),
+          cycleId,
           expectedRevision: 0,
           operationId,
           action: {
@@ -312,7 +309,10 @@ describe("S123 cycle store", () => {
     expect(rejected).toHaveLength(1);
     const conflict = (rejected[0] as PromiseRejectedResult).reason as EditableLayerError;
     expect(conflict.status).toBe(409);
-    expect(conflict.message).toMatch(/Reload and review the current record/);
+    // S155: the refusal says the entry is kept; the operator reloads and reviews before saving again.
+    expect(conflict.message).toMatch(
+      /Your entry is kept; reload and review the current record/,
+    );
     const current = await getRenewalWorkspace(editor, "4821", db);
     expect(current?.revision).toBe(1);
     expect(current?.activities.owner_outreach?.outcome).toBe("done");

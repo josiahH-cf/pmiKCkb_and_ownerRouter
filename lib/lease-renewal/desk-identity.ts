@@ -31,12 +31,14 @@ function firstString(
   return null;
 }
 
+const FIRST_NAME_KEYS = ["firstName", "first_name"] as const;
+
 function personName(
   object: Record<string, unknown>,
 ): { path: string; label: string } | null {
   const direct = firstString(object, ["name", "displayName", "companyName"]);
   if (direct) return { path: direct.key, label: direct.value };
-  const first = firstString(object, ["firstName", "first_name"]);
+  const first = firstString(object, FIRST_NAME_KEYS);
   const last = firstString(object, ["lastName", "last_name"]);
   const label = [first?.value, last?.value].filter(Boolean).join(" ");
   if (!label) return null;
@@ -70,11 +72,13 @@ function partyFact(
 ): DeskPartyIdentity {
   const result: DeskPartyIdentity = fact(root, path, name);
   const fields = {
+    // S163: carried only from the provider's first-name field, so a greeting never splits a label.
+    firstName: FIRST_NAME_KEYS,
     email: DEFAULT_RENEWAL_RECIPIENT_FIELD_MAP.scopedEmailKeys,
     phone: ["phone"],
     contactId: ["contactID"],
   } as const;
-  for (const field of ["email", "phone", "contactId"] as const) {
+  for (const field of ["firstName", "email", "phone", "contactId"] as const) {
     const value = firstString(object, fields[field]);
     if (value) result[field] = fact(root, path, { path: value.key, label: value.value });
   }
@@ -208,6 +212,21 @@ function propertyFact(lease: RawLease, root: string): DeskIdentityFact | null {
   if (!property) return null;
   const hit = firstString(property, ["name", "propertyName", "displayName"]);
   return hit ? { label: hit.value, sourceRef: `${root}:property.${hit.key}` } : null;
+}
+
+/**
+ * S163: the greeting inputs for one audience, index-aligned. `names` are the roster labels;
+ * `firstNames` holds the provider's first-name field for the same person, or null when the source
+ * records none. Recipient resolution reads the lease itself and is untouched by this.
+ */
+export function greetingPartyNames(parties: readonly DeskPartyIdentity[]): {
+  names: string[];
+  firstNames: Array<string | null>;
+} {
+  return {
+    names: parties.map((party) => party.label),
+    firstNames: parties.map((party) => party.firstName?.label ?? null),
+  };
 }
 
 /**

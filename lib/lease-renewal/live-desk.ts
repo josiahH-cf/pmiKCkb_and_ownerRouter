@@ -5,6 +5,11 @@ import type { RenewalNoticeObserver } from "./notice-read";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import {
+  workingCurrentRent,
+  type RenewalWorkingRecord,
+  type WorkingSheetRow,
+} from "@/lib/lease-renewal/working-record";
+import {
   manualRenewalSummary,
   type RenewalWorkspaceState,
 } from "@/lib/lease-renewal/workspace-state";
@@ -525,10 +530,13 @@ function retentionFor(
   progressStateAvailable = true,
   manual?: RenewalWorkspaceState | null,
 ): RenewalDeskRetentionState {
-  // A definitive source-backed skip is not renewal work, even if obsolete progress survived from a
-  // prior classification. It remains visible as a skipped source row without a process/action.
+  // A definitive source-backed skip stays outside the renewal worklist, even if obsolete progress
+  // survived from a prior classification. S154: it is still a real lease that opens and can be worked.
   if (classification.disposition === "skip") {
-    return { state: "outside", label: "Excluded from the renewal workflow" };
+    return {
+      state: "outside",
+      label: "Outside the renewal worklist by its source marker",
+    };
   }
   const manualPending = Boolean(
     manual &&
@@ -651,6 +659,8 @@ function toLiveSummary(
   workStatus?: RenewalWorkStatusProjection,
   /** S124: the status table and read freshness; absent means the disposition is not evaluated. */
   moveOutInputs?: MoveOutInputs,
+  /** S157: the lease-bound working record, when the caller read it. */
+  working?: RenewalWorkingRecord | null,
 ): DeskLeaseSummaryBase {
   const leaseId = classification.leaseId ?? "";
   const identity = projectRenewalDeskIdentity(view);
@@ -697,6 +707,7 @@ function toLiveSummary(
       ? projectMoveOutFields(view, classification.endDateIso, moveOutInputs)
       : {}),
     ...(workStatus ? { workStatus } : {}),
+    ...(working !== undefined ? { workingCurrentRent: workingCurrentRent(working) } : {}),
     addressLabel: identity.address?.label ?? `Lease ${leaseId || "Needs Verification"}`,
     propertyNameLabel: identity.property?.label ?? null,
     tenantNameLabel: tenantLabels[0] ?? "Needs Verification",
@@ -1293,6 +1304,8 @@ export async function loadLiveRenewalDesk(
   noticeObserver?: RenewalNoticeObserver,
   /** Exact status half acquired alongside the supplied lease snapshot; unavailable forbids retry. */
   preparedNoticeStatusTable?: LeaseStatusTableRead,
+  /** S157: the bulk working-record read; absent means the caller did not attempt it. */
+  workingByLease?: ReadonlyMap<string, RenewalWorkingRecord>,
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1373,6 +1386,11 @@ export async function loadLiveRenewalDesk(
       const manual = classification.leaseId
         ? (manualByLease?.get(classification.leaseId) ?? null)
         : null;
+      // S157: the working record is read once for the desk; absent means not attempted.
+      const working =
+        workingByLease && classification.leaseId
+          ? (workingByLease.get(classification.leaseId) ?? null)
+          : undefined;
       const workStatus = projectDeskWorkStatus(
         workStatusRead,
         classification.leaseId,
@@ -1388,6 +1406,7 @@ export async function loadLiveRenewalDesk(
         manual,
         workStatus,
         moveOutInputs,
+        working,
       );
       const leaseId = classification.leaseId ?? leaseIdOf(view);
       // Source navigation is independent from workflow eligibility and (S116) from whether a Sheet
@@ -1426,6 +1445,7 @@ export async function loadLiveRenewalDesk(
             manual,
             workStatus,
             moveOutInputs,
+            working,
           )
         : initialSummary;
       if (
@@ -1599,6 +1619,8 @@ export async function loadLiveRenewalLeaseWorkspace(
   noticeObserver?: RenewalNoticeObserver,
   /** Exact status half acquired before rent/market projection; unavailable remains unavailable. */
   preparedNoticeStatusTable?: LeaseStatusTableRead,
+  /** S158: the operator-selected Sheet row for this lease, from the page's working-record read. */
+  sheetRowBindings?: ReadonlyMap<string, WorkingSheetRow>,
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1640,9 +1662,9 @@ export async function loadLiveRenewalLeaseWorkspace(
     // as a failed read, never as "not found".
     if (!view) return { status: complete ? "not_found" : "read_error" };
 
-    // Use the exact current-window rule used by the desk. A lease must not become actionable merely
-    // because it was opened: review and out-of-window leases remain inspectable with their original
-    // disposition, while definitive skip signals still have no renewal workspace.
+    // Use the exact current-window rule used by the desk. Opening never changes a lease's
+    // classification: it stays as context and as a worklist filter. S154: every real lease opens
+    // and is workable, whatever its classification.
     const windows: DateWindow[] = [
       buildRenewalDeskWindow(businessDateIso(readTimestamp)),
     ];
@@ -1651,14 +1673,11 @@ export async function loadLiveRenewalLeaseWorkspace(
       referenceDateIso: businessDateIso(readTimestamp),
       ...(termReview ? { termReviews: new Map([[leaseId, termReview]]) } : {}),
     }).classifications[0];
-    // S103: a month-to-month lease keeps an inspection-only workspace so its term, anchor, and
-    // review date stay visible and correctable; a definitive skip signal still has no workspace.
-    if (classification.disposition === "skip") return { status: "not_found" };
-
     const { tables, tableJoinIds } = await readRenewalSheetGridsWithLinks({
       reader: config.sheetsReader,
       spreadsheetId: config.spreadsheetId,
       tabTitles: LIVE_DESK_TABS,
+      ...(sheetRowBindings ? { rowBindings: sheetRowBindings } : {}),
     });
     const portfolioOutcomes = reconcileLeaseFields(
       views,
@@ -1698,9 +1717,8 @@ export async function loadLiveRenewalLeaseWorkspace(
         : undefined,
       moveOutInputs,
     );
-    const workflowAvailable =
-      classification.disposition === "actionable" ||
-      summary.retention.state === "tracked_incomplete";
+    // S154: classification and window are context, never an edit grant. Every resolved real
+    // lease carries the full working surface.
     // S116: the lease record destination comes from the validated lease id on the configured
     // host; a Sheet link is agreement evidence, never the source of this navigation.
     const rentvineDestination = buildRentvineRecordDestination({
@@ -1751,24 +1769,15 @@ export async function loadLiveRenewalLeaseWorkspace(
       view,
       readTimestamp,
       sources: followUpSources,
-      ...(workflowAvailable ? { process } : {}),
+      process,
     });
     summary = {
-      ...withCurrentLifecycle(
-        summary,
-        progress,
-        true,
-        workflowAvailable && process.status === "complete",
-      ),
-      ...(workflowAvailable
-        ? {
-            processVersion: process.version,
-            workflowStepId: RENEWAL_STEPS[process.currentStepIndex]?.id ?? null,
-            stageIndex: process.currentStepIndex,
-            stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
-            nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
-          }
-        : {}),
+      ...withCurrentLifecycle(summary, progress, true, process.status === "complete"),
+      processVersion: process.version,
+      workflowStepId: RENEWAL_STEPS[process.currentStepIndex]?.id ?? null,
+      stageIndex: process.currentStepIndex,
+      stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
+      nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
       followUp,
     };
     const deskSummary = withRenewalDeskQueryKeys(summary);
@@ -1778,7 +1787,6 @@ export async function loadLiveRenewalLeaseWorkspace(
     // null and the Tenant-offer card invites composing below. The gated composer is still the only send.
     const endDateIso = classification.endDateIso;
     const tenantDraft =
-      workflowAvailable &&
       ownerDecisionIsCurrent(effectiveProgress) &&
       effectiveProgress?.ownerDecision &&
       endDateIso
@@ -1798,7 +1806,7 @@ export async function loadLiveRenewalLeaseWorkspace(
 
     const guidanceInput: DeskGuidanceInput = {
       summary: deskSummary,
-      process: workflowAvailable ? process : null,
+      process,
       dataCheck,
       rentvineCurrentRent: deskSummary.currentRent,
       rentDecision: currentRentDecision,
@@ -1813,7 +1821,6 @@ export async function loadLiveRenewalLeaseWorkspace(
       guidance: buildDeskLeaseGuidance(guidanceInput),
       // S142: the Needs-verification cause the same input names, for the action projection.
       verificationCause: deskGuidanceVerificationCause(guidanceInput),
-      workflowAvailable,
       steps: RENEWAL_STEPS,
       currentStepIndex: process.currentStepIndex,
       process,
@@ -1861,22 +1868,17 @@ export async function loadLiveRenewalLeaseWorkspace(
       ),
       followUp,
       // Effective current evidence drives the versioned progress controls in the workspace UI.
-      ...(workflowAvailable
-        ? {
-            live: {
-              leaseId,
-              ownerDecision: effectiveProgress?.ownerDecision ?? null,
-              ownerDecisionCurrent: ownerDecisionIsCurrent(effectiveProgress),
-              ownerOutcome: effectiveProgress?.ownerOutcome ?? null,
-              ownerResponseRecordable: Boolean(evidence["owner-message-sent"]),
-              tenantOfferDraftId: effectiveProgress?.tenantOfferDraftId ?? null,
-              tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
-              processVersion:
-                effectiveProgress?.processVersion ?? RENEWAL_PROCESS_VERSION,
-              complete: effectiveProgress?.complete ?? false,
-            },
-          }
-        : {}),
+      live: {
+        leaseId,
+        ownerDecision: effectiveProgress?.ownerDecision ?? null,
+        ownerDecisionCurrent: ownerDecisionIsCurrent(effectiveProgress),
+        ownerOutcome: effectiveProgress?.ownerOutcome ?? null,
+        ownerResponseRecordable: Boolean(evidence["owner-message-sent"]),
+        tenantOfferDraftId: effectiveProgress?.tenantOfferDraftId ?? null,
+        tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
+        processVersion: effectiveProgress?.processVersion ?? RENEWAL_PROCESS_VERSION,
+        complete: effectiveProgress?.complete ?? false,
+      },
       // S58: expired data disables compose/record controls in the workspace UI; the routes refuse
       // server-side regardless.
       dataCurrency: toDeskCurrency(currency),

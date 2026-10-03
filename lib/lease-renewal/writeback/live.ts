@@ -1,8 +1,5 @@
-import {
-  RENEWAL_WORKSPACE_COLLECTIONS,
-  renewalWorkspaceDocId,
-} from "@/lib/firestore/renewal-workspace";
-import { futureRentExecutionReady } from "./future-rent-intent";
+import { readEffectiveRenewalTerms } from "@/lib/firestore/renewal-effective-terms";
+import { futureRentTermsCurrent } from "./future-rent-intent";
 // Live control-plane wiring for the S97 renewal-writeback service. Provider clients stay lazy so a
 // closed key, refused environment, or stale confirmation never constructs a writer (BEH-S97-3).
 
@@ -74,13 +71,8 @@ export function buildLiveRenewalWritebackDeps(
     descriptor,
     assertCurrentRenewalTerms: async (proposal) =>
       !!proposal.renewalTerms &&
-      futureRentExecutionReady(
-        (
-          await db
-            .collection(RENEWAL_WORKSPACE_COLLECTIONS.head)
-            .doc(renewalWorkspaceDocId(proposal.leaseId))
-            .get()
-        ).data(),
+      futureRentTermsCurrent(
+        await readEffectiveRenewalTerms(proposal.leaseId, db),
         proposal.renewalTerms,
       ),
     store: new FirestoreExternalExecutionStore(db),

@@ -148,21 +148,21 @@ describe("planLeaseRenewalResolution", () => {
     expect(plan.proposed_writeback).toBeUndefined();
   });
 
-  it("rejects a blank plain-English reason when the key is supplied", () => {
-    expect(() =>
+  it("S157: a blank plain-English reason parses as no reason", () => {
+    expect(
       parse({
         run_id: "run-1",
         source_trigger_key: FLAG.source_trigger_key,
         kind: "flag_incorrect",
         reason: "   ",
-      }),
-    ).toThrow();
+      }).reason,
+    ).toBe("");
   });
 });
 
 describe("resolutionReasonRequirement", () => {
   it.each(["High", "Blocked"] as const)(
-    "requires free text for %s severity even when the suggested source and a code are supplied",
+    "keeps the accepted-suggestion code to Low/Medium flags: a %s pick with that code is refused, not silently relabelled",
     (severity) => {
       const flag: ResolvableFlag = { ...FLAG, severity };
       const input = parse({
@@ -174,8 +174,23 @@ describe("resolutionReasonRequirement", () => {
       });
 
       expect(() => resolutionReasonRequirement(flag, input)).toThrow(
-        "A plain-English reason is required.",
+        "only valid for the exact suggested source",
       );
+    },
+  );
+
+  it.each(["High", "Blocked"] as const)(
+    "S157: a %s decision without a note or code is stamped with the neutral no-note label",
+    (severity) => {
+      const flag: ResolvableFlag = { ...FLAG, severity };
+      const input = parse({
+        run_id: flag.run_id,
+        source_trigger_key: flag.source_trigger_key,
+        kind: "pick_source",
+        chosen_source: "rentvine",
+      });
+
+      expect(resolutionReasonRequirement(flag, input)).toBe("Recorded without a note");
     },
   );
 
@@ -195,7 +210,7 @@ describe("resolutionReasonRequirement", () => {
       label: "a source override",
       input: { kind: "pick_source", chosen_source: "sheet_tab3" },
     },
-  ])("requires free text for $label despite a reason code", ({ input }) => {
+  ])("refuses the accepted-suggestion code for $label", ({ input }) => {
     const parsed = parse({
       run_id: MEDIUM_FLAG.run_id,
       source_trigger_key: MEDIUM_FLAG.source_trigger_key,
@@ -204,7 +219,37 @@ describe("resolutionReasonRequirement", () => {
     });
 
     expect(() => resolutionReasonRequirement(MEDIUM_FLAG, parsed)).toThrow(
-      "A plain-English reason is required.",
+      "only valid for the exact suggested source",
+    );
+  });
+
+  it.each([
+    {
+      label: "a corrected value",
+      input: { kind: "corrected_value", corrected_value: "2026-10-15" },
+    },
+    { label: "an incorrect-flag dismissal", input: { kind: "flag_incorrect" } },
+    {
+      label: "a source override",
+      input: { kind: "pick_source", chosen_source: "sheet_tab3" },
+    },
+  ])("S157: $label needs no narrative; free text is kept when given", ({ input }) => {
+    const bare = parse({
+      run_id: MEDIUM_FLAG.run_id,
+      source_trigger_key: MEDIUM_FLAG.source_trigger_key,
+      ...input,
+    });
+    expect(resolutionReasonRequirement(MEDIUM_FLAG, bare)).toBe(
+      "Recorded without a note",
+    );
+    const noted = parse({
+      run_id: MEDIUM_FLAG.run_id,
+      source_trigger_key: MEDIUM_FLAG.source_trigger_key,
+      reason: "  Checked the executed lease.  ",
+      ...input,
+    });
+    expect(resolutionReasonRequirement(MEDIUM_FLAG, noted)).toBe(
+      "Checked the executed lease.",
     );
   });
 
@@ -241,17 +286,25 @@ describe("resolutionReasonRequirement", () => {
     },
   );
 
-  it("requires a reason code on the safe suggested-source path", () => {
-    const input = parse({
+  it("S157: the safe suggested-source path keeps free text without a code, and stamps the no-note label with neither", () => {
+    const noted = parse({
       run_id: MEDIUM_FLAG.run_id,
       source_trigger_key: MEDIUM_FLAG.source_trigger_key,
       kind: "pick_source",
       chosen_source: "rentvine",
       reason: "I agree with the suggestion.",
     });
-
-    expect(() => resolutionReasonRequirement(MEDIUM_FLAG, input)).toThrow(
-      "A reason code is required.",
+    expect(resolutionReasonRequirement(MEDIUM_FLAG, noted)).toBe(
+      "I agree with the suggestion.",
+    );
+    const bare = parse({
+      run_id: MEDIUM_FLAG.run_id,
+      source_trigger_key: MEDIUM_FLAG.source_trigger_key,
+      kind: "pick_source",
+      chosen_source: "rentvine",
+    });
+    expect(resolutionReasonRequirement(MEDIUM_FLAG, bare)).toBe(
+      "Recorded without a note",
     );
   });
 

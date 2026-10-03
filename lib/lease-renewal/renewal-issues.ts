@@ -104,7 +104,7 @@ export function renewalPostSaveFocusTarget(
   );
 }
 
-export const NON_RENEWAL_HANDOFF_TARGET_ID = "renewal-manual-cycle";
+export const NON_RENEWAL_HANDOFF_TARGET_ID = "renewal-manual-non_renewal_handoff";
 
 const STEP_ACTION: Record<string, string> = {
   "verify-renewal": "Verifying the renewal facts",
@@ -294,7 +294,7 @@ export function projectRenewalIssues(input: RenewalIssueInput): RenewalIssueProj
         }
       : {
           kind: action.kind,
-          label: "Resolve the blocking prerequisites below before continuing.",
+          label: "Review the items listed below.",
           destination: { kind: "none" },
           redirected: false,
         };

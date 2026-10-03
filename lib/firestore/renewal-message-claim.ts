@@ -16,7 +16,17 @@ import {
   manualNonRenewalReason,
 } from "@/lib/lease-renewal/notice-safety";
 import { LEASE_EXPORT_MAX_AGE_MS } from "@/lib/lease-renewal/live-lease-cache";
-/** A companion guard at the existing S20 claim. Legacy attempts recover without a new claim. */
+/**
+ * A companion guard at the existing S20 claim. Legacy attempts recover without a new claim.
+ *
+ * S162: the one attempt is bound to exactly what the person confirmed. The guard re-reads, inside
+ * the claim transaction, the exact snapshot (content hash and envelope), the saved message
+ * revision, the work record, the resource links, the approved publication and the notice-safety
+ * marker. It no longer asks for a review record or for the signature to have been saved by the
+ * same sender: neither is a prerequisite for an unsent draft of the displayed message. Notice
+ * safety, the staff non-renewal decision, the sender identity of the snapshot and the publication
+ * keep their full strength.
+ */
 export async function assertCurrentRenewalMessageClaim(
   tx: Transaction,
   db: Firestore,
@@ -30,12 +40,12 @@ export async function assertCurrentRenewalMessageClaim(
     );
   if (!scope)
     throw new EditableLayerError(
-      "Review the current cycle message in the lease workspace before creating a new draft. Historical attempt recovery remains available.",
+      "Preview this message in the lease workspace before creating a new draft. Historical attempt recovery remains available.",
       409,
     );
   const fail = (): never => {
     throw new EditableLayerError(
-      "The saved message, owner terms, resource links or approved publication changed. Reload and review a new preview before drafting.",
+      "The saved message, renewal terms, resource links or approved publication changed after this preview. Preview the message again before creating the draft.",
       409,
     );
   };
@@ -60,13 +70,12 @@ export async function assertCurrentRenewalMessageClaim(
     fail();
   const channel = snapshot!.channel as "owner" | "tenant",
     identity = hashExecutionPreview({ leaseId, cycleId, channel });
-  const [workspace, preparation, active, resources, templates, noticeMarker] =
+  const workspaceId = createHash("sha256").update(leaseId).digest("hex");
+  const [workspace, leaseBound, preparation, active, resources, templates, noticeMarker] =
     await Promise.all([
-      tx.get(
-        db
-          .collection("lease_renewal_workspaces")
-          .doc(createHash("sha256").update(leaseId).digest("hex")),
-      ),
+      tx.get(db.collection("lease_renewal_workspaces").doc(workspaceId)),
+      // S154: a work record saved while the source reported no date lives beside the dated heads.
+      tx.get(db.collection("lease_renewal_lease_bound_workspaces").doc(workspaceId)),
       tx.get(db.collection("renewal_message_preparations").doc(identity)),
       tx.get(db.collection("renewal_message_draft_heads").doc(identity)),
       tx.get(db.collection("renewal_resource_locations").doc("current")),
@@ -74,7 +83,7 @@ export async function assertCurrentRenewalMessageClaim(
       tx.get(noticeSafetyMarkerRef(db, leaseId)),
     ]);
   const message = preparation.data(),
-    head = workspace.data();
+    head = workspace.exists ? workspace.data() : leaseBound.data();
   const marker = NoticeSafetyMarkerSchema.safeParse(noticeMarker.data());
   if (
     !head ||
@@ -89,9 +98,6 @@ export async function assertCurrentRenewalMessageClaim(
     workspaceMessageBasisFingerprint(head) !== basis.workspaceFingerprint ||
     !message ||
     message.revision !== basis.preparationRevision ||
-    message.reviewedSourceFingerprint !== basis.sourceFingerprint ||
-    message.signatureActorUid !== actor.uid ||
-    String(message.signatureEmail).toLowerCase() !== actor.email.toLowerCase() ||
     active.get("executionId") !== execution.id ||
     messageResourceFingerprint(
       resources.exists ? resources.data()! : { version: 0, entries: {} },

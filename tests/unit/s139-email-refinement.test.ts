@@ -210,6 +210,7 @@ describe("S139 the model gets JSON data and a failure keeps the draft", () => {
 const FACTS: RenewalMessageFacts = {
   channel: "owner",
   names: ["Pat Jones"],
+  firstNames: ["Pat"],
   address: "512 Rosewood Ct",
   currentBaseRent: { value: 1450, source: "rentvine:lease:1" },
   leaseEndDate: "2026-10-31",
@@ -243,16 +244,16 @@ describe("S139 refined wording renders and binds to the composition it came from
 
   it("keeps composed paragraphs' links and emphasis and escapes new text", () => {
     const signature = composed.paragraphs.at(-1)!;
-    const text = composed.plainText.replace("Hello Pat Jones,", "Hi Pat Jones <3,");
+    const text = composed.plainText.replace("Hello Pat,", "Hi Pat <3,");
     const refined = applyRefinedBody(composed, text);
     expect(refined.plainText).toBe(text);
     expect(refined.paragraphs.at(-1)).toBe(signature);
     expect(refined.htmlBody).toContain("<strong>Casey Doe</strong>");
-    expect(refined.htmlBody).toContain("Hi Pat Jones &lt;3,");
+    expect(refined.htmlBody).toContain("Hi Pat &lt;3,");
     expect(refined.subject).toBe(composed.subject);
   });
 
-  it("applies saved wording only for its revision and composition, and blocks when stale", () => {
+  it("applies saved wording only for its revision, and keeps it word for word when the composition changed (S161)", () => {
     const record = (
       overrides: Partial<MessageBodyOverrideRecord> = {},
     ): MessageBodyOverrideRecord => ({
@@ -269,7 +270,7 @@ describe("S139 refined wording renders and binds to the composition it came from
     });
     const applied = resolveMessageBodyOverride(composed, 3, record());
     expect(applied.state?.state).toBe("applied");
-    expect(applied.content.plainText.startsWith("Hi Pat Jones,")).toBe(true);
+    expect(applied.content.plainText.startsWith("Hi Pat,")).toBe(true);
 
     expect(resolveMessageBodyOverride(composed, 4, record()).state).toBeNull();
 
@@ -278,16 +279,17 @@ describe("S139 refined wording renders and binds to the composition it came from
       3,
       record({ baseHash: "f".repeat(64) }),
     );
+    // S161 (R-S161-7): changed information never replaces authored wording; it is reported.
     expect(stale.state?.state).toBe("stale");
-    expect(stale.content.plainText).toBe(composed.plainText);
-    expect(stale.content.missing.map((item) => item.message)).toContain(
+    expect(stale.content.plainText).toBe(record().text);
+    expect(stale.content.missing.map((item) => item.message)).not.toContain(
       STALE_REFINED_BODY_MESSAGE,
     );
+    expect(STALE_REFINED_BODY_MESSAGE).toMatch(/kept exactly as written/);
 
+    // An unreadable record leaves the composed body in place and is reported as its own state.
     const unreadable = resolveMessageBodyOverride(composed, 3, "unreadable");
     expect(unreadable.state).toEqual({ state: "unreadable" });
-    expect(unreadable.content.missing.some((item) => item.field === "refinedBody")).toBe(
-      true,
-    );
+    expect(unreadable.content.plainText).toBe(composed.plainText);
   });
 });

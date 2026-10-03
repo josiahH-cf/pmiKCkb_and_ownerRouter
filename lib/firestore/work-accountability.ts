@@ -2073,7 +2073,6 @@ function assertAssignable(
         email: candidate.email,
         hd: candidate.email.split("@")[1] ?? "",
         role: candidate.role,
-        scopes: candidate.scopes,
       },
       spaceId,
     )

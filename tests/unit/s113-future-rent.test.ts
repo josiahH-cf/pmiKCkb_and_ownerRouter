@@ -3,8 +3,11 @@ import { loadRenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge
 import {
   assertFutureRentSchedule,
   futureRentInventoryHash,
-  futureRentWorkspaceMatches,
+  futureRentTermsCurrent,
 } from "@/lib/lease-renewal/writeback/future-rent-intent";
+import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
+import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
+import { emptyRenewalWorkspace } from "@/lib/lease-renewal/workspace-state";
 import {
   buildRenewalWritebackProposal,
   projectRecurringCharge,
@@ -70,7 +73,7 @@ async function setup(entries = [structuredClone(current), structuredClone(future
   return { entries, reads, inventory, binding, effect };
 }
 describe("S113 future rent schedule", () => {
-  it("permits only the approved future amount and rejects an early current amount replacement", async () => {
+  it("permits only the working future amount and rejects an early current amount replacement", async () => {
     const h = await setup();
     expect(() =>
       assertFutureRentSchedule(h.binding, h.inventory, h.effect),
@@ -88,7 +91,7 @@ describe("S113 future rent schedule", () => {
         ...h.effect,
         changes: { amount: "1501.00" },
       } as RenewalWritebackEffectInput),
-    ).toThrow(/approved/);
+    ).toThrow(/working renewal amount/);
   });
   it.each(["2027-01-01", null])(
     "refuses a shared boundary or open overlapping current schedule (%s)",
@@ -102,7 +105,7 @@ describe("S113 future rent schedule", () => {
       );
     },
   );
-  it("detects changed inventory and explicit approval revisions", async () => {
+  it("detects changed inventory and changed working terms (S156 BEH-S156-4/5)", async () => {
     const h = await setup();
     const changed = structuredClone(h.inventory);
     changed.charges[0].projection = {
@@ -112,15 +115,73 @@ describe("S113 future rent schedule", () => {
     expect(() => assertFutureRentSchedule(h.binding, changed, h.effect)).toThrow(
       /changed/,
     );
-    const workspace = {
-      cycleId: h.binding.cycleId,
-      termsRevision: 1,
-      ownerResponse: { outcome: "approved_terms", terms },
+    // S156/S160 (cafa02a7): the binding stays current while the lease-bound working terms are
+    // still the exact amount and dates it was prepared from. No owner approval or tenant
+    // acceptance record is consulted.
+    const entry = (value: number | string, revision: number) => ({
+      value,
+      revision,
+      eventId: `event-${revision}`,
+      recordedAt: "2026-09-10T12:00:00.000Z",
+      recordedByUid: "staff",
+      recordedByLabel: "Staff",
+      origin: "staff_entry" as const,
+    });
+    const working: RenewalWorkingRecord = {
+      schemaVersion: "renewal-working-record/v1",
+      leaseId: "81",
+      revision: 3,
+      fields: {
+        terms_rent: entry(terms.rent, 1),
+        terms_effective_date: entry(terms.effectiveDate, 2),
+        terms_end_date: entry(terms.endDate, 3),
+      },
     };
-    expect(futureRentWorkspaceMatches(workspace, h.binding)).toBe(true);
+    const noResponse = emptyRenewalWorkspace("81", h.binding.cycleId, {
+      kind: "lease_end",
+      dateIso: "2026-12-31",
+      source: "RentVine lease end",
+    });
+    expect(noResponse.ownerResponse).toBeNull();
+    expect(noResponse.tenantResponse).toBeNull();
     expect(
-      futureRentWorkspaceMatches({ ...workspace, termsRevision: 2 }, h.binding),
+      futureRentTermsCurrent(effectiveRenewalTerms(working, noResponse), h.binding),
+    ).toBe(true);
+    expect(futureRentTermsCurrent(effectiveRenewalTerms(working, null), h.binding)).toBe(
+      true,
+    );
+    const rentChanged: RenewalWorkingRecord = {
+      ...working,
+      fields: { ...working.fields, terms_rent: entry(1550, 4) },
+    };
+    expect(
+      futureRentTermsCurrent(effectiveRenewalTerms(rentChanged, noResponse), h.binding),
     ).toBe(false);
+    const incomplete: RenewalWorkingRecord = {
+      ...working,
+      fields: { terms_rent: entry(terms.rent, 1) },
+    };
+    expect(
+      futureRentTermsCurrent(effectiveRenewalTerms(incomplete, noResponse), h.binding),
+    ).toBe(false);
+    // Owner-approved terms already recorded on the work record still fill a field staff have
+    // not entered; the owner response is a recorded fact, not a permission.
+    const approved = {
+      ...noResponse,
+      termsRevision: 1,
+      ownerResponse: {
+        eventId: "owner",
+        actorUid: "staff",
+        recordedAt: "2026-09-10T12:00:00.000Z",
+        source: "phone",
+        termsRevision: 1,
+        outcome: "approved_terms" as const,
+        terms,
+      },
+    };
+    expect(futureRentTermsCurrent(effectiveRenewalTerms(null, approved), h.binding)).toBe(
+      true,
+    );
   });
   it("preserves the existing open-end transition refusal and requires a fresh preview after the effective date", async () => {
     const h = await setup([

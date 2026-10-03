@@ -78,8 +78,8 @@ function itemFor(
     return {
       leaseId: lease.id,
       addressLabel: lease.addressLabel,
-      headline: `${lease.openConflicts} source conflict${plural} to resolve before you can continue`,
-      actionLabel: "Resolve conflicts",
+      headline: `${lease.openConflicts} source difference${plural} to review`,
+      actionLabel: "Review differences",
       href,
       urgency: "high",
       lane: RENEWAL_LANE,

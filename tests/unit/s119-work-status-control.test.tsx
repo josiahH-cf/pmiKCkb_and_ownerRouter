@@ -1,6 +1,13 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
@@ -26,8 +33,9 @@ import {
   getRenewalLeaseWorkspace,
 } from "@/tests/helpers/sample-desk";
 
-// S119: the staff work status control saves only on Save status, reports the actual result,
-// re-reads on conflict or a lost response, and never claims durability for a selection.
+// S119: the staff work status control reports the actual saved result, re-reads on conflict or a
+// lost response, and never claims durability for a selection the app has not stored. S164: a choice
+// saves by itself (no Save status step), so these cases drive the select and the autosave line.
 
 const PARTY_FILTER_KEY = Buffer.alloc(32, 7).toString("base64url");
 const LEASE = "lease-318-cedar-7";
@@ -106,10 +114,15 @@ function postedBody(call: unknown[]) {
 }
 
 describe("S119 work status control (R119.1, R119.2, R119.4)", () => {
-  it("AC-S119-1: a selection is not durable until Save status succeeds; the saved value, recorder, time and history then render", async () => {
+  it("AC-S119-1: a selection is not durable until its save succeeds; the saved value, recorder, time and history then render", async () => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
     fetchMock.mockImplementation(async (_url: string, init?: { body?: string }) => {
       const body = JSON.parse(init?.body ?? "{}") as { operationId: string };
       const record = savedRecord({ eventId: body.operationId });
+      await held;
       return jsonResponse(200, {
         record,
         history: [activity(record)],
@@ -120,7 +133,13 @@ describe("S119 work status control (R119.1, R119.2, R119.4)", () => {
       <RenewalWorkspace
         role="Editor"
         workspace={workspace()}
-        workStatus={{ available: true, record: null, history: [], currentCycleId: null }}
+        workStatus={{
+          available: true,
+          record: null,
+          history: [],
+          notes: [],
+          currentCycleId: null,
+        }}
       />,
     );
     expect(screen.getByText("Staff status: Not recorded")).toBeVisible();
@@ -130,8 +149,10 @@ describe("S119 work status control (R119.1, R119.2, R119.4)", () => {
     expect(within(info).getByTestId("renewal-work-status-saved")).toHaveTextContent(
       "Not recorded",
     );
-    const save = within(info).getByRole("button", { name: "Save status" });
-    expect(save).toBeDisabled();
+    const autosave = within(info).getByTestId("renewal-work-status-autosave");
+    // S164: there is no separate Save step; nothing has been sent before a choice is made.
+    expect(within(info).queryByRole("button", { name: /save status/i })).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
     // Every bounded status is offered once; nothing else is.
     const options = within(select)
       .getAllByRole("option")
@@ -142,15 +163,18 @@ describe("S119 work status control (R119.1, R119.2, R119.4)", () => {
     expect(options.some((entry) => /messaged/i.test(entry ?? ""))).toBe(false);
 
     fireEvent.change(select, { target: { value: "waiting_on_owner_response" } });
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(within(info).getByText(/not saved yet/i)).toBeVisible();
+    // While the save is out the choice is not claimed as saved anywhere.
+    await waitFor(() => expect(autosave).toHaveTextContent("Saving work status"));
+    expect(autosave).not.toHaveTextContent("Saved");
+    expect(within(info).getByTestId("renewal-work-status-saved")).toHaveTextContent(
+      "Not recorded",
+    );
     expect(screen.getByText("Staff status: Not recorded")).toBeVisible();
-    expect(save).toBeEnabled();
     // No reason, recipient, quote or checklist is demanded to save this annotation.
     expect(within(info).queryByLabelText(/reason/i)).toBeNull();
 
-    fireEvent.click(save);
-    await within(info).findByText(/^Saved: Waiting on owner response/);
+    release();
+    await waitFor(() => expect(autosave).toHaveTextContent("Saved"));
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe("/api/lease-renewal/work-status");
     const { method, body } = postedBody(fetchMock.mock.calls[0]);
@@ -167,7 +191,6 @@ describe("S119 work status control (R119.1, R119.2, R119.4)", () => {
     expect(saved).toHaveTextContent("Waiting on owner response");
     expect(saved).toHaveTextContent("op1@pmikcmetro.com");
     expect(saved.querySelector("time")).toHaveAttribute("dateTime", RECORDED_AT);
-    expect(within(info).queryByText(/not saved yet/i)).toBeNull();
     // The compact context and desk row are server projections: the save requests a refresh and
     // the re-rendered page shows the same saved value there.
     expect(router.refresh).toHaveBeenCalledTimes(1);
@@ -182,15 +205,17 @@ describe("S119 work status control (R119.1, R119.2, R119.4)", () => {
           available: true,
           record,
           history: [activity(record)],
+          notes: [],
           currentCycleId: null,
         }}
       />,
     );
     expect(screen.getByText("Staff status: Waiting on owner response")).toBeVisible();
     expect(screen.queryByText("Staff status: Not recorded")).toBeNull();
-    const history = within(info).getByText("Status history").closest("details");
+    // S164: the history is the Status log, shown open beneath the status and note area.
+    const history = within(info).getByText("Status log").closest("details");
     expect(history).not.toBeNull();
-    fireEvent.click(within(info).getByText("Status history"));
+    expect(history).toHaveAttribute("open");
     const entry = within(history as HTMLElement).getByRole("listitem");
     expect(entry).toHaveTextContent("Waiting on owner response");
     expect(entry).toHaveTextContent("Not recorded");
@@ -207,6 +232,7 @@ describe("S119 work status control (R119.1, R119.2, R119.4)", () => {
           available: true,
           record: savedRecord({ status: "complete_staff_status", cycleId: "cycle-a" }),
           history: [],
+          notes: [],
           currentCycleId: "cycle-b",
         }}
       />,
@@ -234,19 +260,26 @@ describe("S119 work status control (R119.1, R119.2, R119.4)", () => {
       <RenewalWorkspace
         role="Editor"
         workspace={workspace()}
-        workStatus={{ available: true, record: null, history: [], currentCycleId: null }}
+        workStatus={{
+          available: true,
+          record: null,
+          history: [],
+          notes: [],
+          currentCycleId: null,
+        }}
       />,
     );
     const info = openInformation();
     const select = within(info).getByLabelText("Work status (recorded by staff)");
-    const save = within(info).getByRole("button", { name: "Save status" });
+    const autosave = within(info).getByTestId("renewal-work-status-autosave");
 
     fetchMock.mockResolvedValueOnce(
       jsonResponse(500, { error: "The status store did not answer." }),
     );
     fireEvent.change(select, { target: { value: "verifying_lease_and_rent" } });
-    fireEvent.click(save);
     await within(info).findByText(/The status store did not answer/);
+    // The choice stays in the control with the same save offered again.
+    expect(select).toHaveValue("verifying_lease_and_rent");
     expect(within(info).getByTestId("renewal-work-status-saved")).toHaveTextContent(
       "Not recorded",
     );
@@ -266,7 +299,7 @@ describe("S119 work status control (R119.1, R119.2, R119.4)", () => {
       .mockResolvedValueOnce(
         jsonResponse(200, { record: theirs, history: [activity(theirs)] }),
       );
-    fireEvent.click(save);
+    fireEvent.click(within(autosave).getByRole("button", { name: "Try again" }));
     await within(info).findByText(/Another operator saved this status/);
     const saved = within(info).getByTestId("renewal-work-status-saved");
     expect(saved).toHaveTextContent("Preparing tenant offer");
@@ -293,8 +326,9 @@ describe("S119 work status control (R119.1, R119.2, R119.4)", () => {
         history: [activity(theirs), activity(record, "preparing_tenant_offer")],
       });
     });
-    fireEvent.click(save);
-    await within(info).findByText(/^Saved: Verifying lease and rent/);
+    // The kept choice is saved over the value that was read back, by the operator's own choice.
+    fireEvent.click(within(autosave).getByRole("button", { name: "Save my entry" }));
+    await waitFor(() => expect(autosave).toHaveTextContent("Saved"));
     expect(postedBody(fetchMock.mock.calls[3]).body).toMatchObject({
       status: "verifying_lease_and_rent",
       expectedRevision: 1,
@@ -318,6 +352,7 @@ describe("S119 work status control (R119.1, R119.2, R119.4)", () => {
           available: false,
           record: null,
           history: [],
+          notes: [],
           currentCycleId: undefined,
         }}
       />,
@@ -327,7 +362,6 @@ describe("S119 work status control (R119.1, R119.2, R119.4)", () => {
     expect(within(info).getByText(/could not be read/i)).toBeVisible();
     expect(within(info).queryByText("Not recorded")).toBeNull();
     expect(within(info).getByLabelText("Work status (recorded by staff)")).toBeDisabled();
-    expect(within(info).getByRole("button", { name: "Save status" })).toBeDisabled();
     unmount();
 
     // Every current role carries edit; the control still fails closed when authority is absent.
@@ -339,12 +373,13 @@ describe("S119 work status control (R119.1, R119.2, R119.4)", () => {
           available: true,
           record: savedRecord(),
           history: [],
+          notes: [],
           currentCycleId: null,
         }}
       />,
     );
     expect(screen.getByLabelText("Work status (recorded by staff)")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Save status" })).toBeDisabled();
+    expect(screen.getByLabelText("Add a note")).toBeDisabled();
     expect(screen.getByText(/Editor access/)).toBeVisible();
     expect(screen.getByTestId("renewal-work-status-saved")).toHaveTextContent(
       "Waiting on owner response",

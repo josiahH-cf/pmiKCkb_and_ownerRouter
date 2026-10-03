@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       renewalRoleCapability("read_workspace"),
       "renewals",
     );
-    assertRenewalRoleAuthority("execute_source_write", user.role);
+    assertRenewalRoleAuthority("execute_retired_generic_writeback", user.role);
     const descriptor = requireEnvironmentDescriptor();
     const executionContext = { descriptor };
 

@@ -1,5 +1,6 @@
 "use client";
 import { useRenewalSaveFocus } from "./RenewalSaveFocus";
+import { AUTOSAVE_IDLE, AutosaveStatus, type AutosaveState } from "./AutosaveStatus";
 import { formatCalendarDateOrTimestamp } from "@/lib/date-display";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -8,7 +9,10 @@ import { useRouter } from "next/navigation";
 import { Button, Field } from "@/components/ui";
 import { parseCurrencyInput, parseOptionalCurrencyInput } from "@/lib/currency-input";
 import type { RenewalMarketBasis } from "@/lib/lease-renewal/renewal-progress";
-import type { RenewalWorkspaceAction } from "@/lib/lease-renewal/workspace-state";
+import {
+  STAFF_RECORD_SOURCE,
+  type RenewalWorkspaceAction,
+} from "@/lib/lease-renewal/workspace-state";
 import {
   RENTCAST_QUERY_POLICY,
   type MarketCompQueryBasis,
@@ -276,7 +280,8 @@ export function OwnerDecisionForm({
   /** S118: the server-resolved comparison subject; used in preparation mode only. */
   marketSubject?: MarketSubjectProjection | null;
   preparation?: {
-    cycleId: string;
+    /** Null until the first save establishes this lease's work record. */
+    cycleId: string | null;
     market?: RenewalMarketBasis;
     source?: string;
     analysisReference?: string;
@@ -284,12 +289,19 @@ export function OwnerDecisionForm({
     onSave: (
       action: Extract<RenewalWorkspaceAction, { kind: "preparation" }>,
     ) => Promise<void>;
+    /** S155: the saving / saved / failed state of this lease's preparation record. */
+    saveState?: AutosaveState;
   };
 }>) {
   const router = useRouter();
   const focusAfterSave = useRenewalSaveFocus();
   const currentMarket = preparation?.market ?? current?.market;
-  const [preparationSource, setPreparationSource] = useState(preparation?.source ?? "");
+  // A preparation saved without notes carries the default source; the field stays empty.
+  const [preparationSource, setPreparationSource] = useState(
+    preparation?.source && preparation.source !== STAFF_RECORD_SOURCE
+      ? preparation.source
+      : "",
+  );
   const [analysisReference, setAnalysisReference] = useState(
     preparation?.analysisReference ?? "",
   );
@@ -978,11 +990,8 @@ export function OwnerDecisionForm({
     rangeHighParsed.ok &&
     pmiNumberParsed.ok;
 
-  const preparationReady =
-    rangeLowParsed.ok &&
-    rangeHighParsed.ok &&
-    pmiNumberParsed.ok &&
-    Boolean(preparationSource.trim());
+  // S156/S157: the comparison source is optional context, never a prerequisite.
+  const preparationReady = rangeLowParsed.ok && rangeHighParsed.ok && pmiNumberParsed.ok;
   // S118 (R118.5): the report links open RentCast's own report for the resolved subject with
   // the radius a new lookup would use. They stay available when a lookup fails.
   const radiusForLinks = Number(maxRadiusMiles);
@@ -1002,67 +1011,104 @@ export function OwnerDecisionForm({
     : null;
   const originHint = (key: FigureKey) =>
     preparing && origins[key] !== "none" ? FIGURE_ORIGIN_HINTS[origins[key]] : undefined;
+  // S155: comparison preparation saves by itself. Each completed valid figure is saved when
+  // focus leaves the form's fields; a figure still being typed, or one that does not parse, stays
+  // in its field and the last valid figure is kept in the saved record. There is no Save button.
+  const lastValid = useRef<{
+    rangeLow: number | undefined;
+    rangeHigh: number | undefined;
+    pmiNumber: number | undefined;
+  } | null>(null);
+  const lastSavedSignature = useRef<string | null>(null);
+  const unsavedRef = useRef(false);
+  const autosaveLatest = useRef<((force?: boolean) => Promise<void>) | null>(null);
+  const markUnsaved = () => {
+    unsavedRef.current = true;
+  };
+  function preparationAction(): Extract<
+    RenewalWorkspaceAction,
+    { kind: "preparation" }
+  > | null {
+    if (!preparation) return null;
+    lastValid.current ??= {
+      rangeLow: rangeLowParsed.ok ? rangeLowParsed.value : undefined,
+      rangeHigh: rangeHighParsed.ok ? rangeHighParsed.value : undefined,
+      pmiNumber: pmiNumberParsed.ok ? pmiNumberParsed.value : undefined,
+    };
+    if (rangeLowParsed.ok) lastValid.current.rangeLow = rangeLowParsed.value;
+    if (rangeHighParsed.ok) lastValid.current.rangeHigh = rangeHighParsed.value;
+    if (pmiNumberParsed.ok) lastValid.current.pmiNumber = pmiNumberParsed.value;
+    const figures = lastValid.current;
+    // S118: the basis is derived from where each figure actually came from.
+    const rangeBasis =
+      figures.rangeLow !== undefined && figures.rangeHigh !== undefined
+        ? rangeBasisFor(
+            originRef.current.rangeLow,
+            originRef.current.rangeHigh,
+            preparation.market?.rangeBasis,
+          )
+        : undefined;
+    const recommendationBasis =
+      figures.pmiNumber !== undefined
+        ? recommendationBasisFor(
+            originRef.current.pmiNumber,
+            preparation.market?.recommendationBasis,
+          )
+        : undefined;
+    return {
+      kind: "preparation",
+      ...(preparationSource.trim() ? { source: preparationSource.trim() } : {}),
+      ...(rangeBasis ? { rangeBasis } : {}),
+      ...(recommendationBasis ? { recommendationBasis } : {}),
+      ...(figures.rangeLow !== undefined ? { rangeLow: figures.rangeLow } : {}),
+      ...(figures.rangeHigh !== undefined ? { rangeHigh: figures.rangeHigh } : {}),
+      ...(figures.pmiNumber !== undefined ? { pmiNumber: figures.pmiNumber } : {}),
+      ...(compLookup?.observationId && compLookup.confidence === "Likely"
+        ? { observationId: compLookup.observationId }
+        : {}),
+      ...(trendLookup?.observationId
+        ? { trendObservationId: trendLookup.observationId }
+        : {}),
+      ...(analysisReference.trim()
+        ? { analysisReference: analysisReference.trim() }
+        : {}),
+    };
+  }
+  async function autosavePreparation(force = false) {
+    if (!preparation || (!force && !unsavedRef.current)) return;
+    const action = preparationAction();
+    if (!action) return;
+    const signature = JSON.stringify(action);
+    if (!force && signature === lastSavedSignature.current) {
+      unsavedRef.current = false;
+      return;
+    }
+    unsavedRef.current = false;
+    setError("");
+    try {
+      await preparation.onSave(action);
+      lastSavedSignature.current = signature;
+    } catch {
+      // The shared status line reports the failure and offers the retry; the entry is kept.
+      unsavedRef.current = true;
+    }
+  }
+  useEffect(() => {
+    autosaveLatest.current = autosavePreparation;
+  });
+  // A finished lookup links its retained evidence and the starting figures it supplied. The save
+  // runs after the render that holds them, so it carries the observation ids and the figures.
+  const lookupKey = `${compLookup?.observationId ?? ""}:${trendLookup?.observationId ?? ""}`;
+  const savedLookupKey = useRef(lookupKey);
+  useEffect(() => {
+    if (!preparing || lookupKey === savedLookupKey.current) return;
+    savedLookupKey.current = lookupKey;
+    unsavedRef.current = true;
+    void autosaveLatest.current?.();
+  }, [lookupKey, preparing]);
   async function submit() {
     if (preparation) {
-      if (
-        !preparationReady ||
-        !rangeLowParsed.ok ||
-        !rangeHighParsed.ok ||
-        !pmiNumberParsed.ok
-      )
-        return;
-      setPending(true);
-      setError("");
-      setSaved(false);
-      // S118: the basis is derived from where each figure actually came from.
-      const rangeBasis =
-        rangeLowParsed.value !== undefined && rangeHighParsed.value !== undefined
-          ? rangeBasisFor(
-              originRef.current.rangeLow,
-              originRef.current.rangeHigh,
-              preparation.market?.rangeBasis,
-            )
-          : undefined;
-      const recommendationBasis =
-        pmiNumberParsed.value !== undefined
-          ? recommendationBasisFor(
-              originRef.current.pmiNumber,
-              preparation.market?.recommendationBasis,
-            )
-          : undefined;
-      try {
-        await preparation.onSave({
-          kind: "preparation",
-          source: preparationSource,
-          ...(rangeBasis ? { rangeBasis } : {}),
-          ...(recommendationBasis ? { recommendationBasis } : {}),
-          ...(rangeLowParsed.value !== undefined
-            ? { rangeLow: rangeLowParsed.value }
-            : {}),
-          ...(rangeHighParsed.value !== undefined
-            ? { rangeHigh: rangeHighParsed.value }
-            : {}),
-          ...(pmiNumberParsed.value !== undefined
-            ? { pmiNumber: pmiNumberParsed.value }
-            : {}),
-          ...(compLookup?.observationId && compLookup.confidence === "Likely"
-            ? { observationId: compLookup.observationId }
-            : {}),
-          ...(trendLookup?.observationId
-            ? { trendObservationId: trendLookup.observationId }
-            : {}),
-          ...(analysisReference.trim()
-            ? { analysisReference: analysisReference.trim() }
-            : {}),
-        });
-        setSaved(true);
-      } catch (error) {
-        setError(
-          error instanceof Error ? error.message : "Preparation could not be saved.",
-        );
-      } finally {
-        setPending(false);
-      }
+      await autosavePreparation(true);
       return;
     }
     if (!ready || !offeredRentParsed.ok) {
@@ -1205,7 +1251,18 @@ export function OwnerDecisionForm({
   }
 
   return (
-    <div className="ui-stack">
+    <div
+      className="ui-stack"
+      onBlur={
+        preparation
+          ? (event) => {
+              if (event.target instanceof HTMLButtonElement) return;
+              void autosavePreparation();
+            }
+          : undefined
+      }
+      onChange={preparation ? markUnsaved : undefined}
+    >
       {!preparation ? (
         <>
           <Field htmlFor={id.decision} label="Owner decision" required>
@@ -1682,9 +1739,8 @@ export function OwnerDecisionForm({
         <>
           <Field
             htmlFor={`${id.rangeLow}-source`}
-            label="Source of the comparison and review notes"
-            hint="Required to save comparison preparation. Identify the actual listings, report, or review supporting your numbers."
-            required
+            label="Source of the comparison and review notes (optional)"
+            hint="The listings, report or review supporting your numbers, when you want it on record."
           >
             <input
               id={`${id.rangeLow}-source`}
@@ -1713,29 +1769,41 @@ export function OwnerDecisionForm({
           ) : null}
         </>
       ) : null}
-      <div className="ui-row">
-        <Button
-          disabled={pending || (preparation ? !preparationReady : !ready)}
-          onClick={() => void submit()}
-          type="button"
-        >
-          {pending
-            ? "Saving…"
-            : preparation
-              ? "Save comp preparation"
-              : current
-                ? "Update owner decision"
-                : "Record owner decision"}
-        </Button>
-      </div>
-      {error ? <p className="muted">{error}</p> : null}
-      {saved && !error ? (
-        <p className="muted">
-          {preparation
-            ? "Preparation saved and read back. Owner approval remains separate."
-            : "Decision recorded. The tenant offer is ready below."}
-        </p>
-      ) : null}
+      {preparation ? (
+        <>
+          {!preparationReady ? (
+            <p className="muted">
+              Enter money as 1500 or $1,500.00. A figure that is still being typed stays
+              in its field and the other figures save.
+            </p>
+          ) : null}
+          <AutosaveStatus
+            onRetry={() => void autosavePreparation(true)}
+            state={preparation.saveState ?? AUTOSAVE_IDLE}
+            subject="comparison preparation"
+          />
+        </>
+      ) : (
+        <>
+          <div className="ui-row">
+            <Button
+              disabled={pending || !ready}
+              onClick={() => void submit()}
+              type="button"
+            >
+              {pending
+                ? "Saving…"
+                : current
+                  ? "Update owner decision"
+                  : "Record owner decision"}
+            </Button>
+          </div>
+          {error ? <p className="muted">{error}</p> : null}
+          {saved && !error ? (
+            <p className="muted">Decision recorded. The tenant offer is ready below.</p>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }

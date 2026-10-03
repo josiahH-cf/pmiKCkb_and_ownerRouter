@@ -58,9 +58,10 @@ function input(overrides = {}) {
     changedPaths: ["lib/lease-renewal/meeting-walkthrough.ts"],
     foundationPresent: true,
     queue: parseAwaitingReleaseQueue(LOOP_STATE),
+    // S159: both env files stage the reviewed candidate value for the operating-Sheet switch.
     envFlags: {
-      ".env.local:LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED": "false",
-      ".env.production.local:LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED": "false",
+      ".env.local:LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED": "true",
+      ".env.production.local:LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED": "true",
       ".env.local:ASK_DEMO_MODE": "false",
       ".env.production.local:ASK_DEMO_MODE": "false",
     },
@@ -196,21 +197,21 @@ describe("batched release preflight: the stale checkpoint that would split the b
 });
 
 describe("batched release preflight: safety and owner inputs", () => {
-  it("blocks a release that would carry the operating-Sheet write flag enabled", () => {
+  it("blocks a release whose operating-Sheet switch differs from the reviewed candidate value", () => {
     const result = evaluateBatchPreflight(
       input({
         envFlags: {
-          ".env.local:LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED": "false",
-          ".env.production.local:LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED": "true",
+          ".env.local:LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED": "true",
+          ".env.production.local:LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED": "false",
           ".env.local:ASK_DEMO_MODE": "false",
         },
       }),
     );
     expect(result.verdict).toBe("not_ready");
-    expect(checkOf(result, "sheet_pause").state).toBe("blocked");
-    expect(checkOf(result, "sheet_pause").detail).toMatch(/ENABLED/);
+    expect(checkOf(result, "sheet_switch").state).toBe("blocked");
+    expect(checkOf(result, "sheet_switch").detail).toMatch(/DIFFERS/);
     expect(result.ownerActions.join(" ")).toMatch(
-      /LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=false/,
+      /LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true/,
     );
   });
 
@@ -285,7 +286,7 @@ describe("batched release preflight: safety and owner inputs", () => {
   ])("refuses unknown or incomplete batch prerequisite %j", (change) => {
     expect(evaluateBatchPreflight(input(change)).verdict).not.toBe("go");
   });
-  it("requires a nonempty, ordered, unique, ancestral queue and both explicit false env files", () => {
+  it("requires a nonempty, ordered, unique, ancestral queue and both env files at the exact reviewed value", () => {
     const ready = input();
     for (const queue of [
       ready.queue.slice(1),
@@ -294,7 +295,7 @@ describe("batched release preflight: safety and owner inputs", () => {
       ready.queue.map((row, i) => (i ? row : { ...row, commits: [] })),
     ])
       expect(evaluateBatchPreflight(input({ queue })).verdict).not.toBe("go");
-    for (const invalid of [undefined, "", "FALSE", " true "]) {
+    for (const invalid of [undefined, "", "TRUE", " true ", "false"]) {
       const envFlags = {
         ...ready.envFlags,
         ".env.local:LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED": invalid,

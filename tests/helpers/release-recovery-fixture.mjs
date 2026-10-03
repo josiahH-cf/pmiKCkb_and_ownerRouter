@@ -2,14 +2,41 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { writeReceipt } from "../../scripts/production-assurance-receipts.mjs";
 import {
-  pausedPredecessorTemplate,
   RECOVERY_BASELINE_SCHEMA,
   recoveryReference,
   recoveryHash,
 } from "../../scripts/release-recovery.mjs";
 import { fingerprintRevisionRuntimeConfiguration as fingerprint } from "../../lib/production-assurance/revision-fingerprint.mjs";
 
+export const SHEET_FLAG = "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED";
+
+/** Replace (value string) or remove (value null) the operating-Sheet switch on every container. */
+export function setSheetWriteback(revision, value) {
+  for (const container of revision.containers) {
+    const rest = (container.env ?? []).filter((entry) => entry.name !== SHEET_FLAG);
+    container.env = value === null ? rest : [...rest, { name: SHEET_FLAG, value }];
+  }
+  return revision;
+}
+
+/**
+ * S159: the captured predecessor carries its ACTUAL operating-Sheet switch value and the prepared
+ * recovery target preserves it.
+ *
+ * - `predecessorSheetWriteback`: "false" (default, the production truth at the S159 release),
+ *   "true" (a later release whose predecessor already runs enabled) or null (no entry at all).
+ * - `legacyPausedReceipt`: the historical S128 shape, where the tooling forced the recovery target
+ *   to false and recorded `sheet_writeback_false_and_revision_identity`. Such receipts must still
+ *   parse and keep their original meaning.
+ */
 export function recoveryFixture(root, options = {}) {
+  const legacy = options.legacyPausedReceipt === true;
+  const predecessorSheetWriteback =
+    options.predecessorSheetWriteback === undefined
+      ? legacy
+        ? "true"
+        : "false"
+      : options.predecessorSheetWriteback;
   const runId = randomUUID();
   const sha = "a".repeat(40),
     originalSha = "c".repeat(40);
@@ -40,7 +67,9 @@ export function recoveryFixture(root, options = {}) {
             name: "PRIVATE_BINDING",
             valueSource: { secretKeyRef: { secret: "binding", version: "1" } },
           },
-          { name: "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED", value: "true" },
+          ...(predecessorSheetWriteback === null
+            ? []
+            : [{ name: SHEET_FLAG, value: predecessorSheetWriteback }]),
         ],
         resources: { limits: { cpu: "1", memory: "512Mi" } },
         ports: [{ containerPort: 8080 }],
@@ -59,12 +88,14 @@ export function recoveryFixture(root, options = {}) {
     conditions: [{ type: "Ready", state: "CONDITION_SUCCEEDED" }],
     reconciling: false,
   };
-  const paused = pausedPredecessorTemplate(
-    source,
-    target,
-    source.containers.map((c) => c.image),
-  );
-  const recovered = { ...paused.expected, name: `${parent}/revisions/${target}` };
+  // Built independently of the function under test: the recovery target is the predecessor's
+  // complete configuration under a new revision identity. Only the historical S128 shape rewrote
+  // the switch to false.
+  const recovered = {
+    ...structuredClone(source),
+    name: `${parent}/revisions/${target}`,
+  };
+  if (legacy) setSheetWriteback(recovered, "false");
   const originalBaseline = {
     legacyException: null,
     browserPolicy: "owner-admin-2026-09-10",
@@ -118,7 +149,12 @@ export function recoveryFixture(root, options = {}) {
     targetRevision: target,
     targetFingerprint: fingerprint(recovered),
     imageDigests: source.containers.map((c) => c.image),
-    allowedDifference: "sheet_writeback_false_and_revision_identity",
+    ...(legacy
+      ? { allowedDifference: "sheet_writeback_false_and_revision_identity" }
+      : {
+          allowedDifference: "revision_identity_only",
+          predecessorSheetWriteback,
+        }),
     tag,
     tagOrigin,
     tagPreviousRevision: original,
@@ -236,6 +272,7 @@ export function recoveryFixture(root, options = {}) {
     client,
     source,
     recovered,
+    predecessorSheetWriteback,
     candidate,
     original,
     target,

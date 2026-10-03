@@ -47,18 +47,26 @@ describe("S113 typed Sheet rent source", () => {
   it.each(["No", "Yes, completed", "unknown", "$0", "-1"])(
     "keeps %s as missing rent evidence rather than a pricing conflict",
     async (value) => {
+      const agree = await desk("$1,250");
+      clearLiveLeaseCache();
       const row = await desk(value);
-      expect(row.guidance.overallStatus).toBe("needs_verification");
+      // S157 (8a3f929d): a missing or unreadable Sheet rent is advisory evidence beside the
+      // RentVine amount. It neither coerces the rent nor changes the lease's overall status.
       expect(row.guidance.rentVerification.state).toBe("needs_verification");
       expect(row.guidance.currentBaseRent).toBe(1250);
+      expect(row.guidance.overallStatus).toBe(agree.guidance.overallStatus);
+      expect(row.guidance.overallStatus).not.toBe("blocked");
     },
   );
-  it("retains a valid comparison and an actual numeric disagreement", async () => {
+  it("retains a valid comparison and an actual numeric disagreement as advisory evidence", async () => {
     const agree = await desk("$1,250");
     expect(agree.guidance.rentVerification.state).toBe("verified");
     clearLiveLeaseCache();
     const conflict = await desk("$1,400");
     expect(conflict.guidance.rentVerification.state).toBe("needs_verification");
     expect(conflict.guidance.currentBaseRent).toBe(1250);
+    // S157: the numeric difference is shown, never used to withhold work.
+    expect(conflict.guidance.overallStatus).toBe(agree.guidance.overallStatus);
+    expect(conflict.guidance.isBlocked).toBe(false);
   });
 });

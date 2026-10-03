@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
@@ -11,7 +11,7 @@ import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-messa
 import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 
 // S120 (R120.1): preparation is mounted before the later response for both audiences, the
-// outreach/delivery record precedes the response record, and earlier-cycle evidence sits in a
+// outreach/delivery record precedes the response record, and earlier Gmail attempts sit in a
 // secondary disclosure. Order is proven from the actual DOM, not from headings alone.
 
 afterEach(() => {
@@ -49,7 +49,9 @@ function preparation(channel: "owner" | "tenant") {
       attachments: [],
     },
     sourceFingerprint: "a".repeat(64),
-    needsReview: true,
+    bodyBaseHash: "b".repeat(64),
+    bodyOverride: null,
+    subjectOverride: null,
     signatureMatchesActor: false,
     publication: { status: "unpublished", reason: "Exact publication pending." },
     notices: [],
@@ -89,6 +91,11 @@ function stubFetch() {
   );
 }
 
+/** S152: the lease opens in Focus view; these are Full view order checks, so show Full view. */
+function showFullView() {
+  fireEvent.click(screen.getByRole("button", { name: "Full view" }));
+}
+
 function precedes(first: Element, second: Element) {
   return Boolean(
     first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -111,6 +118,7 @@ describe("S120 downstream chronology", () => {
         )}
       />,
     );
+    showFullView();
     const owner = screen.getByRole("region", { name: "Owner approval" });
     const ownerPreparation = await within(owner).findByRole("region", {
       name: "Owner message preparation",
@@ -145,7 +153,7 @@ describe("S120 downstream chronology", () => {
     expect(precedes(tenantResponse, formSent)).toBe(true);
   });
 
-  it("AC-S120-1: earlier-cycle Gmail attempts stay available inside a secondary disclosure that is not the current instruction", async () => {
+  it("AC-S120-1: earlier Gmail attempts stay available inside a secondary disclosure that is not the current instruction", async () => {
     stubFetch();
     const workspace = getRenewalLeaseWorkspace("lease-318-cedar-7")!;
     render(
@@ -160,18 +168,22 @@ describe("S120 downstream chronology", () => {
         )}
       />,
     );
+    showFullView();
     const owner = screen.getByRole("region", { name: "Owner approval" });
     const ownerPreparation = await within(owner).findByRole("region", {
       name: "Owner message preparation",
     });
     const recovery = within(ownerPreparation).getByRole("button", {
-      name: "Recover earlier-cycle Gmail attempt",
+      name: "Recover earlier Gmail attempt",
     });
     const disclosure = recovery.closest("details");
     expect(disclosure).not.toBeNull();
     expect(disclosure).not.toHaveAttribute("open");
     expect(disclosure!.querySelector("summary")).toHaveTextContent(
-      /earlier renewal cycle/i,
+      "Earlier Gmail attempts for this lease (1)",
+    );
+    expect(disclosure).toHaveTextContent(
+      "Earlier work record: Needs reconciliation. This attempt remains separate from the current message.",
     );
     // The current copy and draft groups are their own labeled groups, adjacent to their links.
     expect(

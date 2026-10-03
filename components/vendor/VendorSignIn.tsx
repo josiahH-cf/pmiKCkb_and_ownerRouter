@@ -14,6 +14,37 @@ import {
 
 import { getFirebaseClientAuth, hasFirebaseBrowserConfig } from "@/lib/firebase/client";
 
+// S165: plain, actionable copy for a failed Vendor sign-in. The sign-in provider's own error text
+// names internal codes a person cannot act on, so it is never shown. A message written by this app
+// or its server (an error without a provider code) is shown as written.
+function vendorSignInFailureMessage(error: unknown, fallback: string) {
+  const code =
+    typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code?: unknown }).code)
+      : "";
+
+  switch (code) {
+    case "auth/invalid-credential":
+    case "auth/invalid-email":
+    case "auth/user-not-found":
+    case "auth/wrong-password":
+      return "That email and password did not match a Vendor account. Check both, then try again.";
+    case "auth/invalid-verification-code":
+    case "auth/code-expired":
+      return "That code did not match. Enter the current six-digit code from your authenticator app.";
+    case "auth/too-many-requests":
+      return "Sign-in is paused after several attempts. Wait a few minutes, then try again.";
+    case "auth/network-request-failed":
+      return "Sign-in could not connect. Check your connection, then try again.";
+    case "auth/user-disabled":
+      return "This Vendor account is turned off. Contact PMI KC for help.";
+    case "":
+      return error instanceof Error && error.message ? error.message : fallback;
+    default:
+      return fallback;
+  }
+}
+
 export function VendorSignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -72,7 +103,12 @@ export function VendorSignIn() {
         setMessage("Enter the six-digit code from your authenticator app.");
         return;
       }
-      setMessage(error instanceof Error ? error.message : "Vendor sign-in failed.");
+      setMessage(
+        vendorSignInFailureMessage(
+          error,
+          "Vendor sign-in did not finish. Check your details, then try again.",
+        ),
+      );
     }
   }
 
@@ -112,7 +148,12 @@ export function VendorSignIn() {
         );
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "The TOTP code was rejected.");
+      setMessage(
+        vendorSignInFailureMessage(
+          error,
+          "That code was not accepted. Enter the current six-digit code, then try again.",
+        ),
+      );
     }
   }
 
@@ -124,9 +165,14 @@ export function VendorSignIn() {
           <label>
             Verified Vendor email
             <input
+              autoCapitalize="none"
               autoComplete="username"
+              autoCorrect="off"
+              inputMode="email"
               onChange={(event) => setEmail(event.target.value)}
               required
+              spellCheck={false}
+              type="email"
               value={email}
             />
           </label>

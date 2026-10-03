@@ -2,32 +2,35 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import type { AuthenticatedUser } from "@/lib/auth/session";
+import { AuthError, type AuthenticatedUser } from "@/lib/auth/session";
 import type { WorkflowRunRecord } from "@/lib/firestore/types";
 import {
+  assertWorkflowRunAccess,
   canAccessWorkflowRun,
   filterWorkflowRunsForUser,
 } from "@/lib/space-scope-resources";
 
+// S167: every authenticated internal staff account has every existing internal Space, so a
+// workflow run is open to staff whatever Space it is stamped with. The three accounts below used
+// to hold a maintenance-only allowlist, a renewals-only allowlist and no allowlist.
 const maintenanceUser: AuthenticatedUser = {
   uid: "maintenance-editor",
   email: "maintenance-editor@pmikcmetro.com",
   hd: "pmikcmetro.com",
   role: "Editor",
-  scopes: ["maintenance"],
 };
 const renewalUser: AuthenticatedUser = {
   ...maintenanceUser,
   uid: "renewal-editor",
   email: "renewal-editor@pmikcmetro.com",
-  scopes: ["renewals"],
 };
-const wildcardUser: AuthenticatedUser = {
+const approverUser: AuthenticatedUser = {
   ...maintenanceUser,
-  uid: "wildcard-editor",
-  email: "wildcard-editor@pmikcmetro.com",
-  scopes: undefined,
+  uid: "approver",
+  email: "approver@pmikcmetro.com",
+  role: "Approver",
 };
+const staff = [maintenanceUser, renewalUser, approverUser];
 
 function run(
   definition_id: string,
@@ -56,59 +59,54 @@ function workflowRun(
 }
 
 describe("workflow-run Space binding", () => {
-  it("authorizes a custom definition through the exact Space stamped on its run", () => {
-    expect(
-      canAccessWorkflowRun(
-        maintenanceUser,
-        run("custom-def", "maintenance-work-order-intake"),
-      ),
-    ).toBe(true);
-    expect(
-      canAccessWorkflowRun(
-        renewalUser,
-        run("custom-def", "maintenance-work-order-intake"),
-      ),
-    ).toBe(false);
+  // S167: each of these used to be refused to the account whose allowlist missed the run's Space.
+  it.each([
+    [
+      "a custom definition's run stamped with the Maintenance Space",
+      run("custom-def", "maintenance-work-order-intake"),
+    ],
+    [
+      "a run whose stamped Space conflicts with its launch-definition mapping",
+      run("lease-renewal", "maintenance-work-order-intake"),
+    ],
+    ["a legacy unstamped run of the Lease Renewal definition", run("lease-renewal")],
+    ["a legacy unstamped run of a custom definition", run("custom-def")],
+    ["a run stamped with an unmapped Space", run("custom-def", "unknown")],
+  ])("opens %s to every staff account", (_label, target) => {
+    for (const user of staff) {
+      expect(canAccessWorkflowRun(user, target)).toBe(true);
+      expect(() => assertWorkflowRunAccess(user, target)).not.toThrow();
+    }
   });
 
-  it("prefers run.space_id over a conflicting launch-definition mapping", () => {
-    expect(
-      canAccessWorkflowRun(
-        maintenanceUser,
-        run("lease-renewal", "maintenance-work-order-intake"),
-      ),
-    ).toBe(true);
-    expect(
-      canAccessWorkflowRun(
-        renewalUser,
-        run("lease-renewal", "maintenance-work-order-intake"),
-      ),
-    ).toBe(false);
+  it("still refuses a run to an actor that carries no identity", () => {
+    const anonymous: AuthenticatedUser = { ...maintenanceUser, uid: "" };
+
+    for (const target of [
+      run("custom-def", "maintenance-work-order-intake"),
+      run("lease-renewal"),
+      run("custom-def", "unknown"),
+    ]) {
+      expect(canAccessWorkflowRun(anonymous, target)).toBe(false);
+      expect(() => assertWorkflowRunAccess(anonymous, target)).toThrow(AuthError);
+    }
   });
 
-  it("falls back to the definition mapping only for legacy unstamped runs", () => {
-    expect(canAccessWorkflowRun(renewalUser, run("lease-renewal"))).toBe(true);
-    expect(canAccessWorkflowRun(maintenanceUser, run("lease-renewal"))).toBe(false);
-  });
-
-  it("denies an unmapped stamped Space to scoped users", () => {
-    expect(canAccessWorkflowRun(maintenanceUser, run("custom-def", "unknown"))).toBe(
-      false,
-    );
-  });
-
-  it("preserves the historical unscoped wildcard behavior", () => {
-    expect(canAccessWorkflowRun(wildcardUser, run("custom-def", "unknown"))).toBe(true);
-  });
-
-  it("filters mixed runs using the exact binding and keeps both API routes fenced", () => {
+  it("returns every mixed run to a staff account and keeps both API routes fenced", () => {
     const runs = [
-      workflowRun("allowed", "custom-def", "maintenance-work-order-intake"),
-      workflowRun("denied", "lease-renewal", "lease-renewals"),
+      workflowRun("maintenance-run", "custom-def", "maintenance-work-order-intake"),
+      workflowRun("renewals-run", "lease-renewal", "lease-renewals"),
+      workflowRun("unmapped-run", "custom-def", "unknown"),
     ];
+    // S167: the Renewals and unmapped runs used to be filtered out for a maintenance-only account.
     expect(
       filterWorkflowRunsForUser(maintenanceUser, runs).map((item) => item.id),
-    ).toEqual(["allowed"]);
+    ).toEqual(["maintenance-run", "renewals-run", "unmapped-run"]);
+    expect(
+      filterWorkflowRunsForUser({ ...maintenanceUser, uid: "" }, runs).map(
+        (item) => item.id,
+      ),
+    ).toEqual([]);
 
     for (const route of [
       "app/api/workflow-runs/[runId]/route.ts",

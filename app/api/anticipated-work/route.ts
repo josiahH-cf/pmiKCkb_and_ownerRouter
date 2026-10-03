@@ -5,7 +5,6 @@ import { can } from "@/lib/auth/roles";
 import { hasSpaceAccess, requireCapability } from "@/lib/auth/session";
 import { listProcessDefinitions } from "@/lib/firestore/workflows";
 import { loadLiveRenewalDesk } from "@/lib/lease-renewal/live-desk";
-import { launchSpaces } from "@/lib/spaces";
 
 // S147: Anticipated work moved from the Dashboard to Internal Processes (owner decision
 // 2026-10-01). Internal Processes computes it only when someone asks, from the same read-only
@@ -38,25 +37,8 @@ export async function GET() {
       ),
       listProcessDefinitions(user).catch(() => []),
     ]);
-    // The same scoping the Dashboard applied: a Space-scoped user starts only visible processes.
-    const visibleDefinitionIds = new Set(
-      launchSpaces
-        .filter(
-          (space) =>
-            space.showInDirectory !== false &&
-            (user.scopes === undefined ||
-              (space.scope !== undefined && hasSpaceAccess(user, space.scope))),
-        )
-        .flatMap((space) =>
-          space.processDefinitionId ? [space.processDefinitionId] : [],
-        ),
-    );
     const startable = definitions
-      .filter(
-        (definition) =>
-          definition.status !== "Retired" &&
-          (user.scopes === undefined || visibleDefinitionIds.has(definition.id)),
-      )
+      .filter((definition) => definition.status !== "Retired")
       .map((definition) => definition.id);
     const body =
       desk.status === "ok"

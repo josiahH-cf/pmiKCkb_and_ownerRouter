@@ -12,13 +12,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { recoveryFixture } from "../helpers/release-recovery-fixture.mjs";
 import { writeReceipt } from "../../scripts/production-assurance-receipts.mjs";
+import { revisionCarriesSheetWriteback } from "../../lib/production-assurance/sheet-writeback-expectation.mjs";
 import {
   executeSafeRecovery,
   prepareRecoveryBaseline,
-  pausedPredecessorTemplate,
+  predecessorActualTemplate,
   readRecoveryBaseline,
   recoveryReference,
-  revisionSheetPaused,
   verifyRecoveryAvailability,
 } from "../../scripts/release-recovery.mjs";
 const roots = [];
@@ -41,7 +41,9 @@ const recover = (h, dependencies = {}) =>
     ...dependencies,
   });
 
-describe("shared receipt-bound paused recovery", () => {
+// S159: the recovery target keeps the captured predecessor's actual configuration. The default
+// fixture predecessor reads Sheet=false, the production truth at the S159 release.
+describe("shared receipt-bound predecessor recovery", () => {
   describe.each(["prepare", "recover"])("%s release ownership", (mode) => {
     function setup() {
       const h = fixture(
@@ -349,14 +351,14 @@ describe("shared receipt-bound paused recovery", () => {
   it("refuses unknown configuration, mutable images and duplicate Sheet flags", () => {
     const h = fixture();
     expect(() =>
-      pausedPredecessorTemplate(
+      predecessorActualTemplate(
         { ...h.source, futureSecurityControl: "x" },
         h.target,
         h.receipt.imageDigests,
       ),
     ).toThrow("recovery_unmapped_configuration_field");
     expect(() =>
-      pausedPredecessorTemplate(h.source, h.target, ["registry.invalid/image:tag"]),
+      predecessorActualTemplate(h.source, h.target, ["registry.invalid/image:tag"]),
     ).toThrow("recovery_digest_required");
     const duplicate = structuredClone(h.source);
     duplicate.containers[0].env.push({
@@ -364,18 +366,23 @@ describe("shared receipt-bound paused recovery", () => {
       value: "false",
     });
     expect(() =>
-      pausedPredecessorTemplate(duplicate, h.target, h.receipt.imageDigests),
+      predecessorActualTemplate(duplicate, h.target, h.receipt.imageDigests),
     ).toThrow("recovery_sheet_flag_ambiguous");
   });
   it.each(["true", "FALSE", undefined])(
-    "refuses unsafe/missing target flag %s before any recovery mutation",
+    "refuses a target flag %s that differs from the predecessor's false before any recovery mutation",
     async (flag) => {
       const h = fixture({ prepared: true, serving: "pmi-kc-app-candidate-isolated" });
       h.state.revisions.get(h.target).containers[0].env =
         flag === undefined
           ? []
           : [{ name: "LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED", value: flag }];
-      expect(revisionSheetPaused(h.state.revisions.get(h.target))).toBe(false);
+      expect(
+        revisionCarriesSheetWriteback(
+          h.state.revisions.get(h.target),
+          h.receipt.predecessorSheetWriteback,
+        ),
+      ).toBe(false);
       await expect(recover(h)).rejects.toThrow("recovery_target_unverified");
       expect(h.state.patches).toHaveLength(0);
     },

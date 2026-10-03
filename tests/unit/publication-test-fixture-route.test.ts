@@ -82,13 +82,41 @@ describe("ordinary trusted-publication route after fixture retirement", () => {
     expect(envelope?.metadata).not.toHaveProperty("data_mode", "test");
   });
 
-  it("refuses an out-of-scope Editor before policy or publication construction", async () => {
+  // S167: a maintenance-only claim used to refuse this Renewals publication with a 403 before the
+  // policy was read. The claim is ignored and the request publishes as a claim-free Editor.
+  it("publishes Renewals content for an Editor with a leftover maintenance-only claim", async () => {
     setAuthResolverForTest(() => ({
       email: "editor@pmikcmetro.com",
       hd: "pmikcmetro.com",
       role: "Editor",
       scopes: ["maintenance"],
       uid: "editor-1",
+    }));
+    const admitted = {
+      email: "editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+      uid: "editor-1",
+    };
+
+    const response = await POST(request(), context());
+
+    expect(response.status).toBe(201);
+    expect(resolvePublicationPolicyForSpace).toHaveBeenCalledWith(
+      admitted,
+      "lease-renewals",
+      "policy-live-1",
+    );
+    expect(publishTrustedContent).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(publishTrustedContent).mock.calls[0]?.[0]).toEqual(admitted);
+  });
+
+  it("refuses a verification account before policy or publication construction", async () => {
+    setAuthResolverForTest(() => ({
+      email: "canary-editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+      uid: "canary-editor",
     }));
 
     const response = await POST(request(), context());

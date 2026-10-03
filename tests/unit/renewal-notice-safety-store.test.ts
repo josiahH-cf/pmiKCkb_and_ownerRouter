@@ -608,7 +608,7 @@ describe("final claim uses the durable generation", () => {
             scope_ref: "external-workflow:live:renewal-live:9001",
           }),
         ),
-      ).rejects.toThrow("current cycle");
+      ).rejects.toThrow("before creating a new draft");
     },
   );
 });
