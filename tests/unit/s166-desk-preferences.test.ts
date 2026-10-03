@@ -96,6 +96,15 @@ describe("S166 what may be remembered (ARCH-S166-2)", () => {
 
   it("BEH-S166-7: choosing the default view is stored as the default", () => {
     expect(canonicalDeskPreferenceView("v=2")).toBe("");
+    // Typed search text can name a person or an address; it is never part of a remembered view.
+    const withText = canonicalDeskPreferenceView(
+      "v=2&q=Jane+Doe&lease=123+Main+St&direction=desc&sort=end_date&scope=all",
+    );
+    expect(withText).toBe(
+      canonicalDeskPreferenceView("v=2&direction=desc&sort=end_date&scope=all"),
+    );
+    expect(withText).not.toMatch(/Jane|Main|q=|lease=/);
+    expect(canonicalDeskPreferenceView("v=2&q=Jane+Doe")).toBe("");
     expect(canonicalDeskPreferenceView("v=2&scope=active&sort=due")).toBe("");
   });
 

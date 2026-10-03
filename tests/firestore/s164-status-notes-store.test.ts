@@ -177,6 +177,24 @@ describe("S164 status notes store", () => {
     expect(listed.map((entry) => entry.noteId)).toEqual([NOTE(1), NOTE(2)]);
     // The earlier entry is exactly as it was saved.
     expect(listed[0]).toEqual(third.note);
+    // R-S164-10: once the same person starts a later note, the earlier one is history. It cannot
+    // be rewritten through the route; the later note still continues.
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const later = await saveRenewalStatusNote(editor, note(3, "Second note", 0, 5), db);
+    await expect(
+      saveRenewalStatusNote(editor, note(1, "Rewritten history", 3, 6), db),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(
+      (await listRenewalStatusNotes(editor, "701", db)).find(
+        (entry) => entry.noteId === NOTE(1),
+      ),
+    ).toEqual(third.note);
+    const continued = await saveRenewalStatusNote(
+      editor,
+      note(3, "Second note, continued", later.note.revision, 7),
+      db,
+    );
+    expect(continued.note.revision).toBe(2);
     // Notes are kept per lease.
     expect(await listRenewalStatusNotes(editor, "702", db)).toEqual([]);
   });

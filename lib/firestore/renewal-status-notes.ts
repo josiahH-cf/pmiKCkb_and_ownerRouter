@@ -169,6 +169,29 @@ export async function saveRenewalStatusNote(
         "This note was saved from another place. Your text is kept; review the saved note before saving again.",
         409,
       );
+    if (current) {
+      // R-S164-10: no historical edit. A person continues only their most recent note on this
+      // lease; every earlier note stays exactly as it was recorded.
+      const siblings = await tx.get(
+        db
+          .collection(RENEWAL_STATUS_NOTE_COLLECTIONS.notes)
+          .where("leaseId", "==", input.leaseId),
+      );
+      const newer = siblings.docs.some((doc) => {
+        if (doc.id === input.noteId) return false;
+        const other = parseNote(doc.data());
+        return (
+          other.recordedByUid === actor.uid &&
+          (other.recordedAt > current.recordedAt ||
+            (other.recordedAt === current.recordedAt && other.noteId > current.noteId))
+        );
+      });
+      if (newer)
+        throw new EditableLayerError(
+          "An earlier note stays as it was recorded. Your text is kept; start another note to add it.",
+          409,
+        );
+    }
     // Nothing changed: keep the saved note as it is rather than recording an empty save.
     if (current && current.text === text) return true;
     const now = new Date().toISOString();

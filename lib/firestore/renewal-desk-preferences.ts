@@ -1,6 +1,7 @@
 // S166: the signed-in account's remembered Renewals worklist view. One document per account in
 // `renewal_desk_preferences`, holding only the canonical desk query string the desk already puts in
-// its own URLs ("" for the default view). No name, address or label is stored.
+// its own URLs ("" for the default view), with the typed search keys removed first, so no name,
+// address or label is stored.
 //
 // GOVERNANCE: app-plane bookkeeping. The reader and the writer always target the calling account's
 // own document (the key is derived from the session uid, never from a request), a document that

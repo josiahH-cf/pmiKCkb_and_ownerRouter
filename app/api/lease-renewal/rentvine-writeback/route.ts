@@ -541,6 +541,11 @@ async function handleRequest(request: Request, statusOnly: boolean) {
 
     if (body.operation === "discard") {
       assertRenewalRoleAuthority("propose_source_write", user.role);
+      if (isVerificationAccount(user))
+        throw new EditableLayerError(
+          "A verification account reads this lease only. Sign in with a staff account to prepare a source update.",
+          403,
+        );
       await discardRenewalWritebackProposal(user, body.leaseId, body.previewHash);
       return NextResponse.json({ status: "discarded" });
     }
@@ -559,6 +564,11 @@ async function handleRequest(request: Request, statusOnly: boolean) {
 
     if (body.operation === "propose") {
       assertRenewalRoleAuthority("propose_source_write", user.role);
+      if (isVerificationAccount(user))
+        throw new EditableLayerError(
+          "A verification account reads this lease only. Sign in with a staff account to prepare a source update.",
+          403,
+        );
       const proposal = await assembleProposal(user, body, deps);
       await saveRenewalWritebackProposal(user, proposal, body.expectedPriorPreviewHash);
       return NextResponse.json({
