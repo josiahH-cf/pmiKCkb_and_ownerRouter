@@ -133,9 +133,7 @@ async function recordResponse(
 ) {
   await chooseTask(
     user,
-    audience === "owner"
-      ? "Record owner response and exact terms"
-      : "Record tenant response",
+    audience === "owner" ? "Record owner response" : "Record tenant response",
   );
   const form = document.getElementById(`renewal-manual-${audience}_response`)!;
   expect(form).toBeVisible();
@@ -292,7 +290,7 @@ describe(
       expect(within(focusPane()).queryByText(/^Starts after: /)).toBeNull();
       expect(
         within(focusPane()).getByRole("navigation", { name: "Other ready tasks" }),
-      ).toHaveTextContent("Record owner response and exact terms");
+      ).toHaveTextContent("Record owner response");
       expect(manualRenewalSummary(routes.state()).nextActivity).toBe("owner_response");
       expect(workspaceWrites(routes)).toEqual([]);
     });
@@ -622,7 +620,7 @@ describe("S145 Focus verification: saves and recovery", { timeout: 120_000 }, ()
     const routes = stubRenewalRoutes(manualFixture({ done: ["owner_outreach"] }));
     const user = userEvent.setup();
     await renderWorkspace({ manual: manualFixture({ done: ["owner_outreach"] }) });
-    await chooseTask(user, "Record owner response and exact terms");
+    await chooseTask(user, "Record owner response");
     const form = document.getElementById("renewal-manual-owner_response")!;
     const rent = within(form).getByLabelText("Working monthly rent");
     await user.type(rent, "about 1450");
@@ -633,7 +631,7 @@ describe("S145 Focus verification: saves and recovery", { timeout: 120_000 }, ()
       within(form).getByText(/Nothing was saved for this field/),
     ).toBeInTheDocument();
     expect(routes.writes()).toEqual([]);
-    expect(heading()).toHaveTextContent("Record owner response and exact terms");
+    expect(heading()).toHaveTextContent("Record owner response");
     expect(within(focusPane()).getByText("Waiting on the owner.")).toBeVisible();
   });
 
@@ -678,8 +676,10 @@ describe(
       await recordResponse(user, "tenant", "counter_change_requested");
       expect(manualRenewalSummary(routes.state()).nextActivity).toBe("owner_response");
       await recordResponse(user, "owner", "approved_terms");
-      expect(routes.state()!.termsRevision).toBe(2);
-      await recordActivity(user, "tenant_offer");
+      // S156: the approval re-recorded unchanged keeps its terms revision and the delivered offer;
+      // changed terms live on the working record, and the tenant's acceptance is recorded directly.
+      expect(routes.state()!.termsRevision).toBe(1);
+      expect(routes.state()!.activities.tenant_offer?.outcome).toBe("done");
       await recordResponse(user, "tenant", "accepted");
       for (const key of AFTER_ACCEPTANCE)
         await recordActivity(user, key, key === "rhino" || key === "assisted_housing");
@@ -691,7 +691,7 @@ describe(
         complete: true,
         nonRenewal: false,
       });
-      expect(routes.state()!.termsRevision).toBe(2);
+      expect(routes.state()!.termsRevision).toBe(1);
       const writes = workspaceWrites(routes);
       expect(new Set(writes.map((call) => call.body?.operationId)).size).toBe(
         writes.length,

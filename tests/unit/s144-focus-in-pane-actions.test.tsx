@@ -308,7 +308,7 @@ describe("S144 Focus in-pane actions", { timeout: 60_000 }, () => {
     await user.click(within(focusPane()).getByText(/All renewal work/));
     expect(
       within(focusPane()).getByRole("button", {
-        name: "Record owner response and exact terms",
+        name: "Record owner response",
       }),
     ).toBeInTheDocument();
   });

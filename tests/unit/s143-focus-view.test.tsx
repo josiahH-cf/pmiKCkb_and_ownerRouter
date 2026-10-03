@@ -301,7 +301,7 @@ describe("S143 Focus view switch", { timeout: 60_000 }, () => {
     await user.click(within(focusPane()).getByText(/All renewal work/));
     await user.click(
       within(focusPane()).getByRole("button", {
-        name: "Record owner response and exact terms",
+        name: "Record owner response",
       }),
     );
     await settle();
