@@ -34,7 +34,7 @@ docs/evidence/ai-first-dashboard-batch-004-validation-2026-10-01.md.
 
 ## Awaiting release
 
-1. S152 program (S152 to S167, lease-renewal simplification and mobile), one cumulative release: `9439c0fc`.
+1. S152 program (S152 to S167, lease-renewal simplification and mobile), one cumulative release: `ba3f9719`.
    The candidate and promoted revision read `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true` from the
    one reviewed S159 constant; the recovery target keeps the captured predecessor's actual value.
    The reviewed env files in both checkouts carry true; the readback helper expects true.
@@ -57,7 +57,7 @@ record's head, which carries one replacement run of the same code.
 
 S152–S167: implemented on 2026-10-02 under the owner's execution prompt (handoff
 renewal-simplification-mobile-2026-10; canonical program docs/feature-suites/README.md) at
-`9439c0fc`, awaiting the one cumulative release above. Every suite extends its deployed owner; no
+`ba3f9719`, awaiting the one cumulative release above. Every suite extends its deployed owner; no
 provider effect, key or activation was used. Human verdicts: NOT RUN, no human observer. The
 optional phone same-tab redirect (S165) has one owner step, A7 in docs/open-blockers.md.
 

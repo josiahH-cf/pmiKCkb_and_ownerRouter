@@ -85,7 +85,7 @@ verified): the S147 Dashboard lease read order that had consumed the release-che
 answer-position checks in the S151 smoke.
 
 S152–S167 (lease-renewal simplification and mobile) were executed on 2026-10-02 under the
-owner's execution prompt. Implemented: all sixteen suites on one branch at `9439c0fc`, extending
+owner's execution prompt. Implemented: all sixteen suites on one branch at `ba3f9719`, extending
 the deployed owners (Focus default and selected view controls; operational current rent with
 charge evidence; every lease workable with the work record established on the first actual save;
 per-field autosave; the staff lane with no forced stages or business approvals; lease-bound
