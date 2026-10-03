@@ -55,6 +55,48 @@ function pageFixture(
             },
   } as unknown as Page;
 }
+/** A lease that opened in Focus view (S152): no section navigation, one view switch, one pane. */
+function focusFixture(
+  options: {
+    switches?: number;
+    focusPressed?: string | null;
+    fullPressed?: string | null;
+    fullButtons?: number;
+    panes?: number;
+    paneVisible?: boolean;
+    switchVisible?: boolean;
+  } = {},
+): Page {
+  const locator = (count: number, visible = true, pressed?: string | null) => ({
+    count: async () => count,
+    isVisible: async () => visible,
+    getAttribute: async () => pressed ?? null,
+  });
+  return {
+    getByRole: (role: string, args: { name: string }) => {
+      if (role === "group" && args.name === "Lease view")
+        return {
+          ...locator(options.switches ?? 1, options.switchVisible ?? true),
+          getByRole: (_role: string, inner: { name: string }) =>
+            inner.name === "Focus view"
+              ? locator(
+                  1,
+                  true,
+                  options.focusPressed === undefined ? "true" : options.focusPressed,
+                )
+              : locator(
+                  options.fullButtons ?? 1,
+                  true,
+                  options.fullPressed === undefined ? "false" : options.fullPressed,
+                ),
+        };
+      if (role === "region" && args.name === "Focus view")
+        return locator(options.panes ?? 1, options.paneVisible ?? true);
+      // No Full view section navigation and no legacy phase navigation on a Focus-default page.
+      return { ...locator(0), getByRole: () => locator(0) };
+    },
+  } as unknown as Page;
+}
 describe("S113 candidate and captured predecessor workspace landmarks", () => {
   it("separates observed framework prefetch cancellation from failed navigation, API reads and mutations", () => {
     const origin = "https://app.example";
@@ -109,6 +151,26 @@ describe("S113 candidate and captured predecessor workspace landmarks", () => {
       ':is([data-disposition="actionable"], [data-retention-state="tracked_incomplete"])',
     );
     expect(workspaceSelectorsForPhase("rollback")).toContain("a.renewal-lease-link");
+  });
+
+  it("S152: accepts a lease that opened in Focus view only with its exact switch and pane", async () => {
+    expect(await hasRenewalWorkspaceLandmarks(focusFixture())).toBe(true);
+    for (const options of [
+      { switches: 0 },
+      { switches: 2 },
+      { switchVisible: false },
+      { focusPressed: "false" },
+      { focusPressed: null },
+      { fullPressed: "true" },
+      { fullButtons: 0 },
+      { panes: 0 },
+      { panes: 2 },
+      { paneVisible: false },
+    ])
+      expect(
+        await hasRenewalWorkspaceLandmarks(focusFixture(options)),
+        JSON.stringify(options),
+      ).toBe(false);
   });
 
   it("requires the complete five-section candidate with exact destinations", async () => {

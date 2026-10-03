@@ -594,7 +594,11 @@ export async function assertSettledRoute(
   return assert();
 }
 
-/** The candidate's complete S113 dashboard and the captured predecessor's six phases have distinct exact contracts. */
+/**
+ * The lease workspace has three exact contracts: the complete S113 dashboard when the Full view is
+ * shown (a predecessor opens there), the captured predecessor's six phases, and since S152 the
+ * Focus view a lease opens in. Each is asserted as rendered; the canary selects nothing.
+ */
 export async function hasRenewalWorkspaceLandmarks(
   page: Page,
   expectedCommit?: string,
@@ -640,13 +644,29 @@ export async function hasRenewalWorkspaceLandmarks(
     }
     return true;
   }
-  if (
-    (await legacy.count()) !== 1 ||
-    !(await legacy.isVisible()) ||
-    (await legacy.getByRole("link").count()) !== 6
-  )
-    return false;
-  return true;
+  if (await legacy.count())
+    return (
+      (await legacy.count()) === 1 &&
+      (await legacy.isVisible()) &&
+      (await legacy.getByRole("link").count()) === 6
+    );
+  // S152: the lease opens in Focus view. Exactly one view switch whose Focus view is the selected
+  // one and whose Full view is offered, and exactly one visible Focus view region.
+  const viewSwitch = page.getByRole("group", { name: "Lease view", exact: true });
+  if ((await viewSwitch.count()) !== 1 || !(await viewSwitch.isVisible())) return false;
+  const focus = viewSwitch.getByRole("button", { name: "Focus view", exact: true });
+  const full = viewSwitch.getByRole("button", { name: "Full view", exact: true });
+  const pane = page.getByRole("region", { name: "Focus view", exact: true });
+  return (
+    (await focus.count()) === 1 &&
+    (await focus.isVisible()) &&
+    (await focus.getAttribute("aria-pressed")) === "true" &&
+    (await full.count()) === 1 &&
+    (await full.isVisible()) &&
+    (await full.getAttribute("aria-pressed")) === "false" &&
+    (await pane.count()) === 1 &&
+    (await pane.isVisible())
+  );
 }
 
 async function waitForSettledRoute(
