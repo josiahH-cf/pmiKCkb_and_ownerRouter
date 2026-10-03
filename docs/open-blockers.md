@@ -1,8 +1,8 @@
 # Unblock packet
 
-Last reconciled: 2026-10-02 (owner unblock pass; decisions Q1–Q4 and the A2, A4 and A6 readbacks
-recorded below; the S113 notice-safety race is fixed and released in run `3a32f7a2`; S152–S167 are implemented and
-queued for release).
+Last reconciled: 2026-10-03 (owner unblock pass of 2026-10-02; decisions Q1–Q4 and the A2, A4 and
+A6 readbacks recorded below; the S113 notice-safety race is fixed and released in run `3a32f7a2`;
+S152–S167 are released in run `47fabb7c`).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only the effect named in its row. No hold blocks development,

@@ -4,21 +4,19 @@ Last updated: 2026-10-03 (UTC).
 
 ## Serving release
 
-Since 2026-10-02T22:37Z production serves run `3a32f7a2`'s `090df5e16f54eadbd1a3afbf20836c6677fa2a19` / `pmi-kc-app-rmurivuzf-c061dc669374` (the S113 approval-read fix, Sheet=false; see docs/loop-state.md). The record below is the release before it and stays as that run's history until the S152–S167 release replaces both.
-
-Run `0eb2cfeb-a238-4b37-b35f-f999eadfacff` released batch 004's corrective repair (two queued items: the S147 Dashboard lease read order and the S151 answer-position smoke) at `df772b30c60043d5fe4c57ff2275990d18a535b3` / `pmi-kc-app-rmur4a2vc-185ba8b9f3b8` with 100% production traffic.
-Run `175fee1d` first carried the same code at `7d2181bf`; its immediate observation checkpoint failed while Cloud Run still routed some requests to the untagged predecessor, which answered them with 500s, so it rolled back (verified, no downtime).
-Batch 004 itself (S108 and S146–S151) shipped in runs `98f7e743` and `729d5716`; the batch 004 evidence ledger records those runs and run `0aa79bfe`'s verified rollback.
-Exact [CI 37025320585](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37025320585) passed.
-The gate on tree-identical PR head `14087b40` passed 7,894 unit tests, four existing skips, all 273 backend tests and 32 core E2E tests.
-One application build `802d851f-54cb-42a2-aedf-80d04e2142de` succeeded at 2026-10-02T15:42:16.516Z.
-Candidate receipt issued 2026-10-02T15:48:28.020Z; promotion verified 2026-10-02T15:48:53.296Z.
-Observation passed two checkpoints in 396,284 ms against the required 300,000 ms, inside the 420,000 ms evidence deadline. All 312
+Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` released the S152–S167 program (one queued item: lease-renewal simplification and mobile, sixteen suites) at `e106a88a50d541b4a012111019b09c2183f6ce20` / `pmi-kc-app-rmusp7ehl-7ea8703905ca` with 100% production traffic.
+Run `a83ed59b` first carried the program at `b11f5fe0`; it stopped at candidate assurance because the release canary still required the lease's Full view on open while S152 opens a lease in Focus view. It never changed traffic and is archived as superseded; PR #128 corrected the canary's lease-workspace contract.
+The release before it, run `3a32f7a2` (the S113 approval-read fix at `090df5e16f54eadbd1a3afbf20836c6677fa2a19` / `pmi-kc-app-rmurivuzf-c061dc669374`, 2026-10-02), is this run's captured predecessor.
+Exact [CI 37142116030](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37142116030) passed.
+The gate on tree-identical PR head `1b0df6fd` passed 8,541 unit tests, four existing skips, all 319 backend tests and 32 core E2E tests.
+One application build `e8264109-67cd-4414-9d2b-c897f027c905` succeeded at 2026-10-03T18:13:16.303Z.
+Candidate receipt issued 2026-10-03T18:26:00.305Z; promotion verified 2026-10-03T18:26:19.642Z.
+Observation passed two checkpoints in 387,784 ms against the required 300,000 ms, inside the 420,000 ms evidence deadline. All 312
 source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
-Eleven independent readback sections matched, last at 2026-10-02T15:55:53Z. The owner's bounded AI history live check
-passed on batch 004's revision `pmi-kc-app-rmuq2qvcc-8074bfd97707` and was not rerun.
-Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag `cand-rmur4a2vc-185ba8b9f3b8`; fingerprint `sha256:1e4fbc10f3abad951f40b37b07d47d526f67e30334ac237d148b0e7c63a7a6e2`.
+Eleven independent readback sections matched, last at 2026-10-03T18:32:54Z. A read-only production Focus check then passed on
+three lease workspaces: Focus view is the default, with zero mutation attempts.
+Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=true are verified.
+Tag `cand-rmusp7ehl-7ea8703905ca`; fingerprint `sha256:7061589ec47f2338497f9efd9dea1817dfdcc6f2ba4192b30b573e35d725448b`.
 No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
@@ -100,8 +98,11 @@ ordinary staff with Admin management, Vendor scope, verification restrictions an
 kept). Merged to main at `8babc814` (PR #126). Tested: the full unit, backend and core E2E gates
 on the tree-identical head `0c5391c8` (8,531 unit, 319 backend, 32 core E2E; docs/facts.md), exact
 main CI 37105832848, a fresh-context review with five repairs on 2026-10-03, the production reconciliation oracle under the `s156-staff-lane` row contract,
-and fail-first logs for each slice outside Git. Live-verified: not yet; the program waits in the
-Awaiting release queue for one cumulative release. Unverified: human verdicts (NOT RUN, no human
+and fail-first logs for each slice outside Git. Released on 2026-10-03 by run `47fabb7c` at
+`e106a88a`, after run `a83ed59b` stopped at candidate assurance on the release canary's Full view
+contract (corrected in PR #128). Live-verified: the release assurance (13 routes, 312 records
+reconciled under the `s156-staff-lane` contract), eleven independent readbacks and a read-only
+production Focus check on three lease workspaces. Unverified: human verdicts (NOT RUN, no human
 observer), a physical phone sign-in, and the optional same-tab redirect, which needs owner step A7.
 
 ## Verified corrective review
@@ -110,7 +111,8 @@ Five confirmed adversarial findings are repaired and verified deployed: lifecycl
 
 ## Delivered batch
 
-Run `0eb2cfeb` delivered batch 004's corrective repair, runs `98f7e743` and `729d5716` delivered
+Run `47fabb7c` delivered the S152–S167 program, run `3a32f7a2` the S113 approval-read fix, run
+`0eb2cfeb` batch 004's corrective repair, runs `98f7e743` and `729d5716` delivered
 S108 and batch 004 (S146–S151), and run `ab803f8a`
 request 001 and S135–S145 (see Feature intake). Run
 `89e38cd9-b6dd-498f-be87-1963e0ed2d03` at `c541db72` delivered the thirteen-feature batch below:
@@ -149,6 +151,7 @@ none blocks development, tests, merges or releases.
 Historical K unit-store target/marker effects remain UNVERIFIED; absent Data Access logs do not
 prove zero effects. S121 was excluded.
 
-The permits of runs `ab803f8a`, `98f7e743`, `729d5716` and `0eb2cfeb` are consumed; run `175fee1d`
-rolled back verified on 2026-10-02 and its permit is archived as superseded. The Awaiting release
-queue holds the S152–S167 program. No original receipt, completed permit or build claim is reused.
+The permits of runs `ab803f8a`, `98f7e743`, `729d5716`, `0eb2cfeb`, `3a32f7a2` and `47fabb7c` are
+consumed; run `175fee1d` rolled back verified on 2026-10-02 and run `a83ed59b` stopped before
+promotion on 2026-10-03, and their permits are archived as superseded. The Awaiting release
+queue is empty. No original receipt, completed permit or build claim is reused.

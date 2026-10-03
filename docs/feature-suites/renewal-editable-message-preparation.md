@@ -3,7 +3,7 @@
 
 # S161 — Editable messages from available working information
 
-> Status: IMPLEMENTED / AWAITING RELEASE. Owner-confirmed F10 change; implemented on 2026-10-02 under the owner's execution prompt (program commit `ba3f9719`, merged to main in PR #126) and queued for one cumulative release. No provider effect was used; human verdict NOT RUN.
+> Status: IMPLEMENTED AND DEPLOYED. Owner-confirmed F10 change; implemented on 2026-10-02 under the owner's execution prompt (program commit `ba3f9719`, merged to main in PR #126) and released on 2026-10-03 by run `47fabb7c` at `e106a88a`. No provider effect was used; human verdict NOT RUN.
 
 **Goal.**
 

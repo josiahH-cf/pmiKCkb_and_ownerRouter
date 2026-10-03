@@ -88,7 +88,7 @@ Editor browser coverage remains not_run with backend role restrictions preserved
 tracks only the separate 24-hour unchanged-enrollment longevity proof. The maintained Wednesday
 handouts record the verified S113 delivery and retain the user-supplied meeting identity.
 
-S156/S160/S167 (implemented, queued for release) remove the renewal business approvals and the
+S156/S160/S167 (released 2026-10-03) remove the renewal business approvals and the
 elevated-role hand-off: the staff member doing the work records and confirms. Direct lease changes
 remain allowed only under their exact-key, preview, confirmation, receipt, readback, and correction
 contracts. Permission to implement/deploy does not remove any of those controls.

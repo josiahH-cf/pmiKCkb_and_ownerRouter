@@ -8,24 +8,24 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-Run `0eb2cfeb-a238-4b37-b35f-f999eadfacff` released batch 004's corrective repair (two queued items: the S147 Dashboard lease read order and the S151 answer-position smoke) at `df772b30c60043d5fe4c57ff2275990d18a535b3` / `pmi-kc-app-rmur4a2vc-185ba8b9f3b8` with 100% production traffic.
-Run `175fee1d` first carried the same code at `7d2181bf`; its immediate observation checkpoint failed while Cloud Run still routed some requests to the untagged predecessor, which answered them with 500s, so it rolled back (verified, no downtime).
-Batch 004 itself (S108 and S146–S151) shipped in runs `98f7e743` and `729d5716`; the batch 004 evidence ledger records those runs and run `0aa79bfe`'s verified rollback.
-Exact [CI 37025320585](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37025320585) passed.
-The gate on tree-identical PR head `14087b40` passed 7,894 unit tests, four existing skips, all 273 backend tests and 32 core E2E tests.
-One application build `802d851f-54cb-42a2-aedf-80d04e2142de` succeeded at 2026-10-02T15:42:16.516Z.
-Candidate receipt issued 2026-10-02T15:48:28.020Z; promotion verified 2026-10-02T15:48:53.296Z.
-Observation passed two checkpoints in 396,284 ms against the required 300,000 ms, inside the 420,000 ms evidence deadline. All 312
+Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` released the S152–S167 program (one queued item: lease-renewal simplification and mobile, sixteen suites) at `e106a88a50d541b4a012111019b09c2183f6ce20` / `pmi-kc-app-rmusp7ehl-7ea8703905ca` with 100% production traffic.
+Run `a83ed59b` first carried the program at `b11f5fe0`; it stopped at candidate assurance because the release canary still required the lease's Full view on open while S152 opens a lease in Focus view. It never changed traffic and is archived as superseded; PR #128 corrected the canary's lease-workspace contract.
+The release before it, run `3a32f7a2` (the S113 approval-read fix at `090df5e16f54eadbd1a3afbf20836c6677fa2a19` / `pmi-kc-app-rmurivuzf-c061dc669374`, 2026-10-02), is this run's captured predecessor.
+Exact [CI 37142116030](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37142116030) passed.
+The gate on tree-identical PR head `1b0df6fd` passed 8,541 unit tests, four existing skips, all 319 backend tests and 32 core E2E tests.
+One application build `e8264109-67cd-4414-9d2b-c897f027c905` succeeded at 2026-10-03T18:13:16.303Z.
+Candidate receipt issued 2026-10-03T18:26:00.305Z; promotion verified 2026-10-03T18:26:19.642Z.
+Observation passed two checkpoints in 387,784 ms against the required 300,000 ms, inside the 420,000 ms evidence deadline. All 312
 source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
-Eleven independent readback sections matched, last at 2026-10-02T15:55:53Z. The owner's bounded AI history live check
-passed on batch 004's revision `pmi-kc-app-rmuq2qvcc-8074bfd97707` and was not rerun.
-Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag `cand-rmur4a2vc-185ba8b9f3b8`; fingerprint `sha256:1e4fbc10f3abad951f40b37b07d47d526f67e30334ac237d148b0e7c63a7a6e2`.
+Eleven independent readback sections matched, last at 2026-10-03T18:32:54Z. A read-only production Focus check then passed on
+three lease workspaces: Focus view is the default, with zero mutation attempts.
+Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=true are verified.
+Tag `cand-rmusp7ehl-7ea8703905ca`; fingerprint `sha256:7061589ec47f2338497f9efd9dea1817dfdcc6f2ba4192b30b573e35d725448b`.
 No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 
-Run `0eb2cfeb` (batch 004's corrective repair, after runs `98f7e743` and `729d5716` shipped S108 and
-S146–S151) is complete, its permit consumed and its queue empty.
+Run `47fabb7c` (the S152–S167 program, after run `3a32f7a2` shipped the S113 approval-read fix and run
+`0eb2cfeb` batch 004's corrective repair) is complete, its permit consumed and its queue empty.
 Original completed runs remain preserved separately. This retained procedure does not authorize
 a new dispatch or reuse of a consumed permit; future authorized work requires current gates.
 The September 30 runner correction removes the former fixed thirteen-suite and seven-hour
@@ -93,6 +93,7 @@ The completed run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` carried all thirteen fe
 Run `ab803f8a-4ffb-4568-9178-05ccb588a94c` later carried request 001 and batches 002–003 (twelve queued items) in one build and candidate.
 Batch 004 shipped in two candidates by owner direction: run `98f7e743-7345-4b74-a6a8-675fe9fac31f` (S108, S146–S148) and run `729d5716-bc5e-4e61-9932-c9107d1954f2` (S149–S151).
 Run `0eb2cfeb-a238-4b37-b35f-f999eadfacff` then carried batch 004's corrective repair (two queued items) in one build and candidate, after run `175fee1d` rolled back verified.
+Run `3a32f7a2-fd58-4652-b519-5a31517b0142` carried the S113 approval-read fix. Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` carried the S152–S167 program (one queued item) in one build and candidate, after run `a83ed59b` stopped at candidate assurance and was archived as superseded.
 The cumulative corrective queue is cleared after independent verification. An empty queue refuses fresh admission; docs/loop-state.md records the completed state.
 
 ## Before you start
@@ -112,10 +113,10 @@ gcloud beta billing projects describe pmi-kc-kb-prod --format="value(billingEnab
 
 Expect True and account `01A5A3-65CA5A-614D45`. Stop if billing is disabled.
 
-**2. Verify the watcher and checkpoint before any start.** Current run `0eb2cfeb-a238-4b37-b35f-f999eadfacff` is complete,
+**2. Verify the watcher and checkpoint before any start.** Current run `47fabb7c-b26b-4032-b993-f6bc49c66abd` is complete,
 its permit consumed and its original receipts preserved. The stale S128-only checkpoint and later
 failed cumulative attempts were archived through checked retirement; none was relabeled a pass.
-Blocked runs `dc4e1ac8` and `6eb157e1` were archived the same way as superseded.
+Blocked runs `dc4e1ac8`, `6eb157e1` and `a83ed59b` were archived the same way as superseded.
 Never overwrite an unfinished checkpoint or clear a build claim. Before another authorized run,
 prove no watcher, inherited child or cloud operation remains unresolved, preserve every original
 checkpoint/permit/claim/receipt under the release lock, and verify actual traffic/tag bindings.
