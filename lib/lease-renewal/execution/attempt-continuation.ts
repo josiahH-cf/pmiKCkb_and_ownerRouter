@@ -4,12 +4,12 @@
 // completion server-side and records its receipt; this module covers the two gaps that leaves:
 //
 //   1. an attempt that was interrupted after the provider call is surfaced on the next load as an
-//      orphan whose exact next action is an Admin's reconciliation through the effect's own phase
+//      orphan whose exact next action is a staff reconciliation through the effect's own phase
 //      control, and
 //   2. the workspace shows one consolidated attempt summary instead of per-panel fragments.
 //
 // Everything here is a pure projection over durable records: it performs no provider call and
-// writes nothing. Reconciliation itself is the separate, Admin-gated, human-initiated operation each
+// writes nothing. Reconciliation itself is the separate, role-gated, human-initiated operation each
 // effect family's service owns; a page load never performs it. Blind retry and autonomous chaining
 // stay out: an attempt standing at `ambiguous` or `failed` names the operator's exact next action,
 // and that action is never an automatic re-execution.
@@ -57,7 +57,7 @@ export interface RenewalAttemptSummary {
   readonly lastAttemptState: ExternalExecutionState | null;
   readonly blocker: string | null;
   readonly nextAction: string;
-  /** Attempts old enough for an Admin to reconcile; this load only counts and shows them. */
+  /** Attempts old enough for staff to reconcile; this load only counts and shows them. */
   readonly reconcilableCount: number;
   /** True while any attempt is still in flight; the summary never calls that a failure. */
   readonly inFlight: boolean;
@@ -75,7 +75,7 @@ function ageMs(attempt: RenewalAttemptRecord, nowMs: number): number {
 }
 
 /**
- * The attempts this load surfaces for an Admin's reconcile: a covered renewal effect that was claimed once, is still
+ * The attempts this load surfaces for a staff reconcile: a covered renewal effect that was claimed once, is still
  * unresolved, and is older than the minimum age. A younger attempt is left alone.
  */
 export function selectOrphanedRenewalAttempts(
@@ -94,7 +94,7 @@ export function selectOrphanedRenewalAttempts(
 const NEXT_ACTION: Record<string, string> = {
   running: "This attempt is still finishing; reload in a moment to see its receipt.",
   ambiguous:
-    "The last attempt's result is uncertain. An Admin reconciles it from its exact receipt in the phase panel; nothing can be confirmed again until it is settled.",
+    "The last attempt's result is uncertain. Reconcile it from its exact receipt under Review RentVine updates or Review Sheet updates before anything else is confirmed.",
   failed:
     "The last attempt failed. Review the exact blocker, then start a new proposal from the phase panel and confirm it deliberately.",
   blocked: "Resolve the exact blocker before confirming this effect.",
@@ -105,7 +105,7 @@ const NEXT_ACTION: Record<string, string> = {
 
 /** A claimed attempt that never reported within its window: the page never settles it itself. */
 const ORPHANED_NEXT_ACTION =
-  "This attempt did not report a result within its window. An Admin reconciles it from its exact receipt in the phase panel before anything else is confirmed.";
+  "This attempt did not report a result within its window. Reconcile it from its exact receipt under Review RentVine updates or Review Sheet updates before anything else is confirmed.";
 
 /** One consolidated view of a lease's confirmed-effect history. Pure; no clock and no I/O. */
 export function projectRenewalAttemptSummary(input: {
@@ -160,7 +160,7 @@ export interface RenewalAttemptReconciliation {
  * observation that throws leaves the attempt unresolved rather than inventing an outcome.
  */
 // No runtime caller since 2026-09-06: proof-only orchestration over an injected operation. Any
-// runtime use must sit behind the Admin-gated reconcile route, never a page load.
+// runtime use must sit behind the role-gated reconcile route, never a page load.
 export async function reconcileOrphanedRenewalAttempts(input: {
   readonly leaseId: string;
   readonly attempts: readonly RenewalAttemptRecord[];
