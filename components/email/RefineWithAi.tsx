@@ -165,6 +165,7 @@ export function RefineWithAi({
           disabled={Boolean(disabledReason) || pending || !instruction.trim()}
           onClick={() => void refine()}
           type="button"
+          variant="secondary"
         >
           Refine wording
         </Button>

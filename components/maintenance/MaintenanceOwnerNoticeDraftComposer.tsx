@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
 import { useState } from "react";
 
@@ -83,8 +83,13 @@ export function MaintenanceOwnerNoticeDraftComposer({
         setBody(payload.editableBody);
         setPreviewedBody(payload.editableBody);
       }
-    } catch {
-      setError("Could not reach the draft service. Your wording is unchanged.");
+    } catch (error) {
+      setError(
+        waitFailureMessage(
+          error,
+          "Could not reach the draft service. Your wording is unchanged.",
+        ),
+      );
     } finally {
       setPending(null);
     }

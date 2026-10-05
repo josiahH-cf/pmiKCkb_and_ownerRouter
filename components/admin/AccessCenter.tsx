@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
 import { formatBusinessTimestamp } from "@/lib/date-display";
 import Link from "next/link";
@@ -454,10 +454,13 @@ export function AccessCenter({
       );
       setNotice({ tone: "success", text: "Access request cancelled." });
       setCancelTarget(null);
-    } catch {
+    } catch (error) {
       setNotice({
         tone: "error",
-        text: readError(null, "The request could not be cancelled."),
+        text: waitFailureMessage(
+          error,
+          readError(null, "The request could not be cancelled."),
+        ),
       });
     } finally {
       setBusy(null);

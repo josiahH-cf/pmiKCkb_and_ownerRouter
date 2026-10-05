@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
 // SpaceDeskRunPanel — checklist controls for an existing ordinary workflow run. Browser Test-run
 // construction is retired; this component never starts or reconstructs a run.
@@ -64,8 +64,8 @@ export function SpaceDeskRunPanel({
         return;
       }
       router.refresh();
-    } catch {
-      setError("Could not reach the run endpoint.");
+    } catch (error) {
+      setError(waitFailureMessage(error, "Could not reach the run endpoint."));
     } finally {
       setPending(null);
     }
@@ -100,8 +100,8 @@ export function SpaceDeskRunPanel({
       const body = (await response.json()) as { check: WorkflowRunStepCheckRecord };
       setChecks((previous) => ({ ...previous, [stepId]: body.check }));
       router.refresh();
-    } catch {
-      setError("Could not reach the step-checks endpoint.");
+    } catch (error) {
+      setError(waitFailureMessage(error, "Could not reach the step-checks endpoint."));
     } finally {
       setPending(null);
     }
@@ -183,19 +183,22 @@ export function SpaceDeskRunPanel({
                       Clear
                     </button>
                   ) : null}
-                  <input
-                    aria-label={`Reason to skip ${step.title}`}
-                    className="ui-input"
-                    onChange={(event) =>
-                      setReasons((previous) => ({
-                        ...previous,
-                        [step.id]: event.target.value,
-                      }))
-                    }
-                    placeholder="Reason (required to skip)"
-                    type="text"
-                    value={reasons[step.id] ?? ""}
-                  />
+                  <label className="select-field">
+                    Reason to skip
+                    <input
+                      aria-label={`Reason to skip ${step.title}`}
+                      className="ui-input"
+                      onChange={(event) =>
+                        setReasons((previous) => ({
+                          ...previous,
+                          [step.id]: event.target.value,
+                        }))
+                      }
+                      placeholder="Reason (required to skip)"
+                      type="text"
+                      value={reasons[step.id] ?? ""}
+                    />
+                  </label>
                 </div>
               ) : null}
               {checks[step.id]?.reason ? (

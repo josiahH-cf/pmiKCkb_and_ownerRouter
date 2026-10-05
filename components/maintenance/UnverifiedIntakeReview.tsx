@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
 import { useState } from "react";
 
@@ -78,8 +78,11 @@ export function UnverifiedIntakeReview({
         setStatus(message);
         return { ok: false, message };
       }
-    } catch {
-      const message = "Could not reach the intake service. Try again.";
+    } catch (error) {
+      const message = waitFailureMessage(
+        error,
+        "Could not reach the intake service. Try again.",
+      );
       setStatus(message);
       return { ok: false, message };
     } finally {

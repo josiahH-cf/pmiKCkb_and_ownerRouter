@@ -8,6 +8,10 @@ export class OperationWaitError extends Error {
     this.name = "OperationWaitError";
   }
 }
+/** The message for a failed request: an elapsed wait keeps its own wording, never a definite failure. */
+export function waitFailureMessage(error: unknown, fallback: string): string {
+  return error instanceof OperationWaitError ? error.message : fallback;
+}
 /** A deadline stops local waiting; it never implies cancellation at the server/provider. */
 export async function fetchWithDeadline(
   input: RequestInfo | URL,

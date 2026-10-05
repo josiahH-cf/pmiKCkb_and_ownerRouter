@@ -126,6 +126,10 @@ form[aria-busy="true"],
   flex-wrap: wrap;
   gap: 0.5rem;
   padding: 0.4rem 1.5rem;
+  /* Stays at the top of the viewport so a selection made lower on a long page is acknowledged. */
+  position: sticky;
+  top: 0;
+  z-index: 850;
   border-block-end: 2px solid var(--ui-focus);
   background: var(--ui-surface-recessed);
   font-size: 0.875rem;
@@ -154,6 +158,7 @@ form[aria-busy="true"],
 .workflow-communication-panel textarea,
 .workflow-communication-panel pre,
 .gmail-message-list p,
+.renewal-message-body,
 .renewal-message-preview {
   max-width: 76ch;
   overflow-wrap: anywhere;

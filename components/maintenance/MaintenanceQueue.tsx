@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 import {
   PersonalViewStatus,
   usePersonalFilters,
@@ -149,8 +149,8 @@ export function MaintenanceQueue({
         setStatus(payload.error ?? "Could not update the ticket.");
         return false;
       }
-    } catch {
-      setStatus("Could not reach the ticket service.");
+    } catch (error) {
+      setStatus(waitFailureMessage(error, "Could not reach the ticket service."));
       return false;
     } finally {
       setPendingId(null);
@@ -511,13 +511,16 @@ function TicketCard({
       </div>
       {ticket.vendor_id ? <p className="muted">A Live Vendor is assigned.</p> : null}
       <div className="field-row">
-        <input
-          aria-label={`Note for ${ticket.summary}`}
-          onChange={(event) => setNote(event.target.value)}
-          placeholder="Add a note"
-          type="text"
-          value={note}
-        />
+        <label className="select-field">
+          Note
+          <input
+            aria-label={`Note for ${ticket.summary}`}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="Add a note"
+            type="text"
+            value={note}
+          />
+        </label>
         <button
           className="secondary-button"
           disabled={pending || note.trim().length === 0}

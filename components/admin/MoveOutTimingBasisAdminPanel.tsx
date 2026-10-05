@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 
 import { useState } from "react";
@@ -83,8 +83,8 @@ export function MoveOutTimingBasisAdminPanel({
       } else {
         setError(payload.error ?? "Could not record the notice timing basis.");
       }
-    } catch {
-      setError("Could not record the notice timing basis.");
+    } catch (error) {
+      setError(waitFailureMessage(error, "Could not record the notice timing basis."));
     } finally {
       setPending(false);
     }

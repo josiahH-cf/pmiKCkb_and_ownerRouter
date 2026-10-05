@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
 import { useState } from "react";
 import { Button, ConfirmationDialog } from "@/components/ui";
@@ -113,8 +113,10 @@ export function UserManagementPanel({
       } else {
         setConfirmationError(payload.error ?? "Could not change the role. Try again.");
       }
-    } catch {
-      setConfirmationError("Could not reach the user service. Try again.");
+    } catch (error) {
+      setConfirmationError(
+        waitFailureMessage(error, "Could not reach the user service. Try again."),
+      );
     } finally {
       setPendingKey(null);
     }
@@ -196,15 +198,18 @@ export function UserManagementPanel({
                     ))}
                   </select>
                 </label>
-                <input
-                  aria-label={`Reason for changing ${user.email}`}
-                  onChange={(event) =>
-                    setRoleDraftValue(user.uid, { reason: event.target.value })
-                  }
-                  placeholder="Reason (required)"
-                  type="text"
-                  value={roleDraft.reason}
-                />
+                <label className="select-field">
+                  Reason
+                  <input
+                    aria-label={`Reason for changing ${user.email}`}
+                    onChange={(event) =>
+                      setRoleDraftValue(user.uid, { reason: event.target.value })
+                    }
+                    placeholder="Reason (required)"
+                    type="text"
+                    value={roleDraft.reason}
+                  />
+                </label>
                 <Button
                   busy={pendingKey === `${user.uid}:role`}
                   busyLabel="Saving role"
