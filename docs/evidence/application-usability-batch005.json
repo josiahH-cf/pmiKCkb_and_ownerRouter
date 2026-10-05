@@ -59699,7 +59699,7 @@
   "implementationCheckpoint": {
     "updatedAtUtc": "2026-10-05T01:57:59.227Z",
     "stage": "all_engineering_release_end_feedback_and_native_closure_verified",
-    "production": "e106a88a / pmi-kc-app-rmusp7ehl-7ea8703905ca, 100%, guarded unchanged",
+    "production": "fa5b2b27 / pmi-kc-app-rmuuk9ykp-31da970956eb, 100%; captured predecessor e106a88a / pmi-kc-app-rmusp7ehl-7ea8703905ca",
     "checks": [
       "Native full verification attempt 2 passed: 8703 unit, four existing skips; 325 backend; production audit zero; format, lint, typecheck, policy checks and build. Later content/identity/evidence edits require final recheck.",
       "Core E2E attempt 3 passed 32 tests with 22 existing configuration skips. Earlier failures remain failed.",

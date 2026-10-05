@@ -37,6 +37,10 @@ The fifteen-item queue is delivered and empty; the exact permit is consumed.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 Human verdicts: **NOT RUN — no human observer**.
 
+Independent verification on 2026-10-05 reproduced the gates, compiled checks and serving readbacks
+and passed a guarded 13-route production canary. It also found released defects, recorded in
+F-BATCH-005-VERIFICATION. Repairs are in PR #130, not merged and not released.
+
 ## Current operational maintenance
 
 Request 001, governance simplification and unattended authentication renewal, was authorized for

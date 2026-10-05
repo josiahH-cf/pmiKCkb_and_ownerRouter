@@ -23,6 +23,17 @@ and verified RentVine shortcut journey passed. Counts are scoped actual evidence
 Inventory: 38 routes, 188 consumers, six cohorts; 815 current plus 66 former content blocks.
 Named actual owner/service/compiled checks are separate from source/import topology inspection.
 
+## Independent verification, 2026-10-05
+
+Reproduced at 2495d7bf: native gate, core, compiled matrix, lookup and both recovery checks; serving
+readbacks and a guarded 13-route production canary with zero mutation attempts.
+Released defects found (F-BATCH-005-VERIFICATION): navigation status on on-screen forms, S178
+literal lookup capture, S177 size loss after a stale reload and filter overwrite on resize,
+retired queue-email wording and controls in Admin, unknown personal-view surface 500. Repairs and
+regressions are in PR #130, not merged and not released; a release needs an owner instruction.
+Open without a repair: nine renewal-table headers over eight cells, residual explanatory copy,
+two primary message actions, no edited state before a message saves, no download outcome feedback.
+
 ## Awaiting release
 
 None. All fifteen batch 005 entries were delivered by run 8b7dc3f1-4c5b-482a-94ca-26985150c68d at
@@ -81,6 +92,7 @@ budget or provider-effect change occurred. Exact preview/confirmation, one-attem
 receipt/readback/correction contracts remain. Raw data, captures, credentials and failures stay
 outside Git; original failures and superseded local verification attempts retain actual outcomes.
 
-ALL_GATES_GREEN applies to verified batch 005 engineering and cumulative deployed release only.
+ALL_GATES_GREEN applies to verified batch 005 engineering and cumulative deployed release only;
+the independent verification findings above are open.
 No unfinished batch work remains. Native documentation closure is the final mainline record;
 do not issue another permit/build/candidate for these documentation updates.
