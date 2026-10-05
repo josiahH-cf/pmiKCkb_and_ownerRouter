@@ -236,6 +236,25 @@ These are engineering tasks with no owner step; none blocks a release.
   be cold (32.4 s against a 30 s timeout in run 175fee1d). Warm the target with
   `~/pmi-kc-work/scripts/diag-canary-phase.sh <label> <canonical origin> <commit> <revision>
 <fingerprint> rollback` until it passes, then `release-control.mjs --resume`.
+- **Cold first requests on new revisions (owner decision candidate).** All three fresh runs on
+  2026-10-05 (5d1b4e3a, 7753e5f5, 61659874) paused at recovery preparation: a new recovery instance
+  took 43.2, 33.0 and 48.1 s for its first Dashboard render against the 30-second route bound, with
+  every request answered 200. Run 61659874 also paused at the candidate smoke: the zero-traffic
+  candidate answered its first request, the correct sign-in redirect, in 43.8 s against the
+  30-second probe timeout (11.1 s on the two earlier candidates), in a window where a new instance
+  of already-released code took 15.6 s for its first version read against 4.7 and 6.4 s earlier.
+  Each time the request log confirmed the cause, read-only diagnostics passed on the then-warm
+  target and the same run resumed with nothing redispatched. Candidate change: have the runner send
+  one warm-up request to a new revision before its bounded checks. That changes what the 30-second
+  checks measure, and the bounds are owner decisions, so the runner changes neither. Until decided,
+  expect about ten minutes per pause: read the revision's request log, run
+  `~/pmi-kc-work/scripts/diag-recovery-canary.sh` or the candidate smoke by hand, then
+  `release-control.mjs --resume`.
+- **Observation margin.** Run 61659874's observation decided at 415,448 ms against the 420,000 ms
+  evidence deadline (390,684 ms in run 7753e5f5 the same day), with every route, all 318 records
+  and both checkpoints passing; its final thirteen-route check took 92.7 s against 82.8 s. Past the
+  deadline a healthy candidate rolls back. The deadline is an owner decision, so the runner does
+  not change it.
 
 ## Closed
 
