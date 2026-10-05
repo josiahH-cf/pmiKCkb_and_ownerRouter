@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -143,8 +143,13 @@ function RenewalDeciderRun({
         writeSessionDeferredKeys(view.runId, next);
         return next;
       });
-    } catch {
-      setProgressError("Skip could not be saved. This item is still in your list.");
+    } catch (error) {
+      setProgressError(
+        waitFailureMessage(
+          error,
+          "Skip could not be saved. This item is still in your list.",
+        ),
+      );
     } finally {
       setSkippingKey(null);
     }

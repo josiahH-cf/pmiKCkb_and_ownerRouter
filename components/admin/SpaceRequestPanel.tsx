@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -62,8 +62,8 @@ export function SpaceRequestPanel({
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
         setError(payload.error ?? "Could not record the Space request.");
       }
-    } catch {
-      setError("Could not reach the Space request service.");
+    } catch (error) {
+      setError(waitFailureMessage(error, "Could not reach the Space request service."));
     } finally {
       setPending(false);
     }
@@ -180,8 +180,10 @@ function ProvisioningPlanView({
       setResult(
         `Receipted ${operation}: ${payload.receipt.id} (${payload.receipt.providerOperationRef})`,
       );
-    } catch {
-      setResult("Could not reach the exact Space pilot service.");
+    } catch (error) {
+      setResult(
+        waitFailureMessage(error, "Could not reach the exact Space pilot service."),
+      );
     } finally {
       setPending(false);
     }

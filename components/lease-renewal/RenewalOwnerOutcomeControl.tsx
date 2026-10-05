@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 import { useRenewalSaveFocus } from "./RenewalSaveFocus";
 
 import { useId, useState } from "react";
@@ -85,8 +85,8 @@ export function RenewalOwnerOutcomeControl({
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
         setError(payload.error ?? "Could not record the owner response.");
       }
-    } catch {
-      setError("Could not reach the renewal service.");
+    } catch (error) {
+      setError(waitFailureMessage(error, "Could not reach the renewal service."));
     } finally {
       setPending(false);
     }

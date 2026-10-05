@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -41,8 +41,8 @@ export function KbCorrectionsPanel({
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
         setError(payload.error ?? "Could not record the decision.");
       }
-    } catch {
-      setError("Could not reach the corrections service.");
+    } catch (error) {
+      setError(waitFailureMessage(error, "Could not reach the corrections service."));
     } finally {
       setPendingId("");
     }

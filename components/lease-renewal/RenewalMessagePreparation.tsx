@@ -1066,6 +1066,7 @@ function MessagePreparationEditor({
                 hint="Copy and Gmail draft use the wording shown, including unresolved markers."
               >
                 <textarea
+                  className="renewal-message-body"
                   id={MESSAGE_CONTROL_IDS.body(channel)}
                   readOnly={!canEdit}
                   rows={16}
@@ -1281,6 +1282,7 @@ function MessagePreparationEditor({
               hint="Replaces the paragraph after the terms, charges and insurance wording, before the request to complete the renewal information form. Blank keeps approved wording; amounts, dates and recipients remain in the email body."
             >
               <textarea
+                className="renewal-message-body"
                 id={`${base}-response`}
                 value={inputs.edits.responseRequest}
                 onChange={(event) =>

@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
 import { useRef, useState } from "react";
 
@@ -193,8 +193,8 @@ export function MaintenanceCapture({
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
         setStatus(payload.error ?? "Could not create the ticket.");
       }
-    } catch {
-      setStatus("Could not reach the ticket service.");
+    } catch (error) {
+      setStatus(waitFailureMessage(error, "Could not reach the ticket service."));
     } finally {
       createInFlight.current = false;
       setIsCreating(false);

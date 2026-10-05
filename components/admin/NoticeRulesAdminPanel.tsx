@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
 import { useState } from "react";
 
@@ -117,8 +117,8 @@ export function NoticeRulesAdminPanel({
       } else {
         setError(payload.error ?? "Could not save the notice rules.");
       }
-    } catch {
-      setError("Could not save the notice rules.");
+    } catch (error) {
+      setError(waitFailureMessage(error, "Could not save the notice rules."));
     } finally {
       setPending(false);
     }

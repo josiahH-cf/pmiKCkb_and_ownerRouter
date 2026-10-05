@@ -1081,7 +1081,8 @@ export function RenewalDeskTable({
               <th scope="col">
                 <span className="muted">RentVine source value</span>
               </th>
-              <th scope="col">
+              {/* The lifecycle and overall-status headers share this one cell. */}
+              <th colSpan={2} scope="col">
                 <HeaderFilter label="Filter status">
                   <SelectFilter
                     label="Overall status"
@@ -1251,7 +1252,7 @@ export function RenewalDeskTable({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td className="renewal-table-empty" colSpan={8}>
+                <td className="renewal-table-empty" colSpan={9}>
                   <p className="renewal-table-empty-copy">
                     {!sourceReadOk
                       ? "The portfolio read did not complete, so this table cannot claim an empty worklist. Refresh to read again."
@@ -1594,7 +1595,7 @@ function DeskRow({
           <span className="renewal-td-secondary">RentVine</span>
         )}
       </td>
-      <td data-renewal-field="overall-status" data-status={status}>
+      <td colSpan={2} data-renewal-field="overall-status" data-status={status}>
         {/* S134: the lifecycle dot and label sit beside, never inside, the readiness badge. */}
         {row.lifecycle ? (
           <LifecycleIndicator

@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -46,8 +46,8 @@ export function ReindexPanel({
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
         setError(payload.error ?? "Could not stage the re-index request.");
       }
-    } catch {
-      setError("Could not reach the re-index service.");
+    } catch (error) {
+      setError(waitFailureMessage(error, "Could not reach the re-index service."));
     } finally {
       setPending(false);
     }

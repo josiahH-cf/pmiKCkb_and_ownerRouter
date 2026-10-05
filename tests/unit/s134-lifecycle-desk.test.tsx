@@ -214,6 +214,71 @@ describe("S134 lifecycle dot, sort header and filter (AC-S134-3, AC-S134-4, AC-S
     const link = within(cells[0] as HTMLElement).getByRole("link");
     expect(link.getAttribute("href")).toContain("lifecycle=complete");
   });
+
+  it("keeps every filter and body cell under its own header, including the two status headers", () => {
+    const columns = (cells: Iterable<Element>) =>
+      Array.from(cells).reduce(
+        (total, cell) => total + ((cell as HTMLTableCellElement).colSpan || 1),
+        0,
+      );
+    const startOf = (tr: Element, target: Element | null) => {
+      let index = 0;
+      for (const cell of tr.children) {
+        if (cell === target) return index;
+        index += (cell as HTMLTableCellElement).colSpan || 1;
+      }
+      return -1;
+    };
+    const view = render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[row("L1", { lifecycle: lifecycle("upcoming") }), row("L2")]}
+        shortcuts={{ available: false, tokenFor: () => null }}
+        sourceReadOk
+        state={DEFAULT_RENEWAL_DESK_QUERY_V2}
+        totalBeforeQuery={2}
+      />,
+    );
+    const headers = Array.from(document.querySelectorAll("thead tr:first-child > th"));
+    const names = headers.map((header) => header.textContent ?? "");
+    expect(headers).toHaveLength(9);
+    const filterRow = document.querySelector("thead tr.renewal-th-filter-row");
+    expect(columns(filterRow?.children ?? [])).toBe(headers.length);
+    const bodyRows = Array.from(document.querySelectorAll("tbody tr"));
+    expect(bodyRows).toHaveLength(2);
+    for (const tr of bodyRows) {
+      expect(columns(tr.children)).toBe(headers.length);
+      const status = tr.querySelector('td[data-renewal-field="overall-status"]');
+      // The lifecycle label and the readiness badge share the cell under their two headers.
+      expect(startOf(tr, status)).toBe(
+        names.findIndex((name) => name.includes("Lifecycle")),
+      );
+      expect((status as HTMLTableCellElement).colSpan).toBe(2);
+      expect(
+        startOf(tr, tr.querySelector('td[data-renewal-field="rent-verification"]')),
+      ).toBe(names.findIndex((name) => name.includes("Rent verification")));
+      expect(startOf(tr, tr.lastElementChild)).toBe(
+        names.findIndex((name) => name.includes("Action")),
+      );
+    }
+    view.unmount();
+    render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[]}
+        shortcuts={{ available: false, tokenFor: () => null }}
+        sourceReadOk
+        state={DEFAULT_RENEWAL_DESK_QUERY_V2}
+        totalBeforeQuery={0}
+      />,
+    );
+    const empty = document.querySelector(
+      "td.renewal-table-empty",
+    ) as HTMLTableCellElement;
+    expect(empty.colSpan).toBe(
+      document.querySelectorAll("thead tr:first-child > th").length,
+    );
+  });
 });
 
 describe("S134 workspace category (AC-S134-3, AC-S134-8)", () => {

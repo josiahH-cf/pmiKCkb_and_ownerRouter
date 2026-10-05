@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 import { useRenewalSaveFocus } from "./RenewalSaveFocus";
 import { AUTOSAVE_IDLE, AutosaveStatus, type AutosaveState } from "./AutosaveStatus";
 import { formatCalendarDateOrTimestamp } from "@/lib/date-display";
@@ -759,8 +759,10 @@ export function OwnerDecisionForm({
           payload.error ?? "Could not prepare the screenshot. Continue without one.",
         );
       }
-    } catch {
-      setScreenshotStatus("Could not reach the screenshot service.");
+    } catch (error) {
+      setScreenshotStatus(
+        waitFailureMessage(error, "Could not reach the screenshot service."),
+      );
     } finally {
       setScreenshotPending(false);
     }
@@ -914,8 +916,10 @@ export function OwnerDecisionForm({
       } else {
         setScreenshotStatus(payload.error ?? "Could not prepare screenshot removal.");
       }
-    } catch {
-      setScreenshotStatus("Could not reach the screenshot removal service.");
+    } catch (error) {
+      setScreenshotStatus(
+        waitFailureMessage(error, "Could not reach the screenshot removal service."),
+      );
     } finally {
       setScreenshotPending(false);
     }
@@ -1244,8 +1248,8 @@ export function OwnerDecisionForm({
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
         setError(payload.error ?? "Could not record the decision.");
       }
-    } catch {
-      setError("Could not reach the renewal service.");
+    } catch (error) {
+      setError(waitFailureMessage(error, "Could not reach the renewal service."));
     } finally {
       setPending(false);
     }
@@ -1831,8 +1835,8 @@ export function RenewalCompleteButton({
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
         setError(payload.error ?? "Could not mark the renewal complete.");
       }
-    } catch {
-      setError("Could not reach the renewal service.");
+    } catch (error) {
+      setError(waitFailureMessage(error, "Could not reach the renewal service."));
     } finally {
       setPending(false);
     }

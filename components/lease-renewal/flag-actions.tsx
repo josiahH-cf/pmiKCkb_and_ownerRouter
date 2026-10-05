@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 
 // Shared lease-renewal flag actions (slice 1b). The resolve form and the approve / return /
@@ -140,8 +140,8 @@ export function FlagResolveForm({
       setCorrectedValue("");
       setConfirmationOpen(false);
       if (!focusAfterSave?.()) router.refresh();
-    } catch {
-      setError("Could not reach the resolution endpoint.");
+    } catch (error) {
+      setError(waitFailureMessage(error, "Could not reach the resolution endpoint."));
       setConfirmationOpen(false);
     } finally {
       requestInFlight.current = false;
@@ -466,8 +466,8 @@ export function WritebackApprovalControl({
       setReason("");
       setReasonCode("");
       if (!focusAfterSave?.()) router.refresh();
-    } catch {
-      setError("Could not reach the approval endpoint.");
+    } catch (error) {
+      setError(waitFailureMessage(error, "Could not reach the approval endpoint."));
     } finally {
       setSubmitting(null);
     }

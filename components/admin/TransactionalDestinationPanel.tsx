@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
 import { useId, useState } from "react";
 
@@ -44,8 +44,8 @@ export function TransactionalDestinationPanel({
       } else {
         setError(payload.error ?? "Could not save the destination address.");
       }
-    } catch {
-      setError("Could not save the destination address.");
+    } catch (error) {
+      setError(waitFailureMessage(error, "Could not save the destination address."));
     } finally {
       setPending(false);
     }

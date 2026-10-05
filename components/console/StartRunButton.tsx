@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
 import Link from "next/link";
 import { useRef, useState } from "react";
@@ -41,8 +41,13 @@ export function StartRunButton({
       } else {
         setUnavailable(true);
       }
-    } catch {
-      setError("Run could not be started. Try again or open the Space.");
+    } catch (error) {
+      setError(
+        waitFailureMessage(
+          error,
+          "Run could not be started. Try again or open the Space.",
+        ),
+      );
     } finally {
       inFlight.current = false;
       setPending(false);

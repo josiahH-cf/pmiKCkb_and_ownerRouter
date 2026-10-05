@@ -85,13 +85,16 @@ export function SupportReportStatusControl({
           {pending ? "Saving…" : action.label}
         </Button>
       ))}
-      <input
-        aria-label="Optional note recorded on the status change"
-        onChange={(event) => setNote(event.target.value)}
-        placeholder="Optional note (kept on the audit trail)"
-        type="text"
-        value={note}
-      />
+      <label className="select-field">
+        Note
+        <input
+          aria-label="Optional note recorded on the status change"
+          onChange={(event) => setNote(event.target.value)}
+          placeholder="Optional note (kept on the audit trail)"
+          type="text"
+          value={note}
+        />
+      </label>
       {error ? <p role="alert">{error}</p> : null}
       {uncertain ? (
         <a className="text-link" href="/admin">

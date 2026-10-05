@@ -1678,8 +1678,11 @@ const RENEWAL_ROW_PLAN: AssuranceDomPlan = {
     ":scope > span:not(.renewal-td-secondary)": {},
   },
 };
+// The empty-worklist cell is identified by its class. Its column span follows the table's
+// header count, which differs between a predecessor and a candidate when a column changes.
+const RENEWAL_EMPTY_CELL = "td.renewal-table-empty";
 const RENEWAL_DOM_PLAN: AssuranceDomPlan = {
-  [RENEWAL_BODY_ROWS]: { 'td[colspan="8"]': {} },
+  [RENEWAL_BODY_ROWS]: { [RENEWAL_EMPTY_CELL]: {} },
   [RENEWAL_DATA_ROWS]: RENEWAL_ROW_PLAN,
 };
 const RENEWAL_DOM_ATTRIBUTES = [
@@ -1756,7 +1759,7 @@ export async function readRowsFromPage(
       expectedRows.length === 0 &&
       allCount === 1 &&
       dataCount === 0 &&
-      (await allBodyRows.first().locator('td[colspan="8"]').count()) === 1;
+      (await allBodyRows.first().locator(RENEWAL_EMPTY_CELL).count()) === 1;
     if (!validEmpty) invalidDestinations += allCount - dataCount;
   }
   // Independent checks read one coherent fresh DOM snapshot and preserve row order. No source

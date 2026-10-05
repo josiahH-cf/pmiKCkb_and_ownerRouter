@@ -1,5 +1,5 @@
 "use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
 import Link from "next/link";
 import { useId, useState } from "react";
@@ -284,8 +284,8 @@ function KnowledgeAnswerView({ result }: Readonly<{ result: AskResponse }>) {
           ? "Capture task created."
           : await readErrorMessage(response, "Capture failed."),
       );
-    } catch {
-      setCaptureStatus("Capture failed.");
+    } catch (error) {
+      setCaptureStatus(waitFailureMessage(error, "Capture failed."));
     } finally {
       setIsCapturing(false);
     }
@@ -318,8 +318,8 @@ function KnowledgeAnswerView({ result }: Readonly<{ result: AskResponse }>) {
           await readErrorMessage(response, "Could not file the correction."),
         );
       }
-    } catch {
-      setCorrectionStatus("Could not file the correction.");
+    } catch (error) {
+      setCorrectionStatus(waitFailureMessage(error, "Could not file the correction."));
     } finally {
       setIsCorrecting(false);
     }
