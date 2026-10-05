@@ -8,39 +8,40 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-Run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` released the batch 005 verification repairs (S170, S177, S178 and S179; four queued items)
-at `9e76c14f5238f22be9ddecbffed149eee3db6d38` / `pmi-kc-app-rmuv5c6eu-e3c268629df8` with 100% production traffic.
-Code slice `5fda274ff8087e52042e39c464e81b95de576d9c` (PR #130) carries the repairs and their fail-first regressions.
-Exact [CI 37299720511](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37299720511) passed.
-The repaired tree passed 8,765 unit tests, four existing configuration skips, all 325
+Run `7753e5f5-2325-4b19-b83d-dc3475d71b0b` released the batch 005 follow-up fixes (S173, S169, S170, S172 and S87; five queued items)
+at `b2308bc506132853ebd54e4ba0678abbf853fce0` / `pmi-kc-app-rmuv84r3a-f9fac2efc1af` with 100% production traffic.
+Code slice `5261563e7f21651333c2be3925953b1a38231349` (PR #133) carries the fixes and their fail-first regressions.
+Exact [CI 37308062054](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37308062054) passed.
+The fixed tree passed 8,774 unit tests, four existing configuration skips, all 325
 backend tests, zero production audit findings, all required checks and the production build.
 Core E2E passed 32 tests with 22 existing configuration skips.
-One application build `4d048b60-0e59-44d7-a4da-c74232fd1c24` succeeded at 2026-10-05T11:21:32.077661Z.
-Candidate receipt `84805fd5-99d2-48a5-85e6-78b3c6916827` issued 2026-10-05T11:27:05.515Z;
-promotion verified 2026-10-05T11:27:35.543Z.
-Observation passed two checkpoints in 398,119 ms against the required 300,000 ms,
+One application build `26be4261-a782-434b-851d-cc3327fa44f7` succeeded at 2026-10-05T12:42:00.650833Z.
+Candidate receipt `2fcac9b1-949d-41ff-9a72-92ed1b1dd44e` issued 2026-10-05T12:47:07.997Z;
+promotion verified 2026-10-05T12:47:30.209Z.
+Observation passed two checkpoints in 390,684 ms against the required 300,000 ms,
 inside the 420,000 ms deadline. All 312 source/projected/rendered records matched with
 zero discrepancies, candidate 5xx or unresolved live effects. All eleven independent readback
-sections matched, completed 2026-10-05T11:36:39Z.
+sections matched, completed 2026-10-05T12:54:10Z.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=true are verified.
-Tag `cand-rmuv5c6eu-e3c268629df8`; fingerprint `sha256:fc957ab056651096ce32dbb333075d46b4f208c9564659dd3a6efadafc14c10d`.
-Captured predecessor: `fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27` / `pmi-kc-app-rmuuk9ykp-31da970956eb`,
-Sheet=true. Run-bound recovery `pmi-kc-app-recovery-5d1b4e3aef6d4354` preserves that actual configuration;
-receipt `2ba57f4c-1341-48c1-9196-9ba09fd10d9c`, reference hash `sha256:601a0ec6dd68434c309073f0c4cb2aac64f77ceb5e098a58f116d8204cb53b44`.
+Tag `cand-rmuv84r3a-f9fac2efc1af`; fingerprint `sha256:7d48dfce165dd3ca022a1f2d84fe17b4ef360b36728b93200af94f9b9bbd3857`.
+Captured predecessor: `9e76c14f5238f22be9ddecbffed149eee3db6d38` / `pmi-kc-app-rmuv5c6eu-e3c268629df8`,
+Sheet=true. Run-bound recovery `pmi-kc-app-recovery-7753e5f523254b19` preserves that actual configuration;
+receipt `c20682b1-13bb-4fa9-aebb-2d81fb4b5cce`, reference hash `sha256:e09ff997a705dde2b27bc15e082bb2fb211fa815ebffd8f5ce7c37a4aef01f06`.
 No traffic rollback or business mutation was used as proof. The first recovery assurance failed at
-2026-10-05T11:12:01.448Z and remains failed in immutable evidence: the new recovery instance took 43.2 s
-for its first Dashboard render against the 30-second route bound, with every request answered 200. A separate
-guarded 13-route diagnostic passed and the same run resumed on the existing target.
+2026-10-05T12:30:28.033Z and remains failed in immutable evidence: the new recovery instance took 33.0 s
+for its first Dashboard render against the 30-second route bound, with every request answered 200. Two separate
+guarded 13-route diagnostics passed and the same run resumed on the existing target.
 Batch 005 (S168–S175, revised S87 and S176–S181; intake 035–049) was released by run
-`8b7dc3f1-4c5b-482a-94ca-26985150c68d` at that predecessor. Its 116 requirement records are in
-[native evidence](evidence/application-usability-batch005.json); independent verification of it
-is recorded in F-BATCH-005-VERIFICATION.
-The four-item queue is delivered and empty; the exact permit is consumed.
+`8b7dc3f1-4c5b-482a-94ca-26985150c68d` at `fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27`, and run
+`5d1b4e3a-ef6d-4354-aef1-e9952dd28687` released its first four verification repairs at the captured predecessor.
+Batch 005's 116 requirement records are in [native evidence](evidence/application-usability-batch005.json);
+independent verification of it is recorded in F-BATCH-005-VERIFICATION.
+The five-item queue is delivered and empty; the exact permit is consumed.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
-Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` released the S152–S167 program at `e106a88a50d541b4a012111019b09c2183f6ce20` on 2026-10-03, and run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` released batch 005 on 2026-10-05; both remain carried.
+Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` released the S152–S167 program at `e106a88a50d541b4a012111019b09c2183f6ce20` on 2026-10-03; run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` released batch 005 and run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` its first verification repairs on 2026-10-05; all remain carried.
 
-Run `5d1b4e3a` (the batch 005 verification repairs, after run `8b7dc3f1` shipped batch 005 and run
-`47fabb7c` the S152–S167 program) is complete, its permit consumed and its queue empty.
+Run `7753e5f5` (the batch 005 follow-up fixes, after run `5d1b4e3a` shipped its verification repairs and
+run `8b7dc3f1` batch 005) is complete, its permit consumed and its queue empty.
 Original completed runs remain preserved separately. This retained procedure does not authorize
 a new dispatch or reuse of a consumed permit; future authorized work requires current gates.
 The September 30 runner correction removes the former fixed thirteen-suite and seven-hour
@@ -109,7 +110,7 @@ Run `ab803f8a-4ffb-4568-9178-05ccb588a94c` later carried request 001 and batches
 Batch 004 shipped in two candidates by owner direction: run `98f7e743-7345-4b74-a6a8-675fe9fac31f` (S108, S146–S148) and run `729d5716-bc5e-4e61-9932-c9107d1954f2` (S149–S151).
 Run `0eb2cfeb-a238-4b37-b35f-f999eadfacff` then carried batch 004's corrective repair (two queued items) in one build and candidate, after run `175fee1d` rolled back verified.
 Run `3a32f7a2-fd58-4652-b519-5a31517b0142` carried the S113 approval-read fix. Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` carried the S152–S167 program (one queued item) in one build and candidate, after run `a83ed59b` stopped at candidate assurance and was archived as superseded.
-Run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` carried batch 005 (fifteen queued items) and run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` its verification repairs (four queued items), each in one build and candidate.
+Run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` carried batch 005 (fifteen queued items), run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` its verification repairs (four queued items) and run `7753e5f5-2325-4b19-b83d-dc3475d71b0b` its follow-up fixes (five queued items), each in one build and candidate.
 The cumulative corrective queue is cleared after independent verification. An empty queue refuses fresh admission; docs/loop-state.md records the completed state.
 
 ## Before you start
@@ -129,7 +130,7 @@ gcloud beta billing projects describe pmi-kc-kb-prod --format="value(billingEnab
 
 Expect True and account `01A5A3-65CA5A-614D45`. Stop if billing is disabled.
 
-**2. Verify the watcher and checkpoint before any start.** Current run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` is complete,
+**2. Verify the watcher and checkpoint before any start.** Current run `7753e5f5-2325-4b19-b83d-dc3475d71b0b` is complete,
 its permit consumed and its original receipts preserved. The stale S128-only checkpoint and later
 failed cumulative attempts were archived through checked retirement; none was relabeled a pass.
 Blocked runs `dc4e1ac8`, `6eb157e1` and `a83ed59b` were archived the same way as superseded.
