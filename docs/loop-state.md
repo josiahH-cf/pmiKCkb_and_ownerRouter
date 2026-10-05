@@ -10,6 +10,7 @@ and the one cumulative production release are verified. All fifteen finalized sp
 unrelated private files remain preserved. Its four verification repairs were released on
 October 5 by run 5d1b4e3a-ef6d-4354-aef1-e9952dd28687 under the owner's instruction of that day;
 run 7753e5f5-2325-4b19-b83d-dc3475d71b0b released five follow-up fixes under the same instruction.
+Fixes for the items left open are queued below under the owner's later instruction of that day.
 Native evidence: docs/evidence/application-usability-batch005.json.
 
 Serving b2308bc506132853ebd54e4ba0678abbf853fce0 / pmi-kc-app-rmuv84r3a-f9fac2efc1af, 100% traffic,
@@ -24,7 +25,7 @@ zero violations/page errors. Six-owner recovery 6 passed 18 observations/126 int
 zero effects. Publication recovery 2 passed six observations/18 intercepted actions, retaining
 the full wrapping hash and uncertain post-commit 409 fence. The separate compiled identity-to-lease
 and verified RentVine shortcut journey passed. Counts are scoped actual evidence, not human verdicts.
-Inventory: 38 routes, 188 consumers, six cohorts; 815 current plus 66 former content blocks.
+Inventory: 38 routes, 190 consumers, six cohorts; 812 current plus 81 former content blocks.
 Named actual owner/service/compiled checks are separate from source/import topology inspection.
 
 ## Independent verification, 2026-10-05
@@ -38,18 +39,32 @@ fail-first regressions merged in PR #130 and are released by run 5d1b4e3a.
 Follow-up fixes merged in PR #133 and are released by run 7753e5f5: table cells under their own headers, lease
 loading wording, unknown-outcome wording after an elapsed wait, a navigation status that stays in
 view, a readable message editor, one primary message action and four visible field labels.
-Still open: residual explanatory copy, no edited state before a message saves, no download
-outcome feedback, the worklist replaced while a lease opens.
+Open-item fixes merged in PR #136 and are queued below: the worklist stays while a lease
+opens, an edited autosave state, download outcome feedback, distinct empty-lookup states, one
+wording for a communication's state, residual explanatory copy removed and a remembered
+cleared filter. The ledger records this verification apart from the implementation evidence,
+with production cold and warm timings.
 
 ## Awaiting release
 
-None. OWNER DIRECTION, 2026-10-05: use the verification recommendations; push, merge and deploy
-all changes. Run 5d1b4e3a delivered the first four repairs at 9e76c14f and run
-7753e5f5-2325-4b19-b83d-dc3475d71b0b the five follow-up fixes (S173, S169, S170, S172, S87) at
-b2308bc506132853ebd54e4ba0678abbf853fce0; code slice
-5261563e7f21651333c2be3925953b1a38231349 is its ancestor. Both exact permits are consumed.
-Documentation-only closure does not deploy. No completed, superseded, historical or deferred suite
-restarts from a registry row or consumed permit.
+OWNER DIRECTION, 2026-10-05: use the recommendations on the open items; fix and deploy. Runs
+5d1b4e3a and 7753e5f5 delivered the earlier repairs at 9e76c14f and b2308bc5. One further
+candidate carries the fixes for the items the verification left open. The code slice below must
+be an ancestor of the exact-main release target. Admit only after its own green push CI, fresh
+prerequisites and locked GO under a new run-bound permit; consumed permits are not reused.
+
+1. S170 the worklist stays while a lease opens, autosave shows an edited state and downloads report their outcome `49f745f4b6889a9e8b17c0b18f9caf6b283037a2`
+2. S178 a lookup that finds nothing names an incomplete read, stale data, an unresolved relationship or a complete no-match `49f745f4b6889a9e8b17c0b18f9caf6b283037a2`
+3. S87 one wording for a communication's state on the hub, linked detail, notifications and answers `49f745f4b6889a9e8b17c0b18f9caf6b283037a2`
+4. S176 residual instructional copy removed from Full view and lease information `49f745f4b6889a9e8b17c0b18f9caf6b283037a2`
+5. S177 a filter cleared to all is remembered and per-table views are tested `49f745f4b6889a9e8b17c0b18f9caf6b283037a2`
+6. S148 a reopened conversation takes focus after it renders `49f745f4b6889a9e8b17c0b18f9caf6b283037a2`
+7. S181 the evidence ledger records the independent verification and production cold and warm timings `49f745f4b6889a9e8b17c0b18f9caf6b283037a2`
+
+Capture the actual serving predecessor b2308bc5 and preserve its actual Sheet switch on the
+run-bound recovery target. Candidate/promoted Sheet=true is required. Keep the queue until
+verified release and documentation closure. No provider effect, key or activation is queued;
+S121 stays excluded.
 
 ## Verified release and recovery
 
@@ -102,7 +117,6 @@ budget or provider-effect change occurred. Exact preview/confirmation, one-attem
 receipt/readback/correction contracts remain. Raw data, captures, credentials and failures stay
 outside Git; original failures and superseded local verification attempts retain actual outcomes.
 
-ALL_GATES_GREEN applies to verified batch 005 engineering and cumulative deployed release only;
-the verification findings listed above as still open remain open.
-No unfinished delivery remains. Documentation updates alone never issue a permit, build or
-candidate.
+ALL_GATES_GREEN applies to verified batch 005 engineering and cumulative deployed release only.
+The queued open-item release is the only unfinished delivery. Documentation updates alone never
+issue a permit, build or candidate.
