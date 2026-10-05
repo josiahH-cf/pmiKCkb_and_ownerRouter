@@ -422,8 +422,8 @@ safety control, alert, domain in use, or guardrail still requires owner directio
 
 Routine deployments use the existing production service and reviewed production environment.
 Preserve the runtime service account, eleven-Space configuration, secret bindings, Production+Live
-descriptor, and paused Sheet-write switch (false) unless the requested change explicitly targets one of
-them.
+descriptor, and reviewed Sheet-write switch (true) unless the requested change explicitly targets one
+of them.
 
 ## Live-write proof policy
 
