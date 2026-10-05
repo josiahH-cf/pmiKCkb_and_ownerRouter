@@ -1,4 +1,9 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import {
+  PersonalViewStatus,
+  usePersonalFilters,
+} from "@/components/layout/PersonalViewProvider";
 
 import { formatBusinessTimestamp } from "@/lib/date-display";
 import Link from "next/link";
@@ -52,14 +57,18 @@ export function WorkAccountabilityBoard({
   const [isRefreshing, setIsRefreshing] = useState(true);
   const [isReconciling, setIsReconciling] = useState(false);
   const [busyKey, setBusyKey] = useState("");
-  const [filters, setFilters] = useState({
-    staff: "",
-    space: "",
-    type: "",
-    state: "" as WorkTaskState | "",
-    from: "",
-    to: "",
-  });
+  const [filters, setFilters, resetView] = usePersonalFilters(
+    mode === "team" ? "work-team" : "work",
+    {
+      staff: "",
+      space: "",
+      type: "",
+      state: "" as WorkTaskState | "",
+      from: "",
+      to: "",
+    },
+    mode === "team",
+  );
   const alive = useRef(true);
   const loadGeneration = useRef(0);
 
@@ -301,13 +310,37 @@ export function WorkAccountabilityBoard({
       />
 
       {mode === "team" ? (
-        <TeamFilters
-          filters={filters}
-          setFilters={setFilters}
-          roster={roster}
-          spaces={spaces}
-          taskTypes={taskTypes}
-        />
+        <>
+          <TeamFilters
+            filters={filters}
+            setFilters={setFilters}
+            roster={roster}
+            spaces={spaces}
+            taskTypes={taskTypes}
+          />
+          <div className="ui-actions">
+            <button
+              type="button"
+              className="text-link"
+              onClick={() =>
+                setFilters({
+                  staff: "",
+                  space: "",
+                  type: "",
+                  state: "",
+                  from: "",
+                  to: "",
+                })
+              }
+            >
+              Clear filters
+            </button>
+            <button type="button" className="text-link" onClick={resetView}>
+              Reset view
+            </button>
+            <PersonalViewStatus surface="work-team" />
+          </div>
+        </>
       ) : null}
 
       <CreateTaskForm

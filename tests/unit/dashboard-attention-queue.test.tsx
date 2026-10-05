@@ -99,7 +99,9 @@ describe("S147 compact attention queue", () => {
     fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url === "/api/approval-queue/q1" && init?.method === "PATCH") {
-        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+        return new Response(JSON.stringify({ item: { id: "q1", status: "Approved" } }), {
+          status: 200,
+        });
       }
       if (url === "/api/dashboard/attention") {
         return new Response(JSON.stringify(queue({ rows: [] })), { status: 200 });

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { GmailHubHome } from "@/components/gmail-hub/GmailHubHome";
@@ -14,14 +14,16 @@ describe("Workflow Communications home (AC-GW-1)", () => {
     expect(
       screen.getByRole("heading", { name: "Workflow Communications" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Gmail connection" })).toBeInTheDocument();
-    expect(screen.getByText(/mailbox management stay in Gmail/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Linked conversations" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/mailbox management stays in Gmail/i)).toBeInTheDocument();
     expect(screen.queryByText("Recent inbox threads")).not.toBeInTheDocument();
     expect(screen.queryByText("Compose message")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Review exact message" })).toBeNull();
     expect(
       screen.queryByRole("heading", {
-        name: "Admin-only governed workflow recovery tools",
+        name: "Workflow draft recovery",
       }),
     ).toBeNull();
     expect(screen.queryByRole("heading", { name: "Simulated email chain" })).toBeNull();
@@ -29,12 +31,18 @@ describe("Workflow Communications home (AC-GW-1)", () => {
 
   it("keeps governed recovery and paste tools Admin-only after retiring simulation", () => {
     render(<GmailHubHome canManageAdmin />);
+    const disclosure = screen.getByText("Admin recovery tools").closest("details")!;
+    expect(disclosure).not.toHaveAttribute("open");
+    fireEvent.click(screen.getByText("Admin recovery tools"));
+    expect(disclosure).toHaveAttribute("open");
     expect(
       screen.getByRole("heading", {
-        name: "Admin-only governed workflow recovery tools",
+        name: "Workflow draft recovery",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/draft and review workflow replies/i)).toBeVisible();
+    expect(
+      screen.getByText(/Unsent drafts only\. A person sends from Gmail\./i),
+    ).toBeVisible();
     expect(
       screen.queryByRole("heading", { name: "Simulated email chain" }),
     ).not.toBeInTheDocument();

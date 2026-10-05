@@ -1051,6 +1051,18 @@ export const RENEWAL_ROUTE_INVENTORY = [
   },
   {
     kind: "api",
+    source: "app/api/lease-renewal/desk-admission/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/lease-renewal/live/desk/lease/[leaseId]/rentvine/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
     source: "app/api/lease-renewal/desk-preferences/route.ts",
     method: "POST",
     capability: "save_desk_preference",

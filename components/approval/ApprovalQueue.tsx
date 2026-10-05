@@ -1,6 +1,24 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import {
+  PersonalViewStatus,
+  usePersonalFilters,
+} from "@/components/layout/PersonalViewProvider";
+import { useOperation } from "@/components/hooks/useOperation";
+import {
+  WorkspaceResizer,
+  useWorkspacePanelSize,
+} from "@/components/ui/WorkspaceResizer";
+import { BusyIndicator } from "@/components/ui/BusyIndicator";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type CSSProperties,
+} from "react";
 import { queueActionAvailability } from "@/lib/approval/queue";
 import { buildNeedsDecisionInbox } from "@/lib/approval/needs-decision-inbox";
 import type { RenewalReviewBoard } from "@/lib/approval/renewal-review";
@@ -58,7 +76,15 @@ type PendingHighRiskApproval =
       requestBody: QueueRequestBody;
     };
 
-export function ApprovalQueue({
+export function ApprovalQueue(props: Parameters<typeof OwnedApprovalQueue>[0]) {
+  return (
+    <OwnedApprovalQueue
+      key={`${props.currentUser.uid}:${props.currentUser.role}`}
+      {...props}
+    />
+  );
+}
+function OwnedApprovalQueue({
   currentUser,
   initialActivity,
   initialError,
@@ -97,12 +123,31 @@ export function ApprovalQueue({
         }
       : {},
   );
-  const [filters, setFilters] = useState<QueueFilters>(emptyFilters);
+  const listOperation = useOperation(`${currentUser.uid}:${currentUser.role}:queue-list`);
+  const detailGeneration = useRef(0);
+  const live = useRef(true);
+  useEffect(() => {
+    live.current = true;
+    return () => {
+      live.current = false;
+      detailGeneration.current += 1;
+    };
+  }, []);
+  const panelSize = useWorkspacePanelSize("approvals");
+  const restoreFilters = useRef<(restored: QueueFilters) => void>(() => {});
+  const [filters, setFilters, resetView, replaceFilters] =
+    usePersonalFilters<QueueFilters>("approvals", emptyFilters, true, (restored) => {
+      restoreFilters.current(restored);
+    });
+  const [completedFilters, setCompletedFilters] = useState<QueueFilters>(emptyFilters);
   const [listError, setListError] = useState(initialError);
   const [message, setMessage] = useState(initialError ?? "Approval Queue connected.");
   const [isLoadingList, setIsLoadingList] = useState(false);
   const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const effectClaim = useRef(false);
+  const uncertainItems = useRef(new Map<string, { status: string; updatedAt: string }>());
+  const [recoveryIds, setRecoveryIds] = useState<string[]>([]);
   const [actionMode, setActionMode] = useState<QueueActionMode | null>(null);
   const [reason, setReason] = useState("");
   const [snoozeUntil, setSnoozeUntil] = useState("");
@@ -130,6 +175,10 @@ export function ApprovalQueue({
     }
 
     initialSelectedItemIdRef.current = initialSelectedItemId;
+    listOperation.controller.reset();
+    detailGeneration.current += 1;
+    setIsLoadingList(false);
+    setLoadingDetailId(null);
     const nextInitialItem =
       initialItems.find((item) => item.id === initialSelectedItemId) ??
       initialItems.at(0);
@@ -148,7 +197,8 @@ export function ApprovalQueue({
           }
         : {},
     );
-    setFilters(emptyFilters);
+    replaceFilters(emptyFilters);
+    setCompletedFilters(emptyFilters);
     setListError(initialError);
     setMessage(initialError ?? "Approval Queue connected.");
     setActionMode(null);
@@ -192,59 +242,64 @@ export function ApprovalQueue({
 
   async function applyFilters(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    await readList(filters);
+  }
+
+  async function readList(requested: QueueFilters) {
     setIsLoadingList(true);
-    setMessage("Loading approval queue.");
-
-    try {
-      const response = await fetch(`/api/approval-queue${filterQuery(filters)}`);
-      const payload = await readJsonResponse<{ items: ApprovalQueueItemRecord[] }>(
-        response,
-      );
-
-      resetListState(payload.items);
+    setMessage("Loading requested queue view. The previous results remain visible.");
+    let failure =
+      "The requested queue view did not finish. The previous results are kept.";
+    const result = await listOperation.controller.run(
+      "Loading queue view",
+      async (signal) => {
+        try {
+          const response = await fetch(`/api/approval-queue${filterQuery(requested)}`, {
+            signal,
+          });
+          const payload = await readJsonResponse<{ items: ApprovalQueueItemRecord[] }>(
+            response,
+          );
+          if (!Array.isArray(payload.items))
+            throw new Error("The queue response could not be validated.");
+          return payload;
+        } catch (error) {
+          failure = readErrorMessage(error);
+          throw error;
+        }
+      },
+    );
+    if (!live.current || result.outcome === "superseded") return;
+    if (result.outcome === "succeeded") {
+      resetListState(result.value.items);
+      setCompletedFilters(requested);
       setMessage(
-        payload.items.length > 0
+        result.value.items.length
           ? "Approval Queue connected."
-          : filterQuery(filters)
+          : filterQuery(requested)
             ? "No queue items match these filters."
             : "Nothing is currently waiting for review.",
       );
-    } catch (error) {
-      const errorMessage = readErrorMessage(error);
-      setListError(errorMessage);
-      setMessage(errorMessage);
-    } finally {
-      setIsLoadingList(false);
+    } else {
+      setMessage(failure);
     }
+    setIsLoadingList(false);
   }
 
-  async function resetFilters() {
-    setFilters(emptyFilters);
-    setIsLoadingList(true);
-    setMessage("Loading approval queue.");
-
-    try {
-      const response = await fetch("/api/approval-queue");
-      const payload = await readJsonResponse<{ items: ApprovalQueueItemRecord[] }>(
-        response,
-      );
-
-      resetListState(payload.items);
-      setMessage(
-        payload.items.length > 0
-          ? "Approval Queue connected."
-          : "Nothing is currently waiting for review.",
-      );
-    } catch (error) {
-      const errorMessage = readErrorMessage(error);
-      setListError(errorMessage);
-      setMessage(errorMessage);
-    } finally {
-      setIsLoadingList(false);
-    }
+  async function resetFilters(restoreDefaults = false) {
+    if (restoreDefaults) resetView();
+    else setFilters(emptyFilters);
+    await readList(emptyFilters);
   }
+
+  useEffect(() => {
+    restoreFilters.current = (restored) => {
+      if (!initialSelectedItemId && filterQuery(restored)) void readList(restored);
+    };
+  });
 
   async function loadDetail(itemId: string, options: { silent?: boolean } = {}) {
+    const generation = ++detailGeneration.current;
     setLoadingDetailId(itemId);
     if (!options.silent) {
       setMessage("Loading queue item.");
@@ -253,16 +308,33 @@ export function ApprovalQueue({
     try {
       const response = await fetch(`/api/approval-queue/${encodeURIComponent(itemId)}`);
       const payload = await readJsonResponse<QueueDetail>(response);
-
+      if (payload.item?.id !== itemId || !Array.isArray(payload.activity))
+        throw new Error("The original queue item readback could not be validated.");
+      if (!live.current || generation !== detailGeneration.current) return;
       setDetailsById((current) => ({ ...current, [itemId]: payload }));
       setItems((current) => replaceItem(current, payload.item));
+      const uncertain = uncertainItems.current.get(itemId);
+      if (
+        uncertain &&
+        payload.item.updated_at !== uncertain.updatedAt &&
+        payload.item.status !== uncertain.status
+      ) {
+        uncertainItems.current.delete(itemId);
+        setRecoveryIds([...uncertainItems.current.keys()]);
+        if (!uncertainItems.current.size) {
+          effectClaim.current = false;
+          setBusyAction(null);
+        }
+      }
       if (!options.silent) {
         setMessage("Queue item loaded.");
       }
     } catch (error) {
-      setMessage(readErrorMessage(error));
+      if (live.current && generation === detailGeneration.current)
+        setMessage(readErrorMessage(error));
     } finally {
-      setLoadingDetailId(null);
+      if (live.current && generation === detailGeneration.current)
+        setLoadingDetailId(null);
     }
   }
 
@@ -297,6 +369,14 @@ export function ApprovalQueue({
     itemId: string,
     requestBody: QueueRequestBody,
   ): Promise<{ ok: true } | { ok: false; message: string }> {
+    if (effectClaim.current)
+      return {
+        ok: false,
+        message: "The original queue action is pending or needs readback.",
+      };
+    effectClaim.current = true;
+    let uncertain = true;
+    const before = items.find((item) => item.id === itemId);
     setBusyAction(String(requestBody.action ?? "action"));
     setMessage("Saving queue item.");
 
@@ -306,7 +386,12 @@ export function ApprovalQueue({
         headers: { "Content-Type": "application/json" },
         method: "PATCH",
       });
+      if (!response.ok && response.status < 500) uncertain = false;
       const payload = await readJsonResponse<QueueDetail>(response);
+      if (payload.item?.id !== itemId || !Array.isArray(payload.activity))
+        throw new Error("The original queue action readback could not be validated.");
+      uncertain = false;
+      if (!live.current) return { ok: true };
 
       setDetailsById((current) => ({ ...current, [payload.item.id]: payload }));
       setItems((current) => replaceItem(current, payload.item));
@@ -317,10 +402,24 @@ export function ApprovalQueue({
       return { ok: true };
     } catch (error) {
       const errorMessage = readErrorMessage(error);
-      setMessage(errorMessage);
+      if (live.current) {
+        setMessage(errorMessage);
+        if (uncertain && before) {
+          uncertainItems.current.set(itemId, {
+            status: before.status,
+            updatedAt: before.updated_at,
+          });
+          setRecoveryIds([...uncertainItems.current.keys()]);
+        }
+      }
       return { ok: false, message: errorMessage };
     } finally {
-      setBusyAction(null);
+      if (uncertain && before) {
+        if (live.current) setBusyAction("recovery");
+      } else {
+        effectClaim.current = false;
+        if (live.current) setBusyAction(null);
+      }
     }
   }
 
@@ -339,6 +438,8 @@ export function ApprovalQueue({
   }
 
   function selectItem(itemId: string) {
+    detailGeneration.current += 1;
+    setLoadingDetailId(null);
     setSelectedItemId(itemId);
     setActionMode(null);
     setReason("");
@@ -512,6 +613,14 @@ export function ApprovalQueue({
     body: QueueRequestBody,
     itemIds: readonly string[],
   ): Promise<{ ok: true } | { ok: false; message: string }> {
+    if (effectClaim.current)
+      return {
+        ok: false,
+        message: "The original queue action is pending or needs readback.",
+      };
+    effectClaim.current = true;
+    let uncertain = true;
+    const originalItems = items.filter((item) => itemIds.includes(item.id));
     setBusyAction(`bulk-${String(body.action ?? "action")}`);
     setMessage("Saving selected queue items.");
 
@@ -521,7 +630,16 @@ export function ApprovalQueue({
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
+      if (!response.ok && response.status < 500) uncertain = false;
       const payload = await readJsonResponse<BulkQueueResult>(response);
+      if (
+        !Array.isArray(payload.results) ||
+        !payload.summary ||
+        payload.results.some((result) => result.item && !itemIds.includes(result.item.id))
+      )
+        throw new Error("The original bulk readback could not be validated.");
+      uncertain = false;
+      if (!live.current) return { ok: true };
       const updatedItems = payload.results
         .map((result) => result.item)
         .filter((item): item is ApprovalQueueItemRecord => Boolean(item));
@@ -556,10 +674,25 @@ export function ApprovalQueue({
       return { ok: true };
     } catch (error) {
       const errorMessage = readErrorMessage(error);
-      setMessage(errorMessage);
+      if (live.current) {
+        setMessage(errorMessage);
+        if (uncertain) {
+          for (const item of originalItems)
+            uncertainItems.current.set(item.id, {
+              status: item.status,
+              updatedAt: item.updated_at,
+            });
+          setRecoveryIds([...uncertainItems.current.keys()]);
+        }
+      }
       return { ok: false, message: errorMessage };
     } finally {
-      setBusyAction(null);
+      if (uncertain) {
+        if (live.current) setBusyAction("recovery");
+      } else {
+        effectClaim.current = false;
+        if (live.current) setBusyAction(null);
+      }
     }
   }
 
@@ -592,6 +725,23 @@ export function ApprovalQueue({
 
   return (
     <div className="approval-queue-shell">
+      {recoveryIds.length ? (
+        <div className="notice" role="alert">
+          The outcome is unknown. Check the original queue item before another action. An
+          unchanged read does not prove failure.{" "}
+          {recoveryIds.map((id) => (
+            <button
+              className="text-link"
+              key={id}
+              type="button"
+              disabled={loadingDetailId !== null}
+              onClick={() => void loadDetail(id)}
+            >
+              Check original queue item<span className="sr-only"> {id}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
       {!renewalStatusUnavailable || needsInbox.counts.total > 0 ? (
         <NeedsDecisionInboxPanel inbox={needsInbox} />
       ) : null}
@@ -667,7 +817,8 @@ export function ApprovalQueue({
         ) : null}
       </details>
       <ConfirmationDialog
-        busy={busyAction !== null}
+        busy={busyAction !== null && busyAction !== "recovery"}
+        confirmDisabled={recoveryIds.length > 0}
         busyLabel={
           pendingHighRisk?.kind === "bulk"
             ? "Approving selected items"
@@ -719,6 +870,14 @@ export function ApprovalQueue({
   function renderAllItemsView() {
     return (
       <>
+        <PersonalViewStatus surface="approvals" />
+        <button
+          className="text-link"
+          type="button"
+          onClick={() => void resetFilters(true)}
+        >
+          Reset view
+        </button>
         <QueueFilterBar
           filters={filters}
           isLoadingList={isLoadingList}
@@ -726,6 +885,13 @@ export function ApprovalQueue({
           onReset={() => void resetFilters()}
           setFilters={setFilters}
         />
+        {isLoadingList ? <BusyIndicator label="Loading queue view" /> : null}
+        {filterQuery(filters) !== filterQuery(completedFilters) ? (
+          <p className="muted">
+            The controls contain a different view. The list still shows the last completed
+            view; Apply to read the requested selection.
+          </p>
+        ) : null}
 
         <p
           aria-atomic="true"
@@ -739,7 +905,7 @@ export function ApprovalQueue({
         {listError ? (
           <QueueUnavailableState listError={listError} />
         ) : items.length === 0 ? (
-          <QueueEmptyState filters={filters} />
+          <QueueEmptyState filters={completedFilters} />
         ) : (
           <>
             <QueueBulkPanel
@@ -766,13 +932,23 @@ export function ApprovalQueue({
               setBulkSnoozeUntil={setBulkSnoozeUntil}
             />
 
-            <div className="approval-queue-layout">
+            <div
+              className="approval-queue-layout"
+              style={
+                { "--queue-inspector-width": `${panelSize.width}px` } as CSSProperties
+              }
+            >
               <QueueListPanel
                 items={items}
                 onSelectItem={selectItem}
                 onToggleBulkItem={toggleBulkItem}
                 selectedBulkIds={selectedBulkIds}
                 selectedItemId={selectedItemId}
+              />
+              <WorkspaceResizer
+                label="Resize queue details"
+                value={panelSize.width}
+                onChange={panelSize.change}
               />
               <QueueDetailPanel
                 actionAvailability={actionAvailability}

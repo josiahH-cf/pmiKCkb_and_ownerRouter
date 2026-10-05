@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 // SpaceDeskRunPanel — checklist controls for an existing ordinary workflow run. Browser Test-run
 // construction is retired; this component never starts or reconstructs a run.

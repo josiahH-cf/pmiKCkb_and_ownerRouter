@@ -63,8 +63,7 @@ export function LiveRenewalNotices({
         <p className="muted">
           Actionable leases ending on a month boundary through{" "}
           {formatCalendarDate(windowEndIso)}, from a live RentVine read ({result.scanned}{" "}
-          leases scanned). Compose an unsent Gmail draft per lease. You send each draft
-          yourself from Gmail.
+          leases scanned). Gmail drafts remain unsent; a person sends from Gmail.
         </p>
       </div>
       {result.rows.length === 0 ? (

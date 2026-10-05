@@ -12,7 +12,6 @@ import { LIVE_VERIFIABLE_CONNECTOR_IDS } from "@/lib/connections/verification";
 const rentvine = CONNECTORS.find((c) => c.id === "rentvine")!;
 const dotloop = CONNECTORS.find((c) => c.id === "dotloop")!;
 const rentcast = CONNECTORS.find((c) => c.id === "rentcast")!;
-const legacyGmailSender = CONNECTORS.find((c) => c.id === "gmail_sender")!;
 
 describe("readConnectorPresence", () => {
   it("reports presence by name and treats blank / empty-map as absent", () => {
@@ -102,16 +101,9 @@ describe("classifyConnector", () => {
     );
   });
 
-  it("classifies the legacy sender as governance-closed instead of disconnected", () => {
-    const status = classifyConnector(legacyGmailSender, {});
-    expect(status).toMatchObject({
-      state: "closed",
-      label: "Closed by governance",
-      configuredCount: 0,
-      requiredCount: 0,
-    });
-    expect(status.detail).toContain("no connection setup step");
-    expect(connectionNextStep(status, true)).toContain("closed by governance");
+  it("retires obsolete sender presentation while keeping current workflow Gmail", () => {
+    expect(CONNECTORS.some((connector) => connector.id === "gmail_sender")).toBe(false);
+    expect(CONNECTORS.some((connector) => connector.id === "gmail_inbox")).toBe(true);
   });
 });
 

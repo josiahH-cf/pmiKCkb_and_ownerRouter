@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Card } from "@/components/ui";
+import { DataTableFrame } from "@/components/ui/DataTableFrame";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 import { formatPreapprovalAmount } from "@/lib/maintenance/property-preapproval";
 import {
@@ -38,7 +39,7 @@ export function MaintenanceBlockerReport({
       {rows.length === 0 ? (
         <p className="muted">No open ticket is waiting on anything right now.</p>
       ) : (
-        <div className="table-scroll">
+        <DataTableFrame surface="maintenance-blockers" label="Maintenance blockers">
           <table>
             <caption className="sr-only">
               Open maintenance tickets with their blocker, estimate, preapproval,
@@ -98,7 +99,7 @@ export function MaintenanceBlockerReport({
               ))}
             </tbody>
           </table>
-        </div>
+        </DataTableFrame>
       )}
     </Card>
   );

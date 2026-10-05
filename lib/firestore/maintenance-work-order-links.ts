@@ -13,6 +13,7 @@ import { MAINTENANCE_TICKET_COLLECTIONS } from "@/lib/firestore/maintenance-tick
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { can } from "@/lib/auth/roles";
 import { EditableLayerError } from "@/lib/firestore/errors";
+import { withReadDeadline } from "@/lib/observability/read-lifetime";
 
 export const MAINTENANCE_WORK_ORDER_LINK_COLLECTION = "maintenance_work_order_links";
 
@@ -111,6 +112,47 @@ export async function getMaintenanceWorkOrderLink(
   delete data["created_at"];
   delete data["updated_at"];
   return MaintenanceWorkOrderLinkSchema.parse(data);
+}
+
+/** Read exactly the queue's app-owned links in bounded batches, without provider fan-out. */
+export async function listMaintenanceWorkOrderLinks(
+  actor: AuthenticatedUser,
+  ticketRefs: readonly string[],
+  db: Firestore = getAdminFirestore(),
+): Promise<Map<string, MaintenanceWorkOrderLink>> {
+  if (!can(actor.role, "read"))
+    throw new EditableLayerError("Reading the work-order links requires read.", 403);
+  const ids = [...new Set(ticketRefs)];
+  if (
+    ids.length > 2_000 ||
+    ids.some((id) => !id || id.length > 200 || /[\/\r\n]/.test(id))
+  )
+    throw new EditableLayerError("The link read exceeds its supported queue scope.", 400);
+  const result = new Map<string, MaintenanceWorkOrderLink>();
+  for (let start = 0; start < ids.length; start += 100) {
+    const batch = ids.slice(start, start + 100);
+    const snapshots = await withReadDeadline(() =>
+      db.getAll(
+        ...batch.map((id) =>
+          db.collection(MAINTENANCE_WORK_ORDER_LINK_COLLECTION).doc(id),
+        ),
+      ),
+    );
+    snapshots.forEach((snapshot, index) => {
+      if (!snapshot.exists) return;
+      const data = { ...snapshot.data() };
+      delete data["created_at"];
+      delete data["updated_at"];
+      const link = MaintenanceWorkOrderLinkSchema.parse(data);
+      if (link.ticket_ref !== batch[index])
+        throw new EditableLayerError(
+          "The work-order link does not match its queue record.",
+          409,
+        );
+      result.set(batch[index], link);
+    });
+  }
+  return result;
 }
 
 /** Create the pending link atomically; refuses when a live (non-failed) link already exists. */

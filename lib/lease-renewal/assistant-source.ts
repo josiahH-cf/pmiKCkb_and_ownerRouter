@@ -33,6 +33,7 @@ import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
 import { readCoherentRenewalDisplaySource } from "@/lib/lease-renewal/admitted-notice-source";
 import { loadLiveRenewalDesk } from "@/lib/lease-renewal/live-desk";
 import { DEFAULT_NOTICE_RULE_SET } from "@/lib/lease-renewal/notice-rules";
+import { measureRead, withReadDeadline } from "@/lib/observability/read-lifetime";
 
 /** The desk's own window rule: from the first of the current month, forward this many days. */
 export const RENEWAL_DESK_WINDOW_DAYS = 120;
@@ -69,14 +70,18 @@ export async function runRenewalAssistantSource(
   const sheetRead = liveConfig.ok
     ? workingReadPromise
         .then((read) =>
-          readRenewalSheetGridsWithLinks({
-            reader: liveConfig.sheetsReader,
-            spreadsheetId: liveConfig.spreadsheetId,
-            tabTitles: ["Lease Renewal"],
-            rowBindings: sheetRowBindingsFromWorkingRecords(
-              renewalAuxiliaryValue(read, new Map()),
+          measureRead("renewal.sheet", () =>
+            withReadDeadline(() =>
+              readRenewalSheetGridsWithLinks({
+                reader: liveConfig.sheetsReader,
+                spreadsheetId: liveConfig.spreadsheetId,
+                tabTitles: ["Lease Renewal"],
+                rowBindings: sheetRowBindingsFromWorkingRecords(
+                  renewalAuxiliaryValue(read, new Map()),
+                ),
+              }),
             ),
-          }),
+          ),
         )
         .then(
           (value) => value,
@@ -88,11 +93,15 @@ export async function runRenewalAssistantSource(
   > = (async () => {
     if (!liveConfig.ok) return undefined;
     try {
-      return await readCoherentRenewalDisplaySource(
-        user,
-        liveConfig.rentvineClient,
-        now.getTime(),
-        { sourceRefreshAfter },
+      return await measureRead("renewal.inventory", () =>
+        withReadDeadline(() =>
+          readCoherentRenewalDisplaySource(
+            user,
+            liveConfig.rentvineClient,
+            now.getTime(),
+            { sourceRefreshAfter },
+          ),
+        ),
       );
     } catch {
       return undefined;
@@ -110,42 +119,51 @@ export async function runRenewalAssistantSource(
     packetRead,
     workStatusRead,
     timingBasis,
-  ] = await Promise.all([
-    readRenewalAuxiliary("progress", () => listAllRenewalProgress(user)),
-    readRenewalAuxiliary("manual_workspace", () => listRenewalWorkspaces(user)),
-    readRenewalAuxiliary("notice_policy", () => readNoticeRuleSnapshot()),
-    readRenewalAuxiliary("communications", () =>
-      createGmailHubService(user).listCommunications(),
-    ),
-    readRenewalAuxiliary("dismissed_attention", () =>
-      listDismissedRenewalFollowUpKeys(user),
-    ),
-    // S82: one bulk read of record-specific human resolutions so the table's rent verification
-    // reflects exact current decisions. A missing decision store never makes a value look resolved.
-    readRenewalAuxiliary("resolutions", () => listResolutionsForRun(user, "live-review")),
-    // S103: one bulk read of recorded lease term reviews. An unavailable store projects no review,
-    // so a lease with absent provider evidence stays visibly unresolved rather than resolved.
-    readRenewalAuxiliary("term_reviews", () => listLeaseTermReviews(user)),
-    readRenewalAuxiliary("packet", async () => {
-      const leaseSnapshotResult = await leaseRead;
-      if (!liveConfig.ok || !leaseSnapshotResult) {
-        throw new Error("Live renewal sources are unavailable.");
-      }
-      return listCurrentRenewalPacketSnapshots(
-        user,
-        leaseSnapshotResult.snapshot.views.flatMap((view) => {
-          const leaseId = leaseViewId(view);
-          return leaseId ? [leaseId] : [];
-        }),
-      );
-    }),
-    // S119: one bulk read of saved staff work statuses. An unavailable store projects every row as
-    // unavailable, never as Not recorded, so the Not recorded filter cannot claim an empty store.
-    readRenewalAuxiliary("work_status", () => listRenewalWorkStatuses(user)),
-    // S125: the reviewed notice timing basis. This read never throws; an unreviewed basis
-    // projects every notice as Cannot determine rather than a guessed yes or no.
-    readMoveOutTimingBasisSnapshot(),
-  ]);
+  ] = await measureRead("renewal.supporting", () =>
+    Promise.all([
+      readRenewalAuxiliary("progress", () => listAllRenewalProgress(user)),
+      readRenewalAuxiliary("manual_workspace", () => listRenewalWorkspaces(user)),
+      readRenewalAuxiliary("notice_policy", () => readNoticeRuleSnapshot()),
+      readRenewalAuxiliary("communications", () =>
+        createGmailHubService(user).listCommunications(),
+      ),
+      readRenewalAuxiliary("dismissed_attention", () =>
+        listDismissedRenewalFollowUpKeys(user),
+      ),
+      // S82: one bulk read of record-specific human resolutions so the table's rent verification
+      // reflects exact current decisions. A missing decision store never makes a value look resolved.
+      readRenewalAuxiliary("resolutions", () =>
+        listResolutionsForRun(user, "live-review"),
+      ),
+      // S103: one bulk read of recorded lease term reviews. An unavailable store projects no review,
+      // so a lease with absent provider evidence stays visibly unresolved rather than resolved.
+      readRenewalAuxiliary("term_reviews", () => listLeaseTermReviews(user)),
+      readRenewalAuxiliary("packet", async () => {
+        const leaseSnapshotResult = await leaseRead;
+        if (!liveConfig.ok || !leaseSnapshotResult) {
+          throw new Error("Live renewal sources are unavailable.");
+        }
+        return listCurrentRenewalPacketSnapshots(
+          user,
+          leaseSnapshotResult.snapshot.views.flatMap((view) => {
+            const leaseId = leaseViewId(view);
+            return leaseId ? [leaseId] : [];
+          }),
+        );
+      }),
+      // S119: one bulk read of saved staff work statuses. An unavailable store projects every row as
+      // unavailable, never as Not recorded, so the Not recorded filter cannot claim an empty store.
+      readRenewalAuxiliary("work_status", () => listRenewalWorkStatuses(user)),
+      // S125: the reviewed notice timing basis. This read never throws; an unreviewed basis
+      // projects every notice as Cannot determine rather than a guessed yes or no.
+      withReadDeadline(() => readMoveOutTimingBasisSnapshot()).catch(() => ({
+        state: "unreadable" as const,
+        basis: null,
+        version: null,
+        updatedAtIso: null,
+      })),
+    ]),
+  );
 
   const progressByLease = renewalAuxiliaryValue(progressRead, new Map());
   const policy = renewalAuxiliaryValue(policyRead, {

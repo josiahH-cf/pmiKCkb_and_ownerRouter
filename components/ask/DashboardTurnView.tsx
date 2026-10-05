@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 import Link from "next/link";
 import { useId, useState } from "react";
@@ -84,6 +85,7 @@ export function TurnView({
   turn,
   index,
   onRetry,
+  onStop,
   onRetrySave,
   canSaveQuestion = false,
   onSaveQuestion,
@@ -92,6 +94,7 @@ export function TurnView({
   turn: DashboardTurn;
   index: number;
   onRetry: () => void;
+  onStop?: () => void;
   onRetrySave: () => void;
   /** S149: offered on an answered turn that is in history and is not itself a saved run. */
   canSaveQuestion?: boolean;
@@ -137,7 +140,17 @@ export function TurnView({
         </p>
       ) : null}
       {turn.state === "pending" ? (
-        <BusyIndicator delayMs={0} label="Working on your answer" />
+        <>
+          <BusyIndicator
+            delayMs={0}
+            label={turn.rerunOf ? "Reading current results" : "Working on your answer"}
+          />
+          {onStop ? (
+            <button className="text-link" onClick={onStop} type="button">
+              Stop waiting
+            </button>
+          ) : null}
+        </>
       ) : null}
       {turn.state === "failed" && !turn.restored ? (
         <Notice actionLabel="Retry" onAction={onRetry} tone="error">
@@ -148,9 +161,16 @@ export function TurnView({
         <p className="muted">No answer was saved for this question.</p>
       ) : null}
       {turn.state === "interrupted" ? (
-        <p className="muted">
-          This question was interrupted before an answer was saved. No answer is shown.
-        </p>
+        turn.restored ? (
+          <p className="muted">
+            This question was interrupted before an answer was saved. No answer is shown.
+          </p>
+        ) : (
+          <Notice actionLabel="Retry" onAction={onRetry} tone="caution">
+            Stopped waiting locally. The server may still finish; Retry recovers this same
+            question.
+          </Notice>
+        )
       ) : null}
       {turn.state === "in_progress" ? (
         <p className="muted">
@@ -581,7 +601,21 @@ function AnswerGroupView({
         <ol aria-label={listLabel} className="ui-rows" start={start}>
           {group.items.map((item) => (
             <li key={`${item.ref.source}:${item.ref.id}`}>
-              <Link href={item.href}>{item.title}</Link>
+              <Link href={item.href} prefetch={false}>
+                {item.title}
+              </Link>
+              {item.sourceHref ? (
+                <a
+                  className="text-link"
+                  href={item.sourceHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Open ${item.title} in RentVine`}
+                >
+                  {" "}
+                  · RentVine ↗
+                </a>
+              ) : null}
               <span className="muted"> · {item.detail}</span>
               {item.blockers.length > 0 ? (
                 <span className="muted"> · {item.blockers.join("; ")}</span>

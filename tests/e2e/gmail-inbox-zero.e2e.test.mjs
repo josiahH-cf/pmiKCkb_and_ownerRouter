@@ -28,14 +28,16 @@ describe("workflow communication governance page", () => {
     expect(response.status).toBe(200);
     expect(html).toContain("Workflow Communications Governance");
     expect(html).toContain("Gmail Connection");
-    expect(html).toContain("Activated");
+    expect(html).toContain("Verify my Gmail connection");
+    expect(html).toContain('href="/gmail-hub"');
+    expect(html).not.toContain("Activated");
     expect(html).toContain("Gemini Status");
     // The static read-only v1 panels are retired; the live workspace renders the governed sets.
     expect(html).toContain("Label rules");
     expect(html).toContain("Reply patterns");
     expect(html).toContain("Synthetic rule/template evaluator");
     expect(html).toContain("Immutable base copy only");
-    expect(html).toContain("cannot make an action executable");
+    expect(html).toContain("cannot enable an action or change approved");
     expect(html).not.toContain("Read-only v1");
   });
 

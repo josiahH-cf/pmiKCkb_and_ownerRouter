@@ -1,6 +1,7 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui";
@@ -30,8 +31,12 @@ export function SupportReportStatusControl({
   const [note, setNote] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [uncertain, setUncertain] = useState(false);
+  const dispatched = useRef(false);
 
   async function transition(nextStatus: SupportReportStatus) {
+    if (dispatched.current || uncertain) return;
+    dispatched.current = true;
     setPending(true);
     setError("");
     try {
@@ -47,14 +52,23 @@ export function SupportReportStatusControl({
       if (response.ok) {
         setNote("");
         router.refresh();
+      } else if (response.status >= 500) {
+        setUncertain(true);
+        setError(
+          "The report status is not confirmed. Reload and review its current status before another change.",
+        );
       } else {
-        const payload = (await response.json().catch(() => ({}))) as { error?: string };
+        const payload = (await response.json()) as { error?: string };
         setError(payload.error ?? "Could not update the report status.");
       }
     } catch {
-      setError("Could not reach the feedback service.");
+      setUncertain(true);
+      setError(
+        "The report status is not confirmed. Reload and review its current status before another change.",
+      );
     } finally {
       setPending(false);
+      dispatched.current = false;
     }
   }
 
@@ -62,7 +76,7 @@ export function SupportReportStatusControl({
     <div className="ui-row" data-testid={`support-status-control-${reportId}`}>
       {NEXT_ACTIONS[status].map((action) => (
         <Button
-          disabled={pending}
+          disabled={pending || uncertain}
           key={action.status}
           onClick={() => void transition(action.status)}
           type="button"
@@ -78,7 +92,12 @@ export function SupportReportStatusControl({
         type="text"
         value={note}
       />
-      {error ? <p className="muted">{error}</p> : null}
+      {error ? <p role="alert">{error}</p> : null}
+      {uncertain ? (
+        <a className="text-link" href="/admin">
+          Reload current feedback
+        </a>
+      ) : null}
     </div>
   );
 }

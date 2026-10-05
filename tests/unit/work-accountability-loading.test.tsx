@@ -55,8 +55,8 @@ describe("work board first read", () => {
     await user.click(screen.getByRole("button", { name: "Retry" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Still unavailable.");
     expect(fetch.mock.calls).toEqual([
-      ["/api/work?view=mine", { cache: "no-store" }],
-      ["/api/work?view=mine", { cache: "no-store" }],
+      ["/api/work?view=mine", { cache: "no-store", signal: expect.any(AbortSignal) }],
+      ["/api/work?view=mine", { cache: "no-store", signal: expect.any(AbortSignal) }],
     ]);
   });
 });

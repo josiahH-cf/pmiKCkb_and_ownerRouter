@@ -6,6 +6,7 @@
 import type { SavedQuestionView } from "@/lib/assistant-history/saved-types";
 import type { ConversationAnswer } from "@/lib/assistant/conversation";
 import type { AskResponse } from "@/lib/schemas";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 export type { SavedQuestionView } from "@/lib/assistant-history/saved-types";
 

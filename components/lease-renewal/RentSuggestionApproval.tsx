@@ -1,7 +1,10 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
-import { useCallback, useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useOperation } from "@/components/hooks/useOperation";
+import { BusyIndicator } from "@/components/ui/BusyIndicator";
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { useRenewalSaveFocus } from "@/components/lease-renewal/RenewalSaveFocus";
@@ -48,87 +51,187 @@ export function RentSuggestionApproval({
   leaseId,
   initialData,
 }: Readonly<{ leaseId: string; initialData?: RentSuggestionData }>) {
+  return (
+    <OwnedRentSuggestionApproval
+      key={leaseId}
+      leaseId={leaseId}
+      initialData={initialData}
+    />
+  );
+}
+
+function OwnedRentSuggestionApproval({
+  leaseId,
+  initialData,
+}: Readonly<{ leaseId: string; initialData?: RentSuggestionData }>) {
   const router = useRouter();
   const focusAfterSave = useRenewalSaveFocus();
   const [data, setData] = useState<RentSuggestionData | null>(initialData ?? null);
   const [reason, setReason] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [readError, setReadError] = useState("");
+  const [uncertain, setUncertain] = useState(false);
+  const dispatched = useRef(false);
+  const live = useRef(true);
+  const read = useOperation(`rent-suggestion-read:${leaseId}`);
+  const decisionOperation = useOperation(`rent-suggestion-decision:${leaseId}`);
+  const readController = read.controller;
+  useEffect(() => {
+    live.current = true;
+    return () => {
+      live.current = false;
+    };
+  }, []);
   const reasonId = useId();
 
   const refresh = useCallback(async () => {
-    try {
-      const response = await fetch(
-        `/api/lease-renewal/rent-suggestion?lease_id=${encodeURIComponent(leaseId)}`,
-      );
-      if (response.ok) {
-        const current = (await response.json()) as RentSuggestionData;
-        setData(current);
-        return current;
-      }
-    } catch {
-      // Leave the prior state in place; the operator can retry.
-    }
-    return null;
-  }, [leaseId]);
-
-  // Fetch once on mount when the server did not seed initialData. setData runs only in the async
-  // continuation (never synchronously in the effect body), and an `active` guard drops a late response.
-  useEffect(() => {
-    if (initialData) return;
-    let active = true;
-    void (async () => {
-      try {
+    setReadError("");
+    const result = await readController.run(
+      "Loading current rent suggestion",
+      async (signal) => {
         const response = await fetch(
           `/api/lease-renewal/rent-suggestion?lease_id=${encodeURIComponent(leaseId)}`,
+          { signal, cache: "no-store" },
         );
-        if (active && response.ok) {
-          setData((await response.json()) as RentSuggestionData);
-        }
-      } catch {
-        // Leave the prior state in place; the operator can retry.
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, [initialData, leaseId]);
+        if (!response.ok)
+          return {
+            current: null,
+            denied: response.status === 401 || response.status === 403,
+          };
+        const current = (await response.json()) as RentSuggestionData;
+        if (
+          !current?.suggestion ||
+          !Array.isArray(current.suggestion.comps) ||
+          typeof current.suggestion.rationale !== "string" ||
+          typeof current.canApprove !== "boolean"
+        )
+          throw new Error("Invalid suggestion read");
+        return { current, denied: false };
+      },
+    );
+    if (!live.current || result.outcome === "superseded") return null;
+    if (result.outcome === "succeeded" && result.value.current) {
+      setData(result.value.current);
+      return result.value.current;
+    }
+    if (result.outcome === "succeeded" && result.value.denied) {
+      setData(null);
+      setReadError(
+        "Access to this rent suggestion is unavailable. Check your access before retrying.",
+      );
+    } else
+      setReadError(
+        "The current rent suggestion is unavailable. Retry the read when ready.",
+      );
+    return null;
+  }, [leaseId, readController]);
+
+  // The owning controller retires both headers and body reads when this record leaves.
+  useEffect(() => {
+    if (initialData) return;
+    queueMicrotask(() => {
+      if (live.current) void refresh();
+    });
+  }, [initialData, refresh]);
 
   async function decide(decision: "approve" | "return") {
+    if (dispatched.current || uncertain) return;
+    dispatched.current = true;
     setPending(true);
     setError("");
     try {
-      const response = await fetch("/api/lease-renewal/rent-suggestion", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ lease_id: leaseId, decision, reason: reason.trim() }),
-      });
-      if (response.ok) {
-        const saved = (await response.json().catch(() => null)) as {
-          approval?: RentSuggestionApprovalStateView;
-        } | null;
-        setReason("");
+      const result = await decisionOperation.controller.run(
+        "Saving rent decision",
+        async (signal) => {
+          const response = await fetch("/api/lease-renewal/rent-suggestion", {
+            method: "POST",
+            signal,
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ lease_id: leaseId, decision, reason: reason.trim() }),
+          });
+          return {
+            ok: response.ok,
+            status: response.status,
+            payload: (await response.json()) as {
+              approval?: RentSuggestionApprovalStateView;
+              error?: string;
+            },
+          };
+        },
+        { kind: "effect" },
+      );
+      if (!live.current) return;
+      if (result.outcome !== "succeeded") {
+        setUncertain(true);
+        setError(
+          "The decision is not confirmed. Check the current suggestion, then reload and review the workspace before making another decision.",
+        );
+        return;
+      }
+      const { ok, status, payload: saved } = result.value;
+      if (ok) {
         const current = await refresh();
+        if (!live.current) return;
         const expectedState =
           decision === "approve" ? "Approved" : "Returned for Revision";
         const readBack =
-          saved?.approval?.state === expectedState &&
+          saved.approval?.state === expectedState &&
           current?.approval?.state === expectedState &&
           current.approval.approved_value === saved.approval.approved_value;
-        if (!readBack || !focusAfterSave?.()) router.refresh();
+        if (readBack) {
+          setReason("");
+          if (!focusAfterSave?.()) router.refresh();
+        } else {
+          setUncertain(true);
+          setError(
+            "The decision response arrived, but its current readback is not confirmed. Check the current suggestion before reviewing another decision.",
+          );
+          // Preserve the owning workspace's freshness recovery without clearing this component's
+          // reason or uncertainty fence. A refresh is a read, not another decision attempt.
+          router.refresh();
+        }
       } else {
-        const payload = (await response.json().catch(() => ({}))) as { error?: string };
-        setError(payload.error ?? "Could not record the decision.");
+        if (status >= 500) setUncertain(true);
+        setError(
+          saved.error ??
+            (status >= 500
+              ? "The decision is not confirmed. Check its current state before reviewing another decision."
+              : "Could not record the decision."),
+        );
       }
     } catch {
-      setError("Could not reach the rent-suggestion service.");
+      if (live.current) {
+        setUncertain(true);
+        setError(
+          "The decision is not confirmed. Check the current suggestion before reviewing another decision.",
+        );
+      }
     } finally {
-      setPending(false);
+      if (live.current) setPending(false);
+      dispatched.current = false;
     }
   }
 
   if (!data) {
-    return <p className="muted">Loading the comp-derived suggestion…</p>;
+    return (
+      <div className="ui-stack-tight" aria-busy={read.snapshot.phase === "pending"}>
+        {readError ? (
+          <>
+            <p role="alert">{readError}</p>
+            <Button
+              variant="secondary"
+              disabled={read.snapshot.phase === "pending"}
+              onClick={() => void refresh()}
+            >
+              Retry current suggestion
+            </Button>
+          </>
+        ) : (
+          <BusyIndicator label="Loading the comp-derived suggestion…" />
+        )}
+      </div>
+    );
   }
 
   const { suggestion, approval, canApprove } = data;
@@ -141,9 +244,7 @@ export function RentSuggestionApproval({
           <strong>Comp-derived suggested rent</strong>
           <StatusPill value="Needs Verification">Needs Verification</StatusPill>
         </div>
-        <p className="muted">
-          Capture comp data to compute a suggestion. The app never fabricates a number.
-        </p>
+        <p className="muted">No comp-derived suggestion available.</p>
       </div>
     );
   }
@@ -161,6 +262,19 @@ export function RentSuggestionApproval({
 
   return (
     <div className="ui-stack">
+      {read.snapshot.phase === "pending" ? (
+        <BusyIndicator label="Checking current suggestion…" />
+      ) : null}
+      {readError ? <p role="alert">{readError}</p> : null}
+      {readError || uncertain ? (
+        <Button
+          variant="secondary"
+          disabled={read.snapshot.phase === "pending"}
+          onClick={() => void refresh()}
+        >
+          Check current suggestion
+        </Button>
+      ) : null}
       <div className="ui-spread">
         <strong>Comp-derived suggested rent</strong>
         <StatusPill value={stateValue}>{stateLabel}</StatusPill>
@@ -209,7 +323,7 @@ export function RentSuggestionApproval({
           </Field>
           <div className="ui-row">
             <Button
-              disabled={pending || reason.trim() === ""}
+              disabled={pending || uncertain || reason.trim() === ""}
               onClick={() => void decide("approve")}
               type="button"
             >
@@ -220,7 +334,7 @@ export function RentSuggestionApproval({
                   : "Approve this number"}
             </Button>
             <Button
-              disabled={pending || reason.trim() === ""}
+              disabled={pending || uncertain || reason.trim() === ""}
               onClick={() => void decide("return")}
               type="button"
               variant="secondary"
@@ -228,7 +342,7 @@ export function RentSuggestionApproval({
               Return for revision
             </Button>
           </div>
-          {error ? <p className="muted">{error}</p> : null}
+          {error ? <p role="alert">{error}</p> : null}
         </div>
       ) : (
         <p className="muted">

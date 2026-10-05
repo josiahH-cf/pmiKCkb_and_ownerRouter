@@ -13,15 +13,11 @@ export function VendorPortal({
     <main className="content">
       <p className="eyebrow">External Vendor portal · Live workspace</p>
       <h1>Assigned maintenance tickets</h1>
-      <p className="muted">
-        Signed in as {email}. Only tickets assigned to this Vendor account appear here.
-      </p>
+      <p className="muted">Signed in as {email}. Assigned tickets only.</p>
       {tickets.length === 0 ? (
         <article className="panel">
           <h2>No assigned tickets</h2>
-          <p>
-            Ask PMI KC to verify the assignment. Guessed or removed tickets stay hidden.
-          </p>
+          <p>Ask PMI KC to confirm your assignment.</p>
         </article>
       ) : (
         <div className="card-grid">
@@ -42,8 +38,8 @@ export function VendorPortal({
       <article className="panel">
         <h2>Vendor Gmail</h2>
         <p>
-          Live mailbox access is limited to assigned-ticket threads and the same address
-          used for this verified-email, TOTP-authenticated Vendor session.
+          Assigned-ticket threads only, using this session&apos;s verified email and
+          authenticator.
         </p>
       </article>
     </main>

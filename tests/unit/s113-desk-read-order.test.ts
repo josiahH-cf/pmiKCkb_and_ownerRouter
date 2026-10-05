@@ -121,6 +121,27 @@ function setup() {
   fixture.progress.mockResolvedValue(new Map());
 }
 describe("S113 fresh desk read scheduling", () => {
+  it.each(["snapshot", "sheet"] as const)(
+    "S168 stops waiting for a stalled primary %s and reports read_error",
+    async (source) => {
+      setup();
+      vi.useFakeTimers();
+      let settled = false;
+      fixture[source].mockImplementation(() => new Promise(() => {}));
+      const result = runRenewalAssistantSource(actor, new Date("2026-09-10T16:00:00Z"));
+      void result.then(() => {
+        settled = true;
+      });
+      try {
+        await vi.advanceTimersByTimeAsync(60_001);
+        expect(settled).toBe(true);
+        expect((await result).outcome.status).toBe("read_error");
+        expect(fixture.project).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
   it("starts the current Sheet read while supporting state is pending and projects those exact bytes once", async () => {
     setup();
     let finish!: () => void;

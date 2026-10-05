@@ -1,4 +1,8 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { boundedLocalWait } from "@/lib/ui/local-lifetime";
+import { useOperation } from "@/components/hooks/useOperation";
+import { BusyIndicator } from "@/components/ui/BusyIndicator";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
@@ -89,6 +93,7 @@ export function SignInPanel({
   }, [onSignedIn]);
 
   const destination = safeReturnPath(returnTo) ?? "/";
+  const linkOperation = useOperation(destination);
   // Empty during server rendering and hydration, then the real value: the in-app advice below is
   // browser-specific and must not cause a hydration mismatch.
   const userAgent = useSyncExternalStore(subscribeToNothing, readUserAgent, () => "");
@@ -329,13 +334,16 @@ export function SignInPanel({
   };
 
   const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(pageLink(destination));
-      setLinkCopy("copied");
-    } catch {
-      // No clipboard in this browser: show the address so it can be selected and copied by hand.
-      setLinkCopy("manual");
-    }
+    if (linkOperation.snapshot.phase === "pending") return;
+    setLinkCopy("idle");
+    const outcome = await linkOperation.controller.run(
+      "Copying page link",
+      () => boundedLocalWait(navigator.clipboard.writeText(pageLink(destination))),
+      { waitMs: 8_000 },
+    );
+    if (outcome.outcome === "superseded") return;
+    // No confirmed clipboard result: retain a selectable address for manual copying.
+    setLinkCopy(outcome.outcome === "succeeded" ? "copied" : "manual");
   };
 
   // The control stays available while the Google window is open: on a phone that window is a
@@ -355,10 +363,20 @@ export function SignInPanel({
             Use this app&rsquo;s menu to open the page in your browser, or copy the link
             and paste it there.
           </p>
-          <button className="secondary-button" onClick={handleCopyLink} type="button">
-            Copy page link
+          <button
+            className="secondary-button"
+            disabled={linkOperation.snapshot.phase === "pending"}
+            onClick={handleCopyLink}
+            type="button"
+          >
+            {linkOperation.snapshot.phase === "pending"
+              ? "Copying page link…"
+              : "Copy page link"}
           </button>
-          {linkCopy === "copied" ? (
+          {linkOperation.snapshot.phase === "pending" ? (
+            <BusyIndicator label="Copying page link" />
+          ) : null}
+          {linkCopy === "copied" && linkOperation.snapshot.phase === "succeeded" ? (
             <p className="muted" role="status">
               Link copied.
             </p>

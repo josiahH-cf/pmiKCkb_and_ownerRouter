@@ -63,9 +63,7 @@ describe("LiveGmailWorkspace workflow boundary (AC-GW-1, AC-GW-12)", () => {
 
     render(<LiveGmailWorkspace authenticatedEmail="josiah@pmikcmetro.com" />);
 
-    expect(
-      await screen.findByText("Connected as josiah@pmikcmetro.com"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("josiah@pmikcmetro.com")).toBeInTheDocument();
     expect(
       await screen.findByRole("link", { name: /Maintenance communication/ }),
     ).toHaveAttribute("href", "/maintenance?ticket_id=ticket-1");
@@ -73,17 +71,14 @@ describe("LiveGmailWorkspace workflow boundary (AC-GW-1, AC-GW-12)", () => {
     expect(screen.queryByText("Compose message")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Send this exact message/ })).toBeNull();
     expect(await screen.findByText(/Waiting on team/)).toBeInTheDocument();
-    expect(
-      screen.getByText("Last workflow refresh: 09/30/2026, 7:30 PM CDT"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Last refresh: 09/30/2026, 7:30 PM CDT")).toBeInTheDocument();
     expect(
       screen.getByText(/Last contact 11\/14\/2023, 4:13 PM CST/),
     ).toBeInTheDocument();
 
+    fireEvent.click(screen.getByText("Gmail connection and refresh"));
     fireEvent.click(screen.getByRole("button", { name: "Refresh linked Gmail now" }));
-    expect(
-      await screen.findByText(/Read-only workflow refresh completed at/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Refresh completed at/)).toBeInTheDocument();
     const post = calls.find(
       (call) => call.url.endsWith("/refresh") && call.method === "POST",
     );

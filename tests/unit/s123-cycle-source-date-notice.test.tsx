@@ -225,11 +225,7 @@ describe("S123 workspace source-date notice (AC-S123-4)", () => {
     );
     expect(document.querySelector("[data-renewal-cycle-source-date]")).toBeNull();
     // S154 (BEH-S154-3): no cycle confirmation precedes ordinary recording.
-    expect(
-      screen.getByText(
-        "Record any item below when it happens. Each entry saves on its own.",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText("No staff activity recorded yet.")).toBeInTheDocument();
     expect(screen.queryByText(/Confirm the reviewed cycle/)).toBeNull();
   });
 

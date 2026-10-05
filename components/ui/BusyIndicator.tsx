@@ -7,14 +7,21 @@ export function BusyIndicator({
   delayMs = 400,
   decorative = false,
 }: Readonly<{ label: string; delayMs?: number; decorative?: boolean }>) {
-  if (delayMs <= 0) return <Indicator decorative={decorative} label={label} />;
   return (
-    <DelayedIndicator
-      decorative={decorative}
-      delayMs={delayMs}
-      key={delayMs}
-      label={label}
-    />
+    <span
+      aria-hidden={decorative || undefined}
+      aria-label={decorative ? undefined : label}
+      aria-live={decorative ? undefined : "polite"}
+      className="busy-indicator-status"
+      role={decorative ? undefined : "status"}
+    >
+      {delayMs <= 0 ? (
+        <Indicator decorative label={label} />
+      ) : (
+        <DelayedIndicator decorative delayMs={delayMs} key={delayMs} label={label} />
+      )}
+      {decorative ? null : <span>{label}</span>}
+    </span>
   );
 }
 

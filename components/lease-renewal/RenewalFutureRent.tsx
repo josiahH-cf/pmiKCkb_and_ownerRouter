@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { formatCalendarDate, formatSourceCalendarDate } from "@/lib/date-display";
 
 import { RenewalSectionHelp } from "@/components/lease-renewal/RenewalSectionHelp";
@@ -224,11 +225,9 @@ export function RenewalFutureRent({
               </p>
             ) : null}
             <p>
-              Every rent schedule is listed below. The preview checks overlaps, gaps and
-              end-date boundaries against these schedules and never assumes whether an end
-              date bills that day. Each end, change and create is confirmed separately,
-              receipted and read back. A completed first effect is kept if a later effect
-              is unavailable.
+              Each charge change needs its own confirmation and readback. Completed
+              effects remain recorded if a later effect is unavailable. End-date billing
+              boundaries require review.
             </p>
             <ul>
               {inventory?.charges

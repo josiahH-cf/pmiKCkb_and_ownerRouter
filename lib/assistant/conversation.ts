@@ -68,6 +68,7 @@ export interface AnswerItem {
   readonly detail: string;
   readonly blockers: readonly string[];
   readonly href: string;
+  readonly sourceHref?: string;
   /** Recorded facts shown only when the question asked about this one record. */
   readonly facts?: readonly string[];
 }
@@ -503,6 +504,7 @@ function toItem(record: OperationalRecord<unknown>, extraDetail?: string): Answe
     detail: extraDetail ? `${record.detail} · ${extraDetail}` : record.detail,
     blockers: record.blockers,
     href: record.href,
+    ...(record.sourceHref ? { sourceHref: record.sourceHref } : {}),
   };
 }
 
@@ -592,7 +594,7 @@ interface PersonCandidate {
   /** One identity: a staff uid, or one owner or tenant label as the records spell it. */
   readonly key: string;
   readonly label: string;
-  readonly role: "owner" | "tenant" | "staff";
+  readonly role: "owner" | "tenant" | "property" | "unit" | "staff";
   readonly uid?: string;
 }
 
@@ -620,6 +622,8 @@ async function resolvePeople(
   partyRecords: ReadonlyArray<{
     ownerNames: readonly string[];
     tenantNames: readonly string[];
+    propertyName?: string | null;
+    unitLabel?: string | null;
   }>,
 ): Promise<PeopleResolution> {
   const { people, peopleMatch } = exec.plan.filters;
@@ -632,6 +636,18 @@ async function resolvePeople(
         candidates.push({ key: `party:${normalizeText(label)}`, label, role: "owner" });
       for (const label of record.tenantNames)
         candidates.push({ key: `party:${normalizeText(label)}`, label, role: "tenant" });
+      if (record.propertyName)
+        candidates.push({
+          key: `property:${normalizeText(record.propertyName)}`,
+          label: record.propertyName,
+          role: "property",
+        });
+      if (record.unitLabel)
+        candidates.push({
+          key: `unit:${normalizeText(record.unitLabel)}`,
+          label: record.unitLabel,
+          role: "unit",
+        });
     }
   }
   let staffVisible = true;
@@ -656,6 +672,8 @@ async function resolvePeople(
   for (const name of people) {
     const found = candidates.filter((candidate) => {
       if (nameMatches(name, candidate.label)) return true;
+      if (candidate.role === "unit" && /^unit\s+/i.test(name))
+        return nameMatches(name.replace(/^unit\s+/i, ""), candidate.label);
       if (candidate.role !== "staff") return false;
       const local = candidate.label.split("@")[0] ?? "";
       return nameMatches(name, local.replace(/[._-]+/g, " "));
@@ -692,7 +710,7 @@ function peopleNotes(resolution: PeopleResolution, exec: Execution): string[] {
   }
   if (resolution.unmatched.length)
     notes.push(
-      `No one named ${quoteList(resolution.unmatched)} appears in the records you can see, so nothing was guessed.`,
+      `No accessible person, property or unit matches ${quoteList(resolution.unmatched)}; nothing was guessed.`,
     );
   if (!resolution.staffVisible && exec.plan.filters.peopleMatch !== "related")
     notes.push("Other staff members' assignments are visible to Admins only.");
@@ -766,7 +784,12 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
   const desk: RenewalDeskQueryV2State = { ...DEFAULT_RENEWAL_DESK_QUERY_V2 };
   let records = read.records;
 
-  if (filters.includeClosed) desk.scope = "all";
+  if (
+    filters.includeClosed ||
+    (filters.includeClosed !== false &&
+      (filters.text || (filters.people.length > 0 && filters.peopleMatch !== "assigned")))
+  )
+    desk.scope = "all";
   else records = records.filter((record) => record.facts.inDefaultScope);
 
   if (related) {
@@ -857,6 +880,9 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
     records = records.filter(
       (record) =>
         normalizeText(record.facts.address).includes(wanted) ||
+        normalizeText(record.title).includes(wanted) ||
+        normalizeText(record.facts.propertyName ?? "").includes(wanted) ||
+        normalizeText(record.facts.unitLabel ?? "").includes(wanted) ||
         normalizeText(record.facts.leaseId) === wanted,
     );
     desk.lease = filters.text;
@@ -930,6 +956,24 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
         if (partyLabels.has(normalizeText(owner))) reasons.push(`owner ${owner}`);
       for (const tenant of record.facts.tenantNames)
         if (partyLabels.has(normalizeText(tenant))) reasons.push(`tenant ${tenant}`);
+      if (
+        record.facts.propertyName &&
+        found.some(
+          (entry) =>
+            entry.role === "property" &&
+            normalizeText(entry.label) === normalizeText(record.facts.propertyName!),
+        )
+      )
+        reasons.push(`property ${record.facts.propertyName}`);
+      if (
+        record.facts.unitLabel &&
+        found.some(
+          (entry) =>
+            entry.role === "unit" &&
+            normalizeText(entry.label) === normalizeText(record.facts.unitLabel!),
+        )
+      )
+        reasons.push(`unit ${record.facts.unitLabel}`);
       for (const uid of assignedByLease.get(record.facts.leaseId) ?? [])
         reasons.push(`assigned to ${staffLabels.get(uid) ?? "a matched staff member"}`);
       if (reasons.length)
@@ -1779,7 +1823,18 @@ export async function runAssistantConversation(
 
   let interpretedBy: InterpretedBy = "deterministic";
   let proposed: ConversationPlan | null = null;
-  if (deps.interpret) {
+  const deterministic = interpretDeterministically(question, previous, deps.nowIso);
+  const literalLookup =
+    deterministic.kind === "operational" &&
+    !deterministic.followUp.usePrevious &&
+    deterministic.subjects.length === 1 &&
+    deterministic.subjects[0] === "leases" &&
+    deterministic.filters.includeClosed === true &&
+    (deterministic.filters.text !== null ||
+      deterministic.filters.people.some(
+        (name) => normalizeText(name) === normalizeText(question),
+      ));
+  if (deps.interpret && !literalLookup) {
     try {
       proposed = await deps.interpret(question, turns, deps.nowIso);
     } catch {
@@ -1790,7 +1845,7 @@ export async function runAssistantConversation(
   if (proposed) {
     plan = groundPlan(proposed, question, turns);
     interpretedBy = "model";
-  } else plan = interpretDeterministically(question, previous, deps.nowIso);
+  } else plan = deterministic;
   plan = completeClarification(plan, question, previous);
   const effective = mergeWithPrevious(plan, previous);
 

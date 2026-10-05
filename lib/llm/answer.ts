@@ -4,6 +4,7 @@ import { DRAFT_BANNER, SOURCE_STATES } from "@/lib/constants";
 import type { GroundedSearchResult } from "@/lib/retrieval/vertex-search";
 import { CitationSchema, type AskRequest } from "@/lib/schemas";
 import type { SourceState } from "@/lib/source-state";
+import { withReadDeadline } from "@/lib/observability/read-lifetime";
 import {
   buildGroundedAnswerSystemPrompt,
   buildGroundedAnswerUserPrompt,
@@ -114,14 +115,19 @@ export class GoogleGenAiAnswerGenerator implements AnswerGenerator {
     let lastError: unknown;
 
     for (let attempt = 0; attempt < 2; attempt += 1) {
-      const { text } = await this.provider.generateText({
-        purpose: "ask.answer",
-        model: this.config.geminiAnswerModel,
-        systemInstruction: buildGroundedAnswerSystemPrompt(),
-        userContent: buildGroundedAnswerUserPrompt(request, { retry: attempt > 0 }),
-        temperature: 0.2,
-        responseJsonSchema: ANSWER_RESPONSE_JSON_SCHEMA,
-      });
+      const { text } = await withReadDeadline(
+        () =>
+          this.provider.generateText({
+            purpose: "ask.answer",
+            model: this.config.geminiAnswerModel,
+            systemInstruction: buildGroundedAnswerSystemPrompt(),
+            userContent: buildGroundedAnswerUserPrompt(request, { retry: attempt > 0 }),
+            temperature: 0.2,
+            responseJsonSchema: ANSWER_RESPONSE_JSON_SCHEMA,
+            timeoutMs: 30_000,
+          }),
+        30_000,
+      );
 
       try {
         return parseGeneratedAnswerText(text);

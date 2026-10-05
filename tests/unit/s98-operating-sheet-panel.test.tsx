@@ -106,6 +106,10 @@ describe("S98 operating-sheet panel", () => {
       />,
     );
     expect(screen.getByText("Correct an operating Sheet field")).toBeInTheDocument();
+    expect(screen.getByText("No Sheet update is prepared.")).toBeVisible();
+    expect(document.body.textContent).not.toContain(
+      "To prepare one, choose the field under",
+    );
     expect(screen.queryByText("Add Sheet row")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Exact Sheet row number")).not.toBeInTheDocument();
     // S160: the default field is current rent, prepared from the working current rent.
@@ -253,6 +257,7 @@ describe("S98 operating-sheet panel", () => {
     expect(screen.queryByText(/Ready to confirm/)).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith("/api/lease-renewal/operating-sheet", {
       method: "GET",
+      signal: expect.any(AbortSignal),
       cache: "no-store",
       headers: { "x-renewal-workspace-context": WORKSPACE_CONTEXT },
     });

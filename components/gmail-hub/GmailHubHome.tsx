@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 import { useEffect, useState } from "react";
 
@@ -11,6 +12,7 @@ import type { TemplateRecord } from "@/lib/firestore/types";
 import type { ReplyTemplate } from "@/lib/gmail-inbox-zero/drafts";
 import { toReplyTemplate } from "@/lib/gmail-inbox-zero/reply-template-map";
 import { SAMPLE_REPLY_TEMPLATES } from "@/lib/gmail-inbox-zero/sample-hub";
+import { Disclosure } from "@/components/ui";
 
 // F-TMPL-2: the reply patterns the Admin composers offer come from the approved store (the
 // daily-inbox-triage Communications Space), not a hard-coded list. The server route
@@ -49,13 +51,10 @@ export function GmailHubHome({
   }, [canManageAdmin]);
 
   return (
-    <section className="content ui-stack gmail-hub">
+    <section className="content content--workspace ui-stack gmail-hub">
       <div>
         <h1 className="section-title">Workflow Communications</h1>
-        <p className="muted">
-          Review Gmail evidence inside the renewal or maintenance workflow it supports.
-          Unrelated mail, generic compose, and mailbox management stay in Gmail.
-        </p>
+        <p className="muted">Linked workflows · mailbox management stays in Gmail.</p>
       </div>
 
       <LiveGmailWorkspace authenticatedEmail={authenticatedEmail} />
@@ -68,19 +67,17 @@ export function GmailHubHome({
       ) : null}
 
       {canManageAdmin ? (
-        <section className="ui-stack" aria-label="Admin fallback tools">
-          <div>
-            <h2>Admin-only governed workflow recovery tools</h2>
-            <p className="muted">
-              These tools draft and review workflow replies from sanitized pasted input.
-              Every output is a workflow-bounded draft or review proposal; sending stays a
-              human step in Gmail.
-            </p>
-          </div>
-          <AnticipatoryDraftComposer templates={replyTemplates} />
-          <TemplateWorkspace templates={replyTemplates} />
-          <ThreadSummaryPanel />
-        </section>
+        <Disclosure summary="Admin recovery tools">
+          <section className="ui-stack" aria-label="Admin fallback tools">
+            <div>
+              <h2>Workflow draft recovery</h2>
+              <p className="muted">Unsent drafts only. A person sends from Gmail.</p>
+            </div>
+            <AnticipatoryDraftComposer templates={replyTemplates} />
+            <TemplateWorkspace templates={replyTemplates} />
+            <ThreadSummaryPanel />
+          </section>
+        </Disclosure>
       ) : null}
     </section>
   );

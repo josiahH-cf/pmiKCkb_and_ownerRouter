@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 // S153/S157/S160: the current-rent facts inside the Rent and charges card.
 //
@@ -365,7 +366,7 @@ export function RenewalCurrentRent({
         <div className="ui-stack-tight" id={WORKING_CURRENT_RENT_TARGET} tabIndex={-1}>
           <WorkingMoneyField
             field="current_rent"
-            hint="What you know the tenant pays today. Saves on its own and stays until you change it; RentVine and the Sheet change only through a confirmed update."
+            hint="Saved in the app. RentVine and Sheet updates require confirmation."
             source={fieldSource}
           />
           {working !== null && sources.length > 0 ? (

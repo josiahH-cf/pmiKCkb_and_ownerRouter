@@ -29,6 +29,8 @@ const loaders = vi.hoisted(() => ({
   listProcessDefinitions: vi.fn(),
   listWorkflowRuns: vi.fn(),
   listMaintenanceTickets: vi.fn(),
+  listMaintenanceWorkOrderLinks: vi.fn(),
+  getMaintenanceWorkOrderLink: vi.fn(),
 }));
 
 vi.mock("@/lib/firestore/admin", () => ({ getAdminFirestore: () => ({}) }));
@@ -65,7 +67,8 @@ vi.mock("@/lib/firestore/maintenance-property-preapprovals", () => ({
   listMaintenancePropertyPreapprovals: async () => [],
 }));
 vi.mock("@/lib/firestore/maintenance-work-order-links", () => ({
-  getMaintenanceWorkOrderLink: async () => null,
+  getMaintenanceWorkOrderLink: loaders.getMaintenanceWorkOrderLink,
+  listMaintenanceWorkOrderLinks: loaders.listMaintenanceWorkOrderLinks,
 }));
 vi.mock("@/lib/connections/verification", () => ({
   getVerifiedConnectorIds: async () => new Set<string>(),
@@ -281,6 +284,88 @@ describe("S137 server wiring reads as the actor, once per request", () => {
       await import("@/lib/operational-context/server-context");
     return createServerOperationalContext(user, new Date(TEST_NOW));
   }
+
+  it("S168 starts the independent process run read before definitions finish", async () => {
+    let finish!: (value: never[]) => void;
+    loaders.listProcessDefinitions.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    loaders.listWorkflowRuns.mockResolvedValue([]);
+    const ctx = await context(editor);
+    const pending = ctx.read("processes");
+    await Promise.resolve();
+    await Promise.resolve();
+    try {
+      expect(loaders.listWorkflowRuns).toHaveBeenCalledWith(editor);
+    } finally {
+      finish([]);
+      await pending;
+    }
+  });
+  it.each(["cold_fixture", "warm_fixture"] as const)(
+    "S168 comparable %s process and 80-ticket source workloads",
+    async (temperature) => {
+      const delayMs = temperature === "cold_fixture" ? 40 : 10;
+      const delay = <T>(value: T) =>
+        new Promise<T>((resolve) => setTimeout(() => resolve(value), delayMs));
+      loaders.listProcessDefinitions.mockImplementation(() => delay([]));
+      loaders.listWorkflowRuns.mockImplementation(() => delay([]));
+      loaders.listMaintenanceTickets.mockResolvedValue(
+        Array.from({ length: 80 }, (_, index) => ({
+          id: `ticket-${index}`,
+          state: "new",
+          description: "Local fixture",
+          created_at: TEST_NOW,
+          updated_at: TEST_NOW,
+        })),
+      );
+      loaders.getMaintenanceWorkOrderLink.mockImplementation(() => delay(null));
+      loaders.listMaintenanceWorkOrderLinks.mockImplementation(() => delay(new Map()));
+      const ctx = await context(editor);
+      const start = performance.now();
+      const processes = await ctx.read("processes");
+      const processMs = Math.round(performance.now() - start);
+      const maintenanceStart = performance.now();
+      const maintenance = await ctx.read("maintenance");
+      expect(processes.status).toBe("ok");
+      expect(maintenance.records).toHaveLength(80);
+      console.info(
+        JSON.stringify({
+          event: "batch005_fixture_benchmark",
+          temperature,
+          adapterDelayMs: delayMs,
+          processMs,
+          maintenanceMs: Math.round(performance.now() - maintenanceStart),
+          ticketCount: maintenance.records.length,
+          perTicketReads: loaders.getMaintenanceWorkOrderLink.mock.calls.length,
+          batchReads: loaders.listMaintenanceWorkOrderLinks.mock.calls.length,
+          environment:
+            "native ready-process unit; deterministic adapters; not live service latency",
+        }),
+      );
+    },
+  );
+
+  it("S168 reads maintenance links in one owning batch instead of once per ticket", async () => {
+    loaders.listMaintenanceTickets.mockResolvedValue(
+      Array.from({ length: 80 }, (_, index) => ({
+        id: `ticket-${index}`,
+        state: "new",
+        description: "Local fixture",
+        created_at: TEST_NOW,
+        updated_at: TEST_NOW,
+      })),
+    );
+    loaders.getMaintenanceWorkOrderLink.mockResolvedValue(null);
+    loaders.listMaintenanceWorkOrderLinks.mockResolvedValue(new Map());
+    const ctx = await context(editor);
+    await ctx.read("maintenance");
+    expect(loaders.listMaintenanceWorkOrderLinks).toHaveBeenCalledTimes(1);
+    expect(loaders.getMaintenanceWorkOrderLink).not.toHaveBeenCalled();
+  });
 
   // S167: an account without the Renewals Space used to get not_authorized here before any read.
   // Every staff account now reads both sources, still as the signed-in actor.

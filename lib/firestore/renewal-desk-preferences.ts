@@ -39,7 +39,10 @@ export const DESK_PREFERENCE_VERIFICATION_MESSAGE =
   "The worklist view is not saved for verification accounts.";
 
 export const SaveRenewalDeskPreferenceSchema = z
-  .object({ query: z.string().max(DESK_VIEW_MAX_CODE_UNITS) })
+  .object({
+    query: z.string().max(DESK_VIEW_MAX_CODE_UNITS),
+    expectedRevision: z.number().int().min(0),
+  })
   .strict();
 export type SaveRenewalDeskPreferenceInput = z.input<
   typeof SaveRenewalDeskPreferenceSchema
@@ -51,6 +54,7 @@ const StoredPreferenceSchema = z
     uid: z.string().min(1),
     view: z.string().max(DESK_VIEW_MAX_CODE_UNITS),
     updatedAt: z.string().datetime(),
+    revision: z.number().int().min(0).optional(),
   })
   .strict();
 
@@ -58,6 +62,7 @@ export interface RenewalDeskPreference {
   /** Canonical desk query; "" is the default view chosen deliberately. */
   readonly view: string;
   readonly updatedAt: string;
+  readonly revision: number;
 }
 
 /** The account's own document key. A uid is never used as a path segment directly. */
@@ -87,7 +92,9 @@ export async function getRenewalDeskPreference(
   const parsed = StoredPreferenceSchema.safeParse(snapshot.data());
   if (!parsed.success || parsed.data.uid !== actor.uid) return null;
   const view = revalidateStoredDeskView(parsed.data.view);
-  return view === null ? null : { view, updatedAt: parsed.data.updatedAt };
+  return view === null
+    ? null
+    : { view, updatedAt: parsed.data.updatedAt, revision: parsed.data.revision ?? 0 };
 }
 
 /**
@@ -111,16 +118,31 @@ export async function saveRenewalDeskPreference(
       400,
     );
   const updatedAt = now().toISOString();
-  await db
+  const ref = db
     .collection(RENEWAL_DESK_PREFERENCE_COLLECTION)
-    .doc(renewalDeskPreferenceDocId(actor.uid))
-    .set({
+    .doc(renewalDeskPreferenceDocId(actor.uid));
+  return db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(ref);
+    const current = StoredPreferenceSchema.safeParse(
+      snapshot.exists ? snapshot.data() : null,
+    );
+    if (snapshot.exists && (!current.success || current.data.uid !== actor.uid))
+      throw new EditableLayerError("The stored view cannot be safely replaced.", 409);
+    const revision = current.success ? (current.data.revision ?? 0) : 0;
+    if (!parsed.success || parsed.data.expectedRevision !== revision)
+      throw new EditableLayerError(
+        "This saved view changed in another session. Read it before saving the current view again.",
+        409,
+      );
+    transaction.set(ref, {
       schemaVersion: RENEWAL_DESK_PREFERENCE_SCHEMA_VERSION,
       uid: actor.uid,
       view,
       updatedAt,
+      revision: revision + 1,
     });
-  return { view, updatedAt };
+    return { view, updatedAt, revision: revision + 1 };
+  });
 }
 
 /**

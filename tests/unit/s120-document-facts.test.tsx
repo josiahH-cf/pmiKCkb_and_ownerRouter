@@ -86,12 +86,14 @@ describe("S120 document facts propagation", () => {
     expect(region.textContent).not.toMatch(
       /signed|signature complete|filled in Dotloop/i,
     );
-    expect(region).toHaveTextContent(/list summarizes recorded source facts/i);
-    expect(region).toHaveTextContent(
-      /packet controls to prepare, download, inspect and approve a filled PDF/i,
+    expect(region).toHaveTextContent(/Recorded source facts/i);
+    // S176 removes the repeated packet tutorial here. The actual preparation/download/
+    // inspection/approval controls retain separate S145 capability and filled-artifact checks.
+    expect(within(region).getAllByRole("link", { name: "Lease details" })).toHaveLength(
+      4,
     );
-    expect(region).toHaveTextContent(/Other forms keep their manual Dotloop handoff/i);
-    expect(region).toHaveTextContent(/populated fact is not a provider receipt/i);
+    expect(region).toHaveTextContent(/Other forms retain their manual Dotloop handoff/i);
+    expect(region).toHaveTextContent(/provider receipts and signatures are separate/i);
     // The existing gates and manual handoffs are intact.
     expect(
       screen.getByRole("button", { name: "Preview exact Dotloop packet creation" }),

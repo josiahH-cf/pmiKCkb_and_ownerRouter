@@ -27,7 +27,6 @@ export default async function NotificationsPage() {
     <AppShell user={user}>
       <section className="content notifications-hub">
         <h1 className="section-title">Notifications</h1>
-        <p className="muted">Everything that needs your attention, newest first.</p>
 
         {feed.review ? (
           <section className="panel notifications-review" aria-label="Team review">

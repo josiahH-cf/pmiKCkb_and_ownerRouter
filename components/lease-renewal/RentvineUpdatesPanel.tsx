@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import {
   formatCalendarDate,
   formatSourceCalendarDate,
@@ -684,10 +685,7 @@ export function RentvineUpdatesPanel({
           <RenewalSectionHeading id="rentvine-updates" headingId="rentvine-updates-title">
             RentVine updates
           </RenewalSectionHeading>
-          <p className="muted">
-            No RentVine update is waiting for review. Prepare one below with the exact
-            changes, then confirm each effect here.
-          </p>
+          <p className="muted">No RentVine update is prepared.</p>
         </div>
       )}
 
@@ -866,10 +864,8 @@ export function RentvineUpdatesPanel({
             }}
           >
             <p className="muted">
-              Enter only the exact changes. Saving reads fresh RentVine state, validates
-              every value against the supported field matrix, and replaces only the exact
-              generation shown above when it has no unresolved attempt. Nothing is written
-              to RentVine until you confirm one effect at a time.
+              Preparing saves a proposal in the app. RentVine changes only after
+              confirmation of each exact effect; an unresolved attempt blocks replacement.
             </p>
             <fieldset className="ui-stack" disabled={billingIntent === "current_base"}>
               <legend>Lease renewal dates</legend>

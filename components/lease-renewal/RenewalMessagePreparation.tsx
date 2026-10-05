@@ -1,4 +1,6 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { boundedLocalWait, LocalWaitError } from "@/lib/ui/local-lifetime";
 import { formatBusinessTimestamp, formatSourceCalendarDate } from "@/lib/date-display";
 
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
@@ -31,7 +33,6 @@ import {
   MESSAGE_CHARGES,
   MessageChargeSchema,
   RenewalMessageEditsSchema,
-  RESPONSE_REQUEST_PLACEMENT,
   responseRequestParagraph,
   type MessageCharge,
   type RenewalMessageFacts,
@@ -358,6 +359,7 @@ function MessagePreparationEditor({
     RefinedBody | null | undefined
   >(undefined);
   const [subjectText, setSubjectText] = useState<string | null>(null);
+  const [copying, setCopying] = useState(false);
   const [autosave, setAutosave] = useState<AutosaveState>(AUTOSAVE_IDLE);
   const [commitTick, setCommitTick] = useState(0);
   const [pending, setPending] = useState(false),
@@ -730,16 +732,20 @@ function MessagePreparationEditor({
   /** S162 (R-S162-1/2/3): copy is exactly what is on screen, whatever the save is doing. */
   async function copy(kind: "subject" | "plain" | "formatted" | "recipients") {
     const content = shownContent;
-    if (!content) return;
+    if (!content || copying) return;
+    setCopying(true);
+    setNotice("Copying the displayed message…");
     try {
       if (kind === "recipients") {
         // S116: the complete To/Cc set, in the same order the draft carries it. Nothing is sent.
         if (current?.recipients?.status !== "ready") return;
-        await navigator.clipboard.writeText(
-          formatRecipientsForCopy({
-            to: current.recipients.to,
-            cc: current.recipients.cc,
-          }),
+        await boundedLocalWait(
+          navigator.clipboard.writeText(
+            formatRecipientsForCopy({
+              to: current.recipients.to,
+              cc: current.recipients.cc,
+            }),
+          ),
         );
         setNotice(
           `Recipients copied (${1 + current.recipients.cc.length} ${channel} ${
@@ -749,23 +755,31 @@ function MessagePreparationEditor({
         return;
       }
       if (kind === "formatted") {
-        await navigator.clipboard.write([
-          new ClipboardItem({
-            "text/html": new Blob([content.htmlBody], { type: "text/html" }),
-            "text/plain": new Blob([content.plainText], { type: "text/plain" }),
-          }),
-        ]);
+        await boundedLocalWait(
+          navigator.clipboard.write([
+            new ClipboardItem({
+              "text/html": new Blob([content.htmlBody], { type: "text/html" }),
+              "text/plain": new Blob([content.plainText], { type: "text/plain" }),
+            }),
+          ]),
+        );
       } else
-        await navigator.clipboard.writeText(
-          kind === "subject" ? content.subject : content.plainText,
+        await boundedLocalWait(
+          navigator.clipboard.writeText(
+            kind === "subject" ? content.subject : content.plainText,
+          ),
         );
       setNotice(
         `${kind === "subject" ? "Subject" : "Body"} copied as shown. Attachments are separate. Nothing was sent.`,
       );
-    } catch {
+    } catch (error) {
       setNotice(
-        "Clipboard access was denied. Select and copy the subject or body below; your wording is kept.",
+        error instanceof LocalWaitError
+          ? "Clipboard copying was not confirmed. Select and copy the displayed subject or body; your wording is kept."
+          : "Clipboard access was denied. Select and copy the subject or body below; your wording is kept.",
       );
+    } finally {
+      setCopying(false);
     }
   }
   /**
@@ -920,10 +934,7 @@ function MessagePreparationEditor({
       ariaLabel={`${channelLabel} message preparation`}
       id={`renewal-card-message-${channel}`}
     >
-      <p className="muted">
-        Edit the subject and body directly; your wording saves by itself. A person sends
-        it; saving here does not record delivery.
-      </p>
+      <p className="muted">Edits save in the app. A person sends from Gmail.</p>
       {notice ? <p role="status">{notice}</p> : null}
       {[...new Set(current?.notices ?? [])].map((value) => (
         <p key={value} className="muted">
@@ -939,6 +950,316 @@ function MessagePreparationEditor({
         </Button>
       ) : (
         <>
+          {/* S162: copy uses exactly the subject and body shown here, with their markers,
+              whatever the save or the missing values are doing. */}
+          <section
+            aria-label="Copy the message"
+            className="ui-stack-tight renewal-message-group"
+          >
+            <h3 className="renewal-message-group-title">Copy the message</h3>
+            <Field htmlFor={MESSAGE_CONTROL_IDS.subject(channel)} label="Subject">
+              <input
+                id={MESSAGE_CONTROL_IDS.subject(channel)}
+                readOnly={!canEdit}
+                value={subjectText ?? content?.subject ?? ""}
+                onChange={(event) => {
+                  setSubjectText(
+                    event.target.value === content?.subject ? null : event.target.value,
+                  );
+                  touch();
+                }}
+                onBlur={() => {
+                  if (subjectText !== null && !subjectText.trim()) setSubjectText(null);
+                  commit();
+                }}
+              />
+            </Field>
+            {current?.recipients ? (
+              current.recipients.status === "ready" ? (
+                <p className="renewal-message-recipients">
+                  <strong>To:</strong> {current.recipients.to}
+                  {current.recipients.cc.length > 0 ? (
+                    <>
+                      {" "}
+                      <strong>Cc:</strong> {current.recipients.cc.join(", ")}
+                    </>
+                  ) : null}
+                </p>
+              ) : (
+                <ul className="renewal-message-recipients" role="status">
+                  {[...new Set(current.recipients.reasons)].map((reason) => (
+                    <li key={reason}>{reason}</li>
+                  ))}
+                </ul>
+              )
+            ) : null}
+            <div className="ui-actions">
+              <Button
+                variant="secondary"
+                disabled={!shownContent || copying}
+                onClick={() => copy("subject")}
+              >
+                Copy subject
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={!shownContent || copying}
+                onClick={() => copy("formatted")}
+              >
+                Copy formatted body
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={!shownContent || copying}
+                onClick={() => copy("plain")}
+              >
+                Copy plain text
+              </Button>
+              {current?.recipients ? (
+                <Button
+                  variant="secondary"
+                  disabled={current.recipients.status !== "ready" || copying}
+                  onClick={() => copy("recipients")}
+                >
+                  Copy recipients
+                </Button>
+              ) : null}
+            </div>
+            {current.destinations ? (
+              <p className="muted renewal-message-destinations">
+                RentVine:{" "}
+                {channel === "owner"
+                  ? current.destinations.owners.map((owner, index) => (
+                      <span key={owner.record.href}>
+                        {index > 0 ? " · " : ""}
+                        {externalLink(
+                          owner.messages,
+                          `${owner.name}: open owner messages in RentVine`,
+                        )}
+                        {" · "}
+                        {externalLink(owner.record, "open owner record in RentVine")}
+                      </span>
+                    ))
+                  : current.destinations.messages
+                    ? externalLink(
+                        current.destinations.messages,
+                        "Open lease messages in RentVine",
+                      )
+                    : null}
+                {current.destinations.lease ? (
+                  <>
+                    {" · "}
+                    {externalLink(
+                      current.destinations.lease,
+                      "Open lease record in RentVine",
+                    )}
+                  </>
+                ) : null}
+              </p>
+            ) : null}
+          </section>
+          {shownContent ? (
+            <>
+              <Field
+                htmlFor={MESSAGE_CONTROL_IDS.body(channel)}
+                label="Email body"
+                hint="Copy and Gmail draft use the wording shown, including unresolved markers."
+              >
+                <textarea
+                  id={MESSAGE_CONTROL_IDS.body(channel)}
+                  readOnly={!canEdit}
+                  rows={16}
+                  value={override ? override.text : (content?.plainText ?? "")}
+                  onChange={(event) =>
+                    overrideChange(
+                      event.target.value === content?.plainText
+                        ? null
+                        : {
+                            text: event.target.value,
+                            baseHash:
+                              override?.baseHash ?? current.bodyBaseHash ?? NO_BASE_HASH,
+                          },
+                    )
+                  }
+                  onBlur={() => {
+                    if (override && !override.text.trim()) overrideChange(null);
+                    commit();
+                  }}
+                />
+              </Field>
+              {authoredBody ? (
+                <div className="ui-stack-tight">
+                  <p className="muted" role="status">
+                    {wordingChangedSince
+                      ? STALE_REFINED_BODY_MESSAGE
+                      : "Your wording is kept exactly as written. It is not replaced when the lease information changes."}
+                  </p>
+                  {canEdit ? (
+                    <div className="ui-actions">
+                      {previousOverride !== undefined ? (
+                        <Button
+                          onClick={() => {
+                            overrideChange(previousOverride);
+                            setPreviousOverride(undefined);
+                            commit();
+                          }}
+                          type="button"
+                          variant="secondary"
+                        >
+                          Undo the last refinement
+                        </Button>
+                      ) : null}
+                      <Button
+                        onClick={() => {
+                          overrideChange(null, true);
+                          commit();
+                        }}
+                        type="button"
+                        variant="secondary"
+                      >
+                        Return to the standard wording
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              {overrideState === "unreadable" && !override ? (
+                <p role="status">{UNREADABLE_REFINED_BODY_MESSAGE}</p>
+              ) : null}
+              <details open>
+                <summary>Formatted preview</summary>
+                <div
+                  aria-label={`${channel} formatted body`}
+                  className="renewal-message-preview"
+                  dangerouslySetInnerHTML={{ __html: shownContent.htmlBody }}
+                />
+              </details>
+              <fieldset
+                className="ui-stack-tight renewal-message-group"
+                disabled={!canEdit || pending}
+              >
+                <RefineWithAi
+                  appliedNotice="Revision applied to the email body. It saves by itself; edit it further if you like."
+                  currentBody={shownContent.plainText}
+                  disabledReason={refineDisabledReason}
+                  id={MESSAGE_CONTROL_IDS.refine(channel)}
+                  onApply={(revision) => {
+                    overrideChange(
+                      {
+                        text: revision.body,
+                        baseHash:
+                          revision.baseHash ?? current.bodyBaseHash ?? NO_BASE_HASH,
+                      },
+                      true,
+                    );
+                    commit();
+                  }}
+                  request={{ surface: "renewal_message", leaseId, channel }}
+                />
+              </fieldset>
+            </>
+          ) : null}
+          <section
+            aria-label="Unsent Gmail draft"
+            className="ui-stack-tight renewal-message-group"
+          >
+            <h3 className="renewal-message-group-title">Unsent Gmail draft</h3>
+            {current.publication.status !== "approved" ? (
+              <p className="muted">{current.publication.reason}</p>
+            ) : null}
+            <div className="ui-actions">
+              <Button disabled={!canDraft || pending} onClick={() => draft("preview")}>
+                Preview unsent Gmail draft
+              </Button>
+              {current.destinations?.gmailDrafts
+                ? externalLink(
+                    current.destinations.gmailDrafts,
+                    "Open the Gmail Drafts folder",
+                  )
+                : null}
+            </div>
+            {outcome?.status === "preview" ? (
+              <div className="ui-stack">
+                <p>
+                  From {current.senderEmail} · To {outcome.recipient.to}
+                  {outcome.recipient.cc?.length
+                    ? ` · Cc ${outcome.recipient.cc.join(", ")}`
+                    : ""}
+                </p>
+                <p>{outcome.subject}</p>
+                <div className="draft-box">{outcome.body}</div>
+                {current.draftAttempt?.outcome?.status === "created" &&
+                current.draftAttempt.executionId !== outcome.executionId ? (
+                  <p role="note">
+                    A Gmail draft from an earlier version of this message already exists.
+                    Creating this one adds a second, separate unsent draft; the app cannot
+                    replace the earlier one, so delete it in Gmail and send only one.
+                  </p>
+                ) : null}
+                {outcome.attachment ? (
+                  <p>
+                    {outcome.attachment.label} · {outcome.attachment.mimeType} ·{" "}
+                    {outcome.attachment.sizeBytes} bytes
+                  </p>
+                ) : null}
+                {!confirming ? (
+                  <Button
+                    disabled={pending || !canDraft}
+                    onClick={() => setConfirming(true)}
+                  >
+                    Review creation confirmation
+                  </Button>
+                ) : (
+                  <div role="group" aria-label="Confirm exact unsent draft">
+                    <p>
+                      Create this exact unsent draft, with the recipients and wording
+                      shown above, in the displayed managed mailbox? Nothing is sent.
+                      Review it in Gmail before you send it; anything still marked stays
+                      marked in the draft.
+                    </p>
+                    <Button onClick={() => setConfirming(false)}>Cancel</Button>
+                    <Button
+                      disabled={pending || !canDraft}
+                      onClick={() => draft("create")}
+                    >
+                      Create this unsent draft
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : null}
+            {unresolved ? (
+              <div>
+                <p>
+                  Do not create a duplicate. Recover the exact consumed attempt; copy
+                  remains available.
+                </p>
+                <Button disabled={pending} onClick={() => draft("reconcile")}>
+                  Recover exact Gmail attempt
+                </Button>
+              </div>
+            ) : null}
+            {outcome && "draftId" in outcome && outcome.draftId ? (
+              <p className="muted">
+                {current.destinations?.gmailDrafts ? (
+                  <a
+                    href={current.destinations.gmailDrafts.href}
+                    target={EXTERNAL_LINK_TARGET}
+                    rel={EXTERNAL_LINK_REL}
+                  >
+                    Open the Drafts folder to find this draft
+                  </a>
+                ) : (
+                  "Open the Drafts folder in your managed Gmail mailbox to find this draft."
+                )}{" "}
+                Mailbox: {current.senderEmail}. A person sends from Gmail.
+              </p>
+            ) : null}
+            {outcome?.status === "created" ||
+            (outcome?.status === "reconciliation" && outcome.resolution === "created") ? (
+              <p className="muted">{GEMINI_IN_GMAIL_HINT}</p>
+            ) : null}
+          </section>
           <fieldset
             id={MESSAGE_CONTROL_IDS.inputs(channel)}
             disabled={!canEdit}
@@ -957,7 +1278,7 @@ function MessagePreparationEditor({
             <Field
               htmlFor={`${base}-response`}
               label="Response request (optional wording edit)"
-              hint={`Replaces ${RESPONSE_REQUEST_PLACEMENT[channel]} in the standard wording. Blank keeps the approved wording. For amounts, dates, links or contacts, edit the email body itself.`}
+              hint="Replaces the paragraph after the terms, charges and insurance wording, before the request to complete the renewal information form. Blank keeps approved wording; amounts, dates and recipients remain in the email body."
             >
               <textarea
                 id={`${base}-response`}
@@ -1043,7 +1364,7 @@ function MessagePreparationEditor({
                               <Field
                                 htmlFor={`${base}-${charge.id}-fill`}
                                 label="Fill from a current RentVine charge"
-                                hint="Choose the current recurring charge this line reports. The comparison with the outgoing lease stays yours to record."
+                                hint="Verified current charge · comparison remains staff-recorded."
                               >
                                 <select
                                   id={`${base}-${charge.id}-fill`}
@@ -1183,7 +1504,6 @@ function MessagePreparationEditor({
                             <Field
                               htmlFor={`${base}-${charge.id}-source`}
                               label="Charge source (optional)"
-                              hint="The record or policy this charge comes from, if you want to note it."
                             >
                               <input
                                 id={`${base}-${charge.id}-source`}
@@ -1314,7 +1634,7 @@ function MessagePreparationEditor({
                       ? current.signatureMatchesActor
                         ? "Saved with this message as your signature for this managed sender."
                         : "Saved with this message by another sender and shown as saved. Use your retained signature or edit it here if you prefer."
-                      : "Enter your signature once. It is kept for your managed sender across leases."}
+                      : "Signature shared across leases for this managed sender."}
               </p>
               {retainedDiffers ? (
                 <Button
@@ -1524,303 +1844,6 @@ function MessagePreparationEditor({
               </ul>
             </details>
           ) : null}
-          {/* S162: copy uses exactly the subject and body shown here, with their markers,
-              whatever the save or the missing values are doing. */}
-          <section
-            aria-label="Copy the message"
-            className="ui-stack-tight renewal-message-group"
-          >
-            <h3 className="renewal-message-group-title">Copy the message</h3>
-            <Field htmlFor={MESSAGE_CONTROL_IDS.subject(channel)} label="Subject">
-              <input
-                id={MESSAGE_CONTROL_IDS.subject(channel)}
-                readOnly={!canEdit}
-                value={subjectText ?? content?.subject ?? ""}
-                onChange={(event) => {
-                  setSubjectText(
-                    event.target.value === content?.subject ? null : event.target.value,
-                  );
-                  touch();
-                }}
-                onBlur={() => {
-                  if (subjectText !== null && !subjectText.trim()) setSubjectText(null);
-                  commit();
-                }}
-              />
-            </Field>
-            {current?.recipients ? (
-              current.recipients.status === "ready" ? (
-                <p className="renewal-message-recipients">
-                  <strong>To:</strong> {current.recipients.to}
-                  {current.recipients.cc.length > 0 ? (
-                    <>
-                      {" "}
-                      <strong>Cc:</strong> {current.recipients.cc.join(", ")}
-                    </>
-                  ) : null}
-                </p>
-              ) : (
-                <ul className="renewal-message-recipients" role="status">
-                  {[...new Set(current.recipients.reasons)].map((reason) => (
-                    <li key={reason}>{reason}</li>
-                  ))}
-                </ul>
-              )
-            ) : null}
-            <div className="ui-actions">
-              <Button disabled={!shownContent} onClick={() => copy("subject")}>
-                Copy subject
-              </Button>
-              <Button disabled={!shownContent} onClick={() => copy("formatted")}>
-                Copy formatted body
-              </Button>
-              <Button disabled={!shownContent} onClick={() => copy("plain")}>
-                Copy plain text
-              </Button>
-              {current?.recipients ? (
-                <Button
-                  disabled={current.recipients.status !== "ready"}
-                  onClick={() => copy("recipients")}
-                >
-                  Copy recipients
-                </Button>
-              ) : null}
-            </div>
-            {current.destinations ? (
-              <p className="muted renewal-message-destinations">
-                Paste it where you send it:{" "}
-                {channel === "owner"
-                  ? current.destinations.owners.map((owner, index) => (
-                      <span key={owner.record.href}>
-                        {index > 0 ? " · " : ""}
-                        {externalLink(
-                          owner.messages,
-                          `${owner.name}: open owner messages in RentVine`,
-                        )}
-                        {" · "}
-                        {externalLink(owner.record, "open owner record in RentVine")}
-                      </span>
-                    ))
-                  : current.destinations.messages
-                    ? externalLink(
-                        current.destinations.messages,
-                        "Open lease messages in RentVine",
-                      )
-                    : null}
-                {current.destinations.lease ? (
-                  <>
-                    {" · "}
-                    {externalLink(
-                      current.destinations.lease,
-                      "Open lease record in RentVine",
-                    )}
-                  </>
-                ) : null}
-              </p>
-            ) : null}
-          </section>
-          {shownContent ? (
-            <>
-              <Field
-                htmlFor={MESSAGE_CONTROL_IDS.body(channel)}
-                label="Email body"
-                hint="Edit the wording directly. It is copied and drafted exactly as shown, and anything still marked stays marked."
-              >
-                <textarea
-                  id={MESSAGE_CONTROL_IDS.body(channel)}
-                  readOnly={!canEdit}
-                  rows={16}
-                  value={override ? override.text : (content?.plainText ?? "")}
-                  onChange={(event) =>
-                    overrideChange(
-                      event.target.value === content?.plainText
-                        ? null
-                        : {
-                            text: event.target.value,
-                            baseHash:
-                              override?.baseHash ?? current.bodyBaseHash ?? NO_BASE_HASH,
-                          },
-                    )
-                  }
-                  onBlur={() => {
-                    if (override && !override.text.trim()) overrideChange(null);
-                    commit();
-                  }}
-                />
-              </Field>
-              {authoredBody ? (
-                <div className="ui-stack-tight">
-                  <p className="muted" role="status">
-                    {wordingChangedSince
-                      ? STALE_REFINED_BODY_MESSAGE
-                      : "Your wording is kept exactly as written. It is not replaced when the lease information changes."}
-                  </p>
-                  {canEdit ? (
-                    <div className="ui-actions">
-                      {previousOverride !== undefined ? (
-                        <Button
-                          onClick={() => {
-                            overrideChange(previousOverride);
-                            setPreviousOverride(undefined);
-                            commit();
-                          }}
-                          type="button"
-                          variant="secondary"
-                        >
-                          Undo the last refinement
-                        </Button>
-                      ) : null}
-                      <Button
-                        onClick={() => {
-                          overrideChange(null, true);
-                          commit();
-                        }}
-                        type="button"
-                        variant="secondary"
-                      >
-                        Return to the standard wording
-                      </Button>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-              {overrideState === "unreadable" && !override ? (
-                <p role="status">{UNREADABLE_REFINED_BODY_MESSAGE}</p>
-              ) : null}
-              <details open>
-                <summary>Formatted preview</summary>
-                <div
-                  aria-label={`${channel} formatted body`}
-                  className="renewal-message-preview"
-                  dangerouslySetInnerHTML={{ __html: shownContent.htmlBody }}
-                />
-              </details>
-              <fieldset
-                className="ui-stack-tight renewal-message-group"
-                disabled={!canEdit || pending}
-              >
-                <RefineWithAi
-                  appliedNotice="Revision applied to the email body. It saves by itself; edit it further if you like."
-                  currentBody={shownContent.plainText}
-                  disabledReason={refineDisabledReason}
-                  id={MESSAGE_CONTROL_IDS.refine(channel)}
-                  onApply={(revision) => {
-                    overrideChange(
-                      {
-                        text: revision.body,
-                        baseHash:
-                          revision.baseHash ?? current.bodyBaseHash ?? NO_BASE_HASH,
-                      },
-                      true,
-                    );
-                    commit();
-                  }}
-                  request={{ surface: "renewal_message", leaseId, channel }}
-                />
-              </fieldset>
-            </>
-          ) : null}
-          <section
-            aria-label="Unsent Gmail draft"
-            className="ui-stack-tight renewal-message-group"
-          >
-            <h3 className="renewal-message-group-title">Unsent Gmail draft</h3>
-            {current.publication.status !== "approved" ? (
-              <p className="muted">{current.publication.reason}</p>
-            ) : null}
-            <div className="ui-actions">
-              <Button disabled={!canDraft || pending} onClick={() => draft("preview")}>
-                Preview unsent Gmail draft
-              </Button>
-              {current.destinations?.gmailDrafts
-                ? externalLink(
-                    current.destinations.gmailDrafts,
-                    "Open the Gmail Drafts folder",
-                  )
-                : null}
-            </div>
-            {outcome?.status === "preview" ? (
-              <div className="ui-stack">
-                <p>
-                  From {current.senderEmail} · To {outcome.recipient.to}
-                  {outcome.recipient.cc?.length
-                    ? ` · Cc ${outcome.recipient.cc.join(", ")}`
-                    : ""}
-                </p>
-                <p>{outcome.subject}</p>
-                <div className="draft-box">{outcome.body}</div>
-                {current.draftAttempt?.outcome?.status === "created" &&
-                current.draftAttempt.executionId !== outcome.executionId ? (
-                  <p role="note">
-                    A Gmail draft from an earlier version of this message already exists.
-                    Creating this one adds a second, separate unsent draft; the app cannot
-                    replace the earlier one, so delete it in Gmail and send only one.
-                  </p>
-                ) : null}
-                {outcome.attachment ? (
-                  <p>
-                    {outcome.attachment.label} · {outcome.attachment.mimeType} ·{" "}
-                    {outcome.attachment.sizeBytes} bytes
-                  </p>
-                ) : null}
-                {!confirming ? (
-                  <Button
-                    disabled={pending || !canDraft}
-                    onClick={() => setConfirming(true)}
-                  >
-                    Review creation confirmation
-                  </Button>
-                ) : (
-                  <div role="group" aria-label="Confirm exact unsent draft">
-                    <p>
-                      Create this exact unsent draft, with the recipients and wording
-                      shown above, in the displayed managed mailbox? Nothing is sent.
-                      Review it in Gmail before you send it; anything still marked stays
-                      marked in the draft.
-                    </p>
-                    <Button onClick={() => setConfirming(false)}>Cancel</Button>
-                    <Button
-                      disabled={pending || !canDraft}
-                      onClick={() => draft("create")}
-                    >
-                      Create this unsent draft
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : null}
-            {unresolved ? (
-              <div>
-                <p>
-                  Do not create a duplicate. Recover the exact consumed attempt; copy
-                  remains available.
-                </p>
-                <Button disabled={pending} onClick={() => draft("reconcile")}>
-                  Recover exact Gmail attempt
-                </Button>
-              </div>
-            ) : null}
-            {outcome && "draftId" in outcome && outcome.draftId ? (
-              <p className="muted">
-                {current.destinations?.gmailDrafts ? (
-                  <a
-                    href={current.destinations.gmailDrafts.href}
-                    target={EXTERNAL_LINK_TARGET}
-                    rel={EXTERNAL_LINK_REL}
-                  >
-                    Open the Drafts folder to find this draft
-                  </a>
-                ) : (
-                  "Open the Drafts folder in your managed Gmail mailbox to find this draft."
-                )}{" "}
-                Mailbox: {current.senderEmail}. A person sends from Gmail.
-              </p>
-            ) : null}
-            {outcome?.status === "created" ||
-            (outcome?.status === "reconciliation" && outcome.resolution === "created") ? (
-              <p className="muted">{GEMINI_IN_GMAIL_HINT}</p>
-            ) : null}
-          </section>
           {current.previousDraftAttempts?.length ? (
             <details>
               <summary>

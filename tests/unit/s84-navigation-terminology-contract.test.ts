@@ -32,13 +32,13 @@ describe("S84 bounded navigation terminology", () => {
     );
   });
 
-  it("uses the exact corrected notification ownership copy", () => {
+  it("keeps notification ownership and time-ordered events visible without a repeated introduction", () => {
     const notifications = source("app/notifications/page.tsx");
     const queueAdmin = source("components/admin/ApprovalQueueAdminPanel.tsx");
 
-    expect(notifications).toContain(
-      "Everything that needs your attention, newest first.",
-    );
+    expect(notifications).toContain('aria-label="Team review"');
+    expect(notifications).toContain('className="notifications-log"');
+    expect(notifications).toContain("feed.notifications.map");
     expect(notifications).not.toContain("The Console stays your");
     expect(queueAdmin).toContain("In-app notifications stay on.");
     expect(queueAdmin).not.toContain("Console notifications stay on.");

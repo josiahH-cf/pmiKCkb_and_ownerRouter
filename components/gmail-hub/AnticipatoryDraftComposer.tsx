@@ -1,6 +1,10 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 import { useState } from "react";
+import { useOperation } from "@/components/hooks/useOperation";
+import { BusyIndicator } from "@/components/ui/BusyIndicator";
+import { boundedLocalWait } from "@/lib/ui/local-lifetime";
 
 import type { ReplyTemplate } from "@/lib/gmail-inbox-zero/drafts";
 import {
@@ -34,27 +38,29 @@ export function AnticipatoryDraftComposer({
   const [subject, setSubject] = useState("Re: invoice question");
   const [category, setCategory] = useState<GmailDraftCategoryId>("vendor");
   const [missingFactsText, setMissingFactsText] = useState("");
-  const [pending, setPending] = useState(false);
+  const operation = useOperation("anticipatory-draft");
+  const pending = operation.snapshot.phase === "pending";
   const [result, setResult] = useState<DraftResponse | null>(null);
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
+  const copyOperation = useOperation(result?.draft ?? "");
+  const copied = copyOperation.snapshot.phase === "succeeded";
+  const copying = copyOperation.snapshot.phase === "pending";
+  const [copyError, setCopyError] = useState("");
 
   const template = templates.find((t) => t.id === templateId);
 
   async function compose() {
     if (!template) return;
-    setPending(true);
     setError("");
-    setCopied(false);
-    setResult(null);
     const missingFacts = missingFactsText
       .split("\n")
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
-    try {
+    const outcome = await operation.controller.run("Composing draft", async (signal) => {
       const response = await fetch("/api/gmail-hub/anticipatory-draft", {
         method: "POST",
         headers: { "content-type": "application/json" },
+        signal,
         body: JSON.stringify({
           // F-TMPL-3: send only the id; the route resolves the body + status from the approved store.
           template_id: template.id,
@@ -66,35 +72,48 @@ export function AnticipatoryDraftComposer({
           ...(missingFacts.length > 0 ? { missingFacts } : {}),
         }),
       });
-      const payload = (await response.json().catch(() => ({}))) as DraftResponse;
-      if (response.ok) {
-        setResult(payload);
-      } else {
-        setError(payload.error ?? "Could not compose the draft.");
-      }
-    } catch {
-      setError("Could not compose the draft.");
-    } finally {
-      setPending(false);
-    }
+      const payload = (await response.json()) as DraftResponse;
+      if (
+        !response.ok ||
+        typeof payload.ok !== "boolean" ||
+        !Array.isArray(payload.errors) ||
+        payload.errors.some((value) => typeof value !== "string") ||
+        (payload.ok && typeof payload.draft !== "string")
+      )
+        throw new Error("The draft response could not be validated.");
+      return payload;
+    });
+    if (outcome.outcome === "superseded") return;
+    if (outcome.outcome === "succeeded") {
+      setResult(outcome.value);
+      setCopyError("");
+    } else
+      setError(
+        "Could not compose the draft. Your inputs and previous draft are kept; retry when ready.",
+      );
   }
 
   async function copyDraft(draft: string) {
-    try {
-      await navigator.clipboard.writeText(draft);
-      setCopied(true);
-    } catch {
-      setCopied(false);
-    }
+    if (copying) return;
+    setCopyError("");
+    const outcome = await copyOperation.controller.run(
+      "Copying draft",
+      () => boundedLocalWait(navigator.clipboard.writeText(draft)),
+      { waitMs: 8_000 },
+    );
+    if (outcome.outcome === "superseded") return;
+    if (outcome.outcome !== "succeeded")
+      setCopyError(
+        "Copy was not confirmed. Select and copy the displayed draft; its wording is kept.",
+      );
   }
 
   return (
-    <article className="panel ui-stack">
+    <article className="panel ui-stack" aria-busy={pending || copying || undefined}>
       <h2>Anticipatory draft</h2>
       <p className="muted">
-        Draft a reply from an Approved pattern over pasted, sanitized facts. Unapproved
-        patterns and hard-excluded categories are refused before the model. Sending stays
-        a human step in Gmail.
+        Approved patterns only; excluded categories are refused. A person sends from
+        Gmail.
       </p>
 
       <label className="field">
@@ -151,8 +170,16 @@ export function AnticipatoryDraftComposer({
       >
         {pending ? "Composing…" : "Compose draft"}
       </button>
+      {pending ? <BusyIndicator label="Composing draft" /> : null}
+      {result && (pending || error) ? (
+        <p className="muted">Previous completed draft</p>
+      ) : null}
 
-      {error ? <p className="muted">{error}</p> : null}
+      {error ? (
+        <p className="error-text" role="alert">
+          {error}
+        </p>
+      ) : null}
       {result ? (
         <div className="ui-stack">
           {result.ok && result.draft ? (
@@ -165,11 +192,18 @@ export function AnticipatoryDraftComposer({
               <div className="draft-box">{result.draft}</div>
               <button
                 className="secondary-button"
+                disabled={copying}
                 onClick={() => void copyDraft(result.draft ?? "")}
                 type="button"
               >
-                {copied ? "Copied" : "Copy draft"}
+                {copying ? "Copying draft…" : copied ? "Copied" : "Copy draft"}
               </button>
+              {copying ? <BusyIndicator label="Copying draft" /> : null}
+              {copyError ? (
+                <p role="alert" className="error-text">
+                  {copyError}
+                </p>
+              ) : null}
             </>
           ) : (
             <p className="muted">

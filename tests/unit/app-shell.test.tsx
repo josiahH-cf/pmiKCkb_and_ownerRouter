@@ -25,6 +25,29 @@ afterEach(() => {
 });
 
 describe("AppShell role-based navigation", () => {
+  it("S170 acknowledges selected routes while retaining the usable current screen", async () => {
+    render(
+      await AppShell({
+        user: {
+          uid: "admin",
+          email: "admin@pmikcmetro.com",
+          hd: "pmikcmetro.com",
+          role: "Admin",
+        },
+        children: (
+          <main>
+            <input aria-label="Unsaved task" defaultValue="Keep this edit" />
+          </main>
+        ),
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Operations" }));
+    fireEvent.click(screen.getByRole("link", { name: "Maintenance" }));
+    expect(screen.getByRole("status", { name: "Page navigation" })).toHaveTextContent(
+      /Opening Maintenance/,
+    );
+    expect(screen.getByLabelText("Unsaved task")).toHaveValue("Keep this edit");
+  });
   it("renders the explicit Live-read-only badge and hides the persistent write control", async () => {
     vi.stubEnv("ENVIRONMENT_KIND", "demo");
     vi.stubEnv("DATA_CONTEXT", "live_readonly");

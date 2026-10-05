@@ -93,13 +93,13 @@ describe("ConsoleApproveButton", () => {
 
     await user.click(screen.getByRole("button", { name: "Approve" }));
 
-    expect(await screen.findByText("Could not approve this item.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Approve" })).toBeEnabled();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Approval not confirmed");
+    expect(screen.getByRole("button", { name: "Approve" })).toBeDisabled();
   });
 });
 
 function okResponse() {
-  return new Response(JSON.stringify({}), {
+  return new Response(JSON.stringify({ item: { id: "q1", status: "Approved" } }), {
     headers: { "Content-Type": "application/json" },
     status: 200,
   });

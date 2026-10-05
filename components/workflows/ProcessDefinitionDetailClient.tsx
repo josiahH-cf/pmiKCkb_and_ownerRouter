@@ -1,9 +1,11 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { formatCalendarDate } from "@/lib/date-display";
 
 import { useState } from "react";
 import Link from "next/link";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
+import { InfoTip } from "@/components/ui/InfoTip";
 import type {
   ExternalActionReadiness,
   ProcessDefinitionActionReference,
@@ -287,6 +289,10 @@ export function ProcessDefinitionDetailClient({
       <aside className="workflow-side">
         <section className="panel">
           <h2>Publication</h2>
+          <InfoTip
+            label="Publication checks"
+            content="A version becomes Active immediately only after root, scope, type, size, malware, sensitivity, source, graph, and action-reference checks pass."
+          />
           <p>
             <strong>Active immutable version:</strong>{" "}
             <code>{definition.active_version_id ?? "Not published"}</code>
@@ -298,19 +304,16 @@ export function ProcessDefinitionDetailClient({
             </p>
           ) : null}
           <p className="muted">
-            A version becomes Active immediately only after root, scope, type, size,
-            malware, sensitivity, source, graph, and action-reference checks pass.
-          </p>
-          <p className="muted">
-            Publication keeps every external action and role exactly as they are.
+            Only a validated version becomes Active. Publication grants no external action
+            or role.
           </p>
         </section>
 
         <section className="panel">
           <h2>Start run</h2>
           <p className="muted">
-            Starts an app-plane checklist for a person to work. Provider actions and
-            system-of-record changes remain on their own confirmed surfaces.
+            Creates an internal checklist. External changes use their separate
+            confirmation controls.
           </p>
           <label>
             Due date

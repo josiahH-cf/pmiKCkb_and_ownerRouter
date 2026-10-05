@@ -46,7 +46,7 @@ export default async function AdminAccessPage({
 
   return (
     <AppShell user={user}>
-      <main className="content ui-stack">
+      <main className="content content--workspace ui-stack">
         <PageHeader
           subtitle="Understand current session access, request an additive role or Space bundle, track the durable result, and find connection status."
           title="Understand and request my access"

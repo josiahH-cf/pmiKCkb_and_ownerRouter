@@ -93,6 +93,10 @@ describe("S97 RentVine updates panel", () => {
     );
     expect(screen.queryByText("Review RentVine updates")).not.toBeInTheDocument();
     expect(screen.getByText("Prepare a RentVine update proposal")).toBeInTheDocument();
+    expect(screen.getByText("No RentVine update is prepared.")).toBeVisible();
+    expect(document.body.textContent).not.toMatch(
+      /Prepare one below with the exact changes|Enter only the exact changes\. Saving reads/,
+    );
     unmount();
 
     const reviewed = datesProposal();
@@ -127,7 +131,7 @@ describe("S97 RentVine updates panel", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/lease-renewal/rentvine-writeback?leaseId=4821",
-      { method: "GET", cache: "no-store" },
+      { method: "GET", cache: "no-store", signal: expect.any(AbortSignal) },
     );
   });
 

@@ -60,6 +60,7 @@ describe("S86 publication-policy confirmation", () => {
       body: JSON.stringify({ enabled: false, reason: "retire root" }),
       headers: { "Content-Type": "application/json" },
       method: "PATCH",
+      signal: expect.any(AbortSignal),
     });
     expect(
       await screen.findByText("Publication policy disabled and audited."),

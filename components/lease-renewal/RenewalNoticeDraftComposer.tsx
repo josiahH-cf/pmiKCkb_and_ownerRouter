@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import Link from "next/link";
 import { useId, useState } from "react";
 import { Button, Card, Field } from "@/components/ui";
@@ -110,10 +111,6 @@ export function RenewalNoticeDraftComposer({
     <Card>
       <div className="ui-stack">
         <h3 className="section-title">Reviewed renewal messages</h3>
-        <p>
-          Prepare the owner or tenant message in the lease workspace. Review its current
-          sources and exact recipients, then confirm an unsent Gmail draft.
-        </p>
         <div className="ui-row">
           <Link
             className="primary-button"

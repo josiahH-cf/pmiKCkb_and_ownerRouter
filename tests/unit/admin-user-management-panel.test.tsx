@@ -115,6 +115,7 @@ describe("UserManagementPanel roster and role editor", () => {
     // S167: the scopes endpoint is never called from this panel.
     expect(fetchMock).toHaveBeenCalledWith("/api/admin/users/u2", {
       method: "PATCH",
+      signal: expect.any(AbortSignal),
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ role: "Editor", reason: "no longer approves" }),
     });
@@ -162,6 +163,7 @@ describe("UserManagementPanel roster and role editor", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(fetchMock).toHaveBeenCalledWith("/api/admin/users/u1", {
       method: "PATCH",
+      signal: expect.any(AbortSignal),
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ role: "Approver", reason: "approve renewals" }),
     });

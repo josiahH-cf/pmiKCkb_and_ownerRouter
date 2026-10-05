@@ -94,6 +94,7 @@ describe("ConsoleView (S146/S147 AI-first Dashboard)", () => {
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     // SEU-2 (§A.1): the explanatory intro paragraph is gone; the surface is self-descriptive.
     expect(screen.queryByText(/never touches a system of record/)).toBeNull();
+    expect(screen.queryByText(/Answers appear below your question/)).toBeNull();
   });
 
   it("ARCH-S146-1: renders the question box while the attention read is still pending", async () => {

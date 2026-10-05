@@ -62,17 +62,18 @@ describe("AskForm (action console)", () => {
       "aria-describedby",
       "question-hint",
     );
-    expect(screen.getByText(/when does the lease at 1234 Oak St/)).toHaveAttribute(
-      "id",
-      "question-hint",
-    );
+    expect(
+      screen.getByText("Tenant, owner, property, or work question."),
+    ).toHaveAttribute("id", "question-hint");
   });
 
-  it("shows the Dictate control and its helper (S10 / F-DICTATE-VERIFIED)", () => {
+  it("names the Dictate control and connects its current status (S10 / F-DICTATE-VERIFIED)", () => {
     render(<AskForm />);
 
-    expect(screen.getByRole("button", { name: "Dictate" })).toBeInTheDocument();
-    expect(screen.getByText(/use Dictate to speak it/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dictate" })).toHaveAttribute(
+      "aria-describedby",
+      "dictation-status",
+    );
     // The action deck moved out of the ask form; its command buttons are no longer here.
     expect(screen.queryByRole("button", { name: /My approvals/ })).toBeNull();
   });

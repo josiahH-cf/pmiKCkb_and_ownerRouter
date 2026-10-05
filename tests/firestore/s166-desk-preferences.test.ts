@@ -38,7 +38,7 @@ import {
   RENEWAL_DESK_PREFERENCE_COLLECTION,
   getRenewalDeskPreference,
   renewalDeskPreferenceDocId,
-  saveRenewalDeskPreference,
+  saveRenewalDeskPreference as savePreferenceWithRevision,
 } from "@/lib/firestore/renewal-desk-preferences";
 import { resolveRenewalDeskEntry } from "@/lib/lease-renewal/desk-preferences";
 import { serializeRenewalDeskQueryV2 } from "@/lib/lease-renewal/desk-query-v2";
@@ -69,11 +69,25 @@ let app: App;
 let db: Firestore;
 let testEnv: RulesTestEnvironment;
 
-function post(body: unknown): Request {
+async function saveRenewalDeskPreference(
+  actor: AuthenticatedUser,
+  input: { query: string },
+  store: Firestore,
+) {
+  const current = await getRenewalDeskPreference(actor, store);
+  return savePreferenceWithRevision(
+    actor,
+    { ...input, expectedRevision: current?.revision ?? 0 },
+    store,
+  );
+}
+function post(body: unknown, expectedRevision = 0): Request {
   return new Request("http://localhost/api/lease-renewal/desk-preferences", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(
+      body && typeof body === "object" ? { ...body, expectedRevision } : body,
+    ),
   });
 }
 
@@ -130,7 +144,7 @@ describe("S166 durable account worklist view (emulator)", () => {
 
   it("BEH-S166-7: clearing persists the default across sessions", async () => {
     await saveRenewalDeskPreference(pat, { query: SAVED }, db);
-    expect((await POST(post({ query: "v=2" }))).status).toBe(200);
+    expect((await POST(post({ query: "v=2" }, 1))).status).toBe(200);
     const stored = await getRenewalDeskPreference(pat, db);
     expect(stored?.view).toBe("");
     expect(

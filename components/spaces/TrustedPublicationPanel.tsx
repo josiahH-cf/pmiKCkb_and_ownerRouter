@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 import { useState } from "react";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
@@ -122,7 +123,7 @@ export function TrustedPublicationPanel({
         <label className="secondary-button">
           Add files
           <input
-            className="visually-hidden"
+            className="sr-only"
             disabled={!canEdit || busy}
             multiple
             onChange={(event) => void publishSelection(event.target.files)}
@@ -133,7 +134,7 @@ export function TrustedPublicationPanel({
           Add folder
           <input
             {...({ directory: "", webkitdirectory: "" } as Record<string, string>)}
-            className="visually-hidden"
+            className="sr-only"
             disabled={!canEdit || busy}
             multiple
             onChange={(event) => void publishSelection(event.target.files)}

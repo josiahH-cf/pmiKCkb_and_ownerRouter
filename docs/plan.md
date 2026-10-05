@@ -1,6 +1,6 @@
 # Current plan
 
-Updated: 2026-10-03 (UTC). The S152–S167 program is verified deployed by run `47fabb7c`. Batch 004 (S146–S151) and S108's import are verified deployed by runs `98f7e743` and `729d5716`, with its corrective read-order repair by run `0eb2cfeb` and the S113 approval-read fix by run `3a32f7a2`, on top of request 001, batches 002–003, the thirteen-feature batch and confirmed adversarial repairs.
+Updated: 2026-10-04 (UTC). Batch 005 is active under the named owner implementation and cumulative-release instruction. The S152–S167 program is verified deployed by run `47fabb7c`. Batch 004 (S146–S151) and S108's import are verified deployed by runs `98f7e743` and `729d5716`, with its corrective read-order repair by run `0eb2cfeb` and the S113 approval-read fix by run `3a32f7a2`, on top of request 001, batches 002–003, the thirteen-feature batch and confirmed adversarial repairs.
 
 ## Direct maintenance request 001: released
 
@@ -36,7 +36,7 @@ All seven supplied requests 002–008 were read in order, mapped to S135–S141 
 all existing workflow-linked draft screens. S110 and the existing email paths are the verified
 baseline until the batch 002 release. S88–S93/S101's
 overlapping unimplemented plans are superseded for this scope and cannot restart automatically.
-Preserve S87/S94/S95 as separate proposals. On 2026-09-30 the owner explicitly instructed
+Revised S87 is active under the named batch 005 execution; S94 stays a separate proposal and S95 is superseded by S146/S147. On 2026-09-30 the owner explicitly instructed
 execution of batch 002, then batch 003, through implementation, mainline merge and deployment,
 with one cumulative release at the end of each set. PR #95 merged the production audit patch at
 `dc493dfe`; S136 (PR #96), S135/S137/S138 (PR #98) and S139/S140 (PR #99, `f43629aa`) merged
@@ -95,6 +95,43 @@ The owner's execution prompt of 2026-10-02 started the program. It was built in 
 
 Release: run `47fabb7c` shipped the program on 2026-10-03 in one cumulative candidate at `e106a88a` through the existing machinery after exact main CI. The promoted revision reads `LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED=true` and the recovery target keeps the captured predecessor's actual value (false). Run `a83ed59b` had stopped at candidate assurance because the release canary still required the lease's Full view on open; PR #128 corrected that contract and the stopped run is archived as superseded. No provider mutation, live customer draft, paid comp request, synthetic production record or new proof target was part of the release. Independent readbacks passed and the suite dispositions are in docs/feature-suites/README.md. Remaining: the owner's optional phone redirect step (A7) and the two owner decision candidates in docs/open-blockers.md.
 
+## Application usability and reliability — batch 005: active
+
+The owner accepted all October 4 recommendations, then supplied the named implementation and
+cumulative-release launch. Canonical handoff: application-usability-reliability-2026-10 in
+docs/feature-suites/README.md, intake orders 035–049. Selected specs are S168–S181 and revised S87
+(fifteen changes, 116 traceable requirements). Authoring started no execution; the later named
+launch now authorizes this program through its existing engineering and release gates;
+the released queue is empty and its permits remain consumed.
+
+Current input evidence: source/tests, a completed guarded Admin pass reading the e106a88a serving
+version with zero mutation attempts, a bounded read of nine feedback records and successful approved
+WSL CLI/ADC refresh. Initial screens establish no benchmark, persistence/failure/AI/human verdict.
+The program's current evidence limits and all accepted product decisions are in its canonical
+section. Preserve deployed S135–S167 behavior, ordinary-staff renewal work, private account scope,
+Focus default, working values/autosave, Status log, true Sheet switch and all exact action contracts.
+
+Execution design: S180 feedback intake and S181 checks begin with S168 measurement; S169 establishes
+shared state before S170/S171 consumers; S172 guides S173/S174, with S177 preference schemas designed
+alongside resizing; S175 and revised S87/S176 make current workflows readable; S178 lookup and S179
+legacy setup retirement close their own deltas. Finish S180 feedback reconciliation and S181
+integration. Use green bounded slices and one cumulative gated production release carrying all
+selected changes, never fifteen releases. Every missing behavior gets expected fail-first evidence;
+already-satisfied requirements get preservation evidence. Existing release-canary opening landmarks
+change in the same slice as route defaults.
+
+Clear filters removes typed searches/filter criteria and keeps sort/layout. Reset view restores the
+current table and related layout, not other tables or data. Typed searches and desktop sizing are
+private account-owned additions to S166; responsive clamping never saves over desktop intent.
+Identity lookup returns all relevant accessible lease matches with real app links and only trusted
+RentVine shortcuts; no name-based provider join or guessed URL. Feedback never queues unrelated work
+or silently removes inactive records. Rental permits, move-out business workflow redesign and a
+public website shortcut are accepted next-batch deferrals.
+
+No new provider activation, protected-path grant, identity/claim, send, budget/guardrail or external
+proof target is part of this program. Missing inputs and human observations retain scoped states;
+independent work proceeds. No material product clarification remains. Final focused/native full/core gates, whole-route/zoom/accessibility matrix and six-owner/publication recovery pass. All independent engineering requirements are verified; green main/exact CI and the cumulative release/end-feedback/deployed closure remain. Actual scope/results are in docs/evidence/application-usability-batch005.json.
+
 ## Outcome
 
 Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` released the S152–S167 program (one queued item: lease-renewal simplification and mobile, sixteen suites) at `e106a88a50d541b4a012111019b09c2183f6ce20` / `pmi-kc-app-rmusp7ehl-7ea8703905ca` with 100% production traffic.
@@ -132,11 +169,11 @@ passed three regressions that failed on the original source and 23 focused check
 in the shared batch audit. Earlier failed attempts remain failed in immutable evidence outside Git.
 
 S113's full lease dashboard and S114–S120 remain carried in the deployed batch. S96 — safe connector disconnect and reconciliation remains deployed. S82/S97/S98 and S102–S110 retain their
-contracts. The app preserves normal Sheet append/field-update implementation but S128 pauses its
-dispatch; it refuses row deletion and historical restore. Both Dotloop keys remain closed.
+contracts. S159 supersedes S128's global pause: production reads the reviewed true switch for normal
+Sheet append/recognized-field updates under existing exact contracts; it refuses row deletion and historical restore. Both Dotloop keys remain closed.
 Document presence is not verified provider content or signature completion.
 
-- S128: Pause operating-Sheet writes while retaining reads and app-owned work.
+- S128: Historical operating-Sheet pause, superseded by released S159; reads and app-owned work remain.
 - S123: Retain unfinished renewal cycles when source dates change.
 - S124: Review move-out notices and prevent non-renewal outreach.
 - S134: Show, sort and filter color-coded lifecycle status with text labels.
@@ -160,20 +197,20 @@ return path. Independent readbacks bind the serving revision to the exact tested
 
 ## Canonical closure sequence
 
-1. Completed G1–G7 repairs and all 118 litmus references retain exact engineering and compiled
-   evidence in the batch audit. The final full application gate and exact-main CI passed.
-2. The release lock, admitted exact-run permit, one-build claim and immutable failed evidence
-   governed the cumulative replacement. The final run passed recovery preparation, candidate
-   smoke/configuration/domains, Admin assurance, source reconciliation, receipt-bound promotion
-   and the complete observation. No old failed result or frozen source was substituted.
-3. Independent canonical/tagged identity, 100% traffic, reviewed fingerprint, Production/Live,
-   eleven paired Space maps, Demo=false, Sheet=false and one candidate domain passed readback.
-   The guarded supplement passed inventory, dates, lifecycle controls, notice evidence,
-   issue/pause presentation and native return navigation with its exact query and zero diagnostics. No live business effect was
-   needed to demonstrate the engineering contracts.
-4. The cumulative corrective queue is cleared after independent final verification. Pinned tests,
-   Prettier and document gates govern its documentation/test-only closure commit; the release
-   classifier must read no deployable changes. The completed permit stays consumed.
+1. The current S152–S167 release at e106a88a passed the full application/core-E2E gate and exact
+   main CI 37142116030. Earlier G1–G7 and 118 litmus references retain their actual evidence scopes;
+   no completed proof or historical failure is relabelled.
+2. Run 47fabb7c's exact-run permit, release lock and one-build claim governed recovery preparation,
+   zero-traffic candidate smoke/configuration/domains, Admin assurance, source reconciliation,
+   receipt-bound promotion and the full two-checkpoint observation (387,784 ms). Failed cold-target
+   attempts and the superseded a83ed59b run retain their actual records.
+3. Current independent canonical/tagged identity, 100% traffic, reviewed fingerprint,
+   Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=true matched. The recovery
+   target keeps the captured predecessor's actual Sheet=false. All 312 records and eleven readback
+   sections matched; guarded Focus checks passed with zero mutation attempts.
+4. That queue and permit are consumed. Batch 005 is active under its named launch and
+   needs its own exact green cumulative queue, fresh prerequisites/locked GO and run-bound permit.
+   A documentation-only authoring commit does not deploy.
 
 ### External and human closure work
 
@@ -188,7 +225,7 @@ invent them.
 
 The September 29 owner authorization covers necessary Cloud Build/Cloud Run release actions,
 diagnosed and verified repairs, resumes, cumulative replacements, promotion, receipt-bound rollback
-and documentation closure through this batch's verified delivery. Another repaired attempt alone
+and documentation closure through the thirteen-feature batch's achieved verified delivery. The October 4 named launch separately carries batch 005 scope under the current feature-run continuity rule. Another repaired attempt alone
 does not require renewed approval. All technical and safety gates remain mandatory.
 
 Completed S97-S99 and S100 chat proofs are not rerun. No customer send, synthetic production
@@ -207,5 +244,5 @@ Admin-only browser assurance retains Editor `not_run` and all backend role restr
 ALL_GATES_GREEN applies to the batch's verified engineering and release scopes. Actual customer
 accuracy, legal/policy input, provider acceptance and human observations retain their independent
 verdicts and owners above. Staff evidence never becomes a provider receipt or signature proof.
-S87 — final six-cohort product-wide content reconciliation retains its existing dependencies.
+S87 — final six-cohort product-wide content reconciliation is active in batch 005; the accepted current scope retires its old fixed block manifest and S36/S88–S95 dependencies. Preserve deployed Dashboard composition and delegate renewal copy to S176.
 S36 is queued behind complete S100; S121 was not included in the deployed thirteen-feature batch.

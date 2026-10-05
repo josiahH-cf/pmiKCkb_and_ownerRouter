@@ -44,7 +44,7 @@ describe("ConnectionCenter", () => {
       expect(screen.getByRole("region", { name: group })).toBeInTheDocument();
     }
     expect(screen.getByText("RentCast")).toBeInTheDocument();
-    expect(screen.getAllByText("Closed by governance").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Closed by governance")).toHaveLength(1);
     expect(document.body.textContent).toContain(
       "Connection status does not grant action authority.",
     );
@@ -91,10 +91,8 @@ describe("ConnectionCenter", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("RentVine")).toBeInTheDocument();
     expect(screen.getByText("Dotloop")).toBeInTheDocument();
-    expect(screen.getByText("Gmail (legacy notification sender)")).toBeInTheDocument();
-    expect(document.body.textContent).toContain(
-      "Approval notifications are in-app for the first release.",
-    );
+    expect(screen.queryByText("Gmail (legacy notification sender)")).toBeNull();
+    expect(document.body.textContent).not.toContain("KB_APPROVAL_SENDER");
     expect(screen.getByText("Gmail (workflow communications)")).toBeInTheDocument();
     expect(document.body.textContent).toContain(
       "Gmail stays the message system of record.",
@@ -120,7 +118,7 @@ describe("ConnectionCenter", () => {
     expect(document.body.textContent).not.toMatch(/PMI handles/i);
     expect(document.body.textContent).not.toMatch(/PMI stores/i);
     expect(document.body.textContent).toContain(
-      "Review source-backed setup and read-only verification by task.",
+      "Connection status does not grant action authority.",
     );
   });
 

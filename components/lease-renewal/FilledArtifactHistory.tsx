@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { useState } from "react";
 import type { listDerivedArtifactHistory } from "@/lib/firestore/lease-derived-artifacts";
 export function FilledArtifactHistory({ leaseId }: Readonly<{ leaseId: string }>) {

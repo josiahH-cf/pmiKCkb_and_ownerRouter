@@ -83,7 +83,7 @@ export default async function ApprovalQueuePage({
         }}
         user={admin}
       >
-        <section className="content ui-stack">
+        <section className="content content--workspace ui-stack">
           <h1 className="section-title">Approval Queue</h1>
           <AccessRequestsLane
             initialError={accessError}
@@ -168,7 +168,7 @@ export default async function ApprovalQueuePage({
 
   return (
     <AppShell user={user}>
-      <section className="content">
+      <section className="content content--workspace">
         <h1 className="section-title">Approval Queue</h1>
         <ApprovalQueue
           currentUser={{ role: user.role, uid: user.uid }}

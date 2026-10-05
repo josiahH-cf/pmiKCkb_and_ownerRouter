@@ -28,7 +28,10 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 // first; every later round trip must return it unchanged.
 
 const BASELINE = JSON.parse(
-  readFileSync(join(__dirname, "..", "fixtures", "s145-full-view-baseline.json"), "utf8"),
+  readFileSync(
+    join(__dirname, "..", "fixtures", "s181-full-view-presentation.json"),
+    "utf8",
+  ),
 ) as Record<string, ReturnType<typeof fullViewSignature>>;
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
 const PINNED_NOW = new Date("2026-09-30T17:00:00.000Z");

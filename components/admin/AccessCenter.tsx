@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 import { formatBusinessTimestamp } from "@/lib/date-display";
 import Link from "next/link";

@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 // S157/S156/S155: the lease-bound working record on the lease page. Each working field saves on
 // its own when it is complete and valid; an unfinished or invalid field stays in its control and

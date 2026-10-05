@@ -438,7 +438,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
 
   return (
     <AppShell user={user}>
-      <section className="content">
+      <section className="content content--workspace">
         <RenewalDeskReturnLink deskView={deskView} />
         {outcome.status === "ok" ? (
           <RenewalWorkspace

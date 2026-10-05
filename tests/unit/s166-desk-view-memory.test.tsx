@@ -64,10 +64,12 @@ function respond(ok: boolean, body: unknown = {}, status = ok ? 200 : 500) {
 }
 
 function posts(): { url: string; body: unknown }[] {
-  return fetchMock.mock.calls.map(([url, init]) => ({
-    url: String(url),
-    body: JSON.parse(String((init as RequestInit).body)),
-  }));
+  return fetchMock.mock.calls
+    .filter(([, init]) => (init as RequestInit)?.method === "POST")
+    .map(([url, init]) => ({
+      url: String(url),
+      body: JSON.parse(String((init as RequestInit).body)),
+    }));
 }
 
 /** Follow a control without letting jsdom try to navigate. */
@@ -85,7 +87,7 @@ beforeEach(() => {
   arriveAt("");
   window.sessionStorage.clear();
   resetRenewalDeskViewMemoryForTests();
-  fetchMock = vi.fn(() => respond(true, { preference: { view: SAVED } }));
+  fetchMock = vi.fn(() => respond(true, { preference: { view: SAVED, revision: 1 } }));
   vi.stubGlobal("fetch", fetchMock);
 });
 
@@ -104,7 +106,9 @@ describe("S166 deliberate worklist changes are remembered (ARCH-S166-2)", () => 
     arriveAt("?v=2&scope=all");
     rerender(view({ ...base, currentView: "v=2&scope=all", viewSource: "explicit" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(posts()).toEqual([{ url: ROUTE, body: { query: "v=2&scope=all" } }]);
+    expect(posts()).toEqual([
+      { url: ROUTE, body: { query: "v=2&scope=all", expectedRevision: 0 } },
+    ]);
     expect((fetchMock.mock.calls[0][1] as RequestInit).method).toBe("POST");
     await waitFor(() =>
       expect(screen.getByRole("status")).toHaveAttribute("data-autosave", "saved"),
@@ -126,15 +130,18 @@ describe("S166 deliberate worklist changes are remembered (ARCH-S166-2)", () => 
       }),
     );
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(posts()[0].body).toEqual({ query: "v=2&sort=end_date&direction=desc" });
+    expect(posts()[0].body).toEqual({
+      query: "v=2&sort=end_date&direction=desc",
+      expectedRevision: 0,
+    });
   });
 
-  it("BEH-S166-7: Reset to default view saves the default for the account", async () => {
+  it("BEH-S166-7: Reset view saves the default for the account", async () => {
     const { rerender } = render(
       view({ ...base, currentView: SAVED, viewSource: "saved", savedView: SAVED }),
     );
     expect(screen.getByText("Showing your saved view.")).toBeInTheDocument();
-    const reset = screen.getByRole("link", { name: "Reset to default view" });
+    const reset = screen.getByRole("link", { name: "Reset view" });
     expect(reset).toHaveAttribute("href", "/lease-renewal/live/desk?v=2");
     follow(reset);
     arriveAt("?v=2");
@@ -142,9 +149,9 @@ describe("S166 deliberate worklist changes are remembered (ARCH-S166-2)", () => 
       view({ ...base, currentView: "", viewSource: "explicit", savedView: SAVED }),
     );
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(posts()[0].body).toEqual({ query: "v=2" });
+    expect(posts()[0].body).toEqual({ query: "v=2", expectedRevision: 0 });
     await waitFor(() =>
-      expect(screen.queryByRole("link", { name: "Reset to default view" })).toBeNull(),
+      expect(screen.queryByRole("link", { name: "Reset view" })).toBeNull(),
     );
   });
 
@@ -189,7 +196,7 @@ describe("S166 deliberate worklist changes are remembered (ARCH-S166-2)", () => 
     arriveAt("?v=2&scope=all");
     rerender(view({ ...linked, currentView: "v=2&scope=all" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(posts()[0].body).toEqual({ query: "v=2&scope=all" });
+    expect(posts()[0].body).toEqual({ query: "v=2&scope=all", expectedRevision: 0 });
   });
 
   it("BEH-S166-9: Remember this view keeps a linked view on request", async () => {
@@ -204,7 +211,10 @@ describe("S166 deliberate worklist changes are remembered (ARCH-S166-2)", () => 
     );
     fireEvent.click(await screen.findByRole("button", { name: "Remember this view" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(posts()[0].body).toEqual({ query: "v=2&overallStatus=blocked" });
+    expect(posts()[0].body).toEqual({
+      query: "v=2&overallStatus=blocked",
+      expectedRevision: 0,
+    });
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "Remember this view" })).toBeNull(),
     );
@@ -245,6 +255,9 @@ describe("S166 deliberate worklist changes are remembered (ARCH-S166-2)", () => 
 
   it("keeps the view on screen and offers the same save again when saving fails", async () => {
     fetchMock.mockImplementationOnce(() => respond(false, { error: "Try later." }));
+    fetchMock.mockImplementationOnce(() =>
+      respond(true, { preference: { view: null, revision: 0 } }),
+    );
     const { rerender } = render(view(base));
     follow(screen.getByRole("link", { name: "All leases" }));
     arriveAt("?v=2&scope=all");
@@ -253,8 +266,13 @@ describe("S166 deliberate worklist changes are remembered (ARCH-S166-2)", () => 
       expect(screen.getByRole("status")).toHaveAttribute("data-autosave", "failed"),
     );
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    expect(posts()[1].body).toEqual({ query: "v=2&scope=all" });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    expect(fetchMock.mock.calls[1]).toEqual([
+      ROUTE,
+      { cache: "no-store", signal: expect.any(AbortSignal) },
+    ]);
+    expect(posts()).toHaveLength(2);
+    expect(posts()[1].body).toEqual({ query: "v=2&scope=all", expectedRevision: 0 });
     await waitFor(() =>
       expect(screen.getByRole("status")).toHaveAttribute("data-autosave", "saved"),
     );
@@ -270,7 +288,10 @@ describe("S166 deliberate worklist changes are remembered (ARCH-S166-2)", () => 
       );
       await act(async () => {});
       expect(screen.queryByRole("button", { name: "Remember this view" })).toBeNull();
-      expect(screen.queryByRole("link", { name: "Reset to default view" })).toBeNull();
+      expect(screen.getByRole("link", { name: "Reset view" })).toHaveAttribute(
+        "href",
+        "/lease-renewal/live/desk?v=2",
+      );
       rendered.unmount();
       arriveAt("");
       window.sessionStorage.clear();

@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { useRenewalSaveFocus } from "./RenewalSaveFocus";
 
 import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSectionHeading";
@@ -67,9 +68,7 @@ export function RenewalResourceLocations({
         Renewal resource links
       </RenewalSectionHeading>
       <p className="muted">
-        Shared by every lease. Each lease workspace shows the current state of these
-        entries and links back here; only entries checked by staff reach a tenant message
-        or packet.
+        Shared by every lease. Only staff-verified links reach a message or packet.
       </p>
       {settings === null ? (
         <p role="alert">

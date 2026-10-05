@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 import { Button, Field } from "@/components/ui";
+import { useOperation } from "@/components/hooks/useOperation";
+import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
 
 // S139: the "Refine with AI" instruction box beside a workflow-linked draft. The instruction
 // describes a change; it is never email text. The server proposes one revision of the CURRENT draft
@@ -31,6 +33,7 @@ interface Proposal extends RefinementRevision {
   readonly removedValues: readonly string[];
   /** The draft text this revision was made from. */
   readonly basedOn: string;
+  readonly scope: string;
 }
 
 export function RefineWithAi({
@@ -54,8 +57,16 @@ export function RefineWithAi({
   onApply: (revision: RefinementRevision) => void;
 }>) {
   const base = useId();
+  const scope = JSON.stringify(request);
+  const operation = useOperation(scope);
+  const currentScope = useRef(scope);
+  useLayoutEffect(() => {
+    currentScope.current = scope;
+  }, [scope]);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const [instruction, setInstruction] = useState("");
-  const [pending, setPending] = useState(false);
+  const pending = operation.snapshot.phase === "pending";
+  const [submitted, setSubmitted] = useState("");
   const [notice, setNotice] = useState("");
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const latestBody = useRef(currentBody);
@@ -63,60 +74,83 @@ export function RefineWithAi({
     latestBody.current = currentBody;
   }, [currentBody]);
   // A proposal made from older text is never shown against newer edits.
-  const visibleProposal = proposal && proposal.basedOn === currentBody ? proposal : null;
+  const visibleProposal =
+    proposal && proposal.scope === scope && proposal.basedOn === currentBody
+      ? proposal
+      : null;
+  const earlierProposal =
+    proposal && proposal.scope === scope && proposal.basedOn !== currentBody
+      ? proposal
+      : null;
 
   async function refine() {
+    if (operation.controller.getSnapshot().phase === "pending") return;
     const basedOn = currentBody;
-    setPending(true);
+    const requested = instruction.trim();
+    const requestedScope = scope;
+    setSubmitted(requested);
     setNotice("");
     setProposal(null);
-    try {
-      const response = await fetch("/api/email-refinement", {
+    const result = await operation.controller.run("Refining wording", async (signal) => {
+      const response = await fetchWithDeadline("/api/email-refinement", {
+        signal,
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...request, currentBody: basedOn, instruction }),
+        body: JSON.stringify({
+          ...request,
+          currentBody: basedOn,
+          instruction: requested,
+        }),
       });
       const payload = (await response.json().catch(() => ({}))) as
         | RefinementResponse
         | { error?: string };
-      if (!response.ok || !("status" in payload)) {
-        setNotice(
-          `${("error" in payload && payload.error) || "The wording assistant could not answer."} Your draft is unchanged.`,
-        );
-        return;
-      }
-      if (payload.status !== "revised") {
-        setNotice(payload.reason);
-        return;
-      }
-      if (latestBody.current !== basedOn) {
-        setNotice(
-          "Your draft changed while this revision was prepared, so it was not shown. Refine again from the current text.",
-        );
-        return;
-      }
-      setProposal({
-        body: payload.body,
-        ...(payload.baseHash ? { baseHash: payload.baseHash } : {}),
-        requestedValues: payload.requestedValues,
-        removedValues: payload.removedValues,
-        basedOn,
-      });
-    } catch {
-      setNotice("The wording assistant could not be reached. Your draft is unchanged.");
-    } finally {
-      setPending(false);
+      return { response, payload };
+    });
+    if (currentScope.current !== requestedScope || result.outcome === "superseded")
+      return;
+    if (result.outcome !== "succeeded") {
+      setNotice(
+        "Stopped waiting for wording. The server may still finish; your draft is unchanged. Retry from the current text.",
+      );
+      return;
     }
+    const { response, payload } = result.value;
+    if (!response.ok || !("status" in payload)) {
+      setNotice(
+        `${("error" in payload && payload.error) || "The wording assistant could not answer."} Your draft is unchanged.`,
+      );
+      return;
+    }
+    if (payload.status !== "revised") {
+      setNotice(payload.reason);
+      return;
+    }
+    if (latestBody.current !== basedOn) {
+      setNotice(
+        "Your draft changed while this revision was prepared. The earlier revision is available for review; your draft is unchanged.",
+      );
+    }
+    setProposal({
+      body: payload.body,
+      ...(payload.baseHash ? { baseHash: payload.baseHash } : {}),
+      requestedValues: payload.requestedValues,
+      removedValues: payload.removedValues,
+      basedOn,
+      scope: requestedScope,
+    });
   }
 
   return (
-    <section aria-label="AI wording refinement" className="ui-stack-tight" id={id}>
-      <Field
-        htmlFor={`${base}-instruction`}
-        label="Refine with AI"
-        hint="Describe the change, for example: make this shorter and warmer, or keep the amounts and dates but make the explanation clearer. Your instruction is not added to the email."
-      >
+    <section
+      aria-label="AI wording refinement"
+      aria-busy={pending}
+      className="ui-stack-tight"
+      id={id}
+    >
+      <Field htmlFor={`${base}-instruction`} label="Refine with AI">
         <textarea
+          ref={inputRef}
           id={`${base}-instruction`}
           maxLength={1000}
           onChange={(event) => setInstruction(event.target.value)}
@@ -126,18 +160,38 @@ export function RefineWithAi({
       </Field>
       <div className="ui-actions">
         <Button
+          busy={pending}
+          busyLabel="Refining wording…"
           disabled={Boolean(disabledReason) || pending || !instruction.trim()}
           onClick={() => void refine()}
           type="button"
         >
-          {pending ? "Refining…" : "Refine wording"}
+          Refine wording
         </Button>
+        {pending ? (
+          <Button
+            variant="tertiary"
+            onClick={() => {
+              operation.controller.stop();
+              inputRef.current?.focus();
+            }}
+          >
+            Stop waiting
+          </Button>
+        ) : null}
       </div>
+      {pending && submitted ? <p className="muted">Requested: {submitted}</p> : null}
       {disabledReason ? <p className="muted">{disabledReason}</p> : null}
       {notice ? (
         <p className="muted" role="status">
           {notice}
         </p>
+      ) : null}
+      {earlierProposal ? (
+        <details className="ui-disclosure">
+          <summary>Review earlier wording without replacing current edits</summary>
+          <div className="draft-box">{earlierProposal.body}</div>
+        </details>
       ) : null}
       {visibleProposal ? (
         <div aria-label="Proposed revision" className="ui-stack-tight" role="group">

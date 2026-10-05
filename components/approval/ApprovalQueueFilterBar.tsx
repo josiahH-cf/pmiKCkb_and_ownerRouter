@@ -137,7 +137,7 @@ export function QueueFilterBar({
           onClick={onReset}
           type="button"
         >
-          Reset
+          Clear filters
         </button>
       </div>
     </form>

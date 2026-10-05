@@ -1,10 +1,22 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import {
+  PersonalViewStatus,
+  usePersonalFilters,
+} from "@/components/layout/PersonalViewProvider";
 
 import { formatBusinessTimestamp } from "@/lib/date-display";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-import { Button, ConfirmationDialog, Field, Notice, StatusPill } from "@/components/ui";
+import {
+  Button,
+  BusyIndicator,
+  ConfirmationDialog,
+  Field,
+  Notice,
+  StatusPill,
+} from "@/components/ui";
 import {
   ACCESS_CAPABILITY_CATALOG,
   ACCESS_ROLE_CATALOG,
@@ -14,7 +26,10 @@ import {
 } from "@/lib/access/catalog";
 import type { Capability } from "@/lib/auth/roles";
 import type { SpaceScope } from "@/lib/constants";
-import type { AccessRequestState } from "@/lib/access/contracts";
+import {
+  AccessRequestReceiptSchema,
+  type AccessRequestState,
+} from "@/lib/access/contracts";
 import type {
   AccessApplyPreviewV1,
   AccessRequestRecordV1,
@@ -74,12 +89,34 @@ export function AccessRequestsLane({
   const [selectedId, setSelectedId] = useState<string | null>(
     initialItems[0]?.id ?? null,
   );
-  const [filters, setFilters] = useState<LaneFilters>(DEFAULT_FILTERS);
+  const [filters, setFilters, resetView] = usePersonalFilters<LaneFilters>(
+    "access-requests",
+    DEFAULT_FILTERS,
+    true,
+    (restored) => {
+      if (JSON.stringify(restored) !== JSON.stringify(DEFAULT_FILTERS))
+        void reload({ activeFilters: restored });
+    },
+  );
   const [nextCursor, setNextCursor] = useState(initialNextCursor);
   const [detail, setDetail] = useState(initialDetail);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [error, setError] = useState(initialError ?? null);
   const [message, setMessage] = useState("");
+  const listGeneration = useRef(0);
+  const detailGeneration = useRef(0);
+  const live = useRef(true);
+  const [listPending, setListPending] = useState(false);
+  const [detailPending, setDetailPending] = useState(false);
+  const [completedFilters, setCompletedFilters] = useState(DEFAULT_FILTERS);
+  useEffect(() => {
+    live.current = true;
+    return () => {
+      live.current = false;
+      listGeneration.current += 1;
+      detailGeneration.current += 1;
+    };
+  }, []);
   const [busy, setBusy] = useState<
     "list" | "detail" | "preview" | "apply" | "deny" | "reconcile" | "resolve" | null
   >(null);
@@ -96,6 +133,11 @@ export function AccessRequestsLane({
     detail && detail.request.id === selectedListItem?.id
       ? detail.request
       : selectedListItem;
+  const selectedRef = useRef(selected?.id);
+  selectedRef.current = selected?.id;
+  const previewGeneration = useRef(0);
+  const effectClaim = useRef(false);
+  const [uncertainRequest, setUncertainRequest] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedId && detail?.request.id !== selectedId) void loadDetail(selectedId);
@@ -104,7 +146,8 @@ export function AccessRequestsLane({
   }, [selectedId]);
 
   async function loadDetail(requestId: string) {
-    setBusy("detail");
+    const generation = ++detailGeneration.current;
+    setDetailPending(true);
     setDetailError(null);
     try {
       const response = await fetch(
@@ -118,6 +161,7 @@ export function AccessRequestsLane({
         !response.ok ||
         !body ||
         !("request" in body) ||
+        body.request.id !== requestId ||
         !Array.isArray(body.activity)
       ) {
         throw new Error(
@@ -126,18 +170,29 @@ export function AccessRequestsLane({
             : "Access request detail is unavailable.",
         );
       }
+      if (!live.current || generation !== detailGeneration.current) return;
       setDetail(body);
+      if (
+        uncertainRequest === requestId &&
+        ["applied", "denied", "superseded"].includes(body.request.state)
+      ) {
+        setUncertainRequest(null);
+        effectClaim.current = false;
+        setApplyPreview(null);
+      }
       setItems((current) =>
         current.map((item) =>
           item.id === body.request.id ? { ...item, ...body.request } : item,
         ),
       );
     } catch (cause) {
+      if (!live.current || generation !== detailGeneration.current) return;
       setDetailError(
         cause instanceof Error ? cause.message : "Access request detail is unavailable.",
       );
     } finally {
-      setBusy(null);
+      if (live.current && generation === detailGeneration.current)
+        setDetailPending(false);
     }
   }
 
@@ -150,7 +205,10 @@ export function AccessRequestsLane({
     cursor?: string;
     append?: boolean;
   } = {}) {
-    setBusy("list");
+    const generation = ++listGeneration.current;
+    detailGeneration.current += 1;
+    setDetailPending(false);
+    setListPending(true);
     setError(null);
     setMessage("");
     try {
@@ -188,6 +246,9 @@ export function AccessRequestsLane({
       ) {
         throw new Error(body?.error ?? "Access requests are unavailable.");
       }
+      if (!live.current || generation !== listGeneration.current) return;
+      setCompletedFilters(activeFilters);
+      setApplyPreview(null);
       setItems((current) =>
         append ? deduplicateRequests([...current, ...body.items!]) : body.items!,
       );
@@ -196,22 +257,26 @@ export function AccessRequestsLane({
       const nextSelectedId =
         append && selectedId ? selectedId : (body.items?.[0]?.id ?? null);
       setSelectedId(nextSelectedId);
-      if (nextSelectedId) await loadDetail(nextSelectedId);
+      if (nextSelectedId && nextSelectedId === selectedId)
+        await loadDetail(nextSelectedId);
       else setDetail(null);
       setMessage(
         `Access requests refreshed. ${Number(body.pending_count ?? 0)} pending.`,
       );
     } catch (cause) {
+      if (!live.current || generation !== listGeneration.current) return;
       setError(
         cause instanceof Error ? cause.message : "Access requests are unavailable.",
       );
     } finally {
-      setBusy(null);
+      if (live.current && generation === listGeneration.current) setListPending(false);
     }
   }
 
   async function prepareApply() {
-    if (!selected) return;
+    if (!selected || effectClaim.current) return;
+    const requestId = selected.id;
+    const generation = ++previewGeneration.current;
     setBusy("preview");
     setError(null);
     try {
@@ -228,6 +293,12 @@ export function AccessRequestsLane({
       const body = (await response
         .json()
         .catch(() => null)) as ApplyPreviewResponse | null;
+      if (
+        !live.current ||
+        generation !== previewGeneration.current ||
+        selectedRef.current !== requestId
+      )
+        return;
       if (!response.ok || !body || !("status" in body) || body.status !== "ready") {
         if (body && "status" in body && body.status === "already_applied") {
           setMessage("Current directory access already satisfies this request.");
@@ -247,16 +318,34 @@ export function AccessRequestsLane({
             : "Apply preview is unavailable.",
         );
       }
+      if (body.preview.request_ref !== requestId || typeof body.preview_hash !== "string")
+        throw new Error("The preview does not match the selected access request.");
       setApplyPreview(body);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Apply preview is unavailable.");
+      if (
+        live.current &&
+        generation === previewGeneration.current &&
+        selectedRef.current === requestId
+      )
+        setError(
+          cause instanceof Error ? cause.message : "Apply preview is unavailable.",
+        );
     } finally {
-      setBusy(null);
+      if (live.current && generation === previewGeneration.current) setBusy(null);
     }
   }
 
   async function confirmApply() {
-    if (!applyPreview || !selected) return;
+    if (
+      !applyPreview ||
+      !selected ||
+      effectClaim.current ||
+      applyPreview.preview.request_ref !== selected.id
+    )
+      return;
+    effectClaim.current = true;
+    const requestId = selected.id;
+    let uncertain = true;
     setBusy("apply");
     try {
       const response = await fetch(
@@ -273,22 +362,74 @@ export function AccessRequestsLane({
       );
       const body = (await response.json().catch(() => null)) as {
         status?: string;
+        request?: unknown;
         message?: string;
         error?: string;
       } | null;
-      if (!response.ok) throw new Error(body?.error ?? "Access could not be applied.");
+      if (!response.ok) {
+        if (response.status < 500) uncertain = false;
+        throw new Error(body?.error ?? "Access could not be applied.");
+      }
+      const receipt = AccessRequestReceiptSchema.safeParse(body?.request);
+      if (
+        !receipt.success ||
+        receipt.data.request_ref !== requestId ||
+        !body?.status ||
+        ![
+          "applied",
+          "reconciliation_required",
+          "already_applied",
+          "applying",
+          "audit_failed",
+          "superseded",
+          "stale_preview",
+        ].includes(body.status)
+      )
+        throw new Error("The access decision receipt was not confirmed.");
+      if (["applying", "audit_failed", "reconciliation_required"].includes(body.status)) {
+        if (live.current) {
+          setUncertainRequest(requestId);
+          setMessage(
+            body.message ?? "Read the original request for its current recovery status.",
+          );
+          await loadDetail(requestId);
+        }
+        return;
+      }
+      if (
+        (["applied", "already_applied"].includes(body.status) &&
+          receipt.data.state !== "applied") ||
+        (body.status === "superseded" && receipt.data.state !== "superseded")
+      )
+        throw new Error("The access decision receipt was not confirmed.");
+      uncertain = false;
+      if (!live.current || selectedRef.current !== requestId) return;
       setMessage(body?.message ?? "Access decision recorded.");
       setApplyPreview(null);
       await reload();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Access could not be applied.");
+      if (live.current) {
+        if (uncertain) {
+          setUncertainRequest(requestId);
+          setError(
+            "The outcome is unknown. Read the original access request and use its reconciliation before another claim attempt.",
+          );
+        } else
+          setError(
+            cause instanceof Error ? cause.message : "Access could not be applied.",
+          );
+      }
     } finally {
-      setBusy(null);
+      if (!uncertain) effectClaim.current = false;
+      if (live.current) setBusy(null);
     }
   }
 
   async function confirmDeny() {
-    if (!selected) return;
+    if (!selected || effectClaim.current) return;
+    const requestId = selected.id;
+    effectClaim.current = true;
+    let uncertain = true;
     setBusy("deny");
     try {
       const response = await fetch(
@@ -300,18 +441,38 @@ export function AccessRequestsLane({
         },
       );
       const body = (await response.json().catch(() => null)) as { error?: string } | null;
-      if (!response.ok)
+      if (!response.ok) {
+        if (response.status < 500) uncertain = false;
         throw new Error(body?.error ?? "The request could not be denied.");
+      }
+      const receipt = AccessRequestReceiptSchema.safeParse(body);
+      if (
+        !receipt.success ||
+        receipt.data.request_ref !== requestId ||
+        receipt.data.state !== "denied"
+      )
+        throw new Error("The denial receipt was not confirmed.");
+      uncertain = false;
+      if (!live.current || selectedRef.current !== requestId) return;
       setMessage("Access request denied. No claim was changed.");
       setDenyOpen(false);
       setDenyReason("");
       await reload();
     } catch (cause) {
-      setError(
-        cause instanceof Error ? cause.message : "The request could not be denied.",
-      );
+      if (live.current) {
+        if (uncertain) {
+          setUncertainRequest(requestId);
+          setError(
+            "The outcome is unknown. Read the original access request before another decision.",
+          );
+        } else
+          setError(
+            cause instanceof Error ? cause.message : "The request could not be denied.",
+          );
+      }
     } finally {
-      setBusy(null);
+      if (!uncertain) effectClaim.current = false;
+      if (live.current) setBusy(null);
     }
   }
 
@@ -381,14 +542,24 @@ export function AccessRequestsLane({
 
   return (
     <div className="access-review-lane ui-stack" aria-busy={busy === "list" || undefined}>
+      {uncertainRequest ? (
+        <Notice tone="caution">
+          The original access decision is unconfirmed.{" "}
+          <button
+            className="text-link"
+            type="button"
+            disabled={detailPending}
+            onClick={() => void loadDetail(uncertainRequest)}
+          >
+            Read original access request
+          </button>
+        </Notice>
+      ) : null}
       <div className="ui-spread">
         <div>
           <p className="eyebrow">Admin-only global pool</p>
           <h2>Access requests</h2>
-          <p className="muted">
-            Review additive role and Space requests. This lane does not load or transition
-            renewal queue records.
-          </p>
+          <p className="muted">Additive role and Space requests.</p>
         </div>
         <StatusPill value="pending">{pendingCount} pending</StatusPill>
       </div>
@@ -521,22 +692,42 @@ export function AccessRequestsLane({
           </select>
         </label>
         <div className="ui-row access-review-filter-actions">
-          <Button busy={busy === "list"} type="submit">
+          <Button busy={listPending} type="submit">
             Apply filters
           </Button>
           <Button
             onClick={() => {
-              setFilters(DEFAULT_FILTERS);
-              void reload({ activeFilters: DEFAULT_FILTERS });
+              const cleared: LaneFilters = { ...DEFAULT_FILTERS, state: "" };
+              setFilters(cleared);
+              void reload({ activeFilters: cleared });
             }}
             type="button"
             variant="secondary"
           >
             Clear filters
           </Button>
+          <Button
+            onClick={() => {
+              resetView();
+              void reload({ activeFilters: DEFAULT_FILTERS });
+            }}
+            type="button"
+            variant="tertiary"
+          >
+            Reset view
+          </Button>
+          <PersonalViewStatus surface="access-requests" />
           <Link href="/admin/access">Open My access</Link>
         </div>
       </form>
+      {listPending ? (
+        <BusyIndicator label="Reading requested access view; previous results remain visible" />
+      ) : null}
+      {!listPending && JSON.stringify(filters) !== JSON.stringify(completedFilters) ? (
+        <p className="muted">
+          The list shows the last completed selection. Apply these filters to update it.
+        </p>
+      ) : null}
       {error ? <Notice tone="error">{error}</Notice> : null}
       {message ? <Notice tone="status">{message}</Notice> : null}
       {items.length === 0 && !error ? (
@@ -549,7 +740,13 @@ export function AccessRequestsLane({
                 aria-pressed={selectedListItem?.id === item.id}
                 className="compact-record access-request-list-button"
                 key={item.id}
-                onClick={() => setSelectedId(item.id)}
+                onClick={() => {
+                  selectedRef.current = item.id;
+                  previewGeneration.current += 1;
+                  setApplyPreview(null);
+                  setBusy(null);
+                  setSelectedId(item.id);
+                }}
                 type="button"
               >
                 <strong>{item.intent_label_snapshot}</strong>
@@ -564,7 +761,7 @@ export function AccessRequestsLane({
           </div>
           {selected ? (
             <article
-              aria-busy={busy === "detail" || undefined}
+              aria-busy={detailPending || undefined}
               className="panel ui-stack"
               aria-label="Selected access request"
             >
@@ -626,12 +823,19 @@ export function AccessRequestsLane({
                 <div className="ui-row">
                   <Button
                     busy={busy === "preview"}
+                    disabled={uncertainRequest !== null || busy === "apply"}
                     busyLabel="Preparing exact apply preview…"
                     onClick={prepareApply}
                   >
                     Preview exact access change
                   </Button>
-                  <Button onClick={() => setDenyOpen(true)} variant="secondary">
+                  <Button
+                    disabled={
+                      uncertainRequest !== null || busy === "apply" || busy === "deny"
+                    }
+                    onClick={() => setDenyOpen(true)}
+                    variant="secondary"
+                  >
                     Deny request
                   </Button>
                 </div>
@@ -681,9 +885,11 @@ export function AccessRequestsLane({
       )}
       {nextCursor ? (
         <Button
-          busy={busy === "list"}
+          busy={listPending}
           busyLabel="Loading older access requests…"
-          onClick={() => reload({ cursor: nextCursor, append: true })}
+          onClick={() =>
+            reload({ activeFilters: completedFilters, cursor: nextCursor, append: true })
+          }
           variant="secondary"
         >
           Load older access requests
@@ -692,6 +898,12 @@ export function AccessRequestsLane({
 
       <ConfirmationDialog
         busy={busy === "apply"}
+        confirmDisabled={uncertainRequest !== null}
+        error={
+          uncertainRequest
+            ? "The outcome is unknown; recover the original request."
+            : undefined
+        }
         busyLabel="Applying and verifying access…"
         confirmLabel="Confirm exact access change"
         description="One merged Firebase claim attempt will preserve unrelated claims. Success is shown only after exact directory readback."
@@ -713,7 +925,12 @@ export function AccessRequestsLane({
       <ConfirmationDialog
         busy={busy === "deny"}
         busyLabel="Denying request…"
-        confirmDisabled={denyReason.trim().length < 1}
+        confirmDisabled={denyReason.trim().length < 1 || uncertainRequest !== null}
+        error={
+          uncertainRequest
+            ? "The outcome is unknown; read the original request."
+            : undefined
+        }
         confirmLabel="Confirm denial"
         description="Denial changes no Firebase claim. The requester can submit a corrected request immediately."
         onCancel={() => setDenyOpen(false)}

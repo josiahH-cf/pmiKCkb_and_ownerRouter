@@ -20,10 +20,7 @@ export function ProcessSummaryPanel({
     return (
       <div className="panel">
         <h2>Process</h2>
-        <p className="muted">
-          This Space has a process, but its definition has not been seeded yet. Once it is
-          seeded it will show here.
-        </p>
+        <p className="muted">Process definition unavailable.</p>
         <Link className="text-link" href={`/processes/${definitionId}`}>
           View full process →
         </Link>

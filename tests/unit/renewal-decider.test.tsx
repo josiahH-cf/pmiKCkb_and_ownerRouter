@@ -371,8 +371,11 @@ describe("RenewalDecider", () => {
     ).not.toBeInTheDocument();
     expect(document.querySelector(".lr-approve-form textarea")).not.toBeNull();
     expect(
-      screen.getByText(/Operating Sheet phase for an exact missing-row append/),
-    ).toHaveTextContent("Fixed-row field updates remain unavailable");
+      screen.getByText(/This legacy broad Sheet action is retired/),
+    ).toHaveTextContent("Review exact Sheet updates in the lease workspace.");
+    expect(
+      screen.getByText(/Approving records authorization for this exact snapshot/),
+    ).toHaveTextContent("It does not make an unavailable Sheet operation executable.");
     expect(
       vi
         .mocked(fetch)

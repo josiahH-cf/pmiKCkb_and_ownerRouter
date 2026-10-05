@@ -5,11 +5,10 @@ import { AppShell } from "@/components/layout/AppShell";
 import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import type { AuthenticatedUser } from "@/lib/auth/session";
-import {
-  deskPreferenceModeFor,
-  getRenewalDeskPreference,
-} from "@/lib/firestore/renewal-desk-preferences";
+import { deskPreferenceModeFor } from "@/lib/firestore/renewal-desk-preferences";
 import { loadRenewalAssistantSource } from "@/lib/lease-renewal/assistant-source";
+import { getPersonalView } from "@/lib/firestore/personal-views";
+import { renewalDisplayScopeKey } from "@/lib/lease-renewal/display-scope";
 import type { LiveDeskStatus } from "@/lib/lease-renewal/live-desk";
 import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
 import { resolveRenewalDeskEntry } from "@/lib/lease-renewal/desk-preferences";
@@ -67,7 +66,7 @@ const PANELS: Record<
  */
 async function storedDeskView(user: AuthenticatedUser): Promise<string | null> {
   try {
-    return (await getRenewalDeskPreference(user))?.view ?? null;
+    return (await getPersonalView(user, "renewals")).value.query || null;
   } catch (error) {
     console.error(
       `Renewal desk preference read failed (${error instanceof Error ? error.name : "unknown"}).`,
@@ -137,6 +136,7 @@ export default async function LiveRenewalDeskPage({
   });
   const query = entry.state;
   const viewMemory = {
+    accountId: user.uid,
     source: entry.source,
     savedView: entry.savedView,
     memory: deskPreferenceModeFor(user),
@@ -144,12 +144,13 @@ export default async function LiveRenewalDeskPage({
 
   return (
     <AppShell user={user}>
-      <section className="content">
+      <section className="content content--workspace">
         <Link className="back-link" href="/lease-renewal">
           ← Renewals
         </Link>
         {outcome.status === "ok" ? (
           <RenewalDesk
+            scopeKey={renewalDisplayScopeKey(user)}
             auxiliaryFailures={auxiliaryFailures}
             sheetWritebackPaused={isOperatingSheetWritebackPaused()}
             liveReviewHref="/lease-renewal/live"

@@ -27,6 +27,24 @@ describe("Approval Queue hydration-safe timestamps", () => {
 });
 
 describe("ApprovalQueue default inbox (B1)", () => {
+  it("S169 retains the original queue target after a lost mutation response", async () => {
+    const fetchMock = vi.fn(async () => {
+      throw new TypeError("response lost");
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderQueue({ initialSelectedItemId: "item-1", items: [queueItem({ risk: "Low" })] });
+    await userEvent
+      .setup()
+      .click(screen.getAllByRole("button", { name: "Approve" }).at(-1)!);
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(/outcome is unknown/i),
+    );
+    expect(
+      screen.getByRole("button", { name: /^Check original queue item/ }),
+    ).toBeEnabled();
+    expect(screen.getAllByRole("button", { name: "Approve" }).at(-1)).toBeDisabled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
   it("lands on the value-free 'Needs your decision' inbox by default", () => {
     renderQueue({
       items: [
@@ -54,7 +72,7 @@ describe("ApprovalQueue default inbox (B1)", () => {
   it("approves a safe queue row inline through the existing item PATCH", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async () =>
-      jsonResponse({ message: "Queue item approved." }),
+      jsonResponse({ item: { id: "safe-item", status: "Approved" } }),
     );
     vi.stubGlobal("fetch", fetchMock);
 
@@ -76,6 +94,7 @@ describe("ApprovalQueue default inbox (B1)", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith("/api/approval-queue/safe-item", {
       method: "PATCH",
+      signal: expect.any(AbortSignal),
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "approve" }),
     });
@@ -435,6 +454,7 @@ describe("ApprovalQueue bulk UI", () => {
       }),
       headers: { "Content-Type": "application/json" },
       method: "PATCH",
+      signal: expect.any(AbortSignal),
     });
   });
 });

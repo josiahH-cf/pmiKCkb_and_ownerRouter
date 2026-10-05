@@ -275,10 +275,6 @@ function GuideEntry({ item, level }: { item: GlossaryItem; level: number }) {
 export function RenewalProcessGuide() {
   return (
     <nav aria-label="Process guide contents" className="renewal-process-guide">
-      <p className="muted">
-        Jump to any section or control below. Expand an entry to read what that step needs
-        and where its saved values go. Navigating never advances or records work.
-      </p>
       <ol className="renewal-guide-list">
         {PROCESS_GLOSSARY.map((item) => (
           <GuideEntry key={item.title} item={item} level={1} />

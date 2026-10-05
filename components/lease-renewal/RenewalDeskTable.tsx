@@ -20,6 +20,8 @@ import {
   RenewalDeskViewMemoryStatus,
 } from "@/components/lease-renewal/RenewalDeskViewMemory";
 import { Icon } from "@/components/ui/Icon";
+import { DataTableFrame } from "@/components/ui/DataTableFrame";
+import { TableFilter } from "@/components/ui/TableFilter";
 import { can, type Role } from "@/lib/auth/roles";
 import type {
   DeskLeaseAction,
@@ -228,6 +230,8 @@ function href(state: RenewalDeskQueryV2State): string {
 
 /** S166: how the page chose this view and whether the account's view can be remembered here. */
 export interface RenewalDeskViewMemoryInput {
+  accountId?: string;
+  savedRevision?: number;
   readonly source: RenewalDeskEntrySource;
   /** The account's remembered non-default view, or null. */
   readonly savedView: string | null;
@@ -346,10 +350,9 @@ function HeaderFilter({
   defaultOpen = false,
 }: Readonly<{ label: string; children: ReactNode; defaultOpen?: boolean }>) {
   return (
-    <details className="renewal-th-filter" open={defaultOpen || undefined}>
-      <summary>{label}</summary>
-      <div className="renewal-th-filter-panel">{children}</div>
-    </details>
+    <TableFilter label={label} defaultOpen={defaultOpen}>
+      {children}
+    </TableFilter>
   );
 }
 
@@ -777,6 +780,22 @@ export function UnitIdentityDetails({
   );
 }
 
+function PartySupportingDetails({
+  party,
+  label,
+}: {
+  party?: DeskPartyIdentity;
+  label: string;
+}) {
+  if (!party || !(party.email || party.phone || party.contactId || party.status))
+    return null;
+  return (
+    <details className="renewal-party-details">
+      <summary aria-label={`Contact details for ${label}`}>Contact details</summary>
+      <PartyContactDetails party={party} />
+    </details>
+  );
+}
 function PartyCell({
   labels,
   parties,
@@ -803,7 +822,7 @@ function PartyCell({
           return (
             <li key={`${label}-${index}`}>
               <span className="renewal-party-name">{label}</span>
-              <PartyContactDetails party={parties[index]} />
+              <PartySupportingDetails party={parties[index]} label={label} />
             </li>
           );
         }
@@ -818,7 +837,7 @@ function PartyCell({
             >
               {label}
             </Link>
-            <PartyContactDetails party={parties[index]} />
+            <PartySupportingDetails party={parties[index]} label={label} />
           </li>
         );
       })}
@@ -890,6 +909,8 @@ export function RenewalDeskTable({
 
   return (
     <RenewalDeskViewMemory
+      accountId={viewMemory.accountId}
+      savedRevision={viewMemory.savedRevision}
       currentView={canonicalView}
       memory={viewMemory.memory}
       savedView={viewMemory.savedView}
@@ -976,11 +997,11 @@ export function RenewalDeskTable({
         <RenewalDeskViewMemoryStatus />
       </div>
 
-      <div
+      <DataTableFrame
         className="renewal-table-scroll"
-        role="region"
-        aria-label="Renewal table"
-        tabIndex={0}
+        label="Renewal table"
+        surface="renewals"
+        currentQuery={serializeRenewalDeskQueryV2(state)}
       >
         <table className="renewal-table">
           <caption className="sr-only">
@@ -1283,7 +1304,7 @@ export function RenewalDeskTable({
             )}
           </tbody>
         </table>
-      </div>
+      </DataTableFrame>
     </RenewalDeskViewMemory>
   );
 }

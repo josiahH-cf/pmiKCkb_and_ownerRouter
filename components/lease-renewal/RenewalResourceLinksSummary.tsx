@@ -46,8 +46,7 @@ export function RenewalResourceLinksSummary({
         </p>
       ) : (
         <p className="muted">
-          Shared by every lease and maintained in Connections. The tenant message and the
-          document packet use only entries checked by staff.
+          Shared resources · only staff-verified entries are usable.
         </p>
       )}
       <ul className="ui-rows">

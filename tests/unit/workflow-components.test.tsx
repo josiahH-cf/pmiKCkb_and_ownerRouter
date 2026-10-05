@@ -52,6 +52,8 @@ describe("workflow components", () => {
     expect(
       screen.getByText(/A Draft definition can still start an app-plane run/),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/root, scope, type, size,/)).toBeNull();
+    expect(screen.getByRole("button", { name: /Publication checks/ })).toBeVisible();
 
     await user.type(screen.getByLabelText("Publication note"), "Ready to publish.");
     await user.click(screen.getByRole("button", { name: "Publish" }));

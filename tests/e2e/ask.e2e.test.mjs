@@ -40,7 +40,7 @@ describe("ask flow (demo mode)", () => {
   });
 
   it("rejects invalid Ask payloads with field issues", async () => {
-    const response = await client.postJson("/api/ask", { question: "hi" });
+    const response = await client.postJson("/api/ask", { question: "  " });
 
     expect(response.status).toBe(400);
     const body = await response.json();

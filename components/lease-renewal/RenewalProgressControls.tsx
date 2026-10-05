@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { useRenewalSaveFocus } from "./RenewalSaveFocus";
 import { AUTOSAVE_IDLE, AutosaveStatus, type AutosaveState } from "./AutosaveStatus";
 import { formatCalendarDateOrTimestamp } from "@/lib/date-display";
@@ -1278,12 +1279,7 @@ export function OwnerDecisionForm({
               ))}
             </select>
           </Field>
-          <Field
-            htmlFor={id.rent}
-            hint="The owner-approved monthly rent to offer the tenant."
-            label="Offered rent (monthly)"
-            required
-          >
+          <Field htmlFor={id.rent} label="Offered rent (monthly)" required>
             <input
               id={id.rent}
               inputMode="decimal"
@@ -1514,7 +1510,7 @@ export function OwnerDecisionForm({
       {screenshotStatus ? <p className="muted">{screenshotStatus}</p> : null}
       <Field
         htmlFor={id.radius}
-        hint={`A new lookup searches ${RENTCAST_QUERY_POLICY.maxRadiusMiles} miles unless you change this. The radius applies to the actual request and its cache identity.`}
+        hint={`Default: ${RENTCAST_QUERY_POLICY.maxRadiusMiles} miles.`}
         label="Maximum comp search radius (miles)"
       >
         <input
@@ -1740,7 +1736,6 @@ export function OwnerDecisionForm({
           <Field
             htmlFor={`${id.rangeLow}-source`}
             label="Source of the comparison and review notes (optional)"
-            hint="The listings, report or review supporting your numbers, when you want it on record."
           >
             <input
               id={`${id.rangeLow}-source`}

@@ -125,7 +125,7 @@ describe("RenewalDesk (S82 table)", () => {
       .join(" ");
     expect(statuses).toContain("Live read incomplete");
     expect(
-      screen.getByText(/leases loaded from a partial source read/),
+      screen.getByText(/View counts reflect a partial source read/),
     ).toBeInTheDocument();
     expect(screen.getByText(/Total loaded:.*partial portfolio read/)).toBeInTheDocument();
     expect(

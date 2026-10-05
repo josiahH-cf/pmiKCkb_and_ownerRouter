@@ -202,7 +202,7 @@ describe("S138 question families answer from the owning records", () => {
     });
     expect(answer.groups[0].total).toBe(0);
     expect(answer.groups[0].notes.join(" ")).toContain(
-      "No one named “Jon Smith” appears in the records you can see",
+      "No accessible person, property or unit matches",
     );
   });
 

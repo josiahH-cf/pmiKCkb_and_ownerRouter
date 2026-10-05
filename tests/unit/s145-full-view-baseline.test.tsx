@@ -33,7 +33,15 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 // terms). The fixture was re-recorded once on those authorized rules and again pins the Full view
 // against accidental drift; a later authorized Full view change needs one more deliberate record.
 
-const BASELINE_PATH = join(__dirname, "..", "fixtures", "s145-full-view-baseline.json");
+// Batch 005 deliberately changes Full presentation. Keep the prior fixture immutable and check
+// its capabilities separately; the current presentation has its own recorded fixture.
+const PRIOR_PATH = join(__dirname, "..", "fixtures", "s145-full-view-baseline.json");
+const BASELINE_PATH = join(
+  __dirname,
+  "..",
+  "fixtures",
+  "s181-full-view-presentation.json",
+);
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
 const PINNED_NOW = new Date("2026-09-30T17:00:00.000Z");
 
@@ -255,11 +263,21 @@ describe("S145 Full view baseline", () => {
       signatures[testCase.name] = await renderCase(testCase);
       cleanup();
     }
-    if (process.env.UPDATE_S145_BASELINE === "1") {
+    if (process.env.RECORD_BATCH005_PRESENTATION === "1") {
       writeFileSync(BASELINE_PATH, `${JSON.stringify(signatures, null, 2)}\n`);
     }
     expect(existsSync(BASELINE_PATH)).toBe(true);
     const baseline = JSON.parse(readFileSync(BASELINE_PATH, "utf8"));
     expect(signatures).toEqual(baseline);
+    const prior = JSON.parse(readFileSync(PRIOR_PATH, "utf8")) as typeof signatures;
+    for (const [name, signature] of Object.entries(signatures)) {
+      // Reordering and shortening prose cannot remove an input, source link or task section.
+      for (const field of ["regions", "sectionIds", "controls", "links"] as const) {
+        expect([...signature[field]].sort(), `${name}: preserved ${field}`).toEqual(
+          [...prior[name][field]].sort(),
+        );
+      }
+      expect(signature.buttons).toEqual(expect.arrayContaining(prior[name].buttons));
+    }
   }, 120_000);
 });

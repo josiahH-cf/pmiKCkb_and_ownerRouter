@@ -7,6 +7,9 @@ import { Appearance } from "@/components/layout/Appearance";
 import { PrimaryNav } from "@/components/layout/PrimaryNav";
 import { ReportIssueButton } from "@/components/feedback/ReportIssueButton";
 import { SessionTimeout } from "@/components/layout/SessionTimeout";
+import { PersonalViewProvider } from "@/components/layout/PersonalViewProvider";
+import { NavigationFeedback } from "@/components/layout/NavigationFeedback";
+import { deskPreferenceModeFor } from "@/lib/firestore/renewal-desk-preferences";
 import {
   allowsMutation,
   resolveEnvironmentDescriptor,
@@ -36,27 +39,37 @@ export async function AppShell({
   const navigationGroups = resolvePrimaryNavigation(user, resolvedNavigationProjection);
 
   return (
-    <div className="page">
-      <header className="topbar">
-        <Link className="brand" href="/" aria-label={`${PMI_WORDMARK} · ${PRODUCT_NAME}`}>
-          <PmiWordmark variant="inline" />
-        </Link>
-        {/* Sits beside the wordmark, before the nav, so it cannot collide with the nav's own
+    <PersonalViewProvider
+      accountId={user.uid}
+      canSave={deskPreferenceModeFor(user) === "saved"}
+      key={`${user.uid}:${user.role}`}
+    >
+      <div className="page">
+        <header className="topbar">
+          <Link
+            className="brand"
+            href="/"
+            aria-label={`${PMI_WORDMARK} · ${PRODUCT_NAME}`}
+          >
+            <PmiWordmark variant="inline" />
+          </Link>
+          {/* Sits beside the wordmark, before the nav, so it cannot collide with the nav's own
             wrapping at narrow widths. Renders nothing at all in ordinary live Production. */}
-        <EnvironmentBadge descriptor={environment} />
-        <nav className="primary-navigation" aria-label="Primary">
-          <PrimaryNav groups={navigationGroups} />
-        </nav>
-        <NotificationMenu />
-        <Appearance />
-        <span className="user-role">{user.role}</span>
-        <SignOutButton />
-      </header>
-      {children}
-      {/* TIX-1/2: persistent global "Report an issue" affordance on every signed-in page. */}
-      {mutationControlsVisible ? <ReportIssueButton /> : null}
-      {/* NOTIF-6: idle session timeout with a 28-min warning + 2-min countdown + auto sign-out. */}
-      <SessionTimeout />
-    </div>
+          <EnvironmentBadge descriptor={environment} />
+          <nav className="primary-navigation" aria-label="Primary">
+            <PrimaryNav groups={navigationGroups} />
+          </nav>
+          <NotificationMenu />
+          <Appearance />
+          {mutationControlsVisible ? <ReportIssueButton /> : null}
+          <span className="user-role">{user.role}</span>
+          <SignOutButton />
+        </header>
+        <NavigationFeedback>{children}</NavigationFeedback>
+        {/* TIX-1/2: persistent global "Report an issue" affordance on every signed-in page. */}
+        {/* NOTIF-6: idle session timeout with a 28-min warning + 2-min countdown + auto sign-out. */}
+        <SessionTimeout />
+      </div>
+    </PersonalViewProvider>
   );
 }

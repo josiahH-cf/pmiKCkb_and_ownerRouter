@@ -36,6 +36,10 @@ describe("ThreadSummaryPanel", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     render(<ThreadSummaryPanel />);
+    expect(document.body.textContent).not.toContain(
+      "to get a summary, who it is waiting on",
+    );
+    expect(screen.getByText(/pasted, sanitized thread text only/i)).toBeVisible();
     await user.type(screen.getByLabelText("Thread text"), "Vendor: invoice attached.");
     await user.click(screen.getByRole("button", { name: "Summarize thread" }));
 

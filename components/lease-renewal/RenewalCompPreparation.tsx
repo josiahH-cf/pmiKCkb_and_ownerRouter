@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui";

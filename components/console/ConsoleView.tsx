@@ -74,10 +74,6 @@ export function ConsoleView({ user }: { user: AuthenticatedUser }) {
   return (
     <section className="content console">
       <h1 className="section-title">Dashboard</h1>
-      <p className="muted console-purpose">
-        Ask about the leases, work, approvals and processes you can see. Answers appear
-        below your question.
-      </p>
       <AskForm
         historyMode={historyMode}
         initialHistory={initialHistory}

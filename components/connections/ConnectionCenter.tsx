@@ -16,6 +16,7 @@ import { Metric, ModeChip, PageHeader } from "@/components/ui";
 import { ConnectorCard } from "@/components/connections/ConnectorCard";
 import type { ConnectionCenterView } from "@/lib/connections/connection-status";
 import { groupConnectionItems } from "@/lib/navigation/admin-connections";
+import { RetiredGmailSetup } from "@/components/connections/RetiredGmailSetup";
 
 export function ConnectionCenter({
   view,
@@ -41,6 +42,7 @@ export function ConnectionCenter({
 
   return (
     <div className="ui-stack">
+      <RetiredGmailSetup />
       <PageHeader
         actions={
           <>
@@ -54,7 +56,6 @@ export function ConnectionCenter({
             )}
           </>
         }
-        subtitle="Review source-backed setup and read-only verification by task. Connection status does not grant action authority."
         title="Connections"
       />
 
@@ -118,7 +119,6 @@ export function ConnectionCenter({
               <h2 className="section-subtitle" id={`${group.anchorId}-title`}>
                 {group.label}
               </h2>
-              <p className="muted">{group.description}</p>
             </div>
             <div className="grid two">
               {group.items.map((item) => (

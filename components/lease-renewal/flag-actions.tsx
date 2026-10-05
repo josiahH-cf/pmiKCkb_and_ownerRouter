@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 
 // Shared lease-renewal flag actions (slice 1b). The resolve form and the approve / return /
@@ -560,9 +561,8 @@ export function WritebackApprovalControl({
         />
       ) : isAdmin ? (
         <p className="muted">
-          This legacy broad Sheet action is retired. Use the lease workspace&apos;s
-          Operating Sheet phase for an exact missing-row append. Fixed-row field updates
-          remain unavailable.
+          This legacy broad Sheet action is retired. Review exact Sheet updates in the
+          lease workspace.
         </p>
       ) : null}
 

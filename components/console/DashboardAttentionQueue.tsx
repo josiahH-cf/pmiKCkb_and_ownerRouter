@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 // S147 compact attention queue: the one standing non-AI panel on the Dashboard, secondary to the
 // AI workspace. It lists the signed-in user's pending approval and attention items from the

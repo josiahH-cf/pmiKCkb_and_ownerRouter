@@ -25,7 +25,7 @@ import {
 } from "@/components/maintenance/MaintenanceBlockerReport";
 import { MaintenancePreapprovalControl } from "@/components/maintenance/MaintenancePreapprovalControl";
 import {
-  getMaintenanceWorkOrderLink,
+  listMaintenanceWorkOrderLinks,
   type MaintenanceWorkOrderLink,
 } from "@/lib/firestore/maintenance-work-order-links";
 import { listMaintenancePropertyPreapprovals } from "@/lib/firestore/maintenance-property-preapprovals";
@@ -85,15 +85,15 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
   let links: Record<string, MaintenanceWorkOrderLink | null> = {};
   let blockerUnavailableNote: string | undefined;
   try {
-    preapprovals = await listMaintenancePropertyPreapprovals(user);
-    links = Object.fromEntries(
-      await Promise.all(
-        tickets.map(
-          async (ticket) =>
-            [ticket.id, await getMaintenanceWorkOrderLink(user, ticket.id)] as const,
-        ),
+    const [readPreapprovals, readLinks] = await Promise.all([
+      listMaintenancePropertyPreapprovals(user),
+      listMaintenanceWorkOrderLinks(
+        user,
+        tickets.map((ticket) => ticket.id),
       ),
-    );
+    ]);
+    preapprovals = readPreapprovals;
+    links = Object.fromEntries(readLinks);
   } catch {
     blockerUnavailableNote =
       "The blocker view isn't available right now. The ticket queue below still shows current status.";
@@ -137,14 +137,8 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
 
   return (
     <AppShell user={user}>
-      <section className="content ui-stack">
-        <h1 className="section-title">Maintenance Work Order Intake</h1>
-        <p className="muted">
-          Capture a maintenance issue (type or record the problem and the unit), build a
-          work-order draft, then create a tracked Live ticket. Every external write
-          remains an explicit, target-labeled, human-confirmed action through its
-          configured provider gate.
-        </p>
+      <section className="content content--workspace ui-stack">
+        <h1 className="section-title">Maintenance</h1>
         {can(user.role, "edit") ? (
           <MaintenanceCapture reporterUid={user.uid} photoAction={photoAction} />
         ) : (

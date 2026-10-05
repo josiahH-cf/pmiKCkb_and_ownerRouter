@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 // Global signed-in feedback affordance (TIX-1/2/5/9, S67). The one existing dialog accepts optional
 // typed text and optional short-clip dictation. Dictation only appends editable words; the explicit
@@ -24,7 +25,7 @@ type ElementHint = {
   testId?: string;
 };
 
-type SubmitStatus = "idle" | "sending" | "sent" | "notice" | "error";
+type SubmitStatus = "idle" | "sending" | "sent" | "notice" | "error" | "uncertain";
 
 // Identity only. `aria-label`, values, and textContent can carry customer or staff data.
 function describeElement(node: EventTarget | null): ElementHint | undefined {
@@ -76,6 +77,7 @@ export function ReportIssueButton() {
   const transcriptionGenerationRef = useRef(0);
   const autoStoppedRef = useRef(false);
   const priorPathnameRef = useRef(pathname);
+  const submissionRef = useRef<"idle" | "pending" | "confirmed" | "uncertain">("idle");
 
   async function transcribeAudio(blob: Blob | null) {
     const generation = ++transcriptionGenerationRef.current;
@@ -221,7 +223,13 @@ export function ReportIssueButton() {
     transcriptionAbortRef.current = null;
     cancelRecording();
     setOpen(false);
-    setDescription("");
+    // A dialog exit cannot prove an in-flight report failed or make an unknown outcome retryable.
+    if (submissionRef.current === "idle" || submissionRef.current === "confirmed") {
+      submissionRef.current = "idle";
+      setDescription("");
+      setStatus("idle");
+      setMessage("");
+    }
     setDictationStatus("");
     setRecordingSeconds(0);
     triggerRef.current?.focus();
@@ -324,7 +332,8 @@ export function ReportIssueButton() {
   const overLimit = excessCharacters > 0;
 
   async function submit() {
-    if (dictationActive || overLimit || status === "sending") return;
+    if (dictationActive || overLimit || submissionRef.current !== "idle") return;
+    submissionRef.current = "pending";
     setStatus("sending");
     setMessage("");
     const context = {
@@ -342,27 +351,40 @@ export function ReportIssueButton() {
           context,
         }),
       });
+      if (!mountedRef.current) return;
       if (response.ok) {
-        const payload = (await response.json().catch(() => ({}))) as {
+        const payload = (await response.json()) as {
+          received?: boolean;
           delivered?: boolean;
         };
+        if (!mountedRef.current) return;
+        if (payload.received !== true && payload.delivered !== true)
+          throw new Error("Missing feedback receipt");
+        submissionRef.current = "confirmed";
         if (payload.delivered) {
           setStatus("sent");
           setMessage("Thanks. Your feedback was filed to the support queue for review.");
         } else {
           setStatus("notice");
           setMessage(
-            "We received your feedback but could not file it to the support queue yet. Please try again in a moment.",
+            "We received your feedback but could not file it to the support queue yet. Do not submit it again; check with the team about this report.",
           );
         }
       } else {
+        if (response.status >= 500) throw new Error("Unconfirmed feedback outcome");
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
+        if (!mountedRef.current) return;
+        submissionRef.current = "idle";
         setStatus("error");
         setMessage(payload.error ?? "Could not send your feedback. Please try again.");
       }
     } catch {
-      setStatus("error");
-      setMessage("Could not reach the server. Please try again.");
+      submissionRef.current = "uncertain";
+      if (!mountedRef.current) return;
+      setStatus("uncertain");
+      setMessage(
+        "Submission is not confirmed. Your feedback may already have been received. Keep this text and check with the team before submitting another report.",
+      );
     }
   }
 
@@ -382,8 +404,10 @@ export function ReportIssueButton() {
         aria-haspopup="dialog"
         className="report-issue-trigger"
         onClick={() => {
-          setStatus("idle");
-          setMessage("");
+          if (submissionRef.current === "idle") {
+            setStatus("idle");
+            setMessage("");
+          }
           setDictationStatus("");
           setOpen(true);
         }}
@@ -500,12 +524,24 @@ export function ReportIssueButton() {
                   {dictationStatus}
                 </p>
 
-                {status === "error" || status === "notice" ? (
-                  <p className="auth-message">{message}</p>
+                {status === "error" || status === "notice" || status === "uncertain" ? (
+                  <p
+                    className="auth-message"
+                    role={status === "notice" ? "status" : "alert"}
+                  >
+                    {message}
+                  </p>
                 ) : null}
                 <div className="report-issue-actions">
                   <Button
-                    disabled={status === "sending" || dictationActive || overLimit}
+                    busy={status === "sending"}
+                    disabled={
+                      status === "sending" ||
+                      status === "notice" ||
+                      status === "uncertain" ||
+                      dictationActive ||
+                      overLimit
+                    }
                     onClick={() => void submit()}
                     type="button"
                   >

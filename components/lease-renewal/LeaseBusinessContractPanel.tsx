@@ -1,3 +1,4 @@
+import { DataTableFrame } from "@/components/ui/DataTableFrame";
 import {
   LEASE_CADENCE_CONTRACT,
   LEASE_FIELD_AUTHORITY_CONTRACT,
@@ -10,10 +11,6 @@ export function LeaseBusinessContractPanel() {
     <section aria-label="Lease Renewal operating contract" className="panel ui-stack">
       <div>
         <h2 className="section-subtitle">Lease Renewal operating contract</h2>
-        <p className="muted">
-          Bodyless rules only. Customer values remain on their authorized source and
-          owning record.
-        </p>
       </div>
 
       <section className="ui-callout ui-stack" aria-label="Live lifecycle ownership">
@@ -57,7 +54,7 @@ export function LeaseBusinessContractPanel() {
 
       <details>
         <summary>Field authority and fallback matrix</summary>
-        <div className="table-wrap">
+        <DataTableFrame surface="lease-contract" label="Lease field authority">
           <table>
             <thead>
               <tr>
@@ -78,7 +75,7 @@ export function LeaseBusinessContractPanel() {
               ))}
             </tbody>
           </table>
-        </div>
+        </DataTableFrame>
         <p className="muted">
           Any unlisted field type is Blocked with “no precedence rule”; the app asks for a
           human decision.

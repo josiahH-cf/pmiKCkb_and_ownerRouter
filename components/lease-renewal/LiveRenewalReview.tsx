@@ -67,9 +67,7 @@ export function LiveRenewalReview({
       />
 
       <p className="muted">
-        Live, read-only view of RentVine and the renewal sheet. This view only reads;
-        every send and record change happens at the source. Review each item, then make
-        the fix at the source.
+        RentVine and Sheet facts · read-only. App decisions are recorded separately.
       </p>
 
       <p className="muted">

@@ -136,12 +136,13 @@ describe("ReportIssueButton", () => {
     await user.click(screen.getByRole("button", { name: "Send feedback" }));
 
     // The request succeeded (202) but the report was not filed: the UI must not claim success, and
-    // the form stays open so the user can retry.
+    // the form stays open with its receipt; submitting it again would create a duplicate report.
     expect(
       await screen.findByText(/could not file it to the support queue/i),
     ).toBeInTheDocument();
     expect(screen.queryByText(/filed to the support queue for review/i)).toBeNull();
     expect(screen.getByRole("button", { name: "Send feedback" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send feedback" })).toBeDisabled();
   });
 
   it("never captures an input's value OR its data-derived aria-label", async () => {

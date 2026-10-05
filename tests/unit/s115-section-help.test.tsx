@@ -340,7 +340,7 @@ describe("S115 plain-language section help", () => {
       "Owner call 2026-09-16",
     );
     expect(screen.queryByText(/google_sheets\.renewal_checklist/)).toBeNull();
-    expect(screen.getByText(/No Sheet update is waiting/)).toBeInTheDocument();
+    expect(screen.getByText("No Sheet update is prepared.")).toBeInTheDocument();
   });
 
   it("AC-S115-4: section navigation focuses a real control instead of a help trigger and closes open help", () => {

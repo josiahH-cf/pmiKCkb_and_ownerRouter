@@ -99,6 +99,27 @@ function readyPreparation() {
     },
   };
 }
+
+it("S175 presents the actual subject/body before secondary preparation and leaves drafting deliberate", async () => {
+  const fetch = vi.fn(async (_input?: RequestInfo | URL, _init?: RequestInit) => ({
+    ok: true,
+    json: async () => readyPreparation(),
+  }));
+  vi.stubGlobal("fetch", fetch);
+  render(<RenewalMessagePreparation channel="tenant" canEdit />);
+  const subject = await screen.findByLabelText("Subject");
+  const response = screen.getByLabelText("Response request (optional wording edit)");
+  expect(
+    subject.compareDocumentPosition(response) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  expect(screen.getByLabelText("Email body")).toBeInTheDocument();
+  expect(fetch).toHaveBeenCalledTimes(1);
+  expect(
+    fetch.mock.calls.every(
+      (call) => (call[1] as RequestInit | undefined)?.method !== "POST",
+    ),
+  ).toBe(true);
+});
 describe("S113 mounted message preparation", () => {
   it("offers all copy modes without Gmail, with the editable body as the fallback after clipboard denial", async () => {
     // S162: the body exports copy exactly what is displayed; Gmail publication stays a separate

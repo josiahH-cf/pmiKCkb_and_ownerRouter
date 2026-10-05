@@ -28,9 +28,8 @@ export default async function AdminUsersPage() {
         </Link>
         <h1 className="section-title">People and Access</h1>
         <p className="muted">
-          Anyone who signs in with a {config.allowedHostedDomain} Google account starts as
-          an Editor. Promote a teammate to Approver or Admin here. Account creation stays
-          in Google Workspace; this manages roles and space access.
+          {config.allowedHostedDomain} accounts start as Editors. App roles and Space
+          access are separate from Google Workspace account creation.
         </p>
         <UserManagementPanel initialUsers={users} unavailableNote={unavailableNote} />
       </section>

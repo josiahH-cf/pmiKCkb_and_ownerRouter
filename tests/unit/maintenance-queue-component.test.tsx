@@ -133,7 +133,9 @@ describe("MaintenanceQueue status pills + history", () => {
     expect(screen.getByText("Assignment updated")).toBeInTheDocument();
     expect(screen.queryByText(/editor-abc123/)).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith("/api/maintenance/tickets/t1/activity");
+    expect(fetchMock).toHaveBeenCalledWith("/api/maintenance/tickets/t1/activity", {
+      signal: expect.any(AbortSignal),
+    });
 
     // A second toggle must not refetch (fetch-once guard).
     fireEvent(details, new Event("toggle"));
@@ -169,6 +171,7 @@ describe("MaintenanceQueue status pills + history", () => {
       body: JSON.stringify({ op: "status", status: "Closed", reason: "work completed" }),
       headers: { "content-type": "application/json" },
       method: "PATCH",
+      signal: expect.any(AbortSignal),
     });
     expect(await screen.findByText("Ticket updated to Closed.")).toBeVisible();
   });

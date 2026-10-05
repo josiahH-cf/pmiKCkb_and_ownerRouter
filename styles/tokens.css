@@ -50,6 +50,10 @@
   font-weight: 700;
 }
 
+.topbar .brand {
+  color: var(--topbar-text);
+}
+
 .primary-navigation {
   margin-left: auto;
   min-width: 0;
@@ -73,6 +77,8 @@
 .primary-nav-desktop-groups {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
+  max-width: 100%;
   gap: var(--space-1);
 }
 
@@ -624,6 +630,8 @@
 
 .appearance {
   color: var(--topbar-text);
+  max-width: 100%;
+  min-width: 0;
   position: relative;
 }
 
@@ -636,11 +644,13 @@
   display: inline-flex;
   gap: var(--space-2);
   min-height: var(--target-min);
+  max-width: 100%;
   padding: 6px 10px;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .appearance-icon {
+  flex-shrink: 0;
   font-size: 1.1rem;
   line-height: 1;
 }

@@ -70,10 +70,7 @@ export function SpaceDesk({
       <div className="ui-stack">
         {header}
         <Card title="Process">
-          <p className="muted">
-            This Space has a process, but its definition has not been seeded yet. Once the
-            seed runs it will show its workflow here.
-          </p>
+          <p className="muted">Process definition unavailable.</p>
           <Link className="text-link" href={`/processes/${definitionId}`}>
             View full process →
           </Link>

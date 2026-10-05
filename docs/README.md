@@ -101,11 +101,19 @@ corrections and normal S106/S34 packet handoffs are serving. Real forms/mappings
 connection/selection and exact closed-key activation still govern dependent document effects.
 S96, S83-S86 and S99 retain their deployed contracts. S100 chat sync is deployed; resident-draft
 still requires its exact eligible message/email and separate activation. S36 remains queued behind
-complete S100. S110's three-intent assistant is serving. The overlapping unimplemented
-S88–S93/S101 assistant plans are superseded by intake-ready S135–S138; S139–S141 record the
-linked-email and integrated-validation requests. S87, S94 and S95 remain separate unimplemented
-proposals. Intake alone starts none of them. S112 release authentication passed;
+complete S100. S135–S151's connected assistant, linked-email and AI-first Dashboard/history work
+is deployed; overlapping S88–S93/S101 and S95 plans are superseded. S94 remains a separate
+unexecuted proposal. Revised S87 belongs to the finalized batch 005 scope below. S112 release authentication passed;
 its separate 24-hour unchanged-enrollment longevity proof remains unverified.
+
+Batch 005, application-usability-reliability-2026-10, is active under the named owner launch as fifteen specs
+(S168–S181 plus revised S87), intake orders 035–049 in the canonical registry. It covers measured
+latency/reliability, whole-app loading feedback, task-sized layouts, resizable tables/docked
+information, both message workspaces, concise controls/copy, durable personal views, actionable
+identity lookup, legacy Gmail UI retirement and feedback reconciliation/integrated validation.
+The named instruction authorizes implementation, green main and one cumulative release. Native
+progress is in [the evidence matrix](evidence/application-usability-batch005.json); no release is
+admitted. Completed/superseded suites and the three accepted next-batch deferrals stay inert.
 
 Current code, tests, facts and the S113 evidence report own the verified result. Staff-recorded
 completion is distinct from provider verification; no live customer completion was seeded.

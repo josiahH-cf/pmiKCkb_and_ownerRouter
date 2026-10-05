@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ActionLink, Button, Disclosure, Notice } from "@/components/ui";

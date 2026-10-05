@@ -1,6 +1,6 @@
 # PMI KC current status
 
-Last updated: 2026-10-03 (UTC).
+Last updated: 2026-10-04 (UTC).
 
 ## Serving release
 
@@ -40,6 +40,23 @@ patched 1.14.5 and merged at `dc493dfe` after its full gate and exact CI passed.
 Hono advisory; PR #104 patched it and merged at `f449520e` after the same gates.
 
 ## Feature intake
+
+Batch 005 (application-usability-reliability-2026-10) engineering is verified under the October 4
+named owner launch: fifteen specs, 116 requirements, intake 035–049. Final focused selection passed
+781 checks/104 owner files. Native full 14 passed 8,753 unit/four existing skips/325 backend, zero
+audit findings, all policies and production build; core 12 passed 32/22 existing configuration skips.
+Compiled matrix 19 passed 438 observations/eight journeys/168 axe audits, zero violations/errors;
+six-owner recovery 6 passed 18 observations/126 intercepted attempts with zero effects. Additional
+publication recovery passed six width/theme observations/18 intercepted actions, retaining the
+unknown post-commit conflict fence and the full wrapping preview hash. Identity lookup/verified
+shortcut, complete tables, dock/mobile/focus and private-view CAS journeys passed.
+All fifteen finalized owner-supplied spec bytes remain unchanged. Failed/superseded attempts retain
+their actual evidence. Private-view expiresAt TTL read back ACTIVE; runner wrote no app record.
+[Native evidence](evidence/application-usability-batch005.json) records 113 verified independent
+engineering traces; actual delivery/end-feedback/native deployed closure holds the other three.
+Green main/exact CI and one cumulative gated release remain. No release is admitted yet.
+Human verdicts: NOT RUN — no human observer. Rental permits, move-out business workflow redesign
+and the public website shortcut remain deferred.
 
 Batch 002 requests 002–008 are recorded in supplied order as S135–S141. On 2026-09-30 the owner
 explicitly instructed their execution, then batch 003's, through implementation, mainline merge
@@ -117,7 +134,7 @@ S108 and batch 004 (S146–S151), and run `ab803f8a`
 request 001 and S135–S145 (see Feature intake). Run
 `89e38cd9-b6dd-498f-be87-1963e0ed2d03` at `c541db72` delivered the thirteen-feature batch below:
 
-- S128: Pause operating-Sheet writes while retaining reads and app-owned work.
+- S128: Historical operating-Sheet pause, superseded by released S159; normal updates retain exact contracts.
 - S123: Retain unfinished renewal cycles when source dates change.
 - S124: Review move-out notices and prevent non-renewal outreach.
 - S134: Show, sort and filter color-coded lifecycle status with text labels.

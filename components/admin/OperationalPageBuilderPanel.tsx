@@ -1,6 +1,7 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button, Field } from "@/components/ui";
 import { OperationalPageRenderer } from "@/components/operational-pages/OperationalPageRenderer";
@@ -55,32 +56,50 @@ export function OperationalPageBuilderPanel({
   const [rollbackConfirmed, setRollbackConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [uncertain, setUncertain] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [reading, setReading] = useState(false);
+  const [readMessage, setReadMessage] = useState("");
+  const [historyReady, setHistoryReady] = useState(false);
+  const dispatched = useRef(false);
+  const mounted = useRef(true);
+  const readGeneration = useRef(0);
 
   const loadState = useCallback(async () => {
-    const data = await fetchOperationalPageState();
-    setHeads(data.heads ?? []);
-    setVersions(data.versions ?? []);
+    const generation = ++readGeneration.current;
+    setReading(true);
+    setReadMessage("");
+    try {
+      const data = await fetchOperationalPageState();
+      if (!mounted.current || readGeneration.current !== generation) return;
+      if (!Array.isArray(data.heads) || !Array.isArray(data.versions))
+        throw new Error("Page history is unavailable.");
+      setHeads(data.heads);
+      setVersions(data.versions);
+      setHistoryReady(true);
+    } catch (error) {
+      if (mounted.current && readGeneration.current === generation)
+        setReadMessage(
+          error instanceof Error ? error.message : "Page history is unavailable.",
+        );
+    } finally {
+      if (mounted.current && readGeneration.current === generation) setReading(false);
+    }
   }, []);
 
   useEffect(() => {
-    let active = true;
-    void fetchOperationalPageState()
-      .then((data) => {
-        if (!active) return;
-        setHeads(data.heads ?? []);
-        setVersions(data.versions ?? []);
-      })
-      .catch((error) => {
-        if (active) {
-          setMessage(
-            error instanceof Error ? error.message : "Page history is unavailable.",
-          );
-        }
-      });
+    const lifetime = mounted;
+    const generation = readGeneration;
+    lifetime.current = true;
+    const scheduled = generation.current;
+    queueMicrotask(() => {
+      if (lifetime.current && generation.current === scheduled) void loadState();
+    });
     return () => {
-      active = false;
+      lifetime.current = false;
+      generation.current++;
     };
-  }, []);
+  }, [loadState]);
 
   const definition = useMemo(() => {
     try {
@@ -113,7 +132,12 @@ export function OperationalPageBuilderPanel({
   }
 
   async function runAction(body: Record<string, unknown>) {
+    if (dispatched.current || uncertain) return null;
+    dispatched.current = true;
+    let knownRefusal = false;
+    let keepFence = false;
     setBusy(true);
+    setFailed(false);
     setMessage("");
     try {
       const response = await fetch("/api/admin/operational-pages", {
@@ -121,14 +145,42 @@ export function OperationalPageBuilderPanel({
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       });
+      // Publication readback can fail with 409 after its transaction commits.
+      knownRefusal = [400, 401, 403].includes(response.status);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "The page action was refused.");
+      const expected =
+        body.operation === "draft"
+          ? data.version
+          : body.operation === "approve"
+            ? data.approval
+            : data.receipt;
+      if (!expected || typeof expected !== "object")
+        throw new Error("Missing page action receipt");
+      if (!mounted.current) return null;
       return data;
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "The page action was refused.");
+      if (!mounted.current) return null;
+      setFailed(true);
+      if (knownRefusal) {
+        dispatched.current = false;
+        setMessage(
+          error instanceof Error ? error.message : "The page action was refused.",
+        );
+      } else {
+        keepFence = true;
+        readGeneration.current++;
+        setReading(false);
+        setHistoryReady(false);
+        setUncertain(true);
+        setMessage(
+          "Action is not confirmed. Keep the current input and reload page history before reviewing a saved version. This does not repeat the action.",
+        );
+      }
       return null;
     } finally {
-      setBusy(false);
+      if (mounted.current) setBusy(false);
+      if (!keepFence) dispatched.current = false;
     }
   }
 
@@ -200,59 +252,107 @@ export function OperationalPageBuilderPanel({
           secret field.
         </p>
       </div>
-      <div className="grid two">
-        <label className="select-field">
-          Existing Space
+      <div className="ui-actions">
+        <Button
+          busy={reading}
+          disabled={busy}
+          onClick={() => void loadState()}
+          variant="secondary"
+        >
+          {reading ? "Loading page history" : "Reload page history"}
+        </Button>
+      </div>
+      {readMessage ? <p role="alert">{readMessage}</p> : null}
+      {uncertain && historyReady && versions.length > 0 ? (
+        <label>
+          Review a saved version
           <select
+            defaultValue=""
+            disabled={reading}
             onChange={(event) => {
-              setSpaceId(event.target.value);
-              resetReview();
+              const selected = versions.find((item) => item.id === event.target.value);
+              if (!selected) return;
+              setVersion(selected);
+              setApproved(false);
+              setApproveConfirmed(false);
+              setPublishConfirmed(false);
+              setReceipt(null);
+              setUncertain(false);
+              dispatched.current = false;
+              setFailed(false);
+              setMessage(
+                "Saved version selected for exact review. The earlier action's outcome remains unconfirmed.",
+              );
             }}
-            value={spaceId}
           >
-            {spaces.map((space) => (
-              <option key={space.id} value={space.id}>
-                {space.name}
+            <option value="">Select a saved version…</option>
+            {versions.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.definition.title} · version {item.versionNumber}
               </option>
             ))}
           </select>
         </label>
-        <Field htmlFor="operational-page-slug" label="Page address slug">
-          <input
-            id="operational-page-slug"
-            onChange={(event) => {
-              setSlug(event.target.value);
-              resetReview();
-            }}
-            placeholder="renewal-review-process"
-            value={slug}
-          />
-        </Field>
-        <Field htmlFor="operational-page-title" label="Page title">
-          <input
-            id="operational-page-title"
-            onChange={(event) => {
-              setTitle(event.target.value);
-              resetReview();
-            }}
-            value={title}
-          />
-        </Field>
-        <Field htmlFor="operational-page-reason" label="Reason for this version">
-          <input
-            id="operational-page-reason"
-            onChange={(event) => setReason(event.target.value)}
-            value={reason}
-          />
-        </Field>
-      </div>
+      ) : null}
+      <fieldset
+        aria-label="Operational page controls"
+        className="ui-stack operational-page-controls"
+        disabled={busy || uncertain}
+      >
+        <div className="grid two">
+          <label className="select-field">
+            Existing Space
+            <select
+              onChange={(event) => {
+                setSpaceId(event.target.value);
+                resetReview();
+              }}
+              value={spaceId}
+            >
+              {spaces.map((space) => (
+                <option key={space.id} value={space.id}>
+                  {space.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Field htmlFor="operational-page-slug" label="Page address slug">
+            <input
+              id="operational-page-slug"
+              onChange={(event) => {
+                setSlug(event.target.value);
+                resetReview();
+              }}
+              placeholder="renewal-review-process"
+              value={slug}
+            />
+          </Field>
+          <Field htmlFor="operational-page-title" label="Page title">
+            <input
+              id="operational-page-title"
+              onChange={(event) => {
+                setTitle(event.target.value);
+                resetReview();
+              }}
+              value={title}
+            />
+          </Field>
+          <Field htmlFor="operational-page-reason" label="Reason for this version">
+            <input
+              id="operational-page-reason"
+              onChange={(event) => setReason(event.target.value)}
+              value={reason}
+            />
+          </Field>
+        </div>
 
-      <section className="ui-stack" aria-label="Approved component catalog">
-        <div className="ui-spread">
-          <h3>Page components</h3>
-          <div className="button-row">
-            {(["heading", "text", "callout", "checklist", "internal_link"] as const).map(
-              (type) => (
+        <section className="ui-stack" aria-label="Approved component catalog">
+          <div className="ui-spread">
+            <h3>Page components</h3>
+            <div className="button-row">
+              {(
+                ["heading", "text", "callout", "checklist", "internal_link"] as const
+              ).map((type) => (
                 <button
                   className="secondary-button"
                   key={type}
@@ -264,206 +364,214 @@ export function OperationalPageBuilderPanel({
                 >
                   Add {type.replaceAll("_", " ")}
                 </button>
-              ),
-            )}
-          </div>
-        </div>
-        {blocks.length === 0 ? (
-          <p className="muted">Add at least one allowlisted component.</p>
-        ) : null}
-        {blocks.map((block, index) => (
-          <fieldset className="panel ui-stack-tight" key={`${index}:${block.type}`}>
-            <legend>
-              {index + 1}. {block.type.replaceAll("_", " ")}
-            </legend>
-            {block.type === "heading" ? (
-              <label className="select-field">
-                Heading level
-                <select
-                  onChange={(event) => updateBlock(index, { choice: event.target.value })}
-                  value={block.choice || "2"}
-                >
-                  <option value="2">Section heading</option>
-                  <option value="3">Subheading</option>
-                </select>
-              </label>
-            ) : null}
-            {block.type === "callout" ? (
-              <label className="select-field">
-                Callout tone
-                <select
-                  onChange={(event) => updateBlock(index, { choice: event.target.value })}
-                  value={block.choice || "info"}
-                >
-                  <option value="info">Information</option>
-                  <option value="warning">Warning</option>
-                </select>
-              </label>
-            ) : null}
-            <Field
-              htmlFor={`operational-block-${index}-primary`}
-              label={primaryLabel(block.type)}
-            >
-              {block.type === "text" ? (
-                <textarea
-                  id={`operational-block-${index}-primary`}
-                  onChange={(event) =>
-                    updateBlock(index, { primary: event.target.value })
-                  }
-                  rows={4}
-                  value={block.primary}
-                />
-              ) : (
-                <input
-                  id={`operational-block-${index}-primary`}
-                  onChange={(event) =>
-                    updateBlock(index, { primary: event.target.value })
-                  }
-                  value={block.primary}
-                />
-              )}
-            </Field>
-            {block.type === "callout" ||
-            block.type === "checklist" ||
-            block.type === "internal_link" ? (
-              <Field
-                htmlFor={`operational-block-${index}-secondary`}
-                label={secondaryLabel(block.type)}
-              >
-                <textarea
-                  id={`operational-block-${index}-secondary`}
-                  onChange={(event) =>
-                    updateBlock(index, { secondary: event.target.value })
-                  }
-                  rows={block.type === "checklist" ? 4 : 2}
-                  value={block.secondary}
-                />
-              </Field>
-            ) : null}
-            <button
-              className="secondary-button"
-              onClick={() => {
-                setBlocks((current) => current.filter((_, item) => item !== index));
-                resetReview();
-              }}
-              type="button"
-            >
-              Remove component
-            </button>
-          </fieldset>
-        ))}
-      </section>
-
-      <Button
-        disabled={busy || !definition || !reason.trim()}
-        onClick={() => void createDraft()}
-        type="button"
-      >
-        Save immutable draft and preview
-      </Button>
-      {version ? (
-        <section className="ui-stack" aria-label="Exact operational page preview">
-          <OperationalPageRenderer definition={version.definition} preview />
-          <p className="muted">Exact preview hash: {version.previewHash}</p>
-          {!approved ? (
-            <>
-              <label className="queue-toggle">
-                <input
-                  checked={approveConfirmed}
-                  onChange={(event) => setApproveConfirmed(event.target.checked)}
-                  type="checkbox"
-                />
-                {OPERATIONAL_PAGE_APPROVAL_CONFIRMATION}
-              </label>
-              <Button
-                disabled={busy || !approveConfirmed}
-                onClick={() => void approveDraft()}
-                type="button"
-              >
-                Approve exact version
-              </Button>
-            </>
-          ) : !receipt ? (
-            <>
-              <label className="queue-toggle">
-                <input
-                  checked={publishConfirmed}
-                  onChange={(event) => setPublishConfirmed(event.target.checked)}
-                  type="checkbox"
-                />
-                {OPERATIONAL_PAGE_PUBLICATION_CONFIRMATION}
-              </label>
-              <Button
-                disabled={busy || !publishConfirmed}
-                onClick={() => void publishDraft()}
-                type="button"
-              >
-                Publish approved version
-              </Button>
-            </>
-          ) : (
-            <p>
-              <a
-                href={`/spaces/${version.definition.spaceId}/pages/${version.definition.slug}`}
-              >
-                Open published page
-              </a>{" "}
-              · receipt {receipt.id}
-            </p>
-          )}
-        </section>
-      ) : null}
-
-      <section className="ui-stack" aria-label="Operational page rollback">
-        <h3>Restore a prior approved version</h3>
-        <label className="select-field">
-          Exact prior version
-          <select
-            onChange={(event) => {
-              setRollbackVersionId(event.target.value);
-              setRollbackConfirmed(false);
-            }}
-            value={rollbackVersionId}
-          >
-            <option value="">Select a version…</option>
-            {versions
-              .filter((item) => {
-                const head = heads.find((candidate) => candidate.id === item.pageId);
-                return (
-                  Boolean(head?.publishedVersionId) &&
-                  head?.publishedVersionId !== item.id
-                );
-              })
-              .map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.definition.title} · version {item.versionNumber}
-                </option>
               ))}
-          </select>
-        </label>
-        {rollbackTarget ? (
-          <>
-            <OperationalPageRenderer definition={rollbackTarget.definition} preview />
-            <p className="muted">Exact preview hash: {rollbackTarget.previewHash}</p>
-            <label className="queue-toggle">
-              <input
-                checked={rollbackConfirmed}
-                onChange={(event) => setRollbackConfirmed(event.target.checked)}
-                type="checkbox"
-              />
-              {OPERATIONAL_PAGE_ROLLBACK_CONFIRMATION}
-            </label>
-            <Button
-              disabled={busy || !rollbackConfirmed}
-              onClick={() => void rollback()}
-              type="button"
-            >
-              Restore exact prior version
-            </Button>
-          </>
+            </div>
+          </div>
+          {blocks.length === 0 ? (
+            <p className="muted">Add at least one allowlisted component.</p>
+          ) : null}
+          {blocks.map((block, index) => (
+            <fieldset className="panel ui-stack-tight" key={`${index}:${block.type}`}>
+              <legend>
+                {index + 1}. {block.type.replaceAll("_", " ")}
+              </legend>
+              {block.type === "heading" ? (
+                <label className="select-field">
+                  Heading level
+                  <select
+                    onChange={(event) =>
+                      updateBlock(index, { choice: event.target.value })
+                    }
+                    value={block.choice || "2"}
+                  >
+                    <option value="2">Section heading</option>
+                    <option value="3">Subheading</option>
+                  </select>
+                </label>
+              ) : null}
+              {block.type === "callout" ? (
+                <label className="select-field">
+                  Callout tone
+                  <select
+                    onChange={(event) =>
+                      updateBlock(index, { choice: event.target.value })
+                    }
+                    value={block.choice || "info"}
+                  >
+                    <option value="info">Information</option>
+                    <option value="warning">Warning</option>
+                  </select>
+                </label>
+              ) : null}
+              <Field
+                htmlFor={`operational-block-${index}-primary`}
+                label={primaryLabel(block.type)}
+              >
+                {block.type === "text" ? (
+                  <textarea
+                    id={`operational-block-${index}-primary`}
+                    onChange={(event) =>
+                      updateBlock(index, { primary: event.target.value })
+                    }
+                    rows={4}
+                    value={block.primary}
+                  />
+                ) : (
+                  <input
+                    id={`operational-block-${index}-primary`}
+                    onChange={(event) =>
+                      updateBlock(index, { primary: event.target.value })
+                    }
+                    value={block.primary}
+                  />
+                )}
+              </Field>
+              {block.type === "callout" ||
+              block.type === "checklist" ||
+              block.type === "internal_link" ? (
+                <Field
+                  htmlFor={`operational-block-${index}-secondary`}
+                  label={secondaryLabel(block.type)}
+                >
+                  <textarea
+                    id={`operational-block-${index}-secondary`}
+                    onChange={(event) =>
+                      updateBlock(index, { secondary: event.target.value })
+                    }
+                    rows={block.type === "checklist" ? 4 : 2}
+                    value={block.secondary}
+                  />
+                </Field>
+              ) : null}
+              <button
+                className="secondary-button"
+                onClick={() => {
+                  setBlocks((current) => current.filter((_, item) => item !== index));
+                  resetReview();
+                }}
+                type="button"
+              >
+                Remove component
+              </button>
+            </fieldset>
+          ))}
+        </section>
+
+        <Button
+          disabled={busy || uncertain || !!version || !definition || !reason.trim()}
+          onClick={() => void createDraft()}
+          type="button"
+        >
+          Save immutable draft and preview
+        </Button>
+        {version ? (
+          <section className="ui-stack" aria-label="Exact operational page preview">
+            <OperationalPageRenderer definition={version.definition} preview />
+            <p className="muted">
+              Exact preview hash: <code>{version.previewHash}</code>
+            </p>
+            {!approved ? (
+              <>
+                <label className="queue-toggle">
+                  <input
+                    checked={approveConfirmed}
+                    onChange={(event) => setApproveConfirmed(event.target.checked)}
+                    type="checkbox"
+                  />
+                  {OPERATIONAL_PAGE_APPROVAL_CONFIRMATION}
+                </label>
+                <Button
+                  disabled={busy || !approveConfirmed}
+                  onClick={() => void approveDraft()}
+                  type="button"
+                >
+                  Approve exact version
+                </Button>
+              </>
+            ) : !receipt ? (
+              <>
+                <label className="queue-toggle">
+                  <input
+                    checked={publishConfirmed}
+                    onChange={(event) => setPublishConfirmed(event.target.checked)}
+                    type="checkbox"
+                  />
+                  {OPERATIONAL_PAGE_PUBLICATION_CONFIRMATION}
+                </label>
+                <Button
+                  disabled={busy || !publishConfirmed}
+                  onClick={() => void publishDraft()}
+                  type="button"
+                >
+                  Publish approved version
+                </Button>
+              </>
+            ) : (
+              <p>
+                <a
+                  href={`/spaces/${version.definition.spaceId}/pages/${version.definition.slug}`}
+                >
+                  Open published page
+                </a>{" "}
+                · receipt {receipt.id}
+              </p>
+            )}
+          </section>
         ) : null}
-      </section>
-      {message ? <p role="status">{message}</p> : null}
+
+        <section className="ui-stack" aria-label="Operational page rollback">
+          <h3>Restore a prior approved version</h3>
+          <label className="select-field">
+            Exact prior version
+            <select
+              onChange={(event) => {
+                setRollbackVersionId(event.target.value);
+                setRollbackConfirmed(false);
+              }}
+              value={rollbackVersionId}
+            >
+              <option value="">Select a version…</option>
+              {versions
+                .filter((item) => {
+                  const head = heads.find((candidate) => candidate.id === item.pageId);
+                  return (
+                    Boolean(head?.publishedVersionId) &&
+                    head?.publishedVersionId !== item.id
+                  );
+                })
+                .map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.definition.title} · version {item.versionNumber}
+                  </option>
+                ))}
+            </select>
+          </label>
+          {rollbackTarget ? (
+            <>
+              <OperationalPageRenderer definition={rollbackTarget.definition} preview />
+              <p className="muted">
+                Exact preview hash: <code>{rollbackTarget.previewHash}</code>
+              </p>
+              <label className="queue-toggle">
+                <input
+                  checked={rollbackConfirmed}
+                  onChange={(event) => setRollbackConfirmed(event.target.checked)}
+                  type="checkbox"
+                />
+                {OPERATIONAL_PAGE_ROLLBACK_CONFIRMATION}
+              </label>
+              <Button
+                disabled={busy || !rollbackConfirmed}
+                onClick={() => void rollback()}
+                type="button"
+              >
+                Restore exact prior version
+              </Button>
+            </>
+          ) : null}
+        </section>
+      </fieldset>
+      {message ? <p role={failed ? "alert" : "status"}>{message}</p> : null}
     </article>
   );
 }

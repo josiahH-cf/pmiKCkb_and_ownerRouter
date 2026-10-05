@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 import { useState } from "react";
 
@@ -103,16 +104,17 @@ export function OwnerPolicyRulesAdminPanel({
           value={percent}
         />
       </Field>
-      <Field htmlFor="opr-effective" label="Effective from">
+      <Field
+        htmlFor="opr-effective"
+        label="Effective from"
+        hint={effectiveFrom ? formatCalendarDate(effectiveFrom) : "MM/DD/YYYY"}
+      >
         <input
           id="opr-effective"
           type="date"
           onChange={(event) => setEffectiveFrom(event.target.value)}
           value={effectiveFrom}
         />
-        <span className="muted">
-          {effectiveFrom ? formatCalendarDate(effectiveFrom) : "MM/DD/YYYY"}
-        </span>
       </Field>
       <Field htmlFor="opr-note" label="Rule note (shown beside the suggested number)">
         <input

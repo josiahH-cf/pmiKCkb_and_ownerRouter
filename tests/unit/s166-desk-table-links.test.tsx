@@ -293,9 +293,10 @@ describe("S166 worklist controls name their view (ARCH-S166-3)", () => {
     const worklist = screen.getByRole("region", { name: "Renewal worklist" });
     expect(worklist).toHaveAttribute("data-desk-view-source", "saved");
     expect(within(worklist).getByText("Showing your saved view.")).toBeInTheDocument();
-    expect(
-      within(worklist).getByRole("link", { name: "Reset to default view" }),
-    ).toHaveAttribute("href", "/lease-renewal/live/desk?v=2");
+    expect(within(worklist).getByRole("link", { name: "Reset view" })).toHaveAttribute(
+      "href",
+      "/lease-renewal/live/desk?v=2",
+    );
   });
 
   it("BEH-S166-8 / AC-S166-3: the explicit default view carries itself through a lease and back while another view is remembered", () => {
@@ -332,7 +333,7 @@ describe("S166 worklist controls name their view (ARCH-S166-3)", () => {
       "/lease-renewal/live/desk/lease/7001",
     );
     expect(screen.queryByText("Showing your saved view.")).toBeNull();
-    expect(screen.queryByRole("link", { name: "Reset to default view" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Reset view" })).toBeNull();
   });
 });
 

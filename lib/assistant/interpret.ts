@@ -17,6 +17,7 @@ import {
 } from "@/lib/assistant/conversation-plan";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import type { ModelProvider } from "@/lib/llm/model-provider";
+import { measureRead, withReadDeadline } from "@/lib/observability/read-lifetime";
 
 export type InterpretedBy = "model" | "deterministic";
 
@@ -162,6 +163,22 @@ function parseAddressText(question: string): string | null {
   return match ? match[0].trim().slice(0, 120) : null;
 }
 
+/** An identity candidate is a lookup, not an assertion that this person/property exists. */
+function bareIdentity(question: string): string | null {
+  const candidate = question.trim();
+  if (
+    !/^[\p{L}][\p{L}\p{N}.'’&-]*(?:\s+[\p{L}][\p{L}\p{N}.'’&-]*){0,4}$/u.test(candidate)
+  )
+    return null;
+  if (
+    /\b(how|what|why|who|when|where|can|should|please|send|delete|remove|create|change|update|approve|draft|show|find|list|policy|policies|fees?|weather|records?|message|email|now|next|month|today|mine|tasks?|leases?|renewals?|blocked|connections?|processes?|maintenance)\b/i.test(
+      candidate,
+    )
+  )
+    return null;
+  return candidate;
+}
+
 function isFollowUp(text: string): boolean {
   return (
     /^(only|just|now|and|also|what about|how about|which of (?:those|these|them)|of (?:those|these)|those|these|them|it|that|why is|why are|why)\b/.test(
@@ -201,10 +218,18 @@ export function interpretDeterministically(
   );
   // "Assigned" names work only when no other subject owns the question.
   const ordinal = ORDINALS.find(([pattern]) => pattern.test(text))?.[1] ?? null;
-  const followUp =
+  let followUp =
     previous !== null && (isFollowUp(text) || ordinal !== null || subjects.length === 0);
   const range = parseRange(text, nowIso);
   const people = parsePeople(question);
+  const identity = bareIdentity(question);
+  const address = parseAddressText(question);
+  if ((identity || (address && subjects.length === 0)) && previous?.awaiting !== "person")
+    followUp = false;
+  if (identity && people.names.length === 0) {
+    people.names = [identity];
+    people.match = "related";
+  }
   const mine = /\b(my|mine|me|assigned to me)\b/.test(text);
   const everyone =
     /\b(everyone|everybody|anyone|all staff|the whole team|team's|whole team)\b/.test(
@@ -244,10 +269,14 @@ export function interpretDeterministically(
       )
         ? true
         : null,
-    includeClosed: /\b(completed|closed|finished|cancelled|including done)\b/.test(text)
-      ? true
-      : null,
-    text: parseAddressText(question),
+    includeClosed: /\b(active|current window|in the window)\b/.test(text)
+      ? false
+      : people.match === "related" ||
+          address !== null ||
+          /\b(completed|closed|finished|cancelled|including done)\b/.test(text)
+        ? true
+        : null,
+    text: address,
   };
   const detail =
     /\b(why|status|details?|what happened|what is holding|recorded communications?)\b/.test(
@@ -256,6 +285,8 @@ export function interpretDeterministically(
     (ordinal !== null || filters.text !== null || followUp || refersToOneRecord(text));
 
   let resolvedSubjects = subjects;
+  if (identity || (address && resolvedSubjects.length === 0))
+    resolvedSubjects = ["leases"];
   if (followUp && resolvedSubjects.length === 0 && previous)
     resolvedSubjects = [...previous.plan.subjects];
   if (
@@ -356,15 +387,21 @@ export async function interpretWithModel(
     question,
   };
   try {
-    const response = await options.provider.generateText({
-      purpose: "assistant.interpret",
-      model: options.model,
-      systemInstruction: INTERPRETER_SYSTEM_INSTRUCTION,
-      userContent: JSON.stringify(payload),
-      temperature: 0,
-      responseJsonSchema: CONVERSATION_PLAN_JSON_SCHEMA,
-      timeoutMs: options.timeoutMs ?? 15_000,
-    });
+    const response = await measureRead("assistant.interpretation", () =>
+      withReadDeadline(
+        () =>
+          options.provider.generateText({
+            purpose: "assistant.interpret",
+            model: options.model,
+            systemInstruction: INTERPRETER_SYSTEM_INSTRUCTION,
+            userContent: JSON.stringify(payload),
+            temperature: 0,
+            responseJsonSchema: CONVERSATION_PLAN_JSON_SCHEMA,
+            timeoutMs: options.timeoutMs ?? 15_000,
+          }),
+        options.timeoutMs ?? 15_000,
+      ),
+    );
     const text = response.text
       .trim()
       .replace(/^```(?:json)?\s*/i, "")

@@ -160,6 +160,14 @@ describe("S127 secondary app saves request focus only after successful owning re
       approveRent();
       await waitFor(() => expect(mocks.refresh).toHaveBeenCalledTimes(1));
       expect(mocks.focus).not.toHaveBeenCalled();
+      expect(screen.getByRole("textbox", { name: /Reason/ })).toHaveValue(
+        "Reviewed synthetic basis",
+      );
+      expect(screen.getByRole("button", { name: /Approve this number/ })).toBeDisabled();
+      expect(screen.getByText(/^The decision response arrived,/)).toHaveAttribute(
+        "role",
+        "alert",
+      );
     },
   );
 

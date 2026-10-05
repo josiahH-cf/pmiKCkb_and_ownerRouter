@@ -300,7 +300,7 @@ async function runProductionCanaryWithin(
       };
     };
     routes = await readCanaryRoutes(
-      routesForRole(options.role),
+      routesForRole(options.role, options.expectedCommit),
       Boolean(options.predecessorExceptionObserver),
       abortSignal,
       readRoute,

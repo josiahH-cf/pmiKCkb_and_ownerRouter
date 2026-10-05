@@ -152,11 +152,7 @@ describe("S113 mounted manual and comp controls", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reload records and history" }));
     await screen.findByLabelText("Owner response");
     expect(screen.queryByText(/Current staff records could not be read/)).toBeNull();
-    expect(
-      screen.getByText(
-        "Record any item below when it happens. Each entry saves on its own.",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText("No staff activity recorded yet.")).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledTimes(1);
   });
   it("S155 BEH-S155-1 / S156 BEH-S156-4/7: an owner response saves when chosen, carries no terms and keeps Sheet confirmation separate", async () => {
@@ -249,11 +245,7 @@ describe("S113 mounted manual and comp controls", () => {
     expect(request).not.toHaveBeenCalled();
     expect(screen.queryByRole("button", { name: /cycle/i })).toBeNull();
     expect(screen.queryByText(/Select the reviewed renewal cycle/)).toBeNull();
-    expect(
-      screen.getByText(
-        "Record any item below when it happens. Each entry saves on its own.",
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText("No staff activity recorded yet.")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Owner outreach outcome"), {
       target: { value: "done" },
     });

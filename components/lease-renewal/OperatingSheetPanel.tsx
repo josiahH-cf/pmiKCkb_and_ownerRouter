@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 
 import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSectionHeading";
@@ -620,9 +621,9 @@ export function OperatingSheetPanel({
               : selectionLimited
                 ? "No Sheet update is prepared for this lease yet: the selected location is read-only for updates."
                 : editor && hasSheetRow
-                  ? "No Sheet update is waiting. To prepare one, choose the field under Correct an operating Sheet field below and preview the change; you then confirm it here."
+                  ? "No Sheet update is prepared."
                   : editor
-                    ? "No Sheet update is waiting. To prepare one, use Add Sheet row below; the row is built from RentVine identity and you then confirm it here."
+                    ? "No Sheet row is linked."
                     : "No Sheet update is waiting. Staff with Editor access prepare and confirm one here."}
           </p>
         </div>

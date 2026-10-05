@@ -91,6 +91,11 @@ export function projectRenewalRead(
       title: items[index].title,
       detail: items[index].detail,
       href: items[index].href,
+      ...(row.sourceDestinations?.rentvine
+        ? {
+            sourceHref: `/lease-renewal/live/desk/lease/${encodeURIComponent(row.id)}/rentvine`,
+          }
+        : {}),
       blockers: items[index].blockers,
       facts: {
         leaseId: row.id,
@@ -103,6 +108,8 @@ export function projectRenewalRead(
         ownerNames: row.ownerNameLabels,
         tenantNames: row.tenantNameLabels,
         address: row.addressLabel,
+        propertyName: row.propertyNameLabel,
+        unitLabel: row.identity.unit?.label?.label ?? null,
         stage: row.stageLabel,
         nextAction: row.nextAction,
         waitingOn: WAITING_LABELS[row.queryKeys.waitingOn] ?? null,

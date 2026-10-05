@@ -8,6 +8,7 @@ import {
   WORKFLOW_REPLY_POLICY_REF,
 } from "@/lib/gmail-hub/governed-artifacts";
 import type { ModelProvider } from "@/lib/llm/model-provider";
+import { withReadDeadline } from "@/lib/observability/read-lifetime";
 
 export interface WorkflowReplySource {
   ref: string;
@@ -69,25 +70,30 @@ export async function buildWorkflowAiReply(input: WorkflowAiReplyInput) {
   let text: string;
   try {
     text = (
-      await input.provider.generateText({
-        purpose: "gmail.workflow_reply",
-        model: input.model,
-        systemInstruction,
-        // S139: every block is JSON data, so quoted email text cannot pose as an instruction.
-        userContent: JSON.stringify({
-          artifact: `${artifact.ref} (${artifact.contentHash})`,
-          approved_base_copy: artifactBaseCopy,
-          current_draft: input.currentText.trim() || null,
-          instruction: input.instruction?.trim() || null,
-          authorized_sources: verifiedSources.map((source) => ({
-            ref: source.ref,
-            label: source.label,
-            text: source.text,
-          })),
-        }),
-        temperature: 0,
-        responseJsonSchema: RESPONSE_SCHEMA,
-      })
+      await withReadDeadline(
+        () =>
+          input.provider.generateText({
+            purpose: "gmail.workflow_reply",
+            model: input.model,
+            systemInstruction,
+            // S139: every block is JSON data, so quoted email text cannot pose as an instruction.
+            userContent: JSON.stringify({
+              artifact: `${artifact.ref} (${artifact.contentHash})`,
+              approved_base_copy: artifactBaseCopy,
+              current_draft: input.currentText.trim() || null,
+              instruction: input.instruction?.trim() || null,
+              authorized_sources: verifiedSources.map((source) => ({
+                ref: source.ref,
+                label: source.label,
+                text: source.text,
+              })),
+            }),
+            temperature: 0,
+            responseJsonSchema: RESPONSE_SCHEMA,
+            timeoutMs: 30_000,
+          }),
+        30_000,
+      )
     ).text;
   } catch {
     return refused(

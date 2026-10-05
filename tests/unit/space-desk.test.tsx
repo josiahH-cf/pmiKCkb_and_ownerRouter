@@ -119,7 +119,7 @@ describe("SpaceDesk", () => {
     }
   });
 
-  it("shows a quiet fallback (no Stepper) when the definition is not seeded yet", () => {
+  it("names the unavailable definition and preserves its real recovery link without seeding instructions", () => {
     render(
       <SpaceDesk
         connectors={[]}
@@ -134,7 +134,12 @@ describe("SpaceDesk", () => {
       />,
     );
 
-    expect(document.body.textContent).toContain("has not been seeded yet");
+    expect(screen.getByText("Process definition unavailable.")).toBeVisible();
+    expect(screen.getByRole("link", { name: "View full process →" })).toHaveAttribute(
+      "href",
+      "/processes/move-in",
+    );
+    expect(document.body.textContent).not.toContain("seed runs");
     expect(screen.queryByText("E-signature")).not.toBeInTheDocument();
   });
 

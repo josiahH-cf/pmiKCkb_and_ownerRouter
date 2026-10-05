@@ -35,9 +35,20 @@ const StoredItemSchema = z
     detail: z.string().max(800),
     blockers: z.array(z.string().max(400)).max(30),
     href: InAppHrefSchema,
+    sourceHref: z
+      .string()
+      .regex(/^\/lease-renewal\/live\/desk\/lease\/[1-9][0-9]*\/rentvine$/)
+      .optional(),
     facts: z.array(z.string().max(400)).max(40).optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (item) =>
+      !item.sourceHref ||
+      (item.ref.source === "renewals" &&
+        item.sourceHref === `/lease-renewal/live/desk/lease/${item.ref.id}/rentvine`),
+    "The source resolver must name this lease.",
+  );
 
 const StoredGroupSchema = z
   .object({

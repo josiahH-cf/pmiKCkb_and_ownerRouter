@@ -228,18 +228,20 @@ export async function listCurrentRenewalPacketSnapshots(
     );
   }
 
-  const snapshotDocs = await db.getAll(
-    ...heads.map((head) =>
-      db.collection(LEASE_DOCUMENT_PACKET_COLLECTIONS.snapshots).doc(head.snapshot_id),
+  const [snapshotDocs, executionDocs] = await Promise.all([
+    db.getAll(
+      ...heads.map((head) =>
+        db.collection(LEASE_DOCUMENT_PACKET_COLLECTIONS.snapshots).doc(head.snapshot_id),
+      ),
     ),
-  );
-  const executionDocs = await db.getAll(
-    ...heads.map((head) =>
-      db
-        .collection(LEASE_DOCUMENT_PACKET_COLLECTIONS.executionProjections)
-        .doc(head.snapshot_id),
+    db.getAll(
+      ...heads.map((head) =>
+        db
+          .collection(LEASE_DOCUMENT_PACKET_COLLECTIONS.executionProjections)
+          .doc(head.snapshot_id),
+      ),
     ),
-  );
+  ]);
   const executionsBySnapshot = new Map(
     executionDocs
       .filter((doc) => doc.exists)

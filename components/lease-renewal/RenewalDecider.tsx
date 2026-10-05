@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";

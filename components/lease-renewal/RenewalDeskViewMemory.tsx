@@ -29,6 +29,8 @@ import {
   type AutosaveState,
 } from "@/components/lease-renewal/AutosaveStatus";
 import { Button } from "@/components/ui";
+import { usePersonalView } from "@/components/layout/PersonalViewProvider";
+import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
 import type {
   DeskPreferenceMode,
   RenewalDeskEntrySource,
@@ -45,6 +47,7 @@ const CHOSEN_VIEW_MAX_AGE_MS = 5 * 60_000;
 const SAVE_FAILED_MESSAGE = "The view could not be saved just now.";
 
 interface ChosenView {
+  readonly accountId: string;
   /** The exact query string the control navigates to. */
   readonly search: string;
   readonly at: number;
@@ -53,8 +56,8 @@ interface ChosenView {
 // Kept in memory as well, so a client-side navigation works when session storage is unavailable.
 let chosenInMemory: ChosenView | null = null;
 
-function noteChosenView(search: string) {
-  const chosen: ChosenView = { search, at: Date.now() };
+function noteChosenView(search: string, accountId: string) {
+  const chosen: ChosenView = { search, accountId, at: Date.now() };
   chosenInMemory = chosen;
   try {
     window.sessionStorage.setItem(CHOSEN_VIEW_STORAGE_KEY, JSON.stringify(chosen));
@@ -64,7 +67,7 @@ function noteChosenView(search: string) {
 }
 
 /** Read and clear the note left by the last worklist control, when it is still current. */
-function takeChosenView(): ChosenView | null {
+function takeChosenView(accountId: string): ChosenView | null {
   let chosen = chosenInMemory;
   chosenInMemory = null;
   try {
@@ -73,12 +76,21 @@ function takeChosenView(): ChosenView | null {
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<ChosenView> | null;
       if (parsed && typeof parsed.search === "string" && typeof parsed.at === "number")
-        chosen = { search: parsed.search, at: parsed.at };
+        chosen = {
+          search: parsed.search,
+          at: parsed.at,
+          accountId: parsed.accountId ?? "",
+        };
     }
   } catch {
     // Unreadable storage is treated as no note.
   }
-  if (!chosen || Date.now() - chosen.at > CHOSEN_VIEW_MAX_AGE_MS) return null;
+  if (
+    !chosen ||
+    chosen.accountId !== accountId ||
+    Date.now() - chosen.at > CHOSEN_VIEW_MAX_AGE_MS
+  )
+    return null;
   return chosen;
 }
 
@@ -98,11 +110,15 @@ interface ViewMemoryValue {
   readonly openedFromLink: boolean;
   readonly remember: () => void;
   readonly retry: () => void;
+  readonly reset: () => void;
+  readonly hasLayout: boolean;
 }
 
 const ViewMemoryContext = createContext<ViewMemoryValue | null>(null);
 
 export interface RenewalDeskViewMemoryProps {
+  readonly accountId?: string;
+  readonly savedRevision?: number;
   readonly children: ReactNode;
   /** Canonical query for the view on screen; "" is the default view. */
   readonly currentView: string;
@@ -120,32 +136,68 @@ export function RenewalDeskViewMemory({
   viewSource,
   savedView,
   memory,
+  accountId = "",
+  savedRevision = 0,
 }: RenewalDeskViewMemoryProps) {
+  const personal = usePersonalView("renewals");
+  const personalRef = useRef(personal);
+  useEffect(() => {
+    personalRef.current = personal;
+  }, [personal]);
+  const account = personal.accountId || accountId;
+  const revision = useRef(savedRevision);
   const [status, setStatus] = useState<AutosaveState>(AUTOSAVE_IDLE);
   // What this page itself saved most recently; it is newer than the value the server rendered.
   const [savedHere, setSavedHere] = useState<string | null>(null);
   const [arrival, setArrival] = useState<{ view: string; chosen: boolean } | null>(null);
   const sequence = useRef(0);
-  const lastAttempt = useRef<string | null>(null);
-  const rememberedView = savedHere ?? savedView ?? "";
+  const rememberedView =
+    savedHere ??
+    (personal.accountId && personal.loaded ? personal.value.query : savedView) ??
+    "";
+  const effectiveStatus: AutosaveState = personal.accountId
+    ? personal.phase === "saving"
+      ? { phase: "saving" }
+      : personal.phase === "saved"
+        ? { phase: "saved" }
+        : personal.phase === "failed"
+          ? { phase: "failed", message: personal.message }
+          : AUTOSAVE_IDLE
+    : status;
+  useEffect(
+    () => () => {
+      ++sequence.current;
+    },
+    [account],
+  );
   const rememberedRef = useRef(rememberedView);
   useEffect(() => {
     rememberedRef.current = rememberedView;
   }, [rememberedView]);
 
   const save = useCallback(async (view: string) => {
+    if (personalRef.current.accountId) {
+      personalRef.current.change({ ...personalRef.current.value, query: view });
+      return;
+    }
     const attempt = ++sequence.current;
-    lastAttempt.current = view;
     setStatus({ phase: "saving" });
     let saved = false;
     let message = SAVE_FAILED_MESSAGE;
     try {
-      const response = await fetch(PREFERENCE_ROUTE, {
+      const response = await fetchWithDeadline(PREFERENCE_ROUTE, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ query: view === "" ? EXPLICIT_DEFAULT_DESK_VIEW : view }),
+        body: JSON.stringify({
+          query: view === "" ? EXPLICIT_DEFAULT_DESK_VIEW : view,
+          expectedRevision: revision.current,
+        }),
       });
       saved = response.ok;
+      if (saved) {
+        const data = await response.json();
+        revision.current = data.preference?.revision ?? revision.current + 1;
+      }
       if (!saved) {
         const payload = (await response.json().catch(() => null)) as {
           error?: unknown;
@@ -170,7 +222,7 @@ export function RenewalDeskViewMemory({
   useEffect(() => {
     if (memory !== "saved") return;
     if (arrivalChecked.current?.view === currentView) return;
-    const chosen = takeChosenView();
+    const chosen = takeChosenView(account);
     const opened = window.location.search.replace(/^\?/, "");
     const result = {
       view: currentView,
@@ -183,23 +235,50 @@ export function RenewalDeskViewMemory({
       if (saveNow) void save(currentView);
       else setStatus(AUTOSAVE_IDLE);
     });
-  }, [currentView, memory, save]);
+  }, [account, currentView, memory, save]);
 
   const remember = useCallback(() => void save(currentView), [currentView, save]);
+  const reset = useCallback(() => {
+    if (personalRef.current.accountId)
+      personalRef.current.change({ query: "", layout: { columns: {} } });
+  }, []);
   const retry = useCallback(() => {
-    if (lastAttempt.current !== null) void save(lastAttempt.current);
-  }, [save]);
+    if (personalRef.current.accountId)
+      personalRef.current.retry({ ...personalRef.current.value, query: currentView });
+    else
+      void (async () => {
+        setStatus({ phase: "saving" });
+        try {
+          const response = await fetchWithDeadline(PREFERENCE_ROUTE, {
+            cache: "no-store",
+          });
+          if (!response.ok) throw new Error(SAVE_FAILED_MESSAGE);
+          const data = await response.json();
+          if (
+            !Number.isInteger(data.preference?.revision) ||
+            data.preference.revision < 0
+          )
+            throw new Error(SAVE_FAILED_MESSAGE);
+          revision.current = data.preference.revision;
+          await save(currentView);
+        } catch {
+          setStatus({ phase: "failed", message: SAVE_FAILED_MESSAGE });
+        }
+      })();
+  }, [currentView, save]);
 
   const noteClick = (event: MouseEvent<HTMLElement>) => {
     const target = event.target as Element | null;
     const anchor = target?.closest?.("a[href]");
     if (!anchor) return;
+    if (anchor.hasAttribute("data-reset-personal-view") && personalRef.current.accountId)
+      return;
     const href = (anchor.getAttribute("href") ?? "").split("#")[0];
     const mark = href.indexOf("?");
     // Only a worklist link that names a view is a choice; the bare desk and lease links are not.
     if (mark === -1 || href.slice(0, mark) !== RENEWAL_DESK_ROUTE) return;
     const search = href.slice(mark + 1);
-    if (search !== "") noteChosenView(search);
+    if (search !== "") noteChosenView(search, account);
   };
 
   const noteSubmit = (event: FormEvent<HTMLElement>) => {
@@ -211,7 +290,7 @@ export function RenewalDeskViewMemory({
     new FormData(form).forEach((value, key) => {
       if (typeof value === "string") params.append(key, value);
     });
-    noteChosenView(params.toString());
+    noteChosenView(params.toString(), account);
   };
 
   const value = useMemo<ViewMemoryValue>(
@@ -220,7 +299,7 @@ export function RenewalDeskViewMemory({
       currentView,
       viewSource,
       rememberedView,
-      status,
+      status: effectiveStatus,
       openedFromLink:
         arrival !== null &&
         arrival.view === currentView &&
@@ -228,8 +307,23 @@ export function RenewalDeskViewMemory({
         viewSource === "explicit",
       remember,
       retry,
+      reset,
+      hasLayout:
+        Object.keys(personal.value.layout.columns).length > 0 ||
+        personal.value.layout.panelWidth !== undefined,
     }),
-    [arrival, currentView, memory, remember, rememberedView, retry, status, viewSource],
+    [
+      arrival,
+      currentView,
+      memory,
+      remember,
+      rememberedView,
+      retry,
+      reset,
+      personal.value.layout,
+      effectiveStatus,
+      viewSource,
+    ],
   );
 
   const active = memory === "saved";
@@ -254,7 +348,21 @@ export function RenewalDeskViewMemory({
  */
 export function RenewalDeskViewMemoryStatus() {
   const context = useContext(ViewMemoryContext);
-  if (!context || context.memory !== "saved") return null;
+  if (!context) return null;
+  if (context.memory !== "saved")
+    return context.currentView !== "" || context.hasLayout ? (
+      <span className="renewal-view-memory">
+        <span>View kept for this visit.</span>
+        <Link
+          className="text-link"
+          href={`${RENEWAL_DESK_ROUTE}?${EXPLICIT_DEFAULT_DESK_VIEW}`}
+          prefetch={false}
+          onClick={context.reset}
+        >
+          Reset view
+        </Link>
+      </span>
+    ) : null;
   const { currentView, rememberedView, status, viewSource } = context;
   const differs = currentView !== rememberedView;
   const linked = context.openedFromLink && differs && status.phase === "idle";
@@ -279,13 +387,15 @@ export function RenewalDeskViewMemoryStatus() {
         state={status}
         subject="your worklist view"
       />
-      {rememberedView !== "" ? (
+      {rememberedView !== "" || context.hasLayout ? (
         <Link
           className="text-link"
+          data-reset-personal-view="true"
           href={`${RENEWAL_DESK_ROUTE}?${EXPLICIT_DEFAULT_DESK_VIEW}`}
           prefetch={false}
+          onClick={context.reset}
         >
-          Reset to default view
+          Reset view
         </Link>
       ) : null}
     </span>

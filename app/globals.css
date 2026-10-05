@@ -104,14 +104,196 @@ textarea:disabled {
   outline-color: var(--topbar-accent);
 }
 
+.busy-indicator-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+button[aria-busy="true"],
+form[aria-busy="true"],
+[data-operation-pending="true"] {
+  cursor: progress;
+}
+
 .page {
   min-height: 100vh;
+}
+
+.route-feedback {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.4rem 1.5rem;
+  border-block-end: 2px solid var(--ui-focus);
+  background: var(--ui-surface-recessed);
+  font-size: 0.875rem;
+}
+.topbar .report-issue-trigger {
+  position: static;
+  flex-shrink: 0;
+  box-shadow: none;
+  padding: 0.45rem 0.65rem;
+  min-height: 44px;
 }
 
 .content {
   margin: 0 auto;
   max-width: 1160px;
   padding: 32px 24px 48px;
+}
+
+/* S172: working surfaces use the task workspace; authored text keeps a readable measure. */
+.content--workspace {
+  max-width: 1800px;
+}
+.content--reading {
+  max-width: 80ch;
+}
+.workflow-communication-panel textarea,
+.workflow-communication-panel pre,
+.gmail-message-list p,
+.renewal-message-preview {
+  max-width: 76ch;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+:where(.content)
+  :where(.ui-stack, .ui-spread, .panel, .ui-card, section, article, form, .field) {
+  min-width: 0;
+}
+:where(.content) :where(h1, h2, h3, p, a, label, code, strong, li, summary, dt, dd) {
+  overflow-wrap: anywhere;
+}
+:where(.content) :where(button, .ui-button) {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.message-editor,
+.message-preview,
+.gmail-draft-preview {
+  max-width: 76ch;
+}
+.operational-page-controls {
+  min-inline-size: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.data-table-viewport {
+  overflow: auto;
+  max-height: min(72dvh, 54rem);
+  position: relative;
+  overscroll-behavior: auto;
+  scroll-padding-block: 3rem;
+}
+.data-table-viewport table {
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.data-table-viewport thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--ui-surface);
+}
+.data-table-viewport td,
+.data-table-viewport th {
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+.data-table-viewport thead tr:nth-child(2) th {
+  top: 3.1rem;
+}
+.resizable-column {
+  position: relative;
+  padding-right: 1.1rem !important;
+}
+.table-column-resizer {
+  position: absolute;
+  inset-block: 0;
+  right: 0;
+  width: 16px;
+  cursor: col-resize;
+  touch-action: none;
+  border-right: 2px solid var(--ui-border);
+}
+.table-column-resizer:hover,
+.table-column-resizer:focus-visible {
+  border-color: var(--ui-focus);
+  background: var(--ui-surface-recessed);
+}
+.workspace-resizer {
+  width: 12px;
+  min-height: 8rem;
+  cursor: col-resize;
+  touch-action: none;
+  border-inline: 1px solid var(--ui-border);
+  background: var(--ui-surface-recessed);
+}
+.workspace-resizer:focus-visible,
+.workspace-resizer:hover {
+  background: var(--ui-focus);
+}
+.personal-view-status {
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+.renewal-workspace-shell {
+  --inspector-width: 352px;
+}
+.renewal-workspace-shell > .renewal-slide-panel[data-side="end"] {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  max-height: none;
+  box-shadow: none;
+  animation: none;
+  margin-block: 1rem;
+}
+.renewal-workspace-shell > .workspace-resizer {
+  display: none;
+}
+@media (min-width: 1100px) {
+  .renewal-workspace-shell[data-information-open="true"] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 12px var(--inspector-width);
+    gap: 0;
+    align-items: start;
+  }
+  .renewal-workspace-shell > .renewal-workspace-toolbar {
+    grid-column: 1 / -1;
+  }
+  .renewal-workspace-shell > .renewal-workspace-body {
+    grid-column: 1;
+    min-width: 0;
+    padding-right: 1rem;
+  }
+  .renewal-workspace-shell > .workspace-resizer {
+    display: block;
+    grid-column: 2;
+    grid-row: 2;
+    position: sticky;
+    top: var(--renewal-sticky-offset, 7rem);
+    height: calc(100dvh - var(--renewal-sticky-offset, 7rem) - 1rem);
+  }
+  .renewal-workspace-shell > .renewal-slide-panel[data-side="end"] {
+    grid-column: 3;
+    grid-row: 2;
+    position: sticky;
+    top: var(--renewal-sticky-offset, 7rem);
+    max-height: calc(100dvh - var(--renewal-sticky-offset, 7rem) - 1rem);
+    margin: 0;
+  }
+}
+@media (max-width: 1099px) {
+  .renewal-workspace-shell[data-information-open="true"] > .renewal-workspace-body {
+    display: none;
+  }
 }
 
 .section-title {
@@ -135,6 +317,12 @@ textarea:disabled {
   font-weight: 700;
   margin-bottom: 12px;
   text-decoration: underline;
+}
+
+button.text-link {
+  background: transparent;
+  border: 0;
+  min-height: var(--target-min);
 }
 
 .grid {
@@ -851,10 +1039,20 @@ textarea:disabled {
 }
 
 .approval-queue-layout {
+  --queue-inspector-width: 352px;
   align-items: start;
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+  gap: 8px;
+  grid-template-columns: minmax(320px, 1fr) 12px var(--queue-inspector-width, 352px);
+}
+
+@media (max-width: 1099px) {
+  .approval-queue-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .approval-queue-layout > .workspace-resizer {
+    display: none;
+  }
 }
 
 .queue-list-panel,
@@ -922,7 +1120,14 @@ textarea:disabled {
   font-weight: 800;
   line-height: 1;
   padding: 5px 8px;
-  white-space: nowrap;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+label.secondary-button:focus-within {
+  outline: 3px solid var(--ui-focus);
+  outline-offset: 3px;
 }
 
 .queue-pill[data-value="High"],
@@ -1669,11 +1874,13 @@ textarea:disabled {
 /* Layout helpers */
 .ui-stack {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
 }
 
 .ui-stack-tight {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-1);
 }
 

@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSectionHeading";
 import { FilledArtifactPanel } from "@/components/lease-renewal/FilledArtifactPanel";

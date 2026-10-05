@@ -23,14 +23,11 @@ export default async function MyWorkPage() {
 
   return (
     <AppShell user={user}>
-      <main className="content ui-stack">
+      <main className="content content--workspace ui-stack">
         <div>
-          <p className="eyebrow">Explicit assignments and sessions</p>
           <h1 className="section-title">My work</h1>
           <p className="muted">
-            Start time only when you choose Start work. Pause, task switches, and
-            inactivity are visible and correctable; signing in or opening a page never
-            counts as work.
+            Time is recorded after Start work; pauses and corrections stay visible.
           </p>
         </div>
         <WorkAccountabilityBoard

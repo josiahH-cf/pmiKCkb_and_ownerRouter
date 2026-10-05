@@ -110,6 +110,12 @@ const API_EXPECTATIONS = [
   ["app/api/lease-renewal/working-record/route.ts", "GET", "read_workspace"],
   ["app/api/lease-renewal/working-record/route.ts", "POST", "save_working_record"],
   ["app/api/lease-renewal/desk-preferences/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/desk-admission/route.ts", "GET", "read_workspace"],
+  [
+    "app/lease-renewal/live/desk/lease/[leaseId]/rentvine/route.ts",
+    "GET",
+    "read_workspace",
+  ],
   ["app/api/lease-renewal/desk-preferences/route.ts", "POST", "save_desk_preference"],
 ] as const satisfies readonly (readonly [string, "GET" | "POST", RenewalCapabilityKey])[];
 
@@ -442,7 +448,10 @@ function discoverRenewalPages(): Set<string> {
 
 function discoverRenewalApiMethods(): Set<string> {
   const discovered = new Set<string>();
-  for (const absolutePath of walk(join(process.cwd(), "app/api/lease-renewal"))) {
+  for (const absolutePath of [
+    ...walk(join(process.cwd(), "app/api/lease-renewal")),
+    ...walk(join(process.cwd(), "app/lease-renewal")),
+  ]) {
     if (!absolutePath.endsWith("/route.ts")) continue;
     const source = relativeToRepository(absolutePath);
     const body = readFileSync(absolutePath, "utf8");

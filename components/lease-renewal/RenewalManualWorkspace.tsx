@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { isProgrammaticFocusMove } from "./RenewalDashboardNavigation";
 import { formatCalendarDate, formatBusinessTimestamp } from "@/lib/date-display";
 import {
@@ -394,7 +395,7 @@ function ActiveManualProvider({
           </p>
         ) : readUnavailable ? null : (
           <p id="renewal-manual-cycle" tabIndex={-1}>
-            Record any item below when it happens. Each entry saves on its own.
+            No staff activity recorded yet.
           </p>
         )}
         {state ? (
@@ -857,10 +858,6 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
           <RenewalSectionHeading id="working-terms" as="h3">
             Working renewal terms
           </RenewalSectionHeading>
-          <p className="muted">
-            Enter what you know. Each value saves on its own and stays until you change
-            it.
-          </p>
           <WorkingMoneyField field="terms_rent" label="Working monthly rent" />
           <WorkingDateField field="terms_effective_date" label="Working effective date" />
           <WorkingDateField field="terms_end_date" label="Working term end date" />

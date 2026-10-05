@@ -1,4 +1,6 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { DataTableFrame } from "@/components/ui/DataTableFrame";
 
 import { useState } from "react";
 
@@ -155,7 +157,10 @@ export function MaintenancePreapprovalImport({
             {unchanged === 1 ? "matches" : "match"}.
           </p>
           {plan.rows.length > 0 ? (
-            <div className="table-scroll">
+            <DataTableFrame
+              surface="maintenance-import"
+              label="Maintenance preapproval preview"
+            >
               <table>
                 <caption className="sr-only">
                   RentVine maintenance limits with each property&apos;s current
@@ -196,7 +201,7 @@ export function MaintenancePreapprovalImport({
                   ))}
                 </tbody>
               </table>
-            </div>
+            </DataTableFrame>
           ) : (
             <p className="muted">No RentVine property carries a maintenance limit.</p>
           )}

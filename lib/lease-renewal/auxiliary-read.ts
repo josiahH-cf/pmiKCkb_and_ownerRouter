@@ -5,6 +5,8 @@
  * controls; error messages and source values never cross this boundary.
  */
 
+import { withReadDeadline } from "@/lib/observability/read-lifetime";
+
 export const RENEWAL_AUXILIARY_READ_KEYS = [
   "progress",
   "manual_workspace",
@@ -49,9 +51,14 @@ export type RenewalAuxiliaryRead<T> =
 export async function readRenewalAuxiliary<T>(
   key: RenewalAuxiliaryReadKey,
   read: () => Promise<T>,
+  options: { waitMs?: number } = {},
 ): Promise<RenewalAuxiliaryRead<T>> {
   try {
-    return { key, status: "available", value: await read() };
+    return {
+      key,
+      status: "available",
+      value: await withReadDeadline(read, options.waitMs),
+    };
   } catch (error) {
     return {
       key,

@@ -41,7 +41,7 @@ export default async function ProcessesPage() {
 
   return (
     <AppShell user={user}>
-      <section className="content">
+      <section className="content content--workspace">
         <h1 className="section-title">Processes</h1>
         {!can(user.role, "edit") ? (
           <p className="muted">

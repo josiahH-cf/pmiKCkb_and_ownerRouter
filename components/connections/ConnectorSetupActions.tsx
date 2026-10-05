@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 
 import { useRef, useState } from "react";

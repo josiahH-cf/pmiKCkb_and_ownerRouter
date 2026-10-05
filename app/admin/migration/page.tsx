@@ -33,9 +33,7 @@ export default async function AdminMigrationPage() {
       <section className="content">
         <h1 className="section-title">Migration Readiness</h1>
         <p className="muted">
-          Read-only, preview-first mirror of <code>npm run cutover:report</code>. No cloud
-          call is made from this page; in development it honestly shows the production
-          blockers that remain. Generated {report.generated_at}.
+          Read-only readiness report. Generated {report.generated_at}.
           {report.away_mode_active ? " Remote Away Mode is active." : ""}{" "}
           <Link href="/admin">Back to Admin</Link>
         </p>

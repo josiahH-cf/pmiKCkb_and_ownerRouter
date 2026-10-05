@@ -6,6 +6,7 @@
 // component; every control navigates one canonical GET URL.
 
 import Link from "next/link";
+import { RenewalDeskInventory } from "@/components/lease-renewal/RenewalDeskInventory";
 
 import { RenewalDeskRefresh } from "@/components/lease-renewal/RenewalDeskRefresh";
 import {
@@ -102,6 +103,7 @@ export function RenewalDesk({
   auxiliaryFailures = [],
   sheetWritebackPaused = false,
   viewMemory,
+  scopeKey = "",
 }: Readonly<{
   view: RenewalDeskView;
   liveReviewHref?: string;
@@ -113,6 +115,7 @@ export function RenewalDesk({
   sheetWritebackPaused?: boolean;
   /** S166: how the page chose this view and whether the account's view can be remembered. */
   viewMemory?: RenewalDeskViewMemoryInput;
+  scopeKey?: string;
 }>) {
   const result = applyRenewalDeskQueryV2(view.items, query, partyFilters.matches);
   const partyOptions = buildDeskPartyFilterOptions(view.items, partyFilters);
@@ -123,12 +126,6 @@ export function RenewalDesk({
     partyFilters.matches,
   );
   const supportingReadsComplete = auxiliaryFailures.length === 0;
-  const scopeLabel =
-    query.scope === "active"
-      ? "current window and tracked incomplete"
-      : query.scope === "tracked"
-        ? "tracked incomplete outside the window"
-        : "all loaded leases";
 
   return (
     <div
@@ -153,18 +150,8 @@ export function RenewalDesk({
             ) : null}
           </>
         }
-        subtitle={
-          view.readComplete
-            ? `${result.totalLoaded} leases loaded · ${result.totalInScope} in ${scopeLabel}`
-            : `${result.totalLoaded} leases loaded from a partial source read · ${result.totalInScope} in ${scopeLabel}`
-        }
         title="Renewals"
       />
-
-      <p className="muted">
-        Open a lease to check its details and follow the next action. Use the filters to
-        find an owner, tenant, unit or renewal date.
-      </p>
 
       <DataCurrencyBanner currency={view.dataCurrency} />
 
@@ -183,21 +170,48 @@ export function RenewalDesk({
         </Card>
       )}
 
-      <RenewalDeskTable
-        role={role}
-        rows={result.items}
-        shortcuts={partyFilters}
-        partyOptions={partyOptions}
-        sourceReadOk={view.readComplete && !view.dataCurrency.lastError}
-        dependentStateComplete={supportingReadsComplete}
-        sourceReadComplete={view.readComplete}
-        state={query}
-        totalInScope={result.totalInScope}
-        totalLoaded={result.totalLoaded}
-        viewCounts={viewCounts}
-        sheetWritebackPaused={sheetWritebackPaused}
-        viewMemory={viewMemory}
-      />
+      {scopeKey ? (
+        <RenewalDeskInventory
+          view={view}
+          query={query}
+          role={role}
+          scopeKey={scopeKey}
+          tokens={{
+            owner: [
+              ...new Set(view.items.flatMap((row) => row.queryKeys.normalizedOwners)),
+            ].flatMap((normalized) => {
+              const token = partyFilters.tokenFor("owner", normalized);
+              return token ? [{ normalized, token }] : [];
+            }),
+            tenant: [
+              ...new Set(view.items.flatMap((row) => row.queryKeys.normalizedTenants)),
+            ].flatMap((normalized) => {
+              const token = partyFilters.tokenFor("tenant", normalized);
+              return token ? [{ normalized, token }] : [];
+            }),
+          }}
+          partyAvailable={partyFilters.available}
+          dependentStateComplete={supportingReadsComplete}
+          sheetWritebackPaused={sheetWritebackPaused}
+          viewMemory={viewMemory}
+        />
+      ) : (
+        <RenewalDeskTable
+          role={role}
+          rows={result.items}
+          shortcuts={partyFilters}
+          partyOptions={partyOptions}
+          sourceReadOk={view.readComplete && !view.dataCurrency.lastError}
+          dependentStateComplete={supportingReadsComplete}
+          sourceReadComplete={view.readComplete}
+          state={query}
+          totalInScope={result.totalInScope}
+          totalLoaded={result.totalLoaded}
+          viewCounts={viewCounts}
+          sheetWritebackPaused={sheetWritebackPaused}
+          viewMemory={viewMemory}
+        />
+      )}
     </div>
   );
 }

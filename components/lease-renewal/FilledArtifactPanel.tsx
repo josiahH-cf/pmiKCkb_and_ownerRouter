@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { useState } from "react";
 import type { DerivedArtifactRecord } from "@/lib/lease-documents/derived-artifact-contract";
 

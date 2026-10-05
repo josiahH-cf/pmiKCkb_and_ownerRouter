@@ -135,6 +135,22 @@ describe("production assurance browser policy", () => {
 });
 
 describe("authenticated role manifests", () => {
+  it("keeps the Maintenance predecessor landmark bound only to its exact deployed commit", () => {
+    const predecessor = "e106a88a50d541b4a012111019b09c2183f6ce20";
+    for (const role of ["Admin", "Editor"] as const) {
+      expect(
+        routesForRole(role, predecessor).find((route) => route.key === "maintenance")
+          ?.heading,
+      ).toBe("Maintenance Work Order Intake");
+      expect(
+        routesForRole(role, "f".repeat(40)).find((route) => route.key === "maintenance")
+          ?.heading,
+      ).toBe("Maintenance");
+      expect(
+        routesForRole(role).find((route) => route.key === "maintenance")?.heading,
+      ).toBe("Maintenance");
+    }
+  });
   it("has unique complete route keys for each managed role", () => {
     for (const role of ["Admin", "Editor"] as const) {
       const routes = routesForRole(role);

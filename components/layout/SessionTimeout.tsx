@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 // Session idle timeout (NOTIF-6, §P). After ~30 minutes with no activity the user is signed out;
 // at 28 minutes a warning appears with a live 2-minute countdown and a "Stay signed in" action that

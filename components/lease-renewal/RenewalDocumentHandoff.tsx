@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { formatCalendarDate } from "@/lib/date-display";
 
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
@@ -136,10 +137,8 @@ function PacketFacts({
         </li>
       </ul>
       <p className="muted">
-        This list summarizes recorded source facts. For supported fillable forms, use the
-        packet controls to prepare, download, inspect and approve a filled PDF. Other
-        forms keep their manual Dotloop handoff. A populated fact is not a provider
-        receipt.
+        Recorded source facts; provider receipts and signatures are separate. Other forms
+        retain their manual Dotloop handoff.
       </p>
     </section>
   );

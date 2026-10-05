@@ -36,7 +36,7 @@ export default async function LiveVendorLifecyclePage() {
 
   return (
     <AppShell user={user}>
-      <section className="content">
+      <section className="content content--workspace">
         <Link className="back-link" href="/admin">
           Back to Admin
         </Link>
@@ -44,9 +44,8 @@ export default async function LiveVendorLifecyclePage() {
         {liveControlsAllowed ? (
           <>
             <p className="muted">
-              Each control reflects its exact committed Production gate. Closed actions
-              remain visible as unavailable readiness context; an individually opened
-              action can prepare one exact preview at a time.
+              Closed actions are unavailable. Each permitted change requires an exact
+              preview and confirmation.
             </p>
             <LiveVendorLifecyclePanel availability={availability} />
           </>

@@ -32,6 +32,21 @@ const state = vi.hoisted(() => ({
   desk: [] as unknown[],
   items: [] as unknown[],
 }));
+vi.mock("@/lib/firestore/personal-views", () => ({
+  getPersonalView: async (actor: AuthenticatedUser) => {
+    state.reads++;
+    if (state.readError) throw new Error("Read unavailable");
+    if (!actor.uid) throw new Error("Actor required");
+    return {
+      surface: "renewals",
+      revision: 0,
+      value: {
+        query: actor.uid === "uid-pat" ? (state.stored ?? "") : "",
+        layout: { columns: {} },
+      },
+    };
+  },
+}));
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
@@ -116,6 +131,7 @@ describe("S166 the worklist page chooses its view (ARCH-S166-3)", () => {
     const desk = await open({});
     expect(serializeRenewalDeskQueryV2(desk.query)).toBe(SAVED);
     expect(desk.viewMemory).toEqual({
+      accountId: pat.uid,
       source: "saved",
       savedView: SAVED,
       memory: "saved",

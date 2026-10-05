@@ -1,6 +1,9 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 import { useState } from "react";
+import { useOperation } from "@/components/hooks/useOperation";
+import { BusyIndicator } from "@/components/ui/BusyIndicator";
 
 interface SummaryResponse {
   ok: boolean;
@@ -18,41 +21,49 @@ interface SummaryResponse {
  */
 export function ThreadSummaryPanel() {
   const [threadText, setThreadText] = useState("");
-  const [pending, setPending] = useState(false);
+  const operation = useOperation("thread-summary");
+  const pending = operation.snapshot.phase === "pending";
   const [result, setResult] = useState<SummaryResponse | null>(null);
   const [error, setError] = useState("");
 
   async function summarize() {
     if (threadText.trim().length === 0) return;
-    setPending(true);
     setError("");
-    setResult(null);
-    try {
-      const response = await fetch("/api/gmail-hub/thread-summary", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ threadText }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as SummaryResponse;
-      if (response.ok) {
-        setResult(payload);
-      } else {
-        setError(payload.error ?? "Could not summarize the thread.");
-      }
-    } catch {
-      setError("Could not summarize the thread.");
-    } finally {
-      setPending(false);
-    }
+    const response = await operation.controller.run(
+      "Summarizing thread",
+      async (signal) => {
+        const response = await fetch("/api/gmail-hub/thread-summary", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ threadText }),
+          signal,
+        });
+        const payload = (await response.json()) as SummaryResponse;
+        if (
+          !response.ok ||
+          typeof payload.summary !== "string" ||
+          typeof payload.waiting_on !== "string" ||
+          typeof payload.suggested_next_action !== "string" ||
+          !Array.isArray(payload.errors) ||
+          payload.errors.some((value) => typeof value !== "string")
+        )
+          throw new Error("The summary response could not be validated.");
+        return payload;
+      },
+    );
+    if (response.outcome === "superseded") return;
+    if (response.outcome === "succeeded") setResult(response.value);
+    else
+      setError(
+        "Could not summarize the thread. Your text and previous summary are kept; retry when ready.",
+      );
   }
 
   return (
-    <article className="panel ui-stack">
+    <article className="panel ui-stack" aria-busy={pending || undefined}>
       <h2>Thread summary</h2>
       <p className="muted">
-        Paste sanitized thread text to get a summary, who it is waiting on, and a
-        suggested next action. This panel reads only the text you paste; sending stays a
-        human step in Gmail.
+        Summarizes pasted, sanitized thread text only. A person sends from Gmail.
       </p>
       <label className="field">
         <span>Thread text</span>
@@ -70,8 +81,16 @@ export function ThreadSummaryPanel() {
       >
         {pending ? "Summarizing…" : "Summarize thread"}
       </button>
+      {pending ? <BusyIndicator label="Summarizing thread" /> : null}
+      {result && (pending || error) ? (
+        <p className="muted">Previous completed summary</p>
+      ) : null}
 
-      {error ? <p className="muted">{error}</p> : null}
+      {error ? (
+        <p className="error-text" role="alert">
+          {error}
+        </p>
+      ) : null}
       {result ? (
         result.summary ? (
           <dl className="summary-list">

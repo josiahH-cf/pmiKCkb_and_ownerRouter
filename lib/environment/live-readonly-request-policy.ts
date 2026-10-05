@@ -44,6 +44,12 @@ export const EMULATOR_ONLY_HISTORY_REQUESTS: readonly {
 }[] = [
   {
     method: "POST",
+    pattern: /^\/api\/personal-view$/,
+    reason:
+      "S177: save only the signed-in staff account's personal view in the emulator.",
+  },
+  {
+    method: "POST",
     pattern: /^\/api\/assistant\/history\/turns$/,
     reason: "Record a submitted question in the signed-in user's own emulator history.",
   },

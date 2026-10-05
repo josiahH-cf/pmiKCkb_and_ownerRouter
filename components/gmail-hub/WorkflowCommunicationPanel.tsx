@@ -1,6 +1,10 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { BusyIndicator } from "@/components/ui/BusyIndicator";
+import { useOperation } from "@/components/hooks/useOperation";
+import { boundedLocalWait } from "@/lib/ui/local-lifetime";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 
 import { GMAIL_INBOX_ZERO_LABELS } from "@/lib/gmail-inbox-zero/constants";
@@ -45,7 +49,22 @@ interface ExactReplyReceipt {
   reconciled: boolean;
 }
 
-export function WorkflowCommunicationPanel({
+type WorkflowCommunicationPanelProps = Readonly<{
+  lane: WorkflowCommunicationLane;
+  entityType: WorkflowCommunicationEntityType;
+  entityId: string;
+  purpose: WorkflowCommunicationPurpose;
+  canLink: boolean;
+}>;
+export function WorkflowCommunicationPanel(props: WorkflowCommunicationPanelProps) {
+  return (
+    <OwnedWorkflowCommunicationPanel
+      key={`${props.lane}:${props.entityType}:${props.entityId}:${props.purpose}`}
+      {...props}
+    />
+  );
+}
+function OwnedWorkflowCommunicationPanel({
   lane,
   entityType,
   entityId,
@@ -59,6 +78,8 @@ export function WorkflowCommunicationPanel({
   canLink: boolean;
 }>) {
   const [links, setLinks] = useState<WorkflowCommunicationLink[]>([]);
+  const [linksRead, setLinksRead] = useState(false);
+  const aiOperation = useOperation(`${entityType}:${entityId}:${purpose}`);
   const [threadId, setThreadId] = useState("");
   const [linkReason, setLinkReason] = useState("");
   const [selected, setSelected] = useState<WorkflowCommunicationLink | null>(null);
@@ -68,6 +89,12 @@ export function WorkflowCommunicationPanel({
   const [labelReason, setLabelReason] = useState("");
   const [analysisCategory, setAnalysisCategory] = useState("general_question");
   const [currentDraft, setCurrentDraft] = useState("");
+  const currentDraftRef = useRef(currentDraft);
+  useLayoutEffect(() => {
+    currentDraftRef.current = currentDraft;
+  }, [currentDraft]);
+  const [replyBase, setReplyBase] = useState<string | null>(null);
+  const [copyPending, setCopyPending] = useState(false);
   // S139: an instruction describing a change to the current draft; it never becomes reply text.
   const [instruction, setInstruction] = useState("");
   const [analysis, setAnalysis] = useState<{
@@ -116,6 +143,7 @@ export function WorkflowCommunicationPanel({
       if (!response.ok)
         throw new Error(data.error ?? "Linked communication is unavailable.");
       setLinks((data.communications ?? []) as WorkflowCommunicationLink[]);
+      setLinksRead(true);
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Linked communication is unavailable.",
@@ -255,23 +283,59 @@ export function WorkflowCommunicationPanel({
     setStatus("");
     setAiReply(null);
     clearExactReply();
+    const submittedDraft = currentDraft;
     try {
-      const response = await fetch("/api/gmail-hub/workflow-reply", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          artifactRef: artifactRefForPurpose(purpose),
-          category: analysisCategory,
-          context: context("gmail.mailbox.read"),
-          currentText: currentDraft,
-          ...(instruction.trim() ? { instruction: instruction.trim() } : {}),
-          threadId: selected.gmail_thread_id,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error ?? "AI reply is unavailable.");
-      setAiReply(data);
-      if (data.ok) setInstruction("");
+      const result = await aiOperation.controller.run(
+        "Refining linked reply",
+        async (signal) => {
+          const response = await fetch("/api/gmail-hub/workflow-reply", {
+            method: "POST",
+            signal,
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              artifactRef: artifactRefForPurpose(purpose),
+              category: analysisCategory,
+              context: context("gmail.mailbox.read"),
+              currentText: currentDraft,
+              ...(instruction.trim() ? { instruction: instruction.trim() } : {}),
+              threadId: selected.gmail_thread_id,
+            }),
+          });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error ?? "AI reply is unavailable.");
+          if (
+            typeof data.ok !== "boolean" ||
+            !Array.isArray(data.errors) ||
+            !Array.isArray(data.sources) ||
+            typeof data.reviewState !== "string" ||
+            (data.ok &&
+              (typeof data.proposal !== "string" ||
+                !data.diff ||
+                !Array.isArray(data.diff.added) ||
+                !Array.isArray(data.diff.removed)))
+          )
+            throw new Error(
+              "The refinement response could not be validated. Your draft is kept.",
+            );
+          if (!data.ok) {
+            data.proposal ??= "";
+            data.diff ??= { added: [], removed: [] };
+          }
+          return data as WorkflowAiReply;
+        },
+      );
+      if (result.outcome !== "succeeded") {
+        setStatus(
+          "Refinement did not finish. Your draft and instruction are kept; the server may still finish.",
+        );
+        return;
+      }
+      setAiReply(result.value);
+      setReplyBase(submittedDraft);
+      if (currentDraftRef.current !== submittedDraft)
+        setStatus(
+          "This revision is based on the earlier draft. Review it beside your current wording.",
+        );
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "AI reply is unavailable.");
     } finally {
@@ -331,6 +395,7 @@ export function WorkflowCommunicationPanel({
     if (!exactReplyPreview || !exactReplyConfirmed || sendNeedsReconciliation) return;
     setBusy(true);
     setStatus("");
+    let verifiedRefusal = false;
     try {
       const response = await fetch("/api/gmail-hub/send", {
         method: "POST",
@@ -357,6 +422,7 @@ export function WorkflowCommunicationPanel({
           );
           return;
         }
+        verifiedRefusal = true;
         clearExactReply();
         throw new Error(
           data.error ??
@@ -364,7 +430,6 @@ export function WorkflowCommunicationPanel({
         );
       }
       if (data.status !== "sent" || !data.result) {
-        clearExactReply();
         throw new Error("Gmail returned an invalid send receipt.");
       }
       setExactReplyReceipt({
@@ -381,8 +446,16 @@ export function WorkflowCommunicationPanel({
           : "The exact linked reply was sent once.",
       );
     } catch (error) {
+      if (!verifiedRefusal) {
+        setSendNeedsReconciliation(true);
+        setExactReplyConfirmed(false);
+      }
       setStatus(
-        error instanceof Error ? error.message : "The exact Gmail reply was not sent.",
+        verifiedRefusal
+          ? error instanceof Error
+            ? error.message
+            : "The exact reply was refused."
+          : "The reply outcome is unconfirmed. Recover this original attempt; do not send again.",
       );
     } finally {
       setBusy(false);
@@ -442,12 +515,36 @@ export function WorkflowCommunicationPanel({
   }
 
   return (
-    <details className="ui-stack workflow-communication-panel">
+    <details
+      className="ui-stack workflow-communication-panel"
+      aria-busy={busy || copyPending || undefined}
+    >
       <summary>Linked Gmail communication</summary>
-      <p className="muted">
-        Only communication deliberately linked to this workflow is readable here. Gmail
-        remains the message system of record.
-      </p>
+      <p className="muted">Workflow-linked threads · Gmail holds the messages.</p>
+      {busy ? (
+        <BusyIndicator
+          label={
+            aiOperation.snapshot.phase === "pending"
+              ? "Refining linked reply"
+              : "Working on linked communication"
+          }
+        />
+      ) : null}
+      {aiOperation.snapshot.phase === "pending" ? (
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={() => {
+            aiOperation.controller.stop();
+            setBusy(false);
+            setStatus(
+              "Stopped waiting locally. Your draft is kept; the server may still finish.",
+            );
+          }}
+        >
+          Stop waiting
+        </button>
+      ) : null}
       <button
         className="secondary-button"
         disabled={busy}
@@ -457,7 +554,9 @@ export function WorkflowCommunicationPanel({
         Load linked communication
       </button>
 
-      {links.length === 0 ? <p className="muted">No Gmail thread is linked.</p> : null}
+      {linksRead && links.length === 0 ? (
+        <p className="muted">No Gmail thread is linked.</p>
+      ) : null}
       {links.length > 0 ? (
         <ul className="compact-list">
           {links.map((link) => (
@@ -484,43 +583,9 @@ export function WorkflowCommunicationPanel({
         </ul>
       ) : null}
 
-      {canLink ? (
-        <div className="ui-stack">
-          <label className="field">
-            <span>Existing Gmail thread ID</span>
-            <input
-              maxLength={200}
-              onChange={(event) => setThreadId(event.target.value)}
-              value={threadId}
-            />
-          </label>
-          <label className="field">
-            <span>Why this thread belongs to this workflow</span>
-            <input
-              maxLength={500}
-              onChange={(event) => setLinkReason(event.target.value)}
-              value={linkReason}
-            />
-          </label>
-          <button
-            className="secondary-button"
-            disabled={busy || !threadId.trim() || !linkReason.trim()}
-            onClick={() => void linkThread()}
-            type="button"
-          >
-            Link this existing thread
-          </button>
-        </div>
-      ) : (
-        <p className="muted">
-          Gmail linking is unavailable for this workflow. Gmail mutations remain on their
-          separately gated surfaces.
-        </p>
-      )}
-
       {thread ? (
         <section className="ui-stack" aria-label="Linked Gmail thread detail">
-          <h4>Bounded thread detail</h4>
+          <h4>Selected thread</h4>
           <ol className="gmail-message-list">
             {thread.messages.map((message) => (
               <li key={message.id}>
@@ -664,7 +729,42 @@ export function WorkflowCommunicationPanel({
                   <p className="muted">
                     {aiReply.artifactRef} · {aiReply.policyRef}
                   </p>
-                  {aiReply.ok ? <pre>{aiReply.proposal}</pre> : null}
+                  {aiReply.ok ? (
+                    <>
+                      <pre>{aiReply.proposal}</pre>
+                      {replyBase !== currentDraft ? (
+                        <p className="muted">
+                          Revision from the earlier draft; your current wording is kept.
+                        </p>
+                      ) : null}
+                      <div className="ui-actions">
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          disabled={copyPending}
+                          aria-busy={copyPending || undefined}
+                          onClick={async () => {
+                            setCopyPending(true);
+                            setStatus("Copying reply wording…");
+                            try {
+                              await boundedLocalWait(
+                                navigator.clipboard.writeText(aiReply.proposal),
+                              );
+                              setStatus("Reply wording copied. Nothing was sent.");
+                            } catch {
+                              setStatus(
+                                "Copy was not confirmed. Select the displayed wording and copy it yourself.",
+                              );
+                            } finally {
+                              setCopyPending(false);
+                            }
+                          }}
+                        >
+                          Copy reply wording
+                        </button>
+                      </div>
+                    </>
+                  ) : null}
                   {aiReply.errors.length > 0 ? <p>{aiReply.errors.join(" ")}</p> : null}
                   <details>
                     <summary>Sources and changes</summary>
@@ -807,6 +907,41 @@ export function WorkflowCommunicationPanel({
           ) : null}
         </section>
       ) : null}
+
+      {canLink ? (
+        <details className="ui-stack">
+          <summary>Link another existing thread</summary>
+          <label className="field">
+            <span>Existing Gmail thread ID</span>
+            <input
+              maxLength={200}
+              onChange={(event) => setThreadId(event.target.value)}
+              value={threadId}
+            />
+          </label>
+          <label className="field">
+            <span>Why this thread belongs to this workflow</span>
+            <input
+              maxLength={500}
+              onChange={(event) => setLinkReason(event.target.value)}
+              value={linkReason}
+            />
+          </label>
+          <button
+            className="secondary-button"
+            disabled={busy || !threadId.trim() || !linkReason.trim()}
+            onClick={() => void linkThread()}
+            type="button"
+          >
+            Link this existing thread
+          </button>
+        </details>
+      ) : (
+        <p className="muted">
+          Gmail linking is unavailable for this workflow. Gmail mutations remain on their
+          separately gated surfaces.
+        </p>
+      )}
 
       {status ? (
         <p className="muted" role="status">

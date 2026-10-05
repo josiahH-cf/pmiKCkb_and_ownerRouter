@@ -4,6 +4,8 @@ import {
   createContext,
   useContext,
   useState,
+  useEffect,
+  useRef,
   type FormEventHandler,
   type ReactNode,
 } from "react";
@@ -30,10 +32,31 @@ export function RenewalDeskGetForm({
   stateKey: string;
 }>) {
   const [pendingForState, setPendingForState] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = pendingForState === stateKey;
+  useEffect(() => {
+    const settle = () => {
+      if (timer.current) clearTimeout(timer.current);
+      setPendingForState(null);
+    };
+    window.addEventListener("pmi:desk-view-settled", settle);
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+      window.removeEventListener("pmi:desk-view-settled", settle);
+    };
+  }, []);
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = () => {
     setPendingForState(stateKey);
+    setError("");
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      setPendingForState(null);
+      setError(
+        "The requested view has not finished opening. The previous view remains available; retry when ready.",
+      );
+    }, 30_000);
   };
 
   return (
@@ -46,6 +69,11 @@ export function RenewalDeskGetForm({
         onSubmit={handleSubmit}
       >
         {children}
+        {error ? (
+          <span className="error-text" role="alert">
+            {error}
+          </span>
+        ) : null}
         <span aria-live="polite" className="sr-only" role="status">
           {pending ? pendingLabel : ""}
         </span>

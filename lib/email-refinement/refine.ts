@@ -8,6 +8,7 @@
 import { DRAFT_BANNER } from "@/lib/constants";
 import { GEMINI_IN_GMAIL_HINT } from "@/lib/email-refinement/hint";
 import type { ModelProvider } from "@/lib/llm/model-provider";
+import { withReadDeadline } from "@/lib/observability/read-lifetime";
 
 export const EMAIL_REFINEMENT_VERSION = "email-refinement/v1";
 export const MAX_REFINED_BODY_LENGTH = 20_000;
@@ -285,15 +286,19 @@ export async function refineEmailDraft(
   };
   let text: string;
   try {
-    const response = await deps.provider.generateText({
-      purpose: `email.refine.${input.surface}`,
-      model: deps.model,
-      systemInstruction: REFINEMENT_SYSTEM_INSTRUCTION,
-      userContent: JSON.stringify(payload),
-      temperature: 0.2,
-      responseJsonSchema: RESPONSE_SCHEMA,
-      timeoutMs: deps.timeoutMs ?? 30_000,
-    });
+    const response = await withReadDeadline(
+      () =>
+        deps.provider.generateText({
+          purpose: `email.refine.${input.surface}`,
+          model: deps.model,
+          systemInstruction: REFINEMENT_SYSTEM_INSTRUCTION,
+          userContent: JSON.stringify(payload),
+          temperature: 0.2,
+          responseJsonSchema: RESPONSE_SCHEMA,
+          timeoutMs: deps.timeoutMs ?? 30_000,
+        }),
+      deps.timeoutMs ?? 30_000,
+    );
     text = response.text;
   } catch (error) {
     console.error(

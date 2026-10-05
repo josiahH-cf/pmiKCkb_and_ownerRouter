@@ -22,7 +22,7 @@ import { listApprovalQueue } from "@/lib/firestore/approval-queue";
 import { getConnectorConnectionStore } from "@/lib/firestore/connector-connections";
 import { listMaintenancePropertyPreapprovals } from "@/lib/firestore/maintenance-property-preapprovals";
 import { listMaintenanceTickets } from "@/lib/firestore/maintenance-tickets";
-import { getMaintenanceWorkOrderLink } from "@/lib/firestore/maintenance-work-order-links";
+import { listMaintenanceWorkOrderLinks } from "@/lib/firestore/maintenance-work-order-links";
 import { WorkAccountabilityStore } from "@/lib/firestore/work-accountability";
 import { listProcessDefinitions, listWorkflowRuns } from "@/lib/firestore/workflows";
 import { createGmailHubService } from "@/lib/gmail-hub/dependencies";
@@ -41,6 +41,7 @@ import {
   filterWorkflowRunsForUser,
 } from "@/lib/space-scope-resources";
 import { listWorkAssignableUsers } from "@/lib/work-accountability/roster";
+import { measureRead, withReadDeadline } from "@/lib/observability/read-lifetime";
 import {
   projectApprovalRead,
   projectCommunicationRead,
@@ -155,10 +156,15 @@ export function createServerOperationalContext(
       });
     },
     connections: async () => {
+      const [verifiedResult, recordsResult] = await Promise.allSettled([
+        withReadDeadline(() => getVerifiedConnectorIds()),
+        withReadDeadline(() => getConnectorConnectionStore().listConnections()),
+      ]);
       let verifiedIds: ReadonlySet<string> = new Set();
       let liveChecksFailed = false;
       try {
-        verifiedIds = await getVerifiedConnectorIds();
+        if (verifiedResult.status === "rejected") throw verifiedResult.reason;
+        verifiedIds = verifiedResult.value;
       } catch (error) {
         logReadFailure("connections.live_checks", error);
         liveChecksFailed = true;
@@ -166,7 +172,8 @@ export function createServerOperationalContext(
       let connections = new Map<string, ConnectorConnectionView>();
       try {
         const canManage = can(user.role, "manageAdmin");
-        const records = await getConnectorConnectionStore().listConnections();
+        if (recordsResult.status === "rejected") throw recordsResult.reason;
+        const records = recordsResult.value;
         connections = new Map(
           records.map((record) => [
             record.connectorId,
@@ -184,11 +191,19 @@ export function createServerOperationalContext(
       });
     },
     processes: async () => {
+      const [definitionsResult, runsResult] = await Promise.allSettled([
+        withReadDeadline(() => listProcessDefinitions(user)),
+        withReadDeadline(() => listWorkflowRuns(user)),
+      ]);
       let definitions;
       try {
         definitions = filterProcessDefinitionsForUser(
           user,
-          await listProcessDefinitions(user),
+          definitionsResult.status === "fulfilled"
+            ? definitionsResult.value
+            : (() => {
+                throw definitionsResult.reason;
+              })(),
         );
       } catch (error) {
         logReadFailure("processes", error);
@@ -198,7 +213,8 @@ export function createServerOperationalContext(
         );
       }
       try {
-        const runs = filterWorkflowRunsForUser(user, await listWorkflowRuns(user));
+        if (runsResult.status === "rejected") throw runsResult.reason;
+        const runs = filterWorkflowRunsForUser(user, runsResult.value);
         return projectProcessRead({ definitions, runs, runsFailed: false, asOf: nowIso });
       } catch (error) {
         logReadFailure("processes.runs", error);
@@ -229,15 +245,18 @@ export function createServerOperationalContext(
       const waitingOn = new Map<string, MaintenanceWaitingOnProjection>();
       let blockerViewFailed = false;
       try {
-        const preapprovals = await listMaintenancePropertyPreapprovals(user);
+        const [preapprovals, links] = await Promise.all([
+          withReadDeadline(() => listMaintenancePropertyPreapprovals(user)),
+          listMaintenanceWorkOrderLinks(
+            user,
+            tickets.map((ticket) => ticket.id),
+          ),
+        ]);
         const byProperty = new Map(
           preapprovals.map((entry) => [entry.property_key, entry] as const),
         );
-        const links = await Promise.all(
-          tickets.map(async (ticket) => getMaintenanceWorkOrderLink(user, ticket.id)),
-        );
-        tickets.forEach((ticket, index) => {
-          const link = links[index] ?? null;
+        tickets.forEach((ticket) => {
+          const link = links.get(ticket.id) ?? null;
           const { propertyId } = maintenancePropertyIdentity(ticket, link);
           waitingOn.set(
             ticket.id,
@@ -280,7 +299,7 @@ export function createServerOperationalContext(
   function once<T>(key: string, load: () => Promise<T>): Promise<T> {
     let pending = memo.get(key) as Promise<T> | undefined;
     if (!pending) {
-      pending = load();
+      pending = measureRead("assistant.sources", load);
       memo.set(key, pending);
     }
     return pending;
@@ -290,7 +309,11 @@ export function createServerOperationalContext(
     actorUid: user.uid,
     nowIso,
     read: <S extends OperationalSource>(source: S) =>
-      once(source, loaders[source] as () => Promise<TypedSourceRead<S>>),
+      once(source, () =>
+        withReadDeadline(loaders[source] as () => Promise<TypedSourceRead<S>>).catch(() =>
+          unavailableRead(source, "This source did not finish. Retry the current read."),
+        ),
+      ),
     readTeamWork: () =>
       once("work.team", async () => {
         if (user.role !== "Admin")
@@ -300,7 +323,9 @@ export function createServerOperationalContext(
           );
         try {
           return projectWorkRead(
-            await new WorkAccountabilityStore({ db: db() }).listSnapshot(user, "team"),
+            await withReadDeadline(() =>
+              new WorkAccountabilityStore({ db: db() }).listSnapshot(user, "team"),
+            ),
           );
         } catch (error) {
           logReadFailure("work.team", error);
@@ -314,11 +339,13 @@ export function createServerOperationalContext(
       once("people", async (): Promise<readonly KnownPerson[] | null> => {
         if (user.role !== "Admin") return null;
         try {
-          return (await listWorkAssignableUsers()).map((person) => ({
-            uid: person.uid,
-            label: person.email,
-            email: person.email,
-          }));
+          return (await withReadDeadline(() => listWorkAssignableUsers())).map(
+            (person) => ({
+              uid: person.uid,
+              label: person.email,
+              email: person.email,
+            }),
+          );
         } catch (error) {
           logReadFailure("people", error);
           return null;

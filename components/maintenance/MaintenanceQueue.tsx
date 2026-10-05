@@ -1,4 +1,9 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import {
+  PersonalViewStatus,
+  usePersonalFilters,
+} from "@/components/layout/PersonalViewProvider";
 
 import { formatBusinessTimestamp } from "@/lib/date-display";
 import { useEffect, useState } from "react";
@@ -78,8 +83,20 @@ export function MaintenanceQueue({
   const [transitionReason, setTransitionReason] = useState("");
   const [transitionError, setTransitionError] = useState("");
   const [status, setStatus] = useState("");
-  const [assignedToMe, setAssignedToMe] = useState(false);
-  const [waitingFilter, setWaitingFilter] = useState<MaintenanceWaitingOn | "all">("all");
+  const [viewFilters, setViewFilters, resetView] = usePersonalFilters(
+    "maintenance-queue",
+    { assignee: "", waiting: "all" },
+  );
+  const assignedToMe = viewFilters.assignee === "mine";
+  const waitingFilter: MaintenanceWaitingOn | "all" = MAINTENANCE_WAITING_ON.includes(
+    viewFilters.waiting as MaintenanceWaitingOn,
+  )
+    ? (viewFilters.waiting as MaintenanceWaitingOn)
+    : "all";
+  const setAssignedToMe = (value: boolean) =>
+    setViewFilters((current) => ({ ...current, assignee: value ? "mine" : "" }));
+  const setWaitingFilter = (value: MaintenanceWaitingOn | "all") =>
+    setViewFilters((current) => ({ ...current, waiting: value }));
 
   useEffect(() => {
     if (!focusedTicket) return;
@@ -225,6 +242,19 @@ export function MaintenanceQueue({
           </select>
         </label>
       </div>
+      <div className="ui-actions">
+        <PersonalViewStatus surface="maintenance-queue" />
+        <button
+          className="text-link"
+          type="button"
+          onClick={() => setViewFilters({ assignee: "", waiting: "all" })}
+        >
+          Clear filters
+        </button>
+        <button className="text-link" type="button" onClick={resetView}>
+          Reset view
+        </button>
+      </div>
       {tickets.length === 0 ? (
         <p className="muted">
           No tickets yet. Build a work-order draft and create a ticket.
@@ -236,7 +266,11 @@ export function MaintenanceQueue({
         </p>
       ) : null}
       {tickets.length > 0 && open.length === 0 && closed.length === 0 ? (
-        <p className="muted">No tickets assigned to you.</p>
+        <p className="muted">
+          {assignedToMe && waitingFilter === "all"
+            ? "No tickets assigned to you."
+            : "No tickets match these filters."}
+        </p>
       ) : null}
       {open.map((ticket) => (
         <TicketCard

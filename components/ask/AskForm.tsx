@@ -27,6 +27,8 @@ import {
   type DashboardTurnState,
 } from "@/components/ask/DashboardTurnView";
 import { Button } from "@/components/ui";
+import { OperationController } from "@/lib/ui/operation";
+import { fetchWithDeadline, fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import {
   beginHistoryTurn,
   fetchConversation,
@@ -203,21 +205,38 @@ function sortSaved(items: readonly SavedQuestionView[]): SavedQuestionView[] {
  * reopening a conversation or a saved question's last answer shows it as stored without asking
  * again, and running a saved question for current results adds a new answer beside the old one.
  */
-export function AskForm({
+type AskFormProps = Readonly<{
+  secondary?: ReactNode;
+  historyMode?: HistoryMode;
+  ownerKey?: string;
+  initialHistory?: Promise<HistoryPageOutcome> | null;
+  initialSaved?: Promise<SavedListOutcome> | null;
+}>;
+export function AskForm(props: AskFormProps) {
+  return (
+    <OwnedAskForm
+      key={`${props.ownerKey ?? ""}:${props.historyMode ?? "unavailable"}`}
+      {...props}
+    />
+  );
+}
+function OwnedAskForm({
   secondary,
   historyMode = "unavailable",
   ownerKey = "",
   initialHistory = null,
   initialSaved = null,
-}: Readonly<{
-  secondary?: ReactNode;
-  historyMode?: HistoryMode;
-  ownerKey?: string;
-  /** The first history page, read on the server and streamed in; never fetched on mount. */
-  initialHistory?: Promise<HistoryPageOutcome> | null;
-  /** S149: the saved questions, read on the server and streamed in; never fetched on mount. */
-  initialSaved?: Promise<SavedListOutcome> | null;
-}>) {
+}: AskFormProps) {
+  const operations = useRef(new Map<string, OperationController>());
+  const live = useRef(true);
+  useEffect(() => {
+    live.current = true;
+    const pending = operations.current;
+    return () => {
+      live.current = false;
+      pending.forEach((operation) => operation.stop());
+    };
+  }, []);
   // Until hydration, a native form submit would put the question in the page URL.
   const ready = useSyncExternalStore(subscribeToHydration, clientReady, serverReady);
   const saving = historyMode === "saved";
@@ -250,6 +269,7 @@ export function AskForm({
   const turnRefs = useRef(new Map<string, HTMLElement>());
   const typedSinceSubmit = useRef(false);
   const pendingFocus = useRef<string | null>(null);
+  const openingGeneration = useRef(0);
   // The latest conversations for async save steps; handlers also update it before their setState.
   const conversationsRef = useRef(conversations);
   useLayoutEffect(() => {
@@ -428,9 +448,11 @@ export function AskForm({
 
   async function askKnowledge(
     asked: string,
+    signal?: AbortSignal,
   ): Promise<{ answer: AskResponse | null; error: string | null }> {
     try {
-      const response = await fetch("/api/ask", {
+      const response = await fetchWithDeadline("/api/ask", {
+        signal,
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ question: asked, draft_enabled: true }),
@@ -450,7 +472,41 @@ export function AskForm({
     }
   }
 
+  function stopWaiting(conversationId: string, turn: DashboardTurn) {
+    operations.current.get(turn.id)?.stop();
+    applyToTurnNow(conversationId, turn.id, { state: "interrupted", error: null });
+    updateTurn(conversationId, turn.id, (current) => ({
+      ...current,
+      state: "interrupted",
+      error: null,
+    }));
+    setAnnouncement(
+      "Stopped waiting locally. The server may still finish; Retry recovers this same question.",
+    );
+  }
   async function runTurn(conversationId: string, turn: DashboardTurn) {
+    const operation = operations.current.get(turn.id) ?? new OperationController();
+    operations.current.set(turn.id, operation);
+    const result = await operation.run("Working on your answer", (signal) =>
+      executeTurn(conversationId, turn, signal, operation),
+    );
+    if (
+      !live.current ||
+      result.outcome === "succeeded" ||
+      result.outcome === "superseded"
+    )
+      return;
+    const current = conversationsRef.current
+      .find((entry) => entry.id === conversationId)
+      ?.turns.find((entry) => entry.id === turn.id);
+    if (current?.state === "pending") stopWaiting(conversationId, turn);
+  }
+  async function executeTurn(
+    conversationId: string,
+    turn: DashboardTurn,
+    signal: AbortSignal,
+    operation: OperationController,
+  ) {
     const asked = turn.question;
     let assistant: ConversationAnswer | null = null;
     let assistantUnavailable = false;
@@ -460,7 +516,8 @@ export function AskForm({
       // continuing this conversation. A policy or how-to question (or the policy half of a mixed
       // question) also continues to the knowledge answer below. S148: the operation id lets the
       // server reuse this submission's answer for a duplicate delivery instead of asking again.
-      const response = await fetch("/api/assistant/query", {
+      const response = await fetchWithDeadline("/api/assistant/query", {
+        signal,
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -479,11 +536,17 @@ export function AskForm({
       assistantUnavailable = true;
     }
 
+    if (!live.current || signal.aborted || operation.getSnapshot().phase !== "pending")
+      return;
+
     let knowledge: { answer: AskResponse | null; error: string | null } = {
       answer: null,
       error: null,
     };
-    if (!assistant || assistant.knowledgeQuestion) knowledge = await askKnowledge(asked);
+    if (!assistant || assistant.knowledgeQuestion)
+      knowledge = await askKnowledge(asked, signal);
+    if (!live.current || signal.aborted || operation.getSnapshot().phase !== "pending")
+      return;
     const answered = Boolean(assistant) || Boolean(knowledge.answer);
     finishTurn(conversationId, turn.id, asked, {
       state: answered ? "answered" : "failed",
@@ -597,7 +660,7 @@ export function AskForm({
   }
 
   async function retry(conversationId: string, turn: DashboardTurn) {
-    if (turn.state !== "failed" || turn.restored) return;
+    if (!["failed", "interrupted"].includes(turn.state) || turn.restored) return;
     updateTurn(conversationId, turn.id, (current) => ({
       ...current,
       state: "pending",
@@ -613,6 +676,11 @@ export function AskForm({
   }
 
   function startNewConversation() {
+    openingGeneration.current += 1;
+    setOpening(null);
+    active.turns
+      .filter((turn) => turn.state === "pending")
+      .forEach((turn) => stopWaiting(active.id, turn));
     const next = newConversation();
     conversationsRef.current = [next, ...conversationsRef.current];
     setConversations((previous) => [next, ...previous]);
@@ -638,6 +706,11 @@ export function AskForm({
   }
 
   function reopenConversation(id: string) {
+    openingGeneration.current += 1;
+    setOpening(null);
+    active.turns
+      .filter((turn) => turn.state === "pending")
+      .forEach((turn) => stopWaiting(active.id, turn));
     setActiveId(id);
     setAnnouncement("Opened an earlier conversation. Nothing was asked again.");
     focusTurn(
@@ -655,6 +728,10 @@ export function AskForm({
     focusTurnId: string | null,
     openedMessage: (updatedAtIso: string) => string,
   ): Promise<string | null> {
+    const generation = ++openingGeneration.current;
+    active.turns
+      .filter((turn) => turn.state === "pending")
+      .forEach((turn) => stopWaiting(active.id, turn));
     const loaded = conversationsRef.current.find(
       (entry) => entry.serverId === conversationId,
     );
@@ -666,6 +743,7 @@ export function AskForm({
     }
     setOpening(conversationId);
     const restored = await fetchConversation(conversationId);
+    if (!live.current || generation !== openingGeneration.current) return null;
     setOpening(null);
     if (!restored || restored.ownerKey !== ownerKey) {
       setAnnouncement(
@@ -760,8 +838,33 @@ export function AskForm({
   }
 
   async function runRerun(conversationId: string, turn: DashboardTurn, savedId: string) {
+    const operation = operations.current.get(turn.id) ?? new OperationController();
+    operations.current.set(turn.id, operation);
+    const result = await operation.run("Reading current results", (signal) =>
+      executeRerun(conversationId, turn, savedId, signal, operation),
+    );
+    if (
+      !live.current ||
+      result.outcome === "succeeded" ||
+      result.outcome === "superseded"
+    )
+      return;
+    const current = conversationsRef.current
+      .find((entry) => entry.id === conversationId)
+      ?.turns.find((entry) => entry.id === turn.id);
+    if (current?.state === "pending") stopWaiting(conversationId, turn);
+  }
+  async function executeRerun(
+    conversationId: string,
+    turn: DashboardTurn,
+    savedId: string,
+    signal: AbortSignal,
+    operation: OperationController,
+  ) {
     setAnnouncement("Running your saved question for current results.");
     const outcome = await runSavedQuestionRequest(savedId, turn.id);
+    if (!live.current || signal.aborted || operation.getSnapshot().phase !== "pending")
+      return;
     if (outcome.status !== "ok") {
       const error = outcome.status === "unsupported" ? RERUN_UNSUPPORTED : RERUN_FAILED;
       const next: Partial<DashboardTurn> = { state: "failed", error };
@@ -1050,7 +1153,7 @@ export function AskForm({
             aria-required="true"
             disabled={!ready}
             id="question"
-            minLength={3}
+            minLength={1}
             name="question"
             onChange={(event) => {
               typedSinceSubmit.current = true;
@@ -1062,8 +1165,7 @@ export function AskForm({
             value={question}
           />
           <p className="muted dictate-hint" id="question-hint">
-            Ask in plain language. For example: when does the lease at 1234 Oak St, Unit 2
-            renew? You can type it or use Dictate to speak it.
+            Tenant, owner, property, or work question.
           </p>
           <div className="dashboard-examples" role="group" aria-label="Example questions">
             {DASHBOARD_EXAMPLE_QUESTIONS.map((example) => (
@@ -1136,6 +1238,7 @@ export function AskForm({
                     }
                     index={index}
                     onRetry={() => void retry(active.id, turn)}
+                    onStop={() => stopWaiting(active.id, turn)}
                     onRetrySave={() => void saveTurn(active.id, turn.id)}
                     onSaveQuestion={() => void saveQuestionFor(active.id, turn)}
                     registerRef={(element) => {

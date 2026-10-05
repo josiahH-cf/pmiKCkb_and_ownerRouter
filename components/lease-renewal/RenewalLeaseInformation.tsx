@@ -262,9 +262,8 @@ export function RenewalLeaseInformation({
             read={workStatus}
           />
           <p className="muted">
-            The status and notes are staff information for finding and resuming work. They
-            record what staff report, separately from owner approval, sent messages,
-            signatures, completion and source updates.
+            Staff reports. Approvals, source updates, sent messages and signatures require
+            their own evidence.
           </p>
         </section>
       ) : null}
@@ -303,10 +302,6 @@ export function RenewalLeaseInformation({
             )}
           </Row>
         </dl>
-        <p className="muted">
-          Review or change rent and charges in Lease details. This panel reads the same
-          current values and never changes them.
-        </p>
       </section>
 
       <PartyGroup
@@ -381,10 +376,6 @@ export function RenewalLeaseInformation({
             workspaceContext={sheetLookup.workspaceContext}
           />
         ) : null}
-        <p className="muted">
-          Copying details here does not verify an address, approve a message or change a
-          source.
-        </p>
       </section>
     </div>
   );

@@ -101,17 +101,6 @@ export const CONNECTORS: readonly ConnectorDef[] = [
     requiredConfig: ["LEADSIMPLE_API_KEY"],
   },
   {
-    id: "gmail_sender",
-    name: "Gmail (legacy notification sender)",
-    powers: "Disabled. Approval notifications are in-app for the first release.",
-    method: "google",
-    requiredConfig: [],
-    availability: "governance_closed",
-    availabilityDetail:
-      "The legacy notification sender is closed by governance. Approval attention stays in-app, and there is no connection setup step.",
-    managementMode: "status_only",
-  },
-  {
     id: "gmail_inbox",
     name: "Gmail (workflow communications)",
     powers:

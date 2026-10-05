@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { useRenewalSaveFocus } from "./RenewalSaveFocus";
 
 import { useState } from "react";
@@ -90,10 +91,7 @@ export function DiscrepancyDispositionPanel({
     <article className="panel ui-stack" aria-labelledby="discrepancy-disposition-title">
       <div>
         <h2 id="discrepancy-disposition-title">Discrepancy disposition</h2>
-        <p className="muted">
-          Record which source should win and why. This is an audited decision record only;
-          it cannot write RentVine or the operating Sheet.
-        </p>
+        <p className="muted">Saved in the app · no RentVine or Sheet update.</p>
       </div>
       <form
         className="ui-stack"

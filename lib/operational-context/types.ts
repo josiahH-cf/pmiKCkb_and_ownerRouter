@@ -34,6 +34,8 @@ export interface OperationalRecord<F = unknown> {
   readonly detail: string;
   /** An exact in-app link to the owning view. Never a provider URL. */
   readonly href: string;
+  /** A server-validated, in-app source resolver; never a caller-supplied provider URL. */
+  readonly sourceHref?: string;
   readonly blockers: readonly string[];
   /** Typed filter facts: stable ids, dates and states only; never message bodies or secrets. */
   readonly facts: F;
@@ -73,6 +75,8 @@ export interface RenewalRecordFacts {
   readonly ownerNames: readonly string[];
   readonly tenantNames: readonly string[];
   readonly address: string;
+  readonly propertyName?: string | null;
+  readonly unitLabel?: string | null;
   readonly stage: string | null;
   readonly nextAction: string | null;
   readonly waitingOn: string | null;

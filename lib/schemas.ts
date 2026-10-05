@@ -8,7 +8,7 @@ const CaptureSourceStates = [
 ] as const;
 
 export const AskRequestSchema = z.object({
-  question: z.string().trim().min(3),
+  question: z.string().trim().min(1),
   draft_enabled: z.boolean().default(true),
   space: z.string().trim().optional(),
   // The process the question is asked in (action console). Optional; resolved server-side to context.
@@ -55,7 +55,7 @@ export const AskResponseSchema = z.object({
 export const AskCaptureRequestSchema = z.object({
   owner_uid: z.string().trim().min(1).optional(),
   priority: z.enum(["P0", "P1", "P2"]).default("P1"),
-  question: z.string().trim().min(3),
+  question: z.string().trim().min(1),
   related_sop_id: z.string().trim().min(1).optional(),
   source_hint: z.string().trim().optional(),
   source_state: z.enum(CaptureSourceStates),
@@ -75,7 +75,7 @@ export const AskCorrectionKinds = [
 export const CorrectionRequestSchema = z.object({
   ask_log_id: z.string().trim().min(1).optional(),
   space_id: z.string().trim().min(1),
-  question: z.string().trim().min(3),
+  question: z.string().trim().min(1),
   kind: z.enum(AskCorrectionKinds),
   note: z.string().trim().min(1),
   source_state: z.string().trim().optional(),

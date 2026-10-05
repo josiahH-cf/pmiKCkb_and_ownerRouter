@@ -154,13 +154,11 @@ describe("S165 no page-level horizontal scroll (AC-S165-2, BEH-S165-4)", () => {
 
   it("the renewal table region is labelled and reachable without a pointer", () => {
     const desk = read("components/lease-renewal/RenewalDeskTable.tsx");
-    const region =
-      /<div\s+className="renewal-table-scroll"[\s\S]*?>\s*<table className="renewal-table">/.exec(
-        desk,
-      );
-    expect(region?.[0]).toContain('role="region"');
-    expect(region?.[0]).toContain("aria-label=");
-    expect(region?.[0]).toContain("tabIndex={0}");
+    expect(desk).toMatch(/<DataTableFrame[^>]*className="renewal-table-scroll"/);
+    const frame = read("components/ui/DataTableFrame.tsx");
+    expect(frame).toContain('role="region"');
+    expect(frame).toContain("aria-label={label}");
+    expect(frame).toContain("tabIndex={0}");
   });
 
   it("every table in the app sits inside a contained horizontal scroll wrapper", () => {
@@ -173,7 +171,8 @@ describe("S165 no page-level horizontal scroll (AC-S165-2, BEH-S165-4)", () => {
         const before = source.slice(Math.max(0, match.index - 400), match.index);
         const lastOpenDiv = before.lastIndexOf("<div");
         const wrapper = lastOpenDiv === -1 ? "" : before.slice(lastOpenDiv);
-        if (!wrappers.some((name) => wrapper.includes(name))) {
+        const tableFrame = /<DataTableFrame[^>]*>[\s\S]*$/.test(before);
+        if (!tableFrame && !wrappers.some((name) => wrapper.includes(name))) {
           unwrapped.push(relative(ROOT, file).split(sep).join("/"));
         }
       }

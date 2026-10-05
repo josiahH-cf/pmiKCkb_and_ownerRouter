@@ -17,9 +17,7 @@ export function LeaseDecisionProjectionPanel({
       <div>
         <h2 className="section-subtitle">{title}</h2>
         <p className="muted">
-          Bodyless app decision and authorization state. Proposed/source values remain on
-          the owning renewal record; authorization stays app-only; provider execution is a
-          separate, later step.
+          App decisions · provider updates require separate confirmation.
         </p>
       </div>
 

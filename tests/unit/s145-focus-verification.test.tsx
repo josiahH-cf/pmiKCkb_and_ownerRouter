@@ -933,7 +933,9 @@ describe(
         channel: "tenant",
         confirm: { executionId: PREVIEW.executionId, previewHash: PREVIEW.previewHash },
       });
-      expect(within(card).getByText(/A person sends from Gmail/)).toBeVisible();
+      for (const consequence of within(card).getAllByText(/A person sends from Gmail/)) {
+        expect(consequence).toBeVisible();
+      }
 
       // Opening Gmail and coming back records nothing: the offer is still outstanding staff work.
       await act(async () => {

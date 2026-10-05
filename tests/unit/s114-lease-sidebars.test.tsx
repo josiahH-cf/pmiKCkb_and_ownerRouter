@@ -140,6 +140,11 @@ describe("S114 independent lease-information and process sidebars", () => {
     );
     // The party without an address is named, never silently dropped or invented.
     expect(within(info).getAllByText(/no email on file/i).length).toBeGreaterThan(0);
+    await vi.waitFor(() =>
+      expect(
+        within(info).getByRole("button", { name: "Copy all tenant names and emails" }),
+      ).toBeEnabled(),
+    );
 
     fireEvent.click(
       within(info).getByRole("button", { name: "Copy all tenant names and emails" }),
@@ -171,7 +176,7 @@ describe("S114 independent lease-information and process sidebars", () => {
         name: "Copy tenant email: maria.ortega@example.test",
       }),
     );
-    await within(info).findByText(/Clipboard access was denied/);
+    await within(info).findByText(/Copy was not confirmed\. Select the displayed value/);
     const value = within(info)
       .getAllByText("maria.ortega@example.test")
       .find((element) => element.classList.contains("renewal-copy-value"));

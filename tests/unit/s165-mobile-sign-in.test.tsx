@@ -9,7 +9,7 @@
 // ID token to the same staff session route.
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -107,6 +107,59 @@ afterEach(() => {
   vi.clearAllMocks();
   vi.unstubAllGlobals();
   setUserAgent(originalUserAgent);
+  vi.useRealTimers();
+});
+
+it("S170 an in-app-browser page-link copy acknowledges and bounds its actual clipboard wait", async () => {
+  setUserAgent(IOS_GOOGLE_APP);
+  vi.useFakeTimers();
+  const original = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText: vi.fn(() => new Promise(() => {})) },
+  });
+  try {
+    render(<SignInPanel allowedHostedDomain="example.test" returnTo="/work" />);
+    await act(async () => vi.advanceTimersByTimeAsync(1));
+    fireEvent.click(screen.getByRole("button", { name: "Copy page link" }));
+    expect(screen.getByRole("status", { name: "Copying page link" })).toBeVisible();
+    await act(async () => vi.advanceTimersByTimeAsync(8_001));
+    expect(screen.getByLabelText<HTMLInputElement>("Page link").value).toBe(
+      new URL("/work", window.location.origin).href,
+    );
+    expect(screen.queryByText("Link copied.")).toBeNull();
+  } finally {
+    if (original) Object.defineProperty(navigator, "clipboard", original);
+    else Reflect.deleteProperty(navigator, "clipboard");
+  }
+});
+it("S170 a page-link copy retired by a new return destination cannot confirm that new link copied", async () => {
+  setUserAgent(IOS_GOOGLE_APP);
+  let finish!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  const original = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+  Object.defineProperty(navigator, "clipboard", {
+    configurable: true,
+    value: { writeText: vi.fn(() => pending) },
+  });
+  try {
+    const owner = render(
+      <SignInPanel allowedHostedDomain="example.test" returnTo="/work" />,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Copy page link" }));
+    await act(async () => {});
+    owner.rerender(
+      <SignInPanel allowedHostedDomain="example.test" returnTo="/connections" />,
+    );
+    await act(async () => finish());
+    expect(screen.queryByText("Link copied.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Copy page link" })).toBeEnabled();
+  } finally {
+    if (original) Object.defineProperty(navigator, "clipboard", original);
+    else Reflect.deleteProperty(navigator, "clipboard");
+  }
 });
 
 describe("S165 mobile sign-in: which Google path is used", () => {

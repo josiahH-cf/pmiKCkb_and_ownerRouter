@@ -278,7 +278,7 @@ export default async function AdminPage() {
       }}
       user={user}
     >
-      <section className="content">
+      <section className="content content--workspace">
         <h1 className="section-title">Admin</h1>
         <AdminTaskIndex />
 
@@ -289,14 +289,12 @@ export default async function AdminPage() {
           tabIndex={-1}
         >
           <h2 className="section-subtitle">People and Access</h2>
-          <p className="muted">Who can use the app and what they can do.</p>
           <div className="grid two">
             <article className="panel">
               <h2>Access</h2>
               <p className="muted">
-                Anyone who signs in with a {config.allowedHostedDomain} Google account
-                starts as an Editor. Promote a teammate to Approver or Admin to let them
-                approve work.
+                {config.allowedHostedDomain} staff start as Editors. Approver and Admin
+                roles can approve work.
               </p>
               <p>
                 <Link href="/admin/access">Open My access and request access</Link>
@@ -319,17 +317,10 @@ export default async function AdminPage() {
                   Manage Live Vendor accounts and assignments
                 </Link>
               </p>
-              <p className="muted">
-                The terminal command <code>npm run firebase:set-role</code> stays as a
-                break-glass path for the first Admin.
-              </p>
             </article>
             <article className="panel">
-              <h2>Domain</h2>
+              <h2>Sign-in domain</h2>
               <p>{config.allowedHostedDomain}</p>
-              <p className="muted">
-                The only Google Workspace domain allowed to sign in.
-              </p>
             </article>
           </div>
         </section>
@@ -341,9 +332,6 @@ export default async function AdminPage() {
           tabIndex={-1}
         >
           <h2 className="section-subtitle">Activity and Logs</h2>
-          <p className="muted">
-            Recent usage, approval-queue depth, and notification health.
-          </p>
           <div className="task-anchor" id="admin-runtime-suspensions" tabIndex={-1}>
             <RuntimeSuspensionAdminPanel
               initialActions={runtimeSuspensionActions}
@@ -460,9 +448,6 @@ export default async function AdminPage() {
           tabIndex={-1}
         >
           <h2 className="section-subtitle">App Info and Readiness</h2>
-          <p className="muted">
-            Configuration, migration readiness, and connected-service consoles.
-          </p>
           <div className="task-anchor" id="admin-kb-corrections" tabIndex={-1}>
             <KbCorrectionsPanel
               proposed={proposedCorrections}
@@ -504,11 +489,7 @@ export default async function AdminPage() {
             </article>
             <article className="panel">
               <h2>Spaces</h2>
-              <p className="muted">
-                Request a new Space. The app records it and prints the exact commands to
-                review one fixed GCS + Discovery Engine resource plan. Generic cloud
-                commands and caller-selected IAM are not exposed.
-              </p>
+              <p className="muted">Requests await review of an exact resource plan.</p>
               <Link href="/admin/spaces/request">Request a new Space</Link>
             </article>
           </div>
@@ -576,9 +557,7 @@ export default async function AdminPage() {
           <article className="panel">
             <h2>Workflow Communications</h2>
             <p className="muted">
-              Governance view for workflow-linked Gmail status, the approved label
-              taxonomy, and synthetic rule/template examples. Gmail runtime stays
-              action-gated.
+              Workflow Gmail remains action-gated; rule examples are local only.
             </p>
             <Link href="/admin/gmail-inbox-zero">Open communication governance</Link>
           </article>

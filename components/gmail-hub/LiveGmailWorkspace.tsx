@@ -1,10 +1,11 @@
 "use client";
-
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useOperation } from "@/components/hooks/useOperation";
+import { Button, BusyIndicator, Disclosure } from "@/components/ui";
 import { WAITING_ON_GMAIL } from "@/lib/notifications/families";
 import { formatBusinessTimestamp } from "@/lib/date-display";
+import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
 
 interface CommunicationAttention {
   id: string;
@@ -18,171 +19,223 @@ interface CommunicationAttention {
   lastContactAtMs?: number;
   lastContactSource?: "gmail_thread";
 }
-
 export function LiveGmailWorkspace({
   authenticatedEmail,
 }: {
   authenticatedEmail: string;
 }) {
-  const hasAuthenticatedMailbox = /^[^@\s]+@[^@\s]+$/.test(authenticatedEmail);
-  const [connection, setConnection] = useState<
-    "checking" | "gated" | "connected" | "degraded"
-  >(hasAuthenticatedMailbox ? "checking" : "gated");
-  const [connectionMessage, setConnectionMessage] = useState(WAITING_ON_GMAIL);
-  const [connectedEmail, setConnectedEmail] = useState(authenticatedEmail);
-  const [syncMessage, setSyncMessage] = useState(
-    "Read-only manual refresh has not run in this session",
+  return (
+    <OwnedLiveGmailWorkspace
+      key={authenticatedEmail}
+      authenticatedEmail={authenticatedEmail}
+    />
   );
-  const [communications, setCommunications] = useState<CommunicationAttention[]>([]);
+}
+function OwnedLiveGmailWorkspace({ authenticatedEmail }: { authenticatedEmail: string }) {
+  const hasMailbox = /^[^@\s]+@[^@\s]+$/.test(authenticatedEmail);
+  const health = useOperation(authenticatedEmail);
+  const attention = useOperation(authenticatedEmail);
+  const refresh = useOperation(authenticatedEmail);
+  const scope = useRef(authenticatedEmail);
+  const [checkedFor, setCheckedFor] = useState<string | null>(null);
+  const [connection, setConnection] = useState<
+    "checking" | "gated" | "connected" | "degraded" | "forbidden"
+  >(hasMailbox ? "checking" : "gated");
+  const [message, setMessage] = useState("");
+  const [mailbox, setMailbox] = useState(authenticatedEmail);
+  const [syncMessage, setSyncMessage] = useState(
+    "Manual refresh has not run in this session.",
+  );
+  const [communications, setCommunications] = useState<CommunicationAttention[] | null>(
+    null,
+  );
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-
+  const refreshKey = useRef<string | null>(null);
   const loadCommunications = useCallback(async () => {
-    const response = await fetch("/api/gmail-hub/communications");
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error ?? "Workflow communications could not be loaded.");
+    const account = authenticatedEmail;
+    const result = await attention.controller.run(
+      "Loading linked conversations",
+      async (signal) => {
+        const response = await fetchWithDeadline("/api/gmail-hub/communications", {
+          signal,
+          cache: "no-store",
+        });
+        const data = await response.json();
+        if (!response.ok)
+          throw new Error(data.error ?? "Linked conversations could not be read.");
+        if (!Array.isArray(data.communications))
+          throw new Error("The linked conversation response could not be validated.");
+        return data.communications as CommunicationAttention[];
+      },
+    );
+    if (scope.current !== account || result.outcome === "superseded") return;
+    if (result.outcome === "succeeded") {
+      setCommunications(result.value);
+      setError("");
+    } else
+      setError(
+        "Linked conversations are unavailable. The previous list may be incomplete; retry the read.",
+      );
+  }, [authenticatedEmail, attention.controller]);
+  const checkConnection = useCallback(async () => {
+    const account = authenticatedEmail;
+    const result = await health.controller.run("Checking connection", async (signal) => {
+      const response = await fetchWithDeadline("/api/gmail-hub/connection", {
+        signal,
+        cache: "no-store",
+      });
+      return { response, data: await response.json() };
+    });
+    if (scope.current !== account || result.outcome === "superseded") return;
+    setCheckedFor(account);
+    if (result.outcome !== "succeeded") {
+      setConnection("degraded");
+      setMessage("Gmail connection health could not be checked. Retry the check.");
+      return;
     }
-    setCommunications((data.communications ?? []) as CommunicationAttention[]);
-  }, []);
-
+    const { response, data } = result.value;
+    if (
+      response.ok &&
+      data.status === "connected" &&
+      typeof data.mailboxEmail === "string" &&
+      data.mailboxEmail.toLowerCase() === account.toLowerCase()
+    ) {
+      setConnection("connected");
+      setMailbox(data.mailboxEmail);
+      setMessage("Connected");
+      setSyncMessage(
+        data.sync?.lastSuccessfulSyncMs
+          ? `Last refresh: ${formatBusinessTimestamp(data.sync.lastSuccessfulSyncMs)}`
+          : "Manual read-only refresh is ready.",
+      );
+      void loadCommunications();
+    } else {
+      setConnection(
+        response.status === 401 || response.status === 403
+          ? "forbidden"
+          : response.status === 503 || data.status === "gated"
+            ? "gated"
+            : "degraded",
+      );
+      setMessage(data.reason ?? data.error ?? WAITING_ON_GMAIL);
+    }
+  }, [authenticatedEmail, health.controller, loadCommunications]);
   useEffect(() => {
-    if (!hasAuthenticatedMailbox) return;
-    let active = true;
-    void fetch("/api/gmail-hub/connection")
-      .then(async (response) => ({ response, data: await response.json() }))
-      .then(async ({ response, data }) => {
-        if (!active) return;
-        if (response.ok && data.status === "connected") {
-          setConnection("connected");
-          setConnectionMessage(`Connected as ${data.mailboxEmail}`);
-          setConnectedEmail(data.mailboxEmail);
-          setSyncMessage(
-            data.sync?.lastSuccessfulSyncMs
-              ? `Last workflow refresh: ${formatBusinessTimestamp(data.sync.lastSuccessfulSyncMs)}`
-              : "Read-only manual refresh is ready; continuous watch is retired.",
-          );
-          try {
-            await loadCommunications();
-          } catch (loadError) {
-            if (!active) return;
-            setError(
-              loadError instanceof Error
-                ? loadError.message
-                : "Workflow communications could not be loaded.",
-            );
-          }
-          return;
-        }
-        setConnection(
-          response.status === 503 || data.status === "gated" ? "gated" : "degraded",
-        );
-        setConnectionMessage(data.reason ?? data.error ?? WAITING_ON_GMAIL);
-      })
-      .catch(() => {
-        if (active) {
-          setConnection("degraded");
-          setConnectionMessage("Gmail connection health could not be checked.");
-        }
+    let current = true;
+    if (hasMailbox)
+      queueMicrotask(() => {
+        if (current) void checkConnection();
       });
     return () => {
-      active = false;
+      current = false;
     };
-  }, [hasAuthenticatedMailbox, loadCommunications]);
-
+  }, [hasMailbox, checkConnection]);
+  const sameAccount = checkedFor === authenticatedEmail;
+  const state =
+    hasMailbox && (!sameAccount || health.snapshot.phase === "pending")
+      ? "checking"
+      : connection;
+  const connected = sameAccount && state === "connected";
   async function refreshMailbox() {
-    if (connection !== "connected" || busy) return;
-    setBusy(true);
-    setError("");
-    try {
-      const response = await fetch("/api/gmail-hub/refresh", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ attemptKey: globalThis.crypto.randomUUID() }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error ?? "The Gmail workflow refresh could not run.");
-      }
-      await loadCommunications();
+    if (!connected || refresh.snapshot.phase === "pending") return;
+    refreshKey.current ??= globalThis.crypto.randomUUID();
+    const account = authenticatedEmail;
+    const result = await refresh.controller.run(
+      "Refreshing linked Gmail",
+      async (signal) => {
+        const response = await fetchWithDeadline("/api/gmail-hub/refresh", {
+          signal,
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ attemptKey: refreshKey.current }),
+        });
+        const data = await response.json();
+        if (!response.ok || !["processed", "duplicate"].includes(data.status))
+          throw new Error(data.error ?? "The refresh was not confirmed.");
+        return data;
+      },
+    );
+    if (scope.current !== account || result.outcome === "superseded") return;
+    if (result.outcome === "succeeded") {
+      refreshKey.current = null;
       setSyncMessage(
-        data.status === "duplicate"
-          ? "That exact read-only refresh had already completed; no provider write occurred."
-          : `Read-only workflow refresh completed at ${formatBusinessTimestamp(new Date())}.`,
+        result.value.status === "duplicate"
+          ? "The original read-only refresh is confirmed."
+          : `Refresh completed at ${formatBusinessTimestamp(new Date())}.`,
       );
-    } catch (refreshError) {
+      await loadCommunications();
+    } else
       setError(
-        refreshError instanceof Error
-          ? refreshError.message
-          : "The Gmail workflow refresh could not run.",
+        "Refresh outcome is unconfirmed. Recover the original refresh with Refresh linked Gmail; its attempt key is retained.",
       );
-    } finally {
-      setBusy(false);
-    }
   }
-
-  const liveEnabled = connection === "connected";
   return (
     <article className="panel ui-stack live-gmail-workspace">
       <div className="ui-spread">
-        <div>
-          <h2>Gmail connection</h2>
-          <p className="muted">
-            Gmail remains the message system of record. This surface shows bodyless,
-            workflow-linked communication attention only.
-          </p>
-        </div>
+        <h2>Linked conversations</h2>
         <span
           className="queue-pill"
-          data-value={liveEnabled ? "Available" : "Action Required"}
+          data-value={
+            state === "checking"
+              ? "Checking"
+              : connected
+                ? "Available"
+                : "Action Required"
+          }
         >
-          {connection === "checking" ? "Checking connection" : connectionMessage}
+          {state === "checking"
+            ? "Checking connection"
+            : connected
+              ? "Connected"
+              : state === "forbidden"
+                ? "Access denied"
+                : state === "degraded"
+                  ? "Degraded"
+                  : "Disconnected"}
         </span>
       </div>
-
-      <div className="gmail-live-identity">
-        <span className="muted">Authenticated mailbox</span>
-        <strong>{connectedEmail}</strong>
-        <span className="muted">{syncMessage}</span>
-        {liveEnabled ? (
-          <button
-            className="secondary-button"
-            disabled={busy}
-            onClick={() => void refreshMailbox()}
-            type="button"
-          >
-            Refresh linked Gmail now
-          </button>
-        ) : null}
-      </div>
-
-      {!liveEnabled ? (
+      {state === "checking" ? (
+        <div aria-busy="true">
+          <BusyIndicator label="Checking connection" />
+        </div>
+      ) : !connected ? (
         <div className="notice notice-warning" role="status">
           <strong>
-            {connection === "degraded" ? "Gmail is degraded" : WAITING_ON_GMAIL}
+            {state === "forbidden"
+              ? "Gmail access denied"
+              : state === "degraded"
+                ? "Gmail is degraded"
+                : WAITING_ON_GMAIL}
           </strong>
-          <p>{connectionMessage}</p>
+          {message ? <p>{message}</p> : null}
+          <Button onClick={() => void checkConnection()} variant="secondary">
+            Retry connection check
+          </Button>
         </div>
       ) : (
-        <section className="ui-stack" aria-label="Workflow communication attention">
+        <section
+          aria-label="Workflow communication attention"
+          className="ui-stack"
+          aria-busy={attention.snapshot.phase === "pending"}
+        >
           <div className="ui-spread">
-            <h3>Workflow communication attention</h3>
-            <button
-              className="secondary-button"
-              disabled={busy}
-              onClick={() =>
-                void loadCommunications().catch((loadError) => {
-                  setError(
-                    loadError instanceof Error ? loadError.message : "Refresh failed.",
-                  );
-                })
-              }
-              type="button"
+            <h3>Needs attention</h3>
+            <Button
+              busy={attention.snapshot.phase === "pending"}
+              busyLabel="Refreshing attention…"
+              onClick={() => void loadCommunications()}
+              variant="secondary"
             >
               Refresh attention
-            </button>
+            </Button>
           </div>
-          {communications.length === 0 ? (
+          {communications === null ? (
+            attention.snapshot.phase === "pending" ? (
+              <BusyIndicator label="Loading linked conversations" />
+            ) : (
+              <p>Linked conversations have not been read. Retry the read.</p>
+            )
+          ) : communications.length === 0 ? (
             <p className="muted">
               No linked renewal or maintenance communication needs attention.
             </p>
@@ -190,7 +243,7 @@ export function LiveGmailWorkspace({
             <ul className="compact-list">
               {communications.map((communication) => (
                 <li key={communication.id}>
-                  <Link href={communication.href}>
+                  <Link href={communication.href} prefetch={false}>
                     {communication.lane === "renewals" ? "Renewal" : "Maintenance"}{" "}
                     communication · {statusLabel(communication.status)}
                   </Link>
@@ -208,25 +261,36 @@ export function LiveGmailWorkspace({
           )}
         </section>
       )}
-
-      {error ? <p className="error-text">{error}</p> : null}
-      <p className="muted">
-        This surface reads and acts inside an authorized renewal run or maintenance
-        ticket. Broad inbox search, compose, and labeling stay in Gmail.
-      </p>
+      {error ? (
+        <p className="error-text" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {connected ? (
+        <Disclosure summary="Gmail connection and refresh">
+          <div className="gmail-live-identity">
+            <strong>{mailbox}</strong>
+            <span className="muted">{syncMessage}</span>
+            <Button
+              busy={refresh.snapshot.phase === "pending"}
+              busyLabel="Refreshing linked Gmail…"
+              onClick={() => void refreshMailbox()}
+              variant="secondary"
+            >
+              Refresh linked Gmail now
+            </Button>
+          </div>
+        </Disclosure>
+      ) : null}
     </article>
   );
 }
-
 function statusLabel(status: CommunicationAttention["status"]) {
-  switch (status) {
-    case "attention_required":
-      return "needs review";
-    case "draft_created":
-      return "draft created";
-    case "sent":
-      return "reply sent";
-    case "linked":
-      return "linked";
-  }
+  return status === "attention_required"
+    ? "needs review"
+    : status === "draft_created"
+      ? "unsent draft created"
+      : status === "sent"
+        ? "reply sent"
+        : "linked";
 }

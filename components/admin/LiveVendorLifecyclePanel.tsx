@@ -1,4 +1,6 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { DataTableFrame } from "@/components/ui/DataTableFrame";
 
 import { useState, type FormEvent } from "react";
 
@@ -407,11 +409,9 @@ export function LiveVendorLifecyclePanel({
             </dd>
           </dl>
           {/* S165: the bound-value table scrolls inside its own region on a phone, never the page. */}
-          <div
-            aria-label="Values bound to approval and execution"
-            className="table-scroll"
-            role="region"
-            tabIndex={0}
+          <DataTableFrame
+            surface="vendor-lifecycle"
+            label="Values bound to approval and execution"
           >
             <table>
               <caption>Every value bound to approval and execution</caption>
@@ -430,7 +430,7 @@ export function LiveVendorLifecyclePanel({
                 ))}
               </tbody>
             </table>
-          </div>
+          </DataTableFrame>
           <p className="muted">
             Keep this page open so this exact prepared preview remains available. Approval
             Queue opens in a new tab; return here after approval to execute it.

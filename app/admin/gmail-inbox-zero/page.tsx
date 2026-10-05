@@ -23,10 +23,9 @@ export default async function GmailInboxZeroAdminPage() {
         <div>
           <h1 className="section-title">{`${WORKFLOW_COMMUNICATIONS_NAME} Governance`}</h1>
           <p className="muted">
-            Review the three owner-approved v1.0 artifacts, reply policy, and synthetic
-            rule examples. Live Gmail is limited to authorized workflow links, approved
-            labels, targeted reads, and exact-confirmed replies; human send authority is
-            preserved. <Link href="/gmail-hub">Open Workflow Communications</Link> ·{" "}
+            Workflow-linked Gmail only. Replies require exact confirmation; a person sends
+            renewal and maintenance drafts.{" "}
+            <Link href="/gmail-hub">Open Workflow Communications</Link> ·{" "}
             <Link href="/admin">Back to Admin</Link>
           </p>
         </div>
@@ -54,16 +53,9 @@ export default async function GmailInboxZeroAdminPage() {
         <div className="grid two">
           <article className="panel">
             <h2>Gmail Connection</h2>
-            <p>
-              <span className="queue-pill" data-value="Available">
-                Activated
-              </span>
-            </p>
-            <p className="muted">
-              Open Workflow Communications to verify the signed-in user&apos;s own Gmail
-              authorization, inspect bodyless workflow attention, and start or renew the
-              targeted reply watch. The desk shows only workflow-linked messages.
-            </p>
+            <Link className="text-link" href="/gmail-hub">
+              Verify my Gmail connection
+            </Link>
           </article>
           <article className="panel">
             <h2>Gemini Status</h2>
@@ -78,8 +70,8 @@ export default async function GmailInboxZeroAdminPage() {
         <article className="panel ui-stack">
           <h2>Synthetic rule/template evaluator</h2>
           <p className="muted">
-            Admin demonstration only. These synthetic examples do not alter the immutable
-            registry above and cannot make an action executable.
+            Local examples only. They cannot enable an action or change approved
+            artifacts.
           </p>
           <TemplateWorkspace />
         </article>

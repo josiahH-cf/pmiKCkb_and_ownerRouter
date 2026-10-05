@@ -32,8 +32,24 @@ import {
   deskPreferenceModeFor,
   getRenewalDeskPreference,
   renewalDeskPreferenceDocId,
-  saveRenewalDeskPreference,
+  saveRenewalDeskPreference as savePreferenceWithRevision,
 } from "@/lib/firestore/renewal-desk-preferences";
+
+// S177 clients read the current revision before making a deliberate replacement.
+async function saveRenewalDeskPreference(
+  actor: AuthenticatedUser,
+  input: { query: string },
+  db: Firestore,
+  now?: () => Date,
+) {
+  const current = await getRenewalDeskPreference(actor, db);
+  return savePreferenceWithRevision(
+    actor,
+    { ...input, expectedRevision: current?.revision ?? 0 },
+    db,
+    now,
+  );
+}
 
 function fakeDb() {
   const store = new Map<string, Map<string, Record<string, unknown>>>();
@@ -42,6 +58,22 @@ function fakeDb() {
     return store.get(name)!;
   };
   const db = {
+    async runTransaction(
+      work: (transaction: {
+        get: (ref: { get: () => Promise<unknown> }) => Promise<unknown>;
+        set: (ref: { set: (value: unknown) => Promise<void> }, value: unknown) => void;
+      }) => Promise<unknown>,
+    ) {
+      const writes: Promise<void>[] = [];
+      const result = await work({
+        get: (ref) => ref.get(),
+        set: (ref, value) => {
+          writes.push(ref.set(value));
+        },
+      });
+      await Promise.all(writes);
+      return result;
+    },
     collection(name: string) {
       const documents = col(name);
       return {
@@ -85,7 +117,19 @@ function post(body: unknown): Request {
   return new Request("http://localhost/api/lease-renewal/desk-preferences", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(
+      body && typeof body === "object"
+        ? {
+            ...body,
+            expectedRevision:
+              (fake.store
+                .get(RENEWAL_DESK_PREFERENCE_COLLECTION)
+                ?.get(renewalDeskPreferenceDocId(state.user.uid))?.revision as
+                | number
+                | undefined) ?? 0,
+          }
+        : body,
+    ),
   });
 }
 
@@ -120,6 +164,7 @@ describe("S166 account-owned worklist view store (ARCH-S166-2)", () => {
     });
     // Only the canonical view is kept: no name, address or label.
     expect(Object.keys(stored!).sort()).toEqual([
+      "revision",
       "schemaVersion",
       "uid",
       "updatedAt",

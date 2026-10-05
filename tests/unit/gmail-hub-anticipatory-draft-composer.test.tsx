@@ -37,6 +37,10 @@ describe("AnticipatoryDraftComposer", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     render(<AnticipatoryDraftComposer />);
+    expect(document.body.textContent).not.toContain(
+      "Draft a reply from an Approved pattern over",
+    );
+    expect(screen.getByText(/Approved patterns only/i)).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Compose draft" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));

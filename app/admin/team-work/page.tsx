@@ -19,7 +19,7 @@ export default async function TeamWorkPage() {
 
   return (
     <AppShell user={user}>
-      <main className="content ui-stack">
+      <main className="content content--workspace ui-stack">
         <div>
           <p>
             <Link href="/admin">← Admin</Link>
@@ -27,9 +27,7 @@ export default async function TeamWorkPage() {
           <p className="eyebrow">Factual internal records</p>
           <h1 className="section-title">Team work</h1>
           <p className="muted">
-            Assign bounded tasks, inspect explicit session records, manage expectation
-            versions, and correct or retain records. These facts do not automate
-            employment decisions.
+            Staff-recorded tasks and time. Employment decisions remain with people.
           </p>
         </div>
         <WorkAccountabilityBoard

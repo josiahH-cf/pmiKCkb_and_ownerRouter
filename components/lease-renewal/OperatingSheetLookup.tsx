@@ -1,4 +1,5 @@
 "use client";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 // S158: where the app looks in the operating Sheet for this lease, inside lease information.
 // Staff see the current lookup, its observed values and the Sheet link; they can point the app
@@ -357,9 +358,8 @@ export function OperatingSheetLookup({
           </summary>
           <div className="ui-stack-tight">
             <p className="muted">
-              Choose the actual tab and row for this lease, or one cell for one field. The
-              app saves the choice for this lease and reads that location; it changes
-              nothing in the Sheet.
+              The selection saves in the app and reads the chosen location. Nothing
+              changes in the Sheet.
             </p>
             {tabsProblem ? (
               <p role="status">

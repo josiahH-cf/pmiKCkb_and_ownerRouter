@@ -285,6 +285,8 @@ describe("S148 Live-read-only allows history writes only into a local emulator",
         (entry) => `${entry.method} ${entry.pattern.source}`,
       ),
     ).toEqual([
+      // S177: private account preferences are writable only in the local emulator.
+      "POST ^\\/api\\/personal-view$",
       "POST ^\\/api\\/assistant\\/history\\/turns$",
       "PUT ^\\/api\\/assistant\\/history\\/turns\\/[A-Za-z0-9-]{8,64}$",
       "POST ^\\/api\\/assistant\\/saved$",
