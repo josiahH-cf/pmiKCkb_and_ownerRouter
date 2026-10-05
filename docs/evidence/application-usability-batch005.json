@@ -58731,10 +58731,89 @@
     ]
   },
   "release": {
-    "status": "not_run"
+    "status": "queued",
+    "codeCommit": "1a3c5381d7633b0a196573ead604971102ef0a42",
+    "selected": [
+      {
+        "position": 1,
+        "suite": "S168",
+        "intakeOrder": 35
+      },
+      {
+        "position": 2,
+        "suite": "S169",
+        "intakeOrder": 36
+      },
+      {
+        "position": 3,
+        "suite": "S170",
+        "intakeOrder": 37
+      },
+      {
+        "position": 4,
+        "suite": "S171",
+        "intakeOrder": 38
+      },
+      {
+        "position": 5,
+        "suite": "S172",
+        "intakeOrder": 39
+      },
+      {
+        "position": 6,
+        "suite": "S173",
+        "intakeOrder": 40
+      },
+      {
+        "position": 7,
+        "suite": "S174",
+        "intakeOrder": 41
+      },
+      {
+        "position": 8,
+        "suite": "S175",
+        "intakeOrder": 42
+      },
+      {
+        "position": 9,
+        "suite": "S87",
+        "intakeOrder": 43
+      },
+      {
+        "position": 10,
+        "suite": "S176",
+        "intakeOrder": 44
+      },
+      {
+        "position": 11,
+        "suite": "S177",
+        "intakeOrder": 45
+      },
+      {
+        "position": 12,
+        "suite": "S178",
+        "intakeOrder": 46
+      },
+      {
+        "position": 13,
+        "suite": "S179",
+        "intakeOrder": 47
+      },
+      {
+        "position": 14,
+        "suite": "S180",
+        "intakeOrder": 48
+      },
+      {
+        "position": 15,
+        "suite": "S181",
+        "intakeOrder": 49
+      }
+    ],
+    "scope": "One cumulative exact-main candidate; no release is admitted or deployed by this queue"
   },
   "implementationCheckpoint": {
-    "updatedAtUtc": "2026-10-05T00:58:22.956Z",
+    "updatedAtUtc": "2026-10-05T01:08:05.650Z",
     "stage": "engineering_verified_awaiting_green_main_and_release",
     "production": "e106a88a / pmi-kc-app-rmusp7ehl-7ea8703905ca, 100%, guarded unchanged",
     "checks": [
@@ -58766,7 +58845,7 @@
       "Cumulative candidate/assurance/reconciliation/receipt promotion/full observation/independent readbacks",
       "End feedback and native closure; human verdict remains NOT RUN"
     ],
-    "release": "not_admitted",
+    "release": "queued_not_admitted",
     "humanVerdicts": "NOT RUN — no human observer"
   },
   "gates": {
@@ -59300,5 +59379,19 @@
         "evidence": "private batch005-predecessor-canary-3.json; initial environment refusal and later expired-app-session failures remain failed"
       }
     ]
-  }
+  },
+  "documentationGateAttempts": [
+    {
+      "attempt": 1,
+      "outcome": "failed_private_fixture_format",
+      "evidence": "private batch005-engineering-doc-gates-1.log",
+      "diagnosis": "The old independent focused checkout contained an unformatted ignored .batch005-emulator.json. No tracked source/document failed. Use the actual cumulative full-gate checkout; all commands unchanged."
+    },
+    {
+      "attempt": 2,
+      "outcome": "passed",
+      "evidence": "private batch005-engineering-doc-gates-2.log",
+      "scope": "Current docs/evidence format, every required policy/doc check, exact trace/source checker and eight plan/completion-checker unit assertions"
+    }
+  ]
 }

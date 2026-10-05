@@ -33,10 +33,29 @@ No release admitted. Human verdicts remain NOT RUN — no human observer.
 
 ## Awaiting release
 
-None. Run 47fabb7c consumed its queue and permit. Batch 005 needs a new exact fifteen-item queue,
-ancestral commits, exact green main CI, fresh prerequisites and a new run-bound permit. Capture the
-actual predecessor and preserve its actual Sheet switch on its recovery target; candidate/promoted
-Sheet=true remains required. No provider effect, activation or key is queued. S121 stays excluded.
+Batch 005: one cumulative candidate containing all fifteen selected implementations. The verified
+code slice below must be an ancestor of the exact-main release target. Admit only after its own
+green push CI, fresh prerequisites and locked GO. No prior consumed permit is reused.
+
+1. S168 (F01) Measured latency and reliability `1a3c5381d7633b0a196573ead604971102ef0a42`
+2. S169 (F02) Shared operation feedback and recovery `1a3c5381d7633b0a196573ead604971102ef0a42`
+3. S170 (F03) Application navigation and action loading `1a3c5381d7633b0a196573ead604971102ef0a42`
+4. S171 (F04) AI operation status and recovery `1a3c5381d7633b0a196573ead604971102ef0a42`
+5. S172 (F05) Task-sized responsive layouts `1a3c5381d7633b0a196573ead604971102ef0a42`
+6. S173 (F06) Table viewports and accessible column resizing `1a3c5381d7633b0a196573ead604971102ef0a42`
+7. S174 (F07) Docked resizable information panels `1a3c5381d7633b0a196573ead604971102ef0a42`
+8. S175 (F08) Both communication workspaces `1a3c5381d7633b0a196573ead604971102ef0a42`
+9. S87 (F09) Final six-cohort content reconciliation `1a3c5381d7633b0a196573ead604971102ef0a42`
+10. S176 (F10) Self-descriptive renewal workflow `1a3c5381d7633b0a196573ead604971102ef0a42`
+11. S177 (F11) Durable personal views and layout `1a3c5381d7633b0a196573ead604971102ef0a42`
+12. S178 (F12) Actionable identity lookup `1a3c5381d7633b0a196573ead604971102ef0a42`
+13. S179 (F13) Retired legacy Gmail setup `1a3c5381d7633b0a196573ead604971102ef0a42`
+14. S180 (F14) Feedback reconciliation `1a3c5381d7633b0a196573ead604971102ef0a42`
+15. S181 (F15) Integrated usability/reliability validation `1a3c5381d7633b0a196573ead604971102ef0a42`
+
+Capture the actual serving predecessor and preserve its actual Sheet switch on the run-bound
+recovery target. Candidate/promoted Sheet=true is required. Keep the queue until verified release
+and end-feedback/native closure. No provider effect or activation is queued; S121 stays excluded.
 
 ## Feature intake
 
