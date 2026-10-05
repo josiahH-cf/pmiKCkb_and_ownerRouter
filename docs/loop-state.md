@@ -10,14 +10,16 @@ and the one cumulative production release are verified. All fifteen finalized sp
 unrelated private files remain preserved. Its four verification repairs were released on
 October 5 by run 5d1b4e3a-ef6d-4354-aef1-e9952dd28687 under the owner's instruction of that day;
 run 7753e5f5-2325-4b19-b83d-dc3475d71b0b released five follow-up fixes under the same instruction.
-Fixes for the items left open are queued below under the owner's later instruction of that day.
+Run 61659874-478d-4135-9810-5033b2f732bf released the fixes for the items left open under the owner's later
+instruction of that day.
 Native evidence: docs/evidence/application-usability-batch005.json.
 
-Serving b2308bc506132853ebd54e4ba0678abbf853fce0 / pmi-kc-app-rmuv84r3a-f9fac2efc1af, 100% traffic,
-run 7753e5f5-2325-4b19-b83d-dc3475d71b0b, exact-main CI 37308062054 passed. Approved WSL unattended CLI/ADC
+Serving e8bc616d144c6600da8394313153e1a0c75659da / pmi-kc-app-rmuvf58nk-d45b8bc5347d, 100% traffic,
+run 61659874-478d-4135-9810-5033b2f732bf, exact-main CI 37333580981 passed. Approved WSL unattended CLI/ADC
 refresh passed before dependent phases; guarded assurance used the existing managed Admin profile.
 Batch 005 itself: run 8b7dc3f1-4c5b-482a-94ca-26985150c68d at fa5b2b27, exact-main CI 37250383538;
-its first repairs: run 5d1b4e3a at 9e76c14f, exact-main CI 37299720511.
+its first repairs: run 5d1b4e3a at 9e76c14f, exact-main CI 37299720511;
+its follow-up fixes: run 7753e5f5 at b2308bc5, exact-main CI 37308062054.
 Final focused selection passed 781/104 files. Native full 14 passed 8,753 unit/four existing skips,
 325 backend, zero audit findings/all policies/build; core 12 passed 32/22 existing skips.
 Compiled matrix 19 passed 438 observations/eight coupled journeys/168 accessibility audits,
@@ -39,7 +41,7 @@ fail-first regressions merged in PR #130 and are released by run 5d1b4e3a.
 Follow-up fixes merged in PR #133 and are released by run 7753e5f5: table cells under their own headers, lease
 loading wording, unknown-outcome wording after an elapsed wait, a navigation status that stays in
 view, a readable message editor, one primary message action and four visible field labels.
-Open-item fixes merged in PR #136 and are queued below: the worklist stays while a lease
+Open-item fixes merged in PR #136 and are released by run 61659874: the worklist stays while a lease
 opens, an edited autosave state, download outcome feedback, distinct empty-lookup states, one
 wording for a communication's state, residual explanatory copy removed and a remembered
 cleared filter. The ledger records this verification apart from the implementation evidence,
@@ -47,49 +49,41 @@ with production cold and warm timings.
 
 ## Awaiting release
 
-OWNER DIRECTION, 2026-10-05: use the recommendations on the open items; fix and deploy. Runs
-5d1b4e3a and 7753e5f5 delivered the earlier repairs at 9e76c14f and b2308bc5. One further
-candidate carries the fixes for the items the verification left open. The code slice below must
-be an ancestor of the exact-main release target. Admit only after its own green push CI, fresh
-prerequisites and locked GO under a new run-bound permit; consumed permits are not reused.
-
-1. S170 the worklist stays while a lease opens, autosave shows an edited state and downloads report their outcome `49f745f4b6889a9e8b17c0b18f9caf6b283037a2`
-2. S178 a lookup that finds nothing names an incomplete read, stale data, an unresolved relationship or a complete no-match `49f745f4b6889a9e8b17c0b18f9caf6b283037a2`
-3. S87 one wording for a communication's state on the hub, linked detail, notifications and answers `49f745f4b6889a9e8b17c0b18f9caf6b283037a2`
-4. S176 residual instructional copy removed from Full view and lease information `49f745f4b6889a9e8b17c0b18f9caf6b283037a2`
-5. S177 a filter cleared to all is remembered and per-table views are tested `49f745f4b6889a9e8b17c0b18f9caf6b283037a2`
-6. S148 a reopened conversation takes focus after it renders `49f745f4b6889a9e8b17c0b18f9caf6b283037a2`
-7. S181 the evidence ledger records the independent verification and production cold and warm timings `49f745f4b6889a9e8b17c0b18f9caf6b283037a2`
-
-Capture the actual serving predecessor b2308bc5 and preserve its actual Sheet switch on the
-run-bound recovery target. Candidate/promoted Sheet=true is required. Keep the queue until
-verified release and documentation closure. No provider effect, key or activation is queued;
-S121 stays excluded.
+None. OWNER DIRECTION, 2026-10-05: use the recommendations on the open items; fix and deploy.
+Run 61659874-478d-4135-9810-5033b2f732bf delivered the seven open-item fixes (S170, S178, S87,
+S176, S177, S148, S181) at e8bc616d144c6600da8394313153e1a0c75659da; code slice
+49f745f4b6889a9e8b17c0b18f9caf6b283037a2 is its ancestor. Runs 5d1b4e3a and 7753e5f5
+delivered the earlier repairs at 9e76c14f and b2308bc5. All three exact permits are consumed.
+Documentation-only closure does not deploy. No completed, superseded, historical or deferred suite
+restarts from a registry row or consumed permit.
 
 ## Verified release and recovery
 
-One application build 26be4261-a782-434b-851d-cc3327fa44f7 succeeded 2026-10-05T12:42:00.650833Z.
-Candidate receipt 2fcac9b1-949d-41ff-9a72-92ed1b1dd44e, issued 2026-10-05T12:47:07.997Z;
-promotion verified 2026-10-05T12:47:30.209Z. Candidate assurance and reconciliation passed.
-Observation passed two full checkpoints in 390684 ms against the required 300,000 ms,
-inside the 420,000 ms deadline; all 312 source/projected/rendered records matched,
+One application build f0fe9c5e-aecc-4a18-a2d4-12c47d0c055b succeeded 2026-10-05T15:59:30.830221Z.
+Candidate receipt bf944845-2472-44dc-83b0-3c968863077c, issued 2026-10-05T16:10:48.079Z;
+promotion verified 2026-10-05T16:11:07.983Z. Candidate assurance and reconciliation passed.
+Observation passed two full checkpoints in 415448 ms against the required 300,000 ms,
+inside the 420,000 ms deadline; all 318 source/projected/rendered records matched,
 zero discrepancies/candidate 5xx/unresolved effects. Eleven independent readbacks matched,
-completed 2026-10-05T12:54:10Z.
-Tag cand-rmuv84r3a-f9fac2efc1af; fingerprint
-sha256:7d48dfce165dd3ca022a1f2d84fe17b4ef360b36728b93200af94f9b9bbd3857.
+completed 2026-10-05T16:18:32Z.
+Tag cand-rmuvf58nk-d45b8bc5347d; fingerprint
+sha256:f360625f1af6999d709db77e1fa920c8b4ff0a20977a7ef9cb2722d82ad8e8d6.
 Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=true verified.
 
-Actual captured predecessor 9e76c14f5238f22be9ddecbffed149eee3db6d38 /
-pmi-kc-app-rmuv5c6eu-e3c268629df8, Sheet=true (first repairs, run 5d1b4e3a). Run-bound recovery
-pmi-kc-app-recovery-7753e5f523254b19, same fingerprint/configuration and actual true switch;
-receipt c20682b1-13bb-4fa9-aebb-2d81fb4b5cce, reference hash
-sha256:e09ff997a705dde2b27bc15e082bb2fb211fa815ebffd8f5ce7c37a4aef01f06. No traffic rollback occurred.
+Actual captured predecessor b2308bc506132853ebd54e4ba0678abbf853fce0 /
+pmi-kc-app-rmuv84r3a-f9fac2efc1af, Sheet=true (follow-up fixes, run 7753e5f5). Run-bound recovery
+pmi-kc-app-recovery-61659874478d4135, same fingerprint/configuration and actual true switch;
+receipt 4a82f3b8-2115-4aed-93de-efa81fa0d81c, reference hash
+sha256:c64195ee2b907be4ce080b552ebdd4d69ebd379b69e81fdc6eef62f238647198. No traffic rollback occurred.
 Initial recovery aggregate assurance failed before the application build: the new recovery
-instance took 33.0 s for its first Dashboard render against the 30-second route bound, with every
+instance took 48.1 s for its first Dashboard render against the 30-second route bound, with every
 request answered 200. The target read back healthy/zero traffic/configuration matched. Two separate
 guarded 13-route diagnostics passed with zero errors/mutation attempts, then the same run resumed
-assurance on the existing target. The original failure remains failed. No ambiguous operation was
-blindly redispatched or gate lowered. Run 5d1b4e3a met the same first-render bound the same way.
+assurance on the existing target. The first candidate smoke then failed: the zero-traffic candidate
+answered its first request, the correct sign-in redirect, in 43.8 s against the 30-second probe
+timeout. Two read-only smoke diagnostics passed with exact identity and the same run resumed.
+Both original failures remain failed. No ambiguous operation was blindly redispatched or gate
+lowered. Runs 5d1b4e3a and 7753e5f5 met the same first-render bound the same way.
 
 ## Feedback and accepted distinctions
 
@@ -118,5 +112,5 @@ receipt/readback/correction contracts remain. Raw data, captures, credentials an
 outside Git; original failures and superseded local verification attempts retain actual outcomes.
 
 ALL_GATES_GREEN applies to verified batch 005 engineering and cumulative deployed release only.
-The queued open-item release is the only unfinished delivery. Documentation updates alone never
-issue a permit, build or candidate.
+No unfinished delivery remains. Documentation updates alone never issue a permit, build or
+candidate.

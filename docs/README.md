@@ -114,7 +114,7 @@ identity lookup, legacy Gmail UI retirement and feedback reconciliation/integrat
 All 116 engineering traces and one cumulative release are verified in
 [the evidence matrix](evidence/application-usability-batch005.json), run 8b7dc3f1-4c5b-482a-94ca-26985150c68d
 at fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27/pmi-kc-app-rmuuk9ykp-31da970956eb. End feedback and native closure are verified;
-queue empty, exact permit consumed. Run 5d1b4e3a-ef6d-4354-aef1-e9952dd28687 then released the four verification repairs at 9e76c14f5238f22be9ddecbffed149eee3db6d38/pmi-kc-app-rmuv5c6eu-e3c268629df8, and run 7753e5f5-2325-4b19-b83d-dc3475d71b0b the five follow-up fixes at b2308bc506132853ebd54e4ba0678abbf853fce0/pmi-kc-app-rmuv84r3a-f9fac2efc1af, the serving revision. Human verdicts remain NOT RUN — no human observer. Completed/superseded suites and the three accepted next-batch deferrals stay inert.
+queue empty, exact permit consumed. Run 5d1b4e3a-ef6d-4354-aef1-e9952dd28687 then released the four verification repairs at 9e76c14f5238f22be9ddecbffed149eee3db6d38/pmi-kc-app-rmuv5c6eu-e3c268629df8, run 7753e5f5-2325-4b19-b83d-dc3475d71b0b the five follow-up fixes at b2308bc506132853ebd54e4ba0678abbf853fce0/pmi-kc-app-rmuv84r3a-f9fac2efc1af, and run 61659874-478d-4135-9810-5033b2f732bf the seven open-item fixes at e8bc616d144c6600da8394313153e1a0c75659da/pmi-kc-app-rmuvf58nk-d45b8bc5347d, the serving revision. Human verdicts remain NOT RUN — no human observer. Completed/superseded suites and the three accepted next-batch deferrals stay inert.
 
 Current code, tests, facts and the S113 evidence report own the verified result. Staff-recorded
 completion is distinct from provider verification; no live customer completion was seeded.
