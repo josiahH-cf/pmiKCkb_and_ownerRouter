@@ -99,6 +99,13 @@
           "environment": "Final cumulative WSL native actual owner; named assertions bound separately from source topology/shared primitives",
           "assertionsInOwnerFile": 15,
           "evidence": "private batch005-focused-native-2026-10-05T00-42-23.093Z.json"
+        },
+        {
+          "test": "Production cold and warm request timings for three builds, read from Cloud Run request logs",
+          "scenario": "the first requests of a new instance against later requests of the same instance, for the pre-batch build, the batch 005 build and its first repairs",
+          "outcome": "passed",
+          "environment": "Production project; zero-traffic recovery revisions and the serving revision; server-side request latency under the guarded read-only 13-route canary; route paths only, no customer data",
+          "evidence": "latency.production in this file; private request-log extracts outside Git"
         }
       ],
       "humanVerdict": "NOT RUN — no human observer",
@@ -138,7 +145,16 @@
           "tests/unit/s168-read-lifetimes.test.ts",
           "tests/unit/s137-operational-context.test.ts"
         ]
-      }
+      },
+      "supplementalBaselines": [
+        {
+          "outcome": "evidence_gap",
+          "test": "Review of this file's latency section",
+          "sourceCommit": "3d6dca9c8bf732602817a530d1ada8aa6ae50627",
+          "evidence": "The delivered latency section held first and repeat fixture timings and said they were not machine-cold measurements; it held no cold-start comparison.",
+          "meaning": "An evidence gap, not a product failure: the measurement was added without changing the product."
+        }
+      ]
     },
     {
       "id": "R-S168-2",
@@ -2625,6 +2641,20 @@
           "environment": "Final cumulative WSL native actual owner; named assertions bound separately from source topology/shared primitives",
           "assertionsInOwnerFile": 7,
           "evidence": "private batch005-focused-native-2026-10-05T00-42-23.093Z.json"
+        },
+        {
+          "test": "tests/unit/s170-lease-open-feedback.test.tsx",
+          "scenario": "a lease link in the worklist announces Opening while the worklist stays on screen; a first load still shows the lease placeholder; no route loading file replaces the screen",
+          "outcome": "passed",
+          "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+          "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
+        },
+        {
+          "test": "tests/unit/renewal-desk-route.test.ts",
+          "scenario": "the shared desk loading component names the worklist and the lease",
+          "outcome": "passed",
+          "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+          "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
         }
       ],
       "humanVerdict": "NOT RUN — no human observer",
@@ -2664,7 +2694,16 @@
           "tests/unit/s170-navigation-feedback.test.tsx",
           "tests/unit/s168-inventory-admission.test.tsx"
         ]
-      }
+      },
+      "supplementalBaselines": [
+        {
+          "outcome": "expected_failure",
+          "test": "tests/unit/s170-lease-open-feedback.test.tsx",
+          "sourceCommit": "3d6dca9c8bf732602817a530d1ada8aa6ae50627",
+          "evidence": "The delivered desk and lease routes each had a loading file, which replaces the worklist as soon as a lease is chosen, and lease links inside the worklist were excluded from the navigation status. The test cannot load on that source because the shared loading component it renders did not exist; the two loading files and the click exclusion were read directly.",
+          "meaning": "Missing behaviour found by independent verification after delivery. The expected failure was observed on the delivered source before the repair."
+        }
+      ]
     },
     {
       "id": "R-S170-3",
@@ -3173,6 +3212,20 @@
           "environment": "Final cumulative WSL native actual owner; named assertions bound separately from source topology/shared primitives",
           "assertionsInOwnerFile": 5,
           "evidence": "private batch005-focused-native-2026-10-05T00-42-23.093Z.json"
+        },
+        {
+          "test": "tests/unit/s170-autosave-edited-state.test.tsx",
+          "scenario": "edited while typed, saving on leaving the field, edited again for words typed during a save, saved, failed; an undone edit saves nothing; eight autosaved owners",
+          "outcome": "passed",
+          "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+          "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
+        },
+        {
+          "test": "tests/unit/s170-download-feedback.test.tsx",
+          "scenario": "download preparing and started with the served file name; a server refusal, a lost connection and an elapsed read each reported on the current screen with a retry and a new-tab fallback; a modified click left to the browser",
+          "outcome": "passed",
+          "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+          "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
         }
       ],
       "humanVerdict": "NOT RUN — no human observer",
@@ -3230,7 +3283,23 @@
           "tests/unit/s165-mobile-sign-in.test.tsx",
           "tests/unit/s177-personal-view-owner.test.tsx"
         ]
-      }
+      },
+      "supplementalBaselines": [
+        {
+          "outcome": "expected_failure",
+          "test": "tests/unit/s170-autosave-edited-state.test.tsx",
+          "sourceCommit": "3d6dca9c8bf732602817a530d1ada8aa6ae50627",
+          "evidence": "5 of 5 failed on the delivered source: the status had no edited state, so typed and unsaved wording read the same as saved or idle.",
+          "meaning": "Missing behaviour found by independent verification after delivery. The expected failure was observed on the delivered source before the repair."
+        },
+        {
+          "outcome": "expected_failure",
+          "test": "tests/unit/s170-download-feedback.test.tsx",
+          "sourceCommit": "3d6dca9c8bf732602817a530d1ada8aa6ae50627",
+          "evidence": "The delivered source used plain anchors for five file downloads in four renewal components, with no outcome reported. The test cannot load on that source because the reporting link did not exist; the anchors were read directly.",
+          "meaning": "Missing behaviour found by independent verification after delivery. The expected failure was observed on the delivered source before the repair."
+        }
+      ]
     },
     {
       "id": "R-S170-6",
@@ -8184,6 +8253,13 @@
           "environment": "Final cumulative WSL native actual owner; named assertions bound separately from source topology/shared primitives",
           "assertionsInOwnerFile": 1,
           "evidence": "private batch005-focused-native-2026-10-05T00-42-23.093Z.json"
+        },
+        {
+          "test": "tests/unit/s176-residual-instructions.test.tsx",
+          "scenario": "the rendered Full view and lease information show none of 22 removed instructional, label-repeating or internal sentences; no renewal component or wording module carries one; five source links carry their new-tab description on the link; the protected state, safety and recovery lines remain",
+          "outcome": "passed",
+          "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+          "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
         }
       ],
       "humanVerdict": "NOT RUN — no human observer",
@@ -8223,7 +8299,16 @@
           "tests/unit/s87-public-knowledge-content.test.tsx",
           "tests/unit/s176-self-descriptive-full.test.tsx"
         ]
-      }
+      },
+      "supplementalBaselines": [
+        {
+          "outcome": "expected_failure",
+          "test": "tests/unit/s176-residual-instructions.test.tsx",
+          "sourceCommit": "3d6dca9c8bf732602817a530d1ada8aa6ae50627",
+          "evidence": "4 of 4 failed on the delivered source: six of the sentences rendered in the fixture's Full view and lease information, and the renewal components and wording modules carried 22 occurrences.",
+          "meaning": "Missing behaviour found by independent verification after delivery. The expected failure was observed on the delivered source before the repair."
+        }
+      ]
     },
     {
       "id": "R-S87-3",
@@ -9312,13 +9397,13 @@
         "components/ui/InfoTip.tsx",
         "app/globals.css"
       ],
-      "status": "preserved",
+      "status": "passed",
       "baseline": {
-        "outcome": "already_satisfied",
-        "test": "Pristine starting implementation preservation plus source/contract inspection for maintenance/communications/notifications ownership; renewal prose consistently shortened",
-        "sourceCommit": "7f46974673ad15b7f6f9dd0e4d8033405cc8dc43",
-        "evidence": "Private batch005-preservation-baseline.log and proper-Git readiness preservation; 8541 pass, four existing skips combined; per-owner prebatch files preserved",
-        "meaning": "Existing behavior/authority retained, or an inspection/verification obligation without an invented product failure"
+        "outcome": "expected_failure",
+        "test": "tests/unit/s87-degraded-communication-parity.test.tsx",
+        "sourceCommit": "3d6dca9c8bf732602817a530d1ada8aa6ae50627",
+        "evidence": "3 of 3 failed on the delivered source: a degraded thread showed earlier waiting-on and last-contact state as current on both surfaces; the detail printed raw status values (draft created, attention required, Waiting on none) where the hub said unsent draft created, needs review. By inspection, a closed maintenance ticket's notification carried the Needs your decision badge.",
+        "meaning": "Missing behaviour found by independent verification after delivery. The expected failure was observed on the delivered source before the repair."
       },
       "checks": [
         {
@@ -9392,6 +9477,27 @@
           "environment": "Final cumulative WSL native actual owner; named assertions bound separately from source topology/shared primitives",
           "assertionsInOwnerFile": 4,
           "evidence": "private batch005-focused-native-2026-10-05T00-42-23.093Z.json"
+        },
+        {
+          "test": "tests/unit/s87-degraded-communication-parity.test.tsx",
+          "scenario": "one degraded communication rendered on the hub and on its linked detail: both say it needs verification, neither shows earlier contact state as current; settled and new-message states use the same words",
+          "outcome": "passed",
+          "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+          "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
+        },
+        {
+          "test": "tests/unit/s87-shared-operational-state.test.tsx",
+          "scenario": "every status and waiting-on pair identical on hub and detail; the notification and the Dashboard answer use the same words; a ticket event carries the ticket's own status; no surface keeps a private copy of the wording",
+          "outcome": "passed",
+          "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+          "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
+        },
+        {
+          "test": "tests/unit/gmail-live-workspace.test.tsx; tests/unit/console-message-boundary.test.tsx; tests/unit/gmail-workflow-notifications.test.ts",
+          "scenario": "existing hub, detail and notification owners with the shared wording",
+          "outcome": "passed",
+          "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+          "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
         }
       ],
       "humanVerdict": "NOT RUN — no human observer",
@@ -9431,6 +9537,26 @@
           "tests/unit/gmail-hub-home.test.tsx",
           "tests/unit/s113-message-preparation-controls.test.tsx"
         ]
+      },
+      "supplementalBaselines": [
+        {
+          "outcome": "expected_failure",
+          "test": "tests/unit/s87-shared-operational-state.test.tsx",
+          "sourceCommit": "3d6dca9c8bf732602817a530d1ada8aa6ae50627",
+          "evidence": "The delivered source had no shared wording: the hub, the linked detail, notifications and Dashboard answers each spelled a communication's status their own way. The test cannot load on that source because the shared module did not exist.",
+          "meaning": "Missing behaviour found by independent verification after delivery. The expected failure was observed on the delivered source before the repair."
+        }
+      ],
+      "supersededClaim": {
+        "status": "preserved",
+        "baseline": {
+          "outcome": "already_satisfied",
+          "test": "Pristine starting implementation preservation plus source/contract inspection for maintenance/communications/notifications ownership; renewal prose consistently shortened",
+          "sourceCommit": "7f46974673ad15b7f6f9dd0e4d8033405cc8dc43",
+          "evidence": "Private batch005-preservation-baseline.log and proper-Git readiness preservation; 8541 pass, four existing skips combined; per-owner prebatch files preserved",
+          "meaning": "Existing behavior/authority retained, or an inspection/verification obligation without an invented product failure"
+        },
+        "reason": "Independent verification 2026-10-05 found the behaviour missing on the delivered source; the cited checks did not exercise it."
       }
     },
     {
@@ -9644,6 +9770,20 @@
           "environment": "Final cumulative WSL native actual owner; named assertions bound separately from source topology/shared primitives",
           "assertionsInOwnerFile": 8,
           "evidence": "private batch005-focused-native-2026-10-05T00-42-23.093Z.json"
+        },
+        {
+          "test": "tests/unit/s176-residual-instructions.test.tsx",
+          "scenario": "the rendered Full view and lease information show none of 22 removed instructional, label-repeating or internal sentences; no renewal component or wording module carries one; five source links carry their new-tab description on the link; the protected state, safety and recovery lines remain",
+          "outcome": "passed",
+          "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+          "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
+        },
+        {
+          "test": "tests/unit/s145-full-view-baseline.test.tsx",
+          "scenario": "re-recorded section copy; regions, sections, controls and links equal the immutable pre-Focus baseline",
+          "outcome": "passed",
+          "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+          "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
         }
       ],
       "humanVerdict": "NOT RUN — no human observer",
@@ -9683,7 +9823,16 @@
           "tests/unit/s145-full-view-baseline.test.tsx",
           "tests/unit/s114-lease-sidebars.test.tsx"
         ]
-      }
+      },
+      "supplementalBaselines": [
+        {
+          "outcome": "expected_failure",
+          "test": "tests/unit/s176-residual-instructions.test.tsx",
+          "sourceCommit": "3d6dca9c8bf732602817a530d1ada8aa6ae50627",
+          "evidence": "4 of 4 failed on the delivered source: six of the sentences rendered in the fixture's Full view and lease information, and the renewal components and wording modules carried 22 occurrences.",
+          "meaning": "Missing behaviour found by independent verification after delivery. The expected failure was observed on the delivered source before the repair."
+        }
+      ]
     },
     {
       "id": "R-S176-2",
@@ -10805,6 +10954,20 @@
           "environment": "Final cumulative WSL native actual owner; named assertions bound separately from source topology/shared primitives",
           "assertionsInOwnerFile": 5,
           "evidence": "private batch005-focused-native-2026-10-05T00-42-23.093Z.json"
+        },
+        {
+          "test": "tests/unit/s177-independent-tables.test.tsx",
+          "scenario": "two tables on one account restore, save and reset their own view; a filter cleared to all is remembered when its default is narrower",
+          "outcome": "passed",
+          "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+          "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
+        },
+        {
+          "test": "tests/firestore/s177-personal-views.test.ts",
+          "scenario": "the store keeps each table's view separate for one account, including through a reset",
+          "outcome": "passed",
+          "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+          "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
         }
       ],
       "humanVerdict": "NOT RUN — no human observer",
@@ -10852,7 +11015,16 @@
           "tests/unit/s168-inventory-admission.test.tsx",
           "tests/unit/s177-personal-view-owner.test.tsx"
         ]
-      }
+      },
+      "supplementalBaselines": [
+        {
+          "outcome": "expected_failure",
+          "test": "tests/unit/s177-independent-tables.test.tsx",
+          "sourceCommit": "3d6dca9c8bf732602817a530d1ada8aa6ae50627",
+          "evidence": "1 of 3 failed on the delivered source: a filter cleared to all was dropped from the saved view when its default was a narrower choice, so the default came back. The two per-table isolation checks passed on the delivered source and are preservation results.",
+          "meaning": "Missing behaviour found by independent verification after delivery. The expected failure was observed on the delivered source before the repair."
+        }
+      ]
     },
     {
       "id": "R-S177-2",
@@ -12548,13 +12720,13 @@
         "components/ask/AskForm.tsx",
         "app/api/assistant/query/route.ts"
       ],
-      "status": "preserved",
+      "status": "passed",
       "baseline": {
-        "outcome": "already_satisfied",
-        "test": "Pristine starting implementation preservation plus source/contract inspection for complete no-match differs from partial/unavailable/relationship ambiguity; concise read recovery",
-        "sourceCommit": "7f46974673ad15b7f6f9dd0e4d8033405cc8dc43",
-        "evidence": "Private batch005-preservation-baseline.log and proper-Git readiness preservation; 8541 pass, four existing skips combined; per-owner prebatch files preserved",
-        "meaning": "Existing behavior/authority retained, or an inspection/verification obligation without an invented product failure"
+        "outcome": "expected_failure",
+        "test": "tests/unit/s178-empty-lookup-states.test.tsx",
+        "sourceCommit": "3d6dca9c8bf732602817a530d1ada8aa6ae50627",
+        "evidence": "9 of 10 failed on the delivered source: a lookup over an incomplete read, over stale data, and over leases with no named owner or tenant all answered with the same definite no-leases sentence as a complete no-match, and a source that could not be read was replaced by a general not-supported answer.",
+        "meaning": "Missing behaviour found by independent verification after delivery. The expected failure was observed on the delivered source before the repair."
       },
       "checks": [
         {
@@ -12604,6 +12776,20 @@
           "environment": "Final cumulative WSL native actual owner; named assertions bound separately from source topology/shared primitives",
           "assertionsInOwnerFile": 39,
           "evidence": "private batch005-focused-native-2026-10-05T00-42-23.093Z.json"
+        },
+        {
+          "test": "tests/unit/s178-empty-lookup-states.test.tsx",
+          "scenario": "complete no-match, missing pages, a supporting read that did not answer, stale and expired data, a lease with no owner or tenant on record, an address lookup, a failed source: five distinct wordings, each with its own read-only recovery and a visible read state",
+          "outcome": "passed",
+          "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+          "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
+        },
+        {
+          "test": "tests/unit/s178-literal-lookup-fallthrough.test.ts; tests/unit/s178-rendered-lookup.test.tsx",
+          "scenario": "existing literal lookup and rendered link owners, unchanged results",
+          "outcome": "passed",
+          "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+          "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
         }
       ],
       "humanVerdict": "NOT RUN — no human observer",
@@ -12635,6 +12821,18 @@
           "tests/unit/s178-related-identity.test.ts",
           "tests/unit/s138-dashboard-conversation.test.ts"
         ]
+      },
+      "supplementalBaselines": [],
+      "supersededClaim": {
+        "status": "preserved",
+        "baseline": {
+          "outcome": "already_satisfied",
+          "test": "Pristine starting implementation preservation plus source/contract inspection for complete no-match differs from partial/unavailable/relationship ambiguity; concise read recovery",
+          "sourceCommit": "7f46974673ad15b7f6f9dd0e4d8033405cc8dc43",
+          "evidence": "Private batch005-preservation-baseline.log and proper-Git readiness preservation; 8541 pass, four existing skips combined; per-owner prebatch files preserved",
+          "meaning": "Existing behavior/authority retained, or an inspection/verification obligation without an invented product failure"
+        },
+        "reason": "Independent verification 2026-10-05 found the behaviour missing on the delivered source; the cited checks did not exercise it."
       }
     },
     {
@@ -23427,6 +23625,37 @@
         ]
       },
       {
+        "owner": "components/lease-renewal/RenewalRouteLoading.tsx",
+        "cohort": "renewals",
+        "kind": "presentation",
+        "lifetime": "immediate rendered state",
+        "ownerTests": [
+          "tests/unit/s170-lease-open-feedback.test.tsx",
+          "tests/unit/renewal-desk-route.test.ts"
+        ],
+        "inspected": true,
+        "checks": [
+          {
+            "test": "Current owning source and content/control inspection: components/lease-renewal/RenewalRouteLoading.tsx",
+            "outcome": "passed",
+            "environment": "Current source added by the independent verification repairs; privacy-safe static strings only",
+            "evidence": "independentVerification in this file"
+          },
+          {
+            "test": "tests/unit/s170-lease-open-feedback.test.tsx; tests/unit/renewal-desk-route.test.ts",
+            "outcome": "passed",
+            "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+            "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
+          }
+        ],
+        "plannedChecks": [],
+        "compiledCoverage": "Mounted owner scenarios named below; no compiled browser journey was run for this owner in this round.",
+        "ownerUnitFilesPassed": [
+          "tests/unit/s170-lease-open-feedback.test.tsx",
+          "tests/unit/renewal-desk-route.test.ts"
+        ]
+      },
+      {
         "owner": "components/lease-renewal/RenewalSaveFocus.tsx",
         "cohort": "renewals",
         "kind": "presentation",
@@ -26162,6 +26391,39 @@
           "tests/unit/vendor-live-lifecycle-page.test.tsx",
           "tests/unit/ui-primitives.test.tsx",
           "tests/unit/transactional-destination-panel.test.tsx"
+        ]
+      },
+      {
+        "owner": "components/ui/DownloadLink.tsx",
+        "cohort": "shared",
+        "kind": "asynchronous",
+        "lifetime": "shared finite wait or owning operation",
+        "ownerTests": [
+          "tests/unit/s170-download-feedback.test.tsx",
+          "tests/unit/s130-filled-artifact-panel.test.tsx",
+          "tests/unit/s130-derived-controls.test.tsx"
+        ],
+        "inspected": true,
+        "checks": [
+          {
+            "test": "Current owning source and content/control inspection: components/ui/DownloadLink.tsx",
+            "outcome": "passed",
+            "environment": "Current source added by the independent verification repairs; privacy-safe static strings only",
+            "evidence": "independentVerification in this file"
+          },
+          {
+            "test": "tests/unit/s170-download-feedback.test.tsx; tests/unit/s130-filled-artifact-panel.test.tsx; tests/unit/s130-derived-controls.test.tsx",
+            "outcome": "passed",
+            "environment": "WSL native Node 22, disposable clone holding this change; actual owning components and services; synthetic local fixtures only",
+            "evidence": "private open-items-2026-10-05 focused and baseline logs outside Git"
+          }
+        ],
+        "plannedChecks": [],
+        "compiledCoverage": "Mounted owner scenarios named below; no compiled browser journey was run for this owner in this round.",
+        "ownerUnitFilesPassed": [
+          "tests/unit/s170-download-feedback.test.tsx",
+          "tests/unit/s130-filled-artifact-panel.test.tsx",
+          "tests/unit/s130-derived-controls.test.tsx"
         ]
       },
       {
@@ -29205,7 +29467,7 @@
       },
       {
         "owner": "app/notifications/page.tsx",
-        "line": 47,
+        "line": 48,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -29240,7 +29502,7 @@
       },
       {
         "owner": "app/notifications/page.tsx",
-        "line": 96,
+        "line": 97,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -31578,13 +31840,11 @@
         ]
       },
       {
-        "owner": "app/lease-renewal/live/desk/loading.tsx",
-        "line": 11,
+        "owner": "components/lease-renewal/RenewalRouteLoading.tsx",
         "kind": "p",
-        "state": "populated_or_initial",
-        "purpose": "Task label, useful concise reading content or output",
-        "action": "preserve",
-        "staticContentHash": "2e77fe1f6bb02acdb9c4c6fa52e90598d821560117843abf824d137c7bb5fa90",
+        "state": "pending_or_save_feedback",
+        "purpose": "Required state, error or bounded recovery",
+        "action": "reorganize",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: app/lease-renewal/live/desk/loading.tsx",
@@ -31609,8 +31869,16 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Loading wording moved into the shared desk loading component: app/lease-renewal/live/desk/loading.tsx; tests/unit/s170-lease-open-feedback.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "line": 19,
+        "staticContentHash": "92f523677d95c5fd3cde29630f6414c634298b5f7c79e1892faebe69fb6f1852"
       },
       {
         "owner": "app/spaces/[spaceId]/pages/[slug]/page.tsx",
@@ -33014,7 +33282,7 @@
       },
       {
         "owner": "components/maintenance/UnverifiedIntakeReview.tsx",
-        "line": 115,
+        "line": 118,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -33049,7 +33317,7 @@
       },
       {
         "owner": "components/maintenance/UnverifiedIntakeReview.tsx",
-        "line": 120,
+        "line": 123,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -33084,7 +33352,7 @@
       },
       {
         "owner": "components/maintenance/UnverifiedIntakeReview.tsx",
-        "line": 125,
+        "line": 128,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -33889,7 +34157,7 @@
       },
       {
         "owner": "components/maintenance/MaintenanceQueue.tsx",
-        "line": 535,
+        "line": 538,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -33924,7 +34192,7 @@
       },
       {
         "owner": "components/maintenance/MaintenanceQueue.tsx",
-        "line": 617,
+        "line": 620,
         "kind": "p",
         "state": "pending_or_save_feedback",
         "purpose": "Task label, useful concise reading content or output",
@@ -33959,7 +34227,7 @@
       },
       {
         "owner": "components/maintenance/MaintenanceQueue.tsx",
-        "line": 620,
+        "line": 623,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -33994,7 +34262,7 @@
       },
       {
         "owner": "components/maintenance/MaintenanceQueue.tsx",
-        "line": 683,
+        "line": 686,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -34344,7 +34612,7 @@
       },
       {
         "owner": "components/maintenance/MaintenanceOwnerNoticeDraftComposer.tsx",
-        "line": 110,
+        "line": 115,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -34379,7 +34647,7 @@
       },
       {
         "owner": "components/maintenance/MaintenanceOwnerNoticeDraftComposer.tsx",
-        "line": 147,
+        "line": 152,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -34414,7 +34682,7 @@
       },
       {
         "owner": "components/maintenance/MaintenanceOwnerNoticeDraftComposer.tsx",
-        "line": 161,
+        "line": 166,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -34449,7 +34717,7 @@
       },
       {
         "owner": "components/maintenance/MaintenanceOwnerNoticeDraftComposer.tsx",
-        "line": 208,
+        "line": 213,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -34484,7 +34752,7 @@
       },
       {
         "owner": "components/maintenance/MaintenanceOwnerNoticeDraftComposer.tsx",
-        "line": 216,
+        "line": 221,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Required state, error or bounded recovery",
@@ -34519,7 +34787,7 @@
       },
       {
         "owner": "components/maintenance/MaintenanceOwnerNoticeDraftComposer.tsx",
-        "line": 233,
+        "line": 238,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -36059,12 +36327,10 @@
       },
       {
         "owner": "components/lease-renewal/RentvineUpdatesPanel.tsx",
-        "line": 851,
         "kind": "p",
-        "state": "populated_or_initial",
-        "purpose": "Task label, useful concise reading content or output",
-        "action": "preserve",
-        "staticContentHash": "19219503dfee4c9cbafe9e08f5974a7ac3350cda2a61b587fa2e3dd154d43f3a",
+        "state": "former_default_exposition",
+        "purpose": "Removed/reworded duplicate or internal explanation; required facts, task controls, errors and exact consequences assessed separately in current owner and capability tests",
+        "action": "slim_remove",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: components/lease-renewal/RentvineUpdatesPanel.tsx",
@@ -36089,12 +36355,20 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Former block no longer present: components/lease-renewal/RentvineUpdatesPanel.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "startingLine": 851,
+        "startingStaticContentHash": "19219503dfee4c9cbafe9e08f5974a7ac3350cda2a61b587fa2e3dd154d43f3a"
       },
       {
         "owner": "components/lease-renewal/RentvineUpdatesPanel.tsx",
-        "line": 866,
+        "line": 862,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -36129,7 +36403,7 @@
       },
       {
         "owner": "components/lease-renewal/RentvineUpdatesPanel.tsx",
-        "line": 964,
+        "line": 960,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -36164,7 +36438,7 @@
       },
       {
         "owner": "components/lease-renewal/RentvineUpdatesPanel.tsx",
-        "line": 1039,
+        "line": 1035,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -36199,7 +36473,7 @@
       },
       {
         "owner": "components/lease-renewal/RentvineUpdatesPanel.tsx",
-        "line": 1108,
+        "line": 1104,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -36234,7 +36508,7 @@
       },
       {
         "owner": "components/lease-renewal/RentvineUpdatesPanel.tsx",
-        "line": 1125,
+        "line": 1121,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -36479,12 +36753,10 @@
       },
       {
         "owner": "components/lease-renewal/RentAndCharges.tsx",
-        "line": 108,
         "kind": "p",
-        "state": "populated_or_initial",
-        "purpose": "Task label, useful concise reading content or output",
-        "action": "preserve",
-        "staticContentHash": "58441cd0042410c2d9f78752d6c454cdf2e258b4cf9d1f2186b2a5338d40a7cc",
+        "state": "former_default_exposition",
+        "purpose": "Removed/reworded duplicate or internal explanation; required facts, task controls, errors and exact consequences assessed separately in current owner and capability tests",
+        "action": "slim_remove",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: components/lease-renewal/RentAndCharges.tsx",
@@ -36509,12 +36781,20 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Former block no longer present; replaced by a shorter block: components/lease-renewal/RentAndCharges.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "startingLine": 108,
+        "startingStaticContentHash": "58441cd0042410c2d9f78752d6c454cdf2e258b4cf9d1f2186b2a5338d40a7cc"
       },
       {
         "owner": "components/lease-renewal/RenewalWorkStatusControl.tsx",
-        "line": 458,
+        "line": 474,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Required state, error or bounded recovery",
@@ -36549,7 +36829,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkStatusControl.tsx",
-        "line": 511,
+        "line": 527,
         "kind": "p",
         "state": "pending_or_save_feedback",
         "purpose": "Task label, useful concise reading content or output",
@@ -36584,7 +36864,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkStatusControl.tsx",
-        "line": 559,
+        "line": 575,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Required state, error or bounded recovery",
@@ -36619,7 +36899,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkStatusControl.tsx",
-        "line": 570,
+        "line": 586,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -36654,7 +36934,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkStatusControl.tsx",
-        "line": 573,
+        "line": 589,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -36689,7 +36969,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkStatusControl.tsx",
-        "line": 577,
+        "line": 593,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -36724,7 +37004,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkStatusControl.tsx",
-        "line": 587,
+        "line": 603,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -36759,7 +37039,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 477,
+        "line": 471,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -36794,7 +37074,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 653,
+        "line": 647,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Required state, error or bounded recovery",
@@ -36829,7 +37109,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 703,
+        "line": 697,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -36864,7 +37144,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 740,
+        "line": 734,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -36899,7 +37179,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 752,
+        "line": 746,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -36934,7 +37214,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 763,
+        "line": 757,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -36969,7 +37249,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 775,
+        "line": 769,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -37004,7 +37284,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 875,
+        "line": 869,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -37039,12 +37319,10 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1006,
         "kind": "p",
-        "state": "populated_or_initial",
-        "purpose": "Task label, useful concise reading content or output",
-        "action": "preserve",
-        "staticContentHash": "bba1e67f017b0b1cac07037bd2e4bff79da2775b5498fe057447fd41c202de16",
+        "state": "former_default_exposition",
+        "purpose": "Removed/reworded duplicate or internal explanation; required facts, task controls, errors and exact consequences assessed separately in current owner and capability tests",
+        "action": "slim_remove",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: components/lease-renewal/RenewalWorkspace.tsx",
@@ -37069,12 +37347,20 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Former block no longer present: components/lease-renewal/RenewalWorkspace.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "startingLine": 1006,
+        "startingStaticContentHash": "bba1e67f017b0b1cac07037bd2e4bff79da2775b5498fe057447fd41c202de16"
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1011,
+        "line": 1000,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -37109,7 +37395,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1024,
+        "line": 1013,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -37144,7 +37430,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1043,
+        "line": 1032,
         "kind": "Disclosure",
         "state": "populated_or_initial",
         "purpose": "Optional labelled rationale or structured evidence",
@@ -37179,7 +37465,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1092,
+        "line": 1081,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -37214,7 +37500,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1115,
+        "line": 1104,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -37249,7 +37535,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1137,
+        "line": 1126,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -37284,7 +37570,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1160,
+        "line": 1149,
         "kind": "Disclosure",
         "state": "populated_or_consequential",
         "purpose": "Optional labelled rationale or structured evidence",
@@ -37319,7 +37605,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1170,
+        "line": 1159,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -37354,7 +37640,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1216,
+        "line": 1211,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -37389,7 +37675,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1269,
+        "line": 1264,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -37424,7 +37710,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1137,
+        "line": 1126,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -37459,7 +37745,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1337,
+        "line": 1332,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -37494,7 +37780,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1351,
+        "line": 1346,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -37529,7 +37815,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1388,
+        "line": 1383,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -37564,7 +37850,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1414,
+        "line": 1409,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -37599,7 +37885,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkspace.tsx",
-        "line": 1436,
+        "line": 1431,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -37634,7 +37920,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalWorkingRecord.tsx",
-        "line": 293,
+        "line": 302,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38089,7 +38375,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1327,
+        "line": 1341,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38124,7 +38410,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1335,
+        "line": 1349,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38159,7 +38445,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1430,
+        "line": 1444,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -38194,7 +38480,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1448,
+        "line": 1462,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38229,7 +38515,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1486,
+        "line": 1500,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -38264,7 +38550,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1493,
+        "line": 1507,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -38299,7 +38585,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1529,
+        "line": 1543,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38334,7 +38620,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1542,
+        "line": 1556,
         "kind": "p",
         "state": "error_or_unavailable_recovery",
         "purpose": "Required state, error or bounded recovery",
@@ -38369,7 +38655,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1546,
+        "line": 1560,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38404,7 +38690,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1555,
+        "line": 1569,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38439,7 +38725,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1576,
+        "line": 1590,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38474,7 +38760,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1596,
+        "line": 1610,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38509,7 +38795,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1599,
+        "line": 1613,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38544,7 +38830,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1607,
+        "line": 1621,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38579,7 +38865,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1615,
+        "line": 1629,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38614,7 +38900,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1621,
+        "line": 1635,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38649,7 +38935,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1648,
+        "line": 1662,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -38684,12 +38970,10 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1656,
         "kind": "p",
-        "state": "populated_or_initial",
-        "purpose": "Task label, useful concise reading content or output",
-        "action": "preserve",
-        "staticContentHash": "21b0541ee0b67eba266dc4f8270d79c33452741d18b85326bb6505f2a31f38a6",
+        "state": "former_default_exposition",
+        "purpose": "Removed/reworded duplicate or internal explanation; required facts, task controls, errors and exact consequences assessed separately in current owner and capability tests",
+        "action": "slim_remove",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: components/lease-renewal/RenewalProgressControls.tsx",
@@ -38714,17 +38998,23 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Former block no longer present; replaced by a shorter block: components/lease-renewal/RenewalProgressControls.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "startingLine": 1656,
+        "startingStaticContentHash": "21b0541ee0b67eba266dc4f8270d79c33452741d18b85326bb6505f2a31f38a6"
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1665,
         "kind": "p",
-        "state": "populated_or_initial",
-        "purpose": "Current fact, scope, evidence distinction or exact action consequence",
-        "action": "preserve",
-        "staticContentHash": "40d96aa21373994f33d78dc9d7e67b8d4543f76358515cdc4efc33d38b776205",
+        "state": "former_default_exposition",
+        "purpose": "Removed/reworded duplicate or internal explanation; required facts, task controls, errors and exact consequences assessed separately in current owner and capability tests",
+        "action": "slim_remove",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: components/lease-renewal/RenewalProgressControls.tsx",
@@ -38749,17 +39039,23 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Former block no longer present; replaced by a shorter block: components/lease-renewal/RenewalProgressControls.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "startingLine": 1665,
+        "startingStaticContentHash": "40d96aa21373994f33d78dc9d7e67b8d4543f76358515cdc4efc33d38b776205"
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1720,
         "kind": "p",
-        "state": "populated_or_initial",
-        "purpose": "Current fact, scope, evidence distinction or exact action consequence",
-        "action": "preserve",
-        "staticContentHash": "0967d11edbda20ff0465fb90a4c2d21bf27242b1ccb17ca625655be6e92e8b07",
+        "state": "former_default_exposition",
+        "purpose": "Removed/reworded duplicate or internal explanation; required facts, task controls, errors and exact consequences assessed separately in current owner and capability tests",
+        "action": "slim_remove",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: components/lease-renewal/RenewalProgressControls.tsx",
@@ -38784,12 +39080,20 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Former block no longer present: components/lease-renewal/RenewalProgressControls.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "startingLine": 1720,
+        "startingStaticContentHash": "0967d11edbda20ff0465fb90a4c2d21bf27242b1ccb17ca625655be6e92e8b07"
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1726,
+        "line": 1734,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38824,7 +39128,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1757,
+        "line": 1765,
         "kind": "p",
         "state": "error_or_unavailable_recovery",
         "purpose": "Required state, error or bounded recovery",
@@ -38859,7 +39163,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1770,
+        "line": 1778,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38894,7 +39198,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1798,
+        "line": 1806,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -38929,7 +39233,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalProgressControls.tsx",
-        "line": 1842,
+        "line": 1850,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -39419,12 +39723,10 @@
       },
       {
         "owner": "components/lease-renewal/RenewalNoticeReview.tsx",
-        "line": 127,
         "kind": "p",
-        "state": "populated_or_initial",
-        "purpose": "Current fact, scope, evidence distinction or exact action consequence",
-        "action": "preserve",
-        "staticContentHash": "4011a04cb35f24198eed3b98c4cd159b4d7409864e14f984772a03815b9fb710",
+        "state": "former_default_exposition",
+        "purpose": "Removed/reworded duplicate or internal explanation; required facts, task controls, errors and exact consequences assessed separately in current owner and capability tests",
+        "action": "slim_remove",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: components/lease-renewal/RenewalNoticeReview.tsx",
@@ -39449,12 +39751,20 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Former block no longer present; replaced by a shorter block: components/lease-renewal/RenewalNoticeReview.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "startingLine": 127,
+        "startingStaticContentHash": "4011a04cb35f24198eed3b98c4cd159b4d7409864e14f984772a03815b9fb710"
       },
       {
         "owner": "components/lease-renewal/RenewalNoticeReview.tsx",
-        "line": 143,
+        "line": 142,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -39524,7 +39834,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 937,
+        "line": 947,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -39559,7 +39869,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 979,
+        "line": 989,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -39594,7 +39904,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1029,
+        "line": 1039,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -39629,7 +39939,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1092,
+        "line": 1103,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -39664,7 +39974,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1183,
+        "line": 1194,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -39699,7 +40009,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1193,
+        "line": 1204,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Required state, error or bounded recovery",
@@ -39734,7 +40044,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1200,
+        "line": 1211,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -39769,7 +40079,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1214,
+        "line": 1225,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -39804,7 +40114,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1233,
+        "line": 1244,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -39839,7 +40149,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1243,
+        "line": 1254,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -39874,7 +40184,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1291,
+        "line": 1303,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -39909,7 +40219,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1393,
+        "line": 1405,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -39944,7 +40254,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1628,
+        "line": 1640,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -39979,12 +40289,10 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1734,
         "kind": "p",
-        "state": "populated_or_consequential",
-        "purpose": "Current fact, scope, evidence distinction or exact action consequence",
-        "action": "preserve",
-        "staticContentHash": "be783fc53bc266a7d308565eaf63cd4ce9a288b50ac1479768660ba81a228785",
+        "state": "former_default_exposition",
+        "purpose": "Removed/reworded duplicate or internal explanation; required facts, task controls, errors and exact consequences assessed separately in current owner and capability tests",
+        "action": "slim_remove",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: components/lease-renewal/RenewalMessagePreparation.tsx",
@@ -40009,17 +40317,23 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Former block no longer present; replaced by a shorter block: components/lease-renewal/RenewalMessagePreparation.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "startingLine": 1734,
+        "startingStaticContentHash": "be783fc53bc266a7d308565eaf63cd4ce9a288b50ac1479768660ba81a228785"
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1741,
         "kind": "p",
-        "state": "populated_or_consequential",
-        "purpose": "Current fact, scope, evidence distinction or exact action consequence",
-        "action": "preserve",
-        "staticContentHash": "5a98bfa82fad5880e7a6319866a400d2e4c808082d5f7a9ddf3afa20567dd9d8",
+        "state": "former_default_exposition",
+        "purpose": "Removed/reworded duplicate or internal explanation; required facts, task controls, errors and exact consequences assessed separately in current owner and capability tests",
+        "action": "slim_remove",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: components/lease-renewal/RenewalMessagePreparation.tsx",
@@ -40044,12 +40358,20 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Former block no longer present; replaced by a shorter block: components/lease-renewal/RenewalMessagePreparation.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "startingLine": 1741,
+        "startingStaticContentHash": "5a98bfa82fad5880e7a6319866a400d2e4c808082d5f7a9ddf3afa20567dd9d8"
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1765,
+        "line": 1772,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -40084,7 +40406,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1855,
+        "line": 1862,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -40119,7 +40441,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
-        "line": 1867,
+        "line": 1874,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -40154,7 +40476,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalManualWorkspace.tsx",
-        "line": 384,
+        "line": 389,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Required state, error or bounded recovery",
@@ -40189,7 +40511,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalManualWorkspace.tsx",
-        "line": 391,
+        "line": 396,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -40224,7 +40546,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalManualWorkspace.tsx",
-        "line": 397,
+        "line": 402,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -40259,7 +40581,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalManualWorkspace.tsx",
-        "line": 405,
+        "line": 410,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -40294,7 +40616,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalManualWorkspace.tsx",
-        "line": 459,
+        "line": 464,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -40329,7 +40651,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalManualWorkspace.tsx",
-        "line": 482,
+        "line": 487,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -40364,12 +40686,10 @@
       },
       {
         "owner": "components/lease-renewal/RenewalManualWorkspace.tsx",
-        "line": 513,
         "kind": "p",
-        "state": "populated_or_initial",
-        "purpose": "Current fact, scope, evidence distinction or exact action consequence",
-        "action": "preserve",
-        "staticContentHash": "150e298102ca3dcae01617f07165b2acd6e3cc2c8c5fbe256cdf25b6fc75794f",
+        "state": "former_default_exposition",
+        "purpose": "Removed/reworded duplicate or internal explanation; required facts, task controls, errors and exact consequences assessed separately in current owner and capability tests",
+        "action": "slim_remove",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: components/lease-renewal/RenewalManualWorkspace.tsx",
@@ -40394,12 +40714,20 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Former block no longer present; replaced by a shorter block: components/lease-renewal/RenewalManualWorkspace.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "startingLine": 513,
+        "startingStaticContentHash": "150e298102ca3dcae01617f07165b2acd6e3cc2c8c5fbe256cdf25b6fc75794f"
       },
       {
         "owner": "components/lease-renewal/RenewalManualWorkspace.tsx",
-        "line": 567,
+        "line": 572,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -40434,7 +40762,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalManualWorkspace.tsx",
-        "line": 725,
+        "line": 735,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -40469,7 +40797,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalManualWorkspace.tsx",
-        "line": 849,
+        "line": 862,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -40504,7 +40832,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalManualWorkspace.tsx",
-        "line": 865,
+        "line": 878,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -41274,7 +41602,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalDocumentHandoff.tsx",
-        "line": 139,
+        "line": 140,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -41309,12 +41637,10 @@
       },
       {
         "owner": "components/lease-renewal/RenewalDocumentHandoff.tsx",
-        "line": 230,
         "kind": "p",
-        "state": "populated_or_initial",
-        "purpose": "Current fact, scope, evidence distinction or exact action consequence",
-        "action": "preserve",
-        "staticContentHash": "6d8dce131264b1f884ad04f7c75a625165a59f1c2eaf02b0a20ddbbc9ef675c7",
+        "state": "former_default_exposition",
+        "purpose": "Removed/reworded duplicate or internal explanation; required facts, task controls, errors and exact consequences assessed separately in current owner and capability tests",
+        "action": "slim_remove",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: components/lease-renewal/RenewalDocumentHandoff.tsx",
@@ -41339,12 +41665,20 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Former block no longer present; replaced by a shorter block: components/lease-renewal/RenewalDocumentHandoff.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "startingLine": 230,
+        "startingStaticContentHash": "6d8dce131264b1f884ad04f7c75a625165a59f1c2eaf02b0a20ddbbc9ef675c7"
       },
       {
         "owner": "components/lease-renewal/RenewalDocumentHandoff.tsx",
-        "line": 242,
+        "line": 243,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -41379,7 +41713,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalDocumentHandoff.tsx",
-        "line": 252,
+        "line": 253,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -41414,7 +41748,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalDocumentHandoff.tsx",
-        "line": 266,
+        "line": 267,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -41449,7 +41783,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalDocumentHandoff.tsx",
-        "line": 288,
+        "line": 289,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -41484,7 +41818,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalDocumentHandoff.tsx",
-        "line": 314,
+        "line": 315,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -41519,7 +41853,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalDocumentHandoff.tsx",
-        "line": 342,
+        "line": 343,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -41554,7 +41888,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalDocumentHandoff.tsx",
-        "line": 350,
+        "line": 351,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -41589,7 +41923,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalDocumentHandoff.tsx",
-        "line": 361,
+        "line": 362,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -41624,7 +41958,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalDocumentHandoff.tsx",
-        "line": 403,
+        "line": 404,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -42114,7 +42448,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalDecider.tsx",
-        "line": 180,
+        "line": 185,
         "kind": "p",
         "state": "pending_or_save_feedback",
         "purpose": "Task label, useful concise reading content or output",
@@ -42149,7 +42483,7 @@
       },
       {
         "owner": "components/lease-renewal/RenewalDecider.tsx",
-        "line": 189,
+        "line": 194,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -43724,7 +44058,7 @@
       },
       {
         "owner": "components/lease-renewal/OperatingSheetLookup.tsx",
-        "line": 189,
+        "line": 201,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -43759,7 +44093,7 @@
       },
       {
         "owner": "components/lease-renewal/OperatingSheetLookup.tsx",
-        "line": 194,
+        "line": 206,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -43794,7 +44128,7 @@
       },
       {
         "owner": "components/lease-renewal/OperatingSheetLookup.tsx",
-        "line": 200,
+        "line": 212,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -43829,7 +44163,7 @@
       },
       {
         "owner": "components/lease-renewal/OperatingSheetLookup.tsx",
-        "line": 205,
+        "line": 217,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -43864,7 +44198,7 @@
       },
       {
         "owner": "components/lease-renewal/OperatingSheetLookup.tsx",
-        "line": 212,
+        "line": 224,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -43899,7 +44233,7 @@
       },
       {
         "owner": "components/lease-renewal/OperatingSheetLookup.tsx",
-        "line": 237,
+        "line": 249,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -43934,7 +44268,7 @@
       },
       {
         "owner": "components/lease-renewal/OperatingSheetLookup.tsx",
-        "line": 258,
+        "line": 270,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -43969,7 +44303,7 @@
       },
       {
         "owner": "components/lease-renewal/OperatingSheetLookup.tsx",
-        "line": 262,
+        "line": 274,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -44004,7 +44338,7 @@
       },
       {
         "owner": "components/lease-renewal/OperatingSheetLookup.tsx",
-        "line": 301,
+        "line": 313,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -44039,7 +44373,7 @@
       },
       {
         "owner": "components/lease-renewal/OperatingSheetLookup.tsx",
-        "line": 310,
+        "line": 322,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -44074,7 +44408,7 @@
       },
       {
         "owner": "components/lease-renewal/OperatingSheetLookup.tsx",
-        "line": 339,
+        "line": 351,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -44109,7 +44443,7 @@
       },
       {
         "owner": "components/lease-renewal/OperatingSheetLookup.tsx",
-        "line": 344,
+        "line": 356,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -44144,7 +44478,7 @@
       },
       {
         "owner": "components/lease-renewal/OperatingSheetLookup.tsx",
-        "line": 360,
+        "line": 372,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -44179,7 +44513,7 @@
       },
       {
         "owner": "components/lease-renewal/OperatingSheetLookup.tsx",
-        "line": 365,
+        "line": 377,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -44529,7 +44863,7 @@
       },
       {
         "owner": "components/lease-renewal/LeaseTermReviewControl.tsx",
-        "line": 45,
+        "line": 52,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -44564,12 +44898,10 @@
       },
       {
         "owner": "components/lease-renewal/LeaseTermReviewControl.tsx",
-        "line": 91,
         "kind": "p",
-        "state": "populated_or_initial",
-        "purpose": "Task label, useful concise reading content or output",
-        "action": "preserve",
-        "staticContentHash": "1ad6c3c465f9dbcc24ab95479607604c09425793873ad8e5c44a9e63e3b130e3",
+        "state": "former_default_exposition",
+        "purpose": "Removed/reworded duplicate or internal explanation; required facts, task controls, errors and exact consequences assessed separately in current owner and capability tests",
+        "action": "slim_remove",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: components/lease-renewal/LeaseTermReviewControl.tsx",
@@ -44594,8 +44926,16 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Former block no longer present; replaced by a shorter block: components/lease-renewal/LeaseTermReviewControl.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "startingLine": 91,
+        "startingStaticContentHash": "1ad6c3c465f9dbcc24ab95479607604c09425793873ad8e5c44a9e63e3b130e3"
       },
       {
         "owner": "components/lease-renewal/LeaseDecisionProjectionPanel.tsx",
@@ -45824,7 +46164,7 @@
       },
       {
         "owner": "components/lease-renewal/FilledArtifactPanel.tsx",
-        "line": 85,
+        "line": 86,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -45859,7 +46199,7 @@
       },
       {
         "owner": "components/lease-renewal/FilledArtifactPanel.tsx",
-        "line": 108,
+        "line": 109,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -45894,7 +46234,7 @@
       },
       {
         "owner": "components/lease-renewal/FilledArtifactPanel.tsx",
-        "line": 117,
+        "line": 118,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -45929,7 +46269,7 @@
       },
       {
         "owner": "components/lease-renewal/FilledArtifactPanel.tsx",
-        "line": 118,
+        "line": 119,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -45964,7 +46304,7 @@
       },
       {
         "owner": "components/lease-renewal/FilledArtifactPanel.tsx",
-        "line": 153,
+        "line": 154,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -45999,7 +46339,7 @@
       },
       {
         "owner": "components/lease-renewal/FilledArtifactHistory.tsx",
-        "line": 41,
+        "line": 42,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -46034,7 +46374,7 @@
       },
       {
         "owner": "components/lease-renewal/FilledArtifactHistory.tsx",
-        "line": 80,
+        "line": 81,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46069,7 +46409,7 @@
       },
       {
         "owner": "components/lease-renewal/FilledArtifactHistory.tsx",
-        "line": 83,
+        "line": 84,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46104,12 +46444,10 @@
       },
       {
         "owner": "components/lease-renewal/DotloopPacketLinkPanel.tsx",
-        "line": 71,
         "kind": "p",
-        "state": "populated_or_consequential",
-        "purpose": "Current fact, scope, evidence distinction or exact action consequence",
-        "action": "preserve",
-        "staticContentHash": "00cb9319dc34c252427132312e75eb00a475db3c471bf305d4360ee2d62afb76",
+        "state": "former_default_exposition",
+        "purpose": "Removed/reworded duplicate or internal explanation; required facts, task controls, errors and exact consequences assessed separately in current owner and capability tests",
+        "action": "slim_remove",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: components/lease-renewal/DotloopPacketLinkPanel.tsx",
@@ -46134,12 +46472,20 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Former block no longer present; replaced by a shorter block: components/lease-renewal/DotloopPacketLinkPanel.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "startingLine": 71,
+        "startingStaticContentHash": "00cb9319dc34c252427132312e75eb00a475db3c471bf305d4360ee2d62afb76"
       },
       {
         "owner": "components/lease-renewal/DotloopPacketLinkPanel.tsx",
-        "line": 78,
+        "line": 76,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46174,7 +46520,7 @@
       },
       {
         "owner": "components/lease-renewal/DotloopPacketLinkPanel.tsx",
-        "line": 90,
+        "line": 88,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -46209,7 +46555,7 @@
       },
       {
         "owner": "components/lease-renewal/DotloopPacketLinkPanel.tsx",
-        "line": 93,
+        "line": 91,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46419,7 +46765,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 523,
+        "line": 527,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46454,7 +46800,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 558,
+        "line": 562,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46489,7 +46835,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 594,
+        "line": 601,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46524,7 +46870,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 677,
+        "line": 684,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46559,7 +46905,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 678,
+        "line": 685,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46594,7 +46940,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 679,
+        "line": 686,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46629,7 +46975,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 685,
+        "line": 692,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46664,7 +47010,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 729,
+        "line": 736,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46699,7 +47045,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 736,
+        "line": 743,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -46734,7 +47080,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 778,
+        "line": 785,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46769,7 +47115,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 779,
+        "line": 786,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46804,7 +47150,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 781,
+        "line": 788,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -46839,7 +47185,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 818,
+        "line": 825,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46874,7 +47220,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 821,
+        "line": 828,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46909,7 +47255,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 824,
+        "line": 831,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46944,7 +47290,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 828,
+        "line": 835,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -46979,7 +47325,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 832,
+        "line": 839,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -47014,7 +47360,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 835,
+        "line": 842,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -47049,7 +47395,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 838,
+        "line": 845,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -47084,7 +47430,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 848,
+        "line": 855,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -47119,7 +47465,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 891,
+        "line": 898,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -47154,7 +47500,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 894,
+        "line": 901,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -47189,7 +47535,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 897,
+        "line": 904,
         "kind": "p",
         "state": "error_or_unavailable_recovery",
         "purpose": "Required state, error or bounded recovery",
@@ -47224,7 +47570,7 @@
       },
       {
         "owner": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
-        "line": 940,
+        "line": 947,
         "kind": "p",
         "state": "error_or_unavailable_recovery",
         "purpose": "Required state, error or bounded recovery",
@@ -47469,7 +47815,7 @@
       },
       {
         "owner": "components/gmail-hub/LiveGmailWorkspace.tsx",
-        "line": 236,
+        "line": 254,
         "kind": "p",
         "state": "error_or_unavailable_recovery",
         "purpose": "Required state, error or bounded recovery",
@@ -47504,7 +47850,7 @@
       },
       {
         "owner": "components/gmail-hub/LiveGmailWorkspace.tsx",
-        "line": 239,
+        "line": 259,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -47539,7 +47885,7 @@
       },
       {
         "owner": "components/gmail-hub/LiveGmailWorkspace.tsx",
-        "line": 270,
+        "line": 281,
         "kind": "Disclosure",
         "state": "pending_or_save_feedback",
         "purpose": "Optional labelled rationale or structured evidence",
@@ -48343,7 +48689,7 @@
       },
       {
         "owner": "components/email/RefineWithAi.tsx",
-        "line": 183,
+        "line": 184,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -48378,7 +48724,7 @@
       },
       {
         "owner": "components/email/RefineWithAi.tsx",
-        "line": 198,
+        "line": 199,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -48413,7 +48759,7 @@
       },
       {
         "owner": "components/email/RefineWithAi.tsx",
-        "line": 204,
+        "line": 205,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -48448,7 +48794,7 @@
       },
       {
         "owner": "components/email/RefineWithAi.tsx",
-        "line": 210,
+        "line": 211,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -50898,7 +51244,7 @@
       },
       {
         "owner": "components/desk/SpaceDeskRunPanel.tsx",
-        "line": 202,
+        "line": 205,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -51878,7 +52224,7 @@
       },
       {
         "owner": "components/ask/DashboardTurnView.tsx",
-        "line": 640,
+        "line": 660,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -52263,7 +52609,7 @@
       },
       {
         "owner": "components/ask/AskForm.tsx",
-        "line": 1167,
+        "line": 1182,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -52298,7 +52644,7 @@
       },
       {
         "owner": "components/ask/AskForm.tsx",
-        "line": 1223,
+        "line": 1238,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -52333,7 +52679,7 @@
       },
       {
         "owner": "components/ask/AskForm.tsx",
-        "line": 1305,
+        "line": 1320,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -52578,7 +52924,7 @@
       },
       {
         "owner": "components/console/StartRunButton.tsx",
-        "line": 54,
+        "line": 59,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -52613,7 +52959,7 @@
       },
       {
         "owner": "components/console/StartRunButton.tsx",
-        "line": 62,
+        "line": 67,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -52648,7 +52994,7 @@
       },
       {
         "owner": "components/admin/UserManagementPanel.tsx",
-        "line": 131,
+        "line": 133,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -52683,7 +53029,7 @@
       },
       {
         "owner": "components/admin/UserManagementPanel.tsx",
-        "line": 169,
+        "line": 171,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -52963,7 +53309,7 @@
       },
       {
         "owner": "components/admin/SpaceRequestPanel.tsx",
-        "line": 203,
+        "line": 205,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -52998,7 +53344,7 @@
       },
       {
         "owner": "components/admin/SpaceRequestPanel.tsx",
-        "line": 272,
+        "line": 274,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -53033,7 +53379,7 @@
       },
       {
         "owner": "components/admin/SpaceRequestPanel.tsx",
-        "line": 283,
+        "line": 285,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Required state, error or bounded recovery",
@@ -53068,7 +53414,7 @@
       },
       {
         "owner": "components/admin/SpaceRequestPanel.tsx",
-        "line": 342,
+        "line": 344,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -54689,7 +55035,7 @@
       },
       {
         "owner": "components/admin/ApprovalQueueAdminPanel.tsx",
-        "line": 126,
+        "line": 59,
         "kind": "p",
         "state": "error_or_unavailable_recovery",
         "purpose": "Required state, error or bounded recovery",
@@ -54724,12 +55070,10 @@
       },
       {
         "owner": "components/admin/ApprovalQueueAdminPanel.tsx",
-        "line": 134,
         "kind": "p",
-        "state": "populated_or_initial",
-        "purpose": "Required state, error or bounded recovery",
-        "action": "preserve",
-        "staticContentHash": "b31fe2cc70884af8094d2bd75ad18e89a98176416e00204f061172eed0817d22",
+        "state": "former_default_exposition",
+        "purpose": "Removed/reworded duplicate or internal explanation; required facts, task controls, errors and exact consequences assessed separately in current owner and capability tests",
+        "action": "slim_remove",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: components/admin/ApprovalQueueAdminPanel.tsx",
@@ -54754,12 +55098,20 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Former block no longer present; replaced by a shorter block: components/admin/ApprovalQueueAdminPanel.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "startingLine": 134,
+        "startingStaticContentHash": "b31fe2cc70884af8094d2bd75ad18e89a98176416e00204f061172eed0817d22"
       },
       {
         "owner": "components/admin/ApprovalQueueAdminPanel.tsx",
-        "line": 144,
+        "line": 79,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -54794,7 +55146,7 @@
       },
       {
         "owner": "components/admin/ApprovalQueueAdminPanel.tsx",
-        "line": 145,
+        "line": 80,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -54829,7 +55181,7 @@
       },
       {
         "owner": "components/admin/ApprovalQueueAdminPanel.tsx",
-        "line": 152,
+        "line": 87,
         "kind": "p",
         "state": "error_or_unavailable_recovery",
         "purpose": "Required state, error or bounded recovery",
@@ -55109,7 +55461,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 478,
+        "line": 481,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -55144,7 +55496,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 490,
+        "line": 493,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -55179,7 +55531,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 506,
+        "line": 509,
         "kind": "Notice",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -55214,7 +55566,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 506,
+        "line": 509,
         "kind": "Notice",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -55249,7 +55601,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 511,
+        "line": 514,
         "kind": "Notice",
         "state": "populated_or_initial",
         "purpose": "Required state, error or bounded recovery",
@@ -55284,7 +55636,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 519,
+        "line": 522,
         "kind": "Notice",
         "state": "populated_or_initial",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -55319,7 +55671,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 523,
+        "line": 526,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -55354,7 +55706,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 534,
+        "line": 537,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -55389,7 +55741,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 536,
+        "line": 539,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -55424,7 +55776,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 540,
+        "line": 543,
         "kind": "Notice",
         "state": "error_or_unavailable_recovery",
         "purpose": "Required state, error or bounded recovery",
@@ -55459,7 +55811,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 542,
+        "line": 545,
         "kind": "Notice",
         "state": "populated_or_initial",
         "purpose": "Required state, error or bounded recovery",
@@ -55494,7 +55846,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 545,
+        "line": 548,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -55529,7 +55881,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 816,
+        "line": 819,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -55564,7 +55916,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 841,
+        "line": 844,
         "kind": "Notice",
         "state": "error_or_unavailable_recovery",
         "purpose": "Required state, error or bounded recovery",
@@ -55599,7 +55951,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 865,
+        "line": 868,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -55634,7 +55986,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 887,
+        "line": 890,
         "kind": "Notice",
         "state": "error_or_unavailable_recovery",
         "purpose": "Required state, error or bounded recovery",
@@ -55669,7 +56021,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 898,
+        "line": 901,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -55704,7 +56056,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 908,
+        "line": 911,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -55739,7 +56091,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 910,
+        "line": 913,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -55774,7 +56126,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 926,
+        "line": 929,
         "kind": "Notice",
         "state": "populated_or_initial",
         "purpose": "Required state, error or bounded recovery",
@@ -55809,7 +56161,7 @@
       },
       {
         "owner": "components/admin/AccessCenter.tsx",
-        "line": 947,
+        "line": 950,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -56264,12 +56616,10 @@
       },
       {
         "owner": "app/admin/page.tsx",
-        "line": 469,
         "kind": "p",
-        "state": "populated_or_consequential",
-        "purpose": "Required state, error or bounded recovery",
-        "action": "preserve",
-        "staticContentHash": "a710762df144f61cf42d246ca8a29b9613b9c34dc1f3d3b4803fa007fbd102c0",
+        "state": "former_default_exposition",
+        "purpose": "Removed/reworded duplicate or internal explanation; required facts, task controls, errors and exact consequences assessed separately in current owner and capability tests",
+        "action": "slim_remove",
         "checks": [
           {
             "test": "Current owning source and before/after JSX content/control inspection: app/admin/page.tsx",
@@ -56294,12 +56644,20 @@
             "outcome": "passed",
             "environment": "Actual current source content/control inspection; static counts remain inventory, with runtime behavior independently verified",
             "evidence": "private batch005-final-content-blocks-3.json"
+          },
+          {
+            "test": "Former block no longer present; replaced by a shorter block: app/admin/page.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
           }
-        ]
+        ],
+        "startingLine": 469,
+        "startingStaticContentHash": "a710762df144f61cf42d246ca8a29b9613b9c34dc1f3d3b4803fa007fbd102c0"
       },
       {
         "owner": "app/admin/page.tsx",
-        "line": 476,
+        "line": 475,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -56334,7 +56692,7 @@
       },
       {
         "owner": "app/admin/page.tsx",
-        "line": 484,
+        "line": 483,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -56369,7 +56727,7 @@
       },
       {
         "owner": "app/admin/page.tsx",
-        "line": 492,
+        "line": 491,
         "kind": "p",
         "state": "populated_or_consequential",
         "purpose": "Current fact, scope, evidence distinction or exact action consequence",
@@ -56404,7 +56762,7 @@
       },
       {
         "owner": "app/admin/page.tsx",
-        "line": 559,
+        "line": 558,
         "kind": "p",
         "state": "populated_or_initial",
         "purpose": "Task label, useful concise reading content or output",
@@ -58643,6 +59001,210 @@
             "evidence": "private reviewed starting/current content blocks and original capability fixtures"
           }
         ]
+      },
+      {
+        "owner": "app/admin/page.tsx",
+        "line": 469,
+        "kind": "p",
+        "state": "populated_or_consequential",
+        "purpose": "Required state, error or bounded recovery",
+        "action": "add",
+        "staticContentHash": "3ec0e3cf6425eae83dfe7ca9e35ddfe87fb5e5e248853789a4fe4afda7fb1a1f",
+        "checks": [
+          {
+            "test": "Reworded block, current content and controls inspected: app/admin/page.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
+          }
+        ]
+      },
+      {
+        "owner": "components/admin/ApprovalQueueAdminPanel.tsx",
+        "line": 70,
+        "kind": "p",
+        "state": "populated_or_initial",
+        "purpose": "Required state, error or bounded recovery",
+        "action": "add",
+        "staticContentHash": "9d2b16b7b9b171c73addb070718e5523b9b16410a7e4f56930044fd96c888a6a",
+        "checks": [
+          {
+            "test": "Reworded block, current content and controls inspected: components/admin/ApprovalQueueAdminPanel.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
+          }
+        ]
+      },
+      {
+        "owner": "components/lease-renewal/DotloopPacketLinkPanel.tsx",
+        "line": 71,
+        "kind": "p",
+        "state": "populated_or_consequential",
+        "purpose": "Current fact, scope, evidence distinction or exact action consequence",
+        "action": "add",
+        "staticContentHash": "e4addf45506d9b125b94fc795db22a43638a4eb1fcdc0053fa9d36863b2b0f10",
+        "checks": [
+          {
+            "test": "Reworded block, current content and controls inspected: components/lease-renewal/DotloopPacketLinkPanel.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
+          }
+        ]
+      },
+      {
+        "owner": "components/lease-renewal/LeaseTermReviewControl.tsx",
+        "line": 99,
+        "kind": "p",
+        "state": "populated_or_initial",
+        "purpose": "Task label, useful concise reading content or output",
+        "action": "add",
+        "staticContentHash": "ce5fdd05d6070b2478094fa515ffc13b6fb940f52db0da2c240aaa5d62fb7c6d",
+        "checks": [
+          {
+            "test": "Reworded block, current content and controls inspected: components/lease-renewal/LeaseTermReviewControl.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
+          }
+        ]
+      },
+      {
+        "owner": "components/lease-renewal/RenewalDocumentHandoff.tsx",
+        "line": 231,
+        "kind": "p",
+        "state": "populated_or_initial",
+        "purpose": "Current fact, scope, evidence distinction or exact action consequence",
+        "action": "add",
+        "staticContentHash": "609916360820f94572aaba24fe34f976591a9c6ad06b284dfddb35203a0574d9",
+        "checks": [
+          {
+            "test": "Reworded block, current content and controls inspected: components/lease-renewal/RenewalDocumentHandoff.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
+          }
+        ]
+      },
+      {
+        "owner": "components/lease-renewal/RenewalManualWorkspace.tsx",
+        "line": 519,
+        "kind": "p",
+        "state": "populated_or_initial",
+        "purpose": "Current fact, scope, evidence distinction or exact action consequence",
+        "action": "add",
+        "staticContentHash": "ae4696cb206f10c71b34ad65f6c2bcdb9de09aa20f0dd7cd9227f44c85820bd0",
+        "checks": [
+          {
+            "test": "Reworded block, current content and controls inspected: components/lease-renewal/RenewalManualWorkspace.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
+          }
+        ]
+      },
+      {
+        "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
+        "line": 1746,
+        "kind": "p",
+        "state": "populated_or_consequential",
+        "purpose": "Current fact, scope, evidence distinction or exact action consequence",
+        "action": "add",
+        "staticContentHash": "acd9e533ab70db3198c95305be2dc5a7cd280191eef58221611c50f4d5592020",
+        "checks": [
+          {
+            "test": "Reworded block, current content and controls inspected: components/lease-renewal/RenewalMessagePreparation.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
+          }
+        ]
+      },
+      {
+        "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
+        "line": 1749,
+        "kind": "p",
+        "state": "populated_or_consequential",
+        "purpose": "Current fact, scope, evidence distinction or exact action consequence",
+        "action": "add",
+        "staticContentHash": "c8336c7df0d4f8e7b1d62b4f21fdf67ed8fbdefe156d89b387258dbeef85b151",
+        "checks": [
+          {
+            "test": "Reworded block, current content and controls inspected: components/lease-renewal/RenewalMessagePreparation.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
+          }
+        ]
+      },
+      {
+        "owner": "components/lease-renewal/RenewalNoticeReview.tsx",
+        "line": 127,
+        "kind": "p",
+        "state": "populated_or_initial",
+        "purpose": "Current fact, scope, evidence distinction or exact action consequence",
+        "action": "add",
+        "staticContentHash": "ba71afb9517fb293b7b154849fdf3431b0a3dece2e1393056a9bb4341127bf25",
+        "checks": [
+          {
+            "test": "Reworded block, current content and controls inspected: components/lease-renewal/RenewalNoticeReview.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
+          }
+        ]
+      },
+      {
+        "owner": "components/lease-renewal/RenewalProgressControls.tsx",
+        "line": 1670,
+        "kind": "p",
+        "state": "populated_or_initial",
+        "purpose": "Task label, useful concise reading content or output",
+        "action": "add",
+        "staticContentHash": "9d49570f7f5383738d0fdad2e717c92bf41d8535b4ee74350b383f591c6f5452",
+        "checks": [
+          {
+            "test": "Reworded block, current content and controls inspected: components/lease-renewal/RenewalProgressControls.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
+          }
+        ]
+      },
+      {
+        "owner": "components/lease-renewal/RenewalProgressControls.tsx",
+        "line": 1677,
+        "kind": "p",
+        "state": "populated_or_initial",
+        "purpose": "Current fact, scope, evidence distinction or exact action consequence",
+        "action": "add",
+        "staticContentHash": "24930da8fe0049e19fab31cb028850ee2b200bb9397d6a4bd24dcb2aedc134f7",
+        "checks": [
+          {
+            "test": "Reworded block, current content and controls inspected: components/lease-renewal/RenewalProgressControls.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
+          }
+        ]
+      },
+      {
+        "owner": "components/lease-renewal/RentAndCharges.tsx",
+        "line": 108,
+        "kind": "p",
+        "state": "populated_or_initial",
+        "purpose": "Task label, useful concise reading content or output",
+        "action": "add",
+        "staticContentHash": "e4ca155d884de904f33ffb18150e32db742e624536a3ec44644a1f74f189245e",
+        "checks": [
+          {
+            "test": "Reworded block, current content and controls inspected: components/lease-renewal/RentAndCharges.tsx; tests/unit/s176-residual-instructions.test.tsx; tests/unit/s145-full-view-baseline.test.tsx",
+            "outcome": "passed",
+            "environment": "Independent verification 2026-10-05: base-commit and current source compared block by block; privacy-safe static strings only",
+            "evidence": "independentVerification.contentInventory in this file"
+          }
+        ]
       }
     ]
   },
@@ -60174,21 +60736,148 @@
     "limitations": [
       "Fixture labels distinguish first/repeat invocation and imposed adapter delay; they are not machine-cold measurements.",
       "Browser server reads vary; compiled development/render/network/service time is separate from production release evidence.",
-      "Sub-about-400ms feedback is a target, not a measured guarantee. Finite waiting is not provider cancellation."
+      "Sub-about-400ms feedback is a target, not a measured guarantee. Finite waiting is not provider cancellation.",
+      "Machine-cold production timings were added on 2026-10-05 under latency.production; the fixture timings above remain first and repeat invocations of a ready process."
     ],
     "acknowledgement": {
       "delayedInventoryMs": 380,
       "identityMs": 76,
       "scope": "Actual compiled control acknowledgement under held admission; independent identity fixture. Other attempts varied and this establishes no universal 400ms or provider latency guarantee.",
       "evidence": "private batch005-compiled-browser-19.log and batch005-browser-2026-10-04T22-17-29.626Z/checks.json; private batch005-compiled-lookup-1.log"
+    },
+    "production": {
+      "scope": "Server-side request latency in milliseconds from Cloud Run request logs. Cold is the first request to a route on a newly started instance; warm is a later request to the same instance. Each revision held zero traffic and was exercised only by the guarded read-only 13-route canary. One sample per start.",
+      "builds": [
+        {
+          "build": "e106a88a (before batch 005)",
+          "revision": "pmi-kc-app-recovery-8b7dc3f14c5b482a",
+          "instanceStartUtc": "2026-10-05T01:21:11.783Z",
+          "coldMs": {
+            "/": 34400,
+            "/work": 8000,
+            "/admin/access": 8300,
+            "/api/version": 4600,
+            "/lease-renewal/live/desk": 16100,
+            "lease workspace": 13000,
+            "/spaces": 12300,
+            "/notifications": 12300
+          },
+          "warmMs": {
+            "/": 14400,
+            "/work": 700,
+            "/admin/access": 700,
+            "/lease-renewal/live/desk": [17900, 22600],
+            "lease workspace": 16300
+          }
+        },
+        {
+          "build": "fa5b2b27 (batch 005)",
+          "revision": "pmi-kc-app-recovery-5d1b4e3aef6d4354",
+          "instanceStartUtc": "2026-10-05T11:10:45.627Z",
+          "coldMs": {
+            "/": 43200,
+            "/work": 13200,
+            "/admin/access": 13500,
+            "/api/version": 6400,
+            "/lease-renewal/live/desk": 18300,
+            "lease workspace": 14500,
+            "/spaces": 14400,
+            "/notifications": 13900
+          },
+          "warmMs": {
+            "/": 12900,
+            "/work": 200,
+            "/admin/access": 800,
+            "/lease-renewal/live/desk": [16200, 25500],
+            "lease workspace": 14300
+          }
+        },
+        {
+          "build": "9e76c14f (first repairs)",
+          "revision": "pmi-kc-app-recovery-7753e5f523254b19",
+          "instanceStartUtc": "2026-10-05T13:39:46.233Z",
+          "coldMs": {
+            "/": 39700,
+            "/work": 8900,
+            "/admin/access": 9700,
+            "/connections": 2800,
+            "/api/version": 7500,
+            "/lease-renewal/live/desk": 15400,
+            "lease workspace": 14700,
+            "/maintenance": 500,
+            "/gmail-hub": 800,
+            "/spaces": 13900,
+            "/notifications": 13800,
+            "/approval-queue": 800,
+            "/admin": 300,
+            "/admin/users": 500
+          },
+          "warmMs": {
+            "/": [13600, 14100],
+            "/work": [200, 100],
+            "/admin/access": [400, 500],
+            "/connections": [300, 300],
+            "/api/version": [0, 0],
+            "/lease-renewal/live/desk": [16100, 16400],
+            "lease workspace": [15400, 17300],
+            "/maintenance": [300, 300],
+            "/gmail-hub": [200, 1500],
+            "/spaces": [14700, 15900],
+            "/notifications": [15400, 13800],
+            "/approval-queue": [800, 300],
+            "/admin": [300, 200],
+            "/admin/users": [1100, 200]
+          },
+          "requests": {
+            "cold": 314,
+            "warm": [289, 363]
+          },
+          "serverErrors": 0,
+          "earlierColdStartMs": {
+            "instanceStart": "deployment rollout, 2026-10-05T12:29Z",
+            "/": 33000,
+            "/api/version": 4700,
+            "/work": 6600,
+            "/admin/access": 7100,
+            "/lease-renewal/live/desk": 15200,
+            "lease workspace": 16600,
+            "/spaces": 17300,
+            "/notifications": 17800
+          }
+        }
+      ],
+      "serving": {
+        "build": "b2308bc5 (follow-up fixes)",
+        "revision": "pmi-kc-app-rmuv84r3a-f9fac2efc1af",
+        "warmMs": {
+          "/": [15800, 13300],
+          "/lease-renewal/live/desk": [20000, 16300],
+          "lease workspace": [15900, 15500],
+          "/spaces": 14800,
+          "/notifications": 14600
+        }
+      },
+      "findings": [
+        "A cold start adds roughly 20 to 30 seconds to the first Dashboard render: 33.0 to 43.2 seconds cold against 12.9 to 15.8 seconds warm.",
+        "A cold start adds about 6 to 13 seconds to the first render of a route with no live source read: My Work took 6.6 to 13.2 seconds cold against 0.1 to 0.7 seconds warm.",
+        "Routes bound by live source reads show no cold penalty: the renewal worklist, a lease, Spaces and Notifications took 12 to 18 seconds cold and 14 to 25 seconds warm.",
+        "No difference between builds is shown: two cold starts of one build differed by 6.7 seconds (33.0 and 39.7), as much as the builds differed from each other.",
+        "The cold first Dashboard render exceeded the release runner's 30-second route bound in every cold sample here; the two warm passes of the first-repairs revision passed every route."
+      ],
+      "limitations": [
+        "One cold sample per instance start; these are observations, not a benchmark.",
+        "Server-side request latency only: browser rendering and network time to the person are not included.",
+        "Local WSL and mounted-filesystem startup is measured separately under latency.startup and is unchanged by this section."
+      ],
+      "evidence": "private request-log extracts outside Git; release run records for 8b7dc3f1, 5d1b4e3a and 7753e5f5"
     }
   },
   "sourceReview": {
     "routes": 38,
-    "consumers": 188,
+    "consumers": 190,
     "cohorts": 6,
-    "currentContentBlocks": 815,
-    "changedFormerBlocks": 66,
+    "currentContentBlocks": 812,
+    "changedFormerBlocks": 81,
     "meaning": "Content counts are inventory only. Owner behavior/preservation, compiled accessibility, and delivery remain separate gates.",
     "frozenSpecificationBytes": "All fifteen match their preserved finalized owner-supplied working-tree bytes",
     "ownerTestTopology": {
@@ -60290,5 +60979,250 @@
     }
   ],
   "finalVerdict": "ALL_GATES_GREEN",
-  "humanVerdict": "NOT RUN — no human observer"
+  "humanVerdict": "NOT RUN — no human observer",
+  "independentVerification": {
+    "performedOnUtc": "2026-10-05",
+    "reproducedAt": "2495d7bf",
+    "scope": "Independent re-verification of the delivered program against its 153 litmus statements: the native gates and compiled checks were reproduced, the released source was rehearsed locally, and production was read through the guarded read-only canary. What it found is recorded here, apart from the implementation evidence above. A requirement row above is changed only where a finding below names it, and the superseded claim stays in that row.",
+    "firstPass": {
+      "yes": 129,
+      "no": 22,
+      "unverified": 2
+    },
+    "earlierRepairs": [
+      {
+        "merged": "PR #130 (5fda274f)",
+        "releasedBy": "run 5d1b4e3a at 9e76c14f",
+        "repaired": [
+          "navigation status started by on-screen forms, with a false not-finished notice",
+          "the S178 literal lookup answering a day-count window and short topical questions without the interpreter",
+          "saved column and panel sizes erased by a view chosen after a stale-inventory reload",
+          "a column resize on a linked view replacing the remembered filters",
+          "retired queue-email wording and enabled recipient controls in Admin",
+          "an unknown personal-view surface answering 500"
+        ]
+      },
+      {
+        "merged": "PR #133 (5261563e)",
+        "releasedBy": "run 7753e5f5 at b2308bc5",
+        "repaired": [
+          "renewal-table cells under their own headers",
+          "a lease's own loading wording",
+          "unknown-outcome wording after an elapsed wait",
+          "a navigation status that stays in view on a scrolled page",
+          "a readable message editor",
+          "one primary action in the message card",
+          "visible labels for four fields"
+        ]
+      }
+    ],
+    "earlierRepairsRecord": "docs/facts.md, F-BATCH-005-VERIFICATION",
+    "findings": [
+      {
+        "litmus": ["L18"],
+        "requirement": "R-S170-2",
+        "outcome": "failed, repaired",
+        "finding": "Choosing a lease replaced the worklist with a loading placeholder at once, and the choice was not announced.",
+        "repair": "The desk routes share one loading boundary in their layout, so the worklist stays on screen while a lease opens; a first load still shows a placeholder; a lease link announces Opening.",
+        "checks": ["tests/unit/s170-lease-open-feedback.test.tsx"],
+        "renderedCheck": "Rendered: 1,394 animation frames over 23.5 seconds while a lease opened from the worklist. The worklist and its rows were visible in every frame, no loading placeholder appeared, the Opening status appeared after 0.3 seconds, and the lease heading followed. A direct load of the same lease streamed its own placeholder and none of the worklist's wording."
+      },
+      {
+        "litmus": ["L24"],
+        "requirement": "R-S170-5",
+        "outcome": "failed, repaired",
+        "finding": "Autosave feedback had no edited state: typed and unsaved wording read the same as saved.",
+        "repair": "The shared status has an edited state, shown by every autosaved field that waits for a blur or a pause; a save in flight or a failure stays ahead of it; no Save button was added.",
+        "checks": ["tests/unit/s170-autosave-edited-state.test.tsx"],
+        "renderedCheck": "Rendered: the response-request field read idle, then Edited, not saved yet while typed, then idle after the edit was undone and the field left; no write was attempted."
+      },
+      {
+        "litmus": ["L25"],
+        "requirement": "R-S170-5",
+        "outcome": "failed, repaired",
+        "finding": "A file download reported nothing: a refusal or a lost connection replaced the workspace with an error page.",
+        "repair": "Five renewal file downloads read the file first and report preparing, started with the served name, or the actual failure with a retry and a new-tab fallback.",
+        "checks": ["tests/unit/s170-download-feedback.test.tsx"],
+        "renderedCheck": "not run in a browser; established by the mounted component checks"
+      },
+      {
+        "litmus": ["L76", "L86"],
+        "requirement": "R-S176-1, R-S87-2",
+        "outcome": "failed, repaired",
+        "finding": "The default Full view and lease information still carried instructional, label-repeating and internal sentences.",
+        "repair": "Twenty-two instructional, label-repeating or internal sentences and clauses were removed or shortened across thirteen renewal components and three wording modules. State, safety, source and recovery text stays; a sentence that an owning acceptance test protects was kept, or shortened without losing the protected meaning. A new-tab description moved from a sentence beside five source links onto each link.",
+        "checks": [
+          "tests/unit/s176-residual-instructions.test.tsx",
+          "tests/unit/s145-full-view-baseline.test.tsx"
+        ],
+        "notChanged": "Administration paragraphs that state a control's consequence or safety boundary were reviewed and left as they are.",
+        "renderedCheck": "Rendered: Full view and lease information on a live-read lease showed none of the 22 sentences and no new-tab sentence; four source links carried the new-tab description and opened a new tab; the RentVine action limit appeared once."
+      },
+      {
+        "litmus": ["L115"],
+        "requirement": "R-S178-6",
+        "outcome": "failed, repaired",
+        "finding": "A lookup over an incomplete or stale read, or over leases with no named owner or tenant, answered with the same definite no-leases sentence as a complete no-match.",
+        "repair": "The answer names an incomplete read, stale or expired data, an unresolved relationship and a complete no-match differently, each with its own read-only recovery, and the screen shows the read state. A source that could not be read is no longer replaced by a general not-supported answer.",
+        "checks": ["tests/unit/s178-empty-lookup-states.test.tsx"],
+        "renderedCheck": "Rendered: a name with no match on a complete, current read answered as a complete no-match with the respelling recovery and no read-state marker. The incomplete, stale and unresolved states were not reachable on the rig and rest on the mounted checks."
+      },
+      {
+        "litmus": ["L85"],
+        "requirement": "R-S87-10",
+        "outcome": "unverified, then failed on inspection, repaired",
+        "finding": "No shared wording existed: the Communications hub, the linked detail, notifications and Dashboard answers each spelled a communication's state their own way; a degraded thread showed earlier contact state as current; a closed ticket's notification read Needs your decision.",
+        "repair": "One wording module serves all four surfaces; a thread that could not be read says so and withholds earlier contact state; the hub lists only items that need a person under Needs attention; a ticket notification shows the ticket's own status.",
+        "checks": [
+          "tests/unit/s87-degraded-communication-parity.test.tsx",
+          "tests/unit/s87-shared-operational-state.test.tsx"
+        ],
+        "renderedCheck": "not run in a browser; established by the mounted hub, detail and feed checks"
+      },
+      {
+        "litmus": ["L91"],
+        "requirement": "R-S177-1",
+        "outcome": "unverified, then verified with one defect repaired",
+        "finding": "Per-table independence held on the delivered source and had no test. One defect was found: a filter cleared to all was not remembered when its default was narrower.",
+        "repair": "The cleared filter is saved; two tables on one account are now tested to restore, save and reset independently in the component and in the store.",
+        "checks": [
+          "tests/unit/s177-independent-tables.test.tsx",
+          "tests/firestore/s177-personal-views.test.ts"
+        ]
+      },
+      {
+        "litmus": ["L02"],
+        "requirement": "R-S168-1",
+        "outcome": "evidence gap, closed",
+        "finding": "No cold-start comparison was recorded; the fixture timings were first and repeat invocations of a ready process.",
+        "repair": "Production cold and warm request timings for three builds are recorded under latency.production with their limits. No product change.",
+        "checks": ["latency.production in this file"]
+      },
+      {
+        "litmus": ["L144"],
+        "requirement": "R-S87-10, R-S178-6 and the rows named above",
+        "outcome": "failed, corrected",
+        "finding": "Two rows were recorded as preserved and already satisfied while their behaviour was missing, and six rows cited checks that did not exercise a clause of their requirement.",
+        "repair": "The two rows are corrected to an expected failure with the check that confirms the repair, keeping the superseded claim; the others gain the missing check and its observed baseline as a supplemental baseline. The consumer and content inventories were refreshed for every file changed since the batch commit.",
+        "checks": ["node scripts/check-batch005-evidence.mjs --require-complete"]
+      }
+    ],
+    "alsoRepaired": [
+      {
+        "finding": "A reopened Dashboard conversation could miss focus when the animation frame ran before its turn rendered; it failed one exact-main CI attempt.",
+        "repair": "Focus is applied after the reopened conversation renders.",
+        "checks": ["tests/unit/s148-dashboard-history.test.tsx"],
+        "baseline": "1 of 17 failed on the delivered source with the frame run immediately"
+      }
+    ],
+    "leftOpen": [
+      "The release runner's 30-second bound on a new recovery revision's first Dashboard render is met only after a warm-up diagnostic; changing what that assurance measures is an owner decision."
+    ],
+    "contentInventory": {
+      "comparedFrom": "fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27",
+      "method": "Every content row of a file changed since that commit was mapped block by block to the current source. An unchanged block keeps its recorded hash and takes its current line. A block with no verbatim counterpart is recorded as reworded (former row plus an added row) or removed (former row). A hash written here is the SHA-256 of the block's JSX text and string literals in order, space-joined with whitespace collapsed; that reproduces the recorded hash for plain-text blocks and for most mixed blocks.",
+      "linesUpdated": 212,
+      "reworded": [
+        {
+          "owner": "app/admin/page.tsx",
+          "formerLine": 469,
+          "line": 469
+        },
+        {
+          "owner": "components/admin/ApprovalQueueAdminPanel.tsx",
+          "formerLine": 134,
+          "line": 70
+        },
+        {
+          "owner": "components/lease-renewal/DotloopPacketLinkPanel.tsx",
+          "formerLine": 71,
+          "line": 71
+        },
+        {
+          "owner": "components/lease-renewal/LeaseTermReviewControl.tsx",
+          "formerLine": 91,
+          "line": 99
+        },
+        {
+          "owner": "components/lease-renewal/RenewalDocumentHandoff.tsx",
+          "formerLine": 230,
+          "line": 231
+        },
+        {
+          "owner": "components/lease-renewal/RenewalManualWorkspace.tsx",
+          "formerLine": 513,
+          "line": 519
+        },
+        {
+          "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
+          "formerLine": 1734,
+          "line": 1746
+        },
+        {
+          "owner": "components/lease-renewal/RenewalMessagePreparation.tsx",
+          "formerLine": 1741,
+          "line": 1749
+        },
+        {
+          "owner": "components/lease-renewal/RenewalNoticeReview.tsx",
+          "formerLine": 127,
+          "line": 127
+        },
+        {
+          "owner": "components/lease-renewal/RenewalProgressControls.tsx",
+          "formerLine": 1656,
+          "line": 1670
+        },
+        {
+          "owner": "components/lease-renewal/RenewalProgressControls.tsx",
+          "formerLine": 1665,
+          "line": 1677
+        },
+        {
+          "owner": "components/lease-renewal/RentAndCharges.tsx",
+          "formerLine": 108,
+          "line": 108
+        }
+      ],
+      "removed": [
+        {
+          "owner": "components/lease-renewal/RenewalProgressControls.tsx",
+          "formerLine": 1720
+        },
+        {
+          "owner": "components/lease-renewal/RenewalWorkspace.tsx",
+          "formerLine": 1006
+        },
+        {
+          "owner": "components/lease-renewal/RentvineUpdatesPanel.tsx",
+          "formerLine": 851
+        }
+      ],
+      "reorganized": [
+        {
+          "from": "app/lease-renewal/live/desk/loading.tsx",
+          "to": "components/lease-renewal/RenewalRouteLoading.tsx",
+          "line": 19
+        }
+      ],
+      "notRefreshed": [],
+      "notRefreshedMeaning": "The recorded line did not open a block of the recorded kind at the base commit, so the row is kept exactly as recorded.",
+      "counts": {
+        "current": 812,
+        "former": 81
+      }
+    },
+    "release": "Recorded in docs/facts.md, F-BATCH-005-VERIFICATION, after this change is released.",
+    "humanVerdict": "NOT RUN — no human observer",
+    "renderedRehearsal": {
+      "environment": "Local rehearsal of this change: demo sign-in, read-only live reads, isolated emulator; counts and booleans only.",
+      "notExercised": [
+        "download outcome feedback: no file was available to download on the rig",
+        "the shared communication wording on the hub: no mailbox is connected on the rig",
+        "notification badges: the rig holds no notification events",
+        "per-table views across two tables"
+      ],
+      "evidence": "private open-items-2026-10-05 rehearsal results outside Git"
+    }
+  }
 }
