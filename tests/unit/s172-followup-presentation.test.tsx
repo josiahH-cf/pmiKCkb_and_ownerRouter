@@ -54,4 +54,21 @@ describe("follow-up presentation fixes from the batch 005 verification", () => {
     );
     expect(preparation.match(/className="renewal-message-body"/g)).toHaveLength(2);
   });
+
+  it("S173: release reconciliation finds the empty worklist by its cell class, whatever the column count", () => {
+    const reconciliation = readFileSync(
+      join(process.cwd(), "scripts/run-production-reconciliation.ts"),
+      "utf8",
+    );
+    const table = readFileSync(
+      join(process.cwd(), "components/lease-renewal/RenewalDeskTable.tsx"),
+      "utf8",
+    );
+    expect(reconciliation).toContain(
+      'const RENEWAL_EMPTY_CELL = "td.renewal-table-empty";',
+    );
+    expect(reconciliation.match(/RENEWAL_EMPTY_CELL/g)).toHaveLength(3);
+    expect(reconciliation).not.toMatch(/td\[colspan=/);
+    expect(table).toContain('<td className="renewal-table-empty" colSpan={9}>');
+  });
 });
