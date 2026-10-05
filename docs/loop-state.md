@@ -7,7 +7,8 @@ Last updated: 2026-10-05 (UTC). Read AGENTS.md and docs/facts.md first.
 COMPLETE: batch 005, application-usability-reliability-2026-10, under the October 4 named owner
 instruction. S168–S175, revised S87 and S176–S181, intake 035–049: all 116 engineering traces
 and the one cumulative production release are verified. All fifteen finalized spec bytes and
-unrelated private files remain preserved. No further batch 005 implementation or release is queued.
+unrelated private files remain preserved. Four verification repairs are queued below as one
+further release under the owner's October 5 instruction.
 Native evidence: docs/evidence/application-usability-batch005.json.
 
 Serving fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27 / pmi-kc-app-rmuuk9ykp-31da970956eb, 100% traffic,
@@ -30,16 +31,27 @@ readbacks and a guarded 13-route production canary with zero mutation attempts.
 Released defects found (F-BATCH-005-VERIFICATION): navigation status on on-screen forms, S178
 literal lookup capture, S177 size loss after a stale reload and filter overwrite on resize,
 retired queue-email wording and controls in Admin, unknown personal-view surface 500. Repairs and
-regressions are in PR #130, not merged and not released; a release needs an owner instruction.
+fail-first regressions merged in PR #130; the owner's October 5 instruction queues their release.
 Open without a repair: nine renewal-table headers over eight cells, residual explanatory copy,
 two primary message actions, no edited state before a message saves, no download outcome feedback.
 
 ## Awaiting release
 
-None. All fifteen batch 005 entries were delivered by run 8b7dc3f1-4c5b-482a-94ca-26985150c68d at
-fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27; code slice 1a3c5381d7633b0a196573ead604971102ef0a42 is its ancestor.
-The exact permit is consumed. Documentation-only closure does not deploy. No completed,
-superseded, historical or deferred suite restarts from a registry row or consumed permit.
+OWNER DIRECTION, 2026-10-05: use the verification recommendations; push, merge and deploy all
+changes. One candidate carries the four repaired suites. The code slice below must be an ancestor
+of the exact-main release target. Admit only after its own green push CI, fresh prerequisites and
+locked GO under a new run-bound permit; run 8b7dc3f1's consumed permit is not reused.
+
+1. S170 page-navigation status follows only a real page navigation `5fda274ff8087e52042e39c464e81b95de576d9c`
+2. S177 remembered views keep saved sizes and filters `5fda274ff8087e52042e39c464e81b95de576d9c`
+3. S178 lookup returns constrained and topical questions to the interpreter `5fda274ff8087e52042e39c464e81b95de576d9c`
+4. S179 Admin drops retired queue-email wording and controls `5fda274ff8087e52042e39c464e81b95de576d9c`
+
+Capture the actual serving predecessor fa5b2b27 and preserve its actual Sheet switch on the
+run-bound recovery target. Candidate/promoted Sheet=true is required. Keep the queue until
+verified release and documentation closure. No provider effect, key or activation is queued;
+S121 stays excluded. The fifteen batch 005 entries were delivered by run
+8b7dc3f1-4c5b-482a-94ca-26985150c68d at fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27 and are not requeued.
 
 ## Verified release and recovery
 
@@ -94,5 +106,5 @@ outside Git; original failures and superseded local verification attempts retain
 
 ALL_GATES_GREEN applies to verified batch 005 engineering and cumulative deployed release only;
 the independent verification findings above are open.
-No unfinished batch work remains. Native documentation closure is the final mainline record;
-do not issue another permit/build/candidate for these documentation updates.
+The queued repair release is the only unfinished delivery. Documentation updates alone never
+issue a permit, build or candidate.
