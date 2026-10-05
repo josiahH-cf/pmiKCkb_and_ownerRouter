@@ -5,6 +5,7 @@ import { formatCalendarDate } from "@/lib/date-display";
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card, Field } from "@/components/ui";
+import { DownloadLink } from "@/components/ui/DownloadLink";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import type { RenewalPacketSnapshot } from "@/lib/lease-documents/packet-types";
 import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
@@ -227,7 +228,7 @@ function DocumentHandoffEditor({
       )}
       ariaLabel="Document preparation and signature handoff"
     >
-      <p>Review and complete form fields in Dotloop; a person sends for signature.</p>
+      <p>A person sends for signature from Dotloop.</p>
       <PacketFacts facts={facts} state={state} />
       <Button
         variant="secondary"
@@ -328,9 +329,9 @@ function DocumentHandoffEditor({
             {preview.artifacts.map((a) => (
               <li key={a.label}>
                 {a.downloadUrl ? (
-                  <a href={a.downloadUrl} target="_blank" rel="noreferrer">
+                  <DownloadLink fileName={a.label} href={a.downloadUrl}>
                     Inspect approved file: {a.label}
-                  </a>
+                  </DownloadLink>
                 ) : (
                   a.label
                 )}{" "}

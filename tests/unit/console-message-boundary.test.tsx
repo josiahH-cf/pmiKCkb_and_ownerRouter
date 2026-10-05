@@ -85,7 +85,7 @@ describe("Console-to-full-message boundary", () => {
     expect(screen.queryByText(/Fixture full body/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Load linked communication" }));
     expect(
-      await screen.findByText(/Last Gmail contact: 09\/30\/2026, 7:30 PM CDT/),
+      await screen.findByText(/Last contact 09\/30\/2026, 7:30 PM CDT/),
     ).toBeInTheDocument();
     await user.click(
       await screen.findByRole("button", { name: /Open renewal owner · linked/ }),

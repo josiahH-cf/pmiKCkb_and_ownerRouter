@@ -11,7 +11,11 @@
 // value-free review digest (team_review, Admin-gated at SERVE time by the route, not in this catalog).
 // Each family maps to exactly one attention lane (B3), so the hub speaks the deck's + desk's vocabulary.
 
-import type { AttentionLane, AttentionSeverity } from "@/lib/attention/lanes";
+import {
+  ATTENTION_LANE_META,
+  type AttentionLane,
+  type AttentionSeverity,
+} from "@/lib/attention/lanes";
 
 export const NOTIFICATION_FAMILY_KEYS = [
   "approval_queue",
@@ -57,6 +61,19 @@ export interface UnifiedNotification {
   href: string;
   created_at: string;
   read_at?: string;
+  /** The owning record's own state in its owning surface's words, when the event carries one. */
+  state_label?: string;
+}
+
+/**
+ * The badge beside one event. An event about a record that has its own state shows that state in
+ * the owning surface's words, so a closed ticket never reads as waiting for a decision. Other
+ * events show their attention lane.
+ */
+export function notificationStateLabel(
+  notification: Pick<UnifiedNotification, "lane" | "state_label">,
+): string {
+  return notification.state_label ?? ATTENTION_LANE_META[notification.lane].label;
 }
 
 // A family plus the viewer's current mute state, for the menu's per-family toggles.

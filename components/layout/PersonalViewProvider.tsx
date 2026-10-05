@@ -379,7 +379,8 @@ export function usePersonalFilters<T extends { [K in keyof T]: string }>(
     update(next);
     const query = new URLSearchParams();
     Object.entries(next).forEach(([key, value]) => {
-      if (value) query.set(key, String(value));
+      // A filter cleared to "all" is kept when its default is a narrower choice.
+      if (value || defaultsRef.current[key as keyof T]) query.set(key, String(value));
     });
     latest.current.change({ ...latest.current.value, query: query.toString() });
   };

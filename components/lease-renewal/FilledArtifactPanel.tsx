@@ -1,6 +1,7 @@
 "use client";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { useState } from "react";
+import { DownloadLink } from "@/components/ui/DownloadLink";
 import type { DerivedArtifactRecord } from "@/lib/lease-documents/derived-artifact-contract";
 
 /** Explicit actions only; opening the lease never prepares or approves an artifact. */
@@ -99,12 +100,12 @@ export function FilledArtifactPanel({
           ) : null}
           {record ? (
             <>
-              <a
-                className="text-link"
+              <DownloadLink
+                fileName={record.fileName}
                 href={`/api/lease-renewal/filled-artifact?${new URLSearchParams({ ...identity, derivedId: record.id })}`}
               >
                 Download filled PDF for inspection
-              </a>
+              </DownloadLink>
               <p>
                 Saved PDF fields were reopened and compared. Approval:{" "}
                 {record.approval

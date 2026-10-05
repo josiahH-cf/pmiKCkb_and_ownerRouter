@@ -17,7 +17,12 @@ import {
   type ReactNode,
 } from "react";
 
-import { AUTOSAVE_IDLE, AutosaveStatus, type AutosaveState } from "./AutosaveStatus";
+import {
+  AUTOSAVE_IDLE,
+  AutosaveStatus,
+  withEdited,
+  type AutosaveState,
+} from "./AutosaveStatus";
 import { Button, Field } from "@/components/ui";
 import { parseCurrencyInput } from "@/lib/currency-input";
 import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
@@ -285,7 +290,11 @@ export function WorkingMoneyField({ field, label, hint, source }: WorkingFieldPr
           value={text}
         />
       </Field>
-      <AutosaveStatus onRetry={() => void commit()} state={state} subject={title} />
+      <AutosaveStatus
+        onRetry={() => void commit()}
+        state={withEdited(state, dirty)}
+        subject={title}
+      />
       {attribution(entry) ? (
         <p className="muted working-field-attribution">{attribution(entry)}</p>
       ) : null}
@@ -382,7 +391,11 @@ export function WorkingDateField({ field, label, hint }: WorkingFieldProps) {
           value={text}
         />
       </Field>
-      <AutosaveStatus onRetry={() => void commit(text)} state={state} subject={title} />
+      <AutosaveStatus
+        onRetry={() => void commit(text)}
+        state={withEdited(state, dirty)}
+        subject={title}
+      />
       {attribution(entry) ? (
         <p className="muted working-field-attribution">
           {saved ? `${formatCalendarDate(saved)}. ` : ""}

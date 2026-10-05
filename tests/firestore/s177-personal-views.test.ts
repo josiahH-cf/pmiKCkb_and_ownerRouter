@@ -74,6 +74,47 @@ describe("S177 actual private preference transactions", () => {
     );
     expect((await getPersonalView(pat, "renewals", db)).value).toEqual(value);
   });
+  it("keeps each table's view separate for one account, including through a reset", async () => {
+    const approvals = {
+      query: "status=pending",
+      layout: { columns: { c1: 200 }, panelWidth: 400 },
+    };
+    const defaults = { query: "", layout: { columns: {} } };
+    await savePersonalView(pat, { surface: "renewals", expectedRevision: 0, value }, db);
+    await savePersonalView(
+      pat,
+      { surface: "approvals", expectedRevision: 0, value: approvals },
+      db,
+    );
+    expect(await getPersonalView(pat, "renewals", db)).toMatchObject({
+      revision: 1,
+      value,
+    });
+    expect(await getPersonalView(pat, "approvals", db)).toMatchObject({
+      revision: 1,
+      value: approvals,
+    });
+    // A table this account never changed still reads its defaults.
+    expect(await getPersonalView(pat, "maintenance-queue", db)).toMatchObject({
+      revision: 0,
+      value: defaults,
+    });
+    // Resetting one table leaves the other exactly as it was.
+    await savePersonalView(
+      pat,
+      { surface: "approvals", expectedRevision: 1, value: defaults },
+      db,
+    );
+    expect(await getPersonalView(pat, "renewals", db)).toMatchObject({
+      revision: 1,
+      value,
+    });
+    expect(await getPersonalView(pat, "approvals", db)).toMatchObject({
+      revision: 2,
+      value: defaults,
+    });
+    expect((await db.collection(PERSONAL_VIEW_COLLECTION).get()).size).toBe(2);
+  });
   it("rejects one concurrent stale writer in real emulator transactions", async () => {
     const results = await Promise.allSettled([
       savePersonalView(pat, { surface: "renewals", expectedRevision: 0, value }, db),

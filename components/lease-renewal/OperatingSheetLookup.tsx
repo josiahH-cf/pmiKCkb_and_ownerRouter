@@ -11,7 +11,7 @@ import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
-import { AUTOSAVE_IDLE, AutosaveStatus } from "./AutosaveStatus";
+import { AUTOSAVE_IDLE, AutosaveStatus, withEdited } from "./AutosaveStatus";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { Button, Field } from "@/components/ui";
 import { formatBusinessTimestamp } from "@/lib/date-display";
@@ -174,8 +174,20 @@ export function OperatingSheetLookup({
     await context.save(sheetCellWorkingField(field), { tabTitle, cell });
   }
 
-  const rowState = context?.states.sheet_row ?? AUTOSAVE_IDLE;
-  const cellState = context?.states[sheetCellWorkingField(cellField)] ?? AUTOSAVE_IDLE;
+  // A typed row or cell that differs from the stored selection is not saved yet.
+  const rowEdited =
+    rowText.trim() !== "" &&
+    (binding.row?.value.tabTitle !== rowTab ||
+      String(binding.row?.value.rowNumber ?? "") !== rowText.trim());
+  const cellEdited =
+    cellText.trim() !== "" &&
+    (binding.cells[cellField]?.value.tabTitle !== cellTab ||
+      binding.cells[cellField]?.value.cell !== cellText.trim().toUpperCase());
+  const rowState = withEdited(context?.states.sheet_row ?? AUTOSAVE_IDLE, rowEdited);
+  const cellState = withEdited(
+    context?.states[sheetCellWorkingField(cellField)] ?? AUTOSAVE_IDLE,
+    cellEdited,
+  );
   const where = (tabTitle: string, rowNumber: number | null) =>
     rowNumber === null ? `tab "${tabTitle}"` : `row ${rowNumber} on tab "${tabTitle}"`;
 
@@ -215,10 +227,10 @@ export function OperatingSheetLookup({
             href={sheetDestination.href}
             rel={EXTERNAL_LINK_REL}
             target={EXTERNAL_LINK_TARGET}
+            title={sheetDestination.label}
           >
             Open this row in the Sheet
-          </a>{" "}
-          <span className="muted">{sheetDestination.label}</span>
+          </a>
         </p>
       ) : null}
       {current && current.values.length > 0 ? (

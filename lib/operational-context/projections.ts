@@ -13,6 +13,10 @@ import {
 } from "@/lib/approval/queue";
 import type { ConnectionCenterView } from "@/lib/connections/connection-status";
 import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
+import {
+  communicationStateOf,
+  describeCommunicationState,
+} from "@/lib/gmail-hub/communication-state";
 import type {
   ApprovalQueueItemRecord,
   ProcessDefinitionRecord,
@@ -409,14 +413,6 @@ export function projectMaintenanceRead(input: {
 
 // ---- Workflow-linked communications ---------------------------------------------------------
 
-const COMMUNICATION_WAITING_LABELS: Record<string, string> = {
-  team: "waiting on the team",
-  owner: "waiting on the owner",
-  resident: "waiting on the resident",
-  vendor: "waiting on the vendor",
-  outside: "waiting on someone outside the team",
-};
-
 export function projectCommunicationRead(input: {
   readonly links: readonly WorkflowCommunicationLink[];
   readonly asOf: string;
@@ -427,20 +423,15 @@ export function projectCommunicationRead(input: {
         typeof link.last_contact_at_ms === "number"
           ? new Date(link.last_contact_at_ms).toISOString()
           : null;
+      const state = describeCommunicationState(
+        communicationStateOf(link),
+        formatBusinessTimestamp,
+      );
       return {
         ref: { source: "communications", id: link.id },
         title: `${link.purpose.replaceAll("_", " ")} email`,
-        detail: [
-          link.status.replaceAll("_", " "),
-          link.waiting_on
-            ? (COMMUNICATION_WAITING_LABELS[link.waiting_on] ?? null)
-            : null,
-          lastContactIso
-            ? `last contact ${formatBusinessTimestamp(lastContactIso)}`
-            : null,
-        ]
-          .filter(Boolean)
-          .join(" · "),
+        // The same words the Communications hub and the linked detail use.
+        detail: `${state.status} · ${state.evidence}`,
         href: workflowEntityHref(link),
         blockers: [],
         facts: {

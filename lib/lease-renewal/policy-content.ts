@@ -642,8 +642,8 @@ export function projectPolicyApplicability(
       label: `${productLabel}: pending approved policy material`,
       explanation:
         material.pendingVersions.length > 0
-          ? `Material version${material.pendingVersions.length === 1 ? "" : "s"} ${material.pendingVersions.join(", ")} ${material.pendingVersions.length === 1 ? "is" : "are"} uploaded but not approved, so nothing is used. Unrelated renewal work continues as usual.`
-          : "No approved policy material or applicability rule exists yet, so applicability cannot be determined for any lease. Unrelated renewal work continues as usual.",
+          ? `Material version${material.pendingVersions.length === 1 ? "" : "s"} ${material.pendingVersions.join(", ")} ${material.pendingVersions.length === 1 ? "is" : "are"} uploaded but not approved, so nothing is used.`
+          : "No approved policy material or applicability rule exists yet, so applicability cannot be determined for any lease.",
       source: { origin: "none", reference: null },
       reviewer: null,
       ruleVersion: null,

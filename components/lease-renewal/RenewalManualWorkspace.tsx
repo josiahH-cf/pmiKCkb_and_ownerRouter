@@ -18,7 +18,12 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { AUTOSAVE_IDLE, AutosaveStatus, type AutosaveState } from "./AutosaveStatus";
+import {
+  AUTOSAVE_IDLE,
+  AutosaveStatus,
+  withEdited,
+  type AutosaveState,
+} from "./AutosaveStatus";
 import { WorkingDateField, WorkingMoneyField } from "./RenewalWorkingRecord";
 import { Button, Card, Field } from "@/components/ui";
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
@@ -510,13 +515,13 @@ export function RenewalManualSection({
             <RenewalSectionHeading id="staff-completion" as="h3">
               {summary.label}
             </RenewalSectionHeading>
-            <p>
-              {summary.complete
-                ? "This renewal is recorded complete by staff. That record is separate from verified completion in RentVine, Gmail or Dotloop."
-                : summary.nextActivity === "complete"
-                  ? "Record completion when the renewal work is complete."
-                  : `Suggested next: ${manualActionLabel(summary.nextActivity)}. Record completion whenever the renewal work is complete.`}
-            </p>
+            {summary.complete || summary.nextActivity !== "complete" ? (
+              <p>
+                {summary.complete
+                  ? "This renewal is recorded complete by staff. That record is separate from verified completion in RentVine, Gmail or Dotloop."
+                  : `Suggested next: ${manualActionLabel(summary.nextActivity)}.`}
+              </p>
+            ) : null}
             <Button
               data-renewal-next-control
               disabled={context.pending}
@@ -612,7 +617,12 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
   }
   const isNext = manualRenewalSummary(state).nextActivity === activity;
   const key = `activity:${activity}`;
-  const saveState = context.states[key] ?? AUTOSAVE_IDLE;
+  // A typed detail that differs from the saved record is not saved yet.
+  const detailEdited =
+    source.trim() !== savedSource(current?.source) ||
+    reason.trim() !== (current?.reason ?? "") ||
+    occurredAt !== toLocalDateTime(current?.occurredAt);
+  const saveState = withEdited(context.states[key] ?? AUTOSAVE_IDLE, detailEdited);
   type Outcome = typeof outcome;
   function save(next: Partial<{ outcome: Outcome }> = {}) {
     const value = next.outcome ?? outcome;
@@ -750,7 +760,10 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
     }
   }
   const key = audience === "owner" ? "owner_response" : "tenant_response";
-  const saveState = context.states[key] ?? AUTOSAVE_IDLE;
+  const saveState = withEdited(
+    context.states[key] ?? AUTOSAVE_IDLE,
+    dirty && source.trim() !== savedSource(current?.source),
+  );
   const options =
     audience === "owner"
       ? [

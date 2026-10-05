@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useOperation } from "@/components/hooks/useOperation";
 import { Button, BusyIndicator, Disclosure } from "@/components/ui";
+import { describeCommunicationState } from "@/lib/gmail-hub/communication-state";
 import { WAITING_ON_GMAIL } from "@/lib/notifications/families";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 import { fetchWithDeadline } from "@/lib/ui/fetch-lifetime";
@@ -18,6 +19,8 @@ interface CommunicationAttention {
   waitingOn?: "team" | "owner" | "resident" | "vendor" | "outside" | "none";
   lastContactAtMs?: number;
   lastContactSource?: "gmail_thread";
+  contactObservationState?: "current" | "needs_verification";
+  contactObservationReason?: "thread_unavailable" | "thread_unreadable";
 }
 export function LiveGmailWorkspace({
   authenticatedEmail,
@@ -136,6 +139,21 @@ function OwnedLiveGmailWorkspace({ authenticatedEmail }: { authenticatedEmail: s
       ? "checking"
       : connection;
   const connected = sameAccount && state === "connected";
+  const described = (communications ?? []).map((communication) => ({
+    communication,
+    state: describeCommunicationState(
+      {
+        status: communication.status,
+        waitingOn: communication.waitingOn,
+        lastContactAtMs: communication.lastContactAtMs,
+        observationState: communication.contactObservationState,
+        observationReason: communication.contactObservationReason,
+      },
+      formatBusinessTimestamp,
+    ),
+  }));
+  const needingAttention = described.filter((entry) => entry.state.needsAttention);
+  const otherLinked = described.filter((entry) => !entry.state.needsAttention);
   async function refreshMailbox() {
     if (!connected || refresh.snapshot.phase === "pending") return;
     refreshKey.current ??= globalThis.crypto.randomUUID();
@@ -235,29 +253,22 @@ function OwnedLiveGmailWorkspace({ authenticatedEmail }: { authenticatedEmail: s
             ) : (
               <p>Linked conversations have not been read. Retry the read.</p>
             )
-          ) : communications.length === 0 ? (
-            <p className="muted">
-              No linked renewal or maintenance communication needs attention.
-            </p>
           ) : (
-            <ul className="compact-list">
-              {communications.map((communication) => (
-                <li key={communication.id}>
-                  <Link href={communication.href} prefetch={false}>
-                    {communication.lane === "renewals" ? "Renewal" : "Maintenance"}{" "}
-                    communication · {statusLabel(communication.status)}
-                  </Link>
-                  <span className="muted">
-                    {communication.waitingOn
-                      ? ` · Waiting on ${communication.waitingOn}`
-                      : " · Waiting on not yet observed"}
-                    {communication.lastContactAtMs
-                      ? ` · Last contact ${formatBusinessTimestamp(communication.lastContactAtMs)}`
-                      : " · Last contact not yet observed"}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <>
+              {needingAttention.length === 0 ? (
+                <p className="muted">
+                  No linked renewal or maintenance communication needs attention.
+                </p>
+              ) : (
+                <CommunicationList entries={needingAttention} />
+              )}
+              {otherLinked.length > 0 ? (
+                <>
+                  <h3>Other linked conversations</h3>
+                  <CommunicationList entries={otherLinked} />
+                </>
+              ) : null}
+            </>
           )}
         </section>
       )}
@@ -285,12 +296,30 @@ function OwnedLiveGmailWorkspace({ authenticatedEmail }: { authenticatedEmail: s
     </article>
   );
 }
-function statusLabel(status: CommunicationAttention["status"]) {
-  return status === "attention_required"
-    ? "needs review"
-    : status === "draft_created"
-      ? "unsent draft created"
-      : status === "sent"
-        ? "reply sent"
-        : "linked";
+function CommunicationList({
+  entries,
+}: Readonly<{
+  entries: ReadonlyArray<{
+    communication: CommunicationAttention;
+    state: ReturnType<typeof describeCommunicationState>;
+  }>;
+}>) {
+  return (
+    <ul className="compact-list">
+      {entries.map(({ communication, state }) => (
+        <li
+          data-communication-state={
+            state.needsVerification ? "needs_verification" : communication.status
+          }
+          key={communication.id}
+        >
+          <Link href={communication.href} prefetch={false}>
+            {communication.lane === "renewals" ? "Renewal" : "Maintenance"} communication
+            · {state.status}
+          </Link>
+          <span className="muted"> · {state.evidence}</span>
+        </li>
+      ))}
+    </ul>
+  );
 }

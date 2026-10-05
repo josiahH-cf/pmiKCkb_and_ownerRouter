@@ -9,6 +9,10 @@ import { formatBusinessTimestamp } from "@/lib/date-display";
 
 import { GMAIL_INBOX_ZERO_LABELS } from "@/lib/gmail-inbox-zero/constants";
 import {
+  communicationStateOf,
+  describeCommunicationState,
+} from "@/lib/gmail-hub/communication-state";
+import {
   GMAIL_MANUAL_LABEL_RULE_REF,
   type GovernedArtifactRef,
 } from "@/lib/gmail-hub/governed-artifacts";
@@ -559,27 +563,30 @@ function OwnedWorkflowCommunicationPanel({
       ) : null}
       {links.length > 0 ? (
         <ul className="compact-list">
-          {links.map((link) => (
-            <li key={link.id}>
-              <button
-                className="secondary-button"
-                disabled={busy || !link.gmail_thread_id}
-                onClick={() => void openThread(link)}
-                type="button"
+          {links.map((link) => {
+            const state = describeCommunicationState(
+              communicationStateOf(link),
+              formatBusinessTimestamp,
+            );
+            return (
+              <li
+                data-communication-state={
+                  state.needsVerification ? "needs_verification" : link.status
+                }
+                key={link.id}
               >
-                Open {link.purpose.replaceAll("_", " ")} ·{" "}
-                {link.status.replaceAll("_", " ")}
-              </button>
-              <span className="muted">
-                {link.waiting_on
-                  ? ` Waiting on ${link.waiting_on}.`
-                  : " Waiting-on evidence is not yet available."}
-                {link.last_contact_at_ms
-                  ? ` Last Gmail contact: ${formatBusinessTimestamp(link.last_contact_at_ms)}.`
-                  : " Last-contact evidence is not yet available."}
-              </span>
-            </li>
-          ))}
+                <button
+                  className="secondary-button"
+                  disabled={busy || !link.gmail_thread_id}
+                  onClick={() => void openThread(link)}
+                  type="button"
+                >
+                  Open {link.purpose.replaceAll("_", " ")} · {state.status}
+                </button>
+                <span className="muted"> {state.evidence}</span>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
 

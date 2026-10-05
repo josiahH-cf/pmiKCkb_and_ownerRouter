@@ -2,6 +2,10 @@ import { can } from "@/lib/auth/roles";
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { type GmailStateStore } from "@/lib/gmail-hub/state-store";
+import {
+  COMMUNICATION_STATUS_LABELS,
+  communicationStatusBadge,
+} from "@/lib/gmail-hub/communication-state";
 import { createDefaultGmailStateStore } from "@/lib/gmail-hub/dependencies";
 import { isCommunicationsRecordActive } from "@/lib/gmail-hub/retention-policy";
 import { workflowEntityHref } from "@/lib/gmail-hub/workflow-context";
@@ -38,7 +42,9 @@ export async function listGmailWorkflowNotifications(
         family: renewal ? "renewal_communications" : "maintenance_communications",
         lane: "decision",
         severity: "medium",
-        title: `${renewal ? "Renewal" : "Maintenance"} communication needs review`,
+        // The same words the hub and the linked detail use for this status.
+        title: `${renewal ? "Renewal" : "Maintenance"} communication ${COMMUNICATION_STATUS_LABELS[link.status]}`,
+        state_label: communicationStatusBadge(link.status),
         message: `A linked ${renewal ? "renewal" : "maintenance"} communication has a new message.`,
         href: workflowEntityHref(link),
         created_at: new Date(link.attention_at_ms!).toISOString(),

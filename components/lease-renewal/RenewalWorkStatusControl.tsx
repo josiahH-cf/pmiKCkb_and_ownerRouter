@@ -4,7 +4,12 @@ import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
-import { AUTOSAVE_IDLE, AutosaveStatus, type AutosaveState } from "./AutosaveStatus";
+import {
+  AUTOSAVE_EDITED,
+  AUTOSAVE_IDLE,
+  AutosaveStatus,
+  type AutosaveState,
+} from "./AutosaveStatus";
 import { Button, Field } from "@/components/ui";
 import {
   NOT_RECORDED_WORK_STATUS_LABEL,
@@ -437,7 +442,18 @@ export function RenewalWorkStatusControl({
     noteTextRef.current = value;
     setNoteText(value);
     setNoteError(null);
-    setNoteState((state) => (state.phase === "saved" ? AUTOSAVE_IDLE : state));
+    // Typed words that are not in the saved note say so until their save starts.
+    const typed = normalizeStatusNoteText(value);
+    const unsaved = typed !== null && typed !== composition.current.savedText;
+    setNoteState((state) =>
+      state.phase === "saving"
+        ? state
+        : unsaved
+          ? AUTOSAVE_EDITED
+          : state.phase === "saved" || state.phase === "edited"
+            ? AUTOSAVE_IDLE
+            : state,
+    );
     if (idleTimer.current) clearTimeout(idleTimer.current);
     idleTimer.current = setTimeout(() => void commitNote(), noteIdleMs);
   }
@@ -515,7 +531,7 @@ export function RenewalWorkStatusControl({
       )}
       <Field
         error={noteError ?? undefined}
-        hint="A note saves by itself and leaves the status as it is. Keep typing to continue it."
+        hint="A note saves by itself and leaves the status as it is."
         htmlFor={noteFieldId}
         label={RENEWAL_STATUS_NOTE_LABEL}
       >

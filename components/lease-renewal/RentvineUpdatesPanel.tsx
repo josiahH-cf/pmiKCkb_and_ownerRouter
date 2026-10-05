@@ -848,10 +848,6 @@ export function RentvineUpdatesPanel({
             again.
           </p>
         ) : null}
-        <p className="muted">
-          One-time fees, deposit or ledger changes, party changes and insurance enrollment
-          are outside these RentVine actions.
-        </p>
       </section>
       {editor ? (
         <details>

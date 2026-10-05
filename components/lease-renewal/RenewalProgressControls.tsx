@@ -1,7 +1,12 @@
 "use client";
 import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 import { useRenewalSaveFocus } from "./RenewalSaveFocus";
-import { AUTOSAVE_IDLE, AutosaveStatus, type AutosaveState } from "./AutosaveStatus";
+import {
+  AUTOSAVE_IDLE,
+  AutosaveStatus,
+  withEdited,
+  type AutosaveState,
+} from "./AutosaveStatus";
 import { formatCalendarDateOrTimestamp } from "@/lib/date-display";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -190,12 +195,12 @@ type FigureKey = "rangeLow" | "rangeHigh" | "pmiNumber";
 type FigureOrigin = "none" | "saved" | "starting_rule" | "provider" | "edited";
 const FIGURE_ORIGIN_HINTS: Record<Exclude<FigureOrigin, "none">, string> = {
   saved: "Saved with this preparation.",
-  starting_rule: "Starting value from current rent; edit it or run a lookup.",
-  provider: "Filled from the RentCast result; edit it if your review differs.",
+  starting_rule: "Starting value from current rent.",
+  provider: "Filled from the RentCast result.",
   edited: "Edited by you.",
 };
 const COMPARISON_SCOPE_NOTE =
-  "Comparison work is not required for unrelated actions. The comparison-based owner message needs a sourced low and high and actual reviewed comps or a reviewed attachment; the starting range alone does not satisfy that.";
+  "The comparison-based owner message needs a sourced low and high and actual reviewed comps or a reviewed attachment; the starting range alone does not satisfy that.";
 
 /** An edit anywhere is a review; an untouched starting value keeps the pair a starting range. */
 function rangeBasisFor(
@@ -1026,9 +1031,12 @@ export function OwnerDecisionForm({
   } | null>(null);
   const lastSavedSignature = useRef<string | null>(null);
   const unsavedRef = useRef(false);
+  // Shown beside the figures while an entry waits for its save.
+  const [preparationEdited, setPreparationEdited] = useState(false);
   const autosaveLatest = useRef<((force?: boolean) => Promise<void>) | null>(null);
   const markUnsaved = () => {
     unsavedRef.current = true;
+    setPreparationEdited(true);
   };
   function preparationAction(): Extract<
     RenewalWorkspaceAction,
@@ -1086,9 +1094,11 @@ export function OwnerDecisionForm({
     const signature = JSON.stringify(action);
     if (!force && signature === lastSavedSignature.current) {
       unsavedRef.current = false;
+      setPreparationEdited(false);
       return;
     }
     unsavedRef.current = false;
+    setPreparationEdited(false);
     setError("");
     try {
       await preparation.onSave(action);
@@ -1660,9 +1670,7 @@ export function OwnerDecisionForm({
                 <p className="muted">
                   <a href={lookupReport.url} rel="noreferrer" target="_blank">
                     Open this lookup&apos;s RentCast property report
-                  </a>{" "}
-                  (RentCast&apos;s own report for the query above, not a copy of this
-                  result).
+                  </a>
                 </p>
               ) : null}
               {compLookup.subjectProperty ? (
@@ -1680,7 +1688,7 @@ export function OwnerDecisionForm({
                   {compLookup.subjectProperty.squareFootage !== undefined ? (
                     <> · {compLookup.subjectProperty.squareFootage} sq ft</>
                   ) : null}
-                  . These are provider-returned, not relabeled RentVine facts.
+                  .
                 </p>
               ) : null}
               {compLookup.comparables && compLookup.comparables.length > 0 ? (
@@ -1721,10 +1729,6 @@ export function OwnerDecisionForm({
                   ))}
                 </ol>
               ) : null}
-              <p className="muted">
-                Provider order shown. The app applies no hidden freshness or selection
-                filter.
-              </p>
             </div>
           ) : null}
           <p className="muted">Reference only. Does not set the rent.</p>
@@ -1778,7 +1782,7 @@ export function OwnerDecisionForm({
           ) : null}
           <AutosaveStatus
             onRetry={() => void autosavePreparation(true)}
-            state={preparation.saveState ?? AUTOSAVE_IDLE}
+            state={withEdited(preparation.saveState ?? AUTOSAVE_IDLE, preparationEdited)}
             subject="comparison preparation"
           />
         </>

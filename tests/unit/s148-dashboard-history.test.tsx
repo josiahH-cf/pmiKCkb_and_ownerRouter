@@ -447,6 +447,54 @@ describe("S148 Dashboard history in the workspace", () => {
     expect(begin.body?.operationId).not.toBe(stored.conversationKey);
   });
 
+  it("AC-S148: a reopened conversation takes focus when the frame runs before its turn renders", async () => {
+    const stored = summary(15);
+    handler = workingServer({
+      [`GET /api/assistant/history/${stored.conversationId}`]: () =>
+        jsonResponse({
+          ownerKey: OWNER,
+          conversation: stored,
+          turns: [
+            {
+              turnId: "t".repeat(32),
+              operationId: stored.conversationKey,
+              seq: 1,
+              question: "What leases are due this week?",
+              displayState: "completed",
+              assistant: operational("Stored answer."),
+              knowledge: null,
+              answeredAtIso: "2026-09-30T15:01:00.000Z",
+              createdAtIso: "2026-09-30T15:00:00.000Z",
+              accessChanged: false,
+              rerunOf: null,
+            },
+          ],
+        }),
+    });
+    // A busy machine can run the frame callback before React has rendered the reopened turn.
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callback(0);
+      return 0;
+    });
+    await renderSaved(firstPage([stored]));
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Saved question 15" }));
+    await screen.findByText("Stored answer.", { selector: "p" });
+    await waitFor(() =>
+      expect(document.activeElement?.closest("article.dashboard-turn")).not.toBeNull(),
+    );
+
+    // Opening it again while it is already on screen focuses its turn again.
+    screen.getByRole("button", { name: "Saved question 15" }).focus();
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Saved question 15" }));
+    await waitFor(() =>
+      expect(document.activeElement?.closest("article.dashboard-turn")).not.toBeNull(),
+    );
+  });
+
   it("AC-S148: a reopened answer whose access narrowed says its records are hidden", async () => {
     const restored = {
       ownerKey: OWNER,

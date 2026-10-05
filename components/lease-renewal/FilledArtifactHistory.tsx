@@ -1,6 +1,7 @@
 "use client";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { useState } from "react";
+import { DownloadLink } from "@/components/ui/DownloadLink";
 import type { listDerivedArtifactHistory } from "@/lib/firestore/lease-derived-artifacts";
 export function FilledArtifactHistory({ leaseId }: Readonly<{ leaseId: string }>) {
   const [history, setHistory] = useState<Awaited<
@@ -57,19 +58,19 @@ export function FilledArtifactHistory({ leaseId }: Readonly<{ leaseId: string }>
                     {record.fileName} · {record.preparedAt} ·{" "}
                     {record.approved ? "approved" : "unapproved"}
                     <br />
-                    <a
-                      className="text-link"
+                    <DownloadLink
+                      fileName={record.fileName}
                       href={`/api/lease-renewal/filled-artifact?${query}`}
                     >
                       Download retained filled PDF
-                    </a>
+                    </DownloadLink>
                     {" · "}
-                    <a
-                      className="text-link"
+                    <DownloadLink
+                      fileName="original-lease.pdf"
                       href={`/api/lease-renewal/filled-artifact?${query}&original=true`}
                     >
                       Download original
-                    </a>
+                    </DownloadLink>
                     <br />
                     <small>SHA-256: {record.outputHash}</small>
                   </li>
