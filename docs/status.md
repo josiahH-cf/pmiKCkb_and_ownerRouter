@@ -4,42 +4,43 @@ Last updated: 2026-10-05 (UTC).
 
 ## Serving release
 
-Run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` released the batch 005 verification repairs (S170, S177, S178 and S179; four queued items)
-at `9e76c14f5238f22be9ddecbffed149eee3db6d38` / `pmi-kc-app-rmuv5c6eu-e3c268629df8` with 100% production traffic.
-Code slice `5fda274ff8087e52042e39c464e81b95de576d9c` (PR #130) carries the repairs and their fail-first regressions.
-Exact [CI 37299720511](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37299720511) passed.
-The repaired tree passed 8,765 unit tests, four existing configuration skips, all 325
+Run `7753e5f5-2325-4b19-b83d-dc3475d71b0b` released the batch 005 follow-up fixes (S173, S169, S170, S172 and S87; five queued items)
+at `b2308bc506132853ebd54e4ba0678abbf853fce0` / `pmi-kc-app-rmuv84r3a-f9fac2efc1af` with 100% production traffic.
+Code slice `5261563e7f21651333c2be3925953b1a38231349` (PR #133) carries the fixes and their fail-first regressions.
+Exact [CI 37308062054](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37308062054) passed.
+The fixed tree passed 8,774 unit tests, four existing configuration skips, all 325
 backend tests, zero production audit findings, all required checks and the production build.
 Core E2E passed 32 tests with 22 existing configuration skips.
-One application build `4d048b60-0e59-44d7-a4da-c74232fd1c24` succeeded at 2026-10-05T11:21:32.077661Z.
-Candidate receipt `84805fd5-99d2-48a5-85e6-78b3c6916827` issued 2026-10-05T11:27:05.515Z;
-promotion verified 2026-10-05T11:27:35.543Z.
-Observation passed two checkpoints in 398,119 ms against the required 300,000 ms,
+One application build `26be4261-a782-434b-851d-cc3327fa44f7` succeeded at 2026-10-05T12:42:00.650833Z.
+Candidate receipt `2fcac9b1-949d-41ff-9a72-92ed1b1dd44e` issued 2026-10-05T12:47:07.997Z;
+promotion verified 2026-10-05T12:47:30.209Z.
+Observation passed two checkpoints in 390,684 ms against the required 300,000 ms,
 inside the 420,000 ms deadline. All 312 source/projected/rendered records matched with
 zero discrepancies, candidate 5xx or unresolved live effects. All eleven independent readback
-sections matched, completed 2026-10-05T11:36:39Z.
+sections matched, completed 2026-10-05T12:54:10Z.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=true are verified.
-Tag `cand-rmuv5c6eu-e3c268629df8`; fingerprint `sha256:fc957ab056651096ce32dbb333075d46b4f208c9564659dd3a6efadafc14c10d`.
-Captured predecessor: `fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27` / `pmi-kc-app-rmuuk9ykp-31da970956eb`,
-Sheet=true. Run-bound recovery `pmi-kc-app-recovery-5d1b4e3aef6d4354` preserves that actual configuration;
-receipt `2ba57f4c-1341-48c1-9196-9ba09fd10d9c`, reference hash `sha256:601a0ec6dd68434c309073f0c4cb2aac64f77ceb5e098a58f116d8204cb53b44`.
+Tag `cand-rmuv84r3a-f9fac2efc1af`; fingerprint `sha256:7d48dfce165dd3ca022a1f2d84fe17b4ef360b36728b93200af94f9b9bbd3857`.
+Captured predecessor: `9e76c14f5238f22be9ddecbffed149eee3db6d38` / `pmi-kc-app-rmuv5c6eu-e3c268629df8`,
+Sheet=true. Run-bound recovery `pmi-kc-app-recovery-7753e5f523254b19` preserves that actual configuration;
+receipt `c20682b1-13bb-4fa9-aebb-2d81fb4b5cce`, reference hash `sha256:e09ff997a705dde2b27bc15e082bb2fb211fa815ebffd8f5ce7c37a4aef01f06`.
 No traffic rollback or business mutation was used as proof. The first recovery assurance failed at
-2026-10-05T11:12:01.448Z and remains failed in immutable evidence: the new recovery instance took 43.2 s
-for its first Dashboard render against the 30-second route bound, with every request answered 200. A separate
-guarded 13-route diagnostic passed and the same run resumed on the existing target.
+2026-10-05T12:30:28.033Z and remains failed in immutable evidence: the new recovery instance took 33.0 s
+for its first Dashboard render against the 30-second route bound, with every request answered 200. Two separate
+guarded 13-route diagnostics passed and the same run resumed on the existing target.
 Batch 005 (S168–S175, revised S87 and S176–S181; intake 035–049) was released by run
-`8b7dc3f1-4c5b-482a-94ca-26985150c68d` at that predecessor. Its 116 requirement records are in
-[native evidence](evidence/application-usability-batch005.json); independent verification of it
-is recorded in F-BATCH-005-VERIFICATION.
-The four-item queue is delivered and empty; the exact permit is consumed.
+`8b7dc3f1-4c5b-482a-94ca-26985150c68d` at `fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27`, and run
+`5d1b4e3a-ef6d-4354-aef1-e9952dd28687` released its first four verification repairs at the captured predecessor.
+Batch 005's 116 requirement records are in [native evidence](evidence/application-usability-batch005.json);
+independent verification of it is recorded in F-BATCH-005-VERIFICATION.
+The five-item queue is delivered and empty; the exact permit is consumed.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 Human verdicts: **NOT RUN — no human observer**.
 
 Independent verification on 2026-10-05 reproduced the gates, compiled checks and serving readbacks
 and passed a guarded 13-route production canary. It also found released defects, recorded in
 F-BATCH-005-VERIFICATION. Repairs merged in PR #130 and were released by run `5d1b4e3a` on
-2026-10-05. Follow-up fixes for several items left open merged in PR #133 and are queued in
-docs/loop-state.md; what stays open is recorded in that fact.
+2026-10-05. Follow-up fixes for several items left open merged in PR #133 and were released by
+run `7753e5f5` the same day; what stays open is recorded in that fact.
 
 ## Current operational maintenance
 
@@ -190,7 +191,6 @@ Historical K unit-store target/marker effects remain UNVERIFIED; absent Data Acc
 prove zero effects. S121 was excluded.
 
 The permits of runs `ab803f8a`, `98f7e743`, `729d5716`, `0eb2cfeb`, `3a32f7a2`, `47fabb7c`,
-`8b7dc3f1` and `5d1b4e3a` are consumed; run `175fee1d` rolled back verified on 2026-10-02 and run `a83ed59b` stopped before
+`8b7dc3f1`, `5d1b4e3a` and `7753e5f5` are consumed; run `175fee1d` rolled back verified on 2026-10-02 and run `a83ed59b` stopped before
 promotion on 2026-10-03, and their permits are archived as superseded. The Awaiting release
-queue holds the five follow-up fixes. No original receipt, completed permit or build claim is
-reused.
+queue is empty. No original receipt, completed permit or build claim is reused.

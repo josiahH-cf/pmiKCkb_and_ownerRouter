@@ -1,12 +1,13 @@
 # Active feature suites
 
-The latest verified serving release is run 5d1b4e3a-ef6d-4354-aef1-e9952dd28687, the batch 005
-verification repairs (S170, S177, S178 and S179), at 9e76c14f5238f22be9ddecbffed149eee3db6d38 /
-pmi-kc-app-rmuv5c6eu-e3c268629df8, 100% traffic. Exact CI 37299720511, the cumulative
+The latest verified serving release is run 7753e5f5-2325-4b19-b83d-dc3475d71b0b, the batch 005
+follow-up fixes (S173, S169, S170, S172 and S87), at b2308bc506132853ebd54e4ba0678abbf853fce0 /
+pmi-kc-app-rmuv84r3a-f9fac2efc1af, 100% traffic. Exact CI 37308062054, the cumulative
 candidate/promotion/full observation and independent readbacks passed. The queue is empty and permit
-consumed. Batch 005 (run 8b7dc3f1-4c5b-482a-94ca-26985150c68d at
-fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27 / pmi-kc-app-rmuuk9ykp-31da970956eb, all 116 engineering traces, exact CI 37250383538
-and end feedback) is its captured predecessor; the S152–S167 program, request 001, batches 002–004, S113
+consumed. Run 5d1b4e3a-ef6d-4354-aef1-e9952dd28687 (the four verification repairs, at
+9e76c14f5238f22be9ddecbffed149eee3db6d38 / pmi-kc-app-rmuv5c6eu-e3c268629df8) is its captured predecessor;
+batch 005 (run 8b7dc3f1-4c5b-482a-94ca-26985150c68d at fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27, all 116 engineering traces,
+exact CI 37250383538 and end feedback), the S152–S167 program, request 001, batches 002–004, S113
 and earlier contracts remain carried. Human verdicts remain
 NOT RUN — no human observer. See docs/facts.md, docs/status.md and native batch 005 evidence.
 
