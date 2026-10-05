@@ -106,14 +106,15 @@ is deployed; overlapping S88–S93/S101 and S95 plans are superseded. S94 remain
 unexecuted proposal. Revised S87 belongs to the finalized batch 005 scope below. S112 release authentication passed;
 its separate 24-hour unchanged-enrollment longevity proof remains unverified.
 
-Batch 005, application-usability-reliability-2026-10, is active under the named owner launch as fifteen specs
+Batch 005, application-usability-reliability-2026-10, is verified deployed under the named owner launch as fifteen specs
 (S168–S181 plus revised S87), intake orders 035–049 in the canonical registry. It covers measured
 latency/reliability, whole-app loading feedback, task-sized layouts, resizable tables/docked
 information, both message workspaces, concise controls/copy, durable personal views, actionable
 identity lookup, legacy Gmail UI retirement and feedback reconciliation/integrated validation.
-The named instruction authorizes implementation, green main and one cumulative release. Native
-progress is in [the evidence matrix](evidence/application-usability-batch005.json); no release is
-admitted. Completed/superseded suites and the three accepted next-batch deferrals stay inert.
+All 116 engineering traces and one cumulative release are verified in
+[the evidence matrix](evidence/application-usability-batch005.json), run 8b7dc3f1-4c5b-482a-94ca-26985150c68d
+at fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27/pmi-kc-app-rmuuk9ykp-31da970956eb. End feedback and native closure are verified;
+queue empty, exact permit consumed. Human verdicts remain NOT RUN — no human observer. Completed/superseded suites and the three accepted next-batch deferrals stay inert.
 
 Current code, tests, facts and the S113 evidence report own the verified result. Staff-recorded
 completion is distinct from provider verification; no live customer completion was seeded.

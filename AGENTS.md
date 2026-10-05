@@ -19,25 +19,42 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — 2026-09-30
+## Present production truth — 2026-10-05
 
-Run `89e38cd9-b6dd-498f-be87-1963e0ed2d03` released all thirteen features and five confirmed adversarial repairs at
-`c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220` with 100% production traffic.
-Exact [CI 36650984450](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36650984450) passed.
-The final application gate passed 7,462 unit tests, four existing skips and all 234 backend tests.
-One application build `83925ea5-8230-4796-a2fd-cc4f8674d02f` succeeded at 2026-09-30T01:00:23.252385Z.
-Candidate receipt issued 2026-09-30T01:09:42.790Z; promotion verified 2026-09-30T01:10:01.479Z.
-Observation passed two checkpoints in 390,918 ms against the required 300,000 ms. All 311
-source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
-Eleven independent readback sections and all six guarded remote product checks passed.
-The actual uploaded source matched 2,176 exact Git blobs; all thirteen suites were included,
-with no unexpected/private file, missing runtime source or .git pointer.
-Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag `cand-rmundpf2v-249c945f2220`; fingerprint `sha256:e6a481aeb691991fe38f89bc0d25f40bb73c67de7d1e639e89f2cb5e8c4d0eaa`.
-No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
+Run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` released batch 005 (S168–S175, revised S87 and S176–S181; intake 035–049)
+at `fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27` / `pmi-kc-app-rmuuk9ykp-31da970956eb` with 100% production traffic.
+All 116 engineering requirements are verified in [native evidence](docs/evidence/application-usability-batch005.json).
+Exact [CI 37250383538](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37250383538) passed.
+Final native verification passed 8,753 unit tests, four existing configuration skips, all 325
+backend tests, zero production audit findings, all required checks and the production build.
+Core E2E passed 32 tests with 22 existing configuration skips; focused checks passed 781/104 files.
+The local compiled matrix passed 438 observations/eight coupled journeys/168 accessibility audits
+with zero violations or page errors. Six-owner recovery passed 18 observations/126 intercepted
+attempts; publication recovery passed six observations/18 intercepted actions, with zero effects.
+One application build `0a9621a3-35fb-4f03-b812-d80b3e93bae5` succeeded at 2026-10-05T01:35:38.866255Z.
+Candidate receipt `eebea154-abfc-4630-a4df-856cf77428fc` issued 2026-10-05T01:41:02.982Z;
+promotion verified 2026-10-05T01:41:25.919Z.
+Observation passed two checkpoints in 388,683 ms against the required 300,000 ms,
+inside the 420,000 ms deadline. All 312 source/projected/rendered records matched with
+zero discrepancies, candidate 5xx or unresolved live effects. All eleven independent readback
+sections matched, completed 2026-10-05T01:49:32Z.
+The actual uploaded source matched 2,464 exact Git blobs, including all fifteen specs;
+no unexpected file, missing runtime source or .git pointer was uploaded.
+Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=true are verified.
+Tag `cand-rmuuk9ykp-31da970956eb`; fingerprint `sha256:41d73acbe5bbf8243dbf5186bba72c0113eb21c0d1a84ad8f43ab31c4defbb43`.
+Captured predecessor: `e106a88a50d541b4a012111019b09c2183f6ce20` / `pmi-kc-app-rmusp7ehl-7ea8703905ca`,
+Sheet=true. Run-bound recovery `pmi-kc-app-recovery-8b7dc3f14c5b482a` preserves that actual configuration;
+receipt `8abbbc92-38c3-4318-8d3e-4b5bea211ed0`, reference hash `sha256:726509ba365ce057f83aee72aa151254c30603d901dcae4298d9555fe563cfdf`.
+No traffic rollback or business mutation was used as proof. The initial recovery assurance failure
+remains failed in immutable evidence; exact operation/target readback and a separate guarded
+13-route diagnostic passed before the same run resumed assurance. No more precise initial cause is claimed.
+End feedback reread 9 reports and 312 accessible rows, verified both date-sort directions
+over 308 dated rows, and preserved original bodies/identity/retention/hold/status with zero mutations.
+The fifteen-item queue is delivered and empty; the exact permit is consumed.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
+Human verdicts: **NOT RUN — no human observer**.
 
-The final application gate passed 7,462 unit tests and 234 backend tests, with four existing
+The September 30 thirteen-feature gate passed 7,462 unit tests and 234 backend tests, with four existing
 configuration skips, all required checks and production build. The notice portfolio repair
 preserves per-lease invalidation semantics while processing 311 leases in ten bounded transactions;
 its regression failed on the original fan-out and passed after repair. Mixed admission and
@@ -56,7 +73,7 @@ gate was lowered. Evidence: `docs/evidence/adversary-review-2026-09-29.md`.
 S113 F1-F5 is complete and deployed: one lease dashboard, typed corrections and supported Sheet/
 RentVine updates, restored operator-triggered RentCast preparation, supplied formatted/copyable
 messages with governed unsent Gmail drafting, audited manual progress and the integrated journey.
-Full verification passes 6,528 unit tests (four existing skips), all 201 backend tests, policy
+Its original verification passed 6,528 unit tests (four existing skips), all 201 backend tests, policy
 checks and production build. All 33 in-scope adversarial findings are closed; seven compiled browser
 checks passed, including the 42-step guide. Human verdicts remain NOT RUN.
 
@@ -67,9 +84,9 @@ Persistent labeled insurance-flyer, renewal-information-form and seven legal-for
 S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger execution and own-receipt recovery are implemented and deployed. Real approved forms/catalog/mappings, managed Dotloop credentials/connection/selection and separately authorized exact-key activation remain gates. Both Dotloop keys remain closed. Signature work is a human handoff; document presence and submitted content hashes do not prove signatures or provider-owned content verification.
 
 - Project `pmi-kc-kb-prod`, service `pmi-kc-app`, region `us-central1`; canonical https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-- Captured predecessor: `pmi-kc-app-rmunbakkw-d2963016189e` / `81c770fcb698b6650771f9a28c65c32a42060062`, Sheet=false. Run-bound recovery: `pmi-kc-app-recovery-89e38cd9b6dd498f`, receipt `4cc6d657-5f3e-4c54-bfff-48f8fd614d34`. No traffic rollback occurred.
+- Current captured predecessor: `pmi-kc-app-rmusp7ehl-7ea8703905ca` / `e106a88a50d541b4a012111019b09c2183f6ce20`, Sheet=true. Run-bound recovery: `pmi-kc-app-recovery-8b7dc3f14c5b482a`, receipt `8abbbc92-38c3-4318-8d3e-4b5bea211ed0`. No traffic rollback occurred. Older false-switch recovery receipts retain their historical meaning.
 - Runtime remains Production + Live, managed runtime identity, eleven Spaces, Sheet write-back
-  true since the S152–S167 release (run `47fabb7c`; the recovery target keeps false), false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
+  true since the S152–S167 release (run `47fabb7c`; the current recovery target keeps true), false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
 - S82 conformance, S97 replay/ambiguity integrity, S98 normal append and owner-approved field
   updates, S102-S110/readiness corrections and S51/S54 assurance are serving. Row deletion and
   historical restore/proof mutations remain unavailable. Matching observations cannot establish
@@ -79,7 +96,7 @@ S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger 
 - The Registry remains 48 exact keys, 16 open and 32 closed. Only two Sheet descriptive metadata
   entries were aligned with backup, compare-and-set and readback; no activation changed.
 - S100 resident-draft activation still needs the exact synchronized resident/verified-email input;
-  S36 remains queued behind complete S100. S87-S95 and S101 remain specification-only.
+  S36 remains queued behind complete S100. Revised S87 is deployed in batch 005; overlapping S88-S93/S101 and S95 proposals are superseded, while S94 remains unexecuted.
 - Existing monitoring and domain gates passed. The managed alert recipient remains unchanged.
   No paid comp request, live customer draft/send, new provider proof or signature effect ran.
 - Both private supplied v2 templates are published and read back approved. Private sources and
@@ -92,7 +109,7 @@ The 919a2ae candidate passed CI 34549763928, candidate assurance and promotion, 
 
 The earlier 6e77d18, 00836a8 and 297af97 candidates were archived as superseded without claiming their failed
 or unfinished assurance passed. Current release evidence is in
-`docs/evidence/batch-litmus-audit-2026-09-28.md`; the earlier S113 review retains its own scope.
+`docs/evidence/application-usability-batch005.json`; the earlier batch litmus audit and S113 review retain their own scopes.
 
 ## Product boundary
 

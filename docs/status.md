@@ -1,24 +1,41 @@
 # PMI KC current status
 
-Last updated: 2026-10-04 (UTC).
+Last updated: 2026-10-05 (UTC).
 
 ## Serving release
 
-Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` released the S152–S167 program (one queued item: lease-renewal simplification and mobile, sixteen suites) at `e106a88a50d541b4a012111019b09c2183f6ce20` / `pmi-kc-app-rmusp7ehl-7ea8703905ca` with 100% production traffic.
-Run `a83ed59b` first carried the program at `b11f5fe0`; it stopped at candidate assurance because the release canary still required the lease's Full view on open while S152 opens a lease in Focus view. It never changed traffic and is archived as superseded; PR #128 corrected the canary's lease-workspace contract.
-The release before it, run `3a32f7a2` (the S113 approval-read fix at `090df5e16f54eadbd1a3afbf20836c6677fa2a19` / `pmi-kc-app-rmurivuzf-c061dc669374`, 2026-10-02), is this run's captured predecessor.
-Exact [CI 37142116030](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37142116030) passed.
-The gate on tree-identical PR head `1b0df6fd` passed 8,541 unit tests, four existing skips, all 319 backend tests and 32 core E2E tests.
-One application build `e8264109-67cd-4414-9d2b-c897f027c905` succeeded at 2026-10-03T18:13:16.303Z.
-Candidate receipt issued 2026-10-03T18:26:00.305Z; promotion verified 2026-10-03T18:26:19.642Z.
-Observation passed two checkpoints in 387,784 ms against the required 300,000 ms, inside the 420,000 ms evidence deadline. All 312
-source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
-Eleven independent readback sections matched, last at 2026-10-03T18:32:54Z. A read-only production Focus check then passed on
-three lease workspaces: Focus view is the default, with zero mutation attempts.
+Run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` released batch 005 (S168–S175, revised S87 and S176–S181; intake 035–049)
+at `fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27` / `pmi-kc-app-rmuuk9ykp-31da970956eb` with 100% production traffic.
+All 116 engineering requirements are verified in [native evidence](evidence/application-usability-batch005.json).
+Exact [CI 37250383538](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37250383538) passed.
+Final native verification passed 8,753 unit tests, four existing configuration skips, all 325
+backend tests, zero production audit findings, all required checks and the production build.
+Core E2E passed 32 tests with 22 existing configuration skips; focused checks passed 781/104 files.
+The local compiled matrix passed 438 observations/eight coupled journeys/168 accessibility audits
+with zero violations or page errors. Six-owner recovery passed 18 observations/126 intercepted
+attempts; publication recovery passed six observations/18 intercepted actions, with zero effects.
+One application build `0a9621a3-35fb-4f03-b812-d80b3e93bae5` succeeded at 2026-10-05T01:35:38.866255Z.
+Candidate receipt `eebea154-abfc-4630-a4df-856cf77428fc` issued 2026-10-05T01:41:02.982Z;
+promotion verified 2026-10-05T01:41:25.919Z.
+Observation passed two checkpoints in 388,683 ms against the required 300,000 ms,
+inside the 420,000 ms deadline. All 312 source/projected/rendered records matched with
+zero discrepancies, candidate 5xx or unresolved live effects. All eleven independent readback
+sections matched, completed 2026-10-05T01:49:32Z.
+The actual uploaded source matched 2,464 exact Git blobs, including all fifteen specs;
+no unexpected file, missing runtime source or .git pointer was uploaded.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=true are verified.
-Tag `cand-rmusp7ehl-7ea8703905ca`; fingerprint `sha256:7061589ec47f2338497f9efd9dea1817dfdcc6f2ba4192b30b573e35d725448b`.
-No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
+Tag `cand-rmuuk9ykp-31da970956eb`; fingerprint `sha256:41d73acbe5bbf8243dbf5186bba72c0113eb21c0d1a84ad8f43ab31c4defbb43`.
+Captured predecessor: `e106a88a50d541b4a012111019b09c2183f6ce20` / `pmi-kc-app-rmusp7ehl-7ea8703905ca`,
+Sheet=true. Run-bound recovery `pmi-kc-app-recovery-8b7dc3f14c5b482a` preserves that actual configuration;
+receipt `8abbbc92-38c3-4318-8d3e-4b5bea211ed0`, reference hash `sha256:726509ba365ce057f83aee72aa151254c30603d901dcae4298d9555fe563cfdf`.
+No traffic rollback or business mutation was used as proof. The initial recovery assurance failure
+remains failed in immutable evidence; exact operation/target readback and a separate guarded
+13-route diagnostic passed before the same run resumed assurance. No more precise initial cause is claimed.
+End feedback reread 9 reports and 312 accessible rows, verified both date-sort directions
+over 308 dated rows, and preserved original bodies/identity/retention/hold/status with zero mutations.
+The fifteen-item queue is delivered and empty; the exact permit is consumed.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
+Human verdicts: **NOT RUN — no human observer**.
 
 ## Current operational maintenance
 
@@ -41,7 +58,7 @@ Hono advisory; PR #104 patched it and merged at `f449520e` after the same gates.
 
 ## Feature intake
 
-Batch 005 (application-usability-reliability-2026-10) engineering is verified under the October 4
+Batch 005 (application-usability-reliability-2026-10) is verified deployed under the October 4
 named owner launch: fifteen specs, 116 requirements, intake 035–049. Final focused selection passed
 781 checks/104 owner files. Native full 14 passed 8,753 unit/four existing skips/325 backend, zero
 audit findings, all policies and production build; core 12 passed 32/22 existing configuration skips.
@@ -52,9 +69,9 @@ unknown post-commit conflict fence and the full wrapping preview hash. Identity 
 shortcut, complete tables, dock/mobile/focus and private-view CAS journeys passed.
 All fifteen finalized owner-supplied spec bytes remain unchanged. Failed/superseded attempts retain
 their actual evidence. Private-view expiresAt TTL read back ACTIVE; runner wrote no app record.
-[Native evidence](evidence/application-usability-batch005.json) records 113 verified independent
-engineering traces; actual delivery/end-feedback/native deployed closure holds the other three.
-Green main/exact CI and one cumulative gated release remain. No release is admitted yet.
+[Native evidence](evidence/application-usability-batch005.json) records all 116 verified engineering
+traces, exact-main CI 37250383538, one cumulative release, full observation/independent readbacks
+and end feedback. The fifteen-item queue is empty and its exact-run permit consumed.
 Human verdicts: NOT RUN — no human observer. Rental permits, move-out business workflow redesign
 and the public website shortcut remain deferred.
 

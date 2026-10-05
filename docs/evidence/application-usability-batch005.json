@@ -13714,7 +13714,7 @@
         "docs/autonomous-agent-runner.md",
         "docs/feature-suites/README.md"
       ],
-      "status": "not_run",
+      "status": "preserved",
       "baseline": {
         "outcome": "already_satisfied",
         "test": "Pristine starting implementation preservation plus source/contract inspection for approved existing SDK/Admin guarded feedback start/end; nine exact unchanged reports",
@@ -13746,6 +13746,12 @@
           "environment": "Final cumulative WSL native actual owner; named assertions bound separately from source topology/shared primitives",
           "assertionsInOwnerFile": 10,
           "evidence": "private batch005-focused-native-2026-10-05T00-42-23.093Z.json"
+        },
+        {
+          "test": "Actual end listSupportReports SDK read and guarded canonical all-lease DOM, both date-sort directions",
+          "outcome": "passed",
+          "environment": "Approved managed Admin read on fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27/pmi-kc-app-rmuuk9ykp-31da970956eb; 9 reports, 312 accessible rows, 308 actual ISO date cells. Original body/identity/retention/hold/status hashes preserved; zero mutation attempts.",
+          "evidence": "private batch005-feedback-end-reconciliation-2.log; feedback-reconcile-2026-10-05T01-51-17.325Z.json"
         }
       ],
       "humanVerdict": "NOT RUN — no human observer",
@@ -13757,9 +13763,9 @@
           "environment": "WSL native actual owner unit; final consolidated outcome pending"
         }
       ],
-      "verificationStatus": "owner_checks_passed_delivery_or_end_read_pending",
+      "verificationStatus": "engineering_and_delivery_verified",
       "engineeringLitmus": {
-        "verdict": "PENDING — actual delivery/end read required",
+        "verdict": "PASS — model-observed engineering, actual delivery/end read",
         "scope": "approved existing SDK/Admin guarded feedback start/end; nine exact unchanged reports",
         "architecture": "ARCH-S180-1",
         "behavior": "BEH-S180-1",
@@ -13767,7 +13773,8 @@
         "evidence": [
           "tests/unit/support-reports.test.ts",
           "tests/unit/support-reports.test.ts",
-          "tests/unit/support-reports.test.ts"
+          "tests/unit/support-reports.test.ts",
+          "Actual end listSupportReports SDK read and guarded canonical all-lease DOM, both date-sort directions"
         ]
       }
     },
@@ -15463,7 +15470,7 @@
         "docs/autonomous-agent-runner.md",
         "docs/loop-state.md"
       ],
-      "status": "not_run",
+      "status": "preserved",
       "baseline": {
         "outcome": "already_satisfied",
         "test": "Pristine starting implementation preservation plus source/contract inspection for native release chain: exact main CI/GO/lock/source/candidate/receipt promotion/300000ms/independent readbacks",
@@ -15531,6 +15538,12 @@
           "environment": "Final cumulative WSL native actual owner; named assertions bound separately from source topology/shared primitives",
           "assertionsInOwnerFile": 14,
           "evidence": "private batch005-focused-native-2026-10-05T00-42-23.093Z.json"
+        },
+        {
+          "test": "Exact-main CI, locked GO, single build/source audit, guarded candidate assurance, receipt promotion, full observation and independent final readbacks",
+          "outcome": "passed",
+          "environment": "Run 8b7dc3f1-4c5b-482a-94ca-26985150c68d at fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27/pmi-kc-app-rmuuk9ykp-31da970956eb; exact CI 37250383538; one application build 0a9621a3-35fb-4f03-b812-d80b3e93bae5; 2464 exact Git blobs including all 15 contracts; 388683 ms/two checkpoints; 312 source/projected/rendered matched, zero discrepancies/5xx/unresolved effects; 11 independent sections matched. Admin-only browser scope, Editor not_run.",
+          "evidence": "private batch005-final-release-harvest-1.json; native exact-run receipts; batch005-independent-final-readbacks-1.log; batch005-uploaded-source-audit-1.json"
         }
       ],
       "humanVerdict": "NOT RUN — no human observer",
@@ -15547,9 +15560,9 @@
           "environment": "WSL native actual owner unit; final consolidated outcome pending"
         }
       ],
-      "verificationStatus": "owner_checks_passed_delivery_or_end_read_pending",
+      "verificationStatus": "engineering_and_delivery_verified",
       "engineeringLitmus": {
-        "verdict": "PENDING — actual delivery/end read required",
+        "verdict": "PASS — model-observed engineering, actual delivery/end read",
         "scope": "native release chain: exact main CI/GO/lock/source/candidate/receipt promotion/300000ms/independent readbacks",
         "architecture": "ARCH-S181-3",
         "behavior": "BEH-S181-7",
@@ -15562,7 +15575,8 @@
           "tests/unit/s159-release-sheet-switch.test.mjs",
           "tests/unit/s159-revision-sheet-expectation.test.ts",
           "tests/unit/s159-release-sheet-switch.test.mjs",
-          "tests/unit/s159-revision-sheet-expectation.test.ts"
+          "tests/unit/s159-revision-sheet-expectation.test.ts",
+          "Exact-main CI, locked GO, single build/source audit, guarded candidate assurance, receipt promotion, full observation and independent final readbacks"
         ]
       }
     },
@@ -15585,7 +15599,7 @@
         "docs/autonomous-agent-runner.md",
         "docs/loop-state.md"
       ],
-      "status": "not_run",
+      "status": "preserved",
       "baseline": {
         "outcome": "already_satisfied",
         "test": "Pristine starting implementation preservation plus source/contract inspection for feedback end and native current closure; consumed permits/deferred/input/human holds retain real meaning",
@@ -15641,6 +15655,24 @@
           "environment": "Final cumulative WSL native actual owner; named assertions bound separately from source topology/shared primitives",
           "assertionsInOwnerFile": 10,
           "evidence": "private batch005-focused-native-2026-10-05T00-42-23.093Z.json"
+        },
+        {
+          "test": "Actual end listSupportReports SDK read and guarded canonical all-lease DOM, both date-sort directions",
+          "outcome": "passed",
+          "environment": "Approved managed Admin read on fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27/pmi-kc-app-rmuuk9ykp-31da970956eb; 9 reports, 312 accessible rows, 308 actual ISO date cells. Original body/identity/retention/hold/status hashes preserved; zero mutation attempts.",
+          "evidence": "private batch005-feedback-end-reconciliation-2.log; feedback-reconcile-2026-10-05T01-51-17.325Z.json"
+        },
+        {
+          "test": "Exact-main CI, locked GO, single build/source audit, guarded candidate assurance, receipt promotion, full observation and independent final readbacks",
+          "outcome": "passed",
+          "environment": "Run 8b7dc3f1-4c5b-482a-94ca-26985150c68d at fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27/pmi-kc-app-rmuuk9ykp-31da970956eb; exact CI 37250383538; one application build 0a9621a3-35fb-4f03-b812-d80b3e93bae5; 2464 exact Git blobs including all 15 contracts; 388683 ms/two checkpoints; 312 source/projected/rendered matched, zero discrepancies/5xx/unresolved effects; 11 independent sections matched. Admin-only browser scope, Editor not_run.",
+          "evidence": "private batch005-final-release-harvest-1.json; native exact-run receipts; batch005-independent-final-readbacks-1.log; batch005-uploaded-source-audit-1.json"
+        },
+        {
+          "test": "Native deployed closure: formatting, router/falsification/freshness/active-path/traceability/copy/redaction policies, require-complete matrix, plan and evidence admission",
+          "outcome": "passed",
+          "environment": "Actual final cumulative WSL native checkout; 116 requirements/15 specs/38 routes/188 consumers verified; all seven policies plus formatting/completion and eight focused assertions passed. Current facts/status/plan/loop/registry bind actual release/end-feedback outcomes; queue empty, consumed permit, human NOT RUN. Authority body from Product boundary onward and all frozen specs byte-identical.",
+          "evidence": "private batch005-native-closure-gates-1.log"
         }
       ],
       "humanVerdict": "NOT RUN — no human observer",
@@ -15657,9 +15689,9 @@
           "environment": "WSL native actual owner unit; final consolidated outcome pending"
         }
       ],
-      "verificationStatus": "owner_checks_passed_delivery_or_end_read_pending",
+      "verificationStatus": "engineering_and_delivery_verified",
       "engineeringLitmus": {
-        "verdict": "PENDING — actual delivery/end read required",
+        "verdict": "PASS — model-observed engineering, actual delivery/end read",
         "scope": "feedback end and native current closure; consumed permits/deferred/input/human holds retain real meaning",
         "architecture": "ARCH-S181-1",
         "behavior": "BEH-S181-8",
@@ -15670,7 +15702,10 @@
           "tests/unit/s181-batch005-evidence.test.mjs",
           "tests/unit/support-reports.test.ts",
           "tests/unit/s181-batch005-evidence.test.mjs",
-          "tests/unit/support-reports.test.ts"
+          "tests/unit/support-reports.test.ts",
+          "Actual end listSupportReports SDK read and guarded canonical all-lease DOM, both date-sort directions",
+          "Exact-main CI, locked GO, single build/source audit, guarded candidate assurance, receipt promotion, full observation and independent final readbacks",
+          "Native deployed closure: formatting, router/falsification/freshness/active-path/traceability/copy/redaction policies, require-complete matrix, plan and evidence admission"
         ]
       }
     }
@@ -58633,7 +58668,48 @@
       ]
     },
     "end": {
-      "status": "not_run"
+      "status": "passed",
+      "atUtc": "2026-10-05T01:51:17.325Z",
+      "count": 9,
+      "sourceRows": 312,
+      "sorts": [
+        {
+          "direction": "asc",
+          "rows": 312,
+          "dated": 308,
+          "outcome": "passed"
+        },
+        {
+          "direction": "desc",
+          "rows": 312,
+          "dated": 308,
+          "outcome": "passed"
+        }
+      ],
+      "originalBodiesIdentityRetentionHoldStatusPreserved": true,
+      "mutationAttempts": 0,
+      "checks": [
+        {
+          "test": "Actual end listSupportReports SDK read and guarded canonical all-lease DOM, both date-sort directions",
+          "outcome": "passed",
+          "environment": "Approved managed Admin read on fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27/pmi-kc-app-rmuuk9ykp-31da970956eb; 9 reports, 312 accessible rows, 308 actual ISO date cells. Original body/identity/retention/hold/status hashes preserved; zero mutation attempts.",
+          "evidence": "private batch005-feedback-end-reconciliation-2.log; feedback-reconcile-2026-10-05T01-51-17.325Z.json"
+        }
+      ],
+      "setupAttempts": [
+        {
+          "attempt": 1,
+          "outcome": "failed_before_feedback_reads",
+          "code": "SyntaxError: Unexpected token closing parenthesis",
+          "evidence": "private original batch005-end-feedback-prepare-1.mjs; tool output and batch005-feedback-end-setup-failure-1.json",
+          "meaning": "Helper syntax rejected before its first statement; no feedback SDK/browser read or mutation was dispatched. Attempt 2 fixes only the local helper syntax."
+        },
+        {
+          "attempt": 2,
+          "outcome": "passed",
+          "evidence": "private batch005-feedback-end-reconciliation-2.log"
+        }
+      ]
     },
     "dispositions": [
       {
@@ -58641,63 +58717,117 @@
         "topic": "Reported missing leases",
         "scope": "R-S180-5 / R-S173-5 / R-S178-2",
         "outcome": "Three reported identities matched the complete current guarded all-lease view. Keep historical and inactive rows; do not infer deletion or reporter acceptance.",
-        "reportChanged": false
+        "reportChanged": false,
+        "endReadback": {
+          "status": "new",
+          "matches": 3,
+          "classification": "reported_identity_readback",
+          "reportChanged": false
+        }
       },
       {
         "ordinal": 2,
         "topic": "Reported inactive owner",
         "scope": "R-S180-5 / R-S178-3",
         "outcome": "No matching current rendered label found in the guarded complete portfolio. The proposed cleanup is not confirmed or executed; absence is not provider deletion evidence.",
-        "reportChanged": false
+        "reportChanged": false,
+        "endReadback": {
+          "status": "new",
+          "matches": 0,
+          "classification": "existing_scoped_workflow_contract",
+          "reportChanged": false
+        }
       },
       {
         "ordinal": 3,
         "topic": "Reported renewal-date sorting",
         "scope": "R-S173-5 / R-S180-2",
         "outcome": "Actual time[datetime] values sorted ascending and descending over 308 dated rows; all 312 records retained.",
-        "reportChanged": false
+        "reportChanged": false,
+        "endReadback": {
+          "status": "new",
+          "matches": 0,
+          "classification": "date_sort_verified",
+          "reportChanged": false
+        }
       },
       {
         "ordinal": 4,
         "topic": "Reported inactive tenant",
         "scope": "R-S180-5 / R-S178-2",
         "outcome": "Two matching current records remain reachable in complete all-lease access. No exclusion, deletion or status transition.",
-        "reportChanged": false
+        "reportChanged": false,
+        "endReadback": {
+          "status": "new",
+          "matches": 2,
+          "classification": "existing_scoped_workflow_contract",
+          "reportChanged": false
+        }
       },
       {
         "ordinal": 5,
         "topic": "Public website shortcut",
         "scope": "accepted deferral",
         "outcome": "Deferred; no shortcut added.",
-        "reportChanged": false
+        "reportChanged": false,
+        "endReadback": {
+          "status": "new",
+          "matches": 0,
+          "classification": "deferred_public_website_shortcut",
+          "reportChanged": false
+        }
       },
       {
         "ordinal": 6,
         "topic": "Rental permits request",
         "scope": "accepted deferral",
         "outcome": "Deferred; no implementation or effect authorized by feedback.",
-        "reportChanged": false
+        "reportChanged": false,
+        "endReadback": {
+          "status": "new",
+          "matches": 0,
+          "classification": "deferred_rental_permits",
+          "reportChanged": false
+        }
       },
       {
         "ordinal": 7,
         "topic": "Move-out business workflow redesign",
         "scope": "accepted deferral",
         "outcome": "Deferred; existing workflow and timing/input boundaries retained.",
-        "reportChanged": false
+        "reportChanged": false,
+        "endReadback": {
+          "status": "acknowledged",
+          "matches": 0,
+          "classification": "deferred_moveout_redesign",
+          "reportChanged": false
+        }
       },
       {
         "ordinal": 8,
         "topic": "Previously resolved staff work materials",
         "scope": "preservation",
         "outcome": "Existing resolved metadata/body/retention meaning preserved; no new verdict invented.",
-        "reportChanged": false
+        "reportChanged": false,
+        "endReadback": {
+          "status": "resolved",
+          "matches": 0,
+          "classification": "existing_scoped_workflow_contract",
+          "reportChanged": false
+        }
       },
       {
         "ordinal": 9,
         "topic": "Document/integration guidance",
         "scope": "existing scoped holds",
         "outcome": "Acknowledged guidance and missing real form/provider/connection input contracts retained; no activation or signature effect.",
-        "reportChanged": false
+        "reportChanged": false,
+        "endReadback": {
+          "status": "acknowledged",
+          "matches": 0,
+          "classification": "existing_scoped_workflow_contract",
+          "reportChanged": false
+        }
       }
     ]
   },
@@ -58731,7 +58861,7 @@
     ]
   },
   "release": {
-    "status": "queued",
+    "status": "verified",
     "codeCommit": "1a3c5381d7633b0a196573ead604971102ef0a42",
     "selected": [
       {
@@ -58810,11 +58940,765 @@
         "intakeOrder": 49
       }
     ],
-    "scope": "One cumulative exact-main candidate; no release is admitted or deployed by this queue"
+    "scope": "One complete cumulative exact-main candidate containing all fifteen selected implementations; no second application build or release for closure documentation",
+    "sha": "fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27",
+    "runId": "8b7dc3f1-4c5b-482a-94ca-26985150c68d",
+    "revision": "pmi-kc-app-rmuuk9ykp-31da970956eb",
+    "tag": "cand-rmuuk9ykp-31da970956eb",
+    "ciRunId": 37250383538,
+    "configurationFingerprint": "sha256:41d73acbe5bbf8243dbf5186bba72c0113eb21c0d1a84ad8f43ab31c4defbb43",
+    "permitState": "consumed",
+    "admission": {
+      "checkedAt": "2026-10-05T01:18:15.672Z",
+      "preflightHash": "637b6cec894f0e2427c7d6b9bd0223e3b73cbce4626769dbef3c3e46be0c3641"
+    },
+    "applicationBuild": {
+      "id": "0a9621a3-35fb-4f03-b812-d80b3e93bae5",
+      "status": "SUCCESS",
+      "createTime": "2026-10-05T01:31:00.369444285Z",
+      "finishTime": "2026-10-05T01:35:38.866255Z"
+    },
+    "candidate": {
+      "receiptId": "eebea154-abfc-4630-a4df-856cf77428fc",
+      "issuedAt": "2026-10-05T01:41:02.982Z",
+      "adminVerdict": "passed",
+      "editorVerdict": "not_run"
+    },
+    "promotion": {
+      "candidateReceiptId": "eebea154-abfc-4630-a4df-856cf77428fc",
+      "promotionStartedAt": "2026-10-05T01:41:18.906Z",
+      "promotionVerifiedAt": "2026-10-05T01:41:25.919Z"
+    },
+    "observationMs": 388683,
+    "observation": {
+      "file": "observation-pmi-kc-app-rmuuk9ykp-31da970956eb-1791164492612.json",
+      "generatedAt": "2026-10-05T01:47:47.590Z",
+      "elapsedMs": 388683,
+      "successfulCheckpoints": 2,
+      "counts": {
+        "sourceRecords": 312,
+        "projectedRecords": 312,
+        "renderedRecords": 312,
+        "missingInApplication": 0,
+        "unexpectedInApplication": 0,
+        "duplicateApplicationKeys": 0,
+        "fieldMismatches": 0,
+        "invalidDestinations": 0
+      },
+      "monitoring": {
+        "configurationReady": true,
+        "readComplete": true,
+        "candidateFiveXxCount": 0,
+        "unresolvedLiveEffectCount": 0
+      },
+      "routes": 13
+    },
+    "recovery": {
+      "receiptId": "8abbbc92-38c3-4318-8d3e-4b5bea211ed0",
+      "reference": {
+        "path": "/home/josiah/.local/state/pmi-kc-release/recovery-8b7dc3f1-4c5b-482a-94ca-26985150c68d-baseline.json",
+        "receiptId": "8abbbc92-38c3-4318-8d3e-4b5bea211ed0",
+        "hash": "sha256:726509ba365ce057f83aee72aa151254c30603d901dcae4298d9555fe563cfdf",
+        "runId": "8b7dc3f1-4c5b-482a-94ca-26985150c68d"
+      },
+      "predecessorCommit": "e106a88a50d541b4a012111019b09c2183f6ce20",
+      "predecessorRevision": "pmi-kc-app-rmusp7ehl-7ea8703905ca",
+      "targetRevision": "pmi-kc-app-recovery-8b7dc3f14c5b482a",
+      "predecessorSheetWriteback": "true",
+      "fingerprint": "sha256:7061589ec47f2338497f9efd9dea1817dfdcc6f2ba4192b30b573e35d725448b",
+      "tag": "cand-rmusp7ehl-7ea8703905ca"
+    },
+    "uploadedSource": {
+      "uploadedExactGitBlobs": 2464,
+      "requiredRuntimeSource": 1213,
+      "selectedContracts": 15,
+      "unexpectedPaths": 0,
+      "missingRuntimeSource": 0,
+      "mismatchedBlobs": 0,
+      "gitPointerPresent": false
+    },
+    "readback": {
+      "sections": 11,
+      "completedAt": "2026-10-05T01:49:32Z",
+      "sha256": "1b4a7153b8049054f61f439f6b6c574fccee6f376bde109e911ffbfe5bf91348",
+      "results": [
+        {
+          "kind": "version",
+          "status": "matched",
+          "commit": "fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27",
+          "revision": "pmi-kc-app-rmuuk9ykp-31da970956eb",
+          "service": "pmi-kc-app",
+          "environment": "production",
+          "exactIdentity": true
+        },
+        {
+          "kind": "version",
+          "status": "matched",
+          "commit": "fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27",
+          "revision": "pmi-kc-app-rmuuk9ykp-31da970956eb",
+          "service": "pmi-kc-app",
+          "environment": "production",
+          "exactIdentity": true
+        },
+        {
+          "kind": "traffic",
+          "status": "matched",
+          "latestReadyRevision": "pmi-kc-app-rmuuk9ykp-31da970956eb",
+          "traffic": [
+            {
+              "revision": "pmi-kc-app-recovery-05c177b97bde4a76",
+              "percent": 0,
+              "tag": "cand-rmur4a2vc-185ba8b9f3b8"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-0aa79bfe784c47d2",
+              "percent": 0,
+              "tag": "cand-rmupw50tc-8189b32d3395"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-0eb2cfeba2384b37",
+              "percent": 0,
+              "tag": "cand-rmur0tbib-a9b9f1768907"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-175fee1d276c4e6f",
+              "percent": 0,
+              "tag": "cand-rmuq2qvcc-8074bfd97707"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-3a32f7a2fd584652",
+              "percent": 0,
+              "tag": "cand-rmurgpwnn-d04f76e533c5"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-46415f6855da4a0b",
+              "percent": 0,
+              "tag": "cand-rmumy904w-9cb39576b998"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-47fabb7cb26b4032",
+              "percent": 0,
+              "tag": "cand-rmus8vtn9-ec4568cbbad4"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-59d3ef4706c64d9c",
+              "percent": 0,
+              "tag": "cand-rmumhi7df-f037af48a1fe"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-729d5716bc5e4e61",
+              "percent": 0,
+              "tag": "cand-rmuq0csku-5c4a6f48ea75"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-89e38cd9b6dd498f",
+              "percent": 0,
+              "tag": "cand-rmunbakkw-d2963016189e"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-8b7dc3f14c5b482a",
+              "percent": 0,
+              "tag": "cand-rmusp7ehl-7ea8703905ca"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-98f7e74373454b74",
+              "percent": 0,
+              "tag": "cand-rmupi9ukm-9f056f091001"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-a83ed59bd5cc4922",
+              "percent": 0,
+              "tag": "cand-rmurivuzf-c061dc669374"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-ab803f8a4ffb4568",
+              "percent": 0,
+              "tag": "cand-rmuo61wve-fcdc2fc4b0d0"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-c639b73643ad4f5c",
+              "percent": 0,
+              "tag": "cand-rmun4mghg-35be42b3c74f"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-d63f66b3db02472e",
+              "percent": 0,
+              "tag": "cand-rmu4wevd9-d89996133320"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-dc4e1ac8d8b94090",
+              "percent": 0,
+              "tag": "cand-rmundpf2v-249c945f2220"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-de37a0235762435f",
+              "percent": 0,
+              "tag": "cand-rmumv0qhm-ee028c251b32"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-f2036ad3065e4cac",
+              "percent": 0,
+              "tag": "cand-rmun14ae1-00b62e7630c7"
+            },
+            {
+              "revision": "pmi-kc-app-recovery-fa4f665232204847",
+              "percent": 0,
+              "tag": "cand-rmumm94q0-db6fbbbf472d"
+            },
+            {
+              "revision": "pmi-kc-app-rmsbyiiwl-6d646d3629fe",
+              "percent": 0,
+              "tag": "cand-rmsbyiiwl-6d646d3629fe"
+            },
+            {
+              "revision": "pmi-kc-app-rmsc62q55-dbcbe2db4927",
+              "percent": 0,
+              "tag": "cand-rmsc62q55-dbcbe2db4927"
+            },
+            {
+              "revision": "pmi-kc-app-rmsd5ux3l-0b445f0442ea",
+              "percent": 0,
+              "tag": "cand-rmsd5ux3l-0b445f0442ea"
+            },
+            {
+              "revision": "pmi-kc-app-rmsol14wb-9fe02e7af754",
+              "percent": 0,
+              "tag": "cand-rmsol14wb-9fe02e7af754"
+            },
+            {
+              "revision": "pmi-kc-app-rmtafuqbg-4e2e4ffe0f48",
+              "percent": 0,
+              "tag": "cand-rmtafuqbg-4e2e4ffe0f48"
+            },
+            {
+              "revision": "pmi-kc-app-rmtbh280n-61b78ef991cc",
+              "percent": 0,
+              "tag": "cand-rmtbh280n-61b78ef991cc"
+            },
+            {
+              "revision": "pmi-kc-app-rmtep3ke9-9d3ecafb0c2e",
+              "percent": 0,
+              "tag": "cand-rmtep3ke9-9d3ecafb0c2e"
+            },
+            {
+              "revision": "pmi-kc-app-rmtew9a2z-46a2353b6491",
+              "percent": 0,
+              "tag": "cand-rmtew9a2z-46a2353b6491"
+            },
+            {
+              "revision": "pmi-kc-app-rmtf01asj-4b3665ad072f",
+              "percent": 0,
+              "tag": "cand-rmtf01asj-4b3665ad072f"
+            },
+            {
+              "revision": "pmi-kc-app-rmtf4s18h-3813fe5277d5",
+              "percent": 0,
+              "tag": "cand-rmtf4s18h-3813fe5277d5"
+            },
+            {
+              "revision": "pmi-kc-app-rmtf9wrzz-4c981bf57679",
+              "percent": 0,
+              "tag": "cand-rmtf9wrzz-4c981bf57679"
+            },
+            {
+              "revision": "pmi-kc-app-rmtfd7hvu-a310a0d0db6b",
+              "percent": 0,
+              "tag": "cand-rmtfd7hvu-a310a0d0db6b"
+            },
+            {
+              "revision": "pmi-kc-app-rmtfk9fln-c9af498cb9c5",
+              "percent": 0,
+              "tag": "cand-rmtfk9fln-c9af498cb9c5"
+            },
+            {
+              "revision": "pmi-kc-app-rmtfp5ac4-8824eb39358b",
+              "percent": 0,
+              "tag": "cand-rmtfp5ac4-8824eb39358b"
+            },
+            {
+              "revision": "pmi-kc-app-rmtfrv9zf-456d0c8fdc83",
+              "percent": 0,
+              "tag": "cand-rmtfrv9zf-456d0c8fdc83"
+            },
+            {
+              "revision": "pmi-kc-app-rmtfzwn77-8153d75d1cd5",
+              "percent": 0,
+              "tag": "cand-rmtfzwn77-8153d75d1cd5"
+            },
+            {
+              "revision": "pmi-kc-app-rmtg73suu-fe8734d35330",
+              "percent": 0,
+              "tag": "cand-rmtg73suu-fe8734d35330"
+            },
+            {
+              "revision": "pmi-kc-app-rmtic5vib-8774cfecd0c8",
+              "percent": 0,
+              "tag": "cand-rmtic5vib-8774cfecd0c8"
+            },
+            {
+              "revision": "pmi-kc-app-rmtiii4il-dcf1708c88b8",
+              "percent": 0,
+              "tag": "cand-rmtiii4il-dcf1708c88b8"
+            },
+            {
+              "revision": "pmi-kc-app-rmtimspsj-ee9bbf50108f",
+              "percent": 0,
+              "tag": "cand-rmtimspsj-ee9bbf50108f"
+            },
+            {
+              "revision": "pmi-kc-app-rmtiwd11n-060383b3556f",
+              "percent": 0,
+              "tag": "cand-rmtiwd11n-060383b3556f"
+            },
+            {
+              "revision": "pmi-kc-app-rmtiwwud5-993818fec846",
+              "percent": 0,
+              "tag": "cand-rmtiwwud5-993818fec846"
+            },
+            {
+              "revision": "pmi-kc-app-rmtj7bhzf-61f4736bdb6b",
+              "percent": 0,
+              "tag": "cand-rmtj7bhzf-61f4736bdb6b"
+            },
+            {
+              "revision": "pmi-kc-app-rmtjd24ee-17d334db377f",
+              "percent": 0,
+              "tag": "cand-rmtjd24ee-17d334db377f"
+            },
+            {
+              "revision": "pmi-kc-app-rmtjhew5f-125876b4ff5b",
+              "percent": 0,
+              "tag": "cand-rmtjhew5f-125876b4ff5b"
+            },
+            {
+              "revision": "pmi-kc-app-rmtjt4t0z-111f1c0a2ef0",
+              "percent": 0,
+              "tag": "cand-rmtjt4t0z-111f1c0a2ef0"
+            },
+            {
+              "revision": "pmi-kc-app-rmtjtrqui-feb86a7a45c3",
+              "percent": 0,
+              "tag": "cand-rmtjtrqui-feb86a7a45c3"
+            },
+            {
+              "revision": "pmi-kc-app-rmtjuzgaf-86ec509e8095",
+              "percent": 0,
+              "tag": "cand-rmtjuzgaf-86ec509e8095"
+            },
+            {
+              "revision": "pmi-kc-app-rmtjwy7f4-c705ce297553",
+              "percent": 0,
+              "tag": "cand-rmtjwy7f4-c705ce297553"
+            },
+            {
+              "revision": "pmi-kc-app-rmtkge699-48b96baef61a",
+              "percent": 0,
+              "tag": "cand-rmtkge699-48b96baef61a"
+            },
+            {
+              "revision": "pmi-kc-app-rmtkgn08q-db89a37c43dc",
+              "percent": 0,
+              "tag": "cand-rmtkgn08q-db89a37c43dc"
+            },
+            {
+              "revision": "pmi-kc-app-rmtkjgs75-57d7db5549f7",
+              "percent": 0,
+              "tag": "cand-rmtkjgs75-57d7db5549f7"
+            },
+            {
+              "revision": "pmi-kc-app-rmtkmhj1z-8855e4c6dbfb",
+              "percent": 0,
+              "tag": "cand-rmtkmhj1z-8855e4c6dbfb"
+            },
+            {
+              "revision": "pmi-kc-app-rmtloqhri-64ba4b00a394",
+              "percent": 0,
+              "tag": "cand-rmtloqhri-64ba4b00a394"
+            },
+            {
+              "revision": "pmi-kc-app-rmtlsgy0i-ffb8a132da84",
+              "percent": 0,
+              "tag": "cand-rmtlsgy0i-ffb8a132da84"
+            },
+            {
+              "revision": "pmi-kc-app-rmtm1dmg7-98fa238467b3",
+              "percent": 0,
+              "tag": "cand-rmtm1dmg7-98fa238467b3"
+            },
+            {
+              "revision": "pmi-kc-app-rmtm41tyu-d8d9003c8b52",
+              "percent": 0,
+              "tag": "cand-rmtm41tyu-d8d9003c8b52"
+            },
+            {
+              "revision": "pmi-kc-app-rmtm804ji-a548b423ad81",
+              "percent": 0,
+              "tag": "cand-rmtm804ji-a548b423ad81"
+            },
+            {
+              "revision": "pmi-kc-app-rmtmaxi8r-f6190b47628d",
+              "percent": 0,
+              "tag": "cand-rmtmaxi8r-f6190b47628d"
+            },
+            {
+              "revision": "pmi-kc-app-rmtmedt51-9868d44ba383",
+              "percent": 0,
+              "tag": "cand-rmtmedt51-9868d44ba383"
+            },
+            {
+              "revision": "pmi-kc-app-rmtmh2uri-9eac996c1d19",
+              "percent": 0,
+              "tag": "cand-rmtmh2uri-9eac996c1d19"
+            },
+            {
+              "revision": "pmi-kc-app-rmtmm6d33-fb90a28a26a1",
+              "percent": 0,
+              "tag": "cand-rmtmm6d33-fb90a28a26a1"
+            },
+            {
+              "revision": "pmi-kc-app-rmtmq9qye-f7e5437a209b",
+              "percent": 0,
+              "tag": "cand-rmtmq9qye-f7e5437a209b"
+            },
+            {
+              "revision": "pmi-kc-app-rmtmuvjmp-b9f775e360aa",
+              "percent": 0,
+              "tag": "cand-rmtmuvjmp-b9f775e360aa"
+            },
+            {
+              "revision": "pmi-kc-app-rmtmy3z88-1fc4c3e29466",
+              "percent": 0,
+              "tag": "cand-rmtmy3z88-1fc4c3e29466"
+            },
+            {
+              "revision": "pmi-kc-app-rmtpqneki-e799a49fc597",
+              "percent": 0,
+              "tag": "cand-rmtpqneki-e799a49fc597"
+            },
+            {
+              "revision": "pmi-kc-app-rmtq2goev-157da39536d0",
+              "percent": 0,
+              "tag": "cand-rmtq2goev-157da39536d0"
+            },
+            {
+              "revision": "pmi-kc-app-rmtq71kjl-bff41bbdb5fa",
+              "percent": 0,
+              "tag": "cand-rmtq71kjl-bff41bbdb5fa"
+            },
+            {
+              "revision": "pmi-kc-app-rmtt039q1-c1463245a94c",
+              "percent": 0,
+              "tag": "cand-rmtt039q1-c1463245a94c"
+            },
+            {
+              "revision": "pmi-kc-app-rmtvz9r9f-10904b929fad",
+              "percent": 0,
+              "tag": "cand-rmtvz9r9f-10904b929fad"
+            },
+            {
+              "revision": "pmi-kc-app-rmtw2vx4h-8fd8a42bbddf",
+              "percent": 0,
+              "tag": "cand-rmtw2vx4h-8fd8a42bbddf"
+            },
+            {
+              "revision": "pmi-kc-app-rmtw7rs42-1866da112c6e",
+              "percent": 0,
+              "tag": "cand-rmtw7rs42-1866da112c6e"
+            },
+            {
+              "revision": "pmi-kc-app-rmtw9sc8z-1ffcfff358ae",
+              "percent": 0,
+              "tag": "cand-rmtw9sc8z-1ffcfff358ae"
+            },
+            {
+              "revision": "pmi-kc-app-rmtwdl4di-4439f17911f4",
+              "percent": 0,
+              "tag": "cand-rmtwdl4di-4439f17911f4"
+            },
+            {
+              "revision": "pmi-kc-app-rmu1rxk29-9d8d576379d9",
+              "percent": 0,
+              "tag": "cand-rmu1rxk29-9d8d576379d9"
+            },
+            {
+              "revision": "pmi-kc-app-rmu1zycgi-d28f58f32910",
+              "percent": 0,
+              "tag": "cand-rmu1zycgi-d28f58f32910"
+            },
+            {
+              "revision": "pmi-kc-app-rmu21dwpb-3ea232a8339f",
+              "percent": 0,
+              "tag": "cand-rmu21dwpb-3ea232a8339f"
+            },
+            {
+              "revision": "pmi-kc-app-rmu23j65k-ea7b9f5b8980",
+              "percent": 0,
+              "tag": "cand-rmu23j65k-ea7b9f5b8980"
+            },
+            {
+              "revision": "pmi-kc-app-rmu2508wj-67ca3e173ab5",
+              "percent": 0,
+              "tag": "cand-rmu2508wj-67ca3e173ab5"
+            },
+            {
+              "revision": "pmi-kc-app-rmu26u6xc-9a156b302dac",
+              "percent": 0,
+              "tag": "cand-rmu26u6xc-9a156b302dac"
+            },
+            {
+              "revision": "pmi-kc-app-rmu286tg6-b24d5e15315b",
+              "percent": 0,
+              "tag": "cand-rmu286tg6-b24d5e15315b"
+            },
+            {
+              "revision": "pmi-kc-app-rmu2a59tx-28c0417b4693",
+              "percent": 0,
+              "tag": "cand-rmu2a59tx-28c0417b4693"
+            },
+            {
+              "revision": "pmi-kc-app-rmu2chtvy-4d3cfabf46dd",
+              "percent": 0,
+              "tag": "cand-rmu2chtvy-4d3cfabf46dd"
+            },
+            {
+              "revision": "pmi-kc-app-rmu30993m-11abc72f1702",
+              "percent": 0,
+              "tag": "cand-rmu30993m-11abc72f1702"
+            },
+            {
+              "revision": "pmi-kc-app-rmu3wxi74-644c5bfde591",
+              "percent": 0,
+              "tag": "cand-rmu3wxi74-644c5bfde591"
+            },
+            {
+              "revision": "pmi-kc-app-rmu46blcc-af55ec317652",
+              "percent": 0,
+              "tag": "cand-rmu46blcc-af55ec317652"
+            },
+            {
+              "revision": "pmi-kc-app-rmu49gnyi-9cf475eedd55",
+              "percent": 0,
+              "tag": "cand-rmu49gnyi-9cf475eedd55"
+            },
+            {
+              "revision": "pmi-kc-app-rmu4awn6p-67bd97a8824e",
+              "percent": 0,
+              "tag": "cand-rmu4awn6p-67bd97a8824e"
+            },
+            {
+              "revision": "pmi-kc-app-rmu4eoy5u-c8c2682e9102",
+              "percent": 0,
+              "tag": "cand-rmu4eoy5u-c8c2682e9102"
+            },
+            {
+              "revision": "pmi-kc-app-rmu4ir3hc-7ee452a02151",
+              "percent": 0,
+              "tag": "cand-rmu4ir3hc-7ee452a02151"
+            },
+            {
+              "revision": "pmi-kc-app-rmu4ontao-f5c2a692d78e",
+              "percent": 0,
+              "tag": "cand-rmu4ontao-f5c2a692d78e"
+            },
+            {
+              "revision": "pmi-kc-app-rmu4s6qo5-5d81e4f12265",
+              "percent": 0,
+              "tag": "cand-rmu4s6qo5-5d81e4f12265"
+            },
+            {
+              "revision": "pmi-kc-app-rmuuk9ykp-31da970956eb",
+              "percent": 100,
+              "tag": "cand-rmuuk9ykp-31da970956eb"
+            }
+          ],
+          "expectedRevisionTrafficPercent": 100
+        },
+        {
+          "kind": "revision",
+          "status": "matched",
+          "revision": "pmi-kc-app-rmuuk9ykp-31da970956eb",
+          "ready": true,
+          "imageDigests": [
+            "c024d892c44c8daf1ab35a8565e50f97ebd25e66087cae7f5a24b66101cebd64"
+          ],
+          "serviceAccount": "pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com",
+          "managedServiceAccountMatches": true,
+          "environment": "production",
+          "dataContext": "live",
+          "askDemoMode": "false",
+          "sheetWritebackEnabled": "true",
+          "commit": "fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27",
+          "spaceMaps": 11,
+          "spaceEnvironmentVariableCount": 3,
+          "driveSpaceCount": 11,
+          "vertexSpaceCount": 11,
+          "spaceMapKeysMatch": true,
+          "spaceMapConfigurationValid": true,
+          "secretBindingCount": 4,
+          "fingerprint": "sha256:41d73acbe5bbf8243dbf5186bba72c0113eb21c0d1a84ad8f43ab31c4defbb43",
+          "reviewedFingerprint": "sha256:41d73acbe5bbf8243dbf5186bba72c0113eb21c0d1a84ad8f43ab31c4defbb43",
+          "reviewedConfigurationMatches": true
+        },
+        {
+          "kind": "revision_digest",
+          "status": "matched",
+          "revision": "pmi-kc-app-rmuuk9ykp-31da970956eb",
+          "imageDigest": "c024d892c44c8daf1ab35a8565e50f97ebd25e66087cae7f5a24b66101cebd64",
+          "containerCount": 1
+        },
+        {
+          "kind": "builds",
+          "status": "matched",
+          "builds": [
+            {
+              "id": "0a9621a3-35fb-4f03-b812-d80b3e93bae5",
+              "createTime": null,
+              "finishTime": null,
+              "status": "SUCCESS"
+            },
+            {
+              "id": "e8264109-67cd-4414-9d2b-c897f027c905",
+              "createTime": null,
+              "finishTime": null,
+              "status": "SUCCESS"
+            },
+            {
+              "id": "0038b41c-0780-44e2-9944-0c78a558fb59",
+              "createTime": null,
+              "finishTime": null,
+              "status": "SUCCESS"
+            }
+          ]
+        },
+        {
+          "kind": "candidate",
+          "status": "matched",
+          "expectedCommit": "fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27",
+          "expectedRevision": "pmi-kc-app-rmuuk9ykp-31da970956eb",
+          "fingerprint": "sha256:41d73acbe5bbf8243dbf5186bba72c0113eb21c0d1a84ad8f43ab31c4defbb43",
+          "predecessorRevision": "pmi-kc-app-rmusp7ehl-7ea8703905ca",
+          "candidateReceiptId": "eebea154-abfc-4630-a4df-856cf77428fc",
+          "issuedAt": "2026-10-05T01:41:02.982Z",
+          "expiresAt": "2026-10-05T03:41:02.982Z",
+          "candidateReceiptIssuedAt": null,
+          "promotionStartedAt": null,
+          "promotionVerifiedAt": null,
+          "adminVerdict": "passed",
+          "editorVerdict": "not_run",
+          "reconciliationState": "matched",
+          "monitoringState": "ready",
+          "recoveryBaselinePresent": true,
+          "exactIdentity": true
+        },
+        {
+          "kind": "promotion",
+          "status": "matched",
+          "expectedCommit": "fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27",
+          "expectedRevision": "pmi-kc-app-rmuuk9ykp-31da970956eb",
+          "fingerprint": "sha256:41d73acbe5bbf8243dbf5186bba72c0113eb21c0d1a84ad8f43ab31c4defbb43",
+          "predecessorRevision": "pmi-kc-app-rmusp7ehl-7ea8703905ca",
+          "candidateReceiptId": "eebea154-abfc-4630-a4df-856cf77428fc",
+          "issuedAt": null,
+          "expiresAt": null,
+          "candidateReceiptIssuedAt": "2026-10-05T01:41:02.982Z",
+          "promotionStartedAt": "2026-10-05T01:41:18.906Z",
+          "promotionVerifiedAt": "2026-10-05T01:41:25.919Z",
+          "adminVerdict": null,
+          "editorVerdict": null,
+          "reconciliationState": null,
+          "monitoringState": null,
+          "recoveryBaselinePresent": true,
+          "exactIdentity": true
+        },
+        {
+          "kind": "observation",
+          "status": "matched",
+          "expectedCommit": "fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27",
+          "expectedRevision": "pmi-kc-app-rmuuk9ykp-31da970956eb",
+          "fingerprint": null,
+          "predecessorRevision": null,
+          "generatedAt": "2026-10-05T01:47:47.590Z",
+          "phase": "post_promotion",
+          "verdict": "passed",
+          "routeCount": 13,
+          "reconciliation": {
+            "state": "matched",
+            "counts": {
+              "sourceRecords": 312,
+              "projectedRecords": 312,
+              "renderedRecords": 312,
+              "missingInApplication": 0,
+              "unexpectedInApplication": 0,
+              "duplicateApplicationKeys": 0,
+              "fieldMismatches": 0,
+              "invalidDestinations": 0
+            }
+          },
+          "monitoring": {
+            "configurationReady": true,
+            "readComplete": true,
+            "candidateFiveXxCount": 0,
+            "unresolvedLiveEffectCount": 0
+          },
+          "observation": {
+            "decision": "passed",
+            "successfulCheckpoints": 2,
+            "elapsedMs": 388683,
+            "windowMs": 300000,
+            "reasonCount": 0,
+            "rollbackRevision": null
+          },
+          "exactIdentity": true
+        },
+        {
+          "kind": "checkpoint",
+          "status": "matched",
+          "sha": "fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27",
+          "phase": "complete",
+          "revision": "pmi-kc-app-rmuuk9ykp-31da970956eb",
+          "tag": "cand-rmuuk9ykp-31da970956eb",
+          "lastDeployedSha": "fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27",
+          "predecessor": "pmi-kc-app-rmusp7ehl-7ea8703905ca",
+          "ciRunId": 37250383538,
+          "fingerprint": "sha256:41d73acbe5bbf8243dbf5186bba72c0113eb21c0d1a84ad8f43ab31c4defbb43",
+          "completedAt": null
+        },
+        {
+          "kind": "domains",
+          "status": "matched",
+          "domainCount": 9,
+          "canonicalPresent": true,
+          "candidateDomainCount": 1,
+          "expectedCandidatePresent": true,
+          "candidateHosts": [
+            "cand-rmuuk9ykp-31da970956eb---pmi-kc-app-kq6wuvpiva-uc.a.run.app"
+          ]
+        }
+      ]
+    },
+    "checks": [
+      {
+        "test": "Exact-main CI, locked GO, single build/source audit, guarded candidate assurance, receipt promotion, full observation and independent final readbacks",
+        "outcome": "passed",
+        "environment": "Run 8b7dc3f1-4c5b-482a-94ca-26985150c68d at fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27/pmi-kc-app-rmuuk9ykp-31da970956eb; exact CI 37250383538; one application build 0a9621a3-35fb-4f03-b812-d80b3e93bae5; 2464 exact Git blobs including all 15 contracts; 388683 ms/two checkpoints; 312 source/projected/rendered matched, zero discrepancies/5xx/unresolved effects; 11 independent sections matched. Admin-only browser scope, Editor not_run.",
+        "evidence": "private batch005-final-release-harvest-1.json; native exact-run receipts; batch005-independent-final-readbacks-1.log; batch005-uploaded-source-audit-1.json"
+      }
+    ],
+    "failedAttempts": [
+      {
+        "phase": "recovery",
+        "code": "recovery_preparation_assurance_failed",
+        "status": 1,
+        "recordedAt": "2026-10-05T01:22:16.386Z",
+        "evidence": "private native child-failure-8b7dc3f1-4c5b-482a-94ca-26985150c68d-17f56e6b-4faf-433f-aa8e-37fd34bb550f.json",
+        "diagnosis": "Initial recovery aggregate assurance failed; operation and exact target read back complete/healthy with predecessor configuration. Separate guarded diagnostic passed all 13 routes with zero diagnostics/effects and monitoring ready. Same run resumed assurance on the settled existing target; original failure remains failed. Initial child emitted only the preserved aggregate failure code; no more precise initial cause is claimed."
+      }
+    ],
+    "trafficRollbackOccurred": false
   },
   "implementationCheckpoint": {
-    "updatedAtUtc": "2026-10-05T01:08:05.650Z",
-    "stage": "engineering_verified_awaiting_green_main_and_release",
+    "updatedAtUtc": "2026-10-05T01:57:59.227Z",
+    "stage": "all_engineering_release_end_feedback_and_native_closure_verified",
     "production": "e106a88a / pmi-kc-app-rmusp7ehl-7ea8703905ca, 100%, guarded unchanged",
     "checks": [
       "Native full verification attempt 2 passed: 8703 unit, four existing skips; 325 backend; production audit zero; format, lint, typecheck, policy checks and build. Later content/identity/evidence edits require final recheck.",
@@ -58837,16 +59721,16 @@
       "Compiled recovery 5 passed eighteen observations through six actual owning controls, with 126 intercepted attempts and zero business effects. Full 11 failed initial-load React lint; the lifetime/generation-fenced microtask repair passes owning typecheck and lint. An earlier supplemental typecheck used a stale private unit overlay; its recorded failure was corrected by synchronizing the already-fixed current test, without editing production source or weakening any test. Final full 12/core 10 and current compiled recovery 6 are required.",
       "Focused selection 5 passed 780 assertions/104 files. Current compiled recovery 6 passed all six owners (18 observations/126 intercepted attempts/zero effects). A verified existing post-commit publication readback 409 requires an uncertainty fence; its original-owner regression fails as expected and all 34 current Admin checks pass. Full 12 is a prior-source preservation run; the publication repair still requires final full 13/core 11 and compiled publication recovery. All fifteen finalized spec bytes remain unchanged.",
       "Native full 12/core 10 passed 8752 unit/four skips/325 backend/all policies/audit/build and 32 core/22 existing skips. Supplemental actual publication recovery found required preview-hash overflow on mobile; its unchanged viewport assertion also fails on exact starting source. Wrap the complete hash as code. Prior-source focused 6 was stopped before full 13 dispatched; no pass claimed. Final full 14/core 12 and publication recovery 2 required.",
-      "Final cumulative 14/core 12 passed 8753 unit/four existing skips/325 backend/all checks/audit/build and 32 core/22 existing skips. Focused 781/104 and compiled publication recovery 6 observations/18 intercepted actions passed. Every independent engineering requirement is now verified; only start/end feedback, actual cumulative release and final deployed closure remain pending. All fifteen finalized spec bytes remain unchanged."
+      "Final cumulative 14/core 12 passed 8753 unit/four existing skips/325 backend/all checks/audit/build and 32 core/22 existing skips. Focused 781/104 and compiled publication recovery 6 observations/18 intercepted actions passed. Every independent engineering requirement is now verified; only start/end feedback, actual cumulative release and final deployed closure remain pending. All fifteen finalized spec bytes remain unchanged.",
+      "Actual exact-main cumulative release/end feedback verified; full observation and all eleven independent readback sections passed. Current-document closure verification follows before declaration. Frozen fifteen spec bytes still match private original copies.",
+      "Actual native closure gates passed: all 116 complete engineering traces and deployed release; seven policies, formatting and eight native admission/freshness checks green. All fifteen frozen spec bytes and authority body unchanged. Only current documents/evidence and production freshness test pin changed after release; documentation closure does not deploy."
     ],
-    "remaining": [
-      "Green main delivery and exact push CI",
-      "Fresh locked GO/new run-bound permit, actual predecessor/recovery configuration",
-      "Cumulative candidate/assurance/reconciliation/receipt promotion/full observation/independent readbacks",
-      "End feedback and native closure; human verdict remains NOT RUN"
-    ],
-    "release": "queued_not_admitted",
-    "humanVerdicts": "NOT RUN — no human observer"
+    "remaining": [],
+    "release": "verified",
+    "humanVerdicts": "NOT RUN — no human observer",
+    "runId": "8b7dc3f1-4c5b-482a-94ca-26985150c68d",
+    "sha": "fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27",
+    "revision": "pmi-kc-app-rmuuk9ykp-31da970956eb"
   },
   "gates": {
     "focused": {
@@ -59220,6 +60104,17 @@
           "outcome": "passed"
         }
       ]
+    },
+    "native_closure": {
+      "status": "passed",
+      "checks": [
+        {
+          "test": "Native deployed closure: formatting, router/falsification/freshness/active-path/traceability/copy/redaction policies, require-complete matrix, plan and evidence admission",
+          "outcome": "passed",
+          "environment": "Actual final cumulative WSL native checkout; 116 requirements/15 specs/38 routes/188 consumers verified; all seven policies plus formatting/completion and eight focused assertions passed. Current facts/status/plan/loop/registry bind actual release/end-feedback outcomes; queue empty, consumed permit, human NOT RUN. Authority body from Product boundary onward and all frozen specs byte-identical.",
+          "evidence": "private batch005-native-closure-gates-1.log"
+        }
+      ]
     }
   },
   "latency": {
@@ -59393,5 +60288,7 @@
       "evidence": "private batch005-engineering-doc-gates-2.log",
       "scope": "Current docs/evidence format, every required policy/doc check, exact trace/source checker and eight plan/completion-checker unit assertions"
     }
-  ]
+  ],
+  "finalVerdict": "ALL_GATES_GREEN",
+  "humanVerdict": "NOT RUN — no human observer"
 }
