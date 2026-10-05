@@ -68,12 +68,10 @@ export function DotloopPacketLinkPanel({
           </li>
         </ul>
       ) : (
-        <p className="muted">
-          This renewal packet has no receipted Dotloop loop. Review document readiness and
-          the exact action gates before preparing creation.
-        </p>
+        <p className="muted">This renewal packet has no receipted Dotloop loop.</p>
       )}
-      <p className="muted">{handoff.detail}</p>
+      {/* Without a loop the line above already says so; the detail would repeat it. */}
+      {link ? <p className="muted">{handoff.detail}</p> : null}
       {handoff.available && handoff.loopUrl ? (
         <p>
           <a

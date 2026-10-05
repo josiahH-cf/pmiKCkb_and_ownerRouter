@@ -45,7 +45,7 @@ Inspected starting owners:
 - `components/layout/AppShell.tsx`
 - `components/lease-renewal/RenewalDeskGetForm.tsx`
 - `components/lease-renewal/RenewalDeskViewMemory.tsx`
-- `app/lease-renewal/live/desk/loading.tsx`
+- `app/lease-renewal/live/desk/layout.tsx` and `components/lease-renewal/RenewalRouteLoading.tsx`, which on 2026-10-05 replaced the desk route loading file inspected at the start so the worklist stays on screen while a lease opens
 - `components/gmail-hub/LiveGmailWorkspace.tsx`
 
 Shared presentation and service changes must preserve other current consumers, direct entry routes, account boundaries and compatible return links. Coordinate with the named dependencies rather than creating parallel owners. Record exact revised source/test ownership in the current native docs after implementation.

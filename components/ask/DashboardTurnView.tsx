@@ -4,7 +4,7 @@ import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-l
 import Link from "next/link";
 import { useId, useState } from "react";
 import { SourceStateBanner } from "@/components/source-state-banner/SourceStateBanner";
-import { BusyIndicator, Field, Notice } from "@/components/ui";
+import { BusyIndicator, Field, Notice, StatusPill } from "@/components/ui";
 import type { AnswerGroup, ConversationAnswer } from "@/lib/assistant/conversation";
 import type { ConversationContext } from "@/lib/assistant/conversation-plan";
 import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
@@ -577,6 +577,20 @@ export function ConversationAnswerView({
 
 const MATCHING_LEASES_LABEL = "Matching leases you can open now";
 
+/** A read that was not complete and current is named, so it never looks like a full answer. */
+function groupReadState(group: AnswerGroup): { key: string; label: string } | null {
+  if (group.status === "partial") return { key: "partial", label: "Incomplete read" };
+  if (group.status === "unavailable")
+    return { key: "unavailable", label: "Source unavailable" };
+  if (group.status === "not_authorized")
+    return { key: "not_authorized", label: "Outside your access" };
+  if (group.currency && group.currency.state !== "fresh")
+    return group.currency.state === "expired"
+      ? { key: "expired", label: "Data too old to act on" }
+      : { key: "stale", label: "Stale data" };
+  return null;
+}
+
 function AnswerGroupView({
   group,
   showSummary,
@@ -589,6 +603,7 @@ function AnswerGroupView({
   /** Names the list when it stands beside a question rather than under a summary. */
   listLabel?: string;
 }>) {
+  const readState = groupReadState(group);
   return (
     <div className="ui-stack">
       {showSummary ? (
@@ -596,6 +611,11 @@ function AnswerGroupView({
           <h3>{group.title}</h3>
           <p>{group.summary}</p>
         </>
+      ) : null}
+      {readState ? (
+        <p data-read-state={readState.key}>
+          <StatusPill value="Needs Attention">{readState.label}</StatusPill>
+        </p>
       ) : null}
       {group.items.length > 0 ? (
         <ol aria-label={listLabel} className="ui-rows" start={start}>

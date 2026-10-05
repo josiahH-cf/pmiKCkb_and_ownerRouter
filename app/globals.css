@@ -2634,6 +2634,18 @@ label.secondary-button:focus-within {
   font-size: var(--font-size-min);
 }
 
+.download-link {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.download-link-status {
+  color: var(--ui-text);
+  font-size: var(--font-size-min);
+}
+
 .renewal-copy-audience {
   display: flex;
   flex-wrap: wrap;

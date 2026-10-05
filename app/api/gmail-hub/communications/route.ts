@@ -25,6 +25,13 @@ export async function GET(request: Request) {
         ...(link.last_contact_source
           ? { lastContactSource: link.last_contact_source }
           : {}),
+        // The hub says when the linked thread could not be read, as the linked detail does.
+        ...(link.contact_observation_state
+          ? { contactObservationState: link.contact_observation_state }
+          : {}),
+        ...(link.contact_observation_reason
+          ? { contactObservationReason: link.contact_observation_reason }
+          : {}),
       })),
     });
   } catch (error) {

@@ -275,11 +275,11 @@
       "Record returned signed-artifact evidence and staff completion -> #renewal-manual-signatures"
     ],
     "copy": [
-      "renewal-section-lease-details:c9750e13e17b7997",
+      "renewal-section-lease-details:d2c3b3142ad7f5eb",
       "renewal-section-comps:fa748b10edf3d9a0",
-      "renewal-section-owner:77f60736972b8c6c",
+      "renewal-section-owner:d965eb94353966d5",
       "renewal-section-tenant:6b09058ea5e4b6a5",
-      "renewal-section-documents:606f7f4d53c8eac7"
+      "renewal-section-documents:5f64203a0a025b7a"
     ]
   },
   "admin-default-manual": {
@@ -558,11 +558,11 @@
       "Record returned signed-artifact evidence and staff completion -> #renewal-manual-signatures"
     ],
     "copy": [
-      "renewal-section-lease-details:c9750e13e17b7997",
+      "renewal-section-lease-details:d2c3b3142ad7f5eb",
       "renewal-section-comps:fa748b10edf3d9a0",
-      "renewal-section-owner:77f60736972b8c6c",
+      "renewal-section-owner:d965eb94353966d5",
       "renewal-section-tenant:6b09058ea5e4b6a5",
-      "renewal-section-documents:606f7f4d53c8eac7"
+      "renewal-section-documents:5f64203a0a025b7a"
     ]
   },
   "approver-default-manual": {
@@ -841,11 +841,11 @@
       "Record returned signed-artifact evidence and staff completion -> #renewal-manual-signatures"
     ],
     "copy": [
-      "renewal-section-lease-details:c9750e13e17b7997",
+      "renewal-section-lease-details:d2c3b3142ad7f5eb",
       "renewal-section-comps:fa748b10edf3d9a0",
-      "renewal-section-owner:77f60736972b8c6c",
+      "renewal-section-owner:d965eb94353966d5",
       "renewal-section-tenant:6b09058ea5e4b6a5",
-      "renewal-section-documents:606f7f4d53c8eac7"
+      "renewal-section-documents:5f64203a0a025b7a"
     ]
   },
   "editor-default-no-cycle": {
@@ -945,7 +945,7 @@
       "Manage location -> /connections#renewal-resource-entry-owner_acknowledgment"
     ],
     "copy": [
-      "renewal-section-lease-details:c9750e13e17b7997",
+      "renewal-section-lease-details:d2c3b3142ad7f5eb",
       "renewal-section-comps:c8c146f1645b595e",
       "renewal-section-owner:088c78164cb8b84f",
       "renewal-section-tenant:3b34c030e6bea69b",
@@ -1225,11 +1225,11 @@
       "Record returned signed-artifact evidence and staff completion -> #renewal-manual-signatures"
     ],
     "copy": [
-      "renewal-section-lease-details:cba8d4fb9d9b1f3f",
+      "renewal-section-lease-details:a9c1a2df5ed2b384",
       "renewal-section-comps:fa748b10edf3d9a0",
-      "renewal-section-owner:0972123101d92fc6",
-      "renewal-section-tenant:8efc05a8e0fa4f15",
-      "renewal-section-documents:38229446ab577bff"
+      "renewal-section-owner:80c1a0666ae2b1ea",
+      "renewal-section-tenant:bca2f7e3149c59a3",
+      "renewal-section-documents:6ddde64652a4d82a"
     ]
   },
   "editor-walnut-manual": {
@@ -1505,11 +1505,11 @@
       "Record returned signed-artifact evidence and staff completion -> #renewal-manual-signatures"
     ],
     "copy": [
-      "renewal-section-lease-details:6907271f091fe00d",
+      "renewal-section-lease-details:8241809694f9f93a",
       "renewal-section-comps:fa748b10edf3d9a0",
-      "renewal-section-owner:080771013c7ff75d",
-      "renewal-section-tenant:8efc05a8e0fa4f15",
-      "renewal-section-documents:562b5c822f24f2f6"
+      "renewal-section-owner:3cc2541749502101",
+      "renewal-section-tenant:bca2f7e3149c59a3",
+      "renewal-section-documents:b28504dd8cad8a89"
     ]
   }
 }

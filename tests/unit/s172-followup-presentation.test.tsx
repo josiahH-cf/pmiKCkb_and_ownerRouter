@@ -5,8 +5,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import RenewalLeaseLoading from "@/app/lease-renewal/live/desk/lease/[leaseId]/loading";
-import RenewalDeskLoading from "@/app/lease-renewal/live/desk/loading";
 import { RefineWithAi } from "@/components/email/RefineWithAi";
 
 afterEach(cleanup);
@@ -18,17 +16,8 @@ function rule(css: string, selector: string) {
 }
 
 describe("follow-up presentation fixes from the batch 005 verification", () => {
-  it("S169: opening a lease names that work, separately from the worklist's own loading wording", () => {
-    render(<RenewalLeaseLoading />);
-    expect(screen.getByRole("heading", { name: "Opening lease" })).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
-    expect(screen.queryByText(/Applying the selected scope/)).toBeNull();
-    cleanup();
-    render(<RenewalDeskLoading />);
-    expect(
-      screen.getByRole("heading", { name: "Updating renewals" }),
-    ).toBeInTheDocument();
-  });
+  // The lease's own first-load wording is now covered with the shared boundary in
+  // s170-lease-open-feedback.test.tsx.
 
   it("S87: refining wording is a secondary action beside the message it edits", () => {
     render(<RefineWithAi currentBody="Hello" onApply={() => undefined} request={{}} />);

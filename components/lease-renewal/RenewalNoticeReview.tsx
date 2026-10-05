@@ -125,8 +125,7 @@ export function RenewalNoticeReview({
       ) : null}
       {current && !current.cycleId ? (
         <p className="muted">
-          This review is for the current verified tenancy before a cycle is selected. It
-          does not start a renewal cycle; a new cycle needs its own review.
+          This review does not start a renewal cycle; a new cycle needs its own review.
         </p>
       ) : null}
       {current?.reason ? <p role="status">{current.reason}</p> : null}

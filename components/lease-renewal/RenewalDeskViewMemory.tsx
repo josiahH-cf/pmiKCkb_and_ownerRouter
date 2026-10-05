@@ -24,6 +24,7 @@ import {
 } from "react";
 
 import {
+  AUTOSAVE_EDITED,
   AUTOSAVE_IDLE,
   AutosaveStatus,
   type AutosaveState,
@@ -162,7 +163,9 @@ export function RenewalDeskViewMemory({
         ? { phase: "saved" }
         : personal.phase === "failed"
           ? { phase: "failed", message: personal.message }
-          : AUTOSAVE_IDLE
+          : personal.phase === "edited"
+            ? AUTOSAVE_EDITED
+            : AUTOSAVE_IDLE
     : status;
   useEffect(
     () => () => {

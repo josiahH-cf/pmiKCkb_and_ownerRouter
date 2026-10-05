@@ -269,6 +269,11 @@ function OwnedAskForm({
   const turnRefs = useRef(new Map<string, HTMLElement>());
   const typedSinceSubmit = useRef(false);
   const pendingFocus = useRef<string | null>(null);
+  // The turn to focus once a reopened conversation is on screen.
+  const reopenFocus = useRef<{ conversationId: string; turnId: string | null } | null>(
+    null,
+  );
+  const [reopenFocusRequest, setReopenFocusRequest] = useState(0);
   const openingGeneration = useRef(0);
   // The latest conversations for async save steps; handlers also update it before their setState.
   const conversationsRef = useRef(conversations);
@@ -373,6 +378,18 @@ function OwnedAskForm({
       typedSinceSubmit.current && document.activeElement === questionRef.current;
     if (!typing) turnRefs.current.get(target)?.focus();
   }, [active.turns]);
+
+  // Move focus to a reopened conversation's turn after the render that puts it on screen. A frame
+  // callback can run before that render, when the turn does not exist yet.
+  useEffect(() => {
+    const request = reopenFocus.current;
+    if (!request || request.conversationId !== active.id) return;
+    reopenFocus.current = null;
+    const target =
+      (request.turnId && active.turns.find((turn) => turn.id === request.turnId)) ||
+      active.turns[0];
+    if (target) turnRefs.current.get(target.id)?.focus();
+  }, [active, reopenFocusRequest]);
 
   function upsertHistoryEntry(entry: HistoryConversationSummary) {
     setHistory((previous) => ({
@@ -697,12 +714,10 @@ function OwnedAskForm({
     conversation: DashboardConversation | undefined,
     turnId: string | null,
   ) {
-    requestAnimationFrame(() => {
-      const target =
-        (turnId && conversation?.turns.find((turn) => turn.id === turnId)) ||
-        conversation?.turns[0];
-      if (target) turnRefs.current.get(target.id)?.focus();
-    });
+    reopenFocus.current = conversation
+      ? { conversationId: conversation.id, turnId }
+      : null;
+    setReopenFocusRequest((request) => request + 1);
   }
 
   function reopenConversation(id: string) {

@@ -106,9 +106,8 @@ export function RentAndCharges({
           </details>
         ) : null}
         <p className="muted">
-          Each amount keeps its own meaning: other recurring charges are listed beside the
-          rent, never added to it. One-time fees, deposits, ledger history, party changes
-          and insurance enrollment are outside these RentVine actions
+          One-time fees, deposits, ledger history, party changes and insurance enrollment
+          are outside these RentVine actions
           {rentvine ? (
             <>
               ; handle those in the{" "}
@@ -129,11 +128,7 @@ export function RentAndCharges({
         <li>
           <a className="text-link" href={`#${WORKING_CURRENT_RENT_TARGET}`}>
             Correct the current rent
-          </a>{" "}
-          <span className="muted">
-            Edit the working current rent above. It saves in the app by itself; RentVine
-            and the Sheet change only through a separately confirmed update.
-          </span>
+          </a>
         </li>
         <li>
           <a className="text-link" href="#renewal-future-rent">

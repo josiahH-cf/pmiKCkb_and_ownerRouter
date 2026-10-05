@@ -93,7 +93,7 @@ describe("S78 canonical renewal route", () => {
   });
 
   it("provides an accessible desk loading boundary and tests a 200% layout-reflow equivalent", () => {
-    const loading = source("app/lease-renewal/live/desk/loading.tsx");
+    const loading = source("components/lease-renewal/RenewalRouteLoading.tsx");
     expect(loading).toContain('aria-busy="true"');
     expect(loading).toContain('aria-live="polite"');
     expect(loading).toContain('role="status"');

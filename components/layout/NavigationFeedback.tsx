@@ -54,18 +54,16 @@ export function NavigationFeedback({ children }: { children: ReactNode }) {
       )
         return;
       const anchor = event.target.closest<HTMLAnchorElement>("a[href]");
-      if (
-        !anchor ||
-        anchor.download ||
-        anchor.target ||
-        anchor.closest("[data-admitted-view]")
-      )
-        return;
+      if (!anchor || anchor.download || anchor.target) return;
       const url = new URL(anchor.href, window.location.href);
       if (
         url.origin !== window.location.origin ||
         url.pathname.startsWith("/api/") ||
-        `${url.pathname}${url.search}` === committedRef.current
+        `${url.pathname}${url.search}` === committedRef.current ||
+        // A table that changes its own view in place owns that status. Leaving it for another
+        // page, such as opening a lease from the worklist, is navigation.
+        (anchor.closest("[data-admitted-view]") &&
+          url.pathname === window.location.pathname)
       )
         return;
       beginRef.current(

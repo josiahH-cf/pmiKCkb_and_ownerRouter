@@ -11,7 +11,9 @@ import {
   type ExternalDeskDestination,
 } from "@/lib/lease-renewal/desk-destinations";
 import { Button, Card, Field } from "@/components/ui";
+import { DownloadLink } from "@/components/ui/DownloadLink";
 import {
+  AUTOSAVE_EDITED,
   AUTOSAVE_IDLE,
   AutosaveStatus,
   type AutosaveState,
@@ -485,7 +487,11 @@ function MessagePreparationEditor({
       const local = localRef.current;
       const payload = savePayload(local, server);
       const serialized = canonical(payload.value);
-      if (!force && serialized === lastSavedRef.current) return Promise.resolve();
+      if (!force && serialized === lastSavedRef.current) {
+        // Nothing differs from what is stored, so an edit that was undone is no longer pending.
+        setAutosave((state) => (state.phase === "edited" ? AUTOSAVE_IDLE : state));
+        return Promise.resolve();
+      }
       const request = {
         kind: "save",
         leaseId,
@@ -523,12 +529,9 @@ function MessagePreparationEditor({
           setCurrent(data);
           setLoadedAtIso(new Date().toISOString());
           const latest = localRef.current;
+          const enteredSince = canonical(savePayload(latest, data).value) !== serialized;
           // Everything entered was stored as typed and nothing newer was entered meanwhile.
-          if (
-            !payload.unfinished.length &&
-            canonical(savePayload(latest, data).value) === serialized
-          )
-            touchedRef.current = false;
+          if (!payload.unfinished.length && !enteredSince) touchedRef.current = false;
           const savedBody = data.bodyOverride ?? null;
           if (
             latest.override &&
@@ -538,7 +541,13 @@ function MessagePreparationEditor({
           )
             setOverrideState(savedBody.state);
           // S155: an entry made while this save was in flight is still unsaved; it saves next.
-          setAutosave(queued.current ? { phase: "saving" } : { phase: "saved" });
+          setAutosave(
+            queued.current
+              ? { phase: "saving" }
+              : enteredSince
+                ? AUTOSAVE_EDITED
+                : { phase: "saved" },
+          );
         } catch {
           setAutosave({
             phase: "failed",
@@ -574,8 +583,9 @@ function MessagePreparationEditor({
   }
   function touch() {
     touchedRef.current = true;
-    if (autosave.phase !== "idle" && autosave.phase !== "saving")
-      setAutosave(AUTOSAVE_IDLE);
+    // An entry that is not stored yet says so until its save starts.
+    if (autosave.phase !== "saving" && autosave.phase !== "edited")
+      setAutosave(AUTOSAVE_EDITED);
     if (outcome?.status === "preview") setOutcome(null);
     setConfirming(false);
   }
@@ -1727,22 +1737,17 @@ function MessagePreparationEditor({
                       Include this screenshot with the message:{" "}
                       {current.availableCompScreenshot.filename}
                     </label>
-                    <a
-                      className="text-link"
+                    <DownloadLink
+                      fileName={current.availableCompScreenshot.filename}
                       href={`/api/lease-renewal/message-attachment?leaseId=${encodeURIComponent(leaseId)}&receiptId=${encodeURIComponent(current.availableCompScreenshot.receiptId)}`}
                     >
                       Download the screenshot
-                    </a>
-                    <p className="muted">
-                      For a manually copied email, download and attach this file yourself.
-                      Download and Gmail attachment both verify its current Drive receipt
-                      and existing action access.
-                    </p>
+                    </DownloadLink>
+                    <p className="muted">Copied text does not include this file.</p>
                   </>
                 ) : (
                   <p className="muted" id={MESSAGE_CONTROL_IDS.attachment} tabIndex={-1}>
-                    No current receipted screenshot is available. Attach any analysis file
-                    yourself in Gmail.
+                    No current receipted screenshot is available.
                   </p>
                 )}
                 {inputs.compScreenshotReceiptId &&

@@ -328,10 +328,10 @@ export function RenewalLeaseInformation({
                   href={rentvine.href}
                   rel={EXTERNAL_LINK_REL}
                   target={EXTERNAL_LINK_TARGET}
+                  title={rentvine.label}
                 >
                   RentVine lease record
-                </a>{" "}
-                <span className="muted">{rentvine.label}</span>
+                </a>
               </>
             ) : (
               <span className="muted">
@@ -354,10 +354,10 @@ export function RenewalLeaseInformation({
                     href={sheetDestination.href}
                     rel={EXTERNAL_LINK_REL}
                     target={EXTERNAL_LINK_TARGET}
+                    title={sheetDestination.label}
                   >
                     Matched operating Sheet row
-                  </a>{" "}
-                  <span className="muted">{sheetDestination.label}</span>
+                  </a>
                 </>
               ) : (
                 <span className="muted">

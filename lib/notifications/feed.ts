@@ -173,12 +173,15 @@ function collapseDigestedLanes(
   for (const [lane, laneEvents] of byLane) {
     const newest = laneEvents.reduce((a, b) => (a.created_at >= b.created_at ? a : b));
     const meta = ATTENTION_LANE_META[lane];
-    passthrough.push({
+    const digest: UnifiedNotification = {
       ...newest,
       id: `digest:${lane}`,
       title: `${laneEvents.length} ${meta.label}`,
       message: `${laneEvents.length} update${laneEvents.length === 1 ? "" : "s"} rolled up`,
-    });
+    };
+    // A roll-up of several records has no single record state.
+    delete digest.state_label;
+    passthrough.push(digest);
   }
 
   return passthrough.sort((left, right) =>
@@ -217,5 +220,7 @@ function toUnifiedFromMaintenance(
     href: record.href,
     created_at: record.created_at,
     ...(record.read_at ? { read_at: record.read_at } : {}),
+    // The ticket's status at this event, in the Maintenance queue's own words.
+    ...(record.ticket_status ? { state_label: record.ticket_status } : {}),
   };
 }

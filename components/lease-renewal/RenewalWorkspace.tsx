@@ -143,12 +143,6 @@ export function renewalStepTargetId(stepId: string): string {
   return `renewal-step-${stepId}`;
 }
 
-function formatCurrencyReference(amount: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-    amount,
-  );
-}
-
 export function RenewalWorkspace({
   compScreenshotExecutable = false,
   packetSnapshot = null,
@@ -1002,11 +996,6 @@ function PhaseContent({
                 );
               })}
             </ul>
-            {typeof workspace.unitListedRent === "number" ? (
-              <p className="muted">
-                Unit rent (RentVine): {formatCurrencyReference(workspace.unitListedRent)}.
-              </p>
-            ) : null}
             {sheetDestination ? (
               <p>
                 <a
@@ -1014,10 +1003,10 @@ function PhaseContent({
                   href={sheetDestination.href}
                   rel={EXTERNAL_LINK_REL}
                   target={EXTERNAL_LINK_TARGET}
+                  title={sheetDestination.label}
                 >
                   Open the operating renewal Sheet
-                </a>{" "}
-                <span className="muted">{sheetDestination.label}</span>
+                </a>
               </p>
             ) : null}
             {summary.sourceDestinations?.rentvine ? (
@@ -1027,10 +1016,10 @@ function PhaseContent({
                   href={summary.sourceDestinations.rentvine.href}
                   rel={EXTERNAL_LINK_REL}
                   target={EXTERNAL_LINK_TARGET}
+                  title={summary.sourceDestinations.rentvine.label}
                 >
                   Open this lease in RentVine
-                </a>{" "}
-                <span className="muted">{summary.sourceDestinations.rentvine.label}</span>
+                </a>
               </p>
             ) : null}
           </Card>
@@ -1192,7 +1181,13 @@ function PhaseContent({
                   />
                 </div>
               ) : (
-                <EmptyState title="Compose the tenant offer below" />
+                <EmptyState
+                  title={
+                    consolidated
+                      ? "No earlier tenant draft"
+                      : "Compose the tenant offer below"
+                  }
+                />
               )}
             </Disclosure>
             {!consolidated &&

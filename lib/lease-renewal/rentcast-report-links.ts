@@ -20,7 +20,7 @@ export const RENTCAST_REPORT_PROPERTY_TYPES = [
 ] as const;
 
 export const RENTCAST_REPORT_NOTE =
-  "Opens RentCast's own report for this address. Its settings and results can differ from the saved lookup, the radius setting and market reports need a RentCast Pro plan, and opening it makes no lookup from this app.";
+  "RentCast's own report can differ from the saved lookup, its radius setting and market reports need a RentCast Pro plan, and opening it makes no lookup from this app.";
 
 type ReportParam = "address" | "type" | "bedrooms" | "bathrooms" | "area" | "radius";
 

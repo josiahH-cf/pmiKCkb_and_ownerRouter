@@ -2,6 +2,7 @@ import Link from "next/link";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { AppShell } from "@/components/layout/AppShell";
 import { ATTENTION_LANE_META, type AttentionLane } from "@/lib/attention/lanes";
+import { notificationStateLabel } from "@/lib/notifications/families";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { can } from "@/lib/auth/roles";
 import { loadNotificationHub } from "@/lib/notifications/hub";
@@ -102,7 +103,7 @@ export default async function NotificationsPage() {
                     className="notifications-lane-badge"
                     data-severity={notification.severity}
                   >
-                    {laneLabel(notification.lane)}
+                    {notificationStateLabel(notification)}
                   </span>
                   <Link href={notification.href}>{notification.title}</Link>
                   <span className="muted">{notification.message}</span>
@@ -136,10 +137,6 @@ export default async function NotificationsPage() {
       </section>
     </AppShell>
   );
-}
-
-function laneLabel(lane: AttentionLane): string {
-  return ATTENTION_LANE_META[lane].label;
 }
 
 // One standing lane: its gaps, or the richer all-clear copy when empty (B6) — never a blank panel.

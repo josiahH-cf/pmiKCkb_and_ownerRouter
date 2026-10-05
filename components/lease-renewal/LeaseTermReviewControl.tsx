@@ -1,7 +1,12 @@
 "use client";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { useRenewalSaveFocus } from "./RenewalSaveFocus";
-import { AUTOSAVE_IDLE, AutosaveStatus, type AutosaveState } from "./AutosaveStatus";
+import {
+  AUTOSAVE_IDLE,
+  AutosaveStatus,
+  withEdited,
+  type AutosaveState,
+} from "./AutosaveStatus";
 
 import { Field } from "@/components/ui";
 import { useRouter } from "next/navigation";
@@ -36,6 +41,8 @@ export function LeaseTermReviewControl({
   );
   const [anchor, setAnchor] = useState(term.anchorDateIso ?? "");
   const [reason, setReason] = useState("");
+  // The context text last stored with the term, to tell a newer entry from a saved one.
+  const [savedReason, setSavedReason] = useState("");
   const [saveState, setSaveState] = useState<AutosaveState>(AUTOSAVE_IDLE);
   const sequence = useRef(0);
   const lastAttempt = useRef<{ term: RecordableLeaseTerm; anchor: string } | null>(null);
@@ -74,6 +81,7 @@ export function LeaseTermReviewControl({
       }
       // An older response never replaces the state of a newer save.
       if (mine !== sequence.current) return;
+      setSavedReason(reason.trim());
       setSaveState({ phase: "saved" });
       if (!focusAfterSave?.()) router.refresh();
     } catch (error) {
@@ -90,7 +98,7 @@ export function LeaseTermReviewControl({
     <div className="ui-stack-tight">
       <p className="muted">
         {recordedTerm
-          ? `Recorded term: ${LEASE_TERM_LABELS[recordedTerm]}. Choose again to correct it.`
+          ? `Recorded term: ${LEASE_TERM_LABELS[recordedTerm]}.`
           : "No term has been recorded for this lease yet."}
       </p>
       <Field htmlFor={`lease-term-${leaseId}`} label="Lease term">
@@ -141,7 +149,10 @@ export function LeaseTermReviewControl({
         onRetry={() => {
           if (lastAttempt.current) void record(lastAttempt.current);
         }}
-        state={saveState}
+        state={withEdited(
+          saveState,
+          reason.trim() !== "" && reason.trim() !== savedReason,
+        )}
         subject="lease term"
       />
     </div>

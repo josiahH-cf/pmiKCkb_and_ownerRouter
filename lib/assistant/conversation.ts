@@ -47,6 +47,7 @@ import {
   type OperationalRecord,
   type OperationalRecordRef,
   type OperationalSource,
+  type RenewalRecordFacts,
   type SourceReadStatus,
   type TypedSourceRead,
 } from "@/lib/operational-context/types";
@@ -717,6 +718,72 @@ function peopleNotes(resolution: PeopleResolution, exec: Execution): string[] {
   return notes;
 }
 
+const REFRESH_RECOVERY = "Use Refresh data on the Renewals desk, then ask again.";
+
+/**
+ * S178: a lookup that found nothing says which thing happened. A read that was incomplete or
+ * stale cannot rule a match out. A complete read can still hold leases whose owner or tenant
+ * the source did not name, so a person could be related to one of them. Only a complete, current
+ * read of fully named leases is a plain no-match, and that one says how to look again.
+ */
+function emptyLookup(input: {
+  readonly named: string;
+  readonly read: TypedSourceRead<"renewals">;
+  readonly status: SourceReadStatus;
+  /** The party names on the leases a person lookup searched; null for an address lookup. */
+  readonly searchedParties: ReadonlyArray<{
+    readonly ownerNames: readonly string[];
+    readonly tenantNames: readonly string[];
+  }> | null;
+}): {
+  readonly summary: string | null;
+  readonly notes: readonly string[];
+  readonly link: { label: string; href: string } | null;
+} {
+  const desk = viewLink("renewals");
+  if (input.read.truncated || input.read.status !== "ok")
+    return {
+      summary: `No match for ${input.named} in the renewal records that were read. The read was incomplete, so a match cannot be ruled out.`,
+      notes: [REFRESH_RECOVERY],
+      link: desk,
+    };
+  if (input.read.currency && input.read.currency.state !== "fresh")
+    return {
+      summary: `No match for ${input.named} in renewal data that is ${
+        input.read.currency.state === "expired" ? "too old to act on" : "stale"
+      }. A matching lease may have changed since it was read.`,
+      notes: [REFRESH_RECOVERY],
+      link: desk,
+    };
+  // Another read this lookup needed did not answer; its own note says which one.
+  if (input.status !== "ok")
+    return {
+      summary: `No match for ${input.named} in what could be read, so a match cannot be ruled out.`,
+      notes: [],
+      link: null,
+    };
+  const unnamed = (input.searchedParties ?? []).filter(
+    (parties) => parties.ownerNames.length === 0 || parties.tenantNames.length === 0,
+  ).length;
+  if (unnamed > 0)
+    return {
+      summary: `No lease names ${input.named}. ${unnamed} ${plural(
+        unnamed,
+        "lease has",
+        "leases have",
+      )} no owner or tenant name on record, so a relationship there cannot be ruled out.`,
+      notes: [
+        "A person the records do not name cannot be matched. Look up the property or address instead, or check those leases on the Renewals desk.",
+      ],
+      link: desk,
+    };
+  return {
+    summary: null,
+    notes: ["Try another spelling, or a shorter part of the name or address."],
+    link: null,
+  };
+}
+
 function ambiguityQuestion(resolution: PeopleResolution): string | null {
   const first = resolution.ambiguous[0];
   if (!first) return null;
@@ -890,6 +957,7 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
   }
 
   const extraDetail = new Map<string, string>();
+  let searchedParties: Array<RenewalRecordFacts> | null = null;
   if (filters.assignee === "me") {
     const work = await exec.ctx.read("work");
     if (unusable(work)) {
@@ -950,6 +1018,8 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
         candidate.uid ? [[candidate.uid, candidate.label] as const] : [],
       ),
     );
+    if (filters.peopleMatch !== "assigned")
+      searchedParties = records.map((record) => record.facts);
     records = records.filter((record) => {
       const reasons: string[] = [];
       for (const owner of record.facts.ownerNames)
@@ -1030,18 +1100,24 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
   if (clauses.length === 0)
     clauses.push(["is in the renewal worklist", "are in the renewal worklist"]);
   const matched = records.map((record) => toItem(record, extraDetail.get(record.ref.id)));
+  const looked =
+    filters.people.length > 0 ? filters.people : filters.text ? [filters.text] : [];
+  const empty =
+    matched.length === 0 && looked.length > 0
+      ? emptyLookup({ named: quoteList(looked), read, status, searchedParties })
+      : null;
   return {
     kind: "groups",
     groups: [
       finishGroup({
         read,
         matched,
-        summary: sentence(matched.length, ["lease", "leases"], clauses),
-        notes,
+        summary: empty?.summary ?? sentence(matched.length, ["lease", "leases"], clauses),
+        notes: empty ? [...notes, ...empty.notes] : notes,
         status,
         // S166: the link names its view, so the unfiltered worklist opens the default view the
         // answer described rather than the account's remembered view.
-        link: {
+        link: empty?.link ?? {
           label: "Open these on the Renewals desk",
           href: buildExplicitDeskHref(desk),
         },
@@ -1890,7 +1966,14 @@ export async function runAssistantConversation(
   )
     return literal;
   proposed = await consult();
-  return proposed ? answerWith(proposed) : literal;
+  if (!proposed) return literal;
+  const interpreted = await answerWith(proposed);
+  // When the interpreter cannot place the words either, a lookup over records that were not
+  // all read keeps saying so instead of a general "not supported".
+  return interpreted.kind === "unsupported" &&
+    literal.groups.some((group) => group.status !== "ok")
+    ? literal
+    : interpreted;
 }
 
 /** One interpreted (or stored) plan, ready to execute. */

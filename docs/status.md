@@ -40,7 +40,8 @@ Independent verification on 2026-10-05 reproduced the gates, compiled checks and
 and passed a guarded 13-route production canary. It also found released defects, recorded in
 F-BATCH-005-VERIFICATION. Repairs merged in PR #130 and were released by run `5d1b4e3a` on
 2026-10-05. Follow-up fixes for several items left open merged in PR #133 and were released by
-run `7753e5f5` the same day; what stays open is recorded in that fact.
+run `7753e5f5` the same day. Fixes for the items still open merged in PR #136 and are queued in
+docs/loop-state.md.
 
 ## Current operational maintenance
 
@@ -193,4 +194,5 @@ prove zero effects. S121 was excluded.
 The permits of runs `ab803f8a`, `98f7e743`, `729d5716`, `0eb2cfeb`, `3a32f7a2`, `47fabb7c`,
 `8b7dc3f1`, `5d1b4e3a` and `7753e5f5` are consumed; run `175fee1d` rolled back verified on 2026-10-02 and run `a83ed59b` stopped before
 promotion on 2026-10-03, and their permits are archived as superseded. The Awaiting release
-queue is empty. No original receipt, completed permit or build claim is reused.
+queue holds the seven open-item fixes. No original receipt, completed permit or build claim is
+reused.

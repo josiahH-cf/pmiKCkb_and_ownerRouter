@@ -58,6 +58,6 @@ export function computeUnderMarketSignal(
   return {
     percentBelow: rounded,
     thresholdPct: threshold,
-    message: `Current rent is ${rounded}% below the market point estimate. Worth a look before the owner conversation. Internal note; this stays out of client drafts.`,
+    message: `Current rent is ${rounded}% below the market point estimate. Internal note; this stays out of client drafts.`,
   };
 }

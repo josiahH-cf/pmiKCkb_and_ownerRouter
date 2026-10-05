@@ -70,7 +70,7 @@ describe("LiveGmailWorkspace workflow boundary (AC-GW-1, AC-GW-12)", () => {
     expect(screen.queryByText("Recent inbox threads")).not.toBeInTheDocument();
     expect(screen.queryByText("Compose message")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Send this exact message/ })).toBeNull();
-    expect(await screen.findByText(/Waiting on team/)).toBeInTheDocument();
+    expect(await screen.findByText(/Waiting on the team/)).toBeInTheDocument();
     expect(screen.getByText("Last refresh: 09/30/2026, 7:30 PM CDT")).toBeInTheDocument();
     expect(
       screen.getByText(/Last contact 11\/14\/2023, 4:13 PM CST/),
