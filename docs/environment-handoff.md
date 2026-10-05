@@ -1,6 +1,6 @@
 # Environment and release handoff
 
-Updated 2026-10-02 (UTC).
+Updated 2026-10-05 (UTC).
 
 The owner’s 2026-09-29 batch-scoped completion authorization is recorded in AGENTS.md. It permits
 necessary Cloud Build/Cloud Run actions, diagnosed and verified repairs, resumes/replacements,
@@ -8,21 +8,36 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` released the S152–S167 program (one queued item: lease-renewal simplification and mobile, sixteen suites) at `e106a88a50d541b4a012111019b09c2183f6ce20` / `pmi-kc-app-rmusp7ehl-7ea8703905ca` with 100% production traffic.
-Run `a83ed59b` first carried the program at `b11f5fe0`; it stopped at candidate assurance because the release canary still required the lease's Full view on open while S152 opens a lease in Focus view. It never changed traffic and is archived as superseded; PR #128 corrected the canary's lease-workspace contract.
-The release before it, run `3a32f7a2` (the S113 approval-read fix at `090df5e16f54eadbd1a3afbf20836c6677fa2a19` / `pmi-kc-app-rmurivuzf-c061dc669374`, 2026-10-02), is this run's captured predecessor.
-Exact [CI 37142116030](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37142116030) passed.
-The gate on tree-identical PR head `1b0df6fd` passed 8,541 unit tests, four existing skips, all 319 backend tests and 32 core E2E tests.
-One application build `e8264109-67cd-4414-9d2b-c897f027c905` succeeded at 2026-10-03T18:13:16.303Z.
-Candidate receipt issued 2026-10-03T18:26:00.305Z; promotion verified 2026-10-03T18:26:19.642Z.
-Observation passed two checkpoints in 387,784 ms against the required 300,000 ms, inside the 420,000 ms evidence deadline. All 312
-source/projected/rendered records matched with zero discrepancies, candidate 5xx or unresolved live effects.
-Eleven independent readback sections matched, last at 2026-10-03T18:32:54Z. A read-only production Focus check then passed on
-three lease workspaces: Focus view is the default, with zero mutation attempts.
+Run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` released the batch 005 verification repairs (S170, S177, S178 and S179; four queued items)
+at `9e76c14f5238f22be9ddecbffed149eee3db6d38` / `pmi-kc-app-rmuv5c6eu-e3c268629df8` with 100% production traffic.
+Code slice `5fda274ff8087e52042e39c464e81b95de576d9c` (PR #130) carries the repairs and their fail-first regressions.
+Exact [CI 37299720511](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37299720511) passed.
+The repaired tree passed 8,765 unit tests, four existing configuration skips, all 325
+backend tests, zero production audit findings, all required checks and the production build.
+Core E2E passed 32 tests with 22 existing configuration skips.
+One application build `4d048b60-0e59-44d7-a4da-c74232fd1c24` succeeded at 2026-10-05T11:21:32.077661Z.
+Candidate receipt `84805fd5-99d2-48a5-85e6-78b3c6916827` issued 2026-10-05T11:27:05.515Z;
+promotion verified 2026-10-05T11:27:35.543Z.
+Observation passed two checkpoints in 398,119 ms against the required 300,000 ms,
+inside the 420,000 ms deadline. All 312 source/projected/rendered records matched with
+zero discrepancies, candidate 5xx or unresolved live effects. All eleven independent readback
+sections matched, completed 2026-10-05T11:36:39Z.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=true are verified.
-Tag `cand-rmusp7ehl-7ea8703905ca`; fingerprint `sha256:7061589ec47f2338497f9efd9dea1817dfdcc6f2ba4192b30b573e35d725448b`.
-No business mutation was used as proof. Failed attempts remain failed in their preserved evidence.
+Tag `cand-rmuv5c6eu-e3c268629df8`; fingerprint `sha256:fc957ab056651096ce32dbb333075d46b4f208c9564659dd3a6efadafc14c10d`.
+Captured predecessor: `fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27` / `pmi-kc-app-rmuuk9ykp-31da970956eb`,
+Sheet=true. Run-bound recovery `pmi-kc-app-recovery-5d1b4e3aef6d4354` preserves that actual configuration;
+receipt `2ba57f4c-1341-48c1-9196-9ba09fd10d9c`, reference hash `sha256:601a0ec6dd68434c309073f0c4cb2aac64f77ceb5e098a58f116d8204cb53b44`.
+No traffic rollback or business mutation was used as proof. The first recovery assurance failed at
+2026-10-05T11:12:01.448Z and remains failed in immutable evidence: the new recovery instance took 43.2 s
+for its first Dashboard render against the 30-second route bound, with every request answered 200. A separate
+guarded 13-route diagnostic passed and the same run resumed on the existing target.
+Batch 005 (S168–S175, revised S87 and S176–S181; intake 035–049) was released by run
+`8b7dc3f1-4c5b-482a-94ca-26985150c68d` at that predecessor. Its 116 requirement records are in
+[native evidence](evidence/application-usability-batch005.json); independent verification of it
+is recorded in F-BATCH-005-VERIFICATION.
+The four-item queue is delivered and empty; the exact permit is consumed.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
+Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` released the S152–S167 program at `e106a88a50d541b4a012111019b09c2183f6ce20` on 2026-10-03, and run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` released batch 005 on 2026-10-05; both remain carried.
 
 The final application gate passed 7,462 unit tests and 234 backend tests, with four existing
 configuration skips, all required checks and production build. The notice portfolio repair
@@ -39,24 +54,24 @@ Five confirmed adversarial findings are repaired and verified deployed: lifecycl
 
 ## Production
 
-| Item                      | Value                                                                               |
-| ------------------------- | ----------------------------------------------------------------------------------- |
-| Project                   | `pmi-kc-kb-prod`                                                                    |
-| Region                    | `us-central1`                                                                       |
-| Cloud Run service         | `pmi-kc-app`                                                                        |
-| URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`                                        |
-| Serving revision          | `pmi-kc-app-rmusp7ehl-7ea8703905ca`                                                 |
-| Serving commit            | `e106a88a50d541b4a012111019b09c2183f6ce20`                                          |
-| Traffic                   | 100%                                                                                |
-| Descriptor                | Production + Live                                                                   |
-| Runtime identity          | project-managed PMI KC runtime service account                                      |
-| Spaces                    | 11                                                                                  |
-| Sheet write-back          | true on the serving revision (reviewed S159 value); the recovery target keeps false |
-| Legacy copy-only Sheet id | not configured                                                                      |
-| RentCast                  | selected; allowance 50                                                              |
-| Action Registry           | 48 exact keys; 16 open and 32 closed                                                |
-| Retired broad action ids  | non-executable; only exact proven keys are open                                     |
-| Demo flags                | false                                                                               |
+| Item                      | Value                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------- |
+| Project                   | `pmi-kc-kb-prod`                                                                   |
+| Region                    | `us-central1`                                                                      |
+| Cloud Run service         | `pmi-kc-app`                                                                       |
+| URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`                                       |
+| Serving revision          | `pmi-kc-app-rmuv5c6eu-e3c268629df8`                                                |
+| Serving commit            | `9e76c14f5238f22be9ddecbffed149eee3db6d38`                                         |
+| Traffic                   | 100%                                                                               |
+| Descriptor                | Production + Live                                                                  |
+| Runtime identity          | project-managed PMI KC runtime service account                                     |
+| Spaces                    | 11                                                                                 |
+| Sheet write-back          | true on the serving revision (reviewed S159 value); the recovery target keeps true |
+| Legacy copy-only Sheet id | not configured                                                                     |
+| RentCast                  | selected; allowance 50                                                             |
+| Action Registry           | 48 exact keys; 16 open and 32 closed                                               |
+| Retired broad action ids  | non-executable; only exact proven keys are open                                    |
+| Demo flags                | false                                                                              |
 
 Secret names are bound through Secret Manager. Values never belong in this file.
 
@@ -134,7 +149,7 @@ it did not reverify product routes or every environment setting.
 
 ### Local release watcher
 
-Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` completed exact `e106a88a50d541b4a012111019b09c2183f6ce20`. Its permit is consumed and checkpoint
+Run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` completed exact `9e76c14f5238f22be9ddecbffed149eee3db6d38`. Its permit is consumed and checkpoint
 complete. The watcher exited; supplemental profile/lock ownership was released after verified
 cleanup. Failed runs and every original report/claim remain outside Git with their actual verdicts.
 The existing scheduled task remains unchanged; a consumed or missing permit cannot dispatch
@@ -174,8 +189,8 @@ The watcher checks the current green `main` SHA against that permit; it cannot a
 head under the same permission. An unfinished checkpoint still pins its exact SHA and must be
 reconciled through the runbook before a new run. Never replace a failed checkpoint or dispatch claim
 to obtain another build.
-The last successful serialized release is the S152–S167 program run `47fabb7c-b26b-4032-b993-f6bc49c66abd`,
-exact `e106a88a50d541b4a012111019b09c2183f6ce20` / `pmi-kc-app-rmusp7ehl-7ea8703905ca`. Recovery preparation, the one application build, candidate smoke,
+The last successful serialized release is the batch 005 verification-repair run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687`,
+exact `9e76c14f5238f22be9ddecbffed149eee3db6d38` / `pmi-kc-app-rmuv5c6eu-e3c268629df8`. Recovery preparation, the one application build, candidate smoke,
 configuration/domains, Admin assurance, reconciliation, promotion and observation passed.
 Earlier failures and their diagnosed repairs retain their actual outcomes in the shared batch
 audit and immutable external receipts. Historical rollback and superseded candidates are not
@@ -399,20 +414,21 @@ separately authorized exact-key activation passed its own gates.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmurivuzf-c061dc669374` from commit
-`090df5e16f54eadbd1a3afbf20836c6677fa2a19`. This predecessor reads Sheet=false; the supplemental receipt
-below is the current rollback authority. Older Sheet=true revisions cannot be directly restored.
+Captured predecessor: `pmi-kc-app-rmuuk9ykp-31da970956eb` from commit
+`fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27`. This predecessor reads Sheet=true; the supplemental receipt
+below is the current rollback authority.
 
-The verified run-bound recovery target is `pmi-kc-app-recovery-47fabb7cb26b4032`,
-fingerprint `sha256:3d341cc428b6006a1e3db858324a3c22ea7357d017957a9cf8b7a1f9b1831b75`, with Sheet=false. Receipt
-`55c77605-9945-4617-bfab-c160d6ff366a` issued at 2026-10-03T18:09:15.101Z; reference hash
-`sha256:631a83fca7be6aa2676eae2c9ecc64836867a27f96fea50a517ab8a95545b76d`. The receipt binds original image/configuration, the
-predecessor's actual Sheet switch value, target identity and preparation assurance to run `47fabb7c-b26b-4032-b993-f6bc49c66abd`.
+The verified run-bound recovery target is `pmi-kc-app-recovery-5d1b4e3aef6d4354`,
+fingerprint `sha256:41d73acbe5bbf8243dbf5186bba72c0113eb21c0d1a84ad8f43ab31c4defbb43`, with Sheet=true. Receipt
+`2ba57f4c-1341-48c1-9196-9ba09fd10d9c` issued at 2026-10-05T11:16:39.311Z; reference hash
+`sha256:601a0ec6dd68434c309073f0c4cb2aac64f77ceb5e098a58f116d8204cb53b44`. The receipt binds original image/configuration, the
+predecessor's actual Sheet switch value, target identity and preparation assurance to run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687`.
 Forward restoration and rollback require fresh actual state and the exact receipt-bound
-contract. Run 47fabb7c needed no traffic rollback and run a83ed59b never changed traffic; runs
-175fee1d and 0aa79bfe each rolled back
+contract. Runs 5d1b4e3a, 8b7dc3f1 and 47fabb7c needed no traffic rollback and run a83ed59b never changed
+traffic; runs 175fee1d and 0aa79bfe each rolled back
 verified to its run-bound recovery target. A receipt never transfers to
-another run, and historical Sheet-enabled revisions are not current restoration targets.
+another run. Recovery targets prepared before the S152–S167 release read Sheet=false and are not
+current restoration targets.
 
 Historical recovery coordinates remain provenance only. The prior S113 release captured
 `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` / `d243911cb20ffb01773072c0e27c723648eeea34`;
