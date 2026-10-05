@@ -57,13 +57,12 @@ export const CONNECTION_TASK_GROUPS: readonly ConnectionTaskGroup[] = [
     id: "communications",
     anchorId: "connection-task-communications",
     label: "Communications",
-    description:
-      "Workflow-linked Gmail status and the separately closed legacy notification path.",
+    description: "Workflow-linked Gmail status.",
     connectorIds: ["gmail_inbox"],
     target: {
       id: "connection-communications",
       label: "Review messaging connections",
-      description: "See workflow Gmail and legacy notification governance status.",
+      description: "See workflow Gmail status.",
       href: "/connections#connection-task-communications",
       requiredCapability: "read",
       surface: "connections",

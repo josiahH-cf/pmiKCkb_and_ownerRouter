@@ -159,7 +159,11 @@ function parseDateField(text: string): LeaseDateField | null {
 }
 
 function parseAddressText(question: string): string | null {
-  const match = /\b\d{1,6}\s+[A-Za-z0-9][A-Za-z0-9.' -]{1,60}?(?=[?,.]|$)/.exec(question);
+  // A count of time ("next 60 days", "within 3 months") is a date window, never a street address.
+  const match =
+    /\b\d{1,6}\s+(?!(?:days?|weeks?|months?|years?|hours?|hrs?|minutes?|mins?)\b)[A-Za-z0-9][A-Za-z0-9.' -]{1,60}?(?=[?,.]|$)/i.exec(
+      question,
+    );
   return match ? match[0].trim().slice(0, 120) : null;
 }
 

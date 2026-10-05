@@ -467,8 +467,7 @@ export default async function AdminPage() {
               <h2>Approval Label</h2>
               <p>{config.kbApprovalLabel}</p>
               <p className="muted">
-                Gmail delivery is disabled by governance. Approval attention stays in-app;
-                configuration cannot activate the legacy sender.
+                Approval attention stays in the app. Email delivery is off.
               </p>
             </article>
             <article className="panel">

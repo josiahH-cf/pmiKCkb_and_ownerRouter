@@ -25,7 +25,38 @@ type State = {
   loaded: boolean;
   phase: "idle" | "loading" | "edited" | "saving" | "saved" | "failed";
   message: string;
+  /** The view an edit was made from while the stored view had not loaded yet. */
+  base?: PersonalViewValue;
 };
+/**
+ * An edit made before the stored view loaded was built on defaults. Only the parts it actually
+ * changed replace the stored view, so an early search or sort never erases saved sizing.
+ */
+function mergeEarlyEdit(
+  base: PersonalViewValue | undefined,
+  edited: PersonalViewValue,
+  stored: PersonalViewValue,
+): PersonalViewValue {
+  if (!base) return edited;
+  const columns = { ...stored.layout.columns };
+  for (const key of new Set([
+    ...Object.keys(base.layout.columns),
+    ...Object.keys(edited.layout.columns),
+  ])) {
+    const next = edited.layout.columns[key];
+    if (next === base.layout.columns[key]) continue;
+    if (next === undefined) delete columns[key];
+    else columns[key] = next;
+  }
+  const panelWidth =
+    edited.layout.panelWidth === base.layout.panelWidth
+      ? stored.layout.panelWidth
+      : edited.layout.panelWidth;
+  return {
+    query: edited.query === base.query ? stored.query : edited.query,
+    layout: { columns, ...(panelWidth === undefined ? {} : { panelWidth }) },
+  };
+}
 type Context = {
   accountId: string;
   canSave: boolean;
@@ -119,7 +150,9 @@ function OwnedPersonalViewProvider({
           const latest = current.current[surface] ?? before;
           const edited = ["edited", "saving", "failed"].includes(latest.phase);
           publish(surface, {
-            value: edited ? latest.value : data.preference.value,
+            value: edited
+              ? mergeEarlyEdit(latest.base, latest.value, data.preference.value)
+              : data.preference.value,
             revision: data.preference.revision,
             loaded: true,
             phase: edited ? latest.phase : "idle",
@@ -214,7 +247,13 @@ function OwnedPersonalViewProvider({
   const change = useCallback(
     (surface: PersonalViewSurface, value: PersonalViewValue) => {
       const state = current.current[surface] ?? initial();
-      publish(surface, { ...state, value, phase: "edited", message: "" });
+      publish(surface, {
+        ...state,
+        value,
+        base: state.loaded ? undefined : (state.base ?? state.value),
+        phase: "edited",
+        message: "",
+      });
       void save(surface);
     },
     [publish, save],
@@ -226,6 +265,8 @@ function OwnedPersonalViewProvider({
       publish(surface, {
         ...state,
         value: value ?? state.value,
+        // A view that never loaded is recovered onto the stored one, not over it.
+        base: state.loaded ? undefined : (state.base ?? state.value),
         loaded: false,
         phase: "edited",
       });
