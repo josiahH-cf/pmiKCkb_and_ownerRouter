@@ -8,7 +8,8 @@ COMPLETE: batch 005, application-usability-reliability-2026-10, under the Octobe
 instruction. S168–S175, revised S87 and S176–S181, intake 035–049: all 116 engineering traces
 and the one cumulative production release are verified. All fifteen finalized spec bytes and
 unrelated private files remain preserved. Its four verification repairs were released on
-October 5 by run 5d1b4e3a-ef6d-4354-aef1-e9952dd28687 under the owner's instruction of that day.
+October 5 by run 5d1b4e3a-ef6d-4354-aef1-e9952dd28687 under the owner's instruction of that day;
+follow-up fixes for defects left open are queued below under the same instruction.
 Native evidence: docs/evidence/application-usability-batch005.json.
 
 Serving 9e76c14f5238f22be9ddecbffed149eee3db6d38 / pmi-kc-app-rmuv5c6eu-e3c268629df8, 100% traffic,
@@ -33,17 +34,31 @@ Released defects found (F-BATCH-005-VERIFICATION): navigation status on on-scree
 literal lookup capture, S177 size loss after a stale reload and filter overwrite on resize,
 retired queue-email wording and controls in Admin, unknown personal-view surface 500. Repairs and
 fail-first regressions merged in PR #130 and are released by run 5d1b4e3a.
-Open without a repair: nine renewal-table headers over eight cells, residual explanatory copy,
-two primary message actions, no edited state before a message saves, no download outcome feedback.
+Follow-up fixes merged in PR #133 and are queued below: table cells under their own headers, lease
+loading wording, unknown-outcome wording after an elapsed wait, a navigation status that stays in
+view, a readable message editor, one primary message action and four visible field labels.
+Still open: residual explanatory copy, no edited state before a message saves, no download
+outcome feedback, the worklist replaced while a lease opens.
 
 ## Awaiting release
 
-None. OWNER DIRECTION, 2026-10-05: use the verification recommendations; push, merge and deploy
-all changes. Run 5d1b4e3a-ef6d-4354-aef1-e9952dd28687 delivered the four repaired suites (S170, S177,
-S178, S179) at 9e76c14f5238f22be9ddecbffed149eee3db6d38; code slice
-5fda274ff8087e52042e39c464e81b95de576d9c is its ancestor. The exact permit is consumed.
-Documentation-only closure does not deploy. No completed, superseded, historical or deferred suite
-restarts from a registry row or consumed permit.
+OWNER DIRECTION, 2026-10-05: use the verification recommendations; push, merge and deploy all
+changes. Run 5d1b4e3a delivered the first four repairs at 9e76c14f. One further candidate
+carries the follow-up fixes for defects the verification left open. The code slice below must be
+an ancestor of the exact-main release target. Admit only after its own green push CI, fresh
+prerequisites and locked GO under a new run-bound permit; run 5d1b4e3a's consumed permit is not
+reused.
+
+1. S173 renewal table cells sit under their own headers `5261563e7f21651333c2be3925953b1a38231349`
+2. S169 an elapsed wait keeps its unknown-outcome wording and the navigation status stays in view `5261563e7f21651333c2be3925953b1a38231349`
+3. S170 opening a lease shows its own loading wording `5261563e7f21651333c2be3925953b1a38231349`
+4. S172 message editors keep a readable measure `5261563e7f21651333c2be3925953b1a38231349`
+5. S87 one primary message action and visible labels for four fields `5261563e7f21651333c2be3925953b1a38231349`
+
+Capture the actual serving predecessor 9e76c14f and preserve its actual Sheet switch on the
+run-bound recovery target. Candidate/promoted Sheet=true is required. Keep the queue until
+verified release and documentation closure. No provider effect, key or activation is queued;
+S121 stays excluded.
 
 ## Verified release and recovery
 
@@ -98,5 +113,5 @@ outside Git; original failures and superseded local verification attempts retain
 
 ALL_GATES_GREEN applies to verified batch 005 engineering and cumulative deployed release only;
 the independent verification findings above are open.
-No unfinished delivery remains. Documentation updates alone never issue a permit, build or
-candidate.
+The queued follow-up release is the only unfinished delivery. Documentation updates alone never
+issue a permit, build or candidate.
