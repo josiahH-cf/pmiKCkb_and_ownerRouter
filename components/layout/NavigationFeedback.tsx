@@ -90,10 +90,15 @@ export function NavigationFeedback({ children }: { children: ReactNode }) {
       new FormData(form).forEach((value, key) => {
         if (typeof value === "string") params.append(key, value);
       });
-      beginRef.current(
-        `${url.pathname}?${params}`,
-        form.getAttribute("aria-label") || "requested view",
-      );
+      const href = `${url.pathname}?${params}`;
+      const label = form.getAttribute("aria-label") || "requested view";
+      const current = generation.current;
+      // A form whose own handler keeps the submission on this screen is not a page navigation; it
+      // owns its status. Decide after the whole dispatch, when that handler has had its say.
+      setTimeout(() => {
+        if (!event.defaultPrevented && generation.current === current)
+          beginRef.current(href, label);
+      }, 0);
     };
     const pop = () => {
       const url = `${window.location.pathname}${window.location.search}`;

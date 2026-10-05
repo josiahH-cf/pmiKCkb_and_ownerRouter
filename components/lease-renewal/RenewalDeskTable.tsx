@@ -1001,7 +1001,6 @@ export function RenewalDeskTable({
         className="renewal-table-scroll"
         label="Renewal table"
         surface="renewals"
-        currentQuery={serializeRenewalDeskQueryV2(state)}
       >
         <table className="renewal-table">
           <caption className="sr-only">

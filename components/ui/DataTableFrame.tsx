@@ -11,21 +11,15 @@ export function DataTableFrame({
   children,
   surface,
   label,
-  currentQuery,
   className = "table-scroll",
 }: {
   children: ReactNode;
   surface: PersonalViewSurface;
   label: string;
-  currentQuery?: string;
   className?: string;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const view = usePersonalView(surface);
-  const query = useRef(currentQuery);
-  useEffect(() => {
-    query.current = currentQuery;
-  }, [currentQuery]);
   const defaults = useRef<Record<string, number>>({});
   const latest = useRef(view);
   useEffect(() => {
@@ -73,11 +67,18 @@ export function DataTableFrame({
         Math.min(640, Math.max(160, Math.round(header.getBoundingClientRect().width))),
       );
       resize(latest.current.value.layout.columns[key] ?? defaults.current[key]);
+      // A resize remembers that one column's width. The remembered search, filters and sort
+      // stay as they are, so sizing a column on a linked view never replaces them.
       const save = () =>
         latest.current.change({
           ...latest.current.value,
-          query: query.current ?? latest.current.value.query,
-          layout: { ...latest.current.value.layout, columns: { ...widths.current } },
+          layout: {
+            ...latest.current.value.layout,
+            columns: {
+              ...latest.current.value.layout.columns,
+              [key]: widths.current[key],
+            },
+          },
         });
       const keydown = (event: KeyboardEvent) => {
         const size = widths.current[key];

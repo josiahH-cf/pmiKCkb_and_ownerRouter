@@ -1,7 +1,3 @@
-"use client";
-import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
-
-import { useState } from "react";
 import type {
   ApprovalQueueEmailSettingRecord,
   ApprovalQueueNotificationHealth,
@@ -24,74 +20,11 @@ export function ApprovalQueueAdminPanel({
   initialSettings: ApprovalQueueEmailSettingRecord[];
   unavailableNote?: string;
 }>) {
-  const [health, setHealth] = useState(initialHealth);
-  const [settings, setSettings] = useState(initialSettings);
-  const [message, setMessage] = useState(unavailableNote ?? "Queue health connected.");
-  const [busySettingId, setBusySettingId] = useState<string | null>(null);
-
-  async function updateSetting(
-    setting: ApprovalQueueEmailSettingRecord,
-    updates: Partial<
-      Pick<ApprovalQueueEmailSettingRecord, "email_enabled" | "recipient_roles">
-    >,
-  ) {
-    setBusySettingId(setting.id);
-    setMessage("Saving queue email setting.");
-
-    try {
-      const response = await fetch(
-        `/api/approval-queue/email-settings/${encodeURIComponent(setting.id)}`,
-        {
-          body: JSON.stringify(updates),
-          headers: { "Content-Type": "application/json" },
-          method: "PATCH",
-        },
-      );
-      const payload = await readJsonResponse<{
-        setting: ApprovalQueueEmailSettingRecord;
-      }>(response);
-
-      setSettings((current) =>
-        current.map((entry) =>
-          entry.id === payload.setting.id ? payload.setting : entry,
-        ),
-      );
-      setMessage("Queue email setting saved.");
-      await refreshHealth();
-    } catch (error) {
-      setMessage(readErrorMessage(error));
-    } finally {
-      setBusySettingId(null);
-    }
-  }
-
-  async function refreshHealth() {
-    const response = await fetch("/api/approval-queue/health");
-    const payload = await readJsonResponse<{ health: ApprovalQueueNotificationHealth }>(
-      response,
-    );
-    setHealth(payload.health);
-  }
-
-  function toggleRole(
-    setting: ApprovalQueueEmailSettingRecord,
-    role: QueueNotificationRecipientRole,
-  ) {
-    const current = new Set(setting.recipient_roles);
-
-    if (current.has(role)) {
-      current.delete(role);
-    } else {
-      current.add(role);
-    }
-
-    if (current.size === 0) {
-      setMessage("Select at least one recipient role for this email setting.");
-      return;
-    }
-
-    void updateSetting(setting, { recipient_roles: Array.from(current) });
-  }
+  // S179: queue email delivery is retired. These records are shown for audit only, so this
+  // panel offers no control that could look like setting that delivery up.
+  const health = initialHealth;
+  const settings = initialSettings;
+  const message = unavailableNote ?? "Queue health connected.";
 
   return (
     <section className="panel approval-admin-panel" aria-label="Approval Queue health">
@@ -129,11 +62,13 @@ export function ApprovalQueueAdminPanel({
         </p>
       )}
 
-      <section className="queue-settings-section" aria-label="Queue email settings">
-        <h3>Queue Email Settings</h3>
+      <section
+        className="queue-settings-section"
+        aria-label="Earlier queue email preferences"
+      >
+        <h3>Earlier queue email preferences</h3>
         <p className="muted">
-          Historical preferences are shown for audit. Gmail delivery is hard-disabled;
-          configuration cannot activate the legacy sender. In-app notifications stay on.
+          Kept for audit. Email delivery is off. In-app notifications stay on.
         </p>
         <div className="queue-settings-list">
           {settings.map((setting) => (
@@ -160,15 +95,15 @@ export function ApprovalQueueAdminPanel({
                     readOnly
                     type="checkbox"
                   />
-                  Historical email preference
+                  Earlier email preference
                 </label>
-                <div className="queue-role-checks" aria-label="Recipients">
+                <div className="queue-role-checks" aria-label="Earlier recipients">
                   {RECIPIENT_ROLES.map((role) => (
                     <label key={role}>
                       <input
                         checked={setting.recipient_roles.includes(role)}
-                        disabled={busySettingId === setting.id}
-                        onChange={() => toggleRole(setting, role)}
+                        disabled
+                        readOnly
                         type="checkbox"
                       />
                       {role}
@@ -224,18 +159,4 @@ function eventLabel(value: string) {
   };
 
   return labels[value] ?? value;
-}
-
-async function readJsonResponse<T>(response: Response): Promise<T> {
-  const payload = (await response.json().catch(() => ({}))) as { error?: string };
-
-  if (!response.ok) {
-    throw new Error(payload.error ?? "Approval Queue Admin request failed.");
-  }
-
-  return payload as T;
-}
-
-function readErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Approval Queue Admin request failed.";
 }

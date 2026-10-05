@@ -1834,41 +1834,63 @@ export async function runAssistantConversation(
       deterministic.filters.people.some(
         (name) => normalizeText(name) === normalizeText(question),
       ));
-  if (deps.interpret && !literalLookup) {
+  const consult = async (): Promise<ConversationPlan | null> => {
+    if (!deps.interpret) return null;
     try {
-      proposed = await deps.interpret(question, turns, deps.nowIso);
+      return await deps.interpret(question, turns, deps.nowIso);
     } catch {
-      proposed = null;
+      return null;
     }
+  };
+  const answerWith = (candidate: ConversationPlan | null) => {
+    let plan: ConversationPlan;
+    if (candidate) {
+      plan = groundPlan(candidate, question, turns);
+      interpretedBy = "model";
+    } else {
+      plan = deterministic;
+      interpretedBy = "deterministic";
+    }
+    plan = completeClarification(plan, question, previous);
+    const effective = mergeWithPrevious(plan, previous);
+
+    const interpretation: string[] = [];
+    if (contextReset) interpretation.push("Started a new conversation for this sign-in.");
+    if (effective.continued)
+      interpretation.push("Continuing from your last question with fresh records.");
+
+    return answerPlan(
+      {
+        question,
+        plan: effective.plan,
+        previous,
+        turns,
+        relatedRefs: effective.relatedRefs,
+        continued: effective.continued,
+        contextReset,
+        interpretedBy,
+        interpretation,
+        storedDetailRef: null,
+      },
+      deps,
+    );
+  };
+  if (!literalLookup) {
+    proposed = await consult();
+    return answerWith(proposed);
   }
-  let plan: ConversationPlan;
-  if (proposed) {
-    plan = groundPlan(proposed, question, turns);
-    interpretedBy = "model";
-  } else plan = deterministic;
-  plan = completeClarification(plan, question, previous);
-  const effective = mergeWithPrevious(plan, previous);
-
-  const interpretation: string[] = [];
-  if (contextReset) interpretation.push("Started a new conversation for this sign-in.");
-  if (effective.continued)
-    interpretation.push("Continuing from your last question with fresh records.");
-
-  return answerPlan(
-    {
-      question,
-      plan: effective.plan,
-      previous,
-      turns,
-      relatedRefs: effective.relatedRefs,
-      continued: effective.continued,
-      contextReset,
-      interpretedBy,
-      interpretation,
-      storedDetailRef: null,
-    },
-    deps,
-  );
+  // S178: a literal person, property or address lookup answers from the records without a model
+  // call. When it matches nothing, the words were not shown to be a name: ask the interpreter once
+  // so an ordinary question ("Security deposit") keeps its own answer instead of a false no-match.
+  const literal = await answerWith(null);
+  if (
+    !deps.interpret ||
+    literal.kind !== "answer" ||
+    literal.groups.some((group) => group.items.length > 0)
+  )
+    return literal;
+  proposed = await consult();
+  return proposed ? answerWith(proposed) : literal;
 }
 
 /** One interpreted (or stored) plan, ready to execute. */

@@ -7,11 +7,16 @@ const headers = { "cache-control": "no-store" };
 export async function GET(request: Request) {
   try {
     const actor = await requireCapability("read");
-    const surface = PersonalViewSaveSchema.shape.surface.parse(
+    const surface = PersonalViewSaveSchema.shape.surface.safeParse(
       new URL(request.url).searchParams.get("surface"),
     );
+    if (!surface.success)
+      return NextResponse.json(
+        { error: "This view is not available." },
+        { status: 400, headers },
+      );
     return NextResponse.json(
-      { preference: await getPersonalView(actor, surface) },
+      { preference: await getPersonalView(actor, surface.data) },
       { headers },
     );
   } catch (error) {
