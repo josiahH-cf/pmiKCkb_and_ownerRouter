@@ -192,6 +192,26 @@ describe("S66 packet inputs: staff enter facts, people and animals once (AC-S66-
         facts: [{ fieldKey: "property.hoa_governed", expectedRevision: 0, value: "yes" }],
       }),
     ).toThrow(/choose Yes or No/);
+    // S34: the structured address a new Dotloop loop carries keeps its reviewed format.
+    expect(() =>
+      save(null, {
+        facts: [{ fieldKey: "property.state", expectedRevision: 0, value: "Missouri" }],
+      }),
+    ).toThrow(/enter the two-letter state/);
+    expect(() =>
+      save(null, {
+        facts: [{ fieldKey: "property.zip", expectedRevision: 0, value: "6411" }],
+      }),
+    ).toThrow(/enter a five-digit ZIP code/);
+    const address = save(null, {
+      facts: [
+        { fieldKey: "property.street_line", expectedRevision: 0, value: "1 Fixture St" },
+        { fieldKey: "property.city", expectedRevision: 0, value: "Kansas City" },
+        { fieldKey: "property.state", expectedRevision: 0, value: "MO" },
+        { fieldKey: "property.zip", expectedRevision: 0, value: "64105" },
+      ],
+    });
+    expect(address.record.facts["property.zip"]?.value).toBe("64105");
   });
 
   it("keeps people apart from signer roles: one person may hold several roles, a PMI manager is never the owner", () => {

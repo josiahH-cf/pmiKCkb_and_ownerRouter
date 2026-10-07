@@ -10,11 +10,19 @@ import {
   derivedArtifactProvenance,
   type DerivedArtifactRecord,
 } from "@/lib/lease-documents/derived-artifact-contract";
+import type { LoopAssociation } from "@/lib/lease-documents/dotloop-loop-association";
+import {
+  planLoopCreationClaim,
+  planUploadClaim,
+  readLoopAssociationIn,
+  writeClaimedAssociation,
+} from "./lease-document-loop-association";
 /** Before the existing S20 one-attempt claim, bind normal S34 actions to current packet, owner approval, mappings and selection. */
 export async function assertCurrentPacketActionClaim(
   tx: Transaction,
   db: Firestore,
   execution: ActionExecutionRecord,
+  actorUid = "s20-claim",
 ) {
   if (
     !["dotloop.loop.create_from_template", "dotloop.document.upload"].includes(
@@ -71,6 +79,27 @@ export async function assertCurrentPacketActionClaim(
     tx.get(db.collection("lease_renewal_working_records").doc(workspaceId)),
   ]);
   const workspace = datedWorkspace.exists ? datedWorkspace : leaseBoundWorkspace;
+  // S34 (ARCH-S34-2): the lease's loop target is re-read at the claim. Preparations made before
+  // the loop association existed carry no `loopTarget` and keep their original guards.
+  const isCreate = execution.action_key === "dotloop.loop.create_from_template";
+  const targeted = prepared.loopTarget !== undefined;
+  const association: LoopAssociation | null = targeted
+    ? await readLoopAssociationIn(tx, db, leaseId)
+    : null;
+  let holderExecuting = false;
+  const reservation = association?.folderReservation;
+  if (
+    targeted &&
+    !isCreate &&
+    association &&
+    !association.folder &&
+    reservation &&
+    reservation.executionId !== execution.id
+  )
+    holderExecuting =
+      (await tx.get(db.collection("action_executions").doc(reservation.executionId))).get(
+        "state",
+      ) === "Executing";
   // S66: the packet inputs, charge policy and Working terms the preview was evaluated from must be
   // unchanged at the claim; a preparation without them (before S66) keeps its original guards.
   const s66Changed = (
@@ -125,6 +154,40 @@ export async function assertCurrentPacketActionClaim(
     );
     if (resource.get("activeVersionId") !== id) refuse();
   }
+  const now = new Date().toISOString();
+  const associationWrite = !targeted
+    ? null
+    : isCreate
+      ? planLoopCreationClaim(association, {
+          leaseId,
+          cycleId: prepared.cycleId,
+          profileId: prepared.selection.profileId,
+          executionId: execution.id,
+          actorUid,
+          now,
+        })
+      : planUploadClaim(association, {
+          loopId: prepared.loopTarget.loopId,
+          linkRevision: prepared.loopTarget.linkRevision,
+          cycleId: prepared.cycleId,
+          documentRef: String(prepared.action.values.document_ref),
+          contentHash: String(prepared.action.values.content_hash),
+          executionId: execution.id,
+          actorUid,
+          now,
+          holderExecuting,
+        });
+  // Writes follow every read: the loop reservation commits with S20's one-attempt claim.
+  const writeAssociation = () => {
+    if (associationWrite)
+      writeClaimedAssociation(
+        tx,
+        db,
+        associationWrite,
+        isCreate ? "loop_creation_reserved" : "folder_creation_reserved",
+        execution.id,
+      );
+  };
   const required = prepared.packet.catalog.artifacts.filter(
     (artifact: { artifactId: string; fillMapping?: unknown }) =>
       artifact.fillMapping &&
@@ -132,7 +195,10 @@ export async function assertCurrentPacketActionClaim(
         (included: { artifactId: string }) => included.artifactId === artifact.artifactId,
       ),
   );
-  if (!required.length && !prepared.derivedDocuments?.length) return;
+  if (!required.length && !prepared.derivedDocuments?.length) {
+    writeAssociation();
+    return;
+  }
   const documents = prepared.derivedDocuments;
   if (
     !Array.isArray(documents) ||
@@ -200,4 +266,5 @@ export async function assertCurrentPacketActionClaim(
         claimedByExecutionId: execution.id,
       }),
     );
+  writeAssociation();
 }

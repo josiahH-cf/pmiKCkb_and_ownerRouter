@@ -274,6 +274,8 @@ export const PACKET_FACT_DEFINITIONS: Readonly<
       label: string;
       type: "text" | "number" | "boolean" | "date" | "money" | "choice";
       choices?: ReadonlyArray<{ value: string; label: string }>;
+      /** A text value must match this reviewed format. */
+      pattern?: { readonly test: RegExp; readonly message: string };
     }
   >
 > = {
@@ -309,6 +311,23 @@ export const PACKET_FACT_DEFINITIONS: Readonly<
     type: "boolean",
   },
   "property.address": { label: "Property address", type: "text" },
+  // S34: the structured address a new Dotloop loop is created with. A new loop carries an address
+  // only when all four are entered; nothing is parsed out of the one-line address.
+  "property.street_line": {
+    label: "Street address for a new Dotloop loop",
+    type: "text",
+  },
+  "property.city": { label: "City for a new Dotloop loop", type: "text" },
+  "property.state": {
+    label: "State for a new Dotloop loop",
+    type: "text",
+    pattern: { test: /^[A-Z]{2}$/, message: "enter the two-letter state, such as MO." },
+  },
+  "property.zip": {
+    label: "ZIP code for a new Dotloop loop",
+    type: "text",
+    pattern: { test: /^\d{5}(-\d{4})?$/, message: "enter a five-digit ZIP code." },
+  },
   "property.year_built": { label: "Year built", type: "number" },
   "property.city_addendum_required": {
     label: "City addendum required",
@@ -396,6 +415,8 @@ function validateFactValue(fieldKey: string, value: PacketFactValue): PacketFact
       return value;
     default:
       if (typeof value !== "string") fail("enter text.");
+      if (definition.pattern && !definition.pattern.test.test(value as string))
+        fail(definition.pattern.message);
       return value;
   }
 }

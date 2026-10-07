@@ -25,6 +25,9 @@ export const DOTLOOP_API_ORIGIN_STORES = Object.freeze([
   "lease_document_action_snapshots.effectReceipt",
   // The lease/cycle loop association and observed folder/document identities (S34).
   "lease_document_loop_associations",
+  // The owner index that keeps a loop recorded for one lease, and the association activity (S34).
+  "lease_document_loop_owners",
+  "lease_document_loop_association_activity",
 ] as const);
 
 /**
@@ -40,6 +43,8 @@ export const DOTLOOP_ORIGIN_FIELD_NAMES: ReadonlySet<string> = new Set([
   "loop_status",
   "loopId",
   "loop_id",
+  "loopName",
+  "loop_name",
   "participantCount",
   "participant_count",
   "documentCount",

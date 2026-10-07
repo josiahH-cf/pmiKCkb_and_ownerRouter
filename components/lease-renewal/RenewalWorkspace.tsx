@@ -1247,6 +1247,7 @@ function PhaseContent({
               />
               <RenewalDocumentHandoff
                 canApprove={hasRenewalRoleAuthority("execute_document_packet", role)}
+                canLinkLoop={hasRenewalRoleAuthority("link_dotloop_loop", role)}
                 canRecordReadback={hasRenewalRoleAuthority(
                   "record_packet_readback",
                   role,

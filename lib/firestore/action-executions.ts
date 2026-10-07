@@ -370,7 +370,7 @@ export async function claimActionExecution(
     }
 
     await assertCurrentRenewalMessageClaim(transaction, db, actor, current);
-    await assertCurrentPacketActionClaim(transaction, db, current);
+    await assertCurrentPacketActionClaim(transaction, db, current, actor.uid);
     transaction.update(ref, {
       attempt_count: 1,
       claim_actor_uid: actor.uid,

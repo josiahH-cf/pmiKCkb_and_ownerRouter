@@ -154,6 +154,8 @@ export const FINAL_V1_ACTION_PREVIEW_SCHEMAS: Readonly<
     f("workflow_context", "Workflow context", "reference"),
     f("template_ref", "Template", "reference", "Dotloop"),
     f("participant_refs", "Participants", "string"),
+    // S34: the verified structured property address, or "none" when the packet has none.
+    f("property_address", "Property address", "string"),
   ],
   "dotloop.document.upload": [
     f("loop_ref", "Loop", "reference", "Dotloop"),

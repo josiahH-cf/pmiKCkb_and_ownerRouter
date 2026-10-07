@@ -62,6 +62,7 @@
       "h4:Packet inputs",
       "h2:Document preparation and signature handoff",
       "h3:Current facts for this packet",
+      "h3:Dotloop loop for this lease",
       "h2:Dotloop packet",
       "h2:Notice timing",
       "h2:Completion checks",
@@ -177,7 +178,8 @@
       "select::Applicable assisted-housing form, owner signature and submission follow-up outcome",
       "input::Source or channel (optional)",
       "input::Comment (optional)",
-      "input:datetime-local:When the work happened (optional)"
+      "input:datetime-local:When the work happened (optional)",
+      "input::Existing Dotloop loop number or address"
     ],
     "buttons": [
       "Lease information",
@@ -226,6 +228,7 @@
       "About Document preparation and signature handoff",
       "Reload document readiness and attempts",
       "Preview exact Dotloop packet creation",
+      "Review existing loop",
       "About Notice timing",
       "About Completion checks",
       "Close lease information",
@@ -284,7 +287,7 @@
       "renewal-section-comps:fa748b10edf3d9a0",
       "renewal-section-owner:d965eb94353966d5",
       "renewal-section-tenant:6b09058ea5e4b6a5",
-      "renewal-section-documents:ffd821b4cb3ccf7a"
+      "renewal-section-documents:6b0380740c811c6d"
     ]
   },
   "admin-default-manual": {
@@ -350,6 +353,7 @@
       "h4:Packet inputs",
       "h2:Document preparation and signature handoff",
       "h3:Current facts for this packet",
+      "h3:Dotloop loop for this lease",
       "h2:Dotloop packet",
       "h2:Notice timing",
       "h2:Completion checks",
@@ -465,7 +469,8 @@
       "select::Applicable assisted-housing form, owner signature and submission follow-up outcome",
       "input::Source or channel (optional)",
       "input::Comment (optional)",
-      "input:datetime-local:When the work happened (optional)"
+      "input:datetime-local:When the work happened (optional)",
+      "input::Existing Dotloop loop number or address"
     ],
     "buttons": [
       "Lease information",
@@ -514,6 +519,7 @@
       "About Document preparation and signature handoff",
       "Reload document readiness and attempts",
       "Preview exact Dotloop packet creation",
+      "Review existing loop",
       "About Notice timing",
       "About Completion checks",
       "Close lease information",
@@ -572,7 +578,7 @@
       "renewal-section-comps:fa748b10edf3d9a0",
       "renewal-section-owner:d965eb94353966d5",
       "renewal-section-tenant:6b09058ea5e4b6a5",
-      "renewal-section-documents:ffd821b4cb3ccf7a"
+      "renewal-section-documents:6b0380740c811c6d"
     ]
   },
   "approver-default-manual": {
@@ -638,6 +644,7 @@
       "h4:Packet inputs",
       "h2:Document preparation and signature handoff",
       "h3:Current facts for this packet",
+      "h3:Dotloop loop for this lease",
       "h2:Dotloop packet",
       "h2:Notice timing",
       "h2:Completion checks",
@@ -753,7 +760,8 @@
       "select::Applicable assisted-housing form, owner signature and submission follow-up outcome",
       "input::Source or channel (optional)",
       "input::Comment (optional)",
-      "input:datetime-local:When the work happened (optional)"
+      "input:datetime-local:When the work happened (optional)",
+      "input::Existing Dotloop loop number or address"
     ],
     "buttons": [
       "Lease information",
@@ -802,6 +810,7 @@
       "About Document preparation and signature handoff",
       "Reload document readiness and attempts",
       "Preview exact Dotloop packet creation",
+      "Review existing loop",
       "About Notice timing",
       "About Completion checks",
       "Close lease information",
@@ -860,7 +869,7 @@
       "renewal-section-comps:fa748b10edf3d9a0",
       "renewal-section-owner:d965eb94353966d5",
       "renewal-section-tenant:6b09058ea5e4b6a5",
-      "renewal-section-documents:ffd821b4cb3ccf7a"
+      "renewal-section-documents:6b0380740c811c6d"
     ]
   },
   "editor-default-no-cycle": {
@@ -1035,6 +1044,7 @@
       "h4:Packet inputs",
       "h2:Document preparation and signature handoff",
       "h3:Current facts for this packet",
+      "h3:Dotloop loop for this lease",
       "h2:Dotloop packet",
       "h2:Notice timing",
       "h2:Completion checks",
@@ -1150,7 +1160,8 @@
       "select::Applicable assisted-housing form, owner signature and submission follow-up outcome",
       "input::Source or channel (optional)",
       "input::Comment (optional)",
-      "input:datetime-local:When the work happened (optional)"
+      "input:datetime-local:When the work happened (optional)",
+      "input::Existing Dotloop loop number or address"
     ],
     "buttons": [
       "Lease information",
@@ -1196,6 +1207,7 @@
       "About Document preparation and signature handoff",
       "Reload document readiness and attempts",
       "Preview exact Dotloop packet creation",
+      "Review existing loop",
       "About Notice timing",
       "About Completion checks",
       "Close lease information",
@@ -1254,7 +1266,7 @@
       "renewal-section-comps:fa748b10edf3d9a0",
       "renewal-section-owner:80c1a0666ae2b1ea",
       "renewal-section-tenant:bca2f7e3149c59a3",
-      "renewal-section-documents:023ee3d2745bc35a"
+      "renewal-section-documents:daff129f6d64cf55"
     ]
   },
   "editor-walnut-manual": {
@@ -1320,6 +1332,7 @@
       "h4:Packet inputs",
       "h2:Document preparation and signature handoff",
       "h3:Current facts for this packet",
+      "h3:Dotloop loop for this lease",
       "h2:Dotloop packet",
       "h2:Notice timing",
       "h2:Completion checks",
@@ -1435,7 +1448,8 @@
       "select::Applicable assisted-housing form, owner signature and submission follow-up outcome",
       "input::Source or channel (optional)",
       "input::Comment (optional)",
-      "input:datetime-local:When the work happened (optional)"
+      "input:datetime-local:When the work happened (optional)",
+      "input::Existing Dotloop loop number or address"
     ],
     "buttons": [
       "Lease information",
@@ -1481,6 +1495,7 @@
       "About Document preparation and signature handoff",
       "Reload document readiness and attempts",
       "Preview exact Dotloop packet creation",
+      "Review existing loop",
       "About Notice timing",
       "About Completion checks",
       "Close lease information",
@@ -1539,7 +1554,7 @@
       "renewal-section-comps:fa748b10edf3d9a0",
       "renewal-section-owner:3cc2541749502101",
       "renewal-section-tenant:bca2f7e3149c59a3",
-      "renewal-section-documents:647d61405b819e45"
+      "renewal-section-documents:8c0a9295f5fe58e2"
     ]
   }
 }

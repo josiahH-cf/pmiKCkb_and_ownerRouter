@@ -337,6 +337,20 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     safeNextAction:
       "Keep the current packet; its exact action key and confirmation still apply.",
   },
+  link_dotloop_loop: {
+    // S34: staff review an existing loop through the company connection and link it to the lease,
+    // or correct the lease's current link. The app's own record changes; no provider write occurs.
+    label: "Link a reviewed existing Dotloop loop to a lease or correct its link",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "read_connection",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason:
+      "Editor access is required to link or correct a lease's Dotloop loop.",
+    safeNextAction: "Keep the current link; a staff member can review and correct it.",
+  },
   record_packet_readback: {
     label: "Record exact packet provider readback",
     // S182/S34: staff refresh the linked loop's observation; it never infers signatures.
@@ -695,6 +709,18 @@ export const RENEWAL_CONTROL_INVENTORY = [
     control: "Confirm exact document packet effect",
     source: "components/lease-renewal/RenewalDocumentHandoff.tsx",
     capability: "execute_document_packet",
+    enforcementSources: ["app/api/lease-renewal/document-handoff/route.ts"],
+  },
+  {
+    control: "Review and link an existing Dotloop loop, or correct the lease's loop link",
+    source: "components/lease-renewal/RenewalDocumentHandoff.tsx",
+    capability: "link_dotloop_loop",
+    enforcementSources: ["app/api/lease-renewal/document-handoff/route.ts"],
+  },
+  {
+    control: "Refresh the linked Dotloop loop",
+    source: "components/lease-renewal/RenewalDocumentHandoff.tsx",
+    capability: "record_packet_readback",
     enforcementSources: ["app/api/lease-renewal/document-handoff/route.ts"],
   },
   {

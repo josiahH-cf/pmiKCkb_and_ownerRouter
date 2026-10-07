@@ -106,6 +106,10 @@ class FakeTransaction {
 
     this.db.store.set(ref.path, applyUpdate(current, data));
   }
+
+  delete(ref: FakeDocument) {
+    this.db.store.delete(ref.path);
+  }
 }
 
 function collectionSnapshot(db: FakeFirestore, collectionPath: string) {

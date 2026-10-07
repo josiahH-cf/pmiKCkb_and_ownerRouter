@@ -2333,6 +2333,22 @@ describe("S113 normal packet route through the actual S20 ledger and Dotloop HTT
     let current = (await getCurrentPacketSnapshot(actor, "701", "701", db))!;
     expect(current.execution?.loopLink?.loopId).toBe("loop-1");
     expect(current.execution?.state).toBe("Partially executed");
+    // S34 (ARCH-S34-2): the created loop is the lease's current loop through its own reservation.
+    const { readLoopAssociation } =
+      await import("@/lib/firestore/lease-document-loop-association");
+    expect(await readLoopAssociation("701", db)).toMatchObject({
+      state: "current",
+      origin: "app_created",
+      loopId: "loop-1",
+      createExecutionId: preview.executionId,
+      documents: [],
+    });
+    // A lease with a current loop never previews another creation.
+    const again = await packetRoute(
+      messageRequest({ leaseId: "701", kind: "preview", operation: "loop_create" }),
+    );
+    expect(again.status).toBe(409);
+    expect((await again.json()).error).toMatch(/already has a linked Dotloop loop/);
     expect(
       (
         await db
@@ -2378,15 +2394,83 @@ describe("S113 normal packet route through the actual S20 ledger and Dotloop HTT
     expect(fake.uploadAuthorizations).toHaveLength(1);
     await call({ kind: "reconcile", executionId: upload.executionId });
     expect(fake.uploadAuthorizations).toHaveLength(1);
+    // S34 (AC-S34-6/7): the upload is one version in the lease's loop, in the durable folder.
+    const linked = (await readLoopAssociation("701", db))!;
+    expect(linked.folder?.dotloopFolderId).toBe("folder-1");
+    expect(linked.documents).toEqual([
+      expect.objectContaining({
+        documentRef: document.providerBindings!.dotloopDocumentRef,
+        contentHash,
+        receiptId: upload.executionId,
+        supersedesContentHash: null,
+      }),
+    ]);
+    const duplicate = await packetRoute(
+      messageRequest({
+        leaseId: "701",
+        kind: "preview",
+        operation: "document_upload",
+        documentRef: document.providerBindings!.dotloopDocumentRef,
+      }),
+    );
+    expect(duplicate.status).toBe(409);
+    expect((await duplicate.json()).error).toMatch(/already in the linked loop/);
     const readback = await call({ kind: "readback" });
     expect(readback.evidenceLevel).toBe("loop_metadata_only");
-    expect(readback.snapshot.execution.documentEvidence).toEqual([
+    expect(readback.association).toMatchObject({
+      loopId: "loop-1",
+      readback: { loopStatus: "PRE_OFFER" },
+    });
+    current = (await getCurrentPacketSnapshot(actor, "701", "701", db))!;
+    expect(current.execution?.documentEvidence).toEqual([
       expect.objectContaining({
         evidenceLevel: "presence_only",
         submittedContentHash: contentHash,
       }),
     ]);
-    expect(readback.snapshot.execution.state).toBe("Partially executed");
+    expect(current.execution?.state).toBe("Partially executed");
+    // S34 (AC-S34-5/10): staff review the loop, correct the link without touching Dotloop, then
+    // link the reviewed loop again; the app-created origin and its upload history are kept.
+    const review = await call({ kind: "loop_review", loopId: "loop-1" });
+    expect(review).toMatchObject({
+      recordedForOtherLease: false,
+      servedEarlierCycle: false,
+      archived: false,
+    });
+    const refusedLink = await packetRoute(
+      messageRequest({
+        leaseId: "701",
+        kind: "loop_link",
+        loopId: "loop-1",
+        observationHash: review.observationHash,
+        reason: "Reviewed fixture loop",
+        expectedLinkRevision: review.expectedLinkRevision,
+        reuseAcrossCycles: false,
+      }),
+    );
+    expect(refusedLink.status).toBe(409);
+    const corrected = await call({
+      kind: "loop_unlink",
+      expectedLinkRevision: review.expectedLinkRevision,
+      reason: "Fixture correction of the lease link",
+    });
+    expect(corrected.association).toMatchObject({ state: "unlinked", loopId: "loop-1" });
+    const relinked = await call({
+      kind: "loop_link",
+      loopId: "loop-1",
+      observationHash: review.observationHash,
+      reason: "Reviewed fixture loop again",
+      expectedLinkRevision: corrected.association.linkRevision,
+      reuseAcrossCycles: false,
+    });
+    expect(relinked.association).toMatchObject({
+      state: "current",
+      origin: "app_created",
+      loopId: "loop-1",
+    });
+    expect(relinked.association.documents).toHaveLength(1);
+    expect(fake.createCount).toBe(1);
+    expect(fake.uploadAuthorizations).toHaveLength(1);
     expect(
       (
         await getWorkspaceRoute(
