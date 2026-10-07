@@ -19117,6 +19117,36 @@
         ]
       },
       {
+        "owner": "components/connections/DotloopConnectionPanel.tsx",
+        "cohort": "admin_connections",
+        "kind": "asynchronous",
+        "lifetime": "shared finite wait or owning operation",
+        "ownerTests": ["tests/unit/s106-connection-panel.test.tsx"],
+        "inspected": true,
+        "checks": [
+          {
+            "test": "Current owning source inspection: components/connections/DotloopConnectionPanel.tsx, added after batch 005 by the S106 connection slice",
+            "outcome": "passed",
+            "environment": "S106 slice a297f90635bbbe71060830b7fbecf596d91d0a49 source review; privacy-safe static strings only",
+            "evidence": "S106 fail-first regressions and review in PR #138"
+          },
+          {
+            "test": "tests/unit/s106-connection-panel.test.tsx; tests/unit/connection-center-component.test.tsx; tests/unit/s147-relocation.test.tsx; tests/unit/s87-cohort-content.test.tsx",
+            "outcome": "passed",
+            "environment": "Named owning/parent unit files passed in the S106 slice gate and in exact-main CI 37610987256. Import topology establishes ownership; it does not claim every transitive state was asserted.",
+            "evidence": "private dlv1-s106e-verify.log; https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37610987256"
+          }
+        ],
+        "plannedChecks": [],
+        "compiledCoverage": "Owning route/cohort matrix plus separately named mounted/server/store scenarios; immediate/delegated presentation remains source-reviewed. No blanket claim that every leaf state ran in a browser.",
+        "ownerUnitFilesPassed": [
+          "tests/unit/s106-connection-panel.test.tsx",
+          "tests/unit/connection-center-component.test.tsx",
+          "tests/unit/s147-relocation.test.tsx",
+          "tests/unit/s87-cohort-content.test.tsx"
+        ]
+      },
+      {
         "owner": "components/connections/RetiredGmailSetup.tsx",
         "cohort": "admin_connections",
         "kind": "presentation",
