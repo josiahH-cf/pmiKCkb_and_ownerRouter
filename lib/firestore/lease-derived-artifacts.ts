@@ -535,10 +535,11 @@ export async function prepareDerivedArtifact(
         const row = rows[index];
         if (!row || row.state !== "filled") {
           if (row?.required) fail("A required mapped value is unavailable.");
-          // An unused repeated slot that holds an earlier value is cleared, so no earlier person
-          // or amount survives; a blank slot is left exactly as approved.
+          // A mapped target without a current value is blank: one that holds an earlier value,
+          // whether a single field or an unused repeated slot, is cleared, so no earlier person or
+          // amount survives (R-F10-04); a blank target is left exactly as approved.
           const previous = earlier[target];
-          if (!row && field.multiplicity !== "single" && previous)
+          if (previous)
             values.push({
               name: target,
               value: typeof previous === "string" ? "" : false,

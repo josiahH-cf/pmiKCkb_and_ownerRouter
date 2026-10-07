@@ -14,6 +14,8 @@ Second release DONE: run 87920129-23c0-4420-a787-13036029d6f8 released S182, S66
 Live connection check PASSED 2026-10-07T12:51Z: owner authorization through the registered callback,
 provider-reported scopes `account:*`, `profile:*`, `loop:*`, `contact:*` and `template:*`; the individual profile lists
 no templates yet, so resource selection (B-DL2) waits on the owner.
+Follow-up (owner's 2026-10-07 unblock request): the two S130 stale-value limits the second
+release recorded are fixed and queued below as a third release.
 Both Dotloop write keys stay closed; no loop, upload, signature send, demo or activation is
 authorized.
 
@@ -39,11 +41,15 @@ with production cold and warm timings.
 
 ## Awaiting release
 
-None. OWNER DIRECTION, 2026-10-06: the Dotloop PDF renewal v1 execution prompt (handoff
-dotloop-pdf-renewal-v1-2026-10) authorized this delivery. Run 87920129-23c0-4420-a787-13036029d6f8 delivered
-S182, S66, S130 and S34 with their review fixes (PR #139) at 755009bae534cb2699789c1cfd07fa79aad8f94a. The exact permit is consumed. Both
-Dotloop write keys stay closed; no provider effect, key or activation was queued.
-Documentation-only closure does not deploy.
+1. S130 `a090eee4`, `fef53994`: replacement text that a structure element gives a filled
+   value is refused, and an unfilled single AcroForm field holding an earlier value is cleared.
+
+OWNER DIRECTION, 2026-10-06: the Dotloop PDF renewal v1 execution prompt (handoff
+dotloop-pdf-renewal-v1-2026-10) authorizes this delivery; on 2026-10-07 the owner asked to
+unblock the remaining work. Runs 5b5c850e and 87920129 delivered the bundle; this release closes
+the two S130 limits they recorded. Admit only after exact main CI on the release head, fresh
+prerequisites and a new run-bound permit. Both Dotloop write keys stay closed; no provider
+effect, key or activation is queued. Assurance stays read-only.
 
 ## Verified release and recovery
 

@@ -7,7 +7,8 @@
 //     leaves a text object or marked content open or restores more states than it saves, or whose
 //     text has glyphs of unknown width;
 //   * refuses a region outside its page's visible box, under an annotation that would show over
-//     the value, or holding marked content whose /ActualText, /Alt or /E extraction would read;
+//     the value, or holding marked content whose /ActualText, /Alt or /E extraction would read,
+//     whether on its property list or on the structure element (or an ancestor) of its id;
 //   * refuses a "blank" region that holds existing text, and a "replace" region crossed by text,
 //     an image or nested content it cannot remove exactly;
 //   * removes each approved existing text run inside a "replace" region by replacing its show
@@ -706,6 +707,85 @@ function contentRefs(
 /** Marked-content properties that give extractors other text than the content they enclose. */
 const REPLACEMENT_TEXT = ["ActualText", "Alt", "E"];
 
+const MAX_STRUCTURE_NODES = 200_000;
+const structureReplacementCache = new WeakMap<
+  PDFDocument,
+  Map<string, Set<number>> | null
+>();
+
+/**
+ * S130 (R-F10-04): the page marked-content ids whose structure element, or one of its ancestors,
+ * carries /ActualText, /Alt or /E. Extraction and assistive technology read that text in place of
+ * the content, so an old value replaced inside it would survive. Keyed by page reference. Null when
+ * the tree cannot be read within bounds, or replacement text covers an id with no page; callers then
+ * treat every marked-content id as carrying replacement text.
+ */
+function structureReplacement(pdf: PDFDocument): Map<string, Set<number>> | null {
+  if (!structureReplacementCache.has(pdf))
+    structureReplacementCache.set(pdf, readStructureReplacement(pdf));
+  return structureReplacementCache.get(pdf)!;
+}
+
+function readStructureReplacement(pdf: PDFDocument): Map<string, Set<number>> | null {
+  const byPage = new Map<string, Set<number>>();
+  const root = lookup(pdf, pdf.catalog.get(PDFName.of("StructTreeRoot")));
+  if (root === undefined) return byPage;
+  if (!(root instanceof PDFDict)) return null;
+  const mark = (page: PDFRef, id: number) => {
+    const key = page.toString();
+    if (!byPage.has(key)) byPage.set(key, new Set());
+    byPage.get(key)!.add(id);
+  };
+  const pending: Array<{ value: unknown; page: PDFRef | null; replaced: boolean }> = [
+    { value: root.get(PDFName.of("K")), page: null, replaced: false },
+  ];
+  const seen = new Set<string>();
+  let visited = 0;
+  while (pending.length) {
+    const { value, page, replaced } = pending.pop()!;
+    if (++visited > MAX_STRUCTURE_NODES) return null;
+    if (value instanceof PDFRef) {
+      if (seen.has(value.toString())) continue;
+      seen.add(value.toString());
+    }
+    const node = lookup(pdf, value);
+    if (node instanceof PDFArray) {
+      for (const item of node.asArray()) pending.push({ value: item, page, replaced });
+      continue;
+    }
+    if (node instanceof PDFNumber) {
+      // A marked-content id of the enclosing element, on that element's page.
+      if (replaced) {
+        if (!page) return null;
+        mark(page, node.asNumber());
+      }
+      continue;
+    }
+    if (!(node instanceof PDFDict)) continue;
+    const type = lookup(pdf, node.get(PDFName.of("Type")));
+    // An object reference names an annotation or XObject, not page content.
+    if (type === PDFName.of("OBJR")) continue;
+    const own = node.get(PDFName.of("Pg"));
+    const nodePage = own instanceof PDFRef ? own : page;
+    if (type === PDFName.of("MCR")) {
+      // Marked content inside a form XObject (/Stm) is not page content this fill edits.
+      if (node.has(PDFName.of("Stm"))) continue;
+      const id = lookup(pdf, node.get(PDFName.of("MCID")));
+      if (replaced && id instanceof PDFNumber) {
+        if (!nodePage) return null;
+        mark(nodePage, id.asNumber());
+      }
+      continue;
+    }
+    pending.push({
+      value: node.get(PDFName.of("K")),
+      page: nodePage,
+      replaced: replaced || REPLACEMENT_TEXT.some((key) => node.has(PDFName.of(key))),
+    });
+  }
+  return byPage;
+}
+
 function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
   const resources = inheritedResources(pdf, page);
   const fontDict = resources ? lookup(pdf, resources.get(PDFName.of("Font"))) : null;
@@ -713,19 +793,33 @@ function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
   const properties = resources
     ? lookup(pdf, resources.get(PDFName.of("Properties")))
     : null;
-  /** Whether a BDC property list, inline or named in /Properties, carries replacement text. */
+  const structure = structureReplacement(pdf);
+  const structureIds = structure?.get(page.ref.toString());
+  /**
+   * Whether a BDC property list, inline or named in /Properties, carries replacement text itself
+   * or through the structure element its marked-content id belongs to.
+   */
   const replacementText = (operand: Operand | undefined) => {
-    if (operand?.kind === "dict")
-      return REPLACEMENT_TEXT.some((key) => operand.entries!.has(key));
-    const named =
-      operand?.kind === "name" && properties instanceof PDFDict
-        ? lookup(pdf, properties.get(PDFName.of(operand.name!)))
-        : null;
-    // A property list that cannot be read is treated as carrying replacement text.
-    return (
-      !(named instanceof PDFDict) ||
-      REPLACEMENT_TEXT.some((key) => named.has(PDFName.of(key)))
-    );
+    let id: number | undefined;
+    if (operand?.kind === "dict") {
+      if (REPLACEMENT_TEXT.some((key) => operand.entries!.has(key))) return true;
+      const mcid = operand.entries!.get("MCID");
+      id = mcid?.kind === "number" ? mcid.number : undefined;
+    } else {
+      const named =
+        operand?.kind === "name" && properties instanceof PDFDict
+          ? lookup(pdf, properties.get(PDFName.of(operand.name!)))
+          : null;
+      // A property list that cannot be read is treated as carrying replacement text.
+      if (
+        !(named instanceof PDFDict) ||
+        REPLACEMENT_TEXT.some((key) => named.has(PDFName.of(key)))
+      )
+        return true;
+      const mcid = lookup(pdf, named.get(PDFName.of("MCID")));
+      id = mcid instanceof PDFNumber ? mcid.asNumber() : undefined;
+    }
+    return id !== undefined && (structure === null || structureIds?.has(id) === true);
   };
   const fonts = new Map<string, FontMetrics>();
   const fontFor = (key: string) => {

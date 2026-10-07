@@ -4,6 +4,7 @@ import {
   PDFDict,
   PDFDocument,
   PDFName,
+  type PDFRef,
   PDFString,
   StandardFonts,
 } from "pdf-lib";
@@ -699,5 +700,85 @@ describe("S130 static PDF filling (AC-S130-11, AC-S130-12, AC-S130-13)", () => {
       { regionId: "Name", text: "Jane Doe" },
     ]);
     expect(await objectsHolding(filled.content, ["Old Tenant Name"])).toEqual([]);
+  });
+
+  it("refuses a region whose marked-content id has replacement text on its structure element or an ancestor", async () => {
+    const refusal =
+      "Name: marked content in the region carries replacement text that text extraction would still read. An approved clean master without replacement text on variable values is required.";
+    const show = "BT /F1 11 Tf 1 0 0 1 120 600 Tm";
+    const rect = { x: 118, y: 596, width: 200, height: 16 };
+    const old = () => PDFString.of("Old Tenant Name");
+    /** A page whose /Span holds MCID 0, under the structure tree `kids` builds for the page. */
+    const tagged = (
+      kids: (pdf: PDFDocument, page: PDFRef) => unknown,
+      operator = "/Span <</MCID 0>> BDC",
+      properties?: Record<string, unknown>,
+    ) =>
+      staticPage([`${show} ${operator} (Old Tenant Name) Tj EMC ET`], (pdf) => {
+        const page = pdf.getPage(0);
+        const root = pdf.context.obj({ Type: "StructTreeRoot" });
+        root.set(PDFName.of("K"), pdf.context.obj(kids(pdf, page.ref) as never));
+        pdf.catalog.set(PDFName.of("StructTreeRoot"), pdf.context.register(root));
+        if (properties)
+          page.node
+            .lookup(PDFName.of("Resources"), PDFDict)
+            .set(PDFName.of("Properties"), pdf.context.obj(properties as never));
+      });
+    const element = (pdf: PDFDocument, entries: Record<string, unknown>) =>
+      pdf.context.register(
+        pdf.context.obj({ Type: "StructElem", S: "Span", ...entries } as never),
+      );
+    // /ActualText on the element that owns MCID 0: extraction would still read the old name.
+    const own = await tagged((pdf, page) =>
+      element(pdf, { Pg: page, K: 0, ActualText: old() }),
+    );
+    expect(await validateStaticGeometry(own, oneRegion(rect, "replace"))).toEqual([
+      refusal,
+    ]);
+    await expect(
+      fillStaticPdf(own, oneRegion(rect, "replace"), [
+        { regionId: "Name", text: "Jane Doe" },
+      ]),
+    ).rejects.toThrow(/without replacement text on variable values/);
+    // /Alt on an ancestor applies to everything below it, including the marked span.
+    const ancestor = await tagged((pdf, page) =>
+      element(pdf, {
+        S: "P",
+        Pg: page,
+        Alt: old(),
+        K: [element(pdf, { Pg: page, K: 0 })],
+      }),
+    );
+    expect(await validateStaticGeometry(ancestor, oneRegion(rect, "replace"))).toEqual([
+      refusal,
+    ]);
+    // /E on an element reaching the id through a marked-content reference, named in /Properties.
+    const referenced = await tagged(
+      (pdf, page) => element(pdf, { E: old(), K: { Type: "MCR", Pg: page, MCID: 0 } }),
+      "/Span /MC0 BDC",
+      { MC0: { MCID: 0 } },
+    );
+    expect(await validateStaticGeometry(referenced, oneRegion(rect, "replace"))).toEqual([
+      refusal,
+    ]);
+    // Replacement text whose id names no page cannot be placed, so every id counts as covered.
+    const unplaced = await tagged((pdf) => element(pdf, { K: 0, ActualText: old() }));
+    expect(await validateStaticGeometry(unplaced, oneRegion(rect, "replace"))).toEqual([
+      refusal,
+    ]);
+    // Replacement text on another id, or a structure element without any, leaves the fill as before.
+    for (const clean of [
+      await tagged((pdf, page) => element(pdf, { Pg: page, K: 1, ActualText: old() })),
+      await tagged((pdf, page) => element(pdf, { S: "P", Pg: page, K: 0 })),
+    ]) {
+      const filled = await fillStaticPdf(clean, oneRegion(rect, "replace"), [
+        { regionId: "Name", text: "Jane Doe" },
+      ]);
+      expect(
+        await readStaticPdfValues(filled.content, oneRegion(rect, "replace")),
+      ).toEqual({
+        Name: "Jane Doe",
+      });
+    }
   });
 });
