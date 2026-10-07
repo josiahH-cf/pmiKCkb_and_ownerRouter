@@ -91,7 +91,10 @@ export interface LiveDotloopProviderDeps {
    * and restarts never create a folder each time.
    */
   readonly documentFolder?: {
-    readonly recorded: string | null;
+    /** A folder known when the provider was built; `read` is preferred when present. */
+    readonly recorded?: string | null;
+    /** Reads the recorded folder when it is needed, after the attempt's claim. */
+    readonly read?: () => Promise<string | null>;
     readonly record: (folderId: string) => Promise<string>;
   };
 }
@@ -201,9 +204,10 @@ export class LiveDotloopProvider implements DotloopProvider {
     const cached = this.#documentFolders.get(loopRef);
     if (cached) return cached;
     const durable = this.#deps.documentFolder;
-    if (durable?.recorded) {
-      this.#documentFolders.set(loopRef, durable.recorded);
-      return durable.recorded;
+    const recorded = durable?.read ? await durable.read() : (durable?.recorded ?? null);
+    if (recorded) {
+      this.#documentFolders.set(loopRef, recorded);
+      return recorded;
     }
     const created = await this.#deps.client.createFolder({
       profileId: this.#deps.selection.profileId,

@@ -35,6 +35,7 @@ interface Handoff {
     documentRef: string;
     status?:
       | "uploaded_current"
+      | "upload_unresolved"
       | "successor_needed"
       | "not_uploaded"
       | "filled_output_needed";
@@ -471,7 +472,7 @@ function DocumentHandoffEditor({
               </summary>
               <p className="muted">
                 {association.state === "creating"
-                  ? "Check Dotloop first: if the loop was created, link it instead of clearing."
+                  ? "Clearing is for a creation that failed or has no confirmed outcome. If Dotloop shows the loop, clear this creation, then review and link that loop."
                   : "This changes only the app's link. Dotloop keeps the loop and its files; a person retires files or archives a loop there."}
               </p>
               <Field label="Correction reason" htmlFor="dotloop-correction-reason">

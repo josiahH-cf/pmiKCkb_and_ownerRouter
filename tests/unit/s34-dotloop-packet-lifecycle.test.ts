@@ -236,6 +236,51 @@ describe("S34 one loop per approved packet (ARCH-S34-1 / BEH-S34-1)", () => {
     expect(records).toEqual(["folder-1"]);
   });
 
+  it("reads the recorded folder after its claim, so a folder recorded meanwhile is reused (AC-S34-6)", async () => {
+    let recorded: string | null = null;
+    const folder = {
+      read: async () => recorded,
+      record: async (folderId: string) => (recorded ??= folderId),
+    };
+    const content = (bytes: number[]) => async () => ({
+      fileName: "renewal.pdf",
+      contentType: "application/pdf",
+      content: new Uint8Array(bytes),
+    });
+    const sha = (bytes: number[]) =>
+      createHash("sha256").update(new Uint8Array(bytes)).digest("hex");
+    await providerFor().createLoop({
+      templateRef: SELECTION.templateId,
+      participantRefs: PARTICIPANTS.map((participant) => participant.email),
+      idempotencyKey: "idem-1",
+    });
+    // Worker A is built while no folder is recorded.
+    const workerA = providerFor({
+      artifactContent: content([7]),
+      documentFolder: folder,
+    });
+    // Worker B uploads first and records the folder.
+    await providerFor({
+      artifactContent: content([8]),
+      documentFolder: folder,
+    }).uploadDocument({
+      loopRef: "loop-1",
+      documentRef: "artifact-b",
+      documentType: "renewal_agreement",
+      contentHash: sha([8]),
+      idempotencyKey: "idem-doc-b",
+    });
+    const uploaded = await workerA.uploadDocument({
+      loopRef: "loop-1",
+      documentRef: "artifact-a",
+      documentType: "renewal_agreement",
+      contentHash: sha([7]),
+      idempotencyKey: "idem-doc-a",
+    });
+    expect(uploaded.documentRef).toMatch(/^loop-1:folder-1:/);
+    expect(fake.folderCreates).toHaveLength(1);
+  });
+
   it("reads the loop back and reports an archived loop as inactive (BEH-S34-3)", async () => {
     const provider = providerFor();
     await provider.createLoop({

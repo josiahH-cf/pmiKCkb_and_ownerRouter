@@ -11,6 +11,7 @@ import {
   readLoopAssociation,
   recordLoopFolder,
   recordLoopUpload,
+  releasePendingUpload,
   reviewedLoopHash,
   unlinkLeaseLoop,
   type ReviewedLoopObservation,
@@ -98,6 +99,7 @@ describe("S34 loop association model", () => {
       supersedesContentHash: null,
     });
     const association = {
+      loopId: "5001",
       documents: [
         uploaded(hash("1"), "2026-10-01T00:00:00Z"),
         uploaded(hash("2"), "2026-10-02T00:00:00Z"),
@@ -122,6 +124,30 @@ describe("S34 loop association model", () => {
       status: "successor_needed",
       latestUpload: { contentHash: hash("2") },
     });
+    // A version claimed into this loop without a recorded result is unresolved, never offered again.
+    const unresolved = documentUploadPlan(
+      {
+        ...association,
+        pendingUploads: [
+          {
+            executionId: "up-9",
+            loopId: "5001",
+            documentRef: "doc-a",
+            contentHash: hash("4"),
+            claimedAt: NOW,
+          },
+        ],
+      },
+      [
+        {
+          artifactId: "a",
+          documentRef: "doc-a",
+          label: "Renewal",
+          contentHash: hash("4"),
+        },
+      ],
+    );
+    expect(unresolved[0].status).toBe("upload_unresolved");
     expect(propertyAddressValue(null)).toBe("none");
     expect(
       propertyAddressValue({
@@ -336,26 +362,47 @@ describe("S34 claim-time reservations (AC-S34-2, AC-S34-4, AC-S34-6)", () => {
       contentHash: hash("1"),
       actorUid: "editor-1",
       now: NOW,
-      holderExecuting: false,
+      attemptStates: {} as Record<string, string | null>,
     };
     const reserved = planUploadClaim(current, { ...upload, executionId: "up-1" })!;
     expect(reserved.folderReservation).toEqual({ executionId: "up-1", reservedAt: NOW });
+    expect(reserved.pendingUploads).toEqual([
+      {
+        executionId: "up-1",
+        loopId: "5001",
+        documentRef: "doc-a",
+        contentHash: hash("1"),
+        claimedAt: NOW,
+      },
+    ]);
+    // The same attempt's claim retry writes nothing new.
+    expect(planUploadClaim(reserved, { ...upload, executionId: "up-1" })).toBeNull();
+    // Another document waits while the folder creator is still executing.
+    const other = { ...upload, documentRef: "doc-b", contentHash: hash("2") };
     expect(() =>
       planUploadClaim(reserved, {
-        ...upload,
+        ...other,
         executionId: "up-2",
-        holderExecuting: true,
+        attemptStates: { "up-1": "Executing" },
       }),
     ).toThrow(/creating this loop's packet folder/);
     // A finished or failed holder no longer blocks; the next attempt takes the reservation.
     expect(
-      planUploadClaim(reserved, { ...upload, executionId: "up-2" })!.folderReservation,
+      planUploadClaim(reserved, {
+        ...other,
+        executionId: "up-2",
+        attemptStates: { "up-1": "Succeeded" },
+      })!.folderReservation,
     ).toMatchObject({ executionId: "up-2" });
     const withFolder = {
       ...reserved,
+      folderReservation: null,
+      pendingUploads: [],
       folder: { dotloopFolderId: "f-1", createdByExecutionId: "up-1", recordedAt: NOW },
     } as LoopAssociation;
-    expect(planUploadClaim(withFolder, { ...upload, executionId: "up-3" })).toBeNull();
+    expect(
+      planUploadClaim(withFolder, { ...upload, executionId: "up-3" })!.folderReservation,
+    ).toBeNull();
     expect(() =>
       planUploadClaim(withFolder, { ...upload, executionId: "up-4", linkRevision: 1 }),
     ).toThrow(/changed after preview/);
@@ -394,8 +441,84 @@ describe("S34 claim-time reservations (AC-S34-2, AC-S34-4, AC-S34-6)", () => {
         ...upload,
         executionId: "up-7",
         contentHash: hash("2"),
+      })!.pendingUploads,
+    ).toEqual([expect.objectContaining({ executionId: "up-7", contentHash: hash("2") })]);
+  });
+
+  it("never repeats an in-flight or uncertain upload of the same version, from any later snapshot", () => {
+    const loop = {
+      ...planLoopCreationClaim(null, { ...base, executionId: "exec-1" })!,
+      state: "current",
+      loopId: "5001",
+      linkRevision: 2,
+      folder: { dotloopFolderId: "f-1", createdByExecutionId: "up-0", recordedAt: NOW },
+    } as LoopAssociation;
+    const upload = {
+      loopId: "5001",
+      linkRevision: 2,
+      cycleId: "cycle-2027",
+      documentRef: "doc-a",
+      contentHash: hash("1"),
+      actorUid: "editor-1",
+      now: NOW,
+      attemptStates: {} as Record<string, string | null>,
+    };
+    // Snapshot S1's upload timed out: its outcome is unknown.
+    const first = planUploadClaim(loop, { ...upload, executionId: "s1-up" })!;
+    for (const state of ["Executing", "Needs reconciliation", "Succeeded", null])
+      expect(() =>
+        planUploadClaim(first, {
+          ...upload,
+          // Snapshot S2 carries the same bytes under a new attempt.
+          executionId: "s2-up",
+          attemptStates: { "s1-up": state },
+        }),
+      ).toThrow(/no confirmed outcome/);
+    // A changed version is a successor and is not held by the earlier attempt.
+    expect(
+      planUploadClaim(first, {
+        ...upload,
+        executionId: "s2-up",
+        contentHash: hash("2"),
+        attemptStates: { "s1-up": "Needs reconciliation" },
       }),
-    ).toBeNull();
+    ).not.toBeNull();
+    // A definitively failed attempt sent nothing: it is released and the version may be sent.
+    const retried = planUploadClaim(first, {
+      ...upload,
+      executionId: "s2-up",
+      attemptStates: { "s1-up": "Failed" },
+    })!;
+    expect(retried.pendingUploads?.map((entry) => entry.executionId)).toEqual(["s2-up"]);
+  });
+
+  it("takes over a folder reservation whose attempt stalled", () => {
+    const loop = {
+      ...planLoopCreationClaim(null, { ...base, executionId: "exec-1" })!,
+      state: "current",
+      loopId: "5001",
+      linkRevision: 2,
+      folderReservation: { executionId: "up-1", reservedAt: "2026-10-06T11:40:00.000Z" },
+    } as LoopAssociation;
+    const upload = {
+      loopId: "5001",
+      linkRevision: 2,
+      cycleId: "cycle-2027",
+      documentRef: "doc-b",
+      contentHash: hash("2"),
+      executionId: "up-2",
+      actorUid: "editor-1",
+      attemptStates: { "up-1": "Executing" },
+    };
+    // Fourteen minutes in, the holder may still be working.
+    expect(() =>
+      planUploadClaim(loop, { ...upload, now: "2026-10-06T11:54:00.000Z" }),
+    ).toThrow(/creating this loop's packet folder/);
+    // Fifteen minutes in, it is stalled and the next attempt reserves the folder.
+    expect(
+      planUploadClaim(loop, { ...upload, now: "2026-10-06T11:55:00.000Z" })!
+        .folderReservation,
+    ).toEqual({ executionId: "up-2", reservedAt: "2026-10-06T11:55:00.000Z" });
   });
 });
 
@@ -537,5 +660,57 @@ describe("S34 receipted results (AC-S34-6, AC-S34-7)", () => {
       NOW,
     );
     expect((await readLoopAssociation("701", db))!.documents).toHaveLength(2);
+  });
+
+  it("clears only a failed or uncertain creation, and releases a version only after a definitive failure", async () => {
+    const { fake, db } = setup();
+    const { loopAssociationRef } =
+      await import("@/lib/firestore/lease-document-loop-association");
+    const creating = planLoopCreationClaim(null, {
+      leaseId: "701",
+      cycleId: "cycle-2027",
+      profileId: "profile-1",
+      executionId: "exec-1",
+      actorUid: "editor-1",
+      now: NOW,
+    })!;
+    await loopAssociationRef(db, "701").set(JSON.parse(JSON.stringify(creating)));
+    const clear = () =>
+      unlinkLeaseLoop(
+        editor,
+        { leaseId: "701", expectedLinkRevision: 1, reason: "Creation failed" },
+        db,
+        NOW,
+      );
+    fake.seed("action_executions/exec-1", { state: "Executing" });
+    await expect(clear()).rejects.toThrow(/still running/);
+    fake.seed("action_executions/exec-1", { state: "Succeeded" });
+    await expect(clear()).rejects.toThrow(/Recover its attempt/);
+    fake.seed("action_executions/exec-1", { state: "Needs reconciliation" });
+    await expect(clear()).resolves.toMatchObject({ state: "unlinked" });
+
+    // A pending upload is released only when its attempt failed definitively.
+    const loop = {
+      ...creating,
+      state: "current",
+      loopId: "5001",
+      linkRevision: 3,
+      pendingUploads: [
+        {
+          executionId: "up-1",
+          loopId: "5001",
+          documentRef: "doc-a",
+          contentHash: hash("1"),
+          claimedAt: NOW,
+        },
+      ],
+    } as LoopAssociation;
+    await loopAssociationRef(db, "701").set(JSON.parse(JSON.stringify(loop)));
+    fake.seed("action_executions/up-1", { state: "Needs reconciliation" });
+    await releasePendingUpload({ leaseId: "701", executionId: "up-1" }, db, NOW);
+    expect((await readLoopAssociation("701", db))?.pendingUploads).toHaveLength(1);
+    fake.seed("action_executions/up-1", { state: "Failed" });
+    await releasePendingUpload({ leaseId: "701", executionId: "up-1" }, db, NOW);
+    expect((await readLoopAssociation("701", db))?.pendingUploads).toEqual([]);
   });
 });

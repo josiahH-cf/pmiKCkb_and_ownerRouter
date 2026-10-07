@@ -131,6 +131,7 @@ function associationView(
     folderRecorded: Boolean(association.folder),
     readback: association.readback,
     documents: association.documents,
+    pendingUploads: association.pendingUploads ?? [],
   };
 }
 export const PACKET_ACTION_SNAPSHOTS = "lease_document_action_snapshots";
@@ -413,6 +414,11 @@ async function assemble(
       "This exact document version is already in the linked loop; its upload receipt is reused.",
       409,
     );
+  if (operation === "document_upload" && priorUploads[0]?.status === "upload_unresolved")
+    throw new EditableLayerError(
+      "An upload of this exact version into the linked loop is in progress or has no confirmed outcome. Check the loop in Dotloop; the app never sends an uncertain upload again.",
+      409,
+    );
   const propertyAddress = loopPropertyAddress(resolved.inputs);
   const base = {
     dataMode: "live" as const,
@@ -442,7 +448,8 @@ async function assemble(
       ? loopAction
       : {
           ...base,
-          actionId: `packet-document:${snapshot.snapshotId}:${document!.documentRef}`,
+          // The exact target is part of the attempt's identity: a corrected link prepares anew.
+          actionId: `packet-document:${snapshot.snapshotId}:${document!.documentRef}:loop:${target!.loopId}:link:${target!.linkRevision}`,
           actionKey: "dotloop.document.upload",
           values: {
             loop_ref: target!.loopId,
@@ -497,7 +504,6 @@ async function assemble(
             profileId: target!.profileId,
             linkRevision: target!.linkRevision,
             origin: target!.origin,
-            folderRecorded: Boolean(target!.folder),
           }
         : null,
     supersedes:
@@ -621,7 +627,13 @@ export async function prepareNormalPacketAction(
     operation,
     documentRef: documentRef ?? null,
     actionKey: value.action.actionKey,
-    loopTarget: value.loopTarget,
+    // Folder state is read now for display only; it is resolved again at the attempt's claim.
+    loopTarget: value.loopTarget
+      ? {
+          ...value.loopTarget,
+          folderRecorded: Boolean((await readLoopAssociation(leaseId))?.folder),
+        }
+      : null,
     supersedes: value.supersedes,
     propertyAddress: value.propertyAddress,
   };

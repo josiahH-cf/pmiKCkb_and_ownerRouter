@@ -21,16 +21,20 @@ import {
 } from "@/lib/environment/descriptor";
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import {
+  FOLDER_RESERVATION_STALE_MS,
   LOOP_ASSOCIATION_SCHEMA_VERSION,
   loopAssociationDocId,
   loopOwnerDocId,
   type LoopAssociation,
   type LoopAssociationDocument,
   type LoopAssociationReadback,
+  type LoopPendingUpload,
 } from "@/lib/lease-documents/dotloop-loop-association";
 import { stampProductRecordRetention } from "@/lib/operations/product-record-retention";
 import { getAdminFirestore } from "./admin";
 import { EditableLayerError } from "./errors";
+
+const ACTION_EXECUTIONS_COLLECTION = "action_executions";
 
 export const LOOP_ASSOCIATION_COLLECTIONS = {
   associations: "lease_document_loop_associations",
@@ -87,6 +91,20 @@ const AssociationSchema = z
       .strict()
       .nullable(),
     documents: z.array(DocumentSchema).max(500),
+    pendingUploads: z
+      .array(
+        z
+          .object({
+            executionId: text,
+            loopId: text,
+            documentRef: text,
+            contentHash: z.string().regex(/^[a-f0-9]{64}$/),
+            claimedAt: iso,
+          })
+          .strict(),
+      )
+      .max(200)
+      .optional(),
     readback: z
       .object({
         readBackAt: iso,
@@ -392,6 +410,25 @@ export async function unlinkLeaseLoop(
         "The lease's Dotloop loop changed since this page was loaded. Reload before correcting it.",
         409,
       );
+    // An app creation still running, or one that succeeded, is never cleared: its own result (or
+    // its recovery) links the created loop. Only a failed or uncertain creation is cleared.
+    if (current.state === "creating" && current.createExecutionId) {
+      const creation = (
+        await transaction.get(
+          db.collection(ACTION_EXECUTIONS_COLLECTION).doc(current.createExecutionId),
+        )
+      ).get("state");
+      if (creation === "Executing")
+        throw new EditableLayerError(
+          "The loop creation is still running. Wait for its result before clearing it.",
+          409,
+        );
+      if (creation === "Succeeded")
+        throw new EditableLayerError(
+          "The loop was created. Recover its attempt to make it the lease's loop.",
+          409,
+        );
+    }
     const ownerRef = current.loopId
       ? db
           .collection(LOOP_ASSOCIATION_COLLECTIONS.owners)
@@ -483,9 +520,11 @@ export function planLoopCreationClaim(
 }
 
 /**
- * Inside the S20 claim transaction: the confirmed upload still targets the lease's current loop,
- * and only one attempt may create the packet folder while none is recorded. `holderExecuting`
- * says whether another reservation's attempt is still executing.
+ * Inside the S20 claim transaction: the confirmed upload still targets the lease's current loop;
+ * the same version is never sent again while an earlier attempt into that loop is in flight or
+ * uncertain; and only one attempt may create the packet folder while none is recorded. A folder
+ * holder still executing after FOLDER_RESERVATION_STALE_MS is treated as stalled and taken over.
+ * `attemptStates` holds the S20 states of the other attempts named in the association.
  */
 export function planUploadClaim(
   current: LoopAssociation | null,
@@ -498,7 +537,7 @@ export function planUploadClaim(
     executionId: string;
     actorUid: string;
     now: string;
-    holderExecuting: boolean;
+    attemptStates: Readonly<Record<string, string | null>>;
   },
 ): LoopAssociation | null {
   if (
@@ -523,21 +562,120 @@ export function planUploadClaim(
       "This exact document version is already in the linked loop; its upload receipt is reused.",
       409,
     );
-  if (current.folder) return null;
-  const reservation = current.folderReservation;
-  if (reservation?.executionId === input.executionId) return null;
-  if (reservation && input.holderExecuting)
+  const pending = current.pendingUploads ?? [];
+  // A definitively failed attempt sent nothing, so it no longer holds its version.
+  const kept = pending.filter(
+    (entry) =>
+      entry.executionId === input.executionId ||
+      input.attemptStates[entry.executionId] !== "Failed",
+  );
+  if (
+    kept.some(
+      (entry) =>
+        entry.executionId !== input.executionId &&
+        entry.loopId === input.loopId &&
+        entry.contentHash === input.contentHash,
+    )
+  )
     throw new EditableLayerError(
-      "Another upload is creating this loop's packet folder. Retry after it finishes.",
+      "An earlier upload of this exact version into the linked loop has no confirmed outcome. Check the loop in Dotloop; the app never sends an uncertain upload again.",
       409,
     );
+  const own = kept.some((entry) => entry.executionId === input.executionId);
+  const pendingUploads: LoopPendingUpload[] = own
+    ? kept
+    : [
+        ...kept,
+        {
+          executionId: input.executionId,
+          loopId: input.loopId,
+          documentRef: input.documentRef,
+          contentHash: input.contentHash,
+          claimedAt: input.now,
+        },
+      ];
+  let folderReservation = current.folderReservation;
+  if (!current.folder && folderReservation?.executionId !== input.executionId) {
+    const holder = folderReservation;
+    const stalled =
+      holder !== null &&
+      Date.parse(input.now) - Date.parse(holder.reservedAt) >=
+        FOLDER_RESERVATION_STALE_MS;
+    if (holder && input.attemptStates[holder.executionId] === "Executing" && !stalled)
+      throw new EditableLayerError(
+        "Another upload is creating this loop's packet folder. Retry after it finishes.",
+        409,
+      );
+    folderReservation = { executionId: input.executionId, reservedAt: input.now };
+  }
+  if (
+    own &&
+    kept.length === pending.length &&
+    folderReservation === current.folderReservation
+  )
+    return null;
   return {
     ...current,
     revision: current.revision + 1,
-    folderReservation: { executionId: input.executionId, reservedAt: input.now },
+    pendingUploads,
+    folderReservation,
     updatedAt: input.now,
     updatedByUid: input.actorUid,
   };
+}
+
+/** The activity a planned upload claim records. */
+export function uploadClaimAction(
+  current: LoopAssociation,
+  next: LoopAssociation,
+  executionId: string,
+): string {
+  if (next.folderReservation?.executionId !== executionId) return "upload_claimed";
+  if (current.folderReservation?.executionId === executionId) return "upload_claimed";
+  return current.folderReservation
+    ? "folder_reservation_taken_over"
+    : "folder_creation_reserved";
+}
+
+/**
+ * After a definitively failed upload attempt (nothing was sent): it no longer holds its version.
+ * An uncertain attempt is never released here.
+ */
+export async function releasePendingUpload(
+  input: { leaseId: string; executionId: string },
+  db: Firestore = getAdminFirestore(),
+  now: string = new Date().toISOString(),
+): Promise<void> {
+  const ref = loopAssociationRef(db, input.leaseId);
+  await db.runTransaction(async (transaction) => {
+    const current = await readLoopAssociationIn(transaction, db, input.leaseId);
+    const pending = current?.pendingUploads ?? [];
+    if (!current || !pending.some((entry) => entry.executionId === input.executionId))
+      return;
+    const state = (
+      await transaction.get(
+        db.collection(ACTION_EXECUTIONS_COLLECTION).doc(input.executionId),
+      )
+    ).get("state");
+    if (state !== "Failed") return;
+    transaction.set(
+      ref,
+      stored({
+        ...current,
+        revision: current.revision + 1,
+        pendingUploads: pending.filter(
+          (entry) => entry.executionId !== input.executionId,
+        ),
+        updatedAt: now,
+      }),
+    );
+    activity(transaction, db, {
+      action: "upload_released_after_failure",
+      lease_id: input.leaseId,
+      execution_id: input.executionId,
+      created_at: now,
+    });
+  });
 }
 
 /** Apply a claim-time association write planned above. */
@@ -717,6 +855,9 @@ export async function recordLoopUpload(
       (document) => document.receiptId === input.document.receiptId,
     );
     if (prior) return current;
+    const pendingUploads = (current.pendingUploads ?? []).filter(
+      (entry) => entry.executionId !== input.document.receiptId,
+    );
     const earlier = current.documents
       .filter((document) => document.documentRef === input.document.documentRef)
       .sort((a, b) => a.uploadedAt.localeCompare(b.uploadedAt));
@@ -734,6 +875,7 @@ export async function recordLoopUpload(
               : null,
         },
       ],
+      pendingUploads,
       updatedAt: now,
       updatedByUid: actor.uid,
     };

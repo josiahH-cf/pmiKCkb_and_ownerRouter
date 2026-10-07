@@ -190,6 +190,7 @@ export async function resolveLivePacketInput(
       .hash,
   });
   if (approval.state !== "current") notices.push(OWNER_APPROVAL_NOTICES[approval.state]);
+  if (approval.notice) notices.push(approval.notice);
 
   const source = rentVinePacketSource(lease, observedAt);
   const assembled = assemblePacketSources({

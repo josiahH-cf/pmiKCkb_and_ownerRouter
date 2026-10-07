@@ -37,6 +37,7 @@ import {
   readLoopAssociation,
   recordLoopFolder,
   recordLoopUpload,
+  releasePendingUpload,
 } from "@/lib/firestore/lease-document-loop-association";
 import {
   propertyAddressValue,
@@ -208,7 +209,10 @@ export async function executeDotloopPacketWithS20(
     ...(key === "dotloop.document.upload"
       ? {
           documentFolder: {
-            recorded: association?.folder?.dotloopFolderId ?? null,
+            // Read at use, after this attempt's claim: a folder another upload recorded meanwhile
+            // is reused instead of creating a second one.
+            read: async () =>
+              (await readLoopAssociation(leaseId))?.folder?.dotloopFolderId ?? null,
             record: (dotloopFolderId: string) =>
               recordLoopFolder({
                 leaseId,
@@ -256,6 +260,10 @@ export async function executeDotloopPacketWithS20(
     ...input.request,
     executor: wrapped,
   });
+  // A definitively failed upload sent nothing; its version is free for a fresh confirmation.
+  // An uncertain one keeps holding it.
+  if (key === "dotloop.document.upload" && response.execution.state === "Failed")
+    await releasePendingUpload({ leaseId, executionId: response.execution.id });
   const recoveredReceipt =
     response.execution.state === "Succeeded" && input.receiptStore
       ? await input.receiptStore.read()

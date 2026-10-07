@@ -4,6 +4,7 @@ import type { ChargePolicyRecord } from "@/lib/lease-documents/charge-policy";
 import {
   captureApprovedWorkingTerms,
   currentOwnerApproval,
+  MAPPING_CHARGES_NOTICE,
   packetEconomics,
 } from "@/lib/lease-documents/owner-approval-binding";
 import { packetChargeBasis } from "@/lib/lease-documents/packet-assembly";
@@ -224,7 +225,7 @@ describe("S66 owner approval bound to the exact Working terms (AC-S66-8, BEH-S66
     ).toBe("current");
   });
 
-  it("holds the approval when a current mapping carries charges the owner did not approve", () => {
+  it("says when a current mapping supplies the charges instead of the calculation the owner approved", () => {
     const record = working(TERMS);
     const state = approve(base(), record);
     const mapping = {
@@ -249,27 +250,27 @@ describe("S66 owner approval bound to the exact Working terms (AC-S66-8, BEH-S66
       inputs: null,
       policy: POLICY,
     });
-    expect(
-      currentOwnerApproval({
-        workspace: state,
-        working: record,
-        economicsHash: hash(),
-        packetChargesHash: carried.hash,
-      }),
-    ).toEqual({ state: "mapping_charges_differ", facts: [] });
+    const withMapping = currentOwnerApproval({
+      workspace: state,
+      working: record,
+      economicsHash: hash(),
+      packetChargesHash: carried.hash,
+    });
+    expect(withMapping.state).toBe("current");
+    expect(withMapping.notice).toBe(MAPPING_CHARGES_NOTICE);
     // Without a mapping the packet carries exactly the calculated charges the owner approved.
-    expect(
-      currentOwnerApproval({
-        workspace: state,
-        working: record,
-        economicsHash: hash(),
-        packetChargesHash: packetChargeBasis({
-          leaseId: LEASE,
-          mapping: null,
-          inputs: null,
-          policy: POLICY,
-        }).hash,
-      }).state,
-    ).toBe("current");
+    const calculated = currentOwnerApproval({
+      workspace: state,
+      working: record,
+      economicsHash: hash(),
+      packetChargesHash: packetChargeBasis({
+        leaseId: LEASE,
+        mapping: null,
+        inputs: null,
+        policy: POLICY,
+      }).hash,
+    });
+    expect(calculated.state).toBe("current");
+    expect(calculated.notice).toBeUndefined();
   });
 });

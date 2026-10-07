@@ -38,6 +38,21 @@ export interface LoopAssociationDocument {
   readonly supersedesContentHash: string | null;
 }
 
+/**
+ * An upload attempt claimed into a loop whose outcome is not recorded yet. While its attempt is in
+ * flight or its outcome is uncertain, the same version is never uploaded into that loop again.
+ */
+export interface LoopPendingUpload {
+  readonly executionId: string;
+  readonly loopId: string;
+  readonly documentRef: string;
+  readonly contentHash: string;
+  readonly claimedAt: string;
+}
+
+/** A folder reservation whose attempt is still executing after this long is treated as stalled. */
+export const FOLDER_RESERVATION_STALE_MS = 15 * 60 * 1000;
+
 export interface LoopAssociationReadback {
   readonly readBackAt: string;
   readonly loopStatus: string | null;
@@ -78,6 +93,8 @@ export interface LoopAssociation {
     readonly reservedAt: string;
   } | null;
   readonly documents: readonly LoopAssociationDocument[];
+  /** Claimed uploads without a recorded result; absent on records written before this field. */
+  readonly pendingUploads?: readonly LoopPendingUpload[];
   readonly readback: LoopAssociationReadback | null;
   readonly updatedAt: string;
   readonly updatedByUid: string;
@@ -99,6 +116,7 @@ export interface LoopAssociationView {
   readonly folderRecorded: boolean;
   readonly readback: LoopAssociationReadback | null;
   readonly documents: readonly LoopAssociationDocument[];
+  readonly pendingUploads: readonly LoopPendingUpload[];
 }
 
 /** Stable document id for one lease's association. */
@@ -129,6 +147,7 @@ export function usableLoopTarget(
 
 export type DocumentUploadStatus =
   | "uploaded_current"
+  | "upload_unresolved"
   | "successor_needed"
   | "not_uploaded";
 
@@ -151,7 +170,7 @@ export interface DocumentUploadPlanEntry {
  * upload; nothing earlier is removed or rewritten.
  */
 export function documentUploadPlan(
-  association: Pick<LoopAssociation, "documents"> | null,
+  association: Pick<LoopAssociation, "documents" | "loopId" | "pendingUploads"> | null,
   current: ReadonlyArray<{
     artifactId: string;
     documentRef: string;
@@ -169,9 +188,15 @@ export function documentUploadPlan(
       (uploaded) => uploaded.contentHash === document.contentHash,
     )
       ? "uploaded_current"
-      : history.length
-        ? "successor_needed"
-        : "not_uploaded";
+      : (association?.pendingUploads ?? []).some(
+            (pending) =>
+              pending.loopId === association?.loopId &&
+              pending.contentHash === document.contentHash,
+          )
+        ? "upload_unresolved"
+        : history.length
+          ? "successor_needed"
+          : "not_uploaded";
     return { ...document, status, latestUpload, history };
   });
 }
@@ -181,6 +206,8 @@ export const DOCUMENT_UPLOAD_STATUS_LABELS: Readonly<
   Record<DocumentUploadStatus, string>
 > = {
   uploaded_current: "This exact version is in the loop; its upload receipt is reused.",
+  upload_unresolved:
+    "An upload of this exact version is in progress or has no confirmed outcome. Check the loop in Dotloop; the app never sends this version again while its outcome is unknown.",
   successor_needed:
     "Changed since its last upload. Upload the reviewed successor; the earlier file stays in Dotloop for a person to retire.",
   not_uploaded: "Not uploaded to the loop yet.",

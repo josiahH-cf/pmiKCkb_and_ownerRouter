@@ -2379,11 +2379,44 @@ describe("S113 normal packet route through the actual S20 ledger and Dotloop HTT
     expect(Array.from(new Uint8Array(await downloaded.arrayBuffer()))).toEqual(
       Array.from(bytes),
     );
+    // S34 (AC-S34-1): an upload preview names its exact loop link. After staff correct and relink
+    // the loop, that preview is refused and a fresh preview prepares a new attempt.
+    const stale = await call({
+      kind: "preview",
+      operation: "document_upload",
+      documentRef: document.providerBindings!.dotloopDocumentRef,
+    });
+    const firstReview = await call({ kind: "loop_review", loopId: "loop-1" });
+    const firstCorrection = await call({
+      kind: "loop_unlink",
+      expectedLinkRevision: firstReview.expectedLinkRevision,
+      reason: "Fixture correction before the first upload",
+    });
+    await call({
+      kind: "loop_link",
+      loopId: "loop-1",
+      observationHash: firstReview.observationHash,
+      reason: "Reviewed fixture loop",
+      expectedLinkRevision: firstCorrection.association.linkRevision,
+      reuseAcrossCycles: false,
+    });
+    const staleConfirm = await packetRoute(
+      messageRequest({
+        leaseId: "701",
+        kind: "confirm",
+        executionId: stale.executionId,
+        previewHash: stale.previewHash,
+        reason: "Reviewed fixture exact file",
+      }),
+    );
+    expect(staleConfirm.status).toBe(409);
+    expect(fake.uploadAuthorizations).toHaveLength(0);
     const upload = await call({
       kind: "preview",
       operation: "document_upload",
       documentRef: document.providerBindings!.dotloopDocumentRef,
     });
+    expect(upload.executionId).not.toBe(stale.executionId);
     const uploaded = await call({
       kind: "confirm",
       executionId: upload.executionId,
@@ -2482,7 +2515,15 @@ describe("S113 normal packet route through the actual S20 ledger and Dotloop HTT
     const handoff = await readHandoff(
       new Request("http://local.test/api/lease-renewal/document-handoff?leaseId=701"),
     );
-    expect((await handoff.json()).attempts).toHaveLength(2);
+    // The create, the stale upload preview (never executed) and the upload.
+    const attempts = (await handoff.json()).attempts as Array<{
+      executionId: string;
+      state: string;
+    }>;
+    expect(attempts).toHaveLength(3);
+    expect(
+      attempts.find((attempt) => attempt.executionId === stale.executionId)?.state,
+    ).not.toBe("Succeeded");
     expect(messageTransport.creates).toBe(0);
     expect(mutations).toBe(0);
   });

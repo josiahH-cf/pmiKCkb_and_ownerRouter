@@ -15,6 +15,7 @@ import {
   planLoopCreationClaim,
   planUploadClaim,
   readLoopAssociationIn,
+  uploadClaimAction,
   writeClaimedAssociation,
 } from "./lease-document-loop-association";
 /** Before the existing S20 one-attempt claim, bind normal S34 actions to current packet, owner approval, mappings and selection. */
@@ -86,20 +87,20 @@ export async function assertCurrentPacketActionClaim(
   const association: LoopAssociation | null = targeted
     ? await readLoopAssociationIn(tx, db, leaseId)
     : null;
-  let holderExecuting = false;
-  const reservation = association?.folderReservation;
-  if (
-    targeted &&
-    !isCreate &&
-    association &&
-    !association.folder &&
-    reservation &&
-    reservation.executionId !== execution.id
-  )
-    holderExecuting =
-      (await tx.get(db.collection("action_executions").doc(reservation.executionId))).get(
-        "state",
-      ) === "Executing";
+  // The S20 states of the other attempts the association names: the folder holder and every
+  // pending upload. Read now, before any write.
+  const attemptStates: Record<string, string | null> = {};
+  if (targeted && !isCreate && association) {
+    const others = new Set(
+      [
+        ...(association.folder ? [] : [association.folderReservation?.executionId]),
+        ...(association.pendingUploads ?? []).map((entry) => entry.executionId),
+      ].filter((id): id is string => Boolean(id) && id !== execution.id),
+    );
+    for (const id of others)
+      attemptStates[id] =
+        (await tx.get(db.collection("action_executions").doc(id))).get("state") ?? null;
+  }
   // S66: the packet inputs, charge policy and Working terms the preview was evaluated from must be
   // unchanged at the claim; a preparation without them (before S66) keeps its original guards.
   const s66Changed = (
@@ -175,7 +176,7 @@ export async function assertCurrentPacketActionClaim(
           executionId: execution.id,
           actorUid,
           now,
-          holderExecuting,
+          attemptStates,
         });
   // Writes follow every read: the loop reservation commits with S20's one-attempt claim.
   const writeAssociation = () => {
@@ -184,7 +185,9 @@ export async function assertCurrentPacketActionClaim(
         tx,
         db,
         associationWrite,
-        isCreate ? "loop_creation_reserved" : "folder_creation_reserved",
+        isCreate
+          ? "loop_creation_reserved"
+          : uploadClaimAction(association!, associationWrite, execution.id),
         execution.id,
       );
   };

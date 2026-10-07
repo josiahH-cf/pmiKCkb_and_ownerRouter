@@ -45,8 +45,16 @@ export function DotloopPacketLinkPanel({
   refreshUnavailableReason?: string;
   staffReport?: StaffExecutionReport | null;
 }>) {
+  // A loop linked for an earlier renewal cycle is not this cycle's signing loop until its reuse
+  // is confirmed in the document handoff.
   const link =
-    association?.state === "current" && association.loopId ? association : null;
+    association?.state === "current" && association.loopId && association.currentCycle
+      ? association
+      : null;
+  const earlierCycle =
+    association?.state === "current" && association.loopId && !association.currentCycle
+      ? association
+      : null;
   const handoff = dotloopSignatureHandoff({ link, requiredSigners });
   const signatures = staffReport?.signatures;
   return (
@@ -99,6 +107,10 @@ export function DotloopPacketLinkPanel({
             </span>
           </li>
         </ul>
+      ) : earlierCycle ? (
+        <p className="muted">
+          {`The lease's linked loop ${earlierCycle.loopId} served an earlier renewal cycle. Confirm its reuse for this cycle in the document handoff before sending for signature.`}
+        </p>
       ) : (
         <p className="muted">This renewal packet has no receipted Dotloop loop.</p>
       )}

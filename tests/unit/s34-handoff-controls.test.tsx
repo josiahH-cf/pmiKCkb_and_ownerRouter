@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
+import { DotloopPacketLinkPanel } from "@/components/lease-renewal/DotloopPacketLinkPanel";
 import {
   cleanup,
   fireEvent,
@@ -87,6 +88,7 @@ const linked = {
     participantCount: 2,
   },
   documents: [uploaded],
+  pendingUploads: [],
 };
 
 describe("S34 loop choice and document versions", () => {
@@ -309,5 +311,24 @@ describe("S34 loop choice and document versions", () => {
         },
       ]),
     );
+  });
+
+  it("shows a loop linked for an earlier cycle as needing reuse, not as this cycle's signing loop", () => {
+    render(
+      <DotloopPacketLinkPanel
+        association={{ ...linked, currentCycle: false } as never}
+        requiredSigners={["Synthetic Tenant"]}
+      />,
+    );
+    expect(screen.getByText(/served an earlier renewal cycle/)).toBeTruthy();
+    expect(screen.queryByRole("link")).toBeNull();
+    cleanup();
+    render(
+      <DotloopPacketLinkPanel
+        association={linked as never}
+        requiredSigners={["Synthetic Tenant"]}
+      />,
+    );
+    expect(screen.getAllByRole("link").length).toBeGreaterThan(0);
   });
 });
