@@ -48,7 +48,7 @@ S54 adds deterministic coverage for the S51 assurance harness:
 - release fixtures cover wrong revision, traffic drift, role failure, browser diagnostics,
   reconciliation mismatch, monitoring unavailability, candidate 5xx, unresolved live effects,
   incomplete or single-checkpoint observation, exact five-minute success with two checkpoints and
-  already complete monitoring, minute-five through minute-seven ingestion grace, minute-seven hard
+  already complete monitoring, minute-five through minute-eight ingestion grace, minute-eight hard
   failure, exact-predecessor rollback, and rollback-only legacy lease-link compatibility;
 - receipt fixtures cover strict exact-key schemas, expiry, origin/commit/revision/configuration/
   predecessor binding, exclusive create-only paths, aggregate candidate gating, promotion readback,
@@ -118,9 +118,10 @@ deployment configuration.
 - **AC-S54-9** — Observation fixtures cannot pass at 299,999 ms and pass at 300,000 ms only with exact
   revision/traffic/configuration, the policy-required Admin manifest, matched reconciliation, complete corroborated
   monitoring, two successful full checkpoints, zero candidate 5xx, and zero unresolved live effects.
-  One checkpoint remains observing at minute five and requires rollback at minute seven. With monitoring configuration
-  ready, missing metric/log corroboration remains `observing` at 300,000 and 419,999 ms and is
-  `rollback_required` at 420,000 ms; unready configuration fails immediately.
+  One checkpoint remains observing at minute five and requires rollback at minute eight. With monitoring configuration
+  ready, missing metric/log corroboration remains `observing` at 300,000, 420,000 and 479,999 ms and
+  is `rollback_required` at 480,000 ms; unready configuration fails immediately (owner decision
+  2026-10-07; minute seven before).
 - **AC-S54-10** — A rollback result contains one distinct exact predecessor and no command, shell
   interpolation, latest alias, or inferred revision. Fixtures prove the legacy workspace-link
   fallback is available only in `phase=rollback`; candidate and post-promotion phases still require
@@ -156,7 +157,7 @@ No skipped gate by environment; no unbounded browser/emulator/poll wait; no brow
 the firewall; no Service Worker bypass; no success on partial, stale, or truncated output; no CI
 production session/secret/profile; no networked live test in CI; no golden file containing client
 data; no screenshot/DOM/raw diagnostic fixture presented as evidence; no performance shortcut that
-changes inventory; no monitoring wait beyond minute seven; and no local fixture result labeled a live
+changes inventory; no monitoring wait beyond minute eight; and no local fixture result labeled a live
 canary.
 
 **Ordered prompt sequence.**

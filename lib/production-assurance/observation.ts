@@ -4,7 +4,10 @@ import {
 } from "./release-browser-policy.mjs";
 import { hasBrowserDiagnostics } from "./browser-policy";
 import { routesForRole } from "./manifest";
-import { MONITORING_INGESTION_DELAY_MS } from "./runtime-observation";
+import {
+  MONITORING_INGESTION_DELAY_MS,
+  closedObservationInterval,
+} from "./runtime-observation";
 import type {
   AssuranceRole,
   MonitoringAssuranceEvidence,
@@ -19,6 +22,22 @@ export const IMMEDIATE_CHECKPOINT_GRACE_MS = 60_000;
 /** Earliest point at which the closed observation interval can have complete monitoring evidence. */
 export const POST_PROMOTION_EVIDENCE_READY_MS =
   POST_PROMOTION_OBSERVATION_MS + MONITORING_INGESTION_DELAY_MS;
+/**
+ * Fixed instant by which a post-promotion observation must decide. Owner decision 2026-10-07: the
+ * final checkpoint starts at minute five, and its thirteen routes, reconciliation and runtime reads
+ * finished at 396,797, 411,502 and 404,092 ms that day, so a minute-seven cutoff could roll back a
+ * healthy candidate on time alone. The added minute is only time to decide: the five-minute window,
+ * the ingestion delay and every route bound are unchanged, and missing evidence still hard-fails.
+ */
+export const POST_PROMOTION_DECISION_DEADLINE_MS =
+  POST_PROMOTION_EVIDENCE_READY_MS + 60_000;
+
+export function postPromotionDecisionDeadlineAtMs(promotionStartedAtMs: number): number {
+  return (
+    closedObservationInterval(promotionStartedAtMs, POST_PROMOTION_OBSERVATION_MS)
+      .startTimeMs + POST_PROMOTION_DECISION_DEADLINE_MS
+  );
+}
 
 export interface ReleaseObservationInput {
   readonly browserPolicy?: ReleaseBrowserPolicy;
@@ -44,7 +63,8 @@ export function evaluateReleaseObservation(
   const rollbackReasons: ObservationReason[] = [];
   const holdReasons: ObservationReason[] = [];
   const observationWindowComplete = input.elapsedMs >= POST_PROMOTION_OBSERVATION_MS;
-  const monitoringDeadlineReached = input.elapsedMs >= POST_PROMOTION_EVIDENCE_READY_MS;
+  const monitoringDeadlineReached =
+    input.elapsedMs >= POST_PROMOTION_DECISION_DEADLINE_MS;
   if (
     !validCheckpointSchedule(
       input.checkpointStartedOffsetsMs,
@@ -88,7 +108,7 @@ export function evaluateReleaseObservation(
     rollbackReasons.push("monitoring_unavailable");
   }
   // Metric/log ingestion can legitimately be incomplete after the five-minute interval closes.
-  // It becomes a hard failure at the fixed ingestion deadline; no absent series can pass the gate.
+  // It becomes a hard failure at the fixed decision deadline; no absent series can pass the gate.
   if (!input.monitoring.readComplete && monitoringDeadlineReached) {
     rollbackReasons.push("monitoring_unavailable");
   }

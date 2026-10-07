@@ -34,6 +34,7 @@ import {
   emptyReconciliationCounts,
   evaluateReleaseObservation,
   fingerprintRevisionRuntimeConfiguration,
+  postPromotionDecisionDeadlineAtMs,
   readVerifiedCloudRunOriginBinding,
   remainingAssuranceTime,
   requireRevisionConfigurationFingerprint,
@@ -66,7 +67,7 @@ import {
   type AuthenticatedAssuranceClient,
   type VerifiedProductionAssuranceContext,
 } from "./production-assurance-preflight";
-import { runProductionCanary } from "./run-production-canary";
+import { runProductionCanary, warmUpVersionRead } from "./run-production-canary";
 import { PredecessorExceptionObserver } from "../lib/production-assurance/predecessor-exception-observer";
 import { isApprovedPredecessor } from "../lib/production-assurance/predecessor-exception.mjs";
 import { runProductionReconciliation } from "./run-production-reconciliation";
@@ -217,10 +218,9 @@ export async function observeProductionRelease(
   const editorProfile = requiresEditorBrowser(browserPolicy)
     ? resolveNamedManagedProfile(argv, "--editor-profile")
     : null;
-  const observationDeadlineAtMs = closedObservationInterval(
+  const observationDeadlineAtMs = postPromotionDecisionDeadlineAtMs(
     observationTarget.promotionStartedAtMs,
-    POST_PROMOTION_OBSERVATION_MS,
-  ).readAfterMs;
+  );
   const deadline = createAssuranceDeadline(observationDeadlineAtMs);
   try {
     if (Date.now() >= observationDeadlineAtMs) {
@@ -395,10 +395,6 @@ export async function observeProductionRelease(
       (fullCheckpointPassed(finalAdmin, finalEditor, finalReconciliation, browserPolicy)
         ? 1
         : 0);
-    const monitoringDeadline = closedObservationInterval(
-      observationTarget.promotionStartedAtMs,
-      POST_PROMOTION_OBSERVATION_MS,
-    ).readAfterMs;
     let runtime = await readRuntimeSnapshot(
       target,
       observationTarget,
@@ -442,7 +438,7 @@ export async function observeProductionRelease(
         );
       }
       const nextRuntime = await pollObservationRuntimeSample({
-        deadlineAtMs: monitoringDeadline,
+        deadlineAtMs: observationDeadlineAtMs,
         abortSignal: deadline.signal,
         read: () =>
           readRuntimeSnapshot(
@@ -504,6 +500,10 @@ async function capturePredecessorBaseline(input: {
   readonly deadlineAtMs: number;
   readonly abortSignal: AbortSignal;
 }): Promise<PredecessorBaseline> {
+  // Owner decision 2026-10-07: after a rollback this origin serves a target that may be cold, and
+  // its first version read once took 32.4 s against the 30-second bound. One unmeasured read lets
+  // the instance start first; the bounded identity read below still decides.
+  await warmUpVersionRead(input.canonicalOrigin, input.deadlineAtMs, input.abortSignal);
   const version = await readProductionVersionIdentity(
     input.canonicalOrigin,
     input.service,
@@ -1300,7 +1300,7 @@ async function readRuntimeSnapshot(
   } catch {
     // Metric/log ingestion can be incomplete or temporarily unreadable while the independently
     // verified monitoring configuration remains ready. Preserve that distinction for the bounded
-    // minute-five-to-minute-seven grace.
+    // minute-five-to-minute-eight grace.
   }
   return { observedRevision, trafficPercent, configurationVerified, monitoring };
 }

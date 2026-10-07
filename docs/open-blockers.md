@@ -1,6 +1,6 @@
 # Unblock packet
 
-Last reconciled: 2026-10-07 (runs 5b5c850e and 87920129 released Dotloop PDF renewal v1; the company authorization and the bounded live connection check passed; template availability and resource selection are the owner's next step; other holds retain their recorded evidence).
+Last reconciled: 2026-10-07 (runs 5b5c850e and 87920129 released Dotloop PDF renewal v1; the company authorization and the bounded live connection check passed; template availability and resource selection are the owner's next step; the owner approved release warm-ups and a minute-eight observation deadline; other holds retain their recorded evidence).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only the effect named in its row. No hold blocks development,
@@ -247,32 +247,25 @@ These are engineering tasks with no owner step; none blocks a release.
   zero 5xx from any revision. If it recurs, the owner chooses between a longer immediate-checkpoint
   grace with a routing-convergence wait and static-asset skew protection; the 60 s grace and canary
   thresholds are owner decisions, so the runner does not change them.
-- **Cold recovery verification.** A rollback's verification reads the version on a target that may
-  be cold (32.4 s against a 30 s timeout in run 175fee1d). Warm the target with
-  `~/pmi-kc-work/scripts/diag-canary-phase.sh <label> <canonical origin> <commit> <revision>
-<fingerprint> rollback` until it passes, then `release-control.mjs --resume`.
-- **Cold first requests on new revisions (owner decision candidate).** All three fresh runs on
-  2026-10-05 (5d1b4e3a, 7753e5f5, 61659874) paused at recovery preparation: a new recovery instance
-  took 43.2, 33.0 and 48.1 s for its first Dashboard render against the 30-second route bound, with
-  every request answered 200. Run 61659874 also paused at the candidate smoke: the zero-traffic
-  candidate answered its first request, the correct sign-in redirect, in 43.8 s against the
-  30-second probe timeout (11.1 s on the two earlier candidates), in a window where a new instance
-  of already-released code took 15.6 s for its first version read against 4.7 and 6.4 s earlier.
-  Each time the request log confirmed the cause, read-only diagnostics passed on the then-warm
-  target and the same run resumed with nothing redispatched. Candidate change: have the runner send
-  one warm-up request to a new revision before its bounded checks. That changes what the 30-second
-  checks measure, and the bounds are owner decisions, so the runner changes neither. Until decided,
-  expect about ten minutes per pause: read the revision's request log, run
-  `~/pmi-kc-work/scripts/diag-recovery-canary.sh` or the candidate smoke by hand, then
-  `release-control.mjs --resume`.
-- **Observation margin.** Run 61659874's observation decided at 415,448 ms against the 420,000 ms
-  evidence deadline (390,684 ms in run 7753e5f5 the same day), with every route, all 318 records
-  and both checkpoints passing; its final thirteen-route check took 92.7 s against 82.8 s. Past the
-  deadline a healthy candidate rolls back. The deadline is an owner decision, so the runner does
-  not change it.
+- **Cold first requests (fallback only).** The release checks now warm a possibly cold revision
+  first (see Closed). If a check still fails on a cold start, read the revision's request log, run
+  `~/pmi-kc-work/scripts/diag-recovery-canary.sh`, the candidate smoke or
+  `~/pmi-kc-work/scripts/diag-canary-phase.sh` by hand, then `release-control.mjs --resume`.
 
 ## Closed
 
+- **Release warm-ups and the observation deadline (owner decision 2026-10-07).** Every fresh run
+  since 2026-10-01 paused once at recovery preparation (43.2, 33.0 and 48.1 s on 2026-10-05; 39.7,
+  39.1 and 56.5 s on 2026-10-07 for a new recovery instance's first Dashboard render against the
+  30-second bound), run 61659874 paused once at the candidate smoke (43.8 s), and a rollback
+  verification once read a cold version in 32.4 s. The candidate check passed only because the
+  sign-in check had already loaded its Dashboard. The owner approved read-only warm-ups: every
+  candidate, recovery preparation and rollback canary first sends one unmeasured version read and
+  loads the Dashboard once, unmeasured, under the same mutation firewall; the predecessor baseline
+  and the candidate smoke first send one unmeasured version read. The owner also moved the
+  observation's decision deadline from 420,000 to 480,000 ms: the final checkpoint had finished at
+  396,797, 411,502 and 404,092 ms that day. No route, read or probe bound changes (S51
+  AC-S51-10 and AC-S51-19).
 - **Release-check margin (2026-10-02).** Not a hold. Batch 004 made the canary's renewal desk wait
   out an admitted lease refresh started by the Dashboard; PR #119 restored the Dashboard's plain
   stale revalidation. Run 175fee1d's candidate rendered the desk in 4,524 ms (15.5 to 28.7 s in

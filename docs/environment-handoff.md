@@ -381,6 +381,15 @@ The completed run's clone `pmi-kc-app-recovery-47fabb7cb26b4032` passed preparat
 `55c77605-9945-4617-bfab-c160d6ff366a` issued at 2026-10-03T18:09:15.101Z.
 No traffic recovery occurred; prepared recovery is not a rollback verdict.
 
+Warm-ups (owner decision 2026-10-07). Every candidate, recovery preparation and rollback canary
+first sends one unmeasured version read and then loads the Dashboard once, unmeasured, inside the
+same guarded context; the predecessor baseline and the candidate smoke first send one unmeasured
+version read. New recovery instances had needed 39.1 to 56.5 s for their first Dashboard render
+against the 30-second route bound, so every fresh run paused at recovery preparation. A warm-up
+decides nothing and changes no bound or assertion. The post-promotion observation does not warm
+up. If a check still fails on a cold start, the request log and `--resume` procedure in
+`docs/open-blockers.md` still applies.
+
 ## Promotion and observation
 
 Promotion runs only inside the admitted watcher's exact promotion checkpoint. Immediately before
@@ -401,7 +410,9 @@ already-authorized exact receipt-bound recovery, but actual kernel lock and phas
 The watcher runs canonical observation with the bound promotion receipt, fingerprint, managed
 operator and explicit Admin profile. The observer rejects caller-supplied predecessor or promotion
 time. This batch's promotion verified at 2026-10-02T15:48:53.296Z; its observation passed
-with two checkpoints in 396,284 ms.
+with two checkpoints in 396,284 ms. Since the owner decision of 2026-10-07 the observation must
+decide by 480,000 ms after promotion (420,000 ms before); the five-minute window, the two-minute
+ingestion delay and every route bound are unchanged.
 
 The runner executes immediate and end-of-300,000-ms Admin canaries and reconciliation. It may
 wait only through the specified two-minute monitoring-ingestion grace. It emits a bodyless decision

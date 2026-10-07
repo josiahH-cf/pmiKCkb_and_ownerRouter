@@ -6,6 +6,13 @@
  */
 
 export const CANDIDATE_SMOKE_TIMEOUT_MS = 30_000;
+/**
+ * Owner decision 2026-10-07: a new candidate's first request can wait out its instance start (the
+ * correct sign-in redirect took 43.8 s on 2026-10-05, against 11.1 s on earlier candidates). One
+ * unmeasured version read absorbs that start first. Its outcome is ignored, and every probe below
+ * keeps its own 30-second bound and assertion.
+ */
+export const CANDIDATE_SMOKE_WARM_UP_TIMEOUT_MS = 90_000;
 
 export function validateCandidateBaseUrl(value, expectedTag, expectedService) {
   const url = new URL(value);
@@ -92,6 +99,7 @@ export async function smokeReleaseCandidate(
     expectedRevision,
     fetchFn = fetch,
     timeoutMs = CANDIDATE_SMOKE_TIMEOUT_MS,
+    warmUpTimeoutMs = CANDIDATE_SMOKE_WARM_UP_TIMEOUT_MS,
   } = {},
 ) {
   const origin = validateCandidateBaseUrl(baseUrl, expectedTag, expectedService);
@@ -113,6 +121,16 @@ export async function smokeReleaseCandidate(
       ...(readBody ? { body: await response.json() } : {}),
     };
   };
+  try {
+    const warmUp = await fetchFn(`${origin}/api/version`, {
+      method: "GET",
+      redirect: "manual",
+      signal: AbortSignal.timeout(warmUpTimeoutMs),
+    });
+    await warmUp.body?.cancel?.();
+  } catch {
+    // The warm-up has no verdict; the bounded probes below decide.
+  }
   const results = {
     root: await probe("/"),
     signIn: await probe("/sign-in"),

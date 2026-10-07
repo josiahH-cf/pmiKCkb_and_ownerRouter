@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  POST_PROMOTION_EVIDENCE_READY_MS,
+  POST_PROMOTION_DECISION_DEADLINE_MS,
   serializeProductionAssuranceEvidence,
 } from "../../lib/production-assurance";
 
@@ -82,7 +82,7 @@ describe("production observation command contract", () => {
       },
       predecessorRevision,
       promotionStartedAtMs: 0,
-      nowMs: POST_PROMOTION_EVIDENCE_READY_MS,
+      nowMs: POST_PROMOTION_DECISION_DEADLINE_MS,
     });
 
     expect(report).toMatchObject({
@@ -101,7 +101,7 @@ describe("production observation command contract", () => {
   it("never starts another runtime read when the final poll meets the fixed cutoff", async () => {
     vi.useFakeTimers();
     try {
-      const cutoffAtMs = 420_000;
+      const cutoffAtMs = POST_PROMOTION_DECISION_DEADLINE_MS;
       vi.setSystemTime(cutoffAtMs - 1);
       const controller = new AbortController();
       const read = vi.fn(async () => ({ forbiddenProviderBody: "secret" }));
