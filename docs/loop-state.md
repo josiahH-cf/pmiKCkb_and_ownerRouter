@@ -8,10 +8,13 @@ IN PROGRESS: dotloop-pdf-renewal-v1-2026-10, intake 050-054 (S106, S66, S130, S3
 owner's 2026-10-06 execution instruction: implementation, verification, mainline delivery and
 release through the existing process, plus the bounded company connection, callback and scope
 check. Finalized spec revisions are committed (`d5478673`); private reference PDFs stay ignored.
-First release: the S106 connection slice, so the registered callback can be checked. Next: the
-bounded live connection check, then S182 access/AI boundaries, S66 terms, S130 PDF filling and S34
-handoff in the second release. Both Dotloop write keys stay closed; no loop, upload, signature
-send, demo or activation is authorized.
+First release: the S106 connection slice, merged in PR #138 at `19f343b8` (exact-main CI
+37562455334 passed). Its deployment waits on owner WSL reauthentication: gcloud and ADC refresh
+both require an interactive reauth. Recovery step: in the WSL repo run
+`npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com`. Second release, implemented
+on `claude/dotloop-pdf-renewal-v1-r2` and held until the connection slice is released and checked:
+S182 access/AI boundaries, S66 packet inputs, S130 static PDF filling and S34 loop handoff. Both
+Dotloop write keys stay closed; no loop, upload, signature send, demo or activation is authorized.
 
 Previous: batch 005 COMPLETE. Serving e8bc616d144c6600da8394313153e1a0c75659da /
 pmi-kc-app-rmuvf58nk-d45b8bc5347d, 100% traffic, run 61659874-478d-4135-9810-5033b2f732bf,
@@ -41,6 +44,15 @@ with production cold and warm timings.
    generation-bound readiness and the mounted resource picker, a bounded shared transport,
    single-flight refresh, honest quarantined-disconnect receipts, and the S182 removal of Dotloop
    verdicts from AI context.
+2. S182 `a47d5a4d`: staff packet operations and Dotloop-origin AI exclusion.
+3. S66 `f9085358`, `3481a43f`: packet inputs entered once, with owner approval bound to the
+   Working terms.
+4. S130 `acb935a8`: static PDF filling through reviewed regions and unchanged-attachment labels.
+5. S34 `4fb777c7`: one lease loop created or linked, versioned successor uploads, a durable
+   folder and staff-reported completion.
+
+Items 2-5 ride the second release, after item 1 is released and its connection check runs; admit
+them only from their own exact-main CI with a new run-bound permit.
 
 OWNER DIRECTION, 2026-10-06: the Dotloop PDF renewal v1 execution prompt (handoff
 dotloop-pdf-renewal-v1-2026-10) authorizes this delivery. The runtime receives the reviewed Dotloop
