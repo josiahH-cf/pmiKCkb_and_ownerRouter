@@ -9,11 +9,15 @@ import {
   refuseVerificationWrite,
 } from "@/lib/assistant-history/route-support";
 import {
+  accessNarrowedSince,
+  projectStoredAssistantAnswer,
+} from "@/lib/assistant-history/stored-answer";
+import {
   conversationActorKey,
   runStoredPlan,
   storedPlanSupport,
 } from "@/lib/assistant/conversation";
-import { requireCapability } from "@/lib/auth/session";
+import { requireCapability, type AuthenticatedUser } from "@/lib/auth/session";
 import { EditableLayerError } from "@/lib/errors/editable-layer-error";
 import { recordRerunTurn } from "@/lib/firestore/assistant-history";
 import {
@@ -44,11 +48,14 @@ interface RouteContext {
 }
 
 function respond(
+  user: AuthenticatedUser,
   saved: SavedQuestionRecord,
   turn: StoredTurnRecord,
   replayed: boolean,
 ): NextResponse {
   const item = toSavedQuestionView(saved);
+  // A replayed run is a reopening: the viewer's current access applies, as in the history view. A
+  // run made just now was produced under that same access and is returned unchanged.
   return NextResponse.json(
     {
       conversationId: turn.conversation_id,
@@ -59,11 +66,14 @@ function respond(
         seq: turn.seq,
         question: turn.question,
         displayState: turn.state === "completed" ? "completed" : "failed",
-        assistant: turn.state === "completed" ? turn.assistant : null,
+        assistant:
+          turn.state === "completed" && turn.assistant
+            ? projectStoredAssistantAnswer(turn.assistant, turn.access_basis, user)
+            : null,
         knowledge: null,
         answeredAtIso: turn.answered_at,
         createdAtIso: turn.created_at,
-        accessChanged: false,
+        accessChanged: accessNarrowedSince(turn.access_basis, user),
         rerunOf: turn.rerun_of ?? null,
       },
       item:
@@ -107,7 +117,7 @@ export async function POST(request: Request, context: RouteContext) {
     const recorded = await readTurnByOperation(user, operationId);
     if (recorded && recorded.rerun_of === savedId && recorded.state === "completed") {
       logHistoryOperation("run", "ok", { replayed: true, executed: false });
-      return respond(saved, recorded, true);
+      return respond(user, saved, recorded, true);
     }
 
     const { promise, joined } = runOncePerOperation(
@@ -142,7 +152,7 @@ export async function POST(request: Request, context: RouteContext) {
         (group) => group.status !== "ok",
       ),
     });
-    return respond(saved, written.record, joined || !written.created);
+    return respond(user, saved, written.record, joined || !written.created);
   } catch (error) {
     logHistoryOperation("run", error instanceof EditableLayerError ? "refused" : "error");
     return apiErrorResponse(error);

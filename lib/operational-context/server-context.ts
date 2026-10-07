@@ -8,13 +8,12 @@ import { buildNeedsDecisionInbox } from "@/lib/approval/needs-decision-inbox";
 import { canViewApprovalQueueItem } from "@/lib/approval/queue";
 import { buildRenewalReviewBoard } from "@/lib/approval/renewal-review";
 import { buildWritebackApprovalQueue } from "@/lib/approval/writeback-approval-queue";
+import { connectionViewForAiContext } from "@/lib/ai-boundary/dotloop-origin";
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import {
   buildConnectionView,
-  projectConnectorConnection,
   type ConnectorConnectionView,
 } from "@/lib/connections/connection-status";
-import { can } from "@/lib/auth/roles";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
 import { getVerifiedConnectorIdsForAiContext } from "@/lib/connections/verification";
 import { getAdminFirestore } from "@/lib/firestore/admin";
@@ -175,13 +174,14 @@ export function createServerOperationalContext(
       }
       let connections = new Map<string, ConnectorConnectionView>();
       try {
-        const canManage = can(user.role, "manageAdmin");
         if (recordsResult.status === "rejected") throw recordsResult.reason;
-        const records = recordsResult.value;
+        // S182: each record reaches the assistant as the app's own lifecycle status only. Dotloop's
+        // token refresh outcome and revocation evidence are provider-derived, like its live
+        // verdict, and the view is the same for every role.
         connections = new Map(
-          records.map((record) => [
+          recordsResult.value.map((record) => [
             record.connectorId,
-            projectConnectorConnection(record, canManage),
+            connectionViewForAiContext(record),
           ]),
         );
       } catch (error) {

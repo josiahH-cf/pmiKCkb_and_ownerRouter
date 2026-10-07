@@ -4,10 +4,12 @@
 // The boundary is decided by source, never by comparing values. The application keeps Dotloop API
 // data only in the stores listed in DOTLOOP_API_ORIGIN_STORES, and the assistant's context reads
 // none of them except through the source-side views in this module: the renewal read takes each
-// packet without its provider execution projection (`packetSnapshotForAiContext`). That
-// source-side removal is what keeps loop names, participants, statuses and document names away
-// from the assistant. A value independently obtained from RentVine, the approved Sheet or a staff
-// entry keeps its own PMI origin even when Dotloop holds an equal value, so it stays usable.
+// packet without its provider execution projection (`packetSnapshotForAiContext`), and the
+// connection read takes each app-held connection record as the app's own lifecycle status only
+// (`connectionViewForAiContext`), with no provider-derived verdict or outcome. That source-side
+// removal is what keeps loop names, participants, statuses and document names away from the
+// assistant. A value independently obtained from RentVine, the approved Sheet or a staff entry keeps
+// its own PMI origin even when Dotloop holds an equal value, so it stays usable.
 //
 // Saved AI history adds one narrow, structural defense for text that reached an answer some other
 // way (`assistantAnswerForHistory`, `knowledgeAnswerForHistory`): the address of a Dotloop
@@ -24,6 +26,8 @@ import type {
   StoredAssistantAnswer,
   StoredKnowledgeAnswer,
 } from "@/lib/assistant-history/stored-answer";
+import type { ConnectorConnectionView } from "@/lib/connections/connection-status";
+import type { ConnectorConnectionRecord } from "@/lib/connections/connector-connection";
 import type { RenewalPacketSnapshot } from "@/lib/lease-documents/packet-types";
 
 /**
@@ -69,6 +73,24 @@ export function packetSnapshotsForAiContext(
       packetSnapshotForAiContext(snapshot),
     ]),
   );
+}
+
+/** Connectors whose app-held record also carries outcomes derived from provider responses. */
+const PROVIDER_OUTCOME_CONNECTORS: ReadonlySet<string> = new Set(["dotloop"]);
+
+/**
+ * The AI-context view of one app-held connection record: the app's own lifecycle status only
+ * (connected, disconnecting or disconnected). Dotloop's token refresh outcome and its revocation
+ * evidence come from Dotloop responses, so they are withheld, the same way the provider-derived
+ * live verdict is. The view never depends on the reader's role, so a saved answer holds only what
+ * every reader may see.
+ */
+export function connectionViewForAiContext(
+  record: Pick<ConnectorConnectionRecord, "connectorId" | "status">,
+): ConnectorConnectionView {
+  return PROVIDER_OUTCOME_CONNECTORS.has(record.connectorId)
+    ? { status: record.status, providerOutcomes: "withheld" }
+    : { status: record.status };
 }
 
 /**
