@@ -1,7 +1,11 @@
+import { inflateSync } from "node:zlib";
 import { PDFArray, PDFDocument, PDFName, PDFString } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 
-import { staticGeometryIssues } from "@/lib/lease-documents/artifact-intake-contract";
+import {
+  StaticPdfGeometrySchema,
+  staticGeometryIssues,
+} from "@/lib/lease-documents/artifact-intake-contract";
 import {
   fillStaticPdf,
   formatStaticValue,
@@ -210,7 +214,7 @@ describe("S130 static PDF filling (AC-S130-11, AC-S130-12, AC-S130-13)", () => {
     ).rejects.toThrow(/characters the approved font cannot show/);
   });
 
-  it("refuses map geometry that overlaps, touches a protected area, leaves a slot gap or fills a rotated page", () => {
+  it("refuses map geometry that overlaps, touches a protected area, leaves a slot gap or is too narrow across a rotated page", () => {
     const base = {
       pages: [
         { pageIndex: 0, width: 612, height: 792, rotation: 90 as const, cropBox: null },
@@ -247,13 +251,33 @@ describe("S130 static PDF filling (AC-S130-11, AC-S130-12, AC-S130-13)", () => {
         },
       ],
     };
+    // On a page displayed a quarter turn, a value stands across the region's width.
+    base.regions.push({
+      regionId: "C",
+      fieldId: "Other",
+      slot: 0,
+      pageIndex: 0,
+      rect: { x: 400, y: 400, width: 8, height: 100 },
+      format: "text" as const,
+      fontSize: 10,
+      align: "left" as const,
+      existing: "blank" as const,
+    });
     const issues = staticGeometryIssues(
-      { fields: [{ fieldId: "Party", multiplicity: "per_party" }] },
+      {
+        fields: [
+          { fieldId: "Party", multiplicity: "per_party" },
+          { fieldId: "Other", multiplicity: "single" },
+        ],
+      },
       base,
+    );
+    expect(issues).not.toEqual(
+      expect.arrayContaining([expect.stringMatching(/A: the region is shorter/)]),
     );
     expect(issues).toEqual(
       expect.arrayContaining([
-        expect.stringMatching(/A: page 1 is rotated/),
+        "C: the region is shorter than its text size.",
         "A and B overlap.",
         "A overlaps a protected signature area.",
         "Party: repeat slots must run 0, 1, 2 without a gap.",
@@ -292,5 +316,57 @@ describe("S130 static PDF filling (AC-S130-11, AC-S130-12, AC-S130-13)", () => {
     expect(
       await readStaticPdfValuesByOrder(filled.content, [...order].reverse()),
     ).not.toEqual(filled.comparison.allFields);
+  });
+
+  it("sets a value upright on a rotated page and fits it along the region's on-screen length", async () => {
+    const rotated = await staticOriginal({ rotate: true });
+    const rotatedGeometry = (rect: {
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    }) =>
+      StaticPdfGeometrySchema.parse({
+        pages: [{ pageIndex: 0, width: 612, height: 792, rotation: 90, cropBox: null }],
+        regions: [
+          {
+            regionId: "Note",
+            fieldId: "Note",
+            slot: 0,
+            pageIndex: 0,
+            rect,
+            format: "text",
+            fontSize: 10,
+            align: "left",
+            existing: "blank",
+          },
+        ],
+        protectedRegions: [],
+      });
+    // Displayed a quarter turn clockwise, an on-screen line is a vertical strip in user space.
+    const strip = rotatedGeometry({ x: 300, y: 250, width: 16, height: 160 });
+    expect(await validateStaticGeometry(rotated, strip)).toEqual([]);
+    const filled = await fillStaticPdf(rotated, strip, [
+      { regionId: "Note", text: "SYNTHETIC note" },
+    ]);
+    expect(await readStaticPdfValues(filled.content, strip)).toEqual({
+      Note: "SYNTHETIC note",
+    });
+    const reopened = await PDFDocument.load(filled.content);
+    const contents = reopened.getPage(0).node.lookup(PDFName.of("Contents"), PDFArray);
+    const last = reopened.context.lookup(contents.get(contents.size() - 1));
+    const text = Buffer.from(
+      inflateSync(Buffer.from((last as unknown as { contents: Uint8Array }).contents)),
+    ).toString("latin1");
+    // Turned counter to the page rotation, starting at the strip's on-screen left edge.
+    expect(text).toMatch(/0\.000 1\.000 -1\.000 0\.000 \d+\.\d{3} 250\.000 Tm/);
+    // A wide, short user-space box is only 16 points long on screen: the value overflows.
+    await expect(
+      fillStaticPdf(
+        rotated,
+        rotatedGeometry({ x: 300, y: 250, width: 160, height: 16 }),
+        [{ regionId: "Note", text: "SYNTHETIC note" }],
+      ),
+    ).rejects.toThrow(/overflow its region/);
   });
 });

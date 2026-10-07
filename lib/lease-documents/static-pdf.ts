@@ -990,6 +990,42 @@ export interface StaticRegionValue {
   text: string;
 }
 
+/** A region's on-screen reading length and height on a page displayed with this rotation. */
+function screenExtent(rect: RegionRect, rotation: number) {
+  return rotation % 180 === 0
+    ? { along: rect.width, across: rect.height }
+    : { along: rect.height, across: rect.width };
+}
+
+/**
+ * The text matrix that sets a value upright on screen inside its region. `/Rotate` turns the
+ * displayed page clockwise, so the text is turned the opposite way in user space; the region's
+ * on-screen left and bottom edges then decide where it starts and where its baseline sits.
+ */
+function textMatrix(
+  rect: RegionRect,
+  rotation: number,
+  align: "left" | "center" | "right",
+  width: number,
+  fontSize: number,
+): [number, number, number, number, number, number] {
+  const { along, across } = screenExtent(rect, rotation);
+  const offset =
+    align === "left" ? 0 : align === "center" ? (along - width) / 2 : along - width;
+  const lift = (across - fontSize * 0.72) / 2;
+  const { x, y, width: w, height: h } = rect;
+  switch (rotation) {
+    case 90:
+      return [0, 1, -1, 0, x + w - lift, y + offset];
+    case 180:
+      return [-1, 0, 0, -1, x + w - offset, y + h - lift];
+    case 270:
+      return [0, -1, 1, 0, x + lift, y + h - offset];
+    default:
+      return [1, 0, 0, 1, x + offset, y + lift];
+  }
+}
+
 function neutralReplacement(run: TextRun): string {
   const unit = run.fontSize * run.horizontalScale;
   const adjust = unit === 0 ? 0 : (-run.advance * 1000) / unit;
@@ -1075,6 +1111,8 @@ export async function fillStaticPdf(
   const { plans, issues } = await planPages(pdf, geometry);
   if (issues.length) refuse(issues.join(" "));
   const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const rotationOf = (pageIndex: number) =>
+    geometry.pages.find((page) => page.pageIndex === pageIndex)?.rotation ?? 0;
   // Every value is checked before anything is drawn: glyphs, width and height in its region.
   const drawn: Array<{
     index: number;
@@ -1095,11 +1133,14 @@ export async function fillStaticPdf(
         `${region.regionId}: the value has characters the approved font cannot show.`,
       );
     }
-    if (font.widthOfTextAtSize(text, region.fontSize) > region.rect.width + 0.01)
+    // On a rotated page the value reads upright on screen, so it runs along the region's
+    // on-screen length and stands across its on-screen height.
+    const { along, across } = screenExtent(region.rect, rotationOf(region.pageIndex));
+    if (font.widthOfTextAtSize(text, region.fontSize) > along + 0.01)
       refuse(
         `${region.regionId}: the value would overflow its region. An approved form with room for it is required.`,
       );
-    if (region.fontSize > region.rect.height)
+    if (region.fontSize > across)
       refuse(`${region.regionId}: the text is taller than its region.`);
     drawn.push({ index, region, text, encoded });
   });
@@ -1151,15 +1192,15 @@ export async function fillStaticPdf(
     for (const entry of drawn.filter((item) => item.region.pageIndex === pageIndex)) {
       const { region, text } = entry;
       const width = font.widthOfTextAtSize(text, region.fontSize);
-      const x =
-        region.align === "left"
-          ? region.rect.x
-          : region.align === "center"
-            ? region.rect.x + (region.rect.width - width) / 2
-            : region.rect.x + region.rect.width - width;
-      const y = region.rect.y + (region.rect.height - region.fontSize * 0.72) / 2;
+      const matrix = textMatrix(
+        region.rect,
+        rotationOf(pageIndex),
+        region.align,
+        width,
+        region.fontSize,
+      );
       lines.push(
-        `/${FILL_TAG} <</R ${entry.index}>> BDC BT /${fontKey} ${region.fontSize} Tf 0 g 1 0 0 1 ${x.toFixed(3)} ${y.toFixed(3)} Tm <${hex(entry.encoded)}> Tj ET EMC`,
+        `/${FILL_TAG} <</R ${entry.index}>> BDC BT /${fontKey} ${region.fontSize} Tf 0 g ${matrix.map((value) => value.toFixed(3)).join(" ")} Tm <${hex(entry.encoded)}> Tj ET EMC`,
       );
     }
     lines.push("Q");

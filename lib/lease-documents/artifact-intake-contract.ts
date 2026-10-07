@@ -276,10 +276,6 @@ export function staticGeometryIssues(
       issues.push(`${region.regionId}: page ${region.pageIndex + 1} is not described.`);
       continue;
     }
-    if (page.rotation !== 0)
-      issues.push(
-        `${region.regionId}: page ${region.pageIndex + 1} is rotated; only upright pages are filled. Use an approved upright clean master.`,
-      );
     const [x0, y0, x1, y1] = page.cropBox ?? [0, 0, page.width, page.height];
     if (
       region.rect.x < x0 ||
@@ -288,7 +284,9 @@ export function staticGeometryIssues(
       region.rect.y + region.rect.height > y1
     )
       issues.push(`${region.regionId}: the region extends past the visible page.`);
-    if (region.rect.height < region.fontSize)
+    // On a page displayed rotated by a quarter turn, the value stands across the region's width.
+    const across = page.rotation % 180 === 0 ? region.rect.height : region.rect.width;
+    if (across < region.fontSize)
       issues.push(`${region.regionId}: the region is shorter than its text size.`);
   }
   for (const [index, left] of geometry.regions.entries())
