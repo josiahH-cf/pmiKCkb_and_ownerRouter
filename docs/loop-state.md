@@ -14,8 +14,8 @@ Second release DONE: run 87920129-23c0-4420-a787-13036029d6f8 released S182, S66
 Live connection check PASSED 2026-10-07T12:51Z: owner authorization through the registered callback,
 provider-reported scopes `account:*`, `profile:*`, `loop:*`, `contact:*` and `template:*`; the individual profile lists
 no templates yet, so resource selection (B-DL2) waits on the owner.
-Follow-up (owner's 2026-10-07 unblock request): the two S130 stale-value limits the second
-release recorded are fixed and queued below as a third release.
+Third release DONE (owner's 2026-10-07 unblock request): run 5622decd-0a6d-479a-bb75-545ba4aa0069 released the
+S130 stale-value follow-up at 5ee574b2fba81c83fa63086496d7f2ebb299268c / pmi-kc-app-rmuybjtnr-f43dfa3d6d26, 100% traffic, exact-main CI 37650289798.
 Both Dotloop write keys stay closed; no loop, upload, signature send, demo or activation is
 authorized.
 
@@ -41,39 +41,35 @@ with production cold and warm timings.
 
 ## Awaiting release
 
-1. S130 `a090eee4`, `fef53994`: replacement text that a structure element gives a filled
-   value is refused, and an unfilled single AcroForm field holding an earlier value is cleared.
-
-OWNER DIRECTION, 2026-10-06: the Dotloop PDF renewal v1 execution prompt (handoff
-dotloop-pdf-renewal-v1-2026-10) authorizes this delivery; on 2026-10-07 the owner asked to
-unblock the remaining work. Runs 5b5c850e and 87920129 delivered the bundle; this release closes
-the two S130 limits they recorded. Admit only after exact main CI on the release head, fresh
-prerequisites and a new run-bound permit. Both Dotloop write keys stay closed; no provider
-effect, key or activation is queued. Assurance stays read-only.
+None. OWNER DIRECTION, 2026-10-06: the Dotloop PDF renewal v1 execution prompt (handoff
+dotloop-pdf-renewal-v1-2026-10) authorized this delivery. Run 5622decd-0a6d-479a-bb75-545ba4aa0069 delivered
+the S130 stale-value follow-up (`a090eee4`, `fef53994`, PR #143) at 5ee574b2fba81c83fa63086496d7f2ebb299268c. The exact permit is consumed.
+Both Dotloop write keys stay closed; no provider effect, key or activation was queued.
+Documentation-only closure does not deploy.
 
 ## Verified release and recovery
 
-One application build e4e49e3b-6c34-447d-a821-b5f693c75c68 succeeded 2026-10-07T13:10:08.492195Z.
-Candidate receipt 3d237be5-466c-44d3-9f52-6d0279892d3e, issued 2026-10-07T13:16:06.983Z;
-promotion verified 2026-10-07T13:16:30.578Z. Candidate assurance and reconciliation passed.
-Observation passed two full checkpoints in 411502 ms against the required 300,000 ms,
+One application build 04aa8ba1-ad4a-4e28-bfac-a31ce7749591 succeeded 2026-10-07T16:42:38.866837Z.
+Candidate receipt 557430e6-5783-4611-998f-f3985d2fc3fd, issued 2026-10-07T16:49:05.818Z;
+promotion verified 2026-10-07T16:49:29.564Z. Candidate assurance and reconciliation passed.
+Observation passed two full checkpoints in 404092 ms against the required 300,000 ms,
 inside the 420,000 ms deadline; all 318 source/projected/rendered records matched,
 zero discrepancies/candidate 5xx/unresolved effects. Eleven independent readbacks matched,
-completed 2026-10-07T13:23:29Z.
-Tag cand-rmuy3zv4l-6f09e67bd41a; fingerprint
-sha256:c5f8019f1d9c639ce453ae5fcca338cd01e447457b51cebd28e2b10f6b5ed12a.
+completed 2026-10-07T16:56:28Z.
+Tag cand-rmuybjtnr-f43dfa3d6d26; fingerprint
+sha256:82a673b69c94d338e03c1ae56bf761f55cbfab6b292dcc2d4f23e66062211ed5.
 Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=true verified; the reviewed
 Dotloop client configuration and Secret Manager binding read back by name.
 
-Actual captured predecessor 63ed175205621b5886a1339c5608428f5f951eb0 /
-pmi-kc-app-rmuy0dupk-d13d423ba53c, Sheet=true (S106 connection slice, run 5b5c850e). Run-bound recovery
-pmi-kc-app-recovery-8792012923c04420, same fingerprint/configuration and actual true switch;
-receipt e7dec18c-d56a-456e-b3e7-46708ddbfd33, reference hash
-sha256:967c7519c3662a1e19c9952ced91b22b2561f90b17494ca974f60faf74d8be78. No traffic rollback occurred.
+Actual captured predecessor 755009bae534cb2699789c1cfd07fa79aad8f94a /
+pmi-kc-app-rmuy3zv4l-6f09e67bd41a, Sheet=true (Dotloop v1 second release, run 87920129). Run-bound recovery
+pmi-kc-app-recovery-5622decd0a6d479a, same fingerprint/configuration and actual true switch;
+receipt e99c907c-bfa3-4d6b-b9f0-2afc457fdb35, reference hash
+sha256:e9c33920f14bd2f471d1b43eebdcfa72a0393013a8007ae2fbcf1d8cbde29e1b. No traffic rollback occurred.
 Initial recovery aggregate assurance failed before the application build: the new recovery
-instance took 39.1 s for its first Dashboard render against the 30-second route bound, with every
+instance took 56.5 s for its first Dashboard render against the 30-second route bound, with every
 request answered 200. A separate guarded 13-route diagnostic passed with zero errors or mutation
-attempts, then the same run resumed and recovery assurance passed at 2026-10-07T13:03:13.726Z.
+attempts, then the same run resumed and recovery assurance passed at 2026-10-07T16:35:33.206Z.
 
 ## Feedback and accepted distinctions
 
