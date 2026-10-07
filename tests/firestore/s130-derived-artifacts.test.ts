@@ -46,7 +46,14 @@ import {
   getActionExecution,
 } from "@/lib/firestore/action-executions";
 import { readAcroformValues } from "@/lib/lease-documents/acroform-pdf";
-import { readyS66Input } from "@/tests/fixtures/s66-packet";
+import { readyS66Input, s66Fact } from "@/tests/fixtures/s66-packet";
+import { geometry, staticOriginal } from "@/tests/fixtures/synthetic-static";
+import { ArtifactFieldMapSchema } from "@/lib/lease-documents/artifact-intake-contract";
+import {
+  STATIC_ADAPTER,
+  inspectStaticPdf,
+  readStaticPdfValuesByOrder,
+} from "@/lib/lease-documents/static-pdf";
 import { syntheticAcroform } from "@/tests/fixtures/synthetic-acroform";
 
 const projectId = "pmi-kc-kb-s130-derived-test";
@@ -84,7 +91,13 @@ afterAll(async () => {
   await testEnv.cleanup();
 });
 const op = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-async function fixture(originalOverride?: Uint8Array) {
+async function fixture(
+  originalOverride?: Uint8Array,
+  configure?: (
+    input: ReturnType<typeof readyS66Input>,
+    artifact: ReturnType<typeof readyS66Input>["catalog"]["artifacts"][number],
+  ) => void,
+) {
   const original = originalOverride ?? (await syntheticAcroform(["Amount"])),
     content = new FirestorePublicationContentStore(db);
   const originalHash = createHash("sha256").update(original).digest("hex");
@@ -127,10 +140,18 @@ async function fixture(originalOverride?: Uint8Array) {
         required: true,
         location: "Human signature",
       },
+      // S66: one reviewed signature slot per verified tenant in the shared fixture.
+      {
+        signerRole: "tenant" as const,
+        participantKind: "tenant" as const,
+        required: true,
+        location: "Second human signature",
+      },
     ],
     reviewNote: "SYNTHETIC only",
   };
   artifact.fillMapping = { map, mapHash: mapHashOf(map), intakeRevision: 3 };
+  configure?.(input, artifact);
   const snapshot = await savePacketSnapshot(
     actor,
     { evaluation: evaluateRenewalPacket(input), expectedCurrentSnapshotId: null },
@@ -509,6 +530,107 @@ describe("S130 actual Firestore derived byte ownership", () => {
       1,
     );
   });
+  it("persists, approves and downloads an exact static output through the real content store (AC-S130-8/11)", async () => {
+    const original = await staticOriginal();
+    const regions = await geometry(original);
+    const t = await fixture(original, (input, artifact) => {
+      input.facts.push(
+        s66Fact("party.fixture-tenant-a.name", "Synthetic A"),
+        s66Fact("party.fixture-tenant-b.name", "Synthetic B"),
+        s66Fact("renewal.synthetic_rent_cents", 95_000),
+      );
+      const map = ArtifactFieldMapSchema.parse({
+        ...artifact.fillMapping!.map,
+        fields: [
+          {
+            fieldId: "TenantName",
+            factKey: "party.name",
+            meaning: "SYNTHETIC tenant name",
+            required: true,
+            multiplicity: "per_party",
+            allowedSourceSystems: ["rentvine"],
+          },
+          {
+            fieldId: "Rent",
+            factKey: "renewal.synthetic_rent_cents",
+            meaning: "SYNTHETIC rent",
+            required: true,
+            multiplicity: "single",
+            allowedSourceSystems: ["rentvine"],
+          },
+          {
+            fieldId: "Effective",
+            factKey: "renewal.synthetic_effective_date",
+            meaning: "SYNTHETIC effective date",
+            required: false,
+            multiplicity: "single",
+            allowedSourceSystems: ["rentvine"],
+          },
+        ],
+        static: {
+          ...regions,
+          regions: [
+            ...regions.regions.map((region) =>
+              region.regionId === "Rent" ? { ...region, format: "money_cents" } : region,
+            ),
+            {
+              regionId: "TenantName1",
+              fieldId: "TenantName",
+              slot: 1,
+              pageIndex: 0,
+              rect: { x: 300, y: 596, width: 200, height: 16 },
+              format: "text",
+              fontSize: 11,
+              align: "left",
+              existing: "blank",
+            },
+          ],
+        },
+      });
+      artifact.fillMapping = { map, mapHash: mapHashOf(map), intakeRevision: 4 };
+    });
+    const prepared = await prepareDerivedArtifact(actor, t.prepare, db, t.deps);
+    expect(prepared.adapter).toBe(STATIC_ADAPTER);
+    const approved = await approveDerivedArtifact(
+      actor,
+      {
+        ...t.identity,
+        action: "approve",
+        operationId: op(90),
+        derivedId: prepared.id,
+        outputHash: prepared.outputHash,
+        inspected: true,
+      },
+      db,
+      { ...t.deps, content: new FirestorePublicationContentStore(db) },
+    );
+    const downloaded = await readDerivedArtifactContent(
+      actor,
+      { ...t.identity, derivedId: approved.id, requireApproval: true },
+      db,
+      { ...t.deps, content: new FirestorePublicationContentStore(db) },
+    );
+    expect(createHash("sha256").update(downloaded.content).digest("hex")).toBe(
+      prepared.outputHash,
+    );
+    expect(
+      await readStaticPdfValuesByOrder(
+        downloaded.content,
+        approved.comparison.regionOrder!,
+      ),
+    ).toEqual({
+      TenantName: "Synthetic A",
+      Rent: "$950.00",
+      Effective: "",
+      TenantName1: "Synthetic B",
+    });
+    const texts = (await inspectStaticPdf(downloaded.content)).runs.map(
+      (run) => run.text,
+    );
+    expect(texts).not.toContain("Old Tenant Name");
+    expect(texts).not.toContain("$900.00");
+  });
+
   it("keeps derived records, heads and publication bytes closed to direct clients", async () => {
     const client = testEnv
       .authenticatedContext("synthetic-admin", {

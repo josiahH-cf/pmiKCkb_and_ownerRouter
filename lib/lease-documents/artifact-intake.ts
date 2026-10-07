@@ -597,11 +597,15 @@ export function catalogFromIntake(
         retrievedAt: meta.approvedAt,
         version: publicationId,
       },
-      ...(entry.classification?.format === "fillable_pdf"
+      // A static PDF fills only through reviewed region geometry; without it the original stays a
+      // manual handoff, and an unchanged attachment is used exactly as approved.
+      ...(entry.classification?.format === "fillable_pdf" ||
+      (entry.classification?.format === "static_pdf" && map.static)
         ? {
             fillMapping: { map, mapHash: mapHashOf(map), intakeRevision: entry.revision },
           }
         : {}),
+      ...(map.unchangedAttachment ? { unchangedAttachment: true as const } : {}),
       ...(entry.providerBindings
         ? { providerBindings: { ...entry.providerBindings } }
         : {}),
@@ -861,7 +865,7 @@ export function projectIntakeCheckpoints(
     evidence.filledValuesVerified ? "done" : approved === 0 ? "blocked" : "pending",
     evidence.filledValuesVerified
       ? "Actual saved output values were read back and compared for the selected lease."
-      : "Use the lease packet's filled PDF controls for an approved AcroForm mapping; inspect and approve the exact downloaded output. Static and provider-native files remain manual handoffs.",
+      : "Use the lease packet's filled PDF controls for an approved AcroForm or static-region mapping; inspect and approve the exact downloaded output. A static file without reviewed regions and a provider-native file remain manual handoffs.",
   );
   push(
     "approve_packet",

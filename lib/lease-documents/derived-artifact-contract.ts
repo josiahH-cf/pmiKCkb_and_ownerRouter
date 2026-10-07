@@ -98,6 +98,11 @@ export interface DerivedArtifactRecord {
     changedFieldNames: string[];
     unchangedObjects: number;
     verified: true;
+    /** S130 static route: region ids in geometry order, removed earlier runs and pages. */
+    regionOrder?: string[];
+    removedRuns?: number;
+    pages?: number;
+    fixedContentVerified?: true;
   };
   preparedBy: string;
   preparedAt: string;

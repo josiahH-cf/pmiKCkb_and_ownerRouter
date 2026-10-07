@@ -192,4 +192,68 @@ describe("S130 Admin intake surface (AC-S130-1, AC-S130-4, AC-S130-8)", () => {
       /prefilled|autofilled|uploaded to Dotloop|\bsigned\b/i,
     );
   });
+  it("reads a static original's page positions and adds its pages to the mapping (AC-S130-3)", async () => {
+    const staticEntry: ArtifactIntakeEntry = {
+      ...received,
+      classification: {
+        ...received.classification!,
+        format: "static_pdf",
+        hasAcroForm: false,
+      },
+    };
+    const urls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        urls.push(url);
+        return Response.json({
+          staticInspection: {
+            kind: "renewal_extension",
+            pages: [
+              { pageIndex: 0, width: 612, height: 792, rotation: 0, cropBox: null },
+            ],
+            runs: [
+              {
+                pageIndex: 0,
+                x: 72,
+                y: 600,
+                width: 40.25,
+                height: 11,
+                text: "SYNTHETIC label",
+              },
+            ],
+            images: [],
+            truncated: false,
+          },
+        });
+      }),
+    );
+    const manifest = withEntry(staticEntry);
+    render(
+      <LeaseArtifactIntakePanel
+        initial={{ manifest, checkpoints: checkpoints(manifest) }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Read page positions for/ }));
+    await screen.findByText(/Page 1: 612\.0 × 792\.0/);
+    expect(urls).toEqual([
+      "/api/admin/lease-artifact-intake/inspect?kind=renewal_extension",
+    ]);
+    expect(
+      screen.getByText(/x 72\.0 y 600\.0 w 40\.3 h 11\.0 SYNTHETIC label/),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add these pages to the mapping" }),
+    );
+    const mapping = JSON.parse(
+      (screen.getByLabelText("Reviewed mapping (JSON)") as HTMLTextAreaElement).value,
+    );
+    expect(mapping.static).toEqual({
+      pages: [{ pageIndex: 0, width: 612, height: 792, rotation: 0, cropBox: null }],
+      regions: [],
+      protectedRegions: [],
+    });
+    // Nothing was saved: the only request was the read-only inspection.
+    expect(urls).toHaveLength(1);
+  });
 });

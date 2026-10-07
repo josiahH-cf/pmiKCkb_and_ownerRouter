@@ -13,6 +13,7 @@ export function FilledArtifactPanel({
   const identity = { leaseId, snapshotId, artifactId };
   const [state, setState] = useState<{
     supported: boolean;
+    unchangedAttachment?: boolean;
     reason?: string;
     record: DerivedArtifactRecord | null;
     canPrepare: boolean;
@@ -80,13 +81,17 @@ export function FilledArtifactPanel({
         {state ? "Refresh filled document" : "Check filled document"}
       </button>
       {error ? <p role="alert">{error}</p> : null}
-      {state && !state.supported ? <p>{state.reason}</p> : null}
+      {state && !state.supported ? (
+        <p data-unchanged-attachment={state.unchangedAttachment ? "true" : undefined}>
+          {state.reason}
+        </p>
+      ) : null}
       {state?.supported ? (
         <>
           <p>
-            Prepare a copy using the current approved facts and reviewed form fields.
-            Inspect the downloaded PDF before approving its exact bytes. Signatures remain
-            a human handoff.
+            Prepare a copy using the current approved facts and the reviewed fields or
+            regions. Inspect the downloaded PDF before approving its exact bytes.
+            Signatures remain a human handoff.
           </p>
           {state.canPrepare && !record?.approval ? (
             <button
@@ -107,7 +112,7 @@ export function FilledArtifactPanel({
                 Download filled PDF for inspection
               </DownloadLink>
               <p>
-                Saved PDF fields were reopened and compared. Approval:{" "}
+                The saved PDF was reopened and its values compared. Approval:{" "}
                 {record.approval
                   ? "approved for this exact output"
                   : "awaiting inspection"}

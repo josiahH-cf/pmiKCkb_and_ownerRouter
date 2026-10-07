@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GET, PATCH, POST, PUT } from "@/app/api/admin/lease-artifact-intake/route";
+import { GET as INSPECT } from "@/app/api/admin/lease-artifact-intake/inspect/route";
 import { setAuthResolverForTest } from "@/lib/auth/session";
 import {
   decideArtifactFamily,
+  inspectStaticArtifact,
   readArtifactIntakeManifest,
   receiveArtifactFamily,
   recordArtifactFieldMap,
@@ -22,6 +24,7 @@ vi.mock("@/lib/firestore/lease-artifact-intake", async (importOriginal) => {
     receiveArtifactFamily: vi.fn(),
     recordArtifactFieldMap: vi.fn(),
     decideArtifactFamily: vi.fn(),
+    inspectStaticArtifact: vi.fn(),
   };
 });
 
@@ -92,6 +95,7 @@ beforeEach(() => {
   vi.mocked(receiveArtifactFamily).mockReset();
   vi.mocked(recordArtifactFieldMap).mockReset();
   vi.mocked(decideArtifactFamily).mockReset();
+  vi.mocked(inspectStaticArtifact).mockReset();
 });
 
 afterEach(() => {
@@ -250,5 +254,39 @@ describe("admin lease-artifact-intake route (S130)", () => {
     expect(receiveArtifactFamily).not.toHaveBeenCalled();
     expect(recordArtifactFieldMap).not.toHaveBeenCalled();
     expect(decideArtifactFamily).not.toHaveBeenCalled();
+  });
+});
+
+describe("admin static page-position inspection (S130)", () => {
+  const inspection = {
+    pages: [{ pageIndex: 0, width: 612, height: 792, rotation: 0, cropBox: null }],
+    runs: [{ pageIndex: 0, x: 72, y: 600, width: 40, height: 11, text: "SYNTHETIC" }],
+    images: [],
+    truncated: false,
+  };
+  const inspect = (kind: string) =>
+    INSPECT(
+      new Request(
+        `http://localhost/api/admin/lease-artifact-intake/inspect?${new URLSearchParams({ kind })}`,
+      ),
+    );
+
+  it("returns read-only page positions to an Admin and refuses everyone else", async () => {
+    vi.mocked(inspectStaticArtifact).mockResolvedValue(inspection);
+    setAuthResolverForTest(() => admin);
+    const response = await inspect("renewal_extension");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    await expect(response.json()).resolves.toEqual({
+      staticInspection: { kind: "renewal_extension", ...inspection },
+    });
+    expect(inspectStaticArtifact).toHaveBeenCalledWith(
+      expect.objectContaining({ uid: "admin-1" }),
+      "renewal_extension",
+    );
+    expect((await inspect("not_a_family")).status).toBe(400);
+    setAuthResolverForTest(() => approver);
+    expect((await inspect("renewal_extension")).status).toBe(403);
+    expect(inspectStaticArtifact).toHaveBeenCalledTimes(1);
   });
 });

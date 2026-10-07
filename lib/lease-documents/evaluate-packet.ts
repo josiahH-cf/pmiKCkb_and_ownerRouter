@@ -849,7 +849,7 @@ function validArtifact(artifact: LeaseArtifactVersion): boolean {
     /^[a-f0-9]{64}$/.test(artifact.contentHash) &&
     artifact.formFamily.trim() !== "" &&
     artifact.signatureLocations.every((location) => location.trim() !== "") &&
-    artifact.signerRoles.length > 0 &&
+    (artifact.signerRoles.length > 0 || artifact.unchangedAttachment === true) &&
     artifact.signerRoles.every((role) => role.trim() !== "") &&
     validSource(artifact.publicationSource)
   );

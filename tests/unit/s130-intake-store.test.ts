@@ -1,4 +1,5 @@
 import { syntheticAcroform } from "@/tests/fixtures/synthetic-acroform";
+import { geometry, staticOriginal } from "@/tests/fixtures/synthetic-static";
 import { createHash } from "node:crypto";
 
 import type { Firestore } from "firebase-admin/firestore";
@@ -11,6 +12,7 @@ import {
   ARTIFACT_INTAKE_ACTIVITY_COLLECTION,
   ARTIFACT_INTAKE_COLLECTION,
   decideArtifactFamily,
+  inspectStaticArtifact,
   readArtifactIntakeManifest,
   receiveArtifactFamily,
   recordArtifactFieldMap,
@@ -45,11 +47,15 @@ const OTHER = await syntheticAcroform(
   ["Rent", "Tenant name"],
   "SYNTHETIC REPLACEMENT TEST",
 );
+const STATIC_REGIONS = await staticOriginal();
+const ATTACHMENT = await syntheticAcroform([], "SYNTHETIC ATTACHMENT TEST");
 
 const FILES: Record<string, Uint8Array> = {
   "synthetic-ext-0001": FILLABLE,
   "synthetic-hoa-0001": STATIC,
   "synthetic-ext-0002": OTHER,
+  "synthetic-static-0001": STATIC_REGIONS,
+  "synthetic-attach-0001": ATTACHMENT,
 };
 
 function publication(
@@ -610,5 +616,224 @@ describe("S130 mapping and approval project the exact version into the catalog (
         } as unknown as Firestore)
       ).state,
     ).toBe("unreadable");
+  });
+});
+
+describe("S130 static region maps and unchanged attachments (AC-S130-3, AC-S130-11, AC-S130-13)", () => {
+  it("checks reviewed regions against the exact original and projects only reviewed regions as fillable", async () => {
+    const fake = new FakeFirestore();
+    const db = fake as unknown as Firestore;
+    const d = deps();
+    const now = "2026-09-20T12:00:00Z";
+    const receive = (kind: LeaseArtifactKind, id: string, op: number) =>
+      receiveArtifactFamily(
+        admin,
+        { kind, publicationSource: binding(id), operationId: OP(op) },
+        db,
+        d,
+        now,
+      );
+    expect(
+      (await receive("renewal_extension", "synthetic-static-0001", 1)).entry
+        .classification?.format,
+    ).toBe("static_pdf");
+    expect(
+      (await receive("hoa_artifact", "synthetic-hoa-0001", 2)).entry.classification,
+    ).toMatchObject({
+      format: "static_pdf",
+      reasons: [
+        "No form fields: reviewed regions are required for filling. Until then a person completes it in Dotloop.",
+      ],
+    });
+    await receive("lead_disclosure", "synthetic-attach-0001", 3);
+    await receive("animal_agreement", "synthetic-ext-0001", 4);
+    const regions = await geometry(STATIC_REGIONS);
+    const fields: ArtifactFieldMap["fields"] = [
+      {
+        fieldId: "TenantName",
+        factKey: "party.name",
+        meaning: "SYNTHETIC tenant name",
+        required: true,
+        multiplicity: "per_party",
+        allowedSourceSystems: ["rentvine"],
+      },
+      {
+        fieldId: "Rent",
+        factKey: "renewal.synthetic_rent_cents",
+        meaning: "SYNTHETIC rent",
+        required: true,
+        multiplicity: "single",
+        allowedSourceSystems: ["rentvine"],
+      },
+      {
+        fieldId: "Effective",
+        factKey: "renewal.synthetic_effective_date",
+        meaning: "SYNTHETIC effective date",
+        required: false,
+        multiplicity: "single",
+        allowedSourceSystems: ["rentvine"],
+      },
+    ];
+    const staticMap = map("renewal_extension", "synthetic-static-0001", {
+      fields,
+      static: regions,
+    });
+    const record = (
+      kind: LeaseArtifactKind,
+      fieldMap: ArtifactFieldMap,
+      expectedRevision: number,
+      useDeps: ArtifactIntakeDeps = d,
+    ) =>
+      recordArtifactFieldMap(
+        admin,
+        { kind, fieldMap, expectedRevision },
+        db,
+        now,
+        useDeps,
+      );
+
+    // Geometry for a different page size is refused against the actual bytes; nothing is saved.
+    await expect(
+      record(
+        "renewal_extension",
+        {
+          ...staticMap,
+          static: { ...regions, pages: [{ ...regions.pages[0], width: 600 }] },
+        },
+        1,
+      ),
+    ).rejects.toThrow(/The regions were refused/);
+    // Bytes that no longer match the received hash are refused.
+    await expect(
+      record(
+        "renewal_extension",
+        staticMap,
+        1,
+        deps({ readContent: vi.fn(async () => OTHER) }),
+      ),
+    ).rejects.toThrow(/no longer matches its received hash/);
+    // Regions apply to static PDFs only, and an attachment label only to a static PDF.
+    expect(
+      await status(
+        record(
+          "animal_agreement",
+          map("animal_agreement", "synthetic-ext-0001", { fields, static: regions }),
+          1,
+        ),
+      ),
+    ).toBe(400);
+    const attachment = (kind: LeaseArtifactKind, template: string) =>
+      map(kind, template, { fields: [], signers: [], unchangedAttachment: true });
+    expect(
+      await status(
+        record(
+          "animal_agreement",
+          attachment("animal_agreement", "synthetic-ext-0001"),
+          1,
+        ),
+      ),
+    ).toBe(400);
+    expect(
+      fake.store.get(`${ARTIFACT_INTAKE_COLLECTION}/renewal_extension`),
+    ).toMatchObject({
+      state: "received",
+      revision: 1,
+    });
+
+    expect(await record("renewal_extension", staticMap, 1)).toMatchObject({
+      state: "reviewed",
+    });
+    expect(
+      await record("hoa_artifact", map("hoa_artifact", "synthetic-hoa-0001"), 1),
+    ).toMatchObject({ state: "reviewed" });
+    expect(
+      await record(
+        "lead_disclosure",
+        attachment("lead_disclosure", "synthetic-attach-0001"),
+        1,
+      ),
+    ).toMatchObject({ state: "reviewed" });
+    for (const [kind, op] of [
+      ["renewal_extension", 10],
+      ["hoa_artifact", 11],
+      ["lead_disclosure", 12],
+    ] as const)
+      await decideArtifactFamily(
+        approver,
+        {
+          kind,
+          decision: "approve",
+          reason: "SYNTHETIC decision",
+          expectedRevision: 2,
+          operationId: OP(op),
+        },
+        db,
+        d,
+        now,
+      );
+    const catalog = ApprovedLeaseCatalogSchema.parse(
+      fake.store.get(`${ARTIFACT_CATALOG_COLLECTION}/current`),
+    ).catalog;
+    const byKind = (kind: LeaseArtifactKind) =>
+      catalog.artifacts.find((artifact) => artifact.kind === kind)!;
+    expect(byKind("renewal_extension").fillMapping?.map.static).toEqual(regions);
+    expect(byKind("renewal_extension").unchangedAttachment).toBeUndefined();
+    // A static file without reviewed regions stays a manual handoff.
+    expect(byKind("hoa_artifact").fillMapping).toBeUndefined();
+    // A file with no variable values is labeled an unchanged approved attachment, never fillable.
+    expect(byKind("lead_disclosure")).toMatchObject({
+      unchangedAttachment: true,
+      signerRoles: [],
+      signatureLocations: [],
+    });
+    expect(byKind("lead_disclosure").fillMapping).toBeUndefined();
+
+    // An Admin reads page positions of a received static original; nothing is written.
+    const before = JSON.stringify([...fake.store]);
+    const inspection = await inspectStaticArtifact(admin, "renewal_extension", db, d);
+    expect(inspection.pages).toEqual([
+      { pageIndex: 0, width: 612, height: 792, rotation: 0, cropBox: null },
+    ]);
+    expect(inspection.runs.map((run) => run.text)).toContain("Old Tenant Name");
+    expect(JSON.stringify([...fake.store])).toBe(before);
+    expect(await status(inspectStaticArtifact(editor, "renewal_extension", db, d))).toBe(
+      403,
+    );
+    expect(await status(inspectStaticArtifact(admin, "animal_agreement", db, d))).toBe(
+      409,
+    );
+    expect(await status(inspectStaticArtifact(admin, "standard_lease", db, d))).toBe(409);
+  });
+
+  it("keeps the map contract honest about attachments, fields and signers", async () => {
+    const { ArtifactFieldMapSchema } =
+      await import("@/lib/lease-documents/artifact-intake-contract");
+    const base = map("lead_disclosure", "synthetic-attach-0001");
+    expect(
+      ArtifactFieldMapSchema.safeParse({
+        ...base,
+        fields: [],
+        signers: [],
+        unchangedAttachment: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      ArtifactFieldMapSchema.safeParse({
+        ...base,
+        unchangedAttachment: true,
+      }).error?.issues.map((issue) => issue.message),
+    ).toEqual(["An unchanged approved attachment has no mapped fields or regions."]);
+    expect(
+      ArtifactFieldMapSchema.safeParse({ ...base, fields: [] }).error?.issues.map(
+        (issue) => issue.message,
+      ),
+    ).toEqual([
+      "Map at least one field. A file with no variable values is recorded as an unchanged approved attachment.",
+    ]);
+    expect(
+      ArtifactFieldMapSchema.safeParse({ ...base, signers: [] }).error?.issues.map(
+        (issue) => issue.message,
+      ),
+    ).toEqual(["Record at least one signer and signature location."]);
   });
 });

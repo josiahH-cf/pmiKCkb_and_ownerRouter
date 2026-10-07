@@ -83,4 +83,27 @@ describe("S130 real filled artifact controls", () => {
     await screen.findByText("Manual handoff required");
     expect(screen.queryByRole("button", { name: "Prepare filled PDF" })).toBeNull();
   });
+  it("labels an unchanged approved attachment instead of calling it filled (AC-S130-13)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          supported: false,
+          unchangedAttachment: true,
+          reason:
+            "Unchanged approved attachment: it has no variable values and is used exactly as approved.",
+          record: null,
+          canPrepare: true,
+          canApprove: true,
+        }),
+      })),
+    );
+    render(<FilledArtifactPanel leaseId="123" snapshotId="s" artifactId="a" />);
+    fireEvent.click(screen.getByRole("button"));
+    const label = await screen.findByText(/^Unchanged approved attachment:/);
+    expect(label.getAttribute("data-unchanged-attachment")).toBe("true");
+    expect(screen.queryByRole("button", { name: "Prepare filled PDF" })).toBeNull();
+    expect(screen.queryByText(/filled PDF for inspection/)).toBeNull();
+  });
 });

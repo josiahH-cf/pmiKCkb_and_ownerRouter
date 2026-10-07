@@ -1,15 +1,27 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { PDFDocument } from "pdf-lib";
 import {
   prepareDerivedArtifact,
   approveDerivedArtifact,
   readCurrentDerivedArtifact,
   readDerivedArtifactContent,
+  readDerivedArtifactStatus,
   readHistoricalDerivedArtifactContent,
   DERIVED_ARTIFACT_COLLECTIONS,
   derivedHeadId,
 } from "@/lib/firestore/lease-derived-artifacts";
+import {
+  ArtifactFieldMapSchema,
+  StaticPdfGeometrySchema,
+} from "@/lib/lease-documents/artifact-intake-contract";
+import {
+  STATIC_ADAPTER,
+  inspectStaticPdf,
+  readStaticPdfValuesByOrder,
+} from "@/lib/lease-documents/static-pdf";
+import { geometry, staticOriginal } from "@/tests/fixtures/synthetic-static";
 import {
   LEASE_DOCUMENT_PACKET_COLLECTIONS,
   packetHeadId,
@@ -470,6 +482,241 @@ describe("S130 persisted actual output and exact reviewed transport", () => {
     );
     await expect(prepareDerivedArtifact(admin, t.prepare, t.db, t.deps)).rejects.toThrow(
       /Required mapped|capacity/,
+    );
+  });
+});
+
+describe("S130 static route through the persisted filled output (AC-S130-11/12/13)", () => {
+  /** Re-evaluate after a catalog or fact change so the current packet head matches it. */
+  function reseat(t: Awaited<ReturnType<typeof setup>>) {
+    const evaluation = evaluateRenewalPacket(t.input);
+    expect(evaluation.blockers).toEqual([]);
+    t.context.snapshot = { ...t.context.snapshot!, ...evaluation };
+    t.fake.seed(
+      `${LEASE_DOCUMENT_PACKET_COLLECTIONS.heads}/${packetHeadId("123", "123")}`,
+      { snapshot_id: t.request.snapshotId, payload_hash: evaluation.payloadHash },
+    );
+  }
+
+  /** A reviewed static map over the synthetic static original, with `tenantSlots` name slots. */
+  async function staticSetup(tenantSlots: number, omitFacts: readonly string[] = []) {
+    const t = await setup();
+    const original = await staticOriginal();
+    const base = await geometry(original);
+    const extraSlots = [
+      { x: 300, y: 596, width: 200, height: 16 },
+      { x: 300, y: 300, width: 200, height: 16 },
+    ]
+      .slice(0, tenantSlots - 1)
+      .map((rect, index) => ({
+        regionId: `TenantName${index + 1}`,
+        fieldId: "TenantName",
+        slot: index + 1,
+        pageIndex: 0,
+        rect,
+        format: "text" as const,
+        fontSize: 11,
+        align: "left" as const,
+        existing: "blank" as const,
+      }));
+    const map = ArtifactFieldMapSchema.parse({
+      ...t.artifact.fillMapping!.map,
+      fields: [
+        {
+          fieldId: "TenantName",
+          factKey: "party.name",
+          meaning: "SYNTHETIC tenant name",
+          required: true,
+          multiplicity: "per_party",
+          allowedSourceSystems: ["rentvine"],
+        },
+        {
+          fieldId: "Rent",
+          factKey: "renewal.synthetic_rent_cents",
+          meaning: "SYNTHETIC rent",
+          required: true,
+          multiplicity: "single",
+          allowedSourceSystems: ["rentvine"],
+        },
+        {
+          fieldId: "Effective",
+          factKey: "renewal.synthetic_effective_date",
+          meaning: "SYNTHETIC effective date",
+          required: false,
+          multiplicity: "single",
+          allowedSourceSystems: ["rentvine"],
+        },
+      ],
+      static: StaticPdfGeometrySchema.parse({
+        ...base,
+        regions: [
+          ...base.regions.map((region) =>
+            region.regionId === "Rent" ? { ...region, format: "money_cents" } : region,
+          ),
+          ...extraSlots,
+        ],
+      }),
+    });
+    const served = {
+      content: original,
+      contentType: "application/pdf",
+      fileName: "synthetic-static.pdf",
+    };
+    t.deps.original = vi.fn(async () => served);
+    t.deps.historicalOriginal = vi.fn(async () => served);
+    t.artifact.contentHash = sha(original);
+    t.artifact.fillMapping = { map, mapHash: mapHashOf(map), intakeRevision: 4 };
+    t.input.facts.push(
+      s66Fact("party.fixture-tenant-a.name", "Synthetic A"),
+      s66Fact("party.fixture-tenant-b.name", "Synthetic B"),
+      s66Fact("renewal.synthetic_rent_cents", 95_000),
+      s66Fact("renewal.synthetic_effective_date", "2027-01-01"),
+    );
+    t.input.facts = t.input.facts.filter((fact) => !omitFacts.includes(fact.fieldKey));
+    reseat(t);
+    return { ...t, original };
+  }
+
+  it("fills reviewed regions with the snapshot values, keeps unused slots blank and reuses exact bytes", async () => {
+    const t = await staticSetup(3);
+    const record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
+    expect(record.adapter).toBe(STATIC_ADAPTER);
+    expect(record.comparison.regionOrder).toEqual([
+      "TenantName",
+      "Rent",
+      "Effective",
+      "TenantName1",
+      "TenantName2",
+    ]);
+    const expected = {
+      TenantName: "Synthetic A",
+      Rent: "$950.00",
+      Effective: "January 1, 2027",
+      TenantName1: "Synthetic B",
+      TenantName2: "",
+    };
+    expect(record.comparison.allFields).toEqual(expected);
+    const saved = (await t.read(record.id)).content;
+    expect(
+      await readStaticPdfValuesByOrder(saved, record.comparison.regionOrder!),
+    ).toEqual(expected);
+    // The earlier variable values are gone from normal text extraction; fixed wording remains.
+    const texts = (await inspectStaticPdf(saved)).runs.map((run) => run.text);
+    expect(texts).not.toContain("Old Tenant Name");
+    expect(texts).not.toContain("$900.00");
+    expect(texts).toEqual(
+      expect.arrayContaining(["RESIDENTIAL LEASE EXTENSION", "Tenant signature"]),
+    );
+    // A replacement preparation of the same accepted identity yields the same exact bytes.
+    const again = await prepareDerivedArtifact(
+      admin,
+      { ...t.prepare, operationId: op(3), expectedCurrentId: record.id },
+      t.db,
+      t.deps,
+    );
+    expect(again.id).not.toBe(record.id);
+    expect(again.outputHash).toBe(record.outputHash);
+    const approved = await approveDerivedArtifact(
+      admin,
+      { ...t.approval(again), operationId: op(4) },
+      t.db,
+      t.deps,
+    );
+    const downloaded = await readDerivedArtifactContent(
+      admin,
+      { ...t.request, derivedId: approved.id, requireApproval: true },
+      t.db,
+      t.deps,
+    );
+    expect(sha(downloaded.content)).toBe(record.outputHash);
+    const historical = await readHistoricalDerivedArtifactContent(
+      admin,
+      { ...t.request, derivedId: approved.id, requireApproval: true },
+      t.db,
+      t.deps,
+    );
+    expect(historical.content).toEqual(downloaded.content);
+  });
+
+  it("refuses more parties than reviewed slots and a missing required value, never dropping anyone", async () => {
+    const t = await staticSetup(1);
+    await expect(prepareDerivedArtifact(admin, t.prepare, t.db, t.deps)).rejects.toThrow(
+      /TenantName: 2 are recorded but the reviewed form has capacity for 1/,
+    );
+    const u = await staticSetup(2, ["renewal.synthetic_rent_cents"]);
+    await expect(prepareDerivedArtifact(admin, u.prepare, u.db, u.deps)).rejects.toThrow(
+      /Required mapped values are missing/,
+    );
+  });
+
+  it("clears an unused repeated AcroForm slot that holds an earlier value", async () => {
+    const t = await setup();
+    const blank = await PDFDocument.load(
+      await syntheticAcroform(["Amount", "Party 1", "Party 2", "Party 3"]),
+    );
+    blank.getForm().getTextField("Party 3").setText("Earlier person");
+    const original = await blank.save({ useObjectStreams: false });
+    const served = {
+      content: original,
+      contentType: "application/pdf",
+      fileName: "synthetic-prefilled.pdf",
+    };
+    t.deps.original = vi.fn(async () => served);
+    t.artifact.contentHash = sha(original);
+    t.input.facts.push(
+      s66Fact("party.fixture-tenant-a.name", "Synthetic A"),
+      s66Fact("party.fixture-tenant-b.name", "Synthetic B"),
+    );
+    const map = t.artifact.fillMapping!.map;
+    map.fields.push({
+      fieldId: "Parties",
+      factKey: "party.name",
+      meaning: "Synthetic participant",
+      required: true,
+      multiplicity: "per_party",
+      pdfFieldNames: ["Party 1", "Party 2", "Party 3"],
+      allowedSourceSystems: ["rentvine"],
+    });
+    t.artifact.fillMapping!.mapHash = mapHashOf(map);
+    const evaluation = evaluateRenewalPacket(t.input);
+    t.context.snapshot = { ...t.context.snapshot!, ...evaluation };
+    t.fake.seed(
+      `${LEASE_DOCUMENT_PACKET_COLLECTIONS.heads}/${packetHeadId("123", "123")}`,
+      { snapshot_id: t.request.snapshotId, payload_hash: evaluation.payloadHash },
+    );
+    const record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
+    expect(await readAcroformValues((await t.read(record.id)).content)).toMatchObject({
+      "Party 1": "Synthetic A",
+      "Party 2": "Synthetic B",
+      "Party 3": "",
+    });
+  });
+
+  it("labels an unchanged approved attachment and keeps an unmapped original a manual handoff", async () => {
+    const t = await setup();
+    delete t.artifact.fillMapping;
+    reseat(t);
+    await expect(
+      readDerivedArtifactStatus(admin, t.request, t.db, t.deps),
+    ).resolves.toEqual({
+      supported: false,
+      reason:
+        "This original needs a reviewed field or region mapping before a filled PDF can be prepared. Until then a person completes it in Dotloop.",
+      record: null,
+    });
+    t.artifact.unchangedAttachment = true;
+    reseat(t);
+    await expect(
+      readDerivedArtifactStatus(admin, t.request, t.db, t.deps),
+    ).resolves.toEqual({
+      supported: false,
+      unchangedAttachment: true,
+      reason:
+        "Unchanged approved attachment: it has no variable values and is used exactly as approved.",
+      record: null,
+    });
+    await expect(prepareDerivedArtifact(admin, t.prepare, t.db, t.deps)).rejects.toThrow(
+      /exact approved field or region mapping/,
     );
   });
 });

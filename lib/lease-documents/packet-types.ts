@@ -181,8 +181,10 @@ export interface LeaseArtifactVersion {
   audience: PacketAudience;
   supersedesArtifactId?: string;
   publicationSource: PacketSourceReference;
-  /** Reviewed S130 AcroForm contract; a filled derivative is required before provider transport. */
+  /** Reviewed S130 AcroForm or static-region contract; a filled derivative is required before provider transport. */
   fillMapping?: { map: ArtifactFieldMap; mapHash: string; intakeRevision: number };
+  /** S130: no variable values; the approved original is used exactly as approved, never labeled filled. */
+  unchangedAttachment?: true;
   providerBindings?: {
     dotloopDocumentRef: string;
     dotloopTemplateRef?: string;

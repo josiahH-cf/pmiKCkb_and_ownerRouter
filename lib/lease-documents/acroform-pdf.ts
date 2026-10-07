@@ -7,6 +7,7 @@ import {
   PDFName,
   PDFOptionList,
   PDFRadioGroup,
+  PDFRef,
   PDFSignature,
   PDFTextField,
   StandardFonts,
@@ -41,6 +42,9 @@ function refuse(message: string): never {
 }
 
 /** Approved bytes only. Never interprets PDF actions, infers fields, flattens, or touches signatures. */
+export async function parseSafePdf(content: Uint8Array, allowStatic = false) {
+  return parse(content, allowStatic);
+}
 async function parse(content: Uint8Array, allowStatic = false) {
   if (!content.byteLength || content.byteLength > MAX_FILL_PDF_BYTES)
     refuse("the supported size is at most 2 MiB.");
@@ -65,6 +69,31 @@ async function parse(content: Uint8Array, allowStatic = false) {
     refuse("the document structure exceeds the supported bound.");
   // Inspect parsed dictionaries, including escaped names and objects inside compressed streams.
   const visited = new Set<unknown>();
+  const resolve = (value: unknown) =>
+    value instanceof PDFRef ? pdf.context.lookup(value) : value;
+  const nameOf = (dict: PDFDict, key: string) => {
+    const value = resolve(dict.get(PDFName.of(key)));
+    return value instanceof PDFName ? value.decodeText() : undefined;
+  };
+  // S130: /A is an action only on an annotation or outline item; on a structure element it holds
+  // attributes. A link annotation may navigate (URI or GoTo, no chained action) and is kept
+  // untouched; every other action, and any action on another object, stays refused.
+  const benignA = (dict: PDFDict, value: unknown) => {
+    if (
+      nameOf(dict, "Type") === "StructElem" ||
+      (dict.has(PDFName.of("S")) &&
+        dict.has(PDFName.of("P")) &&
+        !dict.has(PDFName.of("Subtype")))
+    )
+      return true;
+    if (nameOf(dict, "Subtype") !== "Link") return false;
+    const action = resolve(value);
+    return (
+      action instanceof PDFDict &&
+      ["URI", "GoTo"].includes(nameOf(action, "S") ?? "") &&
+      !action.has(PDFName.of("Next"))
+    );
+  };
   const inspect = (object: unknown, depth = 0) => {
     if (depth > 100 || visited.size > 100_000)
       refuse("the object graph exceeds the supported bound.");
@@ -72,7 +101,8 @@ async function parse(content: Uint8Array, allowStatic = false) {
     visited.add(object);
     if (object instanceof PDFDict) {
       for (const [key, value] of object.entries()) {
-        if (forbidden.has(key.decodeText()))
+        const keyName = key.decodeText();
+        if (forbidden.has(keyName) && !(keyName === "A" && benignA(object, value)))
           refuse(
             "active content, attachments, protected signatures, or XFA are unsupported.",
           );
