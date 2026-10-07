@@ -86,6 +86,20 @@ const FactEntrySchema = z
   .strict();
 export type PacketFactEntry = z.infer<typeof FactEntrySchema>;
 
+/**
+ * A deliberately cleared fact. Its revision continues the cleared value's, so an editor that read
+ * the value before it was cleared (and before it was entered again) is refused as stale.
+ */
+const ClearedFactSchema = z
+  .object({
+    revision: z.number().int().positive(),
+    eventId: z.string().uuid(),
+    recordedAt: isoTime,
+    recordedByUid: uid,
+  })
+  .strict();
+export type PacketClearedFact = z.infer<typeof ClearedFactSchema>;
+
 const RoleSchema = z
   .object({
     signerRole: z.enum(SIGNER_ROLES),
@@ -192,6 +206,7 @@ export const PacketInputsRecordSchema = z
     leaseId: z.string().regex(/^[1-9]\d*$/),
     revision: z.number().int().positive(),
     facts: z.record(packetFactKey, FactEntrySchema),
+    clearedFacts: z.record(packetFactKey, ClearedFactSchema).optional(),
     people: section(PacketPersonInputSchema, 30),
     animals: section(PacketAnimalInputSchema, 20),
     chargeOverrides: section(StoredOverrideSchema, 60),
@@ -217,7 +232,7 @@ export type PacketInputsRecord = z.infer<typeof PacketInputsRecordSchema>;
 const FactChangeSchema = z
   .object({
     fieldKey: packetFactKey,
-    /** The fact revision the editor last read; 0 when the fact has never been saved. */
+    /** The fact revision the editor last read (a cleared fact keeps its revision); 0 when never saved. */
     expectedRevision: z.number().int().nonnegative(),
     /** Null deliberately clears the staff value; any source value then stands alone. */
     value: packetFactValue.nullable(),
@@ -263,7 +278,27 @@ export const SavePacketInputsSchema = z
       input.animals !== undefined ||
       input.chargeOverrides !== undefined,
     "Nothing to save.",
-  );
+  )
+  .superRefine((input, ctx) => {
+    // The stored record refuses these too; refusing them here keeps them a 400, not a failure.
+    const distinct = (values: readonly string[]) =>
+      new Set(values).size === values.length;
+    if (!distinct((input.facts ?? []).map((change) => change.fieldKey)))
+      ctx.addIssue({ code: "custom", message: "Save each fact once per request." });
+    if (
+      input.animals &&
+      !distinct(input.animals.entries.map((animal) => animal.animalId))
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "Each animal needs one distinct identity.",
+      });
+    if (
+      input.chargeOverrides &&
+      !distinct(input.chargeOverrides.entries.map((entry) => entry.chargeId))
+    )
+      ctx.addIssue({ code: "custom", message: "One override per charge." });
+  });
 export type SavePacketInputs = z.input<typeof SavePacketInputsSchema>;
 
 /** Plain-language labels for the facts the packet editor always offers. */
@@ -401,14 +436,20 @@ function validateFactValue(fieldKey: string, value: PacketFactValue): PacketFact
       )
         fail("enter an amount with cents precision.");
       return value;
-    case "date":
+    case "date": {
+      // An impossible day such as 2026-13-01 is an invalid Date; it is refused, never thrown.
+      const parsed =
+        typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
+          ? new Date(`${value}T00:00:00Z`)
+          : null;
       if (
-        typeof value !== "string" ||
-        !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
-        new Date(`${value}T00:00:00Z`).toISOString().slice(0, 10) !== value
+        !parsed ||
+        Number.isNaN(parsed.getTime()) ||
+        parsed.toISOString().slice(0, 10) !== value
       )
         fail("enter a valid date.");
       return value;
+    }
     case "choice":
       if (!definition.choices?.some((choice) => choice.value === value))
         fail("choose one of the listed options.");
@@ -464,10 +505,13 @@ export function planPacketInputsSave(
   if (base.leaseId !== input.leaseId)
     throw new EditableLayerError("These inputs belong to a different lease.", 409);
   const facts = { ...base.facts };
+  const clearedFacts = { ...(base.clearedFacts ?? {}) };
   const changed: string[] = [];
   for (const change of input.facts ?? []) {
     const entry = facts[change.fieldKey];
-    if ((entry?.revision ?? 0) !== change.expectedRevision)
+    const currentRevision =
+      entry?.revision ?? clearedFacts[change.fieldKey]?.revision ?? 0;
+    if (currentRevision !== change.expectedRevision)
       throw new EditableLayerError(
         `Another operator changed ${PACKET_FACT_DEFINITIONS[change.fieldKey]?.label ?? change.fieldKey}. Your entry is kept; review the current value before saving again.`,
         409,
@@ -475,6 +519,12 @@ export function planPacketInputsSave(
     if (change.value === null) {
       if (!entry) continue;
       delete facts[change.fieldKey];
+      clearedFacts[change.fieldKey] = {
+        revision: currentRevision + 1,
+        eventId: meta.eventId,
+        recordedAt: meta.nowIso,
+        recordedByUid: meta.actorUid,
+      };
       changed.push(`fact:${change.fieldKey}`);
       continue;
     }
@@ -489,7 +539,7 @@ export function planPacketInputsSave(
     const next: PacketFactEntry = {
       value,
       displayValue: displayFactValue(change.fieldKey, value),
-      revision: (entry?.revision ?? 0) + 1,
+      revision: currentRevision + 1,
       eventId: meta.eventId,
       recordedAt: meta.nowIso,
       recordedByUid: meta.actorUid,
@@ -519,6 +569,7 @@ export function planPacketInputsSave(
     )
       continue;
     facts[change.fieldKey] = next;
+    delete clearedFacts[change.fieldKey];
     changed.push(`fact:${change.fieldKey}`);
   }
   const sectionUpdate = <T>(
@@ -575,16 +626,19 @@ export function planPacketInputsSave(
       : undefined,
   );
   if (changed.length === 0) return { record: base, changed };
-  const record = PacketInputsRecordSchema.parse({
+  const next: Record<string, unknown> = {
     ...base,
     revision: base.revision + 1,
     facts,
+    clearedFacts,
     people,
     animals,
     chargeOverrides,
     updatedAt: meta.nowIso,
     updatedByUid: meta.actorUid,
-  });
+  };
+  if (Object.keys(clearedFacts).length === 0) delete next.clearedFacts;
+  const record = PacketInputsRecordSchema.parse(next);
   return { record, changed };
 }
 

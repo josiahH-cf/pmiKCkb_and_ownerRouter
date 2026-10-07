@@ -26,6 +26,7 @@ import {
   type PacketAnimalInput,
   type PacketFactValue,
   type PacketPersonInput,
+  type StoredChargeOverride,
 } from "@/lib/lease-documents/packet-inputs";
 import type {
   PacketInputsView,
@@ -186,24 +187,9 @@ export function PacketInputsEditor({
         </ul>
       ) : null}
       <FactsSection view={view} canEdit={canEdit} save={save} />
-      <PeopleSection
-        key={`people-${view.record?.people.revision ?? 0}`}
-        view={view}
-        canEdit={canEdit}
-        save={save}
-      />
-      <AnimalsSection
-        key={`animals-${view.record?.animals.revision ?? 0}`}
-        view={view}
-        canEdit={canEdit}
-        save={save}
-      />
-      <ChargesSection
-        key={`charges-${view.record?.chargeOverrides.revision ?? 0}`}
-        view={view}
-        canEdit={canEdit}
-        save={save}
-      />
+      <PeopleSection view={view} canEdit={canEdit} save={save} />
+      <AnimalsSection view={view} canEdit={canEdit} save={save} />
+      <ChargesSection view={view} canEdit={canEdit} save={save} />
     </section>
   );
 }
@@ -306,7 +292,10 @@ function FactRow({
         facts: [
           {
             fieldKey: question.fieldKey,
-            expectedRevision: saved?.revision ?? 0,
+            expectedRevision:
+              saved?.revision ??
+              view.record?.clearedFacts?.[question.fieldKey]?.revision ??
+              0,
             ...body,
           },
         ],
@@ -433,7 +422,129 @@ function FactRow({
   );
 }
 
-function blankPerson(side: SignerRole): PacketPersonInput {
+const NO_ENTRIES: readonly never[] = [];
+
+/**
+ * One section's unsaved list. A reload that brings a different saved list replaces the list only
+ * while it has no unsaved edits, or when it already equals them (as after this person's own save).
+ * Otherwise the edits stay and the newer saved list is offered for review. Every save names the
+ * revision the edits started from, so a newer list is never replaced without being seen.
+ */
+function useSectionDraft<Entry, Draft>(
+  saved: { revision: number; entries: readonly Entry[] } | undefined,
+  toDraft: (entries: readonly Entry[]) => Draft[],
+  normalize: (draft: readonly Draft[]) => unknown,
+) {
+  const revision = saved?.revision ?? 0;
+  const entries = saved?.entries ?? NO_ENTRIES;
+  const savedKey = JSON.stringify(normalize(toDraft(entries)));
+  const [draft, setDraft] = useState<Draft[]>(() => toDraft(entries));
+  const [base, setBase] = useState({ revision, key: savedKey });
+  const [seen, setSeen] = useState({ revision, key: savedKey });
+  const draftKey = JSON.stringify(normalize(draft));
+  if (seen.revision !== revision || seen.key !== savedKey) {
+    setSeen({ revision, key: savedKey });
+    if (draftKey === base.key || draftKey === savedKey) {
+      setDraft(toDraft(entries));
+      setBase({ revision, key: savedKey });
+    }
+  }
+  return {
+    draft,
+    setDraft,
+    baseRevision: base.revision,
+    newer: base.revision !== revision && draftKey !== savedKey,
+    adoptSaved: () => {
+      setDraft(toDraft(entries));
+      setBase({ revision, key: savedKey });
+    },
+    keepEdits: () => setBase({ revision, key: savedKey }),
+  };
+}
+
+function NewerSavedList({
+  lines,
+  onAdopt,
+  onKeep,
+}: Readonly<{ lines: string[]; onAdopt: () => void; onKeep: () => void }>) {
+  return (
+    <div className="ui-stack-tight" role="status" data-packet-newer-list>
+      <p>
+        Another operator saved a newer list. Your unsaved entries are kept here. The saved
+        list reads:
+      </p>
+      <ul className="ui-rows">
+        {lines.length > 0 ? (
+          lines.map((line, index) => <li key={index}>{line}</li>)
+        ) : (
+          <li>No entries.</li>
+        )}
+      </ul>
+      <div className="ui-row">
+        <Button variant="tertiary" size="compact" onClick={onAdopt}>
+          Use the saved list
+        </Button>
+        <Button variant="tertiary" size="compact" onClick={onKeep}>
+          Keep my entries
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function peopleDraft(entries: readonly PacketPersonInput[]): PacketPersonInput[] {
+  return entries.map((person) => ({ ...person, roles: [...person.roles] }));
+}
+
+/** Compared as the server stores them: trimmed names, lower-case emails. */
+function normalizedPeople(people: readonly PacketPersonInput[]) {
+  return people.map((person) => ({
+    ...person,
+    fullName: person.fullName.trim(),
+    email: person.email === null ? null : person.email.trim().toLowerCase(),
+  }));
+}
+
+function animalsDraft(entries: readonly PacketAnimalInput[]): PacketAnimalInput[] {
+  return entries.map((animal) => ({ ...animal }));
+}
+
+function normalizedAnimals(animals: readonly PacketAnimalInput[]) {
+  const trimmed = (value: string | null) => (value === null ? null : value.trim());
+  return animals.map((animal) => ({
+    ...animal,
+    name: trimmed(animal.name),
+    species: trimmed(animal.species),
+    breed: trimmed(animal.breed),
+  }));
+}
+
+interface OverrideDraft {
+  chargeId: string;
+  amount: string;
+  reason: string;
+}
+
+function overridesDraft(entries: readonly StoredChargeOverride[]): OverrideDraft[] {
+  return entries.map((entry) => ({
+    chargeId: entry.chargeId,
+    amount: String(entry.amountCents / 100),
+    reason: entry.reason,
+  }));
+}
+
+function normalizedOverrides(overrides: readonly OverrideDraft[]) {
+  return overrides.map((entry) => ({
+    chargeId: entry.chargeId,
+    amountCents: Math.round(Number(entry.amount) * 100),
+    reason: entry.reason.trim(),
+  }));
+}
+
+function blankPerson(
+  side: SignerRole,
+  people: readonly PacketPersonInput[],
+): PacketPersonInput {
   return {
     personId: crypto.randomUUID(),
     kind: "person",
@@ -441,8 +552,41 @@ function blankPerson(side: SignerRole): PacketPersonInput {
     email: null,
     emailBasis: null,
     contactRef: null,
-    roles: [{ signerRole: side, order: 1, dotloopRole: DEFAULT_DOTLOOP_ROLE[side] }],
+    roles: [
+      {
+        signerRole: side,
+        order: nextOrder(people, side),
+        dotloopRole: DEFAULT_DOTLOOP_ROLE[side],
+      },
+    ],
   };
+}
+
+/**
+ * Each signer role's positions close up to 1, 2, 3 in the order the people already held them.
+ * List order never decides signing order.
+ */
+function closeRolePositions(people: readonly PacketPersonInput[]): PacketPersonInput[] {
+  const next = people.map((person) => ({
+    ...person,
+    roles: person.roles.map((role) => ({ ...role })),
+  }));
+  for (const role of SIGNER_ROLES) {
+    next
+      .flatMap((person) => person.roles.filter((entry) => entry.signerRole === role))
+      .sort((left, right) => left.order - right.order)
+      .forEach((entry, index) => {
+        entry.order = index + 1;
+      });
+  }
+  return next;
+}
+
+function personLine(person: PacketPersonInput): string {
+  const roles = person.roles
+    .map((role) => `${SIGNER_ROLE_LABELS[role.signerRole]} ${role.order}`)
+    .join(", ");
+  return `${person.fullName} (${roles || "no signer role"})`;
 }
 
 function nextOrder(people: readonly PacketPersonInput[], role: SignerRole): number {
@@ -457,12 +601,8 @@ function PeopleSection({
   canEdit,
   save,
 }: Readonly<{ view: PacketInputsView; canEdit: boolean; save: Save }>) {
-  const [people, setPeople] = useState<PacketPersonInput[]>(
-    view.record?.people.entries.map((person) => ({
-      ...person,
-      roles: [...person.roles],
-    })) ?? [],
-  );
+  const section = useSectionDraft(view.record?.people, peopleDraft, normalizedPeople);
+  const { draft: people, setDraft: setPeople } = section;
   const [result, setResult] = useState<SaveResult | null>(null);
   const [busy, setBusy] = useState(false);
   const adoptedRefs = new Set(people.map((person) => person.contactRef).filter(Boolean));
@@ -490,6 +630,19 @@ function PeopleSection({
             },
       ),
     );
+  const untoggleRole = (index: number, role: SignerRole) =>
+    setPeople((current) =>
+      closeRolePositions(
+        current.map((person, at) =>
+          at !== index
+            ? person
+            : {
+                ...person,
+                roles: person.roles.filter((entry) => entry.signerRole !== role),
+              },
+        ),
+      ),
+    );
   return (
     <div className="ui-stack-tight" data-packet-people>
       <strong>People and signer roles</strong>
@@ -511,7 +664,7 @@ function PeopleSection({
                   setPeople((current) => [
                     ...current,
                     {
-                      ...blankPerson(party.side),
+                      ...blankPerson(party.side, current),
                       fullName: party.name,
                       email: party.email,
                       emailBasis: party.email ? "verified_contact" : null,
@@ -575,7 +728,9 @@ function PeopleSection({
                         type="checkbox"
                         checked={Boolean(held)}
                         onChange={(event) =>
-                          toggleRole(index, role, event.target.checked)
+                          event.target.checked
+                            ? toggleRole(index, role, true)
+                            : untoggleRole(index, role)
                         }
                       />{" "}
                       {SIGNER_ROLE_LABELS[role]}
@@ -615,20 +770,10 @@ function PeopleSection({
                 variant="tertiary"
                 size="compact"
                 onClick={() =>
-                  setPeople((current) => {
-                    const rest = current.filter((_, at) => at !== index);
-                    // Positions close up so each role still runs 1, 2, 3.
-                    return rest.map((entry) => ({
-                      ...entry,
-                      roles: entry.roles.map((role) => ({
-                        ...role,
-                        order: rest
-                          .slice(0, rest.indexOf(entry) + 1)
-                          .flatMap((other) => other.roles)
-                          .filter((other) => other.signerRole === role.signerRole).length,
-                      })),
-                    }));
-                  })
+                  // Positions close up so each role still runs 1, 2, 3 in the same order.
+                  setPeople((current) =>
+                    closeRolePositions(current.filter((_, at) => at !== index)),
+                  )
                 }
               >
                 Remove {person.fullName || "this person"}
@@ -642,7 +787,9 @@ function PeopleSection({
           <Button
             variant="tertiary"
             size="compact"
-            onClick={() => setPeople((current) => [...current, blankPerson("tenant")])}
+            onClick={() =>
+              setPeople((current) => [...current, blankPerson("tenant", current)])
+            }
           >
             Add a person
           </Button>
@@ -657,7 +804,7 @@ function PeopleSection({
               setResult(
                 await save("people", {
                   people: {
-                    expectedRevision: view.record?.people.revision ?? 0,
+                    expectedRevision: section.baseRevision,
                     entries: people.map((person) => ({
                       ...person,
                       fullName: person.fullName.trim(),
@@ -671,6 +818,13 @@ function PeopleSection({
             Save people
           </Button>
         </div>
+      ) : null}
+      {section.newer ? (
+        <NewerSavedList
+          lines={(view.record?.people.entries ?? []).map(personLine)}
+          onAdopt={section.adoptSaved}
+          onKeep={section.keepEdits}
+        />
       ) : null}
       {result && !result.ok ? <p role="alert">{result.message}</p> : null}
     </div>
@@ -701,9 +855,8 @@ function AnimalsSection({
   canEdit,
   save,
 }: Readonly<{ view: PacketInputsView; canEdit: boolean; save: Save }>) {
-  const [animals, setAnimals] = useState<PacketAnimalInput[]>(
-    view.record?.animals.entries.map((animal) => ({ ...animal })) ?? [],
-  );
+  const section = useSectionDraft(view.record?.animals, animalsDraft, normalizedAnimals);
+  const { draft: animals, setDraft: setAnimals } = section;
   const [result, setResult] = useState<SaveResult | null>(null);
   const [busy, setBusy] = useState(false);
   const update = (index: number, change: Partial<PacketAnimalInput>) =>
@@ -882,7 +1035,7 @@ function AnimalsSection({
               setResult(
                 await save("animals", {
                   animals: {
-                    expectedRevision: view.record?.animals.revision ?? 0,
+                    expectedRevision: section.baseRevision,
                     entries: animals,
                   },
                 }),
@@ -894,6 +1047,16 @@ function AnimalsSection({
           </Button>
         </div>
       ) : null}
+      {section.newer ? (
+        <NewerSavedList
+          lines={(view.record?.animals.entries ?? []).map(
+            (animal, index) =>
+              `${animal.name ?? `Animal ${index + 1}`}${animal.species ? `, ${animal.species}` : ""}`,
+          )}
+          onAdopt={section.adoptSaved}
+          onKeep={section.keepEdits}
+        />
+      ) : null}
       {result && !result.ok ? <p role="alert">{result.message}</p> : null}
     </div>
   );
@@ -904,14 +1067,12 @@ function ChargesSection({
   canEdit,
   save,
 }: Readonly<{ view: PacketInputsView; canEdit: boolean; save: Save }>) {
-  const stored = view.record?.chargeOverrides.entries ?? [];
-  const [overrides, setOverrides] = useState(
-    stored.map((entry) => ({
-      chargeId: entry.chargeId,
-      amount: String(entry.amountCents / 100),
-      reason: entry.reason,
-    })),
+  const section = useSectionDraft(
+    view.record?.chargeOverrides,
+    overridesDraft,
+    normalizedOverrides,
   );
+  const { draft: overrides, setDraft: setOverrides } = section;
   const [result, setResult] = useState<SaveResult | null>(null);
   const [busy, setBusy] = useState(false);
   if (view.chargePolicy.version === null)
@@ -1069,7 +1230,7 @@ function ChargesSection({
             setResult(
               await save("chargeOverrides", {
                 chargeOverrides: {
-                  expectedRevision: view.record?.chargeOverrides.revision ?? 0,
+                  expectedRevision: section.baseRevision,
                   entries: overrides.map((entry) => ({
                     chargeId: entry.chargeId,
                     amountCents: Math.round(Number(entry.amount) * 100),
@@ -1083,6 +1244,15 @@ function ChargesSection({
         >
           Save overrides
         </Button>
+      ) : null}
+      {section.newer ? (
+        <NewerSavedList
+          lines={(view.record?.chargeOverrides.entries ?? []).map(
+            (entry) => `${entry.chargeId}: ${money(entry.amountCents)} (${entry.reason})`,
+          )}
+          onAdopt={section.adoptSaved}
+          onKeep={section.keepEdits}
+        />
       ) : null}
       {result && !result.ok ? <p role="alert">{result.message}</p> : null}
     </div>

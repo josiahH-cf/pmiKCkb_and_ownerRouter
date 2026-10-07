@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ChargePolicyContentSchema,
+  ChargePolicyRecordSchema,
   calculateRenewalCharges,
   economicsHash,
   type ChargePolicyContent,
@@ -340,5 +341,64 @@ describe("S66 versioned charge policy (AC-S66-7, BEH-S66-2)", () => {
         }),
       ),
     );
+  });
+
+  it("asks about a recorded package enrollment the policy cannot price instead of dropping it", () => {
+    const calculated = calculateRenewalCharges({
+      leaseId: "701",
+      policy: policy({ residentBenefitPackage: null }),
+      facts: ELECTED,
+      animals: [],
+      overrides: [],
+    });
+    expect(
+      calculated.charges.find(
+        (charge) => charge.chargeId === "resident_benefit_package:monthly",
+      ),
+    ).toMatchObject({ applicable: null });
+    expect(calculated.totals.monthly).toBeNull();
+    expect(calculated.issues.map((issue) => issue.label)).toContain(
+      "The lease records Resident Benefit Package enrollment, but the published charge policy has no package amount.",
+    );
+    // Not enrolled, or a policy that offers no package, stays a plain not-applicable charge.
+    const notEnrolled = calculateRenewalCharges({
+      leaseId: "701",
+      policy: policy({ residentBenefitPackage: null }),
+      facts: [
+        s66Fact(
+          "charges.resident_benefit_package.enrolled",
+          false,
+          "renewal_staff_entry",
+        ),
+      ],
+      animals: [],
+      overrides: [],
+    });
+    expect(
+      notEnrolled.charges.find(
+        (charge) => charge.chargeId === "resident_benefit_package:monthly",
+      ),
+    ).toMatchObject({ applicable: false });
+    expect(notEnrolled.issues).toEqual([]);
+  });
+
+  it("chooses a tier from the exact converted weight, never a rounded one", () => {
+    // 11.339 kg is 24.998 lb: under the 25 lb edge even though it rounds to 25.00.
+    const calculated = calculateRenewalCharges({
+      leaseId: "701",
+      policy: policy(),
+      facts: ELECTED,
+      animals: [animal(1, { weight: 11.339, weightUnit: "kg" })],
+      overrides: [],
+    });
+    expect(calculated.animals[0]).toMatchObject({ tierLabel: "Under 25 lb" });
+  });
+
+  it("refuses an impossible effective date in the stored and published policy", () => {
+    expect(
+      ChargePolicyRecordSchema.safeParse({ ...policy(), effectiveFrom: "2026-99-99" })
+        .success,
+    ).toBe(false);
+    expect(ChargePolicyRecordSchema.safeParse(policy()).success).toBe(true);
   });
 });

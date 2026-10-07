@@ -16,6 +16,7 @@ import type {
   ChargePolicyTier,
 } from "@/lib/lease-documents/charge-policy";
 import { FAMILY_USE_LABELS, type FamilyUse } from "@/lib/lease-documents/family-use";
+import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import type { FormFamilyUse } from "@/lib/lease-documents/packet-types";
 
 export interface RenewalPacketPolicyInitial {
@@ -198,6 +199,7 @@ function ChargePolicyEditor({
     content?.animals?.juvenileWeightBasis ?? "",
   );
   const [effectiveFrom, setEffectiveFrom] = useState(record?.effectiveFrom ?? "");
+  const [today] = useState(() => businessDateIso(Date.now()));
   const [note, setNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -462,10 +464,15 @@ function ChargePolicyEditor({
           ) : null}
         </fieldset>
       ) : null}
-      <Field label="Effective from" htmlFor="policy-effective">
+      <Field
+        label="Effective from"
+        htmlFor="policy-effective"
+        hint="Today or earlier. A charge policy is used from the day it is published."
+      >
         <input
           id="policy-effective"
           type="date"
+          max={today}
           value={effectiveFrom}
           onChange={(event) => setEffectiveFrom(event.target.value)}
         />

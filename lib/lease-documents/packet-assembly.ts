@@ -11,6 +11,7 @@ import { leaseEndDateIso, leaseViewId } from "@/lib/integrations/rentvine/lease-
 import {
   calculateRenewalCharges,
   CHARGE_POLICY_SOURCE_SYSTEM,
+  economicsHash,
   type CalculatedCharges,
   type ChargePolicyRecord,
 } from "@/lib/lease-documents/charge-policy";
@@ -169,6 +170,34 @@ function animalFacts(
 }
 
 /**
+ * The charges the packet carries: a current Admin mapping's own charges when it carries economics,
+ * otherwise the published policy applied to the mapping's and the staff's facts. The owner-approval
+ * check compares this exact basis, so an approval never stands for charges the packet does not carry.
+ */
+export function packetChargeBasis(input: {
+  leaseId: string;
+  mapping: LegacyPacketSources | null;
+  inputs: PacketInputsRecord | null;
+  policy: ChargePolicyRecord | null;
+}): { calculated: CalculatedCharges | null; charges: PacketCharge[]; hash: string } {
+  const mapping = input.mapping;
+  if (mapping && (mapping.charges.length > 0 || mapping.animals.length > 0))
+    return {
+      calculated: null,
+      charges: mapping.charges,
+      hash: economicsHash({ policyVersion: null, charges: mapping.charges }),
+    };
+  const calculated = calculateRenewalCharges({
+    leaseId: input.leaseId,
+    policy: input.policy,
+    facts: [...(mapping?.facts ?? []), ...packetInputFacts(input.inputs)],
+    animals: input.inputs?.animals.entries ?? [],
+    overrides: input.inputs?.chargeOverrides.entries ?? [],
+  });
+  return { calculated, charges: calculated.charges, hash: economicsHash(calculated) };
+}
+
+/**
  * Combine every owner of the packet's inputs. A current Admin mapping keeps the sections it
  * carries (legacy behavior); the staff packet inputs supply the rest. Owner-approved Working terms
  * arrive as their own facts from `currentOwnerApproval`.
@@ -243,24 +272,14 @@ export function assemblePacketSources(input: {
 
   const mapping = input.mapping;
   const mappingHasPeople = (mapping?.participants.length ?? 0) > 0;
-  const mappingHasEconomics =
-    (mapping?.charges.length ?? 0) > 0 || (mapping?.animals.length ?? 0) > 0;
 
-  let calculated: CalculatedCharges | null = null;
-  let charges: PacketCharge[];
+  const basis = packetChargeBasis(input);
+  const calculated: CalculatedCharges | null = basis.calculated;
+  const charges: PacketCharge[] = basis.charges;
   let animals: PacketAnimal[];
-  if (mappingHasEconomics && mapping) {
-    charges = mapping.charges;
-    animals = mapping.animals;
+  if (!calculated) {
+    animals = mapping!.animals;
   } else {
-    calculated = calculateRenewalCharges({
-      leaseId: input.leaseId,
-      policy: input.policy,
-      facts: [...(mapping?.facts ?? []), ...staffFacts],
-      animals: input.inputs?.animals.entries ?? [],
-      overrides: input.inputs?.chargeOverrides.entries ?? [],
-    });
-    charges = calculated.charges;
     animals = (input.inputs?.animals.entries ?? []).map((animal) => ({
       animalId: animal.animalId,
       facts: animalFacts(input.inputs!, animal, calculated!),

@@ -41,7 +41,11 @@ import {
   OWNER_APPROVAL_NOTICES,
   packetEconomics,
 } from "./owner-approval-binding";
-import { assemblePacketSources, rentVinePacketSource } from "./packet-assembly";
+import {
+  assemblePacketSources,
+  packetChargeBasis,
+  rentVinePacketSource,
+} from "./packet-assembly";
 import { PUBLICATION_COLLECTIONS } from "@/lib/publication/service";
 import { resolveStoredDataMode } from "@/lib/data-mode";
 import type { PacketEvaluationInput } from "./packet-types";
@@ -182,6 +186,8 @@ export async function resolveLivePacketInput(
     workspace,
     working,
     economicsHash: economics.hash,
+    packetChargesHash: packetChargeBasis({ leaseId, mapping: sources, inputs, policy })
+      .hash,
   });
   if (approval.state !== "current") notices.push(OWNER_APPROVAL_NOTICES[approval.state]);
 

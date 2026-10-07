@@ -280,6 +280,43 @@ describe("S66 charge policy and family-use stores (AC-S66-6, AC-S66-7)", () => {
     ).toEqual(["v1", "v2"]);
   });
 
+  it("refuses a policy dated after the day it is published, or an impossible date, writing nothing", async () => {
+    const input = {
+      content: POLICY_CONTENT,
+      expectedVersion: 0,
+      operationId: OP(8),
+    };
+    // 2026-10-07 in Kansas City; a version effective the next day would price packets early.
+    await expect(
+      publishChargePolicy(
+        admin,
+        { ...input, effectiveFrom: "2026-10-08" },
+        db,
+        "2026-10-07T20:00:00.000Z",
+      ),
+    ).rejects.toMatchObject({
+      status: 400,
+      message:
+        "Choose an effective date on or before today. A charge policy is used from the day it is published.",
+    });
+    await expect(
+      publishChargePolicy(
+        admin,
+        { ...input, effectiveFrom: "2026-99-99" },
+        db,
+        "2026-10-07T20:00:00.000Z",
+      ),
+    ).rejects.toMatchObject({ status: 400, message: "Choose a real calendar date." });
+    expect((await readChargePolicy(db)).record).toBeNull();
+    const today = await publishChargePolicy(
+      admin,
+      { ...input, effectiveFrom: "2026-10-07" },
+      db,
+      "2026-10-07T20:00:00.000Z",
+    );
+    expect(today.record.effectiveFrom).toBe("2026-10-07");
+  });
+
   it("records an Admin family use and rewrites only an existing catalog", async () => {
     const result = await setFamilyUse(
       admin,

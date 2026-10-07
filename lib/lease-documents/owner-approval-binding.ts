@@ -73,7 +73,8 @@ export type OwnerApprovalState =
   | "not_recorded"
   | "no_working_terms"
   | "terms_changed"
-  | "charges_changed";
+  | "charges_changed"
+  | "mapping_charges_differ";
 
 export const OWNER_APPROVAL_NOTICES: Readonly<
   Record<Exclude<OwnerApprovalState, "current">, string>
@@ -86,6 +87,8 @@ export const OWNER_APPROVAL_NOTICES: Readonly<
     "The Working renewal terms changed after the owner's approval was recorded. Record the owner's approval of the current terms.",
   charges_changed:
     "The calculated charges changed after the owner's approval was recorded. Record the owner's approval of the current terms and charges.",
+  mapping_charges_differ:
+    "This lease's approved original-lease mapping carries charges that differ from the calculated charges the owner approved. Review the mapping before the packet is prepared.",
 };
 
 /**
@@ -96,6 +99,8 @@ export function currentOwnerApproval(input: {
   workspace: RenewalWorkspaceState | null;
   working: RenewalWorkingRecord | null;
   economicsHash: string;
+  /** The hash of the charges the packet actually carries (`packetChargeBasis`), when known. */
+  packetChargesHash?: string;
 }): { state: OwnerApprovalState; facts: PacketFact[] } {
   const response = input.workspace?.ownerResponse;
   if (!input.workspace || response?.outcome !== "approved_terms")
@@ -116,6 +121,12 @@ export function currentOwnerApproval(input: {
     return { state: "terms_changed", facts: [] };
   if (binding.economicsHash !== input.economicsHash)
     return { state: "charges_changed", facts: [] };
+  // The approval covers the calculated charges; a mapping that carries other charges is not covered.
+  if (
+    input.packetChargesHash !== undefined &&
+    input.packetChargesHash !== input.economicsHash
+  )
+    return { state: "mapping_charges_differ", facts: [] };
   const workspace = input.workspace;
   const source = {
     system: "staff_recorded_owner_approval",

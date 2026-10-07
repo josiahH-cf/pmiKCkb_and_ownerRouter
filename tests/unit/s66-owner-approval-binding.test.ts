@@ -6,6 +6,7 @@ import {
   currentOwnerApproval,
   packetEconomics,
 } from "@/lib/lease-documents/owner-approval-binding";
+import { packetChargeBasis } from "@/lib/lease-documents/packet-assembly";
 import type { PacketInputsRecord } from "@/lib/lease-documents/packet-inputs";
 import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
 import {
@@ -219,6 +220,55 @@ describe("S66 owner approval bound to the exact Working terms (AC-S66-8, BEH-S66
         workspace: renewed,
         working: record,
         economicsHash: hash(republished),
+      }).state,
+    ).toBe("current");
+  });
+
+  it("holds the approval when a current mapping carries charges the owner did not approve", () => {
+    const record = working(TERMS);
+    const state = approve(base(), record);
+    const mapping = {
+      facts: [],
+      participants: [],
+      animals: [],
+      contacts: [],
+      charges: [
+        {
+          chargeId: "resident_benefit_package:monthly",
+          kind: "resident_benefit_package" as const,
+          applicable: true,
+          amountCents: 4_500,
+          confidence: "Verified" as const,
+          cadence: "monthly" as const,
+        },
+      ],
+    };
+    const carried = packetChargeBasis({
+      leaseId: LEASE,
+      mapping,
+      inputs: null,
+      policy: POLICY,
+    });
+    expect(
+      currentOwnerApproval({
+        workspace: state,
+        working: record,
+        economicsHash: hash(),
+        packetChargesHash: carried.hash,
+      }),
+    ).toEqual({ state: "mapping_charges_differ", facts: [] });
+    // Without a mapping the packet carries exactly the calculated charges the owner approved.
+    expect(
+      currentOwnerApproval({
+        workspace: state,
+        working: record,
+        economicsHash: hash(),
+        packetChargesHash: packetChargeBasis({
+          leaseId: LEASE,
+          mapping: null,
+          inputs: null,
+          policy: POLICY,
+        }).hash,
       }).state,
     ).toBe("current");
   });

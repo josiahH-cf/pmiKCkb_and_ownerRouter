@@ -154,6 +154,10 @@ async function openEditor(element: React.ReactElement) {
   await screen.findByText("Lease facts");
 }
 
+function peopleSection() {
+  return document.querySelector("[data-packet-people]") as HTMLElement;
+}
+
 function factRow(fieldKey: string) {
   return document.querySelector(`[data-packet-fact="${fieldKey}"]`) as HTMLElement;
 }
@@ -281,5 +285,147 @@ describe("S66 Packet inputs editor (BEH-S66-1, AC-S66-4, AC-S66-5)", () => {
     expect(
       document.querySelector('[data-packet-charges="no-policy"]')?.textContent,
     ).toMatch(/An Admin has not published the renewal charge policy/);
+  });
+
+  it("keeps unsaved people after a conflict and shows the newer saved list for review", async () => {
+    await openEditor(<PacketInputsEditor leaseId="701" canEdit />);
+    fireEvent.click(screen.getByRole("button", { name: "Add this tenant" }));
+    nextPost = {
+      status: 409,
+      body: {
+        error:
+          "Another operator changed the people and signer roles. Your entries are kept; review the current list before saving again.",
+      },
+    };
+    // Meanwhile a colleague saved a different list; the reload after the refusal reads it.
+    current = view({
+      record: {
+        ...view().record!,
+        revision: 3,
+        people: {
+          revision: 1,
+          entries: [
+            {
+              personId: "20000000-0000-4000-8000-000000000009",
+              kind: "person",
+              fullName: "Colleague Entry",
+              email: null,
+              emailBasis: null,
+              contactRef: null,
+              roles: [{ signerRole: "tenant", order: 1, dotloopRole: "TENANT" }],
+            },
+          ],
+        },
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save people" }));
+    await waitFor(() => expect(posts).toHaveLength(1));
+    const newer = await waitFor(() => {
+      const node = document.querySelector(
+        "[data-packet-newer-list]",
+      ) as HTMLElement | null;
+      expect(node).not.toBeNull();
+      return node!;
+    });
+    expect(newer.textContent).toContain("Colleague Entry (Tenant 1)");
+    // The person's own unsaved entry and the refusal both stay on screen.
+    expect(
+      within(peopleSection())
+        .getAllByLabelText("Name")
+        .map((input) => (input as HTMLInputElement).value),
+    ).toEqual(["Tenant One"]);
+    expect(screen.getAllByRole("alert").map((node) => node.textContent)).toContain(
+      "Another operator changed the people and signer roles. Your entries are kept; review the current list before saving again.",
+    );
+    // Keeping them names the newer revision, so the next save is a deliberate replacement.
+    nextPost = null;
+    fireEvent.click(within(newer).getByRole("button", { name: "Keep my entries" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save people" }));
+    await waitFor(() => expect(posts).toHaveLength(2));
+    expect(posts[1].people).toMatchObject({
+      expectedRevision: 1,
+      entries: [{ fullName: "Tenant One" }],
+    });
+  });
+
+  it("replaces the unsaved list with the saved one only when asked", async () => {
+    await openEditor(<PacketInputsEditor leaseId="701" canEdit />);
+    fireEvent.click(screen.getByRole("button", { name: "Add this tenant" }));
+    nextPost = {
+      status: 409,
+      body: { error: "Another operator changed the people and signer roles." },
+    };
+    current = view({
+      record: {
+        ...view().record!,
+        people: {
+          revision: 2,
+          entries: [
+            {
+              personId: "20000000-0000-4000-8000-000000000009",
+              kind: "person",
+              fullName: "Colleague Entry",
+              email: null,
+              emailBasis: null,
+              contactRef: null,
+              roles: [],
+            },
+          ],
+        },
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save people" }));
+    const button = await screen.findByRole("button", { name: "Use the saved list" });
+    fireEvent.click(button);
+    expect(
+      within(peopleSection())
+        .getAllByLabelText("Name")
+        .map((input) => (input as HTMLInputElement).value),
+    ).toEqual(["Colleague Entry"]);
+    expect(document.querySelector("[data-packet-newer-list]")).toBeNull();
+  });
+
+  it("keeps signer positions valid: a new person comes next, and removals close gaps in the existing order", async () => {
+    const tenant = (n: number, name: string, order: number) => ({
+      personId: `20000000-0000-4000-8000-00000000000${n}`,
+      kind: "person" as const,
+      fullName: name,
+      email: null,
+      emailBasis: null,
+      contactRef: null,
+      roles: [{ signerRole: "tenant" as const, order, dotloopRole: "TENANT" as const }],
+    });
+    current = view({
+      record: {
+        ...view().record!,
+        people: {
+          revision: 1,
+          // Listed first but signing second.
+          entries: [tenant(1, "Avery", 2), tenant(2, "Blake", 1), tenant(3, "Casey", 3)],
+        },
+      },
+    });
+    await openEditor(<PacketInputsEditor leaseId="701" canEdit />);
+    fireEvent.click(screen.getByRole("button", { name: "Add a person" }));
+    const rows = () =>
+      [...document.querySelectorAll("[data-packet-person]")] as HTMLElement[];
+    expect(within(rows()[3]).getByLabelText("Tenant (position 4)")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Remove this person" }));
+    // Removing Casey keeps Blake first and Avery second.
+    fireEvent.click(screen.getByRole("button", { name: "Remove Casey" }));
+    expect(within(rows()[0]).getByLabelText("Tenant (position 2)")).toBeTruthy();
+    expect(within(rows()[1]).getByLabelText("Tenant (position 1)")).toBeTruthy();
+    // Unchecking Blake's role closes the gap: Avery signs first.
+    fireEvent.click(within(rows()[1]).getByLabelText("Tenant (position 1)"));
+    expect(within(rows()[0]).getByLabelText("Tenant (position 1)")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Save people" }));
+    await waitFor(() => expect(posts).toHaveLength(1));
+    const saved = (
+      posts[0].people as { entries: Array<{ fullName: string; roles: unknown[] }> }
+    ).entries;
+    expect(saved.map((entry) => [entry.fullName, entry.roles])).toEqual([
+      ["Avery", [{ signerRole: "tenant", order: 1, dotloopRole: "TENANT" }]],
+      ["Blake", []],
+    ]);
   });
 });

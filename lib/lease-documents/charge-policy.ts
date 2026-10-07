@@ -77,11 +77,20 @@ export const ChargePolicyContentSchema = z
   });
 export type ChargePolicyContent = z.infer<typeof ChargePolicyContentSchema>;
 
+/** A real calendar day; 2026-99-99 and other impossible dates are refused. */
+const CalendarDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((value) => {
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+  }, "Choose a real calendar date.");
+
 export const ChargePolicyRecordSchema = z
   .object({
     schemaVersion: z.literal(CHARGE_POLICY_SCHEMA_VERSION),
     version: z.number().int().positive(),
-    effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    effectiveFrom: CalendarDateSchema,
     content: ChargePolicyContentSchema,
     note: z.string().trim().min(1).max(500).optional(),
     publishedAt: z.string().datetime(),
@@ -93,7 +102,7 @@ export type ChargePolicyRecord = z.infer<typeof ChargePolicyRecordSchema>;
 export const PublishChargePolicyInputSchema = z
   .object({
     content: ChargePolicyContentSchema,
-    effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    effectiveFrom: CalendarDateSchema,
     note: z.string().trim().min(1).max(500).optional(),
     /** 0 when no policy has been published yet. */
     expectedVersion: z.number().int().nonnegative(),
@@ -277,11 +286,19 @@ export function calculateRenewalCharges(input: {
   // Resident Benefit Package: offered or not by policy; enrollment is the lease's recorded election.
   const rbp = policy.content.residentBenefitPackage;
   if (!rbp) {
+    // A recorded enrollment the policy cannot price is a question, never a silently dropped charge.
+    const enrolledWithoutAmount = factValue(RBP_ELECTION_KEY) === true;
+    if (enrolledWithoutAmount)
+      issues.push({
+        scope: "resident_benefit_package",
+        label:
+          "The lease records Resident Benefit Package enrollment, but the published charge policy has no package amount.",
+      });
     charges.push(
       charge(
         "resident_benefit_package:monthly",
         "resident_benefit_package",
-        false,
+        enrolledWithoutAmount ? null : false,
         null,
         "monthly",
         "rbp",
@@ -411,10 +428,8 @@ export function calculateRenewalCharges(input: {
           : "record the juvenile animal's current weight.",
       );
     } else {
-      basisValue =
-        animal.weightUnit === "kg"
-          ? Math.round(animal.weight * KG_TO_LB * 100) / 100
-          : animal.weight;
+      // The exact converted weight decides the tier; rounding first could cross a tier edge.
+      basisValue = animal.weightUnit === "kg" ? animal.weight * KG_TO_LB : animal.weight;
     }
     if (basisValue === null) {
       emit(null, null);
@@ -489,7 +504,9 @@ export function calculateRenewalCharges(input: {
  * The economic decisions an owner approval covers: every calculated charge's applicability and
  * amount and the policy version. A later change makes the recorded approval stale.
  */
-export function economicsHash(calculated: CalculatedCharges): string {
+export function economicsHash(
+  calculated: Pick<CalculatedCharges, "policyVersion" | "charges">,
+): string {
   return hashExecutionPreview({
     policyVersion: calculated.policyVersion,
     charges: [...calculated.charges]

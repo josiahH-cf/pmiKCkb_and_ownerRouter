@@ -16,6 +16,7 @@ import {
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
+import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import {
   CHARGE_POLICY_SCHEMA_VERSION,
   ChargePolicyRecordSchema,
@@ -74,7 +75,20 @@ export async function publishChargePolicy(
   assertMutationAllowed(requireEnvironmentDescriptor());
   if (!can(actor.role, "manageAdmin") || isVerificationAccount(actor))
     throw new EditableLayerError("An Admin publishes the renewal charge policy.", 403);
-  const input = PublishChargePolicyInputSchema.parse(raw);
+  const parsed = PublishChargePolicyInputSchema.safeParse(raw);
+  if (!parsed.success)
+    throw new EditableLayerError(
+      parsed.error.issues[0]?.message ?? "The charge policy is not valid.",
+      400,
+    );
+  const input = parsed.data;
+  // The current policy prices every packet from the moment it is published, so it never names a
+  // later day: a version dated in the future would apply early.
+  if (input.effectiveFrom > businessDateIso(now))
+    throw new EditableLayerError(
+      "Choose an effective date on or before today. A charge policy is used from the day it is published.",
+      400,
+    );
   const requestHash = hashExecutionPreview({
     actorUid: actor.uid,
     action: "charge_policy_publish",

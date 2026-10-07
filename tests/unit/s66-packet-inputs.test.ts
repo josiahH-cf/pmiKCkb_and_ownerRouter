@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { evaluateRenewalPacket } from "@/lib/lease-documents/evaluate-packet";
+import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   packetInputFacts,
   packetInputParties,
   planPacketInputsSave,
+  SavePacketInputsSchema,
   type PacketInputsRecord,
   type PacketPersonInput,
 } from "@/lib/lease-documents/packet-inputs";
@@ -424,6 +426,114 @@ describe("S66 packet inputs: staff enter facts, people and animals once (AC-S66-
     ).toEqual([]);
     expect(evaluation.manifest?.participants.map((entry) => entry.participantId)).toEqual(
       [`${PERSON(1)}:tenant`],
+    );
+  });
+
+  it("keeps a cleared fact's revision so an editor that read the earlier value is refused after re-entry", () => {
+    const set = save(null, {
+      facts: [
+        { fieldKey: "landlord.legal_entity", expectedRevision: 0, value: "Foo LLC" },
+      ],
+    }).record;
+    // Operator B read "Foo LLC" at revision 1. Operator A clears it and enters "Bar LLC".
+    const cleared = save(
+      set,
+      {
+        facts: [{ fieldKey: "landlord.legal_entity", expectedRevision: 1, value: null }],
+      },
+      2,
+    ).record;
+    expect(cleared.facts["landlord.legal_entity"]).toBeUndefined();
+    expect(cleared.clearedFacts?.["landlord.legal_entity"]).toMatchObject({
+      revision: 2,
+      recordedByUid: "editor-2",
+    });
+    expect(() =>
+      save(
+        cleared,
+        {
+          facts: [
+            { fieldKey: "landlord.legal_entity", expectedRevision: 0, value: "Bar LLC" },
+          ],
+        },
+        3,
+      ),
+    ).toThrow(/Another operator changed Landlord legal entity/);
+    const reentered = save(
+      cleared,
+      {
+        facts: [
+          { fieldKey: "landlord.legal_entity", expectedRevision: 2, value: "Bar LLC" },
+        ],
+      },
+      3,
+    ).record;
+    expect(reentered.facts["landlord.legal_entity"]).toMatchObject({
+      value: "Bar LLC",
+      revision: 3,
+    });
+    expect(reentered.clearedFacts).toBeUndefined();
+    // B's stale save against revision 1 never replaces A's newer value.
+    expect(() =>
+      save(
+        reentered,
+        {
+          facts: [
+            { fieldKey: "landlord.legal_entity", expectedRevision: 1, value: "Baz LLC" },
+          ],
+        },
+        4,
+      ),
+    ).toThrow(/Another operator changed Landlord legal entity/);
+  });
+
+  it("refuses an impossible date and duplicate identities as a request error, never a failure", () => {
+    for (const value of ["2026-13-01", "2026-01-32", "2026-02-30"]) {
+      let caught: unknown;
+      try {
+        save(null, {
+          facts: [{ fieldKey: "lease.original_date", expectedRevision: 0, value }],
+        });
+      } catch (error) {
+        caught = error;
+      }
+      expect(caught).toBeInstanceOf(EditableLayerError);
+      expect((caught as EditableLayerError).status).toBe(400);
+      expect((caught as Error).message).toBe("Original lease date: enter a valid date.");
+    }
+    const animal = {
+      animalId: ANIMAL(1),
+      name: "Rex",
+      species: "Dog",
+      breed: null,
+      weight: 30,
+      weightUnit: "lb",
+      weightBasis: "current",
+      maturity: "adult",
+      fidoScore: null,
+      treatment: "pet",
+    };
+    const duplicateAnimals = SavePacketInputsSchema.safeParse({
+      leaseId: LEASE,
+      operationId: OP(1),
+      animals: { expectedRevision: 0, entries: [animal, { ...animal, name: "Max" }] },
+    });
+    expect(duplicateAnimals.success).toBe(false);
+    expect(duplicateAnimals.error?.issues.map((issue) => issue.message)).toContain(
+      "Each animal needs one distinct identity.",
+    );
+    const override = {
+      chargeId: "insurance:monthly",
+      amountCents: 1_000,
+      reason: "Agreed rate",
+    };
+    const duplicateOverrides = SavePacketInputsSchema.safeParse({
+      leaseId: LEASE,
+      operationId: OP(1),
+      chargeOverrides: { expectedRevision: 0, entries: [override, override] },
+    });
+    expect(duplicateOverrides.error?.issues.map((issue) => issue.message)).toContain(
+      "One override per charge.",
     );
   });
 });
