@@ -47,7 +47,8 @@ with production cold and warm timings.
 2. S182 `a47d5a4d`: staff packet operations and Dotloop-origin AI exclusion.
 3. S66 `f9085358`, `3481a43f`: packet inputs entered once, with owner approval bound to the
    Working terms.
-4. S130 `acb935a8`: static PDF filling through reviewed regions and unchanged-attachment labels.
+4. S130 `acb935a8`, `ad6fc502`: static PDF filling through reviewed regions, including quarter-turned
+   pages, and unchanged-attachment labels.
 5. S34 `4fb777c7`: one lease loop created or linked, versioned successor uploads, a durable
    folder and staff-reported completion.
 
