@@ -21,7 +21,11 @@ import {
   inspectStaticPdf,
   readStaticPdfValuesByOrder,
 } from "@/lib/lease-documents/static-pdf";
-import { geometry, staticOriginal } from "@/tests/fixtures/synthetic-static";
+import {
+  geometry,
+  objectsHolding,
+  staticOriginal,
+} from "@/tests/fixtures/synthetic-static";
 import {
   LEASE_DOCUMENT_PACKET_COLLECTIONS,
   packetHeadId,
@@ -685,11 +689,81 @@ describe("S130 static route through the persisted filled output (AC-S130-11/12/1
       { snapshot_id: t.request.snapshotId, payload_hash: evaluation.payloadHash },
     );
     const record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
-    expect(await readAcroformValues((await t.read(record.id)).content)).toMatchObject({
+    const saved = (await t.read(record.id)).content;
+    expect(await readAcroformValues(saved)).toMatchObject({
       "Party 1": "Synthetic A",
       "Party 2": "Synthetic B",
       "Party 3": "",
     });
+    // The cleared person's earlier appearance is not left behind as an unused object.
+    expect(await objectsHolding(original, ["Earlier person"])).not.toEqual([]);
+    expect(await objectsHolding(saved, ["Earlier person"])).toEqual([]);
+  });
+
+  it("clears unused repeated selection slots that hold an earlier choice", async () => {
+    const t = await setup();
+    const pdf = await PDFDocument.load(await syntheticAcroform(["Amount"]));
+    const page = pdf.getPage(0),
+      form = pdf.getForm();
+    for (const slot of [1, 2, 3]) {
+      const y = 300 - slot * 60;
+      const kind = form.createDropdown(`Kind ${slot}`);
+      kind.addOptions(["Adult", "Minor"]);
+      kind.addToPage(page, { x: 30, y, width: 160, height: 24 });
+      const pick = form.createRadioGroup(`Pick ${slot}`);
+      pick.addOptionToPage("Yes", page, { x: 220, y, width: 20, height: 20 });
+      pick.addOptionToPage("No", page, { x: 260, y, width: 20, height: 20 });
+    }
+    form.getDropdown("Kind 3").select("Minor");
+    form.getRadioGroup("Pick 3").select("Yes");
+    const original = await pdf.save({ useObjectStreams: false });
+    const served = {
+      content: original,
+      contentType: "application/pdf",
+      fileName: "synthetic-prefilled-choices.pdf",
+    };
+    t.deps.original = vi.fn(async () => served);
+    t.artifact.contentHash = sha(original);
+    t.input.facts.push(
+      ...["a", "b"].flatMap((party) => [
+        s66Fact(`party.fixture-tenant-${party}.kind`, "Adult"),
+        s66Fact(`party.fixture-tenant-${party}.pick`, "No"),
+      ]),
+    );
+    const map = t.artifact.fillMapping!.map;
+    for (const [fieldId, attribute] of [
+      ["Kind", "kind"],
+      ["Pick", "pick"],
+    ])
+      map.fields.push({
+        fieldId: `${fieldId}s`,
+        factKey: `party.${attribute}`,
+        meaning: `Synthetic ${attribute}`,
+        required: true,
+        multiplicity: "per_party",
+        pdfFieldNames: [1, 2, 3].map((slot) => `${fieldId} ${slot}`),
+        allowedSourceSystems: ["rentvine"],
+      });
+    t.artifact.fillMapping!.mapHash = mapHashOf(map);
+    const evaluation = evaluateRenewalPacket(t.input);
+    t.context.snapshot = { ...t.context.snapshot!, ...evaluation };
+    t.fake.seed(
+      `${LEASE_DOCUMENT_PACKET_COLLECTIONS.heads}/${packetHeadId("123", "123")}`,
+      { snapshot_id: t.request.snapshotId, payload_hash: evaluation.payloadHash },
+    );
+    const record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
+    const saved = (await t.read(record.id)).content;
+    expect(await readAcroformValues(saved)).toMatchObject({
+      "Kind 1": "Adult",
+      "Kind 2": "Adult",
+      "Kind 3": "",
+      "Pick 1": "No",
+      "Pick 2": "No",
+      "Pick 3": "",
+    });
+    // No appearance in the saved file still draws the earlier choice.
+    expect(await objectsHolding(original, ["Minor"], { streams: true })).not.toEqual([]);
+    expect(await objectsHolding(saved, ["Minor"], { streams: true })).toEqual([]);
   });
 
   it("labels an unchanged approved attachment and keeps an unmapped original a manual handoff", async () => {

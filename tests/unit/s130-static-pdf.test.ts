@@ -15,6 +15,7 @@ import {
 } from "@/lib/lease-documents/static-pdf";
 import {
   geometry,
+  objectsHolding,
   rectAround,
   runs,
   staticOriginal,
@@ -368,5 +369,27 @@ describe("S130 static PDF filling (AC-S130-11, AC-S130-12, AC-S130-13)", () => {
         [{ regionId: "Note", text: "SYNTHETIC note" }],
       ),
     ).rejects.toThrow(/overflow its region/);
+  });
+
+  it("leaves no object in the saved file that still holds a removed value (R-F10-04)", async () => {
+    const original = await staticOriginal();
+    const filled = await fillStaticPdf(original, await geometry(original), VALUES);
+    expect(await objectsHolding(original, ["Old Tenant Name", "$900.00"])).not.toEqual(
+      [],
+    );
+    // Not on the page and not in an unreferenced copy of the earlier page content either.
+    expect(await objectsHolding(filled.content, ["Old Tenant Name", "$900.00"])).toEqual(
+      [],
+    );
+    expect(filled.comparison.unchangedObjects).toBeGreaterThan(0);
+    // Content a second page also draws would keep the earlier value there: refused.
+    const pdf = await PDFDocument.load(original);
+    const second = pdf.addPage([612, 792]);
+    for (const key of ["Resources", "Contents"])
+      second.node.set(PDFName.of(key), pdf.getPage(0).node.get(PDFName.of(key))!);
+    const shared = await pdf.save({ useObjectStreams: false });
+    await expect(fillStaticPdf(shared, await geometry(shared), VALUES)).rejects.toThrow(
+      /Page 1: the text to replace is in content that other pages also use/,
+    );
   });
 });

@@ -10,6 +10,8 @@
 //     position and the old value is no longer extractable from the page;
 //   * draws each value in Helvetica inside its region, wrapped and tagged, never shrinking text,
 //     never drawing into a protected signature, initial or signing-date area;
+//   * writes no object the edit detached, so a replaced content stream holding a removed value
+//     does not survive as an unused copy;
 //   * reopens the saved bytes and proves the fixed content is byte-identical, the removed runs are
 //     gone and every drawn value reads back exactly.
 // The original bytes are never modified; page content and resources outside these rules are kept.
@@ -30,7 +32,13 @@ import {
   type PDFPage,
 } from "pdf-lib";
 
-import { parseSafePdf } from "@/lib/lease-documents/acroform-pdf";
+import {
+  compareFixedObjects,
+  fixedObjects,
+  parseSafePdf,
+  reachableObjects,
+  saveReachable,
+} from "@/lib/lease-documents/acroform-pdf";
 import type {
   RegionRect,
   StaticPdfGeometry,
@@ -938,6 +946,9 @@ async function planPages(
   }
   const plans: PagePlan[] = [];
   const pageIndexes = [...new Set(geometry.regions.map((region) => region.pageIndex))];
+  const { references } = reachableObjects(pdf);
+  const shared = (value: unknown) =>
+    value instanceof PDFRef && (references.get(value) ?? 0) > 1;
   for (const pageIndex of pageIndexes) {
     const page = pages[pageIndex];
     if (!page) continue;
@@ -967,6 +978,15 @@ async function planPages(
         if (touches(box, region.rect) && region.existing === "replace")
           issues.push(`${region.regionId}: an annotation covers the region.`);
     }
+    // Replaced text in content another page or object also draws would survive there.
+    if (
+      removed.size &&
+      (shared(page.node.get(PDFName.of("Contents"))) ||
+        [...removed].some((run) => shared(reading.streams[run.streamIndex].ref)))
+    )
+      issues.push(
+        `Page ${pageIndex + 1}: the text to replace is in content that other pages also use. Use an approved clean master.`,
+      );
     plans.push({ page, pageIndex, reading, removed: [...removed] });
   }
   return { plans, issues: [...new Set(issues)] };
@@ -1148,18 +1168,17 @@ export async function fillStaticPdf(
     ...plans.filter((plan) => plan.removed.length > 0).map((plan) => plan.pageIndex),
     ...drawn.map((entry) => entry.region.pageIndex),
   ]);
-  const modifiedObjects = new Set<unknown>();
   const expectedMiddle = new Map<number, Uint8Array[]>();
   const pages = pdf.getPages();
+  // Only the touched page dictionaries are edited; every other reachable object is fixed.
+  const fixed = fixedObjects(
+    pdf,
+    new Set([...touched].map((index) => pages[index].node)),
+  );
   for (const pageIndex of touched) {
     const page = pages[pageIndex];
     const plan = plans.find((entry) => entry.pageIndex === pageIndex)!;
-    modifiedObjects.add(page.node);
     const resources = inheritedResources(pdf, page);
-    if (resources) {
-      modifiedObjects.add(resources);
-      modifiedObjects.add(lookup(pdf, resources.get(PDFName.of("Font"))));
-    }
     const middle: PDFRef[] = [];
     const middleBytes: Uint8Array[] = [];
     for (const [streamIndex, stream] of plan.reading.streams.entries()) {
@@ -1213,22 +1232,17 @@ export async function fillStaticPdf(
     );
     expectedMiddle.set(pageIndex, middleBytes);
   }
-  const unchanged = pdf.context
-    .enumerateIndirectObjects()
-    .filter(([, object]) => !modifiedObjects.has(object))
-    .map(([reference, object]) => ({ reference, fingerprint: sha(object.toString()) }));
-  const content = await pdf.save({ useObjectStreams: false });
+  // The replaced page content still holds the removed values, so detached objects are dropped.
+  const content = await saveReachable(pdf);
 
   // Reopen the saved bytes and prove every rule on what was actually written.
   const reopened = await parseSafePdf(content, true);
   const output = reopened.pdf;
   if (output.getPageCount() !== pdf.getPageCount())
     refuse("the saved page count changed.");
-  for (const item of unchanged) {
-    const observed = output.context.lookup(item.reference);
-    if (!observed || sha(observed.toString()) !== item.fingerprint)
-      refuse("content outside the reviewed regions changed.");
-  }
+  const unchanged = compareFixedObjects(fixed, pdf, output);
+  if (unchanged.changed) refuse("content outside the reviewed regions changed.");
+  if (unchanged.orphaned) refuse("the saved file holds content no page uses.");
   const originalDoc = await PDFDocument.load(original, { updateMetadata: false });
   const allFields: Record<string, string> = {};
   for (const [pageIndex, page] of output.getPages().entries()) {
@@ -1278,7 +1292,7 @@ export async function fillStaticPdf(
       allFields,
       changedFieldNames: drawn.map((entry) => entry.region.regionId),
       removedRuns: plans.reduce((total, plan) => total + plan.removed.length, 0),
-      unchangedObjects: unchanged.length,
+      unchangedObjects: unchanged.unchanged,
       pages: output.getPageCount(),
       fixedContentVerified: true,
       verified: true,

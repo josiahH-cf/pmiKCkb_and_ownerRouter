@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  PDFArray,
   PDFCheckBox,
   PDFDict,
   PDFDocument,
@@ -9,6 +10,7 @@ import {
   PDFRadioGroup,
   PDFRef,
   PDFSignature,
+  PDFStream,
   PDFTextField,
   StandardFonts,
 } from "pdf-lib";
@@ -168,6 +170,92 @@ function fieldValue(
   return refuse("a field type is unsupported.");
 }
 
+/**
+ * S130 (R-F10-04): the indirect objects reachable from the trailer, and how often each is
+ * referenced. Traversal does not enter an object in `stopAt`, so a caller can ask what stays
+ * reachable without the objects it edits.
+ */
+export function reachableObjects(
+  pdf: PDFDocument,
+  stopAt: ReadonlySet<unknown> = new Set(),
+) {
+  const reached = new Set<PDFRef>();
+  const references = new Map<PDFRef, number>();
+  const { Root, Info, Encrypt, ID } = pdf.context.trailerInfo;
+  const pending: unknown[] = [Root, Info, Encrypt, ID];
+  while (pending.length) {
+    const value = pending.pop();
+    if (value instanceof PDFRef) {
+      references.set(value, (references.get(value) ?? 0) + 1);
+      const object = pdf.context.lookup(value);
+      if (reached.has(value) || object === undefined || stopAt.has(object)) continue;
+      reached.add(value);
+      pending.push(object);
+    } else if (value instanceof PDFDict)
+      for (const item of value.values()) pending.push(item);
+    else if (value instanceof PDFArray)
+      for (const item of value.asArray()) pending.push(item);
+    else if (value instanceof PDFStream) pending.push(value.dict);
+  }
+  return { reached, references };
+}
+
+/** The reachable objects an edit must leave intact, fingerprinted before anything is edited. */
+export interface FixedObjects {
+  readonly fingerprints: ReadonlyMap<PDFRef, string>;
+  /** Reachable without passing through an edited object, so each must survive the edit. */
+  readonly anchored: ReadonlySet<PDFRef>;
+}
+
+export function fixedObjects(
+  pdf: PDFDocument,
+  edited: ReadonlySet<unknown>,
+): FixedObjects {
+  const fingerprints = new Map<PDFRef, string>();
+  for (const ref of reachableObjects(pdf).reached) {
+    const object = pdf.context.lookup(ref)!;
+    if (!edited.has(object)) fingerprints.set(ref, hash(object.toString()));
+  }
+  return { fingerprints, anchored: reachableObjects(pdf, edited).reached };
+}
+
+/**
+ * Save without the objects an edit detached: a replaced page content stream or appearance keeps
+ * its earlier value, so nothing unreachable is written. Field appearances are never regenerated.
+ */
+export async function saveReachable(pdf: PDFDocument): Promise<Uint8Array> {
+  await pdf.flush();
+  const { reached } = reachableObjects(pdf);
+  for (const [ref] of pdf.context.enumerateIndirectObjects())
+    if (!reached.has(ref)) pdf.context.delete(ref);
+  return pdf.save({ updateFieldAppearances: false, useObjectStreams: false });
+}
+
+/**
+ * Compare a reopened saved file with the fixed objects of its original: every anchored object
+ * survived, every kept object is byte-identical, and nothing unreachable was written.
+ */
+export function compareFixedObjects(
+  fixed: FixedObjects,
+  edited: PDFDocument,
+  saved: PDFDocument,
+) {
+  const kept = [...fixed.fingerprints].filter(
+    ([ref]) => edited.context.lookup(ref) !== undefined,
+  );
+  const changed =
+    [...fixed.anchored].some((ref) => edited.context.lookup(ref) === undefined) ||
+    kept.some(([ref, fingerprint]) => {
+      const observed = saved.context.lookup(ref);
+      return !observed || hash(observed.toString()) !== fingerprint;
+    });
+  const { reached } = reachableObjects(saved);
+  const orphaned = saved.context
+    .enumerateIndirectObjects()
+    .some(([ref]) => !reached.has(ref));
+  return { unchanged: kept.length, changed, orphaned };
+}
+
 export async function readAcroformValues(
   content: Uint8Array,
 ): Promise<Record<string, PdfFieldValue | null>> {
@@ -217,10 +305,7 @@ export async function fillAcroformPdf(
     mutable.add(field.acroField.dict);
     for (const widget of field.acroField.getWidgets()) mutable.add(widget.dict);
   }
-  const unchanged = pdf.context
-    .enumerateIndirectObjects()
-    .filter(([, object]) => !mutable.has(object))
-    .map(([reference, object]) => ({ reference, fingerprint: hash(object.toString()) }));
+  const fixed = fixedObjects(pdf, mutable);
   const beforeValues = Object.fromEntries(
     fields.map((field) => [field.getName(), fieldValue(field)]),
   );
@@ -268,23 +353,24 @@ export async function fillAcroformPdf(
       field instanceof PDFOptionList ||
       field instanceof PDFRadioGroup
     ) {
-      if (typeof entry.value !== "string" || !field.getOptions().includes(entry.value))
+      if (
+        typeof entry.value !== "string" ||
+        (entry.value !== "" && !field.getOptions().includes(entry.value))
+      )
         refuse("a selection must match an existing reviewed option.");
-      field.select(entry.value);
+      // An empty value is the field's own empty state: no option selected.
+      if (entry.value === "") field.clear();
+      else field.select(entry.value);
       if (field instanceof PDFRadioGroup) field.updateAppearances();
       else field.updateAppearances(font);
     } else refuse("the mapped field type is unsupported.");
   }
-  const content = await pdf.save({
-    updateFieldAppearances: false,
-    useObjectStreams: false,
-  });
+  // A replaced appearance keeps the earlier value, so detached objects are never written.
+  const content = await saveReachable(pdf);
   const reopened = await parse(content);
-  for (const item of unchanged) {
-    const observed = reopened.pdf.context.lookup(item.reference);
-    if (!observed || hash(observed.toString()) !== item.fingerprint)
-      refuse("content outside the reviewed fields changed.");
-  }
+  const comparison = compareFixedObjects(fixed, pdf, reopened.pdf);
+  if (comparison.changed) refuse("content outside the reviewed fields changed.");
+  if (comparison.orphaned) refuse("the saved file holds content no field or page uses.");
   const observed = await readAcroformValues(content);
   const expected = {
     ...beforeValues,
@@ -300,7 +386,7 @@ export async function fillAcroformPdf(
     comparison: {
       allFields: observed,
       changedFieldNames: values.map((entry) => entry.name),
-      unchangedObjects: unchanged.length,
+      unchangedObjects: comparison.unchanged,
       verified: true as const,
     },
   };

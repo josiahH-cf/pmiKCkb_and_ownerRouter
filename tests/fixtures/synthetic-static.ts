@@ -1,4 +1,11 @@
-import { PDFDocument, PDFName, StandardFonts, degrees } from "pdf-lib";
+import {
+  PDFDocument,
+  PDFName,
+  PDFRawStream,
+  StandardFonts,
+  decodePDFRawStream,
+  degrees,
+} from "pdf-lib";
 
 import {
   StaticPdfGeometrySchema,
@@ -51,6 +58,34 @@ export async function staticOriginal(
 
 export async function runs(bytes: Uint8Array) {
   return (await inspectStaticPdf(bytes)).runs;
+}
+
+/**
+ * Every object written in a saved file, referenced or not, that still holds one of the values as
+ * literal or hex text; streams are decoded first. With `streams`, only decoded streams are read.
+ */
+export async function objectsHolding(
+  bytes: Uint8Array,
+  values: readonly string[],
+  { streams = false } = {},
+) {
+  const pdf = await PDFDocument.load(bytes, { updateMetadata: false });
+  const found: string[] = [];
+  for (const [ref, object] of pdf.context.enumerateIndirectObjects()) {
+    const decoded =
+      object instanceof PDFRawStream
+        ? Buffer.from(decodePDFRawStream(object).decode()).toString("latin1")
+        : "";
+    const text = streams ? decoded : `${object.toString()}\n${decoded}`;
+    const hex = text.replace(/\s+/g, "").toUpperCase();
+    for (const value of values)
+      if (
+        text.includes(value) ||
+        hex.includes(Buffer.from(value, "latin1").toString("hex").toUpperCase())
+      )
+        found.push(`${ref.toString()}: ${value}`);
+  }
+  return found;
 }
 
 /** A region on a run's exact horizontal extent, with room above and below. */
