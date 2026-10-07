@@ -1754,8 +1754,16 @@ export function formatStaticValue(
   }
   if (format === "date_long" || format === "date_numeric") {
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value));
-    if (!match) refuse("a date region needs a recorded calendar date.");
-    const [, year, month, day] = match;
+    // An impossible day such as 2026-13-01 or 2026-02-30 is refused, never printed.
+    const parsed = match ? new Date(`${match[0]}T00:00:00Z`) : null;
+    if (
+      !match ||
+      !parsed ||
+      Number.isNaN(parsed.getTime()) ||
+      parsed.toISOString().slice(0, 10) !== match[0]
+    )
+      refuse("a date region needs a recorded calendar date.");
+    const [, year, month, day] = match!;
     return format === "date_long"
       ? `${LONG_MONTHS[Number(month) - 1]} ${Number(day)}, ${year}`
       : `${month}/${day}/${year}`;

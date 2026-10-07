@@ -314,6 +314,15 @@ describe("S130 static PDF filling (AC-S130-11, AC-S130-12, AC-S130-13)", () => {
     expect(() => formatStaticValue("date_long", "next month", null)).toThrow(
       /calendar date/,
     );
+    // An impossible day is refused instead of printing "undefined 1, 2026" or a non-date.
+    for (const impossible of ["2026-13-01", "2026-02-30", "2026-00-10"]) {
+      expect(() => formatStaticValue("date_long", impossible, null)).toThrow(
+        /calendar date/,
+      );
+      expect(() => formatStaticValue("date_numeric", impossible, null)).toThrow(
+        /calendar date/,
+      );
+    }
     expect(() => formatStaticValue("checkmark", "yes", null)).toThrow(/yes or no/);
   });
 
