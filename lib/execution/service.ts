@@ -22,6 +22,7 @@ import {
   failActionExecution,
   getActionExecution,
   prepareActionExecutionRecord,
+  type ActionExecutionCompanion,
 } from "@/lib/firestore/action-executions";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { createApprovalQueueItem } from "@/lib/firestore/approval-queue";
@@ -57,6 +58,8 @@ export interface ExecutionApprovalQueueContext {
 export interface PrepareActionExecutionInput {
   actionKey: string;
   approvalQueue?: ExecutionApprovalQueueContext;
+  /** S182: the feature companion written in the same transaction as the execution record. */
+  companion?: ActionExecutionCompanion;
   contextHash?: string;
   idempotencyKey: string;
   /** Server-owned namespace used when uniqueness must span preparers. */
@@ -145,6 +148,7 @@ export async function prepareActionExecution(
     actor,
     {
       classification,
+      companion: input.companion,
       contextHash: input.contextHash,
       idempotencyKey: input.idempotencyKey,
       idempotencyPrincipal: input.idempotencyPrincipal,

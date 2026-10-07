@@ -20,6 +20,7 @@ import {
 import {
   approveActionExecution,
   getActionExecution,
+  type ActionExecutionCompanion,
 } from "@/lib/firestore/action-executions";
 import {
   createDotloopRuntime,
@@ -35,10 +36,8 @@ import { evaluateRenewalPacket } from "@/lib/lease-documents/evaluate-packet";
 import { bindCurrentPacketForDotloop } from "@/lib/lease-documents/dotloop-packet-binding";
 import { bindApprovedDerivedPacket } from "@/lib/lease-documents/derived-packet-binding";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
-import { externalActionContextHash } from "@/lib/external-execution/identity";
 import {
   prepareExternalActionWithS20,
-  expectedExternalS20ExecutionId,
   type ExternalActionPreparationInput,
   type TrustedExternalExecutionContext,
 } from "@/lib/external-execution/s20-bridge";
@@ -547,54 +546,33 @@ export async function prepareNormalPacketAction(
   assertMutationAllowed(requireEnvironmentDescriptor());
   const value = await assemble(actor, leaseId, operation, documentRef);
   await assertProductionRuntimeActionExecutable(value.action.actionKey);
-  const existingId = expectedExternalS20ExecutionId(value.action);
-  const existing = await getAdminFirestore()
-    .collection(PACKET_ACTION_SNAPSHOTS)
-    .doc(existingId)
-    .get();
-  if (
-    existing.exists &&
-    hashExecutionPreview(existing.get("prepared")) !== hashExecutionPreview(value)
-  )
-    throw new EditableLayerError(
-      "This packet already has a different immutable preparation. Recover its exact attempt or evaluate the current changed sources.",
-      409,
-    );
-  // A colleague confirms the original preparation without replacing its authenticated preparer.
-  const prepared = existing.exists
-    ? await getActionExecution(actor, existingId)
-    : await prepareExternalActionWithS20(actor, {
-        action: value.action,
-        definition: value.definition,
-        trustedContext: value.trustedContext,
-        validate: (action) => validator.validate(action),
-      });
-  // Existing S66 snapshots hold exact artifact facts; this companion retains the immutable action for recovery.
-  const stored = {
-    leaseId,
-    operation,
-    documentRef: documentRef ?? null,
-    prepared: value,
-    previewHash: prepared.preview_hash,
-    contextHash: externalActionContextHash(value.action),
-  };
-  const ref = getAdminFirestore().collection(PACKET_ACTION_SNAPSHOTS).doc(prepared.id);
-  await getAdminFirestore().runTransaction(async (tx) => {
-    const prior = await tx.get(ref);
-    if (prior.exists) {
-      if (prior.get("snapshotHash") !== hashExecutionPreview(stored))
-        throw new EditableLayerError(
-          "This packet preparation differs from its saved snapshot.",
-          409,
-        );
-      return;
-    }
-    tx.create(
-      ref,
-      JSON.parse(
+  // Existing S66 snapshots hold exact artifact facts; this companion retains the immutable action
+  // for recovery. S182: it is written in the same transaction as the S20 execution record, so a
+  // request that stops never leaves a half-prepared action. A colleague who prepares the identical
+  // action continues the original preparation without replacing its authenticated preparer; a
+  // changed preparation is refused.
+  const companion: ActionExecutionCompanion = {
+    collection: PACKET_ACTION_SNAPSHOTS,
+    document: ({ previewHash, contextHash }) => {
+      const stored = {
+        leaseId,
+        operation,
+        documentRef: documentRef ?? null,
+        prepared: value,
+        previewHash,
+        contextHash,
+      };
+      return JSON.parse(
         JSON.stringify({ ...stored, snapshotHash: hashExecutionPreview(stored) }),
-      ),
-    );
+      );
+    },
+  };
+  const prepared = await prepareExternalActionWithS20(actor, {
+    action: value.action,
+    companion,
+    definition: value.definition,
+    trustedContext: value.trustedContext,
+    validate: (action) => validator.validate(action),
   });
   return {
     executionId: prepared.id,

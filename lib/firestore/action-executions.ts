@@ -28,6 +28,22 @@ const COLLECTIONS = {
   executions: "action_executions",
 } as const;
 
+/**
+ * S182: a feature's immutable companion to one execution record, created in the same transaction
+ * as the record so neither can exist without the other. Its document binds the record's own
+ * preview and context hashes and carries `snapshotHash`, the hash of exactly this preparation.
+ * Preparing the identical action again returns the existing record to anyone who may continue it.
+ */
+export interface ActionExecutionCompanion {
+  /** The collection holding one companion per execution id. */
+  readonly collection: string;
+  /** The Firestore-safe companion for this exact preparation, bound to the record's hashes. */
+  readonly document: (binding: {
+    readonly previewHash: string;
+    readonly contextHash: string | undefined;
+  }) => Record<string, unknown> & { readonly snapshotHash: string };
+}
+
 export interface PrepareActionExecutionRecordInput {
   classification: ExecutionClassification & {
     kind: NonNullable<ExecutionClassification["kind"]>;
@@ -38,6 +54,7 @@ export interface PrepareActionExecutionRecordInput {
   contextHash?: string;
   previewHash: string;
   scopeRef?: string;
+  companion?: ActionExecutionCompanion;
 }
 
 export interface ApproveActionExecutionInput {
@@ -83,19 +100,47 @@ export async function prepareActionExecutionRecord(
 
   await db.runTransaction(async (transaction) => {
     const ref = executionRef(db, id);
-    const snapshot = await transaction.get(ref);
+    const companionRef = input.companion
+      ? db.collection(input.companion.collection).doc(id)
+      : null;
+    const [snapshot, companionSnapshot] = await Promise.all([
+      transaction.get(ref),
+      companionRef ? transaction.get(companionRef) : Promise.resolve(null),
+    ]);
+    const companion = input.companion?.document({ previewHash, contextHash }) ?? null;
     const existing = snapshot.data();
 
     if (existing) {
       const record = readRecord<ActionExecutionRecord>(snapshot.id, existing);
-      assertIdempotentMatch(
+      if (!companionRef || !companion) {
+        assertIdempotentMatch(
+          record,
+          actor,
+          input.classification.actionKey,
+          previewHash,
+          contextHash,
+        );
+        return;
+      }
+      assertCompanionContinuation(
         record,
         actor,
         input.classification.actionKey,
         previewHash,
         contextHash,
+        companionSnapshot?.data(),
+        companion.snapshotHash,
       );
+      // A record left by a request that stopped before its companion (written separately
+      // before S182) gains the identical companion now.
+      if (!companionSnapshot?.exists) transaction.create(companionRef, companion);
       return;
+    }
+    if (companionSnapshot?.exists) {
+      throw new EditableLayerError(
+        "This action's saved preparation has no execution record. Its evidence is kept for review.",
+        409,
+      );
     }
 
     const state: ActionExecutionState =
@@ -128,6 +173,7 @@ export async function prepareActionExecutionRecord(
       executionId: id,
       toState: state,
     });
+    if (companionRef && companion) transaction.create(companionRef, companion);
   });
 
   return getActionExecution(actor, id, db);
@@ -904,6 +950,39 @@ function assertIdempotentMatch(
       409,
     );
   }
+}
+
+/**
+ * S182: preparing the identical action again continues the existing record. Only the same action
+ * key, preview hash and context hash, with the same companion preparation, qualify, and only for
+ * the original preparer, an Admin or a colleague who may continue this staff-confirmed action.
+ */
+function assertCompanionContinuation(
+  record: ActionExecutionRecord,
+  actor: AuthenticatedUser,
+  actionKey: string,
+  previewHash: string,
+  contextHash: string | undefined,
+  storedCompanion: Record<string, unknown> | undefined,
+  snapshotHash: string,
+) {
+  if (
+    record.action_key !== actionKey ||
+    record.preview_hash !== previewHash ||
+    record.context_hash !== contextHash
+  ) {
+    throw new EditableLayerError(
+      "The idempotency key was already used for a different execution preview.",
+      409,
+    );
+  }
+  if (storedCompanion && storedCompanion.snapshotHash !== snapshotHash) {
+    throw new EditableLayerError(
+      "This action already has a different immutable preparation. Recover its exact attempt or evaluate the current changed sources.",
+      409,
+    );
+  }
+  assertCanView(actor, record);
 }
 
 /** S182: renewal staff continue a colleague's staff-confirmed packet action. */
