@@ -6,8 +6,8 @@
 //   * refuses a page whose size, crop or rotation differs from the reviewed geometry, whose content
 //     leaves a text object or marked content open or restores more states than it saves, or whose
 //     text has glyphs of unknown width;
-//   * refuses a region outside its page's visible box, or under an annotation that would show
-//     over the value;
+//   * refuses a region outside its page's visible box, under an annotation that would show over
+//     the value, or holding marked content whose /ActualText, /Alt or /E extraction would read;
 //   * refuses a "blank" region that holds existing text, and a "replace" region crossed by text,
 //     an image or nested content it cannot remove exactly;
 //   * removes each approved existing text run inside a "replace" region by replacing its show
@@ -668,6 +668,11 @@ interface PageReading {
   content: Uint8Array;
   runs: TextRun[];
   objects: PlacedObject[];
+  /**
+   * Where text, with or without glyphs, or an image is shown inside marked content whose
+   * properties carry /ActualText, /Alt or /E: extraction reads that text instead of the glyphs.
+   */
+  replaced: Box[];
   /** The nesting where each content stream starts, and where the page's content ends. */
   entry: Nesting[];
   end: Nesting;
@@ -698,10 +703,30 @@ function contentRefs(
   return [{ ref: raw instanceof PDFRef ? raw : null, stream: value }];
 }
 
+/** Marked-content properties that give extractors other text than the content they enclose. */
+const REPLACEMENT_TEXT = ["ActualText", "Alt", "E"];
+
 function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
   const resources = inheritedResources(pdf, page);
   const fontDict = resources ? lookup(pdf, resources.get(PDFName.of("Font"))) : null;
   const xobjects = resources ? lookup(pdf, resources.get(PDFName.of("XObject"))) : null;
+  const properties = resources
+    ? lookup(pdf, resources.get(PDFName.of("Properties")))
+    : null;
+  /** Whether a BDC property list, inline or named in /Properties, carries replacement text. */
+  const replacementText = (operand: Operand | undefined) => {
+    if (operand?.kind === "dict")
+      return REPLACEMENT_TEXT.some((key) => operand.entries!.has(key));
+    const named =
+      operand?.kind === "name" && properties instanceof PDFDict
+        ? lookup(pdf, properties.get(PDFName.of(operand.name!)))
+        : null;
+    // A property list that cannot be read is treated as carrying replacement text.
+    return (
+      !(named instanceof PDFDict) ||
+      REPLACEMENT_TEXT.some((key) => named.has(PDFName.of(key)))
+    );
+  };
   const fonts = new Map<string, FontMetrics>();
   const fontFor = (key: string) => {
     if (!fonts.has(key)) {
@@ -732,6 +757,7 @@ function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
   const content = new Uint8Array(Buffer.concat(parts));
   const runs: TextRun[] = [];
   const objects: PlacedObject[] = [];
+  const replaced: Box[] = [];
   interface State {
     ctm: Matrix;
     fontKey: string | null;
@@ -757,8 +783,8 @@ function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
   let tlm: Matrix = [...IDENTITY];
   let inText = false;
   let unbalanced = false;
-  /** Open marked-content sequences, each with its fill region tag or null. */
-  const marks: Array<number | null> = [];
+  /** Open marked-content sequences: a fill region tag or null, and any replacement text. */
+  const marks: Array<{ tag: number | null; replacement: boolean }> = [];
   const nesting = (): Nesting => ({
     depth: stack.length,
     ctm: [...state.ctm],
@@ -766,7 +792,15 @@ function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
     marked: marks.length,
     unbalanced,
   });
-  const fillTag = () => [...marks].reverse().find((mark) => mark !== null) ?? null;
+  const fillTag = () =>
+    [...marks].reverse().find((mark) => mark.tag !== null)?.tag ?? null;
+  const shown = (box: Box) => {
+    if (marks.some((mark) => mark.replacement)) replaced.push(box);
+  };
+  const place = (object: PlacedObject) => {
+    objects.push(object);
+    shown(object.box);
+  };
   const nums = (op: ContentOp, count: number) => {
     const values = op.operands
       .filter((operand) => operand.kind === "number")
@@ -808,16 +842,19 @@ function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
     }
     const low = state.rise - 0.25 * Math.abs(state.fontSize);
     const high = state.rise + 0.9 * Math.abs(state.fontSize);
+    const box = boxOf(startMatrix, [
+      [0, low],
+      [advance, low],
+      [0, high],
+      [advance, high],
+    ]);
+    // Even a glyph-free show positions the replacement text an extractor reads in its place.
+    shown(box);
     if (glyphs > 0)
       runs.push({
         streamIndex,
         op,
-        box: boxOf(startMatrix, [
-          [0, low],
-          [advance, low],
-          [0, high],
-          [advance, high],
-        ]),
+        box,
         matrix: startMatrix,
         text: font.decode(codes),
         glyphs,
@@ -863,14 +900,17 @@ function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
         inText = false;
         break;
       case "BMC":
-        marks.push(null);
+        marks.push({ tag: null, replacement: false });
         break;
       case "BDC": {
         const tag =
           op.operands[0]?.name === FILL_TAG
             ? op.operands[1]?.entries?.get("R")?.number
             : undefined;
-        marks.push(typeof tag === "number" ? tag : null);
+        marks.push({
+          tag: typeof tag === "number" ? tag : null,
+          replacement: replacementText(op.operands[1]),
+        });
         break;
       }
       case "EMC":
@@ -971,7 +1011,7 @@ function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
               : fallback;
           const [bx0, by0, bx1, by1] = values(bbox, [0, 0, 0, 0]);
           const form = multiply(values(matrix, [...IDENTITY]) as Matrix, state.ctm);
-          objects.push({
+          place({
             streamIndex,
             op,
             kind: "form",
@@ -983,7 +1023,7 @@ function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
             ]),
           });
         } else
-          objects.push({
+          place({
             streamIndex,
             op,
             kind: "image",
@@ -997,7 +1037,7 @@ function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
         break;
       }
       case "BI":
-        objects.push({
+        place({
           streamIndex,
           op,
           kind: "image",
@@ -1014,7 +1054,7 @@ function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
     }
   }
   while (streamIndex + 1 < streams.length) entry[++streamIndex] = nesting();
-  return { streams, content, runs, objects, entry, end: nesting() };
+  return { streams, content, runs, objects, replaced, entry, end: nesting() };
 }
 
 // ---- geometry ----------------------------------------------------------------------------------
@@ -1289,6 +1329,12 @@ async function planPages(
       // An annotation shows over the page, so over a blank region it would cover the value too.
       if (annotations.some(({ box }) => touches(box, region.rect)))
         issues.push(`${region.regionId}: an annotation covers the region.`);
+      // Replacement text survives removing the glyphs it stands for and is extracted in their
+      // place, so it would compete with the drawn value in either kind of region.
+      if (reading.replaced.some((box) => touches(box, region.rect)))
+        issues.push(
+          `${region.regionId}: marked content in the region carries replacement text that text extraction would still read. An approved clean master without replacement text on variable values is required.`,
+        );
     }
     // Replaced text in content another page or object also draws would survive there.
     if (
@@ -1623,6 +1669,8 @@ async function fill(
         (run) => run.streamIndex < fillIndex && touches(run.box, region.rect),
       );
       if (leftover.length) refuse(`${region.regionId}: earlier text is still present.`);
+      if (reading.replaced.some((box) => touches(box, region.rect)))
+        refuse(`${region.regionId}: earlier replacement text is still present.`);
     }
     // Each drawn value, as the interpreter places it, sets its cap height inside its region.
     const fillRuns = reading.runs.filter((run) => run.streamIndex === fillIndex);

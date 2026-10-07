@@ -651,4 +651,53 @@ describe("S130 static PDF filling (AC-S130-11, AC-S130-12, AC-S130-13)", () => {
       await readStaticPdfValuesByOrder(filled.content, filled.comparison.regionOrder),
     ).toEqual({ TenantName: "Jane Doe", "2": "$950.00", "10": "" });
   });
+
+  it("refuses a region whose marked content carries replacement text, inline or named, blank or replaced", async () => {
+    const refusal =
+      "Name: marked content in the region carries replacement text that text extraction would still read. An approved clean master without replacement text on variable values is required.";
+    const show = "BT /F1 11 Tf 1 0 0 1 120 600 Tm";
+    const rect = { x: 118, y: 596, width: 200, height: 16 };
+    // Inline /ActualText around the variable run: removing the glyphs would keep the old value.
+    const inline = await staticPage([
+      `${show} /Span <</ActualText (Old Tenant Name)>> BDC (Old Tenant Name) Tj EMC ET`,
+    ]);
+    expect(await validateStaticGeometry(inline, oneRegion(rect, "replace"))).toEqual([
+      refusal,
+    ]);
+    await expect(
+      fillStaticPdf(inline, oneRegion(rect, "replace"), [
+        { regionId: "Name", text: "Jane Doe" },
+      ]),
+    ).rejects.toThrow(/without replacement text on variable values/);
+    // /Alt named through the page's /Properties resource.
+    const named = await staticPage(
+      [`/Span /MC0 BDC ${show} (Old Tenant Name) Tj ET EMC`],
+      (pdf) =>
+        pdf
+          .getPage(0)
+          .node.lookup(PDFName.of("Resources"), PDFDict)
+          .set(
+            PDFName.of("Properties"),
+            pdf.context.obj({ MC0: { Alt: PDFString.of("Old Tenant Name") } }),
+          ),
+    );
+    expect(await validateStaticGeometry(named, oneRegion(rect, "replace"))).toEqual([
+      refusal,
+    ]);
+    // A blank-looking region where only /E remains around a glyph-free advance.
+    const leftover = await staticPage([
+      `${show} /Span <</E (Old Tenant Name)>> BDC [-7000] TJ EMC ET`,
+    ]);
+    expect(await validateStaticGeometry(leftover, oneRegion(rect, "blank"))).toEqual([
+      refusal,
+    ]);
+    // Marked content without replacement text, such as a structure tag, is filled as before.
+    const tagged = await staticPage([
+      `${show} /Span <</MCID 0>> BDC (Old Tenant Name) Tj EMC ET`,
+    ]);
+    const filled = await fillStaticPdf(tagged, oneRegion(rect, "replace"), [
+      { regionId: "Name", text: "Jane Doe" },
+    ]);
+    expect(await objectsHolding(filled.content, ["Old Tenant Name"])).toEqual([]);
+  });
 });
