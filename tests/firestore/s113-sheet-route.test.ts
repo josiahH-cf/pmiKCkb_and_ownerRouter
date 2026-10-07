@@ -102,6 +102,13 @@ vi.mock("@/lib/connections/dotloop-runtime", async (original) => {
       packetTransport.runtime
         ? { state: "connected", reasons: [] }
         : { state: "disconnected", reasons: ["account_connection"] },
+    // S106: provider-write admission refreshes the labeled observation before dispatch.
+    refreshDotloopResourceReadiness: async () => ({
+      readiness: packetTransport.runtime
+        ? { state: "connected", reasons: [] }
+        : { state: "disconnected", reasons: ["account_connection"] },
+      observation: null,
+    }),
   };
 });
 
