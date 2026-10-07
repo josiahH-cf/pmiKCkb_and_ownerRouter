@@ -371,7 +371,13 @@ export async function recordRerunTurn(
   now: () => Date = () => new Date(),
 ): Promise<TurnWriteResult & { readonly record: StoredTurnRecord }> {
   const op = OperationIdSchema.parse(operationId);
-  const input = RerunTurnInputSchema.parse(rawInput);
+  const parsed = RerunTurnInputSchema.parse(rawInput);
+  // S182: a current run is kept as AI history through the same Dotloop boundary as an answered
+  // turn. The saved question itself is never rewritten.
+  const input = {
+    ...parsed,
+    assistant: assistantAnswerForHistory(parsed.assistant).value,
+  };
   assertSize(input);
   const turnId = turnIdFor(user.uid, op);
   const turnRef = userRoot(db, user)
