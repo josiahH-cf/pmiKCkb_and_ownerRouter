@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, PDFName, PDFString, type PDFTextField } from "pdf-lib";
 import {
   prepareDerivedArtifact,
   approveDerivedArtifact,
@@ -735,12 +735,13 @@ describe("S130 static route through the persisted filled output (AC-S130-11/12/1
     expect(sha(downloaded.content)).toBe(record.outputHash);
   });
 
-  it("clears an unused repeated AcroForm slot that holds an earlier value", async () => {
+  /** Two verified tenants over three reviewed party slots of a synthetic AcroForm. */
+  async function partySlots(prefill: (third: PDFTextField) => void) {
     const t = await setup();
     const blank = await PDFDocument.load(
       await syntheticAcroform(["Amount", "Party 1", "Party 2", "Party 3"]),
     );
-    blank.getForm().getTextField("Party 3").setText("Earlier person");
+    prefill(blank.getForm().getTextField("Party 3"));
     const original = await blank.save({ useObjectStreams: false });
     const served = {
       content: original,
@@ -770,6 +771,14 @@ describe("S130 static route through the persisted filled output (AC-S130-11/12/1
       `${LEASE_DOCUMENT_PACKET_COLLECTIONS.heads}/${packetHeadId("123", "123")}`,
       { snapshot_id: t.request.snapshotId, payload_hash: evaluation.payloadHash },
     );
+    return { ...t, original };
+  }
+
+  it("clears an unused repeated AcroForm slot that holds an earlier value", async () => {
+    const t = await partySlots((third) => {
+      third.setText("Earlier person");
+      third.acroField.dict.set(PDFName.of("DV"), PDFString.of("Earlier default"));
+    });
     const record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
     const saved = (await t.read(record.id)).content;
     expect(await readAcroformValues(saved)).toMatchObject({
@@ -777,9 +786,19 @@ describe("S130 static route through the persisted filled output (AC-S130-11/12/1
       "Party 2": "Synthetic B",
       "Party 3": "",
     });
-    // The cleared person's earlier appearance is not left behind as an unused object.
-    expect(await objectsHolding(original, ["Earlier person"])).not.toEqual([]);
-    expect(await objectsHolding(saved, ["Earlier person"])).toEqual([]);
+    // Neither the cleared person's appearance nor the slot's stored default is left behind.
+    const earlier = ["Earlier person", "Earlier default"];
+    expect(await objectsHolding(t.original, earlier)).not.toEqual([]);
+    expect(await objectsHolding(saved, earlier)).toEqual([]);
+  });
+
+  it("refuses an unused repeated slot that keeps only a stored default value", async () => {
+    const t = await partySlots((third) =>
+      third.acroField.dict.set(PDFName.of("DV"), PDFString.of("Earlier default")),
+    );
+    await expect(prepareDerivedArtifact(admin, t.prepare, t.db, t.deps)).rejects.toThrow(
+      /leaves unchanged keeps a stored default value/,
+    );
   });
 
   it("clears unused repeated selection slots that hold an earlier choice", async () => {

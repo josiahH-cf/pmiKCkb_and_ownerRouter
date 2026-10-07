@@ -143,6 +143,61 @@ describe("S130 actual saved PDF output", () => {
     expect(await objectsHolding(original, ["Minor"], { streams: true })).not.toEqual([]);
     expect(await objectsHolding(saved.content, ["Minor"], { streams: true })).toEqual([]);
   });
+  it("drops the stored defaults of every field it writes and refuses a mapped field left keeping one (R-F10-04)", async () => {
+    const pdf = await PDFDocument.create(),
+      page = pdf.addPage([612, 792]),
+      form = pdf.getForm();
+    const tenant = form.createTextField("Tenant 2");
+    tenant.addToPage(page, { x: 30, y: 640, width: 240, height: 24 });
+    tenant.setText("Earlier person");
+    tenant.acroField.dict.set(PDFName.of("DV"), PDFString.of("Earlier default"));
+    tenant.acroField.dict.set(PDFName.of("RV"), PDFString.of("<p>Earlier rich text</p>"));
+    // A caption a text widget never shows is still a stored value.
+    tenant.acroField
+      .getWidgets()[0]
+      .dict.set(
+        PDFName.of("MK"),
+        pdf.context.obj({ CA: PDFString.of("Earlier caption") }),
+      );
+    const kind = form.createDropdown("Kind 2");
+    kind.addOptions(["Adult", "Minor"]);
+    kind.addToPage(page, { x: 300, y: 640, width: 120, height: 24 });
+    kind.acroField.dict.set(PDFName.of("DV"), PDFString.of("Minor"));
+    // A parent field's default is the default of every kid.
+    const party = form.createTextField("Party.3");
+    party.addToPage(page, { x: 30, y: 560, width: 240, height: 24 });
+    party.acroField
+      .getParent()!
+      .dict.set(PDFName.of("DV"), PDFString.of("Earlier inherited"));
+    form.updateFieldAppearances(await pdf.embedFont(StandardFonts.Helvetica));
+    const original = await pdf.save({ useObjectStreams: false });
+    const earlier = [
+      "Earlier person",
+      "Earlier default",
+      "Earlier rich text",
+      "Earlier caption",
+    ];
+    const saved = await fillAcroformPdf(original, [
+      { name: "Tenant 2", value: "" },
+      { name: "Kind 2", value: "Adult" },
+    ]);
+    expect(await objectsHolding(original, earlier)).not.toEqual([]);
+    expect(await objectsHolding(saved.content, earlier)).toEqual([]);
+    const reopened = await PDFDocument.load(saved.content);
+    expect(
+      reopened.getForm().getDropdown("Kind 2").acroField.dict.has(PDFName.of("DV")),
+    ).toBe(false);
+    await expect(
+      fillAcroformPdf(
+        original,
+        [{ name: "Kind 2", value: "Adult" }],
+        ["Kind 2", "Tenant 2"],
+      ),
+    ).rejects.toThrow(/leaves unchanged keeps a stored default value/);
+    await expect(
+      fillAcroformPdf(original, [{ name: "Party.3", value: "Synthetic" }]),
+    ).rejects.toThrow(/inherits a stored default value/);
+  });
   it("refuses corrupt, truncated, oversized and static files", async () => {
     for (const original of [
       new Uint8Array(),

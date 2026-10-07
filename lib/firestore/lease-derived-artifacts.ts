@@ -520,11 +520,14 @@ export async function prepareDerivedArtifact(
     filled = await fillStaticPdf(original.content, geometry, values);
   } else {
     const values: PdfFillValue[] = [];
+    // Every reviewed target, written or not: one left unchanged may not keep a stored default.
+    const reviewed: string[] = [];
     const earlier = await readAcroformValues(original.content);
     for (const field of map.fields) {
       const rows = worksheet.rows.filter((row) => row.fieldId === field.fieldId);
       const targets =
         field.pdfFieldNames ?? (field.multiplicity === "single" ? [field.fieldId] : []);
+      reviewed.push(...targets);
       if (rows.length > targets.length)
         capacityFail(field.fieldId, targets.length, rows.length);
       if (field.required && !rows.length) fail("A required mapped value is unavailable.");
@@ -551,7 +554,7 @@ export async function prepareDerivedArtifact(
         });
       });
     }
-    filled = await fillAcroformPdf(original.content, values);
+    filled = await fillAcroformPdf(original.content, values, reviewed);
   }
   const contentRef = await deps.content.put({
     content: filled.content,

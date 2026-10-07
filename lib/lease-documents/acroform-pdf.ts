@@ -5,14 +5,18 @@ import {
   PDFDict,
   PDFDocument,
   PDFDropdown,
+  PDFHexString,
   PDFName,
+  PDFNull,
   PDFOptionList,
   PDFRadioGroup,
   PDFRef,
   PDFSignature,
   PDFStream,
+  PDFString,
   PDFTextField,
   StandardFonts,
+  type PDFField,
 } from "pdf-lib";
 import { EditableLayerError } from "@/lib/firestore/errors";
 
@@ -256,6 +260,69 @@ export function compareFixedObjects(
   return { unchanged: kept.length, changed, orphaned };
 }
 
+/**
+ * S130 (R-F10-04): values a field stores besides /V. Its default (/DV, which a parent field can
+ * also hold for its kids) and its rich-text value (/RV) can keep an earlier value, and so can a
+ * caption that a text or choice widget never shows.
+ */
+const STORED_VALUES = ["DV", "RV"].map((key) => PDFName.of(key));
+const CAPTIONS = ["CA", "RC", "AC"].map((key) => PDFName.of(key));
+
+function holdsValue(value: unknown): boolean {
+  if (value === undefined || value === PDFNull) return false;
+  if (value instanceof PDFString || value instanceof PDFHexString)
+    return value.decodeText() !== "";
+  if (value instanceof PDFName) return value.decodeText() !== "Off";
+  if (value instanceof PDFArray) return value.size() > 0;
+  return true;
+}
+
+const captioned = (field: PDFField) =>
+  field instanceof PDFTextField ||
+  field instanceof PDFDropdown ||
+  field instanceof PDFOptionList;
+
+function storedValues(field: PDFField) {
+  const holds = (dict: PDFDict, keys: readonly PDFName[]) =>
+    keys.some((key) => holdsValue(dict.lookup(key)));
+  const widgets = field.acroField.getWidgets();
+  let inherited = false;
+  let parent = field.acroField.dict.lookup(PDFName.of("Parent"));
+  for (let depth = 0; depth < 32 && parent instanceof PDFDict; depth++) {
+    inherited ||= holds(parent, STORED_VALUES);
+    parent = parent.lookup(PDFName.of("Parent"));
+  }
+  return {
+    own: [field.acroField.dict, ...widgets.map((widget) => widget.dict)].some((dict) =>
+      holds(dict, STORED_VALUES),
+    ),
+    inherited,
+    captions:
+      captioned(field) &&
+      widgets.some((widget) => {
+        const appearance = widget.dict.lookup(PDFName.of("MK"));
+        return appearance instanceof PDFDict && holds(appearance, CAPTIONS);
+      }),
+  };
+}
+
+/** Drop a written field's stored values, so only the value the fill writes remains. */
+function clearStoredValues(pdf: PDFDocument, field: PDFField) {
+  const widgets = field.acroField.getWidgets();
+  for (const dict of [field.acroField.dict, ...widgets.map((widget) => widget.dict)])
+    for (const key of STORED_VALUES) dict.delete(key);
+  if (!captioned(field)) return;
+  for (const widget of widgets) {
+    const appearance = widget.dict.lookup(PDFName.of("MK"));
+    if (!(appearance instanceof PDFDict) || !CAPTIONS.some((key) => appearance.has(key)))
+      continue;
+    // The widget gets its own copy, so an appearance dictionary it shares is never changed.
+    const copy = appearance.clone(pdf.context);
+    for (const key of CAPTIONS) copy.delete(key);
+    widget.dict.set(PDFName.of("MK"), copy);
+  }
+}
+
 export async function readAcroformValues(
   content: Uint8Array,
 ): Promise<Record<string, PdfFieldValue | null>> {
@@ -282,10 +349,14 @@ export async function inspectAcroformPdf(content: Uint8Array) {
   }));
 }
 
-/** The result contains the actual serialized PDF and a comparison made after reopening it. */
+/**
+ * The result contains the actual serialized PDF and a comparison made after reopening it.
+ * `reviewed` names every field the reviewed map covers, including ones this fill leaves unchanged.
+ */
 export async function fillAcroformPdf(
   original: Uint8Array,
   values: readonly PdfFillValue[],
+  reviewed: readonly string[] = [],
 ) {
   if (
     !values.length ||
@@ -300,6 +371,26 @@ export async function fillAcroformPdf(
       refuse("a mapped field is missing, protected, or a signature.");
     return { field, entry };
   });
+  // A written field's own stored values are cleared below. A default its parent holds also
+  // applies to fields this fill does not write, and a mapped field left unchanged keeps all it
+  // stores, so either is refused.
+  for (const { field } of selected)
+    if (storedValues(field).inherited)
+      refuse(
+        "a mapped field inherits a stored default value; an approved clean master is required.",
+      );
+  for (const field of fields) {
+    if (
+      !reviewed.includes(field.getName()) ||
+      values.some((entry) => entry.name === field.getName())
+    )
+      continue;
+    const stored = storedValues(field);
+    if (stored.own || stored.inherited || stored.captions)
+      refuse(
+        "a mapped field the fill leaves unchanged keeps a stored default value; an approved clean master is required.",
+      );
+  }
   const mutable = new Set<unknown>();
   for (const { field } of selected) {
     mutable.add(field.acroField.dict);
@@ -311,6 +402,7 @@ export async function fillAcroformPdf(
   );
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   for (const { field, entry } of selected) {
+    clearStoredValues(pdf, field);
     if (field instanceof PDFTextField) {
       if (
         typeof entry.value !== "string" ||
@@ -371,6 +463,12 @@ export async function fillAcroformPdf(
   const comparison = compareFixedObjects(fixed, pdf, reopened.pdf);
   if (comparison.changed) refuse("content outside the reviewed fields changed.");
   if (comparison.orphaned) refuse("the saved file holds content no field or page uses.");
+  for (const { entry } of selected) {
+    const field = reopened.fields.find((candidate) => candidate.getName() === entry.name);
+    const stored = field ? storedValues(field) : null;
+    if (!stored || stored.own || stored.inherited || stored.captions)
+      refuse("a written field still keeps a stored default value.");
+  }
   const observed = await readAcroformValues(content);
   const expected = {
     ...beforeValues,
