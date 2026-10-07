@@ -8,17 +8,17 @@ IN PROGRESS: dotloop-pdf-renewal-v1-2026-10, intake 050-054 (S106, S66, S130, S3
 owner's 2026-10-06 execution instruction: implementation, verification, mainline delivery and
 release through the existing process, plus the bounded company connection, callback and scope
 check. Finalized spec revisions are committed (`d5478673`); private reference PDFs stay ignored.
-First release: the S106 connection slice, merged in PR #138 at `19f343b8` (exact-main CI
-37562455334 passed). Its deployment waits on owner WSL reauthentication: gcloud and ADC refresh
-both require an interactive reauth. Recovery step: in the WSL repo run
-`npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com`. Second release, implemented
-on `claude/dotloop-pdf-renewal-v1-r2` and held until the connection slice is released and checked:
-S182 access/AI boundaries, S66 packet inputs, S130 static PDF filling and S34 loop handoff. Both
-Dotloop write keys stay closed; no loop, upload, signature send, demo or activation is authorized.
+First release DONE: run 5b5c850e-a131-4e37-996a-457f5f9fd62c released the S106 connection slice at
+63ed175205621b5886a1339c5608428f5f951eb0 / pmi-kc-app-rmuy0dupk-d13d423ba53c, 100% traffic, exact-main CI 37610987256.
+Live connection check: waiting on the owner's company Dotloop authorization (Connections, Connect
+with Dotloop); no connection or OAuth state existed after the release.
+Next: the second release, merged from PR #139 and queued below (S182 access/AI boundaries, S66
+terms, S130 PDF filling, S34 handoff).
+Both Dotloop write keys stay closed; no loop, upload, signature send, demo or activation is
+authorized.
 
-Previous: batch 005 COMPLETE. Serving e8bc616d144c6600da8394313153e1a0c75659da /
-pmi-kc-app-rmuvf58nk-d45b8bc5347d, 100% traffic, run 61659874-478d-4135-9810-5033b2f732bf,
-exact-main CI 37333580981 passed. Native evidence: docs/evidence/application-usability-batch005.json.
+Previous: batch 005 COMPLETE; its open-item fixes were released by run 61659874-478d-4135-9810-5033b2f732bf
+at e8bc616d, exact-main CI 37333580981. Native evidence: docs/evidence/application-usability-batch005.json.
 
 ## Independent verification, 2026-10-05
 
@@ -39,56 +39,48 @@ with production cold and warm timings.
 
 ## Awaiting release
 
-1. S106 company Dotloop connection repair and the October 6 audit patch: `cca7aa14`, `bf448460`.
-   Validated Connect navigation, an actor-bound single-use callback with a safe return, labeled
-   generation-bound readiness and the mounted resource picker, a bounded shared transport,
-   single-flight refresh, honest quarantined-disconnect receipts, and the S182 removal of Dotloop
-   verdicts from AI context.
-2. S182 `a47d5a4d`: staff packet operations and Dotloop-origin AI exclusion.
-3. S66 `f9085358`, `3481a43f`: packet inputs entered once, with owner approval bound to the
-   Working terms.
-4. S130 `acb935a8`, `ad6fc502`: static PDF filling through reviewed regions, including quarter-turned
-   pages, and unchanged-attachment labels.
-5. S34 `4fb777c7`: one lease loop created or linked, versioned successor uploads, a durable
-   folder and staff-reported completion.
-
-Items 2-5 ride the second release, after item 1 is released and its connection check runs; admit
-them only from their own exact-main CI with a new run-bound permit.
+1. S182 `a47d5a4d`; review fixes `9892a8cd`, `2ec9e417`, `713f8568`, `9051263a`, `f8fae1fb`:
+   staff packet operations and Dotloop-origin AI exclusion.
+2. S66 `f9085358`, `3481a43f`; review fixes `885f90f9`: packet inputs entered once, with owner
+   approval bound to the Working terms.
+3. S130 `acb935a8`, `ad6fc502`; review fixes `f99c27ad`, `25c7c80e`, `1205b592`, `dd68fd21`,
+   `9f63357d`, `f65450cd`, `e8bd2e5a`: static PDF filling through reviewed regions, including
+   quarter-turned pages, and unchanged-attachment labels.
+4. S34 `4fb777c7`; review fixes `8a430bd2`: one lease loop created or linked, versioned successor
+   uploads, a durable folder and staff-reported completion.
 
 OWNER DIRECTION, 2026-10-06: the Dotloop PDF renewal v1 execution prompt (handoff
-dotloop-pdf-renewal-v1-2026-10) authorizes this delivery. The runtime receives the reviewed Dotloop
-configuration staged in both production env files. Admit only after exact main CI on the release
-head, fresh prerequisites and a new run-bound permit. Both Dotloop write keys stay closed; no
-provider effect, key or activation is queued. Assurance stays read-only; the connection check runs
-separately after verified delivery.
+dotloop-pdf-renewal-v1-2026-10) authorizes this delivery, the second of two releases; run
+5b5c850e delivered the S106 connection slice first, after run 01efe066 rolled back verified on an
+expired assurance session. S34 depends on verified provider behavior, so admit only after the
+bounded live connection check, exact main CI on the release head, fresh prerequisites and a new
+run-bound permit. Both Dotloop write keys stay closed; no provider effect, key or activation is
+queued. Assurance stays read-only.
 
 ## Verified release and recovery
 
-One application build f0fe9c5e-aecc-4a18-a2d4-12c47d0c055b succeeded 2026-10-05T15:59:30.830221Z.
-Candidate receipt bf944845-2472-44dc-83b0-3c968863077c, issued 2026-10-05T16:10:48.079Z;
-promotion verified 2026-10-05T16:11:07.983Z. Candidate assurance and reconciliation passed.
-Observation passed two full checkpoints in 415448 ms against the required 300,000 ms,
+One application build 215da673-0c95-4557-b786-02113d474d00 succeeded 2026-10-07T11:28:27.517435Z.
+Candidate receipt 7ecfea37-4060-4bed-93e1-1dc75c4ac897, issued 2026-10-07T11:34:09.211Z;
+promotion verified 2026-10-07T11:34:34.159Z. Candidate assurance and reconciliation passed.
+Observation passed two full checkpoints in 396797 ms against the required 300,000 ms,
 inside the 420,000 ms deadline; all 318 source/projected/rendered records matched,
 zero discrepancies/candidate 5xx/unresolved effects. Eleven independent readbacks matched,
-completed 2026-10-05T16:18:32Z.
-Tag cand-rmuvf58nk-d45b8bc5347d; fingerprint
-sha256:f360625f1af6999d709db77e1fa920c8b4ff0a20977a7ef9cb2722d82ad8e8d6.
-Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=true verified.
+completed 2026-10-07T11:42:44Z.
+Tag cand-rmuy0dupk-d13d423ba53c; fingerprint
+sha256:87ad565a894d9e08d4a58c812c6fdd14736d2bc821093c69987c048b998f507b.
+Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=true verified; the reviewed
+Dotloop client configuration and Secret Manager binding read back by name.
 
-Actual captured predecessor b2308bc506132853ebd54e4ba0678abbf853fce0 /
-pmi-kc-app-rmuv84r3a-f9fac2efc1af, Sheet=true (follow-up fixes, run 7753e5f5). Run-bound recovery
-pmi-kc-app-recovery-61659874478d4135, same fingerprint/configuration and actual true switch;
-receipt 4a82f3b8-2115-4aed-93de-efa81fa0d81c, reference hash
-sha256:c64195ee2b907be4ce080b552ebdd4d69ebd379b69e81fdc6eef62f238647198. No traffic rollback occurred.
+Actual captured predecessor e8bc616d144c6600da8394313153e1a0c75659da /
+pmi-kc-app-recovery-01efe06679764647, Sheet=true (open-item fixes, run 61659874, serving from run 01efe066's
+recovery clone). Run-bound recovery
+pmi-kc-app-recovery-5b5c850ea1314e37, same fingerprint/configuration and actual true switch;
+receipt cac7db10-f3fc-43d3-8232-a260ed7a09b2, reference hash
+sha256:f1fa1087f40d307e81e5e223829daa5796009456ded72981773c4f21ba0f42c0. No traffic rollback occurred.
 Initial recovery aggregate assurance failed before the application build: the new recovery
-instance took 48.1 s for its first Dashboard render against the 30-second route bound, with every
-request answered 200. The target read back healthy/zero traffic/configuration matched. Two separate
-guarded 13-route diagnostics passed with zero errors/mutation attempts, then the same run resumed
-assurance on the existing target. The first candidate smoke then failed: the zero-traffic candidate
-answered its first request, the correct sign-in redirect, in 43.8 s against the 30-second probe
-timeout. Two read-only smoke diagnostics passed with exact identity and the same run resumed.
-Both original failures remain failed. No ambiguous operation was blindly redispatched or gate
-lowered. Runs 5d1b4e3a and 7753e5f5 met the same first-render bound the same way.
+instance took 39.7 s for its first Dashboard render against the 30-second route bound, with every
+request answered 200. A separate guarded 13-route diagnostic passed with zero errors or mutation
+attempts, then the same run resumed and recovery assurance passed at 2026-10-07T11:22:33.238Z.
 
 ## Feedback and accepted distinctions
 
