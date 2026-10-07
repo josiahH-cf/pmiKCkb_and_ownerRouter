@@ -253,7 +253,9 @@ These are engineering tasks with no owner step; none blocks a release.
   session expired inside its final observation checkpoint, so it rolled back verified. Before
   admitting a run, refresh it unattended (`npm run auth:ensure -- --need=canary --unattended`
   with the Admin profile and canonical origin); it re-signs through the profile's Google session
-  without a person. Only a Google sign-out needs the owner (A6).
+  without a person. Only a Google sign-out needs the owner (A6). `auth:ensure` keeps a session that
+  is still valid, so also confirm the canonical session has more than an hour left; run 01efe066
+  was admitted with under half an hour left and rolled back verified when it expired.
 - **Four emulator-only E2E suites.** `approval-queue`, `capture`, `process-definitions` and
   `work-accountability` fail with 409 when run with the Firestore emulator because the harness
   runs `demo` + `live_readonly`, which refuses writes by design. They run in no gate. The repair is
