@@ -134,49 +134,55 @@ independent work proceeds. No material product clarification remains. Final focu
 
 ## Outcome
 
-Run `5b5c850e-a131-4e37-996a-457f5f9fd62c` released the S106 company Dotloop connection repair (one queued item)
-at `63ed175205621b5886a1339c5608428f5f951eb0` / `pmi-kc-app-rmuy0dupk-d13d423ba53c` with 100% production traffic.
-Code slice `a297f90635bbbe71060830b7fbecf596d91d0a49` (PR #138) carries the repair, the October 6 audit patch and their fail-first regressions.
-Exact [CI 37610987256](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37610987256) passed.
-The code slice passed lint, typecheck, format, 8,866 unit tests with four existing configuration
-skips (two load-sensitive release-tooling tests failed under full-suite load, as they do on unchanged
-main, and passed in isolation and in CI), all 326 backend tests, core E2E (32 passed, 22 existing
-configuration skips) and the production build.
-One application build `215da673-0c95-4557-b786-02113d474d00` succeeded at 2026-10-07T11:28:27.517435Z.
-Candidate receipt `7ecfea37-4060-4bed-93e1-1dc75c4ac897` issued 2026-10-07T11:34:09.211Z;
-promotion verified 2026-10-07T11:34:34.159Z.
-Observation passed two checkpoints in 396,797 ms against the required 300,000 ms,
+Run `87920129-23c0-4420-a787-13036029d6f8` released the Dotloop PDF renewal v1 second release (four queued items: S182, S66, S130 and S34)
+at `755009bae534cb2699789c1cfd07fa79aad8f94a` / `pmi-kc-app-rmuy3zv4l-6f09e67bd41a` with 100% production traffic.
+PR #139 carries staff packet operations and the Dotloop-origin AI exclusion (S182), packet inputs
+entered once with owner approval bound to the Working terms (S66), static PDF filling through reviewed
+regions (S130) and one lease loop with versioned uploads (S34), each with its independent review fixes.
+Exact [CI 37620419232](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37620419232) passed.
+The release code (`e8bd2e5a`; the main merge added documentation only) passed lint, typecheck,
+format, 9,000 unit tests with four existing configuration skips, all 340 backend tests and the
+production build; core E2E on the merged tree passed 32 tests with 22 existing configuration skips.
+A private counts-only render check on the eight reference PDFs found zero changed pixels outside
+the authorized regions.
+One application build `e4e49e3b-6c34-447d-a821-b5f693c75c68` succeeded at 2026-10-07T13:10:08.492195Z.
+Candidate receipt `3d237be5-466c-44d3-9f52-6d0279892d3e` issued 2026-10-07T13:16:06.983Z;
+promotion verified 2026-10-07T13:16:30.578Z.
+Observation passed two checkpoints in 411,502 ms against the required 300,000 ms,
 inside the 420,000 ms deadline. All 318 source/projected/rendered records matched with
 zero discrepancies, candidate 5xx or unresolved live effects. All eleven independent readback
-sections matched, completed 2026-10-07T11:42:44Z.
+sections matched, completed 2026-10-07T13:23:29Z.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=true are verified.
-The revision carries the reviewed Dotloop client id, the registered callback and the vault
-project, with the client secret bound from Secret Manager version 1; no value is recorded here.
-Tag `cand-rmuy0dupk-d13d423ba53c`; fingerprint `sha256:87ad565a894d9e08d4a58c812c6fdd14736d2bc821093c69987c048b998f507b`.
-Captured predecessor: `e8bc616d144c6600da8394313153e1a0c75659da` / `pmi-kc-app-recovery-01efe06679764647`,
-Sheet=true. Run-bound recovery `pmi-kc-app-recovery-5b5c850ea1314e37` preserves that actual configuration;
-receipt `cac7db10-f3fc-43d3-8232-a260ed7a09b2`, reference hash `sha256:f1fa1087f40d307e81e5e223829daa5796009456ded72981773c4f21ba0f42c0`.
+The revision keeps the reviewed Dotloop client configuration with the client secret bound from
+Secret Manager version 1. Both Dotloop write keys stay closed.
+Tag `cand-rmuy3zv4l-6f09e67bd41a`; fingerprint `sha256:c5f8019f1d9c639ce453ae5fcca338cd01e447457b51cebd28e2b10f6b5ed12a`.
+Captured predecessor: `63ed175205621b5886a1339c5608428f5f951eb0` / `pmi-kc-app-rmuy0dupk-d13d423ba53c`,
+Sheet=true. Run-bound recovery `pmi-kc-app-recovery-8792012923c04420` preserves that actual configuration;
+receipt `e7dec18c-d56a-456e-b3e7-46708ddbfd33`, reference hash `sha256:967c7519c3662a1e19c9952ced91b22b2561f90b17494ca974f60faf74d8be78`.
 No traffic rollback or business mutation was used as proof. Its first recovery preparation assurance failed at
-2026-10-07T11:18:04.353Z and remains failed in immutable evidence: the new recovery instance took 39.7 s
+2026-10-07T12:58:09.082Z and remains failed in immutable evidence: the new recovery instance took 39.1 s
 for its first Dashboard render against the 30-second route bound, with every request answered 200. A separate
 guarded 13-route diagnostic passed and the same run resumed on the existing target.
-The bounded live connection check waits only on the owner's company authorization: at
-2026-10-07T11:42Z no Dotloop connection, OAuth state or observation existed. The app's Google
-sign-in and Dotloop's sign-in and consent stay with the owner; the run then records
-provider-reported scopes and read-only account, profile and template readiness.
-Run `61659874-478d-4135-9810-5033b2f732bf` released the batch 005 open-item fixes at the captured predecessor.
+The bounded live connection check passed on 2026-10-07: at 12:51:05Z the owner authorized the
+company Dotloop account through the registered callback (one single-use state consumed, 303 back to
+the app), and Dotloop reported granted scopes `account:*`, `profile:*`, `loop:*`, `contact:*` and `template:*`. A read-only
+observation read the account and two profiles (one individual, one company); the individual
+profile lists no templates yet. No loop, upload or other provider write ran.
+Run `5b5c850e-a131-4e37-996a-457f5f9fd62c` released the S106 connection slice at the captured predecessor, and run
+`61659874-478d-4135-9810-5033b2f732bf` the batch 005 open-item fixes before it.
 Batch 005 (S168–S175, revised S87 and S176–S181; intake 035–049) was released by run
 `8b7dc3f1-4c5b-482a-94ca-26985150c68d` at `fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27`; runs
 `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` and `7753e5f5-2325-4b19-b83d-dc3475d71b0b` released its verification repairs and follow-up fixes.
 Batch 005's 116 requirement records are in [native evidence](evidence/application-usability-batch005.json);
 independent verification of it is recorded in F-BATCH-005-VERIFICATION.
-The one-item queue is delivered and empty; the exact permit is consumed.
+The four-item queue is delivered and empty; the exact permit is consumed.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 Human verdicts: **NOT RUN — no human observer**.
 
 ## Current implementation baseline
 
-Run `5b5c850e-a131-4e37-996a-457f5f9fd62c` serves `63ed175205621b5886a1339c5608428f5f951eb0`: the S106 connection slice on top of batch 005 and its repairs.
+Run `87920129-23c0-4420-a787-13036029d6f8` serves `755009bae534cb2699789c1cfd07fa79aad8f94a`: the Dotloop PDF renewal v1 second release (S182, S66, S130 and S34).
+Run `5b5c850e-a131-4e37-996a-457f5f9fd62c` released the S106 connection slice at `63ed175205621b5886a1339c5608428f5f951eb0`.
 Run `61659874-478d-4135-9810-5033b2f732bf` released the seven open-item fixes at `e8bc616d144c6600da8394313153e1a0c75659da`.
 Run `7753e5f5-2325-4b19-b83d-dc3475d71b0b` released the five follow-up fixes at `b2308bc506132853ebd54e4ba0678abbf853fce0`.
 Run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` released the four verification repairs at `9e76c14f5238f22be9ddecbffed149eee3db6d38`.
@@ -251,7 +257,7 @@ return path. Independent readbacks bind the serving revision to the exact tested
 
 ### External and human closure work
 
-External and human holds (Dotloop B-DL1–B-DL3, B-S100, B-MNT1, B-AUTH2, the notice-timing
+External and human holds (Dotloop B-DL2–B-DL3, B-S100, B-MNT1, B-AUTH2, the notice-timing
 basis, the release Admin browser sign-in and human verdicts) are listed once, with their exact
 owner steps and runner follow-ups, in `docs/open-blockers.md`. Each blocks only its named effect;
 none blocks development, tests, merges or releases.
