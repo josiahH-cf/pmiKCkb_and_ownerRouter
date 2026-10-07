@@ -195,6 +195,11 @@ export const StaticPdfGeometrySchema = z
               z.literal(180),
               z.literal(270),
             ]),
+            /**
+             * The visible page as [x0, y0, x1, y1] in user space: the page's own or inherited
+             * crop box clipped to its media box, or a media box away from the origin. Null only
+             * when the page shows exactly [0, 0, width, height].
+             */
             cropBox: z.tuple([coordinate, coordinate, coordinate, coordinate]).nullable(),
           })
           .strict(),
@@ -276,6 +281,7 @@ export function staticGeometryIssues(
       issues.push(`${region.regionId}: page ${region.pageIndex + 1} is not described.`);
       continue;
     }
+    // A page whose media box starts away from the origin always records its visible box.
     const [x0, y0, x1, y1] = page.cropBox ?? [0, 0, page.width, page.height];
     if (
       region.rect.x < x0 ||

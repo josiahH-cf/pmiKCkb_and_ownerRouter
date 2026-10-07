@@ -262,6 +262,9 @@ describe("admin static page-position inspection (S130)", () => {
     pages: [{ pageIndex: 0, width: 612, height: 792, rotation: 0, cropBox: null }],
     runs: [{ pageIndex: 0, x: 72, y: 600, width: 40, height: 11, text: "SYNTHETIC" }],
     images: [],
+    annotations: [
+      { pageIndex: 0, x: 400, y: 400, width: 100, height: 20, subtype: "Link" },
+    ],
     truncated: false,
   };
   const inspect = (kind: string) =>

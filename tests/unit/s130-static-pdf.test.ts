@@ -1,5 +1,12 @@
 import { inflateSync } from "node:zlib";
-import { PDFArray, PDFDocument, PDFName, PDFString, StandardFonts } from "pdf-lib";
+import {
+  PDFArray,
+  PDFDict,
+  PDFDocument,
+  PDFName,
+  PDFString,
+  StandardFonts,
+} from "pdf-lib";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -9,6 +16,7 @@ import {
 import {
   fillStaticPdf,
   formatStaticValue,
+  inspectStaticPdf,
   readStaticPdfValues,
   readStaticPdfValuesByOrder,
   validateStaticGeometry,
@@ -507,5 +515,80 @@ describe("S130 static PDF filling (AC-S130-11, AC-S130-12, AC-S130-13)", () => {
     ).toEqual([
       "Page 1 has text whose glyph widths are unknown, so its positions cannot be checked exactly.",
     ]);
+  });
+
+  it("refuses an annotation over a blank region too and lists every annotation for review", async () => {
+    const covered = await staticPage(
+      ["BT /F1 11 Tf 1 0 0 1 72 600 Tm (Tenant:) Tj ET"],
+      (pdf) =>
+        pdf.getPage(0).node.set(
+          PDFName.of("Annots"),
+          pdf.context.obj([
+            pdf.context.register(
+              pdf.context.obj({
+                Type: "Annot",
+                Subtype: "FreeText",
+                Rect: [120, 596, 320, 612],
+                Contents: PDFString.of("Old Tenant Name"),
+                DA: PDFString.of("/Helv 11 Tf 0 g"),
+              }),
+            ),
+          ]),
+        ),
+    );
+    const blank = oneRegion({ x: 120, y: 596, width: 200, height: 16 }, "blank");
+    // Its appearance would show over the drawn value.
+    expect(await validateStaticGeometry(covered, blank)).toEqual([
+      "Name: an annotation covers the region.",
+    ]);
+    expect((await inspectStaticPdf(covered)).annotations).toEqual([
+      { pageIndex: 0, x: 120, y: 596, width: 200, height: 16, subtype: "FreeText" },
+    ]);
+  });
+
+  it("binds to a crop box inherited from the page tree and to a media box away from the origin", async () => {
+    const text = ["BT /F1 11 Tf 1 0 0 1 72 700 Tm (Tenant:) Tj ET"];
+    const field = { fields: [{ fieldId: "Name", multiplicity: "single" as const }] };
+    const offPage = ["Name: the region extends past the visible page."];
+    const inherited = await staticPage(text, (pdf) =>
+      pdf.catalog
+        .lookup(PDFName.of("Pages"), PDFDict)
+        .set(PDFName.of("CropBox"), pdf.context.obj([0, 396, 612, 792])),
+    );
+    expect((await inspectStaticPdf(inherited)).pages[0].cropBox).toEqual([
+      0, 396, 612, 792,
+    ]);
+    const below = { x: 72, y: 100, width: 200, height: 16 };
+    // A map that does not record the inherited crop is not this page.
+    await expect(
+      fillStaticPdf(inherited, oneRegion(below, "blank"), [
+        { regionId: "Name", text: "Jane Doe" },
+      ]),
+    ).rejects.toThrow(/size, crop or rotation differs/);
+    const cropped = oneRegion(below, "blank", { cropBox: [0, 396, 612, 792] });
+    expect(staticGeometryIssues(field, cropped)).toEqual(offPage);
+    expect(await validateStaticGeometry(inherited, cropped)).toEqual(offPage);
+
+    const offset = await staticPage(text, (pdf) =>
+      pdf
+        .getPage(0)
+        .node.set(PDFName.of("MediaBox"), pdf.context.obj([100, 100, 712, 892])),
+    );
+    expect((await inspectStaticPdf(offset)).pages).toEqual([
+      {
+        pageIndex: 0,
+        width: 612,
+        height: 792,
+        rotation: 0,
+        cropBox: [100, 100, 712, 892],
+      },
+    ]);
+    const corner = { x: 10, y: 10, width: 80, height: 16 };
+    const visible = oneRegion(corner, "blank", { cropBox: [100, 100, 712, 892] });
+    expect(staticGeometryIssues(field, visible)).toEqual(offPage);
+    expect(await validateStaticGeometry(offset, visible)).toEqual(offPage);
+    expect(await validateStaticGeometry(offset, oneRegion(corner, "blank"))).toContain(
+      "Page 1's size, crop or rotation differs from the reviewed geometry.",
+    );
   });
 });

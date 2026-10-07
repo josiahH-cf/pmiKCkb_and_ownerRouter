@@ -211,6 +211,13 @@ describe("S130 Admin intake surface (AC-S130-1, AC-S130-4, AC-S130-8)", () => {
             kind: "renewal_extension",
             pages: [
               { pageIndex: 0, width: 612, height: 792, rotation: 0, cropBox: null },
+              {
+                pageIndex: 1,
+                width: 612,
+                height: 792,
+                rotation: 0,
+                cropBox: [0, 396, 612, 792],
+              },
             ],
             runs: [
               {
@@ -223,6 +230,16 @@ describe("S130 Admin intake surface (AC-S130-1, AC-S130-4, AC-S130-8)", () => {
               },
             ],
             images: [],
+            annotations: [
+              {
+                pageIndex: 0,
+                x: 120,
+                y: 596,
+                width: 200,
+                height: 16,
+                subtype: "FreeText",
+              },
+            ],
             truncated: false,
           },
         });
@@ -242,6 +259,18 @@ describe("S130 Admin intake surface (AC-S130-1, AC-S130-4, AC-S130-8)", () => {
     expect(
       screen.getByText(/x 72\.0 y 600\.0 w 40\.3 h 11\.0 SYNTHETIC label/),
     ).toBeInTheDocument();
+    // The visible area of a cropped page and every annotation are shown for region review.
+    expect(
+      screen.getByText(
+        /Page 2: 612\.0 × 792\.0, visible from x 0\.0 to 612\.0, y 396\.0 to 792\.0/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/1 annotation is present; a region may not cover it\./),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/p1 x 120\.0 y 596\.0 w 200\.0 h 16\.0 FreeText/),
+    ).toBeInTheDocument();
     fireEvent.click(
       screen.getByRole("button", { name: "Add these pages to the mapping" }),
     );
@@ -249,7 +278,16 @@ describe("S130 Admin intake surface (AC-S130-1, AC-S130-4, AC-S130-8)", () => {
       (screen.getByLabelText("Reviewed mapping (JSON)") as HTMLTextAreaElement).value,
     );
     expect(mapping.static).toEqual({
-      pages: [{ pageIndex: 0, width: 612, height: 792, rotation: 0, cropBox: null }],
+      pages: [
+        { pageIndex: 0, width: 612, height: 792, rotation: 0, cropBox: null },
+        {
+          pageIndex: 1,
+          width: 612,
+          height: 792,
+          rotation: 0,
+          cropBox: [0, 396, 612, 792],
+        },
+      ],
       regions: [],
       protectedRegions: [],
     });

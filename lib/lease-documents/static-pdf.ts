@@ -6,6 +6,8 @@
 //   * refuses a page whose size, crop or rotation differs from the reviewed geometry, whose content
 //     leaves a text object or marked content open or restores more states than it saves, or whose
 //     text has glyphs of unknown width;
+//   * refuses a region outside its page's visible box, or under an annotation that would show
+//     over the value;
 //   * refuses a "blank" region that holds existing text, and a "replace" region crossed by text,
 //     an image or nested content it cannot remove exactly;
 //   * removes each approved existing text run inside a "replace" region by replacing its show
@@ -1008,37 +1010,78 @@ function touches(box: Box, rect: RegionRect): boolean {
   );
 }
 
-function pageGeometry(page: PDFPage) {
-  const media = page.getMediaBox();
-  const crop = page.node.get(PDFName.of("CropBox"));
-  const cropBox = crop ? page.getCropBox() : null;
+/** A rectangle array as [x0, y0, x1, y1] with its corners in order; absent is null. */
+function rectangle(
+  pdf: PDFDocument,
+  value: unknown,
+  what: string,
+): [number, number, number, number] | null {
+  const array = lookup(pdf, value);
+  if (array === undefined) return null;
+  const numbers =
+    array instanceof PDFArray && array.size() === 4
+      ? array.asArray().map((item) => numberAt(pdf, item))
+      : [];
+  if (numbers.length !== 4 || numbers.some((number) => number === null))
+    refuse(`${what} is unreadable.`);
+  const [a, b, c, d] = numbers as number[];
+  return [Math.min(a, c), Math.min(b, d), Math.max(a, c), Math.max(b, d)];
+}
+
+/**
+ * A page's size, rotation and visible box. MediaBox, CropBox and Rotate may be inherited from the
+ * page tree. `cropBox` is the visible box in user space (the crop clipped to the media box) and is
+ * null only when it is [0, 0, width, height] with no crop recorded.
+ */
+function pageGeometry(pdf: PDFDocument, page: PDFPage) {
+  const media = rectangle(
+    pdf,
+    page.node.getInheritableAttribute(PDFName.of("MediaBox")),
+    "a page's media box",
+  );
+  if (!media) return refuse("a page has no media box.");
+  const crop = rectangle(
+    pdf,
+    page.node.getInheritableAttribute(PDFName.of("CropBox")),
+    "a page's crop box",
+  );
+  const [x0, y0] = crop
+    ? [Math.max(crop[0], media[0]), Math.max(crop[1], media[1])]
+    : media;
+  const visible = [
+    x0,
+    y0,
+    Math.max(x0, crop ? Math.min(crop[2], media[2]) : media[2]),
+    Math.max(y0, crop ? Math.min(crop[3], media[3]) : media[3]),
+  ] as const;
   return {
-    width: media.width,
-    height: media.height,
+    width: media[2] - media[0],
+    height: media[3] - media[1],
     rotation: ((page.getRotation().angle % 360) + 360) % 360,
-    cropBox: cropBox
-      ? ([
-          cropBox.x,
-          cropBox.y,
-          cropBox.x + cropBox.width,
-          cropBox.y + cropBox.height,
-        ] as const)
-      : null,
+    cropBox: crop || media[0] !== 0 || media[1] !== 0 ? visible : null,
   };
 }
 
-function annotationBoxes(pdf: PDFDocument, page: PDFPage): Box[] {
+function annotationsOf(pdf: PDFDocument, page: PDFPage) {
   const annots = lookup(pdf, page.node.get(PDFName.of("Annots")));
-  if (!(annots instanceof PDFArray)) return [];
-  return annots.asArray().flatMap((item) => {
+  if (annots === undefined) return [];
+  if (!(annots instanceof PDFArray))
+    return refuse("a page's annotations are unreadable.");
+  return annots.asArray().map((item) => {
     const annot = lookup(pdf, item);
-    const rect =
-      annot instanceof PDFDict ? lookup(pdf, annot.get(PDFName.of("Rect"))) : null;
-    if (!(rect instanceof PDFArray)) return [];
-    const [a, b, c, d] = rect.asArray().map((value) => numberAt(pdf, value) ?? 0);
-    return [
-      { x0: Math.min(a, c), y0: Math.min(b, d), x1: Math.max(a, c), y1: Math.max(b, d) },
-    ];
+    if (!(annot instanceof PDFDict))
+      return refuse("a page's annotations are unreadable.");
+    const rect = rectangle(
+      pdf,
+      annot.get(PDFName.of("Rect")),
+      "an annotation's position",
+    );
+    if (!rect) return refuse("an annotation's position is unreadable.");
+    const subtype = lookup(pdf, annot.get(PDFName.of("Subtype")));
+    return {
+      box: { x0: rect[0], y0: rect[1], x1: rect[2], y1: rect[3] } satisfies Box,
+      subtype: subtype instanceof PDFName ? subtype.decodeText() : "Unknown",
+    };
   });
 }
 
@@ -1065,6 +1108,15 @@ export interface StaticInspection {
     width: number;
     height: number;
   }>;
+  /** Annotations show over the page, so a region may not cover one. */
+  annotations: Array<{
+    pageIndex: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    subtype: string;
+  }>;
   truncated: boolean;
 }
 
@@ -1072,9 +1124,24 @@ export interface StaticInspection {
 export async function inspectStaticPdf(original: Uint8Array): Promise<StaticInspection> {
   const { pdf, fields } = await parseSafePdf(original, true);
   if (fields.length) refuse("this file has form fields; review it as an AcroForm.");
-  const result: StaticInspection = { pages: [], runs: [], images: [], truncated: false };
+  const result: StaticInspection = {
+    pages: [],
+    runs: [],
+    images: [],
+    annotations: [],
+    truncated: false,
+  };
   for (const [pageIndex, page] of pdf.getPages().entries()) {
-    result.pages.push({ pageIndex, ...pageGeometry(page) });
+    result.pages.push({ pageIndex, ...pageGeometry(pdf, page) });
+    for (const { box, subtype } of annotationsOf(pdf, page))
+      result.annotations.push({
+        pageIndex,
+        x: box.x0,
+        y: box.y0,
+        width: box.x1 - box.x0,
+        height: box.y1 - box.y0,
+        subtype,
+      });
     const reading = readPage(pdf, page);
     for (const run of reading.runs) {
       if (result.runs.length >= 5_000) {
@@ -1122,7 +1189,7 @@ async function planPages(
       issues.push(`Page ${described.pageIndex + 1} does not exist in the original.`);
       continue;
     }
-    const actual = pageGeometry(page);
+    const actual = pageGeometry(pdf, page);
     const crop = described.cropBox;
     if (
       Math.abs(actual.width - described.width) > 0.01 ||
@@ -1157,10 +1224,15 @@ async function planPages(
         `Page ${pageIndex + 1} has text whose glyph widths are unknown, so its positions cannot be checked exactly.`,
       );
     const removed = new Set<TextRun>();
-    const annotations = annotationBoxes(pdf, page);
+    const annotations = annotationsOf(pdf, page);
+    const actual = pageGeometry(pdf, page);
+    const [x0, y0, x1, y1] = actual.cropBox ?? [0, 0, actual.width, actual.height];
     for (const region of geometry.regions.filter(
       (entry) => entry.pageIndex === pageIndex,
     )) {
+      const { x, y, width, height } = region.rect;
+      if (x < x0 || y < y0 || x + width > x1 || y + height > y1)
+        issues.push(`${region.regionId}: the region extends past the visible page.`);
       for (const run of reading.runs) {
         if (!touches(run.box, region.rect)) continue;
         if (region.existing === "blank")
@@ -1177,9 +1249,9 @@ async function planPages(
           issues.push(
             `${region.regionId}: ${object.kind === "form" ? "nested page content" : "an image"} overlaps the region and cannot be replaced exactly. Use an approved clean master.`,
           );
-      for (const box of annotations)
-        if (touches(box, region.rect) && region.existing === "replace")
-          issues.push(`${region.regionId}: an annotation covers the region.`);
+      // An annotation shows over the page, so over a blank region it would cover the value too.
+      if (annotations.some(({ box }) => touches(box, region.rect)))
+        issues.push(`${region.regionId}: an annotation covers the region.`);
     }
     // Replaced text in content another page or object also draws would survive there.
     if (
@@ -1456,8 +1528,8 @@ export async function fillStaticPdf(
   const originalDoc = await PDFDocument.load(original, { updateMetadata: false });
   const allFields: Record<string, string> = {};
   for (const [pageIndex, page] of output.getPages().entries()) {
-    const before = pageGeometry(originalDoc.getPage(pageIndex));
-    const after = pageGeometry(page);
+    const before = pageGeometry(originalDoc, originalDoc.getPage(pageIndex));
+    const after = pageGeometry(output, page);
     if (JSON.stringify(before) !== JSON.stringify(after))
       refuse("a page's size, crop or rotation changed.");
     if (!touched.has(pageIndex)) continue;

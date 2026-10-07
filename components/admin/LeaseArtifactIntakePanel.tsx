@@ -89,6 +89,14 @@ type StaticInspectionView = {
     width: number;
     height: number;
   }>;
+  annotations: Array<{
+    pageIndex: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    subtype: string;
+  }>;
   truncated: boolean;
 };
 
@@ -420,7 +428,9 @@ export function LeaseArtifactIntakePanel({
               <li key={page.pageIndex}>
                 Page {page.pageIndex + 1}: {point(page.width)} × {point(page.height)}
                 {page.rotation ? `, rotated ${page.rotation}°` : ""}
-                {page.cropBox ? ", cropped" : ""}
+                {page.cropBox
+                  ? `, visible from x ${point(page.cropBox[0])} to ${point(page.cropBox[2])}, y ${point(page.cropBox[1])} to ${point(page.cropBox[3])}`
+                  : ""}
               </li>
             ))}
           </ul>
@@ -446,6 +456,23 @@ export function LeaseArtifactIntakePanel({
               {inspection.images.length} images or drawings are present; a region may not
               cover them.
             </p>
+          ) : null}
+          {inspection.annotations.length ? (
+            <details>
+              <summary>
+                {inspection.annotations.length === 1
+                  ? "1 annotation is present; a region may not cover it."
+                  : `${inspection.annotations.length} annotations are present; a region may not cover them.`}
+              </summary>
+              <pre className="draft-box" style={{ maxHeight: "12rem", overflow: "auto" }}>
+                {inspection.annotations
+                  .map(
+                    (annotation) =>
+                      `p${annotation.pageIndex + 1}  x ${point(annotation.x)}  y ${point(annotation.y)}  w ${point(annotation.width)}  h ${point(annotation.height)}  ${annotation.subtype}`,
+                  )
+                  .join("\n")}
+              </pre>
+            </details>
           ) : null}
         </section>
       ) : null}
