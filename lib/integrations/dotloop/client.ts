@@ -10,7 +10,10 @@
 // Transport and token supply are injected, so this module performs no network call by itself and
 // holds no credential. A token value is used only as the bearer header of one request; it is never
 // logged, returned, embedded in a URL, or persisted here. Every request, the multipart upload
-// included, shares one contract: one refresh on 401, one back-off on 429.
+// included, shares one contract: one refresh on 401, one bounded real-time back-off on 429, and
+// one process-wide request scheduler for the company connection's documented 100-per-minute limit.
+// A mutating request whose outcome is unknown (lost response, timeout, 5xx) is reported as
+// `uncertain` and is never sent again by this client.
 //
 // Provider contract (official Dotloop Public API v2, read 2026-09-03 and re-read 2026-09-06):
 //   base `https://api-gateway.dotloop.com/public/v2/`; `GET /account`; `GET /profile`;
@@ -19,10 +22,19 @@
 //   `POST /profile/{profile_id}/loop` accepts only name/status/transactionType; a loop created FROM
 //   A TEMPLATE with participants and a property address is `POST /loop-it?profile_id=`.
 
+import { randomUUID } from "node:crypto";
+
+import {
+  DotloopRateWaitExceeded,
+  DotloopRequestScheduler,
+  sharedDotloopRequestScheduler,
+} from "@/lib/integrations/dotloop/request-scheduler";
+
 export const DOTLOOP_API_BASE = "https://api-gateway.dotloop.com/public/v2/";
 
 /** Multipart line separator, kept as a named constant so it survives formatting. */
 const CRLF = String.fromCharCode(13, 10);
+const TEXT = new TextEncoder();
 export const DOTLOOP_MAX_BATCH_SIZE = 100;
 
 /** The documented scopes this application requests. No scope is inferred or widened at runtime. */
@@ -46,7 +58,8 @@ export interface DotloopHttpRequest {
   readonly url: string;
   readonly method: "GET" | "POST" | "PATCH";
   readonly headers: Record<string, string>;
-  readonly body?: string;
+  /** JSON or form text, or the exact multipart bytes of an upload. Never re-encoded. */
+  readonly body?: string | Uint8Array<ArrayBuffer>;
 }
 
 export interface DotloopHttpTransport {
@@ -68,7 +81,9 @@ export type DotloopClientErrorKind =
   | "rate_limited"
   | "unavailable"
   | "not_found"
-  | "malformed_response";
+  | "malformed_response"
+  /** A mutating request whose provider outcome is unknown. It is never redispatched here. */
+  | "uncertain";
 
 export class DotloopClientError extends Error {
   constructor(
@@ -84,16 +99,37 @@ export class DotloopClientError extends Error {
 export interface DotloopAccount {
   readonly id: string;
   readonly name: string | null;
+  /** The documented account email; it identifies which Dotloop account was connected. */
+  readonly email: string | null;
+  readonly defaultProfileId: string | null;
 }
+
+/** Documented profile types. Loop-It renewal work uses an individual profile. */
+export const DOTLOOP_PROFILE_TYPES = [
+  "INDIVIDUAL",
+  "TEAM",
+  "OFFICE",
+  "COMPANY",
+  "ASSOCIATION",
+  "NATIONAL_PARTNER",
+] as const;
 
 export interface DotloopProfile {
   readonly id: string;
   readonly name: string;
+  /** The documented profile type, or null when the provider did not report one. */
+  readonly type: string | null;
+  readonly isDefault: boolean | null;
+  readonly requiresTemplate: boolean | null;
 }
 
 export interface DotloopLoopTemplate {
   readonly id: string;
   readonly name: string;
+  /** The documented template transaction type, or null when it was not reported. */
+  readonly transactionType: string | null;
+  readonly shared: boolean | null;
+  readonly global: boolean | null;
 }
 
 /** Documented lease transaction types. The owner selects one; the app never guesses. */
@@ -180,18 +216,37 @@ function readLoop(raw: Record<string, unknown> | null): DotloopLoop | null {
   };
 }
 
-function retryAfterMs(headers: Readonly<Record<string, string>>): number {
-  const header = headers["retry-after"] ?? headers["Retry-After"];
-  const seconds = Number(header);
-  if (Number.isFinite(seconds) && seconds >= 0) return Math.min(seconds, 60) * 1_000;
-  return 1_000;
+function readText(value: unknown): string | null {
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
+}
+
+function readFlag(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
+function readOptionalId(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  const id = String(value).trim();
+  return id === "" ? null : id;
+}
+
+/** The default wait: real time. Tests inject a controlled clock; production never uses a no-op. */
+function realSleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, Math.max(0, ms));
+  });
 }
 
 export interface DotloopClientDeps {
   readonly transport: DotloopHttpTransport;
   readonly tokens: DotloopAccessTokenProvider;
   readonly baseUrl?: string;
-  /** Injected so a rate-limit backoff never blocks a test or a request thread by accident. */
+  /**
+   * The shared accounting for the company connection. Defaults to the process-wide scheduler so
+   * every caller observes the same documented limit and back-off.
+   */
+  readonly scheduler?: DotloopRequestScheduler;
+  /** Real time by default; injected only so tests control the clock. */
   readonly sleep?: (ms: number) => Promise<void>;
 }
 
@@ -199,13 +254,23 @@ export class DotloopClient {
   readonly #transport: DotloopHttpTransport;
   readonly #tokens: DotloopAccessTokenProvider;
   readonly #baseUrl: string;
+  readonly #scheduler: DotloopRequestScheduler;
   readonly #sleep: (ms: number) => Promise<void>;
 
   constructor(deps: DotloopClientDeps) {
     this.#transport = deps.transport;
     this.#tokens = deps.tokens;
     this.#baseUrl = deps.baseUrl ?? DOTLOOP_API_BASE;
-    this.#sleep = deps.sleep ?? (async () => undefined);
+    // A test that controls time with `sleep` gets its own scheduler on that same clock; production
+    // constructs no `sleep` and always shares the one process-wide scheduler.
+    this.#scheduler =
+      deps.scheduler ??
+      (deps.sleep
+        ? new DotloopRequestScheduler({
+            clock: { now: () => Date.now(), sleep: deps.sleep },
+          })
+        : sharedDotloopRequestScheduler());
+    this.#sleep = deps.sleep ?? realSleep;
   }
 
   async getAccount(): Promise<DotloopAccount> {
@@ -218,9 +283,14 @@ export class DotloopClient {
         "The account response had no id.",
       );
     }
+    const first = readText(record?.firstName);
+    const last = readText(record?.lastName);
+    const joined = [first, last].filter(Boolean).join(" ");
     return {
       id: String(rawId),
-      name: typeof record?.name === "string" ? record.name : null,
+      name: readText(record?.name) ?? (joined === "" ? null : joined),
+      email: readText(record?.email),
+      defaultProfileId: readOptionalId(record?.defaultProfileId),
     };
   }
 
@@ -228,7 +298,16 @@ export class DotloopClient {
     const body = await this.#get("profile", options);
     return readDataArray(body).flatMap((raw) => {
       const identity = readIdentity(raw);
-      return identity ? [identity] : [];
+      return identity
+        ? [
+            {
+              ...identity,
+              type: readText(raw.type),
+              isDefault: readFlag(raw.default),
+              requiresTemplate: readFlag(raw.requiresTemplate),
+            },
+          ]
+        : [];
     });
   }
 
@@ -249,7 +328,16 @@ export class DotloopClient {
     );
     return readDataArray(body).flatMap((raw) => {
       const identity = readIdentity(raw);
-      return identity ? [identity] : [];
+      return identity
+        ? [
+            {
+              ...identity,
+              transactionType: readText(raw.transactionType),
+              shared: readFlag(raw.shared),
+              global: readFlag(raw.global),
+            },
+          ]
+        : [];
     });
   }
 
@@ -432,16 +520,11 @@ export class DotloopClient {
     contentType: string;
     content: Uint8Array;
   }): Promise<DotloopDocument> {
-    const boundary = `pmi-kc-${input.folderId}-${input.fileName.length}`;
-    const body = [
-      `--${boundary}`,
-      `Content-Disposition: form-data; name="file"; filename="${input.fileName}"`,
-      `Content-Type: ${input.contentType}`,
-      "",
-      Buffer.from(input.content).toString("binary"),
-      `--${boundary}--`,
-      "",
-    ].join(CRLF);
+    const { body, boundary } = buildMultipartFileBody({
+      fileName: input.fileName,
+      contentType: input.contentType,
+      content: input.content,
+    });
     // Same one-refresh/one-back-off contract as every other request; only the body differs.
     const responseBody = await this.#call(
       "POST",
@@ -508,24 +591,44 @@ export class DotloopClient {
   async #call(
     method: "GET" | "POST" | "PATCH",
     url: URL,
-    body?: string,
+    body?: string | Uint8Array<ArrayBuffer>,
     contentType = "application/json",
   ): Promise<unknown> {
     let refreshed = false;
     let backedOff = false;
     let token = await this.#tokens.accessToken();
+    const mutating = method !== "GET";
 
     for (;;) {
-      const response = await this.#transport.fetch({
-        url: url.toString(),
-        method,
-        headers: {
-          authorization: `Bearer ${token}`,
-          accept: "application/json",
-          ...(body === undefined ? {} : { "content-type": contentType }),
-        },
-        ...(body === undefined ? {} : { body }),
-      });
+      try {
+        await this.#scheduler.acquire();
+      } catch (error) {
+        if (error instanceof DotloopRateWaitExceeded)
+          throw new DotloopClientError("rate_limited", error.message, 429);
+        throw error;
+      }
+      let response: DotloopHttpResponse;
+      try {
+        response = await this.#transport.fetch({
+          url: url.toString(),
+          method,
+          headers: {
+            authorization: `Bearer ${token}`,
+            accept: "application/json",
+            ...(body === undefined ? {} : { "content-type": contentType }),
+          },
+          ...(body === undefined ? {} : { body }),
+        });
+      } catch {
+        // A lost response cannot show whether a mutating request was applied.
+        throw mutating
+          ? new DotloopClientError(
+              "uncertain",
+              "Dotloop did not confirm this change. It may or may not have been applied.",
+            )
+          : new DotloopClientError("unavailable", "Dotloop did not answer this read.");
+      }
+      this.#scheduler.observe(response);
 
       if (response.status === 401) {
         if (refreshed) {
@@ -549,7 +652,10 @@ export class DotloopClient {
       }
 
       if (response.status === 429) {
-        if (backedOff) {
+        // A 429 is a documented rejection: the request was not applied, so one bounded retry
+        // after the provider's stated wait is safe for reads and writes alike.
+        const waitMs = this.#scheduler.retryDelayMs(response);
+        if (backedOff || waitMs > this.#scheduler.maxWaitMs) {
           throw new DotloopClientError(
             "rate_limited",
             "Dotloop is rate limiting this account; retry later.",
@@ -557,21 +663,81 @@ export class DotloopClient {
           );
         }
         backedOff = true;
-        await this.#sleep(retryAfterMs(response.headers));
+        await this.#sleep(waitMs);
         continue;
       }
 
       if (response.status === 404) {
         throw new DotloopClientError("not_found", "Dotloop has no such resource.", 404);
       }
+      if (mutating && (response.status === 408 || response.status >= 500)) {
+        throw new DotloopClientError(
+          "uncertain",
+          "Dotloop did not confirm this change. It may or may not have been applied.",
+          response.status,
+        );
+      }
       if (response.status < 200 || response.status >= 300) {
         throw new DotloopClientError(
           "unavailable",
-          "Dotloop did not answer this read.",
+          mutating ? "Dotloop refused this change." : "Dotloop did not answer this read.",
           response.status,
         );
       }
       return response.json();
     }
   }
+}
+
+function containsBytes(haystack: Uint8Array, needle: Uint8Array): boolean {
+  outer: for (let i = 0; i + needle.length <= haystack.length; i += 1) {
+    for (let j = 0; j < needle.length; j += 1) {
+      if (haystack[i + j] !== needle[j]) continue outer;
+    }
+    return true;
+  }
+  return false;
+}
+
+/**
+ * The documented multipart upload body (`file` field). The approved PDF bytes are copied verbatim
+ * between the part header and the closing boundary: no text decoding, no UTF-8 re-encoding and no
+ * refill. The boundary is random and checked to be absent from the content.
+ */
+export function buildMultipartFileBody(input: {
+  fileName: string;
+  contentType: string;
+  content: Uint8Array;
+}): { body: Uint8Array<ArrayBuffer>; boundary: string } {
+  if (input.fileName.trim() === "" || /["\\\r\n]/.test(input.fileName)) {
+    throw new DotloopClientError(
+      "malformed_response",
+      "A Dotloop document name must be plain text without quotes or line breaks.",
+    );
+  }
+  if (/[\r\n]/.test(input.contentType)) {
+    throw new DotloopClientError(
+      "malformed_response",
+      "A Dotloop document content type must be one line.",
+    );
+  }
+  let boundary = `pmi-kc-${randomUUID()}`;
+  while (containsBytes(input.content, TEXT.encode(boundary))) {
+    boundary = `pmi-kc-${randomUUID()}`;
+  }
+  const head = TEXT.encode(
+    [
+      `--${boundary}`,
+      `Content-Disposition: form-data; name="file"; filename="${input.fileName}"`,
+      `Content-Type: ${input.contentType}`,
+      "",
+      "",
+    ].join(CRLF),
+  );
+  const tail = TEXT.encode(`${CRLF}--${boundary}--${CRLF}`);
+  const body = new Uint8Array(head.length + input.content.length + tail.length);
+  body.set(head, 0);
+  body.set(input.content, head.length);
+  body.set(tail, head.length + input.content.length);
+  return { body, boundary };
 }

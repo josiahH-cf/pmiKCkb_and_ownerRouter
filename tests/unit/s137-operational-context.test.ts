@@ -72,6 +72,7 @@ vi.mock("@/lib/firestore/maintenance-work-order-links", () => ({
 }));
 vi.mock("@/lib/connections/verification", () => ({
   getVerifiedConnectorIds: async () => new Set<string>(),
+  getVerifiedConnectorIdsForAiContext: async () => new Set<string>(),
 }));
 vi.mock("@/lib/firestore/connector-connections", () => ({
   getConnectorConnectionStore: () => ({ listConnections: async () => [] }),

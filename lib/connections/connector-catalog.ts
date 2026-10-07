@@ -77,19 +77,18 @@ export const CONNECTORS: readonly ConnectorDef[] = [
   {
     id: "dotloop",
     name: "Dotloop",
-    powers: "Lease document build-out and e-signature.",
+    powers: "Renewal lease loops and document uploads for signature setup in Dotloop.",
     method: "oauth",
     healthCheckRef: "health.dotloop.oauth_app",
-    // Config seam (S13 D3): where the already-held OAuth app credentials land. Presence only. The OAuth
-    // auth-code scaffolding now exists (Slice 10, lib/connections/dotloop-oauth.ts) but makes no live
-    // call yet, so status stays honest ("details provided, not verified") until the owner authorizes.
+    // Config seam (S13 D3): where the company OAuth app credentials land. Presence only. S106: one
+    // company connection, authorized by an Admin here, serves all renewal staff.
     requiredConfig: [
       "DOTLOOP_OAUTH_CLIENT_ID",
       "DOTLOOP_OAUTH_CLIENT_SECRET",
       "DOTLOOP_OAUTH_REDIRECT_URI",
     ],
     setupNote:
-      "Register your Dotloop app and complete authorization in the morning. Every Dotloop action stays off until it is connected and reviewed.",
+      "An Admin connects the company Dotloop account once; staff use that connection without their own sign-in. Every Dotloop action stays off until its exact key is opened and each use is confirmed.",
   },
   {
     id: "leadsimple",

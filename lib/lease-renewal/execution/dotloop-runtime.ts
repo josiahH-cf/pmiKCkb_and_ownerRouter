@@ -4,6 +4,7 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
   createDotloopRuntime,
   readDotloopRuntimeReadiness,
+  refreshDotloopResourceReadiness,
 } from "@/lib/connections/dotloop-runtime";
 import {
   executeExternalActionWithS20,
@@ -70,7 +71,11 @@ export async function executeDotloopPacketWithS20(
       )
     : await bindApprovedDerivedPacket(actor, originalBinding, input.packet);
   const settings = await getDotloopRenewalSettings(actor);
-  const readiness = await readDotloopRuntimeReadiness();
+  // S106: provider-write admission validates the current resources live; recovery of an owned
+  // receipt reuses the labeled observation instead of requiring another provider read.
+  const readiness = input.reconcile
+    ? await readDotloopRuntimeReadiness()
+    : (await refreshDotloopResourceReadiness({ actorUid: actor.uid })).readiness;
   if (
     readiness.state !== "connected" ||
     !settings?.transactionType ||

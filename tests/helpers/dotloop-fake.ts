@@ -26,11 +26,24 @@ export interface DotloopFakeOptions {
   subscriptionStatus?: number;
   /** Statuses returned before the normal answer, one per call, to model 401/429 sequences. */
   transientStatuses?: number[];
-  grantedScopes?: string[];
+  /** Headers sent with a transient 429 (defaults to Retry-After 0). */
+  rateLimitHeaders?: Record<string, string>;
+  /** Null models a token response that reports no scope at all. */
+  grantedScopes?: string[] | null;
+  account?: Record<string, unknown>;
+}
+
+/** How one token request carried its grant: in the documented query string, or a form body. */
+export interface RecordedTokenRequest {
+  readonly grant: string | null;
+  readonly inQuery: boolean;
+  readonly hasBody: boolean;
+  readonly basicAuth: boolean;
 }
 
 export interface DotloopFake extends DotloopHttpTransport {
   readonly calls: { url: string; method: string }[];
+  readonly tokenRequests: RecordedTokenRequest[];
   expireAccessTokens(): void;
   revokeRefreshTokens(): void;
 }
@@ -57,10 +70,12 @@ export function createDotloopFake(options: DotloopFakeOptions = {}): DotloopFake
   };
   const transient = [...(options.transientStatuses ?? [])];
   const calls: { url: string; method: string }[] = [];
+  const tokenRequests: RecordedTokenRequest[] = [];
   let issued = 1;
 
   return {
     calls,
+    tokenRequests,
     expireAccessTokens() {
       validAccess.clear();
     },
@@ -70,9 +85,25 @@ export function createDotloopFake(options: DotloopFakeOptions = {}): DotloopFake
     async fetch(input) {
       calls.push({ url: input.url, method: input.method });
 
-      if (input.url.startsWith("https://auth.dotloop.com/oauth/token")) {
-        const body = new URLSearchParams(input.body ?? "");
+      if (
+        input.url.startsWith("https://auth.dotloop.com/oauth/token?") ||
+        input.url === "https://auth.dotloop.com/oauth/token"
+      ) {
+        // The provider reads the documented query parameters (a form body is also accepted).
+        const query = new URL(input.url).searchParams;
+        const form = new URLSearchParams(
+          typeof input.body === "string" ? input.body : "",
+        );
+        const body = {
+          get: (name: string) => query.get(name) ?? form.get(name),
+        };
         const grant = body.get("grant_type");
+        tokenRequests.push({
+          grant,
+          inQuery: query.has("grant_type"),
+          hasBody: input.body !== undefined && input.body !== "",
+          basicAuth: /^Basic /.test(input.headers.authorization ?? ""),
+        });
         if (grant === "authorization_code") {
           if (body.get("code") !== "good-code") {
             return jsonResponse(400, { error: "invalid_grant" });
@@ -86,7 +117,9 @@ export function createDotloopFake(options: DotloopFakeOptions = {}): DotloopFake
             access_token: access,
             refresh_token: refresh,
             expires_in: 43_200,
-            scope: (options.grantedScopes ?? DEFAULT_SCOPES).join(" "),
+            ...(options.grantedScopes === null
+              ? {}
+              : { scope: (options.grantedScopes ?? DEFAULT_SCOPES).join(" ") }),
           });
         }
         if (grant === "refresh_token") {
@@ -104,7 +137,11 @@ export function createDotloopFake(options: DotloopFakeOptions = {}): DotloopFake
 
       const transientStatus = transient.shift();
       if (transientStatus === 429) {
-        return jsonResponse(429, { error: "rate_limited" }, { "retry-after": "0" });
+        return jsonResponse(
+          429,
+          { error: "rate_limited" },
+          options.rateLimitHeaders ?? { "retry-after": "0" },
+        );
       }
       if (transientStatus === 401) return jsonResponse(401, { error: "unauthorized" });
 
@@ -112,7 +149,9 @@ export function createDotloopFake(options: DotloopFakeOptions = {}): DotloopFake
       if (!validAccess.has(bearer)) return jsonResponse(401, { error: "unauthorized" });
 
       if (input.url.endsWith("/account")) {
-        return jsonResponse(200, { data: { id: 55, name: "PMI KC Metro" } });
+        return jsonResponse(200, {
+          data: options.account ?? { id: 55, name: "PMI KC Metro" },
+        });
       }
       if (input.url.includes("/loop-template")) {
         const profileId = /profile\/([^/]+)\/loop-template/.exec(input.url)?.[1] ?? "";

@@ -68,6 +68,8 @@ function harness() {
       source: "explicit",
     },
     now: () => now,
+    sleep: async () => undefined,
+    peerWaitMs: 2_000,
   });
   return { tokens, store, vault, transport, record };
 }
@@ -138,11 +140,34 @@ describe("S106 runtime token ownership", () => {
     );
   });
 
-  it("never calls the provider after a lost refresh claim", async () => {
+  it("never calls the provider after a lost refresh claim; it reuses only the owner's result", async () => {
     const h = harness();
     h.store.claimDotloopRefresh.mockResolvedValue(null as never);
-    await expect(h.tokens.refresh()).resolves.toBeNull();
+    const owned = { ...h.record, oauthState: "refreshing" as const };
+    const replaced = {
+      ...h.record,
+      oauthState: "ready" as const,
+      secretRef: "owner-access-ref",
+    };
+    h.store.getConnection
+      .mockResolvedValueOnce({ ...h.record, tokenExpiresAt: now } as never)
+      .mockResolvedValueOnce(owned as never)
+      .mockResolvedValue(replaced as never);
+    h.vault.readSecret.mockImplementation(async ({ secretRef }) => ({
+      ok: true as const,
+      secret: secretRef === "owner-access-ref" ? "owner-access-token" : "stale-token",
+    }));
+    await expect(h.tokens.refresh()).resolves.toBe("owner-access-token");
     expect(h.transport.fetch).not.toHaveBeenCalled();
+
+    // While the owner never finishes, the caller gets no token rather than a stale one.
+    const stuck = harness();
+    stuck.store.claimDotloopRefresh.mockResolvedValue(null as never);
+    stuck.store.getConnection
+      .mockResolvedValueOnce({ ...stuck.record, tokenExpiresAt: now } as never)
+      .mockResolvedValue({ ...stuck.record, oauthState: "refreshing" } as never);
+    await expect(stuck.tokens.refresh()).resolves.toBeNull();
+    expect(stuck.transport.fetch).not.toHaveBeenCalled();
   });
 
   it("destroys new refs if disconnect wins before the token commit", async () => {

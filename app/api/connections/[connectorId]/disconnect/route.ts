@@ -147,11 +147,16 @@ function publicReceipt(receipt: {
   connectorId: string;
   operationId: string;
   completedAt: string;
+  providerRevocation?: "verified" | "unverified";
 }) {
   return {
     connectorId: receipt.connectorId,
     disconnected: true as const,
     operationId: receipt.operationId,
     completedAt: receipt.completedAt,
+    // Dotloop only: whether the provider confirmed every token dead, or that remained unproven.
+    ...(receipt.providerRevocation
+      ? { providerRevocation: receipt.providerRevocation }
+      : {}),
   };
 }

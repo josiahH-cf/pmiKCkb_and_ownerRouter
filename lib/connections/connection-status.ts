@@ -20,6 +20,8 @@ export type ConnectionState = "connected" | "action" | "none" | "closed";
 export interface ConnectorConnectionView {
   status: ConnectorConnectionStatus;
   oauthState?: "ready" | "refreshing" | "refresh_needed";
+  /** Dotloop only, every role: whether the completed disconnect proved provider revocation. */
+  providerRevocation?: "verified" | "unverified";
   disconnect?: ConnectorDisconnectView;
 }
 
@@ -35,6 +37,8 @@ export interface ConnectorDisconnectView {
   requested_at?: string;
   completed_at?: string;
   destroy_outcome?: ConnectorDestroyOutcome;
+  /** Dotloop only: the provider-side revocation evidence the receipt carries. */
+  provider_revocation?: "verified" | "unverified";
   recovery_available: boolean;
 }
 
@@ -106,7 +110,10 @@ export function classifyConnector(
       ...base,
       state: "none",
       label: "Disconnected",
-      detail: "Credential removal was verified. Reconnect to restore access.",
+      detail:
+        connection.providerRevocation === "unverified"
+          ? "The app's stored credentials were removed. Dotloop did not confirm every token was revoked. Reconnect to restore access."
+          : "Credential removal was verified. Reconnect to restore access.",
     };
   }
   if (
@@ -241,7 +248,9 @@ export function projectConnectorConnection(
   const oauth =
     record.status === "connected" && record.oauthState
       ? { oauthState: record.oauthState }
-      : {};
+      : record.status === "revoked" && record.providerRevocation
+        ? { providerRevocation: record.providerRevocation }
+        : {};
   if (!canManage) return { status, ...oauth };
 
   const recordVersion = connectorRecordVersion(record);
@@ -295,6 +304,7 @@ export function projectConnectorConnection(
   }
   return {
     status,
+    ...oauth,
     disconnect: {
       state: "revoked",
       record_version: recordVersion,
@@ -302,6 +312,9 @@ export function projectConnectorConnection(
       requested_at: record.requestedAt,
       completed_at: record.completedAt,
       destroy_outcome: record.destroyOutcome,
+      ...(record.providerRevocation
+        ? { provider_revocation: record.providerRevocation }
+        : {}),
       recovery_available: false,
     },
   };

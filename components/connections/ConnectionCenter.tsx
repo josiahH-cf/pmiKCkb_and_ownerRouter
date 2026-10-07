@@ -4,16 +4,19 @@
 // secret value ever reaches this surface. Non-Admins get the same status, read-only (decision 6).
 
 import Link from "next/link";
-import {
-  DOTLOOP_READINESS_REASON_TEXT,
-  type DotloopReadiness,
-} from "@/lib/connections/dotloop-readiness";
+import type { DotloopReadiness } from "@/lib/connections/dotloop-readiness";
+import type { DotloopCallbackResult } from "@/lib/connections/dotloop-callback-result";
+import type { DotloopPickerView } from "@/lib/connections/dotloop-resource-selection";
 
 import type { ReactNode } from "react";
 
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { Metric, ModeChip, PageHeader } from "@/components/ui";
 import { ConnectorCard } from "@/components/connections/ConnectorCard";
+import {
+  DotloopConnectionPanel,
+  type DotloopSelectionSummary,
+} from "@/components/connections/DotloopConnectionPanel";
 import type { ConnectionCenterView } from "@/lib/connections/connection-status";
 import { groupConnectionItems } from "@/lib/navigation/admin-connections";
 import { RetiredGmailSetup } from "@/components/connections/RetiredGmailSetup";
@@ -23,11 +26,19 @@ export function ConnectionCenter({
   canManage,
   verifiableIds = [],
   dotloopReadiness,
+  dotloopPicker = null,
+  dotloopSelection = null,
+  dotloopCallbackResult = null,
   resourcePanel = null,
   needsSetup,
 }: Readonly<{
   view: ConnectionCenterView;
   dotloopReadiness?: DotloopReadiness;
+  /** S106: Admin-only cached resource list for the picker; null for other roles. */
+  dotloopPicker?: DotloopPickerView | null;
+  dotloopSelection?: DotloopSelectionSummary | null;
+  /** S106: the code-free outcome the authorization callback returned to this screen. */
+  dotloopCallbackResult?: DotloopCallbackResult | null;
   canManage: boolean;
   verifiableIds?: readonly string[];
   /** S120: the page-supplied shared renewal resource entries, mounted after the documents group. */
@@ -65,21 +76,13 @@ export function ConnectionCenter({
       </p>
 
       {dotloopReadiness ? (
-        <section aria-label="Dotloop renewal readiness">
-          <h2 className="section-subtitle">Dotloop renewal readiness</h2>
-          <p>
-            {dotloopReadiness.state.replaceAll("_", " ")}. Loop and document actions
-            require their own open keys and exact confirmation.
-          </p>
-          {dotloopReadiness.reasons.length ? (
-            <ul>
-              {dotloopReadiness.reasons.map((reason) => (
-                <li key={reason}>{DOTLOOP_READINESS_REASON_TEXT[reason]}</li>
-              ))}
-            </ul>
-          ) : null}
-          <p>Signature work is completed by a person in Dotloop.</p>
-        </section>
+        <DotloopConnectionPanel
+          callbackResult={dotloopCallbackResult}
+          canManage={canManage}
+          picker={canManage ? dotloopPicker : null}
+          readiness={dotloopReadiness}
+          selection={dotloopSelection}
+        />
       ) : null}
 
       <div className="ui-metric-grid">

@@ -11,17 +11,21 @@ import type {
   ConnectorConnectionView,
   ConnectorDisconnectView,
 } from "@/lib/connections/connection-status";
+import { isTrustedDotloopAuthorizeUrl } from "@/lib/connections/dotloop-authorize-url";
 
 export function ConnectorSetupActions({
   connectorId,
   connectorName,
   method,
   connection,
+  navigate,
 }: Readonly<{
   connectorId: string;
   connectorName: string;
   method: ConnectMethod;
   connection?: ConnectorConnectionView;
+  /** Follows the provider authorization address; tests observe it without leaving the page. */
+  navigate?: (url: string) => void;
 }>) {
   if (method === "google") return null;
 
@@ -42,6 +46,7 @@ export function ConnectorSetupActions({
       connectorId={connectorId}
       connectorName={connectorName}
       method={method}
+      navigate={navigate ?? ((url) => window.location.assign(url))}
     />
   );
 }
@@ -79,13 +84,14 @@ function ConnectorOAuthSetup({
   connectorName,
   method,
   connection,
+  navigate,
 }: Readonly<{
   connectorId: string;
   connectorName: string;
   method: ConnectMethod;
   connection?: ConnectorConnectionView;
+  navigate: (url: string) => void;
 }>) {
-  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const mayConnect =
@@ -95,32 +101,44 @@ function ConnectorOAuthSetup({
   async function connect() {
     setBusy(true);
     setMessage(null);
+    let leaving = false;
     try {
       const response = await fetch(`/api/connections/${connectorId}/connect`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-      if (!response.ok) {
-        const body = (await response.json().catch(() => null)) as {
-          error?: string;
-        } | null;
-        setMessage(body?.error ?? "That did not go through. Please try again.");
-        return;
-      }
-      const body = (await response.json()) as { status: string };
-      if (body.status === "credentials_not_configured") {
-        setMessage(`Add the ${connectorName} connection details first.`);
-      } else if (body.status === "provider_not_available") {
+      const body = (await response.json().catch(() => null)) as {
+        status?: string;
+        authorizeUrl?: unknown;
+        error?: string;
+      } | null;
+      if (body?.status === "credentials_not_configured") {
+        setMessage(
+          `The ${connectorName} application configuration is incomplete. Nothing was opened.`,
+        );
+      } else if (body?.status === "provider_not_available") {
         setMessage("This connector's sign-in isn't available yet.");
+      } else if (!response.ok) {
+        setMessage(body?.error ?? "That did not go through. Please try again.");
+      } else if (
+        body?.status === "authorize_url" &&
+        connectorId === "dotloop" &&
+        isTrustedDotloopAuthorizeUrl(body.authorizeUrl)
+      ) {
+        // Not connected yet: the provider consent and the callback's checks decide that.
+        setMessage(`Opening ${connectorName} to authorize the company account.`);
+        leaving = true;
+        navigate(body.authorizeUrl);
       } else {
-        setMessage("Connected.");
-        router.refresh();
+        setMessage(
+          "The authorization address was not recognized, so nothing was opened. Nothing was connected.",
+        );
       }
     } catch {
       setMessage("That did not go through. Please try again.");
     } finally {
-      setBusy(false);
+      if (!leaving) setBusy(false);
     }
   }
 
@@ -174,6 +192,12 @@ function ConnectorDisconnectControl({
             : ""}
           .
         </p>
+        {disconnect.provider_revocation === "unverified" ? (
+          <p className="muted" data-provider-revocation="unverified">
+            The app&apos;s stored credentials were removed. {connectorName} did not
+            confirm every token was revoked.
+          </p>
+        ) : null}
         {disconnect.operation_id ? (
           <p className="muted">Receipt: {disconnect.operation_id}</p>
         ) : null}
@@ -267,8 +291,15 @@ function ConnectorDisconnectButton({
         setMessage(body?.error ?? "Disconnect needs recovery. Refresh and try again.");
         return;
       }
+      const receipt = (await response.json().catch(() => null)) as {
+        providerRevocation?: string;
+      } | null;
       setOpen(false);
-      setMessage(`${connectorName} is disconnected.`);
+      setMessage(
+        receipt?.providerRevocation === "unverified"
+          ? `${connectorName} is disconnected. The app's stored credentials were removed; ${connectorName} did not confirm every token was revoked.`
+          : `${connectorName} is disconnected.`,
+      );
       router.refresh();
     } catch {
       setMessage("The response was lost. Refresh to recover the same disconnect.");

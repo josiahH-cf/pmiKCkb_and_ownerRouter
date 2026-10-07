@@ -44,7 +44,11 @@ interface FakeStateStore {
   readonly issued: string[];
   readonly consumed: string[];
   mint(input: { state: string; actorUid: string; nowIso: string }): Promise<void>;
-  consume(input: { state: string; nowIso: string }): Promise<{ actorUid: string } | null>;
+  consume(input: {
+    state: string;
+    nowIso: string;
+    actorUid: string;
+  }): Promise<{ actorUid: string } | null>;
 }
 
 function stateStore(): FakeStateStore {
@@ -63,7 +67,7 @@ function stateStore(): FakeStateStore {
       if (actorUid === undefined) return null;
       open.delete(input.state);
       consumed.push(input.state);
-      return { actorUid };
+      return actorUid === input.actorUid ? { actorUid } : null;
     },
   };
 }
@@ -135,10 +139,10 @@ describe("S106 Dotloop client over the documented endpoints (ARCH-S106-1)", () =
     });
     await expect(client.getAccount()).resolves.toMatchObject({ id: "55" });
     await expect(client.listProfiles()).resolves.toEqual([
-      { id: "profile-1", name: "PMI KC Metro" },
+      expect.objectContaining({ id: "profile-1", name: "PMI KC Metro" }),
     ]);
     await expect(client.listLoopTemplates("profile-1")).resolves.toEqual([
-      { id: "template-1", name: "Renewal packet" },
+      expect.objectContaining({ id: "template-1", name: "Renewal packet" }),
     ]);
     expect(fake.calls.every((call) => call.url.startsWith(DOTLOOP_API_BASE))).toBe(true);
     expect(DOTLOOP_SCOPES).toContain("loop:write");
@@ -264,6 +268,7 @@ describe("S106 connect and callback lifecycle (BEH-S106-1 / AC-S106-2)", () => {
 
     const result = await completeDotloopConnection({
       state: states.issued[0],
+      actorUid: "admin-1",
       code: "good-code",
       nowIso: "2026-09-03T00:01:00.000Z",
       generationId: "11111111-2222-4333-8444-555555555555",
@@ -271,6 +276,7 @@ describe("S106 connect and callback lifecycle (BEH-S106-1 / AC-S106-2)", () => {
       connections,
       vault,
       exchanger: new LiveDotloopTokenExchanger({ transport: fake }),
+      verify: async () => ({ ok: true }),
       env: ENV,
       descriptor: PRODUCTION_LIVE,
     });
@@ -310,6 +316,7 @@ describe("S106 connect and callback lifecycle (BEH-S106-1 / AC-S106-2)", () => {
     if (begun.status !== "authorize_url") throw new Error(begun.status);
     const result = await completeDotloopConnection({
       state: states.issued[0],
+      actorUid: "admin-1",
       code: "good-code",
       nowIso: "2026-09-03T00:01:00.000Z",
       generationId: "11111111-2222-4333-8444-555555555555",
@@ -335,6 +342,7 @@ describe("S106 connect and callback lifecycle (BEH-S106-1 / AC-S106-2)", () => {
     const connections = connectionStore();
     const vault = createMemoryVault();
     const shared = {
+      actorUid: "admin-1",
       code: "good-code",
       nowIso: "2026-09-03T00:01:00.000Z",
       generationId: "11111111-2222-4333-8444-555555555555",
@@ -376,6 +384,7 @@ describe("S106 connect and callback lifecycle (BEH-S106-1 / AC-S106-2)", () => {
     if (begun.status !== "authorize_url") throw new Error(begun.status);
     const denied = await completeDotloopConnection({
       state: states.issued[0],
+      actorUid: "admin-1",
       providerError: "access_denied",
       nowIso: "2026-09-03T00:01:00.000Z",
       generationId: "11111111-2222-4333-8444-555555555555",
@@ -402,6 +411,7 @@ describe("S106 connect and callback lifecycle (BEH-S106-1 / AC-S106-2)", () => {
     if (begun.status !== "authorize_url") throw new Error(begun.status);
     const result = await completeDotloopConnection({
       state: states.issued[0],
+      actorUid: "admin-1",
       code: "good-code",
       nowIso: "2026-09-03T00:01:00.000Z",
       generationId: "11111111-2222-4333-8444-555555555555",
@@ -439,6 +449,7 @@ describe("S106 connect and callback lifecycle (BEH-S106-1 / AC-S106-2)", () => {
     await expect(
       completeDotloopConnection({
         state: states.issued[0],
+        actorUid: "admin-1",
         code: "good-code",
         nowIso: "2026-09-03T00:01:00.000Z",
         generationId: "11111111-2222-4333-8444-555555555555",
@@ -587,6 +598,11 @@ describe("S106 readiness projection (ARCH-S106-2 / BEH-S106-3)", () => {
       "compatible_profile",
       "renewal_template",
       "loop_write_scope",
+      "provider_scope_unreported",
+      "observation_stale",
+      "selected_resource_unavailable",
+      "selected_resource_unsupported",
+      "transaction_settings",
     ]);
   });
 });
