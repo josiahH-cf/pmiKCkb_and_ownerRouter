@@ -1,248 +1,132 @@
 <!-- spec-shape: overhaul-v1 -->
-<!-- feature-handoff: renewal-completion-v1 -->
+<!-- feature-handoff: dotloop-pdf-renewal-v1-2026-10 -->
 
-# S34 — Dotloop renewal packet lifecycle
+# S34 — Versioned renewal PDFs in new or existing Dotloop loops
 
-> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. Normal packet controls/readers, exact S21 bytes, S20 approval/execution and own-receipt recovery pass actual backend paths with deterministic external adapters. Real approved catalog/forms/mappings, credentials/connection/selection and separate exact-key activation remain gates. Both keys stay closed; provider presence is not signature or content-hash verification.
+> Intake: READY, revision 2026-10-06, intake 053. Existing packet controls, S20 claims/receipts and provider adapters are deployed with deterministic-provider evidence. The new/existing-loop, revision and transport repairs below are not implemented by this authoring run. Both Dotloop keys remain closed; live testing/demo/activation are deferred.
 
 **Goal.**
 
-An approved current renewal creates or reuses exactly one linked Dotloop loop from the selected
-profile and template, shows and refreshes its state in the workspace, and hands the operator to
-Dotloop for signature work the API cannot perform.
+Staff preview and confirm their exact approved PDFs into a new or explicitly selected existing lease loop, revise them without losing history or creating duplicate loops, and finish signature setup/sending in Dotloop with honest status and completion tracking in the app.
 
 **Current state / intended end state.**
 
-September 10 code reread and focused tests establish the following deployed foundation.
-This is not live provider acceptance.
+Starting source: `60145e926a477a35990c48b1123489d98822fe8b`; inspected Dotloop source matches the serving `e8bc616d144c6600da8394313153e1a0c75659da` release. Existing normal controls, S20 queue/ledger, approved-byte resolver, loop links and receipt recovery exist. Missing input authoring/current-term resolution is S66. Runtime loop creation does not wire all available property/fact data; multipart upload builds a binary string that is subsequently UTF-8 encoded; upload-folder reuse is only local memory. Current approval ownership follows the last selection recorder, and loop replacement is tied to changed snapshot hash. Completion/refresh controls require wiring verification. Historical fake-provider PASS does not prove the live transport or new behavior.
 
-| Component                        | Present implementation                                                                                                               | Remaining work                                                                                                                                                           |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| OAuth, vault, resource selection | S106 connection/runtime/client and selection stores exist.                                                                           | Actual client credentials, managed consent, verified profile/template and live lifecycle readback.                                                                       |
-| Loop and document provider       | Typed LiveDotloopProvider implements loop-it, property/participants, folder creation, upload and metadata reads.                     | Normal controls/resolvers and receipt recovery pass the 201-test backend suite; actual provider proof remains separately gated.                                          |
-| Approved artifact bytes          | resolveApprovedDotloopArtifact resolves an exact active validated S21 publication and checks Space/version/hash/bytes before upload. | Populate approved catalog and participant/field mappings; email examples do not provide legal forms.                                                                     |
-| Durable loop relationship        | Runtime records receipted loop id/URL/profile/template/snapshot identity in packet execution.                                        | Mounted continuation, exact file download and receipt recovery pass actual backend paths with deterministic provider adapters; live acceptance remains separately gated. |
-| Signature execution              | Verified loop URL handoff and separate signed-artifact evidence contract.                                                            | Public API exposes no signature-send/status operation. Human execution in Dotloop remains required.                                                                      |
-| Production readiness             | Both exact Dotloop write keys remain closed; client credentials absent from current local configuration.                             | Existing exact activation/release requirements and B-DL1/B-DL2/B-DL3, independent of S113 manual work.                                                                   |
-
-Intended end state: a real packet assembled from approved forms, exact confirmed creation/upload,
-a durable loop link with honest document-presence readback, and a usable signature/returned-artifact
-handoff. S113 F5.1 is the dashboard continuation contract; S34 remains the provider owner.
-
-The current normal path uses the existing selected configuration's recorded Admin for its approval
-queue; another current Admin may review the Editor's immutable preparation under existing S20
-rules. Its durable companion retains the exact response/readback receipt so a lost packet projection
-can be rebuilt without a provider write. A preexisting matching loop name cannot establish creation
-by this normal attempt; without its own receipt, an uncertain outcome remains unresolved. This
-normal path passes actual backend acceptance and does not claim live provider causality.
-
-The included file download/upload transports exact approved S21 publication bytes. The mapped field
-preview does not fill those bytes. Applicable fields must be completed and reviewed by a person in
-Dotloop before signature work. Approved blank forms and mappings remain actual external inputs; no
-legal text, form field names or signature coordinates are inferred from the supplied email templates.
+End state: explicit loop choice bound to the lease/cycle, exact immutable document versions and durable folder/attempt identities; current app versions and prior uploaded versions remain distinguishable. The final app-filled PDF set is the source for transport; Dotloop-native Autofill is not its substitute.
 
 **Actors and entry conditions.**
 
-A document coordinator or renewal operator (Editor or higher, Renewals Space) previews and confirms
-loop creation for one lease whose S66 snapshot is `Ready for preview` and whose owner outcome is
-`approved_terms`. Execution requires S106 readiness `connected` with selected profile and template,
-the exact production-allowed keys `dotloop.loop.create_from_template` and `dotloop.document.upload`,
-exact preview/confirmation, and the existing approval tier for High-risk effects.
-
-**Provider contract (official Dotloop Public API v2, reread 2026-09-10).**
-
-- `POST /profile/{profile_id}/loop` body `name` (≤200 chars), `status`, `transactionType`; or
-  `POST /loop-it?profile_id=` with address fields, `participants[]` (`fullName`, `email`, `role`),
-  and `templateId`. Response carries `id` and `loopUrl`.
-- `PATCH /profile/{profile_id}/loop/{loop_id}/detail` sections such as `Property Address` and
-  `Contract Dates`; `GET/POST/PATCH/DELETE .../participant`; `GET/POST .../folder`;
-  `POST .../folder/{folder_id}/document/` multipart upload; `GET .../loop/{loop_id}` readback.
-- Participant roles include `TENANT`, `LANDLORD`, `PROPERTY_MANAGER`, `ADMIN`, `OTHER`. Lease
-  transaction types are `LISTING_FOR_LEASE` and `LEASE_OFFER` with documented status sets.
-- Webhook subscriptions (`POST /subscription`, event types `LOOP_CREATED`, `LOOP_UPDATED`,
-  `LOOP_PARTICIPANT_*`) are optional. No document-level event and no signature status is documented.
+Renewal staff use the company connection under their own app identity and S182 permissions, regardless of who last saved company settings or a lease assignment. Admins manage connection/template/policy publication. Actual execution needs current S106 connection/resources, S66 complete approved snapshot, S130 exact approved bytes, and the exact open action for the chosen operation. Staff prepare local files while any provider prerequisite is absent. Verification identities never execute.
 
 **What it is / how it functions.**
 
-1. **Provider implementation.** Complete and wire the existing Dotloop provider module under the integrations library, which implements `DotloopProvider`
-   over the S106 client: `createLoop` uses the selected template with an app-chosen loop name that
-   embeds the packet snapshot id (the provider-observable identity for reconciliation), sets
-   `transactionType` and initial `status` from the selection record (owner-selected from the
-   documented enumeration, never hard-coded), adds participants from the packet snapshot's
-   tenant/owner participants with documented roles, patches `Property Address`, creates the packet
-   folder, and uploads each packet artifact from Drive. `readLoop` and `readDocument` map the
-   official responses; `reconcile` lists the profile's loops by batch and matches the exact name.
-2. **Lifecycle.** Reuse the existing external-execution preview/confirm/claim/receipt/readback path
-   through `DotloopRenewalExecutor`. The loop link (`loopId`, `loopUrl`, `profileId`,
-   `templateId`, `packetSnapshotHash`) is recorded with `recordPacketExecutionProjection`. A repeat
-   for the same snapshot hash returns the existing link; a new snapshot hash marks the prior loop
-   `Superseded` and requires a new confirmation for a replacement loop.
-3. **Status.** The workspace `document-packet` and `signatures-follow-up` phases show the loop link,
-   last readback time, loop status, participant count, document count, and a `Refresh from Dotloop`
-   control; when webhooks are available, `LOOP_UPDATED` events only schedule a readback.
-4. **Signature handoff.** Because the API exposes no signature operation, the phase shows `Open in
-Dotloop to send for signature` with the exact loop URL and the required signers; signature
-   completion is recorded only from the existing S72 signed-artifact evidence path, never inferred.
-
-**September 10 feasibility and continuation.**
-
-The official Public API v2 was reread at https://dotloop.github.io/public-api/. OAuth, template-based
-loop creation, participant/property data, folder/document upload and metadata readback are supported.
-No public signature-send/status operation or document-signature completion event was found. A webhook
-HMAC signature authenticates a webhook and is not an electronic signature on a lease.
-
-Prepare all agent-owned resolver/control/recovery work now against exact fixtures. Later availability
-of credentials/forms resumes that work at its specific live gate; it does not start a new project.
-A document listing proves presence/name/id, not uploaded-content equality or signed completion.
-Preserve exact submitted-byte evidence separately and use approved returned signed artifacts for
-completion. A matching loop name after an ambiguous create cannot by itself prove app causality or
-grant another create; require honest recovery and explicit reviewed adoption of an independently
-verified existing loop where the owning contract supports it.
-
-Deployment with current public capabilities can deliver packet creation/upload and Open in Dotloop
-for human signature work. Full signature automation is an external capability dependency. If Dotloop
-later grants a documented private/public operation, inventory exact endpoint/scopes, recipient/send
-effects, consent, status/returned artifacts, idempotency and correction behavior; add focused tests and
-the exact reviewed action contract before activation. Do not guess an endpoint, automate the provider
-UI, or switch provider to bypass the absent capability.
-
-The owner deferred legal-form location collection to the S113 link-entry boxes. Implement those
-controls and packet preparation without waiting for supplied locations. A saved URL is not approved
-artifact bytes or a participant/field mapping; only actual creation/upload remains conditional.
-
-Current external dependencies: B-DL1 approved client credentials; B-DL2 managed consent and verified
-profile/template/type/status selection; B-DL3 approved forms and mappings for the seven catalog
-families. Keep unknown applicability explicit instead of requiring every family for every lease.
-The supplied assisted-housing correspondence adds an applicable manual follow-up; it supplies no
-legal form or agency submission authority. Exact activation patches remain governed by AGENTS.md.
-Existing standing deployment authority applies after exact-key and release gates pass.
+1. **Choose a loop explicitly.** Offer create from the verified company renewal template or select/link an existing loop readable through the company connection. Show profile, loop identity/address, relevant lease/cycle and existing participants/documents for review. Validate server-side access and target consistency at confirmation. Matching names/addresses are hints, not automatic linking or proof of app creation. Refuse a known different lease; reuse across cycles of the same verified lease requires explicit reviewed association. App linking has its own audited current-state correction; it grants no historical provider receipt or reversal authority.
+2. **Create once where chosen.** Preserve `dotloop.loop.create_from_template` and the existing typed Loop-It path. Preview selected profile/template, name, transaction type/status, address, reviewed participant identities/roles and any documented included property details. Wire actual supported address/participant inputs; do not guess custom-field names or an API form-edit endpoint. A created loop has a durable lease/cycle association and its own causal receipt. Changing a PDF snapshot afterward does not silently create a replacement loop; a new-loop choice requires a new exact confirmation.
+3. **Use app-filled files intentionally.** Company template configuration/handoff identifies native copied attachments separately from the app's current PDF set. Do not pass copied blanks off as filled outputs. If a native template or existing loop also contains obsolete/duplicate documents, show them for the human Dotloop review/retirement step before signature sending, or choose a compatible template. No undocumented API deletion is promised. Do not treat an extra native document as a satisfied required app-filled output.
+4. **Preview and confirm the exact operation.** Reuse S20/S21 preview, approval, one-attempt claim, queue, receipt and own-receipt recovery. Freeze actor, lease/cycle, connection generation, selected target, applicable action keys and each approved document identity/hash before dispatch. Revalidate current terms/approval/maps and target/resources at admission. Do not assign approval to the last settings editor or require another Admin for ordinary staff confirmation. Creating a new loop requires its create key; attaching PDFs to an existing verified loop requires the upload key, not the unused create key. Preparation does not require either key. The existing-loop path uploads only; participant/metadata changes on pre-existing loops are a human handoff unless separately scoped under an exact action contract.
+5. **Preserve binary bytes and folder identity.** Multipart transport carries the exact approved PDF bytes, including bytes above ASCII and zero bytes; no binary-to-UTF-8 conversion or refill at dispatch. Persist/recover the selected or app-created destination folder and document-attempt identities so multiple documents, workers and restarts do not create a folder each time. Keep observed provider document ids/metadata separate from the outgoing content hash. Provider document presence/name is not returned-content equality; claim equality only if the documented returned bytes are actually retrieved and compared under the separate live proof.
+6. **Recover without redispatch.** Duplicate confirmations and callbacks reconcile the owned attempt/receipt. After a definitive rejected request, only the owning documented retry/correction contract applies. Timeout, ambiguous create/upload or partial packet preserves known loop/folder/document results and leaves an explicit unresolved remainder. A matching external name cannot resolve causality. Do not recreate a loop, repeat an uncertain file upload or roll back unrelated documents. Independently reviewed adoption of an existing loop remains distinct from recovering an app-created receipt.
+7. **Revise documents after upload.** Staff can edit S66 facts and prepare/approve a new S130 snapshot/version. Preview only the newly required uploads into the chosen linked loop; unchanged document identities reuse their valid receipts. The app marks which version is current and which it supersedes without rewriting prior files, receipts, signatures or execution claims. Human Dotloop retirement of obsolete files is explicit. Signed artifacts stay unchanged; a changed unsigned successor does not mean a signed agreement was amended or re-executed. Changes affecting economic terms require the current owner-approval contract again.
+8. **Hand off to real signers.** Show the exact permitted loop link, current document set, verified signer identities/roles and required signature/initial locations. Staff review/assign those fields, retire obsolete/duplicate documents and send for signature inside Dotloop. V1 has no automatic field-placement/send/signature-status endpoint and never signs for anyone. Potential provider participant/contact or notification consequences must be established and included in the live preview/proof before its creation path is activated; unknown behavior is not asserted harmless.
+9. **Track truthful status and completion.** Mount usable readback/refresh controls, labeled freshness and recoverable errors. Retain loop status, observed counts, app upload attempts and document versions separately from signatures. Staff record actual outside completion, actor/time, executed date and supporting artifact/reference through the existing manual/evidence journey; wire its desk/workspace milestone as staff-reported execution. Preserve the distinction from provider-verified or signed-artifact evidence. Loop status, document counts, webhook authenticity and an upload hash never prove signatures. Correcting a staff completion report is audited and does not erase a provider receipt.
+10. **Correction is concrete.** Show exact affected loop/folder/document ids and whether the app created or merely linked them. App link/version correction uses a new reviewed current-state action. Provider document retirement and any loop/participant correction lacking the exact authorized API contract are manual in Dotloop. The API's inability to delete loops/documents must replace the old generic delete/rollback promise in affected descriptors during implementation. Do not archive a pre-existing adopted loop or remove its people as an automatic rollback.
 
 **In scope / out of scope.**
 
-In scope: provider, executor wiring, loop link, readback, refresh, optional webhook readback, handoff
-copy, and fakes. Out of scope: legal content, broad Dotloop administration, requiring webhooks, or
-any signature API.
+In scope: new/existing-loop choice/linking, create input repairs, exact conditional admission, binary upload and durable folder/attempt recovery, revised versions, status/handoff and staff completion wiring. Out of scope: new action activation, new provider mutation keys, modifying existing-loop people/details through an upload key, API deletion/reversal invention, actual signature assignment/sending, required webhooks, automatic loop LEASED status changes, Drive setup and live tests/demo in this cycle.
 
 **Open questions & assumptions.**
 
-The owner requested preparation and deployment of the feasible document end state on September 10.
-S113 F5.1 records the exact current capability split and conditional continuation. Credentials and
-forms remain external; normal mounted controls and source resolvers remain agent-owned.
-
-The owner selects transaction type and initial status during S106 selection; the approved S66
-artifact catalog remains the document source. Both are external inputs, not assumptions.
+No feature decision remains open. Actual template/loop ids, signature locations and approved values are configuration/customer inputs. Existing-loop selection and later versions were explicitly accepted. Notification/contact consequences and returned-document behavior need bounded provider verification in the deferred live flow. Do not infer these from a fake; unresolved consequences hold only the affected live operation. Signed copies remain in the existing permitted evidence/provider workflow; no new bulk Dotloop archive or retention scheme is introduced.
 
 **Cross-product impacts.**
 
-Packet snapshots and execution projections, external execution claims and receipts, action
-registry (`production_allowed` flips are protected-path changes surfaced for owner direction), S72
-phases, S107 continuation, S111 proof.
+Verified owners: `lib/lease-renewal/execution/normal-packet-action.ts`, `lib/lease-renewal/execution/dotloop-runtime.ts`; `lib/integrations/dotloop/client.ts`, `lib/integrations/dotloop/renewal-provider.ts`; `lib/lease-documents/packet-execution.ts`, `lib/lease-documents/dotloop-packet-binding.ts`, `lib/lease-documents/dotloop-loop-link.ts`, `lib/lease-documents/derived-packet-binding.ts`; `components/lease-renewal/DotloopPacketLinkPanel.tsx`; `app/api/lease-renewal/document-handoff/route.ts`; existing S20/S21 execution stores and manual completion/evidence owners. Correction wording also affects Dotloop Registry metadata; a `production_allowed` change remains protected and outside this request.
 
 **Authority and evidence map.**
 
-| Input                                                                | Classification                   | Use and limitation                                                                        |
-| -------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------- |
-| `AGENTS.md` effect model, S66, S72, execution providers, S97 pattern | Authority / implementation truth | Exact preview/confirm/claim/receipt/readback; protected activation; no autonomous effect. |
-| Official Dotloop Public API v2                                       | Provider contract                | Endpoints, bodies, roles, statuses; no signature API.                                     |
-| Owner package PMI-06                                                 | Intent evidence                  | One loop per renewal, visible state, explicit handoff.                                    |
+| Input                                                         | Classification       | Use and limitation                                                                                                        |
+| ------------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| AGENTS.md; S20/S21/S66/S72/S96; current code                  | Authority / baseline | Exact human action, owned claims, receipts, readback/correction and separate evidence meanings.                           |
+| Accepted Q4a–d, Q5/Q7 and deferred-live direction, 2026-10-06 | Confirmed intent     | Renewals/replacement leases, new/existing loops, successor PDFs, human signature setup and staff operation.               |
+| [Public API](https://dotloop.github.io/public-api/)           | Provider evidence    | Typed loop/participant/address/upload/read APIs; no documented document-edit/delete or e-signature send/status operation. |
+| Prior deterministic provider evidence                         | Scoped baseline      | Existing claim/recovery/control behavior; does not prove byte transport or provider acceptance.                           |
 
 **Architecture outcome (deterministic, fail-first).**
 
-- **ARCH-S34-1** — One provider implementation behind the existing `DotloopProvider` interface; the
-  executor fixture that expects a loop link after confirmation fails today.
-- **ARCH-S34-2** — Loop identity is bound to the packet snapshot hash; a second create for the same
-  hash returns the stored link without a provider call.
+- **ARCH-S34-1** — Extend the existing provider/executor/link and completion owners; no duplicate workflow or provider executor. Typed exact target/byte transport exposes the current string corruption and missing wiring.
+- **ARCH-S34-2** — Lease/cycle loop association is separate from immutable packet/document versions and durable owned attempts/folders; duplicate and changed-version cases cannot create a second loop implicitly.
+- **ARCH-S34-3** — Readback, staff report and signed/provider evidence remain distinct state projections through failure, correction and reload.
 
 **Behavior outcome (deterministic, fail-first).**
 
-- **BEH-S34-1** — One approved renewal yields one loop with the selected profile/template, expected
-  participants, address, folder, and documents through the fake.
-- **BEH-S34-2** — Missing template, participant email, property address, or connection blocks
-  creation with the exact next action.
-- **BEH-S34-3** — Readback updates the workspace state; webhook and polling modes converge to the
-  same state; signature work is never marked complete without artifact evidence.
+- **BEH-S34-1** — One confirmed new-loop operation uses the correct selected resources, supported address/people and exact PDF bytes once; an explicitly linked existing loop accepts the approved upload without creating a loop.
+- **BEH-S34-2** — Incomplete/stale inputs, wrong target/access, closed required key and ambiguous attempts show scoped recovery and never redispatch automatically.
+- **BEH-S34-3** — Staff can inspect/refresh the linked loop, upload a reviewed successor into it, and record actual outside completion with clear version and evidence labels.
 
 **Human litmus outcome.**
 
-### The renewal packet appears in Dotloop once
+### Put the right version in the right loop
 
-**If this was built correctly:** After approval the operator previews and confirms the packet. One
-loop appears in Dotloop with the right people and documents, the workspace shows its link and status,
-and repeating the action does not create another loop. The workspace tells the operator to open
-Dotloop to send for signatures.
+**If this was built correctly:** Staff choose a new or existing lease loop, review the exact files and confirm once. A corrected pet charge produces a new reviewed file in that loop while earlier evidence stays visible. Staff open Dotloop to assign and send signatures, then record the outside result without the app pretending an upload was a signature.
 
-- Model verdict: PASS for the closed slice - why: one approved packet creates exactly one loop from
-  the selected profile and template with the documented transaction type, initial status,
-  documented-role participants, and the property address section; a repeat of the same confirmed
-  normal action uses its durable response/readback receipt and creates no second one; a mismatched template, an empty
-  participant list, or a participant without a verified email blocks before any provider call; the
-  loop reads back and an archived loop reads inactive; the stored link is reused for the same packet
-  snapshot hash without touching the provider and marked superseded for a different hash; and the
-  signature handoff shows the exact loop URL and required signers while claiming no signature state.
-  The document upload resolves exact approved S21 bytes and refuses missing catalog/content. Live
-  creation is BLOCKED on the owner's OAuth application, connected account, and key activation.
+- Model verdict: NOT RUN — specification authoring only.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                       | Architecture outcome       | Behavior outcome | Human litmus                               | Deterministic evidence / falsification        |
-| --------------------------------- | -------------------------- | ---------------- | ------------------------------------------ | --------------------------------------------- |
-| DLPKT-01, DLPKT-02 one loop       | `ARCH-S34-1`, `ARCH-S34-2` | `BEH-S34-1`      | The renewal packet appears in Dotloop once | Create and repeat fixtures                    |
-| DLPKT-03 link and refresh         | `ARCH-S34-1`               | `BEH-S34-3`      | The renewal packet appears in Dotloop once | Readback fixture                              |
-| DLPKT-04, DLPKT-05 blockers/stale | `ARCH-S34-2`               | `BEH-S34-2`      | The renewal packet appears in Dotloop once | Missing-data and superseded-snapshot fixtures |
-| DLPKT-06, DLPKT-07 handoff/modes  | `ARCH-S34-1`               | `BEH-S34-3`      | The renewal packet appears in Dotloop once | Handoff copy and webhook/polling parity       |
+| Requirement                                        | Architecture outcome   | Behavior outcome | Human litmus                            | Falsification                                                                                  |
+| -------------------------------------------------- | ---------------------- | ---------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Correct explicit new/existing target and ownership | ARCH-S34-1, ARCH-S34-2 | BEH-S34-1        | Put the right version in the right loop | AC-S34-2, AC-S34-5; new/existing, cross-lease, renamed loop and wrong-profile tests.           |
+| Exact bytes and durable folder reuse               | ARCH-S34-1, ARCH-S34-2 | BEH-S34-1        | Put the right version in the right loop | AC-S34-6; real multipart recorder/parser, repeated documents and restart.                      |
+| Stale/closed/duplicate/ambiguous action recovery   | ARCH-S34-2             | BEH-S34-2        | Put the right version in the right loop | AC-S34-1, AC-S34-4, AC-S34-8; conditional keys, lost response, own receipt and partial packet. |
+| Successor document versions and corrections        | ARCH-S34-2             | BEH-S34-3        | Put the right version in the right loop | AC-S34-7, AC-S34-10; unchanged/current/signed version and adopted-loop protection.             |
+| Human handoff and honest status/completion         | ARCH-S34-3             | BEH-S34-3        | Put the right version in the right loop | AC-S34-3, AC-S34-9; refresh, no signature API, staff report versus signed evidence.            |
 
 **Preservation set.**
 
-`tests/unit/dotloop-renewal-executor.test.ts`, `s66-dotloop-packet-binding.test.ts`,
-`s66-packet-truth-boundary.test.ts`, `dotloop-followup-draft.test.ts`, and `lease-execution-matrix.test.ts`
-stay green.
+Existing `dotloop-renewal-executor`, `s34-dotloop-packet-lifecycle`, `s66-dotloop-packet-binding`, `s66-packet-truth-boundary`, `dotloop-followup-draft` and lease execution-matrix checks; S20 claims/own receipts; S21 approved bytes; S113 manual/evidence distinctions; exact-key activation gates. Preserve current provider receipt causality and source-effect contracts.
 
 **Adversarial acceptance checks.**
 
-- **AC-S34-1** — `ARCH-S34-2`: an incomplete or stale S66 snapshot cannot create a provider request.
-- **AC-S34-2** — `BEH-S34-1`: one confirmed request is claimed once, read back, and receipted before
-  completion is claimed.
-- **AC-S34-3** — `BEH-S34-3`: no guessed legal copy, participant, signature placement, template, or
-  webhook authentication is accepted, and signature completion is never inferred.
-- **AC-S34-4** — `ARCH-S34-1`: normal recovery uses the exact action's durable response/readback
-  receipt without another create. A matching loop name cannot establish provider causality; an uncertain
-  attempt without its own receipt remains unresolved. Legacy adapter fixtures are not normal-path proof.
+- **AC-S34-1** — Incomplete/stale snapshot, approval, original/map/output or selected target cannot admit a provider request (ARCH-S34-2).
+- **AC-S34-2** — One exact human confirmation is claimed once, receipted and read back; repeat uses the owned result and does not create another loop (BEH-S34-1).
+- **AC-S34-3** — No guessed legal content, participant, signature placement or endpoint is accepted; uploaded/loop/webhook status never establishes signatures (ARCH-S34-3).
+- **AC-S34-4** — Normal recovery uses its own durable response/readback receipt. A matching name cannot prove creation causality or authorize another create/upload after an ambiguous outcome (BEH-S34-2).
+- **AC-S34-5** — Staff explicitly select/verify an existing lease loop or new-template path; existing upload makes zero create/participant-update calls, and new creation includes supported approved address/participants. Last settings editor does not control ordinary approval (BEH-S34-1).
+- **AC-S34-6** — A real local multipart transport recorder extracts PDF bytes exactly matching the frozen artifact, including non-ASCII/zero bytes. Multiple documents/workers/restart reuse the durable target folder; metadata alone never claims content equality (ARCH-S34-1, ARCH-S34-2).
+- **AC-S34-7** — A reviewed changed document uploads as a successor in the linked loop; unchanged documents reuse valid receipts. No loop/file/signature/receipt is overwritten; a signed version is not silently amended or re-executed (BEH-S34-3).
+- **AC-S34-8** — Local preparation succeeds with both keys closed. Existing-loop upload depends on upload authority only; new-loop creation depends on its create authority. Partial/uncertain uploads retain known results and an exact unresolved remainder (BEH-S34-2).
+- **AC-S34-9** — Mounted refresh/status/completion controls persist and reopen the true observations and staff-reported milestone. Wrong-key UI labels, unavailable refresh or absent completion writes fail a service-plus-UI journey. Staff reports stay distinct from signed/provider evidence (ARCH-S34-3).
+- **AC-S34-10** — Correction shows provenance and exact targets; no nonexistent delete/automatic rollback is offered, no adopted loop is archived, and obsolete/duplicate file retirement is an explicit human Dotloop step (ARCH-S34-2, ARCH-S34-3).
 
 **Forbidden actions / hard gates.**
 
-No UI/RPA automation, no invented signature endpoint, no unsigned legal content, no autonomous
-execution, and no `production_allowed` flip without owner direction and a passed bounded proof.
+No autonomous/model-triggered provider action, generic endpoint execution, fake production record, client send, signature fabrication, UI/RPA provider automation, causal-receipt adoption by name, key activation or deferred live proof. Existing-loop upload is not permission to modify people/details. Provider correction lacking an exact contract remains human-performed and honestly labeled.
 
 **Dependencies / sequencing.**
 
-Requires S106 readiness and the S66 catalog; consumed by S105, S107, and S111.
+S66 supplies approved snapshot/facts, S130 final exact bytes, S106 shared connection/resources and S182 staff capability/provenance. S20/S21 retain execution/publication ownership. All code and recovery paths can be implemented against controlled adapters without live credentials/proofs; actual activation is a later separate flow.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** provider, executor wiring, loop link, readback, refresh, handoff, fakes.
-- **Consumes, but does not assume:** S106 connection and selection; absent readiness is the
-  `document-packet` blocker.
-- **Externally blocked effect:** live loop creation until the OAuth app, connected account, approved
-  catalog, and key activation exist; recorded as `BLOCKED` for the live proof only.
-- **Produces for downstream suites:** loop link, packet execution state, handoff state.
+- **Deliverable now:** complete target selection/link, execution/transport/recovery, version and handoff/status controls with local/emulator/service/compiled-browser evidence.
+- **Consumes, but does not assume:** actual connection, template/loop ids, approved forms/facts/bytes and exact action authority; absent inputs remain scoped provider holds.
+- **Externally blocked effect:** real create/upload, provider notification/content acceptance and live signature handoff require the deferred flow and exact activation; engineering acceptance does not depend on performing them now.
+- **Produces for downstream suites:** auditable loop association, immutable document/attempt history, current-versus-prior version, real observed readback and separately labeled staff/evidence completion.
 
 **Verification and delivery contract.**
 
-1. Freeze the create, repeat, blocker, readback, and handoff fixtures failing for the expected
-   reason.
-2. Run focused provider, executor, snapshot, and workspace checks.
-3. Run `bash scripts/verify.sh` and `npm run test:e2e:core`; audit action gates and secrets.
-4. Report `ALL_GATES_GREEN` for the closed slice; `BLOCKED` names only the live proof inputs;
-   `BUDGET_EXHAUSTED` only with an explicit budget.
+An implementation runner establishes fail-first multipart, existing-loop, successor, conditional-key, refresh/completion and recovery checks; preserves correct causal receipts and exact byte resolution; runs service/emulator and compiled control journeys plus applicable repository gates for an authorized delivery. No real provider mutation is used as test proof in this cycle. Report engineering and deferred operational/live acceptance separately; this spec is not an implementation/release permit.
 
 **Ordered prompt sequence.**
 
-1. Re-verify the S66 binding and executor seam.
-2. Materialize the fail-first provider and lifecycle fixtures.
-3. Implement the provider, link, readback, and handoff.
-4. Run focused and canonical checks; record the live limitation; update current docs.
+1. Recheck normal packet, exact artifact and provider/receipt owners and current action boundaries.
+2. Freeze fail-first target, binary, folder/restart, successor, role/key and completion controls.
+3. Extend current owners and recovery without new mutation keys or signature/delete assumptions.
+4. Falsify every acceptance row, preserve old receipts and source contracts, and report live requirements separately.
 
 **Deletion/merge recommendation.**
 
-Keep until one live packet creation, readback, and correction proof completes.
+Keep until the revised lifecycle is represented by verified code/tests and separately recorded live acceptance. Historical S34 fake-provider and deployment evidence is retained with its original scope.

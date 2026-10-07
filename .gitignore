@@ -66,3 +66,6 @@ next-env.d.ts
 
 # User-owned local output (reports, exports); never committed.
 output/
+
+# Private owner-supplied Dotloop reference PDFs (S130 intake 052); never committed.
+docs/dotloop_template_references/
