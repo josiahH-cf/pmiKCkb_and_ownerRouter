@@ -25,6 +25,7 @@ import {
   geometry,
   objectsHolding,
   staticOriginal,
+  withDamagedPage,
 } from "@/tests/fixtures/synthetic-static";
 import {
   LEASE_DOCUMENT_PACKET_COLLECTIONS,
@@ -651,6 +652,87 @@ describe("S130 static route through the persisted filled output (AC-S130-11/12/1
     await expect(prepareDerivedArtifact(admin, u.prepare, u.db, u.deps)).rejects.toThrow(
       /Required mapped values are missing/,
     );
+  });
+
+  it("keeps the reviewed region order when region ids look like numbers", async () => {
+    const t = await staticSetup(2);
+    const map = t.artifact.fillMapping!.map;
+    const ids: Record<string, string> = { Rent: "2", Effective: "10" };
+    map.static = StaticPdfGeometrySchema.parse({
+      ...map.static!,
+      regions: map.static!.regions.map((region) => ({
+        ...region,
+        regionId: ids[region.regionId] ?? region.regionId,
+      })),
+    });
+    t.artifact.fillMapping!.mapHash = mapHashOf(map);
+    reseat(t);
+    const record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
+    expect(record.comparison.regionOrder).toEqual([
+      "TenantName",
+      "2",
+      "10",
+      "TenantName1",
+    ]);
+    expect(record.comparison.allFields).toEqual({
+      TenantName: "Synthetic A",
+      "2": "$950.00",
+      "10": "January 1, 2027",
+      TenantName1: "Synthetic B",
+    });
+  });
+
+  it("reads a stored output back whatever order the store returns its value map in", async () => {
+    const t = await staticSetup(2);
+    const record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
+    // A document store need not keep a map's key order; Firestore may return keys sorted.
+    const stored = t.fake.store.get(
+      `${DERIVED_ARTIFACT_COLLECTIONS.records}/${record.id}`,
+    )!.comparison as { allFields: Record<string, unknown> };
+    stored.allFields = Object.fromEntries(Object.entries(stored.allFields).reverse());
+    const approved = await approveDerivedArtifact(
+      admin,
+      t.approval(record),
+      t.db,
+      t.deps,
+    );
+    expect(approved.approval?.outputHash).toBe(record.outputHash);
+    await expect(
+      readHistoricalDerivedArtifactContent(
+        admin,
+        { ...t.request, derivedId: record.id, requireApproval: true },
+        t.db,
+        t.deps,
+      ),
+    ).resolves.toMatchObject({ record: { id: record.id } });
+  });
+
+  it("prepares, approves and downloads an output whose unfilled page cannot be decoded", async () => {
+    const t = await staticSetup(2);
+    const damaged = await withDamagedPage(t.original);
+    const served = {
+      content: damaged,
+      contentType: "application/pdf",
+      fileName: "synthetic-static.pdf",
+    };
+    t.deps.original = vi.fn(async () => served);
+    t.deps.historicalOriginal = vi.fn(async () => served);
+    t.artifact.contentHash = sha(damaged);
+    reseat(t);
+    const record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
+    const approved = await approveDerivedArtifact(
+      admin,
+      t.approval(record),
+      t.db,
+      t.deps,
+    );
+    const downloaded = await readDerivedArtifactContent(
+      admin,
+      { ...t.request, derivedId: approved.id, requireApproval: true },
+      t.db,
+      t.deps,
+    );
+    expect(sha(downloaded.content)).toBe(record.outputHash);
   });
 
   it("clears an unused repeated AcroForm slot that holds an earlier value", async () => {

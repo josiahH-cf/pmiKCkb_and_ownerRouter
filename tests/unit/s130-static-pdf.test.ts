@@ -21,6 +21,7 @@ import {
   readStaticPdfValuesByOrder,
   validateStaticGeometry,
 } from "@/lib/lease-documents/static-pdf";
+import { EditableLayerError } from "@/lib/errors/editable-layer-error";
 import {
   geometry,
   objectsHolding,
@@ -29,6 +30,7 @@ import {
   runs,
   staticOriginal,
   staticPage,
+  withDamagedPage,
 } from "@/tests/fixtures/synthetic-static";
 
 // S130 (AC-S130-11, AC-S130-12, AC-S130-13): synthetic static originals only, built by the shared
@@ -590,5 +592,54 @@ describe("S130 static PDF filling (AC-S130-11, AC-S130-12, AC-S130-13)", () => {
     expect(await validateStaticGeometry(offset, oneRegion(corner, "blank"))).toContain(
       "Page 1's size, crop or rotation differs from the reviewed geometry.",
     );
+  });
+
+  it("answers a damaged file with a typed refusal and reads back only the pages it filled", async () => {
+    const original = await withDamagedPage(await staticOriginal());
+    const refusal = await inspectStaticPdf(original).catch((error: unknown) => error);
+    expect(refusal).toBeInstanceOf(EditableLayerError);
+    expect(refusal).toMatchObject({
+      status: 409,
+      message: "Static PDF filling unavailable: a page's content cannot be decoded.",
+    });
+    // Any other library error leaves an entry point as the same typed refusal.
+    const pdf = await PDFDocument.load(await staticOriginal());
+    pdf.getPage(0).node.set(PDFName.of("Rotate"), PDFName.of("Sideways"));
+    await expect(
+      inspectStaticPdf(await pdf.save({ useObjectStreams: false })),
+    ).rejects.toBeInstanceOf(EditableLayerError);
+    // The damaged page is never filled, so neither the fill nor its read-back opens it.
+    const map = await geometry(await staticOriginal());
+    const filled = await fillStaticPdf(original, map, VALUES);
+    const order = map.regions.map((region) => region.regionId);
+    expect(await readStaticPdfValuesByOrder(filled.content, order)).toEqual(
+      filled.comparison.allFields,
+    );
+    expect(await readStaticPdfValues(filled.content, map)).toEqual(
+      filled.comparison.allFields,
+    );
+  });
+
+  it("keeps the geometry's region order for region ids that look like numbers", async () => {
+    const original = await staticOriginal();
+    const base = await geometry(original);
+    const ids: Record<string, string> = { Rent: "2", Effective: "10" };
+    const map = StaticPdfGeometrySchema.parse({
+      ...base,
+      regions: base.regions.map((region) => ({
+        ...region,
+        regionId: ids[region.regionId] ?? region.regionId,
+      })),
+    });
+    const filled = await fillStaticPdf(original, map, [
+      { regionId: "TenantName", text: "Jane Doe" },
+      { regionId: "2", text: "$950.00" },
+      { regionId: "10", text: "" },
+    ]);
+    // A plain object would list "2" and "10" first; the record keeps the reviewed order.
+    expect(filled.comparison.regionOrder).toEqual(["TenantName", "2", "10"]);
+    expect(
+      await readStaticPdfValuesByOrder(filled.content, filled.comparison.regionOrder),
+    ).toEqual({ TenantName: "Jane Doe", "2": "$950.00", "10": "" });
   });
 });

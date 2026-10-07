@@ -105,6 +105,17 @@ export function oneRegion(
   });
 }
 
+/** The same original with a page added whose content claims compression it does not have. */
+export async function withDamagedPage(bytes: Uint8Array) {
+  const pdf = await PDFDocument.load(bytes);
+  const damaged = PDFRawStream.of(
+    pdf.context.obj({ Filter: "FlateDecode" }),
+    Uint8Array.from(Buffer.from("SYNTHETIC bytes that are not deflated")),
+  );
+  pdf.addPage([612, 792]).node.set(PDFName.of("Contents"), pdf.context.register(damaged));
+  return pdf.save({ useObjectStreams: false });
+}
+
 export async function runs(bytes: Uint8Array) {
   return (await inspectStaticPdf(bytes)).runs;
 }

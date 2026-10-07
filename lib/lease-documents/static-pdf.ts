@@ -21,11 +21,14 @@
 //   * reopens the saved bytes and proves the fixed content is byte-identical, the removed runs are
 //     gone, the fill starts from the page's initial graphics state and every drawn value reads back
 //     exactly and lands inside its region.
+// Values are read back from the fill's marked stream alone, and every entry point answers a parser
+// or library failure with a typed refusal.
 // The original bytes are never modified; page content and resources outside these rules are kept.
 
 import { createHash } from "node:crypto";
 import {
   PDFArray,
+  PDFBool,
   PDFDict,
   PDFDocument,
   PDFName,
@@ -63,6 +66,15 @@ const FILL_TAG = "PMIFill";
 
 function refuse(message: string): never {
   throw new EditableLayerError(`Static PDF filling unavailable: ${message}`, 409);
+}
+/** Every entry point answers a parser or library failure with this module's typed refusal. */
+async function bounded<T>(work: () => Promise<T>): Promise<T> {
+  try {
+    return await work();
+  } catch (error) {
+    if (error instanceof EditableLayerError) throw error;
+    return refuse("the file could not be read safely.");
+  }
 }
 const sha = (bytes: Uint8Array | string) =>
   createHash("sha256").update(bytes).digest("hex");
@@ -282,10 +294,22 @@ function numberAt(pdf: PDFDocument, value: unknown): number | null {
   return resolved instanceof PDFNumber ? resolved.asNumber() : null;
 }
 
-function streamBytes(stream: unknown): Uint8Array {
-  if (stream instanceof PDFRawStream) return decodePDFRawStream(stream).decode();
-  if (stream instanceof PDFStream) return stream.getContents();
-  return refuse("a content stream is unreadable.");
+function streamBytes(stream: unknown, what = "a page's content"): Uint8Array {
+  if (!(stream instanceof PDFStream)) return refuse(`${what} is unreadable.`);
+  try {
+    return stream instanceof PDFRawStream
+      ? decodePDFRawStream(stream).decode()
+      : stream.getContents();
+  } catch {
+    return refuse(`${what} cannot be decoded.`);
+  }
+}
+
+/** The fill's own content stream carries this key, so a reader decodes no other stream. */
+function isFillStream(stream: unknown): boolean {
+  const marker =
+    stream instanceof PDFStream ? stream.dict.get(PDFName.of(FILL_TAG)) : null;
+  return marker instanceof PDFBool && marker.asBoolean();
 }
 
 /** A simple font's codes: the glyph each one names and the text it stands for. */
@@ -463,7 +487,9 @@ function fontMetrics(pdf: PDFDocument, font: PDFDict): FontMetrics {
     lookup(pdf, font.get(PDFName.of("Subtype"))) as PDFName | undefined
   )?.decodeText();
   const toUnicodeStream = lookup(pdf, font.get(PDFName.of("ToUnicode")));
-  const toUnicode = toUnicodeStream ? parseToUnicode(streamBytes(toUnicodeStream)) : null;
+  const toUnicode = toUnicodeStream
+    ? parseToUnicode(streamBytes(toUnicodeStream, "a font's text map"))
+    : null;
   const decodeSimple = (codes: readonly number[]) =>
     codes
       .map(
@@ -1121,7 +1147,11 @@ export interface StaticInspection {
 }
 
 /** Page geometry and text positions of an approved static original, for reviewing a map. */
-export async function inspectStaticPdf(original: Uint8Array): Promise<StaticInspection> {
+export function inspectStaticPdf(original: Uint8Array): Promise<StaticInspection> {
+  return bounded(() => inspect(original));
+}
+
+async function inspect(original: Uint8Array): Promise<StaticInspection> {
   const { pdf, fields } = await parseSafePdf(original, true);
   if (fields.length) refuse("this file has form fields; review it as an AcroForm.");
   const result: StaticInspection = {
@@ -1183,6 +1213,13 @@ async function planPages(
 ): Promise<{ plans: PagePlan[]; issues: string[] }> {
   const issues: string[] = [];
   const pages = pdf.getPages();
+  // Saved values are read back from the fill's marked stream only; an original carrying one
+  // would read back as values this fill never drew.
+  for (const [pageIndex, page] of pages.entries())
+    if (contentRefs(pdf, page).some(({ stream }) => isFillStream(stream)))
+      issues.push(
+        `Page ${pageIndex + 1} already holds filled values. Use an approved clean master.`,
+      );
   for (const described of geometry.pages) {
     const page = pages[described.pageIndex];
     if (!page) {
@@ -1274,13 +1311,15 @@ async function planPages(
 }
 
 /** Check a reviewed static map against its exact original before it can be recorded. */
-export async function validateStaticGeometry(
+export function validateStaticGeometry(
   original: Uint8Array,
   geometry: StaticPdfGeometry,
 ): Promise<string[]> {
-  const { pdf, fields } = await parseSafePdf(original, true);
-  if (fields.length) return ["This file has form fields; review it as an AcroForm."];
-  return (await planPages(pdf, geometry)).issues;
+  return bounded(async () => {
+    const { pdf, fields } = await parseSafePdf(original, true);
+    if (fields.length) return ["This file has form fields; review it as an AcroForm."];
+    return (await planPages(pdf, geometry)).issues;
+  });
 }
 
 // ---- composition --------------------------------------------------------------------------------
@@ -1382,6 +1421,8 @@ export interface StaticFillResult {
   outputHash: string;
   comparison: {
     allFields: Record<string, string>;
+    /** Region ids in geometry order: a fill tag's index names its region in this list. */
+    regionOrder: string[];
     changedFieldNames: string[];
     removedRuns: number;
     unchangedObjects: number;
@@ -1395,7 +1436,15 @@ export interface StaticFillResult {
  * Fill reviewed regions of an approved static original. The result is the actual saved PDF with a
  * comparison made after reopening it; any rule it cannot prove refuses the whole output.
  */
-export async function fillStaticPdf(
+export function fillStaticPdf(
+  original: Uint8Array,
+  geometry: StaticPdfGeometry,
+  values: readonly StaticRegionValue[],
+): Promise<StaticFillResult> {
+  return bounded(() => fill(original, geometry, values));
+}
+
+async function fill(
   original: Uint8Array,
   geometry: StaticPdfGeometry,
   values: readonly StaticRegionValue[],
@@ -1507,10 +1556,12 @@ export async function fillStaticPdf(
     const close = "Q\n".repeat(plan.reading.end.depth + 1);
     const openRef = pdf.context.register(pdf.context.flateStream("q\n"));
     const closeRef = pdf.context.register(pdf.context.flateStream(close));
-    const fill = pdf.context.register(pdf.context.flateStream(`${lines.join("\n")}\n`));
+    const fillRef = pdf.context.register(
+      pdf.context.flateStream(`${lines.join("\n")}\n`, { [FILL_TAG]: true }),
+    );
     page.node.set(
       PDFName.of("Contents"),
-      pdf.context.obj([openRef, ...middle, closeRef, fill]),
+      pdf.context.obj([openRef, ...middle, closeRef, fillRef]),
     );
     expected.set(pageIndex, { middle: middleBytes, close });
   }
@@ -1532,10 +1583,18 @@ export async function fillStaticPdf(
     const after = pageGeometry(output, page);
     if (JSON.stringify(before) !== JSON.stringify(after))
       refuse("a page's size, crop or rotation changed.");
-    if (!touched.has(pageIndex)) continue;
     const refs = contentRefs(output, page);
+    const marked = refs.filter(({ stream }) => isFillStream(stream)).length;
+    if (!touched.has(pageIndex)) {
+      if (marked) refuse("an unfilled page holds fill content.");
+      continue;
+    }
     const { middle, close } = expected.get(pageIndex)!;
-    if (refs.length !== middle.length + 3)
+    if (
+      refs.length !== middle.length + 3 ||
+      marked !== 1 ||
+      !isFillStream(refs[refs.length - 1].stream)
+    )
       refuse("the saved page content is not the expected wrapping.");
     const bytes = refs.map(({ stream }) => streamBytes(stream));
     const fillIndex = refs.length - 1;
@@ -1599,6 +1658,7 @@ export async function fillStaticPdf(
     outputHash: sha(content),
     comparison: {
       allFields,
+      regionOrder: geometry.regions.map((region) => region.regionId),
       changedFieldNames: drawn.map((entry) => entry.region.regionId),
       removedRuns: plans.reduce((total, plan) => total + plan.removed.length, 0),
       unchangedObjects: unchanged.unchanged,
@@ -1610,44 +1670,47 @@ export async function fillStaticPdf(
 }
 
 /** Read the drawn region values of a saved static output, keyed by region id. */
-export async function readStaticPdfValues(
+export function readStaticPdfValues(
   content: Uint8Array,
   geometry: StaticPdfGeometry,
 ): Promise<Record<string, string>> {
-  const { pdf } = await parseSafePdf(content, true);
-  const values: Record<string, string> = {};
-  for (const region of geometry.regions) values[region.regionId] = "";
-  for (const page of pdf.getPages()) {
-    const refs = contentRefs(pdf, page);
-    if (refs.length === 0) continue;
-    const last = tokenizeContent(streamBytes(refs[refs.length - 1].stream));
-    for (const [index, raw] of readStaticFillValues(last)) {
-      const region = geometry.regions[index];
-      if (region) values[region.regionId] = decodeWinAnsi(raw);
-    }
-  }
-  return values;
+  return readStaticPdfValuesByOrder(
+    content,
+    geometry.regions.map((region) => region.regionId),
+  );
 }
 
-/** Read the drawn values of a saved static output by the region order its record carries. */
-export async function readStaticPdfValuesByOrder(
+/**
+ * Read the drawn values of a saved static output by the region order its record carries. Only a
+ * page's marked fill stream is decoded, so a page the fill never touched is never opened.
+ */
+export function readStaticPdfValuesByOrder(
   content: Uint8Array,
   regionOrder: readonly string[],
 ): Promise<Record<string, string>> {
-  const { pdf } = await parseSafePdf(content, true);
-  const values: Record<string, string> = Object.fromEntries(
-    regionOrder.map((regionId) => [regionId, ""]),
-  );
-  for (const page of pdf.getPages()) {
-    const refs = contentRefs(pdf, page);
-    if (refs.length === 0) continue;
-    const last = tokenizeContent(streamBytes(refs[refs.length - 1].stream));
-    for (const [index, raw] of readStaticFillValues(last)) {
-      const regionId = regionOrder[index];
-      if (regionId !== undefined) values[regionId] = decodeWinAnsi(raw);
+  return bounded(async () => {
+    const { pdf } = await parseSafePdf(content, true);
+    const values: Record<string, string> = Object.fromEntries(
+      regionOrder.map((regionId) => [regionId, ""]),
+    );
+    const seen = new Set<number>();
+    for (const page of pdf.getPages()) {
+      const refs = contentRefs(pdf, page);
+      const fills = refs.filter(({ stream }) => isFillStream(stream));
+      if (!fills.length) continue;
+      if (fills.length > 1 || fills[0] !== refs[refs.length - 1])
+        refuse("a saved fill is not where it was written.");
+      const drawn = readStaticFillValues(tokenizeContent(streamBytes(fills[0].stream)));
+      for (const [index, raw] of drawn) {
+        const regionId = regionOrder[index];
+        if (regionId === undefined || seen.has(index))
+          refuse("a saved value does not match one reviewed region.");
+        seen.add(index);
+        values[regionId] = decodeWinAnsi(raw);
+      }
     }
-  }
-  return values;
+    return values;
+  });
 }
 
 const LONG_MONTHS = [

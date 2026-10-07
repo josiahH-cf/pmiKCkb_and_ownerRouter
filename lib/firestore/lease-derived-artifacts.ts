@@ -16,7 +16,7 @@ import {
   LEASE_DOCUMENT_PACKET_COLLECTIONS,
   packetHeadId,
 } from "./lease-document-packet-snapshots";
-import { hashExecutionPreview } from "@/lib/execution/preview-hash";
+import { canonicalJson, hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
   resolveLivePacketInput,
   PACKET_SOURCE_COLLECTIONS,
@@ -171,18 +171,16 @@ function allowed(actor: AuthenticatedUser, capability: Capability) {
 function fail(message: string): never {
   throw new EditableLayerError(message, 409);
 }
-/** S130: the comparison a record keeps; a static output also keeps its region order. */
+/**
+ * S130: the comparison a record keeps. A static output carries its geometry's region order, never
+ * the order of an object's keys, which puts integer-like region ids first.
+ */
 function comparisonOf(
   filled:
     | Awaited<ReturnType<typeof fillAcroformPdf>>
     | Awaited<ReturnType<typeof fillStaticPdf>>,
 ): DerivedArtifactRecord["comparison"] {
-  if (filled.adapter !== STATIC_ADAPTER)
-    return filled.comparison as DerivedArtifactRecord["comparison"];
-  return {
-    ...filled.comparison,
-    regionOrder: Object.keys(filled.comparison.allFields),
-  } as DerivedArtifactRecord["comparison"];
+  return filled.comparison as DerivedArtifactRecord["comparison"];
 }
 /** The values a saved output reads back as, by the route that wrote it. */
 async function outputValues(
@@ -193,6 +191,20 @@ async function outputValues(
   return adapter === STATIC_ADAPTER
     ? readStaticPdfValuesByOrder(content, comparison.regionOrder ?? [])
     : readAcroformValues(content);
+}
+/**
+ * Whether a saved output reads back as the values its comparison records. A map read back from
+ * Firestore need not keep its key order, so both sides are compared as canonical JSON.
+ */
+async function readsBackAs(
+  adapter: string,
+  content: Uint8Array,
+  comparison: DerivedArtifactRecord["comparison"],
+) {
+  return (
+    canonicalJson(await outputValues(adapter, content, comparison)) ===
+    canonicalJson(comparison.allFields)
+  );
 }
 const sha = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 function currentArtifact(
@@ -370,8 +382,7 @@ export async function readHistoricalDerivedArtifactContent(
   const content = await deps.content.read(record.contentRef);
   if (
     sha(content) !== record.outputHash ||
-    JSON.stringify(await outputValues(record.adapter, content, record.comparison)) !==
-      JSON.stringify(record.comparison.allFields)
+    !(await readsBackAs(record.adapter, content, record.comparison))
   )
     fail("The retained filled output failed byte readback.");
   return {
@@ -556,8 +567,7 @@ export async function prepareDerivedArtifact(
     const saved = await deps.content.read(contentRef);
     if (
       sha(saved) !== filled.outputHash ||
-      JSON.stringify(await outputValues(filled.adapter, saved, comparisonOf(filled))) !==
-        JSON.stringify(filled.comparison.allFields)
+      !(await readsBackAs(filled.adapter, saved, comparisonOf(filled)))
     )
       fail("Stored filled bytes did not read back exactly.");
     const base: Omit<DerivedArtifactRecord, "provenanceHash"> = {
@@ -678,8 +688,7 @@ export async function readDerivedArtifactContent(
   const content = await deps.content.read(record.contentRef);
   if (
     sha(content) !== record.outputHash ||
-    JSON.stringify(await outputValues(record.adapter, content, record.comparison)) !==
-      JSON.stringify(record.comparison.allFields)
+    !(await readsBackAs(record.adapter, content, record.comparison))
   )
     fail("Filled output readback failed.");
   return { record, content, fileName: record.fileName, contentType: "application/pdf" };
