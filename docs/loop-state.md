@@ -16,6 +16,8 @@ send, demo or activation is authorized.
 Previous: batch 005 COMPLETE. Serving e8bc616d144c6600da8394313153e1a0c75659da /
 pmi-kc-app-rmuvf58nk-d45b8bc5347d, 100% traffic, run 61659874-478d-4135-9810-5033b2f732bf,
 exact-main CI 37333580981 passed. Native evidence: docs/evidence/application-usability-batch005.json.
+Since 10:42Z on 2026-10-07 the same code and configuration serve from run 01efe066's run-bound
+recovery clone pmi-kc-app-recovery-01efe06679764647 at 100% (verified rollback; see Awaiting release).
 
 ## Independent verification, 2026-10-05
 
@@ -48,6 +50,22 @@ configuration staged in both production env files. Admit only after exact main C
 head, fresh prerequisites and a new run-bound permit. Both Dotloop write keys stay closed; no
 provider effect, key or activation is queued. Assurance stays read-only; the connection check runs
 separately after verified delivery.
+
+Run 01efe066-7976-4647-b26d-da887b7a2df2 first carried this item at `19f343b8` and rolled back
+verified, with production served throughout. Recovery preparation paused once on the new recovery
+instance's cold first Dashboard render (42.3 s against the 30-second bound, every request 200); two
+guarded 13-route diagnostics passed and the same run resumed. The build, candidate smoke,
+assurance and promotion passed and the immediate observation checkpoint passed. Inside the final
+checkpoint, at 10:41:37Z, the Admin assurance profile's eight-hour app session for the canonical
+origin expired (redirects to sign-in, then auth_mismatch on four routes, and nothing rendered for
+reconciliation), so the observer returned rollback_required at 10:42:17Z. The candidate served zero
+5xx. Traffic moved to the run-bound recovery target, whose first verification failed on the same
+expired session; an unattended
+`auth:ensure` re-signed the profile at 10:45Z, a read-only rollback canary passed 13 routes, and
+the same-run resume recorded ROLLED_BACK_VERIFIED at 10:47:32Z. `auth:ensure` had accepted the
+still-valid session before admission, so the replacement run starts with the session's remaining
+lifetime checked. Its checkpoint and permit are archived as superseded by this record's head, which
+carries one replacement run of the same code.
 
 ## Verified release and recovery
 
