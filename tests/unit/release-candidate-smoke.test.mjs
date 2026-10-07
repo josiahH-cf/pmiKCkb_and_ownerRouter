@@ -126,9 +126,58 @@ describe("read-only release candidate smoke", () => {
       protectedRoute: { status: 307 },
       version: { status: 200 },
     });
-    expect(fetchFn).toHaveBeenCalledTimes(4);
+    // One unmeasured version read warms the new instance before the four bounded probes.
+    expect(fetchFn).toHaveBeenCalledTimes(5);
+    expect(fetchFn.mock.calls.map(([url]) => new URL(url).pathname)).toEqual([
+      "/api/version",
+      "/",
+      "/sign-in",
+      "/ask",
+      "/api/version",
+    ]);
     for (const [, init] of fetchFn.mock.calls) {
       expect(init).toMatchObject({ method: "GET", redirect: "manual" });
     }
+  });
+
+  it("ignores a failed warm-up and still decides on the bounded probes", async () => {
+    const version = {
+      commit: "a".repeat(40),
+      revision: "pmi-kc-app-r123",
+      service: "pmi-kc-app",
+      environment: "production",
+    };
+    const options = {
+      expectedService: "pmi-kc-app",
+      expectedTag: "cand-r123",
+      expectedCommit: "a".repeat(40),
+      expectedRevision: "pmi-kc-app-r123",
+    };
+    const respond = (url) => ({
+      headers: new Headers({ location: url.endsWith("/sign-in") ? "" : "/sign-in" }),
+      status: url.endsWith("/sign-in") || url.endsWith("/api/version") ? 200 : 307,
+      json: async () => version,
+    });
+    const slowStart = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("The operation was aborted due to timeout"))
+      .mockImplementation(async (url) => respond(url));
+    await expect(
+      smokeReleaseCandidate("https://cand-r123---pmi-kc-app-hash-uc.a.run.app", {
+        ...options,
+        fetchFn: slowStart,
+      }),
+    ).resolves.toMatchObject({ root: { status: 307 }, version: { status: 200 } });
+
+    // The warm-up never substitutes for a probe: a wrong probe answer still fails the smoke.
+    const wrongRoot = vi.fn(async (url) =>
+      new URL(url).pathname === "/" ? { ...respond(url), status: 200 } : respond(url),
+    );
+    await expect(
+      smokeReleaseCandidate("https://cand-r123---pmi-kc-app-hash-uc.a.run.app", {
+        ...options,
+        fetchFn: wrongRoot,
+      }),
+    ).rejects.toThrow(/auth redirect/);
   });
 });

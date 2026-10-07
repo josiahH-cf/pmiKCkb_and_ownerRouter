@@ -64,7 +64,9 @@ The lane has six ordered parts:
    five. Run the Admin canaries and source reconciliation immediately and again at the end,
    then read candidate-revision 5xx and unresolved-live-effect metrics/logs for that exact interval.
    Complete corroborated evidence may pass at minute five. If metric/log ingestion is still missing,
-   remain `observing` for at most two additional minutes; missing evidence hard-fails at minute seven.
+   remain `observing` for at most three additional minutes; missing evidence hard-fails at minute
+   eight. The owner moved that decision deadline from minute seven on 2026-10-07; the five-minute
+   window and the two-minute ingestion delay are unchanged.
    The first checkpoint must begin within the fixed immediate grace and the second cannot begin before
    minute five; two back-to-back late checks never count as two checkpoints.
 
@@ -74,6 +76,16 @@ Internal Processes, Notifications, the Access Approval Queue, Admin, and People 
 Editor manifest covers the shared routes and proves Admin and People routes remain denied without
 enumerating Admin data. The managed actors must already carry the expected roles and required
 Renewals/Maintenance scopes; the harness never assigns or requests access.
+
+A new revision's first Dashboard render reads its live sources from scratch: new recovery
+instances took 39.1 and 56.5 s for it on 2026-10-07, against 15 to 21 s once warm, and a cold
+rollback target once needed 32.4 s for its first version read. By the owner decision of that
+day, every canary of a revision that may be cold (candidate, recovery preparation and rollback
+checks) first sends one unmeasured version read, then loads the Dashboard once, unmeasured,
+inside the same guarded context with the mutation firewall active. The predecessor baseline and
+the candidate smoke also send one unmeasured version read first. No warm-up decides anything,
+and no route bound, read bound, probe bound or assertion changes. The post-promotion observation
+does not warm up, because its first checkpoint must start within the immediate grace.
 
 The September 10 owner amendment accepts the existing owner Admin session as the browser release
 prerequisite. It must use the explicit external `/home/josiah/pmi-assurance/owner-admin` profile and
@@ -204,7 +216,7 @@ and attributes used by the existing field/link/cardinality oracle. It performs t
 against that snapshot, aggregates isolated per-row counters, and rechecks the live row count.
 Raw values stay in process memory; no snapshot becomes a report, receipt or cache. Independent
 RentVine/Sheet/manual-state snapshots still bracket the browser read and require a stable digest.
-No browser, source, cancellation, 300,000 ms observation or 420,000 ms cutoff requirement is relaxed.
+No browser, source, cancellation, 300,000 ms observation or decision-cutoff requirement is relaxed.
 This correction still requires full verification, exact CI and a new accepted production release.
 
 During post-promotion observation, any of
@@ -217,7 +229,7 @@ the following attributable to the candidate requires restoration of the exact ca
 - candidate-revision 5xx count is greater than zero;
 - unresolved-live-effect count is greater than zero; or
 - monitoring configuration cannot be verified, or metric/log corroboration remains incomplete at
-  the minute-seven ingestion deadline.
+  the minute-eight decision deadline.
 
 A changed or unavailable provider source without a candidate-attributable application failure is a
 hold/inconclusive result, not an invented success or automatic claim that rollback fixes the
@@ -286,9 +298,10 @@ role, Space grant, action key, or client-send boundary.
 - **AC-S51-10** — Post-promotion success requires two green role/reconciliation passes, a closed
   300,000 ms observation interval, complete corroborated monitoring, zero candidate 5xx, and zero
   unresolved live effects. Complete evidence may pass at 300,000 ms; with monitoring configuration
-  ready, missing metric/log corroboration stays `observing` through 419,999 ms and becomes
-  `rollback_required` at 420,000 ms. A missing second successful checkpoint also becomes
-  `rollback_required` at 420,000 ms. Unready monitoring configuration fails immediately.
+  ready, missing metric/log corroboration stays `observing` through 479,999 ms and becomes
+  `rollback_required` at 480,000 ms. A missing second successful checkpoint also becomes
+  `rollback_required` at 480,000 ms. Unready monitoring configuration fails immediately. The
+  owner moved this deadline from 420,000 ms on 2026-10-07.
 - **AC-S51-11** — Every rollback predicate returns only the exact captured predecessor; missing,
   malformed, equal-to-candidate, or drifted targets refuse.
 - **AC-S51-12** — A predecessor baseline and post-rollback recovery check both require the same exact
@@ -316,6 +329,13 @@ role, Space grant, action key, or client-send boundary.
 - **AC-S51-18** — Live reconciliation refuses before source reads when emulator/key-file state,
   project/database drift, or a non-managed ADC principal is present. Deadline tests prove timed-out
   browsers, Firestore clients, HTTP requests, and child work are aborted/closed with no late evidence.
+- **AC-S51-19** — Every candidate, recovery preparation and rollback canary first sends one
+  unmeasured version read, then loads the Dashboard once inside the same guarded context,
+  unmeasured and under the same mutation firewall, and never starts either inside the last five
+  minutes of its deadline. The post-promotion observation and the approved predecessor exception
+  do not warm up their canaries. The predecessor baseline and the candidate smoke first send one
+  unmeasured version read. A failed or slow warm-up decides nothing, and every route, read and
+  probe bound and every assertion is unchanged.
 
 **Forbidden actions / hard gates.**
 
@@ -327,7 +347,7 @@ independent command transcript in place of the aggregate candidate receipt; no o
 reusing a receipt path or candidate receipt; no inference that a failed traffic command had no
 effect; no observation interval beginning after the traffic attempt; no two late checkpoints; no
 emulator, key-file, or unverified ADC source read; no uncancelled work after a deadline; no
-observation shorter than five minutes; no ingestion wait beyond minute seven; and no claim that
+observation shorter than five minutes; no ingestion wait beyond minute eight; and no claim that
 configuration readback proves alert delivery.
 
 **Ordered prompt sequence.**

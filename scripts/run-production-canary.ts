@@ -9,6 +9,7 @@ import {
   ASSURANCE_RUN_TIMEOUT_MS,
   PRODUCTION_ASSURANCE_SCHEMA_VERSION,
   addDiagnostic,
+  assuranceAbortSignal,
   classifyBrowserSignal,
   classifyDeniedRouteOutcome,
   createAssuranceDeadline,
@@ -67,6 +68,97 @@ export function routeNavigationTimeoutMs(
     ? LIVE_RENEWAL_ROUTE_TIMEOUT_MS
     : ROUTE_TIMEOUT_MS;
 }
+
+// Owner decision 2026-10-07: a new revision's first Dashboard render reads its live sources from
+// scratch. New recovery instances took 39.1 and 56.5 s for it that day against 15 to 21 s once warm,
+// so every recovery preparation paused at the 30-second route bound, and a cold rollback target once
+// needed 32.4 s for its first version read against 30 s. Before the bounded reads the canary sends
+// one unmeasured version read, and before the measured routes it loads the Dashboard once, unmeasured,
+// inside the same guarded context: the mutation firewall stays active, neither warm-up decides
+// anything, and no route bound, read bound or assertion changes.
+const WARM_UP_PATH = "/";
+const WARM_UP_TIMEOUT_MS = 90_000;
+/** Time kept back for the measured reads; a warm-up never starts inside it. */
+const WARM_UP_RESERVE_MS = 5 * 60 * 1_000;
+
+function warmUpTimeoutMs(deadlineAtMs: number, nowMs: number): number {
+  return Math.min(WARM_UP_TIMEOUT_MS, deadlineAtMs - nowMs - WARM_UP_RESERVE_MS);
+}
+
+/**
+ * Every check of a revision that may be cold warms up first. The post-promotion observation does
+ * not: its first checkpoint must start within the one-minute grace, and the candidate checks have
+ * already loaded the promoted revision. The approved predecessor exception does not either, because
+ * it attributes every blocked request to one measured route.
+ */
+export function canaryWarmUpRequired(
+  options: Pick<LiveCanaryOptions, "phase" | "predecessorExceptionObserver">,
+): boolean {
+  return (
+    (options.phase ?? "candidate") !== "post_promotion" &&
+    options.predecessorExceptionObserver === undefined
+  );
+}
+
+/** Reads the version once and discards the result. Returns whether a read was attempted. */
+export async function warmUpVersionRead(
+  origin: string,
+  deadlineAtMs: number,
+  abortSignal?: AbortSignal,
+  {
+    fetchFn = fetch,
+    nowMs = Date.now(),
+  }: { fetchFn?: typeof fetch; nowMs?: number } = {},
+): Promise<boolean> {
+  const timeoutMs = warmUpTimeoutMs(deadlineAtMs, nowMs);
+  if (!(timeoutMs > 0)) return false;
+  try {
+    const response = await fetchFn(`${origin}/api/version`, {
+      method: "GET",
+      redirect: "manual",
+      signal: assuranceAbortSignal(timeoutMs, abortSignal),
+    });
+    await response.body?.cancel();
+  } catch {
+    // The warm-up has no verdict; the bounded identity read decides.
+  }
+  return true;
+}
+
+/** Loads the Dashboard once and discards the result. Returns whether a load was attempted. */
+export async function warmUpCanaryTarget(
+  context: { newPage(): Promise<Pick<Page, "goto" | "close">> },
+  origin: string,
+  deadlineAtMs: number,
+  nowMs = Date.now(),
+): Promise<boolean> {
+  const timeoutMs = warmUpTimeoutMs(deadlineAtMs, nowMs);
+  if (!(timeoutMs > 0)) return false;
+  let page: Pick<Page, "goto" | "close"> | null = null;
+  try {
+    page = await withAssuranceTimeout(
+      () => context.newPage(),
+      "canary_warm_up_timeout",
+      timeoutMs,
+    );
+    await page.goto(`${origin}${WARM_UP_PATH}`, {
+      waitUntil: "domcontentloaded",
+      timeout: timeoutMs,
+    });
+  } catch {
+    // The warm-up has no verdict; the measured routes below decide.
+  } finally {
+    const opened = page;
+    if (opened) {
+      await withAssuranceTimeout(
+        () => opened.close(),
+        "canary_page_close_timeout",
+        5_000,
+      ).catch(() => undefined);
+    }
+  }
+  return true;
+}
 const STRICT_WORKSPACE_SELECTOR =
   'tr[data-workspace-available="true"]:is([data-disposition="actionable"], [data-retention-state="tracked_incomplete"]) a.renewal-lease-link';
 const LEGACY_WORKSPACE_SELECTOR = "a.renewal-lease-link";
@@ -122,6 +214,8 @@ async function runProductionCanaryWithin(
       abortSignal,
     }));
   const revisionClient = verifiedAssuranceClient(assuranceContext, options.project);
+  const warmUp = canaryWarmUpRequired(options);
+  if (warmUp) await warmUpVersionRead(options.origin, deadlineAtMs, abortSignal);
   await runWithinCanaryDeadline(
     () => verifyExactVersion(options, abortSignal),
     deadlineAtMs,
@@ -299,6 +393,7 @@ async function runProductionCanaryWithin(
         diagnostics: activeCounts,
       };
     };
+    if (warmUp) await warmUpCanaryTarget(context, options.origin, deadlineAtMs);
     routes = await readCanaryRoutes(
       routesForRole(options.role, options.expectedCommit),
       Boolean(options.predecessorExceptionObserver),

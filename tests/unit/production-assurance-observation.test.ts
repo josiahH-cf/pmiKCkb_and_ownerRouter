@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  POST_PROMOTION_DECISION_DEADLINE_MS,
   POST_PROMOTION_EVIDENCE_READY_MS,
   POST_PROMOTION_OBSERVATION_MS,
   emptyDiagnosticCounts,
   evaluateReconciliation,
   evaluateReleaseObservation,
+  postPromotionDecisionDeadlineAtMs,
   routesForRole,
   type AssuranceRole,
   type ReleaseObservationInput,
@@ -36,7 +38,7 @@ function input(patch: Partial<ReleaseObservationInput> = {}): ReleaseObservation
     configurationVerified: true,
     successfulCheckpoints: 2,
     checkpointStartedOffsetsMs: [0, POST_PROMOTION_OBSERVATION_MS],
-    elapsedMs: POST_PROMOTION_EVIDENCE_READY_MS,
+    elapsedMs: POST_PROMOTION_DECISION_DEADLINE_MS,
     adminRoutes: routes("Admin"),
     editorRoutes: routes("Editor"),
     reconciliation: evaluateReconciliation({
@@ -72,17 +74,67 @@ describe("post-promotion assurance state machine", () => {
     ).toMatchObject({ decision: "observing", reasons: ["window_incomplete"] });
   });
 
-  it("allows bounded ingestion lag only through the fixed evidence deadline", () => {
+  it("allows bounded ingestion lag only through the fixed decision deadline", () => {
     const monitoring = { ...input().monitoring, readComplete: false };
     expect(
       evaluateReleaseObservation(
-        input({ elapsedMs: POST_PROMOTION_EVIDENCE_READY_MS - 1, monitoring }),
+        input({ elapsedMs: POST_PROMOTION_DECISION_DEADLINE_MS - 1, monitoring }),
       ),
     ).toMatchObject({ decision: "observing", reasons: ["window_incomplete"] });
     expect(evaluateReleaseObservation(input({ monitoring }))).toMatchObject({
       decision: "rollback_required",
       reasons: ["monitoring_unavailable"],
       rollbackRevision: PREDECESSOR,
+    });
+  });
+
+  it("decides by minute eight: the owner-approved minute after the evidence is readable", () => {
+    // Owner decision 2026-10-07. The window and the ingestion delay are unchanged; only the time to
+    // decide grows, from 420,000 ms to 480,000 ms.
+    expect(POST_PROMOTION_OBSERVATION_MS).toBe(300_000);
+    expect(POST_PROMOTION_EVIDENCE_READY_MS).toBe(420_000);
+    expect(POST_PROMOTION_DECISION_DEADLINE_MS).toBe(480_000);
+    expect(postPromotionDecisionDeadlineAtMs(1_000)).toBe(481_000);
+    expect(() => postPromotionDecisionDeadlineAtMs(-1)).toThrow(
+      "observation_interval_invalid",
+    );
+
+    const lagging = { ...input().monitoring, readComplete: false };
+    // The old minute-seven cutoff no longer rolls back evidence that is still arriving.
+    expect(
+      evaluateReleaseObservation(
+        input({ elapsedMs: POST_PROMOTION_EVIDENCE_READY_MS, monitoring: lagging }),
+      ),
+    ).toMatchObject({ decision: "observing", reasons: ["window_incomplete"] });
+    expect(
+      evaluateReleaseObservation(
+        input({
+          elapsedMs: POST_PROMOTION_EVIDENCE_READY_MS,
+          successfulCheckpoints: 1,
+          checkpointStartedOffsetsMs: [0],
+        }),
+      ),
+    ).toMatchObject({ decision: "observing", reasons: ["window_incomplete"] });
+    // Complete evidence inside the added minute passes; failures inside it still roll back at once.
+    expect(evaluateReleaseObservation(input({ elapsedMs: 450_000 }))).toMatchObject({
+      decision: "passed",
+      reasons: [],
+    });
+    expect(
+      evaluateReleaseObservation(
+        input({
+          elapsedMs: 450_000,
+          monitoring: { ...input().monitoring, candidateFiveXxCount: 1 },
+        }),
+      ),
+    ).toMatchObject({ decision: "rollback_required", reasons: ["candidate_5xx"] });
+    expect(
+      evaluateReleaseObservation(
+        input({ elapsedMs: POST_PROMOTION_DECISION_DEADLINE_MS, monitoring: lagging }),
+      ),
+    ).toMatchObject({
+      decision: "rollback_required",
+      reasons: ["monitoring_unavailable"],
     });
   });
 
