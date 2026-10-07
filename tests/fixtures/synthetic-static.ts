@@ -1,4 +1,5 @@
 import {
+  PDFDict,
   PDFDocument,
   PDFName,
   PDFRawStream,
@@ -54,6 +55,54 @@ export async function staticOriginal(
   if (options.field)
     pdf.getForm().createTextField("Synthetic.Field").addToPage(page, { x: 400, y: 400 });
   return pdf.save({ useObjectStreams: false });
+}
+
+/** A one-page synthetic original drawn by these content streams, with Helvetica as /F1. */
+export async function staticPage(
+  streams: readonly string[],
+  configure?: (pdf: PDFDocument, fonts: PDFDict) => void,
+) {
+  const pdf = await PDFDocument.create();
+  const page = pdf.addPage([612, 792]);
+  const fonts = pdf.context.obj({
+    F1: (await pdf.embedFont(StandardFonts.Helvetica)).ref,
+  });
+  page.node.set(PDFName.of("Resources"), pdf.context.obj({ Font: fonts }));
+  page.node.set(
+    PDFName.of("Contents"),
+    pdf.context.obj(
+      streams.map((text) => pdf.context.register(pdf.context.flateStream(text))),
+    ),
+  );
+  configure?.(pdf, fonts);
+  return pdf.save({ useObjectStreams: false });
+}
+
+/** Reviewed geometry with one region on an upright 612 x 792 page. */
+export function oneRegion(
+  rect: { x: number; y: number; width: number; height: number },
+  existing: "blank" | "replace",
+  page: Partial<StaticPdfGeometry["pages"][number]> = {},
+) {
+  return StaticPdfGeometrySchema.parse({
+    pages: [
+      { pageIndex: 0, width: 612, height: 792, rotation: 0, cropBox: null, ...page },
+    ],
+    regions: [
+      {
+        regionId: "Name",
+        fieldId: "Name",
+        slot: 0,
+        pageIndex: 0,
+        rect,
+        format: "text",
+        fontSize: 11,
+        align: "left",
+        existing,
+      },
+    ],
+    protectedRegions: [],
+  });
 }
 
 export async function runs(bytes: Uint8Array) {

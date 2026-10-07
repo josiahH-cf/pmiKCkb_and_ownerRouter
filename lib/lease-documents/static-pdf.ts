@@ -1,19 +1,24 @@
 // S130 (R-F10-02, R-F10-04, AC-S130-11, AC-S130-12): bounded filling of a static PDF.
 //
 // A static PDF has no form fields, so values are placed in reviewed regions of its pages. The route
-// reads the page content with a bounded tokenizer and a text-position interpreter, then:
-//   * refuses a page whose size, crop or rotation differs from the reviewed geometry;
+// reads a page's content streams as one stream with a bounded tokenizer and a text-position
+// interpreter that measures glyphs exactly, then:
+//   * refuses a page whose size, crop or rotation differs from the reviewed geometry, whose content
+//     leaves a text object or marked content open or restores more states than it saves, or whose
+//     text has glyphs of unknown width;
 //   * refuses a "blank" region that holds existing text, and a "replace" region crossed by text,
 //     an image or nested content it cannot remove exactly;
 //   * removes each approved existing text run inside a "replace" region by replacing its show
 //     operator with a glyph-free advance of the same width, so the remaining text keeps its exact
 //     position and the old value is no longer extractable from the page;
-//   * draws each value in Helvetica inside its region, wrapped and tagged, never shrinking text,
-//     never drawing into a protected signature, initial or signing-date area;
+//   * draws each value in Helvetica inside its region, wrapped and tagged, after closing every
+//     graphics state the original leaves open, never shrinking text and never drawing into a
+//     protected signature, initial or signing-date area;
 //   * writes no object the edit detached, so a replaced content stream holding a removed value
 //     does not survive as an unused copy;
 //   * reopens the saved bytes and proves the fixed content is byte-identical, the removed runs are
-//     gone and every drawn value reads back exactly.
+//     gone, the fill starts from the page's initial graphics state and every drawn value reads back
+//     exactly and lands inside its region.
 // The original bytes are never modified; page content and resources outside these rules are kept.
 
 import { createHash } from "node:crypto";
@@ -26,9 +31,9 @@ import {
   PDFRawStream,
   PDFRef,
   PDFStream,
+  StandardFontEmbedder,
   StandardFonts,
   decodePDFRawStream,
-  type PDFFont,
   type PDFPage,
 } from "pdf-lib";
 
@@ -50,6 +55,9 @@ export const STATIC_ADAPTER = "pdf-lib@1.17.1:bounded-static/v1";
 const MAX_PAGE_CONTENT_BYTES = 8 * 1024 * 1024;
 const MAX_PAGE_OPERATORS = 250_000;
 const TOLERANCE = 0.75;
+/** A value is set so its cap height, this share of its size, sits centered in its region. */
+const CAP_HEIGHT = 0.72;
+const FILL_TAG = "PMIFill";
 
 function refuse(message: string): never {
   throw new EditableLayerError(`Static PDF filling unavailable: ${message}`, 409);
@@ -250,6 +258,7 @@ export function tokenizeContent(bytes: Uint8Array): ContentOp[] {
     operands = [];
     start = -1;
   }
+  if (operands.length) refuse("page content ends inside an operation.");
   return ops;
 }
 
@@ -257,8 +266,8 @@ export function tokenizeContent(bytes: Uint8Array): ContentOp[] {
 
 interface FontMetrics {
   twoByte: boolean;
-  /** Advance width for a glyph code in text space units for a font size of 1. */
-  width: (code: number) => number;
+  /** Advance width for a glyph code in text space units for a font size of 1; null if unknown. */
+  width: (code: number) => number | null;
   decode: (codes: readonly number[]) => string;
 }
 
@@ -275,6 +284,123 @@ function streamBytes(stream: unknown): Uint8Array {
   if (stream instanceof PDFRawStream) return decodePDFRawStream(stream).decode();
   if (stream instanceof PDFStream) return stream.getContents();
   return refuse("a content stream is unreadable.");
+}
+
+/** A simple font's codes: the glyph each one names and the text it stands for. */
+type GlyphTable = ReadonlyMap<number, { name: string; text: string }>;
+const shippedTables = new Map<string, GlyphTable>();
+/** pdf-lib's shipped metrics for a standard font; its two font-name enums share their values. */
+const shippedFont = (font: StandardFonts) =>
+  StandardFontEmbedder.for(
+    font as unknown as Parameters<typeof StandardFontEmbedder.for>[0],
+  );
+
+/** The WinAnsi, Symbol and ZapfDingbats tables pdf-lib ships with the standard font metrics. */
+function shippedTable(font: StandardFonts): GlyphTable {
+  const key = [StandardFonts.Symbol, StandardFonts.ZapfDingbats].includes(font)
+    ? font
+    : "WinAnsi";
+  if (!shippedTables.has(key)) {
+    const table = new Map<number, { name: string; text: string }>();
+    const { encoding } = shippedFont(font);
+    for (const codePoint of encoding.supportedCodePoints) {
+      const { code, name } = encoding.encodeUnicodeCodePoint(codePoint);
+      if (!table.has(code))
+        table.set(code, { name, text: String.fromCodePoint(codePoint) });
+    }
+    shippedTables.set(key, table);
+  }
+  return shippedTables.get(key)!;
+}
+
+/**
+ * StandardEncoding and MacRomanEncoding name the same glyphs as WinAnsi for printable ASCII, apart
+ * from StandardEncoding's curly quotes. Their other codes are not shipped, so they stay unknown.
+ */
+function asciiTable(curlyQuotes: boolean): GlyphTable {
+  const winAnsi = shippedTable(StandardFonts.Helvetica);
+  const table = new Map<number, { name: string; text: string }>();
+  for (let code = 32; code < 127; code++) table.set(code, winAnsi.get(code)!);
+  if (curlyQuotes) {
+    table.set(39, { name: "quoteright", text: String.fromCharCode(0x2019) });
+    table.set(96, { name: "quoteleft", text: String.fromCharCode(0x2018) });
+  }
+  return table;
+}
+
+/** The glyph table of a standard font's encoding, or null when it cannot be known exactly. */
+function standardGlyphs(
+  pdf: PDFDocument,
+  font: PDFDict,
+  standard: StandardFonts,
+): GlyphTable | null {
+  const builtIn = () =>
+    [StandardFonts.Symbol, StandardFonts.ZapfDingbats].includes(standard)
+      ? shippedTable(standard)
+      : asciiTable(true);
+  const named = (name: string) =>
+    name === "WinAnsiEncoding"
+      ? shippedTable(StandardFonts.Helvetica)
+      : name === "MacRomanEncoding" || name === "StandardEncoding"
+        ? asciiTable(name === "StandardEncoding")
+        : null;
+  const encoding = lookup(pdf, font.get(PDFName.of("Encoding")));
+  if (encoding === undefined) return builtIn();
+  if (encoding instanceof PDFName) return named(encoding.decodeText());
+  if (!(encoding instanceof PDFDict)) return null;
+  const base = lookup(pdf, encoding.get(PDFName.of("BaseEncoding")));
+  const start =
+    base === undefined
+      ? builtIn()
+      : base instanceof PDFName
+        ? named(base.decodeText())
+        : null;
+  const differences = lookup(pdf, encoding.get(PDFName.of("Differences")));
+  if (!start || (differences !== undefined && !(differences instanceof PDFArray)))
+    return null;
+  const table = new Map(start);
+  const texts = new Map(
+    [...shippedTable(standard).values(), ...start.values()].map(({ name, text }) => [
+      name,
+      text,
+    ]),
+  );
+  let code = -1;
+  for (const item of differences?.asArray() ?? []) {
+    const entry = lookup(pdf, item);
+    if (entry instanceof PDFNumber) code = entry.asNumber();
+    else if (entry instanceof PDFName && code >= 0 && code < 256) {
+      const name = entry.decodeText();
+      table.set(code++, { name, text: texts.get(name) ?? "?" });
+    } else return null;
+  }
+  return table;
+}
+
+/** Glyph widths of a standard font from its shipped metrics; a code with no glyph is unknown. */
+function standardWidths(standard: StandardFonts, glyphs: GlyphTable | null) {
+  const { font } = shippedFont(standard);
+  return (code: number): number | null => {
+    const name = glyphs?.get(code)?.name;
+    const width = name === undefined ? undefined : font.getWidthOfGlyph(name);
+    return typeof width === "number" ? width / 1000 : null;
+  };
+}
+
+/** The fill's own Helvetica, measured glyph by glyph as a shown string is drawn: never kerned. */
+let fillWidths: ((code: number) => number | null) | null = null;
+function fillWidth(encoded: Uint8Array, fontSize: number): number | null {
+  fillWidths ??= standardWidths(
+    StandardFonts.Helvetica,
+    shippedTable(StandardFonts.Helvetica),
+  );
+  let total = 0;
+  for (const code of encoded) {
+    const width = fillWidths(code);
+    if (width === null) return null;
+    total += width;
+  }
+  return total * fontSize;
 }
 
 function parseToUnicode(bytes: Uint8Array): Map<number, string> {
@@ -330,11 +456,7 @@ const STANDARD_FONTS: Readonly<Record<string, StandardFonts>> = {
   ZapfDingbats: StandardFonts.ZapfDingbats,
 };
 
-async function fontMetrics(
-  pdf: PDFDocument,
-  font: PDFDict,
-  scratch: { doc: PDFDocument | null },
-): Promise<FontMetrics> {
+function fontMetrics(pdf: PDFDocument, font: PDFDict): FontMetrics {
   const subtype = (
     lookup(pdf, font.get(PDFName.of("Subtype"))) as PDFName | undefined
   )?.decodeText();
@@ -421,32 +543,26 @@ async function fontMetrics(
     ?.decodeText()
     .replace(/^[A-Z]{6}\+/, "");
   const standard = baseFont ? STANDARD_FONTS[baseFont] : undefined;
-  if (!standard) refuse("a font has no glyph widths.");
-  scratch.doc ??= await PDFDocument.create();
-  const metrics: PDFFont = await scratch.doc.embedFont(standard);
-  const cache = new Map<number, number>();
+  // An embedded program without /Widths draws its own widths, not the standard metrics.
+  const embedded =
+    descriptor instanceof PDFDict &&
+    ["FontFile", "FontFile2", "FontFile3"].some((key) => descriptor.has(PDFName.of(key)));
+  if (!standard || embedded) refuse("a font has no glyph widths.");
+  // A standard font is measured with its shipped metrics through its own encoding.
+  const glyphs = standardGlyphs(pdf, font, standard);
   return {
     twoByte: false,
-    width: (code) => {
-      if (!cache.has(code)) {
-        let value = 0.5;
-        if (code >= 32 && code < 127)
-          try {
-            value = metrics.widthOfTextAtSize(String.fromCharCode(code), 1);
-          } catch {
-            value = 0.5;
-          }
-        cache.set(code, value);
-      }
-      return cache.get(code)!;
-    },
-    decode: decodeSimple,
+    width: standardWidths(standard, glyphs),
+    decode: (codes) =>
+      codes
+        .map((code) => toUnicode?.get(code) ?? glyphs?.get(code)?.text ?? "?")
+        .join(""),
   };
 }
 
 // ---- text-position interpreter -----------------------------------------------------------------
 
-type Matrix = [number, number, number, number, number, number];
+export type Matrix = [number, number, number, number, number, number];
 const IDENTITY: Matrix = [1, 0, 0, 1, 0, 0];
 function multiply(m: Matrix, n: Matrix): Matrix {
   return [
@@ -479,15 +595,23 @@ function boxOf(m: Matrix, corners: ReadonlyArray<[number, number]>): Box {
 }
 
 export interface TextRun {
+  /** The content stream where the run's operation starts. */
   streamIndex: number;
   op: ContentOp;
   box: Box;
+  /** Text space to user space where the run starts. */
+  matrix: Matrix;
   text: string;
   glyphs: number;
   /** Text-space advance of the run, for a glyph-free replacement of the same width. */
   advance: number;
   fontSize: number;
   horizontalScale: number;
+  rise: number;
+  /** False when a glyph's width is unknown, so this advance and later positions are estimates. */
+  exact: boolean;
+  /** The region tag of the fill content around the run, if any. */
+  fill: number | null;
   /** The `"` operator's word and character spacing, re-applied by its replacement. */
   spacing?: { word: number; character: number };
 }
@@ -499,10 +623,26 @@ export interface PlacedObject {
   kind: "image" | "form";
 }
 
+/** Graphics, text and marked-content nesting at one point of a page's content. */
+interface Nesting {
+  depth: number;
+  ctm: Matrix;
+  text: boolean;
+  marked: number;
+  /** A restore, text end or marked-content end without its start, or a text object nested. */
+  unbalanced: boolean;
+}
+
 interface PageReading {
-  streams: Array<{ ref: PDFRef | null; bytes: Uint8Array; ops: ContentOp[] }>;
+  /** Each content stream and where it lies in `content`. */
+  streams: Array<{ ref: PDFRef | null; bytes: Uint8Array; start: number; end: number }>;
+  /** The page's content streams read as one stream, with a line break between streams. */
+  content: Uint8Array;
   runs: TextRun[];
   objects: PlacedObject[];
+  /** The nesting where each content stream starts, and where the page's content ends. */
+  entry: Nesting[];
+  end: Nesting;
 }
 
 function inheritedResources(pdf: PDFDocument, page: PDFPage): PDFDict | null {
@@ -530,28 +670,38 @@ function contentRefs(
   return [{ ref: raw instanceof PDFRef ? raw : null, stream: value }];
 }
 
-async function readPage(
-  pdf: PDFDocument,
-  page: PDFPage,
-  scratch: { doc: PDFDocument | null },
-): Promise<PageReading> {
+function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
   const resources = inheritedResources(pdf, page);
   const fontDict = resources ? lookup(pdf, resources.get(PDFName.of("Font"))) : null;
   const xobjects = resources ? lookup(pdf, resources.get(PDFName.of("XObject"))) : null;
   const fonts = new Map<string, FontMetrics>();
-  const fontFor = async (key: string) => {
+  const fontFor = (key: string) => {
     if (!fonts.has(key)) {
       const font =
         fontDict instanceof PDFDict ? lookup(pdf, fontDict.get(PDFName.of(key))) : null;
       if (!(font instanceof PDFDict)) refuse(`page text uses an undefined font ${key}.`);
-      fonts.set(key, await fontMetrics(pdf, font, scratch));
+      fonts.set(key, fontMetrics(pdf, font));
     }
     return fonts.get(key)!;
   };
-  const streams = contentRefs(pdf, page).map(({ ref, stream }) => {
+  // A page's content streams are one stream divided only between tokens (ISO 32000-1 7.8.2), so
+  // an operation may start in one stream and end in the next: they are read together.
+  const streams: PageReading["streams"] = [];
+  const parts: Buffer[] = [];
+  let length = 0;
+  for (const { ref, stream } of contentRefs(pdf, page)) {
+    if (streams.length) {
+      parts.push(Buffer.from("\n"));
+      length += 1;
+    }
     const bytes = streamBytes(stream);
-    return { ref, bytes, ops: tokenizeContent(bytes) };
-  });
+    if (length + bytes.length > MAX_PAGE_CONTENT_BYTES)
+      refuse("a page's content exceeds the bound.");
+    streams.push({ ref, bytes, start: length, end: length + bytes.length });
+    parts.push(Buffer.from(bytes));
+    length += bytes.length;
+  }
+  const content = new Uint8Array(Buffer.concat(parts));
   const runs: TextRun[] = [];
   const objects: PlacedObject[] = [];
   interface State {
@@ -577,6 +727,18 @@ async function readPage(
   const stack: State[] = [];
   let tm: Matrix = [...IDENTITY];
   let tlm: Matrix = [...IDENTITY];
+  let inText = false;
+  let unbalanced = false;
+  /** Open marked-content sequences, each with its fill region tag or null. */
+  const marks: Array<number | null> = [];
+  const nesting = (): Nesting => ({
+    depth: stack.length,
+    ctm: [...state.ctm],
+    text: inText,
+    marked: marks.length,
+    unbalanced,
+  });
+  const fillTag = () => [...marks].reverse().find((mark) => mark !== null) ?? null;
   const nums = (op: ContentOp, count: number) => {
     const values = op.operands
       .filter((operand) => operand.kind === "number")
@@ -589,12 +751,13 @@ async function readPage(
     tlm = multiply([1, 0, 0, 1, x, y], tlm);
     tm = [...tlm];
   };
-  const show = async (op: ContentOp, streamIndex: number, items: Operand[]) => {
+  const show = (op: ContentOp, streamIndex: number, items: Operand[]) => {
     if (!state.fontKey) refuse("page text has no selected font.");
-    const font = await fontFor(state.fontKey);
+    const font = fontFor(state.fontKey);
     const startMatrix = multiply(tm, state.ctm);
     let advance = 0;
     let glyphs = 0;
+    let exact = true;
     const codes: number[] = [];
     for (const item of items) {
       if (item.kind === "number") {
@@ -609,8 +772,10 @@ async function readPage(
         codes.push(code);
         glyphs++;
         const word = !font.twoByte && code === 32 ? state.wordSpacing : 0;
+        const width = font.width(code);
+        if (width === null) exact = false;
         advance +=
-          (font.width(code) * state.fontSize + state.charSpacing + word) * state.scale;
+          ((width ?? 0.5) * state.fontSize + state.charSpacing + word) * state.scale;
       }
     }
     const low = state.rise - 0.25 * Math.abs(state.fontSize);
@@ -625,155 +790,171 @@ async function readPage(
           [0, high],
           [advance, high],
         ]),
+        matrix: startMatrix,
         text: font.decode(codes),
         glyphs,
         advance,
         fontSize: state.fontSize,
         horizontalScale: state.scale,
+        rise: state.rise,
+        exact,
+        fill: fillTag(),
         ...(op.operator === '"'
           ? { spacing: { word: state.wordSpacing, character: state.charSpacing } }
           : {}),
       });
     tm = multiply([1, 0, 0, 1, advance, 0], tm);
   };
-  for (const [streamIndex, stream] of streams.entries()) {
-    for (const op of stream.ops) {
-      switch (op.operator) {
-        case "q":
-          stack.push({ ...state, ctm: [...state.ctm] });
-          if (stack.length > 64) refuse("graphics state nests too deeply.");
-          break;
-        case "Q":
-          state = stack.pop() ?? state;
-          break;
-        case "cm":
-          state.ctm = multiply(nums(op, 6) as Matrix, state.ctm);
-          break;
-        case "BT":
-          tm = [...IDENTITY];
-          tlm = [...IDENTITY];
-          break;
-        case "Tf": {
-          const name = op.operands.find((operand) => operand.kind === "name")?.name;
-          if (!name) refuse("a malformed font selection.");
-          state.fontKey = name;
-          state.fontSize = nums(op, 1)[0];
-          break;
-        }
-        case "Tc":
-          state.charSpacing = nums(op, 1)[0];
-          break;
-        case "Tw":
-          state.wordSpacing = nums(op, 1)[0];
-          break;
-        case "Tz":
-          state.scale = nums(op, 1)[0] / 100;
-          break;
-        case "TL":
-          state.leading = nums(op, 1)[0];
-          break;
-        case "Ts":
-          state.rise = nums(op, 1)[0];
-          break;
-        case "Td": {
-          const [x, y] = nums(op, 2);
-          moveLine(x, y);
-          break;
-        }
-        case "TD": {
-          const [x, y] = nums(op, 2);
-          state.leading = -y;
-          moveLine(x, y);
-          break;
-        }
-        case "Tm":
-          tlm = nums(op, 6) as Matrix;
-          tm = [...tlm];
-          break;
-        case "T*":
-          moveLine(0, -state.leading);
-          break;
-        case "Tj":
-          await show(
-            op,
+  const entry: Nesting[] = [nesting()];
+  let streamIndex = 0;
+  for (const op of tokenizeContent(content)) {
+    while (streamIndex + 1 < streams.length && op.start >= streams[streamIndex + 1].start)
+      entry[++streamIndex] = nesting();
+    switch (op.operator) {
+      case "q":
+        stack.push({ ...state, ctm: [...state.ctm] });
+        if (stack.length > 64) refuse("graphics state nests too deeply.");
+        break;
+      case "Q": {
+        const saved = stack.pop();
+        if (saved) state = saved;
+        else unbalanced = true;
+        break;
+      }
+      case "cm":
+        state.ctm = multiply(nums(op, 6) as Matrix, state.ctm);
+        break;
+      case "BT":
+        if (inText) unbalanced = true;
+        inText = true;
+        tm = [...IDENTITY];
+        tlm = [...IDENTITY];
+        break;
+      case "ET":
+        if (!inText) unbalanced = true;
+        inText = false;
+        break;
+      case "BMC":
+        marks.push(null);
+        break;
+      case "BDC": {
+        const tag =
+          op.operands[0]?.name === FILL_TAG
+            ? op.operands[1]?.entries?.get("R")?.number
+            : undefined;
+        marks.push(typeof tag === "number" ? tag : null);
+        break;
+      }
+      case "EMC":
+        if (marks.pop() === undefined) unbalanced = true;
+        break;
+      case "Tf": {
+        const name = op.operands.find((operand) => operand.kind === "name")?.name;
+        if (!name) refuse("a malformed font selection.");
+        state.fontKey = name;
+        state.fontSize = nums(op, 1)[0];
+        break;
+      }
+      case "Tc":
+        state.charSpacing = nums(op, 1)[0];
+        break;
+      case "Tw":
+        state.wordSpacing = nums(op, 1)[0];
+        break;
+      case "Tz":
+        state.scale = nums(op, 1)[0] / 100;
+        break;
+      case "TL":
+        state.leading = nums(op, 1)[0];
+        break;
+      case "Ts":
+        state.rise = nums(op, 1)[0];
+        break;
+      case "Td": {
+        const [x, y] = nums(op, 2);
+        moveLine(x, y);
+        break;
+      }
+      case "TD": {
+        const [x, y] = nums(op, 2);
+        state.leading = -y;
+        moveLine(x, y);
+        break;
+      }
+      case "Tm":
+        tlm = nums(op, 6) as Matrix;
+        tm = [...tlm];
+        break;
+      case "T*":
+        moveLine(0, -state.leading);
+        break;
+      case "Tj":
+        show(
+          op,
+          streamIndex,
+          op.operands.filter((operand) => operand.kind === "string"),
+        );
+        break;
+      case "TJ": {
+        const array = op.operands.find((operand) => operand.kind === "array");
+        if (!array) refuse("a malformed TJ operator.");
+        show(op, streamIndex, array.items!);
+        break;
+      }
+      case "'":
+        moveLine(0, -state.leading);
+        show(
+          op,
+          streamIndex,
+          op.operands.filter((operand) => operand.kind === "string"),
+        );
+        break;
+      case '"': {
+        const [word, character] = nums(op, 2);
+        state.wordSpacing = word;
+        state.charSpacing = character;
+        moveLine(0, -state.leading);
+        show(
+          op,
+          streamIndex,
+          op.operands.filter((operand) => operand.kind === "string"),
+        );
+        break;
+      }
+      case "Do": {
+        const name = op.operands.find((operand) => operand.kind === "name")?.name;
+        const object =
+          name && xobjects instanceof PDFDict
+            ? lookup(pdf, xobjects.get(PDFName.of(name)))
+            : null;
+        const dict =
+          object instanceof PDFRawStream || object instanceof PDFStream
+            ? object.dict
+            : null;
+        const subtype = (
+          dict?.get(PDFName.of("Subtype")) as PDFName | undefined
+        )?.decodeText();
+        if (subtype === "Form") {
+          const bbox = lookup(pdf, dict!.get(PDFName.of("BBox")));
+          const matrix = lookup(pdf, dict!.get(PDFName.of("Matrix")));
+          const values = (array: unknown, fallback: number[]) =>
+            array instanceof PDFArray
+              ? array.asArray().map((item) => numberAt(pdf, item) ?? 0)
+              : fallback;
+          const [bx0, by0, bx1, by1] = values(bbox, [0, 0, 0, 0]);
+          const form = multiply(values(matrix, [...IDENTITY]) as Matrix, state.ctm);
+          objects.push({
             streamIndex,
-            op.operands.filter((operand) => operand.kind === "string"),
-          );
-          break;
-        case "TJ": {
-          const array = op.operands.find((operand) => operand.kind === "array");
-          if (!array) refuse("a malformed TJ operator.");
-          await show(op, streamIndex, array.items!);
-          break;
-        }
-        case "'":
-          moveLine(0, -state.leading);
-          await show(
             op,
-            streamIndex,
-            op.operands.filter((operand) => operand.kind === "string"),
-          );
-          break;
-        case '"': {
-          const [word, character] = nums(op, 2);
-          state.wordSpacing = word;
-          state.charSpacing = character;
-          moveLine(0, -state.leading);
-          await show(
-            op,
-            streamIndex,
-            op.operands.filter((operand) => operand.kind === "string"),
-          );
-          break;
-        }
-        case "Do": {
-          const name = op.operands.find((operand) => operand.kind === "name")?.name;
-          const object =
-            name && xobjects instanceof PDFDict
-              ? lookup(pdf, xobjects.get(PDFName.of(name)))
-              : null;
-          const dict =
-            object instanceof PDFRawStream || object instanceof PDFStream
-              ? object.dict
-              : null;
-          const subtype = (
-            dict?.get(PDFName.of("Subtype")) as PDFName | undefined
-          )?.decodeText();
-          if (subtype === "Form") {
-            const bbox = lookup(pdf, dict!.get(PDFName.of("BBox")));
-            const matrix = lookup(pdf, dict!.get(PDFName.of("Matrix")));
-            const values = (array: unknown, fallback: number[]) =>
-              array instanceof PDFArray
-                ? array.asArray().map((item) => numberAt(pdf, item) ?? 0)
-                : fallback;
-            const [bx0, by0, bx1, by1] = values(bbox, [0, 0, 0, 0]);
-            const form = multiply(values(matrix, [...IDENTITY]) as Matrix, state.ctm);
-            objects.push({
-              streamIndex,
-              op,
-              kind: "form",
-              box: boxOf(form, [
-                [bx0, by0],
-                [bx1, by0],
-                [bx0, by1],
-                [bx1, by1],
-              ]),
-            });
-          } else
-            objects.push({
-              streamIndex,
-              op,
-              kind: "image",
-              box: boxOf(state.ctm, [
-                [0, 0],
-                [1, 0],
-                [0, 1],
-                [1, 1],
-              ]),
-            });
-          break;
-        }
-        case "BI":
+            kind: "form",
+            box: boxOf(form, [
+              [bx0, by0],
+              [bx1, by0],
+              [bx0, by1],
+              [bx1, by1],
+            ]),
+          });
+        } else
           objects.push({
             streamIndex,
             op,
@@ -785,13 +966,27 @@ async function readPage(
               [1, 1],
             ]),
           });
-          break;
-        default:
-          break;
+        break;
       }
+      case "BI":
+        objects.push({
+          streamIndex,
+          op,
+          kind: "image",
+          box: boxOf(state.ctm, [
+            [0, 0],
+            [1, 0],
+            [0, 1],
+            [1, 1],
+          ]),
+        });
+        break;
+      default:
+        break;
     }
   }
-  return { streams, runs, objects };
+  while (streamIndex + 1 < streams.length) entry[++streamIndex] = nesting();
+  return { streams, content, runs, objects, entry, end: nesting() };
 }
 
 // ---- geometry ----------------------------------------------------------------------------------
@@ -877,11 +1072,10 @@ export interface StaticInspection {
 export async function inspectStaticPdf(original: Uint8Array): Promise<StaticInspection> {
   const { pdf, fields } = await parseSafePdf(original, true);
   if (fields.length) refuse("this file has form fields; review it as an AcroForm.");
-  const scratch = { doc: null as PDFDocument | null };
   const result: StaticInspection = { pages: [], runs: [], images: [], truncated: false };
   for (const [pageIndex, page] of pdf.getPages().entries()) {
     result.pages.push({ pageIndex, ...pageGeometry(page) });
-    const reading = await readPage(pdf, page, scratch);
+    const reading = readPage(pdf, page);
     for (const run of reading.runs) {
       if (result.runs.length >= 5_000) {
         result.truncated = true;
@@ -922,7 +1116,6 @@ async function planPages(
 ): Promise<{ plans: PagePlan[]; issues: string[] }> {
   const issues: string[] = [];
   const pages = pdf.getPages();
-  const scratch = { doc: null as PDFDocument | null };
   for (const described of geometry.pages) {
     const page = pages[described.pageIndex];
     if (!page) {
@@ -952,7 +1145,17 @@ async function planPages(
   for (const pageIndex of pageIndexes) {
     const page = pages[pageIndex];
     if (!page) continue;
-    const reading = await readPage(pdf, page, scratch);
+    const reading = readPage(pdf, page);
+    // A fill is drawn after closing every state the content leaves open; an unbalanced restore,
+    // or text or marked content left open, would carry into the fill and is refused.
+    if (reading.end.unbalanced || reading.end.text || reading.end.marked)
+      issues.push(
+        `Page ${pageIndex + 1}'s content is not balanced, so a value cannot be isolated from it.`,
+      );
+    if (reading.runs.some((run) => !run.exact))
+      issues.push(
+        `Page ${pageIndex + 1} has text whose glyph widths are unknown, so its positions cannot be checked exactly.`,
+      );
     const removed = new Set<TextRun>();
     const annotations = annotationBoxes(pdf, page);
     for (const region of geometry.regions.filter(
@@ -982,7 +1185,13 @@ async function planPages(
     if (
       removed.size &&
       (shared(page.node.get(PDFName.of("Contents"))) ||
-        [...removed].some((run) => shared(reading.streams[run.streamIndex].ref)))
+        reading.streams.some(
+          (stream) =>
+            shared(stream.ref) &&
+            [...removed].some(
+              (run) => run.op.start < stream.end && run.op.end > stream.start,
+            ),
+        ))
     )
       issues.push(
         `Page ${pageIndex + 1}: the text to replace is in content that other pages also use. Use an approved clean master.`,
@@ -1032,7 +1241,7 @@ function textMatrix(
   const { along, across } = screenExtent(rect, rotation);
   const offset =
     align === "left" ? 0 : align === "center" ? (along - width) / 2 : along - width;
-  const lift = (across - fontSize * 0.72) / 2;
+  const lift = (across - fontSize * CAP_HEIGHT) / 2;
   const { x, y, width: w, height: h } = rect;
   switch (rotation) {
     case 90:
@@ -1072,8 +1281,6 @@ function edited(bytes: Uint8Array, runs: readonly TextRun[]): Uint8Array {
 function hex(bytes: Uint8Array): string {
   return Buffer.from(bytes).toString("hex").toUpperCase();
 }
-
-const FILL_TAG = "PMIFill";
 
 /** The drawn values of a static output, read back from its tagged fill content. */
 export function readStaticFillValues(content: ContentOp[]): Map<number, string> {
@@ -1139,6 +1346,7 @@ export async function fillStaticPdf(
     region: StaticPdfGeometry["regions"][number];
     text: string;
     encoded: Uint8Array;
+    width: number;
   }> = [];
   geometry.regions.forEach((region, index) => {
     const text = byRegion.get(region.regionId) ?? "";
@@ -1153,22 +1361,27 @@ export async function fillStaticPdf(
         `${region.regionId}: the value has characters the approved font cannot show.`,
       );
     }
+    const width = fillWidth(encoded, region.fontSize);
+    if (width === null)
+      return refuse(
+        `${region.regionId}: the value has characters the approved font cannot show.`,
+      );
     // On a rotated page the value reads upright on screen, so it runs along the region's
     // on-screen length and stands across its on-screen height.
     const { along, across } = screenExtent(region.rect, rotationOf(region.pageIndex));
-    if (font.widthOfTextAtSize(text, region.fontSize) > along + 0.01)
+    if (width > along + 0.01)
       refuse(
         `${region.regionId}: the value would overflow its region. An approved form with room for it is required.`,
       );
     if (region.fontSize > across)
       refuse(`${region.regionId}: the text is taller than its region.`);
-    drawn.push({ index, region, text, encoded });
+    drawn.push({ index, region, text, encoded, width });
   });
   const touched = new Set<number>([
     ...plans.filter((plan) => plan.removed.length > 0).map((plan) => plan.pageIndex),
     ...drawn.map((entry) => entry.region.pageIndex),
   ]);
-  const expectedMiddle = new Map<number, Uint8Array[]>();
+  const expected = new Map<number, { middle: Uint8Array[]; close: string }>();
   const pages = pdf.getPages();
   // Only the touched page dictionaries are edited; every other reachable object is fixed.
   const fixed = fixedObjects(
@@ -1179,19 +1392,15 @@ export async function fillStaticPdf(
     const page = pages[pageIndex];
     const plan = plans.find((entry) => entry.pageIndex === pageIndex)!;
     const resources = inheritedResources(pdf, page);
-    const middle: PDFRef[] = [];
-    const middleBytes: Uint8Array[] = [];
-    for (const [streamIndex, stream] of plan.reading.streams.entries()) {
-      const removed = plan.removed.filter((run) => run.streamIndex === streamIndex);
-      if (removed.length === 0 && stream.ref) {
-        middle.push(stream.ref);
-        middleBytes.push(stream.bytes);
-        continue;
-      }
-      const bytes = removed.length ? edited(stream.bytes, removed) : stream.bytes;
-      middle.push(pdf.context.register(pdf.context.flateStream(bytes)));
-      middleBytes.push(bytes);
-    }
+    // Unedited content keeps its streams. Edited content is written as the one stream it is read
+    // as, so a removed operation split between streams is replaced whole.
+    const rewrite = plan.removed.length > 0 || plan.reading.streams.some((s) => !s.ref);
+    const middleBytes = rewrite
+      ? [edited(plan.reading.content, plan.removed)]
+      : plan.reading.streams.map((stream) => stream.bytes);
+    const middle = rewrite
+      ? [pdf.context.register(pdf.context.flateStream(middleBytes[0]))]
+      : plan.reading.streams.map((stream) => stream.ref!);
     // Resources are copied onto the page itself before a font is added, so a shared inherited
     // dictionary used by other pages is never changed.
     const pageResources = resources
@@ -1209,13 +1418,12 @@ export async function fillStaticPdf(
     page.node.set(PDFName.of("Resources"), pageResources);
     const lines: string[] = ["q"];
     for (const entry of drawn.filter((item) => item.region.pageIndex === pageIndex)) {
-      const { region, text } = entry;
-      const width = font.widthOfTextAtSize(text, region.fontSize);
+      const { region } = entry;
       const matrix = textMatrix(
         region.rect,
         rotationOf(pageIndex),
         region.align,
-        width,
+        entry.width,
         region.fontSize,
       );
       lines.push(
@@ -1223,14 +1431,16 @@ export async function fillStaticPdf(
       );
     }
     lines.push("Q");
-    const open = pdf.context.register(pdf.context.flateStream("q\n"));
-    const close = pdf.context.register(pdf.context.flateStream("Q\n"));
+    // The original may leave graphics states saved; each is restored before the fill draws.
+    const close = "Q\n".repeat(plan.reading.end.depth + 1);
+    const openRef = pdf.context.register(pdf.context.flateStream("q\n"));
+    const closeRef = pdf.context.register(pdf.context.flateStream(close));
     const fill = pdf.context.register(pdf.context.flateStream(`${lines.join("\n")}\n`));
     page.node.set(
       PDFName.of("Contents"),
-      pdf.context.obj([open, ...middle, close, fill]),
+      pdf.context.obj([openRef, ...middle, closeRef, fill]),
     );
-    expectedMiddle.set(pageIndex, middleBytes);
+    expected.set(pageIndex, { middle: middleBytes, close });
   }
   // The replaced page content still holds the removed values, so detached objects are dropped.
   const content = await saveReachable(pdf);
@@ -1252,31 +1462,58 @@ export async function fillStaticPdf(
       refuse("a page's size, crop or rotation changed.");
     if (!touched.has(pageIndex)) continue;
     const refs = contentRefs(output, page);
-    const middle = expectedMiddle.get(pageIndex)!;
+    const { middle, close } = expected.get(pageIndex)!;
     if (refs.length !== middle.length + 3)
       refuse("the saved page content is not the expected wrapping.");
     const bytes = refs.map(({ stream }) => streamBytes(stream));
+    const fillIndex = refs.length - 1;
     if (
-      Buffer.from(bytes[0]).toString("latin1").trim() !== "q" ||
-      Buffer.from(bytes[refs.length - 2])
-        .toString("latin1")
-        .trim() !== "Q"
+      Buffer.from(bytes[0]).toString("latin1") !== "q\n" ||
+      Buffer.from(bytes[fillIndex - 1]).toString("latin1") !== close
     )
       refuse("the saved page content is not isolated from the fill.");
-    middle.forEach((expected, index) => {
-      if (sha(bytes[index + 1]) !== sha(expected)) refuse("fixed page content changed.");
+    middle.forEach((fixedBytes, index) => {
+      if (sha(bytes[index + 1]) !== sha(fixedBytes))
+        refuse("fixed page content changed.");
     });
-    const reading = await readPage(output, page, { doc: null });
-    for (const region of geometry.regions.filter(
-      (entry) => entry.pageIndex === pageIndex,
-    )) {
+    // The fill starts from the page's initial state and the page ends with nothing left open.
+    const reading = readPage(output, page);
+    const start = reading.entry[fillIndex];
+    if (
+      [start, reading.end].some(
+        (point) => point.depth || point.text || point.marked || point.unbalanced,
+      ) ||
+      start.ctm.some((value, index) => Math.abs(value - IDENTITY[index]) > 1e-9)
+    )
+      refuse("the saved page does not draw the fill from its initial graphics state.");
+    const onPage = geometry.regions.filter((entry) => entry.pageIndex === pageIndex);
+    for (const region of onPage) {
       const leftover = reading.runs.filter(
-        (run) => run.streamIndex < refs.length - 1 && touches(run.box, region.rect),
+        (run) => run.streamIndex < fillIndex && touches(run.box, region.rect),
       );
       if (leftover.length) refuse(`${region.regionId}: earlier text is still present.`);
     }
-    const values = readStaticFillValues(tokenizeContent(bytes[refs.length - 1]));
-    for (const entry of drawn.filter((item) => item.region.pageIndex === pageIndex)) {
+    // Each drawn value, as the interpreter places it, sets its cap height inside its region.
+    const fillRuns = reading.runs.filter((run) => run.streamIndex === fillIndex);
+    const drawnHere = drawn.filter((item) => item.region.pageIndex === pageIndex);
+    for (const entry of drawnHere) {
+      const placed = fillRuns.filter((run) => run.fill === entry.index);
+      const run = placed[0];
+      const cap = run
+        ? boxOf(run.matrix, [
+            [0, run.rise],
+            [run.advance, run.rise],
+            [0, run.rise + CAP_HEIGHT * run.fontSize],
+            [run.advance, run.rise + CAP_HEIGHT * run.fontSize],
+          ])
+        : null;
+      if (placed.length !== 1 || !cap || !inside(cap, entry.region.rect))
+        refuse(`${entry.region.regionId}: the saved value is not inside its region.`);
+    }
+    if (fillRuns.length !== drawnHere.length)
+      refuse("the saved fill draws text outside its reviewed regions.");
+    const values = readStaticFillValues(tokenizeContent(bytes[fillIndex]));
+    for (const entry of drawnHere) {
       if (values.get(entry.index) !== Buffer.from(entry.encoded).toString("latin1"))
         refuse(`${entry.region.regionId}: the saved value does not read back exactly.`);
     }

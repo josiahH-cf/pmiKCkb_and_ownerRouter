@@ -1,5 +1,5 @@
 import { inflateSync } from "node:zlib";
-import { PDFArray, PDFDocument, PDFName, PDFString } from "pdf-lib";
+import { PDFArray, PDFDocument, PDFName, PDFString, StandardFonts } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -16,9 +16,11 @@ import {
 import {
   geometry,
   objectsHolding,
+  oneRegion,
   rectAround,
   runs,
   staticOriginal,
+  staticPage,
 } from "@/tests/fixtures/synthetic-static";
 
 // S130 (AC-S130-11, AC-S130-12, AC-S130-13): synthetic static originals only, built by the shared
@@ -391,5 +393,119 @@ describe("S130 static PDF filling (AC-S130-11, AC-S130-12, AC-S130-13)", () => {
     await expect(fillStaticPdf(shared, await geometry(shared), VALUES)).rejects.toThrow(
       /Page 1: the text to replace is in content that other pages also use/,
     );
+  });
+
+  it("reads a page's content streams as one, so text split between them is seen and removed", async () => {
+    const split = await staticPage([
+      "BT /F1 11 Tf 1 0 0 1 120 600 Tm (Old Tenant Name)",
+      "Tj ET",
+    ]);
+    const old = (await runs(split)).find((run) => run.text === "Old Tenant Name");
+    expect(old).toBeDefined();
+    expect(
+      await validateStaticGeometry(split, oneRegion(rectAround(old!), "blank")),
+    ).toEqual(["Name is not blank: existing text is inside it."]);
+    const filled = await fillStaticPdf(split, oneRegion(rectAround(old!), "replace"), [
+      { regionId: "Name", text: "Jane Doe" },
+    ]);
+    expect((await runs(filled.content)).map((run) => run.text)).toEqual(["Jane Doe"]);
+    expect(await objectsHolding(filled.content, ["Old Tenant Name"])).toEqual([]);
+  });
+
+  it("isolates each value from graphics state the original leaves open and proves it lands in its region", async () => {
+    const rect = { x: 120, y: 595, width: 200, height: 18 };
+    const open = await staticPage([
+      "BT /F1 11 Tf 1 0 0 1 72 600 Tm (Tenant: ) Tj ET",
+      "2 0 0 2 0 0 cm q",
+    ]);
+    const filled = await fillStaticPdf(open, oneRegion(rect, "blank"), [
+      { regionId: "Name", text: "Jane Doe" },
+    ]);
+    const drawn = (await runs(filled.content)).find((run) => run.text === "Jane Doe")!;
+    expect(drawn.x).toBeGreaterThanOrEqual(rect.x);
+    expect(drawn.y).toBeGreaterThanOrEqual(rect.y);
+    expect(drawn.x + drawn.width).toBeLessThanOrEqual(rect.x + rect.width);
+    expect(drawn.y + drawn.height).toBeLessThanOrEqual(rect.y + rect.height);
+    // A restore with no matching save, or content left inside a text object, cannot be isolated.
+    for (const content of [
+      "Q BT /F1 11 Tf 1 0 0 1 72 600 Tm (Tenant: ) Tj ET",
+      "BT /F1 11 Tf 1 0 0 1 72 600 Tm (Tenant: ) Tj",
+    ])
+      expect(
+        await validateStaticGeometry(
+          await staticPage([content]),
+          oneRegion(rect, "blank"),
+        ),
+      ).toEqual([
+        "Page 1's content is not balanced, so a value cannot be isolated from it.",
+      ]);
+  });
+
+  it("measures standard-font text with its real glyph widths, so removal never moves later text", async () => {
+    const helvetica = await (
+      await PDFDocument.create()
+    ).embedFont(StandardFonts.Helvetica);
+    // Glyph by glyph: a shown string is never kerned.
+    const width = (text: string) =>
+      [...text].reduce(
+        (total, character) => total + helvetica.widthOfTextAtSize(character, 11),
+        0,
+      );
+    // An accented name with a long dash, shown in WinAnsi codes 351, 227 and 355 (octal).
+    const name = String.fromCharCode(
+      74,
+      111,
+      115,
+      0xe9,
+      32,
+      0x2014,
+      32,
+      71,
+      97,
+      114,
+      99,
+      0xed,
+      97,
+    );
+    const original = await staticPage([
+      "BT /F1 11 Tf 1 0 0 1 72 560 Tm (Rent: ) Tj (Jos\\351 \\227 Garc\\355a) Tj ( per month) Tj ET",
+    ]);
+    const before = await runs(original);
+    const old = before.find((run) => run.text === name)!;
+    expect(old.width).toBeCloseTo(width(name), 3);
+    const fixedAt = 72 + width("Rent: ") + width(name);
+    expect(before.find((run) => run.text === " per month")!.x).toBeCloseTo(fixedAt, 3);
+    const filled = await fillStaticPdf(original, oneRegion(rectAround(old), "replace"), [
+      { regionId: "Name", text: "Ann" },
+    ]);
+    const after = await runs(filled.content);
+    expect(after.find((run) => run.text === " per month")!.x).toBeCloseTo(fixedAt, 3);
+    // A value is measured as drawn: kerning would shrink "AVAVAVAV" by 5.39 points.
+    await expect(
+      fillStaticPdf(
+        original,
+        oneRegion({ x: 300, y: 300, width: width("AVAVAVAV") - 1, height: 16 }, "blank"),
+        [{ regionId: "Name", text: "AVAVAVAV" }],
+      ),
+    ).rejects.toThrow(/would overflow its region/);
+    // A glyph whose width is unknown makes the page's positions unverifiable: refused.
+    const builtIn = await staticPage(
+      ["BT /F2 11 Tf 1 0 0 1 72 600 Tm (\\341) Tj ET"],
+      (pdf, fonts) =>
+        fonts.set(
+          PDFName.of("F2"),
+          pdf.context.register(
+            pdf.context.obj({ Type: "Font", Subtype: "Type1", BaseFont: "Helvetica" }),
+          ),
+        ),
+    );
+    expect(
+      await validateStaticGeometry(
+        builtIn,
+        oneRegion({ x: 300, y: 300, width: 100, height: 16 }, "blank"),
+      ),
+    ).toEqual([
+      "Page 1 has text whose glyph widths are unknown, so its positions cannot be checked exactly.",
+    ]);
   });
 });
