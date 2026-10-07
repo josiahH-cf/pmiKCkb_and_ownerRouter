@@ -792,6 +792,44 @@ describe("S130 static route through the persisted filled output (AC-S130-11/12/1
     expect(await objectsHolding(saved, earlier)).toEqual([]);
   });
 
+  it("clears an optional single AcroForm field without a current value that holds an earlier value", async () => {
+    const t = await setup();
+    const blank = await PDFDocument.load(
+      await syntheticAcroform(["Amount", "Preserved", "Co-signer"]),
+    );
+    blank.getForm().getTextField("Co-signer").setText("Earlier co-signer");
+    const original = await blank.save({ useObjectStreams: false });
+    const served = {
+      content: original,
+      contentType: "application/pdf",
+      fileName: "synthetic-prefilled-single.pdf",
+    };
+    t.deps.original = vi.fn(async () => served);
+    t.artifact.contentHash = sha(original);
+    const map = t.artifact.fillMapping!.map;
+    // Optional and single, with no fact for this lease: the field has no current value.
+    map.fields.push({
+      fieldId: "Co-signer",
+      factKey: "lease.synthetic_co_signer",
+      meaning: "Synthetic optional co-signer",
+      required: false,
+      multiplicity: "single",
+      allowedSourceSystems: ["rentvine"],
+    });
+    t.artifact.fillMapping!.mapHash = mapHashOf(map);
+    const evaluation = evaluateRenewalPacket(t.input);
+    t.context.snapshot = { ...t.context.snapshot!, ...evaluation };
+    t.fake.seed(
+      `${LEASE_DOCUMENT_PACKET_COLLECTIONS.heads}/${packetHeadId("123", "123")}`,
+      { snapshot_id: t.request.snapshotId, payload_hash: evaluation.payloadHash },
+    );
+    const record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
+    const saved = (await t.read(record.id)).content;
+    expect(await readAcroformValues(saved)).toMatchObject({ "Co-signer": "" });
+    expect(await objectsHolding(original, ["Earlier co-signer"])).not.toEqual([]);
+    expect(await objectsHolding(saved, ["Earlier co-signer"])).toEqual([]);
+  });
+
   it("refuses an unused repeated slot that keeps only a stored default value", async () => {
     const t = await partySlots((third) =>
       third.acroField.dict.set(PDFName.of("DV"), PDFString.of("Earlier default")),
