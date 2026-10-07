@@ -4,7 +4,9 @@ import { createHash } from "node:crypto";
 import { FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 
+import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { decideExecutionAuthority } from "@/lib/execution/authority";
+import { canConfirmAsStaff } from "@/lib/execution/staff-confirmation";
 import type {
   ActionExecutionActivityAction,
   ActionExecutionActivityRecord,
@@ -164,13 +166,7 @@ export async function approveActionExecution(
   input: ApproveActionExecutionInput,
   db: Firestore = getAdminFirestore(),
 ) {
-  if (actor.role !== "Admin") {
-    throw new EditableLayerError(
-      "Only an Admin can approve a consequential execution.",
-      403,
-    );
-  }
-
+  // The role check runs in the transaction, against the record's own action key (S182).
   const previewHash = requireHash(input.previewHash, "Preview hash");
   const contextHash = input.contextHash
     ? requireHash(input.contextHash, "Approval context hash")
@@ -196,17 +192,23 @@ export async function approveActionExecutionInTransaction(
   executionId: string,
   input: ApproveActionExecutionInput,
 ) {
-  if (actor.role !== "Admin") {
-    throw new EditableLayerError(
-      "Only an Admin can approve a consequential execution.",
-      403,
-    );
-  }
   const previewHash = requireHash(input.previewHash, "Preview hash");
   const reason = requireText(input.reason, "High-risk approval reason");
   const ref = executionRef(db, executionId);
   const snapshot = await transaction.get(ref);
   const current = readRequiredExecution(snapshot.id, snapshot.data());
+  // S182: an ordinary staff member confirms a staff-confirmed action key themselves; every other
+  // consequential execution still needs an Admin. Verification identities never approve.
+  const staffConfirmation =
+    actor.role !== "Admin" &&
+    canConfirmAsStaff(actor.role, current.action_key) &&
+    !isVerificationAccount(actor);
+  if (actor.role !== "Admin" && !staffConfirmation) {
+    throw new EditableLayerError(
+      "Only an Admin can approve a consequential execution.",
+      403,
+    );
+  }
 
   if (current.risk !== "High" || current.state !== "Awaiting Admin") {
     throw new EditableLayerError(
@@ -233,6 +235,7 @@ export async function approveActionExecutionInTransaction(
   const approval = {
     approvedByRole: actor.role,
     approvedByUid: actor.uid,
+    ...(staffConfirmation ? { basis: "staff_confirmation" as const } : {}),
     ...(contextHash ? { contextHash } : {}),
     previewHash,
     reason,
@@ -348,7 +351,9 @@ export async function claimActionExecution(
     if (current.state !== requiredState) {
       throw new EditableLayerError(
         current.risk === "High"
-          ? "This High action requires current Admin approval; only an Approved execution can claim its provider attempt."
+          ? canConfirmAsStaff(actor.role, current.action_key)
+            ? "This High action requires its exact preview to be confirmed; only an Approved execution can claim its provider attempt."
+            : "This High action requires current Admin approval; only an Approved execution can claim its provider attempt."
           : "Only a Ready execution can claim its provider attempt.",
         409,
       );
@@ -901,14 +906,29 @@ function assertIdempotentMatch(
   }
 }
 
+/** S182: renewal staff continue a colleague's staff-confirmed packet action. */
+function staffMayContinue(actor: AuthenticatedUser, record: ActionExecutionRecord) {
+  return (
+    canConfirmAsStaff(actor.role, record.action_key) && !isVerificationAccount(actor)
+  );
+}
+
 function assertCanView(actor: AuthenticatedUser, record: ActionExecutionRecord) {
-  if (actor.role !== "Admin" && record.actor_uid !== actor.uid) {
+  if (
+    actor.role !== "Admin" &&
+    record.actor_uid !== actor.uid &&
+    !staffMayContinue(actor, record)
+  ) {
     throw new EditableLayerError("This execution is not available to this user.", 404);
   }
 }
 
 function assertCanExecute(actor: AuthenticatedUser, record: ActionExecutionRecord) {
-  if (actor.role !== "Admin" && record.actor_uid !== actor.uid) {
+  if (
+    actor.role !== "Admin" &&
+    record.actor_uid !== actor.uid &&
+    !staffMayContinue(actor, record)
+  ) {
     throw new EditableLayerError("This user cannot execute this action instance.", 403);
   }
 }

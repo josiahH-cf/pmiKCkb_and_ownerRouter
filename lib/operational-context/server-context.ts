@@ -86,7 +86,10 @@ export function createServerOperationalContext(
           "Renewal records need access to the Renewals Space.",
         );
       try {
-        const source = await loadRenewalAssistantSource(user, now);
+        // S182: the AI-facing read drops Dotloop-derived packet execution data at the source.
+        const source = await loadRenewalAssistantSource(user, now, null, {
+          aiContext: true,
+        });
         if (source.outcome.status !== "ok")
           return projectRenewalRead({ status: source.outcome.status, rows: [] });
         return projectRenewalRead({

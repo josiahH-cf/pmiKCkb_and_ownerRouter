@@ -313,39 +313,42 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
   },
   approve_filled_artifact: {
     label: "Approve the exact reviewed filled document",
-    roleCapability: "approve",
+    // S182: ordinary renewal staff approve the exact lease output they inspected.
+    roleCapability: "edit",
     effect: "app_owned_approval",
     externalRequirement: "none",
     actionKeys: [],
     exactConfirmation: true,
     audit: "app_activity",
-    roleDeniedReason: "Approver or Admin access is required to approve filled output.",
-    safeNextAction: "Retain the prepared output for an Approver or Admin's exact review.",
+    roleDeniedReason: "Editor access is required to approve filled output.",
+    safeNextAction: "Retain the prepared output for a staff member's exact review.",
   },
   execute_document_packet: {
     label: "Confirm one exact supported document-packet effect",
-    roleCapability: "manageAdmin",
+    // S182/S34: ordinary renewal staff confirm the exact preview themselves. The exact action key,
+    // runtime suspension and one-attempt claim still apply; no role opens a closed key.
+    roleCapability: "edit",
     effect: "external_write",
     externalRequirement: "exact_action",
     actionKeys: ["dotloop.loop.create_from_template", "dotloop.document.upload"],
     exactConfirmation: true,
     audit: "external_receipt",
-    roleDeniedReason: "Admin access is required to execute a document-packet effect.",
+    roleDeniedReason: "Editor access is required to confirm a document-packet effect.",
     safeNextAction:
-      "Keep the current packet for Admin review; its exact activation gate still applies.",
+      "Keep the current packet; its exact action key and confirmation still apply.",
   },
   record_packet_readback: {
     label: "Record exact packet provider readback",
-    roleCapability: "approve",
+    // S182/S34: staff refresh the linked loop's observation; it never infers signatures.
+    roleCapability: "edit",
     effect: "app_owned_write",
     externalRequirement: "read_connection",
     actionKeys: [],
     exactConfirmation: false,
     audit: "app_activity",
-    roleDeniedReason:
-      "Approver or Admin access is required to record packet provider readback.",
+    roleDeniedReason: "Editor access is required to record packet provider readback.",
     safeNextAction:
-      "Read the retained evidence or ask an Approver or Admin to refresh the provider record.",
+      "Read the retained evidence or ask a staff member to refresh the provider record.",
   },
   save_work_status: {
     label: "Save the staff work status annotation or a Status log note for one lease",

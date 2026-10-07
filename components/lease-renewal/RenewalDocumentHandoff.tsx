@@ -360,11 +360,11 @@ function DocumentHandoffEditor({
           ) : null}
           {!canApprove ? (
             <p>
-              An Admin must review and confirm this saved action from this lease
-              dashboard.
+              A renewal staff member with edit access confirms this saved action from this
+              lease dashboard.
             </p>
           ) : null}
-          <Field label="Admin approval reason" htmlFor="packet-approval-reason" required>
+          <Field label="Confirmation reason" htmlFor="packet-approval-reason" required>
             <input
               id="packet-approval-reason"
               value={reason}

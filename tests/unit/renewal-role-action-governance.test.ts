@@ -120,17 +120,18 @@ const API_EXPECTATIONS = [
 ] as const satisfies readonly (readonly [string, "GET" | "POST", RenewalCapabilityKey])[];
 
 describe("S80 renewal role and action governance", () => {
-  it("keeps filled-output preparation and approval on their existing distinct role capabilities", () => {
+  it("S182: ordinary staff prepare and approve exact filled output; approval stays exact and keyless", () => {
     expect(RENEWAL_GOVERNANCE_MATRIX.prepare_filled_artifact.roleCapability).toBe("edit");
-    expect(RENEWAL_GOVERNANCE_MATRIX.approve_filled_artifact.roleCapability).toBe(
-      "approve",
+    expect(RENEWAL_GOVERNANCE_MATRIX.approve_filled_artifact.roleCapability).toBe("edit");
+    expect(RENEWAL_GOVERNANCE_MATRIX.approve_filled_artifact.exactConfirmation).toBe(
+      true,
     );
     expect(() =>
       assertRenewalRoleAuthority("prepare_filled_artifact", "Editor"),
     ).not.toThrow();
-    expect(() => assertRenewalRoleAuthority("approve_filled_artifact", "Editor")).toThrow(
-      /Approver/,
-    );
+    expect(() =>
+      assertRenewalRoleAuthority("approve_filled_artifact", "Editor"),
+    ).not.toThrow();
     expect(() =>
       assertRenewalRoleAuthority("approve_filled_artifact", "Approver"),
     ).not.toThrow();

@@ -1,4 +1,6 @@
+import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import {
   assertMutationAllowed,
   requireEnvironmentDescriptor,
@@ -296,11 +298,8 @@ async function assemble(
     cycleId: resolved.workspace.cycleId,
     termsRevision: resolved.workspace.termsRevision,
     leaseSourceHash: resolved.leaseSourceHash,
-    approvalQueue: {
-      requiredAdminUid: settings.recordedByUid,
-      directLink: `/lease-renewal/live/desk/lease/${encodeURIComponent(leaseId)}#renewal-section-documents`,
-      processRunRef: { id: base.workflowId, label: "Renewal packet review" },
-    },
+    // S182: the confirming staff member approves this exact preview in the lease's own control.
+    // Neither the company settings recorder nor an Admin approval-queue route is substituted.
   };
 }
 export async function prepareNormalPacketAction(
@@ -330,12 +329,11 @@ export async function prepareNormalPacketAction(
       "This packet already has a different immutable preparation. Recover its exact attempt or evaluate the current changed sources.",
       409,
     );
-  // Admin reviews the original Editor preparation without trying to replace its authenticated preparer.
+  // A colleague confirms the original preparation without replacing its authenticated preparer.
   const prepared = existing.exists
     ? await getActionExecution(actor, existingId)
     : await prepareExternalActionWithS20(actor, {
         action: value.action,
-        approvalQueue: value.approvalQueue,
         definition: value.definition,
         trustedContext: value.trustedContext,
         validate: (action) => validator.validate(action),
@@ -523,11 +521,8 @@ export async function finishNormalPacketAction(
 
 /** One explicit readback of an already receipted loop. It never infers document or signature completion. */
 export async function refreshNormalPacketLink(actor: AuthenticatedUser, leaseId: string) {
-  if (actor.role !== "Admin" && actor.role !== "Approver")
-    throw new EditableLayerError(
-      "An Approver or Admin records packet provider readback.",
-      403,
-    );
+  if (!can(actor.role, renewalRoleCapability("record_packet_readback")))
+    throw new EditableLayerError("Renewal staff record packet provider readback.", 403);
   if (isVerificationAccount(actor))
     throw new EditableLayerError(
       "Verification accounts cannot persist provider readback.",

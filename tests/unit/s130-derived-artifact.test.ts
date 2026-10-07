@@ -379,17 +379,23 @@ describe("S130 persisted actual output and exact reviewed transport", () => {
         t.deps,
       ),
     ).rejects.toThrow(/hash/);
+    // S182: ordinary staff approve exact output; a verification identity never does.
     await expect(
       approveDerivedArtifact(
-        { ...admin, role: "Editor" },
+        {
+          ...admin,
+          uid: "canary-editor",
+          email: "canary-editor@pmikcmetro.com",
+          role: "Editor",
+        },
         t.approval(record),
         t.db,
         t.deps,
       ),
-    ).rejects.toThrow(/cannot access/);
+    ).rejects.toThrow(/Verification accounts/);
     await expect(t.read(record.id + "wrong")).rejects.toThrow(/current/);
     // S167: a read by an account without the Renewals Space used to be refused here. Every staff
-    // account now reads the current artifact; the Editor role is still refused the approval above.
+    // account now reads the current artifact.
     await expect(
       readCurrentDerivedArtifact(
         { ...admin, uid: "editor-2", role: "Editor" },
@@ -407,6 +413,28 @@ describe("S130 persisted actual output and exact reviewed transport", () => {
     await expect(
       readCurrentDerivedArtifact(admin, t.request, t.db, t.deps),
     ).rejects.toThrow(/changed/);
+  });
+  it("S182: two ordinary staff prepare and approve the exact output without an Admin", async () => {
+    const t = await setup();
+    const preparer = {
+      ...admin,
+      uid: "editor-a",
+      email: "editor-a@pmikcmetro.com",
+      role: "Editor" as const,
+    };
+    const colleague = {
+      ...admin,
+      uid: "editor-b",
+      email: "editor-b@pmikcmetro.com",
+      role: "Approver" as const,
+    };
+    const record = await prepareDerivedArtifact(preparer, t.prepare, t.db, t.deps);
+    await expect(
+      approveDerivedArtifact(colleague, t.approval(record), t.db, t.deps),
+    ).resolves.toMatchObject({
+      id: record.id,
+      approval: { actorUid: "editor-b", outputHash: record.outputHash },
+    });
   });
   it("refuses concurrent replacement on stale heads, source races and execution freeze", async () => {
     const t = await setup(),

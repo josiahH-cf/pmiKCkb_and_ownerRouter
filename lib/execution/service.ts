@@ -2,6 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
+import { isStaffConfirmedActionKey } from "@/lib/execution/staff-confirmation";
 import {
   classifyExecutionRisk,
   type AssignedTicketPhotoGates,
@@ -128,7 +129,14 @@ export async function prepareActionExecution(
     registry,
   );
 
-  if (classification.risk === "High" && !validQueueContext(input.approvalQueue)) {
+  // S182: a staff-confirmed action is approved by the confirming staff member in its own control,
+  // so it needs no Admin approval-queue route. Every other High action still does.
+  const staffConfirmed = isStaffConfirmedActionKey(input.actionKey);
+  if (
+    classification.risk === "High" &&
+    !staffConfirmed &&
+    !validQueueContext(input.approvalQueue)
+  ) {
     throw new ExecutionBlockedError(["approval_route_missing"]);
   }
   assertUnblocked(classification);
@@ -146,7 +154,7 @@ export async function prepareActionExecution(
     db,
   );
 
-  if (record.risk === "High" && input.approvalQueue) {
+  if (record.risk === "High" && input.approvalQueue && !staffConfirmed) {
     await createApprovalQueueItem(
       actor,
       {

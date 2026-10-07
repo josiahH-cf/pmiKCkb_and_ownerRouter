@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { createHash, randomUUID } from "node:crypto";
-import { can } from "@/lib/auth/roles";
+import { can, type Capability } from "@/lib/auth/roles";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { canAccessSpaceId } from "@/lib/space-scope-resources";
@@ -117,7 +118,7 @@ export function derivedArtifactDeps(db: Firestore): DerivedArtifactDeps {
     now: () => new Date().toISOString(),
   };
 }
-function allowed(actor: AuthenticatedUser, capability: "read" | "edit" | "approve") {
+function allowed(actor: AuthenticatedUser, capability: Capability) {
   if (!can(actor.role, capability) || !canAccessSpaceId(actor, "renewals"))
     throw new EditableLayerError(
       "This user cannot access this renewal artifact operation.",
@@ -573,7 +574,8 @@ export async function approveDerivedArtifact(
   db = getAdminFirestore(),
   deps = derivedArtifactDeps(db),
 ) {
-  allowed(actor, "approve");
+  // S182: ordinary renewal staff approve the exact output they inspected.
+  allowed(actor, renewalRoleCapability("approve_filled_artifact"));
   const request = ApproveDerivedArtifactSchema.parse(raw);
   const context = await deps.resolve(actor, request.leaseId);
   currentArtifact(context, request, true);

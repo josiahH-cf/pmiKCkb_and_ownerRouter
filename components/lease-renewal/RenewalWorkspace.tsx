@@ -1245,8 +1245,11 @@ function PhaseContent({
                 transactionId={summary.id}
               />
               <RenewalDocumentHandoff
-                canApprove={can(role, "manageAdmin")}
-                canRecordReadback={can(role, "approve")}
+                canApprove={hasRenewalRoleAuthority("execute_document_packet", role)}
+                canRecordReadback={hasRenewalRoleAuthority(
+                  "record_packet_readback",
+                  role,
+                )}
                 facts={{
                   address: summary.addressLabel || null,
                   owners: summary.ownerNameLabels,

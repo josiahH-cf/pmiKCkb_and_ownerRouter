@@ -66,6 +66,11 @@ export interface ExecutionActor {
 export interface ExecutionApproval {
   approvedByRole: Role;
   approvedByUid: string;
+  /**
+   * S182: present when an ordinary staff member's exact confirmation is the approval. Accepted only
+   * for the staff-confirmed action keys (lib/execution/staff-confirmation.ts).
+   */
+  basis?: "staff_confirmation";
   /** Exact external target/source context approved with the value preview, when present. */
   contextHash?: string;
   previewHash: string;

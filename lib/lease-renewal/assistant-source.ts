@@ -32,6 +32,7 @@ import { buildRenewalDeskWindow } from "@/lib/lease-renewal/desk-query";
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
 import { readCoherentRenewalDisplaySource } from "@/lib/lease-renewal/admitted-notice-source";
 import { loadLiveRenewalDesk } from "@/lib/lease-renewal/live-desk";
+import { packetSnapshotsForAiContext } from "@/lib/ai-boundary/dotloop-origin";
 import { DEFAULT_NOTICE_RULE_SET } from "@/lib/lease-renewal/notice-rules";
 import { measureRead, withReadDeadline } from "@/lib/observability/read-lifetime";
 
@@ -50,6 +51,7 @@ export async function runRenewalAssistantSource(
   user: AuthenticatedUser,
   now: Date,
   sourceRefreshAfter: number | null = null,
+  options: { readonly aiContext?: boolean } = {},
 ) {
   // The window opens on the business calendar day (America/Chicago), the same day the assistant's
   // period parser and the workspace reference date read, so the three never disagree at a month end.
@@ -143,13 +145,15 @@ export async function runRenewalAssistantSource(
         if (!liveConfig.ok || !leaseSnapshotResult) {
           throw new Error("Live renewal sources are unavailable.");
         }
-        return listCurrentRenewalPacketSnapshots(
+        const snapshots = await listCurrentRenewalPacketSnapshots(
           user,
           leaseSnapshotResult.snapshot.views.flatMap((view) => {
             const leaseId = leaseViewId(view);
             return leaseId ? [leaseId] : [];
           }),
         );
+        // S182: the assistant's copy never carries the Dotloop-derived execution projection.
+        return options.aiContext ? packetSnapshotsForAiContext(snapshots) : snapshots;
       }),
       // S119: one bulk read of saved staff work statuses. An unavailable store projects every row as
       // unavailable, never as Not recorded, so the Not recorded filter cannot claim an empty store.

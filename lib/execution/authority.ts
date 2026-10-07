@@ -1,3 +1,7 @@
+import {
+  canConfirmAsStaff,
+  isStaffConfirmedActionKey,
+} from "@/lib/execution/staff-confirmation";
 import type {
   ExecutionActor,
   ExecutionApproval,
@@ -50,7 +54,9 @@ export function decideExecutionAuthority(
     return {
       canExecute: false,
       disposition: "admin_approval_required",
-      reason: "A consequential High action requires exact-preview Admin approval.",
+      reason: isStaffConfirmedActionKey(classification.actionKey)
+        ? "A consequential High action requires the exact preview to be confirmed."
+        : "A consequential High action requires exact-preview Admin approval.",
       risk: "High",
     };
   }
@@ -58,7 +64,11 @@ export function decideExecutionAuthority(
   const approval = input.approval;
   const approvalRoleAllowed =
     approval.approvedByRole === "Admin" ||
-    (approval.approvedByRole === "Approver" && input.approverExplicitlyAllowed === true);
+    (approval.approvedByRole === "Approver" &&
+      input.approverExplicitlyAllowed === true) ||
+    // S182: an ordinary staff member's exact confirmation of a staff-confirmed action key.
+    (approval.basis === "staff_confirmation" &&
+      canConfirmAsStaff(approval.approvedByRole, classification.actionKey));
 
   if (!approvalRoleAllowed) {
     return {
