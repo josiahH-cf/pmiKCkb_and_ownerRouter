@@ -12,7 +12,7 @@ import {
   conversationActorKey,
   runAssistantConversation,
 } from "@/lib/assistant/conversation";
-import { DOTLOOP_ORIGIN_REMOVED_TEXT } from "@/lib/ai-boundary/dotloop-origin";
+import { DOTLOOP_REFERENCE_REMOVED_TEXT } from "@/lib/ai-boundary/dotloop-origin";
 import {
   ASSISTANT_HISTORY_COLLECTIONS,
   historyOwnerKey,
@@ -28,7 +28,8 @@ import {
 } from "@/tests/helpers/operational-context-fake";
 
 // S182 AC-S182-4 / AC-S182-5 against the emulator through the real S148 store: a saved answer never
-// keeps a Dotloop-derived branch, the person's PMI facts and own history stay, and reopening the
+// keeps a Dotloop resource address or app Dotloop reference, only those characters are cut, a help
+// article and its working link stay, the person's PMI facts and own history stay, and reopening the
 // history is model-free and owner-scoped.
 
 const projectId = "pmi-kc-kb-s182-history-test";
@@ -55,6 +56,8 @@ const other: AuthenticatedUser = {
 };
 const OP = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const LOOP = "https://www.dotloop.com/m/loop?viewId=SENTINEL-LOOP-7731";
+const HELP_ARTICLE =
+  "https://support.dotloop.com/hc/en-us/articles/115005451128-Adding-Documents-to-a-Loop";
 
 let app: App;
 let db: Firestore;
@@ -113,6 +116,18 @@ describe("S182 saved assistant history excludes Dotloop-derived content", () => 
         ...answer.groups.slice(1),
       ],
     };
+    // The knowledge part cites a Dotloop help article (kept whole) and a loop (dropped).
+    const knowledge = {
+      question: "How do I add documents to a loop?",
+      source_state: "Verified Source",
+      answer: `Follow ${HELP_ARTICLE} to add the documents.`,
+      handling_steps: [],
+      citations: [
+        { source_id: "kb-help", title: "Adding Documents to a Loop", url: HELP_ARTICLE },
+        { source_id: "kb-loop", title: "The renewal loop", url: LOOP },
+      ],
+      draft: "",
+    };
     await finalizeAssistantTurn(
       owner,
       OP(1),
@@ -121,7 +136,7 @@ describe("S182 saved assistant history excludes Dotloop-derived content", () => 
         question: "What leases are due this week?",
         state: "completed",
         assistant: leaked,
-        knowledge: null,
+        knowledge,
       },
       db,
     );
@@ -133,8 +148,7 @@ describe("S182 saved assistant history excludes Dotloop-derived content", () => 
       .get();
     const raw = JSON.stringify(stored.docs.map((doc) => doc.data()));
     expect(raw).not.toContain("SENTINEL-LOOP-7731");
-    expect(raw).not.toContain("dotloop.com");
-    expect(raw).toContain(DOTLOOP_ORIGIN_REMOVED_TEXT);
+    expect(raw).not.toContain("www.dotloop.com/m/");
 
     // Reopening is model-free, owner-scoped, and keeps the independent PMI items.
     const reopened = await readAssistantConversation(
@@ -142,11 +156,17 @@ describe("S182 saved assistant history excludes Dotloop-derived content", () => 
       conversationIdFor(owner.uid, OP(1)),
       db,
     );
-    const items = reopened?.turns[0].assistant?.groups[0].items ?? [];
+    const turn = reopened?.turns[0];
+    expect(turn?.question).toBe("What leases are due this week?");
+    // The help article answer is kept word for word, and its citation stays a working link.
+    expect(turn?.knowledge?.answer).toBe(knowledge.answer);
+    expect(turn?.knowledge?.citations).toEqual([knowledge.citations[0]]);
+    const items = turn?.assistant?.groups[0].items ?? [];
     expect(items.map((item) => item.href)).toEqual(
       answer.groups[0].items.map((item) => item.href),
     );
-    expect(items[0].detail).toBe(DOTLOOP_ORIGIN_REMOVED_TEXT);
+    // Only the loop address itself is cut from the item's detail.
+    expect(items[0].detail).toBe(`Loop ${DOTLOOP_REFERENCE_REMOVED_TEXT}`);
     expect(items[0].title).toBe(answer.groups[0].items[0].title);
     expect(JSON.stringify(items[1])).toBe(JSON.stringify(answer.groups[0].items[1]));
     expect(state.modelProviders).toBe(0);

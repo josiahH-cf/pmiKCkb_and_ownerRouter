@@ -10,7 +10,10 @@ import { createHash } from "node:crypto";
 import type { Firestore, Transaction } from "firebase-admin/firestore";
 import { z } from "zod";
 
-import { withoutDotloopOriginMarkers } from "@/lib/ai-boundary/dotloop-origin";
+import {
+  assistantAnswerForHistory,
+  knowledgeAnswerForHistory,
+} from "@/lib/ai-boundary/dotloop-origin";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/errors/editable-layer-error";
@@ -226,12 +229,12 @@ export async function finalizeAssistantTurn(
 ): Promise<TurnWriteResult> {
   const op = OperationIdSchema.parse(operationId);
   const parsed = FinalizeTurnInputSchema.parse(rawInput);
-  // S182: Dotloop-derived content is removed before the answer is kept as AI history. The person's
-  // own question stays as written; only the answer branches are filtered.
+  // S182: Dotloop resource addresses and the app's Dotloop references are cut from the answer text
+  // before it is kept as AI history. The person's own question stays as written.
   const input = {
     ...parsed,
-    assistant: withoutDotloopOriginMarkers(parsed.assistant).value,
-    knowledge: withoutDotloopOriginMarkers(parsed.knowledge).value,
+    assistant: assistantAnswerForHistory(parsed.assistant).value,
+    knowledge: knowledgeAnswerForHistory(parsed.knowledge).value,
   };
   assertSize(input);
   const turnId = turnIdFor(user.uid, op);

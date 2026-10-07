@@ -1,15 +1,29 @@
 // S182 (ARCH-S182-2): data obtained through the Dotloop API never reaches an AI input, AI
 // persistence or AI reuse boundary.
 //
-// Lineage is decided by where data came from, never by comparing values: an equal value from
-// RentVine, the approved Sheet or a staff entry keeps its own PMI origin, and a Dotloop readback is
-// never relabeled by copying it into an app field. The application keeps Dotloop API data only in
-// the stores listed below. Every AI context assembler that reads one of them removes the
-// provider-derived branch here first, keeping the record's independently sourced fields, and the
-// saved AI history drops any Dotloop-origin marker before it is persisted. Instructions inside a
-// document or provider payload cannot waive this. Non-AI operational views keep the data under
-// their own contracts.
+// The boundary is decided by source, never by comparing values. The application keeps Dotloop API
+// data only in the stores listed in DOTLOOP_API_ORIGIN_STORES, and the assistant's context reads
+// none of them except through the source-side views in this module: the renewal read takes each
+// packet without its provider execution projection (`packetSnapshotForAiContext`). That
+// source-side removal is what keeps loop names, participants, statuses and document names away
+// from the assistant. A value independently obtained from RentVine, the approved Sheet or a staff
+// entry keeps its own PMI origin even when Dotloop holds an equal value, so it stays usable.
+//
+// Saved AI history adds one narrow, structural defense for text that reached an answer some other
+// way (`assistantAnswerForHistory`, `knowledgeAnswerForHistory`): the address of a Dotloop
+// application resource (a page of the signed-in application under /m/ or /my/, or a Dotloop API
+// path) and the application's own Dotloop references are cut from the answer text, only those
+// characters, and a citation that links to such an address is dropped. Dotloop's public pages, such
+// as support and help articles, are not provider records and stay. The person's own question text
+// is never rewritten. This defense recognizes those address and reference forms only; it cannot
+// recognize a loop name or a participant by its value, which is why the source-side views above
+// are the boundary. Instructions inside a document or provider payload cannot waive any of this.
+// Non-AI operational views keep the data under their own contracts.
 
+import type {
+  StoredAssistantAnswer,
+  StoredKnowledgeAnswer,
+} from "@/lib/assistant-history/stored-answer";
 import type { RenewalPacketSnapshot } from "@/lib/lease-documents/packet-types";
 
 /**
@@ -29,66 +43,6 @@ export const DOTLOOP_API_ORIGIN_STORES = Object.freeze([
   "lease_document_loop_owners",
   "lease_document_loop_association_activity",
 ] as const);
-
-/**
- * Field names that only ever carry Dotloop API-derived values in this application's records. A
- * saved AI answer that names one of them is a provider-derived branch.
- */
-export const DOTLOOP_ORIGIN_FIELD_NAMES: ReadonlySet<string> = new Set([
-  "loopLink",
-  "loop_link",
-  "loopUrl",
-  "loop_url",
-  "loopStatus",
-  "loop_status",
-  "loopId",
-  "loop_id",
-  "loopName",
-  "loop_name",
-  "participantCount",
-  "participant_count",
-  "documentCount",
-  "document_count",
-  "documentEvidence",
-  "document_evidence",
-  "providerRef",
-  "provider_ref",
-  "dotloopDocumentId",
-  "dotloop_document_id",
-  "dotloopFolderId",
-  "dotloop_folder_id",
-  "effectReceipt",
-  "providerObservation",
-  "provider_observation",
-]);
-
-const DOTLOOP_HOST = /(^|\.)dotloop\.com$/i;
-const URL_PATTERN = /\bhttps?:\/\/[^\s"'<>)]+/gi;
-const DOTLOOP_REFERENCE = /\bdotloop(?:-receipt)?:[A-Za-z0-9:_-]+/i;
-
-const DOTLOOP_OBJECT_PATH = /loop|document|folder|participant/i;
-
-/**
- * True when a string carries an address of a Dotloop loop, folder, document or participant (the
- * shape the API returns), or the application's own reference to a Dotloop object. A staff-entered
- * general Dotloop link (for example a configured help or template page) is not an API object.
- */
-export function carriesDotloopOriginMarker(value: string): boolean {
-  if (DOTLOOP_REFERENCE.test(value)) return true;
-  for (const match of value.matchAll(URL_PATTERN)) {
-    try {
-      const url = new URL(match[0]);
-      if (
-        DOTLOOP_HOST.test(url.hostname) &&
-        DOTLOOP_OBJECT_PATH.test(url.pathname + url.search)
-      )
-        return true;
-    } catch {
-      // Not a parseable address; nothing to classify.
-    }
-  }
-  return false;
-}
 
 /**
  * The AI-context view of one packet snapshot. The S66 evaluation (facts, blockers, manifest) is
@@ -117,57 +71,167 @@ export function packetSnapshotsForAiContext(
   );
 }
 
-/** Replaces a scalar text that carried a Dotloop-origin marker, so the record keeps its shape. */
-export const DOTLOOP_ORIGIN_REMOVED_TEXT =
-  "Dotloop-derived content is not kept in assistant context or history.";
+/**
+ * What a cut Dotloop address or reference reads as in saved answer text. It is no longer than the
+ * shortest form it replaces, so a cut never lengthens a stored field past its contract.
+ */
+export const DOTLOOP_REFERENCE_REMOVED_TEXT = "[Dotloop removed]";
 
-export interface DotloopOriginFilterResult<T> {
+// A dotloop.com address in running text. The repetition is bounded so a long answer stays cheap.
+const DOTLOOP_ADDRESS =
+  /(?:\bhttps?:\/\/)?\b(?:[a-z0-9-]{1,63}\.){0,4}dotloop\.com(?::\d{1,5})?(?:[/?#][^\s"'<>()[\]{}]*)?/gi;
+// The application's own references to a Dotloop object: the selected profile and a packet receipt.
+const DOTLOOP_APP_REFERENCE =
+  /\bdotloop(?::profile|-receipt):[A-Za-z0-9][A-Za-z0-9._:-]*/gi;
+const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
+const DOTLOOP_APP_HOSTS: ReadonlySet<string> = new Set([
+  "www.dotloop.com",
+  "dotloop.com",
+]);
+const DOTLOOP_API_HOST = "api-gateway.dotloop.com";
+// The signed-in application's record pages, such as /m/loop?viewId=… and /my/….
+const DOTLOOP_APP_RESOURCE_PATH = /^\/(?:m|my)\/[^/]/i;
+
+/**
+ * True for the address of a Dotloop application resource: a page of the signed-in application
+ * under /m/ or /my/ (written with its scheme or www.), or any path on the Dotloop API host. Public
+ * pages (support and help articles, the license agreement, the home page) are not resources.
+ */
+export function isDotloopResourceAddress(address: string): boolean {
+  const raw = address.trim();
+  const hasScheme = /^https?:\/\//i.test(raw);
+  let url: URL;
+  try {
+    url = new URL(hasScheme ? raw : `https://${raw}`);
+  } catch {
+    return false;
+  }
+  const host = url.hostname.toLowerCase();
+  if (host === DOTLOOP_API_HOST) return url.pathname.length > 1;
+  return (
+    DOTLOOP_APP_HOSTS.has(host) &&
+    (hasScheme || /^www\./i.test(raw)) &&
+    DOTLOOP_APP_RESOURCE_PATH.test(url.pathname)
+  );
+}
+
+/** Cut each Dotloop resource address and app Dotloop reference out of one text. */
+function cutDotloopReferences(text: string): { text: string; removed: number } {
+  let removed = 0;
+  const cut = (match: string, isReference: (candidate: string) => boolean) => {
+    const candidate = match.replace(TRAILING_PUNCTUATION, "");
+    if (!candidate || !isReference(candidate)) return match;
+    removed += 1;
+    return DOTLOOP_REFERENCE_REMOVED_TEXT + match.slice(candidate.length);
+  };
+  const next = text
+    .replace(DOTLOOP_ADDRESS, (match) => cut(match, isDotloopResourceAddress))
+    .replace(DOTLOOP_APP_REFERENCE, (match) => cut(match, () => true));
+  return { text: next, removed };
+}
+
+/** True when a text carries a Dotloop resource address or one of the app's Dotloop references. */
+export function carriesDotloopOriginMarker(value: string): boolean {
+  return cutDotloopReferences(value).removed > 0;
+}
+
+export interface DotloopHistoryFilterResult<T> {
   readonly value: T;
-  /** How many provider-derived branches were removed; reported without their content. */
+  /** How many addresses or references were cut and citations dropped; never their content. */
   readonly removed: number;
 }
 
-/**
- * Remove every Dotloop-origin branch from a JSON value before it is persisted as AI history or
- * reused as AI context: properties named in DOTLOOP_ORIGIN_FIELD_NAMES and text list entries that
- * carry a Dotloop marker are dropped, and a record field whose text carries one is replaced by
- * DOTLOOP_ORIGIN_REMOVED_TEXT, so the record keeps its independently sourced fields and shape. The
- * input is never mutated.
- */
-export function withoutDotloopOriginMarkers<T>(input: T): DotloopOriginFilterResult<T> {
+function textCutter() {
   let removed = 0;
-  const visit = (value: unknown): unknown => {
-    if (Array.isArray(value)) {
-      const kept: unknown[] = [];
-      for (const entry of value) {
-        // A provider-derived text entry is dropped; a record entry keeps its independent fields.
-        if (typeof entry === "string" && carriesDotloopOriginMarker(entry)) {
-          removed += 1;
-          continue;
-        }
-        kept.push(visit(entry));
-      }
-      return kept;
-    }
-    if (value && typeof value === "object") {
-      const next: Record<string, unknown> = {};
-      for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
-        if (DOTLOOP_ORIGIN_FIELD_NAMES.has(key)) {
-          removed += 1;
-          continue;
-        }
-        if (typeof child === "string" && carriesDotloopOriginMarker(child)) {
-          // Keep the record's shape; its provider-derived text is not retained.
-          removed += 1;
-          next[key] = DOTLOOP_ORIGIN_REMOVED_TEXT;
-          continue;
-        }
-        next[key] = visit(child);
-      }
-      return next;
-    }
-    return value;
+  return {
+    text(value: string): string {
+      const cut = cutDotloopReferences(value);
+      removed += cut.removed;
+      return cut.text;
+    },
+    count(extra = 0): number {
+      removed += extra;
+      return removed;
+    },
   };
-  const value = visit(input) as T;
-  return { value, removed };
+}
+
+/**
+ * The operational answer as it may be kept in saved AI history. Dotloop resource addresses and the
+ * application's Dotloop references are cut from the answer's own text: its summary, interpretation,
+ * clarification, group titles, summaries, notes and link labels, and each item's title, detail,
+ * blockers and facts. The person's questions in the conversation, the question handed to the
+ * knowledge base, the executed plan and every record reference and in-app link stay exactly as
+ * they were. The input is never mutated.
+ */
+export function assistantAnswerForHistory(
+  answer: StoredAssistantAnswer | null,
+): DotloopHistoryFilterResult<StoredAssistantAnswer | null> {
+  if (!answer) return { value: answer, removed: 0 };
+  const cutter = textCutter();
+  const value: StoredAssistantAnswer = {
+    ...answer,
+    summary: cutter.text(answer.summary),
+    interpretation: answer.interpretation.map(cutter.text),
+    clarification:
+      answer.clarification === null ? null : cutter.text(answer.clarification),
+    groups: answer.groups.map((group) => ({
+      ...group,
+      title: cutter.text(group.title),
+      summary: cutter.text(group.summary),
+      notes: group.notes.map(cutter.text),
+      link: group.link ? { ...group.link, label: cutter.text(group.link.label) } : null,
+      items: group.items.map((item) => ({
+        ...item,
+        title: cutter.text(item.title),
+        detail: cutter.text(item.detail),
+        blockers: item.blockers.map(cutter.text),
+        ...(item.facts ? { facts: item.facts.map(cutter.text) } : {}),
+      })),
+    })),
+  };
+  return { value, removed: cutter.count() };
+}
+
+/**
+ * The knowledge answer as it may be kept in saved AI history. The same cut applies to its answer,
+ * handling steps, draft, escalation owner and each citation's title and excerpt. A citation whose
+ * link is a Dotloop resource address is dropped and leaves the shown-source count, so every kept
+ * citation is still a working https link. The person's question stays as written. The input is
+ * never mutated.
+ */
+export function knowledgeAnswerForHistory(
+  answer: StoredKnowledgeAnswer | null,
+): DotloopHistoryFilterResult<StoredKnowledgeAnswer | null> {
+  if (!answer) return { value: answer, removed: 0 };
+  const cutter = textCutter();
+  const citations = answer.citations.filter(
+    (citation) => !isDotloopResourceAddress(citation.url),
+  );
+  const dropped = answer.citations.length - citations.length;
+  const value: StoredKnowledgeAnswer = {
+    ...answer,
+    answer: cutter.text(answer.answer),
+    handling_steps: answer.handling_steps.map(cutter.text),
+    draft: cutter.text(answer.draft),
+    ...(answer.escalation_owner === undefined
+      ? {}
+      : { escalation_owner: cutter.text(answer.escalation_owner) }),
+    citations: citations.map((citation) => ({
+      ...citation,
+      title: cutter.text(citation.title),
+      ...(citation.excerpt === undefined
+        ? {}
+        : { excerpt: cutter.text(citation.excerpt) }),
+    })),
+    ...(answer.answered_by
+      ? {
+          answered_by: {
+            ...answer.answered_by,
+            source_count: Math.max(0, answer.answered_by.source_count - dropped),
+          },
+        }
+      : {}),
+  };
+  return { value, removed: cutter.count(dropped) };
 }
