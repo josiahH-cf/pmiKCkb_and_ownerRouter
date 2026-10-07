@@ -38,7 +38,11 @@ export type PacketExecutionState = (typeof PACKET_EXECUTION_STATES)[number];
 
 export type PacketVisibleState = PacketPreparationState | PacketExecutionState;
 export type PacketAudience = "tenant" | "owner";
-export type PacketParticipantKind = "tenant" | "owner";
+/**
+ * S66: the side a person signs for. A PMI manager or broker is an agent, never the property owner;
+ * a guarantor is never a tenant. Repeated tenant/owner slots expand only their own side.
+ */
+export type PacketParticipantKind = "tenant" | "owner" | "agent" | "guarantor";
 export type FactConfidence = "Verified" | "Likely" | "Needs Review" | "Conflict";
 export type FactApplicability = "Applicable" | "Not applicable" | "Unknown";
 
@@ -86,10 +90,26 @@ export interface PacketCharge {
   confidence: FactConfidence;
   policyVersion?: string;
   targetArtifactKind?: LeaseArtifactKind;
+  /** S66: how often the amount is due; absent on legacy charges, which count as monthly. */
+  cadence?: "monthly" | "one_time" | "refundable_deposit";
+  /** S66: the animal a per-animal charge belongs to. */
+  animalId?: string;
 }
 
 export interface PacketAnimalFact {
-  key: "species" | "name" | "breed" | "weight" | "policy_treatment";
+  key:
+    | "species"
+    | "name"
+    | "breed"
+    | "weight"
+    | "policy_treatment"
+    // S66: recorded per-animal facts and calculated amounts for reviewed per-animal fields.
+    | "weight_unit"
+    | "maturity"
+    | "fido_score"
+    | "monthly_charge"
+    | "one_time_fee"
+    | "refundable_deposit";
   value: string | number;
   source: PacketSourceReference;
   confidence: FactConfidence;
@@ -111,6 +131,11 @@ export const LEASE_ARTIFACT_KINDS = [
   "city_addendum",
   "hoa_artifact",
   "owner_acknowledgment",
+  // S66 (intake 051): the three further local reference document types. Representable families
+  // only; nothing here approves a file, a legal version or an applicability rule.
+  "kcrar_additional_disclosures",
+  "brokerage_disclosure",
+  "insurance_program_addendum",
 ] as const;
 export type LeaseArtifactKind = (typeof LEASE_ARTIFACT_KINDS)[number];
 
@@ -170,6 +195,19 @@ export interface ArtifactRequirement {
   packetContexts: PacketContext[];
 }
 
+/**
+ * S66: the Admin-approved use of one form family. A mandatory family always holds its packet until
+ * approved material exists; a conditional family is decided by its reviewed predicate (or the
+ * engineering default) and holds only when applicable or unknown; a family not used by the approved
+ * configuration never holds a packet and is shown as such for staff review.
+ */
+export interface FormFamilyUse {
+  kind: LeaseArtifactKind;
+  use: "mandatory" | "conditional" | "not_used";
+  predicate?: ArtifactPredicate;
+  source: PacketSourceReference;
+}
+
 export interface FormFamilyPolicy {
   formFamily: string;
   extensionCompatible: boolean;
@@ -184,6 +222,11 @@ export interface LeaseArtifactCatalog {
   requirements: ArtifactRequirement[];
   formFamilies: FormFamilyPolicy[];
   artifacts: LeaseArtifactVersion[];
+  /**
+   * S66: Admin-approved family use. Absent on legacy catalogs, which keep their original rule that
+   * every listed requirement needs an approved artifact.
+   */
+  familyUse?: FormFamilyUse[];
 }
 
 export interface PacketClassificationEvidence {

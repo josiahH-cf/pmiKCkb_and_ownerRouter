@@ -506,13 +506,37 @@ describe("S130 mapping and approval project the exact version into the catalog (
     expect(evaluation.manifest?.fields).toEqual([
       expect.objectContaining({ fieldId: "Rent", normalizedValue: 1200 }),
     ]);
-    // The other context families are honestly unavailable, not silently omitted.
+    // S66 (AC-S66-6): a family without material holds the packet only when it applies or its
+    // applicability is unknown. No animal means no animal agreement; the lead, city and HOA rules
+    // each ask their exact question; the unused reference types are listed, never held.
+    expect(
+      evaluation.blockers.filter((blocker) => blocker.code === "artifact_unavailable"),
+    ).toEqual([]);
     expect(
       evaluation.blockers
-        .filter((blocker) => blocker.code === "artifact_unavailable")
-        .map((blocker) => blocker.scope)
+        .filter((blocker) => blocker.code === "missing_fact")
+        .map((blocker) => blocker.fieldKey)
         .sort(),
-    ).toEqual(["animal_agreement", "city_addendum", "hoa_artifact", "lead_disclosure"]);
+    ).toEqual([
+      // The existing charge rule still asks for the insurance coverage method.
+      "insurance.coverage_method",
+      "property.city_addendum_required",
+      "property.hoa_governed",
+      "property.year_built",
+    ]);
+    expect(
+      evaluation.manifest?.excludedArtifacts
+        .map((artifact) => [artifact.kind, artifact.ruleResult])
+        .sort(),
+    ).toEqual([
+      ["animal_agreement", "Not applicable"],
+      ["brokerage_disclosure", "Not applicable"],
+      ["city_addendum", "Needs input"],
+      ["hoa_artifact", "Needs input"],
+      ["insurance_program_addendum", "Not applicable"],
+      ["kcrar_additional_disclosures", "Not applicable"],
+      ["lead_disclosure", "Needs input"],
+    ]);
 
     // Replacing the approved file returns the family to review and rewrites the catalog without it.
     const replaced = await receiveArtifactFamily(

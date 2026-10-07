@@ -35,6 +35,11 @@ import {
   validateFieldMap,
 } from "@/lib/lease-documents/artifact-intake";
 import { ApprovedLeaseCatalogSchema } from "@/lib/lease-documents/live-source-schema";
+import {
+  FamilyUseRecordSchema,
+  resolveFamilyUse,
+  type FamilyUseRecord,
+} from "@/lib/lease-documents/family-use";
 import { inspectAcroformPdf } from "@/lib/lease-documents/acroform-pdf";
 import {
   LEASE_ARTIFACT_KINDS,
@@ -55,6 +60,9 @@ export const ARTIFACT_INTAKE_ACTIVITY_COLLECTION = "lease_artifact_intake_activi
 /** The S66 catalog record this intake projects into (owned by `lib/lease-documents/live-input.ts`). */
 export const ARTIFACT_CATALOG_COLLECTION = "lease_artifact_catalogs";
 export const ARTIFACT_CATALOG_DOC_ID = "current";
+/** S66: the Admin family-use record the catalog projection carries. */
+export const FAMILY_USE_COLLECTION = "lease_artifact_family_use";
+export const FAMILY_USE_DOC_ID = "current";
 
 export interface ArtifactIntakeDeps {
   readPublication: (versionId: string) => Promise<PublicationVersionRecord>;
@@ -146,6 +154,11 @@ async function readManifestIn(
   return { manifest: { state: "readable", entries }, invalid };
 }
 
+/** The manifest read inside a caller's transaction (S66 family-use writer). */
+export function readManifestInTransaction(transaction: Transaction, db: Firestore) {
+  return readManifestIn((docRef) => transaction.get(docRef), db);
+}
+
 /** The never-throwing manifest every surface consumes; unreadable or malformed reads say so. */
 export async function readArtifactIntakeManifest(
   db?: Firestore,
@@ -164,13 +177,34 @@ export async function readArtifactIntakeManifest(
   }
 }
 
-function writeCatalog(
+/** S66: the current family-use record, read inside the caller's transaction. */
+export async function readFamilyUseIn(
+  transaction: Transaction,
+  db: Firestore,
+): Promise<FamilyUseRecord | null> {
+  const snapshot = await transaction.get(
+    db.collection(FAMILY_USE_COLLECTION).doc(FAMILY_USE_DOC_ID),
+  );
+  if (!snapshot.exists) return null;
+  const parsed = FamilyUseRecordSchema.safeParse(snapshot.data());
+  if (!parsed.success)
+    throw new EditableLayerError(
+      "The family-use record is unreadable; nothing was changed.",
+      409,
+    );
+  return parsed.data;
+}
+
+export function writeCatalog(
   transaction: Transaction,
   db: Firestore,
   manifest: ArtifactIntakeManifest,
   meta: { approvedByUid: string; approvedAt: string },
+  familyUse: FamilyUseRecord | null,
 ) {
-  const record = ApprovedLeaseCatalogSchema.parse(catalogFromIntake(manifest, meta));
+  const record = ApprovedLeaseCatalogSchema.parse(
+    catalogFromIntake(manifest, meta, resolveFamilyUse(familyUse, meta.approvedAt)),
+  );
   transaction.set(
     db.collection(ARTIFACT_CATALOG_COLLECTION).doc(ARTIFACT_CATALOG_DOC_ID),
     record,
@@ -247,9 +281,10 @@ export async function receiveArtifactFamily(
   const ref = entryRef(db, input.kind);
   const audit = db.collection(ARTIFACT_INTAKE_ACTIVITY_COLLECTION).doc(input.operationId);
   return db.runTransaction(async (transaction) => {
-    const [{ manifest }, previous] = await Promise.all([
+    const [{ manifest }, previous, familyUse] = await Promise.all([
       readManifestIn((docRef) => transaction.get(docRef), db),
       transaction.get(audit),
+      readFamilyUseIn(transaction, db),
     ]);
     const existing = manifest.entries[input.kind];
     if (previous.exists) {
@@ -303,6 +338,7 @@ export async function receiveArtifactFamily(
         db,
         { ...manifest, entries: { ...manifest.entries, [input.kind]: entry } },
         { approvedByUid: actor.uid, approvedAt: now },
+        familyUse,
       );
     transaction.create(audit, {
       action: "artifact_received",
@@ -337,7 +373,10 @@ export async function recordArtifactFieldMap(
   const input = RecordArtifactFieldMapInputSchema.parse(raw);
   const ref = entryRef(db, input.kind);
   return db.runTransaction(async (transaction) => {
-    const { manifest } = await readManifestIn((docRef) => transaction.get(docRef), db);
+    const [{ manifest }, familyUse] = await Promise.all([
+      readManifestIn((docRef) => transaction.get(docRef), db),
+      readFamilyUseIn(transaction, db),
+    ]);
     const existing = manifest.entries[input.kind];
     if (!existing)
       throw new EditableLayerError("Receive the family's file before mapping it.", 409);
@@ -392,6 +431,7 @@ export async function recordArtifactFieldMap(
         db,
         { ...manifest, entries: { ...manifest.entries, [input.kind]: entry } },
         { approvedByUid: actor.uid, approvedAt: now },
+        familyUse,
       );
     transaction.create(db.collection(ARTIFACT_INTAKE_ACTIVITY_COLLECTION).doc(uuidv7()), {
       action: "artifact_mapping_recorded",
@@ -441,9 +481,10 @@ export async function decideArtifactFamily(
   if (input.decision === "approve" && current.publication && current.state === "reviewed")
     await requireBoundPublication(current.publication, deps);
   return db.runTransaction(async (transaction) => {
-    const [{ manifest }, previous] = await Promise.all([
+    const [{ manifest }, previous, familyUse] = await Promise.all([
       readManifestIn((docRef) => transaction.get(docRef), db),
       transaction.get(audit),
+      readFamilyUseIn(transaction, db),
     ]);
     const existing = manifest.entries[input.kind];
     if (!existing)
@@ -498,6 +539,7 @@ export async function decideArtifactFamily(
         db,
         { ...manifest, entries: { ...manifest.entries, [input.kind]: entry } },
         { approvedByUid: actor.uid, approvedAt: now },
+        familyUse,
       ).catalog.catalogVersion;
     transaction.create(audit, {
       action: input.decision === "approve" ? "artifact_approved" : "artifact_rejected",

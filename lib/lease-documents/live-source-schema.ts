@@ -104,6 +104,19 @@ export const LeaseArtifactCatalogSchema = z
         .strict(),
     ),
     artifacts: z.array(artifact).max(100),
+    familyUse: z
+      .array(
+        z
+          .object({
+            kind,
+            use: z.enum(["mandatory", "conditional", "not_used"]),
+            predicate: predicate.optional(),
+            source: PacketSourceSchema,
+          })
+          .strict(),
+      )
+      .max(LEASE_ARTIFACT_KINDS.length)
+      .optional(),
   })
   .strict();
 const fact = z

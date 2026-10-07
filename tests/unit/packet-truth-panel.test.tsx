@@ -11,6 +11,11 @@ import type {
 } from "@/lib/lease-documents/packet-types";
 import { readyS66Input } from "@/tests/fixtures/s66-packet";
 
+// S66: the Packet inputs editor has its own tests; these cover the evaluation presentation.
+vi.mock("@/components/lease-renewal/PacketInputsEditor", () => ({
+  PacketInputsEditor: () => null,
+}));
+
 function snapshot(
   state: PacketVisibleState = "Ready for preview",
 ): RenewalPacketSnapshot {
@@ -58,7 +63,7 @@ describe("S43 packet truth presentation", () => {
 
   it.each([
     ["Needs input", /Supply the named verified facts/],
-    ["Conflict", /Admin must resolve each conflict/],
+    ["Conflict", /Choose the value the packet uses in Packet inputs/],
     ["Ready for preview", /Request an exact-hash preview/],
     ["Superseded", /Reload and evaluate/],
     ["Partially executed", /Reconcile the existing partial attempt/],

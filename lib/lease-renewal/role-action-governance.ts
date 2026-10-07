@@ -362,6 +362,19 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
       "Editor access is required to save the staff work status or a note.",
     safeNextAction: "Continue read-only or ask an Admin to review your role.",
   },
+  save_packet_inputs: {
+    // S66: staff enter or correct packet facts, people, animals and charge overrides once. The
+    // write is the app's own record; it creates no snapshot, approval or provider action.
+    label: "Save renewal packet facts, people, animals or charge overrides for one lease",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to save packet inputs.",
+    safeNextAction: "Continue read-only or ask an Admin to review your role.",
+  },
   save_working_record: {
     label: "Save lease-bound working information for one lease",
     roleCapability: "edit",
@@ -701,6 +714,12 @@ export const RENEWAL_CONTROL_INVENTORY = [
     source: "components/lease-renewal/RenewalWorkingRecord.tsx",
     capability: "save_working_record",
     enforcementSources: ["app/api/lease-renewal/working-record/route.ts"],
+  },
+  {
+    control: "Save packet facts, people and signer roles, animals or a charge override",
+    source: "components/lease-renewal/PacketInputsEditor.tsx",
+    capability: "save_packet_inputs",
+    enforcementSources: ["app/api/lease-renewal/packet-inputs/route.ts"],
   },
   {
     control: "Remember the account's worklist view",
@@ -1045,6 +1064,18 @@ export const RENEWAL_ROUTE_INVENTORY = [
     source: "app/api/lease-renewal/working-record/route.ts",
     method: "POST",
     capability: "save_working_record",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/packet-inputs/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/packet-inputs/route.ts",
+    method: "POST",
+    capability: "save_packet_inputs",
   },
   {
     kind: "api",

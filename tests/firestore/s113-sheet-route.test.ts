@@ -557,6 +557,33 @@ async function startManual(prior: RenewalWorkspaceState | null = null) {
   expect(response.status, JSON.stringify(result)).toBe(200);
   return result.state as RenewalWorkspaceState;
 }
+/** S66 (AC-S66-8): an owner approval covers the Working terms saved before it is recorded. */
+async function saveWorkingTerms(terms: {
+  rent: number;
+  effectiveDate: string;
+  endDate: string;
+}) {
+  const { getRenewalWorkingRecord, saveRenewalWorkingField } =
+    await import("@/lib/firestore/renewal-working-record");
+  for (const [field, value] of [
+    ["terms_rent", terms.rent],
+    ["terms_effective_date", terms.effectiveDate],
+    ["terms_end_date", terms.endDate],
+  ] as const) {
+    const current = await getRenewalWorkingRecord(actor, "701", db);
+    await saveRenewalWorkingField(
+      actor,
+      {
+        leaseId: "701",
+        field,
+        value,
+        expectedRevision: current?.fields[field]?.revision ?? 0,
+        operationId: randomUUID(),
+      },
+      db,
+    );
+  }
+}
 async function recordManual(
   state: RenewalWorkspaceState,
   action: RenewalWorkspaceAction,
@@ -1768,6 +1795,11 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
 describe("S113 normal S66 packet resolver and S106/S34 handoff", () => {
   it("reads blank pending resources without inventing forms, then evaluates persisted approved mappings against actual publication heads", async () => {
     const state = await startManual();
+    await saveWorkingTerms({
+      rent: 1100,
+      effectiveDate: "2027-01-01",
+      endDate: "2027-12-31",
+    });
     const approved = (
       await recordManual(state, {
         kind: "owner_response",
@@ -1852,6 +1884,11 @@ describe("S113 normal S66 packet resolver and S106/S34 handoff", () => {
     );
     expect(evaluateRenewalPacket(missingPublication.input).state).toBe("Needs input");
     expect(missingPublication.notices.join(" ")).toContain("unavailable or changed");
+    await saveWorkingTerms({
+      rent: 1200,
+      effectiveDate: "2027-01-01",
+      endDate: "2027-12-31",
+    });
     const reapproved = (
       await recordManual(approved, {
         kind: "owner_response",
@@ -1881,6 +1918,207 @@ describe("S113 normal S66 packet resolver and S106/S34 handoff", () => {
     ).toBeNull();
     expect(messageTransport.creates).toBe(0);
     expect(mutations).toBe(0);
+  });
+});
+
+describe("S66 ordinary packet inputs reach the evaluator (AC-S66-1, AC-S66-4, AC-S66-9)", () => {
+  it("an Editor saves inputs through the route, the packet evaluates them without an Admin mapping, and a correction creates a successor", async () => {
+    testState.role = "Editor";
+    const { PACKET_SOURCE_COLLECTIONS } =
+      await import("@/lib/lease-documents/live-input");
+    const { readyS66Input } = await import("@/tests/fixtures/s66-packet");
+    const { POST: saveInputs, GET: readInputs } =
+      await import("@/app/api/lease-renewal/packet-inputs/route");
+    const { POST: evaluateRoute } =
+      await import("@/app/api/lease-renewal/packet-truth/route");
+    const { publishChargePolicy } = await import("@/lib/firestore/lease-charge-policy");
+    const fixture = readyS66Input();
+    // Only the Admin-approved catalog exists; no per-lease mapping is written by anyone.
+    for (const artifact of fixture.catalog.artifacts) {
+      artifact.signerRoles = [artifact.audience];
+      if (artifact.kind === "renewal_extension")
+        artifact.fieldBindings = [
+          {
+            fieldId: "Rent",
+            factKey: "renewal.approved_rent",
+            required: true,
+            allowedSourceSystems: ["staff_recorded_owner_approval"],
+          },
+        ];
+      const publicationId = artifact.publicationSource.reference.slice(
+        "publication:".length,
+      );
+      await db.collection("publication_versions").doc(publicationId).set({
+        id: publicationId,
+        validated: true,
+        data_mode: "live",
+        spaceId: "renewals",
+        contentHash: artifact.contentHash,
+        resourceId: artifact.artifactId,
+      });
+      await db
+        .collection("publication_resources")
+        .doc(artifact.artifactId)
+        .set({ activeVersionId: publicationId });
+    }
+    await db.collection(PACKET_SOURCE_COLLECTIONS.catalog).doc("current").set({
+      schemaVersion: "approved-lease-catalog/v1",
+      data_mode: "live",
+      approvedByUid: "admin-1",
+      approvedAt: new Date().toISOString(),
+      catalog: fixture.catalog,
+    });
+    await publishChargePolicy(
+      { ...actor, uid: "admin-1", role: "Admin" },
+      {
+        content: { residentBenefitPackage: null, insuranceProgram: null, animals: null },
+        effectiveFrom: "2026-10-01",
+        expectedVersion: 0,
+        operationId: randomUUID(),
+      },
+      db,
+    );
+    const post = async (body: Record<string, unknown>) => {
+      const response = await saveInputs(
+        new Request("http://local.test/api/lease-renewal/packet-inputs", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ leaseId: "701", operationId: randomUUID(), ...body }),
+        }),
+      );
+      const value = await response.json();
+      expect(response.status, JSON.stringify(value)).toBe(200);
+      return value;
+    };
+    // A draft with missing facts saves; the packet names exactly what it still needs.
+    await post({
+      facts: [
+        { fieldKey: "transaction.type", expectedRevision: 0, value: "existing_renewal" },
+      ],
+    });
+    const draftView = await (
+      await readInputs(
+        new Request("http://local.test/api/lease-renewal/packet-inputs?leaseId=701"),
+      )
+    ).json();
+    expect(
+      draftView.questions
+        .filter((question: { reason: string }) => question.reason === "missing")
+        .map((question: { fieldKey: string }) => question.fieldKey),
+      // Classification asks in order: the next decisive fact is named, never guessed.
+    ).toEqual(["management.origin"]);
+    await post({
+      facts: [
+        { fieldKey: "management.origin", expectedRevision: 0, value: "pmi_managed" },
+        { fieldKey: "active_lease.executed", expectedRevision: 0, value: true },
+        {
+          fieldKey: "active_lease.form_family",
+          expectedRevision: 0,
+          value: "fixture-standard-family",
+        },
+        {
+          fieldKey: "insurance.coverage_method",
+          expectedRevision: 0,
+          value: "not_applicable_under_policy",
+        },
+        { fieldKey: "property.year_built", expectedRevision: 0, value: 1990 },
+        {
+          fieldKey: "property.city_addendum_applicable",
+          expectedRevision: 0,
+          value: false,
+        },
+        { fieldKey: "property.hoa_applicable", expectedRevision: 0, value: false },
+      ],
+      people: {
+        expectedRevision: 0,
+        entries: [
+          {
+            personId: "20000000-0000-4000-8000-000000000001",
+            kind: "person",
+            fullName: "Emulator Tenant",
+            email: "tenant@fixture-rental.net",
+            emailBasis: "staff_reviewed",
+            contactRef: null,
+            roles: [{ signerRole: "tenant", order: 1, dotloopRole: "TENANT" }],
+          },
+        ],
+      },
+    });
+    await saveWorkingTerms({
+      rent: 1100,
+      effectiveDate: "2027-01-01",
+      endDate: "2027-12-31",
+    });
+    await recordManual(await startManual(), {
+      kind: "owner_response",
+      outcome: "approved_terms",
+      source: "Emulator owner call",
+    });
+    const evaluate = async (expectedCurrentSnapshotId: string | null) => {
+      const response = await evaluateRoute(
+        messageRequest({
+          action: "evaluate",
+          leaseId: "701",
+          transactionId: "701",
+          expectedCurrentSnapshotId,
+        }),
+      );
+      const value = await response.json();
+      expect(response.status, JSON.stringify(value)).toBe(200);
+      return value.snapshot;
+    };
+    const first = await evaluate(null);
+    expect(first.blockers).toEqual([]);
+    expect(first.state).toBe("Ready for preview");
+    expect(
+      first.manifest.participants.map(
+        (entry: { participantId: string }) => entry.participantId,
+      ),
+    ).toEqual(["20000000-0000-4000-8000-000000000001:tenant"]);
+    expect(first.manifest.fields).toContainEqual(
+      expect.objectContaining({
+        factKey: "renewal.approved_rent",
+        normalizedValue: 1100,
+      }),
+    );
+    // Evaluating unchanged inputs again keeps the same snapshot identity.
+    expect((await evaluate(first.snapshotId)).snapshotId).toBe(first.snapshotId);
+    // A correction makes the lead disclosure apply and creates a successor; the first is unchanged.
+    const saved = (
+      await (
+        await readInputs(
+          new Request("http://local.test/api/lease-renewal/packet-inputs?leaseId=701"),
+        )
+      ).json()
+    ).record;
+    await post({
+      facts: [
+        {
+          fieldKey: "property.year_built",
+          expectedRevision: saved.facts["property.year_built"].revision,
+          value: 1965,
+        },
+      ],
+    });
+    const second = await evaluate(first.snapshotId);
+    expect(second.snapshotId).not.toBe(first.snapshotId);
+    expect(second.previousSnapshotId).toBe(first.snapshotId);
+    expect(
+      second.manifest.includedArtifacts
+        .map((artifact: { kind: string }) => artifact.kind)
+        .sort(),
+    ).toEqual(["lead_disclosure", "renewal_extension"]);
+    const stored = await db
+      .collection("lease_document_packet_snapshots")
+      .doc(first.snapshotId)
+      .get();
+    expect(stored.get("payload_hash") ?? stored.get("payloadHash")).toBe(
+      first.payloadHash,
+    );
+    // Saving inputs and calculating charges wrote no RentVine, Sheet, Gmail or Dotloop effect.
+    expect(mutations).toBe(0);
+    expect(messageTransport.creates).toBe(0);
+    expect((await db.collection("action_executions").get()).empty).toBe(true);
   });
 });
 
@@ -1945,6 +2183,11 @@ async function seedPacketSources(
 
 describe("S113 normal packet route through the actual S20 ledger and Dotloop HTTP adapter", () => {
   it("creates once, persists its receipt, recovers projection, uploads actual approved bytes and reads metadata without claiming signatures", async () => {
+    await saveWorkingTerms({
+      rent: 1100,
+      effectiveDate: "2027-01-01",
+      endDate: "2027-12-31",
+    });
     const approved = (
       await recordManual(await startManual(), {
         kind: "owner_response",

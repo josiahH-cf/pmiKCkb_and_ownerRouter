@@ -9,6 +9,13 @@ import { CommunicationsRetentionAdminPanel } from "@/components/admin/Communicat
 import { MoveOutTimingBasisAdminPanel } from "@/components/admin/MoveOutTimingBasisAdminPanel";
 import { PolicyMaterialAdminPanel } from "@/components/admin/PolicyMaterialAdminPanel";
 import { LeaseArtifactIntakePanel } from "@/components/admin/LeaseArtifactIntakePanel";
+import {
+  RenewalPacketPolicyAdminPanel,
+  type RenewalPacketPolicyInitial,
+} from "@/components/admin/RenewalPacketPolicyAdminPanel";
+import { readFamilyUseRecord } from "@/lib/firestore/lease-artifact-family-use";
+import { readChargePolicy } from "@/lib/firestore/lease-charge-policy";
+import { resolveFamilyUse } from "@/lib/lease-documents/family-use";
 import { readArtifactIntakeManifest } from "@/lib/firestore/lease-artifact-intake";
 import { projectIntakeCheckpoints } from "@/lib/lease-documents/artifact-intake";
 import {
@@ -113,6 +120,11 @@ export default async function AdminPage() {
   let policyMaterial: PolicyMaterialVersionRecord[] = [];
   let policyMaterialNote: string | undefined;
   let artifactIntake: ArtifactIntakeManifest = emptyArtifactIntakeManifest("unreadable");
+  // S66: family use and the charge policy; both reads report unreadable instead of throwing.
+  let renewalPacketPolicy: RenewalPacketPolicyInitial = {
+    familyUse: { readable: false, version: 0, families: [] },
+    chargePolicy: { readable: false, record: null },
+  };
   let ownerPolicyRules: OwnerPolicyRule[] = [];
   let activityEntries: AdminActivityEntry[] = [];
   let activityNote: string | undefined;
@@ -222,10 +234,22 @@ export default async function AdminPage() {
         policyMaterialNote =
           "Policy material versions are unavailable right now. Reload before submitting or deciding.";
       }),
-    // S130: the seven-family intake manifest (this read never throws).
+    // S130: the intake manifest for every form family (this read never throws).
     readArtifactIntakeManifest().then((manifest) => {
       artifactIntake = manifest;
     }),
+    Promise.all([readFamilyUseRecord(), readChargePolicy()]).then(
+      ([familyUse, policy]) => {
+        renewalPacketPolicy = {
+          familyUse: {
+            readable: familyUse.readable,
+            version: familyUse.record?.version ?? 0,
+            families: resolveFamilyUse(familyUse.record, new Date().toISOString()),
+          },
+          chargePolicy: policy,
+        };
+      },
+    ),
     // S62: owner-policy pricing rules. Degrades to an empty list; the panel still renders.
     listOwnerPolicyRules(user)
       .then((rules) => {
@@ -523,6 +547,9 @@ export default async function AdminPage() {
               initial={policyMaterial}
               note={policyMaterialNote}
             />
+          </div>
+          <div className="task-anchor" id="admin-renewal-packet-policy" tabIndex={-1}>
+            <RenewalPacketPolicyAdminPanel initial={renewalPacketPolicy} />
           </div>
           <div className="task-anchor" id="admin-lease-artifact-intake" tabIndex={-1}>
             <LeaseArtifactIntakePanel

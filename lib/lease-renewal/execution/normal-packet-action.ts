@@ -28,6 +28,10 @@ import {
 } from "@/lib/connections/dotloop-runtime";
 import { getDotloopRenewalSettings } from "@/lib/firestore/dotloop-renewal-settings";
 import { resolveLivePacketInput } from "@/lib/lease-documents/live-input";
+import {
+  DOTLOOP_PARTICIPANT_ROLES,
+  type DotloopParticipantRole,
+} from "@/lib/integrations/dotloop/client";
 import { evaluateRenewalPacket } from "@/lib/lease-documents/evaluate-packet";
 import { bindCurrentPacketForDotloop } from "@/lib/lease-documents/dotloop-packet-binding";
 import { bindApprovedDerivedPacket } from "@/lib/lease-documents/derived-packet-binding";
@@ -151,11 +155,12 @@ async function assemble(
   if (
     !snapshot ||
     !head ||
-    !resolved.sources ||
-    resolved.workspace?.ownerResponse?.outcome !== "approved_terms"
+    !resolved.workspace ||
+    resolved.ownerApproval !== "current" ||
+    resolved.workspace.ownerResponse?.outcome !== "approved_terms"
   )
     throw new EditableLayerError(
-      "Evaluate a current packet with approved owner terms and current participant/field mappings first.",
+      "Evaluate a current packet with the owner's approval of the current Working terms and reviewed signers first.",
       409,
     );
   if (evaluateRenewalPacket(resolved.input).payloadHash !== snapshot.payloadHash)
@@ -190,13 +195,19 @@ async function assemble(
       409,
     );
   const participants = binding.participantRefs.map((ref) => {
-    const matches = resolved.sources!.contacts.filter((c) => c.participantRef === ref);
+    const matches = resolved.contacts.filter((c) => c.participantRef === ref);
     if (matches.length !== 1)
       throw new EditableLayerError(
-        "Each required signer must have one current approved contact mapping.",
+        "Each required signer needs one reviewed name and email in Packet inputs.",
         409,
       );
-    return matches[0];
+    const { participantRef, fullName, email, role } = matches[0];
+    if (!(DOTLOOP_PARTICIPANT_ROLES as readonly string[]).includes(role))
+      throw new EditableLayerError(
+        "A reviewed signer has a Dotloop role that is not documented.",
+        409,
+      );
+    return { participantRef, fullName, email, role: role as DotloopParticipantRole };
   });
   const document =
     operation === "document_upload"
@@ -288,6 +299,9 @@ async function assemble(
         : ({} as Record<string, string>),
     catalogRecordHash: resolved.catalogRecordHash,
     mappingRecordHash: resolved.mappingRecordHash,
+    packetInputsRecordHash: resolved.packetInputsRecordHash,
+    chargePolicyRecordHash: resolved.chargePolicyRecordHash,
+    workingRecordHash: resolved.workingRecordHash,
     ownerApprovalHash: hashExecutionPreview({ ...resolved.workspace.ownerResponse }),
     selection: {
       profileId: settings.profileId,

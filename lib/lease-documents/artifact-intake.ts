@@ -14,9 +14,14 @@ import {
   type ArtifactIntakeManifest,
   type IntakeCheckpointId,
 } from "@/lib/lease-documents/artifact-intake-contract";
-import { REQUIRED_LEASE_ARTIFACTS } from "@/lib/lease-documents/artifact-catalog";
+import {
+  DEFAULT_FAMILY_PREDICATE,
+  explicitApplicabilityPredicate,
+  LEASE_ARTIFACT_FAMILIES,
+  REQUIRED_LEASE_ARTIFACTS,
+} from "@/lib/lease-documents/artifact-catalog";
 import type {
-  ArtifactPredicate,
+  FormFamilyUse,
   LeaseArtifactCatalog,
   LeaseArtifactKind,
   LeaseArtifactVersion,
@@ -532,31 +537,7 @@ export function derivedArtifactCurrent(
   return { current: reasons.length === 0, reasons };
 }
 
-/** Engineering defaults per family, labeled as such; a reviewed map may name its own predicate. */
-export const DEFAULT_FAMILY_PREDICATE: Record<LeaseArtifactKind, ArtifactPredicate> = {
-  standard_lease: { kind: "always", ruleVersion: "intake-default-v1" },
-  renewal_extension: { kind: "always", ruleVersion: "intake-default-v1" },
-  animal_agreement: { kind: "any_animal_applicable", ruleVersion: "intake-default-v1" },
-  lead_disclosure: {
-    kind: "year_built_before",
-    fieldKey: "property.year_built",
-    yearExclusive: 1978,
-    ruleVersion: "intake-default-v1",
-  },
-  city_addendum: {
-    kind: "fact_equals",
-    fieldKey: "property.city_addendum_required",
-    expectedValue: true,
-    ruleVersion: "intake-default-v1",
-  },
-  hoa_artifact: {
-    kind: "fact_equals",
-    fieldKey: "property.hoa_governed",
-    expectedValue: true,
-    ruleVersion: "intake-default-v1",
-  },
-  owner_acknowledgment: { kind: "always", ruleVersion: "intake-default-v1" },
-};
+export { DEFAULT_FAMILY_PREDICATE };
 
 export function mapHashOf(map: ArtifactFieldMap): string {
   return sha256(canonicalJson(map as unknown as Record<string, unknown>));
@@ -566,6 +547,7 @@ export function mapHashOf(map: ArtifactFieldMap): string {
 export function catalogFromIntake(
   manifest: ArtifactIntakeManifest,
   meta: { approvedByUid: string; approvedAt: string },
+  familyUse?: FormFamilyUse[],
 ): {
   schemaVersion: "approved-lease-catalog/v1";
   data_mode: "live";
@@ -591,7 +573,10 @@ export function catalogFromIntake(
       status: "active",
       effectiveFrom: (entry.decided_at ?? meta.approvedAt).slice(0, 10),
       allowedPacketContexts: [...map.allowedPacketContexts],
-      predicate: map.applicability ?? DEFAULT_FAMILY_PREDICATE[entry.kind],
+      predicate:
+        map.applicability ??
+        DEFAULT_FAMILY_PREDICATE[entry.kind] ??
+        explicitApplicabilityPredicate(entry.kind),
       // S66 bindings are flat, one fact per field. A per-party or per-animal repeat is expanded
       // by the intake worksheet from the reviewed map, so only single-value fields bind here.
       fieldBindings: map.fields
@@ -638,7 +623,12 @@ export function catalogFromIntake(
         retrievedAt: meta.approvedAt,
         version: meta.approvedAt,
       },
-      requirements: [...REQUIRED_LEASE_ARTIFACTS],
+      // S66: with Admin family use, every representable family is listed and its use decides
+      // whether it can hold a packet; without it the legacy seven-family rule stays.
+      requirements: familyUse
+        ? [...LEASE_ARTIFACT_FAMILIES]
+        : [...REQUIRED_LEASE_ARTIFACTS],
+      ...(familyUse ? { familyUse } : {}),
       formFamilies: families.map((formFamily) => ({
         formFamily,
         // A reviewed statement about the family, never inferred from which files are present.
@@ -701,7 +691,7 @@ export function projectFamilyReadiness(input: {
       .filter((artifact) => artifact.ruleResult === "Not applicable")
       .map((artifact) => artifact.kind) ?? [],
   );
-  const families = REQUIRED_LEASE_ARTIFACTS.map((requirement): FamilyReadiness => {
+  const families = LEASE_ARTIFACT_FAMILIES.map((requirement): FamilyReadiness => {
     const entry = input.manifest.entries[requirement.kind];
     const materials = entry?.state ?? "pending_materials";
     const applicability: FamilyApplicability = !input.evaluation

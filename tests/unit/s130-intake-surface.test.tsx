@@ -75,7 +75,7 @@ function checkpoints(manifest: ArtifactIntakeManifest) {
 }
 
 describe("S130 Admin intake surface (AC-S130-1, AC-S130-4, AC-S130-8)", () => {
-  it("shows seven pending families and the honest checkpoints with no materials", () => {
+  it("shows every pending family and the honest checkpoints with no materials", () => {
     const manifest = withEntry(null);
     render(
       <LeaseArtifactIntakePanel
@@ -83,7 +83,8 @@ describe("S130 Admin intake surface (AC-S130-1, AC-S130-4, AC-S130-8)", () => {
       />,
     );
     const families = document.querySelectorAll("[data-artifact-intake-family]");
-    expect(families).toHaveLength(7);
+    // S66 (AC-S66-6): the original seven families plus the three further reference types.
+    expect(families).toHaveLength(10);
     expect(
       Array.from(families).every(
         (node) => node.getAttribute("data-artifact-intake-state") === "pending_materials",

@@ -1,6 +1,8 @@
 import type {
+  ArtifactPredicate,
   ArtifactRequirement,
   LeaseArtifactCatalog,
+  LeaseArtifactKind,
   LeaseArtifactVersion,
 } from "@/lib/lease-documents/packet-types";
 
@@ -45,6 +47,87 @@ export const REQUIRED_LEASE_ARTIFACTS: readonly ArtifactRequirement[] = [
     packetContexts: ["owner_acknowledgment"],
   },
 ] as const;
+
+/**
+ * S66 (intake 051): every representable family, including the three further local reference types.
+ * Legacy catalogs keep REQUIRED_LEASE_ARTIFACTS; a catalog with Admin family use lists these, and
+ * only its configured use decides which families can hold a packet.
+ */
+export const LEASE_ARTIFACT_FAMILIES: readonly ArtifactRequirement[] = [
+  ...REQUIRED_LEASE_ARTIFACTS,
+  {
+    kind: "kcrar_additional_disclosures",
+    label: "Approved KCRAR additional disclosures",
+    packetContexts: ["renewal_extension", "full_lease_packet"],
+  },
+  {
+    kind: "brokerage_disclosure",
+    label: "Approved brokerage disclosure brochure",
+    packetContexts: ["renewal_extension", "full_lease_packet"],
+  },
+  {
+    kind: "insurance_program_addendum",
+    label: "Approved insurance program addendum",
+    packetContexts: ["renewal_extension", "full_lease_packet"],
+  },
+] as const;
+
+/**
+ * Engineering defaults per family, labeled as such; a reviewed map or the Admin family use may name
+ * its own predicate. The KCRAR additional disclosures and brokerage brochure have no default: their
+ * applicability is an Admin decision, never inferred from a filename or the word Required in it.
+ */
+export const DEFAULT_FAMILY_PREDICATE: Partial<
+  Record<LeaseArtifactKind, ArtifactPredicate>
+> = {
+  standard_lease: { kind: "always", ruleVersion: "intake-default-v1" },
+  renewal_extension: { kind: "always", ruleVersion: "intake-default-v1" },
+  animal_agreement: { kind: "any_animal_applicable", ruleVersion: "intake-default-v1" },
+  lead_disclosure: {
+    kind: "year_built_before",
+    fieldKey: "property.year_built",
+    yearExclusive: 1978,
+    ruleVersion: "intake-default-v1",
+  },
+  city_addendum: {
+    kind: "fact_equals",
+    fieldKey: "property.city_addendum_required",
+    expectedValue: true,
+    ruleVersion: "intake-default-v1",
+  },
+  hoa_artifact: {
+    kind: "fact_equals",
+    fieldKey: "property.hoa_governed",
+    expectedValue: true,
+    ruleVersion: "intake-default-v1",
+  },
+  owner_acknowledgment: { kind: "always", ruleVersion: "intake-default-v1" },
+  insurance_program_addendum: {
+    kind: "fact_equals",
+    fieldKey: "insurance.coverage_method",
+    expectedValue: "pmi_program",
+    ruleVersion: "intake-default-v1",
+  },
+};
+
+/**
+ * The explicit per-lease question for a conditional family with no reviewed rule: the family applies
+ * only when a person records that it does. Nothing is inferred; until then the packet holds.
+ */
+export function explicitApplicabilityPredicate(
+  kind: LeaseArtifactKind,
+): ArtifactPredicate {
+  return {
+    kind: "fact_equals",
+    fieldKey: `family.${kind}.applicable`,
+    expectedValue: true,
+    ruleVersion: "explicit-applicability-v1",
+  };
+}
+
+export function familyLabel(kind: ArtifactRequirement["kind"]): string {
+  return LEASE_ARTIFACT_FAMILIES.find((family) => family.kind === kind)?.label ?? kind;
+}
 
 /**
  * Current source-truth result of Spike S66-A. The application has no verified legal-artifact

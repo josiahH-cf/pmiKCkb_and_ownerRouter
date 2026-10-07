@@ -48,14 +48,44 @@ export async function assertCurrentPacketActionClaim(
   const packetHeadId = createHash("sha256")
     .update(`${leaseId.trim()}\u0000${leaseId.trim()}`)
     .digest("hex");
-  const [workspace, head, catalog, mapping, settings] = await Promise.all([
+  const [
+    datedWorkspace,
+    leaseBoundWorkspace,
+    head,
+    catalog,
+    mapping,
+    settings,
+    packetInputs,
+    chargePolicy,
+    workingRecord,
+  ] = await Promise.all([
     tx.get(db.collection("lease_renewal_workspaces").doc(workspaceId)),
+    // S34: a work record saved without a lease end or review date lives in its own head.
+    tx.get(db.collection("lease_renewal_lease_bound_workspaces").doc(workspaceId)),
     tx.get(db.collection("lease_document_packet_heads").doc(packetHeadId)),
     tx.get(db.collection("lease_artifact_catalogs").doc("current")),
     tx.get(db.collection("lease_document_source_mappings").doc(workspaceId)),
     tx.get(db.collection("dotloop_renewal_settings").doc("current")),
+    tx.get(db.collection("lease_document_packet_inputs").doc(workspaceId)),
+    tx.get(db.collection("lease_charge_policies").doc("current")),
+    tx.get(db.collection("lease_renewal_working_records").doc(workspaceId)),
   ]);
+  const workspace = datedWorkspace.exists ? datedWorkspace : leaseBoundWorkspace;
+  // S66: the packet inputs, charge policy and Working terms the preview was evaluated from must be
+  // unchanged at the claim; a preparation without them (before S66) keeps its original guards.
+  const s66Changed = (
+    [
+      [packetInputs, "packetInputsRecordHash"],
+      [chargePolicy, "chargePolicyRecordHash"],
+      [workingRecord, "workingRecordHash"],
+    ] as const
+  ).some(
+    ([doc, key]) =>
+      prepared[key] !== undefined &&
+      hashExecutionPreview(doc.data() ?? {}) !== prepared[key],
+  );
   if (
+    s66Changed ||
     workspace.get("cycleId") !== prepared.cycleId ||
     workspace.get("termsRevision") !== prepared.termsRevision ||
     hashExecutionPreview(workspace.get("ownerResponse") ?? {}) !==

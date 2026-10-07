@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { REQUIRED_LEASE_ARTIFACTS } from "@/lib/lease-documents/artifact-catalog";
+import { LEASE_ARTIFACT_FAMILIES } from "@/lib/lease-documents/artifact-catalog";
 import {
   LEASE_ARTIFACT_KINDS,
   PACKET_CONTEXTS,
@@ -46,17 +46,30 @@ export const ARTIFACT_FORMAT_LABELS: Record<ArtifactFormat, string> = {
 
 export const ARTIFACT_FAMILY_LABELS: Record<LeaseArtifactKind, string> =
   Object.fromEntries(
-    REQUIRED_LEASE_ARTIFACTS.map((artifact) => [artifact.kind, artifact.label]),
+    LEASE_ARTIFACT_FAMILIES.map((artifact) => [artifact.kind, artifact.label]),
   ) as Record<LeaseArtifactKind, string>;
 
-export const SIGNER_ROLES = ["tenant", "owner", "property_manager", "guarantor"] as const;
+export const SIGNER_ROLES = [
+  "tenant",
+  "owner",
+  "property_manager",
+  "broker",
+  "guarantor",
+] as const;
 export type SignerRole = (typeof SIGNER_ROLES)[number];
-/** Which packet participant kind each signer role belongs to; a mismatch is a wrong signer role. */
-export const PARTICIPANT_KIND_FOR_ROLE: Record<SignerRole, "tenant" | "owner"> = {
+/**
+ * Which side each signer role signs for; a mismatch is a wrong signer role. S66: a PMI manager or
+ * broker is an agent, never the property owner, and a guarantor is never a tenant.
+ */
+export const PARTICIPANT_KIND_FOR_ROLE: Record<
+  SignerRole,
+  "tenant" | "owner" | "agent" | "guarantor"
+> = {
   tenant: "tenant",
-  guarantor: "tenant",
+  guarantor: "guarantor",
   owner: "owner",
-  property_manager: "owner",
+  property_manager: "agent",
+  broker: "agent",
 };
 
 export const FIELD_MULTIPLICITIES = ["single", "per_party", "per_animal"] as const;
@@ -174,7 +187,7 @@ export const ArtifactFieldMapSchema = z
         z
           .object({
             signerRole: z.enum(SIGNER_ROLES),
-            participantKind: z.enum(["tenant", "owner"]),
+            participantKind: z.enum(["tenant", "owner", "agent", "guarantor"]),
             required: z.boolean(),
             /** A named signature location on the form as the reviewer recorded it. */
             location: bounded(80),

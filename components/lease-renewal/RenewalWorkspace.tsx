@@ -1243,6 +1243,7 @@ function PhaseContent({
                 initialSnapshot={packetSnapshot}
                 leaseId={summary.id}
                 transactionId={summary.id}
+                canEditInputs={hasRenewalRoleAuthority("save_packet_inputs", role)}
               />
               <RenewalDocumentHandoff
                 canApprove={hasRenewalRoleAuthority("execute_document_packet", role)}

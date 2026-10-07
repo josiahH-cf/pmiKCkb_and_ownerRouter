@@ -109,6 +109,8 @@ const API_EXPECTATIONS = [
   ["app/api/lease-renewal/work-status/route.ts", "POST", "save_work_status"],
   ["app/api/lease-renewal/working-record/route.ts", "GET", "read_workspace"],
   ["app/api/lease-renewal/working-record/route.ts", "POST", "save_working_record"],
+  ["app/api/lease-renewal/packet-inputs/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/packet-inputs/route.ts", "POST", "save_packet_inputs"],
   ["app/api/lease-renewal/desk-preferences/route.ts", "GET", "read_workspace"],
   ["app/api/lease-renewal/desk-admission/route.ts", "GET", "read_workspace"],
   [

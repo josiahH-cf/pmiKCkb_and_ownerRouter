@@ -81,10 +81,22 @@ export function derivedArtifactDeps(db: Firestore): DerivedArtifactDeps {
         resolveLivePacketInput(actor, leaseId, leaseId, new Date().toISOString(), db),
         getCurrentPacketSnapshot(actor, leaseId, leaseId, db),
       ]);
-      const workspace = await db
-        .collection(RENEWAL_WORKSPACE_COLLECTIONS.head)
-        .doc(renewalWorkspaceDocId(leaseId))
-        .get();
+      // S34: the current work record is the dated head when one exists, otherwise the
+      // lease-bound head; guarding only the dated head refused every lease-bound record.
+      const [dated, leaseBound] = await Promise.all([
+        db
+          .collection(RENEWAL_WORKSPACE_COLLECTIONS.head)
+          .doc(renewalWorkspaceDocId(leaseId))
+          .get(),
+        db
+          .collection(RENEWAL_WORKSPACE_COLLECTIONS.leaseBoundHead)
+          .doc(renewalWorkspaceDocId(leaseId))
+          .get(),
+      ]);
+      const workspace = dated.exists ? dated : leaseBound;
+      const workspaceCollection = dated.exists
+        ? RENEWAL_WORKSPACE_COLLECTIONS.head
+        : RENEWAL_WORKSPACE_COLLECTIONS.leaseBoundHead;
       if (
         hashExecutionPreview(workspace.data() ?? {}) !==
         hashExecutionPreview({ ...resolved.workspace })
@@ -105,9 +117,25 @@ export function derivedArtifactDeps(db: Firestore): DerivedArtifactDeps {
             hash: resolved.mappingRecordHash,
           },
           {
-            collection: RENEWAL_WORKSPACE_COLLECTIONS.head,
+            collection: workspaceCollection,
             id: renewalWorkspaceDocId(leaseId),
             hash: hashExecutionPreview(workspace.data() ?? {}),
+          },
+          // S66: the staff inputs, charge policy and Working terms the output was filled from.
+          {
+            collection: "lease_document_packet_inputs",
+            id: renewalWorkspaceDocId(leaseId),
+            hash: resolved.packetInputsRecordHash,
+          },
+          {
+            collection: "lease_charge_policies",
+            id: "current",
+            hash: resolved.chargePolicyRecordHash,
+          },
+          {
+            collection: "lease_renewal_working_records",
+            id: renewalWorkspaceDocId(leaseId),
+            hash: resolved.workingRecordHash,
           },
         ],
       };
