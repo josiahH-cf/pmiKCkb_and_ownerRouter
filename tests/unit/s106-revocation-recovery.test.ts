@@ -142,7 +142,7 @@ describe("S106 generation-bound disconnect recovery", () => {
     expect(receipt.providerRevokedAt).toBe(now);
     expect(JSON.stringify(receipt)).not.toContain("isolated-token");
   });
-  it("retains an ambiguous provider attempt without repeating it or deleting credentials", async () => {
+  it("retains an ambiguous provider attempt: reads back before any repeat and never deletes credentials", async () => {
     const store = setup();
     const claim = await store.claimRevocation(request);
     if (claim.state !== "pending") throw new Error("expected pending");
@@ -170,10 +170,16 @@ describe("S106 generation-bound disconnect recovery", () => {
     const pending = await store.getConnection("dotloop");
     if (pending?.status !== "revocation_pending" || !pending.generationId)
       throw new Error("expected pending");
+    // S106 revision (AC-S106-4/7): the unknown revoke is not sent again; the retry first reads the
+    // token back, and an unreachable readback keeps every credential and issues no receipt.
     await expect(revokeDotloopConnection({ ...deps, record: pending })).rejects.toThrow(
-      "unknown outcome",
+      "needs recovery",
     );
-    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch.mock.calls.map(([call]) => call.method)).toEqual(["POST", "GET", "GET"]);
     expect(destroySecret).not.toHaveBeenCalled();
+    expect(await store.getConnection("dotloop")).toMatchObject({
+      status: "revocation_pending",
+      providerRevocationState: "attempting",
+    });
   });
 });

@@ -10,8 +10,8 @@
 // second revocation scheme.
 
 import {
-  DOTLOOP_OAUTH_TOKEN_URL,
   buildDotloopAuthorizeUrl,
+  buildDotloopTokenRequest,
   readDotloopOAuthConfig,
   type DotloopOAuthConfig,
   type DotloopTokenSet,
@@ -23,7 +23,6 @@ import {
   type EnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
 import {
-  DOTLOOP_SCOPES,
   DotloopClient,
   DotloopClientError,
   type DotloopHttpTransport,
@@ -40,8 +39,16 @@ export const DOTLOOP_CONNECTOR_ID = "dotloop";
 /** Single-use CSRF state storage. The route supplies a Firestore-backed implementation. */
 export interface DotloopOAuthStateStore {
   mint(input: { state: string; actorUid: string; nowIso: string }): Promise<void>;
-  /** Returns the minting actor once and only once; a forged or replayed state returns null. */
-  consume(input: { state: string; nowIso: string }): Promise<{ actorUid: string } | null>;
+  /**
+   * Consumes the state once and only once. It returns the minting actor only when that actor is
+   * the one completing the callback; a forged, expired, replayed or other-actor state returns null
+   * and can never be used again.
+   */
+  consume(input: {
+    state: string;
+    nowIso: string;
+    actorUid: string;
+  }): Promise<{ actorUid: string } | null>;
 }
 
 /** The exact connector-store capability this service needs; the Firestore store satisfies it. */
@@ -89,13 +96,19 @@ export async function beginDotloopConnection(
       clientId: config.config.clientId,
       redirectUri: config.config.redirectUri,
       state,
-      scope: DOTLOOP_SCOPES.join(" "),
     }),
   };
 }
 
+/** The bounded read-only check that follows a stored connection, before it is called connected. */
+export type DotloopConnectionVerifier = (input: {
+  generationId: string;
+}) => Promise<{ ok: true } | { ok: false }>;
+
 export type CompleteDotloopConnectionResult =
   | { status: "connected"; generationId: string }
+  /** Tokens are stored for this generation, but the account read did not complete. */
+  | { status: "connected_unverified"; generationId: string }
   | { status: "invalid_state" }
   | { status: "authorization_denied"; providerError: string }
   | { status: "exchange_failed" }
@@ -110,6 +123,8 @@ export type CompleteDotloopConnectionResult =
 
 export interface CompleteDotloopConnectionInput {
   readonly state: string;
+  /** The authenticated Admin completing the callback; it must be the actor who began it. */
+  readonly actorUid: string;
   readonly code?: string;
   /** The provider's `error` query value on a denial or callback error. */
   readonly providerError?: string;
@@ -119,6 +134,8 @@ export interface CompleteDotloopConnectionInput {
   readonly connections: DotloopConnectionRecorder;
   readonly vault: ConnectorSecretVault;
   readonly exchanger: DotloopTokenExchangeSeam;
+  /** Runs after the record is stored; without it the result stays `connected_unverified`. */
+  readonly verify?: DotloopConnectionVerifier;
   readonly env?: Record<string, string | undefined>;
   /** Defaults to the process environment; an explicit descriptor keeps tests deterministic. */
   readonly descriptor?: EnvironmentDescriptor;
@@ -128,6 +145,7 @@ export interface CompleteDotloopConnectionInput {
 export interface DotloopTokenExchangeSeam {
   exchangeCode(input: {
     code: string;
+    state?: string;
     config: DotloopOAuthConfig;
     vault: ConnectorSecretVault;
   }): Promise<DotloopTokenSet>;
@@ -146,11 +164,13 @@ export async function completeDotloopConnection(
   assertLiveProviderActionAllowed(
     input.descriptor ?? requireEnvironmentDescriptor(input.env ?? process.env),
   );
+  if (!input.actorUid) return { status: "invalid_state" };
   const claimed = await input.states.consume({
     state: input.state,
     nowIso: input.nowIso,
+    actorUid: input.actorUid,
   });
-  if (!claimed) return { status: "invalid_state" };
+  if (!claimed || claimed.actorUid !== input.actorUid) return { status: "invalid_state" };
 
   if (input.providerError) {
     return { status: "authorization_denied", providerError: input.providerError };
@@ -168,6 +188,7 @@ export async function completeDotloopConnection(
   try {
     tokens = await input.exchanger.exchangeCode({
       code: input.code,
+      state: input.state,
       config: config.config,
       vault: input.vault,
     });
@@ -220,7 +241,18 @@ export async function completeDotloopConnection(
       undestroyedTokenRefs,
     };
   }
-  return { status: "connected", generationId: input.generationId };
+  // Stored is not yet connected: only a real bounded account read for this generation is.
+  let verified = false;
+  if (input.verify) {
+    try {
+      verified = (await input.verify({ generationId: input.generationId })).ok;
+    } catch {
+      verified = false;
+    }
+  }
+  return verified
+    ? { status: "connected", generationId: input.generationId }
+    : { status: "connected_unverified", generationId: input.generationId };
 }
 
 /**
@@ -236,24 +268,19 @@ export class LiveDotloopTokenExchanger implements DotloopTokenExchangeSeam {
 
   async exchangeCode(input: {
     code: string;
+    state?: string;
     config: DotloopOAuthConfig;
     vault: ConnectorSecretVault;
   }): Promise<DotloopTokenSet> {
-    if (!input.config.clientSecret) {
-      throw new Error("The Dotloop client secret is not configured.");
-    }
+    const request = buildDotloopTokenRequest({
+      config: input.config,
+      grant: { type: "authorization_code", code: input.code },
+    });
     const response = await this.#transport.fetch({
-      url: DOTLOOP_OAUTH_TOKEN_URL,
+      url: request.url,
       method: "POST",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        authorization: `Basic ${Buffer.from(`${input.config.clientId}:${input.config.clientSecret}`).toString("base64")}`,
-      },
-      body: new URLSearchParams({
-        grant_type: "authorization_code",
-        code: input.code,
-        redirect_uri: input.config.redirectUri,
-      }).toString(),
+      headers: request.headers,
+      body: request.body,
     });
     if (response.status !== 200) {
       throw new Error("Dotloop refused the authorization code exchange.");
@@ -301,9 +328,11 @@ export class LiveDotloopTokenExchanger implements DotloopTokenExchangeSeam {
     if (typeof body.expires_in === "number" && Number.isFinite(body.expires_in)) {
       tokenSet.expiresInSeconds = body.expires_in;
     }
-    // Only provider-returned scope evidence can qualify readiness.
-    tokenSet.grantedScopes =
+    // Only provider-returned scope evidence can qualify readiness. An absent report stays absent
+    // (never an empty grant list), so readiness can state that exact verification limit.
+    const reported =
       typeof body.scope === "string" ? body.scope.split(/[\s,]+/).filter(Boolean) : [];
+    if (reported.length > 0) tokenSet.grantedScopes = reported;
     return tokenSet;
   }
 }

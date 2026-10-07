@@ -1,8 +1,6 @@
 # Unblock packet
 
-Last reconciled: 2026-10-03 (owner unblock pass of 2026-10-02; decisions Q1–Q4 and the A2, A4 and
-A6 readbacks recorded below; the S113 notice-safety race is fixed and released in run `3a32f7a2`;
-S152–S167 are released in run `47fabb7c`).
+Last reconciled: 2026-10-06 (Dotloop registered-client/Secret Manager match, live Connect refusal and current runtime readback; finalized intake 050–054; other holds retain their recorded evidence).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only the effect named in its row. No hold blocks development,
@@ -13,17 +11,17 @@ substitute value, identifier, credential or human verdict to clear a hold.
 
 ## Holds at a glance
 
-| Id        | Blocks only                                                         | Owner step                                  | Then the runner                                                                 |
-| --------- | ------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------- |
-| B-AUTH2   | Unattended local sessions longer than about 16 hours                | A4: session exception, then re-enroll WSL   | Runs the fresh-shell CLI/ADC probe to 25 hours and records the result           |
-| B-MNT1    | Preapproval-based maintenance routing (S108)                        | A3: preview and confirm the RentVine import | Reads back the recorded preapprovals and their effective date                   |
-| B-S100    | The resident-reply draft key, so S100 and then S36 completion       | A2: ticket, link work order 1756, one sync  | Verifies the resident mapping read-only, then runs the bounded draft proof (Q3) |
-| B-TIMING  | Approved 30-day notice classifications (they read Cannot determine) | A5: record the decided basis in Admin       | Reads back the saved basis version                                              |
-| B-DL1     | Dotloop credentials (S106 readiness, S34 provider work)             | A1: integration account, reply-all          | After activation and the V-DL secret command, binds and verifies the client     |
-| B-DL2     | The Dotloop connection and its selected resources                   | After B-DL1: connect and select resources   | Reads back profile/template readiness; both Dotloop keys stay closed            |
-| B-DL3     | Approved Dotloop form content for seven artifact families           | After B-DL2: confirm a template per family  | Verifies each family's mapping; no invented legal form                          |
-| B-BROWSER | Release assurance, only when Google signs the Admin profile out     | A6: sign the Admin profile back in          | Recollects prerequisites and continues the release                              |
-| B-HUMAN   | Human verdicts and real-case accuracy claims only                   | E2: observed sessions and real material     | Records each verdict with its evidence; nothing is inferred from tests          |
+| Id        | Blocks only                                                             | Owner step                                                                                                                        | Then the runner                                                                                                                  |
+| --------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| B-AUTH2   | Unattended local sessions longer than about 16 hours                    | A4: session exception, then re-enroll WSL                                                                                         | Runs the fresh-shell CLI/ADC probe to 25 hours and records the result                                                            |
+| B-MNT1    | Preapproval-based maintenance routing (S108)                            | A3: preview and confirm the RentVine import                                                                                       | Reads back the recorded preapprovals and their effective date                                                                    |
+| B-S100    | The resident-reply draft key, so S100 and then S36 completion           | A2: ticket, link work order 1756, one sync                                                                                        | Verifies the resident mapping read-only, then runs the bounded draft proof (Q3)                                                  |
+| B-TIMING  | Approved 30-day notice classifications (they read Cannot determine)     | A5: record the decided basis in Admin                                                                                             | Reads back the saved basis version                                                                                               |
+| B-DL1     | Dotloop deployed credential binding (S106 readiness, S34 provider work) | Registered client is visible and matches the stored id; confirm the final consent when the app setup is delivered                 | All four runtime variables are absent; bind/read back through the implementation release process and repair the Connect redirect |
+| B-DL2     | The Dotloop connection and its selected resources                       | After B-DL1: connect and select resources                                                                                         | Reads back profile/template readiness; both Dotloop keys stay closed                                                             |
+| B-DL3     | Approved form content/maps and rules for the selected lease packet      | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output           |
+| B-BROWSER | Release assurance, only when Google signs the Admin profile out         | A6: sign the Admin profile back in                                                                                                | Recollects prerequisites and continues the release                                                                               |
+| B-HUMAN   | Human verdicts and real-case accuracy claims only                       | E2: observed sessions and real material                                                                                           | Records each verdict with its evidence; nothing is inferred from tests                                                           |
 
 ## Owner decisions
 
@@ -51,9 +49,22 @@ Vendoroo's agent writing into RentVine and no direct connector.
 
 ## Owner steps
 
-**A1. Dotloop integration account (B-DL1).** Create a free Dotloop account on a company-owned role
-address, not a person's mailbox. Reply-all on Dotloop's 2026-09-10 approval thread with that
-address. Dotloop then activates API access, which can take 3–5 business days (E1 continues).
+**A1. Dotloop client registration and runtime binding (B-DL1).** API access for
+`integrations@pmikcmetro.com` was enabled in Dotloop's 2026-10-01 correspondence. The owner supplied
+an existing Client ID and Secret; their retrieval and Secret Manager migration were verified on
+2026-10-06. Creating another account or manually delivering the secret is no longer an owner step.
+
+The owner now reports the client registered. The Dotloop Clients screen shows the existing company
+client and account/profile/loop/contact/template permission categories; its id exactly matches the
+stored Client ID. The screen does not expose the registered redirect or provider-granted token
+scopes. Confirm whether API Support completed its requested verification. The intended callback is
+`https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/connections/dotloop/callback`.
+
+Runner: use the stored credentials through the existing reviewed production configuration in a
+separately authorized release, then read back the actual runtime. Current Cloud Run readback still
+has none of the four Dotloop credential/vault variables configured. Storage alone does not close
+runtime readiness or establish a connected account. Live verification is deferred to a separate
+flow by the owner's 2026-10-06 direction.
 
 **A2. S100 ticket, link and sync (B-S100).** In the app's Maintenance area, signed in as yourself:
 
@@ -134,24 +145,39 @@ Until then phones use the pop-up, which the S152–S167 release already repairs.
 
 ## External and waiting
 
-**E1. Dotloop after activation (B-DL1 → B-DL2 → B-DL3).**
+**E1. Dotloop stored client and remaining setup (B-DL1 → B-DL2 → B-DL3).**
 
-1. Create one sandbox and one production API client with PMI KC's company details. Each uses the
-   redirect URI `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/connections/dotloop/callback` and
-   the scopes `account:read`, `profile:read`, `loop:read`, `loop:write` and `template:read`.
-2. Reply to Dotloop API Support so it completes each client's configuration.
-3. Store the production client secret with the V-DL command below. It reads the secret without echo.
-4. The runner binds the non-secret client id and redirect in the reviewed production env file; the
-   next authorized release carries them (V-DL).
-5. Connect the managed account in Connections and choose a verified office profile, renewal
-   template, transaction type and initial status (B-DL2).
-6. For each of the seven artifact families (standard lease, renewal extension, animal agreement,
-   lead-based-paint disclosure, city addendum, HOA artifact, owner acknowledgment), confirm which
-   existing Dotloop template carries it, or supply the approved blank form with its version and
-   field, participant and signature mappings (B-DL3).
+1. Confirm the existing client's callback matches the canonical callback in A1 and the requested
+   scopes are `account:read`, `profile:read`, `loop:read`, `loop:write` and `template:read`.
+2. Confirm Dotloop API Support has verified the client; reply on its existing thread if still needed.
+   This is an owner step; no support message has been sent by the runner.
+3. Credential storage is complete, as recorded below. Additional test clients are outside this
+   cycle; live testing is deferred to a separate owner-directed flow.
+4. In a separately authorized release, bind the non-secret client id and verified redirect in the
+   reviewed production env file, the client-secret Secret Manager reference, and the connector
+   vault project. Read back the deployed configuration and named readiness failures.
+5. During the separate connection flow, the owner completes consent and selects a verified,
+   supported individual profile with access to the company's renewal template, plus the template,
+   transaction type and initial status. The owner reports Business+ access; live resource access
+   remains unverified. Do not require an office-only profile selection.
+6. Feature scope is finalized in intake 050–054. The S66/S130 configuration path will accept the
+   actual approved legal versions, applicability, field/signer mappings and versioned fee policy.
+   Confirm those production inputs before their affected customer-ready output; do not invent
+   amounts, signer identities or legal approval from acceptance of the feature recommendations.
+   Eight static references are available in `docs/dotloop_template_references/`; they are not
+   published forms or complete maps. Approval/configuration can proceed independently of B-DL2.
+   Stable Drive access is deferred and does not hold this specification cycle or local filling.
+
+**Next developer step:** deliver the stored credential/vault bindings and the S106 Connect
+navigation repair through the existing implementation/release process. The registered client is
+visible and matches the stored id; no new client or repeated secret delivery is needed. The
+registered redirect remains owner-reported, and actual granted scopes must be checked after consent.
+Support verification and selected resource ids remain separately unverified.
 
 Both Dotloop action keys stay closed until a separate exact-key proof and activation is authorized.
-Signature completion is never inferred.
+Signature completion is never inferred. The current work is specification authoring plus the
+explicitly requested credential migration and later connection-initiation check; no application
+implementation or live provider business-effect proof is started.
 
 **E2. Human verdicts and real material (B-HUMAN).** These change verdicts, not code, and none blocks
 delivery: a human observer for screen-reader, desktop full-page zoom and batch 004 usability
@@ -160,33 +186,56 @@ applicability review with reviewed lease evidence; and a staff accuracy review o
 draft (recipients, sender, charges and terms). Live Gmail or provider effects from Focus and live
 staff-record saves stay unverified until a person performs them.
 
-## V-DL: bounded verification after credentials arrive
+## V-DL: credential delivery, connection attempt and remaining verification
 
-Trigger: B-DL1 credentials are delivered through the recorded binding path, authorized unattended
-access is available, and the owner starts the B-DL2 connection.
+**Storage verified 2026-10-06.** The owner-supplied Client ID and Secret were read from the selected
+1Password item and copied to Secret Manager in `pmi-kc-kb-prod`:
 
-1. Verify the reviewed non-secret client id/redirect and the Secret Manager client-secret binding;
-   verify vault configuration and the existing runtime permission without adding a grant.
+- `DOTLOOP_OAUTH_CLIENT_ID`, version `1`, `ENABLED`, created at `2026-10-06T10:16:33.822022Z`.
+- `DOTLOOP_OAUTH_CLIENT_SECRET`, version `1`, `ENABLED`, created at `2026-10-06T10:17:05.981956Z`.
+
+Both secret readbacks exactly matched the source bytes in memory. Values were not printed or
+written into the repository. The existing runtime service account
+`pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com` has a read-back
+`roles/secretmanager.secretAccessor` binding on the client-secret resource. Fresh CLI and ADC
+refreshes passed for the approved `josiah@pmikcmetro.com` WSL identity.
+
+Cloud Run readback on `pmi-kc-app-rmuvf58nk-d45b8bc5347d` has no configured
+`DOTLOOP_OAUTH_CLIENT_ID`, `DOTLOOP_OAUTH_CLIENT_SECRET`, `DOTLOOP_OAUTH_REDIRECT_URI` or
+`CONNECTOR_SECRET_VAULT_PROJECT_ID`. No revision was deployed or changed. Registered client
+callback/scopes and API Support verification remain unverified. Credential storage is complete;
+B-DL1 remains scoped to runtime binding and client setup, and B-DL2 remains connection/selection.
+
+**Connection initiation attempted 2026-10-06.** The owner's later request to run the callback/API
+scope authorizes the narrow connection check. Managed Admin sign-in completed, but the live
+Connect control refused before OAuth with missing registration/callback configuration. An
+independent Cloud Run readback confirms all four variables above still absent on the same serving
+revision. The stored Client ID exactly matches the registered client. Fresh WSL CLI/ADC refreshes
+passed; earlier bounded tool timeouts are not current authentication failures. No Dotloop callback,
+consent, token exchange, loop creation or upload completed, and no cloud mutation occurred.
+
+Completing the flow requires the app's configuration release and Connect repair; the implementation
+queue/permit remain in their completed state. This check does not execute the newly authored
+feature batch. Other live token-lifecycle/provider acceptance, demo and activation work remains
+deferred. After the required setup delivery, within the authorized connection flow:
+
+1. Verify the reviewed client id/redirect and the Secret Manager client-secret binding; verify
+   vault configuration and existing runtime permissions without adding a grant during verification.
 2. After the authorized release, read runtime configuration and named readiness failures.
 3. Let the owner complete OAuth and select verified resources. Read back profile/template
-   readiness, token metadata and the connection generation without exposing tokens or provider
-   bodies.
-4. Check refresh, revocation and reconnect only through their existing explicit workflows and keep
-   S96's preview/confirmation/credential-removal/readback contract. Report denied storage or
-   cleanup as recovery needed, never as connected.
+   readiness, token metadata and connection generation without exposing tokens or provider bodies.
+4. Leave live refresh/revocation/reconnect testing to its separately directed lifecycle flow.
+   That flow must preserve S96's preview/confirmation/credential-removal/readback contract;
+   denied storage or cleanup means recovery needed, not connected.
 5. Verify both Dotloop action keys remain closed and no signature completion is inferred.
 
-Owner delivery command for the production client secret, run in WSL as the approved account:
-
-```bash
-read -rs DOTLOOP_SECRET && printf '%s' "$DOTLOOP_SECRET" | gcloud secrets create DOTLOOP_OAUTH_CLIENT_SECRET --project=pmi-kc-kb-prod --replication-policy=automatic --data-file=- && unset DOTLOOP_SECRET && gcloud secrets add-iam-policy-binding DOTLOOP_OAUTH_CLIENT_SECRET --project=pmi-kc-kb-prod --member=serviceAccount:pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com --role=roles/secretmanager.secretAccessor
-```
-
-The non-secret `DOTLOOP_OAUTH_CLIENT_ID`, `DOTLOOP_OAUTH_REDIRECT_URI` and
-`DOTLOOP_OAUTH_CLIENT_SECRET_SECRET_ID=DOTLOOP_OAUTH_CLIENT_SECRET` then go in the reviewed
-production env file. V-DL creates no loop and uploads no document; those need approved content and
-separately authorized exact keys, previews, confirmations, receipts and readbacks. No support
-follow-up is sent by the runner.
+The reviewed deployment configuration must supply the non-secret `DOTLOOP_OAUTH_CLIENT_ID`,
+verified `DOTLOOP_OAUTH_REDIRECT_URI`,
+`DOTLOOP_OAUTH_CLIENT_SECRET_SECRET_ID=DOTLOOP_OAUTH_CLIENT_SECRET`, the selected secret version,
+and `CONNECTOR_SECRET_VAULT_PROJECT_ID=pmi-kc-kb-prod`. Storing the Client ID in Secret Manager
+also preserves its source; the existing wrapper consumes its non-secret value through the env map.
+V-DL creates no loop and uploads no document. Provider writes still require approved content and
+separately authorized exact keys, previews, confirmations, receipts and readbacks.
 
 ## Runner follow-ups (not holds)
 

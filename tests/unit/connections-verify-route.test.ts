@@ -44,7 +44,13 @@ describe("POST /api/connections/verify", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ connector_id: "rentvine", verified: true });
-    expect(verifyConnectorNow).toHaveBeenCalledWith("rentvine");
+    // The Admin actor labels any refreshed observation (S106 Dotloop resource checks).
+    expect(verifyConnectorNow).toHaveBeenCalledWith(
+      "rentvine",
+      expect.any(Object),
+      expect.any(Number),
+      expect.any(String),
+    );
   });
 
   it("is Admin-only — an Editor gets 403 and no probe runs", async () => {

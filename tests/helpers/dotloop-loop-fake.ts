@@ -7,6 +7,16 @@ import type {
   DotloopHttpResponse,
   DotloopHttpTransport,
 } from "@/lib/integrations/dotloop/client";
+import { boundaryFromContentType, parseMultipart } from "@/tests/helpers/multipart";
+
+/** One upload exactly as the provider would receive it, parsed from the multipart bytes. */
+export interface RecordedUpload {
+  readonly loopId: string;
+  readonly folderId: string;
+  readonly fileName: string | null;
+  readonly contentType: string | null;
+  readonly bytes: Uint8Array;
+}
 
 export interface FakeLoop {
   id: string;
@@ -29,6 +39,10 @@ export interface DotloopLoopFake extends DotloopHttpTransport {
   readonly createPaths: readonly string[];
   /** Bearer tokens seen on document uploads, in order. */
   readonly uploadAuthorizations: readonly string[];
+  /** Every accepted upload, parsed byte-for-byte from the request body. */
+  readonly uploads: readonly RecordedUpload[];
+  /** Folders created, in order, so tests can prove folder reuse. */
+  readonly folderCreates: readonly { loopId: string; folderId: string; name: string }[];
   /** Answer the next document upload with 401 once, like an expired access token. */
   rejectNextUploadWith401: boolean;
   archive(loopId: string): void;
@@ -44,6 +58,8 @@ export function createDotloopLoopFake(): DotloopLoopFake {
   const loops = new Map<string, FakeLoop>();
   const createPaths: string[] = [];
   const uploadAuthorizations: string[] = [];
+  const uploads: RecordedUpload[] = [];
+  const folderCreates: { loopId: string; folderId: string; name: string }[] = [];
   let createCount = 0;
   let nextLoop = 0;
   let nextFolder = 0;
@@ -70,6 +86,8 @@ export function createDotloopLoopFake(): DotloopLoopFake {
     loops,
     createPaths,
     uploadAuthorizations,
+    uploads,
+    folderCreates,
     rejectNextUploadWith401: false,
     get createCount() {
       return createCount;
@@ -84,7 +102,7 @@ export function createDotloopLoopFake(): DotloopLoopFake {
     async fetch(input) {
       const url = new URL(input.url);
       const path = url.pathname;
-      const body = input.body ? safeJson(input.body) : null;
+      const body = typeof input.body === "string" ? safeJson(input.body) : null;
 
       const loopMatch = /\/profile\/[^/]+\/loop\/([^/]+)/.exec(path);
       const loop = loopMatch ? loops.get(loopMatch[1]) : undefined;
@@ -204,6 +222,11 @@ export function createDotloopLoopFake(): DotloopLoopFake {
           nextFolder += 1;
           const id = `folder-${nextFolder}`;
           loop.folders.set(id, { id, name: String(body?.name ?? ""), documents: [] });
+          folderCreates.push({
+            loopId: loop.id,
+            folderId: id,
+            name: String(body?.name ?? ""),
+          });
           return jsonResponse(200, { data: { id, name: body?.name } });
         }
         const documentMatch = /\/folder\/([^/]+)\/document$/.exec(path);
@@ -216,6 +239,21 @@ export function createDotloopLoopFake(): DotloopLoopFake {
               fake.rejectNextUploadWith401 = false;
               return jsonResponse(401, { error: "expired" });
             }
+            const boundary = boundaryFromContentType(input.headers?.["content-type"]);
+            if (!boundary || !(input.body instanceof Uint8Array)) {
+              return jsonResponse(400, { error: "multipart body required" });
+            }
+            const [part] = parseMultipart(input.body, boundary).filter(
+              (entry) => entry.name === "file",
+            );
+            if (!part) return jsonResponse(400, { error: "file part required" });
+            uploads.push({
+              loopId: loop.id,
+              folderId: folder.id,
+              fileName: part.fileName,
+              contentType: part.headers["content-type"] ?? null,
+              bytes: part.data,
+            });
             nextDocument += 1;
             const id = `document-${nextDocument}`;
             folder.documents.push({ id, name: `document-${nextDocument}.pdf` });

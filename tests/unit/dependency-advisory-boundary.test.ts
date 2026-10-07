@@ -16,12 +16,17 @@ const require = createRequire(import.meta.url);
 describe("I11 patched transitive dependency boundaries", () => {
   it("loads the exact patched releases selected through Next and GenAI/MCP", () => {
     expect(installedVersion("next")).toBe("16.3.7");
-    expect(installedVersion("sharp")).toBe("0.35.4");
+    expect(installedVersion("sharp")).toBe("0.35.5");
     expect(installedVersion("fast-uri")).toBe("3.1.8");
     expect(installedVersion("hono")).toBe("4.13.7");
     expect(installedVersion("ip-address")).toBe("10.7.1");
     expect(installedVersion("nanoid")).toBe("3.3.18");
     expect(installedVersion("qs")).toBe("6.16.0");
+    // October 6 audit: the MCP SDK (an optional GenAI peer), its express proxy-addr and postcss's
+    // source-map-js are pinned to their first patched releases or later.
+    expect(installedVersion("proxy-addr")).toBe("2.0.8");
+    expect(installedVersion("source-map-js")).toBe("1.2.2");
+    expect(manifestVersion("@modelcontextprotocol/sdk")).toBe("1.32.1");
     expect(typeof GoogleGenAI).toBe("function");
     expect(nanoid(12)).toMatch(/^[A-Za-z0-9_-]{12}$/);
   });
@@ -63,8 +68,20 @@ describe("I11 patched transitive dependency boundaries", () => {
   });
 });
 
+/** For a package whose exports expose no root entry, walk up from an exported file instead. */
+function manifestVersion(packageName: string): string {
+  return versionAbove(
+    dirname(require.resolve(`${packageName}/package.json`)),
+    packageName,
+  );
+}
+
 function installedVersion(packageName: string): string {
-  let directory = dirname(require.resolve(packageName));
+  return versionAbove(dirname(require.resolve(packageName)), packageName);
+}
+
+function versionAbove(start: string, packageName: string): string {
+  let directory = start;
   for (let depth = 0; depth < 8; depth += 1) {
     try {
       const manifest = JSON.parse(

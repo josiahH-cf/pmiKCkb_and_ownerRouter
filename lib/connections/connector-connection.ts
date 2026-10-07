@@ -6,6 +6,13 @@ import type { ConnectMethod } from "@/lib/connections/connector-catalog";
 export type ConnectorConnectionStatus = "connected" | "revocation_pending" | "revoked";
 export type ConnectorDestroyOutcome = "destroyed" | "already_absent";
 export type ConnectorRevocationMode = "start" | "adopt_legacy" | "recover";
+/**
+ * Dotloop provider-side revocation evidence. `verified`: the revoke was acknowledged and the token
+ * then read back as rejected. `unverified`: the application could not prove every provider token
+ * dead (an uncertain earlier refresh may have minted tokens it never held, or the held token was
+ * already unusable); its own copies are still removed and the receipt says so.
+ */
+export type DotloopProviderRevocationEvidence = "verified" | "unverified";
 
 interface ConnectorRecordBase {
   connectorId: string;
@@ -46,7 +53,7 @@ export interface ConnectorRevocationPendingRecord
   operationId: string;
   requestedByUid: string;
   requestedAt: string;
-  providerRevocationState?: "attempting" | "verified";
+  providerRevocationState?: "attempting" | DotloopProviderRevocationEvidence;
   providerRevokedAt?: string;
 }
 
@@ -58,6 +65,7 @@ export interface ConnectorRevokedRecord extends ConnectorRecordBase, VersionedId
   completedAt: string;
   destroyOutcome: ConnectorDestroyOutcome;
   providerRevokedAt?: string;
+  providerRevocation?: DotloopProviderRevocationEvidence;
 }
 
 /**
@@ -92,6 +100,7 @@ export interface ConnectorRevocationReceipt {
   completedAt: string;
   destroyOutcome: ConnectorDestroyOutcome;
   providerRevokedAt?: string;
+  providerRevocation?: DotloopProviderRevocationEvidence;
 }
 
 export interface ConnectorRevocationRequest {
@@ -132,7 +141,7 @@ export interface ConnectorConnectionStore {
     generationId: string;
     operationId: string;
     expectedRevision: number;
-    state: "attempting" | "verified";
+    state: "attempting" | DotloopProviderRevocationEvidence;
     observedAt: string;
   }): Promise<ConnectorRevocationPendingRecord>;
   completeRevocation(input: {

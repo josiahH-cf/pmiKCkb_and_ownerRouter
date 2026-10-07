@@ -16,6 +16,7 @@ import {
   type ConnectorRevocationReceipt,
   type ConnectorRevokedRecord,
   type CreateConnectorConnectionInput,
+  type DotloopProviderRevocationEvidence,
 } from "@/lib/connections/connector-connection";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import type {
@@ -344,23 +345,28 @@ export class FirestoreConnectorConnectionStore
     generationId: string;
     operationId: string;
     expectedRevision: number;
-    state: "attempting" | "verified";
+    state: "attempting" | DotloopProviderRevocationEvidence;
     observedAt: string;
   }): Promise<ConnectorRevocationPendingRecord> {
     const ref = this.connectionRef("dotloop");
     return this.db.runTransaction(async (transaction) => {
       const snapshot = await transaction.get(ref);
       const current = snapshot.data() as ConnectorConnectionRecord | undefined;
-      if (
-        !current ||
-        current.status !== "revocation_pending" ||
-        !isSafeVersionedPendingRecord(current) ||
-        current.generationId !== input.generationId ||
-        current.operationId !== input.operationId ||
-        current.revision !== input.expectedRevision ||
-        current.refreshOutcomeUncertain ||
-        (input.state === "verified" && current.providerRevocationState !== "attempting")
-      ) {
+      const allowed =
+        current?.status === "revocation_pending" &&
+        isSafeVersionedPendingRecord(current) &&
+        current.generationId === input.generationId &&
+        current.operationId === input.operationId &&
+        current.revision === input.expectedRevision &&
+        // A concluded attempt is final for this disconnect operation.
+        current.providerRevocationState !== "verified" &&
+        current.providerRevocationState !== "unverified" &&
+        (input.state === "attempting" ||
+          (current.providerRevocationState === "attempting" &&
+            // Proof of revocation is impossible after an uncertain refresh; only the
+            // honestly labeled unverified outcome may conclude that disconnect.
+            (input.state === "unverified" || !current.refreshOutcomeUncertain)));
+      if (!allowed || !current || current.status !== "revocation_pending") {
         throw new EditableLayerError(
           "Dotloop provider revocation generation needs recovery.",
           409,
@@ -409,18 +415,21 @@ export class FirestoreConnectorConnectionStore
           409,
         );
       }
-      if (
-        pending.connectorId === "dotloop" &&
-        pending.method === "oauth" &&
-        (pending.providerRevocationState !== "verified" ||
-          !pending.providerRevokedAt ||
-          pending.refreshOutcomeUncertain)
-      ) {
+      const dotloopOauth =
+        pending.connectorId === "dotloop" && pending.method === "oauth";
+      const providerVerified =
+        pending.providerRevocationState === "verified" &&
+        Boolean(pending.providerRevokedAt) &&
+        !pending.refreshOutcomeUncertain;
+      const providerUnverified = pending.providerRevocationState === "unverified";
+      if (dotloopOauth && !providerVerified && !providerUnverified) {
         throw new EditableLayerError(
-          "Dotloop provider revocation must be verified before credential removal completes.",
+          "Dotloop provider revocation must be concluded before credential removal completes.",
           409,
         );
       }
+      const providerRevocation: DotloopProviderRevocationEvidence | undefined =
+        dotloopOauth ? (providerVerified ? "verified" : "unverified") : undefined;
       const revision = pending.revision + 1;
       const revoked: ConnectorRevokedRecord = {
         connectorId: pending.connectorId,
@@ -431,9 +440,10 @@ export class FirestoreConnectorConnectionStore
         requestedAt: pending.requestedAt,
         completedAt: input.completedAt,
         destroyOutcome: input.destroyOutcome,
-        ...(pending.providerRevokedAt
+        ...(providerVerified && pending.providerRevokedAt
           ? { providerRevokedAt: pending.providerRevokedAt }
           : {}),
+        ...(providerRevocation ? { providerRevocation } : {}),
         generationId: pending.generationId,
         revision,
         updatedAt: input.completedAt,
@@ -448,9 +458,10 @@ export class FirestoreConnectorConnectionStore
         requestedAt: pending.requestedAt,
         completedAt: input.completedAt,
         destroyOutcome: input.destroyOutcome,
-        ...(pending.providerRevokedAt
+        ...(providerVerified && pending.providerRevokedAt
           ? { providerRevokedAt: pending.providerRevokedAt }
           : {}),
+        ...(providerRevocation ? { providerRevocation } : {}),
       };
       transaction.set(connectionRef, revoked);
       transaction.create(receiptRef, receiptRecord(receipt));
@@ -553,6 +564,9 @@ function receiptRecord(receipt: ConnectorRevocationReceipt): Record<string, unkn
     ...(receipt.providerRevokedAt
       ? { provider_revoked_at: receipt.providerRevokedAt }
       : {}),
+    ...(receipt.providerRevocation
+      ? { provider_revocation: receipt.providerRevocation }
+      : {}),
   };
 }
 
@@ -570,6 +584,10 @@ function readReceipt(record: Record<string, unknown>): ConnectorRevocationReceip
   const receipt: ConnectorRevocationReceipt = {
     ...(typeof record.provider_revoked_at === "string"
       ? { providerRevokedAt: record.provider_revoked_at }
+      : {}),
+    ...(record.provider_revocation === "verified" ||
+    record.provider_revocation === "unverified"
+      ? { providerRevocation: record.provider_revocation }
       : {}),
     connectorId: String(record.connector_id ?? ""),
     method: record.method,

@@ -1,34 +1,21 @@
 # Loop state
 
-Last updated: 2026-10-05 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-10-07 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-COMPLETE: batch 005, application-usability-reliability-2026-10, under the October 4 named owner
-instruction. S168–S175, revised S87 and S176–S181, intake 035–049: all 116 engineering traces
-and the one cumulative production release are verified. All fifteen finalized spec bytes and
-unrelated private files remain preserved. Its four verification repairs were released on
-October 5 by run 5d1b4e3a-ef6d-4354-aef1-e9952dd28687 under the owner's instruction of that day;
-run 7753e5f5-2325-4b19-b83d-dc3475d71b0b released five follow-up fixes under the same instruction.
-Run 61659874-478d-4135-9810-5033b2f732bf released the fixes for the items left open under the owner's later
-instruction of that day.
-Native evidence: docs/evidence/application-usability-batch005.json.
+IN PROGRESS: dotloop-pdf-renewal-v1-2026-10, intake 050-054 (S106, S66, S130, S34, S182), under the
+owner's 2026-10-06 execution instruction: implementation, verification, mainline delivery and
+release through the existing process, plus the bounded company connection, callback and scope
+check. Finalized spec revisions are committed (`d5478673`); private reference PDFs stay ignored.
+First release: the S106 connection slice, so the registered callback can be checked. Next: the
+bounded live connection check, then S182 access/AI boundaries, S66 terms, S130 PDF filling and S34
+handoff in the second release. Both Dotloop write keys stay closed; no loop, upload, signature
+send, demo or activation is authorized.
 
-Serving e8bc616d144c6600da8394313153e1a0c75659da / pmi-kc-app-rmuvf58nk-d45b8bc5347d, 100% traffic,
-run 61659874-478d-4135-9810-5033b2f732bf, exact-main CI 37333580981 passed. Approved WSL unattended CLI/ADC
-refresh passed before dependent phases; guarded assurance used the existing managed Admin profile.
-Batch 005 itself: run 8b7dc3f1-4c5b-482a-94ca-26985150c68d at fa5b2b27, exact-main CI 37250383538;
-its first repairs: run 5d1b4e3a at 9e76c14f, exact-main CI 37299720511;
-its follow-up fixes: run 7753e5f5 at b2308bc5, exact-main CI 37308062054.
-Final focused selection passed 781/104 files. Native full 14 passed 8,753 unit/four existing skips,
-325 backend, zero audit findings/all policies/build; core 12 passed 32/22 existing skips.
-Compiled matrix 19 passed 438 observations/eight coupled journeys/168 accessibility audits,
-zero violations/page errors. Six-owner recovery 6 passed 18 observations/126 intercepted attempts,
-zero effects. Publication recovery 2 passed six observations/18 intercepted actions, retaining
-the full wrapping hash and uncertain post-commit 409 fence. The separate compiled identity-to-lease
-and verified RentVine shortcut journey passed. Counts are scoped actual evidence, not human verdicts.
-Inventory: 38 routes, 190 consumers, six cohorts; 812 current plus 81 former content blocks.
-Named actual owner/service/compiled checks are separate from source/import topology inspection.
+Previous: batch 005 COMPLETE. Serving e8bc616d144c6600da8394313153e1a0c75659da /
+pmi-kc-app-rmuvf58nk-d45b8bc5347d, 100% traffic, run 61659874-478d-4135-9810-5033b2f732bf,
+exact-main CI 37333580981 passed. Native evidence: docs/evidence/application-usability-batch005.json.
 
 ## Independent verification, 2026-10-05
 
@@ -49,13 +36,18 @@ with production cold and warm timings.
 
 ## Awaiting release
 
-None. OWNER DIRECTION, 2026-10-05: use the recommendations on the open items; fix and deploy.
-Run 61659874-478d-4135-9810-5033b2f732bf delivered the seven open-item fixes (S170, S178, S87,
-S176, S177, S148, S181) at e8bc616d144c6600da8394313153e1a0c75659da; code slice
-49f745f4b6889a9e8b17c0b18f9caf6b283037a2 is its ancestor. Runs 5d1b4e3a and 7753e5f5
-delivered the earlier repairs at 9e76c14f and b2308bc5. All three exact permits are consumed.
-Documentation-only closure does not deploy. No completed, superseded, historical or deferred suite
-restarts from a registry row or consumed permit.
+1. S106 company Dotloop connection repair and the October 6 audit patch: `cca7aa14`, `bf448460`.
+   Validated Connect navigation, an actor-bound single-use callback with a safe return, labeled
+   generation-bound readiness and the mounted resource picker, a bounded shared transport,
+   single-flight refresh, honest quarantined-disconnect receipts, and the S182 removal of Dotloop
+   verdicts from AI context.
+
+OWNER DIRECTION, 2026-10-06: the Dotloop PDF renewal v1 execution prompt (handoff
+dotloop-pdf-renewal-v1-2026-10) authorizes this delivery. The runtime receives the reviewed Dotloop
+configuration staged in both production env files. Admit only after exact main CI on the release
+head, fresh prerequisites and a new run-bound permit. Both Dotloop write keys stay closed; no
+provider effect, key or activation is queued. Assurance stays read-only; the connection check runs
+separately after verified delivery.
 
 ## Verified release and recovery
 

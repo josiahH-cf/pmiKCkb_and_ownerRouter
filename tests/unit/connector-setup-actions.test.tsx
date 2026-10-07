@@ -252,7 +252,9 @@ describe("ConnectorSetupActions", () => {
     );
     await user.click(screen.getByRole("button", { name: "Connect with Dotloop" }));
     expect(
-      await screen.findByText("Add the Dotloop connection details first."),
+      await screen.findByText(
+        "The Dotloop application configuration is incomplete. Nothing was opened.",
+      ),
     ).toBeVisible();
   });
 });

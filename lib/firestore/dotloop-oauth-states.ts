@@ -35,12 +35,16 @@ export class FirestoreDotloopOAuthStateStore implements DotloopOAuthStateStore {
     });
   }
 
-  /** Consume once. An unknown, expired, or already-consumed state returns null. */
+  /**
+   * Consume once. An unknown, expired, or already-consumed state returns null. A state presented by
+   * a different signed-in actor is burned and returns null, so it can never establish a connection.
+   */
   async consume(input: {
     state: string;
     nowIso: string;
+    actorUid: string;
   }): Promise<{ actorUid: string } | null> {
-    if (!DOTLOOP_OAUTH_STATE_PATTERN.test(input.state)) return null;
+    if (!DOTLOOP_OAUTH_STATE_PATTERN.test(input.state) || !input.actorUid) return null;
     const ref = this.ref(input.state);
     return this.db.runTransaction(async (transaction) => {
       const snapshot = await transaction.get(ref);
@@ -48,11 +52,15 @@ export class FirestoreDotloopOAuthStateStore implements DotloopOAuthStateStore {
       const data = snapshot.data() ?? {};
       if (data.consumed_at) return null;
       const expiresAt = String(data.expires_at ?? "");
-      if (expiresAt === "" || input.nowIso > expiresAt) return null;
       const actorUid = String(data.actor_uid ?? "");
-      if (actorUid === "") return null;
-      transaction.update(ref, { consumed_at: input.nowIso });
-      return { actorUid };
+      const outcome =
+        expiresAt === "" || input.nowIso > expiresAt
+          ? "expired"
+          : actorUid === "" || actorUid !== input.actorUid
+            ? "other_actor"
+            : "consumed";
+      transaction.update(ref, { consumed_at: input.nowIso, consume_outcome: outcome });
+      return outcome === "consumed" ? { actorUid } : null;
     });
   }
 

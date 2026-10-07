@@ -26,7 +26,13 @@ export async function POST(request: Request) {
       );
     }
     const input = await parseJsonBody(request, VerifyConnectionInputSchema);
-    const result = await verifyConnectorNow(input.connector_id);
+    // The actor labels any refreshed observation (Dotloop records who ran its resource check).
+    const result = await verifyConnectorNow(
+      input.connector_id,
+      process.env,
+      Date.now(),
+      user.uid,
+    );
     if (!result.supported) {
       throw new EditableLayerError(
         "This connection does not have a live check yet.",

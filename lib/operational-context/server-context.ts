@@ -16,7 +16,7 @@ import {
 } from "@/lib/connections/connection-status";
 import { can } from "@/lib/auth/roles";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
-import { getVerifiedConnectorIds } from "@/lib/connections/verification";
+import { getVerifiedConnectorIdsForAiContext } from "@/lib/connections/verification";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { listApprovalQueue } from "@/lib/firestore/approval-queue";
 import { getConnectorConnectionStore } from "@/lib/firestore/connector-connections";
@@ -157,7 +157,8 @@ export function createServerOperationalContext(
     },
     connections: async () => {
       const [verifiedResult, recordsResult] = await Promise.allSettled([
-        withReadDeadline(() => getVerifiedConnectorIds()),
+        // S182: provider-derived (Dotloop) verdicts never enter this AI-facing context.
+        withReadDeadline(() => getVerifiedConnectorIdsForAiContext()),
         withReadDeadline(() => getConnectorConnectionStore().listConnections()),
       ]);
       let verifiedIds: ReadonlySet<string> = new Set();

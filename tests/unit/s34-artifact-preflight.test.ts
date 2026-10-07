@@ -9,6 +9,10 @@ vi.mock("@/lib/operations/runtime-suspension-gate", () => ({
 vi.mock("@/lib/connections/dotloop-runtime", () => ({
   createDotloopRuntime: calls.runtime,
   readDotloopRuntimeReadiness: async () => ({ state: "connected" }),
+  refreshDotloopResourceReadiness: async () => ({
+    readiness: { state: "connected" },
+    observation: null,
+  }),
 }));
 vi.mock("@/lib/firestore/dotloop-renewal-settings", () => ({
   getDotloopRenewalSettings: async () => ({

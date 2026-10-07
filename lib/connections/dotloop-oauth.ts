@@ -12,16 +12,53 @@ import {
   type ConnectorSecretVault,
 } from "@/lib/connections/connector-secret-vault";
 import { CANONICAL_UUID } from "@/lib/connections/connector-connection";
+import {
+  DOTLOOP_OAUTH_AUTHORIZE_URL,
+  buildDotloopAuthorizeUrl,
+} from "@/lib/connections/dotloop-authorize-url";
+import { DOTLOOP_OAUTH_ENV } from "@/lib/connections/dotloop-env-names";
 
-export const DOTLOOP_OAUTH_AUTHORIZE_URL = "https://auth.dotloop.com/oauth/authorize";
+export { DOTLOOP_OAUTH_AUTHORIZE_URL, buildDotloopAuthorizeUrl };
 export const DOTLOOP_OAUTH_TOKEN_URL = "https://auth.dotloop.com/oauth/token";
 
+/**
+ * The token request: `POST /oauth/token` with the documented grant parameters as an OAuth form
+ * body and the client credentials only in the Basic authorization header. Credentials (the code,
+ * the refresh token, the client secret) never appear in a URL. Server-side only; nothing here is
+ * logged, returned or stored.
+ */
+export function buildDotloopTokenRequest(input: {
+  config: DotloopOAuthConfig;
+  grant:
+    | { type: "authorization_code"; code: string }
+    | { type: "refresh_token"; refreshToken: string };
+}): { url: string; headers: Record<string, string>; body: string } {
+  if (!input.config.clientSecret) {
+    throw new Error("The Dotloop client secret is not configured.");
+  }
+  const body =
+    input.grant.type === "authorization_code"
+      ? new URLSearchParams({
+          grant_type: "authorization_code",
+          code: input.grant.code,
+          redirect_uri: input.config.redirectUri,
+        })
+      : new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: input.grant.refreshToken,
+        });
+  return {
+    url: DOTLOOP_OAUTH_TOKEN_URL,
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+      authorization: `Basic ${Buffer.from(`${input.config.clientId}:${input.config.clientSecret}`).toString("base64")}`,
+    },
+    body: body.toString(),
+  };
+}
+
 /** Env var NAMES the OAuth app credentials land in (presence only; never rendered, never a value here). */
-export const DOTLOOP_OAUTH_ENV = {
-  clientId: "DOTLOOP_OAUTH_CLIENT_ID",
-  clientSecret: "DOTLOOP_OAUTH_CLIENT_SECRET",
-  redirectUri: "DOTLOOP_OAUTH_REDIRECT_URI",
-} as const;
+export { DOTLOOP_OAUTH_ENV };
 
 export interface DotloopOAuthConfig {
   clientId: string;
@@ -56,26 +93,6 @@ export function readDotloopOAuthConfig(
     return { configured: false, missing };
   }
   return { configured: true, config: { clientId, redirectUri, clientSecret } };
-}
-
-/**
- * Build the Dotloop authorize URL (auth-code flow). Pure. The URL carries response_type/client_id/
- * redirect_uri/scope/state ONLY — the client SECRET is never a query parameter. `state` is a CSRF nonce
- * the caller mints and verifies on callback.
- */
-export function buildDotloopAuthorizeUrl(input: {
-  clientId: string;
-  redirectUri: string;
-  state: string;
-  scope?: string;
-}): string {
-  const url = new URL(DOTLOOP_OAUTH_AUTHORIZE_URL);
-  url.searchParams.set("response_type", "code");
-  url.searchParams.set("client_id", input.clientId);
-  url.searchParams.set("redirect_uri", input.redirectUri);
-  if (input.scope) url.searchParams.set("scope", input.scope);
-  url.searchParams.set("state", input.state);
-  return url.toString();
 }
 
 /** An OAuth token set, stored as OPAQUE vault refs — never raw token values. */
@@ -153,7 +170,6 @@ export type DotloopConnectResult =
  */
 export function beginDotloopConnect(input: {
   state: string;
-  scope?: string;
   env?: Record<string, string | undefined>;
 }): DotloopConnectResult {
   const result = readDotloopOAuthConfig(input.env ?? process.env);
@@ -166,7 +182,6 @@ export function beginDotloopConnect(input: {
       clientId: result.config.clientId,
       redirectUri: result.config.redirectUri,
       state: input.state,
-      ...(input.scope ? { scope: input.scope } : {}),
     }),
   };
 }

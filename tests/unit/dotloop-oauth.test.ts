@@ -13,13 +13,12 @@ import {
 import { isActionExecutable } from "@/lib/integrations/action-gate";
 
 describe("buildDotloopAuthorizeUrl", () => {
-  it("builds the auth-code URL with the public params and never the secret", () => {
+  it("builds the documented auth-code URL with the public params and never the secret", () => {
     const url = new URL(
       buildDotloopAuthorizeUrl({
         clientId: "client-123",
         redirectUri: "https://app.example/connections/dotloop/callback",
         state: "nonce-xyz",
-        scope: "profile documents",
       }),
     );
     expect(`${url.origin}${url.pathname}`).toBe(DOTLOOP_OAUTH_AUTHORIZE_URL);
@@ -29,7 +28,10 @@ describe("buildDotloopAuthorizeUrl", () => {
       "https://app.example/connections/dotloop/callback",
     );
     expect(url.searchParams.get("state")).toBe("nonce-xyz");
-    expect(url.searchParams.get("scope")).toBe("profile documents");
+    // Scopes are fixed on the client registration; the documented request carries none.
+    expect(url.searchParams.get("scope")).toBeNull();
+    // A denial returns to the callback so the operator sees the outcome in the app.
+    expect(url.searchParams.get("redirect_on_deny")).toBe("true");
     // No client secret parameter is ever present.
     expect(url.searchParams.get("client_secret")).toBeNull();
   });
@@ -147,7 +149,7 @@ describe("Dotloop connector governance", () => {
   it("catalogs the OAuth setup note + the three OAuth env names (presence only)", () => {
     const dotloop = CONNECTORS.find((connector) => connector.id === "dotloop");
     expect(dotloop?.method).toBe("oauth");
-    expect(dotloop?.setupNote).toMatch(/authorization in the morning/i);
+    expect(dotloop?.setupNote).toMatch(/Admin connects the company Dotloop account once/);
     expect(dotloop?.requiredConfig).toEqual([
       "DOTLOOP_OAUTH_CLIENT_ID",
       "DOTLOOP_OAUTH_CLIENT_SECRET",
