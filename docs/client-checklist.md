@@ -66,8 +66,8 @@ never become customer links or legal content. No client effect or completion was
 
 Bring back the B-DL3 blank-form location and coverage of all seven artifact families, B-S100 work-order
 identifier with resident chat and confirmed verified email, and B-MNT1 exact properties, amounts,
-and effective dates. `docs/open-blockers.md` owns their complete readback gates. OAuth credentials
-remain external (B-DL1); the managed Dotloop account and verified selection are owner-owned (B-DL2).
+and effective dates. `docs/open-blockers.md` owns their complete readback gates. The company Dotloop
+connection is authorized; template availability and verified selection are owner-owned (B-DL2).
 Both Dotloop keys remain closed. V-DL checks readiness and cannot perform loop/upload proof itself.
 
 The remaining confirm-with-default questions in docs/facts.md concern monthly-answer scope and
@@ -125,6 +125,6 @@ Owner/tenant template wording and formatting are supplied in the ignored Septemb
 Do not request them again. The owner deferred B-S113-LINKS/Q1 and B-DL3 location collection/Q2
 to persistent labeled URL boxes. Blank pending-team states are accepted; verified links may be
 supplied or hardcoded later. Actual packet execution still needs approved forms/mappings. Charge amounts/applicability remain per-lease sourced
-inputs; examples do not establish universal fees. B-DL1 credentials, B-DL2 managed resource selection
-and B-DL3 approved blank forms remain the exact inputs to the prepared S106/S34 delivery. Public
+inputs; examples do not establish universal fees. B-DL2 template availability and resource selection
+and B-DL3 approved blank forms remain the exact inputs to the deployed S106/S34 delivery. Public
 signature-send/status capability is unavailable and cannot be inferred from credential delivery.
