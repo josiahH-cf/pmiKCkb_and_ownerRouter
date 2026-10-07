@@ -31,19 +31,32 @@ import type { ConnectorConnectionRecord } from "@/lib/connections/connector-conn
 import type { RenewalPacketSnapshot } from "@/lib/lease-documents/packet-types";
 
 /**
- * Stores and fields that hold Dotloop API-derived data. AI context assembly never reads them
- * except through the filters in this module.
+ * Every store that holds Dotloop API-derived data. The assistant's context assembly names none of
+ * them and reads two of them only through the source-side views in this module: packet execution
+ * projections through `packetSnapshotForAiContext` and connection records through
+ * `connectionViewForAiContext`. A test pins this list to the stores' own collection names and
+ * checks the AI-facing modules against it.
  */
 export const DOTLOOP_API_ORIGIN_STORES = Object.freeze([
-  // Labeled account/profile/template/subscription observation (S106).
+  // The labeled account, profile, template and subscription observation (S106).
   "dotloop_connection_observations",
-  // Loop link, readback status/counts and document presence evidence on the packet projection.
+  // The selected profile and template ids with their Dotloop labels, and the selection history.
+  "dotloop_renewal_settings",
+  "dotloop_renewal_settings_activity",
+  // The Dotloop connection record (provider-reported scopes, the token refresh outcome and the
+  // revocation evidence) and the revocation receipts that carry that evidence.
+  "connector_connections",
+  "connector_revocation_receipts",
+  // Each packet action's companion: the loop target id, the selected profile and template ids and
+  // the provider receipt.
+  "lease_document_action_snapshots",
+  // The packet's execution projection (loop link, readback status and counts, document presence)
+  // and the packet activity that records each provider-derived execution state.
   "lease_document_packet_execution_projections",
-  // Provider receipts retained with each packet action companion.
-  "lease_document_action_snapshots.effectReceipt",
-  // The lease/cycle loop association and observed folder/document identities (S34).
+  "lease_document_packet_activity",
+  // The lease's loop association (loop name and address, folder, uploaded documents, readback),
+  // its owner index and its activity (S34).
   "lease_document_loop_associations",
-  // The owner index that keeps a loop recorded for one lease, and the association activity (S34).
   "lease_document_loop_owners",
   "lease_document_loop_association_activity",
 ] as const);
