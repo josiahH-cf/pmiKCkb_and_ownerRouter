@@ -199,6 +199,37 @@ export const RenewalWorkspaceActionSchema = z.discriminatedUnion("kind", [
     .strict(),
 ]);
 export type RenewalWorkspaceAction = z.infer<typeof RenewalWorkspaceActionSchema>;
+/**
+ * S66 (AC-S66-8): the exact Working renewal terms and economic decisions an owner approval covers,
+ * captured by the server when staff record the approval. Absent when the Working terms were
+ * incomplete at that moment; the packet then names the missing approval instead of using it.
+ */
+export interface ApprovedWorkingTerms {
+  rent: number;
+  effectiveDate: string;
+  endDate: string;
+  /** Each Working terms field revision at approval; any later save of a term makes it stale. */
+  fieldRevisions: { rent: number; effectiveDate: number; endDate: number };
+  /** The calculated charges the approval covered (policy version, applicability and amounts). */
+  economicsHash: string;
+  chargePolicyVersion: string | null;
+}
+export const ApprovedWorkingTermsSchema = z
+  .object({
+    rent: z.number().finite().positive(),
+    effectiveDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    fieldRevisions: z
+      .object({
+        rent: z.number().int().positive(),
+        effectiveDate: z.number().int().positive(),
+        endDate: z.number().int().positive(),
+      })
+      .strict(),
+    economicsHash: z.string().regex(/^[a-f0-9]{64}$/),
+    chargePolicyVersion: z.string().min(1).nullable(),
+  })
+  .strict();
 export interface StaffRecord {
   eventId: string;
   actorUid: string;
@@ -228,6 +259,7 @@ export interface RenewalWorkspaceState {
           | "declined_non_renewal"
           | "no_response";
         terms?: z.infer<typeof RenewalTermsSchema>;
+        approvedWorkingTerms?: ApprovedWorkingTerms;
       })
     | null;
   tenantResponse:
@@ -503,7 +535,13 @@ export function manualActionSheetIntent(
 export function planRenewalWorkspaceAction(
   current: RenewalWorkspaceState,
   raw: RenewalWorkspaceAction,
-  meta: { actorUid: string; recordedAt: string; eventId: string },
+  meta: {
+    actorUid: string;
+    recordedAt: string;
+    eventId: string;
+    /** S66: the server-captured Working terms an approval covers; null when incomplete. */
+    approvedWorkingTerms?: ApprovedWorkingTerms | null;
+  },
 ): RenewalWorkspaceState {
   const action = RenewalWorkspaceActionSchema.parse(raw);
   if (action.occurredAt && Date.parse(action.occurredAt) > Date.parse(meta.recordedAt))
@@ -515,8 +553,9 @@ export function planRenewalWorkspaceAction(
     sourceUpdates: { ...current.sourceUpdates },
   };
   const source = action.source ?? STAFF_RECORD_SOURCE;
+  const { approvedWorkingTerms: capturedTerms, ...recordMeta } = meta;
   let record: StaffRecord = {
-    ...meta,
+    ...recordMeta,
     source,
     termsRevision: current.termsRevision,
     ...(action.reason ? { reason: action.reason } : {}),
@@ -550,10 +589,23 @@ export function planRenewalWorkspaceAction(
     const terms =
       action.terms ??
       (action.outcome === "approved_terms" ? current.ownerResponse?.terms : undefined);
+    // S66: an approval covers the Working terms and charges the server captured as it was
+    // recorded. Approving different terms or charges is a terms change like any other.
+    const binding = action.outcome === "approved_terms" ? (capturedTerms ?? null) : null;
+    const covered = (value: ApprovedWorkingTerms | null | undefined) =>
+      value
+        ? JSON.stringify([
+            value.rent,
+            value.effectiveDate,
+            value.endDate,
+            value.economicsHash,
+          ])
+        : null;
     const changed =
       JSON.stringify(current.ownerResponse?.terms ?? null) !==
         JSON.stringify(terms ?? null) ||
-      current.ownerResponse?.outcome !== action.outcome;
+      current.ownerResponse?.outcome !== action.outcome ||
+      covered(current.ownerResponse?.approvedWorkingTerms) !== covered(binding);
     if (changed) {
       next.termsRevision++;
       for (const activity of TERMS_DEPENDENT_MANUAL) {
@@ -568,6 +620,7 @@ export function planRenewalWorkspaceAction(
       ...record,
       outcome: action.outcome,
       ...(terms ? { terms } : {}),
+      ...(binding ? { approvedWorkingTerms: binding } : {}),
     };
   } else if (action.kind === "tenant_response") {
     next.tenantResponse = { ...record, outcome: action.outcome };

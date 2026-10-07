@@ -9,7 +9,15 @@ import { DownloadLink } from "@/components/ui/DownloadLink";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import type { RenewalPacketSnapshot } from "@/lib/lease-documents/packet-types";
 import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
-import { DotloopPacketLinkPanel } from "./DotloopPacketLinkPanel";
+import type {
+  LoopAssociationDocument,
+  LoopAssociationView,
+  LoopPropertyAddress,
+} from "@/lib/lease-documents/dotloop-loop-association";
+import {
+  DotloopPacketLinkPanel,
+  type StaffExecutionReport,
+} from "./DotloopPacketLinkPanel";
 
 /** S120 (R120.7): the current source-backed facts the owning page already resolved. */
 export interface DocumentHandoffFacts {
@@ -21,11 +29,52 @@ export interface DocumentHandoffFacts {
 interface Handoff {
   snapshot: RenewalPacketSnapshot | null;
   signers?: string[];
-  documents?: Array<{ artifactId: string; label: string; documentRef: string }>;
+  documents?: Array<{
+    artifactId: string;
+    label: string;
+    documentRef: string;
+    status?:
+      | "uploaded_current"
+      | "upload_unresolved"
+      | "successor_needed"
+      | "not_uploaded"
+      | "filled_output_needed";
+    statusLabel?: string;
+    history?: LoopAssociationDocument[];
+    unchangedAttachment?: boolean;
+  }>;
   blockers: string[];
   readiness: { state: string };
   catalogVersion: string;
   attempts?: Array<{ executionId: string; state: string }>;
+  /** S34: each operation's own exact key and its blockers. */
+  operations?: {
+    create: { actionKey: string; blockers: string[] };
+    upload: { actionKey: string; blockers: string[] };
+  };
+  association?: LoopAssociationView | null;
+  propertyAddress?: LoopPropertyAddress | null;
+  staffReport?: StaffExecutionReport | null;
+}
+interface LoopReview {
+  observation: {
+    loopId: string;
+    name: string;
+    status: string | null;
+    loopUrl: string | null;
+    participants: Array<{ fullName: string; email: string; role: string }>;
+  };
+  observationHash: string;
+  archived: boolean;
+  recordedForOtherLease: boolean;
+  servedEarlierCycle: boolean;
+  expectedLinkRevision: number;
+}
+/** A pasted Dotloop loop address or number becomes the loop number; anything else is kept as typed. */
+function loopNumberOf(value: string): string {
+  const trimmed = value.trim();
+  const fromAddress = /\/loop\/(\d+)/.exec(trimmed);
+  return fromAddress ? fromAddress[1] : trimmed;
 }
 interface Preview {
   executionId: string;
@@ -36,6 +85,14 @@ interface Preview {
   participants: Array<{ name: string; email: string; role: string }>;
   artifacts: Array<{ label: string; version?: string; downloadUrl?: string }>;
   fields?: Array<{ label: string; value: string; source: string }>;
+  actionKey?: string;
+  loopTarget?: {
+    loopId: string;
+    origin: "app_created" | "linked_existing";
+    folderRecorded: boolean;
+  } | null;
+  supersedes?: { contentHash: string; uploadedAt: string } | null;
+  propertyAddress?: LoopPropertyAddress | null;
   selection?: {
     profileId: string;
     templateId: string;
@@ -46,10 +103,12 @@ interface Preview {
 export function RenewalDocumentHandoff({
   canApprove = false,
   canRecordReadback = false,
+  canLinkLoop = false,
   facts = null,
 }: {
   canApprove?: boolean;
   canRecordReadback?: boolean;
+  canLinkLoop?: boolean;
   facts?: DocumentHandoffFacts | null;
 }) {
   const ctx = useRenewalManualWorkspace();
@@ -59,6 +118,7 @@ export function RenewalDocumentHandoff({
       leaseId={ctx.leaseId}
       canApprove={canApprove}
       canRecordReadback={canRecordReadback}
+      canLinkLoop={canLinkLoop}
       facts={facts}
       state={ctx.state}
     />
@@ -148,12 +208,14 @@ function DocumentHandoffEditor({
   leaseId,
   canApprove,
   canRecordReadback,
+  canLinkLoop,
   facts,
   state,
 }: {
   leaseId: string;
   canApprove: boolean;
   canRecordReadback: boolean;
+  canLinkLoop: boolean;
   facts: DocumentHandoffFacts | null;
   state: RenewalWorkspaceState | null;
 }) {
@@ -162,7 +224,12 @@ function DocumentHandoffEditor({
     [notice, setNotice] = useState(""),
     [pending, setPending] = useState(false),
     [confirming, setConfirming] = useState(false),
-    [reason, setReason] = useState("");
+    [reason, setReason] = useState(""),
+    [loopInput, setLoopInput] = useState(""),
+    [review, setReview] = useState<LoopReview | null>(null),
+    [linkReason, setLinkReason] = useState(""),
+    [reuseConfirmed, setReuseConfirmed] = useState(false),
+    [correctionReason, setCorrectionReason] = useState("");
   const sequence = useRef(0);
   const load = useCallback(() => {
     const runId = ++sequence.current;
@@ -202,7 +269,20 @@ function DocumentHandoffEditor({
           data.error ?? "Document action unavailable; retain the existing attempt.",
         );
       if (body.kind === "preview") setPreview(data);
-      else {
+      else if (body.kind === "loop_review") {
+        setReview(data);
+        setLinkReason("");
+        setReuseConfirmed(false);
+      } else if (body.kind === "loop_link" || body.kind === "loop_unlink") {
+        setNotice(
+          body.kind === "loop_link"
+            ? "Loop linked to this lease. Nothing changed in Dotloop."
+            : "The lease's loop link was corrected. Nothing changed in Dotloop; a person retires files or archives a loop there.",
+        );
+        setReview(null);
+        setCorrectionReason("");
+        setPreview(null);
+      } else {
         setNotice(
           `Packet action: ${data.execution?.state ?? data.status ?? "read back"}. Document presence does not prove signatures.`,
         );
@@ -219,7 +299,12 @@ function DocumentHandoffEditor({
       setPending(false);
     }
   }
-  const link = current?.snapshot?.execution?.loopLink ?? null;
+  const association = current?.association ?? null;
+  const linked =
+    association?.state === "current" && association.currentCycle ? association : null;
+  const createBlockers = current?.operations?.create.blockers ?? [];
+  const uploadBlockers = current?.operations?.upload.blockers ?? [];
+  const loopNumber = loopNumberOf(loopInput);
   return (
     <Card
       title={renewalCardTitle(
@@ -256,31 +341,221 @@ function DocumentHandoffEditor({
               Review approved legal-form location inputs
             </a>
           </p>
+          <h3>Dotloop loop for this lease</h3>
+          <p className="muted">
+            Create one loop from the company template, or link an existing loop you
+            reviewed. A changed packet never creates another loop; reviewed new versions
+            upload into the same loop.
+          </p>
           <Button
-            disabled={pending || !!current.blockers.length || !!link}
+            disabled={
+              pending ||
+              !!current.blockers.length ||
+              !!createBlockers.length ||
+              association?.state === "current" ||
+              association?.state === "creating"
+            }
             onClick={() => run({ kind: "preview", operation: "loop_create" })}
           >
             Preview exact Dotloop packet creation
           </Button>
-          {link
-            ? current.documents?.map((artifact) => (
-                <p key={artifact.artifactId}>
-                  <Button
-                    variant="secondary"
-                    disabled={pending || !!current.blockers.length}
-                    onClick={() =>
-                      run({
-                        kind: "preview",
-                        operation: "document_upload",
-                        documentRef: artifact.documentRef,
-                      })
-                    }
-                  >
-                    Review upload: {artifact.label}
-                  </Button>
+          {createBlockers.length ? (
+            <ul aria-label="Loop creation needs">
+              {createBlockers.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          ) : null}
+          {!linked ? (
+            <div className="ui-stack-tight" data-dotloop-link-existing>
+              <Field
+                label="Existing Dotloop loop number or address"
+                htmlFor="dotloop-existing-loop"
+                hint="Reviewing reads the loop through the company connection and changes nothing."
+              >
+                <input
+                  id="dotloop-existing-loop"
+                  value={loopInput}
+                  onChange={(event) => setLoopInput(event.target.value)}
+                />
+              </Field>
+              <Button
+                variant="secondary"
+                disabled={pending || !canLinkLoop || !/^[1-9]\d{0,18}$/.test(loopNumber)}
+                onClick={() => run({ kind: "loop_review", loopId: loopNumber })}
+              >
+                Review existing loop
+              </Button>
+            </div>
+          ) : null}
+          {review ? (
+            <div
+              role="group"
+              aria-label="Existing loop review"
+              className="ui-stack-tight"
+            >
+              <p>
+                Loop {review.observation.loopId}: {review.observation.name} · status{" "}
+                {review.observation.status ?? "Needs Verification"}
+              </p>
+              <ul>
+                {review.observation.participants.map((participant) => (
+                  <li key={`${participant.role}:${participant.email}`}>
+                    {participant.fullName || "Unnamed participant"} · {participant.email}{" "}
+                    · {participant.role}
+                  </li>
+                ))}
+              </ul>
+              <p className="muted">
+                A matching name or address is a hint only. Confirm this is the loop for
+                this lease.
+              </p>
+              {review.archived ? (
+                <p role="alert">
+                  This loop is archived and cannot receive renewal documents.
                 </p>
-              ))
-            : null}
+              ) : null}
+              {review.recordedForOtherLease ? (
+                <p role="alert">This loop is recorded for a different lease.</p>
+              ) : null}
+              {review.servedEarlierCycle ? (
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={reuseConfirmed}
+                    onChange={(event) => setReuseConfirmed(event.target.checked)}
+                  />{" "}
+                  This loop served an earlier renewal of this lease; reuse it for this
+                  cycle
+                </label>
+              ) : null}
+              <Field
+                label="Why this loop belongs to this lease"
+                htmlFor="dotloop-link-reason"
+              >
+                <input
+                  id="dotloop-link-reason"
+                  value={linkReason}
+                  onChange={(event) => setLinkReason(event.target.value)}
+                />
+              </Field>
+              <Button
+                disabled={
+                  pending ||
+                  !canLinkLoop ||
+                  review.archived ||
+                  review.recordedForOtherLease ||
+                  (review.servedEarlierCycle && !reuseConfirmed) ||
+                  linkReason.trim().length < 3
+                }
+                onClick={() =>
+                  run({
+                    kind: "loop_link",
+                    loopId: review.observation.loopId,
+                    observationHash: review.observationHash,
+                    reason: linkReason,
+                    expectedLinkRevision: review.expectedLinkRevision,
+                    reuseAcrossCycles: review.servedEarlierCycle && reuseConfirmed,
+                  })
+                }
+              >
+                Link this loop to the lease
+              </Button>
+            </div>
+          ) : null}
+          {association && association.state !== "unlinked" ? (
+            <details>
+              <summary>
+                {association.state === "creating"
+                  ? "Clear the unresolved loop creation"
+                  : "Correct the lease's loop link"}
+              </summary>
+              <p className="muted">
+                {association.state === "creating"
+                  ? "Clearing is for a creation that failed or has no confirmed outcome. If Dotloop shows the loop, clear this creation, then review and link that loop."
+                  : "This changes only the app's link. Dotloop keeps the loop and its files; a person retires files or archives a loop there."}
+              </p>
+              <Field label="Correction reason" htmlFor="dotloop-correction-reason">
+                <input
+                  id="dotloop-correction-reason"
+                  value={correctionReason}
+                  onChange={(event) => setCorrectionReason(event.target.value)}
+                />
+              </Field>
+              <Button
+                variant="secondary"
+                disabled={pending || !canLinkLoop || correctionReason.trim().length < 3}
+                onClick={() =>
+                  run({
+                    kind: "loop_unlink",
+                    expectedLinkRevision: association.linkRevision,
+                    reason: correctionReason,
+                  })
+                }
+              >
+                {association.state === "creating"
+                  ? "Clear the unresolved creation"
+                  : "Correct the loop link"}
+              </Button>
+            </details>
+          ) : null}
+          {linked ? (
+            <>
+              <h3>Approved documents for the loop</h3>
+              {uploadBlockers.length ? (
+                <ul aria-label="Upload needs">
+                  {uploadBlockers.map((message) => (
+                    <li key={message}>{message}</li>
+                  ))}
+                </ul>
+              ) : null}
+              <ul className="ui-rows">
+                {current.documents?.map((artifact) => (
+                  <li key={artifact.artifactId} data-document-status={artifact.status}>
+                    <strong>{artifact.label}</strong>
+                    {artifact.unchangedAttachment
+                      ? " (unchanged approved attachment)"
+                      : ""}
+                    {artifact.statusLabel ? `: ${artifact.statusLabel}` : ""}
+                    {artifact.history?.length ? (
+                      <ul className="muted">
+                        {artifact.history.map((version) => (
+                          <li key={version.receiptId}>
+                            Uploaded {formatCalendarDate(version.uploadedAt.slice(0, 10))}{" "}
+                            as {version.documentName || "a file"} (SHA-256{" "}
+                            {version.contentHash.slice(0, 12)})
+                            {version.supersedesContentHash
+                              ? ", superseding an earlier version"
+                              : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {artifact.status === "not_uploaded" ||
+                    artifact.status === "successor_needed" ? (
+                      <Button
+                        variant="secondary"
+                        disabled={
+                          pending || !!current.blockers.length || !!uploadBlockers.length
+                        }
+                        onClick={() =>
+                          run({
+                            kind: "preview",
+                            operation: "document_upload",
+                            documentRef: artifact.documentRef,
+                          })
+                        }
+                      >
+                        {artifact.status === "successor_needed"
+                          ? `Review successor upload: ${artifact.label}`
+                          : `Review upload: ${artifact.label}`}
+                      </Button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
           {current.attempts
             ?.filter((attempt) =>
               ["Executing", "Needs reconciliation", "Succeeded"].includes(attempt.state),
@@ -298,7 +573,7 @@ function DocumentHandoffEditor({
                 </Button>
               </p>
             ))}
-          {link ? (
+          {linked ? (
             <Button
               disabled={pending || !canRecordReadback}
               variant="secondary"
@@ -307,7 +582,19 @@ function DocumentHandoffEditor({
               Refresh from Dotloop
             </Button>
           ) : null}
-          <DotloopPacketLinkPanel link={link} requiredSigners={current.signers ?? []} />
+          <DotloopPacketLinkPanel
+            association={association}
+            requiredSigners={current.signers ?? []}
+            refreshAvailable={
+              canRecordReadback && current.readiness.state === "connected"
+            }
+            refreshUnavailableReason={
+              canRecordReadback
+                ? undefined
+                : "Editor access is required to refresh the loop from Dotloop."
+            }
+            staffReport={current.staffReport ?? null}
+          />
         </>
       ) : null}
       {preview ? (
@@ -315,9 +602,39 @@ function DocumentHandoffEditor({
           <p>
             {preview.operation === "loop_create"
               ? "Create one loop from the approved packet"
-              : "Upload the selected approved document"}
+              : preview.supersedes
+                ? "Upload the reviewed successor of an earlier uploaded version"
+                : "Upload the selected approved document"}
             . Packet hash: {preview.packetHash}
           </p>
+          {preview.actionKey ? <p>Exact action: {preview.actionKey}.</p> : null}
+          {preview.loopTarget ? (
+            <p>
+              Into loop {preview.loopTarget.loopId} (
+              {preview.loopTarget.origin === "app_created"
+                ? "created by the app"
+                : "an existing loop staff linked"}
+              ).{" "}
+              {preview.loopTarget.folderRecorded
+                ? "The lease's recorded packet folder is reused."
+                : "A Renewal packet folder is created once and reused for every later document."}
+            </p>
+          ) : null}
+          {preview.supersedes ? (
+            <p>
+              The earlier version uploaded{" "}
+              {formatCalendarDate(preview.supersedes.uploadedAt.slice(0, 10))} stays in
+              Dotloop; a person retires it there before sending for signature.
+            </p>
+          ) : null}
+          {preview.operation === "loop_create" ? (
+            <p>
+              Property address for the new loop:{" "}
+              {preview.propertyAddress
+                ? `${preview.propertyAddress.streetName}, ${preview.propertyAddress.city}, ${preview.propertyAddress.state} ${preview.propertyAddress.zip}`
+                : "not included. Enter the street, city, state and ZIP in Packet inputs to include it."}
+            </p>
+          ) : null}
           <ul>
             {preview.participants.map((p) => (
               <li key={`${p.role}:${p.email}`}>
@@ -360,11 +677,11 @@ function DocumentHandoffEditor({
           ) : null}
           {!canApprove ? (
             <p>
-              An Admin must review and confirm this saved action from this lease
-              dashboard.
+              A renewal staff member with edit access confirms this saved action from this
+              lease dashboard.
             </p>
           ) : null}
-          <Field label="Admin approval reason" htmlFor="packet-approval-reason" required>
+          <Field label="Confirmation reason" htmlFor="packet-approval-reason" required>
             <input
               id="packet-approval-reason"
               value={reason}

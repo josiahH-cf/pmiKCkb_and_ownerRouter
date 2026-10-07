@@ -59,8 +59,10 @@
       "h3:Source updates",
       "h2:Document preparation",
       "h3:Document packet truth",
+      "h4:Packet inputs",
       "h2:Document preparation and signature handoff",
       "h3:Current facts for this packet",
+      "h3:Dotloop loop for this lease",
       "h2:Dotloop packet",
       "h2:Notice timing",
       "h2:Completion checks",
@@ -176,7 +178,8 @@
       "select::Applicable assisted-housing form, owner signature and submission follow-up outcome",
       "input::Source or channel (optional)",
       "input::Comment (optional)",
-      "input:datetime-local:When the work happened (optional)"
+      "input:datetime-local:When the work happened (optional)",
+      "input::Existing Dotloop loop number or address"
     ],
     "buttons": [
       "Lease information",
@@ -220,10 +223,12 @@
       "About Document preparation",
       "About Document packet truth",
       "Evaluate packet",
+      "Open packet inputs",
       "View saved filled document history",
       "About Document preparation and signature handoff",
       "Reload document readiness and attempts",
       "Preview exact Dotloop packet creation",
+      "Review existing loop",
       "About Notice timing",
       "About Completion checks",
       "Close lease information",
@@ -263,6 +268,9 @@
       "Manage location -> /connections#renewal-resource-entry-city_addendum",
       "Manage location -> /connections#renewal-resource-entry-hoa_artifact",
       "Manage location -> /connections#renewal-resource-entry-owner_acknowledgment",
+      "Manage location -> /connections#renewal-resource-entry-kcrar_additional_disclosures",
+      "Manage location -> /connections#renewal-resource-entry-brokerage_disclosure",
+      "Manage location -> /connections#renewal-resource-entry-insurance_program_addendum",
       "Lease details -> #renewal-section-lease-details",
       "Lease details -> #renewal-section-lease-details",
       "Lease details -> #renewal-section-lease-details",
@@ -279,7 +287,7 @@
       "renewal-section-comps:fa748b10edf3d9a0",
       "renewal-section-owner:d965eb94353966d5",
       "renewal-section-tenant:6b09058ea5e4b6a5",
-      "renewal-section-documents:5f64203a0a025b7a"
+      "renewal-section-documents:6b0380740c811c6d"
     ]
   },
   "admin-default-manual": {
@@ -342,8 +350,10 @@
       "h3:Source updates",
       "h2:Document preparation",
       "h3:Document packet truth",
+      "h4:Packet inputs",
       "h2:Document preparation and signature handoff",
       "h3:Current facts for this packet",
+      "h3:Dotloop loop for this lease",
       "h2:Dotloop packet",
       "h2:Notice timing",
       "h2:Completion checks",
@@ -459,7 +469,8 @@
       "select::Applicable assisted-housing form, owner signature and submission follow-up outcome",
       "input::Source or channel (optional)",
       "input::Comment (optional)",
-      "input:datetime-local:When the work happened (optional)"
+      "input:datetime-local:When the work happened (optional)",
+      "input::Existing Dotloop loop number or address"
     ],
     "buttons": [
       "Lease information",
@@ -503,10 +514,12 @@
       "About Document preparation",
       "About Document packet truth",
       "Evaluate packet",
+      "Open packet inputs",
       "View saved filled document history",
       "About Document preparation and signature handoff",
       "Reload document readiness and attempts",
       "Preview exact Dotloop packet creation",
+      "Review existing loop",
       "About Notice timing",
       "About Completion checks",
       "Close lease information",
@@ -546,6 +559,9 @@
       "Manage location -> /connections#renewal-resource-entry-city_addendum",
       "Manage location -> /connections#renewal-resource-entry-hoa_artifact",
       "Manage location -> /connections#renewal-resource-entry-owner_acknowledgment",
+      "Manage location -> /connections#renewal-resource-entry-kcrar_additional_disclosures",
+      "Manage location -> /connections#renewal-resource-entry-brokerage_disclosure",
+      "Manage location -> /connections#renewal-resource-entry-insurance_program_addendum",
       "Lease details -> #renewal-section-lease-details",
       "Lease details -> #renewal-section-lease-details",
       "Lease details -> #renewal-section-lease-details",
@@ -562,7 +578,7 @@
       "renewal-section-comps:fa748b10edf3d9a0",
       "renewal-section-owner:d965eb94353966d5",
       "renewal-section-tenant:6b09058ea5e4b6a5",
-      "renewal-section-documents:5f64203a0a025b7a"
+      "renewal-section-documents:6b0380740c811c6d"
     ]
   },
   "approver-default-manual": {
@@ -625,8 +641,10 @@
       "h3:Source updates",
       "h2:Document preparation",
       "h3:Document packet truth",
+      "h4:Packet inputs",
       "h2:Document preparation and signature handoff",
       "h3:Current facts for this packet",
+      "h3:Dotloop loop for this lease",
       "h2:Dotloop packet",
       "h2:Notice timing",
       "h2:Completion checks",
@@ -742,7 +760,8 @@
       "select::Applicable assisted-housing form, owner signature and submission follow-up outcome",
       "input::Source or channel (optional)",
       "input::Comment (optional)",
-      "input:datetime-local:When the work happened (optional)"
+      "input:datetime-local:When the work happened (optional)",
+      "input::Existing Dotloop loop number or address"
     ],
     "buttons": [
       "Lease information",
@@ -786,10 +805,12 @@
       "About Document preparation",
       "About Document packet truth",
       "Evaluate packet",
+      "Open packet inputs",
       "View saved filled document history",
       "About Document preparation and signature handoff",
       "Reload document readiness and attempts",
       "Preview exact Dotloop packet creation",
+      "Review existing loop",
       "About Notice timing",
       "About Completion checks",
       "Close lease information",
@@ -829,6 +850,9 @@
       "Manage location -> /connections#renewal-resource-entry-city_addendum",
       "Manage location -> /connections#renewal-resource-entry-hoa_artifact",
       "Manage location -> /connections#renewal-resource-entry-owner_acknowledgment",
+      "Manage location -> /connections#renewal-resource-entry-kcrar_additional_disclosures",
+      "Manage location -> /connections#renewal-resource-entry-brokerage_disclosure",
+      "Manage location -> /connections#renewal-resource-entry-insurance_program_addendum",
       "Lease details -> #renewal-section-lease-details",
       "Lease details -> #renewal-section-lease-details",
       "Lease details -> #renewal-section-lease-details",
@@ -845,7 +869,7 @@
       "renewal-section-comps:fa748b10edf3d9a0",
       "renewal-section-owner:d965eb94353966d5",
       "renewal-section-tenant:6b09058ea5e4b6a5",
-      "renewal-section-documents:5f64203a0a025b7a"
+      "renewal-section-documents:6b0380740c811c6d"
     ]
   },
   "editor-default-no-cycle": {
@@ -885,6 +909,7 @@
       "h2:Documents and completion",
       "h2:Document preparation",
       "h3:Document packet truth",
+      "h4:Packet inputs",
       "h2:Notice timing",
       "h2:Completion checks",
       "h2:Lease information",
@@ -919,6 +944,7 @@
       "About Document preparation",
       "About Document packet truth",
       "Evaluate packet",
+      "Open packet inputs",
       "View saved filled document history",
       "About Notice timing",
       "About Completion checks",
@@ -942,14 +968,17 @@
       "Manage location -> /connections#renewal-resource-entry-lead_disclosure",
       "Manage location -> /connections#renewal-resource-entry-city_addendum",
       "Manage location -> /connections#renewal-resource-entry-hoa_artifact",
-      "Manage location -> /connections#renewal-resource-entry-owner_acknowledgment"
+      "Manage location -> /connections#renewal-resource-entry-owner_acknowledgment",
+      "Manage location -> /connections#renewal-resource-entry-kcrar_additional_disclosures",
+      "Manage location -> /connections#renewal-resource-entry-brokerage_disclosure",
+      "Manage location -> /connections#renewal-resource-entry-insurance_program_addendum"
     ],
     "copy": [
       "renewal-section-lease-details:d2c3b3142ad7f5eb",
       "renewal-section-comps:c8c146f1645b595e",
       "renewal-section-owner:088c78164cb8b84f",
       "renewal-section-tenant:3b34c030e6bea69b",
-      "renewal-section-documents:ebf0ef2183d541b4"
+      "renewal-section-documents:10d45aa33bf84f3e"
     ]
   },
   "editor-maple-manual": {
@@ -1012,8 +1041,10 @@
       "h3:Source updates",
       "h2:Document preparation",
       "h3:Document packet truth",
+      "h4:Packet inputs",
       "h2:Document preparation and signature handoff",
       "h3:Current facts for this packet",
+      "h3:Dotloop loop for this lease",
       "h2:Dotloop packet",
       "h2:Notice timing",
       "h2:Completion checks",
@@ -1129,7 +1160,8 @@
       "select::Applicable assisted-housing form, owner signature and submission follow-up outcome",
       "input::Source or channel (optional)",
       "input::Comment (optional)",
-      "input:datetime-local:When the work happened (optional)"
+      "input:datetime-local:When the work happened (optional)",
+      "input::Existing Dotloop loop number or address"
     ],
     "buttons": [
       "Lease information",
@@ -1170,10 +1202,12 @@
       "About Document preparation",
       "About Document packet truth",
       "Evaluate packet",
+      "Open packet inputs",
       "View saved filled document history",
       "About Document preparation and signature handoff",
       "Reload document readiness and attempts",
       "Preview exact Dotloop packet creation",
+      "Review existing loop",
       "About Notice timing",
       "About Completion checks",
       "Close lease information",
@@ -1213,6 +1247,9 @@
       "Manage location -> /connections#renewal-resource-entry-city_addendum",
       "Manage location -> /connections#renewal-resource-entry-hoa_artifact",
       "Manage location -> /connections#renewal-resource-entry-owner_acknowledgment",
+      "Manage location -> /connections#renewal-resource-entry-kcrar_additional_disclosures",
+      "Manage location -> /connections#renewal-resource-entry-brokerage_disclosure",
+      "Manage location -> /connections#renewal-resource-entry-insurance_program_addendum",
       "Lease details -> #renewal-section-lease-details",
       "Lease details -> #renewal-section-lease-details",
       "Lease details -> #renewal-section-lease-details",
@@ -1229,7 +1266,7 @@
       "renewal-section-comps:fa748b10edf3d9a0",
       "renewal-section-owner:80c1a0666ae2b1ea",
       "renewal-section-tenant:bca2f7e3149c59a3",
-      "renewal-section-documents:6ddde64652a4d82a"
+      "renewal-section-documents:daff129f6d64cf55"
     ]
   },
   "editor-walnut-manual": {
@@ -1292,8 +1329,10 @@
       "h3:Source updates",
       "h2:Document preparation",
       "h3:Document packet truth",
+      "h4:Packet inputs",
       "h2:Document preparation and signature handoff",
       "h3:Current facts for this packet",
+      "h3:Dotloop loop for this lease",
       "h2:Dotloop packet",
       "h2:Notice timing",
       "h2:Completion checks",
@@ -1409,7 +1448,8 @@
       "select::Applicable assisted-housing form, owner signature and submission follow-up outcome",
       "input::Source or channel (optional)",
       "input::Comment (optional)",
-      "input:datetime-local:When the work happened (optional)"
+      "input:datetime-local:When the work happened (optional)",
+      "input::Existing Dotloop loop number or address"
     ],
     "buttons": [
       "Lease information",
@@ -1450,10 +1490,12 @@
       "About Document preparation",
       "About Document packet truth",
       "Evaluate packet",
+      "Open packet inputs",
       "View saved filled document history",
       "About Document preparation and signature handoff",
       "Reload document readiness and attempts",
       "Preview exact Dotloop packet creation",
+      "Review existing loop",
       "About Notice timing",
       "About Completion checks",
       "Close lease information",
@@ -1493,6 +1535,9 @@
       "Manage location -> /connections#renewal-resource-entry-city_addendum",
       "Manage location -> /connections#renewal-resource-entry-hoa_artifact",
       "Manage location -> /connections#renewal-resource-entry-owner_acknowledgment",
+      "Manage location -> /connections#renewal-resource-entry-kcrar_additional_disclosures",
+      "Manage location -> /connections#renewal-resource-entry-brokerage_disclosure",
+      "Manage location -> /connections#renewal-resource-entry-insurance_program_addendum",
       "Lease details -> #renewal-section-lease-details",
       "Lease details -> #renewal-section-lease-details",
       "Lease details -> #renewal-section-lease-details",
@@ -1509,7 +1554,7 @@
       "renewal-section-comps:fa748b10edf3d9a0",
       "renewal-section-owner:3cc2541749502101",
       "renewal-section-tenant:bca2f7e3149c59a3",
-      "renewal-section-documents:b28504dd8cad8a89"
+      "renewal-section-documents:8c0a9295f5fe58e2"
     ]
   }
 }

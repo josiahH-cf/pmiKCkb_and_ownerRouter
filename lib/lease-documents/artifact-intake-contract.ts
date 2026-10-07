@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { REQUIRED_LEASE_ARTIFACTS } from "@/lib/lease-documents/artifact-catalog";
+import { LEASE_ARTIFACT_FAMILIES } from "@/lib/lease-documents/artifact-catalog";
 import {
   LEASE_ARTIFACT_KINDS,
   PACKET_CONTEXTS,
@@ -46,17 +46,30 @@ export const ARTIFACT_FORMAT_LABELS: Record<ArtifactFormat, string> = {
 
 export const ARTIFACT_FAMILY_LABELS: Record<LeaseArtifactKind, string> =
   Object.fromEntries(
-    REQUIRED_LEASE_ARTIFACTS.map((artifact) => [artifact.kind, artifact.label]),
+    LEASE_ARTIFACT_FAMILIES.map((artifact) => [artifact.kind, artifact.label]),
   ) as Record<LeaseArtifactKind, string>;
 
-export const SIGNER_ROLES = ["tenant", "owner", "property_manager", "guarantor"] as const;
+export const SIGNER_ROLES = [
+  "tenant",
+  "owner",
+  "property_manager",
+  "broker",
+  "guarantor",
+] as const;
 export type SignerRole = (typeof SIGNER_ROLES)[number];
-/** Which packet participant kind each signer role belongs to; a mismatch is a wrong signer role. */
-export const PARTICIPANT_KIND_FOR_ROLE: Record<SignerRole, "tenant" | "owner"> = {
+/**
+ * Which side each signer role signs for; a mismatch is a wrong signer role. S66: a PMI manager or
+ * broker is an agent, never the property owner, and a guarantor is never a tenant.
+ */
+export const PARTICIPANT_KIND_FOR_ROLE: Record<
+  SignerRole,
+  "tenant" | "owner" | "agent" | "guarantor"
+> = {
   tenant: "tenant",
-  guarantor: "tenant",
+  guarantor: "guarantor",
   owner: "owner",
-  property_manager: "owner",
+  property_manager: "agent",
+  broker: "agent",
 };
 
 export const FIELD_MULTIPLICITIES = ["single", "per_party", "per_animal"] as const;
@@ -134,6 +147,182 @@ export const ArtifactApplicabilitySchema = z.discriminatedUnion("kind", [
     .strict(),
 ]);
 
+/**
+ * S130 (R-F10-03): how a static region shows its value. Money is either whole or decimal dollars
+ * (`money`) or integer cents (`money_cents`), as the reviewer records for the mapped fact; the unit
+ * is never inferred. A checkmark is drawn only for true.
+ */
+export const STATIC_VALUE_FORMATS = [
+  "text",
+  "date_long",
+  "date_numeric",
+  "money",
+  "money_cents",
+  "checkmark",
+] as const;
+export type StaticValueFormat = (typeof STATIC_VALUE_FORMATS)[number];
+
+const coordinate = z.number().finite().min(0).max(5000);
+const RegionRectSchema = z
+  .object({
+    x: coordinate,
+    y: coordinate,
+    width: z.number().finite().positive().max(5000),
+    height: z.number().finite().positive().max(5000),
+  })
+  .strict();
+export type RegionRect = z.infer<typeof RegionRectSchema>;
+
+/**
+ * S130 (R-F10-03, R-F10-04): reviewed geometry for a static PDF with no form fields. It binds to the
+ * exact original's page sizes, crop boxes and rotations; each region names the mapped field and
+ * repeat slot it shows, its format, and whether it is blank on the original or holds approved
+ * existing variable text that the fill removes. Signature, initial and signing-date areas are
+ * protected: nothing is ever drawn there.
+ */
+export const StaticPdfGeometrySchema = z
+  .object({
+    pages: z
+      .array(
+        z
+          .object({
+            pageIndex: z.number().int().min(0).max(39),
+            width: z.number().finite().positive().max(5000),
+            height: z.number().finite().positive().max(5000),
+            rotation: z.union([
+              z.literal(0),
+              z.literal(90),
+              z.literal(180),
+              z.literal(270),
+            ]),
+            /**
+             * The visible page as [x0, y0, x1, y1] in user space: the page's own or inherited
+             * crop box clipped to its media box, or a media box away from the origin. Null only
+             * when the page shows exactly [0, 0, width, height].
+             */
+            cropBox: z.tuple([coordinate, coordinate, coordinate, coordinate]).nullable(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(40),
+    regions: z
+      .array(
+        z
+          .object({
+            regionId: z.string().regex(FIELD_ID),
+            fieldId: z.string().regex(FIELD_ID),
+            /** 0-based repeat slot for a per-party or per-animal field; 0 for a single value. */
+            slot: z.number().int().min(0).max(19),
+            pageIndex: z.number().int().min(0).max(39),
+            rect: RegionRectSchema,
+            format: z.enum(STATIC_VALUE_FORMATS),
+            fontSize: z.number().min(6).max(14),
+            align: z.enum(["left", "center", "right"]),
+            existing: z.enum(["blank", "replace"]),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(300),
+    protectedRegions: z
+      .array(
+        z
+          .object({
+            pageIndex: z.number().int().min(0).max(39),
+            rect: RegionRectSchema,
+            kind: z.enum(["signature", "initial", "signing_date"]),
+          })
+          .strict(),
+      )
+      .max(100),
+  })
+  .strict();
+export type StaticPdfGeometry = z.infer<typeof StaticPdfGeometrySchema>;
+
+function rectsOverlap(left: RegionRect, right: RegionRect): boolean {
+  return (
+    left.x < right.x + right.width &&
+    right.x < left.x + left.width &&
+    left.y < right.y + right.height &&
+    right.y < left.y + left.height
+  );
+}
+
+/** Geometry problems detectable from the map alone; the file check adds the content rules. */
+export function staticGeometryIssues(
+  map: {
+    fields: ReadonlyArray<{
+      fieldId: string;
+      multiplicity: FieldMultiplicity;
+      pdfFieldNames?: readonly string[];
+    }>;
+  },
+  geometry: StaticPdfGeometry,
+): string[] {
+  const issues: string[] = [];
+  const pages = new Map(geometry.pages.map((page) => [page.pageIndex, page]));
+  if (pages.size !== geometry.pages.length) issues.push("Each page is described once.");
+  if (
+    new Set(geometry.regions.map((region) => region.regionId)).size !==
+    geometry.regions.length
+  )
+    issues.push("Each region id is used once.");
+  for (const field of map.fields)
+    if (field.pdfFieldNames)
+      issues.push(`${field.fieldId}: a static map places regions, not PDF field names.`);
+  for (const region of geometry.regions) {
+    const field = map.fields.find((candidate) => candidate.fieldId === region.fieldId);
+    const page = pages.get(region.pageIndex);
+    if (!field) issues.push(`${region.regionId}: field ${region.fieldId} is not mapped.`);
+    else if (field.multiplicity === "single" && region.slot !== 0)
+      issues.push(`${region.regionId}: a single value has only slot 0.`);
+    if (!page) {
+      issues.push(`${region.regionId}: page ${region.pageIndex + 1} is not described.`);
+      continue;
+    }
+    // A page whose media box starts away from the origin always records its visible box.
+    const [x0, y0, x1, y1] = page.cropBox ?? [0, 0, page.width, page.height];
+    if (
+      region.rect.x < x0 ||
+      region.rect.y < y0 ||
+      region.rect.x + region.rect.width > x1 ||
+      region.rect.y + region.rect.height > y1
+    )
+      issues.push(`${region.regionId}: the region extends past the visible page.`);
+    // On a page displayed rotated by a quarter turn, the value stands across the region's width.
+    const across = page.rotation % 180 === 0 ? region.rect.height : region.rect.width;
+    if (across < region.fontSize)
+      issues.push(`${region.regionId}: the region is shorter than its text size.`);
+  }
+  for (const [index, left] of geometry.regions.entries())
+    for (const right of geometry.regions.slice(index + 1))
+      if (left.pageIndex === right.pageIndex && rectsOverlap(left.rect, right.rect))
+        issues.push(`${left.regionId} and ${right.regionId} overlap.`);
+  for (const region of geometry.regions)
+    for (const protectedRegion of geometry.protectedRegions)
+      if (
+        region.pageIndex === protectedRegion.pageIndex &&
+        rectsOverlap(region.rect, protectedRegion.rect)
+      )
+        issues.push(
+          `${region.regionId} overlaps a protected ${protectedRegion.kind.replace("_", " ")} area.`,
+        );
+  for (const field of map.fields) {
+    const slots = [
+      ...new Set(
+        geometry.regions
+          .filter((region) => region.fieldId === field.fieldId)
+          .map((region) => region.slot),
+      ),
+    ].sort((a, b) => a - b);
+    if (slots.length === 0) issues.push(`${field.fieldId}: no region shows this field.`);
+    else if (slots.some((slot, index) => slot !== index))
+      issues.push(`${field.fieldId}: repeat slots must run 0, 1, 2 without a gap.`);
+  }
+  return issues;
+}
+
 export const ArtifactFieldMapSchema = z
   .object({
     schemaVersion: z.literal("artifact-field-map/v1"),
@@ -167,26 +356,53 @@ export const ArtifactFieldMapSchema = z
           })
           .strict(),
       )
-      .min(1)
       .max(100),
     signers: z
       .array(
         z
           .object({
             signerRole: z.enum(SIGNER_ROLES),
-            participantKind: z.enum(["tenant", "owner"]),
+            participantKind: z.enum(["tenant", "owner", "agent", "guarantor"]),
             required: z.boolean(),
             /** A named signature location on the form as the reviewer recorded it. */
             location: bounded(80),
           })
           .strict(),
       )
-      .min(1)
       .max(20),
     reviewNote: bounded(500),
+    /** S130: reviewed region geometry for a static PDF; absent for an AcroForm map. */
+    static: StaticPdfGeometrySchema.optional(),
+    /** S130: a brochure or attachment with no variable values, used exactly as approved. */
+    unchangedAttachment: z.literal(true).optional(),
   })
   .strict()
   .superRefine((map, ctx) => {
+    if (map.unchangedAttachment) {
+      if (map.fields.length || map.static)
+        ctx.addIssue({
+          code: "custom",
+          path: ["unchangedAttachment"],
+          message: "An unchanged approved attachment has no mapped fields or regions.",
+        });
+    } else {
+      if (!map.fields.length)
+        ctx.addIssue({
+          code: "custom",
+          path: ["fields"],
+          message:
+            "Map at least one field. A file with no variable values is recorded as an unchanged approved attachment.",
+        });
+      if (!map.signers.length)
+        ctx.addIssue({
+          code: "custom",
+          path: ["signers"],
+          message: "Record at least one signer and signature location.",
+        });
+    }
+    if (map.static)
+      for (const message of staticGeometryIssues(map, map.static))
+        ctx.addIssue({ code: "custom", path: ["static"], message });
     const ids = new Set(map.fields.map((field) => field.fieldId));
     const pdfTargets = map.fields.flatMap(
       (field) =>

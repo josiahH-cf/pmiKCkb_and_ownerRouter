@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { createHash, randomUUID } from "node:crypto";
-import { can } from "@/lib/auth/roles";
+import { can, type Capability } from "@/lib/auth/roles";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { canAccessSpaceId } from "@/lib/space-scope-resources";
@@ -15,7 +16,7 @@ import {
   LEASE_DOCUMENT_PACKET_COLLECTIONS,
   packetHeadId,
 } from "./lease-document-packet-snapshots";
-import { hashExecutionPreview } from "@/lib/execution/preview-hash";
+import { canonicalJson, hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
   resolveLivePacketInput,
   PACKET_SOURCE_COLLECTIONS,
@@ -36,6 +37,13 @@ import {
   readAcroformValues,
   type PdfFillValue,
 } from "@/lib/lease-documents/acroform-pdf";
+import {
+  STATIC_ADAPTER,
+  fillStaticPdf,
+  formatStaticValue,
+  readStaticPdfValuesByOrder,
+  type StaticRegionValue,
+} from "@/lib/lease-documents/static-pdf";
 import {
   FirestorePublicationContentStore,
   type PublicationContentStore,
@@ -80,10 +88,22 @@ export function derivedArtifactDeps(db: Firestore): DerivedArtifactDeps {
         resolveLivePacketInput(actor, leaseId, leaseId, new Date().toISOString(), db),
         getCurrentPacketSnapshot(actor, leaseId, leaseId, db),
       ]);
-      const workspace = await db
-        .collection(RENEWAL_WORKSPACE_COLLECTIONS.head)
-        .doc(renewalWorkspaceDocId(leaseId))
-        .get();
+      // S34: the current work record is the dated head when one exists, otherwise the
+      // lease-bound head; guarding only the dated head refused every lease-bound record.
+      const [dated, leaseBound] = await Promise.all([
+        db
+          .collection(RENEWAL_WORKSPACE_COLLECTIONS.head)
+          .doc(renewalWorkspaceDocId(leaseId))
+          .get(),
+        db
+          .collection(RENEWAL_WORKSPACE_COLLECTIONS.leaseBoundHead)
+          .doc(renewalWorkspaceDocId(leaseId))
+          .get(),
+      ]);
+      const workspace = dated.exists ? dated : leaseBound;
+      const workspaceCollection = dated.exists
+        ? RENEWAL_WORKSPACE_COLLECTIONS.head
+        : RENEWAL_WORKSPACE_COLLECTIONS.leaseBoundHead;
       if (
         hashExecutionPreview(workspace.data() ?? {}) !==
         hashExecutionPreview({ ...resolved.workspace })
@@ -104,9 +124,25 @@ export function derivedArtifactDeps(db: Firestore): DerivedArtifactDeps {
             hash: resolved.mappingRecordHash,
           },
           {
-            collection: RENEWAL_WORKSPACE_COLLECTIONS.head,
+            collection: workspaceCollection,
             id: renewalWorkspaceDocId(leaseId),
             hash: hashExecutionPreview(workspace.data() ?? {}),
+          },
+          // S66: the staff inputs, charge policy and Working terms the output was filled from.
+          {
+            collection: "lease_document_packet_inputs",
+            id: renewalWorkspaceDocId(leaseId),
+            hash: resolved.packetInputsRecordHash,
+          },
+          {
+            collection: "lease_charge_policies",
+            id: "current",
+            hash: resolved.chargePolicyRecordHash,
+          },
+          {
+            collection: "lease_renewal_working_records",
+            id: renewalWorkspaceDocId(leaseId),
+            hash: resolved.workingRecordHash,
           },
         ],
       };
@@ -117,7 +153,7 @@ export function derivedArtifactDeps(db: Firestore): DerivedArtifactDeps {
     now: () => new Date().toISOString(),
   };
 }
-function allowed(actor: AuthenticatedUser, capability: "read" | "edit" | "approve") {
+function allowed(actor: AuthenticatedUser, capability: Capability) {
   if (!can(actor.role, capability) || !canAccessSpaceId(actor, "renewals"))
     throw new EditableLayerError(
       "This user cannot access this renewal artifact operation.",
@@ -134,6 +170,41 @@ function allowed(actor: AuthenticatedUser, capability: "read" | "edit" | "approv
 }
 function fail(message: string): never {
   throw new EditableLayerError(message, 409);
+}
+/**
+ * S130: the comparison a record keeps. A static output carries its geometry's region order, never
+ * the order of an object's keys, which puts integer-like region ids first.
+ */
+function comparisonOf(
+  filled:
+    | Awaited<ReturnType<typeof fillAcroformPdf>>
+    | Awaited<ReturnType<typeof fillStaticPdf>>,
+): DerivedArtifactRecord["comparison"] {
+  return filled.comparison as DerivedArtifactRecord["comparison"];
+}
+/** The values a saved output reads back as, by the route that wrote it. */
+async function outputValues(
+  adapter: string,
+  content: Uint8Array,
+  comparison: DerivedArtifactRecord["comparison"],
+) {
+  return adapter === STATIC_ADAPTER
+    ? readStaticPdfValuesByOrder(content, comparison.regionOrder ?? [])
+    : readAcroformValues(content);
+}
+/**
+ * Whether a saved output reads back as the values its comparison records. A map read back from
+ * Firestore need not keep its key order, so both sides are compared as canonical JSON.
+ */
+async function readsBackAs(
+  adapter: string,
+  content: Uint8Array,
+  comparison: DerivedArtifactRecord["comparison"],
+) {
+  return (
+    canonicalJson(await outputValues(adapter, content, comparison)) ===
+    canonicalJson(comparison.allFields)
+  );
 }
 const sha = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 function currentArtifact(
@@ -171,7 +242,7 @@ function currentArtifact(
     artifact.fillMapping.mapHash !== mapHashOf(artifact.fillMapping.map) ||
     artifact.fillMapping.map.templateVersion !== artifact.publicationSource.reference
   )
-    fail("An exact approved AcroForm mapping in this packet is required.");
+    fail("An exact approved field or region mapping in this packet is required.");
   return artifact;
 }
 function inputHash(context: DerivedContext, artifact: LeaseArtifactVersion) {
@@ -264,12 +335,20 @@ export async function readDerivedArtifactStatus(
   );
   if (!artifact) fail("The document does not belong to the current packet.");
   if (!artifact.fillMapping)
-    return {
-      supported: false,
-      reason:
-        "This original uses a manual handoff. A reviewed AcroForm mapping is required for filled PDF preparation.",
-      record: null,
-    };
+    return artifact.unchangedAttachment
+      ? {
+          supported: false,
+          unchangedAttachment: true,
+          reason:
+            "Unchanged approved attachment: it has no variable values and is used exactly as approved.",
+          record: null,
+        }
+      : {
+          supported: false,
+          reason:
+            "This original needs a reviewed field or region mapping before a filled PDF can be prepared. Until then a person completes it in Dotloop.",
+          record: null,
+        };
   return {
     supported: true,
     record: await readCurrentDerivedArtifact(actor, request, db, deps),
@@ -303,8 +382,7 @@ export async function readHistoricalDerivedArtifactContent(
   const content = await deps.content.read(record.contentRef);
   if (
     sha(content) !== record.outputHash ||
-    JSON.stringify(await readAcroformValues(content)) !==
-      JSON.stringify(record.comparison.allFields)
+    !(await readsBackAs(record.adapter, content, record.comparison))
   )
     fail("The retained filled output failed byte readback.");
   return {
@@ -399,32 +477,85 @@ export async function prepareDerivedArtifact(
     artifactId: artifact.artifactId,
     expectedContentHash: artifact.contentHash,
   });
-  const worksheet = buildFillWorksheet(artifact.fillMapping!.map, context.input);
+  const map = artifact.fillMapping!.map;
+  const worksheet = buildFillWorksheet(map, context.input);
   if (!worksheet.complete) fail("Required mapped values are missing or unverified.");
-  const values: PdfFillValue[] = [];
-  for (const field of artifact.fillMapping!.map.fields) {
-    const rows = worksheet.rows.filter((row) => row.fieldId === field.fieldId);
-    const targets =
-      field.pdfFieldNames ?? (field.multiplicity === "single" ? [field.fieldId] : []);
-    if (targets.length !== rows.length || (field.required && !rows.length))
-      fail(
-        "The reviewed repeated-field capacity does not match the verified parties or animals.",
-      );
-    rows.forEach((row, index) => {
-      if (row.state !== "filled") {
-        if (row.required) fail("A required mapped value is unavailable.");
-        return;
+  const capacityFail = (field: string, slots: number, rows: number): never =>
+    fail(
+      `${field}: ${rows} are recorded but the reviewed form has capacity for ${slots}. An approved form or attachment with room for everyone is required.`,
+    );
+  let filled:
+    | Awaited<ReturnType<typeof fillAcroformPdf>>
+    | Awaited<ReturnType<typeof fillStaticPdf>>;
+  if (map.static) {
+    // S130 static route: each region shows its field's value for its repeat slot; an unused slot
+    // stays blank and more parties or animals than slots is refused, never dropped.
+    const geometry = map.static;
+    const values: StaticRegionValue[] = [];
+    for (const field of map.fields) {
+      const rows = worksheet.rows.filter((row) => row.fieldId === field.fieldId);
+      const slots =
+        Math.max(
+          ...geometry.regions
+            .filter((region) => region.fieldId === field.fieldId)
+            .map((region) => region.slot),
+        ) + 1;
+      if (rows.length > slots) capacityFail(field.fieldId, slots, rows.length);
+      if (field.required && !rows.length) fail("A required mapped value is unavailable.");
+      for (const region of geometry.regions.filter(
+        (entry) => entry.fieldId === field.fieldId,
+      )) {
+        const row = rows[region.slot];
+        if (!row || row.state !== "filled") {
+          if (row?.required) fail("A required mapped value is unavailable.");
+          values.push({ regionId: region.regionId, text: "" });
+          continue;
+        }
+        values.push({
+          regionId: region.regionId,
+          text: formatStaticValue(region.format, row.value!, row.displayValue),
+        });
       }
-      values.push({
-        name: targets[index],
-        value:
-          typeof row.value === "boolean"
-            ? row.value
-            : (row.displayValue ?? String(row.value)),
+    }
+    filled = await fillStaticPdf(original.content, geometry, values);
+  } else {
+    const values: PdfFillValue[] = [];
+    // Every reviewed target, written or not: one left unchanged may not keep a stored default.
+    const reviewed: string[] = [];
+    const earlier = await readAcroformValues(original.content);
+    for (const field of map.fields) {
+      const rows = worksheet.rows.filter((row) => row.fieldId === field.fieldId);
+      const targets =
+        field.pdfFieldNames ?? (field.multiplicity === "single" ? [field.fieldId] : []);
+      reviewed.push(...targets);
+      if (rows.length > targets.length)
+        capacityFail(field.fieldId, targets.length, rows.length);
+      if (field.required && !rows.length) fail("A required mapped value is unavailable.");
+      targets.forEach((target, index) => {
+        const row = rows[index];
+        if (!row || row.state !== "filled") {
+          if (row?.required) fail("A required mapped value is unavailable.");
+          // An unused repeated slot that holds an earlier value is cleared, so no earlier person
+          // or amount survives; a blank slot is left exactly as approved.
+          const previous = earlier[target];
+          if (!row && field.multiplicity !== "single" && previous)
+            values.push({
+              name: target,
+              value: typeof previous === "string" ? "" : false,
+            });
+          return;
+        }
+        values.push({
+          name: target,
+          value:
+            typeof row.value === "boolean"
+              ? row.value
+              : (row.displayValue ?? String(row.value)),
+        });
       });
-    });
+    }
+    filled = await fillAcroformPdf(original.content, values, reviewed);
   }
-  const filled = await fillAcroformPdf(original.content, values);
   const contentRef = await deps.content.put({
     content: filled.content,
     contentHash: filled.outputHash,
@@ -439,8 +570,7 @@ export async function prepareDerivedArtifact(
     const saved = await deps.content.read(contentRef);
     if (
       sha(saved) !== filled.outputHash ||
-      JSON.stringify(await readAcroformValues(saved)) !==
-        JSON.stringify(filled.comparison.allFields)
+      !(await readsBackAs(filled.adapter, saved, comparisonOf(filled)))
     )
       fail("Stored filled bytes did not read back exactly.");
     const base: Omit<DerivedArtifactRecord, "provenanceHash"> = {
@@ -459,7 +589,7 @@ export async function prepareDerivedArtifact(
       outputHash: filled.outputHash,
       fileName: original.fileName.replace(/\.pdf$/i, "") + "-filled.pdf",
       contentRef,
-      comparison: filled.comparison,
+      comparison: comparisonOf(filled),
       preparedBy: actor.uid,
       preparedAt: deps.now(),
       requestHash,
@@ -561,8 +691,7 @@ export async function readDerivedArtifactContent(
   const content = await deps.content.read(record.contentRef);
   if (
     sha(content) !== record.outputHash ||
-    JSON.stringify(await readAcroformValues(content)) !==
-      JSON.stringify(record.comparison.allFields)
+    !(await readsBackAs(record.adapter, content, record.comparison))
   )
     fail("Filled output readback failed.");
   return { record, content, fileName: record.fileName, contentType: "application/pdf" };
@@ -573,7 +702,8 @@ export async function approveDerivedArtifact(
   db = getAdminFirestore(),
   deps = derivedArtifactDeps(db),
 ) {
-  allowed(actor, "approve");
+  // S182: ordinary renewal staff approve the exact output they inspected.
+  allowed(actor, renewalRoleCapability("approve_filled_artifact"));
   const request = ApproveDerivedArtifactSchema.parse(raw);
   const context = await deps.resolve(actor, request.leaseId);
   currentArtifact(context, request, true);

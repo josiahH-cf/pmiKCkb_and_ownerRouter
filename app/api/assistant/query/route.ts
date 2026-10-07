@@ -5,6 +5,7 @@ import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { runOncePerOperation } from "@/lib/api/assistant-operation-dedupe";
 import { assistantModelRateLimiter } from "@/lib/api/model-call-throttle";
 import { historyModeFor } from "@/lib/assistant-history/route-support";
+import { projectStoredAssistantAnswer } from "@/lib/assistant-history/stored-answer";
 import { requireCapability } from "@/lib/auth/session";
 import { ConversationContextSchema } from "@/lib/assistant/conversation-plan";
 import {
@@ -53,7 +54,11 @@ export async function POST(request: Request) {
         console.info(
           JSON.stringify({ event: "assistant_conversation_replay", source: "history" }),
         );
-        return NextResponse.json({ ...replay.answer, replayed: true });
+        // A replay is a reopening: the viewer's current access applies, as in the history view.
+        return NextResponse.json({
+          ...projectStoredAssistantAnswer(replay.answer, replay.accessBasis, user),
+          replayed: true,
+        });
       }
     }
     const execute = async () => {

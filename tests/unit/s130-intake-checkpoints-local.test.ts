@@ -369,8 +369,13 @@ describe("S130 local end-to-end: no materials to synthetic reviewed materials th
         .sort(),
     ).toEqual([
       ["animal_agreement", "Not applicable"],
+      // S66 (AC-S66-6): the three further reference types are representable and listed for
+      // review; the engineering-default configuration does not use them, so they never hold.
+      ["brokerage_disclosure", "Not applicable"],
       ["city_addendum", "Not applicable"],
       ["hoa_artifact", "Not applicable"],
+      ["insurance_program_addendum", "Not applicable"],
+      ["kcrar_additional_disclosures", "Not applicable"],
       ["lead_disclosure", "Not applicable"],
     ]);
     const readiness = projectFamilyReadiness({

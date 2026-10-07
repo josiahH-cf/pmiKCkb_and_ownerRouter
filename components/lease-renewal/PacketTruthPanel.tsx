@@ -4,9 +4,10 @@ import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSectionHeading";
 import { FilledArtifactPanel } from "@/components/lease-renewal/FilledArtifactPanel";
 import { FilledArtifactHistory } from "@/components/lease-renewal/FilledArtifactHistory";
+import { PacketInputsEditor } from "@/components/lease-renewal/PacketInputsEditor";
 import { useEffect, useRef, useState } from "react";
 
-import { REQUIRED_LEASE_ARTIFACTS } from "@/lib/lease-documents/artifact-catalog";
+import { LEASE_ARTIFACT_FAMILIES } from "@/lib/lease-documents/artifact-catalog";
 import { resourceEntryHref } from "@/lib/lease-renewal/message-readiness";
 import type {
   PacketVisibleState,
@@ -17,7 +18,8 @@ const NEXT_ACTION: Record<PacketVisibleState, string> = {
   "Not evaluated": "Evaluate packet truth from approved sources.",
   "Needs input":
     "Supply the named verified facts or publish the named approved artifacts.",
-  Conflict: "An Admin must resolve each conflict with an exact source and reason.",
+  Conflict:
+    "Choose the value the packet uses in Packet inputs, with a reason when it corrects a source.",
   "Ready for preview": "Request an exact-hash preview for human review.",
   Previewed: "Review the exact preview before an Admin decision.",
   Approved: "Execute only through the exact confirmed S34 action contract.",
@@ -34,10 +36,13 @@ export function PacketTruthPanel({
   initialSnapshot,
   leaseId,
   transactionId,
+  canEditInputs = false,
 }: Readonly<{
   initialSnapshot: RenewalPacketSnapshot | null;
   leaseId: string;
   transactionId: string;
+  /** S66: renewal staff save packet inputs; the Evaluate control re-reads them. */
+  canEditInputs?: boolean;
 }>) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [loading, setLoading] = useState(false);
@@ -147,10 +152,12 @@ export function PacketTruthPanel({
         <PacketSnapshotDetails snapshot={snapshot} />
       )}
 
+      <PacketInputsEditor leaseId={leaseId} canEdit={canEditInputs} />
+
       <div className="ui-stack-tight">
         <strong>Current approved-artifact dependencies</strong>
         <ul className="ui-rows">
-          {REQUIRED_LEASE_ARTIFACTS.map((artifact) => (
+          {LEASE_ARTIFACT_FAMILIES.map((artifact) => (
             <li key={artifact.kind}>
               {artifact.label}:{" "}
               {snapshot?.manifest?.includedArtifacts.some(

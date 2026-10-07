@@ -91,20 +91,24 @@ export const LEASE_EXECUTION_DEFINITIONS: readonly ExternalActionDefinition[] = 
     [],
     "Review the exact receipt with an Admin. Correct a field through a new current-state preview and confirmation; row deletion remains unavailable.",
   ),
+  // S34 (AC-S34-10): the Dotloop Public API documents no loop or document deletion, so neither
+  // correction promises one. The app corrects only its own loop link and document versions.
   definition(
     LEASE_EXECUTION_ACTIONS[8],
     "Dotloop",
     "High",
     [],
-    "Archive/correct the loop under the documented Dotloop account contract.",
+    "The Dotloop API cannot delete a loop. Correct the lease's loop link in the app through a reviewed current-state action; a person archives an app-created loop in Dotloop if needed. A linked pre-existing loop is never archived or emptied.",
     "documented",
   ),
+  // S34 (AC-S34-8): an upload depends on its own exact key and the lease's current loop
+  // association, not on a create receipt; a linked existing loop has none.
   definition(
     LEASE_EXECUTION_ACTIONS[9],
     "Dotloop",
     "High",
-    [LEASE_EXECUTION_ACTIONS[8]],
-    "Remove or supersede the wrong document without rewriting audit.",
+    [],
+    "The Dotloop API cannot delete a document. Upload a reviewed successor into the same loop; a person retires obsolete or duplicate files in Dotloop. Receipts and earlier versions are never rewritten.",
     "documented",
   ),
   definition(

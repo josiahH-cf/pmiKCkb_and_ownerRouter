@@ -2,6 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
+import { isStaffConfirmedActionKey } from "@/lib/execution/staff-confirmation";
 import {
   classifyExecutionRisk,
   type AssignedTicketPhotoGates,
@@ -21,6 +22,7 @@ import {
   failActionExecution,
   getActionExecution,
   prepareActionExecutionRecord,
+  type ActionExecutionCompanion,
 } from "@/lib/firestore/action-executions";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { createApprovalQueueItem } from "@/lib/firestore/approval-queue";
@@ -56,6 +58,8 @@ export interface ExecutionApprovalQueueContext {
 export interface PrepareActionExecutionInput {
   actionKey: string;
   approvalQueue?: ExecutionApprovalQueueContext;
+  /** S182: the feature companion written in the same transaction as the execution record. */
+  companion?: ActionExecutionCompanion;
   contextHash?: string;
   idempotencyKey: string;
   /** Server-owned namespace used when uniqueness must span preparers. */
@@ -128,7 +132,14 @@ export async function prepareActionExecution(
     registry,
   );
 
-  if (classification.risk === "High" && !validQueueContext(input.approvalQueue)) {
+  // S182: a staff-confirmed action is approved by the confirming staff member in its own control,
+  // so it needs no Admin approval-queue route. Every other High action still does.
+  const staffConfirmed = isStaffConfirmedActionKey(input.actionKey);
+  if (
+    classification.risk === "High" &&
+    !staffConfirmed &&
+    !validQueueContext(input.approvalQueue)
+  ) {
     throw new ExecutionBlockedError(["approval_route_missing"]);
   }
   assertUnblocked(classification);
@@ -137,6 +148,7 @@ export async function prepareActionExecution(
     actor,
     {
       classification,
+      companion: input.companion,
       contextHash: input.contextHash,
       idempotencyKey: input.idempotencyKey,
       idempotencyPrincipal: input.idempotencyPrincipal,
@@ -146,7 +158,7 @@ export async function prepareActionExecution(
     db,
   );
 
-  if (record.risk === "High" && input.approvalQueue) {
+  if (record.risk === "High" && input.approvalQueue && !staffConfirmed) {
     await createApprovalQueueItem(
       actor,
       {

@@ -14,7 +14,15 @@ import { EditableLayerError } from "@/lib/firestore/errors";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { RenewalMarketBasisSchema } from "@/lib/lease-renewal/market-basis-schema";
 import { SheetFieldIntentSchema } from "@/lib/lease-renewal/sheet-writeback/field-intent";
+import { captureApprovedWorkingTerms } from "@/lib/lease-documents/owner-approval-binding";
+import { readChargePolicyIn } from "@/lib/firestore/lease-charge-policy";
+import { readPacketInputsIn } from "@/lib/firestore/lease-packet-inputs";
 import {
+  parseRenewalWorkingRecord,
+  renewalWorkingRecordRef,
+} from "@/lib/firestore/renewal-working-record";
+import {
+  ApprovedWorkingTermsSchema,
   CycleBasisSchema,
   LeaseBoundBasisSchema,
   MANUAL_ACTIVITIES,
@@ -23,6 +31,7 @@ import {
   emptyRenewalWorkspace,
   planRenewalWorkspaceAction,
   workBasisDateIso,
+  type ApprovedWorkingTerms,
   type RenewalCycleBasis,
   type RenewalWorkBasis,
   type RenewalWorkspaceState,
@@ -66,6 +75,7 @@ const stateSchema = z
           "no_response",
         ]),
         terms: RenewalTermsSchema.optional(),
+        approvedWorkingTerms: ApprovedWorkingTermsSchema.optional(),
       })
       .nullable(),
     tenantResponse: staff
@@ -392,10 +402,32 @@ export async function saveRenewalWorkspace(
       ? emptyRenewalWorkspace(input.leaseId, randomUUID(), basis)
       : current;
     const cycleId = base.cycleId;
+    // S66 (AC-S66-8): an owner approval covers the exact Working terms and calculated charges
+    // current as it is recorded. They are read here, in the same transaction, never from the page.
+    let approvedWorkingTerms: ApprovedWorkingTerms | null = null;
+    if (
+      input.action.kind === "owner_response" &&
+      input.action.outcome === "approved_terms"
+    ) {
+      const [workingSnapshot, packetInputs, chargePolicy] = await Promise.all([
+        tx.get(renewalWorkingRecordRef(db, input.leaseId)),
+        readPacketInputsIn(tx, db, input.leaseId),
+        readChargePolicyIn(tx, db),
+      ]);
+      approvedWorkingTerms = captureApprovedWorkingTerms({
+        leaseId: input.leaseId,
+        working: workingSnapshot.exists
+          ? parseRenewalWorkingRecord(workingSnapshot.data(), input.leaseId)
+          : null,
+        inputs: packetInputs,
+        policy: chargePolicy,
+      });
+    }
     const next = planRenewalWorkspaceAction(base, input.action, {
       eventId: input.operationId,
       actorUid: actor.uid,
       recordedAt: now,
+      approvedWorkingTerms,
     });
     if (
       input.action.kind === "preparation" &&

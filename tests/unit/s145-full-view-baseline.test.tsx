@@ -42,6 +42,22 @@ const BASELINE_PATH = join(
   "fixtures",
   "s181-full-view-presentation.json",
 );
+// S66 (intake 051, AC-S66-6): the three further reference families each gain a resource
+// location link. S34 (intake 053, AC-S34-5): the document handoff gains the existing-loop review
+// input. Nothing from the prior Full view is removed.
+const AUTHORIZED_ADDITIONS: Record<
+  "regions" | "sectionIds" | "controls" | "links",
+  string[]
+> = {
+  regions: [],
+  sectionIds: [],
+  controls: ["input::Existing Dotloop loop number or address"],
+  links: [
+    "Manage location -> /connections#renewal-resource-entry-kcrar_additional_disclosures",
+    "Manage location -> /connections#renewal-resource-entry-brokerage_disclosure",
+    "Manage location -> /connections#renewal-resource-entry-insurance_program_addendum",
+  ],
+};
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
 const PINNED_NOW = new Date("2026-09-30T17:00:00.000Z");
 
@@ -272,9 +288,13 @@ describe("S145 Full view baseline", () => {
     const prior = JSON.parse(readFileSync(PRIOR_PATH, "utf8")) as typeof signatures;
     for (const [name, signature] of Object.entries(signatures)) {
       // Reordering and shortening prose cannot remove an input, source link or task section.
+      // Exact additions are named here, never inferred; a case shows those its view mounts.
       for (const field of ["regions", "sectionIds", "controls", "links"] as const) {
+        const added = AUTHORIZED_ADDITIONS[field].filter((entry) =>
+          signature[field].includes(entry),
+        );
         expect([...signature[field]].sort(), `${name}: preserved ${field}`).toEqual(
-          [...prior[name][field]].sort(),
+          [...prior[name][field], ...added].sort(),
         );
       }
       expect(signature.buttons).toEqual(expect.arrayContaining(prior[name].buttons));

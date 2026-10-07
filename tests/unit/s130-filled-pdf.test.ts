@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { PDFDocument, PDFName, PDFString } from "pdf-lib";
+import { PDFDocument, PDFName, PDFString, StandardFonts } from "pdf-lib";
 import { fillAcroformPdf, readAcroformValues } from "@/lib/lease-documents/acroform-pdf";
 import { syntheticAcroform } from "@/tests/fixtures/synthetic-acroform";
+import { objectsHolding } from "@/tests/fixtures/synthetic-static";
 
 describe("S130 actual saved PDF output", () => {
   it("fills and independently reopens the saved PDF bytes", async () => {
@@ -103,6 +104,99 @@ describe("S130 actual saved PDF output", () => {
     await expect(
       fillAcroformPdf(original, [{ name: "Choice", value: "invented" }]),
     ).rejects.toThrow(/existing/);
+  });
+  it("clears a text value and a selection to the field's empty state, keeping no earlier appearance in the file (R-F10-04)", async () => {
+    const pdf = await PDFDocument.create(),
+      page = pdf.addPage([612, 792]),
+      form = pdf.getForm();
+    form
+      .createTextField("Tenant 1")
+      .addToPage(page, { x: 30, y: 700, width: 240, height: 24 });
+    const second = form.createTextField("Tenant 2");
+    second.addToPage(page, { x: 30, y: 640, width: 240, height: 24 });
+    second.setText("Earlier person");
+    const kind = form.createDropdown("Kind 2");
+    kind.addOptions(["Adult", "Minor"]);
+    kind.addToPage(page, { x: 300, y: 640, width: 120, height: 24 });
+    kind.select("Minor");
+    const pick = form.createRadioGroup("Pick 2");
+    pick.addOptionToPage("Yes", page, { x: 450, y: 640, width: 20, height: 20 });
+    pick.addOptionToPage("No", page, { x: 490, y: 640, width: 20, height: 20 });
+    pick.select("Yes");
+    form.updateFieldAppearances(await pdf.embedFont(StandardFonts.Helvetica));
+    const original = await pdf.save({ useObjectStreams: false });
+    const saved = await fillAcroformPdf(original, [
+      { name: "Tenant 1", value: "Synthetic A" },
+      { name: "Tenant 2", value: "" },
+      { name: "Kind 2", value: "" },
+      { name: "Pick 2", value: "" },
+    ]);
+    expect(await readAcroformValues(saved.content)).toEqual({
+      "Tenant 1": "Synthetic A",
+      "Tenant 2": "",
+      "Kind 2": "",
+      "Pick 2": "",
+    });
+    expect(await objectsHolding(original, ["Earlier person"])).not.toEqual([]);
+    expect(await objectsHolding(saved.content, ["Earlier person"])).toEqual([]);
+    // The option stays in the form's list; no appearance draws the earlier selection.
+    expect(await objectsHolding(original, ["Minor"], { streams: true })).not.toEqual([]);
+    expect(await objectsHolding(saved.content, ["Minor"], { streams: true })).toEqual([]);
+  });
+  it("drops the stored defaults of every field it writes and refuses a mapped field left keeping one (R-F10-04)", async () => {
+    const pdf = await PDFDocument.create(),
+      page = pdf.addPage([612, 792]),
+      form = pdf.getForm();
+    const tenant = form.createTextField("Tenant 2");
+    tenant.addToPage(page, { x: 30, y: 640, width: 240, height: 24 });
+    tenant.setText("Earlier person");
+    tenant.acroField.dict.set(PDFName.of("DV"), PDFString.of("Earlier default"));
+    tenant.acroField.dict.set(PDFName.of("RV"), PDFString.of("<p>Earlier rich text</p>"));
+    // A caption a text widget never shows is still a stored value.
+    tenant.acroField
+      .getWidgets()[0]
+      .dict.set(
+        PDFName.of("MK"),
+        pdf.context.obj({ CA: PDFString.of("Earlier caption") }),
+      );
+    const kind = form.createDropdown("Kind 2");
+    kind.addOptions(["Adult", "Minor"]);
+    kind.addToPage(page, { x: 300, y: 640, width: 120, height: 24 });
+    kind.acroField.dict.set(PDFName.of("DV"), PDFString.of("Minor"));
+    // A parent field's default is the default of every kid.
+    const party = form.createTextField("Party.3");
+    party.addToPage(page, { x: 30, y: 560, width: 240, height: 24 });
+    party.acroField
+      .getParent()!
+      .dict.set(PDFName.of("DV"), PDFString.of("Earlier inherited"));
+    form.updateFieldAppearances(await pdf.embedFont(StandardFonts.Helvetica));
+    const original = await pdf.save({ useObjectStreams: false });
+    const earlier = [
+      "Earlier person",
+      "Earlier default",
+      "Earlier rich text",
+      "Earlier caption",
+    ];
+    const saved = await fillAcroformPdf(original, [
+      { name: "Tenant 2", value: "" },
+      { name: "Kind 2", value: "Adult" },
+    ]);
+    expect(await objectsHolding(original, earlier)).not.toEqual([]);
+    expect(await objectsHolding(saved.content, earlier)).toEqual([]);
+    const reopened = await PDFDocument.load(saved.content);
+    expect(
+      reopened.getForm().getDropdown("Kind 2").acroField.dict.has(PDFName.of("DV")),
+    ).toBe(false);
+    await expect(
+      fillAcroformPdf(
+        original,
+        [{ name: "Kind 2", value: "Adult" }],
+        ["Kind 2", "Tenant 2"],
+      ),
+    ).rejects.toThrow(/leaves unchanged keeps a stored default value/);
+    await expect(
+      fillAcroformPdf(original, [{ name: "Party.3", value: "Synthetic" }]),
+    ).rejects.toThrow(/inherits a stored default value/);
   });
   it("refuses corrupt, truncated, oversized and static files", async () => {
     for (const original of [

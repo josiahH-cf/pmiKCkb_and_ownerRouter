@@ -23,6 +23,7 @@
 //   A TEMPLATE with participants and a property address is `POST /loop-it?profile_id=`.
 
 import { randomUUID } from "node:crypto";
+import type { DotloopParticipantRole } from "@/lib/integrations/dotloop/participant-roles";
 
 import {
   DotloopRateWaitExceeded,
@@ -137,14 +138,10 @@ export const DOTLOOP_TRANSACTION_TYPES = ["LISTING_FOR_LEASE", "LEASE_OFFER"] as
 export type DotloopTransactionType = (typeof DOTLOOP_TRANSACTION_TYPES)[number];
 
 /** Documented participant roles. */
-export const DOTLOOP_PARTICIPANT_ROLES = [
-  "TENANT",
-  "LANDLORD",
-  "PROPERTY_MANAGER",
-  "ADMIN",
-  "OTHER",
-] as const;
-export type DotloopParticipantRole = (typeof DOTLOOP_PARTICIPANT_ROLES)[number];
+export {
+  DOTLOOP_PARTICIPANT_ROLES,
+  type DotloopParticipantRole,
+} from "@/lib/integrations/dotloop/participant-roles";
 
 /** The documented loop name limit. */
 export const DOTLOOP_LOOP_NAME_MAX_LENGTH = 200;

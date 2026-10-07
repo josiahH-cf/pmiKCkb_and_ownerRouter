@@ -77,13 +77,18 @@ function userRoot(db: Firestore, user: AuthenticatedUser) {
 
 /**
  * The completed operational answer for one of this user's operations, or null. Used only to replay
- * a duplicate delivery of the same submission without asking the model again.
+ * a duplicate delivery of the same submission without asking the model again. The access the
+ * answer was produced under comes with it, so the replay applies the viewer's current access.
  */
 export async function readCompletedTurnAnswer(
   user: AuthenticatedUser,
   operationId: string,
   db: Firestore = getAdminFirestore(),
-): Promise<{ question: string; answer: StoredAssistantAnswer } | null> {
+): Promise<{
+  question: string;
+  answer: StoredAssistantAnswer;
+  accessBasis: AccessBasis;
+} | null> {
   if (!/^[A-Za-z0-9-]{8,64}$/.test(operationId)) return null;
   const snapshot = await userRoot(db, user)
     .collection(ASSISTANT_HISTORY_COLLECTIONS.turns)
@@ -93,7 +98,11 @@ export async function readCompletedTurnAnswer(
   const record = snapshot.data() as StoredTurnRecord;
   if (record.owner_uid !== user.uid || record.state !== "completed" || !record.assistant)
     return null;
-  return { question: record.question, answer: record.assistant };
+  return {
+    question: record.question,
+    answer: record.assistant,
+    accessBasis: record.access_basis,
+  };
 }
 
 export interface ConversationSummary {

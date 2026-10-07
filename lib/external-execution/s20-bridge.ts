@@ -48,6 +48,7 @@ import {
   getActionExecution,
   resolveActionReconciliation,
   resolveClaimedExternalReceipt,
+  type ActionExecutionCompanion,
 } from "@/lib/firestore/action-executions";
 import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
 import { LEASE_EXECUTION_DEFINITIONS } from "@/lib/lease-renewal/execution/matrix";
@@ -92,6 +93,8 @@ export interface TrustedExternalExecutionContext extends TrustedExecutionContext
 export interface PrepareExternalActionWithS20Input {
   readonly action: ExternalActionPreparationInput;
   readonly approvalQueue?: ExecutionApprovalQueueContext;
+  /** S182: the feature companion written in the same transaction as the S20 record. */
+  readonly companion?: ActionExecutionCompanion;
   readonly definition: Readonly<ExternalActionDefinition>;
   readonly trustedContext: TrustedExternalExecutionContext;
   /** Required pure action-specific validation; it cannot call or mutate a provider. */
@@ -167,6 +170,7 @@ export async function prepareExternalActionWithS20(
             reviewTarget: externalReviewTarget(action),
           }
         : undefined,
+      companion: request.companion,
       contextHash: externalContextHash(action),
       idempotencyKey: externalActionIdempotencyKey(action),
       idempotencyPrincipal: EXTERNAL_ACTION_IDEMPOTENCY_PRINCIPAL,

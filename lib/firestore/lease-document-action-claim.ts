@@ -10,11 +10,20 @@ import {
   derivedArtifactProvenance,
   type DerivedArtifactRecord,
 } from "@/lib/lease-documents/derived-artifact-contract";
+import type { LoopAssociation } from "@/lib/lease-documents/dotloop-loop-association";
+import {
+  planLoopCreationClaim,
+  planUploadClaim,
+  readLoopAssociationIn,
+  uploadClaimAction,
+  writeClaimedAssociation,
+} from "./lease-document-loop-association";
 /** Before the existing S20 one-attempt claim, bind normal S34 actions to current packet, owner approval, mappings and selection. */
 export async function assertCurrentPacketActionClaim(
   tx: Transaction,
   db: Firestore,
   execution: ActionExecutionRecord,
+  actorUid = "s20-claim",
 ) {
   if (
     !["dotloop.loop.create_from_template", "dotloop.document.upload"].includes(
@@ -48,14 +57,65 @@ export async function assertCurrentPacketActionClaim(
   const packetHeadId = createHash("sha256")
     .update(`${leaseId.trim()}\u0000${leaseId.trim()}`)
     .digest("hex");
-  const [workspace, head, catalog, mapping, settings] = await Promise.all([
+  const [
+    datedWorkspace,
+    leaseBoundWorkspace,
+    head,
+    catalog,
+    mapping,
+    settings,
+    packetInputs,
+    chargePolicy,
+    workingRecord,
+  ] = await Promise.all([
     tx.get(db.collection("lease_renewal_workspaces").doc(workspaceId)),
+    // S34: a work record saved without a lease end or review date lives in its own head.
+    tx.get(db.collection("lease_renewal_lease_bound_workspaces").doc(workspaceId)),
     tx.get(db.collection("lease_document_packet_heads").doc(packetHeadId)),
     tx.get(db.collection("lease_artifact_catalogs").doc("current")),
     tx.get(db.collection("lease_document_source_mappings").doc(workspaceId)),
     tx.get(db.collection("dotloop_renewal_settings").doc("current")),
+    tx.get(db.collection("lease_document_packet_inputs").doc(workspaceId)),
+    tx.get(db.collection("lease_charge_policies").doc("current")),
+    tx.get(db.collection("lease_renewal_working_records").doc(workspaceId)),
   ]);
+  const workspace = datedWorkspace.exists ? datedWorkspace : leaseBoundWorkspace;
+  // S34 (ARCH-S34-2): the lease's loop target is re-read at the claim. Preparations made before
+  // the loop association existed carry no `loopTarget` and keep their original guards.
+  const isCreate = execution.action_key === "dotloop.loop.create_from_template";
+  const targeted = prepared.loopTarget !== undefined;
+  const association: LoopAssociation | null = targeted
+    ? await readLoopAssociationIn(tx, db, leaseId)
+    : null;
+  // The S20 states of the other attempts the association names: the folder holder and every
+  // pending upload. Read now, before any write.
+  const attemptStates: Record<string, string | null> = {};
+  if (targeted && !isCreate && association) {
+    const others = new Set(
+      [
+        ...(association.folder ? [] : [association.folderReservation?.executionId]),
+        ...(association.pendingUploads ?? []).map((entry) => entry.executionId),
+      ].filter((id): id is string => Boolean(id) && id !== execution.id),
+    );
+    for (const id of others)
+      attemptStates[id] =
+        (await tx.get(db.collection("action_executions").doc(id))).get("state") ?? null;
+  }
+  // S66: the packet inputs, charge policy and Working terms the preview was evaluated from must be
+  // unchanged at the claim; a preparation without them (before S66) keeps its original guards.
+  const s66Changed = (
+    [
+      [packetInputs, "packetInputsRecordHash"],
+      [chargePolicy, "chargePolicyRecordHash"],
+      [workingRecord, "workingRecordHash"],
+    ] as const
+  ).some(
+    ([doc, key]) =>
+      prepared[key] !== undefined &&
+      hashExecutionPreview(doc.data() ?? {}) !== prepared[key],
+  );
   if (
+    s66Changed ||
     workspace.get("cycleId") !== prepared.cycleId ||
     workspace.get("termsRevision") !== prepared.termsRevision ||
     hashExecutionPreview(workspace.get("ownerResponse") ?? {}) !==
@@ -95,6 +155,42 @@ export async function assertCurrentPacketActionClaim(
     );
     if (resource.get("activeVersionId") !== id) refuse();
   }
+  const now = new Date().toISOString();
+  const associationWrite = !targeted
+    ? null
+    : isCreate
+      ? planLoopCreationClaim(association, {
+          leaseId,
+          cycleId: prepared.cycleId,
+          profileId: prepared.selection.profileId,
+          executionId: execution.id,
+          actorUid,
+          now,
+        })
+      : planUploadClaim(association, {
+          loopId: prepared.loopTarget.loopId,
+          linkRevision: prepared.loopTarget.linkRevision,
+          cycleId: prepared.cycleId,
+          documentRef: String(prepared.action.values.document_ref),
+          contentHash: String(prepared.action.values.content_hash),
+          executionId: execution.id,
+          actorUid,
+          now,
+          attemptStates,
+        });
+  // Writes follow every read: the loop reservation commits with S20's one-attempt claim.
+  const writeAssociation = () => {
+    if (associationWrite)
+      writeClaimedAssociation(
+        tx,
+        db,
+        associationWrite,
+        isCreate
+          ? "loop_creation_reserved"
+          : uploadClaimAction(association!, associationWrite, execution.id),
+        execution.id,
+      );
+  };
   const required = prepared.packet.catalog.artifacts.filter(
     (artifact: { artifactId: string; fillMapping?: unknown }) =>
       artifact.fillMapping &&
@@ -102,7 +198,10 @@ export async function assertCurrentPacketActionClaim(
         (included: { artifactId: string }) => included.artifactId === artifact.artifactId,
       ),
   );
-  if (!required.length && !prepared.derivedDocuments?.length) return;
+  if (!required.length && !prepared.derivedDocuments?.length) {
+    writeAssociation();
+    return;
+  }
   const documents = prepared.derivedDocuments;
   if (
     !Array.isArray(documents) ||
@@ -170,4 +269,5 @@ export async function assertCurrentPacketActionClaim(
         claimedByExecutionId: execution.id,
       }),
     );
+  writeAssociation();
 }

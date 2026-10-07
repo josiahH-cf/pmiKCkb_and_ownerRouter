@@ -22,6 +22,12 @@ export interface ConnectorConnectionView {
   oauthState?: "ready" | "refreshing" | "refresh_needed";
   /** Dotloop only, every role: whether the completed disconnect proved provider revocation. */
   providerRevocation?: "verified" | "unverified";
+  /**
+   * S182: set on the AI-context view, which keeps only the app's own lifecycle status. Outcomes
+   * derived from provider responses (token refresh, revocation evidence) are withheld, so the
+   * status says nothing about them.
+   */
+  providerOutcomes?: "withheld";
   disconnect?: ConnectorDisconnectView;
 }
 
@@ -111,9 +117,11 @@ export function classifyConnector(
       state: "none",
       label: "Disconnected",
       detail:
-        connection.providerRevocation === "unverified"
-          ? "The app's stored credentials were removed. Dotloop did not confirm every token was revoked. Reconnect to restore access."
-          : "Credential removal was verified. Reconnect to restore access.",
+        connection.providerOutcomes === "withheld"
+          ? "The app's stored credentials were removed. Reconnect to restore access."
+          : connection.providerRevocation === "unverified"
+            ? "The app's stored credentials were removed. Dotloop did not confirm every token was revoked. Reconnect to restore access."
+            : "Credential removal was verified. Reconnect to restore access.",
     };
   }
   if (

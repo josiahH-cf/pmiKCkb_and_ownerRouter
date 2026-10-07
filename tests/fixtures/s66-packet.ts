@@ -108,7 +108,7 @@ function artifact(
             },
           ]
         : [],
-    signerRoles: [audience === "tenant" ? "tenant_signer" : "owner_signer"],
+    signerRoles: [audience],
     signatureLocations: [`fixture-${audience}-signature-slot`],
     audience,
     publicationSource: s66Source("s21_publication", `publication:${kind}:fixture-v1`),
@@ -197,7 +197,7 @@ function participant(
   return {
     participantId,
     kind,
-    signerRole: kind === "tenant" ? "tenant_signer" : "owner_signer",
+    signerRole: kind,
     source: s66Source("rentvine", `participant:${participantId}`),
     confidence: "Verified",
     authoritativeOrder: order,

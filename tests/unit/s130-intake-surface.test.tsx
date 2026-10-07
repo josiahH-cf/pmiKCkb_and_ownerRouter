@@ -75,7 +75,7 @@ function checkpoints(manifest: ArtifactIntakeManifest) {
 }
 
 describe("S130 Admin intake surface (AC-S130-1, AC-S130-4, AC-S130-8)", () => {
-  it("shows seven pending families and the honest checkpoints with no materials", () => {
+  it("shows every pending family and the honest checkpoints with no materials", () => {
     const manifest = withEntry(null);
     render(
       <LeaseArtifactIntakePanel
@@ -83,7 +83,8 @@ describe("S130 Admin intake surface (AC-S130-1, AC-S130-4, AC-S130-8)", () => {
       />,
     );
     const families = document.querySelectorAll("[data-artifact-intake-family]");
-    expect(families).toHaveLength(7);
+    // S66 (AC-S66-6): the original seven families plus the three further reference types.
+    expect(families).toHaveLength(10);
     expect(
       Array.from(families).every(
         (node) => node.getAttribute("data-artifact-intake-state") === "pending_materials",
@@ -190,5 +191,107 @@ describe("S130 Admin intake surface (AC-S130-1, AC-S130-4, AC-S130-8)", () => {
     expect(document.body.textContent).not.toMatch(
       /prefilled|autofilled|uploaded to Dotloop|\bsigned\b/i,
     );
+  });
+  it("reads a static original's page positions and adds its pages to the mapping (AC-S130-3)", async () => {
+    const staticEntry: ArtifactIntakeEntry = {
+      ...received,
+      classification: {
+        ...received.classification!,
+        format: "static_pdf",
+        hasAcroForm: false,
+      },
+    };
+    const urls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        urls.push(url);
+        return Response.json({
+          staticInspection: {
+            kind: "renewal_extension",
+            pages: [
+              { pageIndex: 0, width: 612, height: 792, rotation: 0, cropBox: null },
+              {
+                pageIndex: 1,
+                width: 612,
+                height: 792,
+                rotation: 0,
+                cropBox: [0, 396, 612, 792],
+              },
+            ],
+            runs: [
+              {
+                pageIndex: 0,
+                x: 72,
+                y: 600,
+                width: 40.25,
+                height: 11,
+                text: "SYNTHETIC label",
+              },
+            ],
+            images: [],
+            annotations: [
+              {
+                pageIndex: 0,
+                x: 120,
+                y: 596,
+                width: 200,
+                height: 16,
+                subtype: "FreeText",
+              },
+            ],
+            truncated: false,
+          },
+        });
+      }),
+    );
+    const manifest = withEntry(staticEntry);
+    render(
+      <LeaseArtifactIntakePanel
+        initial={{ manifest, checkpoints: checkpoints(manifest) }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Read page positions for/ }));
+    await screen.findByText(/Page 1: 612\.0 × 792\.0/);
+    expect(urls).toEqual([
+      "/api/admin/lease-artifact-intake/inspect?kind=renewal_extension",
+    ]);
+    expect(
+      screen.getByText(/x 72\.0 y 600\.0 w 40\.3 h 11\.0 SYNTHETIC label/),
+    ).toBeInTheDocument();
+    // The visible area of a cropped page and every annotation are shown for region review.
+    expect(
+      screen.getByText(
+        /Page 2: 612\.0 × 792\.0, visible from x 0\.0 to 612\.0, y 396\.0 to 792\.0/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/1 annotation is present; a region may not cover it\./),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/p1 x 120\.0 y 596\.0 w 200\.0 h 16\.0 FreeText/),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add these pages to the mapping" }),
+    );
+    const mapping = JSON.parse(
+      (screen.getByLabelText("Reviewed mapping (JSON)") as HTMLTextAreaElement).value,
+    );
+    expect(mapping.static).toEqual({
+      pages: [
+        { pageIndex: 0, width: 612, height: 792, rotation: 0, cropBox: null },
+        {
+          pageIndex: 1,
+          width: 612,
+          height: 792,
+          rotation: 0,
+          cropBox: [0, 396, 612, 792],
+        },
+      ],
+      regions: [],
+      protectedRegions: [],
+    });
+    // Nothing was saved: the only request was the read-only inspection.
+    expect(urls).toHaveLength(1);
   });
 });

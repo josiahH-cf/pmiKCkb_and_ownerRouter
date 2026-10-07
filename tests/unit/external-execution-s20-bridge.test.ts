@@ -1237,6 +1237,56 @@ describe("S25/S26 external execution to S20 preparation bridge", () => {
   });
 });
 
+describe("S182 the S20 bridge writes a feature companion with its execution record", () => {
+  it("creates both in one transaction and lets a colleague continue the identical action", async () => {
+    const action = externalAction(
+      "dotloop.loop.create_from_template",
+      {
+        workflow_context: "synthetic:workflow:renewal-packet-1",
+        template_ref: "synthetic-template-1",
+        participant_refs: "synthetic-participant-1",
+        property_address: "none",
+      },
+      "packet-companion",
+    );
+    const request = {
+      action,
+      companion: {
+        collection: "synthetic_action_companions",
+        document: (binding: { previewHash: string; contextHash: string | undefined }) => {
+          const stored = { workflow: action.workflowId, ...binding };
+          return { ...stored, snapshotHash: hashExecutionPreview(stored) };
+        },
+      },
+      definition: leaseDefinition(action.actionKey),
+      trustedContext: trustedExternalContext(action, {
+        ...technicalContext,
+        localPreviewValidated: true,
+      }),
+      validate: () => null,
+    };
+    const options = {
+      allowSyntheticAliases: true,
+      db,
+      registry: openRegistryAction(action.actionKey),
+    };
+    const transactions = vi.spyOn(fakeDb, "runTransaction");
+    const execution = await prepareExternalActionWithS20(editor, request, options);
+    expect(transactions).toHaveBeenCalledTimes(1);
+    expect(execution).toMatchObject({ risk: "High", state: "Awaiting Admin" });
+    expect(fakeDb.store.get(`synthetic_action_companions/${execution.id}`)).toMatchObject(
+      {
+        workflow: action.workflowId,
+        previewHash: execution.preview_hash,
+        contextHash: execution.context_hash,
+      },
+    );
+    await expect(
+      prepareExternalActionWithS20(otherEditor, request, options),
+    ).resolves.toMatchObject({ id: execution.id, actor_uid: editor.uid });
+  });
+});
+
 function externalAction(
   actionKey: string,
   values: ExternalActionPreparationInput["values"],

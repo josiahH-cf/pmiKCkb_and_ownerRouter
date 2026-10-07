@@ -1,15 +1,22 @@
 import { createHash } from "node:crypto";
 import {
+  PDFArray,
   PDFCheckBox,
   PDFDict,
   PDFDocument,
   PDFDropdown,
+  PDFHexString,
   PDFName,
+  PDFNull,
   PDFOptionList,
   PDFRadioGroup,
+  PDFRef,
   PDFSignature,
+  PDFStream,
+  PDFString,
   PDFTextField,
   StandardFonts,
+  type PDFField,
 } from "pdf-lib";
 import { EditableLayerError } from "@/lib/firestore/errors";
 
@@ -41,6 +48,9 @@ function refuse(message: string): never {
 }
 
 /** Approved bytes only. Never interprets PDF actions, infers fields, flattens, or touches signatures. */
+export async function parseSafePdf(content: Uint8Array, allowStatic = false) {
+  return parse(content, allowStatic);
+}
 async function parse(content: Uint8Array, allowStatic = false) {
   if (!content.byteLength || content.byteLength > MAX_FILL_PDF_BYTES)
     refuse("the supported size is at most 2 MiB.");
@@ -65,6 +75,31 @@ async function parse(content: Uint8Array, allowStatic = false) {
     refuse("the document structure exceeds the supported bound.");
   // Inspect parsed dictionaries, including escaped names and objects inside compressed streams.
   const visited = new Set<unknown>();
+  const resolve = (value: unknown) =>
+    value instanceof PDFRef ? pdf.context.lookup(value) : value;
+  const nameOf = (dict: PDFDict, key: string) => {
+    const value = resolve(dict.get(PDFName.of(key)));
+    return value instanceof PDFName ? value.decodeText() : undefined;
+  };
+  // S130: /A is an action only on an annotation or outline item; on a structure element it holds
+  // attributes. A link annotation may navigate (URI or GoTo, no chained action) and is kept
+  // untouched; every other action, and any action on another object, stays refused.
+  const benignA = (dict: PDFDict, value: unknown) => {
+    if (
+      nameOf(dict, "Type") === "StructElem" ||
+      (dict.has(PDFName.of("S")) &&
+        dict.has(PDFName.of("P")) &&
+        !dict.has(PDFName.of("Subtype")))
+    )
+      return true;
+    if (nameOf(dict, "Subtype") !== "Link") return false;
+    const action = resolve(value);
+    return (
+      action instanceof PDFDict &&
+      ["URI", "GoTo"].includes(nameOf(action, "S") ?? "") &&
+      !action.has(PDFName.of("Next"))
+    );
+  };
   const inspect = (object: unknown, depth = 0) => {
     if (depth > 100 || visited.size > 100_000)
       refuse("the object graph exceeds the supported bound.");
@@ -72,7 +107,8 @@ async function parse(content: Uint8Array, allowStatic = false) {
     visited.add(object);
     if (object instanceof PDFDict) {
       for (const [key, value] of object.entries()) {
-        if (forbidden.has(key.decodeText()))
+        const keyName = key.decodeText();
+        if (forbidden.has(keyName) && !(keyName === "A" && benignA(object, value)))
           refuse(
             "active content, attachments, protected signatures, or XFA are unsupported.",
           );
@@ -138,6 +174,155 @@ function fieldValue(
   return refuse("a field type is unsupported.");
 }
 
+/**
+ * S130 (R-F10-04): the indirect objects reachable from the trailer, and how often each is
+ * referenced. Traversal does not enter an object in `stopAt`, so a caller can ask what stays
+ * reachable without the objects it edits.
+ */
+export function reachableObjects(
+  pdf: PDFDocument,
+  stopAt: ReadonlySet<unknown> = new Set(),
+) {
+  const reached = new Set<PDFRef>();
+  const references = new Map<PDFRef, number>();
+  const { Root, Info, Encrypt, ID } = pdf.context.trailerInfo;
+  const pending: unknown[] = [Root, Info, Encrypt, ID];
+  while (pending.length) {
+    const value = pending.pop();
+    if (value instanceof PDFRef) {
+      references.set(value, (references.get(value) ?? 0) + 1);
+      const object = pdf.context.lookup(value);
+      if (reached.has(value) || object === undefined || stopAt.has(object)) continue;
+      reached.add(value);
+      pending.push(object);
+    } else if (value instanceof PDFDict)
+      for (const item of value.values()) pending.push(item);
+    else if (value instanceof PDFArray)
+      for (const item of value.asArray()) pending.push(item);
+    else if (value instanceof PDFStream) pending.push(value.dict);
+  }
+  return { reached, references };
+}
+
+/** The reachable objects an edit must leave intact, fingerprinted before anything is edited. */
+export interface FixedObjects {
+  readonly fingerprints: ReadonlyMap<PDFRef, string>;
+  /** Reachable without passing through an edited object, so each must survive the edit. */
+  readonly anchored: ReadonlySet<PDFRef>;
+}
+
+export function fixedObjects(
+  pdf: PDFDocument,
+  edited: ReadonlySet<unknown>,
+): FixedObjects {
+  const fingerprints = new Map<PDFRef, string>();
+  for (const ref of reachableObjects(pdf).reached) {
+    const object = pdf.context.lookup(ref)!;
+    if (!edited.has(object)) fingerprints.set(ref, hash(object.toString()));
+  }
+  return { fingerprints, anchored: reachableObjects(pdf, edited).reached };
+}
+
+/**
+ * Save without the objects an edit detached: a replaced page content stream or appearance keeps
+ * its earlier value, so nothing unreachable is written. Field appearances are never regenerated.
+ */
+export async function saveReachable(pdf: PDFDocument): Promise<Uint8Array> {
+  await pdf.flush();
+  const { reached } = reachableObjects(pdf);
+  for (const [ref] of pdf.context.enumerateIndirectObjects())
+    if (!reached.has(ref)) pdf.context.delete(ref);
+  return pdf.save({ updateFieldAppearances: false, useObjectStreams: false });
+}
+
+/**
+ * Compare a reopened saved file with the fixed objects of its original: every anchored object
+ * survived, every kept object is byte-identical, and nothing unreachable was written.
+ */
+export function compareFixedObjects(
+  fixed: FixedObjects,
+  edited: PDFDocument,
+  saved: PDFDocument,
+) {
+  const kept = [...fixed.fingerprints].filter(
+    ([ref]) => edited.context.lookup(ref) !== undefined,
+  );
+  const changed =
+    [...fixed.anchored].some((ref) => edited.context.lookup(ref) === undefined) ||
+    kept.some(([ref, fingerprint]) => {
+      const observed = saved.context.lookup(ref);
+      return !observed || hash(observed.toString()) !== fingerprint;
+    });
+  const { reached } = reachableObjects(saved);
+  const orphaned = saved.context
+    .enumerateIndirectObjects()
+    .some(([ref]) => !reached.has(ref));
+  return { unchanged: kept.length, changed, orphaned };
+}
+
+/**
+ * S130 (R-F10-04): values a field stores besides /V. Its default (/DV, which a parent field can
+ * also hold for its kids) and its rich-text value (/RV) can keep an earlier value, and so can a
+ * caption that a text or choice widget never shows.
+ */
+const STORED_VALUES = ["DV", "RV"].map((key) => PDFName.of(key));
+const CAPTIONS = ["CA", "RC", "AC"].map((key) => PDFName.of(key));
+
+function holdsValue(value: unknown): boolean {
+  if (value === undefined || value === PDFNull) return false;
+  if (value instanceof PDFString || value instanceof PDFHexString)
+    return value.decodeText() !== "";
+  if (value instanceof PDFName) return value.decodeText() !== "Off";
+  if (value instanceof PDFArray) return value.size() > 0;
+  return true;
+}
+
+const captioned = (field: PDFField) =>
+  field instanceof PDFTextField ||
+  field instanceof PDFDropdown ||
+  field instanceof PDFOptionList;
+
+function storedValues(field: PDFField) {
+  const holds = (dict: PDFDict, keys: readonly PDFName[]) =>
+    keys.some((key) => holdsValue(dict.lookup(key)));
+  const widgets = field.acroField.getWidgets();
+  let inherited = false;
+  let parent = field.acroField.dict.lookup(PDFName.of("Parent"));
+  for (let depth = 0; depth < 32 && parent instanceof PDFDict; depth++) {
+    inherited ||= holds(parent, STORED_VALUES);
+    parent = parent.lookup(PDFName.of("Parent"));
+  }
+  return {
+    own: [field.acroField.dict, ...widgets.map((widget) => widget.dict)].some((dict) =>
+      holds(dict, STORED_VALUES),
+    ),
+    inherited,
+    captions:
+      captioned(field) &&
+      widgets.some((widget) => {
+        const appearance = widget.dict.lookup(PDFName.of("MK"));
+        return appearance instanceof PDFDict && holds(appearance, CAPTIONS);
+      }),
+  };
+}
+
+/** Drop a written field's stored values, so only the value the fill writes remains. */
+function clearStoredValues(pdf: PDFDocument, field: PDFField) {
+  const widgets = field.acroField.getWidgets();
+  for (const dict of [field.acroField.dict, ...widgets.map((widget) => widget.dict)])
+    for (const key of STORED_VALUES) dict.delete(key);
+  if (!captioned(field)) return;
+  for (const widget of widgets) {
+    const appearance = widget.dict.lookup(PDFName.of("MK"));
+    if (!(appearance instanceof PDFDict) || !CAPTIONS.some((key) => appearance.has(key)))
+      continue;
+    // The widget gets its own copy, so an appearance dictionary it shares is never changed.
+    const copy = appearance.clone(pdf.context);
+    for (const key of CAPTIONS) copy.delete(key);
+    widget.dict.set(PDFName.of("MK"), copy);
+  }
+}
+
 export async function readAcroformValues(
   content: Uint8Array,
 ): Promise<Record<string, PdfFieldValue | null>> {
@@ -164,10 +349,14 @@ export async function inspectAcroformPdf(content: Uint8Array) {
   }));
 }
 
-/** The result contains the actual serialized PDF and a comparison made after reopening it. */
+/**
+ * The result contains the actual serialized PDF and a comparison made after reopening it.
+ * `reviewed` names every field the reviewed map covers, including ones this fill leaves unchanged.
+ */
 export async function fillAcroformPdf(
   original: Uint8Array,
   values: readonly PdfFillValue[],
+  reviewed: readonly string[] = [],
 ) {
   if (
     !values.length ||
@@ -182,20 +371,38 @@ export async function fillAcroformPdf(
       refuse("a mapped field is missing, protected, or a signature.");
     return { field, entry };
   });
+  // A written field's own stored values are cleared below. A default its parent holds also
+  // applies to fields this fill does not write, and a mapped field left unchanged keeps all it
+  // stores, so either is refused.
+  for (const { field } of selected)
+    if (storedValues(field).inherited)
+      refuse(
+        "a mapped field inherits a stored default value; an approved clean master is required.",
+      );
+  for (const field of fields) {
+    if (
+      !reviewed.includes(field.getName()) ||
+      values.some((entry) => entry.name === field.getName())
+    )
+      continue;
+    const stored = storedValues(field);
+    if (stored.own || stored.inherited || stored.captions)
+      refuse(
+        "a mapped field the fill leaves unchanged keeps a stored default value; an approved clean master is required.",
+      );
+  }
   const mutable = new Set<unknown>();
   for (const { field } of selected) {
     mutable.add(field.acroField.dict);
     for (const widget of field.acroField.getWidgets()) mutable.add(widget.dict);
   }
-  const unchanged = pdf.context
-    .enumerateIndirectObjects()
-    .filter(([, object]) => !mutable.has(object))
-    .map(([reference, object]) => ({ reference, fingerprint: hash(object.toString()) }));
+  const fixed = fixedObjects(pdf, mutable);
   const beforeValues = Object.fromEntries(
     fields.map((field) => [field.getName(), fieldValue(field)]),
   );
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   for (const { field, entry } of selected) {
+    clearStoredValues(pdf, field);
     if (field instanceof PDFTextField) {
       if (
         typeof entry.value !== "string" ||
@@ -238,22 +445,29 @@ export async function fillAcroformPdf(
       field instanceof PDFOptionList ||
       field instanceof PDFRadioGroup
     ) {
-      if (typeof entry.value !== "string" || !field.getOptions().includes(entry.value))
+      if (
+        typeof entry.value !== "string" ||
+        (entry.value !== "" && !field.getOptions().includes(entry.value))
+      )
         refuse("a selection must match an existing reviewed option.");
-      field.select(entry.value);
+      // An empty value is the field's own empty state: no option selected.
+      if (entry.value === "") field.clear();
+      else field.select(entry.value);
       if (field instanceof PDFRadioGroup) field.updateAppearances();
       else field.updateAppearances(font);
     } else refuse("the mapped field type is unsupported.");
   }
-  const content = await pdf.save({
-    updateFieldAppearances: false,
-    useObjectStreams: false,
-  });
+  // A replaced appearance keeps the earlier value, so detached objects are never written.
+  const content = await saveReachable(pdf);
   const reopened = await parse(content);
-  for (const item of unchanged) {
-    const observed = reopened.pdf.context.lookup(item.reference);
-    if (!observed || hash(observed.toString()) !== item.fingerprint)
-      refuse("content outside the reviewed fields changed.");
+  const comparison = compareFixedObjects(fixed, pdf, reopened.pdf);
+  if (comparison.changed) refuse("content outside the reviewed fields changed.");
+  if (comparison.orphaned) refuse("the saved file holds content no field or page uses.");
+  for (const { entry } of selected) {
+    const field = reopened.fields.find((candidate) => candidate.getName() === entry.name);
+    const stored = field ? storedValues(field) : null;
+    if (!stored || stored.own || stored.inherited || stored.captions)
+      refuse("a written field still keeps a stored default value.");
   }
   const observed = await readAcroformValues(content);
   const expected = {
@@ -270,7 +484,7 @@ export async function fillAcroformPdf(
     comparison: {
       allFields: observed,
       changedFieldNames: values.map((entry) => entry.name),
-      unchangedObjects: unchanged.length,
+      unchangedObjects: comparison.unchanged,
       verified: true as const,
     },
   };

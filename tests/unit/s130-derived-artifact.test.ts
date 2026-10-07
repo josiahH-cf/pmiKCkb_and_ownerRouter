@@ -1,15 +1,32 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { PDFDocument, PDFName, PDFString, type PDFTextField } from "pdf-lib";
 import {
   prepareDerivedArtifact,
   approveDerivedArtifact,
   readCurrentDerivedArtifact,
   readDerivedArtifactContent,
+  readDerivedArtifactStatus,
   readHistoricalDerivedArtifactContent,
   DERIVED_ARTIFACT_COLLECTIONS,
   derivedHeadId,
 } from "@/lib/firestore/lease-derived-artifacts";
+import {
+  ArtifactFieldMapSchema,
+  StaticPdfGeometrySchema,
+} from "@/lib/lease-documents/artifact-intake-contract";
+import {
+  STATIC_ADAPTER,
+  inspectStaticPdf,
+  readStaticPdfValuesByOrder,
+} from "@/lib/lease-documents/static-pdf";
+import {
+  geometry,
+  objectsHolding,
+  staticOriginal,
+  withDamagedPage,
+} from "@/tests/fixtures/synthetic-static";
 import {
   LEASE_DOCUMENT_PACKET_COLLECTIONS,
   packetHeadId,
@@ -379,17 +396,23 @@ describe("S130 persisted actual output and exact reviewed transport", () => {
         t.deps,
       ),
     ).rejects.toThrow(/hash/);
+    // S182: ordinary staff approve exact output; a verification identity never does.
     await expect(
       approveDerivedArtifact(
-        { ...admin, role: "Editor" },
+        {
+          ...admin,
+          uid: "canary-editor",
+          email: "canary-editor@pmikcmetro.com",
+          role: "Editor",
+        },
         t.approval(record),
         t.db,
         t.deps,
       ),
-    ).rejects.toThrow(/cannot access/);
+    ).rejects.toThrow(/Verification accounts/);
     await expect(t.read(record.id + "wrong")).rejects.toThrow(/current/);
     // S167: a read by an account without the Renewals Space used to be refused here. Every staff
-    // account now reads the current artifact; the Editor role is still refused the approval above.
+    // account now reads the current artifact.
     await expect(
       readCurrentDerivedArtifact(
         { ...admin, uid: "editor-2", role: "Editor" },
@@ -407,6 +430,28 @@ describe("S130 persisted actual output and exact reviewed transport", () => {
     await expect(
       readCurrentDerivedArtifact(admin, t.request, t.db, t.deps),
     ).rejects.toThrow(/changed/);
+  });
+  it("S182: two ordinary staff prepare and approve the exact output without an Admin", async () => {
+    const t = await setup();
+    const preparer = {
+      ...admin,
+      uid: "editor-a",
+      email: "editor-a@pmikcmetro.com",
+      role: "Editor" as const,
+    };
+    const colleague = {
+      ...admin,
+      uid: "editor-b",
+      email: "editor-b@pmikcmetro.com",
+      role: "Approver" as const,
+    };
+    const record = await prepareDerivedArtifact(preparer, t.prepare, t.db, t.deps);
+    await expect(
+      approveDerivedArtifact(colleague, t.approval(record), t.db, t.deps),
+    ).resolves.toMatchObject({
+      id: record.id,
+      approval: { actorUid: "editor-b", outputHash: record.outputHash },
+    });
   });
   it("refuses concurrent replacement on stale heads, source races and execution freeze", async () => {
     const t = await setup(),
@@ -442,6 +487,411 @@ describe("S130 persisted actual output and exact reviewed transport", () => {
     );
     await expect(prepareDerivedArtifact(admin, t.prepare, t.db, t.deps)).rejects.toThrow(
       /Required mapped|capacity/,
+    );
+  });
+});
+
+describe("S130 static route through the persisted filled output (AC-S130-11/12/13)", () => {
+  /** Re-evaluate after a catalog or fact change so the current packet head matches it. */
+  function reseat(t: Awaited<ReturnType<typeof setup>>) {
+    const evaluation = evaluateRenewalPacket(t.input);
+    expect(evaluation.blockers).toEqual([]);
+    t.context.snapshot = { ...t.context.snapshot!, ...evaluation };
+    t.fake.seed(
+      `${LEASE_DOCUMENT_PACKET_COLLECTIONS.heads}/${packetHeadId("123", "123")}`,
+      { snapshot_id: t.request.snapshotId, payload_hash: evaluation.payloadHash },
+    );
+  }
+
+  /** A reviewed static map over the synthetic static original, with `tenantSlots` name slots. */
+  async function staticSetup(tenantSlots: number, omitFacts: readonly string[] = []) {
+    const t = await setup();
+    const original = await staticOriginal();
+    const base = await geometry(original);
+    const extraSlots = [
+      { x: 300, y: 596, width: 200, height: 16 },
+      { x: 300, y: 300, width: 200, height: 16 },
+    ]
+      .slice(0, tenantSlots - 1)
+      .map((rect, index) => ({
+        regionId: `TenantName${index + 1}`,
+        fieldId: "TenantName",
+        slot: index + 1,
+        pageIndex: 0,
+        rect,
+        format: "text" as const,
+        fontSize: 11,
+        align: "left" as const,
+        existing: "blank" as const,
+      }));
+    const map = ArtifactFieldMapSchema.parse({
+      ...t.artifact.fillMapping!.map,
+      fields: [
+        {
+          fieldId: "TenantName",
+          factKey: "party.name",
+          meaning: "SYNTHETIC tenant name",
+          required: true,
+          multiplicity: "per_party",
+          allowedSourceSystems: ["rentvine"],
+        },
+        {
+          fieldId: "Rent",
+          factKey: "renewal.synthetic_rent_cents",
+          meaning: "SYNTHETIC rent",
+          required: true,
+          multiplicity: "single",
+          allowedSourceSystems: ["rentvine"],
+        },
+        {
+          fieldId: "Effective",
+          factKey: "renewal.synthetic_effective_date",
+          meaning: "SYNTHETIC effective date",
+          required: false,
+          multiplicity: "single",
+          allowedSourceSystems: ["rentvine"],
+        },
+      ],
+      static: StaticPdfGeometrySchema.parse({
+        ...base,
+        regions: [
+          ...base.regions.map((region) =>
+            region.regionId === "Rent" ? { ...region, format: "money_cents" } : region,
+          ),
+          ...extraSlots,
+        ],
+      }),
+    });
+    const served = {
+      content: original,
+      contentType: "application/pdf",
+      fileName: "synthetic-static.pdf",
+    };
+    t.deps.original = vi.fn(async () => served);
+    t.deps.historicalOriginal = vi.fn(async () => served);
+    t.artifact.contentHash = sha(original);
+    t.artifact.fillMapping = { map, mapHash: mapHashOf(map), intakeRevision: 4 };
+    t.input.facts.push(
+      s66Fact("party.fixture-tenant-a.name", "Synthetic A"),
+      s66Fact("party.fixture-tenant-b.name", "Synthetic B"),
+      s66Fact("renewal.synthetic_rent_cents", 95_000),
+      s66Fact("renewal.synthetic_effective_date", "2027-01-01"),
+    );
+    t.input.facts = t.input.facts.filter((fact) => !omitFacts.includes(fact.fieldKey));
+    reseat(t);
+    return { ...t, original };
+  }
+
+  it("fills reviewed regions with the snapshot values, keeps unused slots blank and reuses exact bytes", async () => {
+    const t = await staticSetup(3);
+    const record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
+    expect(record.adapter).toBe(STATIC_ADAPTER);
+    expect(record.comparison.regionOrder).toEqual([
+      "TenantName",
+      "Rent",
+      "Effective",
+      "TenantName1",
+      "TenantName2",
+    ]);
+    const expected = {
+      TenantName: "Synthetic A",
+      Rent: "$950.00",
+      Effective: "January 1, 2027",
+      TenantName1: "Synthetic B",
+      TenantName2: "",
+    };
+    expect(record.comparison.allFields).toEqual(expected);
+    const saved = (await t.read(record.id)).content;
+    expect(
+      await readStaticPdfValuesByOrder(saved, record.comparison.regionOrder!),
+    ).toEqual(expected);
+    // The earlier variable values are gone from normal text extraction; fixed wording remains.
+    const texts = (await inspectStaticPdf(saved)).runs.map((run) => run.text);
+    expect(texts).not.toContain("Old Tenant Name");
+    expect(texts).not.toContain("$900.00");
+    expect(texts).toEqual(
+      expect.arrayContaining(["RESIDENTIAL LEASE EXTENSION", "Tenant signature"]),
+    );
+    // A replacement preparation of the same accepted identity yields the same exact bytes.
+    const again = await prepareDerivedArtifact(
+      admin,
+      { ...t.prepare, operationId: op(3), expectedCurrentId: record.id },
+      t.db,
+      t.deps,
+    );
+    expect(again.id).not.toBe(record.id);
+    expect(again.outputHash).toBe(record.outputHash);
+    const approved = await approveDerivedArtifact(
+      admin,
+      { ...t.approval(again), operationId: op(4) },
+      t.db,
+      t.deps,
+    );
+    const downloaded = await readDerivedArtifactContent(
+      admin,
+      { ...t.request, derivedId: approved.id, requireApproval: true },
+      t.db,
+      t.deps,
+    );
+    expect(sha(downloaded.content)).toBe(record.outputHash);
+    const historical = await readHistoricalDerivedArtifactContent(
+      admin,
+      { ...t.request, derivedId: approved.id, requireApproval: true },
+      t.db,
+      t.deps,
+    );
+    expect(historical.content).toEqual(downloaded.content);
+  });
+
+  it("refuses more parties than reviewed slots and a missing required value, never dropping anyone", async () => {
+    const t = await staticSetup(1);
+    await expect(prepareDerivedArtifact(admin, t.prepare, t.db, t.deps)).rejects.toThrow(
+      /TenantName: 2 are recorded but the reviewed form has capacity for 1/,
+    );
+    const u = await staticSetup(2, ["renewal.synthetic_rent_cents"]);
+    await expect(prepareDerivedArtifact(admin, u.prepare, u.db, u.deps)).rejects.toThrow(
+      /Required mapped values are missing/,
+    );
+  });
+
+  it("keeps the reviewed region order when region ids look like numbers", async () => {
+    const t = await staticSetup(2);
+    const map = t.artifact.fillMapping!.map;
+    const ids: Record<string, string> = { Rent: "2", Effective: "10" };
+    map.static = StaticPdfGeometrySchema.parse({
+      ...map.static!,
+      regions: map.static!.regions.map((region) => ({
+        ...region,
+        regionId: ids[region.regionId] ?? region.regionId,
+      })),
+    });
+    t.artifact.fillMapping!.mapHash = mapHashOf(map);
+    reseat(t);
+    const record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
+    expect(record.comparison.regionOrder).toEqual([
+      "TenantName",
+      "2",
+      "10",
+      "TenantName1",
+    ]);
+    expect(record.comparison.allFields).toEqual({
+      TenantName: "Synthetic A",
+      "2": "$950.00",
+      "10": "January 1, 2027",
+      TenantName1: "Synthetic B",
+    });
+  });
+
+  it("reads a stored output back whatever order the store returns its value map in", async () => {
+    const t = await staticSetup(2);
+    const record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
+    // A document store need not keep a map's key order; Firestore may return keys sorted.
+    const stored = t.fake.store.get(
+      `${DERIVED_ARTIFACT_COLLECTIONS.records}/${record.id}`,
+    )!.comparison as { allFields: Record<string, unknown> };
+    stored.allFields = Object.fromEntries(Object.entries(stored.allFields).reverse());
+    const approved = await approveDerivedArtifact(
+      admin,
+      t.approval(record),
+      t.db,
+      t.deps,
+    );
+    expect(approved.approval?.outputHash).toBe(record.outputHash);
+    await expect(
+      readHistoricalDerivedArtifactContent(
+        admin,
+        { ...t.request, derivedId: record.id, requireApproval: true },
+        t.db,
+        t.deps,
+      ),
+    ).resolves.toMatchObject({ record: { id: record.id } });
+  });
+
+  it("prepares, approves and downloads an output whose unfilled page cannot be decoded", async () => {
+    const t = await staticSetup(2);
+    const damaged = await withDamagedPage(t.original);
+    const served = {
+      content: damaged,
+      contentType: "application/pdf",
+      fileName: "synthetic-static.pdf",
+    };
+    t.deps.original = vi.fn(async () => served);
+    t.deps.historicalOriginal = vi.fn(async () => served);
+    t.artifact.contentHash = sha(damaged);
+    reseat(t);
+    const record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
+    const approved = await approveDerivedArtifact(
+      admin,
+      t.approval(record),
+      t.db,
+      t.deps,
+    );
+    const downloaded = await readDerivedArtifactContent(
+      admin,
+      { ...t.request, derivedId: approved.id, requireApproval: true },
+      t.db,
+      t.deps,
+    );
+    expect(sha(downloaded.content)).toBe(record.outputHash);
+  });
+
+  /** Two verified tenants over three reviewed party slots of a synthetic AcroForm. */
+  async function partySlots(prefill: (third: PDFTextField) => void) {
+    const t = await setup();
+    const blank = await PDFDocument.load(
+      await syntheticAcroform(["Amount", "Party 1", "Party 2", "Party 3"]),
+    );
+    prefill(blank.getForm().getTextField("Party 3"));
+    const original = await blank.save({ useObjectStreams: false });
+    const served = {
+      content: original,
+      contentType: "application/pdf",
+      fileName: "synthetic-prefilled.pdf",
+    };
+    t.deps.original = vi.fn(async () => served);
+    t.artifact.contentHash = sha(original);
+    t.input.facts.push(
+      s66Fact("party.fixture-tenant-a.name", "Synthetic A"),
+      s66Fact("party.fixture-tenant-b.name", "Synthetic B"),
+    );
+    const map = t.artifact.fillMapping!.map;
+    map.fields.push({
+      fieldId: "Parties",
+      factKey: "party.name",
+      meaning: "Synthetic participant",
+      required: true,
+      multiplicity: "per_party",
+      pdfFieldNames: ["Party 1", "Party 2", "Party 3"],
+      allowedSourceSystems: ["rentvine"],
+    });
+    t.artifact.fillMapping!.mapHash = mapHashOf(map);
+    const evaluation = evaluateRenewalPacket(t.input);
+    t.context.snapshot = { ...t.context.snapshot!, ...evaluation };
+    t.fake.seed(
+      `${LEASE_DOCUMENT_PACKET_COLLECTIONS.heads}/${packetHeadId("123", "123")}`,
+      { snapshot_id: t.request.snapshotId, payload_hash: evaluation.payloadHash },
+    );
+    return { ...t, original };
+  }
+
+  it("clears an unused repeated AcroForm slot that holds an earlier value", async () => {
+    const t = await partySlots((third) => {
+      third.setText("Earlier person");
+      third.acroField.dict.set(PDFName.of("DV"), PDFString.of("Earlier default"));
+    });
+    const record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
+    const saved = (await t.read(record.id)).content;
+    expect(await readAcroformValues(saved)).toMatchObject({
+      "Party 1": "Synthetic A",
+      "Party 2": "Synthetic B",
+      "Party 3": "",
+    });
+    // Neither the cleared person's appearance nor the slot's stored default is left behind.
+    const earlier = ["Earlier person", "Earlier default"];
+    expect(await objectsHolding(t.original, earlier)).not.toEqual([]);
+    expect(await objectsHolding(saved, earlier)).toEqual([]);
+  });
+
+  it("refuses an unused repeated slot that keeps only a stored default value", async () => {
+    const t = await partySlots((third) =>
+      third.acroField.dict.set(PDFName.of("DV"), PDFString.of("Earlier default")),
+    );
+    await expect(prepareDerivedArtifact(admin, t.prepare, t.db, t.deps)).rejects.toThrow(
+      /leaves unchanged keeps a stored default value/,
+    );
+  });
+
+  it("clears unused repeated selection slots that hold an earlier choice", async () => {
+    const t = await setup();
+    const pdf = await PDFDocument.load(await syntheticAcroform(["Amount"]));
+    const page = pdf.getPage(0),
+      form = pdf.getForm();
+    for (const slot of [1, 2, 3]) {
+      const y = 300 - slot * 60;
+      const kind = form.createDropdown(`Kind ${slot}`);
+      kind.addOptions(["Adult", "Minor"]);
+      kind.addToPage(page, { x: 30, y, width: 160, height: 24 });
+      const pick = form.createRadioGroup(`Pick ${slot}`);
+      pick.addOptionToPage("Yes", page, { x: 220, y, width: 20, height: 20 });
+      pick.addOptionToPage("No", page, { x: 260, y, width: 20, height: 20 });
+    }
+    form.getDropdown("Kind 3").select("Minor");
+    form.getRadioGroup("Pick 3").select("Yes");
+    const original = await pdf.save({ useObjectStreams: false });
+    const served = {
+      content: original,
+      contentType: "application/pdf",
+      fileName: "synthetic-prefilled-choices.pdf",
+    };
+    t.deps.original = vi.fn(async () => served);
+    t.artifact.contentHash = sha(original);
+    t.input.facts.push(
+      ...["a", "b"].flatMap((party) => [
+        s66Fact(`party.fixture-tenant-${party}.kind`, "Adult"),
+        s66Fact(`party.fixture-tenant-${party}.pick`, "No"),
+      ]),
+    );
+    const map = t.artifact.fillMapping!.map;
+    for (const [fieldId, attribute] of [
+      ["Kind", "kind"],
+      ["Pick", "pick"],
+    ])
+      map.fields.push({
+        fieldId: `${fieldId}s`,
+        factKey: `party.${attribute}`,
+        meaning: `Synthetic ${attribute}`,
+        required: true,
+        multiplicity: "per_party",
+        pdfFieldNames: [1, 2, 3].map((slot) => `${fieldId} ${slot}`),
+        allowedSourceSystems: ["rentvine"],
+      });
+    t.artifact.fillMapping!.mapHash = mapHashOf(map);
+    const evaluation = evaluateRenewalPacket(t.input);
+    t.context.snapshot = { ...t.context.snapshot!, ...evaluation };
+    t.fake.seed(
+      `${LEASE_DOCUMENT_PACKET_COLLECTIONS.heads}/${packetHeadId("123", "123")}`,
+      { snapshot_id: t.request.snapshotId, payload_hash: evaluation.payloadHash },
+    );
+    const record = await prepareDerivedArtifact(admin, t.prepare, t.db, t.deps);
+    const saved = (await t.read(record.id)).content;
+    expect(await readAcroformValues(saved)).toMatchObject({
+      "Kind 1": "Adult",
+      "Kind 2": "Adult",
+      "Kind 3": "",
+      "Pick 1": "No",
+      "Pick 2": "No",
+      "Pick 3": "",
+    });
+    // No appearance in the saved file still draws the earlier choice.
+    expect(await objectsHolding(original, ["Minor"], { streams: true })).not.toEqual([]);
+    expect(await objectsHolding(saved, ["Minor"], { streams: true })).toEqual([]);
+  });
+
+  it("labels an unchanged approved attachment and keeps an unmapped original a manual handoff", async () => {
+    const t = await setup();
+    delete t.artifact.fillMapping;
+    reseat(t);
+    await expect(
+      readDerivedArtifactStatus(admin, t.request, t.db, t.deps),
+    ).resolves.toEqual({
+      supported: false,
+      reason:
+        "This original needs a reviewed field or region mapping before a filled PDF can be prepared. Until then a person completes it in Dotloop.",
+      record: null,
+    });
+    t.artifact.unchangedAttachment = true;
+    reseat(t);
+    await expect(
+      readDerivedArtifactStatus(admin, t.request, t.db, t.deps),
+    ).resolves.toEqual({
+      supported: false,
+      unchangedAttachment: true,
+      reason:
+        "Unchanged approved attachment: it has no variable values and is used exactly as approved.",
+      record: null,
+    });
+    await expect(prepareDerivedArtifact(admin, t.prepare, t.db, t.deps)).rejects.toThrow(
+      /exact approved field or region mapping/,
     );
   });
 });

@@ -87,7 +87,9 @@ export function createFilledArtifactHandlers(overrides: Partial<typeof defaults>
           {
             ...(await deps.read(actor, query)),
             canPrepare: can(actor.role, "edit") && !isVerificationAccount(actor),
-            canApprove: can(actor.role, "approve") && !isVerificationAccount(actor),
+            canApprove:
+              can(actor.role, renewalRoleCapability("approve_filled_artifact")) &&
+              !isVerificationAccount(actor),
           },
           { headers: { "Cache-Control": "private, no-store" } },
         );

@@ -10,6 +10,7 @@
 // GOVERNANCE: server-written through the Admin SDK boundary only; the `firestore.rules` default
 // deny covers these collections. The manifest read never throws.
 
+import { createHash } from "node:crypto";
 import { v7 as uuidv7 } from "uuid";
 import type { Firestore, Transaction } from "firebase-admin/firestore";
 
@@ -27,6 +28,7 @@ import {
   emptyArtifactIntakeManifest,
   type ArtifactIntakeEntry,
   type ArtifactIntakeManifest,
+  type StaticPdfGeometry,
 } from "@/lib/lease-documents/artifact-intake-contract";
 import {
   catalogFromIntake,
@@ -35,7 +37,17 @@ import {
   validateFieldMap,
 } from "@/lib/lease-documents/artifact-intake";
 import { ApprovedLeaseCatalogSchema } from "@/lib/lease-documents/live-source-schema";
+import {
+  FamilyUseRecordSchema,
+  resolveFamilyUse,
+  type FamilyUseRecord,
+} from "@/lib/lease-documents/family-use";
 import { inspectAcroformPdf } from "@/lib/lease-documents/acroform-pdf";
+import {
+  inspectStaticPdf,
+  validateStaticGeometry,
+  type StaticInspection,
+} from "@/lib/lease-documents/static-pdf";
 import {
   LEASE_ARTIFACT_KINDS,
   type LeaseArtifactKind,
@@ -55,6 +67,9 @@ export const ARTIFACT_INTAKE_ACTIVITY_COLLECTION = "lease_artifact_intake_activi
 /** The S66 catalog record this intake projects into (owned by `lib/lease-documents/live-input.ts`). */
 export const ARTIFACT_CATALOG_COLLECTION = "lease_artifact_catalogs";
 export const ARTIFACT_CATALOG_DOC_ID = "current";
+/** S66: the Admin family-use record the catalog projection carries. */
+export const FAMILY_USE_COLLECTION = "lease_artifact_family_use";
+export const FAMILY_USE_DOC_ID = "current";
 
 export interface ArtifactIntakeDeps {
   readPublication: (versionId: string) => Promise<PublicationVersionRecord>;
@@ -146,6 +161,11 @@ async function readManifestIn(
   return { manifest: { state: "readable", entries }, invalid };
 }
 
+/** The manifest read inside a caller's transaction (S66 family-use writer). */
+export function readManifestInTransaction(transaction: Transaction, db: Firestore) {
+  return readManifestIn((docRef) => transaction.get(docRef), db);
+}
+
 /** The never-throwing manifest every surface consumes; unreadable or malformed reads say so. */
 export async function readArtifactIntakeManifest(
   db?: Firestore,
@@ -164,13 +184,34 @@ export async function readArtifactIntakeManifest(
   }
 }
 
-function writeCatalog(
+/** S66: the current family-use record, read inside the caller's transaction. */
+export async function readFamilyUseIn(
+  transaction: Transaction,
+  db: Firestore,
+): Promise<FamilyUseRecord | null> {
+  const snapshot = await transaction.get(
+    db.collection(FAMILY_USE_COLLECTION).doc(FAMILY_USE_DOC_ID),
+  );
+  if (!snapshot.exists) return null;
+  const parsed = FamilyUseRecordSchema.safeParse(snapshot.data());
+  if (!parsed.success)
+    throw new EditableLayerError(
+      "The family-use record is unreadable; nothing was changed.",
+      409,
+    );
+  return parsed.data;
+}
+
+export function writeCatalog(
   transaction: Transaction,
   db: Firestore,
   manifest: ArtifactIntakeManifest,
   meta: { approvedByUid: string; approvedAt: string },
+  familyUse: FamilyUseRecord | null,
 ) {
-  const record = ApprovedLeaseCatalogSchema.parse(catalogFromIntake(manifest, meta));
+  const record = ApprovedLeaseCatalogSchema.parse(
+    catalogFromIntake(manifest, meta, resolveFamilyUse(familyUse, meta.approvedAt)),
+  );
   transaction.set(
     db.collection(ARTIFACT_CATALOG_COLLECTION).doc(ARTIFACT_CATALOG_DOC_ID),
     record,
@@ -223,7 +264,7 @@ export async function receiveArtifactFamily(
       reasons: [
         pdfFields.length
           ? "Parsed form fields are available for reviewed AcroForm filling."
-          : "No form fields: manual completion is required.",
+          : "No form fields: reviewed regions are required for filling. Until then a person completes it in Dotloop.",
       ],
     };
   } catch {
@@ -247,9 +288,10 @@ export async function receiveArtifactFamily(
   const ref = entryRef(db, input.kind);
   const audit = db.collection(ARTIFACT_INTAKE_ACTIVITY_COLLECTION).doc(input.operationId);
   return db.runTransaction(async (transaction) => {
-    const [{ manifest }, previous] = await Promise.all([
+    const [{ manifest }, previous, familyUse] = await Promise.all([
       readManifestIn((docRef) => transaction.get(docRef), db),
       transaction.get(audit),
+      readFamilyUseIn(transaction, db),
     ]);
     const existing = manifest.entries[input.kind];
     if (previous.exists) {
@@ -303,6 +345,7 @@ export async function receiveArtifactFamily(
         db,
         { ...manifest, entries: { ...manifest.entries, [input.kind]: entry } },
         { approvedByUid: actor.uid, approvedAt: now },
+        familyUse,
       );
     transaction.create(audit, {
       action: "artifact_received",
@@ -331,13 +374,22 @@ export async function recordArtifactFieldMap(
   raw: unknown,
   db: Firestore = getAdminFirestore(),
   now: string = new Date().toISOString(),
+  deps: ArtifactIntakeDeps = defaultDeps(db),
 ): Promise<ArtifactIntakeEntry> {
   if (!can(actor.role, "manageAdmin"))
     throw new EditableLayerError("An Admin records lease-artifact mappings.", 403);
   const input = RecordArtifactFieldMapInputSchema.parse(raw);
   const ref = entryRef(db, input.kind);
+  // S130: region geometry is checked against the family's exact original bytes before anything is
+  // saved; the transaction then refuses if that original changed in between.
+  const checkedStaticHash = input.fieldMap.static
+    ? await checkStaticGeometry(input.kind, input.fieldMap.static, db, deps)
+    : null;
   return db.runTransaction(async (transaction) => {
-    const { manifest } = await readManifestIn((docRef) => transaction.get(docRef), db);
+    const [{ manifest }, familyUse] = await Promise.all([
+      readManifestIn((docRef) => transaction.get(docRef), db),
+      readFamilyUseIn(transaction, db),
+    ]);
     const existing = manifest.entries[input.kind];
     if (!existing)
       throw new EditableLayerError("Receive the family's file before mapping it.", 409);
@@ -356,16 +408,37 @@ export async function recordArtifactFieldMap(
         "An unsupported file cannot be mapped; receive a replacement.",
         409,
       );
+    const format = existing.classification?.format;
+    if (input.fieldMap.static && format !== "static_pdf")
+      throw new EditableLayerError(
+        "Region geometry applies only to a static PDF. Map a fillable PDF by its exact field names.",
+        400,
+      );
+    if (input.fieldMap.unchangedAttachment && format !== "static_pdf")
+      throw new EditableLayerError(
+        "Only a static PDF with no variable values can be recorded as an unchanged approved attachment.",
+        400,
+      );
+    if (
+      checkedStaticHash !== null &&
+      existing.publication?.contentHash !== checkedStaticHash
+    )
+      throw new EditableLayerError(
+        "This family's file changed while its regions were checked. Reload and record the mapping again.",
+        409,
+      );
     const validation = validateFieldMap(
       input.fieldMap,
       existing,
-      existing.classification?.format === "fillable_pdf"
-        ? (existing.classification.pdfFields
-            ?.filter(
+      format === "fillable_pdf"
+        ? (existing
+            .classification!.pdfFields?.filter(
               (field) => field.type !== "signature" && field.type !== "unsupported",
             )
             .map((field) => field.name) ?? [])
-        : (input.detectedFieldIds ?? null),
+        : input.fieldMap.static
+          ? null
+          : (input.detectedFieldIds ?? null),
     );
     if (!validation.ok)
       throw new EditableLayerError(
@@ -392,6 +465,7 @@ export async function recordArtifactFieldMap(
         db,
         { ...manifest, entries: { ...manifest.entries, [input.kind]: entry } },
         { approvedByUid: actor.uid, approvedAt: now },
+        familyUse,
       );
     transaction.create(db.collection(ARTIFACT_INTAKE_ACTIVITY_COLLECTION).doc(uuidv7()), {
       action: "artifact_mapping_recorded",
@@ -404,6 +478,75 @@ export async function recordArtifactFieldMap(
     });
     return entry;
   });
+}
+
+/** S130: the exact received original of a family, read back and checked against its hash. */
+async function readReceivedOriginal(
+  kind: ArtifactIntakeEntry["kind"],
+  db: Firestore,
+  deps: ArtifactIntakeDeps,
+): Promise<{ entry: ArtifactIntakeEntry; content: Uint8Array; contentHash: string }> {
+  const { manifest } = await readManifestIn((docRef) => docRef.get(), db);
+  const entry = manifest.entries[kind];
+  const binding = entry?.publication;
+  if (!entry || !binding)
+    throw new EditableLayerError("Receive the family's file before reviewing it.", 409);
+  let content: Uint8Array;
+  try {
+    const version = await deps.readPublication(
+      binding.reference.slice("publication:".length),
+    );
+    content = await deps.readContent(version.contentRef);
+  } catch {
+    throw new EditableLayerError("The family's original could not be read.", 409);
+  }
+  if (createHash("sha256").update(content).digest("hex") !== binding.contentHash)
+    throw new EditableLayerError(
+      "The family's original no longer matches its received hash.",
+      409,
+    );
+  return { entry, content, contentHash: binding.contentHash };
+}
+
+/** S130: validate reviewed regions against the exact received original; returns its hash. */
+async function checkStaticGeometry(
+  kind: ArtifactIntakeEntry["kind"],
+  geometry: StaticPdfGeometry,
+  db: Firestore,
+  deps: ArtifactIntakeDeps,
+): Promise<string> {
+  const { content, contentHash } = await readReceivedOriginal(kind, db, deps);
+  const issues = await validateStaticGeometry(content, geometry).catch(
+    (error: unknown) => [
+      error instanceof Error
+        ? error.message
+        : "The original could not be read for region review.",
+    ],
+  );
+  if (issues.length)
+    throw new EditableLayerError(`The regions were refused: ${issues.join(" ")}`, 400);
+  return contentHash;
+}
+
+/**
+ * S130: an Admin reads a received static original's page geometry and text positions to review its
+ * regions. Read-only; the approved form's own text is shown to the Admin and nothing is saved.
+ */
+export async function inspectStaticArtifact(
+  actor: AuthenticatedUser,
+  kind: ArtifactIntakeEntry["kind"],
+  db: Firestore = getAdminFirestore(),
+  deps: ArtifactIntakeDeps = defaultDeps(db),
+): Promise<StaticInspection> {
+  if (!can(actor.role, "manageAdmin"))
+    throw new EditableLayerError("An Admin reviews lease-artifact regions.", 403);
+  const { entry, content } = await readReceivedOriginal(kind, db, deps);
+  if (entry.classification?.format !== "static_pdf")
+    throw new EditableLayerError(
+      "Only a received static PDF has page regions to review.",
+      409,
+    );
+  return inspectStaticPdf(content);
 }
 
 /**
@@ -441,9 +584,10 @@ export async function decideArtifactFamily(
   if (input.decision === "approve" && current.publication && current.state === "reviewed")
     await requireBoundPublication(current.publication, deps);
   return db.runTransaction(async (transaction) => {
-    const [{ manifest }, previous] = await Promise.all([
+    const [{ manifest }, previous, familyUse] = await Promise.all([
       readManifestIn((docRef) => transaction.get(docRef), db),
       transaction.get(audit),
+      readFamilyUseIn(transaction, db),
     ]);
     const existing = manifest.entries[input.kind];
     if (!existing)
@@ -498,6 +642,7 @@ export async function decideArtifactFamily(
         db,
         { ...manifest, entries: { ...manifest.entries, [input.kind]: entry } },
         { approvedByUid: actor.uid, approvedAt: now },
+        familyUse,
       ).catalog.catalogVersion;
     transaction.create(audit, {
       action: input.decision === "approve" ? "artifact_approved" : "artifact_rejected",

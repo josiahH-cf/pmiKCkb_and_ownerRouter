@@ -4,7 +4,9 @@ import { createHash } from "node:crypto";
 import { FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 
+import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { decideExecutionAuthority } from "@/lib/execution/authority";
+import { canConfirmAsStaff } from "@/lib/execution/staff-confirmation";
 import type {
   ActionExecutionActivityAction,
   ActionExecutionActivityRecord,
@@ -26,6 +28,22 @@ const COLLECTIONS = {
   executions: "action_executions",
 } as const;
 
+/**
+ * S182: a feature's immutable companion to one execution record, created in the same transaction
+ * as the record so neither can exist without the other. Its document binds the record's own
+ * preview and context hashes and carries `snapshotHash`, the hash of exactly this preparation.
+ * Preparing the identical action again returns the existing record to anyone who may continue it.
+ */
+export interface ActionExecutionCompanion {
+  /** The collection holding one companion per execution id. */
+  readonly collection: string;
+  /** The Firestore-safe companion for this exact preparation, bound to the record's hashes. */
+  readonly document: (binding: {
+    readonly previewHash: string;
+    readonly contextHash: string | undefined;
+  }) => Record<string, unknown> & { readonly snapshotHash: string };
+}
+
 export interface PrepareActionExecutionRecordInput {
   classification: ExecutionClassification & {
     kind: NonNullable<ExecutionClassification["kind"]>;
@@ -36,6 +54,7 @@ export interface PrepareActionExecutionRecordInput {
   contextHash?: string;
   previewHash: string;
   scopeRef?: string;
+  companion?: ActionExecutionCompanion;
 }
 
 export interface ApproveActionExecutionInput {
@@ -81,19 +100,47 @@ export async function prepareActionExecutionRecord(
 
   await db.runTransaction(async (transaction) => {
     const ref = executionRef(db, id);
-    const snapshot = await transaction.get(ref);
+    const companionRef = input.companion
+      ? db.collection(input.companion.collection).doc(id)
+      : null;
+    const [snapshot, companionSnapshot] = await Promise.all([
+      transaction.get(ref),
+      companionRef ? transaction.get(companionRef) : Promise.resolve(null),
+    ]);
+    const companion = input.companion?.document({ previewHash, contextHash }) ?? null;
     const existing = snapshot.data();
 
     if (existing) {
       const record = readRecord<ActionExecutionRecord>(snapshot.id, existing);
-      assertIdempotentMatch(
+      if (!companionRef || !companion) {
+        assertIdempotentMatch(
+          record,
+          actor,
+          input.classification.actionKey,
+          previewHash,
+          contextHash,
+        );
+        return;
+      }
+      assertCompanionContinuation(
         record,
         actor,
         input.classification.actionKey,
         previewHash,
         contextHash,
+        companionSnapshot?.data(),
+        companion.snapshotHash,
       );
+      // A record left by a request that stopped before its companion (written separately
+      // before S182) gains the identical companion now.
+      if (!companionSnapshot?.exists) transaction.create(companionRef, companion);
       return;
+    }
+    if (companionSnapshot?.exists) {
+      throw new EditableLayerError(
+        "This action's saved preparation has no execution record. Its evidence is kept for review.",
+        409,
+      );
     }
 
     const state: ActionExecutionState =
@@ -126,6 +173,7 @@ export async function prepareActionExecutionRecord(
       executionId: id,
       toState: state,
     });
+    if (companionRef && companion) transaction.create(companionRef, companion);
   });
 
   return getActionExecution(actor, id, db);
@@ -164,13 +212,7 @@ export async function approveActionExecution(
   input: ApproveActionExecutionInput,
   db: Firestore = getAdminFirestore(),
 ) {
-  if (actor.role !== "Admin") {
-    throw new EditableLayerError(
-      "Only an Admin can approve a consequential execution.",
-      403,
-    );
-  }
-
+  // The role check runs in the transaction, against the record's own action key (S182).
   const previewHash = requireHash(input.previewHash, "Preview hash");
   const contextHash = input.contextHash
     ? requireHash(input.contextHash, "Approval context hash")
@@ -196,17 +238,23 @@ export async function approveActionExecutionInTransaction(
   executionId: string,
   input: ApproveActionExecutionInput,
 ) {
-  if (actor.role !== "Admin") {
-    throw new EditableLayerError(
-      "Only an Admin can approve a consequential execution.",
-      403,
-    );
-  }
   const previewHash = requireHash(input.previewHash, "Preview hash");
   const reason = requireText(input.reason, "High-risk approval reason");
   const ref = executionRef(db, executionId);
   const snapshot = await transaction.get(ref);
   const current = readRequiredExecution(snapshot.id, snapshot.data());
+  // S182: an ordinary staff member confirms a staff-confirmed action key themselves; every other
+  // consequential execution still needs an Admin. Verification identities never approve.
+  const staffConfirmation =
+    actor.role !== "Admin" &&
+    canConfirmAsStaff(actor.role, current.action_key) &&
+    !isVerificationAccount(actor);
+  if (actor.role !== "Admin" && !staffConfirmation) {
+    throw new EditableLayerError(
+      "Only an Admin can approve a consequential execution.",
+      403,
+    );
+  }
 
   if (current.risk !== "High" || current.state !== "Awaiting Admin") {
     throw new EditableLayerError(
@@ -233,6 +281,7 @@ export async function approveActionExecutionInTransaction(
   const approval = {
     approvedByRole: actor.role,
     approvedByUid: actor.uid,
+    ...(staffConfirmation ? { basis: "staff_confirmation" as const } : {}),
     ...(contextHash ? { contextHash } : {}),
     previewHash,
     reason,
@@ -348,7 +397,9 @@ export async function claimActionExecution(
     if (current.state !== requiredState) {
       throw new EditableLayerError(
         current.risk === "High"
-          ? "This High action requires current Admin approval; only an Approved execution can claim its provider attempt."
+          ? canConfirmAsStaff(actor.role, current.action_key)
+            ? "This High action requires its exact preview to be confirmed; only an Approved execution can claim its provider attempt."
+            : "This High action requires current Admin approval; only an Approved execution can claim its provider attempt."
           : "Only a Ready execution can claim its provider attempt.",
         409,
       );
@@ -365,7 +416,7 @@ export async function claimActionExecution(
     }
 
     await assertCurrentRenewalMessageClaim(transaction, db, actor, current);
-    await assertCurrentPacketActionClaim(transaction, db, current);
+    await assertCurrentPacketActionClaim(transaction, db, current, actor.uid);
     transaction.update(ref, {
       attempt_count: 1,
       claim_actor_uid: actor.uid,
@@ -901,14 +952,62 @@ function assertIdempotentMatch(
   }
 }
 
+/**
+ * S182: preparing the identical action again continues the existing record. Only the same action
+ * key, preview hash and context hash, with the same companion preparation, qualify, and only for
+ * the original preparer, an Admin or a colleague who may continue this staff-confirmed action.
+ */
+function assertCompanionContinuation(
+  record: ActionExecutionRecord,
+  actor: AuthenticatedUser,
+  actionKey: string,
+  previewHash: string,
+  contextHash: string | undefined,
+  storedCompanion: Record<string, unknown> | undefined,
+  snapshotHash: string,
+) {
+  if (
+    record.action_key !== actionKey ||
+    record.preview_hash !== previewHash ||
+    record.context_hash !== contextHash
+  ) {
+    throw new EditableLayerError(
+      "The idempotency key was already used for a different execution preview.",
+      409,
+    );
+  }
+  if (storedCompanion && storedCompanion.snapshotHash !== snapshotHash) {
+    throw new EditableLayerError(
+      "This action already has a different immutable preparation. Recover its exact attempt or evaluate the current changed sources.",
+      409,
+    );
+  }
+  assertCanView(actor, record);
+}
+
+/** S182: renewal staff continue a colleague's staff-confirmed packet action. */
+function staffMayContinue(actor: AuthenticatedUser, record: ActionExecutionRecord) {
+  return (
+    canConfirmAsStaff(actor.role, record.action_key) && !isVerificationAccount(actor)
+  );
+}
+
 function assertCanView(actor: AuthenticatedUser, record: ActionExecutionRecord) {
-  if (actor.role !== "Admin" && record.actor_uid !== actor.uid) {
+  if (
+    actor.role !== "Admin" &&
+    record.actor_uid !== actor.uid &&
+    !staffMayContinue(actor, record)
+  ) {
     throw new EditableLayerError("This execution is not available to this user.", 404);
   }
 }
 
 function assertCanExecute(actor: AuthenticatedUser, record: ActionExecutionRecord) {
-  if (actor.role !== "Admin" && record.actor_uid !== actor.uid) {
+  if (
+    actor.role !== "Admin" &&
+    record.actor_uid !== actor.uid &&
+    !staffMayContinue(actor, record)
+  ) {
     throw new EditableLayerError("This user cannot execute this action instance.", 403);
   }
 }

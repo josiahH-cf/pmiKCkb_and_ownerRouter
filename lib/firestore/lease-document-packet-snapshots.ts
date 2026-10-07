@@ -9,6 +9,7 @@ import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 
 import { can } from "@/lib/auth/roles";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
@@ -400,7 +401,8 @@ export async function recordPacketExecutionProjection(
   input: StoredExecutionProjection,
   db: Firestore = getAdminFirestore(),
 ): Promise<RenewalPacketSnapshot> {
-  assertCan(actor, "approve");
+  // S182/S34: staff who confirm or refresh the packet's exact action record its projection.
+  assertCan(actor, renewalRoleCapability("record_packet_readback"));
   const snapshot = await getPacketSnapshot(actor, input.snapshot_id, db);
   if (!snapshot) throw new EditableLayerError("Packet snapshot was not found.", 404);
   const ref = db

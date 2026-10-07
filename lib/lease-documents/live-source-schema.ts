@@ -66,8 +66,9 @@ const artifact = z
           .strict(),
       )
       .max(100),
-    signerRoles: z.array(text).min(1),
-    signatureLocations: z.array(text).min(1),
+    // S130: an unchanged approved attachment may carry no signer; every other file needs one.
+    signerRoles: z.array(text),
+    signatureLocations: z.array(text),
     audience: z.enum(["tenant", "owner"]),
     supersedesArtifactId: text.optional(),
     publicationSource: PacketSourceSchema,
@@ -83,8 +84,18 @@ const artifact = z
       .object({ dotloopDocumentRef: text, dotloopTemplateRef: text.optional() })
       .strict()
       .optional(),
+    unchangedAttachment: z.literal(true).optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (value) =>
+      value.unchangedAttachment === true ||
+      (value.signerRoles.length > 0 && value.signatureLocations.length > 0),
+    { message: "A file other than an unchanged approved attachment needs a signer." },
+  )
+  .refine((value) => !(value.unchangedAttachment && value.fillMapping), {
+    message: "An unchanged approved attachment has no fill mapping.",
+  });
 export const LeaseArtifactCatalogSchema = z
   .object({
     catalogVersion: text,
@@ -104,6 +115,19 @@ export const LeaseArtifactCatalogSchema = z
         .strict(),
     ),
     artifacts: z.array(artifact).max(100),
+    familyUse: z
+      .array(
+        z
+          .object({
+            kind,
+            use: z.enum(["mandatory", "conditional", "not_used"]),
+            predicate: predicate.optional(),
+            source: PacketSourceSchema,
+          })
+          .strict(),
+      )
+      .max(LEASE_ARTIFACT_KINDS.length)
+      .optional(),
   })
   .strict();
 const fact = z

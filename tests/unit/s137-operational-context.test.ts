@@ -385,9 +385,12 @@ describe("S137 server wiring reads as the actor, once per request", () => {
 
     expect(renewals.status).toBe("unavailable");
     expect(approvals.status).toBe("ok");
+    // S182: the AI-facing read asks for the Dotloop-free view of packet data.
     expect(loaders.loadRenewalAssistantSource).toHaveBeenCalledWith(
       editor,
       new Date(TEST_NOW),
+      null,
+      { aiContext: true },
     );
     expect(loaders.listApprovalQueue).toHaveBeenCalledWith(editor);
     expect(loaders.loadRenewalRunViews).toHaveBeenCalledWith(editor);
@@ -403,9 +406,12 @@ describe("S137 server wiring reads as the actor, once per request", () => {
     await Promise.all([ctx.read("renewals"), ctx.read("renewals")]);
     await ctx.read("renewals");
     expect(loaders.loadRenewalAssistantSource).toHaveBeenCalledTimes(1);
+    // S182: the AI-facing read asks for the Dotloop-free view of packet data.
     expect(loaders.loadRenewalAssistantSource).toHaveBeenCalledWith(
       editor,
       new Date(TEST_NOW),
+      null,
+      { aiContext: true },
     );
   });
 

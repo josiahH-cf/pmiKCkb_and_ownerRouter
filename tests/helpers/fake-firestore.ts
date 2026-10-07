@@ -9,6 +9,11 @@ export class FakeFirestore {
     return callback(new FakeTransaction(this));
   }
 
+  /** Mirrors Firestore.getAll: one snapshot per reference, in order. */
+  async getAll(...refs: Array<{ get: () => Promise<unknown> }>) {
+    return Promise.all(refs.map((ref) => ref.get()));
+  }
+
   seed(path: string, data: Record<string, unknown>) {
     this.store.set(path, structuredClone(data));
   }
@@ -105,6 +110,10 @@ class FakeTransaction {
     }
 
     this.db.store.set(ref.path, applyUpdate(current, data));
+  }
+
+  delete(ref: FakeDocument) {
+    this.db.store.delete(ref.path);
   }
 }
 

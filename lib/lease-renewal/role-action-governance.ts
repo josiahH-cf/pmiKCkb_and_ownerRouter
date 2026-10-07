@@ -313,39 +313,56 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
   },
   approve_filled_artifact: {
     label: "Approve the exact reviewed filled document",
-    roleCapability: "approve",
+    // S182: ordinary renewal staff approve the exact lease output they inspected.
+    roleCapability: "edit",
     effect: "app_owned_approval",
     externalRequirement: "none",
     actionKeys: [],
     exactConfirmation: true,
     audit: "app_activity",
-    roleDeniedReason: "Approver or Admin access is required to approve filled output.",
-    safeNextAction: "Retain the prepared output for an Approver or Admin's exact review.",
+    roleDeniedReason: "Editor access is required to approve filled output.",
+    safeNextAction: "Retain the prepared output for a staff member's exact review.",
   },
   execute_document_packet: {
     label: "Confirm one exact supported document-packet effect",
-    roleCapability: "manageAdmin",
+    // S182/S34: ordinary renewal staff confirm the exact preview themselves. The exact action key,
+    // runtime suspension and one-attempt claim still apply; no role opens a closed key.
+    roleCapability: "edit",
     effect: "external_write",
     externalRequirement: "exact_action",
     actionKeys: ["dotloop.loop.create_from_template", "dotloop.document.upload"],
     exactConfirmation: true,
     audit: "external_receipt",
-    roleDeniedReason: "Admin access is required to execute a document-packet effect.",
+    roleDeniedReason: "Editor access is required to confirm a document-packet effect.",
     safeNextAction:
-      "Keep the current packet for Admin review; its exact activation gate still applies.",
+      "Keep the current packet; its exact action key and confirmation still apply.",
   },
-  record_packet_readback: {
-    label: "Record exact packet provider readback",
-    roleCapability: "approve",
+  link_dotloop_loop: {
+    // S34: staff review an existing loop through the company connection and link it to the lease,
+    // or correct the lease's current link. The app's own record changes; no provider write occurs.
+    label: "Link a reviewed existing Dotloop loop to a lease or correct its link",
+    roleCapability: "edit",
     effect: "app_owned_write",
     externalRequirement: "read_connection",
     actionKeys: [],
     exactConfirmation: false,
     audit: "app_activity",
     roleDeniedReason:
-      "Approver or Admin access is required to record packet provider readback.",
+      "Editor access is required to link or correct a lease's Dotloop loop.",
+    safeNextAction: "Keep the current link; a staff member can review and correct it.",
+  },
+  record_packet_readback: {
+    label: "Record exact packet provider readback",
+    // S182/S34: staff refresh the linked loop's observation; it never infers signatures.
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "read_connection",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to record packet provider readback.",
     safeNextAction:
-      "Read the retained evidence or ask an Approver or Admin to refresh the provider record.",
+      "Read the retained evidence or ask a staff member to refresh the provider record.",
   },
   save_work_status: {
     label: "Save the staff work status annotation or a Status log note for one lease",
@@ -357,6 +374,19 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     audit: "app_activity",
     roleDeniedReason:
       "Editor access is required to save the staff work status or a note.",
+    safeNextAction: "Continue read-only or ask an Admin to review your role.",
+  },
+  save_packet_inputs: {
+    // S66: staff enter or correct packet facts, people, animals and charge overrides once. The
+    // write is the app's own record; it creates no snapshot, approval or provider action.
+    label: "Save renewal packet facts, people, animals or charge overrides for one lease",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to save packet inputs.",
     safeNextAction: "Continue read-only or ask an Admin to review your role.",
   },
   save_working_record: {
@@ -682,6 +712,18 @@ export const RENEWAL_CONTROL_INVENTORY = [
     enforcementSources: ["app/api/lease-renewal/document-handoff/route.ts"],
   },
   {
+    control: "Review and link an existing Dotloop loop, or correct the lease's loop link",
+    source: "components/lease-renewal/RenewalDocumentHandoff.tsx",
+    capability: "link_dotloop_loop",
+    enforcementSources: ["app/api/lease-renewal/document-handoff/route.ts"],
+  },
+  {
+    control: "Refresh the linked Dotloop loop",
+    source: "components/lease-renewal/RenewalDocumentHandoff.tsx",
+    capability: "record_packet_readback",
+    enforcementSources: ["app/api/lease-renewal/document-handoff/route.ts"],
+  },
+  {
     control: "Save the staff work status",
     source: "components/lease-renewal/RenewalWorkStatusControl.tsx",
     capability: "save_work_status",
@@ -698,6 +740,12 @@ export const RENEWAL_CONTROL_INVENTORY = [
     source: "components/lease-renewal/RenewalWorkingRecord.tsx",
     capability: "save_working_record",
     enforcementSources: ["app/api/lease-renewal/working-record/route.ts"],
+  },
+  {
+    control: "Save packet facts, people and signer roles, animals or a charge override",
+    source: "components/lease-renewal/PacketInputsEditor.tsx",
+    capability: "save_packet_inputs",
+    enforcementSources: ["app/api/lease-renewal/packet-inputs/route.ts"],
   },
   {
     control: "Remember the account's worklist view",
@@ -1042,6 +1090,18 @@ export const RENEWAL_ROUTE_INVENTORY = [
     source: "app/api/lease-renewal/working-record/route.ts",
     method: "POST",
     capability: "save_working_record",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/packet-inputs/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/packet-inputs/route.ts",
+    method: "POST",
+    capability: "save_packet_inputs",
   },
   {
     kind: "api",

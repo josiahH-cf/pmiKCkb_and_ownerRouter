@@ -65,6 +65,43 @@ const EXAMPLE_MAP = JSON.stringify(
   2,
 );
 
+type StaticInspectionView = {
+  kind: LeaseArtifactKind;
+  pages: Array<{
+    pageIndex: number;
+    width: number;
+    height: number;
+    rotation: number;
+    cropBox: readonly [number, number, number, number] | null;
+  }>;
+  runs: Array<{
+    pageIndex: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    text: string;
+  }>;
+  images: Array<{
+    pageIndex: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }>;
+  annotations: Array<{
+    pageIndex: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    subtype: string;
+  }>;
+  truncated: boolean;
+};
+
+const point = (value: number) => value.toFixed(1);
+
 type Payload = {
   artifactIntake?: {
     manifest?: ArtifactIntakeManifest;
@@ -101,6 +138,62 @@ export function LeaseArtifactIntakePanel({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
+  const [inspection, setInspection] = useState<StaticInspectionView | null>(null);
+
+  async function inspect(entry: ArtifactIntakeEntry) {
+    setPending(true);
+    setError("");
+    setOk("");
+    try {
+      const response = await fetch(
+        `/api/admin/lease-artifact-intake/inspect?${new URLSearchParams({ kind: entry.kind })}`,
+        { cache: "no-store" },
+      );
+      const payload = (await response.json().catch(() => ({}))) as {
+        staticInspection?: StaticInspectionView;
+        error?: string;
+      };
+      if (!response.ok || !payload.staticInspection) {
+        setError(
+          payload.error ?? "The page positions could not be read. Reload and retry.",
+        );
+        return;
+      }
+      setInspection(payload.staticInspection);
+    } catch {
+      setError("The page positions could not be read. Reload and retry.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  /** Put the inspected pages into the mapping so only reviewed regions remain to be added. */
+  function addInspectedPages(view: StaticInspectionView) {
+    let base: Record<string, unknown>;
+    try {
+      base = mapJson.trim() ? (JSON.parse(mapJson) as Record<string, unknown>) : {};
+    } catch {
+      setError("Enter the mapping as valid JSON before adding the pages.");
+      return;
+    }
+    const current = (base.static ?? {}) as Record<string, unknown>;
+    setMapJson(
+      JSON.stringify(
+        {
+          ...base,
+          static: {
+            pages: view.pages,
+            regions: Array.isArray(current.regions) ? current.regions : [],
+            protectedRegions: Array.isArray(current.protectedRegions)
+              ? current.protectedRegions
+              : [],
+          },
+        },
+        null,
+        2,
+      ),
+    );
+  }
 
   async function refresh() {
     const response = await fetch("/api/admin/lease-artifact-intake", {
@@ -214,13 +307,15 @@ export function LeaseArtifactIntakePanel({
     <article className="panel" data-artifact-intake-panel>
       <h2 className="section-subtitle">Lease artifact intake (S130)</h2>
       <p className="muted">
-        Seven families, one entry each. A file is received only through the trusted
-        publication path and classified from its bytes as data; a recorded mapping is
-        Preview only; approval puts that exact version into the packet catalog and
-        supersedes the earlier one. Supported AcroForms use the lease packet&apos;s filled
-        PDF controls: prepare from verified facts, download, inspect and approve the exact
-        output. Static files and provider templates keep their manual handoff. Nothing
-        here uploads, connects an account or opens an action key.
+        Each family has one entry. A file is received only through the trusted publication
+        path and classified from its bytes as data; a recorded mapping is Preview only;
+        approval puts that exact version into the packet catalog and supersedes the
+        earlier one. Supported AcroForms and static PDFs with reviewed regions use the
+        lease packet&apos;s filled PDF controls: prepare from verified facts, download,
+        inspect and approve the exact output. A static file without reviewed regions and a
+        provider template keep their manual handoff; a file with no variable values is an
+        unchanged approved attachment. Nothing here uploads, connects an account or opens
+        an action key.
       </p>
       {note ? <p className="renewal-notice">{note}</p> : null}
       {manifest.state === "unreadable" ? (
@@ -251,7 +346,9 @@ export function LeaseArtifactIntakePanel({
                 : "."}
               {entry?.publication ? ` Publication ${entry.publication.reference}.` : ""}
               {entry?.fieldMap
-                ? ` Mapping ${entry.fieldMap.mapVersion} (${entry.fieldMap.fields.length} fields, ${entry.fieldMap.signers.length} signers).`
+                ? entry.fieldMap.unchangedAttachment
+                  ? ` Mapping ${entry.fieldMap.mapVersion}: unchanged approved attachment.`
+                  : ` Mapping ${entry.fieldMap.mapVersion} (${entry.fieldMap.fields.length} fields${entry.fieldMap.static ? `, ${entry.fieldMap.static.regions.length} regions` : ""}, ${entry.fieldMap.signers.length} signers).`
                 : ""}
               {entry?.received_at
                 ? ` Received ${formatBusinessTimestamp(entry.received_at)}.`
@@ -289,6 +386,11 @@ export function LeaseArtifactIntakePanel({
                   >
                     Record mapping for {ARTIFACT_FAMILY_LABELS[family]}
                   </Button>
+                  {entry.classification?.format === "static_pdf" ? (
+                    <Button disabled={pending} onClick={() => void inspect(entry)}>
+                      Read page positions for {ARTIFACT_FAMILY_LABELS[family]}
+                    </Button>
+                  ) : null}
                   {entry.state === "reviewed" ? (
                     <Button
                       disabled={pending || !reason.trim()}
@@ -311,6 +413,69 @@ export function LeaseArtifactIntakePanel({
           );
         })}
       </ul>
+      {inspection ? (
+        <section data-artifact-intake-inspection={inspection.kind}>
+          <h3 className="renewal-message-group-title">
+            Page positions: {ARTIFACT_FAMILY_LABELS[inspection.kind]}
+          </h3>
+          <p className="muted">
+            PDF points from each page&apos;s lower-left corner. Draw each region over a
+            blank line, or over the exact variable text it replaces; mark signature,
+            initial and signing-date areas as protected regions.
+          </p>
+          <ul>
+            {inspection.pages.map((page) => (
+              <li key={page.pageIndex}>
+                Page {page.pageIndex + 1}: {point(page.width)} × {point(page.height)}
+                {page.rotation ? `, rotated ${page.rotation}°` : ""}
+                {page.cropBox
+                  ? `, visible from x ${point(page.cropBox[0])} to ${point(page.cropBox[2])}, y ${point(page.cropBox[1])} to ${point(page.cropBox[3])}`
+                  : ""}
+              </li>
+            ))}
+          </ul>
+          <Button disabled={pending} onClick={() => addInspectedPages(inspection)}>
+            Add these pages to the mapping
+          </Button>
+          <details>
+            <summary>
+              Text positions ({inspection.runs.length}
+              {inspection.truncated ? ", first 5,000 only" : ""})
+            </summary>
+            <pre className="draft-box" style={{ maxHeight: "24rem", overflow: "auto" }}>
+              {inspection.runs
+                .map(
+                  (run) =>
+                    `p${run.pageIndex + 1}  x ${point(run.x)}  y ${point(run.y)}  w ${point(run.width)}  h ${point(run.height)}  ${run.text}`,
+                )
+                .join("\n")}
+            </pre>
+          </details>
+          {inspection.images.length ? (
+            <p className="muted">
+              {inspection.images.length} images or drawings are present; a region may not
+              cover them.
+            </p>
+          ) : null}
+          {inspection.annotations.length ? (
+            <details>
+              <summary>
+                {inspection.annotations.length === 1
+                  ? "1 annotation is present; a region may not cover it."
+                  : `${inspection.annotations.length} annotations are present; a region may not cover them.`}
+              </summary>
+              <pre className="draft-box" style={{ maxHeight: "12rem", overflow: "auto" }}>
+                {inspection.annotations
+                  .map(
+                    (annotation) =>
+                      `p${annotation.pageIndex + 1}  x ${point(annotation.x)}  y ${point(annotation.y)}  w ${point(annotation.width)}  h ${point(annotation.height)}  ${annotation.subtype}`,
+                  )
+                  .join("\n")}
+              </pre>
+            </details>
+          ) : null}
+        </section>
+      ) : null}
       <h3 className="renewal-message-group-title">Receive a file</h3>
       <Field htmlFor="artifact-intake-kind" label="Family">
         <select
@@ -377,7 +542,7 @@ export function LeaseArtifactIntakePanel({
       <Field
         htmlFor="artifact-intake-map"
         label="Reviewed mapping (JSON)"
-        hint="Exact field ids, meanings, requiredness, repeats, sources and signer roles as reviewed on the actual form. For repeated values, set pdfFieldNames to the exact slots in authoritative party or animal order."
+        hint="Exact field ids, meanings, requiredness, repeats, sources and signer roles as reviewed on the actual form. For repeated values, set pdfFieldNames to the exact slots in authoritative party or animal order. For a static PDF, add static pages from the page positions, then one region per field and repeat slot. A file with no variable values is recorded with unchangedAttachment set to true and no fields."
       >
         <textarea
           id="artifact-intake-map"

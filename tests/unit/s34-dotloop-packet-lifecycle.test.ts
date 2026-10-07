@@ -11,12 +11,7 @@ import {
   type DotloopRenewalSelection,
   DOTLOOP_RECONCILE_MAX_BATCHES,
 } from "@/lib/integrations/dotloop/renewal-provider";
-import {
-  applyDotloopLoopReadback,
-  decideDotloopLoopAction,
-  dotloopSignatureHandoff,
-  type DotloopLoopLink,
-} from "@/lib/lease-documents/dotloop-loop-link";
+import { dotloopSignatureHandoff } from "@/lib/lease-documents/dotloop-loop-link";
 import { createDotloopLoopFake } from "@/tests/helpers/dotloop-loop-fake";
 
 // S34: one approved renewal packet becomes exactly one Dotloop loop. Everything here runs against
@@ -200,6 +195,92 @@ describe("S34 one loop per approved packet (ARCH-S34-1 / BEH-S34-1)", () => {
     ).resolves.toBeNull();
   });
 
+  it("reuses the durable packet folder across documents, workers and restarts (AC-S34-6)", async () => {
+    let recorded: string | null = null;
+    const records: string[] = [];
+    const durableFolder = () => ({
+      recorded,
+      record: async (folderId: string) => {
+        records.push(folderId);
+        recorded ??= folderId;
+        return recorded;
+      },
+    });
+    const content = (bytes: number[]) => async () => ({
+      fileName: "renewal.pdf",
+      contentType: "application/pdf",
+      content: new Uint8Array(bytes),
+    });
+    const sha = (bytes: number[]) =>
+      createHash("sha256").update(new Uint8Array(bytes)).digest("hex");
+    await providerFor().createLoop({
+      templateRef: SELECTION.templateId,
+      participantRefs: PARTICIPANTS.map((participant) => participant.email),
+      idempotencyKey: "idem-1",
+    });
+    // Each upload runs in its own provider, as a separate worker or a restart would.
+    for (const [index, bytes] of [[1, 2, 3], [0, 255, 0], [9]].entries()) {
+      const uploaded = await providerFor({
+        artifactContent: content(bytes),
+        documentFolder: durableFolder(),
+      }).uploadDocument({
+        loopRef: "loop-1",
+        documentRef: `artifact-${index}`,
+        documentType: "renewal_agreement",
+        contentHash: sha(bytes),
+        idempotencyKey: `idem-doc-${index}`,
+      });
+      expect(uploaded.documentRef).toMatch(/^loop-1:folder-1:/);
+    }
+    expect(fake.folderCreates).toHaveLength(1);
+    expect(records).toEqual(["folder-1"]);
+  });
+
+  it("reads the recorded folder after its claim, so a folder recorded meanwhile is reused (AC-S34-6)", async () => {
+    let recorded: string | null = null;
+    const folder = {
+      read: async () => recorded,
+      record: async (folderId: string) => (recorded ??= folderId),
+    };
+    const content = (bytes: number[]) => async () => ({
+      fileName: "renewal.pdf",
+      contentType: "application/pdf",
+      content: new Uint8Array(bytes),
+    });
+    const sha = (bytes: number[]) =>
+      createHash("sha256").update(new Uint8Array(bytes)).digest("hex");
+    await providerFor().createLoop({
+      templateRef: SELECTION.templateId,
+      participantRefs: PARTICIPANTS.map((participant) => participant.email),
+      idempotencyKey: "idem-1",
+    });
+    // Worker A is built while no folder is recorded.
+    const workerA = providerFor({
+      artifactContent: content([7]),
+      documentFolder: folder,
+    });
+    // Worker B uploads first and records the folder.
+    await providerFor({
+      artifactContent: content([8]),
+      documentFolder: folder,
+    }).uploadDocument({
+      loopRef: "loop-1",
+      documentRef: "artifact-b",
+      documentType: "renewal_agreement",
+      contentHash: sha([8]),
+      idempotencyKey: "idem-doc-b",
+    });
+    const uploaded = await workerA.uploadDocument({
+      loopRef: "loop-1",
+      documentRef: "artifact-a",
+      documentType: "renewal_agreement",
+      contentHash: sha([7]),
+      idempotencyKey: "idem-doc-a",
+    });
+    expect(uploaded.documentRef).toMatch(/^loop-1:folder-1:/);
+    expect(fake.folderCreates).toHaveLength(1);
+  });
+
   it("reads the loop back and reports an archived loop as inactive (BEH-S34-3)", async () => {
     const provider = providerFor();
     await provider.createLoop({
@@ -311,69 +392,10 @@ describe("S34 one loop per approved packet (ARCH-S34-1 / BEH-S34-1)", () => {
   });
 });
 
-describe("S34 loop identity is bound to the packet snapshot hash (ARCH-S34-2)", () => {
-  const link: DotloopLoopLink = {
-    loopId: "loop-1",
-    loopUrl: "https://www.dotloop.com/m/loop/loop-1",
-    profileId: "profile-1",
-    templateId: "template-1",
-    packetSnapshotHash: "hash-1",
-    readBackAtIso: null,
-    loopStatus: "PRE_OFFER",
-    participantCount: 2,
-    documentCount: 0,
-  };
-
-  it("reuses the stored link for the same hash and never touches the provider", () => {
-    expect(
-      decideDotloopLoopAction({ currentPacketSnapshotHash: "hash-1", storedLink: link }),
-    ).toEqual({ kind: "reuse", link });
-  });
-
-  it("marks a loop from different facts superseded rather than reusing it (BEH-S34-2)", () => {
-    expect(
-      decideDotloopLoopAction({ currentPacketSnapshotHash: "hash-2", storedLink: link }),
-    ).toEqual({ kind: "superseded", priorLink: link });
-  });
-
-  it("creates when no link exists and refuses a blank hash", () => {
-    expect(
-      decideDotloopLoopAction({ currentPacketSnapshotHash: "hash-1", storedLink: null }),
-    ).toEqual({ kind: "create" });
-    expect(() =>
-      decideDotloopLoopAction({ currentPacketSnapshotHash: "  ", storedLink: null }),
-    ).toThrow(/exact packet snapshot hash/i);
-  });
-
-  it("merges a readback without inventing an absent observation", () => {
-    const updated = applyDotloopLoopReadback(link, {
-      readBackAtIso: "2026-09-03T00:00:00.000Z",
-      loopStatus: "UNDER_CONTRACT",
-      documentCount: 3,
-    });
-    expect(updated).toMatchObject({
-      readBackAtIso: "2026-09-03T00:00:00.000Z",
-      loopStatus: "UNDER_CONTRACT",
-      documentCount: 3,
-      participantCount: 2,
-    });
-  });
-});
-
 describe("S34 signature handoff is explicit, never inferred (AC-S34-3)", () => {
   it("offers the exact loop URL and required signers when a loop exists", () => {
     const handoff = dotloopSignatureHandoff({
-      link: {
-        loopId: "loop-1",
-        loopUrl: "https://www.dotloop.com/m/loop/loop-1",
-        profileId: "profile-1",
-        templateId: "template-1",
-        packetSnapshotHash: "hash-1",
-        readBackAtIso: null,
-        loopStatus: null,
-        participantCount: 2,
-        documentCount: 1,
-      },
+      link: { loopUrl: "https://www.dotloop.com/m/loop/loop-1" },
       requiredSigners: ["Tenant Of Record", "Owner Of Record"],
     });
     expect(handoff).toMatchObject({
@@ -382,7 +404,7 @@ describe("S34 signature handoff is explicit, never inferred (AC-S34-3)", () => {
       loopUrl: "https://www.dotloop.com/m/loop/loop-1",
       requiredSigners: ["Tenant Of Record", "Owner Of Record"],
     });
-    expect(handoff.detail).toMatch(/signed artifact/i);
+    expect(handoff.detail).toMatch(/an upload is never a signature/i);
   });
 
   it("says there is nothing to send when no loop exists", () => {

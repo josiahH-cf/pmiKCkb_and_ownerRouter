@@ -368,7 +368,8 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     event_ingestion_mode: "Webhook",
     preview_schema_note:
       "Show the template, property fields, and participant list before creating the loop.",
-    rollback_note: "Archive or delete the created loop and remove added participants.",
+    rollback_note:
+      "No API loop deletion exists. Correct the lease's loop link in the app; a person archives an app-created loop in Dotloop if needed. A linked pre-existing loop is never archived or emptied.",
     connection_health_check_ref: "health.dotloop.oauth_app",
     production_allowed: false,
   },
@@ -386,7 +387,8 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     event_ingestion_mode: "Webhook",
     preview_schema_note:
       "Show the loop, folder, file name, and document type before uploading.",
-    rollback_note: "Delete the uploaded document from the loop folder.",
+    rollback_note:
+      "No API document deletion exists. Upload a reviewed successor into the same loop; a person retires obsolete or duplicate files in Dotloop.",
     connection_health_check_ref: "health.dotloop.oauth_app",
     production_allowed: false,
   },

@@ -10,6 +10,10 @@ import { createHash } from "node:crypto";
 import type { Firestore, Transaction } from "firebase-admin/firestore";
 import { z } from "zod";
 
+import {
+  assistantAnswerForHistory,
+  knowledgeAnswerForHistory,
+} from "@/lib/ai-boundary/dotloop-origin";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/errors/editable-layer-error";
@@ -224,7 +228,14 @@ export async function finalizeAssistantTurn(
   now: () => Date = () => new Date(),
 ): Promise<TurnWriteResult> {
   const op = OperationIdSchema.parse(operationId);
-  const input = FinalizeTurnInputSchema.parse(rawInput);
+  const parsed = FinalizeTurnInputSchema.parse(rawInput);
+  // S182: Dotloop resource addresses and the app's Dotloop references are cut from the answer text
+  // before it is kept as AI history. The person's own question stays as written.
+  const input = {
+    ...parsed,
+    assistant: assistantAnswerForHistory(parsed.assistant).value,
+    knowledge: knowledgeAnswerForHistory(parsed.knowledge).value,
+  };
   assertSize(input);
   const turnId = turnIdFor(user.uid, op);
   const turnRef = userRoot(db, user)
@@ -360,7 +371,13 @@ export async function recordRerunTurn(
   now: () => Date = () => new Date(),
 ): Promise<TurnWriteResult & { readonly record: StoredTurnRecord }> {
   const op = OperationIdSchema.parse(operationId);
-  const input = RerunTurnInputSchema.parse(rawInput);
+  const parsed = RerunTurnInputSchema.parse(rawInput);
+  // S182: a current run is kept as AI history through the same Dotloop boundary as an answered
+  // turn. The saved question itself is never rewritten.
+  const input = {
+    ...parsed,
+    assistant: assistantAnswerForHistory(parsed.assistant).value,
+  };
   assertSize(input);
   const turnId = turnIdFor(user.uid, op);
   const turnRef = userRoot(db, user)

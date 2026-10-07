@@ -316,6 +316,7 @@ function syntheticValues(
         workflow_context: `renewal:${a.leaseRef}`,
         template_ref: "dotloop-template-synthetic-001",
         participant_refs: "owner-synthetic-001,tenant-synthetic-001",
+        property_address: "none",
       };
     case "dotloop.document.upload":
       return {

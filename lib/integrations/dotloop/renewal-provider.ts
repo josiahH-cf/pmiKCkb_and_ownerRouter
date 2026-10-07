@@ -85,6 +85,18 @@ export interface LiveDotloopProviderDeps {
     contentType: string;
     content: Uint8Array;
   }>;
+  /**
+   * S34 (AC-S34-6): the lease's durable packet folder. A recorded folder is reused; otherwise the
+   * folder this provider creates is recorded and the durable winner is used, so documents, workers
+   * and restarts never create a folder each time.
+   */
+  readonly documentFolder?: {
+    /** A folder known when the provider was built; `read` is preferred when present. */
+    readonly recorded?: string | null;
+    /** Reads the recorded folder when it is needed, after the attempt's claim. */
+    readonly read?: () => Promise<string | null>;
+    readonly record: (folderId: string) => Promise<string>;
+  };
 }
 
 export class LiveDotloopProvider implements DotloopProvider {
@@ -191,11 +203,18 @@ export class LiveDotloopProvider implements DotloopProvider {
   async #packetFolder(loopRef: string): Promise<string> {
     const cached = this.#documentFolders.get(loopRef);
     if (cached) return cached;
-    const folderId = await this.#deps.client.createFolder({
+    const durable = this.#deps.documentFolder;
+    const recorded = durable?.read ? await durable.read() : (durable?.recorded ?? null);
+    if (recorded) {
+      this.#documentFolders.set(loopRef, recorded);
+      return recorded;
+    }
+    const created = await this.#deps.client.createFolder({
       profileId: this.#deps.selection.profileId,
       loopId: loopRef,
       name: DOTLOOP_PACKET_FOLDER_NAME,
     });
+    const folderId = durable ? await durable.record(created) : created;
     this.#documentFolders.set(loopRef, folderId);
     return folderId;
   }

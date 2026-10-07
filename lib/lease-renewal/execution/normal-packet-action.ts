@@ -1,4 +1,6 @@
+import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import {
   assertMutationAllowed,
   requireEnvironmentDescriptor,
@@ -14,11 +16,11 @@ import { getAdminFirestore } from "@/lib/firestore/admin";
 import {
   getCurrentPacketSnapshot,
   getPacketHead,
-  recordPacketExecutionProjection,
 } from "@/lib/firestore/lease-document-packet-snapshots";
 import {
   approveActionExecution,
   getActionExecution,
+  type ActionExecutionCompanion,
 } from "@/lib/firestore/action-executions";
 import {
   createDotloopRuntime,
@@ -26,14 +28,16 @@ import {
 } from "@/lib/connections/dotloop-runtime";
 import { getDotloopRenewalSettings } from "@/lib/firestore/dotloop-renewal-settings";
 import { resolveLivePacketInput } from "@/lib/lease-documents/live-input";
+import {
+  DOTLOOP_PARTICIPANT_ROLES,
+  type DotloopParticipantRole,
+} from "@/lib/integrations/dotloop/client";
 import { evaluateRenewalPacket } from "@/lib/lease-documents/evaluate-packet";
 import { bindCurrentPacketForDotloop } from "@/lib/lease-documents/dotloop-packet-binding";
 import { bindApprovedDerivedPacket } from "@/lib/lease-documents/derived-packet-binding";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
-import { externalActionContextHash } from "@/lib/external-execution/identity";
 import {
   prepareExternalActionWithS20,
-  expectedExternalS20ExecutionId,
   type ExternalActionPreparationInput,
   type TrustedExternalExecutionContext,
 } from "@/lib/external-execution/s20-bridge";
@@ -41,6 +45,94 @@ import { LEASE_EXECUTION_DEFINITION_MAP } from "@/lib/lease-renewal/execution/ma
 import { DotloopRenewalExecutor } from "@/lib/lease-renewal/execution/providers";
 import { executeDotloopPacketWithS20 } from "@/lib/lease-renewal/execution/dotloop-runtime";
 import { assertProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
+import {
+  describeLoopForLease,
+  linkExistingLoop,
+  readLoopAssociation,
+  recordLoopReadback,
+  reviewedLoopHash,
+  unlinkLeaseLoop,
+  type ReviewedLoopObservation,
+} from "@/lib/firestore/lease-document-loop-association";
+import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
+import { readCurrentDerivedArtifact } from "@/lib/firestore/lease-derived-artifacts";
+import {
+  DOCUMENT_UPLOAD_STATUS_LABELS,
+  documentUploadPlan,
+  propertyAddressValue,
+  usableLoopTarget,
+  type LoopAssociation,
+  type LoopAssociationView,
+  type LoopPropertyAddress,
+} from "@/lib/lease-documents/dotloop-loop-association";
+import type { PacketInputsRecord } from "@/lib/lease-documents/packet-inputs";
+import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
+
+const CREATE_KEY = "dotloop.loop.create_from_template";
+const UPLOAD_KEY = "dotloop.document.upload";
+
+/** The verified structured address a new loop is created with; null unless all four are entered. */
+export function loopPropertyAddress(
+  inputs: PacketInputsRecord | null | undefined,
+): LoopPropertyAddress | null {
+  const value = (key: string) => {
+    const entry = inputs?.facts[key]?.value;
+    return typeof entry === "string" && entry.trim() ? entry.trim() : null;
+  };
+  const streetName = value("property.street_line");
+  const city = value("property.city");
+  const state = value("property.state");
+  const zip = value("property.zip");
+  return streetName && city && state && zip ? { streetName, city, state, zip } : null;
+}
+
+/** The staff-reported execution milestone, kept apart from provider and signed evidence. */
+function staffReport(state: RenewalWorkspaceState | null | undefined) {
+  const signatures = state?.activities?.signatures ?? null;
+  const completion = state?.completion ?? null;
+  const record = (entry: {
+    recordedAt: string;
+    occurredAt?: string;
+    source: string;
+    reason?: string;
+  }) => ({
+    recordedAt: entry.recordedAt,
+    occurredAt: entry.occurredAt ?? null,
+    source: entry.source,
+    reason: entry.reason ?? null,
+  });
+  return {
+    signatures: signatures
+      ? { outcome: signatures.outcome, ...record(signatures) }
+      : null,
+    completion: completion ? record(completion) : null,
+  };
+}
+
+/** The association as the handoff shows it; ids are Dotloop-origin and never reach AI input. */
+function associationView(
+  association: LoopAssociation | null,
+  cycleId: string | null,
+): LoopAssociationView | null {
+  if (!association) return null;
+  return {
+    state: association.state,
+    origin: association.origin,
+    loopId: association.loopId,
+    loopName: association.loopName,
+    loopUrl: association.loopUrl,
+    profileId: association.profileId,
+    cycleId: association.cycleId,
+    currentCycle: association.cycleId === cycleId,
+    linkRevision: association.linkRevision,
+    linkedAt: association.linkedAt,
+    reason: association.reason,
+    folderRecorded: Boolean(association.folder),
+    readback: association.readback,
+    documents: association.documents,
+    pendingUploads: association.pendingUploads ?? [],
+  };
+}
 export const PACKET_ACTION_SNAPSHOTS = "lease_document_action_snapshots";
 export type PacketOperation = "loop_create" | "document_upload";
 const validator = new DotloopRenewalExecutor(
@@ -74,30 +166,99 @@ export async function currentPacketHandoff(actor: AuthenticatedUser, leaseId: st
       ];
   if (readiness.state !== "connected")
     blockers.push(`Dotloop connection: ${readiness.reasons.join(", ")} (S106).`);
-  for (const key of ["dotloop.loop.create_from_template", "dotloop.document.upload"]) {
+  // S34 (AC-S34-8): each operation names only its own exact key. Creating a loop needs the create
+  // key; uploading into the lease's linked loop needs the upload key; preparation needs neither.
+  const keyBlocker = async (key: string) => {
     try {
       await assertProductionRuntimeActionExecutable(key);
+      return null;
     } catch {
-      blockers.push(
-        `The exact ${key} action is not currently executable; its S34 activation gate remains required.`,
-      );
+      return `The exact ${key} action is not currently executable; its S34 activation gate remains required.`;
     }
-  }
-  const documents = (resolved?.input.catalog.artifacts ?? [])
-    .filter((a) =>
-      snapshot?.manifest?.includedArtifacts.some((i) => i.artifactId === a.artifactId),
-    )
-    .flatMap((a) =>
-      a.providerBindings
-        ? [
-            {
-              artifactId: a.artifactId,
-              label: a.label,
-              documentRef: a.providerBindings.dotloopDocumentRef,
-            },
-          ]
-        : [],
+  };
+  const [createKeyBlocker, uploadKeyBlocker] = await Promise.all([
+    keyBlocker(CREATE_KEY),
+    keyBlocker(UPLOAD_KEY),
+  ]);
+  let association: LoopAssociation | null = null;
+  try {
+    association = await readLoopAssociation(leaseId);
+  } catch (error) {
+    blockers.push(
+      error instanceof EditableLayerError
+        ? error.message
+        : "The lease's Dotloop loop record could not be read.",
     );
+  }
+  const cycleId = resolved?.workspace?.cycleId ?? null;
+  const target = usableLoopTarget(association, cycleId) ? association : null;
+  const included = (resolved?.input.catalog.artifacts ?? []).filter((a) =>
+    snapshot?.manifest?.includedArtifacts.some((i) => i.artifactId === a.artifactId),
+  );
+  const documents = (
+    await Promise.all(
+      included.map(async (a) => {
+        if (!a.providerBindings) return [];
+        // The upload carries the approved filled output when the form is mapped, else the
+        // approved original. An unapproved filled output is not uploadable yet.
+        let contentHash: string | null = a.contentHash;
+        if (a.fillMapping && snapshot) {
+          const record = await readCurrentDerivedArtifact(actor, {
+            leaseId,
+            snapshotId: snapshot.snapshotId,
+            artifactId: a.artifactId,
+          }).catch(() => null);
+          contentHash = record?.approval ? record.outputHash : null;
+        }
+        return [
+          {
+            artifactId: a.artifactId,
+            label: a.label,
+            documentRef: a.providerBindings.dotloopDocumentRef,
+            contentHash,
+            unchangedAttachment: a.unchangedAttachment === true,
+          },
+        ];
+      }),
+    )
+  ).flat();
+  const plan = documentUploadPlan(
+    target,
+    documents.flatMap((document) =>
+      document.contentHash ? [{ ...document, contentHash: document.contentHash }] : [],
+    ),
+  );
+  const documentStatus = documents.map((document) => {
+    const planned = plan.find((entry) => entry.documentRef === document.documentRef);
+    return {
+      ...document,
+      status: planned?.status ?? "filled_output_needed",
+      statusLabel: planned
+        ? DOCUMENT_UPLOAD_STATUS_LABELS[planned.status]
+        : "Prepare, inspect and approve the filled PDF before it can be uploaded.",
+      history: planned?.history ?? [],
+    };
+  });
+  const createBlockers = [
+    ...(createKeyBlocker ? [createKeyBlocker] : []),
+    ...(association?.state === "current"
+      ? [
+          association.cycleId === cycleId
+            ? "This lease already has a linked Dotloop loop; upload documents into it. A new loop needs the current link corrected first."
+            : "The lease's linked loop served an earlier cycle. Confirm its reuse for this cycle, or correct the link before creating a new loop.",
+        ]
+      : association?.state === "creating"
+        ? [
+            "An app loop creation for this lease is unresolved. Recover that attempt before anything else; a new loop is not created.",
+          ]
+        : []),
+  ];
+  const uploadBlockers = [
+    ...(uploadKeyBlocker ? [uploadKeyBlocker] : []),
+    ...(target
+      ? []
+      : ["Create or link this lease's Dotloop loop before uploading documents."]),
+  ];
   const saved = await getAdminFirestore()
     .collection(PACKET_ACTION_SNAPSHOTS)
     .where("leaseId", "==", leaseId)
@@ -125,10 +286,17 @@ export async function currentPacketHandoff(actor: AuthenticatedUser, leaseId: st
             (c) => c.participantRef === p.providerBindings?.dotloopParticipantRef,
           )?.fullName ?? p.participantId,
       ) ?? [],
-    documents,
+    documents: documentStatus,
     attempts,
     readiness,
     blockers,
+    operations: {
+      create: { actionKey: CREATE_KEY, blockers: createBlockers },
+      upload: { actionKey: UPLOAD_KEY, blockers: uploadBlockers },
+    },
+    association: associationView(association, cycleId),
+    propertyAddress: loopPropertyAddress(resolved?.inputs),
+    staffReport: staffReport(resolved?.workspace),
     expectedLeaseSourceHash: resolved?.leaseSourceHash ?? null,
     catalogVersion: resolved?.input.catalog.catalogVersion ?? "unverified",
   };
@@ -139,21 +307,34 @@ async function assemble(
   operation: PacketOperation,
   documentRef?: string,
 ) {
-  const [resolved, snapshot, head, settings, readiness] = await Promise.all([
+  const [resolved, snapshot, head, settings, readiness, association] = await Promise.all([
     resolveLivePacketInput(actor, leaseId, leaseId, new Date().toISOString()),
     getCurrentPacketSnapshot(actor, leaseId, leaseId),
     getPacketHead(actor, leaseId, leaseId),
     getDotloopRenewalSettings(actor),
     readDotloopRuntimeReadiness(),
+    readLoopAssociation(leaseId),
   ]);
+  // S34: a lease with a current link or an unresolved creation never creates another loop.
+  if (
+    operation === "loop_create" &&
+    (association?.state === "current" || association?.state === "creating")
+  )
+    throw new EditableLayerError(
+      association.state === "creating"
+        ? "An app loop creation for this lease is unresolved. Recover that attempt; a second loop is not created."
+        : "This lease already has a linked Dotloop loop. Upload documents into it, or correct the link before creating another.",
+      409,
+    );
   if (
     !snapshot ||
     !head ||
-    !resolved.sources ||
-    resolved.workspace?.ownerResponse?.outcome !== "approved_terms"
+    !resolved.workspace ||
+    resolved.ownerApproval !== "current" ||
+    resolved.workspace.ownerResponse?.outcome !== "approved_terms"
   )
     throw new EditableLayerError(
-      "Evaluate a current packet with approved owner terms and current participant/field mappings first.",
+      "Evaluate a current packet with the owner's approval of the current Working terms and reviewed signers first.",
       409,
     );
   if (evaluateRenewalPacket(resolved.input).payloadHash !== snapshot.payloadHash)
@@ -188,23 +369,56 @@ async function assemble(
       409,
     );
   const participants = binding.participantRefs.map((ref) => {
-    const matches = resolved.sources!.contacts.filter((c) => c.participantRef === ref);
+    const matches = resolved.contacts.filter((c) => c.participantRef === ref);
     if (matches.length !== 1)
       throw new EditableLayerError(
-        "Each required signer must have one current approved contact mapping.",
+        "Each required signer needs one reviewed name and email in Packet inputs.",
         409,
       );
-    return matches[0];
+    const { participantRef, fullName, email, role } = matches[0];
+    if (!(DOTLOOP_PARTICIPANT_ROLES as readonly string[]).includes(role))
+      throw new EditableLayerError(
+        "A reviewed signer has a Dotloop role that is not documented.",
+        409,
+      );
+    return { participantRef, fullName, email, role: role as DotloopParticipantRole };
   });
+  // S34 (ARCH-S34-2): the lease's loop association is the only upload target.
+  const target = usableLoopTarget(association, resolved.workspace.cycleId)
+    ? association
+    : null;
   const document =
     operation === "document_upload"
       ? binding.documents.find((d) => d.documentRef === documentRef)
       : null;
-  if (operation === "document_upload" && (!document || !snapshot.execution?.loopLink))
+  if (operation === "document_upload" && (!document || !target))
     throw new EditableLayerError(
-      "Select one approved document from this packet after its loop is receipted.",
+      target
+        ? "Select one approved document from this packet."
+        : association?.state === "current"
+          ? "The lease's linked loop served an earlier renewal cycle. Confirm its reuse for this cycle first."
+          : "Create or link this lease's Dotloop loop before uploading documents.",
       409,
     );
+  if (operation === "document_upload" && target!.profileId !== settings.profileId)
+    throw new EditableLayerError(
+      "The linked loop belongs to a different Dotloop profile than the one selected in Connections.",
+      409,
+    );
+  const priorUploads = target
+    ? documentUploadPlan(target, document ? [{ ...document, label: "" }] : [])
+    : [];
+  if (operation === "document_upload" && priorUploads[0]?.status === "uploaded_current")
+    throw new EditableLayerError(
+      "This exact document version is already in the linked loop; its upload receipt is reused.",
+      409,
+    );
+  if (operation === "document_upload" && priorUploads[0]?.status === "upload_unresolved")
+    throw new EditableLayerError(
+      "An upload of this exact version into the linked loop is in progress or has no confirmed outcome. Check the loop in Dotloop; the app never sends an uncertain upload again.",
+      409,
+    );
+  const propertyAddress = loopPropertyAddress(resolved.inputs);
   const base = {
     dataMode: "live" as const,
     workflowId: `renewal-packet:${snapshot.snapshotId}`,
@@ -225,6 +439,7 @@ async function assemble(
       workflow_context: `renewal:${leaseId}`,
       template_ref: binding.templateRef,
       participant_refs: binding.participantRefs.join(","),
+      property_address: propertyAddressValue(propertyAddress),
     },
   };
   const action: ExternalActionPreparationInput =
@@ -232,10 +447,11 @@ async function assemble(
       ? loopAction
       : {
           ...base,
-          actionId: `packet-document:${snapshot.snapshotId}:${document!.documentRef}`,
+          // The exact target is part of the attempt's identity: a corrected link prepares anew.
+          actionId: `packet-document:${snapshot.snapshotId}:${document!.documentRef}:loop:${target!.loopId}:link:${target!.linkRevision}`,
           actionKey: "dotloop.document.upload",
           values: {
-            loop_ref: snapshot.execution!.loopLink!.loopId,
+            loop_ref: target!.loopId,
             document_ref: document!.documentRef,
             document_type: resolved.input.catalog.artifacts.find(
               (a) => a.artifactId === document!.artifactId,
@@ -277,15 +493,31 @@ async function assemble(
     action,
     trustedContext,
     definition: LEASE_EXECUTION_DEFINITION_MAP.get(action.actionKey)!,
-    dependencyExecutionIds:
+    // S34 (AC-S34-8): an upload depends on the lease's current loop association, checked here,
+    // at execution and at the S20 claim; no create receipt is required for a linked loop.
+    dependencyExecutionIds: {} as Record<string, string>,
+    loopTarget:
       operation === "document_upload"
         ? {
-            "dotloop.loop.create_from_template":
-              expectedExternalS20ExecutionId(loopAction),
+            loopId: target!.loopId,
+            profileId: target!.profileId,
+            linkRevision: target!.linkRevision,
+            origin: target!.origin,
           }
-        : ({} as Record<string, string>),
+        : null,
+    supersedes:
+      operation === "document_upload" && priorUploads[0]?.latestUpload
+        ? {
+            contentHash: priorUploads[0].latestUpload.contentHash,
+            uploadedAt: priorUploads[0].latestUpload.uploadedAt,
+          }
+        : null,
+    propertyAddress: operation === "loop_create" ? propertyAddress : null,
     catalogRecordHash: resolved.catalogRecordHash,
     mappingRecordHash: resolved.mappingRecordHash,
+    packetInputsRecordHash: resolved.packetInputsRecordHash,
+    chargePolicyRecordHash: resolved.chargePolicyRecordHash,
+    workingRecordHash: resolved.workingRecordHash,
     ownerApprovalHash: hashExecutionPreview({ ...resolved.workspace.ownerResponse }),
     selection: {
       profileId: settings.profileId,
@@ -296,11 +528,8 @@ async function assemble(
     cycleId: resolved.workspace.cycleId,
     termsRevision: resolved.workspace.termsRevision,
     leaseSourceHash: resolved.leaseSourceHash,
-    approvalQueue: {
-      requiredAdminUid: settings.recordedByUid,
-      directLink: `/lease-renewal/live/desk/lease/${encodeURIComponent(leaseId)}#renewal-section-documents`,
-      processRunRef: { id: base.workflowId, label: "Renewal packet review" },
-    },
+    // S182: the confirming staff member approves this exact preview in the lease's own control.
+    // Neither the company settings recorder nor an Admin approval-queue route is substituted.
   };
 }
 export async function prepareNormalPacketAction(
@@ -317,55 +546,33 @@ export async function prepareNormalPacketAction(
   assertMutationAllowed(requireEnvironmentDescriptor());
   const value = await assemble(actor, leaseId, operation, documentRef);
   await assertProductionRuntimeActionExecutable(value.action.actionKey);
-  const existingId = expectedExternalS20ExecutionId(value.action);
-  const existing = await getAdminFirestore()
-    .collection(PACKET_ACTION_SNAPSHOTS)
-    .doc(existingId)
-    .get();
-  if (
-    existing.exists &&
-    hashExecutionPreview(existing.get("prepared")) !== hashExecutionPreview(value)
-  )
-    throw new EditableLayerError(
-      "This packet already has a different immutable preparation. Recover its exact attempt or evaluate the current changed sources.",
-      409,
-    );
-  // Admin reviews the original Editor preparation without trying to replace its authenticated preparer.
-  const prepared = existing.exists
-    ? await getActionExecution(actor, existingId)
-    : await prepareExternalActionWithS20(actor, {
-        action: value.action,
-        approvalQueue: value.approvalQueue,
-        definition: value.definition,
-        trustedContext: value.trustedContext,
-        validate: (action) => validator.validate(action),
-      });
-  // Existing S66 snapshots hold exact artifact facts; this companion retains the immutable action for recovery.
-  const stored = {
-    leaseId,
-    operation,
-    documentRef: documentRef ?? null,
-    prepared: value,
-    previewHash: prepared.preview_hash,
-    contextHash: externalActionContextHash(value.action),
-  };
-  const ref = getAdminFirestore().collection(PACKET_ACTION_SNAPSHOTS).doc(prepared.id);
-  await getAdminFirestore().runTransaction(async (tx) => {
-    const prior = await tx.get(ref);
-    if (prior.exists) {
-      if (prior.get("snapshotHash") !== hashExecutionPreview(stored))
-        throw new EditableLayerError(
-          "This packet preparation differs from its saved snapshot.",
-          409,
-        );
-      return;
-    }
-    tx.create(
-      ref,
-      JSON.parse(
+  // Existing S66 snapshots hold exact artifact facts; this companion retains the immutable action
+  // for recovery. S182: it is written in the same transaction as the S20 execution record, so a
+  // request that stops never leaves a half-prepared action. A colleague who prepares the identical
+  // action continues the original preparation without replacing its authenticated preparer; a
+  // changed preparation is refused.
+  const companion: ActionExecutionCompanion = {
+    collection: PACKET_ACTION_SNAPSHOTS,
+    document: ({ previewHash, contextHash }) => {
+      const stored = {
+        leaseId,
+        operation,
+        documentRef: documentRef ?? null,
+        prepared: value,
+        previewHash,
+        contextHash,
+      };
+      return JSON.parse(
         JSON.stringify({ ...stored, snapshotHash: hashExecutionPreview(stored) }),
-      ),
-    );
+      );
+    },
+  };
+  const prepared = await prepareExternalActionWithS20(actor, {
+    action: value.action,
+    companion,
+    definition: value.definition,
+    trustedContext: value.trustedContext,
+    validate: (action) => validator.validate(action),
   });
   return {
     executionId: prepared.id,
@@ -397,6 +604,16 @@ export async function prepareNormalPacketAction(
     selection: value.selection,
     operation,
     documentRef: documentRef ?? null,
+    actionKey: value.action.actionKey,
+    // Folder state is read now for display only; it is resolved again at the attempt's claim.
+    loopTarget: value.loopTarget
+      ? {
+          ...value.loopTarget,
+          folderRecorded: Boolean((await readLoopAssociation(leaseId))?.folder),
+        }
+      : null,
+    supersedes: value.supersedes,
+    propertyAddress: value.propertyAddress,
   };
 }
 export async function finishNormalPacketAction(
@@ -461,6 +678,9 @@ export async function finishNormalPacketAction(
   return executeDotloopPacketWithS20(actor, {
     packet: value.packet,
     participants: value.participants,
+    cycleId: value.cycleId,
+    loopTarget: value.loopTarget ?? null,
+    propertyAddress: value.propertyAddress ?? null,
     reconcile: recover,
     ...(recover && value.derivedDocuments
       ? { retainedDerivedDocuments: value.derivedDocuments }
@@ -521,31 +741,29 @@ export async function finishNormalPacketAction(
   });
 }
 
-/** One explicit readback of an already receipted loop. It never infers document or signature completion. */
+/** One explicit readback of the lease's linked loop. It never infers document or signature completion. */
 export async function refreshNormalPacketLink(actor: AuthenticatedUser, leaseId: string) {
-  if (actor.role !== "Admin" && actor.role !== "Approver")
-    throw new EditableLayerError(
-      "An Approver or Admin records packet provider readback.",
-      403,
-    );
+  if (!can(actor.role, renewalRoleCapability("record_packet_readback")))
+    throw new EditableLayerError("Renewal staff record packet provider readback.", 403);
   if (isVerificationAccount(actor))
     throw new EditableLayerError(
       "Verification accounts cannot persist provider readback.",
       403,
     );
   assertMutationAllowed(requireEnvironmentDescriptor());
-  const snapshot = await getCurrentPacketSnapshot(actor, leaseId, leaseId),
-    link = snapshot?.execution?.loopLink;
-  const settings = await getDotloopRenewalSettings(actor);
+  const [association, settings] = await Promise.all([
+    readLoopAssociation(leaseId),
+    getDotloopRenewalSettings(actor),
+  ]);
   if (
-    !snapshot?.execution ||
-    !link ||
-    link.packetSnapshotHash !== snapshot.payloadHash ||
+    !association ||
+    association.state !== "current" ||
+    !association.loopId ||
     !settings ||
-    settings.profileId !== link.profileId
+    settings.profileId !== association.profileId
   )
     throw new EditableLayerError(
-      "A receipted current packet and its selected Dotloop profile are required for readback.",
+      "A linked Dotloop loop and its selected Dotloop profile are required for readback.",
       409,
     );
   const runtime = createDotloopRuntime();
@@ -554,34 +772,164 @@ export async function refreshNormalPacketLink(actor: AuthenticatedUser, leaseId:
       "The managed Dotloop connection is unavailable; saved loop evidence is retained.",
       409,
     );
-  const observed = await runtime.client.getLoop(link.profileId, link.loopId);
-  if (!observed || observed.id !== link.loopId)
+  const observed = await runtime.client.getLoop(
+    association.profileId,
+    association.loopId,
+  );
+  if (!observed || observed.id !== association.loopId)
     throw new EditableLayerError(
-      "The exact saved loop could not be read; its evidence is retained.",
+      "The linked loop could not be read; its saved evidence is retained.",
       409,
     );
-  const result = await recordPacketExecutionProjection(actor, {
-    snapshot_id: snapshot.snapshotId,
-    idempotency_key: snapshot.execution.idempotencyKey,
-    state: snapshot.execution.state,
-    ...(snapshot.execution.receiptId ? { receipt_id: snapshot.execution.receiptId } : {}),
-    loop_link: {
-      loop_id: link.loopId,
-      profile_id: link.profileId,
-      template_id: link.templateId,
-      packet_snapshot_hash: snapshot.payloadHash,
-      read_back_at: new Date().toISOString(),
-      ...((observed.loopUrl ?? link.loopUrl)
-        ? { loop_url: (observed.loopUrl ?? link.loopUrl)! }
-        : {}),
-      ...((observed.status ?? link.loopStatus)
-        ? { loop_status: (observed.status ?? link.loopStatus)! }
-        : {}),
-      ...((observed.participantCount ?? link.participantCount) == null
-        ? {}
-        : { participant_count: (observed.participantCount ?? link.participantCount)! }),
-      ...(link.documentCount === null ? {} : { document_count: link.documentCount }),
+  const saved = await recordLoopReadback(actor, {
+    leaseId,
+    loopId: association.loopId,
+    readback: {
+      readBackAt: new Date().toISOString(),
+      loopStatus: observed.status,
+      participantCount: observed.participantCount,
     },
   });
-  return { snapshot: result, status: "read_back", evidenceLevel: "loop_metadata_only" };
+  return {
+    association: associationView(saved, saved.cycleId),
+    status: "read_back",
+    evidenceLevel: "loop_metadata_only",
+  };
+}
+
+/** Read an existing loop through the company connection so staff can review it before linking. */
+async function observeLoop(actor: AuthenticatedUser, loopId: string) {
+  const settings = await getDotloopRenewalSettings(actor);
+  if (!settings?.profileId)
+    throw new EditableLayerError(
+      "Select the company Dotloop profile in Connections before linking a loop.",
+      409,
+    );
+  const runtime = createDotloopRuntime();
+  if (!runtime)
+    throw new EditableLayerError(
+      "The managed Dotloop connection is unavailable, so the loop cannot be reviewed.",
+      409,
+    );
+  const loop = await runtime.client.getLoop(settings.profileId, loopId);
+  if (!loop)
+    throw new EditableLayerError(
+      "No loop with that number is readable through the company Dotloop profile.",
+      404,
+    );
+  const participants = await runtime.client.listParticipants(settings.profileId, loop.id);
+  const observation: ReviewedLoopObservation = {
+    profileId: settings.profileId,
+    loopId: loop.id,
+    name: loop.name,
+    status: loop.status,
+    loopUrl: loop.loopUrl,
+    participantCount: loop.participantCount,
+    participants: participants.map((participant) => ({
+      fullName: participant.fullName,
+      email: participant.email,
+      role: participant.role,
+    })),
+  };
+  return observation;
+}
+
+function assertLinkActor(actor: AuthenticatedUser) {
+  if (!can(actor.role, renewalRoleCapability("link_dotloop_loop")))
+    throw new EditableLayerError(
+      "Editor access is required to link or correct a lease's Dotloop loop.",
+      403,
+    );
+  if (isVerificationAccount(actor))
+    throw new EditableLayerError(
+      "Verification accounts cannot change the lease's Dotloop loop.",
+      403,
+    );
+}
+
+/**
+ * S34: review an existing loop for this lease. A matching name or address is shown as a hint only;
+ * the review says whether the loop is already recorded for another lease or an earlier cycle.
+ */
+export async function reviewExistingDotloopLoop(
+  actor: AuthenticatedUser,
+  leaseId: string,
+  loopId: string,
+) {
+  assertLinkActor(actor);
+  const [observation, workspace] = await Promise.all([
+    observeLoop(actor, loopId),
+    getRenewalWorkspace(actor, leaseId),
+  ]);
+  const relation = await describeLoopForLease(
+    leaseId,
+    observation.profileId,
+    observation.loopId,
+  );
+  const cycleId = workspace?.cycleId ?? null;
+  return {
+    observation,
+    observationHash: reviewedLoopHash(observation),
+    archived: observation.status === "ARCHIVED",
+    recordedForOtherLease: relation.recordedForOtherLease,
+    servedEarlierCycle:
+      relation.earlierCycleIds.some((id) => id !== cycleId) ||
+      (relation.current?.loopId === observation.loopId &&
+        relation.current.cycleId !== cycleId),
+    expectedLinkRevision: relation.current?.linkRevision ?? 0,
+    currentLink: associationView(relation.current, cycleId),
+  };
+}
+
+/** S34: link the loop staff reviewed, re-reading it first so a changed loop is not linked. */
+export async function linkReviewedDotloopLoop(
+  actor: AuthenticatedUser,
+  input: {
+    leaseId: string;
+    loopId: string;
+    observationHash: string;
+    reason: string;
+    expectedLinkRevision: number;
+    reuseAcrossCycles: boolean;
+  },
+) {
+  assertLinkActor(actor);
+  const [observation, workspace] = await Promise.all([
+    observeLoop(actor, input.loopId),
+    getRenewalWorkspace(actor, input.leaseId),
+  ]);
+  if (reviewedLoopHash(observation) !== input.observationHash)
+    throw new EditableLayerError(
+      "The loop changed since it was reviewed. Review it again before linking.",
+      409,
+    );
+  if (observation.status === "ARCHIVED")
+    throw new EditableLayerError(
+      "An archived loop cannot receive renewal documents. Choose an active loop.",
+      409,
+    );
+  if (!workspace?.cycleId)
+    throw new EditableLayerError(
+      "Start or open this lease's renewal cycle before linking its Dotloop loop.",
+      409,
+    );
+  const saved = await linkExistingLoop(actor, {
+    leaseId: input.leaseId,
+    cycleId: workspace.cycleId,
+    observation,
+    reason: input.reason,
+    expectedLinkRevision: input.expectedLinkRevision,
+    reuseAcrossCycles: input.reuseAcrossCycles,
+  });
+  return { association: associationView(saved, workspace.cycleId) };
+}
+
+/** S34: correct the lease's loop link. Nothing in Dotloop changes; history stays readable. */
+export async function unlinkDotloopLoop(
+  actor: AuthenticatedUser,
+  input: { leaseId: string; expectedLinkRevision: number; reason: string },
+) {
+  assertLinkActor(actor);
+  const saved = await unlinkLeaseLoop(actor, input);
+  return { association: associationView(saved, saved.cycleId) };
 }

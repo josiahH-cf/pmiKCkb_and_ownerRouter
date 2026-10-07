@@ -501,7 +501,10 @@ describe("S110 the desk and the assistant share one orchestration (ARCH-S110-2)"
     const context = readFileSync("lib/operational-context/server-context.ts", "utf8");
     const route = readFileSync("app/api/assistant/query/route.ts", "utf8");
     expect(desk).toContain("loadRenewalAssistantSource");
-    expect(context).toContain("loadRenewalAssistantSource(user, now)");
+    // S182: the assistant asks the shared orchestration for its Dotloop-free AI-context view.
+    expect(context).toMatch(
+      /loadRenewalAssistantSource\(user, now, null, \{\s*aiContext: true,?\s*\}\)/,
+    );
     expect(route).toContain("createServerOperationalContext");
     // The desk must not keep a second orchestration; that is exactly how the two would drift.
     expect(desk).not.toContain("loadLiveRenewalDesk(");

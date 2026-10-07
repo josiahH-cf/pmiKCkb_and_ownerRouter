@@ -213,9 +213,10 @@ describe("governance rows for the removed handoffs", () => {
       manage_renewal_configuration: "manageAdmin",
       screenshot_rollback: "manageAdmin",
       approve_message_template: "approve",
-      approve_filled_artifact: "approve",
-      execute_document_packet: "manageAdmin",
-      record_packet_readback: "approve",
+      // S182 moved these three packet rows to ordinary staff (edit).
+      approve_filled_artifact: "edit",
+      execute_document_packet: "edit",
+      record_packet_readback: "edit",
       execute_retired_generic_writeback: "manageAdmin",
     });
     expect(() =>

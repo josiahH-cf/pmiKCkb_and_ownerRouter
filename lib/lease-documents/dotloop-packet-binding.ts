@@ -43,11 +43,13 @@ export function bindCurrentPacketForDotloop(input: {
   operation?: "loop_create" | "document_upload";
 }): DotloopPacketBinding {
   const { snapshot, currentHead, catalog, confirmedPayloadHash } = input;
+  // S34: a current packet that already has a receipted effect may continue with document uploads.
+  // The loop those uploads target is the lease's loop association, checked by the caller, the
+  // runtime and the S20 claim; it is no longer tied to one snapshot hash.
   const documentContinuation =
     input.operation === "document_upload" &&
     snapshot.visibleState === "Partially executed" &&
-    Boolean(snapshot.execution?.receiptId) &&
-    snapshot.execution?.loopLink?.packetSnapshotHash === snapshot.payloadHash;
+    Boolean(snapshot.execution?.receiptId);
   if (
     (snapshot.visibleState !== "Ready for preview" && !documentContinuation) ||
     snapshot.state !== "Ready for preview" ||

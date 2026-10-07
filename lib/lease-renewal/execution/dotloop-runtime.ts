@@ -32,6 +32,17 @@ import {
 import type { DotloopPacketBinding } from "@/lib/lease-documents/dotloop-packet-binding";
 import { DotloopRenewalExecutor } from "@/lib/lease-renewal/execution/providers";
 import { assertProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
+import {
+  completeLoopCreation,
+  readLoopAssociation,
+  recordLoopFolder,
+  recordLoopUpload,
+  releasePendingUpload,
+} from "@/lib/firestore/lease-document-loop-association";
+import {
+  propertyAddressValue,
+  type LoopPropertyAddress,
+} from "@/lib/lease-documents/dotloop-loop-association";
 
 /** Server-only assembly. Participant references and contact details must come from approved
  * mappings, never browser assertions. That resolver awaits B-DL3; references are not emails. */
@@ -43,6 +54,11 @@ export async function executeDotloopPacketWithS20(
       participantRef: string;
     })[];
     artifactContent?: LiveDotloopProviderDeps["artifactContent"];
+    /** S34: the lease cycle and frozen loop target from the immutable preparation. */
+    cycleId?: string;
+    loopTarget?: { loopId: string; profileId: string; linkRevision: number } | null;
+    /** S34: the verified structured address a new loop is created with, or null. */
+    propertyAddress?: LoopPropertyAddress | null;
     reconcile?: boolean;
     /** Server-loaded immutable S34 preparation only; consumed for read-only own-receipt recovery. */
     retainedDerivedDocuments?: DotloopPacketBinding["documents"];
@@ -97,26 +113,35 @@ export async function executeDotloopPacketWithS20(
       409,
     );
   const values = input.request.action.values;
+  const leaseId = input.packet.snapshot?.leaseId ?? "";
+  // S34 (ARCH-S34-2): an upload goes only into the lease's current loop association as previewed;
+  // recovery of an owned receipt reads its own evidence and needs no current link.
+  const association =
+    key === "dotloop.document.upload" ? await readLoopAssociation(leaseId) : null;
   if (key === "dotloop.document.upload") {
-    const loop = input.packet.snapshot.execution?.loopLink;
     if (
-      !loop ||
-      loop.packetSnapshotHash !== binding.packetSnapshotHash ||
-      loop.loopId !== values.loop_ref ||
-      loop.profileId !== settings.profileId ||
       !binding.documents.some(
         (document) =>
           document.documentRef === values.document_ref &&
           document.contentHash === values.content_hash,
-      )
+      ) ||
+      (!input.reconcile &&
+        (!association ||
+          association.state !== "current" ||
+          association.loopId !== values.loop_ref ||
+          association.profileId !== settings.profileId ||
+          !input.loopTarget ||
+          input.loopTarget.loopId !== association.loopId ||
+          input.loopTarget.linkRevision !== association.linkRevision))
     )
       throw new EditableLayerError(
-        "The document must belong to this current packet and its receipted loop.",
+        "The document must belong to this current packet and the lease's linked loop.",
         409,
       );
   } else if (
     values.template_ref !== binding.templateRef ||
-    values.participant_refs !== binding.participantRefs.join(",")
+    values.participant_refs !== binding.participantRefs.join(",") ||
+    values.property_address !== propertyAddressValue(input.propertyAddress ?? null)
   ) {
     throw new EditableLayerError(
       "The confirmed loop values do not match this current packet.",
@@ -177,7 +202,27 @@ export async function executeDotloopPacketWithS20(
       initialStatus: settings.initialStatus,
     },
     participants: input.participants,
+    propertyAddress: input.propertyAddress ?? null,
     packetSnapshotId: binding.packetSnapshotId,
+    // S34 (AC-S34-6): the lease's durable packet folder; the first created folder is recorded and
+    // every later document, worker or restart reuses it.
+    ...(key === "dotloop.document.upload"
+      ? {
+          documentFolder: {
+            // Read at use, after this attempt's claim: a folder another upload recorded meanwhile
+            // is reused instead of creating a second one.
+            read: async () =>
+              (await readLoopAssociation(leaseId))?.folder?.dotloopFolderId ?? null,
+            record: (dotloopFolderId: string) =>
+              recordLoopFolder({
+                leaseId,
+                loopId: String(values.loop_ref),
+                dotloopFolderId,
+                executionId: input.request.executionId,
+              }),
+          },
+        }
+      : {}),
     artifactContent: resolvedArtifact
       ? async (documentRef) => {
           if (documentRef !== values.document_ref)
@@ -215,6 +260,10 @@ export async function executeDotloopPacketWithS20(
     ...input.request,
     executor: wrapped,
   });
+  // A definitively failed upload sent nothing; its version is free for a fresh confirmation.
+  // An uncertain one keeps holding it.
+  if (key === "dotloop.document.upload" && response.execution.state === "Failed")
+    await releasePendingUpload({ leaseId, executionId: response.execution.id });
   const recoveredReceipt =
     response.execution.state === "Succeeded" && input.receiptStore
       ? await input.receiptStore.read()
@@ -239,6 +288,20 @@ export async function executeDotloopPacketWithS20(
     const observed = await runtime.client.getLoop(settings.profileId, found.providerRef);
     if (!observed)
       throw new EditableLayerError("The receipted loop needs readback recovery.", 409);
+    // The created loop becomes the lease's current loop only through its own reserved creation.
+    await completeLoopCreation(actor, {
+      leaseId,
+      cycleId: input.cycleId ?? "unknown",
+      profileId: settings.profileId,
+      executionId: result.execution.id,
+      loop: {
+        id: observed.id,
+        name: observed.name,
+        loopUrl: observed.loopUrl,
+        status: observed.status,
+        participantCount: observed.participantCount,
+      },
+    });
     await recordPacketExecutionProjection(actor, {
       snapshot_id: binding.packetSnapshotId,
       idempotency_key: externalActionIdempotencyKey(input.request.action),
@@ -266,6 +329,32 @@ export async function executeDotloopPacketWithS20(
     const receipt = result.result;
     if (!receipt.providerEvidence || !receipt.submittedContentHash)
       throw new EditableLayerError("The document receipt needs evidence recovery.", 409);
+    // S34 (AC-S34-7): record this exact version in the lease's loop; earlier versions stay.
+    const [, dotloopFolderId] = receipt.providerRef.split(":");
+    const uploaded = binding.documents.find(
+      (document) => document.documentRef === values.document_ref,
+    )!;
+    await recordLoopUpload(actor, {
+      leaseId,
+      loopId: String(values.loop_ref),
+      document: {
+        artifactId: uploaded.artifactId,
+        documentRef: uploaded.documentRef,
+        label:
+          input.packet.catalog.artifacts.find(
+            (artifact) => artifact.artifactId === uploaded.artifactId,
+          )?.label ?? uploaded.documentRef,
+        contentHash: receipt.submittedContentHash,
+        snapshotId: binding.packetSnapshotId,
+        derivedArtifactId: uploaded.derivedArtifactId ?? null,
+        receiptId: result.execution.id,
+        dotloopDocumentId: receipt.providerEvidence.documentId,
+        dotloopFolderId: dotloopFolderId ?? "",
+        documentName: receipt.providerEvidence.documentName,
+        uploadedAt: new Date().toISOString(),
+        uploadedByUid: actor.uid,
+      },
+    });
     await recordPacketExecutionProjection(actor, {
       snapshot_id: binding.packetSnapshotId,
       idempotency_key: externalActionIdempotencyKey(input.request.action),

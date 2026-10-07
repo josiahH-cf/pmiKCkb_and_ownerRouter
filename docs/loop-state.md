@@ -12,7 +12,8 @@ First release DONE: run 5b5c850e-a131-4e37-996a-457f5f9fd62c released the S106 c
 63ed175205621b5886a1339c5608428f5f951eb0 / pmi-kc-app-rmuy0dupk-d13d423ba53c, 100% traffic, exact-main CI 37610987256.
 Live connection check: waiting on the owner's company Dotloop authorization (Connections, Connect
 with Dotloop); no connection or OAuth state existed after the release.
-Next: the second release (S182 access/AI boundaries, S66 terms, S130 PDF filling, S34 handoff).
+Next: the second release, merged from PR #139 and queued below (S182 access/AI boundaries, S66
+terms, S130 PDF filling, S34 handoff).
 Both Dotloop write keys stay closed; no loop, upload, signature send, demo or activation is
 authorized.
 
@@ -38,15 +39,23 @@ with production cold and warm timings.
 
 ## Awaiting release
 
-None. OWNER DIRECTION, 2026-10-06: the Dotloop PDF renewal v1 execution prompt (handoff
-dotloop-pdf-renewal-v1-2026-10) authorized this delivery. Run 5b5c850e-a131-4e37-996a-457f5f9fd62c delivered the S106
-connection slice (`cca7aa14`, `bf448460`) at 63ed175205621b5886a1339c5608428f5f951eb0; code slice
-a297f90635bbbe71060830b7fbecf596d91d0a49 is its ancestor. The exact permit is consumed. Both Dotloop write keys
-stay closed; no provider effect, key or activation was queued. The second release's items are
-queued with their code, not here. Documentation-only closure does not deploy.
-Run 01efe066 first carried the slice and rolled back verified when the Admin assurance
-session expired inside its final observation checkpoint (zero candidate 5xx); its checkpoint and
-permit are archived as superseded.
+1. S182 `a47d5a4d`; review fixes `9892a8cd`, `2ec9e417`, `713f8568`, `9051263a`, `f8fae1fb`:
+   staff packet operations and Dotloop-origin AI exclusion.
+2. S66 `f9085358`, `3481a43f`; review fixes `885f90f9`: packet inputs entered once, with owner
+   approval bound to the Working terms.
+3. S130 `acb935a8`, `ad6fc502`; review fixes `f99c27ad`, `25c7c80e`, `1205b592`, `dd68fd21`,
+   `9f63357d`, `f65450cd`, `e8bd2e5a`: static PDF filling through reviewed regions, including
+   quarter-turned pages, and unchanged-attachment labels.
+4. S34 `4fb777c7`; review fixes `8a430bd2`: one lease loop created or linked, versioned successor
+   uploads, a durable folder and staff-reported completion.
+
+OWNER DIRECTION, 2026-10-06: the Dotloop PDF renewal v1 execution prompt (handoff
+dotloop-pdf-renewal-v1-2026-10) authorizes this delivery, the second of two releases; run
+5b5c850e delivered the S106 connection slice first, after run 01efe066 rolled back verified on an
+expired assurance session. S34 depends on verified provider behavior, so admit only after the
+bounded live connection check, exact main CI on the release head, fresh prerequisites and a new
+run-bound permit. Both Dotloop write keys stay closed; no provider effect, key or activation is
+queued. Assurance stays read-only.
 
 ## Verified release and recovery
 

@@ -33,6 +33,19 @@ vi.mock("@/lib/lease-documents/dotloop-packet-binding", () => ({
 vi.mock("@/lib/external-execution/s20-bridge", () => ({
   executeExternalActionWithS20: calls.execute,
 }));
+// S34: the lease's current loop association is the upload target.
+vi.mock("@/lib/firestore/lease-document-loop-association", () => ({
+  readLoopAssociation: async () => ({
+    state: "current",
+    loopId: "isolated-loop",
+    profileId: "isolated-profile",
+    linkRevision: 2,
+    folder: null,
+  }),
+  recordLoopFolder: vi.fn(),
+  recordLoopUpload: vi.fn(),
+  completeLoopCreation: vi.fn(),
+}));
 import { executeDotloopPacketWithS20 } from "@/lib/lease-renewal/execution/dotloop-runtime";
 
 beforeEach(() => vi.clearAllMocks());
@@ -54,17 +67,14 @@ it("resolves approved artifact bytes before provider construction or an S20 exec
           },
         ],
         artifactContent,
+        loopTarget: {
+          loopId: "isolated-loop",
+          profileId: "isolated-profile",
+          linkRevision: 2,
+        },
         packet: {
           catalog: { artifacts: [] },
-          snapshot: {
-            execution: {
-              loopLink: {
-                packetSnapshotHash: "isolated-hash",
-                loopId: "isolated-loop",
-                profileId: "isolated-profile",
-              },
-            },
-          },
+          snapshot: { leaseId: "701" },
         },
         request: {
           action: {
@@ -105,6 +115,7 @@ it.each(["isolated-participant", "another-participant"])(
             values: {
               template_ref: "isolated-template",
               participant_refs: "isolated-participant",
+              property_address: "none",
             },
           },
         },

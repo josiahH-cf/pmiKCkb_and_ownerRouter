@@ -43,7 +43,7 @@ describe("S113 mounted S106/S34 handoff", () => {
     ).toHaveAttribute("href", "#renewal-manual-signatures");
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
-  it("shows the exact preview, cancels without execution, and posts only the Admin-confirmed action", async () => {
+  it("shows the exact preview, cancels without execution, and posts only the staff-confirmed action", async () => {
     const posts: Record<string, unknown>[] = [];
     vi.stubGlobal(
       "fetch",
@@ -80,7 +80,7 @@ describe("S113 mounted S106/S34 handoff", () => {
       screen.getByRole("button", { name: "Preview exact Dotloop packet creation" }),
     );
     await screen.findByText(/Emulator Tenant · tenant@fixture-rental.net/);
-    fireEvent.change(screen.getByLabelText("Admin approval reason"), {
+    fireEvent.change(screen.getByLabelText("Confirmation reason"), {
       target: { value: "Reviewed exact form and signer" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Review packet confirmation" }));

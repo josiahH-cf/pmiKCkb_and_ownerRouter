@@ -242,22 +242,25 @@ describe("external execution fail-closed boundary", () => {
   });
 
   it("accepts dependencies only from the same workflow with matching receipts", async () => {
-    // The Dotloop document upload depends on the approved loop create: a real pair of exact keys.
-    const definition = LEASE_EXECUTION_DEFINITION_MAP.get("dotloop.document.upload")!;
-    expect(definition.dependsOn).toEqual(["dotloop.loop.create_from_template"]);
+    // An existing-charge update depends on the receipted renewal dates: a real pair of exact keys.
+    // (S34: a Dotloop upload depends on the lease's loop association, not on a create receipt.)
+    const definition = LEASE_EXECUTION_DEFINITION_MAP.get(
+      "rentvine.lease.recurring_charge.update",
+    )!;
+    expect(definition.dependsOn).toEqual(["rentvine.lease.renewal_dates.update"]);
     const input = synthetic(definition);
     const store = new MemoryExternalExecutionStore();
     const boundary = orchestrator(definition, store, receiptExecutor());
-    const dependency = dependencyRecord(input, "dotloop.loop.create_from_template");
+    const dependency = dependencyRecord(input, "rentvine.lease.renewal_dates.update");
 
     const crossWorkflow = { ...dependency, workflowId: "lease-other" };
     let record = await boundary.prepare(input, [crossWorkflow]);
     expect(record.state).toBe("blocked");
-    expect(record.blocker).toContain("dotloop.loop.create_from_template");
+    expect(record.blocker).toContain("rentvine.lease.renewal_dates.update");
 
     const nextInput = synthetic(definition, 1);
     const wrongReceipt = {
-      ...dependencyRecord(nextInput, "dotloop.loop.create_from_template"),
+      ...dependencyRecord(nextInput, "rentvine.lease.renewal_dates.update"),
       receipt: {
         ...dependency.receipt!,
         actionKey: "gmail.label.apply",
@@ -268,17 +271,17 @@ describe("external execution fail-closed boundary", () => {
 
     const laneInput = synthetic(definition, 2);
     const crossLane = {
-      ...dependencyRecord(laneInput, "dotloop.loop.create_from_template"),
+      ...dependencyRecord(laneInput, "rentvine.lease.renewal_dates.update"),
       dataMode: "live" as const,
       receipt: {
-        ...dependencyRecord(laneInput, "dotloop.loop.create_from_template").receipt!,
+        ...dependencyRecord(laneInput, "rentvine.lease.renewal_dates.update").receipt!,
         dataMode: "live" as const,
         liveEvidenceEligible: true,
       },
     };
     record = await boundary.prepare(laneInput, [crossLane]);
     expect(record.state).toBe("blocked");
-    expect(record.blocker).toContain("dotloop.loop.create_from_template");
+    expect(record.blocker).toContain("rentvine.lease.renewal_dates.update");
   });
 
   it("marks a wrong-action provider receipt ambiguous after exactly one claim", async () => {

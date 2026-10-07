@@ -1,4 +1,8 @@
-import { activeArtifactForKind } from "@/lib/lease-documents/artifact-catalog";
+import {
+  activeArtifactForKind,
+  DEFAULT_FAMILY_PREDICATE,
+  explicitApplicabilityPredicate,
+} from "@/lib/lease-documents/artifact-catalog";
 import type {
   ArtifactPredicate,
   BoundPacketField,
@@ -69,6 +73,14 @@ export function evaluateRenewalPacket(input: PacketEvaluationInput): PacketEvalu
       artifactResolution.included,
     );
     blockers.push(...participantResolution.blockers);
+    blockers.push(
+      ...signerCapacityBlockers(
+        input.catalog.artifacts,
+        artifactResolution.included,
+        participantResolution.participants,
+        audience,
+      ),
+    );
     if (audience === "tenant") {
       blockers.push(...validateCharges(input.charges, input.facts));
       blockers.push(...validateAnimals(input.animals));
@@ -312,7 +324,22 @@ function resolveArtifacts(
     requirement.packetContexts.includes(context),
   );
 
+  const familyUse = input.catalog.familyUse;
   for (const requirement of requirements) {
+    // S66: with Admin family use, a family the approved configuration does not use never holds a
+    // packet; it is listed as not used so staff can review the checklist.
+    const use = familyUse?.find((entry) => entry.kind === requirement.kind) ?? null;
+    if (familyUse && (!use || use.use === "not_used")) {
+      excluded.push(
+        familyResult(
+          requirement,
+          audience,
+          "Not applicable",
+          "Not used by the approved form configuration.",
+        ),
+      );
+      continue;
+    }
     const active = activeArtifactForKind(input.catalog, requirement.kind, context);
     const candidates = input.catalog.artifacts.filter(
       (artifact) =>
@@ -320,7 +347,36 @@ function resolveArtifacts(
         artifact.allowedPacketContexts.includes(context),
     );
     const ruleCandidate = active ?? (candidates.length === 1 ? candidates[0] : null);
+    const configuredPredicate: ArtifactPredicate | null = use
+      ? use.use === "mandatory"
+        ? { kind: "always", ruleVersion: use.source.version ?? "family-use" }
+        : (use.predicate ??
+          ruleCandidate?.predicate ??
+          DEFAULT_FAMILY_PREDICATE[requirement.kind] ??
+          explicitApplicabilityPredicate(requirement.kind))
+      : null;
     if (!ruleCandidate) {
+      if (!use) {
+        blockers.push({
+          code: "artifact_unavailable",
+          label: `Approved artifact unavailable: ${requirement.label}`,
+          scope: requirement.kind,
+        });
+        continue;
+      }
+      // Decide applicability first: approved material is needed only when the family applies.
+      const decided = evaluatePredicate(configuredPredicate!, input.facts, input.animals);
+      blockers.push(...decided.blockers);
+      if (decided.result === "exclude") {
+        excluded.push(
+          familyResult(requirement, audience, "Not applicable", decided.reason),
+        );
+        continue;
+      }
+      if (decided.result === "unknown") {
+        excluded.push(familyResult(requirement, audience, "Needs input", decided.reason));
+        continue;
+      }
       blockers.push({
         code: "artifact_unavailable",
         label: `Approved artifact unavailable: ${requirement.label}`,
@@ -328,9 +384,8 @@ function resolveArtifacts(
       });
       continue;
     }
-
     const predicate = evaluatePredicate(
-      ruleCandidate.predicate,
+      configuredPredicate ?? ruleCandidate.predicate,
       input.facts,
       input.animals,
     );
@@ -366,6 +421,21 @@ function resolveArtifacts(
   }
 
   return { included, excluded, fields, blockers };
+}
+
+function familyResult(
+  requirement: { kind: PacketArtifactResult["kind"]; label: string },
+  audience: PacketAudience,
+  ruleResult: PacketArtifactResult["ruleResult"],
+  reason: string,
+): PacketArtifactResult {
+  return {
+    kind: requirement.kind,
+    label: requirement.label,
+    audience,
+    ruleResult,
+    reason,
+  };
 }
 
 function bindArtifactFields(
@@ -496,7 +566,11 @@ function resolveParticipants(
   artifacts: PacketArtifactResult[],
 ): { participants: PacketParticipant[]; blockers: PacketBlocker[] } {
   const kind = audience === "tenant" ? "tenant" : "owner";
-  const candidates = input.filter((participant) => participant.kind === kind);
+  const mappedRoles = unique(artifacts.flatMap((artifact) => artifact.signerRoles ?? []));
+  const candidates = input.filter(
+    (participant) =>
+      participant.kind === kind || mappedRoles.includes(participant.signerRole),
+  );
   const blockers: PacketBlocker[] = [];
   const byId = new Map<string, PacketParticipant>();
   for (const participant of candidates) {
@@ -524,7 +598,7 @@ function resolveParticipants(
     }
     byId.set(participant.participantId, participant);
   }
-  if (byId.size === 0) {
+  if (![...byId.values()].some((participant) => participant.kind === kind)) {
     blockers.push({
       code: "participant_unavailable",
       label: `At least one verified ${audience} participant is required.`,
@@ -562,6 +636,45 @@ function resolveParticipants(
     ),
     blockers,
   };
+}
+
+/**
+ * S66 (AC-S66-5): a reviewed map names each signer slot. More people in a role than the form has
+ * slots for is never resolved by dropping someone, and a required slot nobody holds is named. Legacy
+ * catalog artifacts without a reviewed map keep their original role-set meaning.
+ */
+function signerCapacityBlockers(
+  artifacts: readonly LeaseArtifactVersion[],
+  included: readonly PacketArtifactResult[],
+  participants: readonly PacketParticipant[],
+  audience: PacketAudience,
+): PacketBlocker[] {
+  const blockers: PacketBlocker[] = [];
+  for (const result of included) {
+    const map = artifacts.find((artifact) => artifact.artifactId === result.artifactId)
+      ?.fillMapping?.map;
+    if (!map) continue;
+    for (const role of unique(map.signers.map((signer) => signer.signerRole))) {
+      const slots = map.signers.filter((signer) => signer.signerRole === role);
+      const required = slots.filter((signer) => signer.required).length;
+      const holders = participants.filter(
+        (participant) => participant.signerRole === role,
+      ).length;
+      if (holders > slots.length)
+        blockers.push({
+          code: "participant_unavailable",
+          label: `${result.label} has ${slots.length} ${role.replaceAll("_", " ")} signature ${slots.length === 1 ? "slot" : "slots"} for ${holders} people. An approved form or attachment with room for everyone is required.`,
+          scope: `${audience}_participants`,
+        });
+      else if (holders < required)
+        blockers.push({
+          code: "participant_unavailable",
+          label: `${result.label} needs ${required} ${role.replaceAll("_", " ")} ${required === 1 ? "signer" : "signers"}; ${holders} reviewed.`,
+          scope: `${audience}_participants`,
+        });
+    }
+  }
+  return blockers;
 }
 
 function validateCharges(charges: PacketCharge[], facts: PacketFact[]): PacketBlocker[] {
@@ -736,7 +849,7 @@ function validArtifact(artifact: LeaseArtifactVersion): boolean {
     /^[a-f0-9]{64}$/.test(artifact.contentHash) &&
     artifact.formFamily.trim() !== "" &&
     artifact.signatureLocations.every((location) => location.trim() !== "") &&
-    artifact.signerRoles.length > 0 &&
+    (artifact.signerRoles.length > 0 || artifact.unchangedAttachment === true) &&
     artifact.signerRoles.every((role) => role.trim() !== "") &&
     validSource(artifact.publicationSource)
   );

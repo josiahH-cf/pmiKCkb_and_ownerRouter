@@ -1243,10 +1243,15 @@ function PhaseContent({
                 initialSnapshot={packetSnapshot}
                 leaseId={summary.id}
                 transactionId={summary.id}
+                canEditInputs={hasRenewalRoleAuthority("save_packet_inputs", role)}
               />
               <RenewalDocumentHandoff
-                canApprove={can(role, "manageAdmin")}
-                canRecordReadback={can(role, "approve")}
+                canApprove={hasRenewalRoleAuthority("execute_document_packet", role)}
+                canLinkLoop={hasRenewalRoleAuthority("link_dotloop_loop", role)}
+                canRecordReadback={hasRenewalRoleAuthority(
+                  "record_packet_readback",
+                  role,
+                )}
                 facts={{
                   address: summary.addressLabel || null,
                   owners: summary.ownerNameLabels,

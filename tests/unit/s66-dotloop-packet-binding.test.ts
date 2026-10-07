@@ -151,24 +151,13 @@ describe("S66 partial/failure retry projection", () => {
   });
 });
 
-it("binds a document continuation only to the receipted loop for this current packet", () => {
+it("continues document uploads on a current receipted packet and never continues a loop creation", () => {
   const { input, snapshot } = readySnapshot();
   snapshot.visibleState = "Partially executed";
   snapshot.execution = {
     idempotencyKey: "loop-attempt",
     receiptId: "loop-receipt",
     state: "Partially executed",
-    loopLink: {
-      loopId: "1",
-      loopUrl: null,
-      profileId: "1",
-      templateId: "2",
-      packetSnapshotHash: snapshot.payloadHash,
-      readBackAtIso: null,
-      loopStatus: null,
-      participantCount: null,
-      documentCount: null,
-    },
   };
   const request = {
     snapshot,
@@ -183,12 +172,13 @@ it("binds a document continuation only to the receipted loop for this current pa
     confirmedPayloadHash: snapshot.payloadHash,
     operation: "document_upload" as const,
   };
+  // S34: the upload's loop is the lease's loop association, checked outside this binding.
   expect(bindCurrentPacketForDotloop(request).packetSnapshotHash).toBe(
     snapshot.payloadHash,
   );
-  snapshot.execution.loopLink = {
-    ...snapshot.execution.loopLink!,
-    packetSnapshotHash: "different",
-  };
+  expect(() =>
+    bindCurrentPacketForDotloop({ ...request, operation: "loop_create" }),
+  ).toThrow("complete current packet");
+  snapshot.execution = { idempotencyKey: "loop-attempt", state: "Partially executed" };
   expect(() => bindCurrentPacketForDotloop(request)).toThrow("complete current packet");
 });

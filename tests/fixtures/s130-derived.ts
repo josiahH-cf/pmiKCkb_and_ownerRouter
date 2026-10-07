@@ -67,11 +67,19 @@ export async function setupSyntheticDerived() {
         required: true,
         location: "Human signature",
       },
+      // S66: one reviewed signature slot per verified tenant in the shared fixture.
+      {
+        signerRole: "tenant" as const,
+        participantKind: "tenant" as const,
+        required: true,
+        location: "Second human signature",
+      },
     ],
     reviewNote: "SYNTHETIC test mapping",
   };
   artifact.fillMapping = { map, mapHash: mapHashOf(map), intakeRevision: 3 };
   const evaluation = evaluateRenewalPacket(input);
+  expect(evaluation.blockers).toEqual([]);
   expect(evaluation.state).toBe("Ready for preview");
   const context: DerivedContext = {
     input,
