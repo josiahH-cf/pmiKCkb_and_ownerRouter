@@ -5,9 +5,10 @@ import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 // people with their signer roles, and the animals once; the packet, the filled files and the
 // Dotloop handoff all read this record. Current RentVine values are offered for adoption and never
 // adopted for the person. Charges are calculated by the server from the published policy; an
-// override needs a reason. Saving writes only the app's own record.
+// override needs a reason. Saving writes only the app's own record. Opening the lease makes no
+// request: the inputs are read when a person opens them.
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 
 import { Button, Field, Notice } from "@/components/ui";
 import {
@@ -101,7 +102,8 @@ export function PacketInputsEditor({
 }: Readonly<{ leaseId: string; canEdit: boolean }>) {
   const [view, setView] = useState<PacketInputsView | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [opened, setOpened] = useState(false);
 
   const readView = useCallback(async (): Promise<
     { view: PacketInputsView } | { error: string }
@@ -135,18 +137,26 @@ export function PacketInputsEditor({
 
   const load = useCallback(async () => apply(await readView()), [apply, readView]);
 
-  useEffect(() => {
-    let cancelled = false;
-    void readView().then((outcome) => {
-      if (!cancelled) apply(outcome);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [apply, readView]);
-
   const save = useSaver(leaseId, load);
 
+  if (!opened)
+    return (
+      <div className="ui-stack-tight">
+        <h4 id={`packet-inputs-${leaseId}`}>Packet inputs</h4>
+        <p className="muted">
+          Each fact, person and animal the packet, filled files and Dotloop handoff use.
+        </p>
+        <Button
+          onClick={() => {
+            setOpened(true);
+            setLoading(true);
+            void load();
+          }}
+        >
+          Open packet inputs
+        </Button>
+      </div>
+    );
   if (loading && !view) return <p role="status">Reading packet inputs…</p>;
   if (!view)
     return (

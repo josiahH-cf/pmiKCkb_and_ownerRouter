@@ -8,6 +8,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import type React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PacketInputsEditor } from "@/components/lease-renewal/PacketInputsEditor";
@@ -145,14 +146,21 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+/** Opening the lease makes no request; the inputs are read when a person opens them. */
+async function openEditor(element: React.ReactElement) {
+  render(element);
+  expect(fetch).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "Open packet inputs" }));
+  await screen.findByText("Lease facts");
+}
+
 function factRow(fieldKey: string) {
   return document.querySelector(`[data-packet-fact="${fieldKey}"]`) as HTMLElement;
 }
 
 describe("S66 Packet inputs editor (BEH-S66-1, AC-S66-4, AC-S66-5)", () => {
   it("shows saved inputs, the exact questions still needed, the owner-approval state and waiting charges", async () => {
-    render(<PacketInputsEditor leaseId="701" canEdit />);
-    await screen.findByText("Packet inputs");
+    await openEditor(<PacketInputsEditor leaseId="701" canEdit />);
     expect(
       factRow("insurance.coverage_method").getAttribute("data-packet-fact-reason"),
     ).toBe("missing");
@@ -172,8 +180,7 @@ describe("S66 Packet inputs editor (BEH-S66-1, AC-S66-4, AC-S66-5)", () => {
   });
 
   it("saves one fact against the revision it read and reloads", async () => {
-    render(<PacketInputsEditor leaseId="701" canEdit />);
-    await screen.findByText("Packet inputs");
+    await openEditor(<PacketInputsEditor leaseId="701" canEdit />);
     const row = factRow("insurance.coverage_method");
     fireEvent.change(within(row).getByLabelText("Renter's insurance"), {
       target: { value: "pmi_program" },
@@ -195,8 +202,7 @@ describe("S66 Packet inputs editor (BEH-S66-1, AC-S66-4, AC-S66-5)", () => {
   });
 
   it("adopts the RentVine value only when asked, and requires a reason to correct it", async () => {
-    render(<PacketInputsEditor leaseId="701" canEdit />);
-    await screen.findByText("Packet inputs");
+    await openEditor(<PacketInputsEditor leaseId="701" canEdit />);
     const row = factRow("property.address");
     expect(within(row).getByText(/RentVine: 100 Fixture St Unit 2/)).toBeTruthy();
     fireEvent.click(within(row).getByRole("button", { name: "Use the RentVine value" }));
@@ -233,8 +239,7 @@ describe("S66 Packet inputs editor (BEH-S66-1, AC-S66-4, AC-S66-5)", () => {
   });
 
   it("adds a RentVine tenant as a person with a role, saves the list, and names a concurrent change", async () => {
-    render(<PacketInputsEditor leaseId="701" canEdit />);
-    await screen.findByText("Packet inputs");
+    await openEditor(<PacketInputsEditor leaseId="701" canEdit />);
     fireEvent.click(screen.getByRole("button", { name: "Add this tenant" }));
     nextPost = {
       status: 409,
@@ -269,8 +274,7 @@ describe("S66 Packet inputs editor (BEH-S66-1, AC-S66-4, AC-S66-5)", () => {
       chargePolicy: { readable: true, version: null, effectiveFrom: null },
       charges: null,
     });
-    render(<PacketInputsEditor leaseId="701" canEdit={false} />);
-    await screen.findByText("Packet inputs");
+    await openEditor(<PacketInputsEditor leaseId="701" canEdit={false} />);
     expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Save people" })).toBeNull();
     expect((screen.getByLabelText("Year built") as HTMLInputElement).disabled).toBe(true);
