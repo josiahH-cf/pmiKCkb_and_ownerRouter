@@ -8,52 +8,52 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-Run `5622decd-0a6d-479a-bb75-545ba4aa0069` released the S130 stale-value follow-up (one queued item) at
-`5ee574b2fba81c83fa63086496d7f2ebb299268c` / `pmi-kc-app-rmuybjtnr-f43dfa3d6d26` with 100% production traffic.
-PR #143 (`a090eee4`, `fef53994`) refuses replacement text that a structure element gives a filled value and
-clears an unfilled single AcroForm field that holds an earlier value, closing the two limits the
-second release recorded.
-Exact [CI 37650289798](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37650289798) passed.
-The release head passed lint, typecheck, format, 9,002 unit tests with four existing
+Run `e372f7b5-3a1d-4224-945e-148a5f040660` released the release-tooling and audit follow-up (two queued items) at
+`337ac163c5709381e8db8d2c18810bec357d8a96` / `pmi-kc-app-rmuz9g28p-0a2909d490e1` with 100% production traffic.
+S51 (`717eb9ae`, PR #146) warms a possibly cold revision before each candidate, recovery
+preparation and rollback canary, predecessor baseline and candidate smoke measures it, and the
+post-promotion observation now decides by 480,000 ms. S54 bounds the Firestore lane for
+transaction contention (`b680dd6e`, PR #145) and moves Next.js to the patched 16.3.8 for six
+production audit advisories (`ea79bbbf`, PR #147).
+Exact [CI 37747457191](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37747457191) passed.
+The release head passed lint, typecheck, format, 9,011 unit tests with four existing
 configuration skips, all 340 backend tests and the production build; core E2E passed 32 tests with
-22 existing configuration skips. Both new regressions failed first on `e60d6354`. A private
-counts-only render check on the eight reference PDFs (three tagged) matched the released engine.
-One application build `04aa8ba1-ad4a-4e28-bfac-a31ce7749591` succeeded at 2026-10-07T16:42:38.866837Z.
-Candidate receipt `557430e6-5783-4611-998f-f3985d2fc3fd` issued 2026-10-07T16:49:05.818Z;
-promotion verified 2026-10-07T16:49:29.564Z.
-Observation passed two checkpoints in 404,092 ms against the required 300,000 ms,
-inside the 420,000 ms deadline. All 318 source/projected/rendered records matched with
+22 existing configuration skips. The production audit reports zero findings. No phase paused: the
+recovery preparation, candidate smoke and canaries ran their warm-ups and passed on the first attempt.
+One application build `6e3cdead-5c8b-4c68-89cd-5d34617d87bb` succeeded at 2026-10-08T08:25:18.918163Z.
+Candidate receipt `caaf4096-637a-4534-a998-3eaa567779c2` issued 2026-10-08T08:30:41.068Z;
+promotion verified 2026-10-08T08:30:59.978Z.
+Observation passed two checkpoints in 389,677 ms against the required 300,000 ms,
+inside the 480,000 ms deadline. All 318 source/projected/rendered records matched with
 zero discrepancies, candidate 5xx or unresolved live effects. All eleven independent readback
-sections matched, completed 2026-10-07T16:56:28Z.
+sections matched, completed 2026-10-08T08:37:49Z.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=true are verified.
 The revision keeps the reviewed Dotloop client configuration with the client secret bound from
 Secret Manager version 1. Both Dotloop write keys stay closed.
-Tag `cand-rmuybjtnr-f43dfa3d6d26`; fingerprint `sha256:82a673b69c94d338e03c1ae56bf761f55cbfab6b292dcc2d4f23e66062211ed5`.
-Captured predecessor: `755009bae534cb2699789c1cfd07fa79aad8f94a` / `pmi-kc-app-rmuy3zv4l-6f09e67bd41a`,
-Sheet=true. Run-bound recovery `pmi-kc-app-recovery-5622decd0a6d479a` preserves that actual configuration;
-receipt `e99c907c-bfa3-4d6b-b9f0-2afc457fdb35`, reference hash `sha256:e9c33920f14bd2f471d1b43eebdcfa72a0393013a8007ae2fbcf1d8cbde29e1b`.
-No traffic rollback or business mutation was used as proof. Its first recovery preparation assurance failed at
-2026-10-07T16:30:10.265Z and remains failed in immutable evidence: the new recovery instance took 56.5 s
-for its first Dashboard render against the 30-second route bound, with every request answered 200. A separate
-guarded 13-route diagnostic passed and the same run resumed on the existing target.
-The bounded live S106 connection check passed on 2026-10-07 before the second release; template
-availability and resource selection remain the owner's (B-DL2).
-Run `87920129-23c0-4420-a787-13036029d6f8` released the Dotloop PDF renewal v1 second release (S182, S66, S130 and S34) at the
-captured predecessor; run `5b5c850e-a131-4e37-996a-457f5f9fd62c` released the S106 connection slice before it, and run
+Tag `cand-rmuz9g28p-0a2909d490e1`; fingerprint `sha256:a52280044bfad3bbf657d03836fedb5c275ec581f6f346bba419d3e341f36960`.
+Captured predecessor: `5ee574b2fba81c83fa63086496d7f2ebb299268c` / `pmi-kc-app-rmuybjtnr-f43dfa3d6d26`,
+Sheet=true. Run-bound recovery `pmi-kc-app-recovery-e372f7b53a1d4224` preserves that actual configuration;
+receipt `8302e68a-646e-4a1b-9abd-5c277e7ed4ad`, reference hash `sha256:2110c8a111f007999009daf4891a8c5d22a4a116cd327fca4c3c19e46e25974b`.
+No traffic rollback or business mutation was used as proof.
+The bounded live S106 connection check passed on 2026-10-07; the renewal template waits on a full
+Dotloop admin and resource selection on the owner (B-DL2, F-DOTLOOP-ADMIN-RIGHTS).
+Run `5622decd-0a6d-479a-bb75-545ba4aa0069` released the S130 stale-value follow-up at the captured predecessor;
+run `87920129-23c0-4420-a787-13036029d6f8` released the Dotloop PDF renewal v1 second release (S182, S66, S130 and S34),
+run `5b5c850e-a131-4e37-996a-457f5f9fd62c` the S106 connection slice and run
 `61659874-478d-4135-9810-5033b2f732bf` the batch 005 open-item fixes.
 Batch 005 (S168–S175, revised S87 and S176–S181; intake 035–049) was released by run
 `8b7dc3f1-4c5b-482a-94ca-26985150c68d` at `fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27`; runs
 `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` and `7753e5f5-2325-4b19-b83d-dc3475d71b0b` released its verification repairs and follow-up fixes.
 Batch 005's 116 requirement records are in [native evidence](evidence/application-usability-batch005.json);
 independent verification of it is recorded in F-BATCH-005-VERIFICATION.
-The one-item queue is delivered and empty; the exact permit is consumed.
+The two-item queue is delivered and empty; the exact permit is consumed.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
-Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` released the S152–S167 program at `e106a88a50d541b4a012111019b09c2183f6ce20` on 2026-10-03; run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` released batch 005, run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` its first verification repairs, run `7753e5f5-2325-4b19-b83d-dc3475d71b0b` its follow-up fixes and run `61659874-478d-4135-9810-5033b2f732bf` its open-item fixes on 2026-10-05; run `5b5c850e-a131-4e37-996a-457f5f9fd62c` released the S106 connection slice and run `87920129-23c0-4420-a787-13036029d6f8` the Dotloop v1 second release on 2026-10-07; all remain carried.
+Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` released the S152–S167 program at `e106a88a50d541b4a012111019b09c2183f6ce20` on 2026-10-03; run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` released batch 005, run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` its first verification repairs, run `7753e5f5-2325-4b19-b83d-dc3475d71b0b` its follow-up fixes and run `61659874-478d-4135-9810-5033b2f732bf` its open-item fixes on 2026-10-05; run `5b5c850e-a131-4e37-996a-457f5f9fd62c` released the S106 connection slice, run `87920129-23c0-4420-a787-13036029d6f8` the Dotloop v1 second release and run `5622decd-0a6d-479a-bb75-545ba4aa0069` the S130 stale-value follow-up on 2026-10-07; all remain carried.
 
-Run `5622decd` (the S130 stale-value follow-up, after run `87920129` shipped the Dotloop v1 second release,
-run `5b5c850e` the S106 connection slice, run `61659874` the batch 005 open-item fixes, run `7753e5f5`
-its follow-up fixes, run `5d1b4e3a` its verification repairs and run `8b7dc3f1` batch 005) is complete,
-its permit consumed and its queue empty.
+Run `e372f7b5` (the release-tooling and audit follow-up, after run `5622decd` shipped the S130 stale-value follow-up,
+run `87920129` the Dotloop v1 second release, run `5b5c850e` the S106 connection slice, run `61659874`
+the batch 005 open-item fixes, run `7753e5f5` its follow-up fixes, run `5d1b4e3a` its verification
+repairs and run `8b7dc3f1` batch 005) is complete, its permit consumed and its queue empty.
 Original completed runs remain preserved separately. This retained procedure does not authorize
 a new dispatch or reuse of a consumed permit; future authorized work requires current gates.
 The September 30 runner correction removes the former fixed thirteen-suite and seven-hour
@@ -122,7 +122,7 @@ Run `ab803f8a-4ffb-4568-9178-05ccb588a94c` later carried request 001 and batches
 Batch 004 shipped in two candidates by owner direction: run `98f7e743-7345-4b74-a6a8-675fe9fac31f` (S108, S146–S148) and run `729d5716-bc5e-4e61-9932-c9107d1954f2` (S149–S151).
 Run `0eb2cfeb-a238-4b37-b35f-f999eadfacff` then carried batch 004's corrective repair (two queued items) in one build and candidate, after run `175fee1d` rolled back verified.
 Run `3a32f7a2-fd58-4652-b519-5a31517b0142` carried the S113 approval-read fix. Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` carried the S152–S167 program (one queued item) in one build and candidate, after run `a83ed59b` stopped at candidate assurance and was archived as superseded.
-Run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` carried batch 005 (fifteen queued items), run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` its verification repairs (four queued items), run `7753e5f5-2325-4b19-b83d-dc3475d71b0b` its follow-up fixes (five queued items), run `61659874-478d-4135-9810-5033b2f732bf` its open-item fixes (seven queued items) run `5b5c850e-a131-4e37-996a-457f5f9fd62c` the S106 connection slice (one queued item) run `87920129-23c0-4420-a787-13036029d6f8` the Dotloop v1 second release (four queued items) and run `5622decd-0a6d-479a-bb75-545ba4aa0069` the S130 stale-value follow-up (one queued item), each in one build and candidate.
+Run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` carried batch 005 (fifteen queued items), run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` its verification repairs (four queued items), run `7753e5f5-2325-4b19-b83d-dc3475d71b0b` its follow-up fixes (five queued items), run `61659874-478d-4135-9810-5033b2f732bf` its open-item fixes (seven queued items) run `5b5c850e-a131-4e37-996a-457f5f9fd62c` the S106 connection slice (one queued item) run `87920129-23c0-4420-a787-13036029d6f8` the Dotloop v1 second release (four queued items) run `5622decd-0a6d-479a-bb75-545ba4aa0069` the S130 stale-value follow-up (one queued item) and run `e372f7b5-3a1d-4224-945e-148a5f040660` the release-tooling and audit follow-up (two queued items), each in one build and candidate.
 The cumulative corrective queue is cleared after independent verification. An empty queue refuses fresh admission; docs/loop-state.md records the completed state.
 
 ## Before you start
@@ -142,7 +142,7 @@ gcloud beta billing projects describe pmi-kc-kb-prod --format="value(billingEnab
 
 Expect True and account `01A5A3-65CA5A-614D45`. Stop if billing is disabled.
 
-**2. Verify the watcher and checkpoint before any start.** Current run `5622decd-0a6d-479a-bb75-545ba4aa0069` is complete,
+**2. Verify the watcher and checkpoint before any start.** Current run `e372f7b5-3a1d-4224-945e-148a5f040660` is complete,
 its permit consumed and its original receipts preserved. The stale S128-only checkpoint and later
 failed cumulative attempts were archived through checked retirement; none was relabeled a pass.
 Blocked runs `dc4e1ac8`, `6eb157e1` and `a83ed59b` were archived the same way as superseded.

@@ -309,7 +309,8 @@ These are engineering tasks with no owner step; none blocks a release.
   and the candidate smoke first send one unmeasured version read. The owner also moved the
   observation's decision deadline from 420,000 to 480,000 ms: the final checkpoint had finished at
   396,797, 411,502 and 404,092 ms that day. No route, read or probe bound changes (S51
-  AC-S51-10 and AC-S51-19).
+  AC-S51-10 and AC-S51-19). Run e372f7b5 released both on 2026-10-08 and passed every phase on its
+  first attempt, with no recovery or smoke pause; its observation decided at 389,677 ms.
 - **Release-check margin (2026-10-02).** Not a hold. Batch 004 made the canary's renewal desk wait
   out an admitted lease refresh started by the Dashboard; PR #119 restored the Dashboard's plain
   stale revalidation. Run 175fee1d's candidate rendered the desk in 4,524 ms (15.5 to 28.7 s in

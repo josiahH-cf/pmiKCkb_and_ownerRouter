@@ -4,8 +4,9 @@ Last updated: 2026-10-08 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-NEXT: the fourth queued release below (owner, 2026-10-08: push, merge and deploy everything on main).
-Dotloop continues at docs/open-blockers.md A1 (B-DL2): a full Dotloop admin must create the Lease
+Fourth release DONE (owner, 2026-10-08: push, merge and deploy everything on main): run e372f7b5-3a1d-4224-945e-148a5f040660
+released the release-tooling and audit follow-up at 337ac163c5709381e8db8d2c18810bec357d8a96 / pmi-kc-app-rmuz9g28p-0a2909d490e1, 100% traffic, exact-main CI 37747457191.
+NEXT: Dotloop continues at docs/open-blockers.md A1 (B-DL2): a full Dotloop admin must create the Lease
 Renewal template and add the integrations login to the office (requested from Dan 2026-10-08),
 then the owner selects resources and the runner reads back; B-DL3 packet configuration follows.
 
@@ -46,42 +47,31 @@ with production cold and warm timings.
 
 ## Awaiting release
 
-1. S51 `717eb9ae`: release checks warm a possibly cold revision before measuring it, and the
-   post-promotion observation decides by 480,000 ms (owner decision 2026-10-07, PR #146).
-2. S54 `b680dd6e`, `ea79bbbf`: the Firestore emulator lane bounds each test at 30 s for
-   transaction contention (PR #145), and Next.js 16.3.8 patches six advisories that failed the
-   unchanged production audit on 2026-10-08 (PR #147).
-
-OWNER DIRECTION, 2026-10-08: "push, merge, and deploy if not done already". No item changes an
-application route, read or write; the Next.js patch release changes the framework under every route,
-so the full gate and the candidate's guarded assurance cover it. The watcher runs the S51 checks from
-the released commit, so this run is the first to exercise them. Admit only after exact main CI on
-the release head, fresh prerequisites and a new run-bound permit. Both Dotloop write keys stay
-closed; no provider effect, key or activation is queued. Assurance stays read-only.
+None. OWNER DIRECTION, 2026-10-08: push, merge and deploy everything on main. Run
+e372f7b5-3a1d-4224-945e-148a5f040660 delivered S51 (`717eb9ae`, PR #146) and S54 (`b680dd6e`, PR #145;
+`ea79bbbf`, PR #147) at 337ac163c5709381e8db8d2c18810bec357d8a96. The exact permit is consumed.
+Both Dotloop write keys stay closed; no provider effect, key or activation was queued.
+Documentation-only closure does not deploy.
 
 ## Verified release and recovery
 
-One application build 04aa8ba1-ad4a-4e28-bfac-a31ce7749591 succeeded 2026-10-07T16:42:38.866837Z.
-Candidate receipt 557430e6-5783-4611-998f-f3985d2fc3fd, issued 2026-10-07T16:49:05.818Z;
-promotion verified 2026-10-07T16:49:29.564Z. Candidate assurance and reconciliation passed.
-Observation passed two full checkpoints in 404092 ms against the required 300,000 ms,
-inside the 420,000 ms deadline; all 318 source/projected/rendered records matched,
+One application build 6e3cdead-5c8b-4c68-89cd-5d34617d87bb succeeded 2026-10-08T08:25:18.918163Z.
+Candidate receipt caaf4096-637a-4534-a998-3eaa567779c2, issued 2026-10-08T08:30:41.068Z;
+promotion verified 2026-10-08T08:30:59.978Z. Candidate assurance and reconciliation passed.
+Observation passed two full checkpoints in 389677 ms against the required 300,000 ms,
+inside the 480,000 ms deadline; all 318 source/projected/rendered records matched,
 zero discrepancies/candidate 5xx/unresolved effects. Eleven independent readbacks matched,
-completed 2026-10-07T16:56:28Z.
-Tag cand-rmuybjtnr-f43dfa3d6d26; fingerprint
-sha256:82a673b69c94d338e03c1ae56bf761f55cbfab6b292dcc2d4f23e66062211ed5.
+completed 2026-10-08T08:37:49Z.
+Tag cand-rmuz9g28p-0a2909d490e1; fingerprint
+sha256:a52280044bfad3bbf657d03836fedb5c275ec581f6f346bba419d3e341f36960.
 Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=true verified; the reviewed
 Dotloop client configuration and Secret Manager binding read back by name.
 
-Actual captured predecessor 755009bae534cb2699789c1cfd07fa79aad8f94a /
-pmi-kc-app-rmuy3zv4l-6f09e67bd41a, Sheet=true (Dotloop v1 second release, run 87920129). Run-bound recovery
-pmi-kc-app-recovery-5622decd0a6d479a, same fingerprint/configuration and actual true switch;
-receipt e99c907c-bfa3-4d6b-b9f0-2afc457fdb35, reference hash
-sha256:e9c33920f14bd2f471d1b43eebdcfa72a0393013a8007ae2fbcf1d8cbde29e1b. No traffic rollback occurred.
-Initial recovery aggregate assurance failed before the application build: the new recovery
-instance took 56.5 s for its first Dashboard render against the 30-second route bound, with every
-request answered 200. A separate guarded 13-route diagnostic passed with zero errors or mutation
-attempts, then the same run resumed and recovery assurance passed at 2026-10-07T16:35:33.206Z.
+Actual captured predecessor 5ee574b2fba81c83fa63086496d7f2ebb299268c /
+pmi-kc-app-rmuybjtnr-f43dfa3d6d26, Sheet=true (S130 stale-value follow-up, run 5622decd). Run-bound recovery
+pmi-kc-app-recovery-e372f7b53a1d4224, same fingerprint/configuration and actual true switch;
+receipt 8302e68a-646e-4a1b-9abd-5c277e7ed4ad, reference hash
+sha256:2110c8a111f007999009daf4891a8c5d22a4a116cd327fca4c3c19e46e25974b. No traffic rollback occurred.
 
 ## Feedback and accepted distinctions
 
@@ -110,5 +100,5 @@ receipt/readback/correction contracts remain. Raw data, captures, credentials an
 outside Git; original failures and superseded local verification attempts retain actual outcomes.
 
 ALL_GATES_GREEN applies to verified batch 005 engineering and cumulative deployed release only.
-The two-item queue above is the only unfinished delivery. Documentation updates alone never issue
-a permit, build or candidate.
+No unfinished delivery remains. Documentation updates alone never issue a permit, build or
+candidate.
