@@ -8,47 +8,47 @@ promotion, receipt-bound rollback and documentation closure through verified dep
 thirteen features. It supersedes per-attempt approval counts while retaining every technical and
 safety gate. No source, checkpoint or receipt from a failed attempt may be rewritten as success.
 
-Run `5622decd-0a6d-479a-bb75-545ba4aa0069` released the S130 stale-value follow-up (one queued item) at
-`5ee574b2fba81c83fa63086496d7f2ebb299268c` / `pmi-kc-app-rmuybjtnr-f43dfa3d6d26` with 100% production traffic.
-PR #143 (`a090eee4`, `fef53994`) refuses replacement text that a structure element gives a filled value and
-clears an unfilled single AcroForm field that holds an earlier value, closing the two limits the
-second release recorded.
-Exact [CI 37650289798](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37650289798) passed.
-The release head passed lint, typecheck, format, 9,002 unit tests with four existing
+Run `e372f7b5-3a1d-4224-945e-148a5f040660` released the release-tooling and audit follow-up (two queued items) at
+`337ac163c5709381e8db8d2c18810bec357d8a96` / `pmi-kc-app-rmuz9g28p-0a2909d490e1` with 100% production traffic.
+S51 (`717eb9ae`, PR #146) warms a possibly cold revision before each candidate, recovery
+preparation and rollback canary, predecessor baseline and candidate smoke measures it, and the
+post-promotion observation now decides by 480,000 ms. S54 bounds the Firestore lane for
+transaction contention (`b680dd6e`, PR #145) and moves Next.js to the patched 16.3.8 for six
+production audit advisories (`ea79bbbf`, PR #147).
+Exact [CI 37747457191](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37747457191) passed.
+The release head passed lint, typecheck, format, 9,011 unit tests with four existing
 configuration skips, all 340 backend tests and the production build; core E2E passed 32 tests with
-22 existing configuration skips. Both new regressions failed first on `e60d6354`. A private
-counts-only render check on the eight reference PDFs (three tagged) matched the released engine.
-One application build `04aa8ba1-ad4a-4e28-bfac-a31ce7749591` succeeded at 2026-10-07T16:42:38.866837Z.
-Candidate receipt `557430e6-5783-4611-998f-f3985d2fc3fd` issued 2026-10-07T16:49:05.818Z;
-promotion verified 2026-10-07T16:49:29.564Z.
-Observation passed two checkpoints in 404,092 ms against the required 300,000 ms,
-inside the 420,000 ms deadline. All 318 source/projected/rendered records matched with
+22 existing configuration skips. The production audit reports zero findings. No phase paused: the
+recovery preparation, candidate smoke and canaries ran their warm-ups and passed on the first attempt.
+One application build `6e3cdead-5c8b-4c68-89cd-5d34617d87bb` succeeded at 2026-10-08T08:25:18.918163Z.
+Candidate receipt `caaf4096-637a-4534-a998-3eaa567779c2` issued 2026-10-08T08:30:41.068Z;
+promotion verified 2026-10-08T08:30:59.978Z.
+Observation passed two checkpoints in 389,677 ms against the required 300,000 ms,
+inside the 480,000 ms deadline. All 318 source/projected/rendered records matched with
 zero discrepancies, candidate 5xx or unresolved live effects. All eleven independent readback
-sections matched, completed 2026-10-07T16:56:28Z.
+sections matched, completed 2026-10-08T08:37:49Z.
 Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=true are verified.
 The revision keeps the reviewed Dotloop client configuration with the client secret bound from
 Secret Manager version 1. Both Dotloop write keys stay closed.
-Tag `cand-rmuybjtnr-f43dfa3d6d26`; fingerprint `sha256:82a673b69c94d338e03c1ae56bf761f55cbfab6b292dcc2d4f23e66062211ed5`.
-Captured predecessor: `755009bae534cb2699789c1cfd07fa79aad8f94a` / `pmi-kc-app-rmuy3zv4l-6f09e67bd41a`,
-Sheet=true. Run-bound recovery `pmi-kc-app-recovery-5622decd0a6d479a` preserves that actual configuration;
-receipt `e99c907c-bfa3-4d6b-b9f0-2afc457fdb35`, reference hash `sha256:e9c33920f14bd2f471d1b43eebdcfa72a0393013a8007ae2fbcf1d8cbde29e1b`.
-No traffic rollback or business mutation was used as proof. Its first recovery preparation assurance failed at
-2026-10-07T16:30:10.265Z and remains failed in immutable evidence: the new recovery instance took 56.5 s
-for its first Dashboard render against the 30-second route bound, with every request answered 200. A separate
-guarded 13-route diagnostic passed and the same run resumed on the existing target.
-The bounded live S106 connection check passed on 2026-10-07 before the second release; template
-availability and resource selection remain the owner's (B-DL2).
-Run `87920129-23c0-4420-a787-13036029d6f8` released the Dotloop PDF renewal v1 second release (S182, S66, S130 and S34) at the
-captured predecessor; run `5b5c850e-a131-4e37-996a-457f5f9fd62c` released the S106 connection slice before it, and run
+Tag `cand-rmuz9g28p-0a2909d490e1`; fingerprint `sha256:a52280044bfad3bbf657d03836fedb5c275ec581f6f346bba419d3e341f36960`.
+Captured predecessor: `5ee574b2fba81c83fa63086496d7f2ebb299268c` / `pmi-kc-app-rmuybjtnr-f43dfa3d6d26`,
+Sheet=true. Run-bound recovery `pmi-kc-app-recovery-e372f7b53a1d4224` preserves that actual configuration;
+receipt `8302e68a-646e-4a1b-9abd-5c277e7ed4ad`, reference hash `sha256:2110c8a111f007999009daf4891a8c5d22a4a116cd327fca4c3c19e46e25974b`.
+No traffic rollback or business mutation was used as proof.
+The bounded live S106 connection check passed on 2026-10-07; the renewal template waits on a full
+Dotloop admin and resource selection on the owner (B-DL2, F-DOTLOOP-ADMIN-RIGHTS).
+Run `5622decd-0a6d-479a-bb75-545ba4aa0069` released the S130 stale-value follow-up at the captured predecessor;
+run `87920129-23c0-4420-a787-13036029d6f8` released the Dotloop PDF renewal v1 second release (S182, S66, S130 and S34),
+run `5b5c850e-a131-4e37-996a-457f5f9fd62c` the S106 connection slice and run
 `61659874-478d-4135-9810-5033b2f732bf` the batch 005 open-item fixes.
 Batch 005 (S168–S175, revised S87 and S176–S181; intake 035–049) was released by run
 `8b7dc3f1-4c5b-482a-94ca-26985150c68d` at `fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27`; runs
 `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` and `7753e5f5-2325-4b19-b83d-dc3475d71b0b` released its verification repairs and follow-up fixes.
 Batch 005's 116 requirement records are in [native evidence](evidence/application-usability-batch005.json);
 independent verification of it is recorded in F-BATCH-005-VERIFICATION.
-The one-item queue is delivered and empty; the exact permit is consumed.
+The two-item queue is delivered and empty; the exact permit is consumed.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
-Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` released the S152–S167 program at `e106a88a50d541b4a012111019b09c2183f6ce20` on 2026-10-03; run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` released batch 005, run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` its first verification repairs, run `7753e5f5-2325-4b19-b83d-dc3475d71b0b` its follow-up fixes and run `61659874-478d-4135-9810-5033b2f732bf` its open-item fixes on 2026-10-05; run `5b5c850e-a131-4e37-996a-457f5f9fd62c` released the S106 connection slice and run `87920129-23c0-4420-a787-13036029d6f8` the Dotloop v1 second release on 2026-10-07; all remain carried.
+Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` released the S152–S167 program at `e106a88a50d541b4a012111019b09c2183f6ce20` on 2026-10-03; run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` released batch 005, run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` its first verification repairs, run `7753e5f5-2325-4b19-b83d-dc3475d71b0b` its follow-up fixes and run `61659874-478d-4135-9810-5033b2f732bf` its open-item fixes on 2026-10-05; run `5b5c850e-a131-4e37-996a-457f5f9fd62c` released the S106 connection slice, run `87920129-23c0-4420-a787-13036029d6f8` the Dotloop v1 second release and run `5622decd-0a6d-479a-bb75-545ba4aa0069` the S130 stale-value follow-up on 2026-10-07; all remain carried.
 
 The final application gate passed 7,462 unit tests and 234 backend tests, with four existing
 configuration skips, all required checks and production build. The notice portfolio repair
@@ -71,8 +71,8 @@ Five confirmed adversarial findings are repaired and verified deployed: lifecycl
 | Region                    | `us-central1`                                                                      |
 | Cloud Run service         | `pmi-kc-app`                                                                       |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`                                       |
-| Serving revision          | `pmi-kc-app-rmuybjtnr-f43dfa3d6d26`                                                |
-| Serving commit            | `5ee574b2fba81c83fa63086496d7f2ebb299268c`                                         |
+| Serving revision          | `pmi-kc-app-rmuz9g28p-0a2909d490e1`                                                |
+| Serving commit            | `337ac163c5709381e8db8d2c18810bec357d8a96`                                         |
 | Traffic                   | 100%                                                                               |
 | Descriptor                | Production + Live                                                                  |
 | Runtime identity          | project-managed PMI KC runtime service account                                     |
@@ -160,7 +160,7 @@ it did not reverify product routes or every environment setting.
 
 ### Local release watcher
 
-Run `5622decd-0a6d-479a-bb75-545ba4aa0069` completed exact `5ee574b2fba81c83fa63086496d7f2ebb299268c`. Its permit is consumed and checkpoint
+Run `e372f7b5-3a1d-4224-945e-148a5f040660` completed exact `337ac163c5709381e8db8d2c18810bec357d8a96`. Its permit is consumed and checkpoint
 complete. The watcher exited; supplemental profile/lock ownership was released after verified
 cleanup. Failed runs and every original report/claim remain outside Git with their actual verdicts.
 The existing scheduled task remains unchanged; a consumed or missing permit cannot dispatch
@@ -200,8 +200,8 @@ The watcher checks the current green `main` SHA against that permit; it cannot a
 head under the same permission. An unfinished checkpoint still pins its exact SHA and must be
 reconciled through the runbook before a new run. Never replace a failed checkpoint or dispatch claim
 to obtain another build.
-The last successful serialized release is the S130 stale-value follow-up run `5622decd-0a6d-479a-bb75-545ba4aa0069`,
-exact `5ee574b2fba81c83fa63086496d7f2ebb299268c` / `pmi-kc-app-rmuybjtnr-f43dfa3d6d26`. Recovery preparation, the one application build, candidate smoke,
+The last successful serialized release is the release-tooling and audit follow-up run `e372f7b5-3a1d-4224-945e-148a5f040660`,
+exact `337ac163c5709381e8db8d2c18810bec357d8a96` / `pmi-kc-app-rmuz9g28p-0a2909d490e1`. Recovery preparation, the one application build, candidate smoke,
 configuration/domains, Admin assurance, reconciliation, promotion and observation passed.
 Earlier failures and their diagnosed repairs retain their actual outcomes in the shared batch
 audit and immutable external receipts. Historical rollback and superseded candidates are not
@@ -436,17 +436,17 @@ separately authorized exact-key activation passed its own gates.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmuy3zv4l-6f09e67bd41a` from commit
-`755009bae534cb2699789c1cfd07fa79aad8f94a`. This predecessor reads Sheet=true; the supplemental receipt
+Captured predecessor: `pmi-kc-app-rmuybjtnr-f43dfa3d6d26` from commit
+`5ee574b2fba81c83fa63086496d7f2ebb299268c`. This predecessor reads Sheet=true; the supplemental receipt
 below is the current rollback authority.
 
-The verified run-bound recovery target is `pmi-kc-app-recovery-5622decd0a6d479a`,
-fingerprint `sha256:c5f8019f1d9c639ce453ae5fcca338cd01e447457b51cebd28e2b10f6b5ed12a`, with Sheet=true. Receipt
-`e99c907c-bfa3-4d6b-b9f0-2afc457fdb35` issued at 2026-10-07T16:35:33.902Z; reference hash
-`sha256:e9c33920f14bd2f471d1b43eebdcfa72a0393013a8007ae2fbcf1d8cbde29e1b`. The receipt binds original image/configuration, the
-predecessor's actual Sheet switch value, target identity and preparation assurance to run `5622decd-0a6d-479a-bb75-545ba4aa0069`.
+The verified run-bound recovery target is `pmi-kc-app-recovery-e372f7b53a1d4224`,
+fingerprint `sha256:82a673b69c94d338e03c1ae56bf761f55cbfab6b292dcc2d4f23e66062211ed5`, with Sheet=true. Receipt
+`8302e68a-646e-4a1b-9abd-5c277e7ed4ad` issued at 2026-10-08T08:18:39.619Z; reference hash
+`sha256:2110c8a111f007999009daf4891a8c5d22a4a116cd327fca4c3c19e46e25974b`. The receipt binds original image/configuration, the
+predecessor's actual Sheet switch value, target identity and preparation assurance to run `e372f7b5-3a1d-4224-945e-148a5f040660`.
 Forward restoration and rollback require fresh actual state and the exact receipt-bound
-contract. Runs 5622decd, 87920129, 5b5c850e, 61659874, 7753e5f5, 5d1b4e3a, 8b7dc3f1 and 47fabb7c needed no traffic rollback and run a83ed59b never changed
+contract. Runs e372f7b5, 5622decd, 87920129, 5b5c850e, 61659874, 7753e5f5, 5d1b4e3a, 8b7dc3f1 and 47fabb7c needed no traffic rollback and run a83ed59b never changed
 traffic; runs 01efe066, 175fee1d and 0aa79bfe each rolled back
 verified to its run-bound recovery target. A receipt never transfers to
 another run. Recovery targets prepared before the S152–S167 release read Sheet=false and are not

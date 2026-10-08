@@ -2,7 +2,7 @@
 
 # S51 — Production operational readiness
 
-> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. This remains the active release contract. The exact approved predecessor exception is recorded honestly; candidate and post-promotion checks passed with zero mutation attempts.
+> Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. This remains the active release contract. The exact approved predecessor exception is recorded honestly; candidate and post-promotion checks passed with zero mutation attempts. The 2026-10-07 warm-ups and 480,000 ms decision deadline (AC-S51-10, AC-S51-19) are deployed by run `e372f7b5` at `337ac163c5709381e8db8d2c18810bec357d8a96`, which passed every phase on its first attempt and decided at 389,677 ms.
 
 **Goal.**
 
