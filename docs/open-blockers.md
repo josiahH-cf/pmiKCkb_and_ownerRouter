@@ -1,6 +1,6 @@
 # Unblock packet
 
-Last reconciled: 2026-10-07 (runs 5b5c850e and 87920129 released Dotloop PDF renewal v1; the company authorization and the bounded live connection check passed; template availability and resource selection are the owner's next step; the owner approved release warm-ups and a minute-eight observation deadline; other holds retain their recorded evidence).
+Last reconciled: 2026-10-08 (A1 now names who can make the Dotloop renewal template: the connected integrations login is a limited Dotloop admin, so a full company admin must create it, and the owner sent that request to Dan on 2026-10-08; runs 5b5c850e and 87920129 released Dotloop PDF renewal v1; the owner approved release warm-ups and a minute-eight observation deadline; other holds retain their recorded evidence).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only the effect named in its row. No hold blocks development,
@@ -11,16 +11,16 @@ substitute value, identifier, credential or human verdict to clear a hold.
 
 ## Holds at a glance
 
-| Id        | Blocks only                                                         | Owner step                                                                                                                                                                                          | Then the runner                                                                                                        |
-| --------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| B-AUTH2   | Unattended local sessions longer than about 16 hours                | A4: session exception, then re-enroll WSL                                                                                                                                                           | Runs the fresh-shell CLI/ADC probe to 25 hours and records the result                                                  |
-| B-MNT1    | Preapproval-based maintenance routing (S108)                        | A3: preview and confirm the RentVine import                                                                                                                                                         | Reads back the recorded preapprovals and their effective date                                                          |
-| B-S100    | The resident-reply draft key, so S100 and then S36 completion       | A2: ticket, link work order 1756, one sync                                                                                                                                                          | Verifies the resident mapping read-only, then runs the bounded draft proof (Q3)                                        |
-| B-TIMING  | Approved 30-day notice classifications (they read Cannot determine) | A5: record the decided basis in Admin                                                                                                                                                               | Reads back the saved basis version                                                                                     |
-| B-DL2     | The Dotloop connection's selected resources                         | A1: make the company renewal template available to the connected individual profile in Dotloop, then select the profile, template, transaction type and initial status in the Admin resource picker | Reads back profile/template readiness; both Dotloop keys stay closed                                                   |
-| B-DL3     | Approved form content/maps and rules for the selected lease packet  | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup                                                                   | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output |
-| B-BROWSER | Release assurance, only when Google signs the Admin profile out     | A6: sign the Admin profile back in                                                                                                                                                                  | Recollects prerequisites and continues the release                                                                     |
-| B-HUMAN   | Human verdicts and real-case accuracy claims only                   | E2: observed sessions and real material                                                                                                                                                             | Records each verdict with its evidence; nothing is inferred from tests                                                 |
+| Id        | Blocks only                                                         | Owner step                                                                                                                                                                              | Then the runner                                                                                                        |
+| --------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| B-AUTH2   | Unattended local sessions longer than about 16 hours                | A4: session exception, then re-enroll WSL                                                                                                                                               | Runs the fresh-shell CLI/ADC probe to 25 hours and records the result                                                  |
+| B-MNT1    | Preapproval-based maintenance routing (S108)                        | A3: preview and confirm the RentVine import                                                                                                                                             | Reads back the recorded preapprovals and their effective date                                                          |
+| B-S100    | The resident-reply draft key, so S100 and then S36 completion       | A2: ticket, link work order 1756, one sync                                                                                                                                              | Verifies the resident mapping read-only, then runs the bounded draft proof (Q3)                                        |
+| B-TIMING  | Approved 30-day notice classifications (they read Cannot determine) | A5: record the decided basis in Admin                                                                                                                                                   | Reads back the saved basis version                                                                                     |
+| B-DL2     | The Dotloop connection's selected resources                         | A1: a full Dotloop admin (asked: Dan, 2026-10-08) creates the Lease Renewal template and adds the integrations login to the office; then the owner selects the resources in Connections | Reads back profile/template readiness; both Dotloop keys stay closed                                                   |
+| B-DL3     | Approved form content/maps and rules for the selected lease packet  | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup                                                       | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output |
+| B-BROWSER | Release assurance, only when Google signs the Admin profile out     | A6: sign the Admin profile back in                                                                                                                                                      | Recollects prerequisites and continues the release                                                                     |
+| B-HUMAN   | Human verdicts and real-case accuracy claims only                   | E2: observed sessions and real material                                                                                                                                                 | Records each verdict with its evidence; nothing is inferred from tests                                                 |
 
 ## Owner decisions
 
@@ -48,18 +48,61 @@ Vendoroo's agent writing into RentVine and no direct connector.
 
 ## Owner steps
 
-**A1. Dotloop renewal template and resources (B-DL2).** The company Dotloop connection is
-authorized: on 2026-10-07 the owner completed consent through the registered callback, and
-Dotloop reported granted scopes `account:*`, `profile:*`, `loop:*`, `contact:*` and `template:*`
-(F-DOTLOOP-CONNECTION-CHECK). The read-only observation found two profiles, one individual and
-one company; the individual profile lists no templates yet.
+**A1. Dotloop renewal template and resources (B-DL2).** Waiting on a full Dotloop admin since
+2026-10-08. The company connection is authorized (2026-10-07, granted scopes `account:*`,
+`profile:*`, `loop:*`, `contact:*` and `template:*`; F-DOTLOOP-CONNECTION-CHECK). Why it waits
+(F-DOTLOOP-ADMIN-RIGHTS):
 
-Owner step: in Dotloop, make sure the company's renewal template exists and is available to the
-connected individual profile. Then in the app open **Connections**, refresh the Dotloop resources
-and select the profile, template, transaction type and initial status.
+- The connected login, `integrations@pmikcmetro.com`, holds a free personal "Default Profile"
+  (the individual profile the app sees, with zero templates) and a limited admin profile for
+  "PMI KC Metro Company" on Business+. That admin profile's top bar shows Reporting, Loops and
+  Tasks but no People or Templates, which is how Dotloop presents an admin whose Manage People
+  and Manage Templates rights are off. The login cannot create a loop template or add itself to
+  the office.
+- The app lists templates only for individual profiles (`lib/connections/dotloop-readiness.ts`),
+  and a company loop template reaches only individual profiles attached to the company, so the
+  integrations login also needs an agent profile in the office.
 
-Runner: read back the selection and readiness with enums and counts only, then clear this row.
-Both Dotloop keys stay closed.
+Step 1, a full company admin (the owner emailed these steps to Dan on 2026-10-08; he may take a
+while). Sign in at https://www.dotloop.com/my/login (it shows a Zillow Pro sign-in page), switch
+to the PMI KC Metro Company admin profile and check that People and Templates appear, then:
+
+1. Templates → Loop Templates → + New Loop Template. Name **Lease Renewal**, transaction type
+   **Lease** (the API's `LEASE_OFFER`; it cannot be changed later), Create Template, Save at the
+   bottom of the page, then **Enable** on the "This loop template is disabled" bar. No documents
+   are needed, and "Make global and hidden" stays off.
+2. People → the office listed under the company (not the company level) → + Add Person: full
+   name Integrations API, email `integrations@pmikcmetro.com`, message blank, Add as admin
+   unchecked → Add Person. The owner confirmed the paid seat is not a constraint.
+
+Dotloop's guides: https://support.dotloop.com/s/article/Loop-Templates and
+https://support.dotloop.com/s/article/Add-agent-and-remove-agent. If Add Person refuses the
+existing email, Dotloop support (support@dotloop.com or the in-app chat) handles an admin with no
+agent-level profile. Alternative: a full admin ticks Manage Templates and Manage People for
+Integrations API (People → Brokerage → ⋮ Show Admins → ⋮ Edit Admin Rights) and the owner does
+step 1 as integrations@; the first route keeps the integration login least-privileged.
+
+Step 2, the owner: sign in to Dotloop once as integrations@ and accept the pop-up that offers the
+company profile as the default. Then in the production app, as an Admin: **Connections** →
+**Refresh Dotloop resources** → **Dotloop profile**: the PMI KC Metro agent profile, not "Default
+Profile" → **Renewal template**: Lease Renewal → **Initial loop status**: the team's choice
+(Pre-offer is the first lease-offer status) → **Save renewal resources**. Nobody shares the
+integrations password or reconnects Dotloop for this step.
+
+Runner, once the owner reports A1 done: run the read-only readback, which reads
+`connector_connections/dotloop`, `dotloop_connection_observations/current` and
+`dotloop_renewal_settings/current` through ADC and prints only enums, counts and booleans (the
+script is git-ignored and lives only in this native checkout):
+
+```bash
+cd ~/pmi-kc-work/dlv1 && export PATH=/home/josiah/.local/opt/node-v22.23.2-linux-x64/bin:/snap/google-cloud-cli/current/bin:$PATH GOOGLE_CLOUD_PROJECT=pmi-kc-kb-prod && timeout 120 npx tsx output/dotloop-connection-readback.ts
+```
+
+Done when the connection reads connected on its current generation, the observation lists the new
+individual profile with at least one template and no error, and the selection reads back a
+supported profile, a lease-type template and an initial status, so readiness moves past
+`missing_resources`. Record the counts here and in F-DOTLOOP-CONNECTION-CHECK, then remove the
+row. Selecting resources creates no loop and uploads nothing; both Dotloop keys stay closed.
 
 **A2. S100 ticket, link and sync (B-S100).** In the app's Maintenance area, signed in as yourself:
 
@@ -151,10 +194,11 @@ Until then phones use the pop-up, which the S152–S167 release already repairs.
 4. Done 2026-10-07: run 5b5c850e released the non-secret client id and registered callback, the
    client-secret Secret Manager reference (version 1) and the connector vault project; the
    independent revision readback matched.
-5. During the separate connection flow, the owner completes consent and selects a verified,
-   supported individual profile with access to the company's renewal template, plus the template,
-   transaction type and initial status. The owner reports Business+ access; live resource access
-   remains unverified. Do not require an office-only profile selection.
+5. Consent is done (item 1). Template availability and resource selection follow A1: a full
+   Dotloop admin creates the template and attaches the integrations login to the office, then the
+   owner selects a supported individual profile, the template and the initial status. The owner's
+   2026-10-08 screenshots show the company on Business+. Do not require an office-only profile
+   selection.
 6. Feature scope is finalized in intake 050–054. The S66/S130 configuration path will accept the
    actual approved legal versions, applicability, field/signer mappings and versioned fee policy.
    Confirm those production inputs before their affected customer-ready output; do not invent
@@ -197,9 +241,9 @@ held only as Dotloop vault references.
 
 Remaining, within the authorized flows:
 
-1. The owner makes the renewal template available to the connected individual profile and selects
-   the resources (A1, B-DL2); the runner reads back the selection and readiness with enums and
-   counts only.
+1. A full Dotloop admin creates the renewal template and attaches the integrations login to the
+   office, then the owner selects the resources (A1, B-DL2); the runner reads back the selection
+   and readiness with enums and counts only.
 2. Leave live refresh/revocation/reconnect testing to its separately directed lifecycle flow.
    That flow must preserve S96's preview/confirmation/credential-removal/readback contract;
    denied storage or cleanup means recovery needed, not connected.

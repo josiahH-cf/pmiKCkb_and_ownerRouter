@@ -15,7 +15,10 @@ const require = createRequire(import.meta.url);
 
 describe("I11 patched transitive dependency boundaries", () => {
   it("loads the exact patched releases selected through Next and GenAI/MCP", () => {
-    expect(installedVersion("next")).toBe("16.3.7");
+    // October 8 audit: Next.js 16.0.0 through 16.3.7 carry six advisories the audit rates high
+    // (cache poisoning, draft-mode leakage, image-optimization SSRF, metadata-route and dev-server
+    // disclosure); 16.3.8 is the first patched 16.3 release.
+    expect(installedVersion("next")).toBe("16.3.8");
     expect(installedVersion("sharp")).toBe("0.35.5");
     expect(installedVersion("fast-uri")).toBe("3.1.8");
     expect(installedVersion("hono")).toBe("4.13.7");
