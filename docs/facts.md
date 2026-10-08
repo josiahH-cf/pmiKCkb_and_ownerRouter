@@ -430,6 +430,9 @@ strings in `hono/jsx` boundary components) in the `@google/genai` to
 `@modelcontextprotocol/sdk` chain; the source now overrides Hono to the patched 4.13.7. Its
 `npm audit --omit=dev` reports zero production findings; four development findings (three
 moderate, one high) remain outside that gate. Neither patched lockfile is deployed yet.
+An October 8 recheck failed the same unchanged audit on six Next.js advisories covering 16.0.0
+through 16.3.7; `ea79bbbf` (PR #147) moves next and eslint-config-next to the patched 16.3.8,
+and the production audit reports zero findings.
 See docs/evidence/adversary-review-2026-09-29.md for the prior release's exact scope. The
 references below explain the earlier patches, not the current source selection.
 

@@ -48,14 +48,16 @@ with production cold and warm timings.
 
 1. S51 `717eb9ae`: release checks warm a possibly cold revision before measuring it, and the
    post-promotion observation decides by 480,000 ms (owner decision 2026-10-07, PR #146).
-2. S54 `b680dd6e`: the Firestore emulator lane bounds each test at 30 s for transaction
-   contention (PR #145; test configuration only).
+2. S54 `b680dd6e`, `ea79bbbf`: the Firestore emulator lane bounds each test at 30 s for
+   transaction contention (PR #145), and Next.js 16.3.8 patches six advisories that failed the
+   unchanged production audit on 2026-10-08 (PR #147).
 
-OWNER DIRECTION, 2026-10-08: "push, merge, and deploy if not done already". Neither item changes an
-application route, read or write; the watcher runs the S51 checks from the released commit, so this
-run is the first to exercise them. Admit only after exact main CI on the release head, fresh
-prerequisites and a new run-bound permit. Both Dotloop write keys stay closed; no provider effect,
-key or activation is queued. Assurance stays read-only.
+OWNER DIRECTION, 2026-10-08: "push, merge, and deploy if not done already". No item changes an
+application route, read or write; the Next.js patch release changes the framework under every route,
+so the full gate and the candidate's guarded assurance cover it. The watcher runs the S51 checks from
+the released commit, so this run is the first to exercise them. Admit only after exact main CI on
+the release head, fresh prerequisites and a new run-bound permit. Both Dotloop write keys stay
+closed; no provider effect, key or activation is queued. Assurance stays read-only.
 
 ## Verified release and recovery
 
