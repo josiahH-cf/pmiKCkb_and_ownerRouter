@@ -66,11 +66,11 @@ export function collectContext(
   const last = continuity(base)[lane];
   const start =
     since ??
-    new Date(new Date(last?.cutoff ?? cutoff).getTime() - (last ? 2 : 14) * 86_400_000)
-      .toISOString()
-      .slice(0, 10);
+    localDate(
+      new Date(new Date(last?.cutoff ?? cutoff).getTime() - (last ? 2 : 14) * 86_400_000),
+    );
   date(start);
-  assert(start <= cutoff.slice(0, 10), "Reporting baseline is in the future");
+  assert(start <= localDate(new Date(cutoff)), "Reporting baseline is in the future");
   const sources = DEFAULTS.source_paths.map((path, index) => {
     const raw = git(["show", `${revision}:${path}`], root, false);
     // Padding is removed, substantive rows are retained. No working-tree/private files are collected.
@@ -241,7 +241,7 @@ export function validateContent(content, snapshot) {
     check(metric, "Metric");
     date(metric.measured_at);
     assert(
-      metric.measured_at <= snapshot.cutoff.slice(0, 10),
+      metric.measured_at <= localDate(new Date(snapshot.cutoff)),
       "Metric measurement is in the future",
     );
     assert(

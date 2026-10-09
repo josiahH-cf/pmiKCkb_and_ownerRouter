@@ -180,6 +180,33 @@ describe("evidence and independent continuity", () => {
   });
 });
 describe("copy-ready email without provider effects", () => {
+  it("uses the Central calendar date after UTC midnight in both daylight and standard time", () => {
+    const base = storage();
+    configure(base);
+    for (const cutoff of ["2026-10-10T02:00:00Z", "2026-12-10T03:00:00Z"]) {
+      const current = {
+        ...snapshot,
+        cutoff,
+        meeting_date: cutoff.startsWith("2026-10") ? "2026-10-09" : "2026-12-09",
+      };
+      const value = content();
+      value.date = current.meeting_date;
+      expect(prepareEmail(base, value, current).message.body).toContain(
+        `through ${current.meeting_date}.`,
+      );
+      value.metrics = [
+        {
+          ...value.changes[0],
+          value: "5",
+          measured_at: cutoff.slice(0, 10),
+          type: "actual",
+          period: "Month",
+          scope: "Operations",
+        },
+      ];
+      expect(() => validateContent(value, current)).toThrow("future");
+    }
+  });
   it("produces real line breaks and emojis, without marking text as sent", () => {
     const base = storage();
     configure(base);

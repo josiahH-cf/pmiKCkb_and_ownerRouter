@@ -3,6 +3,7 @@ import {
   assert,
   hash,
   id,
+  localDate,
   privateConfig,
   readJson,
   safePath,
@@ -63,7 +64,7 @@ export function composeEmail(config, content, snapshot) {
     `${title}\n\n${items.length ? items.map(bullet).join("\n") : empty}`;
   const body = [
     `Hi ${names},`,
-    `Quick update on the PMI KC build. 😊\n\nThis update covers ${snapshot.since} through ${snapshot.cutoff.slice(0, 10)}.`,
+    `Quick update on the PMI KC build. 😊\n\nThis update covers ${snapshot.since} through ${localDate(new Date(snapshot.cutoff))}.`,
     section(
       "✅ Done this week",
       content.changes,
