@@ -27,6 +27,10 @@ release acceptance passed; no live customer completion or human usability verdic
 
 ## Current core
 
+Manual client workflows: [presentation and weekly status commands](weekly-client-workflows.md),
+[reference source index](weekly-client-workflows-source-index.md) and
+[original implementation plan](weekly-client-workflows-plan.md).
+
 | Need                         | Document                                                |
 | ---------------------------- | ------------------------------------------------------- |
 | Product contract             | `docs/spec.md`                                          |

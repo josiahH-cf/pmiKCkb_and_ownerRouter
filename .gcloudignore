@@ -8,5 +8,8 @@
 
 # Runner-local state and user-owned artifacts are intentionally outside the deployable app.
 .claude/
+.agents/skills/weekly-call/
+.agents/skills/weekly-update/
+tools/client-updates/
 output/
 docs/specs/

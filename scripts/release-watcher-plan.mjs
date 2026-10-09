@@ -15,7 +15,7 @@ export const RELEASE_PHASES = Object.freeze([
 export function classifyReleaseChanges(paths) {
   return paths.some(
     (path) =>
-      !/^(?:docs\/|AGENTS\.md$|CLAUDE\.md$|README\.md$|tests\/|\.claude\/|scripts\/auth\/|scripts\/(?:preflight-adc|release-batch-preflight|release-control|release-watcher|release-watcher-plan)\.mjs$)/.test(
+      !/^(?:docs\/|AGENTS\.md$|CLAUDE\.md$|README\.md$|tests\/|\.claude\/|\.agents\/skills\/weekly-(?:call|update)\/|tools\/client-updates\/|\.gcloudignore$|scripts\/auth\/|scripts\/(?:preflight-adc|release-batch-preflight|release-control|release-watcher|release-watcher-plan)\.mjs$)/.test(
         path,
       ),
   );
