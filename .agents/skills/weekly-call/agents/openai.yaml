@@ -1,0 +1,6 @@
+interface:
+  display_name: "Weekly call"
+  short_description: "Prepare PMI KC slides, agenda and blockers"
+  default_prompt: "Use $weekly-call to prepare and review the current PMI KC presentation pack."
+policy:
+  allow_implicit_invocation: false

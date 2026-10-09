@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "client": "pmi-kc",
+  "timezone": "America/Chicago",
+  "template_version": "accepted-2026-10-08-v1",
+  "template_sha256": "06c74f343b0165147a5e4f973d2bca6b468334a37d2a7b0e46e74979853ce7a9",
+  "max_extra_slides": 6,
+  "max_repair_cycles": 3,
+  "publication": "disabled",
+  "default_minutes": 80,
+  "source_paths": [
+    "docs/facts.md",
+    "docs/loop-state.md",
+    "docs/status.md",
+    "docs/plan.md",
+    "docs/open-blockers.md",
+    "docs/client-checklist.md",
+    "docs/voice-and-audience.md",
+    "docs/products/renewal-meeting-walkthrough-runbook.md",
+    "docs/feature-suites/README.md"
+  ]
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Weekly update"
+  short_description: "Copy-ready PMI KC status email with emojis"
+  default_prompt: "Use $weekly-update to prepare a copy-ready PMI KC status email in a code block."
+policy:
+  allow_implicit_invocation: false
