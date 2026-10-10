@@ -10,12 +10,14 @@ and integration evidence; the complete canonical gate passed 9,485 unit tests, a
 policy checks and the production build. Production-built maintenance 31, Communications 15, search 11,
 history/collections 15 and settings 3 passed; scoped evidence/failed attempts retain their identities.
 Core E2E passed 32 tests with 22 existing configuration skips after the obsolete retirement
-assertion was corrected. Finish green mainline/CI and then the existing queue/release process after approved WSL enrollment and runtime technical gates.
+assertion was corrected. Mainline/CI are green. Continue the existing queue/release process after approved WSL enrollment and runtime technical gates.
 No program feature is verified delivered; local retirement never substitutes for actual delivery.
 
-Green implementation commit `64eec96f098f11f7f8d10ea634f0e75f210f687c` is queued through the existing release mechanism.
-Exact-main CI is freshly read for the selected release head; no prior CI run or consumed permit
-substitutes for its gates. The queue remains held for current cloud/runtime prerequisites.
+Implementation `64eec96f098f11f7f8d10ea634f0e75f210f687c` and its queue documentation are on main.
+Exact-main [CI 38033099009](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38033099009) passed all five jobs for
+`f6a8375432e47be88f02b88b7cd362e5eabf777e`: 9,481 unit tests/four configuration skips, all 455 backend tests,
+quality, policy checks and production build. The one queued implementation slice remains held for
+fresh cloud prerequisites and replacement Communications runtime readiness; the full program is open.
 
 Owning-service implementations cover scoped governance/one action, durable rich Communications,
 renewal policy/worklists/tasks, contextual private conversations/pins/shared collections, search,
@@ -162,7 +164,7 @@ public website shortcut are accepted next-batch deferrals.
 
 No new provider activation, protected-path grant, identity/claim, send, budget/guardrail or external
 proof target is part of this program. Missing inputs and human observations retain scoped states;
-independent work proceeds. No material product clarification remains. Final focused/native full/core gates, whole-route/zoom/accessibility matrix and six-owner/publication recovery pass. All 116 engineering requirements and exact-main CI 37250383538, the cumulative release, full observation, independent final readbacks, end feedback and native deployed closure are verified. The queue is empty; the permit is consumed. Actual scope/results are in docs/evidence/application-usability-batch005.json.
+independent work proceeds. No material product clarification remains. Final focused/native full/core gates, whole-route/zoom/accessibility matrix and six-owner/publication recovery pass. All 116 engineering requirements and exact-main CI 37250383538, the cumulative release, full observation, independent final readbacks, end feedback and native deployed closure are verified. That batch's queue is delivered and its permit consumed. Actual scope/results are in docs/evidence/application-usability-batch005.json.
 
 ## Outcome
 
@@ -204,7 +206,7 @@ Batch 005 (S168–S175, revised S87 and S176–S181; intake 035–049) was relea
 `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` and `7753e5f5-2325-4b19-b83d-dc3475d71b0b` released its verification repairs and follow-up fixes.
 Batch 005's 116 requirement records are in [native evidence](evidence/application-usability-batch005.json);
 independent verification of it is recorded in F-BATCH-005-VERIFICATION.
-The two-item queue is delivered and empty; the exact permit is consumed.
+The prior release's two-item queue is delivered; its exact permit is consumed. The current program queue is separate.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 Human verdicts: **NOT RUN — no human observer**.
 

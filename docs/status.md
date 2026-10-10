@@ -9,9 +9,11 @@ unfinished. The isolated WSL branch from main 8406181c preserves both original c
 44/238 evidence: `docs/evidence/operations-communications-maintenance-2026-10.json`; 201 requirements
 have four local engineering scopes passed. No program feature is verified delivered.
 
-Green implementation commit `64eec96f098f11f7f8d10ea634f0e75f210f687c` is queued through the existing release mechanism.
-Exact-main CI is freshly read for the selected release head; no prior CI run or consumed permit
-substitutes for its gates. The queue remains held for current cloud/runtime prerequisites.
+Implementation `64eec96f098f11f7f8d10ea634f0e75f210f687c` and its queue documentation are on main.
+Exact-main [CI 38033099009](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38033099009) passed all five jobs for
+`f6a8375432e47be88f02b88b7cd362e5eabf777e`: 9,481 unit tests/four configuration skips, all 455 backend tests,
+quality, policy checks and production build. The one queued implementation slice remains held for
+fresh cloud prerequisites and replacement Communications runtime readiness; the full program is open.
 
 Complete canonical verification passed 9,485 unit tests/1,010 files, 455 backend tests/79 files,
 all policy checks, zero production audit findings and the production build. Core E2E passed 32 tests with 22 existing configuration skips after one old retired-tools
@@ -68,7 +70,7 @@ Batch 005 (S168–S175, revised S87 and S176–S181; intake 035–049) was relea
 `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` and `7753e5f5-2325-4b19-b83d-dc3475d71b0b` released its verification repairs and follow-up fixes.
 Batch 005's 116 requirement records are in [native evidence](evidence/application-usability-batch005.json);
 independent verification of it is recorded in F-BATCH-005-VERIFICATION.
-The two-item queue is delivered and empty; the exact permit is consumed.
+The prior release's two-item queue is delivered; its exact permit is consumed. The current program queue is separate.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 Human verdicts: **NOT RUN — no human observer**.
 
@@ -229,10 +231,8 @@ prove zero effects. S121 was excluded.
 
 The permits of runs `ab803f8a`, `98f7e743`, `729d5716`, `0eb2cfeb`, `3a32f7a2`, `47fabb7c`,
 `8b7dc3f1`, `5d1b4e3a`, `7753e5f5`, `61659874`, `5b5c850e`, `87920129`, `5622decd` and `e372f7b5` are consumed; run `175fee1d` rolled back verified on 2026-10-02 and run `a83ed59b` stopped before
-promotion on 2026-10-03, and their permits are archived as superseded. The Awaiting release
-queue is empty. No original receipt, completed permit or build claim is reused.
-
-## Operations checkpoint archival, 2026-10-10 UTC
+promotion on 2026-10-03, and their permits are archived as superseded. The current program has
+one held queued implementation slice. No original receipt, completed permit or build claim is reused.
 
 ## Independent verification, 2026-10-05
 
@@ -285,11 +285,3 @@ with typed searches and desktop sizes, uid/private scope, CAS and explicit-link 
 Personal-view expiresAt TTL read back ACTIVE; runner wrote no production app record as proof.
 Identity lookup uses accessible real app lease links and only verified exact RentVine shortcuts.
 Human verdicts remain NOT RUN — no human observer; Editor browser is not_run under Admin-only policy.
-
-Execution checkpoint 2026-10-10 UTC: S222/S223 policy/review engineering has 64 focused urgency/intake checks, 17 emulator policy/responsibility/promotion checks, 3 recovery/one-action UI checks, clean focused lint and TypeScript through type-program-83. No suite is delivered. Native evidence retains every failed report/browser/type/lint attempt. Current compiled maintenance/report verification is still running after the AppShell Suspense repair. Next: close the compiled report/revocation journey, verify responsibility in frozen reports, finish policy/review HTTP and compiled paths, then S213 remaining safety/UI seams, S215 integration and S224/S225. The S208/S217/S218/S220/S221 input holds remain required; no external message or production effect was created.
-
-### Operations execution checkpoint — settings and report preservation
-
-S224/S225 partial implementation now binds business profiles only to existing verified enabled managed staff; Admin title/contact saves do not change roles/claims or queued content. Own prior retained signatures remain readable. New empty preparations may use the current own profile; Communications offers a deliberate own-signature draft edit. Display-name reset retains the current default and changes only inventoried presentation surfaces. UUID/CAS receipts, original recovery and pre-admission cutoff have local evidence.
-Focused evidence: presentation unit runs (12 then 13 tests); policy/responsibility/report/settings Firestore run (17 tests in four files), including frozen responsibility review/export and corrupted current policy refusal. Type checks 85/86 failed on test inventory/stub typing and remain preserved; correction verification is running. Maintenance compiled attempts 20/21 failed (missing actual Suspense wrap, then a revocation assertion before the fresh read completed); next corrected runner is pending. No delivery, activation, human observation or cloud mutation is claimed.
-Continue S184 maintenance provider single-action flow, remaining S213/S215 joins and policy/review/profile compiled coverage, preservation repairs, canonical checks and authorized release. All five PENDING outcomes remain required and pending real material inputs.

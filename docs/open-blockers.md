@@ -3,9 +3,9 @@
 Last reconciled: 2026-10-10 (S183–S226 started; accessible Vendoroo, acquisition and native-answering evidence inspected; their five dependent contracts remain pending; A1 now names who can make the Dotloop renewal template: the connected integrations login is a limited Dotloop admin, so a full company admin must create it, and the owner sent that request to Dan on 2026-10-08; runs 5b5c850e and 87920129 released Dotloop PDF renewal v1; the owner approved release warm-ups and a minute-eight observation deadline; other holds retain their recorded evidence).
 
 This is the one record of what the application waits on outside the code, and exactly how to
-clear each item. Every hold blocks only the effect named in its row. No hold blocks development,
-tests, merges, releases or another suite, so unattended runs do not read this file unless their task
-exercises a listed effect or the owner reports a step done. When the owner reports a step, the run
+clear each item. Every hold blocks only its named effect or dependent release phase; independent
+development, tests and merges continue. Unattended runs read this file when their task exercises
+a listed effect or the owner reports a step done. When the owner reports a step, the run
 performs that row's follow-up, records the readback here and removes the row. Never invent a
 substitute value, identifier, credential or human verdict to clear a hold.
 
@@ -24,7 +24,16 @@ substitute value, identifier, credential or human verdict to clear a hold.
 
 ## Current program dependencies — S183–S226
 
-- **B-AUTH-CURRENT.** Both approved WSL CLI/ADC refresh probes require fresh Google enrollment. Cloud inspection/release waits for the owner recovery command already surfaced in chat. The runner changes no challenge, identity or session policy; independent work continues.
+- **B-AUTH-CURRENT.** Both approved WSL CLI/ADC refresh probes require fresh Google enrollment.
+  In the selected WSL release checkout, the recovery is
+  `npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com`.
+  The owner completes Google's challenge; the runner then verifies approved-store change and fresh
+  probes for the same identity. Cloud inspection/release waits; no challenge, account, credential
+  store, session policy or IAM is substituted.
+- **B-COMMUNICATIONS-RUNTIME.** Engineering follow-up after fresh auth: deploy/read back the managed
+  worker, bounded Scheduler and inbound-observation configuration, then verify and activate only
+  the specifically authorized notice keys through their technical gates. No new owner phase consent
+  is required. Old entry points cannot retire in production before replacement readiness.
 
 - **B-VENDOROO-CONTRACT (S208).** Dan was already sent the integration/access request. The
   authorized reply was inspected and supplies no account access or supported integration contract.
@@ -39,8 +48,8 @@ substitute value, identifier, credential or human verdict to clear a hold.
   contacts/troubleshooting/consent/recording policy, and cost/cutover/rollback decisions are missing.
   S219 records the readback. No phone provider, coverage or operating policy is guessed.
 
-These five outcomes remain required. Independent maintenance, reporting, shared policy and
-configuration engineering continues. Runtime policy controls accept only actual staff-reviewed
+These five outcomes remain required. Independent owning-service implementation is on main with
+exact-main CI 38033099009 passed; deployment remains held at the current auth/runtime prerequisites. Runtime policy controls accept only actual staff-reviewed
 inputs; their unset state is not operational policy. The owner execution instruction already
 carries program authority through phases and necessary repairs; these holds request material
 facts, not repeated phase consent. Dotloop A1 remains partially unblocked and its existing row
@@ -231,16 +240,15 @@ Until then phones use the pop-up, which the S152–S167 release already repairs.
    published forms or complete maps. Approval/configuration can proceed independently of B-DL2.
    Stable Drive access is deferred and does not hold this specification cycle or local filling.
 
-**Next developer step:** deliver the stored credential/vault bindings and the S106 Connect
-navigation repair through the existing implementation/release process. The registered client is
-visible and matches the stored id; no new client or repeated secret delivery is needed. The
-registered redirect remains owner-reported, and actual granted scopes must be checked after consent.
-Support verification and selected resource ids remain separately unverified.
-
-Both Dotloop action keys stay closed until a separate exact-key proof and activation is authorized.
-Signature completion is never inferred. The current work is specification authoring plus the
-explicitly requested credential migration and later connection-initiation check; no application
-implementation or live provider business-effect proof is started.
+**Runner continuation:** the stored bindings, connection navigation and bounded OAuth check are
+already released; do not rerun them or request another secret. Read back actual office-agent/template
+eligibility and the saved supported profile/template/status selection after the existing owners
+complete A1. A company-roster screenshot does not establish these prerequisites. Preserve S182's
+API-origin exclusions and actual prior receipts. Both Dotloop keys remain closed until their scoped
+technical gates and reviewed exact-key activation pass under the owner's current S183–S226 authority.
+No live customer/provider business effect may be created merely as a test, and document presence
+never establishes signature completion. The full current program is implementation work, not the
+prior specification-only cycle.
 
 **E2. Human verdicts and real material (B-HUMAN).** These change verdicts, not code, and none blocks
 delivery: a human observer for screen-reader, desktop full-page zoom and batch 004 usability

@@ -21,14 +21,16 @@ current-source search, assessment-first maintenance, assigned-vendor contributio
 financial evidence/reports, shared reviewed policy, business signatures and application naming.
 39 contracts remain READY; S208/S217/S218/S220/S221 remain PENDING and required.
 
-Green implementation commit `64eec96f098f11f7f8d10ea634f0e75f210f687c` is queued through the existing release mechanism.
-Exact-main CI is freshly read for the selected release head; no prior CI run or consumed permit
-substitutes for its gates. The queue remains held for current cloud/runtime prerequisites.
+Implementation `64eec96f098f11f7f8d10ea634f0e75f210f687c` and its queue documentation are on main.
+Exact-main [CI 38033099009](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38033099009) passed all five jobs for
+`f6a8375432e47be88f02b88b7cd362e5eabf777e`: 9,481 unit tests/four configuration skips, all 455 backend tests,
+quality, policy checks and production build. The one queued implementation slice remains held for
+fresh cloud prerequisites and replacement Communications runtime readiness; the full program is open.
 
 The complete current-source `bash scripts/verify.sh` gate passed: 9,485 unit tests in 1,010 files,
 all 455 backend tests in 79 files, format/lint/type/policy checks, zero production audit findings
 and the production build. Core E2E passed 32 tests with 22 existing configuration skips after its first attempt failed one
-obsolete retired-tools assertion (31 passed). Application source was unchanged by that correction. Exact-main CI remains a freshly collected release gate.
+obsolete retired-tools assertion (31 passed). Application source was unchanged by that correction. Each later release head still requires its own exact-main CI.
 Production-built Communications 15, maintenance 31, global search 11, Ask/history/collections 15 and
 isolated settings 3 passed using actual local routes/emulator state and deterministic external
 adapters. This is no live customer/provider effect or human observation.
@@ -37,7 +39,7 @@ Review found a pre-claim authorization replacement race: two fixed-clock actual-
 failed first. The repaired claim binds the exact prepared authorization revision, payload hash,
 sender, count and material source; focused unit 31, emulator 25 and compiled Communications 15 passed.
 Every failed/interrupted outcome remains preserved. Privacy audit found no configured non-public
-secret values or credential patterns in 522 changed/new text files. S185's six paired local samples
+secret values or credential patterns in 523 changed/new text files. S185's six paired local samples
 reduced three actual app-history reads to one with all six permission checks retained (median
 18→6 ms); no production SLA or whole-page result is claimed. A cold catalog sample was slower
 110.9→136.2 ms; warm lookup was 7.4→0.33 ms. No universal latency gain is claimed.
@@ -105,7 +107,7 @@ Batch 005 (S168–S175, revised S87 and S176–S181; intake 035–049) was relea
 `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` and `7753e5f5-2325-4b19-b83d-dc3475d71b0b` released its verification repairs and follow-up fixes.
 Batch 005's 116 requirement records are in [native evidence](evidence/application-usability-batch005.json);
 independent verification of it is recorded in F-BATCH-005-VERIFICATION.
-The two-item queue is delivered and empty; the exact permit is consumed.
+The prior release's two-item queue is delivered; its exact permit is consumed. The current program queue is separate.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 Human verdicts: **NOT RUN — no human observer**.
 
@@ -271,7 +273,7 @@ Batch 005 (S168–S175, revised S87 and S176–S181; intake 035–049) was relea
 `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` and `7753e5f5-2325-4b19-b83d-dc3475d71b0b` released its verification repairs and follow-up fixes.
 Batch 005's 116 requirement records are in [native evidence](evidence/application-usability-batch005.json);
 independent verification of it is recorded in F-BATCH-005-VERIFICATION.
-The two-item queue is delivered and empty; the exact permit is consumed.
+The prior release's two-item queue is delivered; its exact permit is consumed. The current program queue is separate.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 Human verdicts: **NOT RUN — no human observer**.
 

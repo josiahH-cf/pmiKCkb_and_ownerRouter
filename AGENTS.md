@@ -59,7 +59,7 @@ Batch 005 (S168–S175, revised S87 and S176–S181; intake 035–049) was relea
 `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` and `7753e5f5-2325-4b19-b83d-dc3475d71b0b` released its verification repairs and follow-up fixes.
 Batch 005's 116 requirement records are in [native evidence](docs/evidence/application-usability-batch005.json);
 independent verification of it is recorded in F-BATCH-005-VERIFICATION.
-The two-item queue is delivered and empty; the exact permit is consumed.
+The prior release's two-item queue is delivered; its exact permit is consumed. The current program queue is separate.
 Editor browser coverage remains `not_run` under the approved Admin-only contract.
 Human verdicts: **NOT RUN — no human observer**.
 
@@ -75,7 +75,7 @@ in the shared batch audit. Earlier failed attempts remain failed in immutable ev
 September 14 Features 1–6 and S113–S120 remain carried in this release.
 
 The owner-requested adversarial review closed five confirmed findings through verified repairs
-and a cumulative deployment. The current permit is consumed and the queue is empty; original
+and a cumulative deployment. That release's permit is consumed and its queue delivered; original
 completed runs and every failed attempt retain their actual evidence. No technical or safety
 gate was lowered. Evidence: `docs/evidence/adversary-review-2026-09-29.md`.
 

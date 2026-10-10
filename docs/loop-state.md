@@ -19,8 +19,10 @@ The complete canonical aggregate passed 9,485 unit tests/1,010 files, 455 backen
 all required policy checks, zero production audit findings and the production build. Core E2E passed 32 tests with 22 existing configuration skips after one obsolete retired-tools
 assertion failed first (31 passed). Only that E2E assertion changed; application source remains
 canonical-green. Document/program guard checks passed. Implementation commit
-`64eec96f098f11f7f8d10ea634f0e75f210f687c` is queued below. Read exact-main CI for the selected
-head before delivery; current cloud/runtime holds remain. Keep all failed/interrupted
+`64eec96f098f11f7f8d10ea634f0e75f210f687c` and queue documentation are on main; exact-main
+CI 38033099009 passed all five jobs for f6a83754 (9,481 unit/four skips, all 455 backend).
+The read-only preflight held only permit/fresh prerequisites; pair/alignment/CI/flags passed.
+Current cloud/runtime holds remain. Keep all failed/interrupted
 attempts in the native ledger and outside-Git logs; no full program/release completion claim.
 
 201/238 requirements have four mapped local engineering scopes passed. Production-built local
@@ -28,7 +30,7 @@ maintenance 31, Communications 15, search 11, Ask/history/shared collections15 a
 passed; renewal desk/workspace5 retains its development-compiled scope. Actual legacy compatibility/
 restart/legal-hold dry-run5 and two-sender signature/sequence11 passed. Review's fixed-clock
 pre-claim revision/content/sender race failed two cases first; exact prepared basis repair passed
-unit 31, actual emulator 25 and a fresh compiled Communications 15 journey. Privacy audit522 passed.
+unit 31, actual emulator 25 and a fresh compiled Communications 15 journey. Privacy audit523 passed.
 S185 reduced three app-history reads to one with all six permission checks (six paired local samples
 median 18→6 ms); cold catalog 110.9→136.2 ms was slower, warm 7.4→0.33 ms. No production SLA claim.
 
@@ -53,7 +55,9 @@ never loop login, substitute a store/account, enter a challenge, copy Chrome or 
 Use a registered clean release pair under the strict outside-Git `checkout-pair.json` mechanism:
 native `/home/josiah/pmi-kc-work/operations-release-20261010`, source sibling
 `.pmi-kc-release-worktrees/operations-20261010`. Verify their exact-main HEADs/CI and reviewed
-Demo=false/Sheet=true environment before admission. No original checkout reset is permitted.
+Demo=false/Sheet=true environment before admission. Host readback at 07:07 UTC verified both
+clean paired heads at f6a83754, ignored production environment, and unchanged original HEADs/file hashes.
+The final documentation closure must be aligned and have its own exact-main CI. No original reset is permitted.
 Then collect fresh auth/browser/cloud prerequisites, actual predecessor and tag bindings; finish
 managed worker/key technical gates, use one real release-lock watcher/new exact permit/one build,
 candidate warm-up/guarded assurance, promotion, full observation and independent final readbacks.

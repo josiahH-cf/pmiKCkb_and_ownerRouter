@@ -66,7 +66,8 @@ Current engineering state: 201/238 requirements have four local engineering scop
 the canonical gate passed 9,485 unit tests, 455 backend tests and build; core E2E passed 32 with
 22 configuration skips. No program feature
 is verified delivered. Green implementation `64eec96f098f11f7f8d10ea634f0e75f210f687c` is queued through
-the existing mechanism, held before admission for fresh authentication and Communications runtime
+the existing mechanism. It is on main with exact-main [CI 38033099009](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38033099009) passed
+for `f6a8375432e47be88f02b88b7cd362e5eabf777e`; admission remains held for fresh authentication and replacement Communications runtime
 readiness. All five pending outcomes stay required. Human verdict: NOT RUN — no human observer. Both Dotloop write keys remain closed; OAuth alone
 has not verified office-agent/template eligibility or saved supported resource selection. S182's
 Dotloop API-origin exclusions remain mandatory.

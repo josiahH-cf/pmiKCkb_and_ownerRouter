@@ -5117,6 +5117,40 @@
       "result": "passed",
       "files": 523,
       "log": "/home/josiah/.local/state/pmi-kc-operations-20261009/mainline-private-value-audit-2.json"
+    },
+    {
+      "scope": "Exact-main CI for implementation and queue head",
+      "result": "passed",
+      "sha": "f6a8375432e47be88f02b88b7cd362e5eabf777e",
+      "ciRun": 38033099009,
+      "url": "https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38033099009",
+      "unitTestsPassed": 9481,
+      "unitConfigurationSkips": 4,
+      "backendTestsPassed": 455,
+      "log": "/home/josiah/.local/state/pmi-kc-operations-20261009/mainline-ci-log-1.txt",
+      "limitation": "All five jobs passed; no deployment or provider proof."
+    },
+    {
+      "scope": "Registered release-pair and original-checkout host readback",
+      "result": "passed",
+      "sha": "f6a8375432e47be88f02b88b7cd362e5eabf777e",
+      "log": "/home/josiah/.local/state/pmi-kc-operations-20261009/release-pair-host-readback-1.json",
+      "limitation": "Both selected checkouts clean, Demo=false/Sheet=true, ignored environment; original Windows64dirty/native0 and HEAD/file hashes unchanged. No cloud or permit mutation."
+    },
+    {
+      "scope": "Read-only release preflight on exact-main green head",
+      "result": "held",
+      "sha": "f6a8375432e47be88f02b88b7cd362e5eabf777e",
+      "log": "/home/josiah/.local/state/pmi-kc-operations-20261009/release-preflight-mainline-1.json",
+      "limitation": "Permit/fresh prerequisites blocked; checkout pair/alignment/native runner/CI/queue/flags passed. No new admission, permit or cloud build."
+    },
+    {
+      "scope": "Current mainline/preflight documentation closure and program false-completion guards",
+      "result": "passed",
+      "tests": 6,
+      "files": 2,
+      "log": "/home/josiah/.local/state/pmi-kc-operations-20261009/closure-doc-gates-1.log",
+      "limitation": "Router/falsification/freshness/path/spec/copy/redaction and diff checks passed; only documentation/ledger changed after the canonical application gate."
     }
   ],
   "preservedFailedRuns": [
@@ -5582,27 +5616,18 @@
     }
   ],
   "verificationLimitations": [
-    "Focused and emulator checks do not establish live customer effects.",
-    "Canonical verification, CI and delivery are not yet run for this program. Successful compiled journeys have their exact deterministic scope recorded; failed attempts retain their actual outcomes.",
-    "The current renewal 200% capture needs rerunning with the corrected native-zoom capture; its prior passing layout test alone does not establish a complete screenshot.",
-    "No human observer.",
-    "All 238 requirements remain individually unverified until their mapped implementation and outcome checks are completed.",
-    "S205/S206 compiled maintenance journey remains in progress; original browser runner/locator failures are preserved. S205 standing-policy evaluation and provider execution gates depend on the remaining S213 implementation.",
-    "The search mobile header ordering was subsequently corrected to keep it beside/after the PMI mark; final layout rerun is pending. No live customer effect or human observation was used.",
-    "S214 uses the existing standard-font PDF stack and refuses unsupported glyphs rather than dropping facts. Matching UTF-8 CSV is separately available; final rendering and compiled report/HTTP checks remain pending.",
-    "Vendor and maintenance compiled local fixtures establish application behavior only; current account activation, provider payment readback and human observation are not established.",
-    "S222/S223 are partial: shared approved-policy selection, prospective versions and exact recovery, recorded urgency corrections, source-bound staff responsibility/dispute review and stale-context communication holds have focused evidence. Policy runtime wording/contacts are unset until actual staff input. Compiled policy/review coverage, broader integration and canonical gates remain pending.",
-    "Compiled maintenance attempts 13–19 failed and remain preserved: development reload spoiled the controlled stale-tab check; a webpack-only baseline client/node import failure; fixture typing; and the existing AppShell navigation feedback search-parameter loading boundary. AppShell now wraps that feedback in Suspense; fresh compiled verification remains required.",
-    "The current synthetic 25-job report produced an 18-page PDF with deterministic bytes. Page 1 and chronological-table page 3 were rendered and inspected; no private source evidence or human observer is implied. A new report carries responsibility proposal/version separately from financial totals; that addition still needs transaction and export verification.",
-    "S224/S225 are partial implementations: existing verified managed staff profiles, own signatures, prior retained signature inspection, Admin-only versioned display name/reset, exact UUID recovery and cutoff are implemented with focused local checks. Compiled branding/profile and route-role coverage, full canonical checks and release gates remain required. No live setting, identity, claim, sender profile or customer message was changed.",
-    "Compiled maintenance attempt 20 still lacked the actual NavigationFeedback Suspense wrapper despite its earlier import; the wrapper was then corrected. Attempt 21 compiled and reached report/revocation checks but asserted before the new assignment read settled. The runner now waits for the resulting disabled state. Both failures remain failed.",
-    "The broad local checks were interrupted by a WSL restart. Their partial logs are retained as interrupted, not passed. Approved josiah@pmikcmetro.com CLI/ADC refresh probes subsequently passed with the same approved stores; no enrollment or identity change was needed. Local compiled fixture concurrency is now limited to two workers.",
-    "Compiled maintenance attempt 24 failed before its journey because the local Firestore emulator was not running. Its failed result and server log are preserved. Typecheck and focused application checks do not convert that run into a pass.",
-    "Full unit checkpoint 3 failed with 9,403 passed and 32 failed; scoped repairs passed 138 checks. A fresh complete run is required; canonical verification and integrated policy/profile/branding/reply browser coverage remain required. The 123-assignment/500-write emulator transaction passed, but the combined run failed a stale 165-versus-124 overflow fixture assertion; that original run remains failed.",
-    "Approved WSL CLI and ADC refresh both require Google enrollment (auth-20261010-cloud-prerequisite.log). Cloud inspection/release is held; no credential substitution, policy/identity change or login loop was used.",
-    "Present-truth spec/integration/engineering documentation now reconciles served S159 Sheet=true and the S183 named human Send/Schedule authority. This documentation changes no key, cloud setting or delivered behavior. Both notice send keys remain closed.",
-    "Fresh internal-browser Connections read on October10 reached PMI sign-in, without an authenticated session. Google popup did not yield a usable internal-browser authentication tab. No passwords/codes/passkeys/CAPTCHA, Chrome, credential copy, IAM/claim change or provider effect was used; Dotloop resource eligibility/selection remains unverified.",
-    "Payment observation recognition validates retained authoritative-source metadata separately from staff claims; no ordinary command can write payment_observation. An actual authoritative payment source/adapter/readback remains unavailable, and deterministic source-shaped tests do not verify any live payment."
+    "201 of 238 requirements have all four mapped local engineering scopes passed. All44 suites remain not_delivered; five PENDING contracts and required external/runtime prerequisites remain open. Authoring READY never establishes implementation or delivery.",
+    "The complete local canonical aggregate passed 9,485 unit tests, all 455 backend tests, all required checks, audit0 and build. Exact-main CI 38033099009 passed 9,481 unit/four configuration skips and all455 backend; each subsequent release head still requires its own CI.",
+    "Core E2E passed32 with22 existing configuration skips. Production-built local maintenance31, Communications15, search11, history/collections15 and isolated settings3 use actual local routes/emulator and deterministic external adapters. Renewal desk/workspace5 retains development-compiled scope, including corrected native200-percent capture; none establishes live customer/provider effects or human observation.",
+    "All failed and interrupted runs retain their original results and private logs in verificationRuns/preservedFailedRuns/preservedInterruptedRuns. Later passing runs do not rewrite them.",
+    "Current Vendoroo account/interface access, acquisition corpus/schema/matching/financial opening/cutover and native answering number/account/coverage/contact/consent/transition inputs remain absent after accessible investigations. No additional external message was sent.",
+    "Approved WSL CLI and ADC refresh both require owner Google enrollment. Current identity/store metadata is not fresh readiness; no credential substitution, policy/identity change, challenge entry or login loop was used.",
+    "Fresh internal-browser Connections read reached sign-in without an authenticated session. Dotloop A1 office-agent/template eligibility and saved supported selection remain unverified; both write keys stay closed and S182 API-origin exclusions remain.",
+    "Communications worker/Scheduler/inbound-observation deployment and reviewed notice-key activation remain unrun. Local retirement parity does not authorize backlog or replace runtime readiness. Generic Gmail send stays closed.",
+    "Payment recognition validates retained authoritative-source metadata separately from staff claims; no ordinary command writes payment_observation. Actual authoritative payment source/adapter/readback is unavailable. Staff statements and deterministic source-shaped evidence cannot establish live payment or balance.",
+    "The report PDF uses the existing standard-font stack and refuses unsupported glyphs rather than dropping facts; UTF-8 CSV remains available. Generated local fixture PDFs were rendered/inspected; this is agent QA, not human observation.",
+    "Shared policy, emergency contacts, chargeback guidance, MKD membership/agreement and staff profile inputs must be actual staff-reviewed evidence. Unset controls are not operational policy; 3.5% is the accepted MKD percentage, not proof of membership or agreement.",
+    "No program Cloud Build, candidate assurance, promotion, observation, recovery or independent serving readback has run. Last verified production baseline remains337ac163/revisionrmuz9g28p on October9. Human verdict NOT RUN."
   ],
   "externalInvestigations": {
     "S207": {
@@ -5623,7 +5648,7 @@
       "outcome": "Public provider descriptions inspected; actual account/coverage/contact/consent/emergency and transition contract remain unverified."
     }
   },
-  "updatedAt": "2026-10-10T07:02:34.230628Z",
+  "updatedAt": "2026-10-10T07:21:24.171470Z",
   "preservedInterruptedRuns": [
     {
       "log": "/home/josiah/.local/state/pmi-kc-operations-20261009/maintenance-browser-23.log",
@@ -5758,5 +5783,53 @@
       }
     ],
     "limitation": "All44/238 remain required; five pending contracts and external/live prerequisites are not delivered by this queued slice. No permit, key activation, build or production effect has run."
+  },
+  "mainlineVerification": {
+    "sha": "f6a8375432e47be88f02b88b7cd362e5eabf777e",
+    "branch": "main",
+    "event": "push",
+    "ciRun": 38033099009,
+    "url": "https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38033099009",
+    "result": "passed",
+    "jobs": ["firestore", "policy-build", "quality", "unit", "verify"],
+    "unitTestsPassed": 9481,
+    "unitConfigurationSkips": 4,
+    "backendTestsPassed": 455,
+    "limitation": "Applies to this exact main head; subsequent documentation closure requires its own exact-main CI. No deployment, activation or human observation."
+  },
+  "releaseHostReadback": {
+    "checkedAt": "2026-10-10T07:07:26.988033Z",
+    "selectedPairSha": "f6a8375432e47be88f02b88b7cd362e5eabf777e",
+    "bothClean": true,
+    "reviewedDemo": false,
+    "reviewedSheetWriteback": true,
+    "environmentIgnored": true,
+    "originalCheckouts": {
+      "windowsDirtyFiles": 64,
+      "nativeDirtyFiles": 0,
+      "headsAndFileHashesPreserved": true
+    },
+    "evidence": "/home/josiah/.local/state/pmi-kc-operations-20261009/release-pair-host-readback-1.json",
+    "limitation": "Local host checks only; no cloud mutation or permit change."
+  },
+  "releasePreflight": {
+    "checkedAt": "2026-10-10T07:13:51.155Z",
+    "sha": "f6a8375432e47be88f02b88b7cd362e5eabf777e",
+    "verdict": "not_ready",
+    "blockedChecks": ["run_permit", "fresh_prerequisites"],
+    "readyChecks": [
+      "checkout_pair",
+      "checkout_alignment",
+      "native_runner",
+      "main_head",
+      "exact_sha_ci",
+      "release_foundation",
+      "watcher_target",
+      "batch_scope",
+      "sheet_switch",
+      "demo_mode"
+    ],
+    "evidence": "/home/josiah/.local/state/pmi-kc-operations-20261009/release-preflight-mainline-1.json",
+    "limitation": "Read-only collector/evaluation. Historical billing metadata is not fresh cloud verification. The prior permit remains consumed; no new permit/admission or Cloud Build ran."
   }
 }
