@@ -47,7 +47,7 @@ Historical maintenance backfill and unspecified additional morning issues remain
 MF-20261008-A/B and the confirmed 3.5% MKD percentage are included; membership/agreement facts
 must be verified, never inferred from names.
 
-Implementation starts from current remote main `8406181c` (including the manual client workflows
+Implementation began from remote main `8406181c` (including the manual client workflows
 and Chicago-date repair), in an isolated WSL checkout. The 44 authored additions and 88 selected
 registration rows were transferred without the unrelated Windows changes. Fresh readback on
 2026-10-09 confirms production still serves `337ac163` / `pmi-kc-app-rmuz9g28p-0a2909d490e1`
@@ -62,9 +62,12 @@ external holds. No old implementation or consumed permit is rerun. Retirement wa
 no old draft, backlog or migrated record becomes Send/Schedule authorization.
 
 Native requirement/evidence ledger: `docs/evidence/operations-communications-maintenance-2026-10.json`.
-Current engineering state: implementation in progress; nothing from this program is delivered yet.
-Human verdict: NOT RUN — no human observer. The release queue remains empty until verified slices
-are admitted through the existing mechanism. Both Dotloop write keys remain closed; OAuth alone
+Current engineering state: 201/238 requirements have four local engineering scopes passed;
+the canonical gate passed 9,485 unit tests, 455 backend tests and build; core E2E passed 32 with
+22 configuration skips. No program feature
+is verified delivered. Green implementation `64eec96f098f11f7f8d10ea634f0e75f210f687c` is queued through
+the existing mechanism, held before admission for fresh authentication and Communications runtime
+readiness. All five pending outcomes stay required. Human verdict: NOT RUN — no human observer. Both Dotloop write keys remain closed; OAuth alone
 has not verified office-agent/template eligibility or saved supported resource selection. S182's
 Dotloop API-origin exclusions remain mandatory.
 

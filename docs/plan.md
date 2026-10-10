@@ -13,6 +13,10 @@ Core E2E passed 32 tests with 22 existing configuration skips after the obsolete
 assertion was corrected. Finish green mainline/CI and then the existing queue/release process after approved WSL enrollment and runtime technical gates.
 No program feature is verified delivered; local retirement never substitutes for actual delivery.
 
+Green implementation commit `64eec96f098f11f7f8d10ea634f0e75f210f687c` is queued through the existing release mechanism.
+Exact-main CI is freshly read for the selected release head; no prior CI run or consumed permit
+substitutes for its gates. The queue remains held for current cloud/runtime prerequisites.
+
 Owning-service implementations cover scoped governance/one action, durable rich Communications,
 renewal policy/worklists/tasks, contextual private conversations/pins/shared collections, search,
 assessment-first maintenance/vendor work/history/reports, reviewed operating/chargeback policy,

@@ -21,6 +21,10 @@ current-source search, assessment-first maintenance, assigned-vendor contributio
 financial evidence/reports, shared reviewed policy, business signatures and application naming.
 39 contracts remain READY; S208/S217/S218/S220/S221 remain PENDING and required.
 
+Green implementation commit `64eec96f098f11f7f8d10ea634f0e75f210f687c` is queued through the existing release mechanism.
+Exact-main CI is freshly read for the selected release head; no prior CI run or consumed permit
+substitutes for its gates. The queue remains held for current cloud/runtime prerequisites.
+
 The complete current-source `bash scripts/verify.sh` gate passed: 9,485 unit tests in 1,010 files,
 all 455 backend tests in 79 files, format/lint/type/policy checks, zero production audit findings
 and the production build. Core E2E passed 32 tests with 22 existing configuration skips after its first attempt failed one

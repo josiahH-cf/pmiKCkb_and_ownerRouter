@@ -9,6 +9,10 @@ unfinished. The isolated WSL branch from main 8406181c preserves both original c
 44/238 evidence: `docs/evidence/operations-communications-maintenance-2026-10.json`; 201 requirements
 have four local engineering scopes passed. No program feature is verified delivered.
 
+Green implementation commit `64eec96f098f11f7f8d10ea634f0e75f210f687c` is queued through the existing release mechanism.
+Exact-main CI is freshly read for the selected release head; no prior CI run or consumed permit
+substitutes for its gates. The queue remains held for current cloud/runtime prerequisites.
+
 Complete canonical verification passed 9,485 unit tests/1,010 files, 455 backend tests/79 files,
 all policy checks, zero production audit findings and the production build. Core E2E passed 32 tests with 22 existing configuration skips after one old retired-tools
 assertion failed first; application code remains canonical-green. Production-built
