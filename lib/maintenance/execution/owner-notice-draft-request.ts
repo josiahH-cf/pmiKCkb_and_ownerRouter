@@ -6,7 +6,7 @@
 // the governed LeaseGmailExecutor with the SAME createDraft-only live provider the renewal draft uses —
 // but only after re-asserting the authoritative-recipient data-safety guard and the Action Registry
 // production gate. Draft-only by construction: LiveRenewalGmailDraftProvider hard-refuses every non-draft
-// operation, and gmail.maintenance_owner_notice.send stays production_allowed:false. Nothing here sends.
+// operation. S183 Send/Schedule uses the separate canonical Communications service; nothing here sends.
 
 import { createHash } from "node:crypto";
 

@@ -254,7 +254,7 @@ function splitList(value: unknown): string[] {
 /**
  * Create the real unsent draft for an assembled renewal-notice action. Enforces, in order: the
  * data-safety recipient guard (unless a diagnostic explicitly opts out) and the Action Registry
- * production gate (draft action is Approved for Execution; a `.send` action throws here). Then runs the
+ * production gate and exact draft operation; Send/Schedule belongs to the canonical Communications service. Then runs the
  * governed LeaseGmailExecutor with the live Gmail draft provider. `client` is a real GmailRuntimeClient
  * in production and a fake in tests, so no test contacts Gmail.
  */
@@ -263,6 +263,12 @@ export async function executeRenewalNoticeDraft(
   action: ExternalActionInput,
   options: { allowNonAuthoritativeRecipient?: boolean } = {},
 ): Promise<ExternalActionReceipt> {
+  if (action.actionKey !== RENEWAL_NOTICE_DRAFT_ACTION_KEY) {
+    throw new ExternalExecutionError(
+      "Use the canonical Communications Send or Schedule action. This provider accepts only the original unsent renewal draft contract.",
+      "blocked",
+    );
+  }
   if (!options.allowNonAuthoritativeRecipient) {
     assertAuthoritativeRenewalRecipient(action);
   }

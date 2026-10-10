@@ -1,6 +1,6 @@
 # PMI KC facts
 
-Last reconciled: 2026-10-10 (local program evidence; last independent serving readback 2026-10-09. Fresh cloud inspection waits on approved Google enrollment).
+Last reconciled: 2026-10-10 (renewed managed CLI/ADC/Admin browser and fresh serving, mailbox, RentVine and Dotloop resource readbacks passed; current program release gates remain pending).
 
 This ledger contains present truth only. Historical delivery detail remains recoverable from Git and
 is not active guidance.
@@ -22,15 +22,19 @@ financial evidence/reports, shared reviewed policy, business signatures and appl
 39 contracts remain READY; S208/S217/S218/S220/S221 remain PENDING and required.
 
 Implementation `64eec96f098f11f7f8d10ea634f0e75f210f687c` and its queue documentation are on main.
-Exact-main [CI 38033099009](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38033099009) passed all five jobs for
-`f6a8375432e47be88f02b88b7cd362e5eabf777e`: 9,481 unit tests/four configuration skips, all 455 backend tests,
+Exact-main [CI 38034229039](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38034229039) passed all five jobs for
+`63005b7106cdeff004841fd7d749630ccede0594`: 9,481 unit tests/four configuration skips, all 455 backend tests,
 quality, policy checks and production build. The one queued implementation slice remains held for
 fresh cloud prerequisites and replacement Communications runtime readiness; the full program is open.
 
-The complete current-source `bash scripts/verify.sh` gate passed: 9,485 unit tests in 1,010 files,
+The implementation baseline `bash scripts/verify.sh` gate passed: 9,485 unit tests in 1,010 files,
 all 455 backend tests in 79 files, format/lint/type/policy checks, zero production audit findings
 and the production build. Core E2E passed 32 tests with 22 existing configuration skips after its first attempt failed one
 obsolete retired-tools assertion (31 passed). Application source was unchanged by that correction. Each later release head still requires its own exact-main CI.
+The reviewed activation/retirement/worker-gate delta passed its final complete canonical run:
+9,501 unit tests / 1,012 files, all 455 backend tests / 79 files, required checks, production build
+and zero production audit findings. It is ready for mainline continuation; its own exact-main CI
+and every candidate/delivery gate remain required. Earlier failed/interrupted runs retain outcomes.
 Production-built Communications 15, maintenance 31, global search 11, Ask/history/collections 15 and
 isolated settings 3 passed using actual local routes/emulator state and deterministic external
 adapters. This is no live customer/provider effect or human observation.
@@ -47,18 +51,47 @@ reduced three actual app-history reads to one with all six permission checks ret
 Retirement parity is locally verified, pending activation/delivery: legacy new draft/send admissions,
 pasted governance tools and notice-first maintenance guidance are replaced while original drafts,
 attempt recovery, immutable artifacts, legal holds and existing published definitions/runs remain.
-Both notice send keys, generic send and both Dotloop write keys stay closed. S182 API-origin
-exclusions remain. Actual verified payment source/adapter is unavailable; staff claims never become
-provider payment evidence. MKD's intended policy is 3.5%, requiring actual membership/agreement input.
+The two scoped notice Send/Schedule keys are now prepared for reviewed activation in source under
+S183/S189–S192. Generic send, resident reply draft and both Dotloop write keys remain closed.
+Serving activation still requires the candidate managed-worker validation and normal release gates.
+Fresh Dotloop resource readback at 2026-10-10T11:47:04.831Z passed the account and two profiles,
+including one supported individual profile, with zero templates and no saved selection or
+transaction settings. Readiness is missing_resources (compatible_profile, renewal_template).
+Reported loop-write scope does not establish template eligibility or activation. The existing
+full-admin template/office request remains; no duplicate request or completed OAuth proof reran.
+Dan's existing managed app account is enabled, email-verified and Admin; no claim changed.
+S182 API-origin exclusions remain. Actual verified payment source/adapter is unavailable; staff
+claims never become provider payment evidence. MKD's intended policy is 3.5%, requiring actual
+membership/agreement input.
 
-Accessible Vendoroo/acquisition/native-answering investigations are complete as far as current
-access permits; required account/interface, corpus/schema/opening/cutover and phone/coverage/
-consent/transition inputs remain absent. Dan's available authorized reply supplied no integration
-contract; no duplicate or additional external message was sent. Dotloop A1 remains partial OAuth:
-office-agent/template eligibility and saved supported selection are unverified. Approved WSL CLI
-and ADC refresh last required owner enrollment; current identity inspection is not fresh readiness.
-Cloud worker configuration/activation, assurance, promotion, observation and final readbacks remain
-unrun for this program. Human verdict: NOT RUN — no human observer.
+October 10 fresh approved WSL CLI/ADC refresh and managed Admin browser assurance passed for
+josiah@pmikcmetro.com. The clean registered release pair reuses only the three approved local
+RentVine fields with the production configuration; original checkouts/configuration are preserved.
+Fresh Cloud Run readback still identifies 337ac163 / pmi-kc-app-rmuz9g28p-0a2909d490e1 at 100% traffic,
+managed pmi-kc-kb-runtime service identity, Demo=false and Sheet=true. Main 63005b71 passed all five
+CI 38034229039 jobs (9,481 unit/four configuration skips; all 455 backend).
+
+Managed Gmail readonly/compose/modify/labels token exchanges passed without a message effect.
+The bounded Scheduler job pmi-kc-communication-sequence-worker is created and read back PAUSED,
+minute schedule, POST empty JSON, no retries, 120-second deadline, exact runtime service identity
+and canonical /api/gmail-hub/sequence-worker audience. It stays paused until candidate validation.
+A separate permanently paused GET-only readiness job is also read back under that same identity.
+Candidate assurance now requires its exact revision/nonce log, canonical-target restoration and a
+real read-only Gmail connection through the normal app route. The readiness GET constructs no
+sequence service and dispatches no business work; failed/uncertain probes cannot be invoked twice.
+The worker's periodic linked observation supplies recovery without requiring a new Gmail watch or
+inbox-wide subscription. Existing confirmed watch controls retain their separate contracts.
+
+A live read through the existing typed RentVine work-order reader passed one 15-row page, all 15
+status definitions and one detail; all sampled orders were lease-linked and nine had vendor links.
+This is bounded access evidence, not full-portfolio or Vendoroo-origin coverage. The owner's latest
+steering makes direct Vendoroo access conditional on a demonstrated gap in the existing RentVine
+integration. S207/S208 now record that route first; call/troubleshooting evidence, attribution,
+freshness and takeover semantics still need an actual account contract. No additional request was sent.
+Acquisition corpus/schema/opening/cutover and native phone/coverage/consent/transition inputs remain
+absent. All five PENDING outcomes remain required. Dotloop A1 remains partial OAuth: office-agent/
+template eligibility and saved supported selection are unverified. Candidate assurance, promotion,
+observation and final program readbacks remain unrun. Human verdict: NOT RUN — no human observer.
 
 Released: **dotloop-pdf-renewal-v1-2026-10**, intake 050-054 (revised S106/S66/S130/S34 and
 new S182), under the owner's 2026-10-06 execution instruction, which selects the full bundle for

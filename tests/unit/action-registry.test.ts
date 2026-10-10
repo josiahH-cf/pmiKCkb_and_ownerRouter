@@ -58,7 +58,9 @@ describe("Action Registry repository", () => {
       "gmail.label.apply",
       "gmail.mailbox.read",
       "gmail.maintenance_owner_notice.draft_create",
+      "gmail.maintenance_owner_notice.send",
       "gmail.renewal_notice.draft_create",
+      "gmail.renewal_notice.send",
       "gmail.thread.reply",
       // S98 activation (2026-09-02): proven exact operating-Sheet write keys.
       "google_sheets.renewal_checklist.field_update",

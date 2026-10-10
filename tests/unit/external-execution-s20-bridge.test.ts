@@ -184,25 +184,56 @@ describe("S25/S26 external execution to S20 preparation bridge", () => {
     }
   });
 
-  it("blocks a Registry-closed production action before any ledger or queue write", async () => {
-    const action = externalAction("gmail.renewal_notice.send", sendValues, "closed");
-
-    await expect(
-      prepareExternalActionWithS20(
-        editor,
-        {
-          action,
-          definition: leaseDefinition(action.actionKey),
-          trustedContext: trustedExternalContext(action, sendContext),
-          validate: () => null,
-        },
-        { allowSyntheticAliases: true, db },
-      ),
-    ).rejects.toMatchObject({
-      blockers: expect.arrayContaining(["action_not_production_allowed"]),
-    });
-    expect(fakeDb.store.size).toBe(0);
-  });
+  it.each(["gmail.renewal_notice.send", "gmail.maintenance_owner_notice.send"])(
+    "S193: a new %s cannot enter the retired bridge even when its scoped new Registry key is open",
+    async (actionKey) => {
+      const action = externalAction(actionKey, sendValues, "retired");
+      const validate = vi.fn(() => null);
+      await expect(
+        prepareExternalActionWithS20(
+          editor,
+          {
+            action,
+            definition:
+              actionKey === "gmail.renewal_notice.send"
+                ? leaseDefinition(actionKey)
+                : maintenanceDefinition(actionKey),
+            trustedContext: trustedExternalContext(action, sendContext),
+            validate,
+          },
+          { allowSyntheticAliases: true, db },
+        ),
+      ).rejects.toMatchObject({
+        code: "blocked",
+        message: expect.stringMatching(/canonical Communications Send or Schedule/),
+      });
+      expect(validate).not.toHaveBeenCalled();
+      const execute = vi.fn(async () => {
+        throw new Error("Retired transport must not be constructed.");
+      });
+      await expect(
+        executeExternalActionWithS20(
+          editor,
+          {
+            action,
+            definition:
+              actionKey === "gmail.renewal_notice.send"
+                ? leaseDefinition(actionKey)
+                : maintenanceDefinition(actionKey),
+            trustedContext: trustedExternalContext(action, sendContext),
+            executionId: "unclaimed-original-attempt",
+            executor: { execute, reconcile: vi.fn(async () => null) },
+          },
+          { allowSyntheticAliases: true, db },
+        ),
+      ).rejects.toMatchObject({
+        code: "blocked",
+        message: expect.stringMatching(/canonical Communications Send or Schedule/),
+      });
+      expect(execute).not.toHaveBeenCalled();
+      expect(fakeDb.store.size).toBe(0);
+    },
+  );
 
   it.each([
     {

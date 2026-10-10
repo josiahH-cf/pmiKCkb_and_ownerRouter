@@ -24,6 +24,17 @@ No direct Vendoroo connector exists. RentVine reads and manual S100 work-order c
 
 Known owner intent is a complete integrated maintenance experience, using Vendoroo for the subscribed front-line intake/troubleshooting layer and PMI for downstream work. The account/interface/application-use/open-work-order contract is still unknown; this file intentionally preserves that blocker rather than proposing unsupported schemas or completion claims.
 
+**October 10 execution continuation.** The owner's latest direction makes separate Vendoroo
+access conditional on a demonstrated gap; investigate the existing Vendoroo–RentVine integration
+first. The approved existing typed RentVine reader passed one bounded 15-order page, 15 status
+definitions and one detail. All sampled orders were lease-linked and nine had vendor associations.
+This proves current read access only, without historical backfill or a new provider effect. It does
+not establish Vendoroo origin, call/transcript/troubleshooting completeness, event/freshness semantics
+or staff takeover. Required coverage and ownership must be verified through the real RentVine
+projection or, only where a demonstrated gap requires it, an actual supported Vendoroo interface.
+No duplicate access request is authorized. S208 remains PENDING until that contract is complete;
+direct connector credentials are not assumed to be a universal prerequisite.
+
 **Actors and entry conditions.**
 
 PMI staff consume verified maintenance evidence; approved service identities may perform only the later documented allowed integration operations. Vendor access remains assigned-ticket-only and does not include raw sentiment/internal conversations.

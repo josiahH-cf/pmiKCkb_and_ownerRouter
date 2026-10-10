@@ -17,6 +17,17 @@ S133 delivered a bounded assessment, and the October 1 decision previously chose
 
 Complete a bounded necessary investigation of the actual subscribed modules and approved integration interface, with a field/identity/freshness/effect/retention contract and explicit findings for every required maintenance input. This is READY discovery scope; it is not a disguised finalized S208.
 
+**October 10 execution continuation.** The owner's latest direction makes separate Vendoroo
+access conditional on a demonstrated gap; investigate the existing Vendoroo–RentVine integration
+first. The approved existing typed RentVine reader passed one bounded 15-order page, 15 status
+definitions and one detail. All sampled orders were lease-linked and nine had vendor associations.
+This proves current read access only, without historical backfill or a new provider effect. It does
+not establish Vendoroo origin, call/transcript/troubleshooting completeness, event/freshness semantics
+or staff takeover. Required coverage and ownership must be verified through the real RentVine
+projection or, only where a demonstrated gap requires it, an actual supported Vendoroo interface.
+No duplicate access request is authorized. S208 remains PENDING until that contract is complete;
+direct connector credentials are not assumed to be a universal prerequisite.
+
 **Actors and entry conditions.**
 
 Authorized implementation runner reads official material and harmless approved account surfaces; PMI's account administrator and Vendoroo account manager supply account-specific facts. No browser password/code/passkey, account change or provider action is performed as discovery.

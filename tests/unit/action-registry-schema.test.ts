@@ -144,10 +144,13 @@ describe("Action Registry seed catalog", () => {
       "gmail.thread.reply",
       "gmail.label.apply",
       "gmail.renewal_notice.draft_create",
+      // S183 separately authorizes the reviewed S189-S192 workflow operations.
+      "gmail.renewal_notice.send",
+      "gmail.maintenance_owner_notice.send",
       // S59 (2026-08-26): exact-key owner-approved read-only RentCast activation.
       "rentcast.rental_listings.search",
       // Slice 6 (2026-07-22): maintenance owner-notice DRAFT flipped live (owner email confirmed at
-      // portfolio.owners[].email, 25/25). Draft-only; the paired .send stays non-executable below.
+      // portfolio.owners[].email, 25/25). That original proof remains draft-only.
       "gmail.maintenance_owner_notice.draft_create",
       // S39.3 (2026-07-23): internal-staff transactional notice flipped live (D-AUTOMATION-LINE).
       // Internal-only auto-send; the generic gmail.message.send stays non-executable.
@@ -300,30 +303,36 @@ describe("Action Registry seed catalog", () => {
         .map((entry) => entry.key),
     ).toEqual(["gmail.mailbox.read", "gmail.thread.reply", "gmail.label.apply"]);
     // Slice 6 (2026-07-22): maintenance owner-notice DRAFT flipped live. D33 later retired both
-    // direct notice-send keys. S183 now names two future reviewed workflow send operations;
-    // both stay disabled until the new dispatch/observation/recovery technical gates pass.
+    // direct notice-send keys. S183 separately authorizes the reviewed S189-S192 operations;
+    // their new activation never turns an old draft or proof into Send authorization.
     const maintenanceDraft = gmailEntries.find(
       (entry) => entry.key === "gmail.maintenance_owner_notice.draft_create",
     );
     expect(maintenanceDraft?.readiness).toBe("Approved for Execution");
     expect(maintenanceDraft?.evidence_status).toBe("Documented");
     expect(maintenanceDraft?.production_allowed).toBe(true);
-    const pendingReviewedSendKeys = [
+    const reviewedSendKeys = [
       "gmail.renewal_notice.send",
       "gmail.maintenance_owner_notice.send",
     ];
-    for (const key of pendingReviewedSendKeys) {
+    for (const key of reviewedSendKeys) {
       const entry = gmailEntries.find((candidate) => candidate.key === key);
-      expect(entry?.readiness, key).toBe("Disabled");
+      expect(entry?.readiness, key).toBe("Approved for Execution");
       expect(entry?.expected_action, key).toMatch(
         /exact workflow-linked message.*Send\/Schedule/i,
       );
       expect(entry?.documented_evidence, key).toMatch(
-        /S189 authorization.*S190.*S191 observation.*S192 operational controls/i,
+        /S189-S192.*managed Gmail.*bounded paused Scheduler/i,
       );
-      expect(entry?.event_ingestion_mode, key).toBe("None");
-      expect(entry?.required_permissions, key).toEqual([]);
-      expect(entry?.production_allowed, key).toBe(false);
+      expect(entry?.event_ingestion_mode, key).toBe("Polling");
+      expect(entry?.required_permissions, key).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/gmail.compose.*sender profile/),
+          expect.stringMatching(/Explicit exact Send\/Schedule authorization/),
+          expect.stringMatching(/OIDC worker.*at-most-once.*ambiguity/),
+        ]),
+      );
+      expect(entry?.production_allowed, key).toBe(true);
     }
   });
 

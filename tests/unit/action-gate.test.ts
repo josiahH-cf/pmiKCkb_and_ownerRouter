@@ -32,10 +32,14 @@ describe("action-gate", () => {
     expect(isActionExecutable("gmail.renewal_notice.draft_create")).toBe(true);
   });
 
-  it("opens the maintenance owner-notice DRAFT gate but keeps its send gated (Slice 6)", () => {
+  it("retains original draft access and opens only the two reviewed S183 workflow send keys", () => {
     // 2026-07-22: owner email confirmed at portfolio.owners[].email (25/25); draft-only flip.
     expect(isActionExecutable("gmail.maintenance_owner_notice.draft_create")).toBe(true);
-    expect(isActionExecutable("gmail.maintenance_owner_notice.send")).toBe(false);
+    expect(isActionExecutable("gmail.maintenance_owner_notice.send")).toBe(true);
+    expect(isActionExecutable("gmail.renewal_notice.send")).toBe(true);
+    expect(isActionExecutable("gmail.message.send")).toBe(false);
+    expect(isActionExecutable("dotloop.loop.create_from_template")).toBe(false);
+    expect(isActionExecutable("dotloop.document.upload")).toBe(false);
   });
 
   it("still refuses a gated entry with no runtime (Planned/false)", () => {

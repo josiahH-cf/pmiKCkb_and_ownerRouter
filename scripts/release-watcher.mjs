@@ -16,6 +16,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseEnv } from "node:util";
 import { GoogleAuth } from "google-auth-library";
+import { verifyCommunicationWorkerAssurance } from "./communication-worker-assurance.mjs";
 import { ensureAuthenticated } from "./auth/ensure.mjs";
 import { credentialEnrollmentVersion } from "./auth/credential-store.mjs";
 import { resolveMonitoringConfig } from "./setup-monitoring.mjs";
@@ -790,6 +791,18 @@ export function createDriver({
       };
     },
     async assurance(cp) {
+      const reviewedWorker = parseEnv(
+        readFileSync(join(source, ".env.production.local"), "utf8"),
+      );
+      if (
+        !reviewedWorker.WORKFLOW_COMMUNICATION_WORKER_AUDIENCE?.trim() ||
+        !reviewedWorker.WORKFLOW_COMMUNICATION_WORKER_SERVICE_ACCOUNT?.trim()
+      )
+        throw new Error("communication_worker_configuration_required");
+      assertLock();
+      if ((await verifyCommunicationWorkerAssurance(cp, { stateRoot })).verified !== true)
+        throw new Error("communication_worker_assurance_required");
+      assertLock();
       if (await this.hasExactReceipt(cp)) return { verified: true };
       if (existsSync(candidateReceipt(cp)))
         return { verified: false, reason: "candidate_receipt_expired_or_invalid" };

@@ -1433,7 +1433,8 @@
       "preservation": "passed",
       "integration": "blocked",
       "evidence": [
-        "Current router/spec/reference/closed-key/retirement checks and complete canonical gate passed; compiled Communications15 and actual legacy compatibility5 passed. Core E2E initially failed one obsolete Label rules assertion after the intentional retirement; its scoped correction passed the complete 32-test core lane with 22 configuration skips. Admin-only access, immutable governed artifacts and canonical hub handoff remain verified; old pasted/synthetic controls are absent. Exact-main CI must be freshly read for the selected release head. Managed worker/key readbacks, candidate assurance, promotion, observation and independent production readbacks remain blocked by approved WSL enrollment. Human verdict NOT RUN."
+        "Current router/spec/reference/closed-key/retirement checks and complete canonical gate passed; compiled Communications15 and actual legacy compatibility5 passed. Core E2E initially failed one obsolete Label rules assertion after the intentional retirement; its scoped correction passed the complete 32-test core lane with 22 configuration skips. Admin-only access, immutable governed artifacts and canonical hub handoff remain verified; old pasted/synthetic controls are absent. Exact-main CI must be freshly read for the selected release head. Managed worker/key readbacks, candidate assurance, promotion, observation and independent production readbacks remain blocked by approved WSL enrollment. Human verdict NOT RUN.",
+        "2026-10-10 continuation: renewed approved CLI/ADC and managed Admin browser readiness passed. The paused worker and read-only OIDC probe were configured/read back; two-key source activation and exact-main candidate/release gates remain pending. Earlier authentication holds retain their historical scope."
       ],
       "live_effect": "not_run",
       "human": "not_run"
@@ -4095,7 +4096,8 @@
       "evidence": [
         "Dotloop A1 remains OAuth-only partial; office-agent/template eligibility and supported saved profile/template/status selections require actual owner/configuration verification.",
         "Known connection/closed-key/S182 preservation is retained, but fresh live owner/Connections readback is blocked by approved WSL/browser authentication. Roster screenshot is never treated as eligibility or activation proof.",
-        "Local engineering only: complete canonical aggregate passed 9,485 unit tests and all 455 backend tests, all policy checks and production build. Production-built maintenance31/Communications15/search11/history15 and settings3 passed; scoped real-source/transaction evidence remains separate. Exact-main CI must be read for the selected head; fresh Dotloop owner/Connections readback and all candidate/delivery gates remain pending. No live customer effect, new identity/privilege, activation or human observation is claimed."
+        "Local engineering only: complete canonical aggregate passed 9,485 unit tests and all 455 backend tests, all policy checks and production build. Production-built maintenance31/Communications15/search11/history15 and settings3 passed; scoped real-source/transaction evidence remains separate. Exact-main CI must be read for the selected head; fresh Dotloop owner/Connections readback and all candidate/delivery gates remain pending. No live customer effect, new identity/privilege, activation or human observation is claimed.",
+        "2026-10-10T11:47:04.831Z fresh existing-owner resource refresh/readback passed: account, two profiles (one supported individual), zero templates, no saved resource or transaction selection; missing_resources/compatible_profile/renewal_template. Reported loop-write scope does not supply a usable template or authorize a write. Both keys remain closed and S182 is preserved; no historical OAuth proof reran. Authentication is no longer the current hold."
       ],
       "live_effect": "not_run",
       "human": "not_run"
@@ -5151,6 +5153,16 @@
       "files": 2,
       "log": "/home/josiah/.local/state/pmi-kc-operations-20261009/closure-doc-gates-1.log",
       "limitation": "Router/falsification/freshness/path/spec/copy/redaction and diff checks passed; only documentation/ledger changed after the canonical application gate."
+    },
+    {
+      "scope": "S183/S189-S193 exact activation, legacy admission retirement and mandatory managed-worker release gate",
+      "result": "passed",
+      "tests": 9501,
+      "files": 1012,
+      "backendTests": 455,
+      "backendFiles": 79,
+      "log": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery/canonical-activation-5.log",
+      "limitation": "Local canonical engineering only; source still awaits new exact-main CI, candidate managed probe, assurance/promotion/observation and independent serving readbacks. No customer send or human observation was used as proof."
     }
   ],
   "preservedFailedRuns": [
@@ -5648,7 +5660,7 @@
       "outcome": "Public provider descriptions inspected; actual account/coverage/contact/consent/emergency and transition contract remain unverified."
     }
   },
-  "updatedAt": "2026-10-10T07:21:24.171470Z",
+  "updatedAt": "2026-10-10T12:26:49.676115+00:00",
   "preservedInterruptedRuns": [
     {
       "log": "/home/josiah/.local/state/pmi-kc-operations-20261009/maintenance-browser-23.log",
@@ -5831,5 +5843,186 @@
     ],
     "evidence": "/home/josiah/.local/state/pmi-kc-operations-20261009/release-preflight-mainline-1.json",
     "limitation": "Read-only collector/evaluation. Historical billing metadata is not fresh cloud verification. The prior permit remains consumed; no new permit/admission or Cloud Build ran."
-  }
+  },
+  "runtimeReadiness20261010": {
+    "checkedAt": "2026-10-10T11:10:20.348791+00:00",
+    "main": "63005b7106cdeff004841fd7d749630ccede0594",
+    "ci": {
+      "id": "38034229039",
+      "conclusion": "success",
+      "unitPassed": 9481,
+      "unitConfigurationSkips": 4,
+      "backendPassed": 455
+    },
+    "authentication": {
+      "cli": "passed",
+      "adc": "passed",
+      "adminBrowser": "passed",
+      "identity": "josiah@pmikcmetro.com",
+      "providerEnvironment": "approved existing three-field RentVine configuration reused; original configuration preserved"
+    },
+    "serving": {
+      "commit": "337ac163c5709381e8db8d2c18810bec357d8a96",
+      "revision": "pmi-kc-app-rmuz9g28p-0a2909d490e1",
+      "trafficPercent": 100,
+      "serviceAccount": "pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com",
+      "demo": false,
+      "sheet": true
+    },
+    "gmailScopes": {
+      "readonly": "token_exchange_passed",
+      "compose": "token_exchange_passed",
+      "modify": "token_exchange_passed",
+      "labels": "token_exchange_passed",
+      "messageEffect": "none"
+    },
+    "scheduler": {
+      "name": "pmi-kc-communication-sequence-worker",
+      "state": "PAUSED",
+      "schedule": "* * * * *",
+      "timeZone": "Etc/UTC",
+      "attemptDeadlineSeconds": 120,
+      "retryCount": 0,
+      "method": "POST",
+      "body": "{}",
+      "audience": "https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/gmail-hub/sequence-worker",
+      "serviceAccount": "pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com",
+      "readback": "passed",
+      "candidateValidation": "not_run"
+    },
+    "activation": {
+      "preparedKeys": [
+        "gmail.renewal_notice.send",
+        "gmail.maintenance_owner_notice.send"
+      ],
+      "priorServingOpen": 16,
+      "preparedOpen": 18,
+      "registryCount": 48,
+      "genericSend": "closed",
+      "dotloopWriteKeys": "closed",
+      "providerCustomerSendProof": "not_run",
+      "servingActivation": "not_delivered"
+    },
+    "rentvine": {
+      "reader": "existing typed work-order read client",
+      "pagesRead": 1,
+      "rowsRead": 15,
+      "statusDefinitionsRead": 15,
+      "detailsRead": 1,
+      "leaseLinkedRows": 15,
+      "vendorLinkedRows": 9,
+      "readback": "passed",
+      "completePortfolio": false,
+      "vendorooOriginCoverage": "unverified",
+      "historicalBackfill": "not_run"
+    },
+    "vendorooDirection": "Use the existing RentVine integration first; separate access is conditional on a demonstrated coverage or operational-contract gap. The account-scoped required data/freshness/takeover contract is still pending.",
+    "privateEvidenceRoot": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery",
+    "humanVerdict": "NOT RUN — no human observer",
+    "readOnlyProbe": {
+      "job": "pmi-kc-communication-worker-readiness",
+      "state": "PAUSED",
+      "method": "GET",
+      "schedule": "0 0 1 1 *",
+      "readback": "passed",
+      "semantics": "Service-auth and two current runtime gates only; no sequence service, occurrence claim, provider business effect or synthetic production record. Exact candidate revision/nonce log readback, unique consumed probe invocation, canonical target restoration and failed/uncertain hold are required before assurance.",
+      "localTests": "worker-assurance-focused-3: 24 passed in four files; five probe-state cases and six read-only route cases included.",
+      "liveCandidate": "not_run",
+      "configurationGate": "Both reviewed worker settings and actual managed probe are mandatory; absent/partial/unreadable configuration refuses assurance before auth or subprocesses. No optional configuration bypass remains."
+    },
+    "gmailObservation": {
+      "source": "periodic bounded linked reads plus pre-dispatch fresh complete read",
+      "newWatchOrSubscription": "not_required",
+      "oldConfiguredTopic": "NOT_FOUND on read; no mutation or inference of provider notification delivery"
+    },
+    "legacyBoundaryRepair": {
+      "before": "Opening the new exact notice keys allowed old S20 preparation; the wrong-key renewal draft path also constructed the old provider before its draft-only refusal.",
+      "repair": "Default old S20 preparation/dispatch rejects both notice keys before ledger/queue/provider work; original reconciliation remains untouched. The renewal draft helper rejects a non-draft operation before client construction. Explicit source-owned test-only registries retain the historical primitive checks and are rejected in Production.",
+      "currentVerification": "activation-repair-focused-1: 179 tests passed in fifteen files, including both default old notice admission/dispatch refusals and wrong-key provider construction; final canonical aggregate remains pending.",
+      "liveBusinessEffect": "none"
+    },
+    "dotloop": {
+      "checkedAt": "2026-10-10T11:47:04.831Z",
+      "adminVerified": true,
+      "observationReadback": "passed",
+      "accountRead": "passed",
+      "profilesRead": 2,
+      "supportedIndividualProfiles": 1,
+      "templatesRead": 0,
+      "savedSelection": false,
+      "transactionSettingsSaved": false,
+      "readiness": "missing_resources",
+      "reasons": ["compatible_profile", "renewal_template"],
+      "loopWriteScope": "reported",
+      "writeKeys": "closed",
+      "providerBusinessEffect": "none",
+      "apiOriginAiInput": "none",
+      "completedOAuthProofRerun": "not_run",
+      "earlierAttempts": [
+        "quota-project header missing before resource discovery",
+        "read helper omitted required verified actor before resource discovery"
+      ]
+    },
+    "staffEnrollment": {
+      "requestedStaffAccount": "enabled, verified managed email, Admin",
+      "identityOrClaimChange": "none",
+      "managedMailboxProfileRead": "passed through the existing DWD contract; zero message bodies read; no identity/claim change"
+    },
+    "materialReplyCheck": {
+      "threadsRead": 3,
+      "messagesRead": 11,
+      "moreAvailable": false,
+      "scope": "Dan-linked acquisition and native-answering contract replies since October 1",
+      "newRequiredAcquisitionOrPhoneInputs": "none identified",
+      "externalMessageSent": "none"
+    },
+    "finalCanonical": {
+      "outcome": "passed",
+      "unitPassed": 9501,
+      "unitFiles": 1012,
+      "backendPassed": 455,
+      "backendFiles": 79,
+      "requiredPolicyChecks": "passed",
+      "productionBuild": "passed",
+      "productionAuditFindings": 0,
+      "log": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery/canonical-activation-5.log",
+      "mainlineContinuation": "verified source delta ready to commit/push; new exact-main CI and release gates remain pending"
+    },
+    "sequenceBaseline": {
+      "sequences": 0,
+      "occurrences": 0,
+      "workerCheckpointExists": false,
+      "providerBusinessEffect": "none"
+    }
+  },
+  "continuationHistory": [
+    {
+      "date": "2026-10-10",
+      "outcome": "renewed auth and live bounded reads passed; managed worker configured paused; reviewed exact two-key source activation prepared; candidate/release verification remains required",
+      "failedChecks": [
+        "activation-focused-1: 93 passed, two obsolete pre-activation catalog assertions failed; preserved outside Git",
+        "worker-assurance-focused-1: 19 passed, five fixture failures from missing partial-mock exports; corrected without an application safety change",
+        "worker-assurance-focused-2: 23 passed, one fixture expected 400 where existing query refusal is 409; corrected to the actual contract",
+        "canonical-activation-1: required aggregate reached unit gate; 9,476 passed, nine failed in eight files (seven old catalog/historical-state expectations, renewed draft-path assertion, old S20 notice admission). Backend/build were not reached in this attempt.",
+        "legacy-notice-admission-falsification-1: three targeted failures with 62 passed before repair; default two-key S20 admission and wrong-key draft provider construction falsified.",
+        "canonical-activation-2: required aggregate stopped at TypeScript; the new blocked-dispatch fixture omitted ExternalExecutor.reconcile. Corrected fixture only; backend/build were not reached.",
+        "canonical-activation-3: 9,496 unit tests passed and one release-watcher fixture failed because its reviewed production environment file was absent. Added the explicit non-worker fixture file and a fail-closed unreadable-file regression; backend/build were not reached.",
+        "worker-configuration-falsification-1: three cases failed with 41 passed before repair; absent/both-partial worker settings could skip or bypass the mandatory release readiness gate."
+      ],
+      "pendingOutcomes": ["S208", "S217", "S218", "S220", "S221"],
+      "passedChecks": [
+        "activation-focused-2: 95 unit tests passed in eleven files",
+        "worker-assurance-focused-3: 24 unit tests passed in four files",
+        "activation-repair-focused-1: 179 passed in fifteen files; current catalog consistency, historic packet preservation, retired admission/dispatch and managed readiness checks.",
+        "release-worker-focused-4: 52 tests passed in three files, including unreadable reviewed worker configuration holding before auth/subprocesses.",
+        "release-worker-focused-5: all 55 tests passed in three files after the mandatory absent/partial configuration gate repair; probe identity/readback/restoration and legacy release driver checks remain covered.",
+        "canonical-activation-5: full required aggregate passed 9,501 unit tests in 1,012 files, all 455 backend tests in 79 files, required policy/format/lint/type/budget checks and production build; production audit zero findings.",
+        "registry-exact-delta-1: same 48 keys; only gmail.renewal_notice.send and gmail.maintenance_owner_notice.send change false to true in source (16 to 18 open). All unrelated keys preserved.",
+        "original-checkout-preservation-1: original Windows HEAD and 64 dirty file hashes preserved; original detached WSL HEAD and clean status preserved."
+      ],
+      "interruptedChecks": [
+        "canonical-activation-4: local verification process group was checked and stopped before completion to repair the discovered absent/partial worker-configuration bypass. Partial log preserved; no cloud effect or pass claimed."
+      ]
+    }
+  ]
 }

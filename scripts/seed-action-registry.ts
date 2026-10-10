@@ -27,19 +27,22 @@ Usage: tsx scripts/seed-action-registry.ts [--dry-run] [--json]
 Executable entries are limited to an explicit allow-list (each backed by a committed grant
 artifact); this script refuses to seed any OTHER production_allowed entry.`;
 
-// Action Registry keys permitted to be production_allowed, each backed by a committed grant artifact
-// (Section 3). Kept in sync with the executable set in lib/admin/migration-readiness.ts. Direct Gmail
-// sends (`gmail.message.send` and both `.send` notice keys) are permanently closed under D33 and are
-// deliberately NOT listed, so a flip of any of them is a surprise the seed refuses. Any other
-// production_allowed entry NOT listed here is likewise refused.
+// Exact production keys permitted by their committed owner direction and technical contract.
+// Keep synchronized with lib/admin/migration-readiness.ts. S183 supersedes D33 only for the two
+// workflow notice keys under S189-S192; generic gmail.message.send remains permanently closed.
+// The allow-list never grants an operation: current staff authorization, runtime suspension,
+// exact target/content, one-attempt claims and readback remain mandatory.
 const EXECUTABLE_ALLOWLIST = new Set<string>([
   "gmail.mailbox.read",
   "gmail.thread.reply",
   "gmail.label.apply",
   "gmail.renewal_notice.draft_create",
+  // S183 reviewed exact activation (2026-10-10); only explicit workflow Send/Schedule.
+  "gmail.renewal_notice.send",
+  "gmail.maintenance_owner_notice.send",
   // S59 activation (2026-08-26): read-only reference comps; no offered-rent or system-of-record write.
   "rentcast.rental_listings.search",
-  // Slice 6 (2026-07-22): maintenance owner-notice DRAFT flipped live (draft-only); its send stays gated.
+  // Slice 6 (2026-07-22): maintenance owner-notice DRAFT retains its original draft-only proof.
   "gmail.maintenance_owner_notice.draft_create",
   // S39.3 (2026-07-23): internal-staff transactional notice flipped live (D-AUTOMATION-LINE); internal-only.
   "internal.transactional_notice.send",

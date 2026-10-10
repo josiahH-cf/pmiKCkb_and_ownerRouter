@@ -335,16 +335,21 @@ describe("executeRenewalNoticeDraft", () => {
     expect(createDraft).toHaveBeenCalledTimes(1);
   });
 
-  it("refuses to draft for an action that is not production-allowed (e.g. a .send action)", async () => {
+  it("S193: an open workflow Send key cannot enter the old draft provider factory", async () => {
     const { client, createDraft } = fakeClient();
     const sendAction: ExternalActionInput = {
       ...buildRenewalNoticeDraftAction(tenantInput),
       actionKey: "gmail.renewal_notice.send",
     };
 
+    const createClient = vi.fn(() => client);
     await expect(
-      executeRenewalNoticeDraft(() => client, sendAction),
-    ).rejects.toBeInstanceOf(ActionNotExecutableError);
+      executeRenewalNoticeDraft(createClient, sendAction),
+    ).rejects.toMatchObject({
+      code: "blocked",
+      message: expect.stringMatching(/canonical Communications Send or Schedule/),
+    });
+    expect(createClient).not.toHaveBeenCalled();
     expect(createDraft).not.toHaveBeenCalled();
   });
 

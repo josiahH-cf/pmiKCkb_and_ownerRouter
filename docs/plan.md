@@ -10,14 +10,19 @@ and integration evidence; the complete canonical gate passed 9,485 unit tests, a
 policy checks and the production build. Production-built maintenance 31, Communications 15, search 11,
 history/collections 15 and settings 3 passed; scoped evidence/failed attempts retain their identities.
 Core E2E passed 32 tests with 22 existing configuration skips after the obsolete retirement
-assertion was corrected. Mainline/CI are green. Continue the existing queue/release process after approved WSL enrollment and runtime technical gates.
+assertion was corrected. Mainline/CI are green. Renewed approved WSL CLI/ADC and Admin browser checks now pass. Continue the existing queue/release process through the runtime technical gates.
 No program feature is verified delivered; local retirement never substitutes for actual delivery.
 
 Implementation `64eec96f098f11f7f8d10ea634f0e75f210f687c` and its queue documentation are on main.
-Exact-main [CI 38033099009](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38033099009) passed all five jobs for
-`f6a8375432e47be88f02b88b7cd362e5eabf777e`: 9,481 unit tests/four configuration skips, all 455 backend tests,
+Exact-main [CI 38034229039](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38034229039) passed all five jobs for
+`63005b7106cdeff004841fd7d749630ccede0594`: 9,481 unit tests/four configuration skips, all 455 backend tests,
 quality, policy checks and production build. The one queued implementation slice remains held for
 fresh cloud prerequisites and replacement Communications runtime readiness; the full program is open.
+
+The reviewed activation and release-gate delta now passed the full canonical run: 9,501 unit
+and 455 backend tests, all required checks, production build and zero production audit findings.
+Only the two notice keys change in the 48-key source catalog. Continue green commit/push and
+new exact-main CI before admission; candidate worker/assurance/promotion/observation remain gates.
 
 Owning-service implementations cover scoped governance/one action, durable rich Communications,
 renewal policy/worklists/tasks, contextual private conversations/pins/shared collections, search,
@@ -27,8 +32,12 @@ its revision/content/sender/counter/source claim repair passed focused unit 31/e
 compiled Communications 15 journey. Preserve originals and no live synthetic proof.
 
 All five pending outcomes stay required: S208, S217, S218, S220, S221. S207/S216/S219 accessible
-investigations retain missing actual Vendoroo, acquisition and answering inputs; Dan's available
-reply was checked and no duplicate/additional external message was sent. Dotloop A1 remains partial
+investigations retain missing coverage/ownership, acquisition and answering inputs. Direct Vendoroo
+access is conditional on demonstrated gaps in the existing RentVine integration; live typed reads
+passed a bounded 15-order page, 15 statuses and one detail. No duplicate/additional message was sent.
+The minute worker and read-only managed readiness probe are configured/read back PAUSED. The two
+exact notice keys are prepared for reviewed activation; actual candidate validation and release
+assurance precede serving enablement. Dotloop A1 remains partial
 and both write keys closed. Keep exact actor/target/version/conflict/claim/receipt/readback/recovery
 contracts, S182 exclusions, original evidence, private histories and failed outcomes. Queue green
 implemented work; do not admit a release while Communications worker/key readiness or required

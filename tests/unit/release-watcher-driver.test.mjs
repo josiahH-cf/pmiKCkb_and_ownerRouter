@@ -32,6 +32,10 @@ import {
   writeReceipt,
 } from "../../scripts/production-assurance-receipts.mjs";
 
+vi.mock("../../scripts/communication-worker-assurance.mjs", () => ({
+  verifyCommunicationWorkerAssurance: vi.fn(async () => ({ verified: true })),
+}));
+
 const service = "pmi-kc-app";
 const sha = "a".repeat(40);
 const revision = `${service}-candidate-isolated`;
@@ -60,6 +64,10 @@ function harness({
 } = {}) {
   const root = mkdtempSync(join(tmpdir(), "pmi-watcher-driver-"));
   roots.push(root);
+  writeFileSync(
+    join(root, ".env.production.local"),
+    "WORKFLOW_COMMUNICATION_WORKER_AUDIENCE=https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/gmail-hub/sequence-worker\nWORKFLOW_COMMUNICATION_WORKER_SERVICE_ACCOUNT=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com\n",
+  );
   writeFileSync(
     join(root, ".env.local"),
     "RENTVINE_API_BASE_URL=https://pmikcmetro.rentvine.com/api/manager\nRENTVINE_API_KEY=isolated-key\nRENTVINE_API_SECRET=isolated-secret\n",
@@ -290,6 +298,28 @@ describe("release watcher command-path recovery", () => {
     expect(await h.driver.authorize(h.cp)).toBe(false);
     await expect(h.driver.deploy(h.cp)).rejects.toThrow("release_lock_lost");
     await expect(h.driver.save(h.cp)).rejects.toThrow("release_lock_lost");
+    expect(h.runCommand).not.toHaveBeenCalled();
+  });
+  it.each([
+    "",
+    "WORKFLOW_COMMUNICATION_WORKER_AUDIENCE=https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/api/gmail-hub/sequence-worker\n",
+    "WORKFLOW_COMMUNICATION_WORKER_SERVICE_ACCOUNT=pmi-kc-kb-runtime@pmi-kc-kb-prod.iam.gserviceaccount.com\n",
+  ])(
+    "cannot skip managed worker assurance through absent or partial configuration (%s)",
+    async (configuration) => {
+      const h = harness();
+      writeFileSync(join(h.root, ".env.production.local"), configuration);
+      await expect(h.driver.assurance(h.cp)).rejects.toThrow(
+        "communication_worker_configuration_required",
+      );
+      expect(h.ensureAuth).not.toHaveBeenCalled();
+      expect(h.runCommand).not.toHaveBeenCalled();
+    },
+  );
+  it("holds assurance before auth or subprocesses when reviewed worker configuration is unreadable", async () => {
+    const h = harness();
+    rmSync(join(h.root, ".env.production.local"));
+    await expect(h.driver.assurance(h.cp)).rejects.toMatchObject({ code: "ENOENT" });
     expect(h.runCommand).not.toHaveBeenCalled();
   });
   it("passes only reviewed RentVine source settings into isolated assurance and refuses conflicts", async () => {

@@ -222,10 +222,14 @@ describe("maintenance owner-notice draft workflow definition", () => {
     );
   });
 
-  it("leaves the paired direct-send key disabled", () => {
+  it("opens the paired workflow Send key only under its separate reviewed Communications contract", () => {
     const send = ACTION_REGISTRY_SEED.find(
       (entry) => entry.key === "gmail.maintenance_owner_notice.send",
     );
-    expect(send?.production_allowed).toBe(false);
+    expect(send?.production_allowed).toBe(true);
+    expect(send?.documented_evidence).toMatch(/S189-S192/);
+    expect(send?.required_permissions).toEqual(
+      expect.arrayContaining([expect.stringMatching(/at-most-once/)]),
+    );
   });
 });

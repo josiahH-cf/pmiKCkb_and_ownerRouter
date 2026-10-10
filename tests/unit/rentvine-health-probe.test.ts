@@ -138,6 +138,9 @@ describe("Action Registry stays non-executable for the live read paths", () => {
       "rentcast.rental_listings.search",
       // S39.3: internal-staff transactional notice flipped live (D-AUTOMATION-LINE); internal-only.
       "internal.transactional_notice.send",
+      // S183: reviewed workflow notice activation; generic send stays closed.
+      "gmail.renewal_notice.send",
+      "gmail.maintenance_owner_notice.send",
       // S100 activation (2026-09-02): chat-sync proven live; resident draft stays closed.
       "rentvine.work_order.chat.sync",
     ]);

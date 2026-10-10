@@ -673,11 +673,32 @@ async function assertRouteOutcome(
   if (!definition.heading) {
     return { passed: false, diagnostic: "landmark_missing" };
   }
-  return (await page
-    .getByRole("heading", { name: definition.heading, exact: true })
-    .count()) === 1
-    ? { passed: true }
-    : { passed: false, diagnostic: "landmark_missing" };
+  const headingPresent =
+    (await page
+      .getByRole("heading", { name: definition.heading, exact: true })
+      .count()) === 1;
+  if (!headingPresent) return { passed: false, diagnostic: "landmark_missing" };
+  if (definition.key === "communications") {
+    // Genuine managed-mailbox read through the ordinary app contract. Return only readiness,
+    // never the profile/address or a provider body; the browser mutation guard remains active.
+    const connected = await page
+      .evaluate(async () => {
+        try {
+          const response = await fetch("/api/gmail-hub/connection", {
+            credentials: "same-origin",
+            cache: "no-store",
+            signal: AbortSignal.timeout(10_000),
+          });
+          const body = (await response.json()) as { status?: unknown };
+          return response.ok && body.status === "connected";
+        } catch {
+          return false;
+        }
+      })
+      .catch(() => false);
+    if (!connected) return { passed: false, diagnostic: "landmark_missing" };
+  }
+  return { passed: true };
 }
 
 /** A route that never settles has no verifiable landmark; a settled route gets the exact assertion. */

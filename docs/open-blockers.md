@@ -24,21 +24,25 @@ substitute value, identifier, credential or human verdict to clear a hold.
 
 ## Current program dependencies — S183–S226
 
-- **B-AUTH-CURRENT.** Both approved WSL CLI/ADC refresh probes require fresh Google enrollment.
-  In the selected WSL release checkout, the recovery is
-  `npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com`.
-  The owner completes Google's challenge; the runner then verifies approved-store change and fresh
-  probes for the same identity. Cloud inspection/release waits; no challenge, account, credential
-  store, session policy or IAM is substituted.
-- **B-COMMUNICATIONS-RUNTIME.** Engineering follow-up after fresh auth: deploy/read back the managed
-  worker, bounded Scheduler and inbound-observation configuration, then verify and activate only
-  the specifically authorized notice keys through their technical gates. No new owner phase consent
-  is required. Old entry points cannot retire in production before replacement readiness.
+- **B-AUTH-CURRENT — cleared October 10.** Fresh approved WSL CLI/ADC refresh and existing
+  managed Admin browser assurance passed for josiah@pmikcmetro.com. The selected clean release pair
+  reuses only the approved three-field RentVine provider configuration with production flags.
+  Independent session longevity remains unverified and is not a repeated release prerequisite.
+- **B-COMMUNICATIONS-RUNTIME.** The bounded minute dispatch job and separate read-only readiness
+  probe are created/read back PAUSED under the existing runtime identity. Gmail scope exchanges
+  passed without message effects. Only two notice keys are prepared for source activation. Finish
+  the actual candidate service-authenticated GET probe, guarded assurance, promotion and full
+  observation before enabling the dispatch job. No new owner phase consent is required. Old entry
+  points cannot retire in production before replacement readiness. No new Gmail watch/subscription
+  is required for the periodic linked-observation path; the old configured topic is absent.
 
-- **B-VENDOROO-CONTRACT (S208).** Dan was already sent the integration/access request. The
-  authorized reply was inspected and supplies no account access or supported integration contract.
-  Complete Vendoroo integration remains required. Await the actual authorized access path and
-  account-scoped event/read/ownership/deduplication/takeover contract; no duplicate message was sent.
+- **B-VENDOROO-CONTRACT (S208).** The owner's latest direction makes separate Vendoroo access
+  conditional on a demonstrated gap in the existing RentVine integration. Current typed RentVine
+  reads passed one 15-order page, 15 statuses and one detail, with verified lease/vendor associations.
+  This establishes bounded access, not full call/troubleshooting/attribution/freshness/takeover
+  coverage. Verify those required inputs through the real RentVine projection first; request direct
+  access only if a demonstrated missing capability needs it. S208 remains PENDING. The existing
+  access request and authorized reply were checked; no duplicate/additional message was sent.
 - **B-ACQUISITION-CONTRACT (S217/S218).** No identified actual source sample/custodian, exact
   object/document list, existing/new matching basis, financial opening/inclusion/cutover decision,
   or confirmed destination import contract is available. A bounded repository filename inventory
@@ -85,6 +89,11 @@ Vendoroo's agent writing into RentVine and no direct connector under that older 
 2026-10-08. The company connection is authorized (2026-10-07, granted scopes `account:*`,
 `profile:*`, `loop:*`, `contact:*` and `template:*`; F-DOTLOOP-CONNECTION-CHECK). Why it waits
 (F-DOTLOOP-ADMIN-RIGHTS):
+
+Fresh 2026-10-10T11:47:04.831Z owning-service resource readback passed: account, two profiles,
+one supported individual, zero templates and no saved profile/template/transaction selection.
+Loop-write scope is reported; readiness remains missing_resources. Both keys stay closed.
+This refresh supersedes the authentication hold, not the full-admin template/office request.
 
 - The connected login, `integrations@pmikcmetro.com`, holds a free personal "Default Profile"
   (the individual profile the app sees, with zero templates) and a limited admin profile for

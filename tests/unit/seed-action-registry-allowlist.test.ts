@@ -27,10 +27,13 @@ describe("seed-action-registry executable allow-list", () => {
     const block = allowlist.slice(0, allowlist.indexOf("]);"));
     // Positive control: the block really is the allow-list (a moved anchor would make it empty).
     expect(block).toContain('"gmail.renewal_notice.draft_create"');
+    expect(block).toContain('"gmail.renewal_notice.send"');
+    expect(block).toContain('"gmail.maintenance_owner_notice.send"');
     for (const key of [
       "gmail.message.send",
-      "gmail.renewal_notice.send",
-      "gmail.maintenance_owner_notice.send",
+      "dotloop.loop.create_from_template",
+      "dotloop.document.upload",
+      "gmail.maintenance_resident_reply.draft_create",
     ]) {
       expect(block, key).not.toContain(`"${key}"`);
     }

@@ -102,7 +102,8 @@ S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger 
   provider creation causality or mint receipt-bound reversal authority.
 - S96 and the S83-S86 access/navigation/theme/interaction foundation remain deployed. S97-S99 and
   S100 chat-sync proof-qualified exact keys retain their contracts; completed proofs were not rerun.
-- The Registry remains 48 exact keys, 16 open and 32 closed. Only two Sheet descriptive metadata
+- The prior serving revision has 48 exact keys, 16 open and 32 closed. The October program
+  prepares only the two reviewed workflow notice keys for its next gated release (18 open, 30 closed). Only two Sheet descriptive metadata
   entries were aligned with backup, compare-and-set and readback; no activation changed.
 - S100 resident-draft activation still needs the exact synchronized resident/verified-email input;
   S36 remains queued behind complete S100. Revised S87 is deployed in batch 005; overlapping S88-S93/S101 and S95 proposals are superseded, while S94 remains unexecuted.
@@ -424,6 +425,12 @@ implementation, verified repairs and existing delivery without phase-only consen
 READY is not implementation, activation or delivery. All five PENDING outcomes remain required;
 complete accessible bounded investigations and surface genuinely missing material inputs once.
 No unrelated key, identity, privilege, budget, destructive data or model-driven effect is granted.
+October 10 reviewed source activation selects only `gmail.renewal_notice.send` and
+`gmail.maintenance_owner_notice.send` under S189–S192. Current managed-mailbox grants, local
+unit/emulator/browser evidence and paused bounded Scheduler configuration were checked. Candidate
+managed-worker validation and normal assurance/promotion/observation still gate serving activation.
+No customer send is test proof; old drafts, attempts or completed proofs never grant a schedule.
+Generic `gmail.message.send`, resident-draft proof and unrelated keys retain their existing holds.
 Preserve S182 Dotloop API-origin exclusions; OAuth connection does not prove resource eligibility
 or saved supported profile/template/status selection. Both Dotloop write keys remain closed.
 

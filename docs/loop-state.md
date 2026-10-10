@@ -12,7 +12,7 @@ intake 055–098, all 44 suites / 238 mapped requirements. Canonical register:
 The isolated WSL branch `codex/operations-communications-maintenance-20261009` at
 `/home/josiah/pmi-kc-work/operations-20261009` started from main 8406181c. Original dirty Windows
 (64 files) and clean detached WSL 43bad3ad checkouts are preserved. Last independent serving
-readback October 9: 337ac163 / `pmi-kc-app-rmuz9g28p-0a2909d490e1`, 100% traffic. No program feature
+readback October 10: 337ac163 / `pmi-kc-app-rmuz9g28p-0a2909d490e1`, 100% traffic. No program feature
 is verified delivered. Prior release permit remains consumed; human verdict NOT RUN.
 
 The complete canonical aggregate passed 9,485 unit tests/1,010 files, 455 backend tests/79 files,
@@ -20,7 +20,7 @@ all required policy checks, zero production audit findings and the production bu
 assertion failed first (31 passed). Only that E2E assertion changed; application source remains
 canonical-green. Document/program guard checks passed. Implementation commit
 `64eec96f098f11f7f8d10ea634f0e75f210f687c` and queue documentation are on main; exact-main
-CI 38033099009 passed all five jobs for f6a83754 (9,481 unit/four skips, all 455 backend).
+CI 38034229039 passed all five jobs for 63005b71 (9,481 unit/four skips, all 455 backend).
 The read-only preflight held only permit/fresh prerequisites; pair/alignment/CI/flags passed.
 Current cloud/runtime holds remain. Keep all failed/interrupted
 attempts in the native ledger and outside-Git logs; no full program/release completion claim.
@@ -37,7 +37,7 @@ median 18→6 ms); cold catalog 110.9→136.2 ms was slower, warm 7.4→0.33 ms.
 Locally verified retirement is pending activation/delivery: new legacy draft/send admissions,
 pasted tools and notice-first maintenance guidance. Original draft/attempt recovery, immutable
 artifacts, private/legal-held history and existing published definitions/runs are retained. No old
-backlog is authorized. Both notice send keys, generic send and both Dotloop write keys stay closed.
+backlog is authorized. Both notice send keys await the reviewed activation/delivery below; generic send and both Dotloop write keys stay closed.
 Do not release the replaced entry points before the new Communications runtime/key gates are ready.
 
 39 contracts READY; five required PENDING outcomes remain S208/S217/S218/S220/S221. Accessible
@@ -48,21 +48,32 @@ Dotloop A1 remains OAuth-only partial: office-agent/template eligibility and sav
 profile/template/status selection are unverified; S182 exclusions remain. Existing owner requests
 retain their owners. Current internal-browser Connections read reached sign-in only.
 
-Cloud work waits on approved WSL Google enrollment: latest CLI/ADC probes required reauth.
-Recovery: `npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com`.
-The owner completes Google's challenge. Inspect approved-store change before repeating probes;
-never loop login, substitute a store/account, enter a challenge, copy Chrome or alter IAM/claims.
-Use a registered clean release pair under the strict outside-Git `checkout-pair.json` mechanism:
-native `/home/josiah/pmi-kc-work/operations-release-20261010`, source sibling
-`.pmi-kc-release-worktrees/operations-20261010`. Verify their exact-main HEADs/CI and reviewed
-Demo=false/Sheet=true environment before admission. Host readback at 07:07 UTC verified both
-clean paired heads at f6a83754, ignored production environment, and unchanged original HEADs/file hashes.
-The final documentation closure must be aligned and have its own exact-main CI. No original reset is permitted.
-Then collect fresh auth/browser/cloud prerequisites, actual predecessor and tag bindings; finish
-managed worker/key technical gates, use one real release-lock watcher/new exact permit/one build,
-candidate warm-up/guarded assurance, promotion, full observation and independent final readbacks.
-Unresolved cloud effects require exact reconciliation. Independent 24-hour enrollment longevity
-remains unverified. No live customer/provider business effect was test proof.
+October 10 renewed approved WSL CLI/ADC refresh and managed Admin browser assurance passed.
+Original checkouts remain preserved. Both clean registered release checkouts are at main 63005b71,
+whose CI 38034229039 passed all five jobs. Their ignored environment now composes the unchanged
+approved production configuration with only the three approved RentVine fields and two reviewed
+worker settings; no credential store/account substitution. `auth:ensure` is READY.
+
+Fresh serving readback remains 337ac163 / pmi-kc-app-rmuz9g28p-0a2909d490e1, 100%, managed runtime
+identity, Demo=false and Sheet=true. Gmail readonly/compose/modify/labels token exchanges passed
+without message effects. The bounded minute Scheduler is created/read back PAUSED: POST empty JSON,
+exact runtime service identity/canonical worker audience, retries0, deadline120s. The two exact
+notice keys are prepared for reviewed activation; generic send, resident draft and Dotloop stay closed.
+Do not resume Scheduler or promote before candidate worker validation and release assurance pass.
+
+Existing RentVine typed reads passed one 15-row work-order page, 15 statuses and one detail. Direct
+Vendoroo access is conditional on demonstrated gaps in that existing integration under the owner's
+latest steering. No full coverage, call/transcript or takeover contract is inferred. All five pending
+outcomes and Dotloop A1 inputs remain required; no new external request was sent. Prepare the weekly
+Dan update as an unsent review draft after actual release outcomes are known.
+
+Finish canonical verification/exact-main CI for the scoped activation/configuration delta, align
+both clean paired checkouts before admission, collect fresh prerequisites/predecessor/tag bindings,
+and use the new exact permit/one real release-lock watcher/one application build. Candidate warm-up,
+guarded assurance, managed worker validation, promotion, full observation and independent final
+readbacks remain gates. Preserve failed/ambiguous outcomes and reconcile before retry. Independent
+24-hour enrollment longevity remains unverified and is not a repeated release gate. No live customer
+or provider business effect was used as proof.
 
 COMPLETE: dotloop-pdf-renewal-v1-2026-10, intake 050-054 (S106, S66, S130, S34, S182), under the
 owner's 2026-10-06 execution instruction. Finalized spec revisions are committed (`d5478673`);
@@ -81,12 +92,23 @@ authorized.
 Previous: batch 005 COMPLETE; its open-item fixes were released by run 61659874-478d-4135-9810-5033b2f732bf
 at e8bc616d, exact-main CI 37333580981. Native evidence: docs/evidence/application-usability-batch005.json.
 
+Fresh Dotloop refresh/readback October 10: account and two profiles read, one supported individual,
+zero templates, no saved profile/template/transaction selection. A1 still waits on the existing
+full-admin template/office request and supported saved selection; both write keys remain closed.
+No historical OAuth proof or customer effect reran. Dan's managed Admin enrollment is enabled.
+Scoped material-reply reads found no new acquisition or native-phone contract inputs.
+
+Final reviewed delta: complete canonical 9,501 unit / 455 backend, required checks/build and zero
+production audit findings passed. Two-key source delta and original-checkout preservation verified.
+Commit/push the green delta, read its exact CI, then continue the existing locked release gates.
+
 ## Awaiting release
 
 1. S183 operations-communications-maintenance-2026-10 independent implementation/local verification slice (all current owning-service code), `64eec96f098f11f7f8d10ea634f0e75f210f687c`. Full 44/238 program remains open; five PENDING outcomes remain required in the native ledger.
 
-HELD before preparation/admission: approved WSL CLI/ADC/browser freshness and Communications
-worker/observation/key readiness. Both notice send and both Dotloop write keys remain closed.
+HELD before preparation/admission: final exact-main canonical/CI and Communications candidate
+worker validation. Renewed approved CLI/ADC/browser checks passed; Scheduler remains paused.
+Only the two reviewed notice keys are prepared for activation; generic send and Dotloop stay closed.
 Do not release replaced entry points before replacement runtime readiness. Exact-main green CI,
 clean paired checkouts, fresh GO/permit, one watcher/build and all assurance/recovery/readbacks
 remain mandatory. This queue neither activates a key nor authorizes customer proof effects.

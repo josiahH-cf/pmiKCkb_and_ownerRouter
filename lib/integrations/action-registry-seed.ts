@@ -1014,7 +1014,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
     readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
-      "The authoritative property-owner email is confirmed present and email-shaped on 25/25 live RentVine leases at portfolio.owners[].email (Slice 1, 2026-07-22; docs/products/rentvine-live-field-map-2026-07-22.md) and resolves via resolveRenewalRecipient's owner channel (owner coverage 25/25, verified live). This gate authorizes DRAFT creation only (unsent, review-before-sending banner) and reuses the proven Gmail DWD draft grant; code never sends. The paired gmail.maintenance_owner_notice.send action stays production_allowed:false.",
+      "The authoritative property-owner email is confirmed present and email-shaped on 25/25 live RentVine leases at portfolio.owners[].email (Slice 1, 2026-07-22; docs/products/rentvine-live-field-map-2026-07-22.md) and resolves via resolveRenewalRecipient's owner channel (owner coverage 25/25, verified live). This gate authorizes DRAFT creation only (unsent, review-before-sending banner) and reuses the proven Gmail DWD draft grant; code never sends. The original draft proof remains draft-only. S183 separately authorizes the paired exact Send/Schedule operation under its reviewed S189-S192 contract; no old draft or proof becomes send authorization.",
     required_permissions: [
       "Authorized maintenance ticket access",
       "gmail.compose (draft only)",
@@ -1578,23 +1578,28 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
   },
   {
     key: "gmail.renewal_notice.send",
-    label: "Reviewed workflow-linked renewal Send/Schedule (awaiting technical gates)",
+    label: "Reviewed workflow-linked renewal Send/Schedule",
     target_system: "Gmail",
     expected_action:
       "Send only the exact workflow-linked message and occurrences authorized by staff Send/Schedule under S183/S189/S190; never generic or model-triggered sending.",
     product_lane: "Lease Renewal Agent",
-    readiness: "Disabled",
+    readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
-      "Owner execution instruction 2026-10-09 authorizes this named program operation after technical gates. S189 authorization, S190 at-most-once dispatch/recovery, S191 observation and S192 operational controls remain required before reviewed activation; production_allowed remains false.",
-    required_permissions: [],
-    event_ingestion_mode: "None",
+      "Owner execution instruction 2026-10-09 (AGENTS.md October operations program authority) explicitly authorizes this exact workflow operation. Reviewed 2026-10-10 after S189-S192 unit, actual emulator and compiled browser checks, managed Gmail read/compose/modify/labels token-exchange checks and bounded paused Scheduler configuration readback. Dispatch still requires current staff authorization, source/recipient/sender validation, fresh linked observation and the durable exact occurrence claim. Candidate worker validation, guarded assurance and release gates precede serving activation. No live customer send was used as proof; generic Gmail sends remain closed.",
+    required_permissions: [
+      "Existing managed-mailbox gmail.compose DWD grant; exact sender profile must match the current responsible staff member.",
+      "Current staff role, workflow Space and authoritative real recipient/source validation.",
+      "Explicit exact Send/Schedule authorization bound to the message revision, rich bytes, attachments, sender and occurrence configuration.",
+      "Managed OIDC worker, durable at-most-once occurrence claim, fresh complete linked observation, exact provider readback and ambiguity reconciliation.",
+    ],
+    event_ingestion_mode: "Polling",
     preview_schema_note:
       "Exact workflow, sender, verified recipients, subject, plain/HTML content, attachments and approved occurrence configuration; no changed payload dispatch.",
     rollback_note:
       "A sent message cannot be recalled. Pause/cancel future unclaimed work; reconcile the exact admitted attempt before further action. Existing unsent drafts remain independent.",
     connection_health_check_ref: "health.gmail.workspace_api",
-    production_allowed: false,
+    production_allowed: true,
   },
   {
     key: "rentvine.renewal.portal_message.send",
@@ -1656,24 +1661,28 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
   },
   {
     key: "gmail.maintenance_owner_notice.send",
-    label:
-      "Reviewed workflow-linked maintenance owner Send/Schedule (awaiting technical gates)",
+    label: "Reviewed workflow-linked maintenance owner Send/Schedule",
     target_system: "Gmail",
     expected_action:
       "Send only the exact workflow-linked message and occurrences authorized by staff Send/Schedule under S183/S189/S190; never generic or model-triggered sending.",
     product_lane: "PMI KC KB",
-    readiness: "Disabled",
+    readiness: "Approved for Execution",
     evidence_status: "Documented",
     documented_evidence:
-      "Owner execution instruction 2026-10-09 authorizes this named program operation after technical gates. S189 authorization, S190 at-most-once dispatch/recovery, S191 observation and S192 operational controls remain required before reviewed activation; production_allowed remains false.",
-    required_permissions: [],
-    event_ingestion_mode: "None",
+      "Owner execution instruction 2026-10-09 (AGENTS.md October operations program authority) explicitly authorizes this exact workflow operation. Reviewed 2026-10-10 after S189-S192 unit, actual emulator and compiled browser checks, managed Gmail read/compose/modify/labels token-exchange checks and bounded paused Scheduler configuration readback. Dispatch still requires current staff authorization, source/recipient/sender validation, fresh linked observation and the durable exact occurrence claim. Candidate worker validation, guarded assurance and release gates precede serving activation. No live customer send was used as proof; generic Gmail sends remain closed.",
+    required_permissions: [
+      "Existing managed-mailbox gmail.compose DWD grant; exact sender profile must match the current responsible staff member.",
+      "Current staff role, workflow Space and authoritative real recipient/source validation.",
+      "Explicit exact Send/Schedule authorization bound to the message revision, rich bytes, attachments, sender and occurrence configuration.",
+      "Managed OIDC worker, durable at-most-once occurrence claim, fresh complete linked observation, exact provider readback and ambiguity reconciliation.",
+    ],
+    event_ingestion_mode: "Polling",
     preview_schema_note:
       "Exact workflow, sender, verified recipients, subject, plain/HTML content, attachments and approved occurrence configuration; no changed payload dispatch.",
     rollback_note:
       "A sent message cannot be recalled. Pause/cancel future unclaimed work; reconcile the exact admitted attempt before further action. Existing unsent drafts remain independent.",
     connection_health_check_ref: "health.gmail.workspace_api",
-    production_allowed: false,
+    production_allowed: true,
   },
   {
     key: "rentvine.work_order.chat.sync",

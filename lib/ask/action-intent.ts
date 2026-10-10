@@ -2,7 +2,7 @@
 // maps a detected process plus an authoritatively resolved target to a VALUE-FREE route into the desk's
 // ALREADY-GATED action surface, or null. It never defines an executor and never opens a gate: it returns a
 // route ONLY when the mapped Action-Registry key is already executable (`isExecutable(key) === true`), so a
-// closed key (e.g. gmail.renewal_notice.send) never surfaces a live affordance. Ask becomes a faster front
+// closed key (e.g. gmail.message.send) never surfaces a live affordance. Ask becomes a faster front
 // door into the existing preview/confirm/receipt gate, never a way around it.
 
 import { leaseWorkspaceHrefOrNull } from "@/lib/lease-renewal/desk-view-continuation";

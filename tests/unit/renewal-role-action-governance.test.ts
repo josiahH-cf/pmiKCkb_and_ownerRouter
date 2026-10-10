@@ -362,7 +362,7 @@ describe("S80 renewal role and action governance", () => {
     expect(isActionExecutable("google_drive.renewal_comp_screenshot.store")).toBe(false);
     expect(isActionExecutable("rentvine.lease.renewal_writeback")).toBe(false);
     expect(isActionExecutable("google_sheets.renewal_checklist.writeback")).toBe(false);
-    expect(isActionExecutable("gmail.renewal_notice.send")).toBe(false);
+    expect(isActionExecutable("gmail.renewal_notice.send")).toBe(true);
     expect(isActionExecutable("gmail.message.send")).toBe(false);
   });
 

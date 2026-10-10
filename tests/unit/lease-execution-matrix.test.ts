@@ -48,6 +48,8 @@ describe("Lease execution matrix", () => {
           "gmail.thread.reply",
           "gmail.label.apply",
           "gmail.renewal_notice.draft_create",
+          // S183 activation is owned by Communications; the old S20 admission remains retired.
+          "gmail.renewal_notice.send",
           // S97 activation (2026-09-02): proven exact renewal-writeback keys are open.
           "rentvine.lease.renewal_dates.update",
           "rentvine.lease.recurring_charge.create",

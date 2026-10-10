@@ -115,7 +115,7 @@ describe("S133 decision packet: AC-S133-3 ownership map", () => {
     }
   });
 
-  it("names the registry keys as the committed seed reads them", () => {
+  it("preserves the dated registry inventory and identifies only the later S183 notice activations", () => {
     const seed = new Map(
       ACTION_REGISTRY_SEED.map((entry) => [entry.key, entry.production_allowed]),
     );
@@ -123,7 +123,12 @@ describe("S133 decision packet: AC-S133-3 ownership map", () => {
     expect(keys.length).toBeGreaterThanOrEqual(8);
     for (const [key, state] of keys) {
       expect(seed.has(key), key).toBe(true);
-      expect(state, key).toBe(seed.get(key) ? "open" : "closed");
+      if (
+        ["gmail.renewal_notice.send", "gmail.maintenance_owner_notice.send"].includes(key)
+      ) {
+        expect(state, key).toBe("closed"); // The September packet remains historical evidence.
+        expect(seed.get(key), key).toBe(true); // Separate reviewed October S183 activation.
+      } else expect(state, key).toBe(seed.get(key) ? "open" : "closed");
     }
     expect(PACKET).toMatch(/No external autonomy becomes PMI KC authority/);
   });

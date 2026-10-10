@@ -167,12 +167,16 @@ const OWNER_SIDE_SECTIONS = ["gcp:", "env:", "corpus:"];
 // a surprise flip the cutover must flag. The renewal-notice draft was authorized by the 2026-07-19
 // owner grant (F-SEND-AUTHORIZED): draft-into-Gmail, human sends, sample data still preview-only. The
 // maintenance owner-notice DRAFT was authorized 2026-07-22 (Slice 6) once the owner email was confirmed
-// at portfolio.owners[].email (25/25); draft-only, its paired .send stays gated.
+// at portfolio.owners[].email (25/25); that original proof remains draft-only. S183 separately
+// authorizes the two reviewed S189-S192 workflow Send/Schedule keys; generic send remains closed.
 export const EXECUTABLE_ALLOWLIST = new Set<string>([
   "gmail.mailbox.read",
   "gmail.thread.reply",
   "gmail.label.apply",
   "gmail.renewal_notice.draft_create",
+  // S183 reviewed exact activation (2026-10-10); no generic or model-driven send grant.
+  "gmail.renewal_notice.send",
+  "gmail.maintenance_owner_notice.send",
   // S59 activation (2026-08-26): read-only reference comps; no offered-rent or system-of-record write.
   "rentcast.rental_listings.search",
   "gmail.maintenance_owner_notice.draft_create",

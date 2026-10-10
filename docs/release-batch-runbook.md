@@ -288,3 +288,24 @@ The combined request 001 and batch 002 + 003 release is complete. The retained p
 renew permission. Failed predecessors retain their exact reports and claims. External and human
 holds live in `docs/open-blockers.md`; they do not alter the completed implementation or release
 verdict.
+
+## October operations Communications prerequisite
+
+For the reviewed S183/S189–S192 configuration, the existing watcher assurance phase invokes
+`scripts/communication-worker-assurance.mjs` before issuing the candidate receipt. The permanently
+paused `pmi-kc-communication-worker-readiness` Scheduler job uses only GET and the existing managed
+runtime service identity. A unique durable invocation is bound to the candidate origin/revision;
+only its exact successful readiness log and a read-back restored canonical target pass. No
+sequence is constructed, occurrence claimed, customer message sent or test production record made.
+A failed/uncertain invocation remains consumed and holds for exact reconciliation. The ordinary
+Communications browser canary also requires its real read-only managed-mailbox connection.
+
+Keep the actual `pmi-kc-communication-sequence-worker` dispatch job paused until the candidate gate,
+assurance and exact promotion pass. Resume/read it back only for the promoted implementation under
+the approved schedule contract; no existing draft, old backlog or migrated record gains authorization.
+The generic Gmail send and both Dotloop write keys remain closed. Every resulting configuration
+mutation and readback stays in the same run evidence; the five pending outcomes remain in the program.
+
+Both reviewed worker environment fields are mandatory before candidate assurance. Missing, partial
+or unreadable configuration holds before browser auth/subprocesses; it cannot skip the managed
+probe. A configured job alone is not its service-authentication/readback proof.

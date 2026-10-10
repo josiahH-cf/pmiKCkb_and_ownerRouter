@@ -139,6 +139,7 @@ export async function prepareExternalActionWithS20(
 ) {
   assertTestOnlyOptions(options);
   const action = snapshotExternalAction(request.action);
+  assertCurrentCommunicationAdmission(action.actionKey, options);
   const trustedContext = snapshotTrustedExternalContext(request.trustedContext);
   assertS20BridgeDataMode(action, options);
   assertAuthorityFree(action);
@@ -196,6 +197,7 @@ export async function executeExternalActionWithS20(
 ) {
   assertTestOnlyOptions(options);
   const action = snapshotExternalAction(request.action);
+  assertCurrentCommunicationAdmission(action.actionKey, options);
   const trustedContext = snapshotTrustedExternalContext(request.trustedContext);
   assertS20BridgeDataMode(action, options);
   assertAuthorityFree(action);
@@ -420,6 +422,26 @@ export async function reconcileExternalActionWithS20(
     execution,
     receipt,
   };
+}
+
+function assertCurrentCommunicationAdmission(
+  actionKey: string,
+  options: ExternalS20BridgeOptions,
+) {
+  // A source-owned, explicitly test-only registry can still exercise the historical S20 safety
+  // primitives. assertTestOnlyOptions rejects that seam in Production. Default admissions and
+  // queued dispatches must never inherit the new Communications activation or authorize old work.
+  if (
+    options.registry === undefined &&
+    ["gmail.renewal_notice.send", "gmail.maintenance_owner_notice.send"].includes(
+      actionKey,
+    )
+  ) {
+    throw new ExternalExecutionError(
+      "Use the canonical Communications Send or Schedule action. Existing notice attempts retain receipt-only reconciliation.",
+      "blocked",
+    );
+  }
 }
 
 function assertTestOnlyOptions(options: ExternalS20BridgeOptions) {

@@ -7,6 +7,7 @@ import {
 import { boundedCommunicationBody } from "@/lib/gmail-hub/sequence-http";
 import { gmailHubErrorResponse, readAllowedQuery } from "@/lib/gmail-hub/http";
 import { EditableLayerError } from "@/lib/firestore/errors";
+import { assertProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 export const maxDuration = 180;
 export async function POST(request: Request) {
   try {
@@ -18,6 +19,28 @@ export async function POST(request: Request) {
     return NextResponse.json(
       await runCommunicationWorker({ service: createCommunicationSequenceService() }),
     );
+  } catch (error) {
+    return gmailHubErrorResponse(error);
+  }
+}
+
+/** A managed readiness probe never constructs a sequence service or claims/dispatches work. */
+export async function GET(request: Request) {
+  try {
+    await verifyCommunicationWorkerRequest(request);
+    readAllowedQuery(request, []);
+    const probeId = request.headers.get("x-pmi-worker-readiness");
+    if (!probeId || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(probeId))
+      throw new EditableLayerError(
+        "A bounded managed readiness probe identity is required.",
+        400,
+      );
+    await assertProductionRuntimeActionExecutable("gmail.renewal_notice.send");
+    await assertProductionRuntimeActionExecutable("gmail.maintenance_owner_notice.send");
+    console.log(
+      JSON.stringify({ event: "communication_worker_readiness", probeId, ready: true }),
+    );
+    return NextResponse.json({ status: "ready" });
   } catch (error) {
     return gmailHubErrorResponse(error);
   }
