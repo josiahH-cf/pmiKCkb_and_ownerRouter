@@ -77,7 +77,7 @@ No material product decision is deferred inside this READY scope. Actual identit
 
 **If this was built correctly:** A PMI staff member records an issue, assesses it before deciding whether owner approval or a vendor is needed, and sees the current next action and how long it has waited. A vendor can submit completed work, but PMI reviews the evidence and makes the final closure decision.
 
-- Model verdict: LOCAL EVIDENCE — implementation and mapped engineering checks are recorded per requirement in `docs/evidence/operations-communications-maintenance-2026-10.json`; the complete local canonical gate and core E2E passed in their recorded scopes; exact-main CI and runtime/delivery remain separately verified gates. No live provider effect or human observation is claimed.
+- Model verdict: ENGINEERING VERIFIED / DELIVERED — all mapped engineering scopes and independent deployment verified in run 5b3dfb90 /780f48db; exact CI, full observation, eleven readbacks and mobile scope are recorded in the native ledger. Human NOT RUN; no customer send was test proof.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

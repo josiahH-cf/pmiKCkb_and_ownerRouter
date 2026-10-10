@@ -30,7 +30,7 @@ owner authority, provider effects and source writes remain separate rows.
 An open action key does not grant page/role access, and a role cannot open a key. Exact action state,
 runtime suspension, quota, provider readiness, preview/confirmation, receipts, readback, and rollback
 remain downstream effect checks. S183 authorizes human Send/Schedule through S189–S192 only after
-their technical gates and reviewed exact-key activation; both notice send keys remain closed.
+their technical gates and reviewed exact-key activation, passed in run 5b3dfb90 for only those two keys.
 
 ## Current open keys
 
@@ -44,6 +44,8 @@ their technical gates and reviewed exact-key activation; both notice send keys r
 - `gmail.label.apply`
 - `gmail.renewal_notice.draft_create`
 - `gmail.maintenance_owner_notice.draft_create`
+- `gmail.renewal_notice.send`
+- `gmail.maintenance_owner_notice.send`
 - `rentcast.rental_listings.search`
 - `internal.transactional_notice.send`
 - `rentvine.lease.renewal_dates.update`
@@ -51,10 +53,9 @@ their technical gates and reviewed exact-key activation; both notice send keys r
 - `rentvine.lease.recurring_charge.update`
 - `rentvine.work_order.chat.sync`
 
-The committed Registry contains 48 exact keys: these 16 are open and the other 32 are closed. The
-Firestore Admin mirror matches 48/16 but is display-only and cannot grant execution. Direct Gmail
-sends, the S100 resident-draft key, the retired broad RentVine/Sheet identifiers, Vendor assignment,
-attachments, RentVine chat posting, and every other unlisted effect remain closed.
+The committed Registry and read-back Admin mirror contain 48 exact keys: these 18 are open and the other 30 are closed. The mirror cannot grant execution. Notice send keys are confined to explicit human
+S189–S192 sequences; generic send, S100 resident-draft, retired broad writeback identifiers,
+provider Vendor assignment, RentVine attachments/chat posting and every unlisted effect stay closed.
 
 ## Providers
 
@@ -63,12 +64,12 @@ attachments, RentVine chat posting, and every other unlisted effect remain close
 | RentVine                 | Complete lease reads; work-order reads; authoritative lease/unit/portfolio data | Exact S97 renewal, S99 work-order, and S100 chat-sync keys are open                                                                                                                                                                 |
 | Google Sheets            | Operating renewal read source and exact append/update target                    | Both exact keys remain open; the reviewed S159 switch value true serves normal append and recognized-field updates behind exact confirmation; false pauses all operating-Sheet mutations; reads and app-owned work remain available |
 | RentCast                 | Reference rental listings/market data with cache, usage counter, cap 50         | Exact read key open; never sets offered rent                                                                                                                                                                                        |
-| Gmail                    | Workflow reads, replies, labels, unsent renewal/maintenance drafts              | Direct/generic notice sends closed                                                                                                                                                                                                  |
+| Gmail                    | Workflow reads/replies/labels, rich linked drafts and human Send/Schedule       | Two scoped human notice sequence keys open; generic send closed                                                                                                                                                                     |
 | Firestore                | App-owned state, approvals, receipts, tasks, snapshots                          | Rules/transactions govern writes                                                                                                                                                                                                    |
 | Drive/Storage            | Approved sources and bounded artifacts                                          | No broad source replacement/delete                                                                                                                                                                                                  |
 | Dotloop                  | Typed packet/binding seam; S106 connection and S34 packet lifecycle specified   | OAuth connected; office-agent/template eligibility and saved supported selection unverified; both write keys closed                                                                                                                 |
 | LeadSimple               | Typed connector seam                                                            | Account contract/credential pending                                                                                                                                                                                                 |
-| Resident/Vendor channels | Tokenized app intake and staff work seams                                       | Manual chat sync open; resident draft and Vendor effects closed                                                                                                                                                                     |
+| Resident/Vendor channels | Tokenized app intake and staff work seams                                       | Manual chat sync and scoped app vendor contributions available; resident draft and provider Vendor effects closed                                                                                                                   |
 
 ## RentVine write boundary
 
@@ -104,13 +105,18 @@ historical restore and proof replay remain unavailable; no new provider-contract
 
 ## Messaging boundary
 
-The last verified serving revision uses governed unsent renewal/maintenance drafts. The owner's
-S183 instruction authorizes the named program's human Send/Schedule implementation, with an exact
-managed sender, current workflow targets, immutable authorized content/attachments and bounded
-schedule. S189–S192 own durable claims, receipts/readback, inbound-reply pauses, sender handoff and
-ambiguity recovery; a missing runtime/key or changed authorization refuses dispatch. No historical
-draft, migrated record, model answer or page load becomes a sending authorization. The two notice
-send keys remain closed until their technical gates and reviewed activation pass. S182 Dotloop
+The owner's S183 instruction authorizes the named program's human Send/Schedule only through the
+two reviewed notice contracts. The two notice
+send keys passed their technical gates and reviewed activation in run 5b3dfb90;
+generic Gmail sends remain closed. No historical
+draft, migrated record, model answer or page load becomes a sending authorization.
+
+Bind the exact managed sender, current workflow targets, frozen rich content/files and bounded
+schedule. S189–S192 provide durable claims, receipts/readback, inbound-reply pauses, sender handoff
+and ambiguity recovery. Runtime/key/current-authorization refusals remain real. The minute managed
+worker is ENABLED with a verified normal empty checkpoint. The annual nonce-bound GET readiness
+job is PAUSED after verified restoration.
+S182 Dotloop
 API-origin exclusions remain. S100's resident-reply
 draft key remains closed until one synchronized resident message resolves to an exact verified email
 and the key completes its own proof and activation. When available, it creates only an
@@ -120,16 +126,16 @@ client communication path.
 
 ## Named program operation owners
 
-| Operation                                                                  | Exact authority and owning seam                                                                                                    | Recovery and present activation                                                                                                        |
-| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Ordinary app-owned profile, policy, task, collection and maintenance edits | Existing role/record scope; one explicit Save/Apply at the owning API                                                              | Version/conflict checks, durable original-operation receipt and correction; no provider permission inferred                            |
-| Supported RentVine work-order create/status                                | `rentvine.work_order.create` / `rentvine.work_order.update_status`; maintenance route, staff-confirmation service and S20 executor | Server-resolved exact preview, one Apply, atomic companion claim, original-attempt readback; keys already open                         |
-| Existing renewal/Sheet corrections                                         | Exact S97/S98 keys and their existing owning services                                                                              | Preserve current source checks, one-attempt receipts and separately confirmed correction; no historical proof replay                   |
-| Renewal/maintenance human Send/Schedule                                    | `gmail.renewal_notice.send` / `gmail.maintenance_owner_notice.send`; communication-sequence service and sequence-worker route      | Exact version/sender/targets/payload/schedule, bounded at-most-once occurrence, reply pause, reconcile; both keys closed pending gates |
-| Workflow Gmail discovery/linking                                           | `gmail.mailbox.read`; existing workflow-linked Gmail service                                                                       | Read-only bounded discovery; linking cannot authorize send or widen to a general inbox                                                 |
-| Dotloop packet effects                                                     | Existing S106/S34 exact contract and S182 exclusions                                                                               | Eligibility and saved supported selection remain unverified; both write keys closed                                                    |
-| Vendoroo, acquisition and native answering                                 | S207/S216/S219 investigations and the same five pending specifications                                                             | Required outcomes await complete real contracts; no guessed endpoint, schema, financial opening state, phone or consent                |
+| Operation                                                                  | Exact authority and owning seam                                                                                                    | Recovery and present activation                                                                                                                                            |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ordinary app-owned profile, policy, task, collection and maintenance edits | Existing role/record scope; one explicit Save/Apply at the owning API                                                              | Version/conflict checks, durable original-operation receipt and correction; no provider permission inferred                                                                |
+| Supported RentVine work-order create/status                                | `rentvine.work_order.create` / `rentvine.work_order.update_status`; maintenance route, staff-confirmation service and S20 executor | Server-resolved exact preview, one Apply, atomic companion claim, original-attempt readback; keys already open                                                             |
+| Existing renewal/Sheet corrections                                         | Exact S97/S98 keys and their existing owning services                                                                              | Preserve current source checks, one-attempt receipts and separately confirmed correction; no historical proof replay                                                       |
+| Renewal/maintenance human Send/Schedule                                    | `gmail.renewal_notice.send` / `gmail.maintenance_owner_notice.send`; communication-sequence service and sequence-worker route      | Exact version/sender/targets/payload/schedule, bounded at-most-once occurrence, reply pause, reconcile; both exact keys open after run 5b3dfb90 gates; generic send closed |
+| Workflow Gmail discovery/linking                                           | `gmail.mailbox.read`; existing workflow-linked Gmail service                                                                       | Read-only bounded discovery; linking cannot authorize send or widen to a general inbox                                                                                     |
+| Dotloop packet effects                                                     | Existing S106/S34 exact contract and S182 exclusions                                                                               | Eligibility and saved supported selection remain unverified; both write keys closed                                                                                        |
+| Vendoroo, acquisition and native answering                                 | S207/S216/S219 investigations and the same five pending specifications                                                             | Required outcomes await complete real contracts; no guessed endpoint, schema, financial opening state, phone or consent                                                    |
 
-This table changes no key activation, identity, role, budget or provider interface. Current serving
+This table records only the reviewed two-key activation; it grants no additional key, identity, role, budget or provider interface. Current serving
 identity/readback is recorded in `docs/facts.md`; implementation evidence and remaining delivery
 prerequisites are recorded in the native program ledger.

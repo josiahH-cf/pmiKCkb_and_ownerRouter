@@ -9,19 +9,16 @@ PMI KC is one authenticated operations application: Dashboard/Ask, My Work, Inte
 feedback, Vendor/resident seams and staff work. Navigation and record access use current server
 permissions. Business titles and display names grant no role or privilege.
 
-The last independent serving readback on October 9 identified commit
-`337ac163c5709381e8db8d2c18810bec357d8a96` / `pmi-kc-app-rmuz9g28p-0a2909d490e1`, with 100%
-production traffic, Production + Live, managed runtime identity, eleven Spaces, Demo=false and
-Sheet=true. The verified release and its exact checks remain in `docs/facts.md`. Fresh cloud
-readback and release work currently wait on approved WSL Google enrollment; this historical
-readback is not evidence that a new program revision is serving.
+Production serves `780f48db1d7d6a7cc855035d934621f77a28a257` /
+`pmi-kc-app-rmv2ixuq7-b0c62b52cd5d`,100% traffic, Production/Live, managed identity, eleven Spaces,
+Demo=false and Sheet=true. Run5b3dfb90 passed exact-main CI, candidate assurance, promotion, full
+observation and eleven independent readbacks. Five guarded mobile routes passed. Details live in
+`docs/facts.md` and the native program ledger.
 
-The owner started `operations-communications-maintenance-2026-10` (S183–S226, intake 055–098)
-on October 9, including scoped protected governance edits and gated exact-key activation.
-All 44 suites / 238 requirements remain in the program. Implementation and local verification
-are in progress; none is verified delivered. S208/S217/S218/S220/S221 remain PENDING until their
-account, source, financial, coverage and transition contracts are complete. Their dependencies do
-not prevent independent implementation and do not authorize invented inputs.
+The owner-authorized S183–S226 program retains all 44 suites/238 requirements.35 independent suites
+are verified delivered;203 requirements have all mapped engineering scopes passed. S208/S217/S218/
+S220/S221 remain PENDING, S207/S216/S219 investigations await real contracts and S226 integrated
+closure remains incomplete. Missing data/access/policy is not guessed or silently removed.
 
 ## Dashboard, knowledge and conversations
 
@@ -74,9 +71,10 @@ S189–S192's durable bounded dispatcher, current-access checks, inbound-reply p
 readback and ambiguity recovery. A changed message/schedule/sender requires current authorization.
 Model output, migration, an old draft, page load and copied text grant no sending authority.
 
-The committed Registry still has 48 exact keys, 16 open and 32 closed. The renewal/maintenance
-notice send keys remain technically closed pending their technical gates and reviewed exact
-activation. Generic `gmail.message.send`, arbitrary/bulk provider calls, unrequested autonomous
+The committed Registry and Admin metadata mirror contain 48 exact keys, 18 open and 30 closed.
+Only `gmail.renewal_notice.send` and `gmail.maintenance_owner_notice.send` activated after the
+reviewed technical gates. The minute managed worker is enabled with a verified normal empty tick.
+Generic `gmail.message.send`, arbitrary/bulk provider calls, unrequested autonomous
 or model-driven effects, vendor assignment, provider attachment upload and RentVine chat posting
 remain closed. Retiring a UI does not rewrite or redispatch an earlier attempted effect.
 

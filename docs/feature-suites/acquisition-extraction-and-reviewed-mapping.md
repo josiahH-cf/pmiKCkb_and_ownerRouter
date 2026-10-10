@@ -74,7 +74,7 @@ Prospective app-owned acquisition staging and review; actual target adapters to 
 
 **If this was built correctly:** Staff compare extracted values with their real sources, resolve duplicates and identity conflicts, then resume later without losing reviewed work. Nothing changes in a live source system merely because extraction succeeded. The actual fields and target objects still need to be established before this experience can be finalized.
 
-- Model verdict: BLOCKED — accessible investigation is recorded in the native program ledger; required material inputs remain absent. This contract is still PENDING and no implementation or delivery is claimed.
+- Model verdict: PENDING — genuine material contract inputs remain absent; retain this same specification and registration until complete. No READY, implementation or delivery claim.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

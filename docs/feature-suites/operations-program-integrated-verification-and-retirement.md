@@ -90,7 +90,7 @@ Use the current owning service when the implementation checkout differs.
 understand the stated pending/failure states and recover without silently losing work or creating a
 duplicate effect. The implementation evidence must exercise the specific scenarios in every row.
 
-- Model verdict: LOCAL EVIDENCE — implementation and mapped engineering checks are recorded per requirement in `docs/evidence/operations-communications-maintenance-2026-10.json`; the complete local canonical gate and core E2E passed in their recorded scopes; exact-main CI and runtime/delivery remain separately verified gates. No live provider effect or human observation is claimed.
+- Model verdict: PARTIAL — independent application delivery verified in run 5b3dfb90; whole-program closure still requires five pending outcomes, investigation contracts and Dotloop prerequisites. Human NOT RUN.
   with evidence after execution.
 - Human verdict: NOT RUN — no human observer.
 

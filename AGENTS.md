@@ -19,48 +19,38 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — 2026-10-05
+## Present production truth — 2026-10-10
 
-Run `e372f7b5-3a1d-4224-945e-148a5f040660` released the release-tooling and audit follow-up (two queued items) at
-`337ac163c5709381e8db8d2c18810bec357d8a96` / `pmi-kc-app-rmuz9g28p-0a2909d490e1` with 100% production traffic.
-S51 (`717eb9ae`, PR #146) warms a possibly cold revision before each candidate, recovery
-preparation and rollback canary, predecessor baseline and candidate smoke measures it, and the
-post-promotion observation now decides by 480,000 ms. S54 bounds the Firestore lane for
-transaction contention (`b680dd6e`, PR #145) and moves Next.js to the patched 16.3.8 for six
-production audit advisories (`ea79bbbf`, PR #147).
-Exact [CI 37747457191](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37747457191) passed.
-The release head passed lint, typecheck, format, 9,011 unit tests with four existing
-configuration skips, all 340 backend tests and the production build; core E2E passed 32 tests with
-22 existing configuration skips. The production audit reports zero findings. No phase paused: the
-recovery preparation, candidate smoke and canaries ran their warm-ups and passed on the first attempt.
-One application build `6e3cdead-5c8b-4c68-89cd-5d34617d87bb` succeeded at 2026-10-08T08:25:18.918163Z.
-Candidate receipt `caaf4096-637a-4534-a998-3eaa567779c2` issued 2026-10-08T08:30:41.068Z;
-promotion verified 2026-10-08T08:30:59.978Z.
-Observation passed two checkpoints in 389,677 ms against the required 300,000 ms,
-inside the 480,000 ms deadline. All 318 source/projected/rendered records matched with
-zero discrepancies, candidate 5xx or unresolved live effects. All eleven independent readback
-sections matched, completed 2026-10-08T08:37:49Z.
-Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=true are verified.
-The revision keeps the reviewed Dotloop client configuration with the client secret bound from
-Secret Manager version 1. Both Dotloop write keys stay closed.
-Tag `cand-rmuz9g28p-0a2909d490e1`; fingerprint `sha256:a52280044bfad3bbf657d03836fedb5c275ec581f6f346bba419d3e341f36960`.
-Captured predecessor: `5ee574b2fba81c83fa63086496d7f2ebb299268c` / `pmi-kc-app-rmuybjtnr-f43dfa3d6d26`,
-Sheet=true. Run-bound recovery `pmi-kc-app-recovery-e372f7b53a1d4224` preserves that actual configuration;
-receipt `8302e68a-646e-4a1b-9abd-5c277e7ed4ad`, reference hash `sha256:2110c8a111f007999009daf4891a8c5d22a4a116cd327fca4c3c19e46e25974b`.
-No traffic rollback or business mutation was used as proof.
-The bounded live S106 connection check passed on 2026-10-07; the renewal template waits on a full
-Dotloop admin and resource selection on the owner (B-DL2, F-DOTLOOP-ADMIN-RIGHTS).
-Run `5622decd-0a6d-479a-bb75-545ba4aa0069` released the S130 stale-value follow-up at the captured predecessor;
-run `87920129-23c0-4420-a787-13036029d6f8` released the Dotloop PDF renewal v1 second release (S182, S66, S130 and S34),
-run `5b5c850e-a131-4e37-996a-457f5f9fd62c` the S106 connection slice and run
-`61659874-478d-4135-9810-5033b2f732bf` the batch 005 open-item fixes.
-Batch 005 (S168–S175, revised S87 and S176–S181; intake 035–049) was released by run
-`8b7dc3f1-4c5b-482a-94ca-26985150c68d` at `fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27`; runs
-`5d1b4e3a-ef6d-4354-aef1-e9952dd28687` and `7753e5f5-2325-4b19-b83d-dc3475d71b0b` released its verification repairs and follow-up fixes.
-Batch 005's 116 requirement records are in [native evidence](docs/evidence/application-usability-batch005.json);
-independent verification of it is recorded in F-BATCH-005-VERIFICATION.
-The prior release's two-item queue is delivered; its exact permit is consumed. The current program queue is separate.
-Editor browser coverage remains `not_run` under the approved Admin-only contract.
+Run `5b3dfb90-2624-406a-9791-5f8581befcf5` delivered the independent operations implementation at
+`780f48db1d7d6a7cc855035d934621f77a28a257` / `pmi-kc-app-rmv2ixuq7-b0c62b52cd5d`,100% traffic.
+Exact [CI 38061050765](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38061050765)
+passed all five jobs:9,505 unit tests/four existing configuration skips and 455 backend tests.
+Complete local canonical:9,509 unit tests/1,013 files,455 backend tests/79 files, all required
+format/lint/type/policy/budget checks, production audit 0 and production build. Core E2E 32 passed
+with 22 existing configuration skips in its recorded scope. One build
+`333e5e32-d65d-451a-bd8e-fe06bce48b0f` succeeded 2026-10-10T15:14:59.641111Z.
+Candidate receipt `6dd720ec-0337-4d6b-b38f-b44173b0df8c` issued 15:21:27.007Z; receipt-bound promotion
+verified 15:21:52.305Z. Managed candidate GET readiness passed/restored PAUSED. Observation passed two
+checkpoints in 400,540ms within 300,000–480,000ms. All 318 source/projected/rendered records matched,
+zero discrepancies/5xx/unresolved effects. Eleven independent sections matched 15:30:08Z. Five
+guarded 390px mobile routes passed 15:33:10.849Z, zero errors/overflow/mutation attempts; normal managed
+Gmail connection ready. Automated checks do not establish human acceptance or a physical-phone test.
+Production/Live, managed runtime identity, eleven Spaces, Demo=false, Sheet=true, five secret bindings
+and RentCast allowance 50 remain verified. Registry source/mirror:48 keys / 18 open/30 closed; only
+two reviewed notice send keys activated with backup/CAS/readback. Minute worker ENABLED and normal
+empty tick passed with zero sequences/occurrences/sends; annual GET probe PAUSED.
+Tag `cand-rmv2ixuq7-b0c62b52cd5d`; fingerprint
+`sha256:878fdc039aad6150caee0eb5fc7bcf5352ebf8bc07b0adb69f50bcbc13665b92`.
+Captured predecessor:`337ac163c5709381e8db8d2c18810bec357d8a96` / `pmi-kc-app-rmuz9g28p-0a2909d490e1`,
+Sheet=true. Recovery:`pmi-kc-app-recovery-5b3dfb902624406a`, receipt
+`f2603722-261c-4748-96c8-ab2bc276e7f2`, reference
+`sha256:54a55011c26a44a4d0c39e5121ecb2c90f4db7aa6d6f9b1abfb52ef8ce4f0e37`, preserving its actual
+image/configuration. No traffic rollback or customer effect was test proof. Failed 6cb8d512 and D33
+attempts retain immutable evidence and consumed claims/probes.
+Independent implementation queue delivered/empty; exact permit consumed. Full 44/238 program remains
+open: 203 requirements verified, 35 suites delivered. Five PENDING contracts, three incomplete
+investigations and S226 integrated closure remain required. Both Dotloop write keys closed; S182
+API-origin exclusions retained. Editor browser:not_run under approved Admin-only policy.
 Human verdicts: **NOT RUN — no human observer**.
 
 The September 30 thirteen-feature gate passed 7,462 unit tests and 234 backend tests, with four existing
@@ -93,7 +83,7 @@ Persistent labeled insurance-flyer, renewal-information-form and seven legal-for
 S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger execution and own-receipt recovery are implemented and deployed. Real approved forms/catalog/mappings, managed Dotloop credentials/connection/selection and separately authorized exact-key activation remain gates. Both Dotloop keys remain closed. Signature work is a human handoff; document presence and submitted content hashes do not prove signatures or provider-owned content verification.
 
 - Project `pmi-kc-kb-prod`, service `pmi-kc-app`, region `us-central1`; canonical https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-- Current captured predecessor: `pmi-kc-app-rmuybjtnr-f43dfa3d6d26` / `5ee574b2fba81c83fa63086496d7f2ebb299268c`, Sheet=true. Run-bound recovery: `pmi-kc-app-recovery-e372f7b53a1d4224`, receipt `8302e68a-646e-4a1b-9abd-5c277e7ed4ad`. No traffic rollback occurred. Older false-switch recovery receipts retain their historical meaning.
+- Current captured predecessor: `pmi-kc-app-rmuz9g28p-0a2909d490e1` / `337ac163c5709381e8db8d2c18810bec357d8a96`, Sheet=true. Run-bound recovery: `pmi-kc-app-recovery-5b3dfb902624406a`, receipt `f2603722-261c-4748-96c8-ab2bc276e7f2`. No traffic rollback occurred. Historical recovery receipts retain their original scope.
 - Runtime remains Production + Live, managed runtime identity, eleven Spaces, Sheet write-back
   true since the S152–S167 release (run `47fabb7c`; the current recovery target keeps true), false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
 - S82 conformance, S97 replay/ambiguity integrity, S98 normal append and owner-approved field
@@ -102,9 +92,7 @@ S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger 
   provider creation causality or mint receipt-bound reversal authority.
 - S96 and the S83-S86 access/navigation/theme/interaction foundation remain deployed. S97-S99 and
   S100 chat-sync proof-qualified exact keys retain their contracts; completed proofs were not rerun.
-- The prior serving revision has 48 exact keys, 16 open and 32 closed. The October program
-  prepares only the two reviewed workflow notice keys for its next gated release (18 open, 30 closed). Only two Sheet descriptive metadata
-  entries were aligned with backup, compare-and-set and readback; no activation changed.
+- Source and read-back Admin Registry mirror contain 48 exact keys, 18 open and 30 closed. Only the two reviewed workflow notice send keys activated, with backup/CAS/readback;46 unrelated metadata records were unchanged. The maintenance-draft descriptive note was separately aligned without an activation change.
 - S100 resident-draft activation still needs the exact synchronized resident/verified-email input;
   S36 remains queued behind complete S100. Revised S87 is deployed in batch 005; overlapping S88-S93/S101 and S95 proposals are superseded, while S94 remains unexecuted.
 - Existing monitoring and domain gates passed. The managed alert recipient remains unchanged.
@@ -118,8 +106,9 @@ The owner-approved v4 receipt records only the exact blocked predecessor My Work
 The 919a2ae candidate passed CI 34549763928, candidate assurance and promotion, then failed final observation at 420,140 ms and verified rollback to d243911. Its consumed candidate receipt, promotion receipt, failed observation and terminal rollback checkpoint remain preserved; the failure was never rewritten as a pass.
 
 The earlier 6e77d18, 00836a8 and 297af97 candidates were archived as superseded without claiming their failed
-or unfinished assurance passed. Current release evidence is in
-`docs/evidence/application-usability-batch005.json`; the earlier batch litmus audit and S113 review retain their own scopes.
+or unfinished assurance passed. Earlier batch evidence is in
+`docs/evidence/application-usability-batch005.json`; current operations evidence is in
+`docs/evidence/operations-communications-maintenance-2026-10.json`. Each retains its actual scope.
 
 ## Product boundary
 
@@ -128,8 +117,9 @@ PMI KC is one deployed application with three connected lanes:
 - PMI KC KB: source-backed knowledge, Console, Spaces, processes, approvals, and Admin.
 - Lease Renewal Agent: complete RentVine/Sheet reads, reconciliation, comps, reviewed drafts, and
   lease-specific work.
-- Workflow Communications: workflow-linked Gmail reads, labels, replies, and unsent drafts. It is not
-  a general inbox or autonomous messaging product.
+- Workflow Communications: linked Gmail reads/labels/replies, rich drafts and exact human
+  Send/Schedule for the two reviewed notice contracts, with durable recovery and reply pauses.
+  General inbox and model-triggered messaging are outside its scope.
 
 Maintenance, resident intake, Vendor work, feedback, and staff work accountability are application
 capabilities within those lanes, not separate Demo products.
@@ -311,7 +301,7 @@ withdrawal and provider evidence remain distinct. This is not a new provider-act
 
 Production activation is per exact Action Registry key. Never infer a category grant.
 
-Open keys as of 2026-09-02:
+Open keys as verified 2026-10-10:
 
 - `rentvine.work_order.create`
 - `rentvine.work_order.read`
@@ -323,6 +313,8 @@ Open keys as of 2026-09-02:
 - `gmail.label.apply`
 - `gmail.renewal_notice.draft_create`
 - `gmail.maintenance_owner_notice.draft_create`
+- `gmail.renewal_notice.send` (only the current human-authorized S189–S192 sequence contract)
+- `gmail.maintenance_owner_notice.send` (same scoped contract)
 - `rentcast.rental_listings.search`
 - `internal.transactional_notice.send`
 - `rentvine.lease.renewal_dates.update` (S97 proof-qualified activation, 2026-09-02)
@@ -330,12 +322,8 @@ Open keys as of 2026-09-02:
 - `rentvine.lease.recurring_charge.update`
 - `rentvine.work_order.chat.sync`
 
-The other 32 keys are closed. In particular:
+The other 30 keys are closed. In particular:
 
-- `gmail.renewal_notice.send` and `gmail.maintenance_owner_notice.send` remain technically closed
-  until the program's reviewed Send/Schedule, durable dispatch, observation and recovery gates
-  pass and their exact activation is reviewed. The owner's S183 instruction supersedes D33's
-  categorical draft-only restriction for those named workflow operations, not for generic sends;
 - `gmail.message.send` remains closed; no arbitrary inbox/send capability is authorized;
 - `gmail.maintenance_resident_reply.draft_create` remains closed pending its exact S100 live proof;
 - the retired `rentvine.lease.renewal_writeback` compatibility identifier remains closed;
@@ -411,7 +399,7 @@ proof plus its suite's required runtime switch, and every executed window was cl
 before final activation. Receipt-bound reversal under a create/append key is allowed only when that
 suite defines the exact inverse operation and the current provider seam can bind it safely; it is not
 general delete authority. S98's active correction finds no such fixed-row Sheet seam and refuses it.
-`rentvine.work_order.assign_vendor`, RentVine chat posting, attachment upload, direct Gmail sends, and
+`rentvine.work_order.assign_vendor`, RentVine chat posting, attachment upload, generic or otherwise unlisted Gmail sends, and
 every unlisted provider key remain closed. S36 separately authorizes one temporary, bounded Space
 provision/import/readback/retirement pilot under its exact lifecycle; it is not Action Registry
 category authority.
@@ -425,10 +413,11 @@ implementation, verified repairs and existing delivery without phase-only consen
 READY is not implementation, activation or delivery. All five PENDING outcomes remain required;
 complete accessible bounded investigations and surface genuinely missing material inputs once.
 No unrelated key, identity, privilege, budget, destructive data or model-driven effect is granted.
-October 10 reviewed source activation selects only `gmail.renewal_notice.send` and
-`gmail.maintenance_owner_notice.send` under S189–S192. Current managed-mailbox grants, local
-unit/emulator/browser evidence and paused bounded Scheduler configuration were checked. Candidate
-managed-worker validation and normal assurance/promotion/observation still gate serving activation.
+October 10 verified delivery activates only `gmail.renewal_notice.send` and
+`gmail.maintenance_owner_notice.send` under S189–S192. Exact-main CI, managed GET readiness/
+restoration, guarded Admin/Gmail assurance, promotion, full observation, independent readbacks and
+exact-key metadata CAS/readback passed in run 5b3dfb90. Minute worker ENABLED with a verified normal
+empty tick; annual GET readiness job PAUSED.
 No customer send is test proof; old drafts, attempts or completed proofs never grant a schedule.
 Generic `gmail.message.send`, resident-draft proof and unrelated keys retain their existing holds.
 Preserve S182 Dotloop API-origin exclusions; OAuth connection does not prove resource eligibility

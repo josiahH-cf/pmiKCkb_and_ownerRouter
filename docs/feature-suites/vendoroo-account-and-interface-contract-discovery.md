@@ -88,7 +88,7 @@ No material product decision is deferred inside this READY scope. Actual identit
 
 **If this was built correctly:** PMI reviews a clear account-backed coverage matrix showing which intake, call, troubleshooting and open-work data the subscribed Vendoroo service can supply, which interface the app is allowed to use, and precisely what account or provider input is still needed. Public marketing or a test adapter does not make the integration ready.
 
-- Model verdict: PARTIAL — accessible bounded investigation is complete; actual account/source/operational inputs remain missing. See the native program ledger; no completed external contract or delivery is claimed.
+- Model verdict: PARTIAL INVESTIGATION — accessible repository, authorized reply and bounded live reads are complete; actual missing account/source/coverage contract inputs remain required. No invented interface, policy or completion.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

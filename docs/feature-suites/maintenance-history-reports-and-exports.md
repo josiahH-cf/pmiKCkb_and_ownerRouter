@@ -80,7 +80,7 @@ No material product decision is deferred inside this READY scope. Actual identit
 
 **If this was built correctly:** PMI chooses an owner, property, unit or lease and a month or custom period, then sees clearly defined work counts, separate financial totals and evidence links. The matching PDF is readable across pages, the CSV contains the same scoped facts, and a later correction is distinguishable from an earlier retained export.
 
-- Model verdict: LOCAL EVIDENCE — implementation and mapped engineering checks are recorded per requirement in `docs/evidence/operations-communications-maintenance-2026-10.json`; the complete local canonical gate and core E2E passed in their recorded scopes; exact-main CI and runtime/delivery remain separately verified gates. No live provider effect or human observation is claimed.
+- Model verdict: ENGINEERING VERIFIED / DELIVERED — all mapped engineering scopes and independent deployment verified in run 5b3dfb90 /780f48db; exact CI, full observation, eleven readbacks and mobile scope are recorded in the native ledger. Human NOT RUN; no customer send was test proof.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

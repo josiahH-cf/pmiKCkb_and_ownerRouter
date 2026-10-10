@@ -28,13 +28,12 @@ substitute value, identifier, credential or human verdict to clear a hold.
   managed Admin browser assurance passed for josiah@pmikcmetro.com. The selected clean release pair
   reuses only the approved three-field RentVine provider configuration with production flags.
   Independent session longevity remains unverified and is not a repeated release prerequisite.
-- **B-COMMUNICATIONS-RUNTIME.** The bounded minute dispatch job and separate read-only readiness
-  probe are created/read back PAUSED under the existing runtime identity. Gmail scope exchanges
-  passed without message effects. Only two notice keys are prepared for source activation. Finish
-  the actual candidate service-authenticated GET probe, guarded assurance, promotion and full
-  observation before enabling the dispatch job. No new owner phase consent is required. Old entry
-  points cannot retire in production before replacement readiness. No new Gmail watch/subscription
-  is required for the periodic linked-observation path; the old configured topic is absent.
+- **B-COMMUNICATIONS-RUNTIME — verified October 10.** Run5b3dfb90 passed exact managed candidate
+  GET readiness/restoration, normal Gmail connection, guarded assurance, promotion, full observation
+  and eleven readbacks. Only two notice keys activated; minute worker ENABLED with normal empty
+  tick, annual GET probe PAUSED. Replacement parity/retirement is delivered. Earlier failed consumed
+  probes and original attempts remain preserved. No new Gmail subscription or customer send was
+  proof. This is no longer a hold.
 
 - **B-VENDOROO-CONTRACT (S208).** The owner's latest direction makes separate Vendoroo access
   conditional on a demonstrated gap in the existing RentVine integration. Current typed RentVine
@@ -52,12 +51,13 @@ substitute value, identifier, credential or human verdict to clear a hold.
   contacts/troubleshooting/consent/recording policy, and cost/cutover/rollback decisions are missing.
   S219 records the readback. No phone provider, coverage or operating policy is guessed.
 
-These five outcomes remain required. Independent owning-service implementation is on main with
-exact-main CI 38033099009 passed; deployment remains held at the current auth/runtime prerequisites. Runtime policy controls accept only actual staff-reviewed
-inputs; their unset state is not operational policy. The owner execution instruction already
-carries program authority through phases and necessary repairs; these holds request material
-facts, not repeated phase consent. Dotloop A1 remains partially unblocked and its existing row
-still requires office/template eligibility and saved supported selection; both write keys are closed.
+The five pending outcomes remain required. Independent owning-service implementation and 35
+suites are verified delivered at 780f48db / run 5b3dfb90;203 of238 requirements are verified. Runtime
+Communications is no longer blocked by enrollment or deployment. Unset reviewed policy remains
+unset. The owner instruction carries scope through phases and repairs; remaining holds request
+material facts. Dotloop A1 remains partial: eligible office/profile/template and saved supported
+profile/template/status are missing; existing owners retain requests, both write keys closed and
+S182 exclusions preserved.
 
 ## Owner decisions
 

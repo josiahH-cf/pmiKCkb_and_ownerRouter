@@ -77,7 +77,7 @@ No material product decision is deferred inside this READY scope. Actual identit
 
 **If this was built correctly:** A staff member reviews the actual issue and policy, records a supported responsibility decision or a need for review, and can explain or correct it later. The resident can still report the problem and receive urgent guidance; the app never silently turns a proposal into a charge or payment.
 
-- Model verdict: LOCAL EVIDENCE — implementation and mapped engineering checks are recorded per requirement in `docs/evidence/operations-communications-maintenance-2026-10.json`; the complete local canonical gate and core E2E passed in their recorded scopes; exact-main CI and runtime/delivery remain separately verified gates. No live provider effect or human observation is claimed.
+- Model verdict: ENGINEERING VERIFIED / DELIVERED — all mapped engineering scopes and independent deployment verified in run 5b3dfb90 /780f48db; exact CI, full observation, eleven readbacks and mobile scope are recorded in the native ledger. Human NOT RUN; no customer send was test proof.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

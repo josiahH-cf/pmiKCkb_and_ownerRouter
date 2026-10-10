@@ -4,87 +4,68 @@ Last updated: 2026-10-10 (UTC).
 
 ## Current authorized program
 
-S183–S226 / intake 055–098, `operations-communications-maintenance-2026-10`, is active and
-unfinished. The isolated WSL branch from main 8406181c preserves both original checkouts. Native
-44/238 evidence: `docs/evidence/operations-communications-maintenance-2026-10.json`; 201 requirements
-have four local engineering scopes passed. No program feature is verified delivered.
+The owner-authorized program covers S183–S226 / intake 055–098, all 44 suites/238 requirements.
+The independent implementation and cumulative repairs are merged and serving at 780f48db in
+run 5b3dfb90. Native `docs/evidence/operations-communications-maintenance-2026-10.json` records 203
+verified requirements and 35 verified delivered suites. Original Windows 64 dirty file hashes/
+HEAD 8406181c and original native clean HEAD 43bad3ad were verified unchanged 15:27:12Z. No unrelated
+work was absorbed. Later documentation/test closure does not change the deployed application.
 
-Implementation `64eec96f098f11f7f8d10ea634f0e75f210f687c` and cumulative repairs are on main.
-Exact-main [CI 38056498765](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38056498765)
-passed all five jobs for `a4ee34920a7c497465eb0e6a5149e5dca00e6ec1`: 9,499 unit tests/four
-existing configuration skips and all455 backend tests. Its full local canonical gate passed
-9,503 unit tests/1,013 files and455 backend tests/79 files, required checks, production build and
-zero production audit findings. The current Scheduler harness repair passed its full canonical gate:9,509 unit tests,455
-backend tests, all required checks/build and zero production audit findings. Exact-main CI and
-a fresh cumulative candidate remain required.
+Delivered owners cover scoped governance/one Apply, rich workflow Communications with explicit
+human Send/Schedule, sender handoff/reply pauses/durable recovery, renewal policies/recommendations/
+first-five comps/worklists/tasks, private continuing conversations/pins and separate shared lease
+collections, authorized search, assessment-first maintenance/vendor contributions/history/financial
+evidence/PDF/CSV reports, reviewed policy/chargeback controls, staff signatures and display naming.
+Four replaced process groups/six entry points are verified delivered with original drafts, attempts,
+receipts, legal holds and published definitions/runs preserved. No historical proof or backlog reran.
 
-Run `d33ddb4a-4dc3-4883-872a-9db5fe048ad4` built the cumulative application successfully
-(build `2e7689b8-569b-4db8-bf95-2fc6214f3cbe`) and passed zero-traffic smoke, fingerprint and
-authorized-domain checks at `pmi-kc-app-rmv2gmgev-de84ffa8b3a8`. Mandatory worker assurance failed:
-Cloud Scheduler requires an ENABLED job for RunJob. The annual GET probe was restored PAUSED;
-its failed consumed receipt is preserved. No readiness request, customer effect, promotion or
-traffic rollback occurred. Production remains337ac163 at100%. The repaired harness briefly
-enables only the nonce-bound annual GET job, requires a safe provider/calendar next-run time,
-and pauses/restores canonical configuration; the minute POST worker remains PAUSED.
+All five PENDING outcomes remain required: S208/S217/S218/S220/S221. Accessible S207/S216/S219
+investigations retain missing account/data, acquisition and answering contracts. RentVine-first
+integration is verified only for a bounded 15-order page/15 statuses/one detail. Separate Vendoroo
+access is conditional on a demonstrated gap; calls/triage/photos/escalation/freshness/takeover remain
+unverified. No duplicate access request or additional external message was sent.
 
-Complete current canonical verification passed9,509 unit tests/1,013 files, 455 backend tests/79 files,
-all policy checks, zero production audit findings and the production build. Core E2E passed 32 tests with 22 existing configuration skips after one old retired-tools
-assertion failed first; application code remains canonical-green. Production-built
-maintenance 31, Communications 15, search 11, history/collections 15 and settings 3 passed. These scopes
-use deterministic external adapters and actual local routes/emulator transactions. Human NOT RUN;
-no live customer/provider business effect was test proof.
-
-S208/S217/S218/S220/S221 remain PENDING and required. Accessible investigations retain actual
-Vendoroo/account, acquisition/source/opening/cutover and phone/coverage/consent/transition holds.
-Fresh approved WSL CLI/ADC and managed Admin browser checks passed. The two source notice keys
-select reviewed activation; the Firestore mirror remains48 keys/16 open/32 closed pending verified
-delivery. Both Dotloop write keys stay closed; A1 is partial and S182 exclusions remain. Legacy
-new admissions, pasted tools and notice-first guidance are locally retired with original
-recovery/history preserved. Eight program indexes are READY; both Scheduler jobs are PAUSED.
-No live retirement, worker enablement, promotion or delivery is claimed.
+Next: obtain actual Vendoroo coverage/ownership/interface terms, acquisition source/schema/matching/
+opening financial/cutover inputs, native phone/account/coverage/contacts/consent/troubleshooting/
+transition inputs, and Dotloop eligible office/profile/template plus saved supported profile/template/
+status selection. Revise the same pending specifications and validate registrations before READY.
+Continue this program without phase-only consent and with all technical gates. Dan's weekly status
+is saved as one unsent draft, with exact recipient/subject/body verified by its original provider
+receipt after a preserved RFC header mismatch; no duplicate draft or Send. It includes actual
+outcomes, mobile directions and the conditional Vendoroo conversation. Human observation remains NOT RUN; no customer send is verification proof.
 
 ## Serving release
 
-Run `e372f7b5-3a1d-4224-945e-148a5f040660` released the release-tooling and audit follow-up (two queued items) at
-`337ac163c5709381e8db8d2c18810bec357d8a96` / `pmi-kc-app-rmuz9g28p-0a2909d490e1` with 100% production traffic.
-S51 (`717eb9ae`, PR #146) warms a possibly cold revision before each candidate, recovery
-preparation and rollback canary, predecessor baseline and candidate smoke measures it, and the
-post-promotion observation now decides by 480,000 ms. S54 bounds the Firestore lane for
-transaction contention (`b680dd6e`, PR #145) and moves Next.js to the patched 16.3.8 for six
-production audit advisories (`ea79bbbf`, PR #147).
-Exact [CI 37747457191](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/37747457191) passed.
-The release head passed lint, typecheck, format, 9,011 unit tests with four existing
-configuration skips, all 340 backend tests and the production build; core E2E passed 32 tests with
-22 existing configuration skips. The production audit reports zero findings. No phase paused: the
-recovery preparation, candidate smoke and canaries ran their warm-ups and passed on the first attempt.
-One application build `6e3cdead-5c8b-4c68-89cd-5d34617d87bb` succeeded at 2026-10-08T08:25:18.918163Z.
-Candidate receipt `caaf4096-637a-4534-a998-3eaa567779c2` issued 2026-10-08T08:30:41.068Z;
-promotion verified 2026-10-08T08:30:59.978Z.
-Observation passed two checkpoints in 389,677 ms against the required 300,000 ms,
-inside the 480,000 ms deadline. All 318 source/projected/rendered records matched with
-zero discrepancies, candidate 5xx or unresolved live effects. All eleven independent readback
-sections matched, completed 2026-10-08T08:37:49Z.
-Production/Live, managed identity, eleven Spaces, Demo=false and Sheet=true are verified.
-The revision keeps the reviewed Dotloop client configuration with the client secret bound from
-Secret Manager version 1. Both Dotloop write keys stay closed.
-Tag `cand-rmuz9g28p-0a2909d490e1`; fingerprint `sha256:a52280044bfad3bbf657d03836fedb5c275ec581f6f346bba419d3e341f36960`.
-Captured predecessor: `5ee574b2fba81c83fa63086496d7f2ebb299268c` / `pmi-kc-app-rmuybjtnr-f43dfa3d6d26`,
-Sheet=true. Run-bound recovery `pmi-kc-app-recovery-e372f7b53a1d4224` preserves that actual configuration;
-receipt `8302e68a-646e-4a1b-9abd-5c277e7ed4ad`, reference hash `sha256:2110c8a111f007999009daf4891a8c5d22a4a116cd327fca4c3c19e46e25974b`.
-No traffic rollback or business mutation was used as proof.
-The bounded live S106 connection check passed on 2026-10-07; the renewal template waits on a full
-Dotloop admin and resource selection on the owner (B-DL2, F-DOTLOOP-ADMIN-RIGHTS).
-Run `5622decd-0a6d-479a-bb75-545ba4aa0069` released the S130 stale-value follow-up at the captured predecessor;
-run `87920129-23c0-4420-a787-13036029d6f8` released the Dotloop PDF renewal v1 second release (S182, S66, S130 and S34),
-run `5b5c850e-a131-4e37-996a-457f5f9fd62c` the S106 connection slice and run
-`61659874-478d-4135-9810-5033b2f732bf` the batch 005 open-item fixes.
-Batch 005 (S168–S175, revised S87 and S176–S181; intake 035–049) was released by run
-`8b7dc3f1-4c5b-482a-94ca-26985150c68d` at `fa5b2b27bbfbe13e7f0a9e70367cb3e727fe5a27`; runs
-`5d1b4e3a-ef6d-4354-aef1-e9952dd28687` and `7753e5f5-2325-4b19-b83d-dc3475d71b0b` released its verification repairs and follow-up fixes.
-Batch 005's 116 requirement records are in [native evidence](evidence/application-usability-batch005.json);
-independent verification of it is recorded in F-BATCH-005-VERIFICATION.
-The prior release's two-item queue is delivered; its exact permit is consumed. The current program queue is separate.
-Editor browser coverage remains `not_run` under the approved Admin-only contract.
+Run `5b3dfb90-2624-406a-9791-5f8581befcf5` delivered the independent operations implementation at
+`780f48db1d7d6a7cc855035d934621f77a28a257` / `pmi-kc-app-rmv2ixuq7-b0c62b52cd5d`,100% traffic.
+Exact [CI 38061050765](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38061050765)
+passed all five jobs:9,505 unit tests/four existing configuration skips and 455 backend tests.
+Complete local canonical:9,509 unit tests/1,013 files,455 backend tests/79 files, all required
+format/lint/type/policy/budget checks, production audit 0 and production build. Core E2E 32 passed
+with 22 existing configuration skips in its recorded scope. One build
+`333e5e32-d65d-451a-bd8e-fe06bce48b0f` succeeded 2026-10-10T15:14:59.641111Z.
+Candidate receipt `6dd720ec-0337-4d6b-b38f-b44173b0df8c` issued 15:21:27.007Z; receipt-bound promotion
+verified 15:21:52.305Z. Managed candidate GET readiness passed/restored PAUSED. Observation passed two
+checkpoints in 400,540ms within 300,000–480,000ms. All 318 source/projected/rendered records matched,
+zero discrepancies/5xx/unresolved effects. Eleven independent sections matched 15:30:08Z. Five
+guarded 390px mobile routes passed 15:33:10.849Z, zero errors/overflow/mutation attempts; normal managed
+Gmail connection ready. Automated checks do not establish human acceptance or a physical-phone test.
+Production/Live, managed runtime identity, eleven Spaces, Demo=false, Sheet=true, five secret bindings
+and RentCast allowance 50 remain verified. Registry source/mirror:48 keys / 18 open/30 closed; only
+two reviewed notice send keys activated with backup/CAS/readback. Minute worker ENABLED and normal
+empty tick passed with zero sequences/occurrences/sends; annual GET probe PAUSED.
+Tag `cand-rmv2ixuq7-b0c62b52cd5d`; fingerprint
+`sha256:878fdc039aad6150caee0eb5fc7bcf5352ebf8bc07b0adb69f50bcbc13665b92`.
+Captured predecessor:`337ac163c5709381e8db8d2c18810bec357d8a96` / `pmi-kc-app-rmuz9g28p-0a2909d490e1`,
+Sheet=true. Recovery:`pmi-kc-app-recovery-5b3dfb902624406a`, receipt
+`f2603722-261c-4748-96c8-ab2bc276e7f2`, reference
+`sha256:54a55011c26a44a4d0c39e5121ecb2c90f4db7aa6d6f9b1abfb52ef8ce4f0e37`, preserving its actual
+image/configuration. No traffic rollback or customer effect was test proof. Failed 6cb8d512 and D33
+attempts retain immutable evidence and consumed claims/probes.
+Independent implementation queue delivered/empty; exact permit consumed. Full 44/238 program remains
+open: 203 requirements verified, 35 suites delivered. Five PENDING contracts, three incomplete
+investigations and S226 integrated closure remain required. Both Dotloop write keys closed; S182
+API-origin exclusions retained. Editor browser:not_run under approved Admin-only policy.
 Human verdicts: **NOT RUN — no human observer**.
 
 Independent verification on 2026-10-05 reproduced the gates, compiled checks and serving readbacks

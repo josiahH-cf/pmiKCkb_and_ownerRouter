@@ -72,7 +72,7 @@ Existing Dashboard history and saved-item controls; `lib/assistant-history/`; se
 
 **If this was built correctly:** A user pins an ongoing discussion, adds more questions and returns another day. One shortcut opens the complete discussion. Unpinning leaves it in their private history. A colleague sees a shared lease collection without seeing the user's conversation.
 
-- Model verdict: LOCAL EVIDENCE — implementation and mapped engineering checks are recorded per requirement in `docs/evidence/operations-communications-maintenance-2026-10.json`; the complete local canonical gate and core E2E passed in their recorded scopes; exact-main CI and runtime/delivery remain separately verified gates. No live provider effect or human observation is claimed.
+- Model verdict: ENGINEERING VERIFIED / DELIVERED — all mapped engineering scopes and independent deployment verified in run 5b3dfb90 /780f48db; exact CI, full observation, eleven readbacks and mobile scope are recorded in the native ledger. Human NOT RUN; no customer send was test proof.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

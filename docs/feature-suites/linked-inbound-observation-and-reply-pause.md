@@ -77,7 +77,7 @@ Starting owners are discovery anchors, not a frozen implementation allowlist. Re
 
 **If this was built correctly:** An owner or tenant replies with a question before the next reminder. The sequence pauses and the team can read the reply and decide the next step. Vacation replies never look like approval, and failed delivery is clearly flagged.
 
-- Model verdict: LOCAL EVIDENCE — implementation and mapped engineering checks are recorded per requirement in `docs/evidence/operations-communications-maintenance-2026-10.json`; the complete local canonical gate and core E2E passed in their recorded scopes; exact-main CI and runtime/delivery remain separately verified gates. No live provider effect or human observation is claimed.
+- Model verdict: ENGINEERING VERIFIED / DELIVERED — all mapped engineering scopes and independent deployment verified in run 5b3dfb90 /780f48db; exact CI, full observation, eleven readbacks and mobile scope are recorded in the native ledger. Human NOT RUN; no customer send was test proof.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

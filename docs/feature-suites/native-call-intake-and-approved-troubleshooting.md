@@ -74,7 +74,7 @@ Actual phone/channel integration once identified; existing maintenance intake/hi
 
 **If this was built correctly:** On an approved native channel, a tenant receives the actual approved intake/troubleshooting experience. Staff see the accurate issue and steps in one maintenance history, with a clear unresolved handoff and no duplicate Vendoroo responder. The factual coverage and policy still need to be established before this behavior can be finalized.
 
-- Model verdict: BLOCKED — accessible investigation is recorded in the native program ledger; required material inputs remain absent. This contract is still PENDING and no implementation or delivery is claimed.
+- Model verdict: PENDING — genuine material contract inputs remain absent; retain this same specification and registration until complete. No READY, implementation or delivery claim.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

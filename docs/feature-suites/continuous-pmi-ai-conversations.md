@@ -72,7 +72,7 @@ No material product decision remains. Exact bounded context representation is an
 
 **If this was built correctly:** A staff member discusses a policy, checks leases, leaves the Dashboard and returns. The conversation is still open. They refer to an earlier answer after several turns and the assistant understands the relevant record and their latest correction without rerunning old questions.
 
-- Model verdict: LOCAL EVIDENCE — implementation and mapped engineering checks are recorded per requirement in `docs/evidence/operations-communications-maintenance-2026-10.json`; the complete local canonical gate and core E2E passed in their recorded scopes; exact-main CI and runtime/delivery remain separately verified gates. No live provider effect or human observation is claimed.
+- Model verdict: ENGINEERING VERIFIED / DELIVERED — all mapped engineering scopes and independent deployment verified in run 5b3dfb90 /780f48db; exact CI, full observation, eleven readbacks and mobile scope are recorded in the native ledger. Human NOT RUN; no customer send was test proof.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

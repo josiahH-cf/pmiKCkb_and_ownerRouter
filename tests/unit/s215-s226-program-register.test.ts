@@ -23,7 +23,14 @@ it("checks all actual registered requirements and retains the five incomplete co
   const result = validateOperationsProgramRegister(inputs());
   expect(result.mappedRequirements).toBe(238);
   expect(result.pendingContracts).toEqual(["S208", "S217", "S218", "S220", "S221"]);
-  expect(result.missingExternal).toHaveLength(5);
+  expect(result.verifiedRequirements).toBe(203);
+  expect(result.undelivered).toHaveLength(9);
+  expect(result.missingExternal.map((p) => p.id)).toEqual([
+    "B-VENDOROO-CONTRACT",
+    "B-ACQUISITION-CONTRACT",
+    "B-NATIVE-ANSWERING-CONTRACT",
+    "B-DOTLOOP-A1",
+  ]);
   expect(result.state).toBe("incomplete");
 });
 it("cannot mark a still-pending specification ready only by changing its ledger", () => {

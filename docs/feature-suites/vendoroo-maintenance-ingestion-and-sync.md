@@ -96,7 +96,7 @@ The unknowns above are material. Known owner intent is retained here for traceab
 
 **If this was built correctly:** Once the actual account and interface contract is finalized, PMI can see the supported Vendoroo report and troubleshooting history attached to the correct work, with source freshness and unresolved associations clearly marked. Until those material inputs are resolved, the spec and integration remain visibly pending rather than appearing complete.
 
-- Model verdict: BLOCKED — accessible investigation is recorded in the native program ledger; required material inputs remain absent. This contract is still PENDING and no implementation or delivery is claimed.
+- Model verdict: PENDING — genuine material contract inputs remain absent; retain this same specification and registration until complete. No READY, implementation or delivery claim.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

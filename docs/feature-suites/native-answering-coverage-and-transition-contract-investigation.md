@@ -95,7 +95,7 @@ Complete Vendoroo maintenance integration, existing maintenance/work-order/chat 
 
 **If this was built correctly:** Staff can describe who answers each channel and time period, what troubleshooting is permitted, who receives emergencies, what consent and recording rules apply, and how a verified native function could replace one Vendoroo function with a working fallback and preserved history.
 
-- Model verdict: PARTIAL — accessible bounded investigation is complete; actual account/source/operational inputs remain missing. See the native program ledger; no completed external contract or delivery is claimed.
+- Model verdict: PARTIAL INVESTIGATION — accessible repository, authorized reply and bounded live reads are complete; actual missing account/source/coverage contract inputs remain required. No invented interface, policy or completion.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

@@ -74,7 +74,7 @@ Potential RentVine/Sheet and document integration seams identified by S216; app-
 
 **If this was built correctly:** Staff review the real intended changes and documents, confirm supported operations, then return after interruption to see verified completions and precise holds without duplicate records. The acquisition becomes current only under its actual cutover rules, which still need to be supplied and verified.
 
-- Model verdict: BLOCKED — accessible investigation is recorded in the native program ledger; required material inputs remain absent. This contract is still PENDING and no implementation or delivery is claimed.
+- Model verdict: PENDING — genuine material contract inputs remain absent; retain this same specification and registration until complete. No READY, implementation or delivery claim.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

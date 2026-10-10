@@ -75,7 +75,7 @@ S219 contract investigation and S220 intake/troubleshooting; complete Vendoroo i
 
 **If this was built correctly:** An emergency caller reaches the real approved escalation path with an honest handoff status. When one native answering function has proved its actual coverage and fallback, an operator moves just that function while other Vendoroo capabilities and all history remain available. The actual policy, contacts and switch contract still need to be established.
 
-- Model verdict: BLOCKED — accessible investigation is recorded in the native program ledger; required material inputs remain absent. This contract is still PENDING and no implementation or delivery is claimed.
+- Model verdict: PENDING — genuine material contract inputs remain absent; retain this same specification and registration until complete. No READY, implementation or delivery claim.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**

@@ -179,12 +179,13 @@ assertIncludes("docs/autonomous-agent-runner.md", [
 
 assertIncludes("docs/integration-architecture.md", [
   "Every provider capability is one exact Action Registry key",
-  "these 16 are open and the other 32 are closed",
+  "these 18 are open and the other 30 are closed",
   "RentVine write boundary",
   "Sheet boundary",
   "S183 instruction authorizes the named program's human Send/Schedule",
   "The two notice",
-  "send keys remain closed until their technical gates and reviewed activation pass",
+  "generic Gmail sends remain closed",
+  "send keys passed their technical gates and reviewed activation",
   "No historical",
   "draft, migrated record, model answer or page load becomes a sending authorization",
 ]);

@@ -72,7 +72,7 @@ Existing assistant/knowledge routing, operational interpretation, answer and sto
 
 **If this was built correctly:** A staff member asks an imperfect question and gets the useful part answered with sources and uncertainty visible. A date already agreed is not requested again. When they explicitly ask for a supported change, they use the same exact review and confirmation they would see from the normal control, then see an honest result or precise hold.
 
-- Model verdict: LOCAL EVIDENCE — implementation and mapped engineering checks are recorded per requirement in `docs/evidence/operations-communications-maintenance-2026-10.json`; the complete local canonical gate and core E2E passed in their recorded scopes; exact-main CI and runtime/delivery remain separately verified gates. No live provider effect or human observation is claimed.
+- Model verdict: ENGINEERING VERIFIED / DELIVERED — all mapped engineering scopes and independent deployment verified in run 5b3dfb90 /780f48db; exact CI, full observation, eleven readbacks and mobile scope are recorded in the native ledger. Human NOT RUN; no customer send was test proof.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**
