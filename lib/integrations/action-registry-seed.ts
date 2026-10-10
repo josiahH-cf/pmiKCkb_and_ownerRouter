@@ -1102,7 +1102,7 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
       },
     ],
     test_notes:
-      "Draft-into-Gmail only, never sends. The registry gate is open (2026-07-22); runtime draft creation still requires a real (non-sample) ticket with a verified owner recipient resolved from the authoritative source (portfolio.owners[].email), so sample/test data yields a preview only and never a real draft. Falsification must prove missing/conflicting owner facts reject before Gmail client construction. The paired send action stays production_allowed:false.",
+      "Draft-into-Gmail only, never sends. The registry gate is open (2026-07-22); runtime draft creation still requires a real (non-sample) ticket with a verified owner recipient resolved from the authoritative source (portfolio.owners[].email), so sample/test data yields a preview only and never a real draft. Falsification must prove missing/conflicting owner facts reject before Gmail client construction. The paired send action was closed under the original July draft-only contract. S183/S189-S192 now select only the separately human-authorized workflow Send/Schedule path; creating or recovering this draft never authorizes sending.",
     rollback_note: "Delete the unsent draft; nothing was sent.",
     connection_health_check_ref: "health.gmail.workspace_api",
     production_allowed: true,
