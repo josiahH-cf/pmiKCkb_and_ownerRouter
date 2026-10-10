@@ -41,6 +41,21 @@ export interface VendorRecord {
 }
 
 export interface VendorTicketProjection {
+  assignmentGeneration?: string | null;
+  reviewedPacket?: {
+    version: number;
+    issue: string;
+    location: string;
+    access: string;
+    scheduling: string;
+    approvedScope: string;
+    costLimitCents: number | null;
+    costBasis?: string | null;
+    authorizationRef: string | null;
+    troubleshooting: Array<{ step: string; outcome: string }>;
+    artifactIds: string[];
+    reviewedAt: string;
+  } | null;
   id: string;
   status: string;
   priority: string;

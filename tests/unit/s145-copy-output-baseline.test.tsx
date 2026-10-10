@@ -220,6 +220,12 @@ async function captureCopies(user: UserEvent): Promise<CopyEntry[]> {
   return entries;
 }
 
+// S197 adds three primary identity copy controls. Original controls keep every recorded byte.
+function priorControls(entries: CopyEntry[]) {
+  return entries.filter(
+    (entry) => !/^page:Copy (?:address|tenant name|lease ID): /.test(entry.control),
+  );
+}
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(PINNED_NOW);
@@ -244,7 +250,20 @@ describe("S145 Full view copy output", () => {
       writeFileSync(FIXTURE_PATH, `${JSON.stringify(recorded, null, 2)}\n`);
     expect(existsSync(FIXTURE_PATH)).toBe(true);
     const baseline = JSON.parse(readFileSync(FIXTURE_PATH, "utf8"));
-    expect(recorded).toEqual(baseline);
+    expect(
+      Object.fromEntries(
+        Object.entries(recorded).map(([key, entries]) => [key, priorControls(entries)]),
+      ),
+    ).toEqual(baseline);
+    for (const testCase of CASES) {
+      const added = recorded[testCase.name].filter(
+        (entry) => !priorControls([entry]).length,
+      );
+      expect(added).toHaveLength(3);
+      expect(
+        added.find((entry) => entry.control.startsWith("page:Copy lease ID: "))?.output,
+      ).toEqual([`text/plain:${testCase.leaseId}`]);
+    }
     // Lease values and at least one message export reached the clipboard for every case.
     for (const entries of Object.values(recorded)) {
       expect(
@@ -270,7 +289,7 @@ describe("S145 Full view copy output", () => {
       await user.click(screen.getByRole("button", { name: "Full view" }));
       await settle();
       const after = await captureCopies(user);
-      expect(after, testCase.name).toEqual(baseline[testCase.name]);
+      expect(priorControls(after), testCase.name).toEqual(baseline[testCase.name]);
       const copied = after.flatMap((entry) => entry.output).join("\n");
       expect(copied, testCase.name).not.toMatch(
         /Focus view|Full view|\bFocus\b|Ready for you|Starts after|Other ready tasks|All renewal work|Done when|\btasks?\b/i,

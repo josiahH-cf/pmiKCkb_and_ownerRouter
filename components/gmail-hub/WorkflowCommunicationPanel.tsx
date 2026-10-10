@@ -15,7 +15,7 @@ import {
 import {
   GMAIL_MANUAL_LABEL_RULE_REF,
   type GovernedArtifactRef,
-} from "@/lib/gmail-hub/governed-artifacts";
+} from "@/lib/gmail-hub/governed-artifact-types";
 import type {
   WorkflowCommunicationContext,
   WorkflowCommunicationEntityType,
@@ -59,6 +59,7 @@ type WorkflowCommunicationPanelProps = Readonly<{
   entityId: string;
   purpose: WorkflowCommunicationPurpose;
   canLink: boolean;
+  discoveryOnly?: boolean;
 }>;
 export function WorkflowCommunicationPanel(props: WorkflowCommunicationPanelProps) {
   return (
@@ -74,12 +75,14 @@ function OwnedWorkflowCommunicationPanel({
   entityId,
   purpose,
   canLink,
+  discoveryOnly = false,
 }: Readonly<{
   lane: WorkflowCommunicationLane;
   entityType: WorkflowCommunicationEntityType;
   entityId: string;
   purpose: WorkflowCommunicationPurpose;
   canLink: boolean;
+  discoveryOnly?: boolean;
 }>) {
   const [links, setLinks] = useState<WorkflowCommunicationLink[]>([]);
   const [linksRead, setLinksRead] = useState(false);
@@ -126,7 +129,11 @@ function OwnedWorkflowCommunicationPanel({
       entityId,
       purpose,
       actionKey,
-      sourceRefs: [`${entityType}:${entityId}`],
+      sourceRefs: [
+        entityType === "renewal_lease"
+          ? `rentvine:lease:${entityId}`
+          : `${entityType}:${entityId}`,
+      ],
     };
   }
 
@@ -602,7 +609,7 @@ function OwnedWorkflowCommunicationPanel({
               </li>
             ))}
           </ol>
-          {canLink ? (
+          {canLink && !discoveryOnly ? (
             <div className="ui-stack">
               <label className="select-field">
                 Approved Gmail label

@@ -32,8 +32,13 @@ describe("retired Maintenance Test workspace controls", () => {
   });
 
   it("retains the ordinary Live queue lifecycle", () => {
-    expect(queue).toContain("async function patch");
-    expect(queue).toContain("Reopen ticket");
+    expect(queue).toContain("useMaintenanceEdits");
+    expect(read("components/maintenance/useMaintenanceEdits.ts")).toContain(
+      "async function apply",
+    );
+    expect(read("components/maintenance/MaintenanceLifecyclePanel.tsx")).toContain(
+      "Reopen for assessment",
+    );
     expect(queue).toContain("MaintenanceOwnerNoticeDraftComposer");
   });
 });

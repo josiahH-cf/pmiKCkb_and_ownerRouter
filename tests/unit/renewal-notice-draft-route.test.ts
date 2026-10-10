@@ -357,10 +357,10 @@ describe("legacy renewal draft migration and recovery", () => {
       ]) {
         const body = channel === "owner" ? ownerBody(confirm) : tenantBody(confirm);
         const response = await POST(req(body));
-        expect(response.status).toBe(409);
+        expect(response.status).toBe(410);
         expect(await response.json()).toMatchObject({
           error_type: "current_message_review_required",
-          href: `/lease-renewal/live/desk/lease/42#renewal-section-${channel}`,
+          href: `/gmail-hub?compose=renewal_${channel}&lease=42`,
         });
       }
       expect(mocks.buildLiveRentVineConfig).not.toHaveBeenCalled();
@@ -380,7 +380,7 @@ describe("legacy renewal draft migration and recovery", () => {
           }),
         ),
       );
-      expect(response.status).toBe(409);
+      expect(response.status).toBe(410);
       expect(createDraftMock).not.toHaveBeenCalled();
       expect(mocks.buildLiveRentVineConfig).not.toHaveBeenCalled();
     },

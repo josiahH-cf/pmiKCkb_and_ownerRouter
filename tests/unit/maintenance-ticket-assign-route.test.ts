@@ -31,20 +31,33 @@ function patch(body: unknown) {
   return new Request("http://localhost/api/maintenance/tickets/t1", {
     method: "PATCH",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(
+      body && typeof body === "object"
+        ? {
+            ...body,
+            expectedVersion: 0,
+            operationId: "10f3de4b-2f2c-470a-8bd4-524ddbd075ab",
+          }
+        : body,
+    ),
   });
 }
 
 const ctx = { params: Promise.resolve({ ticketId: "t1" }) };
 
 beforeEach(() => {
+  vi.stubEnv("ENVIRONMENT_KIND", "production");
+  vi.stubEnv("DATA_CONTEXT", "live");
   setEditor();
   vi.mocked(isAssignableUser).mockReset();
   vi.mocked(isAssignableUser).mockResolvedValue(true);
   vi.mocked(transitionMaintenanceTicket).mockClear();
 });
 
-afterEach(() => setAuthResolverForTest(null));
+afterEach(() => {
+  setAuthResolverForTest(null);
+  vi.unstubAllEnvs();
+});
 
 describe("maintenance ticket PATCH — assign validation", () => {
   it("401s when unauthenticated (never validates or writes)", async () => {

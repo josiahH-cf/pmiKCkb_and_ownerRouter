@@ -351,7 +351,7 @@ describe("S182 saved history cuts Dotloop references, not permitted content (AC-
       }).success,
     ).toBe(false);
     expect(
-      StoredKnowledgeAnswerSchema.parse({
+      StoredKnowledgeAnswerSchema.safeParse({
         question: "How do renewals work?",
         source_state: "Verified Source",
         answer: "Grounded answer.",
@@ -359,8 +359,8 @@ describe("S182 saved history cuts Dotloop references, not permitted content (AC-
         citations: [],
         draft: "",
         providerRef: "SENTINEL",
-      }),
-    ).not.toHaveProperty("providerRef");
+      }).success,
+    ).toBe(false);
     // A loop name, participant or status written as plain text is not recognizable by value; the
     // source-side strip above is what keeps those out of the assistant.
     const named = StoredAssistantAnswerSchema.parse({

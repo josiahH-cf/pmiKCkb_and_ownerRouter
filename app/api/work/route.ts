@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { EditableLayerError } from "@/lib/firestore/errors";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
@@ -13,6 +14,59 @@ import { WorkMutationSchema } from "@/lib/work-accountability/schemas";
 export async function GET(request: Request) {
   try {
     const actor = await requireCapability("read");
+    const query = new URL(request.url).searchParams;
+    const leaseId = query.get("lease_id");
+    if (leaseId !== null) {
+      const intent = query.get("creation_intent"),
+        taskId = query.get("task_id");
+      const allowed =
+        intent !== null
+          ? ["lease_id", "creation_intent"]
+          : taskId !== null
+            ? ["lease_id", "task_id", "activity_after"]
+            : ["lease_id", "after"];
+      if (
+        [...query.keys()].some(
+          (key) => !allowed.includes(key) || query.getAll(key).length !== 1,
+        )
+      )
+        throw new EditableLayerError(
+          "Choose one lease task read and its supported cursor.",
+          400,
+        );
+      const store = new WorkAccountabilityStore();
+      if (intent !== null)
+        return NextResponse.json(
+          await store.leaseFollowUpCreationReceipt(actor, leaseId, intent),
+        );
+      if (taskId !== null)
+        return NextResponse.json(
+          await store.leaseFollowUpActivity(
+            actor,
+            leaseId,
+            taskId,
+            query.get("activity_after") ?? undefined,
+          ),
+        );
+      const snapshot = await store.listLeaseFollowUps(
+        actor,
+        leaseId,
+        query.get("after") ?? undefined,
+      );
+      let context = null,
+        contextError = "";
+      try {
+        context = await store.leaseFollowUpContext(actor, leaseId);
+      } catch (e) {
+        contextError =
+          e instanceof Error ? e.message : "The current cycle could not be read.";
+      }
+      const roster = actor.role === "Admin" ? await listWorkAssignableUsers() : undefined;
+      return NextResponse.json(
+        { snapshot, context, contextError, ...(roster ? { roster } : {}) },
+        { headers: { "Cache-Control": "private, no-store" } },
+      );
+    }
     const view =
       new URL(request.url).searchParams.get("view") === "team" ? "team" : "mine";
     const store = new WorkAccountabilityStore();
@@ -32,6 +86,8 @@ export async function POST(request: Request) {
     const store = new WorkAccountabilityStore();
 
     switch (input.action) {
+      case "create_lease_follow_up":
+        return NextResponse.json(await store.createLeaseFollowUp(actor, input));
       case "create_task":
         return NextResponse.json({ task: await store.createTask(actor, input) });
       case "derive_task":

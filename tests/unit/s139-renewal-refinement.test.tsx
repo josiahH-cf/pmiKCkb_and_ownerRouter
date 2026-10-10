@@ -372,73 +372,27 @@ describe("S139 renewal message refinement", () => {
     expect(screen.queryByText(STALE_REFINED_BODY_MESSAGE)).toBeNull();
   });
 
-  it("discloses an earlier Gmail draft before creating another and shows the Gemini hint once", async () => {
-    const preview = {
-      status: "preview",
-      channel: "tenant",
-      executionId: `exec_${"b".repeat(40)}`,
-      previewHash: "d".repeat(64),
-      recipient: { to: "tenant@fixture.invalid", sourceRef: "rentvine:lease:701" },
-      subject: "Lease Renewal for 701 Fixture Lane",
-      body: "Draft body",
-      template: TEMPLATE,
-    };
-    const created = {
-      status: "created",
-      channel: "tenant",
-      recipient: preview.recipient,
-      subject: preview.subject,
-      executionId: preview.executionId,
-      draftId: "draft-9",
-      template: TEMPLATE,
-    };
+  it("keeps the earlier receipt after refinement without offering a second legacy draft", async () => {
+    const executionId = `exec_${"a".repeat(40)}`;
     stubFetch({
       get: () =>
         ready({
           draftAttempt: {
-            executionId: `exec_${"a".repeat(40)}`,
+            executionId,
             state: "Succeeded",
             recoveryAvailable: true,
-            outcome: {
-              ...created,
-              executionId: `exec_${"a".repeat(40)}`,
-              draftId: "draft-1",
-            },
+            outcome: null,
           },
         }),
-      post: (_url, init) =>
-        (JSON.parse(String(init?.body)) as { confirm?: unknown }).confirm
-          ? created
-          : preview,
     });
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
-    await screen.findByRole("button", { name: "Preview unsent Gmail draft" });
-    // The earlier created attempt is the current drafted state: one hint.
+    await screen.findByLabelText("Email body");
+    expect(screen.getByText("Earlier Gmail draft")).toBeInTheDocument();
     expect(
-      screen.getAllByText(
-        "Draft ready. For another wording pass, try Gemini in Gmail, where available.",
-      ),
-    ).toHaveLength(1);
-    fireEvent.click(screen.getByRole("button", { name: "Preview unsent Gmail draft" }));
-    expect(await screen.findByRole("note")).toHaveTextContent(
-      /second, separate unsent draft/,
-    );
-    expect(
-      screen.queryByText(
-        "Draft ready. For another wording pass, try Gemini in Gmail, where available.",
-      ),
+      screen.queryByRole("button", { name: "Preview unsent Gmail draft" }),
     ).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Review creation confirmation" }));
-    fireEvent.click(screen.getByRole("button", { name: "Create this unsent draft" }));
-    await waitFor(() =>
-      expect(
-        screen.getAllByText(
-          "Draft ready. For another wording pass, try Gemini in Gmail, where available.",
-        ),
-      ).toHaveLength(1),
-    );
-    expect(screen.getByLabelText("tenant formatted body").textContent).not.toMatch(
-      /Gemini/,
-    );
+    expect(
+      screen.getByRole("link", { name: "Compose tenant message in Communications" }),
+    ).toHaveAttribute("target", "_blank");
   });
 });

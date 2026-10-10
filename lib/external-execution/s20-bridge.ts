@@ -125,7 +125,7 @@ export interface ExternalS20BridgeOptions {
   /** Test-only observation seam; Production always uses the structured logger. */
   readonly emitAttention?: LiveEffectAttentionEmitter;
   /** Server-owned test seam; production callers omit this and use the committed Registry. */
-  readonly registry?: CreateActionRegistryInput[];
+  readonly registry?: readonly CreateActionRegistryInput[];
 }
 
 /**

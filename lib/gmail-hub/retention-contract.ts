@@ -29,6 +29,10 @@ export const COMMUNICATIONS_RETENTION_MS = Object.freeze({
 export const GMAIL_CONFIRMATION_USABILITY_MS = 10 * 60 * 1_000;
 
 export const COMMUNICATIONS_RETENTION_TARGETS = Object.freeze({
+  gmail_communication_sequences: "workflow_link",
+  gmail_communication_attachments: "workflow_link",
+  gmail_communication_occurrences: "bodyless_audit",
+  gmail_communication_operations: "bodyless_audit",
   gmail_send_confirmations: "confirmation",
   gmail_send_audit: "bodyless_audit",
   gmail_push_dedupe: "push_dedupe",

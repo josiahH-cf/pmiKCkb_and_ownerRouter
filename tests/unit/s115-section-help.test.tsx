@@ -203,7 +203,7 @@ describe("S115 plain-language section help", () => {
     }
     // A source update is confirmed by the person doing the work; autosave replaces Save.
     expect(SECTION_HELP["sheet-updates"].steps?.[1]).toBe(
-      "Choose Review and confirm, then Confirm this exact effect once.",
+      "Choose Apply Sheet update to apply the reviewed change once.",
     );
     expect(SECTION_HELP["lease-term"].steps?.[2]).toBe(
       "The choice saves by itself; a context note is optional.",

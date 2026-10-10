@@ -1,4 +1,23 @@
 import { createHash } from "node:crypto";
+import { isVerificationAccount } from "@/lib/auth/canary-policy";
+import {
+  assertMutationAllowed,
+  requireEnvironmentDescriptor,
+} from "@/lib/environment/descriptor";
+import {
+  LeaseFollowUpInputSchema,
+  leaseFollowUpCycleLabel,
+  type CreateLeaseFollowUpInput,
+} from "@/lib/work-accountability/lease-follow-up";
+import {
+  resolveLeaseFollowUpSource,
+  type LeaseFollowUpSourceResolver,
+  type VerifiedLeaseFollowUpSource,
+} from "@/lib/work-accountability/lease-follow-up-source";
+import {
+  renewalWorkspaceHeadRefs,
+  currentRenewalWorkspaceState,
+} from "@/lib/firestore/renewal-workspace";
 
 import type {
   DocumentData,
@@ -54,6 +73,8 @@ import {
 
 export const WORK_ACCOUNTABILITY_COLLECTIONS = {
   tasks: "work_tasks",
+  creationIntents: "work_task_creation_intents",
+  followUpHeads: "work_lease_follow_up_heads",
   taskActivity: "work_task_activity",
   sessions: "work_sessions",
   activeSessions: "work_active_sessions",
@@ -166,6 +187,7 @@ export interface WorkAccountabilityStoreDependencies {
   now?: () => string;
   sourceResolver?: WorkSourceResolver;
   listAssignableUsers?: () => Promise<WorkAssignableUser[]>;
+  resolveLeaseFollowUpSource?: LeaseFollowUpSourceResolver;
 }
 
 interface EndSessionPlan {
@@ -178,6 +200,7 @@ export class WorkAccountabilityStore {
   private readonly db: Firestore;
   private readonly now: () => string;
   private readonly sourceResolver: WorkSourceResolver;
+  private readonly resolveFollowUpSource: LeaseFollowUpSourceResolver;
   private readonly listAssignableUsers: () => Promise<WorkAssignableUser[]>;
 
   constructor(dependencies: WorkAccountabilityStoreDependencies = {}) {
@@ -185,6 +208,8 @@ export class WorkAccountabilityStore {
     this.now = dependencies.now ?? (() => new Date().toISOString());
     this.sourceResolver =
       dependencies.sourceResolver ?? new ExistingWorkSourceResolver(this.db);
+    this.resolveFollowUpSource =
+      dependencies.resolveLeaseFollowUpSource ?? resolveLeaseFollowUpSource;
     this.listAssignableUsers =
       dependencies.listAssignableUsers ?? (() => listWorkAssignableUsers());
   }
@@ -357,6 +382,333 @@ export class WorkAccountabilityStore {
       });
       return task;
     });
+  }
+
+  /** S198 uses the same task owner as My Work; heads and intents contain only execution metadata. */
+  async leaseFollowUpContext(actor: AuthenticatedUser, leaseId: string) {
+    assertLeaseFollowUpActor(actor);
+    const id = normalizeLeaseFollowUpId(leaseId);
+    const source = await this.resolveFollowUpSource(actor, id, this.db);
+    assertFollowUpSource(source, id);
+    const refs = renewalWorkspaceHeadRefs(this.db, id);
+    const [dated, leaseBound] = await this.db.getAll(refs.dated, refs.leaseBound);
+    const state = currentRenewalWorkspaceState(this.db, id, dated, leaseBound);
+    const cycleKey = followUpCycleKey(source, state?.cycleId ?? null);
+    return { cycle_key: cycleKey, cycle_label: leaseFollowUpCycleLabel(cycleKey) };
+  }
+
+  async createLeaseFollowUp(
+    actor: AuthenticatedUser,
+    input: CreateLeaseFollowUpInput,
+  ): Promise<{ task: WorkTaskRecord; existing: boolean; replayed: boolean }> {
+    assertLeaseFollowUpActor(actor, true);
+    assertMutationAllowed(requireEnvironmentDescriptor());
+    const normalized = LeaseFollowUpInputSchema.parse(input),
+      hash = stableHash(JSON.stringify(normalized));
+    const operation = this.db
+      .collection(WORK_ACCOUNTABILITY_COLLECTIONS.creationIntents)
+      .doc(
+        deterministicId("lease-follow-up-intent", actor.uid, normalized.idempotency_key),
+      );
+    const recover = async (raw: DocumentData) => {
+      if (raw.actor_uid !== actor.uid || raw.request_hash !== hash)
+        throw new WorkAccountabilityError(
+          "This task creation intent changed. Recover the original intent or create a deliberate new one.",
+          409,
+          "intent_changed",
+        );
+      const result = await this.taskRef(normalizeOpaqueId(raw.task_id, "Task id")).get();
+      if (!result.exists)
+        throw new WorkAccountabilityError(
+          "The recorded task has reached its retention limit; this creation intent will not be dispatched again.",
+          409,
+          "retained_intent",
+        );
+      const task = readRecord<WorkTaskRecord>(result.id, result.data()!);
+      assertTaskReadable(actor, task);
+      return { task, existing: raw.existing === true, replayed: true };
+    };
+    // Exact receipt recovery needs current app permissions, not a repeated source effect/read.
+    const prior = await operation.get();
+    if (prior.exists) return recover(prior.data()!);
+    const source = await this.resolveFollowUpSource(actor, normalized.lease_id, this.db);
+    assertFollowUpSource(source, normalized.lease_id);
+    const assigneeUid =
+      normalized.assignee_uid ?? (actor.role === "Admin" ? undefined : actor.uid);
+    if (actor.role !== "Admin" && assigneeUid !== actor.uid) throwNonEnumerating();
+    const roster = await this.listAssignableUsers();
+    if (assigneeUid) assertAssignable(assigneeUid, "lease-renewals", roster);
+    const now = this.readNow(),
+      taskId = deterministicId(
+        "lease-follow-up-task",
+        actor.uid,
+        normalized.idempotency_key,
+      ),
+      taskRef = this.taskRef(taskId);
+    const refs = renewalWorkspaceHeadRefs(this.db, normalized.lease_id);
+    return this.db.runTransaction(async (tx) => {
+      const [op, dated, leaseBound] = await Promise.all([
+        tx.get(operation),
+        tx.get(refs.dated),
+        tx.get(refs.leaseBound),
+      ]);
+      if (op.exists) {
+        const raw = op.data()!;
+        if (raw.actor_uid !== actor.uid || raw.request_hash !== hash)
+          throw new WorkAccountabilityError(
+            "This task creation intent changed.",
+            409,
+            "intent_changed",
+          );
+        const saved = await tx.get(
+          this.taskRef(normalizeOpaqueId(raw.task_id, "Task id")),
+        );
+        if (!saved.exists)
+          throw new WorkAccountabilityError(
+            "This task creation intent already finished; its retained task is unavailable.",
+            409,
+            "retained_intent",
+          );
+        const task = readRecord<WorkTaskRecord>(saved.id, saved.data()!);
+        assertTaskReadable(actor, task);
+        return { task, existing: raw.existing === true, replayed: true };
+      }
+      const manual = currentRenewalWorkspaceState(
+          this.db,
+          normalized.lease_id,
+          dated,
+          leaseBound,
+        ),
+        cycleKey = followUpCycleKey(source, manual?.cycleId ?? null);
+      if (cycleKey !== normalized.expected_cycle_key)
+        throw new WorkAccountabilityError(
+          "The lease cycle changed. Reload its context and review the task before creating it.",
+          409,
+          "cycle_changed",
+        );
+      const matchKey = stableHash(
+          JSON.stringify([normalized.lease_id, cycleKey, normalized.kind]),
+        ),
+        head = this.db
+          .collection(WORK_ACCOUNTABILITY_COLLECTIONS.followUpHeads)
+          .doc(matchKey);
+      const [headSnapshot, matches] = await Promise.all([
+        tx.get(head),
+        tx.get(
+          this.db
+            .collection(WORK_ACCOUNTABILITY_COLLECTIONS.tasks)
+            .where("renewal_follow_up.match_key", "==", matchKey)
+            .limit(201),
+        ),
+      ]);
+      if (matches.size > 200)
+        throw new WorkAccountabilityError(
+          "This cycle has reached the bounded task review limit. Review existing work before adding more.",
+          409,
+          "task_review_limit",
+        );
+      const active = matches.docs
+        .map((d) => readRecord<WorkTaskRecord>(d.id, d.data()))
+        .filter(
+          (t) =>
+            t.source.type === "renewal_lease" &&
+            t.source.id === normalized.lease_id &&
+            t.space_id === "lease-renewals" &&
+            t.assignee_uid === assigneeUid &&
+            !isTerminalTaskState(t.state),
+        )
+        .sort(
+          (a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id),
+        );
+      if (active.length > 0 && !normalized.distinct_reason) {
+        const task = active[0];
+        assertTaskReadable(actor, task);
+        tx.create(operation, {
+          actor_uid: actor.uid,
+          request_hash: hash,
+          task_id: task.id,
+          existing: true,
+          created_at: now,
+          retention_policy_version: WORK_RETENTION_POLICY_VERSION,
+          legal_hold: false,
+        });
+        return { task, existing: true, replayed: false };
+      }
+      const expectation = await this.readExpectationSnapshot(
+        tx,
+        expectationKey("lease-renewals", `lease_follow_up:${normalized.kind}`),
+      );
+      const task: WorkTaskRecord = {
+        id: taskId,
+        space_id: "lease-renewals",
+        source: source.source,
+        task_type: `lease_follow_up:${normalized.kind}`,
+        title: normalized.title,
+        creator_uid: actor.uid,
+        ...(assigneeUid ? { assignee_uid: assigneeUid } : {}),
+        ...(actor.role === "Admin" ? { assigner_uid: actor.uid } : {}),
+        state: assigneeUid ? "Not started" : "Blocked",
+        next_action: normalized.next_action,
+        ...(normalized.due_at ? { due_at: normalized.due_at } : {}),
+        ...(!assigneeUid
+          ? { blocker_reason: "An active managed staff assignee is required." }
+          : {}),
+        ...(expectation ? { expectation_snapshot: expectation } : {}),
+        renewal_follow_up: {
+          schema_version: "lease-follow-up/v1",
+          lease_id: normalized.lease_id,
+          cycle_key: cycleKey,
+          cycle_label: leaseFollowUpCycleLabel(cycleKey),
+          recorded_cycle_id: manual?.cycleId ?? null,
+          policy_context:
+            normalized.kind === "rhino" ? (source.policyContext ?? null) : null,
+          kind: normalized.kind,
+          notes: normalized.notes,
+          supporting_references: normalized.supporting_references,
+          ...(normalized.distinct_reason
+            ? { distinct_reason: normalized.distinct_reason }
+            : {}),
+          match_key: matchKey,
+        },
+        created_at: now,
+        updated_at: now,
+        record_version: 1,
+        retention_policy_version: WORK_RETENTION_POLICY_VERSION,
+        legal_hold: false,
+      };
+      tx.create(taskRef, task);
+      tx.set(head, {
+        version: (headSnapshot.data()?.version ?? 0) + 1,
+        last_task_id: task.id,
+        updated_at: now,
+      });
+      tx.create(operation, {
+        actor_uid: actor.uid,
+        request_hash: hash,
+        task_id: task.id,
+        existing: false,
+        created_at: now,
+        retention_policy_version: WORK_RETENTION_POLICY_VERSION,
+        legal_hold: false,
+      });
+      this.appendTaskActivity(tx, task, actor.uid, {
+        action: "created",
+        previous_state: undefined,
+        reason_code: normalized.distinct_reason
+          ? "distinct_lease_follow_up"
+          : "lease_follow_up",
+        ...(normalized.distinct_reason
+          ? { reason_text: normalized.distinct_reason }
+          : {}),
+        idempotency_key: normalized.idempotency_key,
+        at: now,
+      });
+      return { task, existing: false, replayed: false };
+    });
+  }
+
+  async leaseFollowUpCreationReceipt(
+    actor: AuthenticatedUser,
+    leaseId: string,
+    operationId: string,
+  ) {
+    assertLeaseFollowUpActor(actor);
+    const id = normalizeLeaseFollowUpId(leaseId),
+      key = normalizeOpaqueId(operationId, "Creation intent");
+    const op = await this.db
+      .collection(WORK_ACCOUNTABILITY_COLLECTIONS.creationIntents)
+      .doc(deterministicId("lease-follow-up-intent", actor.uid, key))
+      .get();
+    if (!op.exists) throwNonEnumerating();
+    const raw = op.data()!;
+    if (raw.actor_uid !== actor.uid) throwNonEnumerating();
+    const snapshot = await this.taskRef(normalizeOpaqueId(raw.task_id, "Task id")).get();
+    if (!snapshot.exists) throwNonEnumerating();
+    const task = readRecord<WorkTaskRecord>(snapshot.id, snapshot.data()!);
+    assertTaskReadable(actor, task);
+    if (task.renewal_follow_up?.lease_id !== id) throwNonEnumerating();
+    return { task, existing: raw.existing === true, replayed: true };
+  }
+
+  async leaseFollowUpActivity(
+    actor: AuthenticatedUser,
+    leaseId: string,
+    taskId: string,
+    after?: string,
+  ) {
+    assertLeaseFollowUpActor(actor);
+    const id = normalizeLeaseFollowUpId(leaseId),
+      taskSnapshot = await this.taskRef(normalizeOpaqueId(taskId, "Task id")).get();
+    if (!taskSnapshot.exists) throwNonEnumerating();
+    const task = readRecord<WorkTaskRecord>(taskSnapshot.id, taskSnapshot.data()!);
+    assertTaskReadable(actor, task);
+    if (
+      task.renewal_follow_up?.lease_id !== id ||
+      task.source.type !== "renewal_lease" ||
+      task.source.id !== id
+    )
+      throwNonEnumerating();
+    let query = this.db
+      .collection(WORK_ACCOUNTABILITY_COLLECTIONS.taskActivity)
+      .where("task_id", "==", task.id)
+      .orderBy("__name__");
+    if (after) query = query.startAfter(normalizeOpaqueId(after, "Activity cursor"));
+    const snapshot = await query.limit(100).get();
+    return {
+      activity: snapshot.docs
+        .map((d) => readRecord<WorkTaskActivityRecord>(d.id, d.data()!))
+        .sort(
+          (a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id),
+        ),
+      cursor: snapshot.size === 100 ? snapshot.docs.at(-1)!.id : null,
+    };
+  }
+
+  async listLeaseFollowUps(actor: AuthenticatedUser, leaseId: string, after?: string) {
+    assertLeaseFollowUpActor(actor);
+    const id = normalizeLeaseFollowUpId(leaseId);
+    let query = this.db
+      .collection(WORK_ACCOUNTABILITY_COLLECTIONS.tasks)
+      .where("source.id", "==", id)
+      .orderBy("__name__");
+    if (after) query = query.startAfter(normalizeOpaqueId(after, "Task cursor"));
+    const snapshot = await query.limit(50).get(),
+      tasks = snapshot.docs
+        .map((d) => readRecord<WorkTaskRecord>(d.id, d.data()))
+        .filter(
+          (t) =>
+            t.source.type === "renewal_lease" &&
+            t.space_id === "lease-renewals" &&
+            t.renewal_follow_up?.lease_id === id &&
+            (actor.role === "Admin" || t.assignee_uid === actor.uid),
+        )
+        .sort(compareTasks);
+    const activity: WorkTaskActivityRecord[] = [];
+    let historyMayBeTruncated = false;
+    for (let offset = 0; offset < tasks.length; offset += 30) {
+      const result = await this.db
+        .collection(WORK_ACCOUNTABILITY_COLLECTIONS.taskActivity)
+        .where(
+          "task_id",
+          "in",
+          tasks.slice(offset, offset + 30).map((t) => t.id),
+        )
+        .limit(500)
+        .get();
+      historyMayBeTruncated ||= result.size === 500;
+      activity.push(
+        ...result.docs.map((d) => readRecord<WorkTaskActivityRecord>(d.id, d.data())),
+      );
+    }
+    activity.sort(
+      (a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id),
+    );
+    return {
+      tasks,
+      activity,
+      cursor: snapshot.size === 50 ? snapshot.docs.at(-1)!.id : null,
+      history_may_be_truncated: historyMayBeTruncated,
+    };
   }
 
   async createExpectation(
@@ -874,10 +1226,17 @@ export class WorkAccountabilityStore {
       if (
         isTerminalTaskState(task.state) &&
         normalized.next_state === "Paused" &&
-        actor.role !== "Admin"
+        actor.role !== "Admin" &&
+        !task.renewal_follow_up
       ) {
         throwNonEnumerating();
       }
+      if (task.renewal_follow_up && isTerminalTaskState(task.state) && !normalized.reason)
+        throw new WorkAccountabilityError(
+          "Reopening a lease follow-up requires its reason.",
+          409,
+          "reopen_reason_required",
+        );
       assertTransitionAllowed(task.state, normalized.next_state);
 
       const lockRef = task.assignee_uid
@@ -2348,4 +2707,50 @@ function toRetentionCandidate(record: WorkRetentionQueueRecord): WorkRetentionCa
     anchor_kind: record.anchor_kind,
     ...(record.governing_task_id ? { governing_task_id: record.governing_task_id } : {}),
   };
+}
+
+function assertLeaseFollowUpActor(actor: AuthenticatedUser, mutation = false) {
+  if (
+    !["Editor", "Approver", "Admin"].includes(actor.role) ||
+    actor.hd !== "pmikcmetro.com" ||
+    !actor.email.toLowerCase().endsWith("@pmikcmetro.com") ||
+    (mutation && isVerificationAccount(actor))
+  )
+    throw new WorkAccountabilityError(
+      "Managed staff access is required.",
+      403,
+      "staff_access",
+    );
+  if (!canAccessSpaceId(actor, "lease-renewals")) throwNonEnumerating();
+}
+function normalizeLeaseFollowUpId(id: string) {
+  if (!/^[1-9]\d{0,14}$/.test(id))
+    throw new WorkAccountabilityError("A resolved lease id is required.");
+  return id;
+}
+function assertFollowUpSource(source: VerifiedLeaseFollowUpSource, id: string) {
+  if (
+    source.leaseId !== id ||
+    source.source.id !== id ||
+    source.source.type !== "renewal_lease" ||
+    source.source.status !== "verified"
+  )
+    throw new WorkAccountabilityError(
+      "The actual lease identity is missing or ambiguous.",
+      409,
+      "source_ambiguous",
+    );
+}
+function followUpCycleKey(
+  source: VerifiedLeaseFollowUpSource,
+  recordedCycleId: string | null,
+) {
+  if (source.basis && source.basis.kind !== "lease_bound")
+    return `${source.basis.kind}:${source.basis.dateIso}`;
+  if (recordedCycleId) return `recorded_cycle:${recordedCycleId}`;
+  throw new WorkAccountabilityError(
+    "The actual renewal cycle is unavailable. Existing tasks remain readable; establish the real cycle before adding work.",
+    409,
+    "cycle_unavailable",
+  );
 }

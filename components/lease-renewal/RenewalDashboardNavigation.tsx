@@ -97,7 +97,7 @@ const PROCESS_GLOSSARY: readonly GlossaryItem[] = [
       {
         title: "Owner draft preparation",
         explanation:
-          "Review the approved wording, saved market evidence and message inputs; entries save by themselves and the preview marks missing values. Copy the reviewed content or exact-confirm an unsent Gmail draft. A person sends it.",
+          "Review the approved wording, saved market evidence and message inputs; entries save by themselves and the preview marks missing values. Copy the reviewed content or open Communications, review the exact message, then choose Send or Schedule.",
         target: "renewal-section-owner",
         children: [
           {
@@ -135,7 +135,7 @@ const PROCESS_GLOSSARY: readonly GlossaryItem[] = [
       {
         title: "Tenant message inputs",
         explanation:
-          "Entries save by themselves. Rent and dates come from the working renewal terms. Missing values stay visible as markers. Copying or creating an unsent draft does not record delivery.",
+          "Entries save by themselves. Rent and dates come from the working renewal terms. Missing values stay visible as markers. Copying and saving prepared wording do not record delivery.",
         children: [
           {
             title: "Separate charges and policy sources",

@@ -199,7 +199,6 @@ export function OperatingSheetPanel({
   const [effects, setEffects] = useState<SheetWritebackEffectStatus[] | null>(
     initialEffects,
   );
-  const [armedEffect, setArmedEffect] = useState<string | null>(null);
   const [reversalPreviews, setReversalPreviews] = useState<
     Record<string, ReversalPreview>
   >({});
@@ -259,7 +258,11 @@ export function OperatingSheetPanel({
     };
   }, [proposalPreviewHash, workspaceContext]);
 
+  const pendingRef = useRef(false);
+
   async function run(action: () => Promise<void>) {
+    if (pendingRef.current) return;
+    pendingRef.current = true;
     setPending(true);
     setError("");
     setNotice("");
@@ -273,6 +276,7 @@ export function OperatingSheetPanel({
       );
       queueMicrotask(() => errorRef.current?.focus());
     } finally {
+      pendingRef.current = false;
       setPending(false);
     }
   }
@@ -353,7 +357,7 @@ export function OperatingSheetPanel({
     });
     setProposal(null);
     setEffects(null);
-    setArmedEffect(null);
+
     setNotice("Proposal discarded. Provider receipts, if any, remain on record.");
   }
 
@@ -365,7 +369,7 @@ export function OperatingSheetPanel({
       effectHash: effect.effect_hash,
       confirm: true,
     });
-    setArmedEffect(null);
+
     setNotice(
       payload.duplicate
         ? "This exact effect already completed; showing its durable receipt."
@@ -515,31 +519,12 @@ export function OperatingSheetPanel({
                       !proposal.requires_fresh_review &&
                       !paused &&
                       status?.effect_executable !== false ? (
-                        armedEffect === effect.effect_hash ? (
-                          <>
-                            <Button
-                              disabled={pending}
-                              onClick={() => void run(() => executeEffect(effect))}
-                            >
-                              Confirm this exact effect once
-                            </Button>
-                            <Button
-                              disabled={pending}
-                              onClick={() => setArmedEffect(null)}
-                              variant="secondary"
-                            >
-                              Keep reviewing
-                            </Button>
-                          </>
-                        ) : (
-                          <Button
-                            disabled={pending}
-                            onClick={() => setArmedEffect(effect.effect_hash)}
-                            variant="secondary"
-                          >
-                            Review and confirm…
-                          </Button>
-                        )
+                        <Button
+                          disabled={pending}
+                          onClick={() => void run(() => executeEffect(effect))}
+                        >
+                          Apply Sheet update
+                        </Button>
                       ) : null}
                       {state === "not_started" && status?.effect_executable === false ? (
                         <p className="muted" role="status">

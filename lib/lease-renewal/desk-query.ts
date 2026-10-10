@@ -209,8 +209,14 @@ export function withRenewalDeskQueryKeys(
     endMonth: summary.endDateIso?.slice(0, 7) ?? null,
     ownerLabels,
     normalizedOwners: ownerLabels.map(normalizeRenewalDeskText),
+    ownerIdentityKeys: summary.identity.owners.map((p) =>
+      /^[1-9]\d{0,9}$/.test(p.contactId?.label ?? "") ? p.contactId!.label : "",
+    ),
     tenantLabels,
     normalizedTenants: tenantLabels.map(normalizeRenewalDeskText),
+    tenantIdentityKeys: summary.identity.tenants.map((p) =>
+      /^[1-9]\d{0,9}$/.test(p.contactId?.label ?? "") ? p.contactId!.label : "",
+    ),
     workflowStepId: summary.manualProgress?.step.id ?? summary.workflowStepId,
     workflowStepIndex:
       summary.manualProgress?.step.index ??

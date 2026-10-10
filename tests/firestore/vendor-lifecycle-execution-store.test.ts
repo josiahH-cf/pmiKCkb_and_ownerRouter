@@ -94,7 +94,7 @@ afterAll(async () => {
 });
 
 describe("Live Vendor lifecycle Firestore disable boundary", () => {
-  it("atomically commits the connected-mailbox disable at exactly 164 assignments and 500 writes", async () => {
+  it("atomically commits the connected-mailbox disable at exactly 123 assignments and 500 writes including case history", async () => {
     const ticketRefs = await seedActiveVendor(LIVE_VENDOR_DISABLE_MAX_ACTIVE_ASSIGNMENTS);
     const store = new FirestoreLiveVendorLifecycleStore(db);
     const command = disableCommand(ticketRefs, "disable-emulator-164");
@@ -111,9 +111,9 @@ describe("Live Vendor lifecycle Firestore disable boundary", () => {
       nowIso: disableTime,
     });
 
-    expect(ticketRefs).toHaveLength(164);
-    // 164 assignment triples plus execution/index/claim/vendor/mailbox/revocation/two audits.
-    expect(ticketRefs.length * 3 + 8).toBe(500);
+    expect(ticketRefs).toHaveLength(123);
+    // 123 assignment/ticket/activity/case-history groups plus eight fixed lifecycle writes.
+    expect(ticketRefs.length * 4 + 8).toBe(500);
     expect(record).toMatchObject({
       id: executionId,
       s20ExecutionId: liveVendorS20ExecutionId(
@@ -186,14 +186,14 @@ describe("Live Vendor lifecycle Firestore disable boundary", () => {
       dataMode: "live",
       accessDisabledAt: disableTime,
     });
-    expect(assignments.docs).toHaveLength(164);
+    expect(assignments.docs).toHaveLength(123);
     expect(
       assignments.docs.every(
         (snapshot) =>
           snapshot.data().active === false && snapshot.data().updated_at === disableTime,
       ),
     ).toBe(true);
-    expect(tickets.docs).toHaveLength(164);
+    expect(tickets.docs).toHaveLength(123);
     expect(
       tickets.docs.every(
         (snapshot) =>
@@ -208,7 +208,19 @@ describe("Live Vendor lifecycle Firestore disable boundary", () => {
     ).toMatchObject({
       legal_hold: true,
     });
-    expect(activity.docs).toHaveLength(164);
+    expect(activity.docs).toHaveLength(123);
+    const caseEvents = await db.collection("maintenance_case_events").get();
+    expect(caseEvents.size).toBe(123);
+    expect(
+      caseEvents.docs.every(
+        (d) =>
+          d.data().kind === "vendor_assignment" &&
+          d.data().actor_kind === "staff" &&
+          d.data().vendor_id === null &&
+          d.data().ticket_version === 1,
+      ),
+    ).toBe(true);
+    expect(tickets.docs.every((d) => d.data().record_version === 1)).toBe(true);
     expect(
       activity.docs.every(
         (snapshot) =>
@@ -228,7 +240,7 @@ describe("Live Vendor lifecycle Firestore disable boundary", () => {
     });
   }, 60_000);
 
-  it("rejects 165 active assignments from emulator query results without committing any partial write", async () => {
+  it("rejects 124 active assignments from emulator query results without committing any partial write", async () => {
     const ticketRefs = await seedActiveVendor(
       LIVE_VENDOR_DISABLE_MAX_ACTIVE_ASSIGNMENTS + 1,
     );
@@ -267,11 +279,11 @@ describe("Live Vendor lifecycle Firestore disable boundary", () => {
       status: "connected",
       updatedAt: sourceGeneration,
     });
-    expect(assignments.docs).toHaveLength(165);
+    expect(assignments.docs).toHaveLength(124);
     expect(assignments.docs.every((snapshot) => snapshot.data().active === true)).toBe(
       true,
     );
-    expect(tickets.docs).toHaveLength(165);
+    expect(tickets.docs).toHaveLength(124);
     expect(
       tickets.docs.every((snapshot) => snapshot.data().vendor_id === vendorRef),
     ).toBe(true);

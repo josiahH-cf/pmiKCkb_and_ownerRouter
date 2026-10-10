@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({
       status: "retired",
       reason:
-        "Continuous Gmail watch renewal is retired. Use the read-only manual refresh.",
+        "Continuous Gmail watch renewal is retired. Authorized linked sequences use bounded service polling; mailbox discovery stays on manual refresh.",
       fallback: "/api/gmail-hub/refresh",
     });
   } catch (error) {

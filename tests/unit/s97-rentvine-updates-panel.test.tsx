@@ -135,7 +135,7 @@ describe("S97 RentVine updates panel", () => {
     );
   });
 
-  it("S160 BEH-S160-1/4 (S156 BEH-S156-7): an Editor reaches the two-step exact confirmation with no access handoff, approval or attestation", () => {
+  it("S160 BEH-S160-1/4 (S156 BEH-S156-7): an Editor reaches the one-action exact update with no access handoff, approval or attestation", () => {
     const reviewed = datesProposal();
     render(
       <RentvineUpdatesPanel
@@ -152,8 +152,8 @@ describe("S97 RentVine updates panel", () => {
     expect(
       screen.queryByRole("link", { name: "Request access" }),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText("Review and confirm…"));
-    expect(screen.getByText("Confirm this exact effect once")).toBeInTheDocument();
+    expect(screen.getByText("Apply RentVine update")).toBeInTheDocument();
+    expect(screen.queryByText("Confirm this exact effect once")).not.toBeInTheDocument();
     // The control sequence is review, then one exact confirmation: no checkbox stands in for a
     // removed business approval.
     expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
@@ -163,7 +163,7 @@ describe("S97 RentVine updates panel", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("requires the two-step exact confirmation and posts the exact hashes once", async () => {
+  it("uses one visible Apply action and posts the exact hashes once", async () => {
     const proposal = datesProposal();
     fetchMock
       .mockResolvedValueOnce({
@@ -192,8 +192,7 @@ describe("S97 RentVine updates panel", () => {
         role="Admin"
       />,
     );
-    fireEvent.click(screen.getByText("Review and confirm…"));
-    fireEvent.click(screen.getByText("Confirm this exact effect once"));
+    fireEvent.click(screen.getByText("Apply RentVine update"));
     await waitFor(() =>
       expect(screen.getByText(/Applied to RentVine with receipt/)).toBeInTheDocument(),
     );
@@ -225,7 +224,7 @@ describe("S97 RentVine updates panel", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Reconcile from provider state")).toBeInTheDocument();
     expect(screen.queryByText(/Retry/i)).not.toBeInTheDocument();
-    expect(screen.queryByText("Review and confirm…")).not.toBeInTheDocument();
+    expect(screen.queryByText("Apply RentVine update")).not.toBeInTheDocument();
   });
 
   it("refreshes visible lease facts after forward reconciliation", async () => {
@@ -287,7 +286,7 @@ describe("S97 RentVine updates panel", () => {
       <RentvineUpdatesPanel initialProposal={proposal} leaseId="4821" role="Admin" />,
     );
     expect(screen.getByText(/Checking durable status/)).toBeVisible();
-    expect(screen.queryByText("Review and confirm…")).not.toBeInTheDocument();
+    expect(screen.queryByText("Apply RentVine update")).not.toBeInTheDocument();
   });
 
   it("keeps replacement and discard locked while a reversal is unresolved", () => {
@@ -446,8 +445,7 @@ describe("S97 RentVine updates panel", () => {
         role="Admin"
       />,
     );
-    fireEvent.click(screen.getByText("Review and confirm…"));
-    fireEvent.click(screen.getByText("Confirm this exact effect once"));
+    fireEvent.click(screen.getByText("Apply RentVine update"));
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("not enabled for execution");
     expect(fetchMock).toHaveBeenCalledTimes(1);

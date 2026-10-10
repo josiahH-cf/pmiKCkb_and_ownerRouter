@@ -6,12 +6,17 @@
 // inside RentVine. Absence is never authorization: a missing estimate or a missing preapproval keeps
 // the owner decision required.
 
+import {
+  maintenanceStage,
+  hasCurrentRecordedOwnerDecision,
+  MaintenanceAssessmentSchema,
+} from "@/lib/maintenance/lifecycle";
 import { maintenancePropertyIdentity } from "@/lib/maintenance/property-identity";
 import type { MaintenanceWorkOrderProviderSnapshot } from "@/lib/firestore/maintenance-work-order-links";
 import type { MaintenanceWorkOrderLink } from "@/lib/firestore/maintenance-work-order-links";
 import {
+  evaluateMaintenanceStandingPolicy,
   formatPreapprovalAmount,
-  isWithinPreapproval,
   type MaintenancePropertyPreapproval,
 } from "@/lib/maintenance/property-preapproval";
 import type {
@@ -20,7 +25,11 @@ import type {
 } from "@/lib/maintenance/ticket-model";
 
 export const MAINTENANCE_WAITING_ON = [
+  "assessment",
+  "pmi_review",
+  "work_progress",
   "owner_approval",
+  "authority_verification",
   "resident",
   "vendor",
   "scheduling",
@@ -32,7 +41,11 @@ export const MAINTENANCE_WAITING_ON = [
 export type MaintenanceWaitingOn = (typeof MAINTENANCE_WAITING_ON)[number];
 
 export const MAINTENANCE_WAITING_ON_LABELS: Record<MaintenanceWaitingOn, string> = {
+  assessment: "Assessment",
+  pmi_review: "PMI review",
+  work_progress: "Work progress",
   owner_approval: "Owner approval",
+  authority_verification: "Verify standing authority",
   resident: "Resident",
   vendor: "Vendor",
   scheduling: "Scheduling",
@@ -42,7 +55,15 @@ export const MAINTENANCE_WAITING_ON_LABELS: Record<MaintenanceWaitingOn, string>
 };
 
 const NEXT_ACTION: Record<MaintenanceWaitingOn, string> = {
-  owner_approval: "Send the owner the approval request from this ticket.",
+  assessment:
+    "Assess the reported issue and troubleshooting evidence before deciding on work.",
+  pmi_review: "PMI reviews the retained evidence and closes or returns this case.",
+  work_progress:
+    "Record meaningful progress or submit the completed work for PMI review.",
+  owner_approval:
+    "Review the current scope, cost basis and applicable owner decision; communicate if needed.",
+  authority_verification:
+    "Verify the current owner and standing policy when preparing this work.",
   resident: "Follow up with the resident on this ticket.",
   vendor: "Assign the vendor who will do this work.",
   scheduling: "Set the date with the resident and the vendor.",
@@ -55,6 +76,8 @@ export interface MaintenanceWaitingOnInput {
   readonly ticket: MaintenanceTicketRecord;
   readonly link: MaintenanceWorkOrderLink | null;
   readonly preapproval: MaintenancePropertyPreapproval | null;
+  readonly verifiedOwnerRefs?: readonly string[];
+  readonly at?: Date | string | number;
 }
 
 export interface MaintenanceWaitingOnProjection {
@@ -73,34 +96,22 @@ export interface MaintenanceWaitingOnProjection {
   readonly photosNeeded: boolean;
 }
 
-function statusBlocker(
-  status: MaintenanceTicketStatus,
-  ticket: MaintenanceTicketRecord,
-): MaintenanceWaitingOn {
-  switch (status) {
-    case "Waiting on Response":
-      return "resident";
-    case "Waiting on Vendor":
-      return "vendor";
-    case "Scheduled":
-      return "scheduling";
-    default:
-      // An open ticket needs a vendor first; once one is chosen the date is what remains.
-      return ticket.vendor_id || ticket.assignee_uid ? "scheduling" : "vendor";
-  }
-}
-
 export function projectMaintenanceWaitingOn(
   input: MaintenanceWaitingOnInput,
 ): MaintenanceWaitingOnProjection {
   const { ticket, link, preapproval } = input;
-  const snapshot = link?.provider_snapshot ?? null;
+
   const estimate =
     typeof ticket.estimate_amount_cents === "number"
       ? ticket.estimate_amount_cents
       : null;
-  const withinPreapproval = isWithinPreapproval(estimate, preapproval);
-  const providerApproved = snapshot?.is_owner_approved === "1";
+  const standingPolicy = evaluateMaintenanceStandingPolicy(
+    ticket,
+    preapproval,
+    input.at,
+    input.verifiedOwnerRefs,
+  );
+  const withinPreapproval = standingPolicy.authorized;
   const base = {
     ticketId: ticket.id,
     withinPreapproval,
@@ -134,61 +145,103 @@ export function projectMaintenanceWaitingOn(
       ...base,
       waitingOn: "unit_verification",
       nextAction: NEXT_ACTION.unit_verification,
-      ownerDecisionRequired: !withinPreapproval && !providerApproved,
+      ownerDecisionRequired: false,
       ownerDecisionDetail:
         "This ticket has no verified RentVine unit, so its property preapproval cannot be applied.",
     };
   }
 
-  // S109: photos the intake asked for are the concrete next step, and no estimate is credible without
-  // them. The owner decision below is still reported as required; it just is not the next action.
-  if (base.photosNeeded) {
+  const stage = maintenanceStage(ticket);
+  const parsedAssessment = MaintenanceAssessmentSchema.safeParse(ticket.assessment);
+  const assessment = parsedAssessment.success ? parsedAssessment.data : null;
+  const noSpending = { ...base, withinPreapproval: false, ownerDecisionRequired: false };
+  if (stage === "assessment" || !assessment)
+    return {
+      ...noSpending,
+      waitingOn: "assessment",
+      nextAction: NEXT_ACTION.assessment,
+      ownerDecisionDetail:
+        "No spending decision is evaluated until the issue and proposed work are assessed. An owner email is optional.",
+    };
+  if (stage === "resolved_troubleshooting" || stage === "completion_review")
+    return {
+      ...noSpending,
+      waitingOn: "pmi_review",
+      nextAction: NEXT_ACTION.pmi_review,
+      ownerDecisionDetail:
+        stage === "resolved_troubleshooting"
+          ? "Troubleshooting is reported resolved; PMI still makes the final closeout decision."
+          : "Reported completion is evidence for PMI review; it is not final closure or verified payment.",
+    };
+  if (stage === "needs_information")
+    return {
+      ...noSpending,
+      waitingOn: "resident",
+      nextAction: ticket.photos_needed
+        ? "Obtain the requested photos and missing information identified in the assessment."
+        : "Obtain the missing information identified in the assessment.",
+      ownerDecisionDetail:
+        "The work is not yet sized. No owner message is required to collect information.",
+    };
+  if (
+    stage === "estimate_needed" ||
+    (assessment.outcome === "work_required" && estimate === null)
+  )
+    return {
+      ...noSpending,
+      waitingOn: "estimate",
+      nextAction: NEXT_ACTION.estimate,
+      ownerDecisionDetail:
+        "Obtain the current assessed work's estimate before evaluating spending authorization.",
+    };
+  if (hasCurrentRecordedOwnerDecision(ticket) || withinPreapproval) {
+    const waitingOn =
+      stage === "in_progress"
+        ? "work_progress"
+        : stage === "scheduled"
+          ? "scheduling"
+          : "vendor";
     return {
       ...base,
-      waitingOn: "resident",
-      nextAction: "Ask the resident for the photos this report still needs.",
-      ownerDecisionRequired: !withinPreapproval && !providerApproved,
-      ownerDecisionDetail:
-        "This report is still missing the photos the intake asked for, so the work cannot be sized yet.",
+      waitingOn,
+      nextAction: NEXT_ACTION[waitingOn],
+      ownerDecisionRequired: false,
+      ownerDecisionDetail: withinPreapproval
+        ? `The assessed work and recorded cost basis are within the current scoped standing policy of ${formatPreapprovalAmount(preapproval!.amount_cents)} (${preapproval!.policy_terms!.comparison}). No owner email is required; provider approval and payment remain separate.`
+        : "Staff recorded an actual owner decision for this exact assessment and total estimate. It is not provider approval or payment.",
     };
   }
-
-  if (!withinPreapproval && !providerApproved) {
+  if (
+    input.verifiedOwnerRefs === undefined &&
+    standingPolicy.state === "owner_relation_unverified"
+  )
     return {
       ...base,
+      withinPreapproval: false,
+      waitingOn: "authority_verification",
+      nextAction: NEXT_ACTION.authority_verification,
+      ownerDecisionRequired: false,
+      ownerDecisionDetail:
+        "The recorded scope and cost fit the standing policy, but this worklist has not checked the current owner. Preparing or advancing the work verifies that relationship before applying authority; a new owner decision is not yet established as necessary.",
+    };
+  // A newly assessed scope must not inherit an older provider approval or an unqualified imported limit.
+  if (assessment.outcome === "work_required")
+    return {
+      ...base,
+      withinPreapproval: false,
       waitingOn: "owner_approval",
       nextAction: NEXT_ACTION.owner_approval,
       ownerDecisionRequired: true,
       ownerDecisionDetail:
-        estimate === null
-          ? "The owner decides this one: no estimate amount is recorded yet, so no preapproval can cover it."
-          : preapproval
-            ? `The estimate is above this property's preapproval of ${formatPreapprovalAmount(preapproval.amount_cents)}.`
-            : "This property has no recorded preapproval amount, so the owner decides this one.",
+        "Review a current scoped standing policy or record the actual owner's decision for this assessed scope and cost basis. Legacy imported limits and old provider approval alone do not establish that authority.",
     };
-  }
 
-  const ownerDecisionDetail = withinPreapproval
-    ? `Owner approval not required (preapproved up to ${formatPreapprovalAmount(preapproval!.amount_cents)}).`
-    : "RentVine already records this work order as owner approved.";
-
-  if (providerApproved && estimate === null) {
-    return {
-      ...base,
-      waitingOn: "estimate",
-      nextAction: NEXT_ACTION.estimate,
-      ownerDecisionRequired: false,
-      ownerDecisionDetail,
-    };
-  }
-
-  const waitingOn = statusBlocker(ticket.status, ticket);
   return {
-    ...base,
-    waitingOn,
-    nextAction: NEXT_ACTION[waitingOn],
-    ownerDecisionRequired: false,
-    ownerDecisionDetail,
+    ...noSpending,
+    waitingOn: "assessment",
+    nextAction: NEXT_ACTION.assessment,
+    ownerDecisionDetail:
+      "The current assessment is incomplete; review the reported facts before deciding on work.",
   };
 }
 

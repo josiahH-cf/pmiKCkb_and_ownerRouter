@@ -6,6 +6,17 @@ vi.mock("@/lib/firestore/admin", () => ({
   getAdminFirestore: mocks.getAdminFirestore,
 }));
 
+vi.mock("@/lib/llm/answer", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/llm/answer")>();
+  return {
+    ...actual,
+    GoogleGenAiAnswerGenerator: class {
+      async generateAnswer() {
+        throw new Error("Isolated model unavailable");
+      }
+    },
+  };
+});
 import { POST } from "@/app/api/ask/route";
 import { setAuthResolverForTest } from "@/lib/auth/session";
 
@@ -16,9 +27,11 @@ const validBody = {
 const originalAskDemoMode = process.env.ASK_DEMO_MODE;
 const originalGcpProjectId = process.env.GCP_PROJECT_ID;
 let store: FakeTransactionalFirestore;
+let expectedLogCount = 0;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  expectedLogCount = 0;
   store = new FakeTransactionalFirestore();
   mocks.getAdminFirestore.mockReturnValue(store);
 });
@@ -27,7 +40,7 @@ afterEach(() => {
   process.env.ASK_DEMO_MODE = originalAskDemoMode;
   process.env.GCP_PROJECT_ID = originalGcpProjectId;
   setAuthResolverForTest(null);
-  expect(store.store.size).toBe(0);
+  expect(store.store.size).toBe(expectedLogCount);
 });
 
 describe("Ask API auth guard", () => {
@@ -60,7 +73,7 @@ describe("Ask API auth guard", () => {
     expect(mocks.getAdminFirestore).not.toHaveBeenCalled();
   });
 
-  it("returns a setup error when live retrieval is not configured", async () => {
+  it("returns labeled best-effort coverage when retrieval and generation are unavailable", async () => {
     process.env.ASK_DEMO_MODE = "false";
     process.env.GCP_PROJECT_ID = "";
     setAuthResolverForTest(() => ({
@@ -72,13 +85,22 @@ describe("Ask API auth guard", () => {
 
     const response = await POST(makeRequest(validBody));
 
-    expect(response.status).toBe(503);
+    expectedLogCount = 1;
+    expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({
-      error: "Missing GCP_PROJECT_ID for Vertex AI Search.",
-      error_type: "RetrievalSetupError",
+      source_state: "No Reliable Source Found",
+      draft: "",
+      citations: [],
+      answered_by: { model: "Application fallback", source_count: 0 },
+      evidence_context: {
+        mode: "guidance",
+        claims: [
+          expect.objectContaining({ kind: "unknown", source_ids: [] }),
+          expect.objectContaining({ kind: "recommendation", source_ids: [] }),
+        ],
+      },
     });
-    // The real service constructs store-backed dependencies before validating setup. The explicit
-    // memory adapter keeps those constructors isolated; the refusal must not create a log.
+    // The unchanged audit records an honest unverified answer; no provider effect is created.
     expect(mocks.getAdminFirestore).toHaveBeenCalled();
   });
 

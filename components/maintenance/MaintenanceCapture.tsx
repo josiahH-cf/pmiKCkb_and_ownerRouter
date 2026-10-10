@@ -1,8 +1,20 @@
 "use client";
+import {
+  projectMaintenanceUrgency,
+  type OperatingPolicyVersion,
+} from "@/lib/maintenance/operating-policy";
 import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 
+import {
+  CreateLiveMaintenanceTicketInputSchema,
+  CreatedTicketSchema,
+  maintenanceTicketHref,
+  type MaintenanceCreationCommand,
+} from "@/lib/maintenance/creation-intent";
+import type { MaintenanceTicketRecord } from "@/lib/maintenance/ticket-model";
+import { useMaintenanceTicketState } from "./MaintenanceTicketProvider";
 import { Button, Field } from "@/components/ui";
 import { useAudioRecorder } from "@/components/hooks/useAudioRecorder";
 import { UnitTypeahead } from "@/components/maintenance/UnitTypeahead";
@@ -11,10 +23,6 @@ import {
   type MaintenanceUnitMatch,
   type WorkOrderDraft,
 } from "@/lib/maintenance/work-order-draft";
-import {
-  buildOwnerNoticeDraft,
-  type OwnerNoticeDraft,
-} from "@/lib/maintenance/owner-notice-draft";
 import {
   suggestVendorAssignment,
   type VendorAssignmentSuggestion,
@@ -54,8 +62,44 @@ export function MaintenanceCapture({
   const [transcript, setTranscript] = useState("");
   const [unitMatch, setUnitMatch] = useState<MaintenanceUnitMatch | null>(null);
   const [priority, setPriority] = useState("");
+  const [operatingPolicy, setOperatingPolicy] = useState<OperatingPolicyVersion | null>(
+      null,
+    ),
+    [policyState, setPolicyState] = useState(
+      "Existing safety guidance is available. Applicable replacement policy is being checked.",
+    );
+  const policyUnitId = unitMatch?.unitId;
+  const urgencyDecision = projectMaintenanceUrgency(
+    { summary: typedNote, description: transcript },
+    operatingPolicy,
+  );
+  useEffect(() => {
+    let current = true;
+    void fetch(
+      `/api/maintenance/operating-policies?${new URLSearchParams({ purpose: "emergency", view: "applicable", ...(policyUnitId ? { unit_id: policyUnitId } : {}) })}`,
+      { cache: "no-store" },
+    )
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw Error();
+        if (current) {
+          setOperatingPolicy(data.policy ?? null);
+          setPolicyState(data.detail ?? "Existing safety guidance remains available.");
+        }
+      })
+      .catch(() => {
+        if (current) {
+          setOperatingPolicy(null);
+          setPolicyState(
+            "Applicable policy could not be read. Existing safety guidance remains available; staff routing needs attention.",
+          );
+        }
+      });
+    return () => {
+      current = false;
+    };
+  }, [policyUnitId]);
   const [draft, setDraft] = useState<WorkOrderDraft | null>(null);
-  const [ownerNotice, setOwnerNotice] = useState<OwnerNoticeDraft | null>(null);
   const [vendorSuggestion, setVendorSuggestion] =
     useState<VendorAssignmentSuggestion | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -64,11 +108,160 @@ export function MaintenanceCapture({
   const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [status, setStatus] = useState("");
-  const createInFlight = useRef(false);
+  const createInFlight = useRef(false),
+    shared = useMaintenanceTicketState(),
+    sharedRef = useRef(shared);
+  useEffect(() => {
+    sharedRef.current = shared;
+  }, [shared]);
+  const [pendingIntent, setPendingIntent] = useState<{
+      id: string;
+      command: MaintenanceCreationCommand | null;
+    } | null>(null),
+    [createdTicket, setCreatedTicket] = useState<MaintenanceTicketRecord | null>(null),
+    [ready, setReady] = useState(false);
+  const storageKey = `pmi-kc:maintenance-creation:${reporterUid}`,
+    mounted = useRef(true),
+    actorRef = useRef(reporterUid),
+    readGeneration = useRef(0);
+  useEffect(() => {
+    actorRef.current = reporterUid;
+  }, [reporterUid]);
+  const accepted = useCallback(
+    (raw: unknown) => {
+      if (!mounted.current || actorRef.current !== reporterUid) return;
+      const parsed = CreatedTicketSchema.safeParse(raw);
+      if (!parsed.success)
+        throw Error("The creation response was incomplete. Check the original result.");
+      readGeneration.current += 1;
+      const ticket = parsed.data as MaintenanceTicketRecord;
+      setCreatedTicket(ticket);
+      setPendingIntent(null);
+      setStatus(
+        `Ticket created (${ticket.status}). Open the exact ticket below; no provider work order was created by this app save.`,
+      );
+      sharedRef.current?.recordCreated(ticket);
+      try {
+        sessionStorage.removeItem(`pmi-kc:maintenance-creation:${reporterUid}`);
+      } catch {}
+      const u = new URL(location.href);
+      u.searchParams.delete("creation_id");
+      u.searchParams.set("ticket_id", ticket.id);
+      history.replaceState(null, "", u);
+    },
+    [reporterUid],
+  );
+  const readCreation = useCallback(
+    async (id: string) => {
+      const generation = ++readGeneration.current;
+      const response = await fetch(
+          `/api/maintenance/tickets?${new URLSearchParams({ creation_id: id })}`,
+          { cache: "no-store" },
+        ),
+        body = await response.json();
+      if (
+        !mounted.current ||
+        actorRef.current !== reporterUid ||
+        generation !== readGeneration.current
+      )
+        return;
+      if (!response.ok)
+        throw Error(
+          typeof body.error === "string"
+            ? body.error
+            : "The original result could not be read.",
+        );
+      if (body.creation_id !== id)
+        throw Error(
+          "The result identifies a different creation request. Keep the original intent for reconciliation.",
+        );
+      if (body.state === "created") accepted(body.ticket);
+      else
+        setStatus(
+          typeof body.detail === "string"
+            ? body.detail
+            : "The original creation is still unresolved. Check this same result again; no new creation was sent.",
+        );
+    },
+    [accepted, reporterUid],
+  );
+  useEffect(() => {
+    let live = true;
+    mounted.current = true;
+    queueMicrotask(() => {
+      if (!live) return;
+      const u = new URL(location.href);
+      let id = u.searchParams.get("creation_id"),
+        stored: {
+          uid?: unknown;
+          command?: unknown;
+          typedNote?: unknown;
+          transcript?: unknown;
+          priority?: unknown;
+        } | null = null;
+      try {
+        const value = sessionStorage.getItem(
+          `pmi-kc:maintenance-creation:${reporterUid}`,
+        );
+        if (value) stored = JSON.parse(value);
+      } catch {}
+      const parsed = CreateLiveMaintenanceTicketInputSchema.safeParse(stored?.command);
+      if (!id && parsed.success && stored?.uid === reporterUid)
+        id = parsed.data.creation_id;
+      if (
+        !id ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          id,
+        )
+      ) {
+        setReady(true);
+        return;
+      }
+      const command =
+        parsed.success && stored?.uid === reporterUid && parsed.data.creation_id === id
+          ? parsed.data
+          : null;
+      if (command) {
+        setTypedNote(
+          typeof stored?.typedNote === "string" ? stored?.typedNote : command.description,
+        );
+        setTranscript(typeof stored?.transcript === "string" ? stored?.transcript : "");
+        setPriority(typeof stored?.priority === "string" ? stored?.priority : "");
+        setUnitMatch(command.unit);
+        setPhotoRefs(command.photo_refs);
+        setDraft({
+          summary: command.summary,
+          description: command.description,
+          priority: command.priority as WorkOrderDraft["priority"],
+          unit: command.unit,
+          photoRefs: command.photo_refs,
+          reporter: { uid: reporterUid },
+          capturedAt: new Date().toISOString(),
+          blockers: [],
+          readyForExecution: false,
+        });
+      }
+      setPendingIntent({ id, command });
+      setStatus("Checking the original creation result. No new ticket is being created.");
+      setReady(true);
+      void readCreation(id).catch((error) => {
+        if (live)
+          setStatus(
+            error instanceof Error
+              ? error.message
+              : "The original creation result is unavailable; keep this intent for reconciliation.",
+          );
+      });
+    });
+    return () => {
+      live = false;
+      mounted.current = false;
+      readGeneration.current += 1;
+    };
+  }, [reporterUid, readCreation]);
 
   function invalidateDraft() {
     setDraft(null);
-    setOwnerNotice(null);
     setVendorSuggestion(null);
   }
 
@@ -156,45 +349,106 @@ export function MaintenanceCapture({
       photoRefs: photoRefs.length > 0 ? photoRefs : undefined,
       priority: priority ? (priority as WorkOrderDraft["priority"]) : undefined,
       capturedAt: new Date().toISOString(),
+      operatingPolicy,
     });
     setDraft(workOrder);
-    // Non-executable next stages (M-5): an owner-notice DRAFT + a vendor-assignment SUGGESTION.
-    setOwnerNotice(buildOwnerNoticeDraft({ workOrder }));
+    // Assessment determines whether purchased work, an owner decision or communication is needed.
     setVendorSuggestion(suggestVendorAssignment(workOrder.description));
   }
 
-  // Persist the built draft as a tracked ticket (console overhaul Slice E). App-plane only; the
-  // RentVine work-order create stays gated. The queue below shows the ticket after a reload.
+  // The durable ID is retained before dispatch; reload only reads this same result.
   async function createTicket() {
-    if (!draft || draft.blockers.length > 0 || createInFlight.current) return;
+    if (
+      !ready ||
+      !draft ||
+      draft.blockers.length ||
+      pendingIntent ||
+      createdTicket ||
+      createInFlight.current
+    )
+      return;
+    const parsed = CreateLiveMaintenanceTicketInputSchema.safeParse({
+      creation_id: crypto.randomUUID(),
+      data_mode: "live",
+      summary: draft.summary,
+      description: draft.description,
+      priority: draft.priority,
+      priority_provenance: priority ? "operator-set" : "auto-inferred",
+      unit: draft.unit ? { ...draft.unit, confidence: "Verified" } : null,
+      photo_refs: draft.photoRefs,
+    });
+    if (!parsed.success) {
+      setStatus(
+        "The captured ticket is incomplete or too large. Review the issue, location and attachments.",
+      );
+      return;
+    }
+    const command = parsed.data;
     createInFlight.current = true;
     setIsCreating(true);
-    setStatus("");
+    setPendingIntent({ id: command.creation_id, command });
+    setStatus("Creating the app ticket and its initial activity…");
+    const u = new URL(location.href);
+    u.searchParams.set("creation_id", command.creation_id);
+    history.replaceState(null, "", u);
+    try {
+      sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({ uid: reporterUid, command, typedNote, transcript, priority }),
+      );
+    } catch {
+      /* The URL still retains the exact readback identity. */
+    }
     try {
       const response = await fetch("/api/maintenance/tickets", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          data_mode: "live",
-          summary: draft.summary,
-          description: draft.description,
-          priority: draft.priority,
-          priority_provenance: priority ? "operator-set" : "auto-inferred",
-          unit: draft.unit,
-          photo_refs: draft.photoRefs,
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(command),
         }),
-      });
-      if (response.ok) {
-        const { ticket } = (await response.json()) as { ticket: { status: string } };
+        body = await response.json();
+      if (!mounted.current || actorRef.current !== reporterUid) return;
+      if (response.ok) accepted(body.ticket);
+      else if (body.request_commit_state === "not_started") {
+        setPendingIntent(null);
+        try {
+          sessionStorage.removeItem(storageKey);
+        } catch {}
+        const url = new URL(location.href);
+        url.searchParams.delete("creation_id");
+        history.replaceState(null, "", url);
         setStatus(
-          `Ticket created (${ticket.status}). Reload to see it in the queue below.`,
+          `${typeof body.error === "string" ? body.error : "The ticket could not be admitted."} This request did not start an app-ticket commit. Your work is kept.`,
         );
-      } else {
-        const payload = (await response.json().catch(() => ({}))) as { error?: string };
-        setStatus(payload.error ?? "Could not create the ticket.");
-      }
+      } else
+        setStatus(
+          `${typeof body.error === "string" ? body.error : "The save is unresolved."} Check this original result before creating another ticket.`,
+        );
     } catch (error) {
-      setStatus(waitFailureMessage(error, "Could not reach the ticket service."));
+      setStatus(
+        waitFailureMessage(
+          error,
+          "The save response did not arrive. The creation outcome is unknown; check the original result before creating another ticket.",
+        ),
+      );
+    } finally {
+      createInFlight.current = false;
+      setIsCreating(false);
+    }
+  }
+  async function checkCreation() {
+    if (!pendingIntent || createInFlight.current) return;
+    createInFlight.current = true;
+    setIsCreating(true);
+    setStatus("Checking the original app-ticket result…");
+    try {
+      await readCreation(pendingIntent.id);
+    } catch (error) {
+      setStatus(
+        waitFailureMessage(
+          error,
+          "The result could not be read. The original creation remains unresolved; no new ticket was sent.",
+        ),
+      );
     } finally {
       createInFlight.current = false;
       setIsCreating(false);
@@ -210,164 +464,218 @@ export function MaintenanceCapture({
           buildDraft();
         }}
       >
-        <Field
-          hint="for example: kitchen faucet leaking under the sink"
-          htmlFor="mx-note"
-          label="Issue"
-          required
-        >
-          <textarea
-            id="mx-note"
-            name="mx-note"
-            onChange={(event) => {
-              invalidateDraft();
-              setTypedNote(event.target.value);
-            }}
-            placeholder="Describe the maintenance issue."
-            rows={5}
-            value={typedNote}
-          />
-        </Field>
-
-        <div className="field-row">
-          <button
-            className="secondary-button"
-            disabled={isTranscribing}
-            onClick={() =>
-              recorderPhase === "requesting-permission"
-                ? cancelPermissionRequest()
-                : void toggleRecording()
-            }
-            type="button"
+        <fieldset className="ui-stack" disabled={!!pendingIntent || isCreating}>
+          <Field
+            hint="for example: kitchen faucet leaking under the sink"
+            htmlFor="mx-note"
+            label="Issue"
+            required
           >
-            {isRecording
-              ? "Stop recording"
-              : recorderPhase === "requesting-permission"
-                ? "Cancel microphone request"
-                : isTranscribing
-                  ? "Transcribing…"
-                  : "Record voice"}
-          </button>
-        </div>
+            <textarea
+              id="mx-note"
+              name="mx-note"
+              onChange={(event) => {
+                invalidateDraft();
+                setTypedNote(event.target.value);
+              }}
+              placeholder="Describe the maintenance issue."
+              rows={5}
+              value={typedNote}
+            />
+          </Field>
 
-        {transcript ? (
-          <p className="muted">
-            <strong>Transcript:</strong> {transcript}
-          </p>
-        ) : null}
-
-        {photoAction.executable ? (
-          <div className="ui-stack" aria-label="Maintenance photo upload">
-            {/* The file input is rendered only after the committed registry gate opens. Selection
-                creates a preview; a separate explicit confirmation performs the upload. */}
-            <div className="field-row">
-              <label className="secondary-button" htmlFor="mx-photo">
-                {isUploading ? "Uploading photo…" : "Choose / take photo"}
-              </label>
-              <input
-                accept="image/*"
-                capture="environment"
-                hidden
-                id="mx-photo"
-                name="mx-photo"
-                onChange={(event) => setPendingPhoto(event.target.files?.[0] ?? null)}
-                type="file"
-              />
-            </div>
-            {pendingPhoto ? (
-              <section className="ui-callout" aria-label="Photo upload preview">
-                <p>
-                  <strong>File:</strong> {pendingPhoto.name}
-                </p>
-                <p>
-                  <strong>Type:</strong> {pendingPhoto.type || "image/jpeg"}
-                </p>
-                <p>
-                  <strong>Target:</strong> {photoAction.targetLabel}
-                </p>
-                <div className="field-row">
-                  <button
-                    className="secondary-button"
-                    disabled={isUploading}
-                    onClick={() => void handlePhoto(pendingPhoto)}
-                    type="button"
-                  >
-                    {isUploading ? "Uploading…" : "Confirm photo upload"}
-                  </button>
-                  <button
-                    className="text-button"
-                    disabled={isUploading}
-                    onClick={() => setPendingPhoto(null)}
-                    type="button"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </section>
-            ) : (
-              <p className="muted">{photoAction.message}</p>
-            )}
+          <div className="field-row">
+            <button
+              className="secondary-button"
+              disabled={isTranscribing}
+              onClick={() =>
+                recorderPhase === "requesting-permission"
+                  ? cancelPermissionRequest()
+                  : void toggleRecording()
+              }
+              type="button"
+            >
+              {isRecording
+                ? "Stop recording"
+                : recorderPhase === "requesting-permission"
+                  ? "Cancel microphone request"
+                  : isTranscribing
+                    ? "Transcribing…"
+                    : "Record voice"}
+            </button>
           </div>
-        ) : (
-          <p className="muted" role="status" data-action-key={photoAction.actionKey}>
-            {photoAction.message}
-          </p>
-        )}
-        {photoRefs.length > 0 ? (
-          <p className="muted">{photoRefs.length} photo(s) attached.</p>
-        ) : null}
 
-        <UnitTypeahead
-          id="mx-unit"
-          required
-          onSelect={(unit) => {
-            invalidateDraft();
-            setUnitMatch(
-              unit
-                ? { unitId: unit.unitId, label: unit.label, confidence: "Verified" }
-                : null,
-            );
-          }}
-        />
+          {transcript ? (
+            <p className="muted">
+              <strong>Transcript:</strong> {transcript}
+            </p>
+          ) : null}
 
-        {unitMatch ? (
-          <p className="muted">
-            Matched: <strong>{unitMatch.label}</strong>{" "}
-            <span className="queue-pill" data-value="Approved">
-              {unitMatch.confidence}
-            </span>
-          </p>
-        ) : null}
+          {photoAction.executable ? (
+            <div className="ui-stack" aria-label="Maintenance photo upload">
+              {/* The file input is rendered only after the committed registry gate opens. Selection
+                creates a preview; a separate explicit confirmation performs the upload. */}
+              <div className="field-row">
+                <label className="secondary-button" htmlFor="mx-photo">
+                  {isUploading ? "Uploading photo…" : "Choose / take photo"}
+                </label>
+                <input
+                  accept="image/*"
+                  capture="environment"
+                  hidden
+                  id="mx-photo"
+                  name="mx-photo"
+                  onChange={(event) => setPendingPhoto(event.target.files?.[0] ?? null)}
+                  type="file"
+                />
+              </div>
+              {pendingPhoto ? (
+                <section className="ui-callout" aria-label="Photo upload preview">
+                  <p>
+                    <strong>File:</strong> {pendingPhoto.name}
+                  </p>
+                  <p>
+                    <strong>Type:</strong> {pendingPhoto.type || "image/jpeg"}
+                  </p>
+                  <p>
+                    <strong>Target:</strong> {photoAction.targetLabel}
+                  </p>
+                  <div className="field-row">
+                    <button
+                      className="secondary-button"
+                      disabled={isUploading}
+                      onClick={() => void handlePhoto(pendingPhoto)}
+                      type="button"
+                    >
+                      {isUploading ? "Uploading…" : "Confirm photo upload"}
+                    </button>
+                    <button
+                      className="text-button"
+                      disabled={isUploading}
+                      onClick={() => setPendingPhoto(null)}
+                      type="button"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </section>
+              ) : (
+                <p className="muted">{photoAction.message}</p>
+              )}
+            </div>
+          ) : (
+            <p className="muted" role="status" data-action-key={photoAction.actionKey}>
+              {photoAction.message}
+            </p>
+          )}
+          {photoRefs.length > 0 ? (
+            <p className="muted">{photoRefs.length} photo(s) attached.</p>
+          ) : null}
 
-        <label className="select-field" htmlFor="mx-priority">
-          Priority
-          <select
-            id="mx-priority"
-            onChange={(event) => {
+          <UnitTypeahead
+            id="mx-unit"
+            initialSelection={unitMatch ?? undefined}
+            required
+            onSelect={(unit) => {
               invalidateDraft();
-              setPriority(event.target.value);
+              setUnitMatch(
+                unit
+                  ? { unitId: unit.unitId, label: unit.label, confidence: "Verified" }
+                  : null,
+              );
             }}
-            value={priority}
-          >
-            <option value="">Auto (infer from description)</option>
-            {MAINTENANCE_PRIORITIES.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
+          />
 
-        <Button size="large" type="submit">
-          Build work-order draft
-        </Button>
-        {status ? <p className="muted">{status}</p> : null}
+          {unitMatch ? (
+            <p className="muted">
+              Matched: <strong>{unitMatch.label}</strong>{" "}
+              <span className="queue-pill" data-value="Approved">
+                {unitMatch.confidence}
+              </span>
+            </p>
+          ) : null}
+
+          {typedNote.trim() || transcript.trim() ? (
+            <aside className="ui-callout" aria-label="Current urgency guidance">
+              <strong>{urgencyDecision.priority}</strong>
+              <p>{urgencyDecision.guidance}</p>
+              <p>{policyState}</p>
+              <p>{urgencyDecision.routing.detail}</p>
+            </aside>
+          ) : null}
+          <label className="select-field" htmlFor="mx-priority">
+            Priority
+            <select
+              id="mx-priority"
+              onChange={(event) => {
+                invalidateDraft();
+                setPriority(event.target.value);
+              }}
+              value={priority}
+            >
+              <option value="">Auto (infer from description)</option>
+              {MAINTENANCE_PRIORITIES.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <Button size="large" type="submit">
+            Review reported issue
+          </Button>
+        </fieldset>
+        {status ? (
+          <p className="muted" role="status">
+            {status}
+          </p>
+        ) : null}
       </form>
 
       <aside className="panel result-panel" aria-live="polite">
+        {pendingIntent ? (
+          <section aria-label="Creation recovery">
+            <h2>Original ticket creation</h2>
+            <p>
+              The outcome stays unresolved until this exact result can be read. No new
+              ticket or provider operation runs during recovery.
+            </p>
+            <button
+              type="button"
+              disabled={isCreating}
+              onClick={() => void checkCreation()}
+            >
+              {isCreating ? "Checking…" : "Check creation result"}
+            </button>
+          </section>
+        ) : null}
+        {createdTicket ? (
+          <section aria-label="Created ticket">
+            <a
+              href={maintenanceTicketHref(createdTicket.id)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open created ticket: {createdTicket.summary}
+            </a>
+            <button
+              type="button"
+              onClick={() => {
+                setCreatedTicket(null);
+                invalidateDraft();
+                setStatus(
+                  "The original ticket is kept. Enter and review a deliberately separate issue before creating another ticket.",
+                );
+              }}
+            >
+              Start another ticket
+            </button>
+          </section>
+        ) : null}
         {draft ? (
           <>
-            <h2>Work-order draft</h2>
+            <h2>Reported issue review</h2>
             <p className="muted">
               Live in-app ticket preview. Creating it writes this app only; any provider
               write is a separate exact action with its own target and confirmation.
@@ -400,31 +708,25 @@ export function MaintenanceCapture({
               aria-describedby={
                 draft.blockers.length > 0 ? "maintenance-ticket-blockers" : undefined
               }
-              disabled={isCreating || draft.blockers.length > 0}
+              disabled={
+                !ready ||
+                isCreating ||
+                !!pendingIntent ||
+                !!createdTicket ||
+                draft.blockers.length > 0
+              }
               onClick={createTicket}
               size="large"
               type="button"
             >
-              {isCreating ? "Creating…" : "Create ticket"}
+              {isCreating
+                ? "Creating…"
+                : createdTicket
+                  ? "Ticket created"
+                  : pendingIntent
+                    ? "Needs reconciliation"
+                    : "Create ticket"}
             </Button>
-
-            {ownerNotice ? (
-              <section aria-label="Owner notice draft">
-                <h3>Owner notice: draft</h3>
-                <p className="muted">
-                  Draft only. A person reviews and sends every owner notice from Gmail.
-                </p>
-                <p>
-                  <strong>{ownerNotice.subject}</strong>
-                </p>
-                <p style={{ whiteSpace: "pre-line" }}>{ownerNotice.body}</p>
-                {ownerNotice.missingInputs.length > 0 ? (
-                  <p className="muted">
-                    Needs before sending: {ownerNotice.missingInputs.join(", ")}.
-                  </p>
-                ) : null}
-              </section>
-            ) : null}
 
             {vendorSuggestion ? (
               <section aria-label="Vendor assignment suggestion">

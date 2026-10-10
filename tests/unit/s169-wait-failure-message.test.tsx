@@ -83,7 +83,7 @@ describe("S169 an elapsed wait keeps its unknown-outcome wording", () => {
       "components/admin/KbCorrectionsPanel.tsx",
       "components/admin/MoveOutTimingBasisAdminPanel.tsx",
       "components/admin/NoticeRulesAdminPanel.tsx",
-      "components/admin/OwnerPolicyRulesAdminPanel.tsx",
+      "components/admin/RenewalPricingPolicyAdmin.tsx",
       "components/admin/ReindexPanel.tsx",
       "components/admin/SpaceRequestPanel.tsx",
       "components/admin/TransactionalDestinationPanel.tsx",
@@ -98,7 +98,7 @@ describe("S169 an elapsed wait keeps its unknown-outcome wording", () => {
       "components/lease-renewal/RenewalProgressControls.tsx",
       "components/maintenance/MaintenanceCapture.tsx",
       "components/maintenance/MaintenanceOwnerNoticeDraftComposer.tsx",
-      "components/maintenance/MaintenanceQueue.tsx",
+      "components/maintenance/useMaintenanceEdits.ts",
       "components/maintenance/UnverifiedIntakeReview.tsx",
     ];
     const messages = [

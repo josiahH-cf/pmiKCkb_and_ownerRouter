@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AnswerEvidenceContextSchema } from "@/lib/ask/evidence-context";
 import { SOURCE_STATES } from "@/lib/constants";
 
 const CaptureSourceStates = [
@@ -10,6 +11,14 @@ const CaptureSourceStates = [
 export const AskRequestSchema = z.object({
   question: z.string().trim().min(1),
   draft_enabled: z.boolean().default(true),
+  conversationKey: z
+    .string()
+    .regex(/^[A-Za-z0-9-]{8,64}$/)
+    .optional(),
+  operationId: z
+    .string()
+    .regex(/^[A-Za-z0-9-]{8,64}$/)
+    .optional(),
   space: z.string().trim().optional(),
   // The process the question is asked in (action console). Optional; resolved server-side to context.
   process_id: z.string().trim().optional(),
@@ -37,6 +46,8 @@ export const CitationSchema = z.object({
 export const AskResponseSchema = z.object({
   question: z.string(),
   source_state: z.enum(SOURCE_STATES),
+  context_note: z.string().max(300).optional(),
+  evidence_context: AnswerEvidenceContextSchema.optional(),
   answer: z.string(),
   handling_steps: z.array(z.string()),
   citations: z.array(CitationSchema),

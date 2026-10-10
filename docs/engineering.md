@@ -1,6 +1,6 @@
 # Engineering and security contract
 
-Updated: 2026-08-29.
+Updated: 2026-10-10.
 
 ## Runtime
 
@@ -26,11 +26,17 @@ Updated: 2026-08-29.
 
 - Registry key, runtime dependency, and actor authorization must all agree.
 - Preview and confirmation bind the exact target, source version, payload, actor, and expiry.
-- Use idempotency and durable receipts.
+- Use provider idempotency or a durable at-most-once claim, and durable receipts.
 - Read back the provider result.
 - Reconcile ambiguity before retry.
 - Every write has a documented rollback/correction.
-- Direct renewal/maintenance sends remain impossible.
+- S183 permits this named program's explicit human Send/Schedule after the scoped technical gates
+  and reviewed exact activation. Bind the exact managed sender, targets, version, message/files and
+  schedule; recheck current authorization before each bounded occurrence and pause on inbound reply.
+- Both notice send keys remain closed pending those gates; generic send remains closed. Model
+  output, old/migrated work and page load grant no effect authority. Recovery cannot blindly retry.
+- Ordinary authorized Save/Apply captures visible intent once; internal technical interlocks do not
+  add another consent ceremony. Backend permissions and current target/conflict checks remain.
 
 ## Data truth
 

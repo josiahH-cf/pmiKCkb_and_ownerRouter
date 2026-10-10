@@ -22,7 +22,7 @@ export interface MaintenancePhotoClosedResponse {
 }
 
 export async function getMaintenancePhotoActionView(
-  registry: CreateActionRegistryInput[] = ACTION_REGISTRY_SEED,
+  registry: readonly CreateActionRegistryInput[] = ACTION_REGISTRY_SEED,
 ): Promise<MaintenancePhotoActionView> {
   const executable = await isProductionRuntimeActionExecutable(
     MAINTENANCE_PHOTO_ACTION_KEY,

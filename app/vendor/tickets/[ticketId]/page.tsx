@@ -1,3 +1,4 @@
+import { VendorWorkWorkspace } from "@/components/vendor/VendorWorkWorkspace";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -32,13 +33,11 @@ export default async function VendorTicketPage({
       </p>
       <h1>{ticket.summary}</h1>
       <p>{ticket.unitLabel ?? "Unit details unavailable"}</p>
-      <article className="panel">
-        <h2>Assigned-ticket Gmail</h2>
-        <p>
-          Live communication is restricted to this assigned ticket, the connected
-          same-address mailbox, approved labels and drafts, and exact-confirmed replies.
-        </p>
-      </article>
+      <VendorWorkWorkspace
+        key={principal.uid}
+        initialTicket={ticket}
+        actorUid={principal.uid}
+      />
     </main>
   );
 }

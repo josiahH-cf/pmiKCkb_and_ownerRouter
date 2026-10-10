@@ -72,7 +72,11 @@ export function createFocusReveal(body: HTMLElement): FocusReveal {
     };
     visit(body);
     for (const element of [...hidden])
-      if (visible.has(element) || !body.contains(element)) {
+      if (
+        visible.has(element) ||
+        [...keep].some((parent) => parent.contains(element)) ||
+        !body.contains(element)
+      ) {
         show(element);
         hidden.delete(element);
       }

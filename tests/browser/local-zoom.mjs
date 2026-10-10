@@ -63,6 +63,10 @@ export async function createLocalZoomContext(origin) {
     (await context.waitForEvent("serviceworker", { timeout: 10_000 }));
   async function setZoom(page, factor) {
     assert.equal(new URL(page.url()).origin, origin);
+    const before = await page.evaluate(() => ({
+      width: innerWidth,
+      dpr: devicePixelRatio,
+    }));
     const actual = await worker.evaluate(
       async ({ url, factor }) => {
         const tabs = await chrome.tabs.query({});
@@ -74,7 +78,47 @@ export async function createLocalZoomContext(origin) {
       { url: page.url(), factor },
     );
     assert.equal(actual, factor);
+    await page.waitForFunction(
+      ({ before, factor }) =>
+        Math.abs(devicePixelRatio - factor) < 0.01 &&
+        Math.abs(innerWidth - (before.width * before.dpr) / factor) < 2,
+      { before, factor },
+    );
+    await page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        ),
+    );
     return actual;
   }
-  return { context, setZoom };
+  async function screenshot(page, path) {
+    assert.equal(new URL(page.url()).origin, origin);
+    const cdp = await context.newCDPSession(page);
+    try {
+      const metrics = await cdp.send("Page.getLayoutMetrics");
+      // Chromium capture coordinates use device-independent pixels at native browser zoom;
+      // Playwright's CSS-sized default clip truncates the right half at 200 percent.
+      assert.ok(
+        metrics.cssContentSize.width <= metrics.cssLayoutViewport.clientWidth + 2,
+      );
+      const result = await cdp.send("Page.captureScreenshot", {
+        format: "png",
+        captureBeyondViewport: true,
+        fromSurface: true,
+        clip: {
+          x: 0,
+          y: 0,
+          width: metrics.contentSize.width,
+          height: metrics.contentSize.height,
+          scale: 1,
+        },
+      });
+      writeFileSync(path, Buffer.from(result.data, "base64"));
+      writeFileSync(`${path}.metrics.json`, JSON.stringify(metrics, null, 2));
+    } finally {
+      await cdp.detach();
+    }
+  }
+  return { context, setZoom, screenshot };
 }

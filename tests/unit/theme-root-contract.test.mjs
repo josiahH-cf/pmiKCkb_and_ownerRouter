@@ -16,7 +16,7 @@ describe("S85 root and public theme contract", () => {
 
   it("places Appearance in staff chrome and the exact public/vendor chrome", () => {
     expect(source("components/layout/AppShell.tsx")).toMatch(
-      /<NotificationMenu\s*\/>[\s\S]*?<Appearance\s*\/>[\s\S]*?<span className="user-role">/,
+      /<NotificationMenu\s*\/>[\s\S]*?<Appearance\s*\/>[\s\S]*?<Link href="\/profile" className="user-role"/,
     );
     expect(source("app/sign-in/page.tsx")).toContain("<Appearance");
     expect(source("app/vendor/layout.tsx")).toContain("<Appearance");

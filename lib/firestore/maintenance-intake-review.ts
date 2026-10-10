@@ -15,6 +15,8 @@
 // the shared type-ahead: when a unit is supplied the ticket carries { unitId, label } and the
 // "Needs Verification" label is dropped; when it is absent the default is unchanged.
 
+import { readApplicableOperatingPolicyInTransaction } from "./maintenance-operating-policy-reader";
+import { projectMaintenanceUrgency } from "@/lib/maintenance/operating-policy";
 import type { Firestore } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
@@ -28,13 +30,15 @@ import {
   MAINTENANCE_INTAKE_COLLECTIONS,
   type UnverifiedIntakeRecord,
 } from "@/lib/firestore/maintenance-unverified-intake";
-import { MAINTENANCE_TICKET_COLLECTIONS } from "@/lib/firestore/maintenance-tickets";
+import {
+  appendMaintenanceCoreTimeline,
+  MAINTENANCE_TICKET_COLLECTIONS,
+} from "@/lib/firestore/maintenance-tickets";
 import { MAINTENANCE_PRIORITIES } from "@/lib/maintenance/constants";
 import type {
   MaintenanceTicketActivityRecord,
   MaintenanceTicketRecord,
 } from "@/lib/maintenance/ticket-model";
-import { inferPriority } from "@/lib/maintenance/work-order-draft";
 import { stampProductRecordRetention } from "@/lib/operations/product-record-retention";
 
 /** Label that marks a promoted intake's ticket as still needing unit/detail verification. */
@@ -129,18 +133,26 @@ export async function promoteUnverifiedIntake(
       throw new EditableLayerError("The retired Test intake cannot be promoted.", 409);
     }
 
-    // Priority: honor an operator override, else infer from the report text (transparent provenance).
-    // S109: a fire or active-water report already carries its urgency from the deterministic intake
-    // rules, so it promotes as Emergency rather than being re-derived from the text alone.
+    // S222: preserve the shared urgency floor. A downgrade requires the separate attributed
+    // corrected-facts review, never an unexplained promotion dropdown override.
     const triageUrgency = intake.urgency ?? null;
-    const priority =
-      parsed.priority ??
-      (triageUrgency === "emergency_fire" || triageUrgency === "urgent_flooding"
-        ? "Emergency"
-        : inferPriority(`${intake.summary} ${intake.description}`));
-    const provenance: MaintenanceTicketRecord["priority_provenance"] = parsed.priority
-      ? "operator-set"
-      : "auto-inferred";
+    const applicable = await readApplicableOperatingPolicyInTransaction(
+      transaction,
+      db,
+      "emergency",
+      verifiedPropertyId ?? null,
+      timestamp,
+    );
+    const decision = projectMaintenanceUrgency(
+      { summary: intake.summary, description: intake.description },
+      applicable.policy,
+    );
+    const urgent =
+      decision.priority === "Emergency" ||
+      (triageUrgency !== null && triageUrgency !== "normal");
+    const priority = urgent ? "Emergency" : (parsed.priority ?? decision.priority);
+    const provenance: MaintenanceTicketRecord["priority_provenance"] =
+      parsed.priority && !urgent ? "operator-set" : "auto-inferred";
 
     // Optional operator-confirmed unit (slice 2a). When present the ticket carries it and the
     // Needs-Verification label is dropped; when absent the promote is unchanged (unit:null + the label).
@@ -153,6 +165,12 @@ export async function promoteUnverifiedIntake(
         id: ticketId,
         data_mode: "live" as const,
         status: "Open" as const,
+        record_version: 1,
+        workflow_stage: "assessment" as const,
+        lifecycle_origin: "native" as const,
+        lifecycle_started_at: timestamp,
+        meaningful_progress_at: timestamp,
+        operating_policy_decision: decision,
         priority,
         priority_provenance: provenance,
         summary: intake.summary,
@@ -186,6 +204,7 @@ export async function promoteUnverifiedIntake(
       ticket_id: ticketId,
       actor_uid: actor.uid,
       action: "create",
+      ticket_version: 1,
       new_status: "Open",
       text: [
         confirmedUnit
@@ -212,8 +231,9 @@ export async function promoteUnverifiedIntake(
     );
     transaction.set(
       db.collection(MAINTENANCE_TICKET_COLLECTIONS.activity).doc(ticketActivity.id),
-      ticketActivity,
+      stampProductRecordRetention("maintenance_ticket_activity", { ...ticketActivity }),
     );
+    appendMaintenanceCoreTimeline(transaction, db, ticket, ticketActivity, timestamp);
     transaction.set(intakeRef, promotedIntake);
     transaction.set(
       db.collection(MAINTENANCE_INTAKE_COLLECTIONS.activity).doc(uuidv7()),

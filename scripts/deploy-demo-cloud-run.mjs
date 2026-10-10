@@ -516,6 +516,10 @@ function readRuntimeEnv(env, project, region, searchLocation, sourceCommit) {
       "",
     ),
     GMAIL_PUBSUB_TOPIC: withDefault("GMAIL_PUBSUB_TOPIC", ""),
+    // S190: forward only reviewed managed-worker identifiers. Absent values keep dispatch
+    // unconfigured; this deployment map never grants a send key or supplies scheduler authority.
+    ...optionalString("WORKFLOW_COMMUNICATION_WORKER_AUDIENCE"),
+    ...optionalString("WORKFLOW_COMMUNICATION_WORKER_SERVICE_ACCOUNT"),
     GROUNDING_CONFIDENCE_THRESHOLD: withDefault("GROUNDING_CONFIDENCE_THRESHOLD", "0.65"),
     KB_APPROVAL_LABEL: withDefault("KB_APPROVAL_LABEL", "KB Approval"),
     KB_APPROVAL_NOTIFICATIONS_ENABLED: withDefault(

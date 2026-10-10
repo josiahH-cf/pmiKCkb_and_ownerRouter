@@ -1,33 +1,35 @@
-import {
-  APPROVED_SUGGESTION_SOURCE,
-  ownerDraftMarketFromBasis,
-} from "@/lib/lease-renewal/owner-draft";
+import { ownerDraftMarketFromBasis } from "@/lib/lease-renewal/owner-draft";
 import { matchesStartingRange } from "@/lib/lease-renewal/market-starting-range";
 import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
 
 /**
  * S118 (R118.3, R118.4): the market evidence the comparison-based owner message may carry.
- * A starting range from current rent is never comparable-rent evidence, and a recommendation
- * that is still RentCast's returned point estimate enters the message only through the existing
- * staff acceptance of that exact number or after staff enter their own reviewed recommendation.
+ * A starting range is not comparable evidence. S183/S195: a working offer is staff-selected once;
+ * a provider point estimate remains explicitly reference-only. No per-number approval precedes
+ * editing or the exact human Send/Schedule authorization.
  */
 export const STARTING_RANGE_MESSAGE_REQUIREMENT =
   "The saved low and high are the starting range from current rent, not market evidence. Review actual comparable rents with their source.";
 
 export const PROVIDER_RECOMMENDATION_NOTICE =
-  "The saved PMI recommendation is the RentCast point estimate as returned. It enters the owner message only after staff accept that exact number, or enter a reviewed recommendation with its source.";
+  "The RentCast point estimate is reference context. Staff select their working offer separately.";
 
 export interface MessageMarketEvidenceInput {
   preparation: RenewalWorkspaceState["preparation"];
   /** The fresh reconciled contractual base rent, when available. */
   currentBaseRent: number | null;
-  /** The Admin-approved comp-derived number verified for this lease, when one exists. */
-  approvedSuggestionValue: number | null;
+  /** Historical compatibility input; prior approvals remain history, never a new preparation gate. */
+  approvedSuggestionValue?: number | null;
+  selectedWorkingOffer?: { value: number; source: string } | null;
 }
 
 export interface MessageMarketEvidence {
   range: { low: number; high: number; source: string } | null;
-  suggestedRent: { value: number; source: string } | null;
+  suggestedRent: {
+    value: number;
+    source: string;
+    kind?: "working_offer" | "provider_reference" | "reviewed";
+  } | null;
   /** Replaces the generic range requirement when the saved range is only the starting rule. */
   rangeRequirement: string | null;
   notices: string[];
@@ -62,16 +64,29 @@ export function projectMessageMarketEvidence(
       : null;
 
   let suggestedRent: MessageMarketEvidence["suggestedRent"] = null;
+  const selected = input.selectedWorkingOffer;
   const recommendation = market?.pmiNumber;
-  if (recommendation !== undefined && preparation?.source) {
-    if (market?.recommendationBasis === "provider") {
-      if (
-        input.approvedSuggestionValue !== null &&
-        input.approvedSuggestionValue === recommendation
-      )
-        suggestedRent = { value: recommendation, source: APPROVED_SUGGESTION_SOURCE };
-      else notices.push(PROVIDER_RECOMMENDATION_NOTICE);
-    } else suggestedRent = { value: recommendation, source: preparation.source };
+  if (
+    selected &&
+    Number.isFinite(selected.value) &&
+    selected.value > 0 &&
+    selected.source.trim()
+  )
+    suggestedRent = { ...selected, kind: "working_offer" };
+  else if (
+    recommendation !== undefined &&
+    Number.isFinite(recommendation) &&
+    recommendation > 0 &&
+    preparation?.source
+  ) {
+    const providerReference = market?.recommendationBasis === "provider";
+    suggestedRent = {
+      value: recommendation,
+      source: providerReference
+        ? `${market.provider?.source ?? "Provider"} point estimate (reference only)`
+        : preparation.source,
+      kind: providerReference ? "provider_reference" : "reviewed",
+    };
   }
 
   return {

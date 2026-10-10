@@ -300,23 +300,26 @@ describe("Action Registry seed catalog", () => {
         .map((entry) => entry.key),
     ).toEqual(["gmail.mailbox.read", "gmail.thread.reply", "gmail.label.apply"]);
     // Slice 6 (2026-07-22): maintenance owner-notice DRAFT flipped live. D33 later retired both
-    // direct notice-send keys; the paired .send stays permanently disabled below.
+    // direct notice-send keys. S183 now names two future reviewed workflow send operations;
+    // both stay disabled until the new dispatch/observation/recovery technical gates pass.
     const maintenanceDraft = gmailEntries.find(
       (entry) => entry.key === "gmail.maintenance_owner_notice.draft_create",
     );
     expect(maintenanceDraft?.readiness).toBe("Approved for Execution");
     expect(maintenanceDraft?.evidence_status).toBe("Documented");
     expect(maintenanceDraft?.production_allowed).toBe(true);
-    const retiredDirectSendKeys = [
+    const pendingReviewedSendKeys = [
       "gmail.renewal_notice.send",
       "gmail.maintenance_owner_notice.send",
     ];
-    for (const key of retiredDirectSendKeys) {
+    for (const key of pendingReviewedSendKeys) {
       const entry = gmailEntries.find((candidate) => candidate.key === key);
       expect(entry?.readiness, key).toBe("Disabled");
-      expect(entry?.expected_action, key).toMatch(/historical compatibility key/i);
+      expect(entry?.expected_action, key).toMatch(
+        /exact workflow-linked message.*Send\/Schedule/i,
+      );
       expect(entry?.documented_evidence, key).toMatch(
-        /rather than a future activation target/i,
+        /S189 authorization.*S190.*S191 observation.*S192 operational controls/i,
       );
       expect(entry?.event_ingestion_mode, key).toBe("None");
       expect(entry?.required_permissions, key).toEqual([]);

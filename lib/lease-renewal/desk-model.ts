@@ -1,3 +1,4 @@
+import type { RenewalPricingProjection } from "@/lib/lease-renewal/renewal-pricing-policy";
 import type { CycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
 import type {
   MoveOutDisposition,
@@ -151,8 +152,10 @@ export interface RenewalDeskQueryKeys {
   endMonth: string | null;
   ownerLabels: string[];
   normalizedOwners: string[];
+  ownerIdentityKeys?: string[];
   tenantLabels: string[];
   normalizedTenants: string[];
+  tenantIdentityKeys?: string[];
   workflowStepId: string | null;
   workflowStepIndex: number | null;
   waitingOn: RenewalDeskWaitingKey;
@@ -178,6 +181,7 @@ export interface RenewalDeskQueryKeys {
 
 export interface DeskLeaseSummaryBase {
   manualProgress?: ReturnType<typeof manualRenewalSummary>;
+  renewalPricing?: RenewalPricingProjection;
   /**
    * S123: the recorded cycle basis compared with the lease end the provider reports now. Present
    * only when a manual cycle exists; the recorded basis is history and is never rewritten.

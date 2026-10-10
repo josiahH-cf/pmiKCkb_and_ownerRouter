@@ -180,3 +180,23 @@ export function buildManagedGmailDraftsDestination(
     label: "Opens Drafts in the displayed managed Gmail mailbox in a new tab.",
   };
 }
+
+/** S186/S188: read-only navigation for an exact already linked thread in its managed mailbox.
+ * This grants no discovery, link, draft or send authority and never opens an arbitrary URL. */
+export function buildManagedGmailThreadDestination(
+  senderEmail: string,
+  threadId: string,
+): ExternalDeskDestination | null {
+  const email = senderEmail.trim().toLowerCase();
+  if (
+    !/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@pmikcmetro\.com$/.test(email) ||
+    !/^[A-Za-z0-9_-]{1,200}$/.test(threadId)
+  )
+    return null;
+  return {
+    kind: "external",
+    href: `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(email)}#all/${encodeURIComponent(threadId)}`,
+    label:
+      "Opens the exact linked thread in its displayed managed Gmail mailbox in a new tab.",
+  };
+}

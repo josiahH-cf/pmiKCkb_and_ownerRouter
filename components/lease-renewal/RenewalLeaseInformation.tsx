@@ -89,6 +89,7 @@ function PartyGroup({
               const token = partyFilters.tokenFor(
                 audience,
                 normalizeRenewalDeskText(party.label),
+                party.contactId?.label ?? "",
               );
               return (
                 <li key={party.sourceRef}>
@@ -156,6 +157,7 @@ export function RenewalLeaseInformation({
   workspace,
   workStatus = null,
   canEditWorkStatus = false,
+  showWorkStatus = true,
 }: Readonly<{
   sheetDestination?: ExternalDeskDestination | null;
   /** S158: when supplied, the lookup control replaces the bare matched-row link. */
@@ -164,11 +166,23 @@ export function RenewalLeaseInformation({
   /** S119: the staff work status read; null when the page did not attempt it. */
   workStatus?: RenewalWorkStatusPanelInput | null;
   canEditWorkStatus?: boolean;
+  /** S197: the owning workspace mounts this single control beside current work. */
+  showWorkStatus?: boolean;
 }>) {
   const { summary } = workspace;
   const identity = summary.identity;
   const term = summary.leaseTerm;
-  const partyFilters = createPartyFilterResolver(readPartyFilterKeyConfig(), "renewals");
+  const partyFilters = createPartyFilterResolver(
+    readPartyFilterKeyConfig(),
+    "renewals",
+    (["owner", "tenant"] as const).flatMap((partyKind) =>
+      (partyKind === "owner" ? identity.owners : identity.tenants).map((p) => ({
+        partyKind,
+        normalizedLabel: normalizeRenewalDeskText(p.label),
+        sourceId: p.contactId?.label ?? "",
+      })),
+    ),
+  );
   const rentvine = summary.sourceDestinations?.rentvine ?? null;
   const status =
     workspace.guidance.overallStatus === "complete" && summary.manualProgress?.complete
@@ -253,7 +267,7 @@ export function RenewalLeaseInformation({
 
       {/* S119/S164: the staff work status and its running log of status changes and notes are
           app-owned staff information beside the derived status. */}
-      {workStatus ? (
+      {workStatus && showWorkStatus ? (
         <section aria-label="Staff work status" className="ui-stack-tight">
           <h3>Staff work status</h3>
           <RenewalWorkStatusControl

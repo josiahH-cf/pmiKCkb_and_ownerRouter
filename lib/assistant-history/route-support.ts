@@ -58,6 +58,7 @@ export type HistoryLogOperation =
   | "saved_list"
   | "save"
   | "pin"
+  | "select"
   | "run";
 
 /** One bodyless line per history operation, so production logs can count them without content. */

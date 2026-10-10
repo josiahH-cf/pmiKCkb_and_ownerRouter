@@ -1,3 +1,10 @@
+import { resolveStaffOperationHandoff } from "@/lib/assistant/staff-operation-handoff";
+import {
+  fakeOperationalContext,
+  maintenanceRead,
+} from "@/tests/helpers/operational-context-fake";
+import { maintenanceWorkScope } from "@/lib/maintenance/lifecycle";
+import type { MaintenanceTicketRecord } from "@/lib/maintenance/ticket-model";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FakeFirestore } from "../helpers/fake-firestore";
@@ -13,7 +20,12 @@ const S99_KEYS = vi.hoisted(
 );
 
 const mocks = vi.hoisted(() => ({
-  user: { uid: "editor-1", email: "editor@pmikcmetro.com", role: "Editor" as string },
+  user: {
+    uid: "editor-1",
+    email: "editor@pmikcmetro.com",
+    hd: "pmikcmetro.com",
+    role: "Editor" as string,
+  },
   db: null as unknown,
   tickets: new Map<string, unknown>(),
   unitCandidates: [
@@ -210,9 +222,21 @@ const ADMIN = {
 } as never;
 
 function ticket(overrides: Record<string, unknown> = {}) {
-  return {
+  const result = {
     id: "ticket-9",
     data_mode: "live",
+    property_id: "84",
+    workflow_stage: "vendor_coordination",
+    estimate_amount_cents: 20000,
+    estimate_cost_basis: "total_including_tax_and_markup",
+    assessment: {
+      outcome: "work_required",
+      scope: "Replace the assessed trap part",
+      evidence_refs: ["fixture-quote:one"],
+      version: 1,
+      recorded_at: "2026-10-09T15:00:00Z",
+      recorded_by_uid: "editor-1",
+    },
     status: "Open",
     priority: "Normal",
     priority_provenance: "operator-set",
@@ -226,7 +250,17 @@ function ticket(overrides: Record<string, unknown> = {}) {
     created_at: "2026-09-01T12:00:00.000Z",
     updated_at: "2026-09-01T12:00:00.000Z",
     ...overrides,
+  } as MaintenanceTicketRecord;
+  result.owner_decision = {
+    decision: "approved",
+    cost_basis: "total_including_tax_and_markup",
+    work_scope: maintenanceWorkScope(result),
+    evidence_ref: "fixture-owner-decision:one",
+    reason: "Actual scoped fixture decision",
+    recorded_at: "2026-10-09T15:00:00Z",
+    recorded_by_uid: "editor-1",
   };
+  return result;
 }
 
 function post(body: Record<string, unknown>) {
@@ -257,7 +291,12 @@ async function prepareCreate() {
 
 describe("S99 work-order route (keys opened by test overlay)", () => {
   beforeEach(() => {
-    mocks.user = { uid: "editor-1", email: "editor@pmikcmetro.com", role: "Editor" };
+    mocks.user = {
+      uid: "editor-1",
+      email: "editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+      role: "Editor",
+    };
     mocks.db = new FakeFirestore() as unknown as Firestore;
     mocks.tickets.clear();
     mocks.tickets.set("ticket-9", ticket());
@@ -268,6 +307,44 @@ describe("S99 work-order route (keys opened by test overlay)", () => {
     process.env.RENTVINE_API_BASE_URL = "https://pmikcmetro.rentvine.com/api/manager";
     process.env.RENTVINE_API_KEY = "unit-key";
     process.env.RENTVINE_API_SECRET = "unit-secret";
+  });
+
+  it("refuses unassessed work and changed authority before any S20 create or provider POST, retaining reads and receipt recovery", async () => {
+    mocks.tickets.set(
+      "ticket-9",
+      ticket({ assessment: undefined, owner_decision: undefined }),
+    );
+    const response = await post({
+      operation: "propose_create",
+      ticketId: "ticket-9",
+      priorityId: "2",
+      workOrderStatusId: "9101",
+      isVacant: false,
+    });
+    expect(response.status).toBe(409);
+    expect(mocks.transportState.posts).toHaveLength(0);
+    mocks.tickets.set("ticket-9", ticket());
+    const prepared = await prepareCreate();
+    const record = (mocks.db as FakeFirestore).store.get(
+      `action_executions/${prepared.execution_id}`,
+    ) as { preview_hash: string; context_hash: string };
+    await approveActionExecution(
+      ADMIN,
+      prepared.execution_id,
+      {
+        contextHash: record.context_hash,
+        previewHash: record.preview_hash,
+        reason: "Fixture scoped repair",
+      },
+      mocks.db as Firestore,
+    );
+    mocks.tickets.set("ticket-9", ticket({ estimate_amount_cents: 30000 }));
+    const changed = await post({
+      operation: "execute",
+      executionId: prepared.execution_id,
+    });
+    expect(changed.status).toBe(409);
+    expect(mocks.transportState.posts).toHaveLength(0);
   });
 
   it("runs a bounded ticket-scoped read with catalogs and explicit completeness", async () => {
@@ -478,5 +555,86 @@ describe("S99 work-order route (keys opened by test overlay)", () => {
       targetStatusId: "9102",
     });
     expect(badId.status).toBe(400);
+  });
+  it("S184 read-only exact review and one staff Apply retain the one provider POST and original receipt", async () => {
+    const selection = {
+      kind: "create",
+      ticketId: "ticket-9",
+      priorityId: "2",
+      workOrderStatusId: "9101",
+      isVacant: false,
+    };
+    const conversation = await resolveStaffOperationHandoff(
+      "Create a RentVine work order for ticket ticket-9",
+      fakeOperationalContext({
+        actorUid: mocks.user.uid,
+        reads: { maintenance: maintenanceRead([{ id: "ticket-9" }]) },
+      }),
+      null,
+    );
+    expect(conversation?.groups[0].items[0].href).toBe("/maintenance?ticket_id=ticket-9");
+    expect((mocks.db as FakeFirestore).store.size).toBe(0);
+    expect(mocks.transportState.posts).toHaveLength(0);
+    const reviewed = await post({ operation: "review", selection });
+    expect(reviewed.status).toBe(200);
+    expect(reviewed.headers.get("cache-control")).toBe("private, no-store");
+    const p = await reviewed.json();
+    expect((mocks.db as FakeFirestore).store.size).toBe(0);
+    expect(mocks.transportState.posts).toHaveLength(0);
+    const command = {
+        operation: "apply",
+        selection,
+        executionId: p.executionId,
+        reviewHash: p.reviewHash,
+      },
+      applied = await post(command);
+    expect(applied.status).toBe(200);
+    expect((await applied.json()).execution_state).toBe("Succeeded");
+    expect(mocks.transportState.posts).toHaveLength(1);
+    const record = (mocks.db as FakeFirestore).store.get(
+      `action_executions/${p.executionId}`,
+    ) as { approval: { approvedByRole: string; basis: string } };
+    expect(record).toMatchObject({ actor_uid: mocks.user.uid });
+    expect(record.approval).toMatchObject({
+      approvedByRole: "Editor",
+      basis: "staff_confirmation",
+    });
+    expect(
+      [...(mocks.db as FakeFirestore).store.keys()].some((k) =>
+        k.startsWith("approval_queue_items/"),
+      ),
+    ).toBe(false);
+    const gets = mocks.transportState.gets.length;
+    expect((await (await post(command)).json()).duplicate).toBe(true);
+    expect(mocks.transportState.posts).toHaveLength(1);
+    expect(mocks.transportState.gets.length).toBe(gets);
+    expect(
+      (await (await post({ operation: "original", executionId: p.executionId })).json())
+        .state,
+    ).toBe("Succeeded");
+    expect(
+      (await post({ ...command, selection: { ...selection, priorityId: "3" } })).status,
+    ).toBe(409);
+    expect(mocks.transportState.posts).toHaveLength(1);
+  });
+  it("S184 changed source/authority after a review refuses Apply before any execution claim", async () => {
+    const selection = {
+        kind: "create",
+        ticketId: "ticket-9",
+        priorityId: "2",
+        workOrderStatusId: "9101",
+        isVacant: false,
+      },
+      p = await (await post({ operation: "review", selection })).json();
+    mocks.tickets.set("ticket-9", ticket({ estimate_amount_cents: 30000 }));
+    const response = await post({
+      operation: "apply",
+      selection,
+      executionId: p.executionId,
+      reviewHash: p.reviewHash,
+    });
+    expect(response.status).toBe(409);
+    expect(mocks.transportState.posts).toHaveLength(0);
+    expect((mocks.db as FakeFirestore).store.size).toBe(0);
   });
 });

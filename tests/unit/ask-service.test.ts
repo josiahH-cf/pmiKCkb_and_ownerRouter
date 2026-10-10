@@ -222,6 +222,10 @@ describe("Ask service", () => {
         askLogWriter: noopAskLogWriter,
         config: liveConfig,
         retrievalClient: retrievalClient(emptyGrounding()),
+        answerGenerator: answerGenerator({
+          source_state: "No Reliable Source Found",
+          citations: [],
+        }),
       }),
     ).resolves.toMatchObject({
       source_state: "No Reliable Source Found",
@@ -281,6 +285,10 @@ describe("Ask service", () => {
         askLogWriter,
         config: liveReadOnlyConfig,
         retrievalClient: search,
+        answerGenerator: answerGenerator({
+          source_state: "No Reliable Source Found",
+          citations: [],
+        }),
       }),
     ).resolves.toMatchObject({ source_state: "No Reliable Source Found" });
 
@@ -459,10 +467,16 @@ describe("Ask service", () => {
     });
   });
 
-  it("returns review-only responses for placeholders and conflicts without Gemini", async () => {
+  it("keeps placeholders and conflicts unresolved when a generator returns no structured guidance", async () => {
     const throwingAnswerGenerator: AnswerGenerator = {
       async generateAnswer() {
-        throw new Error("Gemini should not be called");
+        return {
+          answer: "Unstructured text cannot resolve an open policy.",
+          citations: [],
+          draft: "",
+          handling_steps: [],
+          source_state: "Verified Source",
+        };
       },
     };
 
@@ -495,7 +509,7 @@ describe("Ask service", () => {
     });
   });
 
-  it("surfaces retrieval setup errors from live mode", async () => {
+  it("S202 labels a retrieval setup outage while allowing useful general discussion", async () => {
     const retrievalClient: RetrievalClient = {
       async search() {
         throw new RetrievalSetupError("Missing Agent Search data store ID.");
@@ -507,8 +521,35 @@ describe("Ask service", () => {
         askLogWriter: noopAskLogWriter,
         config: liveConfig,
         retrievalClient,
+        answerGenerator: {
+          generateAnswer: async () => ({
+            source_state: "No Reliable Source Found",
+            answer: "",
+            citations: [],
+            draft: "",
+            handling_steps: [],
+            claims: [
+              {
+                kind: "recommendation",
+                text: "Keep the current question and retry the source lookup.",
+                source_ids: [],
+                history_seq: null,
+              },
+            ],
+          }),
+        },
       }),
-    ).rejects.toBeInstanceOf(RetrievalSetupError);
+    ).resolves.toMatchObject({
+      source_state: "No Reliable Source Found",
+      citations: [],
+      draft: "",
+      evidence_context: {
+        mode: "guidance",
+        coverage: expect.arrayContaining([
+          expect.stringContaining("retrieval is unavailable"),
+        ]),
+      },
+    });
   });
 
   it("resolves and passes process context to the generator when process_id is set", async () => {

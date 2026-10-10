@@ -74,6 +74,18 @@ export function parseGmailMessage(input: unknown): GmailMessageView {
     ...(optionalString(message.internalDate)
       ? { internalDate: optionalString(message.internalDate) }
       : {}),
+    ...(header(headers, "auto-submitted")
+      ? { autoSubmitted: header(headers, "auto-submitted") }
+      : {}),
+    ...(header(headers, "precedence")
+      ? { precedence: header(headers, "precedence") }
+      : {}),
+    ...(header(headers, "content-type")
+      ? { contentType: header(headers, "content-type") }
+      : {}),
+    ...(header(headers, "return-path")
+      ? { returnPath: header(headers, "return-path") }
+      : {}),
     from: header(headers, "from"),
     to: splitAddressHeader(header(headers, "to")),
     cc: splitAddressHeader(header(headers, "cc")),

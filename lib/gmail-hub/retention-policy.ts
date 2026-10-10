@@ -35,6 +35,8 @@ export interface CommunicationsRetentionFields {
   expires_at: Date | null;
   expires_at_ms: number | null;
   legal_hold: boolean;
+  /** Operational snapshots cannot expire while authorized work or own-attempt recovery needs them. */
+  operational_hold?: boolean;
 }
 
 export interface CommunicationsRetentionCandidate extends CommunicationsRetentionFields {
@@ -128,12 +130,18 @@ export function parseRetentionCandidate(
     typeof record.retention_anchor_at_ms === "number" &&
     Number.isFinite(record.retention_anchor_at_ms);
   const legalHold = record.legal_hold;
+  const operationalHold =
+    (collection === "gmail_communication_sequences" ||
+      collection === "gmail_communication_attachments") &&
+    record.operational_hold === true;
   const expiresAtMs = firestoreDateToMs(record.expires_at);
   const validExpiry =
     (typeof record.expires_at_ms === "number" &&
       Number.isFinite(record.expires_at_ms) &&
       expiresAtMs === record.expires_at_ms) ||
-    (legalHold === true && record.expires_at_ms === null && record.expires_at === null);
+    ((legalHold === true || operationalHold) &&
+      record.expires_at_ms === null &&
+      record.expires_at === null);
   if (
     record.retention_policy_version !== COMMUNICATIONS_RETENTION_POLICY_VERSION ||
     record.retention_class !== retentionClass ||
@@ -153,6 +161,7 @@ export function parseRetentionCandidate(
       typeof record.expires_at_ms === "number" ? new Date(record.expires_at_ms) : null,
     expires_at_ms: typeof record.expires_at_ms === "number" ? record.expires_at_ms : null,
     legal_hold: legalHold,
+    ...(operationalHold ? { operational_hold: true } : {}),
   };
 }
 
@@ -196,6 +205,7 @@ export function isCommunicationsCleanupEligible(
     candidate.expires_at_ms ===
       retentionExpiryMs(candidate.retention_class, candidate.retention_anchor_at_ms) &&
     !candidate.legal_hold &&
+    !candidate.operational_hold &&
     candidate.expires_at_ms <= nowMs
   );
 }
@@ -213,8 +223,9 @@ export function isCommunicationsRecordActive(
   const candidate = parseRetentionCandidate(collection, id, value);
   return Boolean(
     candidate &&
-    retentionExpiryMs(candidate.retention_class, candidate.retention_anchor_at_ms) >
-      nowMs,
+    (candidate.operational_hold ||
+      retentionExpiryMs(candidate.retention_class, candidate.retention_anchor_at_ms) >
+        nowMs),
   );
 }
 
@@ -275,20 +286,22 @@ export function buildCommunicationsLegalHoldTransition(input: {
     legalHold,
     update: {
       legal_hold: legalHold,
-      expires_at: legalHold
-        ? null
-        : new Date(
-            retentionExpiryMs(
+      expires_at:
+        legalHold || input.candidate.operational_hold
+          ? null
+          : new Date(
+              retentionExpiryMs(
+                input.candidate.retention_class,
+                input.candidate.retention_anchor_at_ms,
+              ),
+            ),
+      expires_at_ms:
+        legalHold || input.candidate.operational_hold
+          ? null
+          : retentionExpiryMs(
               input.candidate.retention_class,
               input.candidate.retention_anchor_at_ms,
             ),
-          ),
-      expires_at_ms: legalHold
-        ? null
-        : retentionExpiryMs(
-            input.candidate.retention_class,
-            input.candidate.retention_anchor_at_ms,
-          ),
       ...(legalHold
         ? {
             held_at_ms: input.nowMs,
@@ -347,4 +360,31 @@ function firestoreDateToMs(value: unknown) {
 
 function sha256(value: string) {
   return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+/** Existing workflow-link period begins at final settlement; it is suspended for live work. */
+export function sequenceRetentionFields(sequence: {
+  state: string;
+  unresolvedOccurrenceId: string | null;
+  updatedAtMs: number;
+  legal_hold?: boolean;
+  operational_hold?: boolean;
+  retention_anchor_at_ms?: number;
+}) {
+  const active =
+    !!sequence.unresolvedOccurrenceId ||
+    !["completed", "cancelled"].includes(sequence.state);
+  const anchor =
+    !active &&
+    sequence.operational_hold === false &&
+    typeof sequence.retention_anchor_at_ms === "number"
+      ? sequence.retention_anchor_at_ms
+      : sequence.updatedAtMs;
+  const fields = communicationsRetentionFields("workflow_link", anchor);
+  return {
+    ...fields,
+    operational_hold: active,
+    legal_hold: sequence.legal_hold === true,
+    ...(active || sequence.legal_hold ? { expires_at: null, expires_at_ms: null } : {}),
+  };
 }

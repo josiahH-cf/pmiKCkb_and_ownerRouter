@@ -1,3 +1,8 @@
+import {
+  resolveRenewalPricing,
+  type RenewalPricingRead,
+} from "@/lib/lease-renewal/renewal-pricing-policy";
+import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
 import { formatCalendarDate } from "@/lib/date-display";
 import { currentRentCorrectionKey } from "./current-rent-correction";
 import type { MoveOutDisposition } from "./move-out-disposition";
@@ -608,6 +613,7 @@ interface MoveOutInputs {
   reviewed?: ReadonlyMap<string, MoveOutDisposition>;
   statusTable: LeaseStatusTableRead;
   freshness: MoveOutFreshness;
+  sourceComplete?: boolean;
   observedAtIso: string;
   /** S125: the reviewed notice timing basis; an unreviewed basis yields Cannot determine. */
   timingBasis: MoveOutTimingBasisSnapshot;
@@ -661,9 +667,39 @@ function toLiveSummary(
   moveOutInputs?: MoveOutInputs,
   /** S157: the lease-bound working record, when the caller read it. */
   working?: RenewalWorkingRecord | null,
+  pricing?: RenewalPricingRead,
 ): DeskLeaseSummaryBase {
   const leaseId = classification.leaseId ?? "";
   const identity = projectRenewalDeskIdentity(view);
+  const pricingFacts = pricing?.facts.find((f) => f.leaseId === leaseId);
+  const renewalPricing =
+    pricing && pricingFacts
+      ? resolveRenewalPricing(
+          pricing.snapshot,
+          {
+            ...pricingFacts,
+            cycleDate:
+              pricingFacts.cycleDate ??
+              (manual && manual.basis.kind !== "lease_bound"
+                ? manual.basis.dateIso
+                : null),
+          },
+          effectiveRenewalTerms(working, manual).complete,
+          pricing.today,
+        )
+      : undefined;
+  // Source expiry or incomplete membership cannot establish an applicable standing agreement.
+  if (
+    renewalPricing?.authority.covered &&
+    (!moveOutInputs ||
+      moveOutInputs.freshness !== "fresh" ||
+      !moveOutInputs.sourceComplete)
+  )
+    renewalPricing.authority = {
+      covered: false,
+      reason:
+        "Current complete source membership must be read before using standing owner authority.",
+    };
   const retention = retentionFor(
     classification,
     windows,
@@ -689,15 +725,23 @@ function toLiveSummary(
   const ownerLabels = identity.owners.map((fact) => fact.label);
   const summaryBase: DeskLeaseSummaryBase = {
     id: leaseId,
-    ...(manual && classification.disposition !== "skip"
+    ...(renewalPricing ? { renewalPricing } : {}),
+    ...((manual || renewalPricing?.authority.covered) &&
+    classification.disposition !== "skip"
       ? {
-          manualProgress: manualRenewalSummary(manual),
+          manualProgress: manualRenewalSummary(manual ?? null, {
+            standingOwnerAuthority: renewalPricing?.authority.covered,
+          }),
           // S123: the recorded basis is history; only the comparison with the current provider
           // lease end travels with the row, so a source change is visible and never rewritten.
-          cycleSourceDate: projectCycleSourceDateChange(
-            manual.basis,
-            classification.endDateIso,
-          ),
+          ...(manual
+            ? {
+                cycleSourceDate: projectCycleSourceDateChange(
+                  manual.basis,
+                  classification.endDateIso,
+                ),
+              }
+            : {}),
         }
       : {}),
     // S124: the provider move-out disposition rides on every non-skipped row; it reads only.
@@ -1306,6 +1350,7 @@ export async function loadLiveRenewalDesk(
   preparedNoticeStatusTable?: LeaseStatusTableRead,
   /** S157: the bulk working-record read; absent means the caller did not attempt it. */
   workingByLease?: ReadonlyMap<string, RenewalWorkingRecord>,
+  pricing?: RenewalPricingRead,
 ): Promise<LiveRenewalDeskResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1319,6 +1364,7 @@ export async function loadLiveRenewalDesk(
         preparedNoticeStatusTable ??
         (await readLeaseStatusTable(config.rentvineClient, Date.parse(readTimestamp))),
       freshness: currency.state,
+      sourceComplete: complete,
       observedAtIso: readTimestamp,
       timingBasis: timingBasis ?? MISSING_MOVE_OUT_TIMING_BASIS,
     };
@@ -1407,6 +1453,7 @@ export async function loadLiveRenewalDesk(
         workStatus,
         moveOutInputs,
         working,
+        pricing,
       );
       const leaseId = classification.leaseId ?? leaseIdOf(view);
       // Source navigation is independent from workflow eligibility and (S116) from whether a Sheet
@@ -1446,6 +1493,7 @@ export async function loadLiveRenewalDesk(
             workStatus,
             moveOutInputs,
             working,
+            pricing,
           )
         : initialSummary;
       if (
@@ -1621,6 +1669,8 @@ export async function loadLiveRenewalLeaseWorkspace(
   preparedNoticeStatusTable?: LeaseStatusTableRead,
   /** S158: the operator-selected Sheet row for this lease, from the page's working-record read. */
   sheetRowBindings?: ReadonlyMap<string, WorkingSheetRow>,
+  working?: RenewalWorkingRecord | null,
+  pricing?: RenewalPricingRead,
 ): Promise<LiveRenewalLeaseWorkspaceResult> {
   if (!config.ok) return { status: config.reason };
   try {
@@ -1643,6 +1693,7 @@ export async function loadLiveRenewalLeaseWorkspace(
         preparedNoticeStatusTable ??
         (await readLeaseStatusTable(config.rentvineClient, readAtMs)),
       freshness: currency.state,
+      sourceComplete: complete,
       observedAtIso: readTimestamp,
       timingBasis: timingBasis ?? MISSING_MOVE_OUT_TIMING_BASIS,
     };
@@ -1716,6 +1767,8 @@ export async function loadLiveRenewalLeaseWorkspace(
           )
         : undefined,
       moveOutInputs,
+      working,
+      pricing,
     );
     // S154: classification and window are context, never an edit grant. Every resolved real
     // lease carries the full working surface.

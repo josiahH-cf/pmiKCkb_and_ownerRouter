@@ -104,6 +104,12 @@ export interface RenewalActionSnapshot {
   /** The consolidated dashboard mounts the staff-recorded lane (every live lease page). */
   readonly manualLaneMounted: boolean;
   readonly manual: RenewalActionManualInput;
+  /** S194: separately evidenced authority, bound to the current staff-record revision. */
+  readonly standingOwnerAuthority?: {
+    covered: boolean;
+    manualRevision: number;
+    reason: string;
+  };
   /** The shared S82/S127 guidance for this lease, as the desk row carries it. */
   readonly guidance: {
     readonly status: RenewalOverallStatus;
@@ -470,7 +476,13 @@ function manualDrafts(
     { requirement: "optional", anchor: false },
   );
 
-  const summary = state ? manualRenewalSummary(state) : null;
+  const standing =
+    snapshot.standingOwnerAuthority?.covered === true &&
+    snapshot.standingOwnerAuthority.manualRevision === (state?.revision ?? 0);
+  const summary =
+    state || standing
+      ? manualRenewalSummary(state, { standingOwnerAuthority: standing })
+      : null;
   const nonRenewal = manualNonRenewal(state);
   const ownerDeclined = state?.ownerResponse?.outcome === "declined_non_renewal";
   const satisfied = (key: ManualActivity) =>
@@ -499,7 +511,7 @@ function manualDrafts(
     manualCompletionText("owner_outreach"),
     ["renewal-card-message-owner", "renewal-manual-owner_outreach"],
     {
-      applicability: branch(outreachDone),
+      applicability: standing && !outreachDone ? "not_applicable" : branch(outreachDone),
       completion: completion(outreachDone),
       ...records,
     },
@@ -511,7 +523,8 @@ function manualDrafts(
     "The owner's explicit approval of exact terms, recorded by staff. A current tenant counter reopens it.",
     ["renewal-manual-owner_response", ...followUp],
     {
-      applicability: branch(ownerDone),
+      applicability:
+        standing && !counterReopen && !ownerDone ? "not_applicable" : branch(ownerDone),
       completion: completion(ownerDone),
       ...records,
       waitingOn:
@@ -521,11 +534,13 @@ function manualDrafts(
     },
     {
       detail:
-        state?.ownerResponse?.outcome === "revision_requested"
-          ? "The owner requested a revision."
-          : counterReopen
-            ? "The tenant requested a change to the current terms."
-            : null,
+        standing && !counterReopen
+          ? snapshot.standingOwnerAuthority!.reason
+          : state?.ownerResponse?.outcome === "revision_requested"
+            ? "The owner requested a revision."
+            : counterReopen
+              ? "The tenant requested a change to the current terms."
+              : null,
     },
   );
   const offerDone = satisfied("tenant_offer");
@@ -965,7 +980,13 @@ export function projectRenewalActions(
   const primary = actions.find(
     (action) => leading(action) && action.status === "ready_for_actor",
   );
-  const summary = state ? manualRenewalSummary(state) : null;
+  const standing =
+    snapshot.standingOwnerAuthority?.covered === true &&
+    snapshot.standingOwnerAuthority.manualRevision === (state?.revision ?? 0);
+  const summary =
+    state || standing
+      ? manualRenewalSummary(state, { standingOwnerAuthority: standing })
+      : null;
   const outcome: RenewalActionProjection["outcome"] =
     lane === "manual" && summary
       ? summary.complete
@@ -1009,7 +1030,8 @@ export function renewalGuidanceActionId(
   }
   if (guidance.redirectLabel) return "issue.move_out_redirect";
   if (guidance.kind === "complete") return null;
-  if (lane === "manual") return `manual.${manualRenewalSummary(state).nextActivity}`;
+  if (lane === "manual")
+    return `manual.${manualRenewalSummary(state, { standingOwnerAuthority: snapshot.standingOwnerAuthority?.covered === true && snapshot.standingOwnerAuthority.manualRevision === (state?.revision ?? 0) }).nextActivity}`;
   // Staff records that could not be read: the reload leads until they can.
   if (snapshot.manualLaneMounted && !manual.readable) return "source.staff_records";
   const verifyIds = new Set(snapshot.process?.verify.map((substep) => substep.id) ?? []);

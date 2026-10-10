@@ -33,6 +33,8 @@ import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
 import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
 import { getRenewalResourceLocations } from "@/lib/firestore/renewal-resource-locations";
+import { readBusinessProfile } from "@/lib/firestore/presentation-settings";
+import { profileSignature } from "@/lib/staff/business-profile";
 import { getRetainedSenderSignature } from "@/lib/firestore/renewal-sender-signatures";
 import { loadRenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory";
 import { chargeDateIso } from "@/lib/lease-renewal/writeback/charge-inventory-model";
@@ -53,7 +55,6 @@ import {
   leasePortfolioId,
   leaseViewId,
 } from "@/lib/integrations/rentvine/lease-mapper";
-import { getApprovedRentSuggestion } from "@/lib/firestore/lease-renewal-rent-suggestion-approvals";
 import { projectMessageMarketEvidence } from "@/lib/lease-renewal/message-market-evidence";
 import {
   greetingPartyNames,
@@ -99,7 +100,8 @@ export function projectCurrentMessageRecipients(
 export type MessageSignatureOrigin =
   | { kind: "none" }
   | { kind: "saved" }
-  | { kind: "retained_sender"; recordedAt: string };
+  | { kind: "retained_sender"; recordedAt: string }
+  | { kind: "business_profile"; recordedAt: string; version: number };
 
 /** S120 (R120.2): a current non-rent recurring charge a person may deliberately fill a charge from. */
 export interface MessageChargeInventoryLine {
@@ -145,6 +147,7 @@ export async function currentRenewalMessage(
     resources,
     publication,
     retainedSignature,
+    businessProfile,
     policyMaterial,
   ] = await Promise.all([
     readAdmittedRenewalNoticeLease(actor, leaseId, config.rentvineClient, nowMs, db),
@@ -158,6 +161,7 @@ export async function currentRenewalMessage(
         "Current supplied-template publication could not be read. Editing and copy continue; the Gmail draft waits for that readback.",
     })),
     getRetainedSenderSignature(actor, db).catch(() => null),
+    readBusinessProfile(actor, actor.uid, db).catch(() => null),
     // S129/S131: the policy material snapshot never throws.
     readPolicyMaterialSnapshot("rhino", db),
   ]);
@@ -206,13 +210,21 @@ export async function currentRenewalMessage(
   // signature (this actor's or another's) is shown as saved and is never silently replaced.
   const signatureOrigin: MessageSignatureOrigin = savedInputs.signature
     ? { kind: "saved" }
-    : retainedSignature
-      ? { kind: "retained_sender", recordedAt: retainedSignature.updatedAt }
-      : { kind: "none" };
+    : businessProfile
+      ? {
+          kind: "business_profile",
+          recordedAt: businessProfile.updatedAt,
+          version: businessProfile.version,
+        }
+      : retainedSignature
+        ? { kind: "retained_sender", recordedAt: retainedSignature.updatedAt }
+        : { kind: "none" };
   const inputs =
-    signatureOrigin.kind === "retained_sender"
-      ? { ...savedInputs, signature: retainedSignature!.signature }
-      : savedInputs;
+    signatureOrigin.kind === "business_profile"
+      ? { ...savedInputs, signature: profileSignature(businessProfile!.profile) }
+      : signatureOrigin.kind === "retained_sender"
+        ? { ...savedInputs, signature: retainedSignature!.signature }
+        : savedInputs;
   // S129/S161: the same policy applicability the workspace shows. It is listed with the message
   // as information; it withholds neither the message nor its draft, and an unrelated lease has none.
   const policyGates = policyMessageGates(
@@ -331,31 +343,13 @@ export async function currentRenewalMessage(
       : WORKING_TERMS_MESSAGE_SOURCE;
   const market = workspace?.preparation?.market;
   const ownerMarket = market ? ownerDraftMarketFromBasis(market) : {};
-  // S118 (R118.3): a recommendation that is still the returned point estimate needs the existing
-  // Admin approval of that exact number; the approval record is read only when one could apply.
-  let approvedSuggestionValue: number | null = null;
-  if (channel === "owner" && market?.recommendationBasis === "provider") {
-    try {
-      approvedSuggestionValue =
-        (
-          await getApprovedRentSuggestion(
-            actor,
-            leaseId,
-            currentBaseRent?.value ?? null,
-            leasePortfolioId(lease) ?? null,
-            db,
-          )
-        )?.value ?? null;
-    } catch {
-      notices.push(
-        "The Admin approval record for the comp-derived number could not be read. The provider-derived recommendation stays out of this message until it is read back.",
-      );
-    }
-  }
   const marketEvidence = projectMessageMarketEvidence({
     preparation: workspace?.preparation ?? null,
     currentBaseRent: currentBaseRent?.value ?? null,
-    approvedSuggestionValue,
+    selectedWorkingOffer:
+      terms.rent !== null && termsSource
+        ? { value: terms.rent, source: termsSource }
+        : null,
   });
   notices.push(...marketEvidence.notices);
   const link = (id: string) => {
@@ -367,7 +361,9 @@ export async function currentRenewalMessage(
   const signature =
     saved?.signatureEmail && savedInputs.signature
       ? { ...savedInputs.signature, email: saved.signatureEmail }
-      : signatureOrigin.kind === "retained_sender" && inputs.signature
+      : (signatureOrigin.kind === "retained_sender" ||
+            signatureOrigin.kind === "business_profile") &&
+          inputs.signature
         ? { ...inputs.signature, email: actor.email }
         : null;
   // S163: greeting first names come from the provider's own first-name field for each person.
@@ -393,8 +389,9 @@ export async function currentRenewalMessage(
     suggestedRent: marketEvidence.suggestedRent,
     // The provider's measured attributes are retained; no street address is invented when absent.
     comps: (provider?.comps ?? []).map((comp, index) => ({
-      address: `Comparable ${index + 1}${comp.bedrooms !== undefined ? `, ${comp.bedrooms} bedrooms` : ""}${comp.distanceMiles !== undefined ? `, ${comp.distanceMiles} miles away` : ""}`,
+      address: `Comparable ${index + 1}${comp.bedrooms !== undefined ? `, ${comp.bedrooms} bedrooms` : ""}`,
       rent: comp.rent,
+      ...(comp.distanceMiles !== undefined ? { distanceMiles: comp.distanceMiles } : {}),
       source: `${provider!.source} retrieved ${formatBusinessTimestamp(provider!.retrievedAt)}`,
     })),
     trend: ownerMarket.trend

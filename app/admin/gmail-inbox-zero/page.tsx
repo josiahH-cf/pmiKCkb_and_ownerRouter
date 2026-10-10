@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
-import { TemplateWorkspace } from "@/components/gmail-hub/TemplateWorkspace";
 import { WORKFLOW_COMMUNICATIONS_NAME } from "@/lib/constants";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { readServerConfig } from "@/lib/config/server";
@@ -23,9 +22,9 @@ export default async function GmailInboxZeroAdminPage() {
         <div>
           <h1 className="section-title">{`${WORKFLOW_COMMUNICATIONS_NAME} Governance`}</h1>
           <p className="muted">
-            Workflow-linked Gmail only. Replies require exact confirmation; a person sends
-            renewal and maintenance drafts.{" "}
-            <Link href="/gmail-hub">Open Workflow Communications</Link> ·{" "}
+            Workflow-linked Gmail only. A staff member reviews the exact message and
+            chooses Send or Schedule in Communications. Old drafts retain their original
+            state. <Link href="/gmail-hub">Open Workflow Communications</Link> ·{" "}
             <Link href="/admin">Back to Admin</Link>
           </p>
         </div>
@@ -66,15 +65,6 @@ export default async function GmailInboxZeroAdminPage() {
             </p>
           </article>
         </div>
-
-        <article className="panel ui-stack">
-          <h2>Synthetic rule/template evaluator</h2>
-          <p className="muted">
-            Local examples only. They cannot enable an action or change approved
-            artifacts.
-          </p>
-          <TemplateWorkspace />
-        </article>
       </section>
     </AppShell>
   );

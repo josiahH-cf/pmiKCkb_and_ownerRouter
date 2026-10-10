@@ -15,7 +15,7 @@ import { requireCapability } from "@/lib/auth/session";
 import { EditableLayerError } from "@/lib/errors/editable-layer-error";
 import {
   historyOwnerKey,
-  readAssistantConversation,
+  readAssistantConversationPage,
 } from "@/lib/firestore/assistant-history-read";
 
 // S148: GET one of the signed-in user's own conversations with its turns in order, exactly as they
@@ -28,13 +28,24 @@ interface RouteContext {
   params: Promise<{ conversationId: string }>;
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   try {
     const user = await requireCapability("read");
     const { conversationId } = await context.params;
     const notFound = new EditableLayerError("That conversation was not found.", 404);
     if (!isHistoryPersisted(user)) throw notFound;
-    const found = await readAssistantConversation(user, conversationId);
+    const params = new URL(request.url).searchParams;
+    if (
+      [...params.keys()].some((key) => key !== "after") ||
+      params.getAll("after").length > 1 ||
+      !/^\d{1,12}$/.test(params.get("after") ?? "0")
+    )
+      throw new EditableLayerError("Invalid conversation page.", 400);
+    const found = await readAssistantConversationPage(
+      user,
+      conversationId,
+      Number(params.get("after") ?? 0),
+    );
     if (!found) throw notFound;
     const turns = found.turns.map(({ accessBasis, ...turn }) => ({
       ...turn,
@@ -48,7 +59,12 @@ export async function GET(_request: Request, context: RouteContext) {
     }));
     logHistoryOperation("open", "ok", { turns: turns.length });
     return NextResponse.json(
-      { ownerKey: historyOwnerKey(user.uid), conversation: found.conversation, turns },
+      {
+        ownerKey: historyOwnerKey(user.uid),
+        conversation: found.conversation,
+        turns,
+        nextTurnCursor: found.nextTurnCursor,
+      },
       { headers: NO_STORE },
     );
   } catch (error) {

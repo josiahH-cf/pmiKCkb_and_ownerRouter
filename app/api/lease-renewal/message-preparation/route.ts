@@ -1,12 +1,8 @@
-import { randomUUID } from "node:crypto";
 import { renewalRoleCapability } from "@/lib/lease-renewal/role-action-governance";
 import {
   getMessageDraftSnapshot,
-  preparedMessageDraftDiffers,
   recordMessageDraftOutcome,
-  savePreparedMessageDraft,
 } from "@/lib/firestore/renewal-message-drafts";
-import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
@@ -15,7 +11,6 @@ import { currentRenewalMessage } from "@/lib/lease-renewal/current-renewal-messa
 import { SaveMessagePreparationSchema } from "@/lib/lease-renewal/renewal-message-preparation";
 import { saveMessagePreparation } from "@/lib/firestore/renewal-message-preparations";
 import { publishSuppliedRenewalTemplate } from "@/lib/firestore/renewal-message-publication";
-import { buildSuppliedRenewalDraftPreview } from "@/lib/lease-renewal/execution/supplied-renewal-draft-preview";
 import { finalizeRenewalNoticeDraft } from "@/lib/lease-renewal/execution/renewal-notice-draft-service";
 import {
   RenewalDraftConfirmationSchema,
@@ -23,7 +18,6 @@ import {
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
 import { createDescriptorBoundGmailRuntimeClient } from "@/lib/gmail-hub/dependencies";
 import { requireEnvironmentDescriptor } from "@/lib/environment/descriptor";
-import { EditableLayerError } from "@/lib/firestore/errors";
 import { GovernedDraftConnectionError } from "@/lib/external-execution/governed-draft-execution";
 import { buildLiveCompScreenshotRuntime } from "@/lib/lease-renewal/comp-screenshot-runtime";
 import { resolveRenewalDraftCompScreenshotAttachment } from "@/lib/lease-renewal/comp-screenshot-attachment-runtime";
@@ -95,19 +89,6 @@ function publicPreparation(current: Current) {
     notices: current.notices,
     policyGates: current.policyGates,
   };
-}
-function claimBasisOf(current: Current) {
-  return {
-    noticeSafety: current.basis.noticeSafety ?? undefined,
-    workspaceFingerprint: current.basis.workspaceFingerprint!,
-    sourceFingerprint: current.basis.sourceFingerprint,
-    resourceFingerprint: current.basis.resourceFingerprint,
-    preparationRevision: current.saved!.revision,
-  };
-}
-/** A refusal that happened before any Gmail call, in the shape the message card reports. */
-function refusedBeforeGmail(error: string, code: string, status = 409) {
-  return NextResponse.json({ error, code, providerCallAttempted: false }, { status });
 }
 function saveMessage(actor: AuthenticatedUser, value: unknown, leaseId: string) {
   // S154: the first saved message establishes the lease's work record from its real basis.
@@ -207,147 +188,16 @@ export async function POST(request: Request) {
         headers: { "Cache-Control": "private, no-store" },
       });
     }
-    if (input.save && !input.confirm) {
-      // S162 (R-S162-7): the explicit draft action saves the displayed message itself. A failed
-      // save is reported as that failure; nothing is previewed from an older saved state.
-      try {
-        await saveMessage(
-          actor,
-          { ...input.save, leaseId: input.leaseId, channel: input.channel },
-          input.leaseId,
-        );
-      } catch (error) {
-        if (error instanceof EditableLayerError)
-          return refusedBeforeGmail(
-            `The message could not be saved, so no draft was prepared. Your wording is kept on screen. ${error.message}`,
-            "message_save_failed",
-            error.status,
-          );
-        throw error;
-      }
-    }
-    let current = await currentRenewalMessage(actor, input.leaseId, input.channel);
-    if (
-      !input.confirm &&
-      input.displayed &&
-      (current.content.subject !== input.displayed.subject ||
-        current.content.plainText !== input.displayed.body)
-    )
-      return refusedBeforeGmail(
-        "The message changed after it was shown here, so no draft was prepared. The current message is loading; preview the draft again from it.",
-        "message_changed",
-      );
-    let preview = buildSuppliedRenewalDraftPreview(actor, current);
-    if (
-      !input.confirm &&
-      preview.status === "ready" &&
-      current.saved &&
-      current.workspace &&
-      current.basis.workspaceFingerprint &&
-      (await preparedMessageDraftDiffers(actor, preview, claimBasisOf(current)))
-    ) {
-      // S162: the same saved revision now reads with different recipients, facts or resources than
-      // an attempt already prepared under it. A new revision gives this preview its own attempt
-      // identity instead of colliding with the earlier one; the wording itself is unchanged.
-      await saveMessage(
-        actor,
-        {
-          leaseId: input.leaseId,
-          cycleId: current.workspace.cycleId,
-          channel: input.channel,
-          expectedRevision: current.saved.revision,
-          operationId: randomUUID(),
-          inputs: current.saved.inputs,
-          bodyOverride:
-            current.bodyOverride && current.bodyOverride.state !== "unreadable"
-              ? {
-                  text: current.bodyOverride.text,
-                  baseHash: current.bodyOverride.baseHash,
-                }
-              : null,
-          subjectOverride: current.subjectOverride,
-        },
-        input.leaseId,
-      );
-      current = await currentRenewalMessage(actor, input.leaseId, input.channel);
-      preview = buildSuppliedRenewalDraftPreview(actor, current);
-    }
-    if (input.confirm) {
-      const saved = await getMessageDraftSnapshot(
-        actor,
-        input.confirm.executionId,
-        input.leaseId,
-        input.channel,
-      );
-      if (preview.status !== "ready") return NextResponse.json(preview);
-      if (
-        saved.snapshot.previewHash !== input.confirm.previewHash ||
-        saved.snapshot.snapshotHash !==
-          hashExecutionPreview({ preview, claimBasis: claimBasisOf(current) })
-      )
-        throw new EditableLayerError(
-          "The message changed after this preview. Preview the draft again to confirm the current message.",
-          409,
-        );
-      if (saved.execution.state === "Succeeded" && saved.snapshot.outcome)
-        return NextResponse.json(saved.snapshot.outcome);
-      if (["Executing", "Needs reconciliation"].includes(saved.execution.state))
-        return NextResponse.json({
-          status: "needs_reconciliation",
-          channel: input.channel,
-          executionId: input.confirm.executionId,
-          reason:
-            "The one attempt is already consumed. Recover this exact attempt; do not create a duplicate.",
-        });
-    }
-    const outcome = await finalizeRenewalNoticeDraft(
-      preview,
+    return NextResponse.json(
       {
-        leaseId: input.leaseId,
-        offer: { channel: input.channel },
-        ...(input.confirm ? { confirm: input.confirm } : {}),
+        error:
+          "New messages are reviewed in Communications. This route only recovers an earlier draft attempt.",
+        code: "communications_composer_required",
+        providerCallAttempted: false,
+        href: `/gmail-hub?compose=renewal_${input.channel}&lease=${input.leaseId}`,
       },
-      { email: actor.email, sourceRef: `session:${actor.uid}` },
-      {
-        ...draftDeps,
-        loadLease: async () => current.lease,
-      },
+      { status: 410, headers: { "Cache-Control": "private, no-store" } },
     );
-    if (outcome.status === "preview" && preview.status === "ready" && current.workspace) {
-      if (!current.saved || !current.basis.workspaceFingerprint)
-        throw new EditableLayerError(
-          "The saved message could not be read back. Preview the draft again.",
-          409,
-        );
-      const snapshot = await savePreparedMessageDraft(actor, {
-        claimBasis: claimBasisOf(current),
-        leaseId: input.leaseId,
-        cycleId: current.workspace.cycleId,
-        channel: input.channel,
-        preview,
-        executionId: outcome.executionId,
-        previewHash: outcome.previewHash,
-      });
-      const existing = await getMessageDraftSnapshot(
-        actor,
-        snapshot.executionId,
-        input.leaseId,
-        input.channel,
-      );
-      if (existing.execution.state === "Succeeded" && existing.snapshot.outcome)
-        return NextResponse.json(existing.snapshot.outcome);
-      if (["Executing", "Needs reconciliation"].includes(existing.execution.state))
-        return NextResponse.json({
-          status: "needs_reconciliation",
-          channel: input.channel,
-          executionId: snapshot.executionId,
-          reason: "Recover the existing consumed attempt before any new draft.",
-        });
-    } else if ("executionId" in outcome)
-      await recordMessageDraftOutcome(actor, input.leaseId, input.channel, outcome);
-    return NextResponse.json(outcome, {
-      headers: { "Cache-Control": "private, no-store" },
-    });
   } catch (error) {
     if (error instanceof GovernedDraftConnectionError)
       return NextResponse.json(

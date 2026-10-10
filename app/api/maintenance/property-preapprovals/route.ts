@@ -1,73 +1,118 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-
-import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
+import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
+import { parseUniqueQuery } from "@/lib/api/query";
+import { requireOperationsLiveContext } from "@/lib/operations/live-context";
+import { verifyMaintenancePolicySource } from "@/lib/maintenance/policy-source";
 import {
-  clearMaintenancePropertyPreapproval,
+  ApplyMaintenancePolicyInputSchema,
+  applyMaintenancePolicy,
+  readMaintenancePolicyOperation,
+  stopMaintenancePolicyOperation,
   getMaintenancePropertyPreapproval,
   listMaintenancePropertyPreapprovalActivity,
   listMaintenancePropertyPreapprovals,
-  setMaintenancePropertyPreapproval,
 } from "@/lib/firestore/maintenance-property-preapprovals";
-
-// S108: the app-owned property maintenance preapproval. It writes only the KB's own record and its
-// append-only history. No RentVine effect derives from it, and it never claims owner approval inside
-// RentVine: it decides whether this app asks the owner, nothing more.
-const BodySchema = z.discriminatedUnion("operation", [
-  z
-    .object({
-      operation: z.literal("set"),
-      property_key: z.string().trim().min(1).max(200),
-      amount_cents: z.number().int().positive(),
-      effective_from_iso: z.string().trim().min(1).max(60),
-      note: z.string().trim().min(1).max(2_000).optional(),
-    })
-    .strict(),
-  z
-    .object({
-      operation: z.literal("clear"),
-      property_key: z.string().trim().min(1).max(200),
-    })
-    .strict(),
-]);
-
+const headers = {
+  "cache-control": "private, no-store",
+  "x-content-type-options": "nosniff",
+};
+const error = (e: unknown) => {
+  const r = apiErrorResponse(e);
+  for (const [k, v] of Object.entries(headers)) r.headers.set(k, v);
+  return r;
+};
 export async function GET(request: Request) {
   try {
     const user = await requireCapabilityInSpace("read", "maintenance");
-    const propertyKey = new URL(request.url).searchParams.get("property_key")?.trim();
-    if (!propertyKey) {
-      return NextResponse.json({
-        status: "ok",
-        preapprovals: await listMaintenancePropertyPreapprovals(user),
-      });
-    }
+    const q = parseUniqueQuery(
+      request,
+      z
+        .object({
+          operation_id: z.string().uuid().optional(),
+          property_key: z
+            .string()
+            .regex(/^[A-Za-z0-9:_-]{1,200}$/)
+            .optional(),
+        })
+        .strict()
+        .refine(
+          (v) => !(v.operation_id && v.property_key),
+          "Select one exact policy read.",
+        ),
+    );
+    if (q.operation_id)
+      return NextResponse.json(
+        await readMaintenancePolicyOperation(user, q.operation_id),
+        { headers },
+      );
+    if (!q.property_key)
+      return NextResponse.json(
+        { status: "ok", preapprovals: await listMaintenancePropertyPreapprovals(user) },
+        { headers },
+      );
     const [preapproval, activity] = await Promise.all([
-      getMaintenancePropertyPreapproval(user, propertyKey),
-      listMaintenancePropertyPreapprovalActivity(user, propertyKey),
+      getMaintenancePropertyPreapproval(user, q.property_key),
+      listMaintenancePropertyPreapprovalActivity(user, q.property_key),
     ]);
-    return NextResponse.json({ status: "ok", preapproval, activity });
-  } catch (error) {
-    return apiErrorResponse(error);
+    return NextResponse.json({ status: "ok", preapproval, activity }, { headers });
+  } catch (e) {
+    return error(e);
   }
 }
-
 export async function POST(request: Request) {
   try {
     const user = await requireCapabilityInSpace("manageAdmin", "maintenance");
-    const body = await parseJsonBody(request, BodySchema);
-    if (body.operation === "clear") {
-      await clearMaintenancePropertyPreapproval(user, body.property_key);
-      return NextResponse.json({ status: "cleared", preapproval: null });
-    }
-    const preapproval = await setMaintenancePropertyPreapproval(user, {
-      propertyKey: body.property_key,
-      amountCents: body.amount_cents,
-      effectiveFromIso: body.effective_from_iso,
-      note: body.note,
-    });
-    return NextResponse.json({ status: "recorded", preapproval });
-  } catch (error) {
-    return apiErrorResponse(error);
+    requireOperationsLiveContext();
+    const raw = await parseJsonBody(request, z.unknown());
+    if (
+      raw &&
+      typeof raw === "object" &&
+      "operation" in raw &&
+      ["set", "clear"].includes(String(raw.operation))
+    )
+      return NextResponse.json(
+        {
+          error:
+            "Use the reviewed standing-policy Save or Revoke with its current version and original operation identity. An imported limit alone supplies no spending authority.",
+        },
+        { status: 410, headers },
+      );
+    const body = ApplyMaintenancePolicyInputSchema.parse(raw);
+    const prior = await readMaintenancePolicyOperation(user, body.operation_id);
+    if (body.operation === "set_policy" && prior.state === "not_recorded")
+      await verifyMaintenancePolicySource(body.policy_terms);
+    return NextResponse.json(
+      {
+        status: "recorded",
+        operation_id: body.operation_id,
+        preapproval: await applyMaintenancePolicy(user, body),
+      },
+      { headers },
+    );
+  } catch (e) {
+    return error(e);
+  }
+}
+export async function PATCH(request: Request) {
+  try {
+    const user = await requireCapabilityInSpace("manageAdmin", "maintenance");
+    requireOperationsLiveContext();
+    const body = await parseJsonBody(
+      request,
+      z
+        .object({
+          operation: z.literal("stop_before_admission"),
+          operation_id: z.string().uuid(),
+        })
+        .strict(),
+    );
+    return NextResponse.json(
+      await stopMaintenancePolicyOperation(user, body.operation_id),
+      { headers },
+    );
+  } catch (e) {
+    return error(e);
   }
 }

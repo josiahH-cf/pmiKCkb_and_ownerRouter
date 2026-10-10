@@ -8,7 +8,7 @@ import {
 } from "@/lib/gmail-hub/communication-state";
 import { createDefaultGmailStateStore } from "@/lib/gmail-hub/dependencies";
 import { isCommunicationsRecordActive } from "@/lib/gmail-hub/retention-policy";
-import { workflowEntityHref } from "@/lib/gmail-hub/workflow-context";
+import { workflowCommunicationHref } from "@/lib/gmail-hub/workflow-context";
 import type { UnifiedNotification } from "@/lib/notifications/families";
 
 export async function listGmailWorkflowNotifications(
@@ -46,7 +46,7 @@ export async function listGmailWorkflowNotifications(
         title: `${renewal ? "Renewal" : "Maintenance"} communication ${COMMUNICATION_STATUS_LABELS[link.status]}`,
         state_label: communicationStatusBadge(link.status),
         message: `A linked ${renewal ? "renewal" : "maintenance"} communication has a new message.`,
-        href: workflowEntityHref(link),
+        href: workflowCommunicationHref(link),
         created_at: new Date(link.attention_at_ms!).toISOString(),
         ...(link.read_at_ms ? { read_at: new Date(link.read_at_ms).toISOString() } : {}),
       } satisfies UnifiedNotification;

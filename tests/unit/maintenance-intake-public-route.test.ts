@@ -1,3 +1,4 @@
+import { projectIntakeTriage } from "@/lib/maintenance/intake-triage";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock only the writer function; keep the real error classes so the route's instanceof mapping works.
@@ -68,7 +69,15 @@ beforeEach(() => {
   process.env.MAINTENANCE_INTAKE_DAILY_CAP = "500";
   process.env.MAINTENANCE_INTAKE_IP_HASH_SALT = IP_HASH_SALT; // so each unique XFF gets its own bucket
   vi.mocked(createUnverifiedIntakeFromPublic).mockClear();
-  vi.mocked(createUnverifiedIntakeFromPublic).mockResolvedValue({ id: "intake_1" });
+  vi.mocked(createUnverifiedIntakeFromPublic).mockImplementation(async (submission) => ({
+    id: "intake_1",
+    triage: projectIntakeTriage({
+      summary: submission.summary,
+      description: submission.description,
+      issueType: submission.issueType as "Plumbing" | undefined,
+      happeningNow: submission.happeningNow,
+    }),
+  }));
 });
 
 afterEach(() => {

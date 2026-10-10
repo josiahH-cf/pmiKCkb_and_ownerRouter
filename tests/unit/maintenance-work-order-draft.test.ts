@@ -60,14 +60,14 @@ describe("buildWorkOrderDraft", () => {
     expect(draft.priority).toBe("Normal");
   });
 
-  it("respects an explicit priority over inference", () => {
+  it("S222 keeps deterministic life-safety urgency despite an initial lower priority label", () => {
     const draft = buildWorkOrderDraft({
       ...base,
       typedNote: "gas smell reported",
       unit: verifiedUnit,
       priority: "Low",
     });
-    expect(draft.priority).toBe("Low");
+    expect(draft.priority).toBe("Emergency");
   });
 
   it("blocks on a missing description", () => {

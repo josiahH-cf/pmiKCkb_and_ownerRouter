@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -103,6 +104,23 @@ export function main(root = ROOT) {
     return;
   }
 
+  if (
+    existsSync(
+      join(root, "docs/evidence/operations-communications-maintenance-2026-10.json"),
+    )
+  ) {
+    const program = spawnSync(
+      process.execPath,
+      ["--import", "tsx", join(root, "scripts/check-operations-program.ts")],
+      { cwd: root, encoding: "utf8" },
+    );
+    if (program.stdout) process.stdout.write(program.stdout);
+    if (program.stderr) process.stderr.write(program.stderr);
+    if (program.error || program.status !== 0) {
+      process.exitCode = 1;
+      return;
+    }
+  }
   console.log(
     `Spec-traceability gate passed: ${definedCount} acceptance ids across ${specCount} overhaul spec(s); all facts.md references resolve.`,
   );

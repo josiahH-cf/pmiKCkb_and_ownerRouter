@@ -38,6 +38,14 @@ const LIVE_READONLY_DESCRIPTOR = {
  * harmless local operation, a read-only service constructor, or a mutation with a direct fence.
  */
 const REVIEWED_BENIGN_READ_BOUNDARIES = new Set([
+  // S214/S222: local response privacy headers only; these GETs perform no business write.
+  "app/api/maintenance/operating-policies/route.ts:GET:response.headers.set",
+  "app/api/maintenance/reports/route.ts:GET:response.headers.set",
+  "app/api/maintenance/tickets/[ticketId]/review-context/route.ts:GET:response.headers.set",
+  // S186-S192 GET constructs app-owned readers only. Attachment metadata never completes an upload.
+  "app/api/gmail-hub/sequence-attachments/route.ts:GET:createCommunicationSequenceService",
+  "app/api/gmail-hub/sequences/route.ts:GET:createCommunicationSequenceService",
+  "app/api/gmail-hub/sequences/thread/route.ts:GET:createCommunicationSequenceService",
   "app/api/gmail-hub/communications/route.ts:GET:createGmailHubService",
   "app/api/gmail-hub/connection/route.ts:GET:createGmailHubService",
   "app/api/gmail-hub/threads/[threadId]/route.ts:GET:createGmailHubService",

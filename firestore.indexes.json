@@ -125,6 +125,126 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "gmail_communication_sequences",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "legal_hold",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "expires_at_ms",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "gmail_communication_attachments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "legal_hold",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "expires_at_ms",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "gmail_communication_occurrences",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "legal_hold",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "expires_at_ms",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "gmail_communication_operations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "legal_hold",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "expires_at_ms",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "action_executions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "action_key",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "scope_ref",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "actor_uid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "conversations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "pinned",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "sort_key",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "turns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "conversation_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "seq",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "maintenance_operating_policy_versions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "version",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

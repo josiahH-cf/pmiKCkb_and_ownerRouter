@@ -19,7 +19,7 @@ describe("workflow communication governance page", () => {
     expect(locationPath(response)).toBe("/sign-in?error=forbidden");
   });
 
-  it("renders the synthetic governance workspace for a demo Admin", async () => {
+  it("renders the approved artifact registry and canonical communication handoff for a demo Admin", async () => {
     const client = createClient();
     await client.signInDemo();
 
@@ -32,12 +32,19 @@ describe("workflow communication governance page", () => {
     expect(html).toContain('href="/gmail-hub"');
     expect(html).not.toContain("Activated");
     expect(html).toContain("Gemini Status");
-    // The static read-only v1 panels are retired; the live workspace renders the governed sets.
-    expect(html).toContain("Label rules");
-    expect(html).toContain("Reply patterns");
-    expect(html).toContain("Synthetic rule/template evaluator");
+    // S193 retires the pasted/synthetic tools; immutable artifact history remains inspectable.
+    expect(html).toContain("Open Workflow Communications");
+    expect(html).toContain("chooses Send or Schedule in Communications");
+    expect(html).toContain("Old drafts retain their original");
+    expect(html).toContain("Approved v1.0 communication artifacts");
     expect(html).toContain("Immutable base copy only");
-    expect(html).toContain("cannot enable an action or change approved");
+    expect(html).toContain("authoritative");
+    expect(html).toContain("exact human confirmation");
+    expect(html).toContain("owner-renewal:v1.0");
+    expect(html).toContain("tenant-renewal:v2.0");
+    expect(html).not.toContain("Label rules");
+    expect(html).not.toContain("Reply patterns");
+    expect(html).not.toContain("Synthetic rule/template evaluator");
     expect(html).not.toContain("Read-only v1");
   });
 

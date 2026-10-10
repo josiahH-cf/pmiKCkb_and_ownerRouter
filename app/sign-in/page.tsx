@@ -6,7 +6,7 @@ import { Appearance } from "@/components/layout/Appearance";
 import { RETURN_TO_COOKIE, safeReturnPath } from "@/lib/auth/return-to";
 import { getCurrentUser } from "@/lib/auth/session";
 import { readServerConfig } from "@/lib/config/server";
-import { PRODUCT_NAME } from "@/lib/constants";
+import { readApplicationDisplayName } from "@/lib/firestore/presentation-settings";
 
 interface SignInPageProps {
   searchParams?: Promise<{
@@ -31,6 +31,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   }
 
   const config = readServerConfig();
+  const displayName = await readApplicationDisplayName();
 
   return (
     <main className="auth-page">
@@ -39,7 +40,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
       </div>
       <PmiWordmark variant="hero" />
       <section className="auth-panel">
-        <p className="auth-product-name">{PRODUCT_NAME}</p>
+        <p className="auth-product-name">{displayName}</p>
         <h1>Sign in to continue.</h1>
         <SignInPanel
           allowedHostedDomain={config.allowedHostedDomain}

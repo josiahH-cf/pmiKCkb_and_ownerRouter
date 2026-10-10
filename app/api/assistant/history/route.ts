@@ -11,6 +11,7 @@ import { EditableLayerError } from "@/lib/errors/editable-layer-error";
 import {
   historyOwnerKey,
   listAssistantConversations,
+  readActiveConversationSelection,
 } from "@/lib/firestore/assistant-history-read";
 
 // S148: GET one page of the signed-in user's own Dashboard conversations, newest first. A read of
@@ -34,13 +35,43 @@ export async function GET(request: Request) {
     if (cursor !== null && !CURSOR.test(cursor)) {
       throw new EditableLayerError("Invalid history cursor.", 400);
     }
-    const page = await listAssistantConversations(user, { cursor });
+    const query = new URL(request.url).searchParams,
+      kind = query.get("kind");
+    if (
+      [...query.keys()].some(
+        (k) => !["kind", "cursor"].includes(k) || query.getAll(k).length !== 1,
+      ) ||
+      (kind !== null && kind !== "pinned")
+    )
+      throw new EditableLayerError("Invalid history listing.", 400);
+    const page = await listAssistantConversations(user, {
+      cursor,
+      pinnedOnly: kind === "pinned",
+    });
+    const [activeSelection, pins] =
+      kind === "pinned"
+        ? [null, null]
+        : await Promise.all([
+            readActiveConversationSelection(user),
+            listAssistantConversations(user, { pinnedOnly: true }),
+          ]);
     logHistoryOperation("list", "ok", {
       conversations: page.conversations.length,
       more: page.nextCursor !== null,
     });
     return NextResponse.json(
-      { ownerKey, persisted: true, ...page },
+      {
+        ownerKey,
+        persisted: true,
+        ...page,
+        ...(pins
+          ? {
+              activeSelection,
+              pinnedConversations: pins.conversations,
+              pinnedNextCursor: pins.nextCursor,
+            }
+          : {}),
+      },
       { headers: NO_STORE },
     );
   } catch (error) {

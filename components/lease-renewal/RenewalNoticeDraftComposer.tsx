@@ -1,4 +1,5 @@
 "use client";
+import { workflowComposerHref } from "@/lib/gmail-hub/composer-navigation";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import Link from "next/link";
 import { useId, useState } from "react";
@@ -114,13 +115,17 @@ export function RenewalNoticeDraftComposer({
         <div className="ui-row">
           <Link
             className="primary-button"
-            href={`/lease-renewal/live/desk/lease/${encodeURIComponent(leaseId)}#renewal-section-owner`}
+            target="_blank"
+            rel="noopener noreferrer"
+            href={workflowComposerHref({ leaseId, purpose: "renewal_owner" })}
           >
             Prepare owner message
           </Link>
           <Link
             className="secondary-button"
-            href={`/lease-renewal/live/desk/lease/${encodeURIComponent(leaseId)}#renewal-section-tenant`}
+            target="_blank"
+            rel="noopener noreferrer"
+            href={workflowComposerHref({ leaseId, purpose: "renewal_tenant" })}
           >
             Prepare tenant message
           </Link>

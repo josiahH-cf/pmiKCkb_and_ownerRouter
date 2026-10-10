@@ -304,6 +304,7 @@ export default async function AdminPage() {
     >
       <section className="content content--workspace">
         <h1 className="section-title">Admin</h1>
+        <Link href="/admin/presentation">Business profiles and application name</Link>
         <AdminTaskIndex />
 
         <section

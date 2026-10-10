@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { Firestore } from "firebase-admin/firestore";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -8,7 +9,8 @@ import {
   getMaintenanceTicket,
   listMaintenanceTicketActivity,
   listMaintenanceTickets,
-  transitionMaintenanceTicket,
+  transitionMaintenanceTicket as actualTransition,
+  type TransitionMaintenanceTicketInput,
 } from "@/lib/firestore/maintenance-tickets";
 import { MAINTENANCE_TICKET_NOTIFICATION_COLLECTION } from "@/lib/firestore/maintenance-ticket-notifications";
 import {
@@ -67,10 +69,9 @@ function fakeDb() {
 
 function snapshotStore(store: Map<string, Map<string, Record<string, unknown>>>): string {
   return JSON.stringify(
-    [...store.entries()].map(([collection, records]) => [
-      collection,
-      [...records.entries()],
-    ]),
+    [...store.entries()]
+      .filter(([, records]) => records.size > 0)
+      .map(([collection, records]) => [collection, [...records.entries()]]),
   );
 }
 
@@ -153,6 +154,41 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
+// Test convenience supplies only current command metadata, never authorization or assessment.
+async function transitionMaintenanceTicket(
+  actor: AuthenticatedUser,
+  id: string,
+  input: TransitionMaintenanceTicketInput,
+  db: Firestore,
+) {
+  const snapshot = await db
+    .collection(MAINTENANCE_TICKET_COLLECTIONS.tickets)
+    .doc(id)
+    .get();
+  return actualTransition(
+    actor,
+    id,
+    {
+      ...input,
+      expectedVersion: Number(snapshot.data()?.record_version ?? 0),
+      operationId: randomUUID(),
+    },
+    db,
+  );
+}
+async function assessResolved(actor: AuthenticatedUser, id: string, db: Firestore) {
+  return transitionMaintenanceTicket(
+    actor,
+    id,
+    {
+      op: "assessment",
+      outcome: "resolved_troubleshooting",
+      scope: "Fixture troubleshooting resolved",
+      evidence_refs: ["staff-note:fixture"],
+    },
+    db,
+  );
+}
 describe("maintenance tickets", () => {
   it("rejects Test ticket construction and refuses a persisted legacy Test transition", async () => {
     const { db, store } = fakeDb();
@@ -225,10 +261,26 @@ describe("maintenance tickets", () => {
   it("transitions status and logs the change", async () => {
     const { db } = fakeDb();
     const ticket = await createMaintenanceTicket(editor, baseInput, db);
+    await transitionMaintenanceTicket(
+      editor,
+      ticket.id,
+      {
+        op: "assessment",
+        outcome: "needs_information",
+        scope: "Fixture evidence needed",
+        evidence_refs: [],
+      },
+      db,
+    );
     const updated = await transitionMaintenanceTicket(
       editor,
       ticket.id,
-      { op: "status", status: "Waiting on Vendor" },
+      {
+        op: "lifecycle",
+        stage: "estimate_needed",
+        reason: "Information collected; obtain quote",
+        evidence_refs: [],
+      },
       db,
     );
 
@@ -236,7 +288,7 @@ describe("maintenance tickets", () => {
     const persisted = await getMaintenanceTicket(editor, ticket.id, db);
     expect(persisted?.status).toBe("Waiting on Vendor");
     const activity = await listMaintenanceTicketActivity(editor, ticket.id, db);
-    expect(activity.map((a) => a.action)).toEqual(["create", "status"]);
+    expect(activity.map((a) => a.action)).toEqual(["create", "assessment", "lifecycle"]);
   });
 
   it("preserves an existing product-record legal hold during a transition", async () => {
@@ -251,7 +303,7 @@ describe("maintenance tickets", () => {
     const updated = await transitionMaintenanceTicket(
       editor,
       ticket.id,
-      { op: "status", status: "Waiting on Vendor" },
+      { op: "note", text: "Preserve current legal hold" },
       db,
     );
 
@@ -276,24 +328,31 @@ describe("maintenance tickets", () => {
       ),
     ).rejects.toMatchObject({ status: 400 });
 
+    await assessResolved(editor, ticket.id, db);
     const closed = await transitionMaintenanceTicket(
       editor,
       ticket.id,
-      { op: "status", status: "Closed", reason: "vendor fixed it" },
+      {
+        op: "lifecycle",
+        stage: "closed",
+        reason: "PMI accepted the troubleshooting evidence",
+        evidence_refs: [],
+      },
       db,
     );
     expect(closed.status).toBe("Closed");
-    expect(closed.closed_reason).toBe("vendor fixed it");
+    expect(closed.closed_reason).toBe("PMI accepted the troubleshooting evidence");
     expect(closed.closed_at).toBeTruthy();
   });
 
   it("clears the closed fields on reopen", async () => {
     const { db } = fakeDb();
     const ticket = await createMaintenanceTicket(editor, baseInput, db);
+    await assessResolved(editor, ticket.id, db);
     await transitionMaintenanceTicket(
       editor,
       ticket.id,
-      { op: "status", status: "Closed", reason: "done" },
+      { op: "lifecycle", stage: "closed", reason: "done", evidence_refs: [] },
       db,
     );
     const reopened = await transitionMaintenanceTicket(
@@ -307,33 +366,31 @@ describe("maintenance tickets", () => {
     expect(reopened.closed_at).toBeUndefined();
     expect(reopened.closed_reason).toBeUndefined();
     const activity = await listMaintenanceTicketActivity(editor, ticket.id, db);
-    expect(activity.map((a) => a.action)).toEqual(["create", "close", "reopen"]);
+    expect(activity.map((a) => a.action)).toEqual([
+      "create",
+      "assessment",
+      "close",
+      "reopen",
+    ]);
     expect(activity.at(-1)?.text).toBe("The leak returned after the first repair.");
   });
 
-  it("rejects backward status moves and requires the explicit audited reopen operation", async () => {
-    const { db } = fakeDb();
-    const ticket = await createMaintenanceTicket(editor, baseInput, db);
-    await transitionMaintenanceTicket(
-      editor,
-      ticket.id,
-      { op: "status", status: "Waiting on Response" },
-      db,
-    );
-
+  it("rejects direct status closure and requires explicit audited reopening", async () => {
+    const { db } = fakeDb(),
+      ticket = await createMaintenanceTicket(editor, baseInput, db);
     await expect(
       transitionMaintenanceTicket(
         editor,
         ticket.id,
-        { op: "status", status: "Open" },
+        { op: "status", status: "Closed", reason: "Skip PMI review" },
         db,
       ),
     ).rejects.toMatchObject({ status: 409 });
-
+    await assessResolved(editor, ticket.id, db);
     await transitionMaintenanceTicket(
       editor,
       ticket.id,
-      { op: "status", status: "Closed", reason: "Resolved." },
+      { op: "lifecycle", stage: "closed", reason: "PMI accepted", evidence_refs: [] },
       db,
     );
     await expect(
@@ -550,6 +607,17 @@ describe("maintenance tickets", () => {
         Record<string, unknown>
       >;
 
+    await transitionMaintenanceTicket(
+      editor,
+      ticket.id,
+      {
+        op: "assessment",
+        outcome: "needs_information",
+        scope: "Fixture information needed",
+        evidence_refs: [],
+      },
+      db,
+    );
     // Assigning to a DIFFERENT uid than the actor writes one 'assigned' notification.
     await transitionMaintenanceTicket(
       editor,
@@ -568,7 +636,12 @@ describe("maintenance tickets", () => {
     await transitionMaintenanceTicket(
       editor,
       ticket.id,
-      { op: "status", status: "Scheduled" },
+      {
+        op: "lifecycle",
+        stage: "estimate_needed",
+        reason: "Fixture information collected; obtain estimate",
+        evidence_refs: [],
+      },
       db,
     );
     expect(notifs()).toHaveLength(2);
@@ -600,7 +673,23 @@ describe("maintenance tickets", () => {
     await transitionMaintenanceTicket(
       editor,
       ticket.id,
-      { op: "status", status: "Scheduled" },
+      {
+        op: "assessment",
+        outcome: "needs_information",
+        scope: "Fixture information needed",
+        evidence_refs: [],
+      },
+      db,
+    );
+    await transitionMaintenanceTicket(
+      editor,
+      ticket.id,
+      {
+        op: "lifecycle",
+        stage: "estimate_needed",
+        reason: "Fixture information collected; obtain estimate",
+        evidence_refs: [],
+      },
       db,
     );
     expect(store.get("maintenance_ticket_notifications")).toBeUndefined();

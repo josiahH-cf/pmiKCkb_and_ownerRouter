@@ -16,6 +16,7 @@ import { formatBusinessTimestamp } from "@/lib/date-display";
 const INTAKE_URGENCY_LABELS = {
   emergency_fire: "Emergency: told to call 911",
   urgent_flooding: "Urgent: active water",
+  urgent_property: "Urgent: property condition",
   normal: "Normal",
 } as const;
 

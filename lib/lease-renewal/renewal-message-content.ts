@@ -1,3 +1,8 @@
+import { renderInlineMessageParagraph } from "@/lib/email/inline-runs";
+import {
+  firstUsableComparables,
+  comparableDistanceLabel,
+} from "@/lib/lease-renewal/comparable-presentation";
 import { z } from "zod";
 import { UNVERIFIED_PLACEHOLDER } from "@/lib/constants";
 import { formatCalendarDate } from "@/lib/date-display";
@@ -201,8 +206,18 @@ export interface RenewalMessageFacts {
     source: string;
   } | null;
   range: { low: number; high: number; source: string } | null;
-  suggestedRent: { value: number; source: string } | null;
-  comps: Array<{ address: string; rent: number; source: string; url?: string }>;
+  suggestedRent: {
+    value: number;
+    source: string;
+    kind?: "working_offer" | "provider_reference" | "reviewed";
+  } | null;
+  comps: Array<{
+    address: string;
+    rent: number;
+    source: string;
+    url?: string;
+    distanceMiles?: number;
+  }>;
   trend: string | null;
   sparseCompsQualification: string | null;
   charges: MessageCharge[];
@@ -217,7 +232,12 @@ export interface RenewalMessageFacts {
   attachments: Array<{ filename: string; source: string }>;
 }
 
-export type MessageRun = { text: string; emphasis?: "name" | "role"; href?: string };
+export type MessageRun = {
+  text: string;
+  emphasis?: "name" | "role" | "strong";
+  href?: string;
+  breakBefore?: boolean;
+};
 export interface RenewalMessageContent {
   version: "v2.0";
   channel: "owner" | "tenant";
@@ -360,7 +380,7 @@ export function composeRenewalMessage(
     );
     add(edits.responseRequest || SUPPLIED_RENEWAL_COPY.owner.request);
     let listed = 0;
-    for (const comp of facts.comps) {
+    for (const { value: comp } of firstUsableComparables(facts.comps).entries) {
       const label = text(comp.address);
       const rent = money(comp.rent);
       if (!label || !rent) continue;
@@ -369,7 +389,10 @@ export function composeRenewalMessage(
         ? link({ url: comp.url, source: comp.source })?.url
         : undefined;
       paragraphs.push([
-        { text: `${label} — ${rent} per month`, ...(href ? { href } : {}) },
+        {
+          text: `${label} — ${rent} per month · ${comparableDistanceLabel(comp.distanceMiles)}`,
+          ...(href ? { href } : {}),
+        },
       ]);
       listed += 1;
     }
@@ -385,9 +408,13 @@ export function composeRenewalMessage(
     if (suggested) {
       sourced(facts.suggestedRent!.source);
       add(
-        fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.suggestion, {
-          suggested_rent: suggested,
-        }),
+        facts.suggestedRent!.kind === "working_offer"
+          ? `Our working renewal offer is ${suggested} per month.`
+          : facts.suggestedRent!.kind === "provider_reference"
+            ? `${facts.suggestedRent!.source}: ${suggested} per month. The working offer remains a staff decision.`
+            : fillSuppliedCopy(SUPPLIED_RENEWAL_COPY.owner.suggestion, {
+                suggested_rent: suggested,
+              }),
       );
     }
     add(SUPPLIED_RENEWAL_COPY.owner.consideration);
@@ -541,66 +568,93 @@ export function composeRenewalMessage(
       sourced(value.website.source);
       lines.push({ text: value.website.url, href: value.website.url });
     }
-    paragraphs.push(lines);
+    paragraphs.push(
+      lines.map((r, index) => ({ ...r, ...(index ? { breakBefore: true } : {}) })),
+    );
   } else {
     add(missingValueMarker("sender signature"));
     note("signature", "Your sender signature is not entered yet.");
   }
+  const exactParagraphs =
+    facts.channel === "owner" ? emphasizeOwnerFacts(paragraphs, address) : paragraphs;
   return {
     version: "v2.0",
     channel: facts.channel,
     subject,
-    paragraphs,
+    paragraphs: exactParagraphs,
     missing,
     sourceRefs: [...refs].sort(),
     attachments: facts.attachments.map((value) => ({ ...value })),
-    ...renderMessageParagraphs(paragraphs),
+    ...renderMessageParagraphs(exactParagraphs),
   };
 }
 
+/** Segment style ranges before escaping; raw HTML or markdown never becomes content. */
+function emphasizeOwnerFacts(
+  paragraphs: MessageRun[][],
+  address: string | null,
+): MessageRun[][] {
+  return paragraphs.map((p) =>
+    p.flatMap((run) => {
+      const ranges: Array<{ start: number; end: number }> = [];
+      for (const m of run.text.matchAll(/\$\d[\d,]*(?:\.\d{2})?/g))
+        ranges.push({ start: m.index!, end: m.index! + m[0].length });
+      if (address) {
+        let from = 0;
+        for (;;) {
+          const at = run.text.indexOf(address, from);
+          if (at < 0) break;
+          ranges.push({ start: at, end: at + address.length });
+          from = at + address.length;
+        }
+      }
+      ranges.sort((a, b) => a.start - b.start || b.end - a.end);
+      if (!ranges.length) return [run];
+      const parts: MessageRun[] = [];
+      let from = 0;
+      for (const r of ranges) {
+        if (r.start < from) continue;
+        if (r.start > from)
+          parts.push({
+            ...run,
+            text: run.text.slice(from, r.start),
+            ...(parts.length ? { breakBefore: false } : {}),
+          });
+        parts.push({
+          ...run,
+          text: run.text.slice(r.start, r.end),
+          emphasis: "strong",
+          ...(parts.length ? { breakBefore: false } : {}),
+        });
+        from = r.end;
+      }
+      if (from < run.text.length)
+        parts.push({ ...run, text: run.text.slice(from), breakBefore: false });
+      return parts;
+    }),
+  );
+}
 export function renderMessageParagraphs(paragraphs: MessageRun[][]): {
   plainText: string;
   htmlBody: string;
 } {
-  const plainText = paragraphs
-    .map((runs) =>
-      runs
-        .map((run) =>
-          run.href && run.href !== run.text && run.href !== `mailto:${run.text}`
-            ? `${run.text}: ${run.href}`
-            : run.text,
-        )
-        .join("\n"),
-    )
-    .join("\n\n");
-  const htmlBody =
-    '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#000000">' +
-    paragraphs
-      .map(
-        (runs) =>
-          '<p style="margin:0 0 16px">' +
-          runs
-            .map((run) => {
-              let content = escapeMessageHtml(run.text);
-              if (run.emphasis === "name") content = `<strong>${content}</strong>`;
-              if (run.emphasis === "role")
-                content = `<span style="color:#c2410c">${content}</span>`;
-              if (run.href) {
-                if (
-                  !/^https:\/\//.test(run.href) &&
-                  !/^mailto:[^\s<>"@]+@pmikcmetro\.com$/i.test(run.href)
-                )
-                  throw new Error("Unsupported message link.");
-                content = `<a href="${escapeMessageHtml(run.href)}">${content}</a>`;
-              }
-              return content;
-            })
-            .join("<br>") +
-          "</p>",
-      )
-      .join("") +
-    "</div>";
-  return { plainText, htmlBody };
+  const rendered = paragraphs.map((p) =>
+    renderInlineMessageParagraph(
+      p.map((r) => ({
+        text: (r.breakBefore ? "\n" : "") + r.text,
+        bold: r.emphasis === "name" || r.emphasis === "strong",
+        ...(r.emphasis === "role" ? { color: "#c2410c" } : {}),
+        ...(r.href ? { href: r.href } : {}),
+      })),
+    ),
+  );
+  return {
+    plainText: rendered.map((p) => p.plainText).join("\n\n"),
+    htmlBody:
+      '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#000000">' +
+      rendered.map((p) => '<p style="margin:0 0 16px">' + p.html + "</p>").join("") +
+      "</div>",
+  };
 }
 
 export function escapeMessageHtml(value: string): string {

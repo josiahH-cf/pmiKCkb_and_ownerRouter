@@ -110,6 +110,7 @@ export const StoredAssistantAnswerSchema = z
     interpretedBy: z.enum(["model", "deterministic", "stored_plan"]),
     conversation: ConversationContextSchema,
     contextReset: z.boolean(),
+    contextNote: z.string().max(300).optional(),
     answeredAtIso: IsoSchema,
     execution: AnswerExecutionSchema.nullable(),
     /** Set only on a replayed or restored copy; never part of what is stored. */
@@ -118,7 +119,7 @@ export const StoredAssistantAnswerSchema = z
   .strict();
 export type StoredAssistantAnswer = z.infer<typeof StoredAssistantAnswerSchema>;
 
-export const StoredKnowledgeAnswerSchema = AskResponseSchema.superRefine(
+export const StoredKnowledgeAnswerSchema = AskResponseSchema.strict().superRefine(
   (answer, ctx) => {
     answer.citations.forEach((citation, index) => {
       if (!/^https:\/\//.test(citation.url))

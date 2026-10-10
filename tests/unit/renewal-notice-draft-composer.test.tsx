@@ -44,11 +44,11 @@ describe("legacy composer migration and original-input recovery", () => {
     const fetcher = setup();
     expect(screen.getByRole("link", { name: "Prepare owner message" })).toHaveAttribute(
       "href",
-      "/lease-renewal/live/desk/lease/9001#renewal-section-owner",
+      "/gmail-hub?compose=renewal_owner&lease=9001",
     );
     expect(screen.getByRole("link", { name: "Prepare tenant message" })).toHaveAttribute(
       "href",
-      "/lease-renewal/live/desk/lease/9001#renewal-section-tenant",
+      "/gmail-hub?compose=renewal_tenant&lease=9001",
     );
     expect(
       screen.queryByRole("button", { name: "Create Gmail draft" }),

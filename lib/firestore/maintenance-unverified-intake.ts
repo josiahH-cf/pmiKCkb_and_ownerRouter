@@ -1,3 +1,4 @@
+import { readApplicableOperatingPolicyInTransaction } from "./maintenance-operating-policy-reader";
 // No-actor Firestore writer for the public tokenized maintenance intake (A5). This is the ONLY write
 // path reachable from the unauthenticated public route, and it is deliberately structured so it CANNOT
 // bypass the edit gate or reach a system of record:
@@ -140,7 +141,7 @@ export async function createUnverifiedIntakeFromPublic(
   submission: PublicIntakeSubmission,
   db: Firestore = getAdminFirestore(),
   now: number = Date.now(),
-): Promise<{ id: string }> {
+): Promise<{ id: string; triage: ReturnType<typeof projectIntakeTriage> }> {
   const propertyKey = normalizeIntakePropertyKey(submission.propertyKey);
   if (!propertyKey) throw new IntakeValidationError();
   if (submission.dataMode !== "live") {
@@ -160,7 +161,7 @@ export async function createUnverifiedIntakeFromPublic(
     : null;
   // S109: urgency, required evidence, and the offered resource are derived here from the pure rules,
   // never accepted from the request body.
-  const triage = projectIntakeTriage({
+  let triage = projectIntakeTriage({
     summary,
     description,
     issueType,
@@ -172,7 +173,7 @@ export async function createUnverifiedIntakeFromPublic(
     attemptedSteps,
     hasPhotos: false,
   });
-  const resource = selectTroubleshootingResource(triage.issueType, triage.urgency);
+  let resource = selectTroubleshootingResource(triage.issueType, triage.urgency);
 
   const jti = submission.jti?.trim();
   if (!jti) throw new IntakeValidationError();
@@ -215,6 +216,26 @@ export async function createUnverifiedIntakeFromPublic(
     const count = readCount(counterSnap);
     if (count >= effectiveCap) throw new IntakeDailyCapError();
 
+    const policy = await readApplicableOperatingPolicyInTransaction(
+      transaction,
+      db,
+      "emergency",
+      propertyKey,
+      new Date(now).toISOString(),
+    );
+    triage = projectIntakeTriage(
+      {
+        summary,
+        description,
+        issueType,
+        location,
+        happeningNow: submission.happeningNow ?? null,
+        damageOrAccess,
+        hasPhotos: false,
+      },
+      policy.policy,
+    );
+    resource = selectTroubleshootingResource(triage.issueType, triage.urgency);
     // Writes.
     const record: UnverifiedIntakeRecord = {
       id,
@@ -235,6 +256,7 @@ export async function createUnverifiedIntakeFromPublic(
       ...(damageOrAccess ? { damage_or_access: damageOrAccess } : {}),
       ...(attemptedSteps ? { attempted_steps: attemptedSteps } : {}),
       urgency: triage.urgency,
+      operating_policy_decision: triage.policyDecision,
       required_evidence: triage.requiredEvidence,
       photos_needed: triage.photosNeeded,
       intake_complete: triage.intakeComplete,
@@ -273,7 +295,7 @@ export async function createUnverifiedIntakeFromPublic(
     });
   });
 
-  return { id };
+  return { id, triage };
 }
 
 /** Read a property's current revocation epoch (0 when unset). Used by the mint route to stamp tokens. */

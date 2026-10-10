@@ -147,8 +147,8 @@ describe("S113 mounted message preparation", () => {
       "aria-disabled",
     );
     expect(
-      screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeDisabled();
+      screen.queryByRole("button", { name: "Preview unsent Gmail draft" }),
+    ).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Copy plain text" }));
     await screen.findByText(
       "Clipboard access was denied. Select and copy the subject or body below; your wording is kept.",
@@ -162,92 +162,20 @@ describe("S113 mounted message preparation", () => {
     expect(screen.getByLabelText("Email body")).not.toHaveAttribute("readonly");
     expect(fetch).toHaveBeenCalledTimes(1);
   });
-  it("keeps an unclaimed preview confirmable after an explicit Gmail setup refusal", async () => {
-    const base = preparation();
-    const signature = {
-      name: "Emulator Staff",
-      role: null,
-      phone: null,
-      hours: null,
-      website: null,
-      source: "reviewed:staff",
-    };
-    const inputs = {
-      ...base.inputs,
-      signature,
-      leaseOrigin: { kind: "pmi" as const, source: "reviewed:lease" },
-      charges: base.inputs.charges.map((charge) => ({
-        ...charge,
-        applicable: false,
-        source: "reviewed:charges",
-      })),
-    };
-    const ready = {
-      ...base,
-      inputs,
-      signatureMatchesActor: true,
-      publication: { status: "approved" },
-      saved: { inputs, signatureEmail: base.senderEmail },
-      facts: {
-        ...base.facts,
-        charges: inputs.charges,
-        leaseOrigin: inputs.leaseOrigin,
-        informationForm: { url: "https://example.invalid/form", source: "reviewed:form" },
-      },
-    };
-    const preview = {
-      status: "preview",
-      channel: "tenant",
-      recipient: { to: "tenant@example.invalid", sourceRef: "rentvine:lease:701" },
-      subject: "Exact reviewed subject",
-      body: "Exact reviewed body",
-      executionId: `exec_${"a".repeat(40)}`,
-      previewHash: "a".repeat(64),
-      template: {
-        ref: "tenant-renewal:v2.0",
-        version: "v2.0",
-        contentHash: "b".repeat(64),
-        status: "approved",
-      },
-    };
-    const requests: Array<{ confirm?: { executionId: string } }> = [];
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (_url: string, init?: RequestInit) => {
-        if (!init?.body) return Response.json(ready);
-        const request = JSON.parse(String(init.body));
-        requests.push(request);
-        return request.confirm
-          ? Response.json(
-              {
-                error: "Managed Gmail is unavailable. No Gmail request was made.",
-                providerCallAttempted: false,
-              },
-              { status: 409 },
-            )
-          : Response.json(preview);
-      }),
-    );
+  it("keeps local copy while legacy creation is retired", async () => {
+    const fetch = vi.fn(async () => Response.json(readyPreparation()));
+    vi.stubGlobal("fetch", fetch);
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
-    const prepare = await screen.findByRole("button", {
-      name: "Preview unsent Gmail draft",
-    });
-    expect(prepare).toBeEnabled();
-    fireEvent.click(prepare);
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Review creation confirmation" }),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Create this unsent draft" }));
-    await screen.findByText(/No Gmail request was made/);
+    await screen.findByLabelText("Email body");
     expect(
-      screen.queryByRole("button", { name: "Recover exact Gmail attempt" }),
+      screen.queryByRole("button", {
+        name: /Preview unsent|Create this unsent|Review creation/,
+      }),
     ).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Review creation confirmation" }),
-    ).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Copy plain text" })).toBeEnabled();
-    expect(requests).toHaveLength(2);
-    expect(requests[1].confirm?.executionId).toBe(`exec_${"a".repeat(40)}`);
+      screen.getByRole("link", { name: "Compose tenant message in Communications" }),
+    ).toHaveAttribute("href", "/gmail-hub?compose=renewal_tenant&lease=701");
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
   it("retains deliberate edits while changed owner terms recompute the message, then saves them by itself", async () => {
     const first = preparation();
@@ -296,8 +224,8 @@ describe("S113 mounted message preparation", () => {
     expect(screen.queryByRole("checkbox")).toBeNull();
     expect(screen.queryByText(/Your edits are retained/)).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeDisabled();
+      screen.queryByRole("button", { name: "Preview unsent Gmail draft" }),
+    ).toBeNull();
     // Leaving the field saves the entry as typed, naming the work record the server reported.
     fireEvent.blur(prose);
     await waitFor(() => expect(posts).toHaveLength(1));

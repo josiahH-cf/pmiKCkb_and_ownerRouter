@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
-import { PMI_COMPANY, PRODUCT_NAME } from "@/lib/constants";
+import { connection } from "next/server";
+import { readApplicationDisplayName } from "@/lib/firestore/presentation-settings";
+import { PMI_COMPANY } from "@/lib/constants";
 import { APP_VIEWPORT } from "@/lib/ui/app-viewport";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/lib/ui/theme";
 
@@ -15,10 +17,13 @@ const poppins = Poppins({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: `${PRODUCT_NAME} · ${PMI_COMPANY}`,
-  description: "Internal source-backed knowledge base for PMI KC Metro.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  await connection();
+  return {
+    title: `${await readApplicationDisplayName()} · ${PMI_COMPANY}`,
+    description: "Internal source-backed knowledge base for PMI KC Metro.",
+  };
+}
 
 // S165: one explicit phone viewport for every page (safe areas, keyboard-aware layout, zoom kept).
 export const viewport: Viewport = APP_VIEWPORT;

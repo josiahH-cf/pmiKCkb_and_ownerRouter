@@ -169,6 +169,14 @@ export async function claimMaintenanceWorkOrderLink(
   await db.runTransaction(async (transaction) => {
     const current = await transaction.get(ref);
     if (current.exists) {
+      const bound = current.data()!;
+      if (
+        bound.execution_id === parsed.execution_id &&
+        bound.ticket_ref === parsed.ticket_ref &&
+        bound.action_key === parsed.action_key &&
+        bound.attempt_seq === parsed.attempt_seq
+      )
+        return;
       const state = (current.data() as { state?: string }).state;
       if (state !== "failed") {
         throw new EditableLayerError(

@@ -1,3 +1,14 @@
+import {
+  observeStaffOperation,
+  operationStage,
+} from "@/lib/observability/staff-operation";
+import { assertMaintenanceCaseActor } from "@/lib/firestore/maintenance-case-records";
+import { approveActionExecution } from "@/lib/firestore/action-executions";
+import { hashExecutionPreview } from "@/lib/execution/preview-hash";
+import { expectedExternalS20ExecutionId } from "@/lib/external-execution/s20-bridge";
+import { workOrderActionCompanion } from "@/lib/firestore/maintenance-work-order-prepared-actions";
+import { ExternalExecutionError } from "@/lib/external-execution/types";
+import { readMaintenanceWorkAuthorization } from "@/lib/maintenance/work-authorization";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -34,6 +45,7 @@ import {
   WorkOrderServiceError,
   buildTrustedContext,
   assembleWorkOrderCreateAction,
+  workOrderCreateAuthorizationRefs,
   assembleWorkOrderStatusAction,
   assertWorkOrderActionAllowed,
   buildWorkOrderClients,
@@ -51,7 +63,41 @@ import {
 
 const DecimalId = z.string().regex(/^[1-9][0-9]*$/);
 
+const SelectionSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("create"),
+      ticketId: z.string().min(1).max(200),
+      priorityId: z.enum(["1", "2", "3"]),
+      workOrderStatusId: DecimalId,
+      isVacant: z.boolean(),
+      vendorTradeId: DecimalId.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("status"),
+      workOrderId: DecimalId,
+      targetStatusId: DecimalId,
+    })
+    .strict(),
+]);
 const BodySchema = z.discriminatedUnion("operation", [
+  z.object({ operation: z.literal("review"), selection: SelectionSchema }).strict(),
+  z
+    .object({
+      operation: z.literal("apply"),
+      selection: SelectionSchema,
+      executionId: z.string().regex(/^exec_[a-f0-9]{40}$/),
+      reviewHash: z.string().regex(/^[a-f0-9]{64}$/),
+    })
+    .strict(),
+  z
+    .object({
+      operation: z.literal("original"),
+      executionId: z.string().regex(/^exec_[a-f0-9]{40}$/),
+    })
+    .strict(),
   z
     .object({
       operation: z.literal("preview_link"),
@@ -123,19 +169,198 @@ function notConfigured() {
  * executor with at most one provider POST. No Vendor assignment, share, chat, file, DELETE, or
  * notification is reachable here.
  */
-export async function POST(request: Request) {
+async function handlePost(request: Request) {
   try {
-    const body = await parseJsonBody(request, BodySchema);
+    await operationStage("permission", () =>
+      requireCapabilityInSpace("read", "maintenance"),
+    );
+    const body = await operationStage("decode", () => parseJsonBody(request, BodySchema));
     const descriptor = requireEnvironmentDescriptor();
 
+    if (body.operation === "original") {
+      const user = await operationStage("permission", () =>
+          requireCapabilityInSpace("read", "maintenance"),
+        ),
+        prepared = await loadPreparedWorkOrderAction(user, body.executionId);
+      if (!prepared)
+        return NextResponse.json({
+          state: "not_recorded",
+          executionId: body.executionId,
+          detail:
+            "No original snapshot is recorded. This does not establish that an in-flight Apply failed.",
+        });
+      const execution = await getActionExecution(user, body.executionId);
+      return NextResponse.json({
+        state: execution.state,
+        executionId: execution.id,
+        preview: prepared.action.values,
+        reviewHash: prepared.review_hash ?? null,
+      });
+    }
+    if (body.operation === "review" || body.operation === "apply") {
+      const user = await operationStage("permission", () =>
+          requireCapabilityInSpace(
+            body.operation === "apply" ? "edit" : "read",
+            "maintenance",
+          ),
+        ),
+        selection = body.selection;
+      if (body.operation === "apply") assertMaintenanceCaseActor(user, true);
+      let stored =
+        body.operation === "apply"
+          ? await loadPreparedWorkOrderAction(user, body.executionId)
+          : null;
+      if (stored && body.operation === "apply") {
+        if (stored.review_hash !== body.reviewHash)
+          throw new WorkOrderServiceError(
+            "ticket_not_eligible",
+            "The exact reviewed work-order snapshot does not match this Apply.",
+          );
+        const values = stored.action.values;
+        if (
+          selection.kind === "create"
+            ? stored.ticket_ref !== selection.ticketId ||
+              values.priority_id !== selection.priorityId ||
+              values.work_order_status_id !== selection.workOrderStatusId ||
+              values.is_vacant !== selection.isVacant ||
+              String(values.vendor_trade_id ?? "") !==
+                String(selection.vendorTradeId ?? "")
+            : stored.action.actionKey !== WORK_ORDER_STATUS_KEY ||
+              String(values.work_order_id) !== selection.workOrderId ||
+              values.target_status_id !== selection.targetStatusId
+        )
+          throw new WorkOrderServiceError(
+            "ticket_not_eligible",
+            "The original operation identifies different selected values. Recover its original outcome.",
+          );
+        const current = await getActionExecution(user, body.executionId);
+        if (current.state === "Succeeded")
+          return NextResponse.json({
+            status: "executed",
+            duplicate: true,
+            execution_state: current.state,
+          });
+      }
+      if (!stored) {
+        await assertWorkOrderActionAllowed(descriptor, WORK_ORDER_READ_KEY);
+        const clients = buildWorkOrderClients();
+        if (!clients) return notConfigured();
+        let attempt = 0,
+          ticket: Awaited<ReturnType<typeof requireTicket>> | null = null;
+        if (selection.kind === "create") {
+          ticket = await requireTicket(user, selection.ticketId);
+          const existing = await getMaintenanceWorkOrderLink(user, ticket.id);
+          if (existing && existing.state !== "failed")
+            throw new WorkOrderServiceError(
+              "ticket_not_eligible",
+              "This ticket already has a linked or unresolved work order. Read or reconcile its original before another create.",
+            );
+          attempt = existing ? existing.attempt_seq + 1 : 0;
+        }
+        const assembled =
+            selection.kind === "create"
+              ? await assembleWorkOrderCreateAction(
+                  clients,
+                  ticket!,
+                  selection,
+                  attempt,
+                  await readMaintenanceWorkAuthorization(user, ticket!),
+                )
+              : await assembleWorkOrderStatusAction(clients, selection),
+          reviewHash = hashExecutionPreview({ action: assembled.action }),
+          executionId = expectedExternalS20ExecutionId(assembled.action);
+        if (body.operation === "review")
+          return NextResponse.json({
+            status: "review",
+            executionId,
+            reviewHash,
+            preview: assembled.action.values,
+            statusName: assembled.statusName,
+            statusGroup: assembled.statusGroup,
+          });
+        if (body.executionId !== executionId || body.reviewHash !== reviewHash)
+          throw new WorkOrderServiceError(
+            "ticket_not_eligible",
+            "The target, assessed scope, authority or selected values changed after review. Keep the input and read a current review before Apply.",
+          );
+        await assertWorkOrderActionAllowed(descriptor, assembled.action.actionKey);
+        stored = {
+          execution_id: executionId,
+          ticket_ref: ticket?.id ?? null,
+          action: {
+            ...assembled.action,
+            actionKey: assembled.action.actionKey as
+              | "rentvine.work_order.create"
+              | "rentvine.work_order.update_status",
+            dataMode: "live",
+            sourceRefs: [...assembled.action.sourceRefs],
+            contractRef: assembled.action.contractRef!,
+            connectionRef: assembled.action.connectionRef!,
+            mappingRef: assembled.action.mappingRef!,
+          },
+          prepared_by_uid: user.uid,
+          review_hash: reviewHash,
+        };
+        await workOrderS20.prepare(user, {
+          action: assembled.action,
+          companion: workOrderActionCompanion(stored),
+          definition: workOrderDefinition(assembled.action.actionKey),
+          trustedContext: assembled.trustedContext,
+          validate: (input) => workOrderExecutor(() => clients).validate(input),
+        });
+      }
+      if (body.operation !== "apply")
+        throw new WorkOrderServiceError(
+          "ticket_not_eligible",
+          "Choose one exact Apply target.",
+        );
+      if (stored.ticket_ref) {
+        const currentLink = await getMaintenanceWorkOrderLink(user, stored.ticket_ref);
+        await claimMaintenanceWorkOrderLink(user, {
+          ticket_ref: stored.ticket_ref,
+          action_key: WORK_ORDER_CREATE_KEY,
+          execution_id: stored.execution_id,
+          state: "pending",
+          created_by_uid: stored.prepared_by_uid,
+          attempt_seq:
+            currentLink?.execution_id === stored.execution_id
+              ? currentLink.attempt_seq
+              : currentLink
+                ? currentLink.attempt_seq + 1
+                : 0,
+        });
+      }
+      const current = await getActionExecution(user, stored.execution_id);
+      if (current.state === "Awaiting Admin")
+        await approveActionExecution(user, stored.execution_id, {
+          previewHash: current.preview_hash,
+          contextHash: current.context_hash,
+          reason: "Staff applied the displayed exact maintenance work-order change.",
+        });
+      // Continue through the existing guarded one-attempt execution/readback/recovery path.
+      return handlePost(
+        new Request(request.url, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            operation: "execute",
+            executionId: stored.execution_id,
+          }),
+        }),
+      );
+    }
     if (body.operation === "link_status") {
-      const user = await requireCapabilityInSpace("read", "maintenance");
+      const user = await operationStage("permission", () =>
+        requireCapabilityInSpace("read", "maintenance"),
+      );
       const link = await getMaintenanceWorkOrderLink(user, body.ticketId);
       return NextResponse.json({ status: "ok", link });
     }
 
     if (body.operation === "read") {
-      const user = await requireCapabilityInSpace("read", "maintenance");
+      const user = await operationStage("permission", () =>
+        requireCapabilityInSpace("read", "maintenance"),
+      );
       void user;
       await assertWorkOrderActionAllowed(descriptor, WORK_ORDER_READ_KEY);
       const clients = buildWorkOrderClients();
@@ -172,7 +397,9 @@ export async function POST(request: Request) {
     }
 
     if (body.operation === "preview_link" || body.operation === "confirm_link") {
-      const user = await requireCapabilityInSpace("edit", "maintenance");
+      const user = await operationStage("permission", () =>
+        requireCapabilityInSpace("edit", "maintenance"),
+      );
       if (body.operation === "confirm_link") assertMutationAllowed(descriptor);
       await assertWorkOrderActionAllowed(descriptor, WORK_ORDER_READ_KEY);
       const clients = buildWorkOrderClients();
@@ -212,7 +439,9 @@ export async function POST(request: Request) {
     }
 
     if (body.operation === "propose_create") {
-      const user = await requireCapabilityInSpace("edit", "maintenance");
+      const user = await operationStage("permission", () =>
+        requireCapabilityInSpace("edit", "maintenance"),
+      );
       await assertWorkOrderActionAllowed(descriptor, WORK_ORDER_READ_KEY);
       const clients = buildWorkOrderClients();
       if (!clients) return notConfigured();
@@ -242,6 +471,7 @@ export async function POST(request: Request) {
             : {}),
         },
         attemptSeq,
+        await readMaintenanceWorkAuthorization(user, ticket),
       );
       const record = await workOrderS20.prepare(user, {
         action: assembled.action,
@@ -294,7 +524,9 @@ export async function POST(request: Request) {
     }
 
     if (body.operation === "propose_status") {
-      const user = await requireCapabilityInSpace("edit", "maintenance");
+      const user = await operationStage("permission", () =>
+        requireCapabilityInSpace("edit", "maintenance"),
+      );
       await assertWorkOrderActionAllowed(descriptor, WORK_ORDER_READ_KEY);
       const clients = buildWorkOrderClients();
       if (!clients) return notConfigured();
@@ -344,7 +576,9 @@ export async function POST(request: Request) {
     }
 
     // execute | reconcile: replay the exact prepared identity through the bridge.
-    const user = await requireCapabilityInSpace("edit", "maintenance");
+    const user = await operationStage("permission", () =>
+      requireCapabilityInSpace("edit", "maintenance"),
+    );
     const prepared = await loadPreparedWorkOrderAction(user, body.executionId);
     if (!prepared) {
       return NextResponse.json(
@@ -382,12 +616,52 @@ export async function POST(request: Request) {
         });
       }
     }
+    if (body.operation === "execute" && actionKey === WORK_ORDER_CREATE_KEY) {
+      if (!prepared.ticket_ref)
+        throw new WorkOrderServiceError(
+          "ticket_not_eligible",
+          "Recover the original prepared ticket identity before any new create.",
+        );
+      const ticket = await requireTicket(user, prepared.ticket_ref),
+        currentRefs = workOrderCreateAuthorizationRefs(
+          ticket,
+          await readMaintenanceWorkAuthorization(user, ticket),
+        );
+      if (currentRefs.some((ref) => !prepared.action.sourceRefs.includes(ref)))
+        throw new WorkOrderServiceError(
+          "ticket_not_eligible",
+          "The assessed scope or spending authority changed after preparation. Review the current work before a new provider action.",
+        );
+    }
     await assertWorkOrderActionAllowed(descriptor, actionKey);
     const clients = buildWorkOrderClients();
     if (!clients) return notConfigured();
     const action = preparedActionInput(prepared);
     const definition = workOrderDefinition(actionKey);
-    const executor = workOrderExecutor(() => clients);
+    const executor = workOrderExecutor(
+      () => clients,
+      async () => {
+        if (!prepared.ticket_ref)
+          throw new ExternalExecutionError(
+            "The prepared ticket identity is unavailable.",
+            "provider",
+          );
+        try {
+          const ticket = await requireTicket(user, prepared.ticket_ref);
+          const refs = workOrderCreateAuthorizationRefs(
+            ticket,
+            await readMaintenanceWorkAuthorization(user, ticket),
+          );
+          if (refs.some((ref) => !prepared.action.sourceRefs.includes(ref)))
+            throw new Error("Authority changed");
+        } catch {
+          throw new ExternalExecutionError(
+            "The assessed work or its spending authority changed before dispatch. No provider create was attempted.",
+            "provider",
+          );
+        }
+      },
+    );
     // The prepared refs are replayed verbatim; readiness facts stay server-constructed.
     const trustedContext = buildTrustedContext(action);
 
@@ -569,4 +843,13 @@ function serializeRead(result: Awaited<ReturnType<typeof runWorkOrderRead>>) {
     trades: result.trades,
     filters: result.filters,
   };
+}
+
+export async function POST(request: Request) {
+  const response = await observeStaffOperation("maintenance_provider_update", 1, () =>
+    operationStage("prepare", () => handlePost(request)),
+  );
+  response.headers.set("cache-control", "private, no-store");
+  response.headers.set("x-content-type-options", "nosniff");
+  return response;
 }

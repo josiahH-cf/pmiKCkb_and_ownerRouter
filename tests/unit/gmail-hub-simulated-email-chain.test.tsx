@@ -24,9 +24,9 @@ describe("retired browser email simulator", () => {
     );
   });
 
-  it("keeps Workflow Communications on its Live Gmail workspace", () => {
+  it("uses the linked-workflow hub while keeping Gmail discovery in its scoped Incoming tab", () => {
     const source = readFileSync(homePath, "utf8");
-    expect(source).toMatch(/<LiveGmailWorkspace/);
+    expect(source).toMatch(/<WorkflowCommunicationsHub/);
     expect(source).toMatch(/Workflow Communications/);
   });
 });

@@ -62,11 +62,11 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Open the lease workspace and review the current owner or tenant message before creating a new draft.",
+            "Compose the current owner or tenant message in Communications. Existing attempted Gmail drafts retain their original receipt recovery.",
           error_type: "current_message_review_required",
-          href: `/lease-renewal/live/desk/lease/${body.leaseId}#renewal-section-${body.offer.channel}`,
+          href: `/gmail-hub?compose=renewal_${body.offer.channel}&lease=${encodeURIComponent(body.leaseId)}`,
         },
-        { status: 409 },
+        { status: 410, headers: { "cache-control": "private, no-store" } },
       );
     const config = buildLiveRentVineConfig();
     if (!config.ok) {

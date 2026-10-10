@@ -6,6 +6,7 @@
 // provider. A denied, failed or partial source is reported as exactly that, never as an empty result.
 
 import { createHash } from "node:crypto";
+import { resolveStaffOperationHandoff } from "@/lib/assistant/staff-operation-handoff";
 
 import {
   inBusinessRange,
@@ -148,6 +149,7 @@ export interface ConversationAnswer {
   readonly answeredAtIso: string;
   /** S148: the executed plan and period; null when nothing was executed (a question or a hand-off). */
   readonly execution: AnswerExecution | null;
+  readonly contextNote?: string;
 }
 
 export interface ConversationRequest {
@@ -168,6 +170,8 @@ export interface ConversationDependencies {
   readonly context: OperationalContext;
   /** The model interpreter, or null to use the deterministic interpreter only. */
   readonly interpret: ModelInterpreter | null;
+  /** Server-owned human question text from permitted older history, never client answer content. */
+  readonly priorQuestionTexts?: readonly string[];
 }
 
 /** What executing an already-interpreted plan needs: never an interpreter. */
@@ -255,8 +259,9 @@ function groundPlan(
   plan: ConversationPlan,
   question: string,
   turns: readonly ConversationTurn[],
+  olderQuestions: readonly string[] = [],
 ): ConversationPlan {
-  const said = ` ${[question, ...turns.map((turn) => turn.question)].map(normalizeText).join(" ")} `;
+  const said = ` ${[question, ...turns.map((turn) => turn.question), ...olderQuestions].map(normalizeText).join(" ")} `;
   const people = plan.filters.people.filter((name) => {
     const normalized = normalizeText(name);
     return normalized !== "" && said.includes(` ${normalized} `);
@@ -1885,7 +1890,7 @@ function pickPreviousRecord(
 // ---- Entry point -----------------------------------------------------------------------------
 
 const UNSUPPORTED_SUMMARY =
-  "I answer from leases and renewals, My Work, approvals, connections, Internal Processes, maintenance tickets, and workflow-linked email.";
+  "I can discuss this using available PMI knowledge and clearly labeled guidance. Current operational facts depend on the relevant accessible source.";
 
 export async function runAssistantConversation(
   request: ConversationRequest,
@@ -1896,6 +1901,34 @@ export async function runAssistantConversation(
   const contextReset = incoming !== null && incoming.actorKey !== deps.actorKey;
   const turns = incoming && !contextReset ? incoming.turns.slice(-MAX_CONTEXT_TURNS) : [];
   const previous = turns.at(-1) ?? null;
+  const handoff = await resolveStaffOperationHandoff(question, deps.context, previous);
+  if (handoff) {
+    const plan = interpretDeterministically(question, previous, deps.nowIso),
+      refs = handoff.groups.flatMap((g) => g.items.map((i) => i.ref));
+    return {
+      version: ASSISTANT_CONVERSATION_VERSION,
+      kind: handoff.clarification ? "clarification" : "answer",
+      summary: handoff.summary,
+      clarification: handoff.clarification,
+      groups: handoff.groups,
+      interpretation: [
+        "Explicit human request: opening the existing staff operation control; no execution from chat.",
+      ],
+      knowledgeQuestion: null,
+      interpretedBy: "deterministic",
+      contextReset,
+      answeredAtIso: deps.nowIso,
+      execution: null,
+      conversation: {
+        version: 1,
+        actorKey: deps.actorKey,
+        turns: [
+          ...turns,
+          { question: question.slice(0, 500), plan, awaiting: null, refs },
+        ].slice(-MAX_CONTEXT_TURNS),
+      },
+    };
+  }
 
   let interpretedBy: InterpretedBy = "deterministic";
   let proposed: ConversationPlan | null = null;
@@ -1921,7 +1954,7 @@ export async function runAssistantConversation(
   const answerWith = (candidate: ConversationPlan | null) => {
     let plan: ConversationPlan;
     if (candidate) {
-      plan = groundPlan(candidate, question, turns);
+      plan = groundPlan(candidate, question, turns, deps.priorQuestionTexts);
       interpretedBy = "model";
     } else {
       plan = deterministic;

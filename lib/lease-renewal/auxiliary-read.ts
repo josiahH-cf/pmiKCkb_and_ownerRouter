@@ -12,6 +12,7 @@ export const RENEWAL_AUXILIARY_READ_KEYS = [
   "manual_workspace",
   "work_status",
   "working_record",
+  "pricing_policy",
   "packet",
   "notice_policy",
   "communications",

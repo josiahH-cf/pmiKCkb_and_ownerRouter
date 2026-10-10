@@ -22,21 +22,32 @@ export class ActionNotExecutableError extends Error {
 }
 
 /** True only when the (seed) registry entry for `key` is production_allowed. Missing key → false. */
+// Validate the immutable compiled catalog once. This caches no actor, record, provider health,
+// suspension, quota or permission decision. Caller-owned/test catalogs are still parsed per lookup.
+const productionExecutability = new Map<string, boolean>();
+for (const entry of ACTION_REGISTRY_SEED) {
+  if (productionExecutability.has(entry.key))
+    throw new Error("Duplicate committed action key.");
+  productionExecutability.set(
+    entry.key,
+    CreateActionRegistryInputSchema.parse(entry).production_allowed === true,
+  );
+}
+
 export function isActionExecutable(
   key: string,
-  registry: CreateActionRegistryInput[] = ACTION_REGISTRY_SEED,
+  registry: readonly CreateActionRegistryInput[] = ACTION_REGISTRY_SEED,
 ): boolean {
+  if (registry === ACTION_REGISTRY_SEED) return productionExecutability.get(key) === true;
   const entry = registry.find((candidate) => candidate.key === key);
   if (!entry) return false;
-  // Re-parse through the schema so the same governance refinement (production_allowed ⇒ Approved +
-  // Documented) is enforced here, not just at seed time.
   return CreateActionRegistryInputSchema.parse(entry).production_allowed === true;
 }
 
 /** Throw ActionNotExecutableError unless the action is production_allowed. */
 export function assertActionExecutable(
   key: string,
-  registry: CreateActionRegistryInput[] = ACTION_REGISTRY_SEED,
+  registry: readonly CreateActionRegistryInput[] = ACTION_REGISTRY_SEED,
 ): void {
   if (!isActionExecutable(key, registry)) {
     throw new ActionNotExecutableError(key);

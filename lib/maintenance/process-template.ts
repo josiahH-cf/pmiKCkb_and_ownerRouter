@@ -3,10 +3,9 @@ import { ACTION_REGISTRY_SEED } from "@/lib/integrations/action-registry-seed";
 import { MAINTENANCE_STAGES } from "@/lib/maintenance/constants";
 
 /**
- * Non-executable Maintenance Work Order Intake process-definition template (S4). Mirrors the lease-renewal
- * template: the resulting definition starts as Draft, every action reference is derived from the governed
- * Action Registry seed (so target systems, readiness, and rollback notes cannot drift), and the RentVine
- * work-order writes stay gated (production_allowed:false) until an approved per-action spec exists.
+ * Guidance for newly authored Draft process definitions. Existing definitions/runs remain intact.
+ * Action references mirror the current exact registry and grant no execution authority; staff use
+ * the owning maintenance controls for current permissions, confirmation, receipts and recovery.
  */
 
 // Reads before writes: read existing work orders, then the gated create + status update.
@@ -17,19 +16,20 @@ const MAINTENANCE_ACTION_KEYS = [
 ] as const;
 
 const STAGE_DESCRIPTIONS: Record<(typeof MAINTENANCE_STAGES)[number], string> = {
-  Capture:
-    "A field worker reports the issue from the field — photo(s) plus a typed or spoken note — authenticated with the PMI account.",
-  "Location match":
-    "Match the reported location to a RentVine unit (read-only); low-confidence matches route to a human.",
-  "Work-order draft":
-    "Assemble the structured work-order draft (summary, description, priority, unit, photos) for review.",
-  "Owner notice":
-    "Prepare an owner-facing notice draft; a human sends the approved notice (no autonomous send).",
-  "Vendor assignment": "Optional vendor/trade handoff preview against approved sources.",
-  "System-of-record update":
-    "Create the work order in RentVine. Pending future automation: non-executable until the endpoint has an approved per-action spec, tests, and rollback.",
-  Closeout:
-    "Close the run with the approved package history, backlinks, and audit detail preserved.",
+  "Capture and location":
+    "Record the issue once and reconcile its original creation result. Verify the actual property/unit and any applicable event-date lease; absent older facts remain unknown.",
+  "Assessment and troubleshooting":
+    "Assess the issue and record troubleshooting before spending decisions. Keep approved urgent guidance available without waiting for photos, an estimate or owner approval. A resolved issue may go directly to PMI closeout.",
+  "Estimate and owner authority":
+    "Record the current scope and explicit estimate basis. Apply actual current standing authority or record the exact owner decision when required. Owner contact is optional; no intake email or approval is invented.",
+  "Vendor coordination":
+    "Select a verified available primary/backup vendor and review the minimum handoff. Selection, current portal assignment, spending authority and communication delivery remain distinct. A human Send/Schedule requires the current Communications contract and exact activated key.",
+  "Work and contributions":
+    "Retain attributable vendor quotes, visit proposals, logs and permitted original files with submission review and exact recovery. A submitted invoice or completion report proves neither payment nor final closure.",
+  "PMI review and closure":
+    "Review work and distinct invoice, cost, markup, owner charge and payment evidence. PMI retains final closure; an explicit reopen appends history to the same case. Provider status remains separate.",
+  "History and reports":
+    "Retain core facts and reviewed artifacts for monthly/custom-period PDF and CSV reporting. Disclose prospective coverage and unknown historical facts; preserve earlier report snapshots after corrections.",
 };
 
 export interface MaintenanceTemplateOptions {
@@ -44,7 +44,7 @@ export function buildMaintenanceProcessTemplate(
   return {
     name: "Maintenance Work Order Intake",
     short_outcome:
-      "Turn a field maintenance report (photo + voice/typed note) into a reviewed, source-backed work-order draft; a human approves before any RentVine write.",
+      "Record and assess a maintenance issue, coordinate authorized work when needed, retain vendor and financial evidence, and complete PMI review with durable history and reports.",
     trigger:
       "Manual start by a field worker or team member capturing a maintenance issue.",
     owner_uid: options.ownerUid,
@@ -63,11 +63,11 @@ export function buildMaintenanceProcessTemplate(
       actionReferenceFromSeed(key, options.approverUid),
     ),
     success_condition:
-      "A reviewer approves the work-order draft and the facts used by it; external writes/sends execute only through individually approved actions.",
+      "PMI records an assessed resolution or reviews completed authorized work and closes the same case. Exact external writes and human-authorized communications retain their owning contracts and recovery.",
     stop_condition:
-      "A missing description, an unmatched or low-confidence unit, or a conflict blocks the run until a human resolves it; no external write or send occurs without per-action approval.",
+      "Missing facts, uncertain location, stale authority or an unresolved original attempt hold only the dependent operation for staff review. Urgent guidance remains available; no duplicate work or unreviewed effect is dispatched.",
     escalation_condition:
-      "Emergency-priority or blocked items route to Dan/Josiah Admin triage through the Approval Queue.",
+      "Show the applicable approved urgency guidance and verified escalation configuration. Missing coverage or contacts need staff routing; no dispatch or response-time promise is inferred.",
   };
 }
 

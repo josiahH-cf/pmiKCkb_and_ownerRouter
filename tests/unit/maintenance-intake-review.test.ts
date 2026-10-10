@@ -116,7 +116,7 @@ describe("maintenance intake review", () => {
     });
   });
 
-  it("honors an operator priority override (operator-set provenance)", async () => {
+  it("S222 refuses an unexplained emergency downgrade during promotion", async () => {
     const db = new FakeFirestore();
     seedIntake(db, "x", { description: "minor drip" });
     const ticket = await promoteUnverifiedIntake(
@@ -126,8 +126,28 @@ describe("maintenance intake review", () => {
       db as unknown as Firestore,
       NOW,
     );
-    expect(ticket.priority).toBe("Low");
-    expect(ticket.priority_provenance).toBe("operator-set");
+    expect(ticket.priority).toBe("Emergency");
+    expect(ticket.priority_provenance).toBe("auto-inferred");
+  });
+
+  it("retains ordinary priority selection for a non-emergency issue", async () => {
+    const db = new FakeFirestore();
+    seedIntake(db, "normal", {
+      summary: "Loose drawer handle",
+      description: "Harmless fixture part is loose",
+      urgency: "normal",
+    });
+    const ticket = await promoteUnverifiedIntake(
+      editor,
+      "normal",
+      { priority: "Low" },
+      db as unknown as Firestore,
+      NOW,
+    );
+    expect(ticket).toMatchObject({
+      priority: "Low",
+      priority_provenance: "operator-set",
+    });
   });
 
   it("promotes with an operator-confirmed unit and drops the Needs-Verification label", async () => {

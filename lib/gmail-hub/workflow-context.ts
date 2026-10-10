@@ -49,9 +49,28 @@ export const WorkflowCommunicationContextSchema = z
     sourceRefs: z.array(SafeReferenceSchema).max(20).default([]),
     templateRef: SafeReferenceSchema.optional(),
     replyPolicyRef: SafeReferenceSchema.optional(),
+    replyTo: z
+      .object({
+        sequenceId: z.string().uuid(),
+        threadId: z.string().regex(/^[A-Za-z0-9_-]{1,200}$/),
+        senderEmail: z
+          .string()
+          .email()
+          .max(254)
+          .refine((v) => v.endsWith("@pmikcmetro.com")),
+        parentId: z.string().regex(/^[A-Za-z0-9_-]{1,200}$/),
+      })
+      .strict()
+      .optional(),
   })
   .strict()
   .superRefine((context, issue) => {
+    if (context.replyTo && context.actionKey !== "gmail.thread.reply")
+      issue.addIssue({
+        code: "custom",
+        message:
+          "A workflow reply requires one exact linked original thread and message.",
+      });
     const renewalEntity =
       context.entityType === "workflow_run" ||
       context.entityType === "renewal_run" ||
@@ -66,12 +85,14 @@ export const WorkflowCommunicationContextSchema = z
     }
     if (
       context.entityType === "renewal_lease" &&
-      context.actionKey !== "gmail.mailbox.read"
+      !["gmail.mailbox.read", "gmail.renewal_notice.send", "gmail.thread.reply"].includes(
+        context.actionKey,
+      )
     ) {
       issue.addIssue({
         code: "custom",
         message:
-          "Renewal lease Gmail context is read-only; draft, reply, send, and label actions are not exposed.",
+          "Renewal lease Gmail context supports bounded reads and the reviewed renewal Send/Schedule operation only.",
       });
     }
     if (
@@ -115,6 +136,8 @@ export type WorkflowCommunicationWaitingOn =
 export interface WorkflowCommunicationLink extends CommunicationsRetentionFields {
   id: string;
   actor_uid: string;
+  /** Current sequence owner; absent on historical links, which retain their original meaning. */
+  sequence_id?: string;
   mailbox_key: string;
   lane: WorkflowCommunicationLane;
   entity_type: WorkflowCommunicationEntityType;
@@ -211,4 +234,21 @@ export function linkMatchesContext(
     link.entity_id === context.entityId &&
     link.purpose === context.purpose
   );
+}
+
+/** Canonical operating destination; legacy links keep their exact workflow without gaining authority. */
+export function workflowCommunicationHref(
+  input: Pick<
+    WorkflowCommunicationLink,
+    "entity_type" | "entity_id" | "purpose" | "sequence_id"
+  >,
+) {
+  if (
+    input.sequence_id &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      input.sequence_id,
+    )
+  )
+    return `/gmail-hub?communication=${encodeURIComponent(input.sequence_id)}`;
+  return `/gmail-hub?${new URLSearchParams({ workflow: input.entity_type, record: input.entity_id, purpose: input.purpose })}`;
 }

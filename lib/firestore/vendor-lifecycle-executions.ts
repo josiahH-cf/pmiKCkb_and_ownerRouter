@@ -83,8 +83,8 @@ export const LIVE_VENDOR_LIFECYCLE_COLLECTIONS = {
 } as const;
 
 // Connected-mailbox disable adds the connection, revocation queue, and completion-claim writes. At
-// 164 assignments the complete transaction is exactly 500 writes; 165 would exceed Firestore's cap.
-export const LIVE_VENDOR_DISABLE_MAX_ACTIVE_ASSIGNMENTS = 164;
+// S209 adds the case timeline write: 123 assignments use exactly 500 writes; 124 exceeds the cap.
+export const LIVE_VENDOR_DISABLE_MAX_ACTIVE_ASSIGNMENTS = 123;
 
 interface VendorIdentityClaim {
   schemaVersion: 1;
@@ -247,6 +247,40 @@ export class FirestoreLiveVendorLifecycleStore implements LiveVendorLifecycleSto
 
   constructor(private readonly db: Firestore = getAdminFirestore()) {}
 
+  private appendAssignmentCaseEvent(
+    transaction: Transaction,
+    ticket: {
+      id: string;
+      record_version?: unknown;
+      maintenance_association?: unknown;
+      vendor_id?: string;
+    },
+    id: string,
+    actorUid: string,
+    at: string,
+    action: "assigned" | "unassigned",
+  ) {
+    transaction.create(
+      this.db.collection("maintenance_case_events").doc(id),
+      stampProductRecordRetention("maintenance_case_events", {
+        id,
+        ticket_id: ticket.id,
+        ticket_version: Number(ticket.record_version ?? 0),
+        kind: "vendor_assignment",
+        actor_kind: "staff",
+        actor_id: actorUid,
+        occurred_at: at,
+        recorded_at: at,
+        summary:
+          action === "assigned"
+            ? "PMI assigned the reviewed vendor."
+            : "PMI revoked the vendor assignment.",
+        evidence_refs: [],
+        association: ticket.maintenance_association ?? null,
+        vendor_id: ticket.vendor_id ?? null,
+      }),
+    );
+  }
   async persistPreparedAttempt(
     actor: AuthenticatedUser,
     input: PersistLiveVendorPreparedAttemptInput,
@@ -2002,6 +2036,7 @@ export class FirestoreLiveVendorLifecycleStore implements LiveVendorLifecycleSto
           : LIVE_VENDOR_NO_ASSIGNMENT_REF;
       const ticketRewrite: StoredTicketRecord = {
         ...ticket,
+        record_version: Number(ticket.record_version ?? 0) + 1,
         updated_at: input.nowIso,
       };
       const updatedTicket: StoredTicketRecord = stampProductRecordRetention(
@@ -2035,13 +2070,23 @@ export class FirestoreLiveVendorLifecycleStore implements LiveVendorLifecycleSto
       transaction.create(
         this.maintenanceActivityRef(record.id, input.command.ticketRef),
         {
+          ...stampProductRecordRetention("maintenance_ticket_activity", {}),
           id: `vendor-lifecycle-${record.id}`,
           ticket_id: input.command.ticketRef,
           actor_uid: input.command.actorUid,
           action: "vendor-assign",
+          ticket_version: updatedTicket.record_version,
           text: input.command.operation === "assign" ? "assigned" : "unassigned",
           created_at: input.nowIso,
         },
+      );
+      this.appendAssignmentCaseEvent(
+        transaction,
+        updatedTicket,
+        `vendor-lifecycle-${record.id}`,
+        input.command.actorUid,
+        input.nowIso,
+        input.command.operation === "assign" ? "assigned" : "unassigned",
       );
       transaction.create(
         this.vendorAuditRef(record.id, "assignment"),
@@ -2352,6 +2397,7 @@ export class FirestoreLiveVendorLifecycleStore implements LiveVendorLifecycleSto
           "maintenance_tickets",
           {
             ...currentTicket,
+            record_version: Number(currentTicket.record_version ?? 0) + 1,
             updated_at: input.nowIso,
           },
           currentTicket,
@@ -2359,13 +2405,23 @@ export class FirestoreLiveVendorLifecycleStore implements LiveVendorLifecycleSto
         delete ticket.vendor_id;
         transaction.set(this.ticketRef(snapshot.id), ticket);
         transaction.create(this.maintenanceActivityRef(record.id, snapshot.id), {
+          ...stampProductRecordRetention("maintenance_ticket_activity", {}),
           id: `vendor-lifecycle-${record.id}-${sha256(snapshot.id).slice(0, 12)}`,
           ticket_id: snapshot.id,
           actor_uid: input.command.actorUid,
           action: "vendor-assign",
+          ticket_version: ticket.record_version,
           text: "unassigned",
           created_at: input.nowIso,
         });
+        this.appendAssignmentCaseEvent(
+          transaction,
+          ticket,
+          `vendor-lifecycle-${record.id}-${sha256(snapshot.id).slice(0, 12)}`,
+          input.command.actorUid,
+          input.nowIso,
+          "unassigned",
+        );
       });
       transaction.create(
         this.vendorAuditRef(record.id, "access_disabled"),

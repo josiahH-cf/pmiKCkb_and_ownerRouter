@@ -253,6 +253,24 @@ describe("S139 refined wording renders and binds to the composition it came from
     expect(refined.subject).toBe(composed.subject);
   });
 
+  it("keeps authored multiline paragraphs when current signature or composed wording changes", () => {
+    const current = composeRenewalMessage({
+      ...FACTS,
+      signature: { ...FACTS.signature!, role: "Property Manager" },
+    });
+    const retained = applyRefinedBody(current, composed.plainText);
+    expect(retained.plainText).toBe(composed.plainText);
+    expect(retained.htmlBody).toContain(
+      "Casey Doe<br>Leasing<br>casey.doe@pmikcmetro.com",
+    );
+    const edited = applyRefinedBody(
+      current,
+      "Hello,\n\nOne line\nSecond <line>\nThird line",
+    );
+    expect(edited.plainText).toBe("Hello,\n\nOne line\nSecond <line>\nThird line");
+    expect(edited.htmlBody).toContain("One line<br>Second &lt;line&gt;<br>Third line");
+  });
+
   it("applies saved wording only for its revision, and keeps it word for word when the composition changed (S161)", () => {
     const record = (
       overrides: Partial<MessageBodyOverrideRecord> = {},

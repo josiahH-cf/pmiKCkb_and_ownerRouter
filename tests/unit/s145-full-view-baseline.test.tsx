@@ -35,29 +35,55 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 
 // Batch 005 deliberately changes Full presentation. Keep the prior fixture immutable and check
 // its capabilities separately; the current presentation has its own recorded fixture.
-const PRIOR_PATH = join(__dirname, "..", "fixtures", "s145-full-view-baseline.json");
+const PRIOR_PATH = join(__dirname, "..", "fixtures", "s181-full-view-presentation.json");
 const BASELINE_PATH = join(
   __dirname,
   "..",
   "fixtures",
-  "s181-full-view-presentation.json",
+  "s193-communications-full-view-presentation.json",
 );
-// S66 (intake 051, AC-S66-6): the three further reference families each gain a resource
-// location link. S34 (intake 053, AC-S34-5): the document handoff gains the existing-loop review
-// input. Nothing from the prior Full view is removed.
-const AUTHORIZED_ADDITIONS: Record<
-  "regions" | "sectionIds" | "controls" | "links",
-  string[]
-> = {
-  regions: [],
-  sectionIds: [],
-  controls: ["input::Existing Dotloop loop number or address"],
-  links: [
-    "Manage location -> /connections#renewal-resource-entry-kcrar_additional_disclosures",
-    "Manage location -> /connections#renewal-resource-entry-brokerage_disclosure",
-    "Manage location -> /connections#renewal-resource-entry-insurance_program_addendum",
-  ],
-};
+// S187 changes the ordinary preparation destinations to Communications; S195 adds the source-bound
+// recommendation; S197 relocates the existing progress controls and adds local identity copies.
+// The S145 and S181 fixtures remain immutable. Only these named capability deltas are authorized.
+function presentationDeltas(testCase: BaselineCase) {
+  const id = testCase.leaseId;
+  return {
+    regions: testCase.manual ? ["Renewal recommendation"] : [],
+    sectionIds: [],
+    controls: [],
+    links: testCase.manual
+      ? [
+          `Compose owner message in Communications -> /gmail-hub?compose=renewal_owner&lease=${id}`,
+          `Compose tenant message in Communications -> /gmail-hub?compose=renewal_tenant&lease=${id}`,
+        ]
+      : [
+          `Prepare owner message -> /gmail-hub?compose=renewal_owner&lease=${id}`,
+          `Prepare tenant message -> /gmail-hub?compose=renewal_tenant&lease=${id}`,
+        ],
+  };
+}
+function retiredLinks(testCase: BaselineCase) {
+  return testCase.manual
+    ? [
+        "Open the control -> #renewal-message-owner-readiness",
+        "Open the control -> #renewal-message-owner-signature-name",
+        "Open the control -> #renewal-message-tenant-readiness",
+        "Open the control -> #renewal-message-tenant-signature-name",
+        "Open the page -> /connections",
+      ]
+    : [
+        `Prepare owner message -> /lease-renewal/live/desk/lease/${testCase.leaseId}#renewal-section-owner`,
+        `Prepare tenant message -> /lease-renewal/live/desk/lease/${testCase.leaseId}#renewal-section-tenant`,
+      ];
+}
+// S193 retires only the two ordinary legacy draft controls and their empty regions.
+function retiredEntry(field: string, entry: string, testCase: BaselineCase) {
+  return field === "links"
+    ? retiredLinks(testCase).includes(entry)
+    : field === "regions"
+      ? entry === "Unsent Gmail draft"
+      : false;
+}
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
 const PINNED_NOW = new Date("2026-09-30T17:00:00.000Z");
 
@@ -272,14 +298,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("S145 Full view baseline", () => {
-  it("renders the same Full view structure and copy as the recorded pre-Focus baseline", async () => {
+describe("S145 preservation with authorized S187/S195/S197 presentation", () => {
+  it("pins the current authorized presentation and preserves every unaffected prior input, source link and task section", async () => {
     const signatures: Record<string, ReturnType<typeof fullViewSignature>> = {};
     for (const testCase of CASES) {
       signatures[testCase.name] = await renderCase(testCase);
       cleanup();
     }
-    if (process.env.RECORD_BATCH005_PRESENTATION === "1") {
+    if (process.env.RECORD_OPERATIONS_PRESENTATION === "1") {
       writeFileSync(BASELINE_PATH, `${JSON.stringify(signatures, null, 2)}\n`);
     }
     expect(existsSync(BASELINE_PATH)).toBe(true);
@@ -289,15 +315,26 @@ describe("S145 Full view baseline", () => {
     for (const [name, signature] of Object.entries(signatures)) {
       // Reordering and shortening prose cannot remove an input, source link or task section.
       // Exact additions are named here, never inferred; a case shows those its view mounts.
+      const testCase = CASES.find((c) => c.name === name)!;
+      const additions = presentationDeltas(testCase);
       for (const field of ["regions", "sectionIds", "controls", "links"] as const) {
-        const added = AUTHORIZED_ADDITIONS[field].filter((entry) =>
+        const added = additions[field].filter((entry) =>
           signature[field].includes(entry),
         );
         expect([...signature[field]].sort(), `${name}: preserved ${field}`).toEqual(
-          [...prior[name][field], ...added].sort(),
+          [
+            ...prior[name][field].filter(
+              (entry) => !retiredEntry(field, entry, testCase),
+            ),
+            ...added,
+          ].sort(),
         );
       }
-      expect(signature.buttons).toEqual(expect.arrayContaining(prior[name].buttons));
+      expect(signature.buttons).toEqual(
+        expect.arrayContaining(
+          prior[name].buttons.filter((button) => button !== "Preview unsent Gmail draft"),
+        ),
+      );
     }
   }, 120_000);
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import { mergeAccessibleThreadTurns } from "./thread-merge";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 import {
   useCallback,
@@ -31,6 +32,7 @@ import { OperationController } from "@/lib/ui/operation";
 import { fetchWithDeadline, fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import {
   beginHistoryTurn,
+  beginHistoryTurnWithId,
   fetchConversation,
   fetchHistoryPage,
   fetchSavedQuestions,
@@ -38,6 +40,9 @@ import {
   runSavedQuestionRequest,
   saveQuestionRequest,
   updateSavedQuestionRequest,
+  updateThreadMetadata,
+  type HistoryPage,
+  type ThreadMetadataInput,
   type HistoryConversationSummary,
   type HistoryPageOutcome,
   type RestoredConversation,
@@ -253,6 +258,187 @@ function OwnedAskForm({
     nextCursor: null,
     olderStatus: null,
   });
+  const [pins, setPins] = useState<HistoryListState>({
+    status: saving ? "loading" : "ok",
+    entries: [],
+    nextCursor: null,
+    olderStatus: null,
+  });
+  const [pinBusy, setPinBusy] = useState<ReadonlySet<string>>(new Set());
+  const pinOperations = useRef(new Map<string, ThreadMetadataInput>());
+  const [pinPending, setPinPending] = useState<ReadonlySet<string>>(new Set());
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(
+    null,
+  );
+  const pinLocks = useRef(new Set<string>());
+  const selection = useRef({ conversationId: null as string | null, version: 0 });
+  const metadataReady = useRef(false),
+    selectionLock = useRef(false);
+  const pendingSelection = useRef<ThreadMetadataInput | null>(null),
+    wantedSelection = useRef<{ id: string | null } | null>(null);
+  const [selectionNotice, setSelectionNotice] = useState("");
+  const [threadNotice, setThreadNotice] = useState("");
+  const [restoreBlocked, setRestoreBlocked] = useState(saving && !!initialHistory);
+  const activeIdRef = useRef(activeId);
+  useLayoutEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
+  function applyHistoryMetadata(page: HistoryPage) {
+    setPins({
+      status: "ok",
+      entries: page.pinnedConversations ?? page.conversations.filter((c) => c.pinned),
+      nextCursor: page.pinnedNextCursor ?? null,
+      olderStatus: null,
+    });
+    if (page.activeSelection) {
+      selection.current = page.activeSelection;
+      setSelectedConversationId(page.activeSelection.conversationId);
+      metadataReady.current = true;
+    }
+  }
+  async function persistSelected(id: string | null) {
+    if (!saving) return;
+    wantedSelection.current = { id };
+    if (!metadataReady.current) {
+      setSelectionNotice(
+        "The active conversation is not remembered yet. Read your history, then remember this conversation.",
+      );
+      return;
+    }
+    if (selectionLock.current) return;
+    selectionLock.current = true;
+    try {
+      while (wantedSelection.current) {
+        const wanted: { id: string | null } = wantedSelection.current;
+        const input = pendingSelection.current ?? {
+          action: "select" as const,
+          conversationId: wanted.id,
+          expectedVersion: selection.current.version,
+          operationId: newOperationId(),
+        };
+        pendingSelection.current = input;
+        const result = await updateThreadMetadata(input);
+        if (!live.current) return;
+        if (result.status !== "ok" || result.ownerKey !== ownerKey) {
+          if (result.status === "conflict") {
+            pendingSelection.current = null;
+            wantedSelection.current = null;
+          }
+          setSelectionNotice(
+            result.status === "conflict"
+              ? "Another session changed the active conversation. Read the current selection, then choose which conversation to remember."
+              : "The active conversation could not be remembered. Retry saves the same selection without asking again.",
+          );
+          return;
+        }
+        selection.current = result.selection;
+        setSelectedConversationId(result.selection.conversationId);
+        pendingSelection.current = null;
+        if (result.selection.conversationId !== input.conversationId) {
+          setSelectionNotice(
+            "The saved selection changed in another session. Read its current state before choosing again.",
+          );
+          wantedSelection.current = null;
+          return;
+        }
+        if (
+          wantedSelection.current === wanted ||
+          wantedSelection.current?.id === result.selection.conversationId
+        )
+          wantedSelection.current = null;
+        setSelectionNotice("");
+      }
+    } finally {
+      selectionLock.current = false;
+    }
+  }
+  async function loadPins(older = false) {
+    setPins((p) => ({
+      ...p,
+      ...(older ? { olderStatus: "loading" as const } : { status: "loading" as const }),
+    }));
+    const result = await fetchHistoryPage(older ? pins.nextCursor : null, "pinned");
+    if (!live.current) return;
+    if (result.status !== "ok" || result.page.ownerKey !== ownerKey) {
+      setPins((p) => ({
+        ...p,
+        ...(older ? { olderStatus: "failed" as const } : { status: "failed" as const }),
+      }));
+      return;
+    }
+    setPins((p) => ({
+      status: "ok",
+      entries: older
+        ? [
+            ...new Map(
+              [...p.entries, ...result.page.conversations].map((c) => [
+                c.conversationId,
+                c,
+              ]),
+            ).values(),
+          ]
+        : result.page.conversations,
+      nextCursor: result.page.nextCursor,
+      olderStatus: null,
+    }));
+  }
+  async function toggleThreadPin(entry: HistoryConversationSummary) {
+    if (pinLocks.current.has(entry.conversationId)) return;
+    pinLocks.current.add(entry.conversationId);
+    setPinBusy(new Set(pinLocks.current));
+    const input = pinOperations.current.get(entry.conversationId) ?? {
+      action: "pin" as const,
+      conversationId: entry.conversationId,
+      pinned: !entry.pinned,
+      expectedVersion: entry.pinVersion ?? 0,
+      operationId: newOperationId(),
+    };
+    pinOperations.current.set(entry.conversationId, input);
+    setPinPending(new Set(pinOperations.current.keys()));
+    try {
+      const result = await updateThreadMetadata(input);
+      if (!live.current) return;
+      if (
+        result.status !== "ok" ||
+        result.ownerKey !== ownerKey ||
+        !result.conversation
+      ) {
+        if (result.status === "conflict")
+          pinOperations.current.delete(entry.conversationId);
+        setThreadNotice(
+          result.status === "conflict"
+            ? "The pin changed in another session. Read current history before choosing again."
+            : "The pin change is not confirmed. Retry the same choice or read its saved state.",
+        );
+        await reloadHistory();
+        return;
+      }
+      pinOperations.current.delete(entry.conversationId);
+      const current = result.conversation;
+      upsertHistoryEntry(current);
+      setPins((p) => ({
+        ...p,
+        status: "ok",
+        entries: current.pinned
+          ? [
+              current,
+              ...p.entries.filter((c) => c.conversationId !== current.conversationId),
+            ]
+          : p.entries.filter((c) => c.conversationId !== current.conversationId),
+      }));
+      setThreadNotice(
+        current.pinned
+          ? "Conversation pinned. Later questions remain in this same thread."
+          : "Conversation unpinned. Its history and saved questions are kept.",
+      );
+    } finally {
+      pinLocks.current.delete(entry.conversationId);
+      if (live.current) {
+        setPinBusy(new Set(pinLocks.current));
+        setPinPending(new Set(pinOperations.current.keys()));
+      }
+    }
+  }
   const [saved, setSaved] = useState<SavedListState>({
     status: !saving ? "ok" : initialSaved ? "loading" : "failed",
     items: [],
@@ -287,28 +473,6 @@ function OwnedAskForm({
     (entry) => entry.id !== active.id && entry.turns.length > 0,
   );
   const savedOperations = new Set(saved.items.map((item) => item.operationId));
-
-  // The first history page arrives with the page; reading it starts no request of its own.
-  useEffect(() => {
-    if (!saving || !initialHistory) return;
-    let current = true;
-    void initialHistory.then((outcome) => {
-      if (!current) return;
-      setHistory(
-        outcome.status === "ok" && outcome.page.ownerKey === ownerKey
-          ? {
-              status: "ok",
-              entries: outcome.page.conversations,
-              nextCursor: outcome.page.nextCursor,
-              olderStatus: null,
-            }
-          : { status: "failed", entries: [], nextCursor: null, olderStatus: null },
-      );
-    });
-    return () => {
-      current = false;
-    };
-  }, [initialHistory, ownerKey, saving]);
 
   // The saved questions arrive with the page too; an item saved meanwhile is kept.
   useEffect(() => {
@@ -455,6 +619,11 @@ function OwnedAskForm({
         conversation.key,
         turn.question,
       );
+      if (
+        activeIdRef.current === conversationId &&
+        selection.current.conversationId !== outcome.conversationId
+      )
+        void persistSelected(outcome.conversationId);
       setAnnouncement("Answer ready and saved to your history.");
     } else {
       setAnnouncement(
@@ -466,13 +635,20 @@ function OwnedAskForm({
   async function askKnowledge(
     asked: string,
     signal?: AbortSignal,
+    thread?: { key: string; operationId: string },
   ): Promise<{ answer: AskResponse | null; error: string | null }> {
     try {
       const response = await fetchWithDeadline("/api/ask", {
         signal,
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ question: asked, draft_enabled: true }),
+        body: JSON.stringify({
+          question: asked,
+          draft_enabled: true,
+          ...(thread
+            ? { conversationKey: thread.key, operationId: thread.operationId }
+            : {}),
+        }),
       });
       if (!response.ok) {
         return {
@@ -541,6 +717,13 @@ function OwnedAskForm({
           question: asked,
           conversation: turn.contextBefore,
           operationId: turn.id,
+          ...(saving
+            ? {
+                conversationKey:
+                  conversationsRef.current.find((c) => c.id === conversationId)?.key ??
+                  turn.id,
+              }
+            : {}),
         }),
       });
       if (response.ok) {
@@ -561,7 +744,18 @@ function OwnedAskForm({
       error: null,
     };
     if (!assistant || assistant.knowledgeQuestion)
-      knowledge = await askKnowledge(asked, signal);
+      knowledge = await askKnowledge(
+        asked,
+        signal,
+        saving
+          ? {
+              key:
+                conversationsRef.current.find((c) => c.id === conversationId)?.key ??
+                turn.id,
+              operationId: turn.id,
+            }
+          : undefined,
+      );
     if (!live.current || signal.aborted || operation.getSnapshot().phase !== "pending")
       return;
     const answered = Boolean(assistant) || Boolean(knowledge.answer);
@@ -661,18 +855,33 @@ function OwnedAskForm({
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const asked = question.trim();
-    if (!asked || isPending) return;
+    if (!asked || isPending || restoreBlocked) return;
     const turn = newTurn(asked, active.context);
     const key = active.key ?? turn.id;
     appendTurn(active.id, turn, key);
     setAnnouncement("Working on your answer.");
     // Recording the question first lets history show an interrupted question as interrupted.
-    if (saving)
-      void beginHistoryTurn({
+    if (saving) {
+      const localId = active.id,
+        generation = openingGeneration.current;
+      void beginHistoryTurnWithId({
         operationId: turn.id,
         conversationKey: key,
         question: asked,
+      }).then((serverId) => {
+        if (!live.current || !serverId) return;
+        conversationsRef.current = conversationsRef.current.map((c) =>
+          c.id === localId ? { ...c, serverId } : c,
+        );
+        updateConversation(localId, (c) => ({ ...c, serverId }));
+        if (
+          activeIdRef.current === localId &&
+          openingGeneration.current === generation &&
+          selection.current.conversationId !== serverId
+        )
+          void persistSelected(serverId);
       });
+    }
     await runTurn(active.id, turn);
   }
 
@@ -701,7 +910,10 @@ function OwnedAskForm({
     const next = newConversation();
     conversationsRef.current = [next, ...conversationsRef.current];
     setConversations((previous) => [next, ...previous]);
+    activeIdRef.current = next.id;
     setActiveId(next.id);
+    setRestoreBlocked(false);
+    void persistSelected(null);
     setAnnouncement(
       saving
         ? "Started a new conversation. The earlier one stays in your history."
@@ -721,12 +933,20 @@ function OwnedAskForm({
   }
 
   function reopenConversation(id: string) {
+    const stored = conversationsRef.current.find((c) => c.id === id)?.serverId;
+    if (stored) {
+      void openFromHistory(stored);
+      return;
+    }
     openingGeneration.current += 1;
     setOpening(null);
     active.turns
       .filter((turn) => turn.state === "pending")
       .forEach((turn) => stopWaiting(active.id, turn));
+    activeIdRef.current = id;
     setActiveId(id);
+    const chosen = conversationsRef.current.find((c) => c.id === id);
+    if (chosen?.serverId) void persistSelected(chosen.serverId);
     setAnnouncement("Opened an earlier conversation. Nothing was asked again.");
     focusTurn(
       conversations.find((entry) => entry.id === id),
@@ -735,27 +955,19 @@ function OwnedAskForm({
   }
 
   /**
-   * Show one of this user's stored conversations, reading it only when it is not already open on
-   * this page. Nothing in it is asked again. Returns this page's id for it, or null.
+   * Recheck a stored thread on every open, including pins already loaded in this tab. Later turns
+   * and current access come from the server; unaccepted local work is retained without inference.
    */
   async function openStored(
     conversationId: string,
     focusTurnId: string | null,
     openedMessage: (updatedAtIso: string) => string,
+    remember = true,
   ): Promise<string | null> {
     const generation = ++openingGeneration.current;
     active.turns
       .filter((turn) => turn.state === "pending")
       .forEach((turn) => stopWaiting(active.id, turn));
-    const loaded = conversationsRef.current.find(
-      (entry) => entry.serverId === conversationId,
-    );
-    if (loaded) {
-      setActiveId(loaded.id);
-      setAnnouncement(openedMessage(""));
-      focusTurn(loaded, focusTurnId);
-      return loaded.id;
-    }
     setOpening(conversationId);
     const restored = await fetchConversation(conversationId);
     if (!live.current || generation !== openingGeneration.current) return null;
@@ -766,10 +978,23 @@ function OwnedAskForm({
       );
       return null;
     }
-    const conversation = restoredConversation(restored);
-    conversationsRef.current = [conversation, ...conversationsRef.current];
-    setConversations((previous) => [conversation, ...previous]);
+    const fresh = restoredConversation(restored);
+    const loaded = conversationsRef.current.find(
+      (entry) => entry.serverId === conversationId,
+    );
+    const turns = mergeAccessibleThreadTurns(fresh.turns, loaded?.turns ?? []);
+    const conversation = { ...fresh, id: loaded?.id ?? fresh.id, turns };
+    upsertHistoryEntry(restored.conversation);
+    setRestoreBlocked(false);
+    const next = [
+      conversation,
+      ...conversationsRef.current.filter((entry) => entry.serverId !== conversationId),
+    ];
+    conversationsRef.current = next;
+    setConversations(next);
+    activeIdRef.current = conversation.id;
     setActiveId(conversation.id);
+    if (remember) void persistSelected(conversationId);
     setAnnouncement(openedMessage(restored.conversation.updatedAtIso));
     focusTurn(conversation, focusTurnId);
     return conversation.id;
@@ -1020,6 +1245,8 @@ function OwnedAskForm({
   async function reloadHistory() {
     setHistory((previous) => ({ ...previous, status: "loading" }));
     const outcome = await fetchHistoryPage(null);
+    if (outcome.status === "ok" && outcome.page.ownerKey === ownerKey)
+      applyHistoryMetadata(outcome.page);
     setHistory(
       outcome.status === "ok" && outcome.page.ownerKey === ownerKey
         ? {
@@ -1123,6 +1350,54 @@ function OwnedAskForm({
 
   const submitLabel = isPending ? "Working" : "Get answer";
 
+  // The first history page arrives with the page; reading it starts no request of its own.
+  useEffect(() => {
+    if (!saving || !initialHistory) return;
+    let current = true;
+    void initialHistory.then((outcome) => {
+      if (!current) return;
+      if (outcome.status === "ok" && outcome.page.ownerKey === ownerKey) {
+        applyHistoryMetadata(outcome.page);
+        if (
+          outcome.page.activeSelection?.conversationId &&
+          openingGeneration.current === 0 &&
+          !conversationsRef.current.some((c) => c.turns.length)
+        ) {
+          void openStored(
+            outcome.page.activeSelection.conversationId,
+            null,
+            () => "Restored your active conversation. Nothing was asked again.",
+            false,
+          ).then((id) => {
+            if (current && !id)
+              setSelectionNotice(
+                "Your saved active conversation is unavailable. Retry opening it, choose an accessible thread from history or explicitly start a new conversation.",
+              );
+          });
+        } else setRestoreBlocked(false);
+      } else {
+        setRestoreBlocked(true);
+        setPins((p) => ({ ...p, status: "failed" }));
+        setSelectionNotice(
+          "Your active conversation could not be restored. Retry history or explicitly start a new conversation.",
+        );
+      }
+      setHistory(
+        outcome.status === "ok" && outcome.page.ownerKey === ownerKey
+          ? {
+              status: "ok",
+              entries: outcome.page.conversations,
+              nextCursor: outcome.page.nextCursor,
+              olderStatus: null,
+            }
+          : { status: "failed", entries: [], nextCursor: null, olderStatus: null },
+      );
+    });
+    return () => {
+      current = false;
+    };
+  }, [initialHistory, ownerKey, saving]);
+
   return (
     <div className="dashboard-workspace ask-console">
       <div className="dashboard-main">
@@ -1208,7 +1483,11 @@ function OwnedAskForm({
             {dictationStatus}
           </p>
           <div className="ui-row">
-            <Button disabled={!ready || isPending} size="large" type="submit">
+            <Button
+              disabled={!ready || isPending || restoreBlocked}
+              size="large"
+              type="submit"
+            >
               {submitLabel}
             </Button>
             {active.turns.length > 0 ? (
@@ -1223,6 +1502,37 @@ function OwnedAskForm({
           </div>
         </form>
 
+        {saving && selectionNotice ? (
+          <div role="status">
+            <p>{selectionNotice}</p>
+            <button className="link-button" type="button" onClick={startNewConversation}>
+              Use a new conversation
+            </button>
+            <button
+              className="link-button"
+              type="button"
+              onClick={() => void persistSelected(active.serverId)}
+            >
+              Remember this conversation
+            </button>
+            <button
+              className="link-button"
+              type="button"
+              onClick={() => void reloadHistory()}
+            >
+              Read current selection
+            </button>
+            {selectedConversationId ? (
+              <button
+                className="link-button"
+                type="button"
+                onClick={() => void openFromHistory(selectedConversationId!)}
+              >
+                Restore selected conversation
+              </button>
+            ) : null}
+          </div>
+        ) : null}
         {/* Turn outcomes are announced politely; the dictation line keeps the one status role. */}
         <p
           aria-atomic="true"
@@ -1276,6 +1586,18 @@ function OwnedAskForm({
       <div className="dashboard-secondary">
         {saving ? (
           <>
+            {threadNotice ? <p role="status">{threadNotice}</p> : null}
+            <DashboardHistoryNav
+              label="Pinned conversations"
+              state={pins}
+              activeConversationId={opening ?? active.serverId}
+              onOpen={(id) => void openFromHistory(id)}
+              onRetry={() => void loadPins()}
+              onShowOlder={() => void loadPins(true)}
+              onTogglePin={(entry) => void toggleThreadPin(entry)}
+              pinBusy={pinBusy}
+              pinPending={pinPending}
+            />
             <DashboardSavedNav
               busy={savedBusy}
               onOpen={(item) => void openSaved(item)}
@@ -1311,7 +1633,19 @@ function OwnedAskForm({
               onOpen={(conversationId) => void openFromHistory(conversationId)}
               onRetry={() => void reloadHistory()}
               onShowOlder={() => void showOlderHistory()}
-              state={history}
+              state={{
+                ...history,
+                entries: history.entries.filter(
+                  (entry) =>
+                    !entry.pinned &&
+                    !pins.entries.some(
+                      (pin) => pin.conversationId === entry.conversationId,
+                    ),
+                ),
+              }}
+              onTogglePin={(entry) => void toggleThreadPin(entry)}
+              pinBusy={pinBusy}
+              pinPending={pinPending}
             />
           </>
         ) : (

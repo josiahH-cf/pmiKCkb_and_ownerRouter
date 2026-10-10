@@ -9,7 +9,7 @@ type PendingNavigation = {
   phase: "pending" | "interrupted";
 };
 /** Navigation owns this status; existing regions continue to own their independent work. */
-export function NavigationFeedback({ children }: { children: ReactNode }) {
+export function NavigationFeedback({ children }: { children?: ReactNode }) {
   const pathname = usePathname();
   const search = useSearchParams()?.toString() ?? "";
   const [pending, setPending] = useState<PendingNavigation | null>(null);

@@ -1,4 +1,5 @@
 export type TransientLayerFamily =
+  | "search"
   | "appearance"
   | "notifications"
   | "navigation"

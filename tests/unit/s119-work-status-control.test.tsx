@@ -101,8 +101,7 @@ function workspace() {
 }
 
 function openInformation() {
-  fireEvent.click(screen.getByRole("button", { name: "Lease information" }));
-  return screen.getByRole("complementary", { name: "Lease information" });
+  return screen.getByRole("region", { name: "Staff status and Status log" });
 }
 
 function postedBody(call: unknown[]) {
@@ -238,7 +237,8 @@ describe("S119 work status control (R119.1, R119.2, R119.4)", () => {
       />,
     );
     const info = openInformation();
-    const statusRow = within(info).getByText("Status").closest("div");
+    fireEvent.click(screen.getByRole("button", { name: /Lease information/ }));
+    const statusRow = screen.getByText("Status", { exact: true }).closest("div");
     expect(statusRow).toHaveTextContent(
       OVERALL_STATUS_LABEL[value.guidance.overallStatus],
     );

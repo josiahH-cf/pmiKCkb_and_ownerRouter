@@ -64,8 +64,12 @@ assertIncludes("docs/products/gmail-inbox-zero.md", [
   "Workflow Communications product lane",
   "workflow communication adapter",
   "No autonomous client-facing send",
-  "unsent draft",
-  "A human sends from Gmail",
+  "unsent-draft",
+  "S183 instruction authorizes human Send/Schedule",
+  "Both notice send keys remain closed",
+  "Generic `gmail.message.send` remains closed",
+  "Original draft,",
+  "own-attempt recovery",
 ]);
 
 const productReadme = assertIncludes("docs/products/README.md", [
@@ -178,7 +182,11 @@ assertIncludes("docs/integration-architecture.md", [
   "these 16 are open and the other 32 are closed",
   "RentVine write boundary",
   "Sheet boundary",
-  "A human sends them from Gmail",
+  "S183 instruction authorizes the named program's human Send/Schedule",
+  "The two notice",
+  "send keys remain closed until their technical gates and reviewed activation pass",
+  "No historical",
+  "draft, migrated record, model answer or page load becomes a sending authorization",
 ]);
 
 assertIncludes("docs/temp/README.md", [
@@ -244,14 +252,19 @@ function walk(dir) {
     }
 
     const text = readFileSync(fullPath, "utf8");
-    // The requested external renewal handoff permits only this account-selected Drafts URL.
-    // Keep every other Gmail web URL subject to the existing runtime prohibition.
+    // Owner-requested external handoff permits only account-selected Drafts and exact linked-thread
+    // navigation in this owning destination module. Other Gmail web URLs remain prohibited.
     const navigationText =
       fullPath === join(root, "lib", "lease-renewal", "desk-destinations.ts")
-        ? text.replace(
-            "https://mail.google.com/mail/u/?authuser=${encodeURIComponent(email)}#drafts",
-            "",
-          )
+        ? text
+            .replace(
+              "https://mail.google.com/mail/u/?authuser=${encodeURIComponent(email)}#drafts",
+              "",
+            )
+            .replace(
+              "https://mail.google.com/mail/u/?authuser=${encodeURIComponent(email)}#all/${encodeURIComponent(threadId)}",
+              "",
+            )
         : text;
     for (const pattern of forbiddenRuntimePatterns) {
       if (pattern.test(navigationText)) {

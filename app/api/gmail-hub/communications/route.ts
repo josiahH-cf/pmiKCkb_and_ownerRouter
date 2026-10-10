@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { requireCapability } from "@/lib/auth/session";
 import { createGmailHubService } from "@/lib/gmail-hub/dependencies";
 import { gmailHubErrorResponse, readAllowedQuery } from "@/lib/gmail-hub/http";
-import { workflowEntityHref } from "@/lib/gmail-hub/workflow-context";
+import { workflowCommunicationHref } from "@/lib/gmail-hub/workflow-context";
 
 /** Bodyless, self-mailbox list of links already authorized by their renewal/maintenance scope. */
 export async function GET(request: Request) {
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
         lane: link.lane,
         purpose: link.purpose,
         status: link.status,
-        href: workflowEntityHref(link),
+        href: workflowCommunicationHref(link),
         createdAtMs: link.created_at_ms,
         ...(link.attention_at_ms ? { attentionAtMs: link.attention_at_ms } : {}),
         ...(link.waiting_on ? { waitingOn: link.waiting_on } : {}),

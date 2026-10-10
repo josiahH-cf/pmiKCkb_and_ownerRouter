@@ -149,7 +149,9 @@ describe("S176 the renewal workspace keeps no residual instructions", () => {
       "Internal note; this stays out of client drafts.",
     );
     const message = read("components/lease-renewal/RenewalMessagePreparation.tsx");
-    expect(message).toContain("Edits save in the app. A person sends from Gmail.");
+    expect(message).toContain(
+      "Open Communications to review the exact message, recipients and attachments, then choose Send or Schedule.",
+    );
     // AC-S120-5: the response-request hint still names the exact paragraph it replaces.
     expect(message).toContain(
       "Replaces the paragraph after the terms, charges and insurance wording, before the request to complete the renewal information form.",

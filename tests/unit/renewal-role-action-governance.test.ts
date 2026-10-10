@@ -14,6 +14,7 @@ import {
 } from "@/lib/lease-renewal/role-action-governance";
 
 const PAGE_EXPECTATIONS = [
+  ["app/lease-renewal/collections/page.tsx", "read_workspace"],
   ["app/lease-renewal/page.tsx", "read_workspace"],
   ["app/lease-renewal/lease/[leaseId]/page.tsx", "read_workspace"],
   ["app/lease-renewal/live/page.tsx", "read_workspace"],
@@ -119,6 +120,10 @@ const API_EXPECTATIONS = [
     "read_workspace",
   ],
   ["app/api/lease-renewal/desk-preferences/route.ts", "POST", "save_desk_preference"],
+  ["app/api/lease-renewal/pricing-policy/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/pricing-policy/route.ts", "POST", "save_pricing_policy"],
+  ["app/api/lease-renewal/collections/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/collections/route.ts", "POST", "save_shared_collection"],
 ] as const satisfies readonly (readonly [string, "GET" | "POST", RenewalCapabilityKey])[];
 
 describe("S80 renewal role and action governance", () => {
@@ -249,7 +254,7 @@ describe("S80 renewal role and action governance", () => {
     ).toMatchObject({ code: "allowed", effectConstructable: true });
   });
 
-  it("never lets any role or exact-key state authorize an in-app send or a closed source write", () => {
+  it("S183: scopes reviewed workflow sending to the named exact key; closed keys still refuse", () => {
     for (const role of ["Editor", "Approver", "Admin"] as const) {
       expect(
         evaluateRenewalAuthority("send_renewal_message", {
@@ -259,7 +264,7 @@ describe("S80 renewal role and action governance", () => {
           externalState: "ready",
           exactConfirmation: true,
         }),
-      ).toMatchObject({ code: "permanently_forbidden", effectConstructable: false });
+      ).toMatchObject({ code: "allowed", effectConstructable: true });
     }
 
     expect(
@@ -416,7 +421,7 @@ describe("S80 renewal role and action governance", () => {
     ).toThrowError(/Admin authority is required/);
     expect(() =>
       assertRenewalRoleAuthority("send_renewal_message", "Admin"),
-    ).toThrowError(/never sends renewal messages.*send from Gmail/);
+    ).not.toThrow();
     for (const capability of [
       "approve_pricing_suggestion",
       "resolve_reconciliation",

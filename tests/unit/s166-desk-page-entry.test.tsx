@@ -166,7 +166,7 @@ describe("S166 the worklist page chooses its view (ARCH-S166-3)", () => {
   it("BEH-S166-10 / AC-S166-3: malformed URLs resolve safely and never change what is remembered", async () => {
     state.stored = SAVED;
     const malformed = await open({ v: "9", sort: "zzz", from: "2026-13-40" });
-    expect(malformed.query.sort).toBe("due");
+    expect(malformed.query.sort).toBe("nonrenewals_first");
     expect(malformed.query.from).toBe("");
     expect(malformed.viewMemory).toMatchObject({ source: "explicit", savedView: SAVED });
     // A legacy bookmark with no version still names its own view.
@@ -206,7 +206,16 @@ describe("S166 the worklist page chooses its view (ARCH-S166-3)", () => {
     state.items = [
       {
         id: "7001",
-        queryKeys: { normalizedOwners: ["owner sample"], normalizedTenants: [] },
+        identity: {
+          owners: [{ label: "owner sample", contactId: { label: "17" } }],
+          tenants: [],
+        },
+        queryKeys: {
+          normalizedOwners: ["owner sample"],
+          normalizedTenants: [],
+          ownerIdentityKeys: ["17"],
+          tenantIdentityKeys: [],
+        },
       },
     ];
     state.stored = `v=2&scope=all&ownerKey=${present}`;

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LeaseFollowUpInputSchema } from "./lease-follow-up";
 
 import { WORK_SOURCE_TYPES, WORK_TASK_STATES } from "@/lib/work-accountability/types";
 
@@ -166,6 +167,9 @@ const CreateMappingSchema = z
   .strict();
 
 export const WorkMutationSchema = z.discriminatedUnion("action", [
+  LeaseFollowUpInputSchema.extend({
+    action: z.literal("create_lease_follow_up"),
+  }).strict(),
   CreateTaskSchema,
   DeriveTaskSchema,
   StartSessionSchema,

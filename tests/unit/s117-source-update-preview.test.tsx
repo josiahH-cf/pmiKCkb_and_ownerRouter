@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
@@ -305,10 +305,7 @@ describe("S117 dense exact preview at the decision point (R117.3)", () => {
     expect(
       screen.queryByRole("button", { name: "Confirm this exact effect once" }),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Review and confirm…" }));
-    expect(
-      screen.getByRole("button", { name: "Confirm this exact effect once" }),
-    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Apply RentVine update" })).toBeEnabled();
   });
 
   it("S156 BEH-S156-5/7 (AC-S156-1): a future-rent effect is confirmable by staff while the working terms are unchanged; changed terms ask for a fresh preview, never an acceptance record", () => {
@@ -328,7 +325,7 @@ describe("S117 dense exact preview at the decision point (R117.3)", () => {
     );
     // S156/S160 (cafa02a7): the only reason a prepared future-rent effect waits is that the
     // working renewal terms moved after the preview. No tenant acceptance is awaited.
-    expect(screen.queryByRole("button", { name: "Review and confirm…" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Apply RentVine update" })).toBeNull();
     expect(
       screen.getByText(
         /The working renewal terms changed after this preview was prepared/,
@@ -346,13 +343,13 @@ describe("S117 dense exact preview at the decision point (R117.3)", () => {
         role="Editor"
       />,
     );
-    const review = screen.getByRole("button", { name: "Review and confirm…" });
+    const review = screen.getByRole("button", { name: "Apply RentVine update" });
     expect(review).toBeVisible();
-    fireEvent.click(review);
+    expect(review).toBeEnabled();
     expect(
-      screen.getByRole("button", { name: "Confirm this exact effect once" }),
-    ).toBeVisible();
-    // No approval checkbox or attestation stands between the review and the confirmation.
+      screen.queryByRole("button", { name: "Confirm this exact effect once" }),
+    ).not.toBeInTheDocument();
+    // The visible exact preview and one Apply action preserve the selected terms.
     expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
   });
 

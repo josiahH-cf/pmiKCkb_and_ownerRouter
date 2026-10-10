@@ -76,7 +76,7 @@ export interface ExecutePreparedActionInput<T> {
   executionId: string;
   executor: () => Promise<T>;
   preview: Record<string, unknown>;
-  registry?: CreateActionRegistryInput[];
+  registry?: readonly CreateActionRegistryInput[];
   resultCode: (result: T) => string;
   trustedContext: TrustedExecutionContext;
 }
@@ -119,7 +119,7 @@ export async function prepareActionExecution(
   input: PrepareActionExecutionInput,
   options: {
     db?: Firestore;
-    registry?: CreateActionRegistryInput[];
+    registry?: readonly CreateActionRegistryInput[];
   } = {},
 ) {
   const db = options.db ?? getAdminFirestore();
@@ -244,7 +244,7 @@ export function classifyForExecution(
   actionKey: string,
   preview: Record<string, unknown>,
   trustedContext: TrustedExecutionContext,
-  registry: CreateActionRegistryInput[] = ACTION_REGISTRY_SEED,
+  registry: readonly CreateActionRegistryInput[] = ACTION_REGISTRY_SEED,
 ) {
   const rawEntry = registry.find((candidate) => candidate.key === actionKey);
   const entry = rawEntry ? CreateActionRegistryInputSchema.parse(rawEntry) : undefined;

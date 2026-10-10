@@ -1,4 +1,6 @@
 "use client";
+import { Icon as MessageCopyIcon } from "@/components/ui";
+import { workflowComposerHref } from "@/lib/gmail-hub/composer-navigation";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { boundedLocalWait, LocalWaitError } from "@/lib/ui/local-lifetime";
 import { formatBusinessTimestamp, formatSourceCalendarDate } from "@/lib/date-display";
@@ -25,10 +27,6 @@ import {
   policyMessageGates,
   projectPolicyApplicability,
 } from "@/lib/lease-renewal/policy-content";
-import {
-  PREFLIGHT_STATE_LABELS,
-  projectMessagePreflight,
-} from "@/lib/lease-renewal/message-preflight";
 import { focusRenewalDashboardControl } from "@/components/lease-renewal/RenewalDashboardNavigation";
 import {
   composeRenewalMessage,
@@ -56,7 +54,6 @@ import {
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
 import { formatRecipientsForCopy } from "@/lib/lease-renewal/recipient-resolution";
 import { RefineWithAi } from "@/components/email/RefineWithAi";
-import { GEMINI_IN_GMAIL_HINT } from "@/lib/email-refinement/hint";
 import {
   AuthoredSubjectSchema,
   RefinedBodySchema,
@@ -125,7 +122,8 @@ interface Preparation {
   signatureOrigin?:
     | { kind: "none" }
     | { kind: "saved" }
-    | { kind: "retained_sender"; recordedAt: string };
+    | { kind: "retained_sender"; recordedAt: string }
+    | { kind: "business_profile"; recordedAt: string; version: number };
   /** S120: the signed-in sender's own retained signature, if any. */
   retainedSignature?: MessagePreparationInputs["signature"] | null;
   /** S120: current non-rent recurring charges a person may deliberately fill a charge from. */
@@ -367,7 +365,6 @@ function MessagePreparationEditor({
   const [pending, setPending] = useState(false),
     [notice, setNotice] = useState("");
   const [outcome, setOutcome] = useState<RenewalNoticeDraftOutcome | null>(null);
-  const [confirming, setConfirming] = useState(false);
   const [loadedAtIso, setLoadedAtIso] = useState<string | null>(null);
   const base = useId();
   const loadSequence = useRef(0);
@@ -587,7 +584,6 @@ function MessagePreparationEditor({
     if (autosave.phase !== "saving" && autosave.phase !== "edited")
       setAutosave(AUTOSAVE_EDITED);
     if (outcome?.status === "preview") setOutcome(null);
-    setConfirming(false);
   }
   function change(next: MessagePreparationInputs) {
     setInputs(next);
@@ -719,23 +715,6 @@ function MessagePreparationEditor({
           policyGates: policyNotes,
         })
       : null;
-  // S129 (R-F09-07): the meeting preflight from the same facts, callout and destinations.
-  const preflight = current
-    ? projectMessagePreflight({
-        channel,
-        canEdit,
-        senderEmail: current.senderEmail,
-        signatureOrigin: current.signatureOrigin?.kind ?? "none",
-        signatureMatchesActor: current.signatureMatchesActor,
-        readiness,
-        recipients: current.recipients ?? null,
-        publication: current.publication,
-        gmailDestination: Boolean(current.destinations?.gmailDrafts),
-        draftAttempt: current.draftAttempt,
-        notices: current.notices,
-        loadedAtIso,
-      })
-    : null;
   function openMissingInput(item: MessageMissingInput) {
     if (item.target.kind === "control") focusRenewalDashboardControl(item.target.id);
   }
@@ -792,139 +771,97 @@ function MessagePreparationEditor({
       setCopying(false);
     }
   }
-  /**
-   * S162: the deliberate unsent-draft step. The preview request carries exactly what is displayed
-   * and, when it is not saved yet, the message itself, so the one action saves, binds and previews
-   * it. Creation stays a separate exact confirmation of that preview. Nothing is ever sent.
-   */
-  async function draft(
-    kind: "preview" | "create" | "reconcile",
-    priorExecutionId?: string,
-  ) {
+  const openingComposer = useRef(false);
+  async function openComposer(event: React.MouseEvent<HTMLAnchorElement>) {
+    const server = currentRef.current;
+    if (!canEdit || !server) return;
+    const entry = savePayload(localRef.current, server);
+    if (canonical(entry.value) === lastSavedRef.current && !entry.wordingUnfinished)
+      return;
+    event.preventDefault();
+    if (openingComposer.current) return;
+    // Open during the actual human click, then sever the opener before any asynchronous save.
+    // A failed save closes the empty tab and keeps every word in the source editor.
+    const tab = window.open("about:blank", "_blank");
+    if (!tab) {
+      setNotice("Allow the new tab, then use Compose again. Your wording is kept here.");
+      return;
+    }
+    tab.opener = null;
+    openingComposer.current = true;
+    const href = event.currentTarget.href;
+    try {
+      if (saving.current) await saving.current;
+      await runAutosave();
+      if (saving.current) await saving.current;
+      const latest = currentRef.current;
+      const value = latest ? savePayload(localRef.current, latest) : null;
+      if (
+        !value ||
+        value.wordingUnfinished ||
+        canonical(value.value) !== lastSavedRef.current
+      ) {
+        tab.close();
+        setNotice(
+          "Your latest wording could not be saved, so Communications did not open with an older message. Your words are kept here; correct or retry the save.",
+        );
+        return;
+      }
+      tab.location.replace(href);
+    } catch {
+      tab.close();
+      setNotice("Communications could not open. Your wording is kept here.");
+    } finally {
+      openingComposer.current = false;
+    }
+  }
+  /** Recovery uses the original persisted snapshot; it never prepares or dispatches a new draft. */
+  async function recoverDraft(priorExecutionId?: string) {
+    const executionId =
+      priorExecutionId ??
+      (outcome && "executionId" in outcome
+        ? outcome.executionId
+        : current?.draftAttempt?.executionId);
+    if (!executionId) return;
     setPending(true);
-    setConfirming(false);
     setNotice("");
     try {
-      let preview: Record<string, unknown> = {};
-      let savedWith: string | null = null;
-      if (kind === "preview") {
-        // An autosave already on its way finishes first, so the two never save over each other.
-        await saving.current?.catch(() => undefined);
-        const server = currentRef.current;
-        if (!server || !shownContent) return;
-        const state = savePayload(localRef.current, server);
-        if (state.wordingUnfinished) {
-          setNotice(
-            "The wording has characters that cannot be saved, so no draft was prepared. Remove double braces and control characters, then preview again.",
-          );
-          return;
-        }
-        const serialized = canonical(state.value);
-        const needsSave = serialized !== lastSavedRef.current || !server.saved;
-        if (needsSave) savedWith = serialized;
-        preview = {
-          displayed: { subject: shownContent.subject, body: shownContent.plainText },
-          ...(needsSave
-            ? {
-                save: {
-                  ...(server.cycleId ? { cycleId: server.cycleId } : {}),
-                  expectedRevision: server.saved?.revision ?? 0,
-                  operationId: crypto.randomUUID(),
-                  ...state.value,
-                },
-              }
-            : {}),
-        };
-      }
-      const request = {
-        kind: "draft",
-        leaseId,
-        channel,
-        ...preview,
-        ...(kind === "create" && outcome?.status === "preview"
-          ? {
-              confirm: {
-                executionId: outcome.executionId,
-                previewHash: outcome.previewHash,
-              },
-            }
-          : {}),
-        ...(kind === "reconcile" &&
-        (priorExecutionId || (outcome && "executionId" in outcome))
-          ? {
-              reconcile: {
-                executionId:
-                  priorExecutionId ??
-                  (outcome && "executionId" in outcome ? outcome.executionId : ""),
-              },
-            }
-          : {}),
-      };
       const response = await fetch("/api/lease-renewal/message-preparation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
+        body: JSON.stringify({
+          kind: "draft",
+          leaseId,
+          channel,
+          reconcile: { executionId },
+        }),
       });
       const data = await response.json();
-      if (!response.ok && data.providerCallAttempted === false) {
-        setNotice(data.error);
-        // The message was saved but reads differently now: show the current message.
-        if (data.code === "message_changed") {
-          if (savedWith) lastSavedRef.current = savedWith;
-          await load().catch(() => undefined);
-        }
-        return;
-      }
       if (!response.ok)
         throw new Error(
           data.error ??
-            "Gmail drafting is unavailable. Copy remains available; no new draft is confirmed.",
+            "The earlier Gmail attempt could not be read. Its recorded status is kept.",
         );
-      if (savedWith) {
-        // The draft action saved the message. Read its new revision; what is on screen stays.
-        lastSavedRef.current = savedWith;
-        outstanding.current = null;
-        await load().catch(() => undefined);
-      }
       const parsed = RenewalNoticeDraftOutcomeSchema.parse(data);
       setOutcome(parsed);
       if (parsed.status === "blocked") setNotice(parsed.reasons.join(" "));
-      if (parsed.status === "created")
-        setNotice(
-          "An unsent Gmail draft was created and recorded. Review it in Gmail before you send it; a person sends it.",
-        );
-      if (parsed.status === "needs_reconciliation" || parsed.status === "reconciliation")
+      else if (parsed.status === "created")
+        setNotice("The earlier unsent draft is confirmed. Nothing was sent.");
+      else if (
+        parsed.status === "needs_reconciliation" ||
+        parsed.status === "reconciliation"
+      )
         setNotice(parsed.reason);
     } catch (error) {
       setNotice(
         error instanceof Error
           ? error.message
-          : "Gmail drafting failed. Copy remains available.",
+          : "The earlier attempt could not be recovered. Retry reads this same attempt.",
       );
-      if (kind === "create" && outcome?.status === "preview")
-        setOutcome({
-          status: "needs_reconciliation",
-          channel,
-          executionId: outcome.executionId,
-          reason:
-            "The create response is uncertain. Recover this exact attempt before preparing another draft.",
-        });
     } finally {
       setPending(false);
     }
   }
-  const unresolved =
-    outcome?.status === "needs_reconciliation" ||
-    (outcome?.status === "reconciliation" && outcome.resolution !== "created");
-  // S162 (R-S162-5, R-S162-9): only what the exact Gmail action needs is asked of it. Missing
-  // business values, an unrecorded response and an unsaved message never withhold the step.
-  const canDraft = Boolean(
-    canEdit &&
-    current &&
-    shownContent &&
-    current.publication.status === "approved" &&
-    !unresolved,
-  );
   const paragraph = responseRequestParagraph(
     channel,
     payload?.effective.edits ?? { responseRequest: "" },
@@ -944,7 +881,21 @@ function MessagePreparationEditor({
       ariaLabel={`${channelLabel} message preparation`}
       id={`renewal-card-message-${channel}`}
     >
-      <p className="muted">Edits save in the app. A person sends from Gmail.</p>
+      <a
+        className="primary-button"
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(event) => void openComposer(event)}
+        href={workflowComposerHref({
+          leaseId,
+          purpose: channel === "owner" ? "renewal_owner" : "renewal_tenant",
+        })}
+      >
+        Compose {channel} message in Communications
+      </a>
+      <p className="muted">
+        Edits save in the app. Open Communications to review and Send or Schedule.
+      </p>
       {notice ? <p role="status">{notice}</p> : null}
       {[...new Set(current?.notices ?? [])].map((value) => (
         <p key={value} className="muted">
@@ -1016,14 +967,14 @@ function MessagePreparationEditor({
                 disabled={!shownContent || copying}
                 onClick={() => copy("formatted")}
               >
-                Copy formatted body
+                <MessageCopyIcon name="copy" size={16} /> Copy formatted body
               </Button>
               <Button
                 variant="secondary"
                 disabled={!shownContent || copying}
                 onClick={() => copy("plain")}
               >
-                Copy plain text
+                <MessageCopyIcon name="copy" size={16} /> Copy plain text
               </Button>
               {current?.recipients ? (
                 <Button
@@ -1035,6 +986,12 @@ function MessagePreparationEditor({
                 </Button>
               ) : null}
             </div>
+            {current.destinations?.gmailDrafts
+              ? externalLink(
+                  current.destinations.gmailDrafts,
+                  "Open the Gmail Drafts folder",
+                )
+              : null}
             {current.destinations ? (
               <p className="muted renewal-message-destinations">
                 RentVine:{" "}
@@ -1073,7 +1030,7 @@ function MessagePreparationEditor({
               <Field
                 htmlFor={MESSAGE_CONTROL_IDS.body(channel)}
                 label="Email body"
-                hint="Copy and Gmail draft use the wording shown, including unresolved markers."
+                hint="Copy uses the wording shown, including unresolved markers. Communications validates the current message before Send or Schedule."
               >
                 <textarea
                   className="renewal-message-body"
@@ -1170,107 +1127,29 @@ function MessagePreparationEditor({
               </fieldset>
             </>
           ) : null}
-          <section
-            aria-label="Unsent Gmail draft"
-            className="ui-stack-tight renewal-message-group"
-          >
-            <h3 className="renewal-message-group-title">Unsent Gmail draft</h3>
-            {current.publication.status !== "approved" ? (
-              <p className="muted">{current.publication.reason}</p>
-            ) : null}
-            <div className="ui-actions">
-              <Button disabled={!canDraft || pending} onClick={() => draft("preview")}>
-                Preview unsent Gmail draft
-              </Button>
-              {current.destinations?.gmailDrafts
-                ? externalLink(
-                    current.destinations.gmailDrafts,
-                    "Open the Gmail Drafts folder",
-                  )
-                : null}
-            </div>
-            {outcome?.status === "preview" ? (
-              <div className="ui-stack">
-                <p>
-                  From {current.senderEmail} · To {outcome.recipient.to}
-                  {outcome.recipient.cc?.length
-                    ? ` · Cc ${outcome.recipient.cc.join(", ")}`
-                    : ""}
-                </p>
-                <p>{outcome.subject}</p>
-                <div className="draft-box">{outcome.body}</div>
-                {current.draftAttempt?.outcome?.status === "created" &&
-                current.draftAttempt.executionId !== outcome.executionId ? (
-                  <p role="note">
-                    A Gmail draft from an earlier version of this message already exists.
-                    Creating this one adds a second, separate unsent draft; the app cannot
-                    replace the earlier one, so delete it in Gmail and send only one.
-                  </p>
-                ) : null}
-                {outcome.attachment ? (
-                  <p>
-                    {outcome.attachment.label} · {outcome.attachment.mimeType} ·{" "}
-                    {outcome.attachment.sizeBytes} bytes
-                  </p>
-                ) : null}
-                {!confirming ? (
-                  <Button
-                    disabled={pending || !canDraft}
-                    onClick={() => setConfirming(true)}
-                  >
-                    Review creation confirmation
-                  </Button>
-                ) : (
-                  <div role="group" aria-label="Confirm exact unsent draft">
-                    <p>
-                      Create this exact unsent draft, with the recipients and wording
-                      shown above, in the displayed managed mailbox? Nothing is sent.
-                      Review it in Gmail before you send it; anything still marked stays
-                      marked in the draft.
-                    </p>
-                    <Button onClick={() => setConfirming(false)}>Cancel</Button>
-                    <Button
-                      disabled={pending || !canDraft}
-                      onClick={() => draft("create")}
-                    >
-                      Create this unsent draft
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ) : null}
-            {unresolved ? (
-              <div>
-                <p>
-                  Do not create a duplicate. Recover the exact consumed attempt; copy
-                  remains available.
-                </p>
-                <Button disabled={pending} onClick={() => draft("reconcile")}>
+          {current.draftAttempt || outcome ? (
+            <details className="ui-stack-tight renewal-message-group">
+              <summary>Earlier Gmail draft</summary>
+              <p>
+                This earlier attempt keeps its original status. New messages open in
+                Communications.
+              </p>
+              <p>{current.draftAttempt?.state ?? outcome?.status}</p>
+              {current.draftAttempt?.recoveryAvailable || outcome ? (
+                <Button disabled={pending} onClick={() => recoverDraft()}>
                   Recover exact Gmail attempt
                 </Button>
-              </div>
-            ) : null}
-            {outcome && "draftId" in outcome && outcome.draftId ? (
-              <p className="muted">
-                {current.destinations?.gmailDrafts ? (
-                  <a
-                    href={current.destinations.gmailDrafts.href}
-                    target={EXTERNAL_LINK_TARGET}
-                    rel={EXTERNAL_LINK_REL}
-                  >
-                    Open the Drafts folder to find this draft
-                  </a>
-                ) : (
-                  "Open the Drafts folder in your managed Gmail mailbox to find this draft."
-                )}{" "}
-                Mailbox: {current.senderEmail}. A person sends from Gmail.
-              </p>
-            ) : null}
-            {outcome?.status === "created" ||
-            (outcome?.status === "reconciliation" && outcome.resolution === "created") ? (
-              <p className="muted">{GEMINI_IN_GMAIL_HINT}</p>
-            ) : null}
-          </section>
+              ) : (
+                <p>Its original managed sender must recover this attempt.</p>
+              )}
+              {outcome && "draftId" in outcome && outcome.draftId ? (
+                <p>
+                  Earlier unsent draft confirmed in {current.senderEmail}. Nothing was
+                  sent.
+                </p>
+              ) : null}
+            </details>
+          ) : null}
           <fieldset
             id={MESSAGE_CONTROL_IDS.inputs(channel)}
             disabled={!canEdit}
@@ -1635,18 +1514,20 @@ function MessagePreparationEditor({
                 </details>
               </>
             ) : null}
-            <details>
+            <details open={current.signatureMatchesActor === false}>
               <summary>Managed sender signature · {current.senderEmail}</summary>
               <p className="muted" data-testid="renewal-message-signature-origin">
                 {signatureEdited
                   ? "Edited here. It saves with this message and is kept for your managed sender."
-                  : current.signatureOrigin?.kind === "retained_sender"
-                    ? `Filled from your retained sender signature (saved ${formatBusinessTimestamp(current.signatureOrigin.recordedAt)}). Edit here to change it.`
-                    : current.signatureOrigin?.kind === "saved"
-                      ? current.signatureMatchesActor
-                        ? "Saved with this message as your signature for this managed sender."
-                        : "Saved with this message by another sender and shown as saved. Use your retained signature or edit it here if you prefer."
-                      : "Signature shared across leases for this managed sender."}
+                  : current.signatureOrigin?.kind === "business_profile"
+                    ? `Filled from your approved business profile (version ${current.signatureOrigin.version}). Existing saved messages keep their prior signature.`
+                    : current.signatureOrigin?.kind === "retained_sender"
+                      ? `Filled from your retained sender signature (saved ${formatBusinessTimestamp(current.signatureOrigin.recordedAt)}). Edit here to change it.`
+                      : current.signatureOrigin?.kind === "saved"
+                        ? current.signatureMatchesActor
+                          ? "Saved with this message as your signature for this managed sender."
+                          : "Saved with this message by another sender and shown as saved. Use your retained signature or edit it here if you prefer."
+                        : "Signature shared across leases for this managed sender."}
               </p>
               {retainedDiffers ? (
                 <Button
@@ -1809,46 +1690,30 @@ function MessagePreparationEditor({
               </details>
             )
           ) : null}
-          {preflight ? (
+          {current ? (
             <details
-              className="renewal-message-preflight"
-              data-renewal-preflight={
-                preflight.proceedWithoutGmail ? "proceed" : "blocked"
-              }
-              data-renewal-preflight-draft={
-                preflight.draftStepAvailable ? "available" : "pending"
-              }
-              id={`renewal-message-${channel}-preflight`}
+              className="renewal-message-sources"
+              id={`renewal-message-${channel}-sources`}
             >
-              <summary>{preflight.summary}</summary>
-              <ul className="ui-rows" data-renewal-preflight-items>
-                {preflight.items.map((item) => (
-                  <li
-                    key={item.id}
-                    data-renewal-preflight-item={item.id}
-                    data-renewal-preflight-state={item.state}
-                  >
-                    <strong>{PREFLIGHT_STATE_LABELS[item.state]}</strong>: {item.label}.{" "}
-                    {item.detail}
-                    {item.fallback ? ` Fallback: ${item.fallback}` : ""}
-                    {item.target?.kind === "control" ? (
-                      <>
-                        {" "}
-                        <a className="text-link" href={`#${item.target.id}`}>
-                          Open the control
-                        </a>
-                      </>
-                    ) : item.target?.kind === "route" ? (
-                      <>
-                        {" "}
-                        <a className="text-link" href={item.target.href}>
-                          Open the page
-                        </a>
-                      </>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
+              <summary>Message sources</summary>
+              <p>
+                {loadedAtIso
+                  ? `Lease facts and saved wording read at ${formatBusinessTimestamp(loadedAtIso)}.`
+                  : "The latest source read is unavailable."}
+              </p>
+              <p>
+                Signed-in sender: {current.senderEmail}. Communications resolves the
+                responsible sender and current recipients again before Send or Schedule.
+              </p>
+              <p>
+                Message template: {current.publication.status}
+                {current.publication.ref ? ` (${current.publication.ref})` : ""}.{" "}
+                {current.publication.reason ?? ""}
+              </p>
+              <p>
+                Editing and copy remain available. Open Communications to review the exact
+                message, recipients and attachments, then choose Send or Schedule.
+              </p>
             </details>
           ) : null}
           {current.previousDraftAttempts?.length ? (
@@ -1866,7 +1731,7 @@ function MessagePreparationEditor({
                   {attempt.recoveryAvailable ? (
                     <Button
                       disabled={pending}
-                      onClick={() => draft("reconcile", attempt.executionId)}
+                      onClick={() => recoverDraft(attempt.executionId)}
                     >
                       Recover earlier Gmail attempt
                     </Button>

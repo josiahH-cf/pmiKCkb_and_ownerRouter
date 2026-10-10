@@ -129,6 +129,52 @@ async function seedLinkedCommunication(store: MemoryGmailStateStore) {
   });
 }
 
+// S191: a history gap must re-read the authorized links; advancing a cursor alone loses replies.
+it("recovers an expired cursor through only the registered linked sequence before advancing", async () => {
+  const store = new MemoryGmailStateStore();
+  await store.saveMailboxState({
+    mailbox_email: mailbox,
+    user_uid: "staff",
+    history_id: "100",
+    health: "connected",
+    updated_at_ms: 1,
+  });
+  await store.saveCommunicationLink({
+    id: "linked-sequence",
+    actor_uid: "staff",
+    mailbox_key: gmailMailboxKey(mailbox),
+    lane: "renewals",
+    entity_type: "renewal_lease",
+    entity_id: "42",
+    purpose: "renewal_owner",
+    origin_action_key: "gmail.renewal_notice.send",
+    source_refs: ["rentvine:lease:42"],
+    gmail_thread_id: "thread-1",
+    status: "sent",
+    created_at_ms: 1,
+    updated_at_ms: 1,
+    ...communicationsRetentionFields("workflow_link", Date.now()),
+    sequence_id: "actual-sequence",
+  } as Parameters<typeof store.saveCommunicationLink>[0]);
+  const client = new HistoryClient();
+  client.failHistory404 = true;
+  const observed: string[] = [];
+  await processGmailPushNotification({
+    messageId: "gap-recovery",
+    mailboxEmail: mailbox,
+    historyId: "200",
+    store,
+    client,
+    observeSequence: async (id: string) => {
+      observed.push(id);
+    },
+    now: () => Date.now(),
+  } as Parameters<typeof processGmailPushNotification>[0]);
+  expect(observed).toEqual(["actual-sequence"]);
+  expect(client.listThreadCalls).toBe(0);
+  expect((await store.getMailboxState(mailbox))?.history_id).toBe("200");
+});
+
 afterEach(() => setGmailPushOidcVerifierForTest(null));
 
 describe("authenticated Gmail Pub/Sub push (AC-S19-6)", () => {
@@ -251,7 +297,7 @@ describe("authenticated Gmail Pub/Sub push (AC-S19-6)", () => {
     expect((await store.getMailboxState(mailbox))?.history_id).toBe("150");
   });
 
-  it("advances only the cursor after history expiration without scanning inbox content", async () => {
+  it("advances after an empty linked recovery without scanning inbox content", async () => {
     const store = new MemoryGmailStateStore();
     const client = new HistoryClient();
     client.failHistory404 = true;
@@ -277,6 +323,7 @@ describe("authenticated Gmail Pub/Sub push (AC-S19-6)", () => {
       addedCount: 0,
       matchedCount: 0,
       historyId: "200",
+      more: false,
     });
     expect(client.listThreadCalls).toBe(0);
     expect(client.threadCalls).toBe(0);

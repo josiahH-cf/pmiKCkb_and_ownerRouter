@@ -7,6 +7,8 @@ export interface GmailHttpRequest {
   method: string;
   headers: Record<string, string>;
   body?: string;
+  /** Server-owned bound for exact workflow MIME readback; ordinary reads keep the default. */
+  maxResponseBytes?: number;
 }
 
 export interface GmailHttpResponse {
@@ -28,6 +30,10 @@ export function createGmailFetchTransport(
 ): GmailHttpTransport {
   return {
     async send(request) {
+      const bound =
+        request.maxResponseBytes === undefined
+          ? maxResponseBytes
+          : Math.min(12 * 1024 * 1024, Math.max(1, request.maxResponseBytes));
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
@@ -38,13 +44,28 @@ export function createGmailFetchTransport(
           signal: controller.signal,
         });
         const declaredLength = Number(response.headers.get("content-length") ?? "0");
-        if (declaredLength > maxResponseBytes) {
+        if (declaredLength > bound) {
           throw new Error("Gmail response exceeded the configured size limit.");
         }
-        const text = await response.text();
-        if (Buffer.byteLength(text, "utf8") > maxResponseBytes) {
-          throw new Error("Gmail response exceeded the configured size limit.");
-        }
+        const reader = response.body?.getReader();
+        const chunks: Uint8Array[] = [];
+        let size = 0;
+        if (reader)
+          try {
+            while (true) {
+              const part = await reader.read();
+              if (part.done) break;
+              size += part.value.byteLength;
+              if (size > bound) {
+                await reader.cancel();
+                throw new Error("Gmail response exceeded the configured size limit.");
+              }
+              chunks.push(part.value);
+            }
+          } finally {
+            reader.releaseLock();
+          }
+        const text = Buffer.concat(chunks).toString("utf8");
         return {
           status: response.status,
           json: async () => (text ? JSON.parse(text) : {}),

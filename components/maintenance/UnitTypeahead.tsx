@@ -20,6 +20,7 @@ interface UnitTypeaheadProps {
   placeholder?: string;
   /** Marks the field required: renders the shared red asterisk and sets aria-required. */
   required?: boolean;
+  initialSelection?: UnitTypeaheadSelection;
   onSelect: (unit: UnitTypeaheadSelection | null) => void;
 }
 
@@ -31,12 +32,23 @@ export function UnitTypeahead({
   placeholder = "Start typing an address or unit number",
   required = false,
   onSelect,
+  initialSelection,
 }: Readonly<UnitTypeaheadProps>) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UnitTypeaheadSelection[]>([]);
   const [note, setNote] = useState("");
   // True once a suggestion is picked, so setting the input to the label does not re-trigger a search.
   const [picked, setPicked] = useState(false);
+
+  useEffect(() => {
+    if (!initialSelection) return;
+    const task = setTimeout(() => {
+      setQuery(initialSelection.label);
+      setPicked(true);
+      setResults([]);
+    }, 0);
+    return () => clearTimeout(task);
+  }, [initialSelection?.unitId, initialSelection?.label]);
 
   useEffect(() => {
     if (picked) return;

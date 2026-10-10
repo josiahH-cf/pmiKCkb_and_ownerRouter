@@ -301,8 +301,8 @@ describe("S120 mounted message preparation", () => {
     // Gmail transport remains its own gate: unpublished template and blocked recipients keep the
     // draft unavailable without blocking local copy.
     expect(
-      screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeDisabled();
+      screen.queryByRole("button", { name: "Preview unsent Gmail draft" }),
+    ).toBeNull();
     expect(screen.getByRole("button", { name: "Copy recipients" })).toBeDisabled();
   });
 
@@ -407,10 +407,8 @@ describe("S120 mounted message preparation", () => {
     expect(screen.getByTestId("renewal-message-signature-origin")).toHaveTextContent(
       "Saved with this message by another sender and shown as saved. Use your retained signature or edit it here if you prefer.",
     );
-    // Another sender's signature is information in the preflight; it never withholds copy.
-    expect(
-      document.querySelector('[data-renewal-preflight-item="signature"]'),
-    ).toHaveAttribute("data-renewal-preflight-state", "not_verified");
+    // S193 retires the legacy transport preflight. The saved sender remains visible and copy stays available.
+    expect(screen.getByTestId("renewal-message-signature-origin")).toBeVisible();
     expect(screen.getByRole("button", { name: "Copy plain text" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Copy plain text" })).not.toHaveAttribute(
       "aria-disabled",
@@ -651,13 +649,15 @@ describe("S120 mounted message preparation", () => {
     expect(
       within(copyGroup).getByRole("link", { name: /Fixture Owner.*owner messages/i }),
     ).toHaveAttribute("href", "https://fixture.rentvine.invalid/owners/9/messages");
-    const draftGroup = screen.getByRole("region", { name: "Unsent Gmail draft" });
     expect(
-      within(draftGroup).getByRole("link", { name: "Open the Gmail Drafts folder" }),
+      screen.getByRole("link", { name: "Open the Gmail Drafts folder" }),
     ).toHaveAttribute("target", "_blank");
     expect(
-      within(draftGroup).getByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeInTheDocument();
+      screen.getByRole("link", { name: "Compose owner message in Communications" }),
+    ).toHaveAttribute("target", "_blank");
+    expect(
+      screen.queryByRole("button", { name: "Preview unsent Gmail draft" }),
+    ).toBeNull();
     expect(screen.queryByRole("link", { name: "Open Gmail Drafts" })).toBeNull();
   });
 });

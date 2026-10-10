@@ -247,6 +247,22 @@ export function knowledgeAnswerForHistory(
   const value: StoredKnowledgeAnswer = {
     ...answer,
     answer: cutter.text(answer.answer),
+    ...(answer.context_note ? { context_note: cutter.text(answer.context_note) } : {}),
+    ...(answer.evidence_context
+      ? {
+          evidence_context: {
+            ...answer.evidence_context,
+            coverage: answer.evidence_context.coverage.map(cutter.text),
+            claims: answer.evidence_context.claims.map((c) => ({
+              ...c,
+              text: cutter.text(c.text),
+              source_ids: c.source_ids.filter((id) =>
+                citations.some((ref) => ref.source_id === id),
+              ),
+            })),
+          },
+        }
+      : {}),
     handling_steps: answer.handling_steps.map(cutter.text),
     draft: cutter.text(answer.draft),
     ...(answer.escalation_owner === undefined

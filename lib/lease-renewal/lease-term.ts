@@ -25,12 +25,9 @@ import {
   type LeaseDetailView,
 } from "@/lib/integrations/rentvine/lease-mapper";
 
-export const LEASE_TERMS = ["fixed_term", "month_to_month", "needs_review"] as const;
-export type LeaseTerm = (typeof LEASE_TERMS)[number];
-
-/** The two terms a person may record. `needs_review` is a projection state, never a decision. */
-export const RECORDABLE_LEASE_TERMS = ["fixed_term", "month_to_month"] as const;
-export type RecordableLeaseTerm = (typeof RECORDABLE_LEASE_TERMS)[number];
+import type { LeaseTerm, RecordableLeaseTerm } from "./lease-term-types";
+export { LEASE_TERMS, RECORDABLE_LEASE_TERMS } from "./lease-term-types";
+export type { LeaseTerm, RecordableLeaseTerm } from "./lease-term-types";
 
 /** Owner direction 2026-09-03: month-to-month leases are reviewed 12 months after their anchor. */
 export const LEASE_TERM_REVIEW_INTERVAL_MONTHS = 12;

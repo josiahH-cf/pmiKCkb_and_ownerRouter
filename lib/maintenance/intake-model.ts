@@ -1,3 +1,4 @@
+import type { projectMaintenanceUrgency } from "./operating-policy";
 // Client-safe model for the public tokenized maintenance intake (A5 / 2d). Types only, with NO
 // firebase-admin / server imports, so the review UI can share the record shape with the server writer +
 // review modules without pulling the Admin SDK into the client bundle. The server modules re-export these
@@ -23,7 +24,8 @@ export interface UnverifiedIntakeRecord {
   started_at?: string;
   damage_or_access?: string;
   attempted_steps?: string;
-  urgency?: "emergency_fire" | "urgent_flooding" | "normal";
+  operating_policy_decision?: ReturnType<typeof projectMaintenanceUrgency>;
+  urgency?: "emergency_fire" | "urgent_flooding" | "urgent_property" | "normal";
   required_evidence?: readonly "photos"[];
   photos_needed?: boolean;
   intake_complete?: boolean;

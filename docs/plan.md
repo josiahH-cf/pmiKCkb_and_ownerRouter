@@ -1,6 +1,34 @@
 # Current plan
 
-Updated: 2026-10-05 (UTC). Batch 005 is verified deployed by run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` under its named owner instruction. The S152–S167 program is verified deployed by run `47fabb7c`. Batch 004 (S146–S151) and S108's import are verified deployed by runs `98f7e743` and `729d5716`, with its corrective read-order repair by run `0eb2cfeb` and the S113 approval-read fix by run `3a32f7a2`, on top of request 001, batches 002–003, the thirteen-feature batch and confirmed adversarial repairs.
+Updated: 2026-10-10 (UTC). Batch 005 is verified deployed by run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` under its named owner instruction. The S152–S167 program is verified deployed by run `47fabb7c`. Batch 004 (S146–S151) and S108's import are verified deployed by runs `98f7e743` and `729d5716`, with its corrective read-order repair by run `0eb2cfeb` and the S113 approval-read fix by run `3a32f7a2`, on top of request 001, batches 002–003, the thirteen-feature batch and confirmed adversarial repairs.
+
+## Active: operations-communications-maintenance-2026-10
+
+Owner execution began October 9 for all 44 suites / 238 requirements, S183–S226 / intake 055–098.
+The native evidence ledger records 201 requirements with local architecture, behavior, preservation
+and integration evidence; the complete canonical gate passed 9,485 unit tests, all 455 backend tests,
+policy checks and the production build. Production-built maintenance 31, Communications 15, search 11,
+history/collections 15 and settings 3 passed; scoped evidence/failed attempts retain their identities.
+Core E2E passed 32 tests with 22 existing configuration skips after the obsolete retirement
+assertion was corrected. Finish green mainline/CI and then the existing queue/release process after approved WSL enrollment and runtime technical gates.
+No program feature is verified delivered; local retirement never substitutes for actual delivery.
+
+Owning-service implementations cover scoped governance/one action, durable rich Communications,
+renewal policy/worklists/tasks, contextual private conversations/pins/shared collections, search,
+assessment-first maintenance/vendor work/history/reports, reviewed operating/chargeback policy,
+business profiles and display naming. The new pre-claim prepared-basis regression failed first and
+its revision/content/sender/counter/source claim repair passed focused unit 31/emulator 25 and a fresh
+compiled Communications 15 journey. Preserve originals and no live synthetic proof.
+
+All five pending outcomes stay required: S208, S217, S218, S220, S221. S207/S216/S219 accessible
+investigations retain missing actual Vendoroo, acquisition and answering inputs; Dan's available
+reply was checked and no duplicate/additional external message was sent. Dotloop A1 remains partial
+and both write keys closed. Keep exact actor/target/version/conflict/claim/receipt/readback/recovery
+contracts, S182 exclusions, original evidence, private histories and failed outcomes. Queue green
+implemented work; do not admit a release while Communications worker/key readiness or required
+fresh prerequisites are unknown. Use clean registered paired worktrees, exact-main green CI, one
+real lock watcher/new permit/one candidate, assurance, promotion, full observation and independent
+readbacks. Continue the missing contracts in this same program; never claim all 44 delivered.
 
 ## Direct maintenance request 001: released
 

@@ -295,6 +295,7 @@ describe("S149 saved questions in the workspace", () => {
     );
     expect(calls().map((call) => `${call.method} ${call.url}`)).toEqual([
       `GET /api/assistant/history/${CONVERSATION_ID}`,
+      `GET /api/assistant/history/${CONVERSATION_ID}`,
     ]);
   });
 

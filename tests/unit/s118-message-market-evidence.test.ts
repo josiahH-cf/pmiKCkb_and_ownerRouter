@@ -1,11 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  PROVIDER_RECOMMENDATION_NOTICE,
   STARTING_RANGE_MESSAGE_REQUIREMENT,
   projectMessageMarketEvidence,
 } from "@/lib/lease-renewal/message-market-evidence";
-import { APPROVED_SUGGESTION_SOURCE } from "@/lib/lease-renewal/owner-draft";
 import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
 
 function preparation(
@@ -90,45 +88,42 @@ describe("S118 owner-message market evidence (R118.3, R118.4)", () => {
     expect(evidence.rangeRequirement).toBeNull();
   });
 
-  it("AC-S118-3: a recommendation that is still the returned point estimate enters only through the existing Admin approval", () => {
-    const unapproved = projectMessageMarketEvidence({
-      preparation: preparation({
-        pmiNumber: 1550,
-        recommendationBasis: "provider",
-        provider: PROVIDER,
-      }),
+  it("S183/S195 supersedes the separate number approval while preserving reference versus staff-selected meaning", () => {
+    const current = preparation({
+      pmiNumber: 1550,
+      recommendationBasis: "provider",
+      provider: PROVIDER,
+    });
+    const reference = projectMessageMarketEvidence({
+      preparation: current,
       currentBaseRent: 1000,
       approvedSuggestionValue: null,
     });
-    expect(unapproved.suggestedRent).toBeNull();
-    expect(unapproved.notices).toEqual([PROVIDER_RECOMMENDATION_NOTICE]);
-
-    const approved = projectMessageMarketEvidence({
-      preparation: preparation({
-        pmiNumber: 1550,
-        recommendationBasis: "provider",
-        provider: PROVIDER,
-      }),
-      currentBaseRent: 1000,
-      approvedSuggestionValue: 1550,
-    });
-    expect(approved.suggestedRent).toEqual({
+    expect(reference.suggestedRent).toEqual({
       value: 1550,
-      source: APPROVED_SUGGESTION_SOURCE,
+      source: "RentCast point estimate (reference only)",
+      kind: "provider_reference",
     });
-    expect(approved.notices).toEqual([]);
-
-    const differentApproval = projectMessageMarketEvidence({
-      preparation: preparation({
-        pmiNumber: 1550,
-        recommendationBasis: "provider",
-        provider: PROVIDER,
-      }),
+    expect(reference.notices).toEqual([]);
+    const selected = projectMessageMarketEvidence({
+      preparation: current,
       currentBaseRent: 1000,
-      approvedSuggestionValue: 1500,
+      approvedSuggestionValue: null,
+      selectedWorkingOffer: { value: 1525, source: "Working renewal terms" },
     });
-    expect(differentApproval.suggestedRent).toBeNull();
-
+    expect(selected.suggestedRent).toEqual({
+      value: 1525,
+      source: "Working renewal terms",
+      kind: "working_offer",
+    });
+    // A historical approval neither changes the provider observation nor overwrites today's offer.
+    expect(
+      projectMessageMarketEvidence({
+        preparation: current,
+        currentBaseRent: 1000,
+        approvedSuggestionValue: 1500,
+      }).suggestedRent,
+    ).toEqual(reference.suggestedRent);
     const reviewed = projectMessageMarketEvidence({
       preparation: preparation({ pmiNumber: 1525, recommendationBasis: "reviewed" }),
       currentBaseRent: 1000,
@@ -137,6 +132,7 @@ describe("S118 owner-message market evidence (R118.3, R118.4)", () => {
     expect(reviewed.suggestedRent).toEqual({
       value: 1525,
       source: "Reviewed listings on 2026-09-16",
+      kind: "reviewed",
     });
     expect(
       projectMessageMarketEvidence({

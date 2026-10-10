@@ -1,8 +1,6 @@
-// Seed the Maintenance Work Order Intake process definition (S4). Mirrors the lease-renewal seed: a pure
-// builder at a FIXED id (so the seed is idempotent) reusing the spine's normalizeDefinitionFields (no
-// id/step drift), and the shared generic writer (seedProcessDefinition) which refuses any executable
-// reference. Seeds as Draft; the RentVine work-order writes stay non-executable until the activation
-// lifecycle runs later.
+// Idempotent Draft guidance seed for new maintenance definitions. Normal seeding skips an existing
+// definition; no live seed is executed by the program implementation. Current action references are
+// display metadata, and neither a seed nor its historical definition grants provider execution.
 
 import { CreateProcessDefinitionInputSchema } from "@/lib/firestore/schemas";
 import { normalizeDefinitionFields } from "@/lib/firestore/workflows";

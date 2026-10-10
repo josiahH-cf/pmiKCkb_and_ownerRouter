@@ -77,7 +77,7 @@ describe("S113 supplied message content", () => {
       "inevitable increases in insurance and property taxes",
     );
     expect(message.plainText).toContain(
-      "Verified comp <one> — $1,200.00 per month: https://example.invalid/comp",
+      "Verified comp <one> — $1,200.00 per month · distance unavailable: https://example.invalid/comp",
     );
     expect(message.htmlBody).toContain("Hello Example &lt;First&gt;,");
     expect(message.htmlBody).not.toContain("<First>");

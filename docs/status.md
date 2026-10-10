@@ -1,6 +1,28 @@
 # PMI KC current status
 
-Last updated: 2026-10-05 (UTC).
+Last updated: 2026-10-10 (UTC).
+
+## Current authorized program
+
+S183–S226 / intake 055–098, `operations-communications-maintenance-2026-10`, is active and
+unfinished. The isolated WSL branch from main 8406181c preserves both original checkouts. Native
+44/238 evidence: `docs/evidence/operations-communications-maintenance-2026-10.json`; 201 requirements
+have four local engineering scopes passed. No program feature is verified delivered.
+
+Complete canonical verification passed 9,485 unit tests/1,010 files, 455 backend tests/79 files,
+all policy checks, zero production audit findings and the production build. Core E2E passed 32 tests with 22 existing configuration skips after one old retired-tools
+assertion failed first; application code remains canonical-green. Production-built
+maintenance 31, Communications 15, search 11, history/collections 15 and settings 3 passed. These scopes
+use deterministic external adapters and actual local routes/emulator transactions. Human NOT RUN;
+no live customer/provider business effect was test proof.
+
+S208/S217/S218/S220/S221 remain PENDING and required. Accessible investigations retain actual
+Vendoroo/account, acquisition/source/opening/cutover and phone/coverage/consent/transition holds.
+Approved WSL Google enrollment blocks cloud work. Both notice send and both Dotloop write keys
+stay closed; Dotloop A1 is partial and S182 exclusions remain. Legacy new admissions, pasted tools
+and notice-first guidance are locally retired with original recovery/history preserved; no live
+retirement, worker configuration, activation, promotion or delivery is claimed. Last independent
+serving readback was October 9 for the unchanged baseline below; no fresh cloud check is claimed.
 
 ## Serving release
 
@@ -205,3 +227,65 @@ The permits of runs `ab803f8a`, `98f7e743`, `729d5716`, `0eb2cfeb`, `3a32f7a2`, 
 `8b7dc3f1`, `5d1b4e3a`, `7753e5f5`, `61659874`, `5b5c850e`, `87920129`, `5622decd` and `e372f7b5` are consumed; run `175fee1d` rolled back verified on 2026-10-02 and run `a83ed59b` stopped before
 promotion on 2026-10-03, and their permits are archived as superseded. The Awaiting release
 queue is empty. No original receipt, completed permit or build claim is reused.
+
+## Operations checkpoint archival, 2026-10-10 UTC
+
+## Independent verification, 2026-10-05
+
+Reproduced at 2495d7bf: native gate, core, compiled matrix, lookup and both recovery checks; serving
+readbacks and a guarded 13-route production canary with zero mutation attempts.
+Released defects found (F-BATCH-005-VERIFICATION): navigation status on on-screen forms, S178
+literal lookup capture, S177 size loss after a stale reload and filter overwrite on resize,
+retired queue-email wording and controls in Admin, unknown personal-view surface 500. Repairs and
+fail-first regressions merged in PR #130 and are released by run 5d1b4e3a.
+Follow-up fixes merged in PR #133 and are released by run 7753e5f5: table cells under their own headers, lease
+loading wording, unknown-outcome wording after an elapsed wait, a navigation status that stays in
+view, a readable message editor, one primary message action and four visible field labels.
+Open-item fixes merged in PR #136 and are released by run 61659874: the worklist stays while a lease
+opens, an edited autosave state, download outcome feedback, distinct empty-lookup states, one
+wording for a communication's state, residual explanatory copy removed and a remembered
+cleared filter. The ledger records this verification apart from the implementation evidence,
+with production cold and warm timings.
+
+## Verified release and recovery
+
+One application build 6e3cdead-5c8b-4c68-89cd-5d34617d87bb succeeded 2026-10-08T08:25:18.918163Z.
+Candidate receipt caaf4096-637a-4534-a998-3eaa567779c2, issued 2026-10-08T08:30:41.068Z;
+promotion verified 2026-10-08T08:30:59.978Z. Candidate assurance and reconciliation passed.
+Observation passed two full checkpoints in 389677 ms against the required 300,000 ms,
+inside the 480,000 ms deadline; all 318 source/projected/rendered records matched,
+zero discrepancies/candidate 5xx/unresolved effects. Eleven independent readbacks matched,
+completed 2026-10-08T08:37:49Z.
+Tag cand-rmuz9g28p-0a2909d490e1; fingerprint
+sha256:a52280044bfad3bbf657d03836fedb5c275ec581f6f346bba419d3e341f36960.
+Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=true verified; the reviewed
+Dotloop client configuration and Secret Manager binding read back by name.
+Actual captured predecessor 5ee574b2fba81c83fa63086496d7f2ebb299268c /
+pmi-kc-app-rmuybjtnr-f43dfa3d6d26, Sheet=true (S130 stale-value follow-up, run 5622decd). Run-bound recovery
+pmi-kc-app-recovery-e372f7b53a1d4224, same fingerprint/configuration and actual true switch;
+receipt 8302e68a-646e-4a1b-9abd-5c277e7ed4ad, reference hash
+sha256:2110c8a111f007999009daf4891a8c5d22a4a116cd327fca4c3c19e46e25974b. No traffic rollback occurred.
+
+## Feedback and accepted distinctions
+
+Start and end feedback reconciled nine reports: six new/two acknowledged/one resolved. End
+read at 2026-10-05T01:51:17.325Z matched the batch 005 version then serving; original body/identity/retention/hold/status
+hashes preserved. All 312 accessible rows and 308 dated rows were retained and sorted
+in both directions, with zero mutation attempts. Reported identities remain linked to actual
+accessible records or honest absence; absence is not deletion evidence. No report status changed.
+Deferred: rental permits, move-out business workflow redesign and the public website shortcut.
+Feedback grants no deletion, status transition, reporter message or automatic scope expansion.
+Clear filters retains sort/layout; Reset view restores the current table's defaults.
+Responsive clamping never overwrites saved desktop sizing. S177 extends S166 account-owned views
+with typed searches and desktop sizes, uid/private scope, CAS and explicit-link precedence.
+Personal-view expiresAt TTL read back ACTIVE; runner wrote no production app record as proof.
+Identity lookup uses accessible real app lease links and only verified exact RentVine shortcuts.
+Human verdicts remain NOT RUN — no human observer; Editor browser is not_run under Admin-only policy.
+
+Execution checkpoint 2026-10-10 UTC: S222/S223 policy/review engineering has 64 focused urgency/intake checks, 17 emulator policy/responsibility/promotion checks, 3 recovery/one-action UI checks, clean focused lint and TypeScript through type-program-83. No suite is delivered. Native evidence retains every failed report/browser/type/lint attempt. Current compiled maintenance/report verification is still running after the AppShell Suspense repair. Next: close the compiled report/revocation journey, verify responsibility in frozen reports, finish policy/review HTTP and compiled paths, then S213 remaining safety/UI seams, S215 integration and S224/S225. The S208/S217/S218/S220/S221 input holds remain required; no external message or production effect was created.
+
+### Operations execution checkpoint — settings and report preservation
+
+S224/S225 partial implementation now binds business profiles only to existing verified enabled managed staff; Admin title/contact saves do not change roles/claims or queued content. Own prior retained signatures remain readable. New empty preparations may use the current own profile; Communications offers a deliberate own-signature draft edit. Display-name reset retains the current default and changes only inventoried presentation surfaces. UUID/CAS receipts, original recovery and pre-admission cutoff have local evidence.
+Focused evidence: presentation unit runs (12 then 13 tests); policy/responsibility/report/settings Firestore run (17 tests in four files), including frozen responsibility review/export and corrupted current policy refusal. Type checks 85/86 failed on test inventory/stub typing and remain preserved; correction verification is running. Maintenance compiled attempts 20/21 failed (missing actual Suspense wrap, then a revocation assertion before the fresh read completed); next corrected runner is pending. No delivery, activation, human observation or cloud mutation is claimed.
+Continue S184 maintenance provider single-action flow, remaining S213/S215 joins and policy/review/profile compiled coverage, preservation repairs, canonical checks and authorized release. All five PENDING outcomes remain required and pending real material inputs.

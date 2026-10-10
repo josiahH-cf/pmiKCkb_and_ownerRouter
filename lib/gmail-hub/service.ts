@@ -84,6 +84,7 @@ import { validatePreviewPayload } from "@/lib/integrations/preview-payload";
 export { GMAIL_HUB_ACTIONS };
 
 export interface GmailHubServiceDependencies {
+  observeSequence?(sequenceId: string): Promise<void>;
   createClient(subject: string): GmailRuntimeClient;
   store: GmailStateStore;
   assertEffectEnvironment(): void;
@@ -242,6 +243,7 @@ export class GmailHubService {
       store: this.dependencies.store,
       client,
       now: this.now,
+      observeSequence: this.dependencies.observeSequence,
     });
   }
 
@@ -1479,6 +1481,7 @@ export async function processGmailPushNotification(input: {
   store: GmailStateStore;
   client: GmailRuntimeClient;
   source?: "push" | "manual";
+  observeSequence?(sequenceId: string): Promise<void>;
   now?: () => number;
 }) {
   const maxHistoryPages = 5;
@@ -1497,6 +1500,7 @@ export async function processGmailPushNotification(input: {
   if (claim === "duplicate") return { status: "duplicate" as const, addedCount: 0 };
 
   try {
+    if (mailboxState.linked_resync_after) return await boundedMailboxResync(input, now);
     let pageToken: string | undefined;
     let cursor = mailboxState.history_id;
     let addedCount = 0;
@@ -1526,6 +1530,8 @@ export async function processGmailPushNotification(input: {
     for (const link of linked) {
       const threadId = link.gmail_thread_id;
       if (!threadId) continue;
+      if (link.sequence_id && input.observeSequence)
+        await input.observeSequence(link.sequence_id);
       if (![...addedRefs.values()].some((ref) => ref.threadId === threadId)) continue;
       let thread = threadReadbacks.get(threadId);
       if (!thread) {
@@ -1582,26 +1588,73 @@ async function boundedMailboxResync(
     store: GmailStateStore;
     client: GmailRuntimeClient;
     source?: "push" | "manual";
+    observeSequence?(sequenceId: string): Promise<void>;
   },
   now: () => number,
 ) {
-  // Expired history cannot justify scanning the recent inbox. Advance to the current cursor and
-  // surface zero workflow attention; linked threads will be checked by subsequent incremental events.
+  // Recover only actual registered workflow links. A persisted checkpoint bounds each retry;
+  // the mailbox history cursor advances to the current provider position only after the full pass.
   const profile = await input.client.getProfile();
+  const state = await input.store.getMailboxState(input.mailboxEmail);
+  const all = (await input.store.listCommunicationLinks(input.mailboxEmail))
+    .filter((l) => l.gmail_thread_id)
+    .sort((a, b) => a.id.localeCompare(b.id));
+  const remaining = state?.linked_resync_after
+    ? all.filter((l) => l.id > state.linked_resync_after!)
+    : all;
+  const batch = remaining.slice(0, 20);
+  let matchedCount = 0;
+  const seenSequences = new Set<string>();
+  for (const link of batch) {
+    if (link.sequence_id && input.observeSequence) {
+      if (!seenSequences.has(link.sequence_id))
+        await input.observeSequence(link.sequence_id);
+      seenSequences.add(link.sequence_id);
+    } else {
+      const thread = await input.client.getThread(link.gmail_thread_id!);
+      if (thread.truncated || thread.messages.some((m) => m.bodyTruncated)) {
+        await input.store.markCommunicationNeedsVerification({
+          linkId: link.id,
+          nowMs: now(),
+          reason: "thread_unreadable",
+        });
+        throw new GmailRuntimeError(
+          "A linked thread recovery is incomplete.",
+          503,
+          false,
+        );
+      }
+      const observation = observeWorkflowThread(thread, input.mailboxEmail, link.purpose);
+      if (
+        observation.lastContactMessageId &&
+        (await input.store.markCommunicationAttention({
+          linkId: link.id,
+          messageId: observation.lastContactMessageId,
+          ...observation,
+          nowMs: now(),
+        })) === "updated"
+      )
+        matchedCount += 1;
+    }
+  }
+  const more = remaining.length > batch.length;
+  const historyId = more ? state!.history_id : profile.historyId;
   await input.store.completePush({
     messageId: input.messageId,
     mailboxEmail: input.mailboxEmail,
-    historyId: profile.historyId,
+    historyId,
     addedCount: 0,
-    matchedCount: 0,
+    matchedCount,
     mode: input.source === "manual" ? "manual_bounded_resync" : "bounded_resync",
+    resyncAfter: more ? batch.at(-1)!.id : null,
     nowMs: now(),
   });
   return {
     status: "bounded_resync" as const,
     addedCount: 0,
-    matchedCount: 0,
-    historyId: profile.historyId,
+    matchedCount,
+    historyId,
+    more,
   };
 }
 

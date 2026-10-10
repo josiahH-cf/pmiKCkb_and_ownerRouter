@@ -353,7 +353,10 @@ function createdOrderMatchesPreview(
  * POST is a definitive provider refusal, and uncertainty after it is ambiguous, never retried.
  */
 export class RentVineWorkOrderWriteExecutor implements ExternalExecutor {
-  constructor(private readonly clients: () => WorkOrderExecutionClients) {}
+  constructor(
+    private readonly clients: () => WorkOrderExecutionClients,
+    private readonly beforeCreate?: (input: ExternalActionInput) => Promise<void>,
+  ) {}
 
   validate(input: ExternalActionInput) {
     switch (input.actionKey) {
@@ -445,6 +448,9 @@ export class RentVineWorkOrderWriteExecutor implements ExternalExecutor {
         "provider",
       );
     }
+    // The source/authority read runs after all catalog reads and immediately before the single POST.
+    // It is never part of read-only reconciliation of an already attempted operation.
+    await this.beforeCreate?.(input);
     const created = await writer.createWorkOrder({
       propertyID: value(input, "property_id"),
       unitID: value(input, "unit_id"),

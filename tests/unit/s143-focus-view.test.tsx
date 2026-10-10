@@ -113,7 +113,8 @@ describe("S143 Focus view switch", { timeout: 60_000 }, () => {
     expect(document.getElementById("renewal-card-message-owner")).toBeVisible();
     expect(document.getElementById("renewal-manual-tenant_offer")).not.toBeVisible();
     expect(document.getElementById("renewal-section-lease-details")).not.toBeVisible();
-    expect(document.getElementById("renewal-next-action")).not.toBeVisible();
+    // S197 keeps the paired Suggested next context visible in either view.
+    expect(document.getElementById("renewal-next-action")).toBeVisible();
     expect(
       screen.queryByRole("navigation", { name: "Renewal dashboard sections" }),
     ).toBeNull();

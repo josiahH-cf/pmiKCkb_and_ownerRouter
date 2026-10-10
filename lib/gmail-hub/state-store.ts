@@ -85,6 +85,7 @@ export interface GmailMailboxState {
   mailbox_email: string;
   user_uid: string;
   history_id: string;
+  linked_resync_after?: string;
   watch_expiration_ms?: number;
   watch_attempt?: GmailWatchAttemptCheckpoint;
   last_successful_sync_ms?: number;
@@ -308,6 +309,7 @@ export interface GmailStateStore {
     addedCount: number;
     mode: "history" | "bounded_resync" | "manual_history" | "manual_bounded_resync";
     matchedCount?: number;
+    resyncAfter?: string | null;
     nowMs: number;
   }): Promise<void>;
   failPush(input: { messageId: string; nowMs: number }): Promise<void>;
@@ -882,6 +884,7 @@ export class FirestoreGmailStateStore implements GmailStateStore {
     addedCount: number;
     mode: "history" | "bounded_resync" | "manual_history" | "manual_bounded_resync";
     matchedCount?: number;
+    resyncAfter?: string | null;
     nowMs: number;
   }): Promise<void> {
     const dedupeRef = this.db
@@ -897,6 +900,10 @@ export class FirestoreGmailStateStore implements GmailStateStore {
         : undefined;
       const historyId = maxHistoryId(current?.history_id, input.historyId);
       const manual = input.mode.startsWith("manual_");
+      const resyncAfter =
+        input.resyncAfter === undefined
+          ? current?.linked_resync_after
+          : input.resyncAfter;
       transaction.set(mailboxRef, {
         mailbox_email: input.mailboxEmail,
         user_uid: current?.user_uid ?? "unknown",
@@ -908,7 +915,8 @@ export class FirestoreGmailStateStore implements GmailStateStore {
           ? { watch_attempt: current.watch_attempt }
           : {}),
         last_successful_sync_ms: input.nowMs,
-        health: manual ? "connected" : "watching",
+        health: resyncAfter ? "degraded" : manual ? "connected" : "watching",
+        ...(resyncAfter ? { linked_resync_after: resyncAfter } : {}),
         updated_at_ms: input.nowMs,
       });
       transaction.set(dedupeRef, {
@@ -970,6 +978,7 @@ export class FirestoreGmailStateStore implements GmailStateStore {
     const mailboxKey = mailboxDocId(mailboxEmail);
     const snapshot = await this.db
       .collection(GMAIL_STATE_COLLECTIONS.workflowLinks)
+      .where("mailbox_key", "==", mailboxKey)
       .get();
     return snapshot.docs
       .map((doc) => doc.data() as WorkflowCommunicationLink)
@@ -1486,11 +1495,14 @@ export class MemoryGmailStateStore implements GmailStateStore {
     addedCount: number;
     mode: "history" | "bounded_resync" | "manual_history" | "manual_bounded_resync";
     matchedCount?: number;
+    resyncAfter?: string | null;
     nowMs: number;
   }) {
     this.pushStates.set(input.messageId, { state: "completed", updatedAt: input.nowMs });
     const current = this.mailboxStates.get(input.mailboxEmail);
     const manual = input.mode.startsWith("manual_");
+    const resyncAfter =
+      input.resyncAfter === undefined ? current?.linked_resync_after : input.resyncAfter;
     this.mailboxStates.set(input.mailboxEmail, {
       mailbox_email: input.mailboxEmail,
       user_uid: current?.user_uid ?? "unknown",
@@ -1502,7 +1514,8 @@ export class MemoryGmailStateStore implements GmailStateStore {
         ? { watch_attempt: current.watch_attempt }
         : {}),
       last_successful_sync_ms: input.nowMs,
-      health: manual ? "connected" : "watching",
+      health: resyncAfter ? "degraded" : manual ? "connected" : "watching",
+      ...(resyncAfter ? { linked_resync_after: resyncAfter } : {}),
       updated_at_ms: input.nowMs,
     });
     this.audit.push({

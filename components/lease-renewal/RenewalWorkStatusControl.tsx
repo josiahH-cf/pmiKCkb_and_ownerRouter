@@ -469,6 +469,43 @@ export function RenewalWorkStatusControl({
     noteInput.current?.focus();
   }
 
+  const logItems = log.map((entry) =>
+    entry.kind === "note" ? (
+      <li
+        data-status-log-id={entry.id}
+        data-status-log-kind="note"
+        key={`note:${entry.id}`}
+      >
+        <p className="renewal-status-log-text">{entry.text}</p>
+        <p className="muted renewal-status-log-meta">
+          Note by {entry.byLabel} at{" "}
+          <time dateTime={entry.at}>{formatWorkStatusRecordedAt(entry.at)}</time>
+          {entry.lastSavedAt ? (
+            <>
+              , last saved at{" "}
+              <time dateTime={entry.lastSavedAt}>
+                {formatWorkStatusRecordedAt(entry.lastSavedAt)}
+              </time>
+            </>
+          ) : null}
+        </p>
+      </li>
+    ) : (
+      <li
+        data-status-log-id={entry.id}
+        data-status-log-kind="status"
+        key={`status:${entry.id}`}
+      >
+        {RENEWAL_WORK_STATUS_LABELS[entry.status]} (was{" "}
+        {entry.previousStatus
+          ? RENEWAL_WORK_STATUS_LABELS[entry.previousStatus]
+          : NOT_RECORDED_WORK_STATUS_LABEL}
+        ), recorded by {entry.byLabel} at{" "}
+        <time dateTime={entry.at}>{formatWorkStatusRecordedAt(entry.at)}</time>
+      </li>
+    ),
+  );
+
   return (
     <div className="ui-stack-tight renewal-work-status">
       <p
@@ -591,48 +628,13 @@ export function RenewalWorkStatusControl({
         ) : (
           <>
             <p className="muted">Newest first.</p>
-            <ol className="ui-rows renewal-status-log">
-              {log.map((entry) =>
-                entry.kind === "note" ? (
-                  <li
-                    data-status-log-id={entry.id}
-                    data-status-log-kind="note"
-                    key={`note:${entry.id}`}
-                  >
-                    <p className="renewal-status-log-text">{entry.text}</p>
-                    <p className="muted renewal-status-log-meta">
-                      Note by {entry.byLabel} at{" "}
-                      <time dateTime={entry.at}>
-                        {formatWorkStatusRecordedAt(entry.at)}
-                      </time>
-                      {entry.lastSavedAt ? (
-                        <>
-                          , last saved at{" "}
-                          <time dateTime={entry.lastSavedAt}>
-                            {formatWorkStatusRecordedAt(entry.lastSavedAt)}
-                          </time>
-                        </>
-                      ) : null}
-                    </p>
-                  </li>
-                ) : (
-                  <li
-                    data-status-log-id={entry.id}
-                    data-status-log-kind="status"
-                    key={`status:${entry.id}`}
-                  >
-                    {RENEWAL_WORK_STATUS_LABELS[entry.status]} (was{" "}
-                    {entry.previousStatus
-                      ? RENEWAL_WORK_STATUS_LABELS[entry.previousStatus]
-                      : NOT_RECORDED_WORK_STATUS_LABEL}
-                    ), recorded by {entry.byLabel} at{" "}
-                    <time dateTime={entry.at}>
-                      {formatWorkStatusRecordedAt(entry.at)}
-                    </time>
-                  </li>
-                ),
-              )}
-            </ol>
+            <ol className="ui-rows renewal-status-log">{logItems.slice(0, 5)}</ol>
+            {logItems.length > 5 ? (
+              <details>
+                <summary>Older entries ({logItems.length - 5})</summary>
+                <ol className="ui-rows renewal-status-log">{logItems.slice(5)}</ol>
+              </details>
+            ) : null}
           </>
         )}
       </details>

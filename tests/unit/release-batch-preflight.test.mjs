@@ -97,6 +97,14 @@ function checkOf(result, id) {
 }
 
 describe("batched release preflight: the whole queue rides one candidate", () => {
+  it("holds an invalid isolated checkout pair even when SHA, CI and every other gate match", () => {
+    expect(
+      checkOf(
+        evaluateBatchPreflight(input({ checkoutPairValid: false })),
+        "checkout_pair",
+      ).state,
+    ).toBe("blocked");
+  });
   it("refuses to admit a completed batch from a cleared queue", () => {
     const queue = parseAwaitingReleaseQueue("## Awaiting release\n\nNone.\n");
     expect(queue).toEqual([]);

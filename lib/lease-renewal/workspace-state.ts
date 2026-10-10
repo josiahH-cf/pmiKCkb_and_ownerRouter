@@ -395,7 +395,11 @@ export function manualActionLabel(
         ? "Record tenant response"
         : "Review recorded completion";
 }
-export function manualRenewalSummary(state: RenewalWorkspaceState | null) {
+export function manualRenewalSummary(
+  state: RenewalWorkspaceState | null,
+  options: { standingOwnerAuthority?: boolean } = {},
+) {
+  const standing = options.standingOwnerAuthority === true;
   let nextActivity:
     | ManualActivity
     | "owner_response"
@@ -404,7 +408,8 @@ export function manualRenewalSummary(state: RenewalWorkspaceState | null) {
     | "complete" = "owner_outreach";
   let waitingParty: "staff" | "owner" | "tenant" = "staff";
   const nonRenewal = manualNonRenewal(state);
-  const satisfied = (key: ManualActivity) => manualActivitySatisfied(state!, key);
+  const satisfied = (key: ManualActivity) =>
+    key === "owner_outreach" && standing ? true : manualActivitySatisfied(state!, key);
   if (state) {
     if (nonRenewal)
       nextActivity = satisfied("non_renewal_handoff")
@@ -412,7 +417,7 @@ export function manualRenewalSummary(state: RenewalWorkspaceState | null) {
         : "non_renewal_handoff";
     else if (!satisfied("owner_outreach")) nextActivity = "owner_outreach";
     // S156: the owner's approval is the recorded answer; exact terms live on the working record.
-    else if (state.ownerResponse?.outcome !== "approved_terms") {
+    else if (!standing && state.ownerResponse?.outcome !== "approved_terms") {
       nextActivity = "owner_response";
       waitingParty =
         state.ownerResponse?.outcome === "revision_requested" ? "staff" : "owner";
@@ -432,6 +437,7 @@ export function manualRenewalSummary(state: RenewalWorkspaceState | null) {
     } else
       nextActivity = MANUAL_REQUIRED_RENEWAL.find((key) => !satisfied(key)) ?? "complete";
   }
+  if (!state && standing) nextActivity = "tenant_offer";
   // S156: completion is the staff record itself. The suggested next activity is guidance and
   // neither grants nor withholds it; once completion is recorded, nothing is suggested next.
   const complete = Boolean(state?.completion);

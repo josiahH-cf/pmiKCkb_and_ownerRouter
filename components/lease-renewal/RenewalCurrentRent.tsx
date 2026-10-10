@@ -410,8 +410,9 @@ export function RenewalCurrentRent({
                   {notice.kind === "prepared" ? (
                     <>
                       RentVine rent charge update prepared: {money(notice.from)} to{" "}
-                      {money(notice.to)}. Review and confirm the exact effect under{" "}
-                      <RentvineUpdatesLink />. Nothing has changed in RentVine yet.
+                      {money(notice.to)}. Read the exact effect and choose Apply RentVine
+                      update under <RentvineUpdatesLink />. Nothing has changed in
+                      RentVine yet.
                     </>
                   ) : (
                     notice.message

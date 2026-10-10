@@ -81,7 +81,9 @@ describe("S56 Maintenance and Vendor Test-lane retirement", () => {
     const intakeWriter = read("lib/firestore/maintenance-unverified-intake.ts");
     const vendorAuth = read("lib/vendor/auth.ts");
 
-    expect(tickets).toContain('data_mode: z.literal("live").default("live")');
+    expect(read("lib/maintenance/creation-intent.ts")).toContain(
+      'data_mode: z.literal("live").default("live")',
+    );
     expect(tickets).toContain('ticket.data_mode !== "live"');
     expect(intakeToken).toContain('input.dataMode !== "live"');
     expect(intakeWriter).toContain('submission.dataMode !== "live"');

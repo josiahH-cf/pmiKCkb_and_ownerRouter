@@ -36,6 +36,7 @@ const ORCHESTRATION_FACTORY_WRAPPERS = new Set([
 // Reviewed inventory. A new provider construction/factory invocation must be deliberately classified
 // instead of silently becoming an unwired runtime-suspension call site.
 const EXPECTED_BOUNDARIES = [
+  "lib/gmail-hub/sequence-service.ts:client:this.deps.createClient",
   "app/api/gmail-hub/pubsub/route.ts:POST:dependencies.createClient",
   "app/api/lease-renewal/market-comps/route.ts:marketCompsResponse:createMarketCompProvider",
   "app/api/maintenance/photo/route.ts:POST:createMaintenanceImageStore",
@@ -133,6 +134,18 @@ const EXPECTED_BOUNDARIES = [
 // and the Connection Center's explicit operator diagnostics. Inventory every wrapper invocation so
 // classifying the leaf constructors cannot hide a new reachable, ungated caller.
 const EXPECTED_LIVE_CONFIG_CALLS = [
+  // S222: fresh read-only property identity before a separately admitted policy save.
+  "lib/firestore/maintenance-operating-policies.ts:verifyProperty:buildLiveRentVineConfig",
+  // Actual-source read-only membership/recipient factories; no provider mutation is exposed.
+  "lib/gmail-hub/sequence-dependencies.ts:maintenanceTarget:buildLiveRentVineConfig",
+  "lib/lease-renewal/pricing-policy-dependencies.ts:read:buildLiveRentVineConfig",
+  // S198/S203: complete source identity resolution for app tasks and read-only entity metadata.
+  "lib/work-accountability/lease-follow-up-source.ts:resolveLeaseFollowUpSource:buildLiveRentVineConfig",
+  "lib/search/server-search.ts:renewals:buildLiveRentVineConfig",
+  // S213: verified property identity and current owner relationship, without provider effects.
+  "lib/maintenance/policy-source.ts:verifyMaintenancePolicySource:buildLiveRentVineConfig",
+  "lib/maintenance/policy-source.ts:readCurrentMaintenancePolicyOwnerRefs:buildLiveRentVineConfig",
+  "lib/maintenance/case-source.ts:verifyMaintenanceCaseAssociation:buildLiveRentVineConfig",
   // S113: fresh source reads for packet input, message verification and manual cycle identity.
   // These wrappers construct readers only; the separate effect entry points keep their gates.
   "lib/lease-documents/live-input.ts:resolveLivePacketInput:buildLiveRentVineConfig",
@@ -235,6 +248,9 @@ const READ_ONLY_WITH_GATED_MUTATION = new Set([
 ]);
 
 const LAZY_PROVIDER_FACTORIES = new Set([
+  // The sequence orchestrator checks the exact current key before its lazy descriptor-bound client;
+  // the adapter repeats the immutable environment and managed-subject guard.
+  "lib/gmail-hub/sequence-service.ts:client:this.deps.createClient",
   "lib/gmail-hub/service.ts:createClient:this.dependencies.createClient",
   // S97: lazy read-only RentVine client for fresh proposal/readback state; the write client is a
   // separately gated adapter and is only constructed inside the per-key runtime gate.

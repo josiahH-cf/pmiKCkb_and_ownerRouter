@@ -26,7 +26,7 @@ import {
 } from "@/lib/lease-renewal/post-write-freshness";
 
 // Renewals-space Editors and up. Reads live RentVine + the renewal sheet on each render, so it is never
-// statically cached. It is read-only and draft-only: no send, no sheet write-back. This is the
+// statically cached. Rendering this worklist performs no send or Sheet mutation. This is the
 // canonical Renewal landing and surfaces real leases with their real reconciliation through one
 // sortable, filterable table (S82).
 //
@@ -97,19 +97,30 @@ export default async function LiveRenewalDeskPage({
 
   // S82: opaque owner/tenant filter shortcuts. Missing key configuration fails only these
   // shortcuts closed; the unfiltered table stays usable.
+  const items = outcome.status === "ok" ? outcome.view.items : [];
+  const members = items.flatMap((item) =>
+    (["owner", "tenant"] as const).flatMap((partyKind) =>
+      (partyKind === "owner" ? item.identity.owners : item.identity.tenants).map((p) => ({
+        partyKind,
+        normalizedLabel: normalizeRenewalDeskText(p.label),
+        sourceId: p.contactId?.label ?? "",
+      })),
+    ),
+  );
   const partyResolver = createPartyFilterResolver(
     readPartyFilterKeyConfig(),
     RENEWALS_SPACE_ID,
+    members,
   );
   const partyFilters = {
     available: partyResolver.available,
     tokenFor: partyResolver.tokenFor,
     matches: partyResolver.matches,
+    canonicalTokenFor: partyResolver.canonicalTokenFor,
   };
 
   // Legacy `owner`/`tenant` display labels resolve once against the current authorized projection;
   // the label itself never reaches the canonical URL.
-  const items = outcome.status === "ok" ? outcome.view.items : [];
   const partyLabels = (item: DeskLeaseRow, kind: "owner" | "tenant") =>
     kind === "owner" ? item.queryKeys.normalizedOwners : item.queryKeys.normalizedTenants;
   const entry = resolveRenewalDeskEntry({
@@ -131,7 +142,14 @@ export default async function LiveRenewalDeskPage({
     // the current authorized projection (for example, it stops resolving after its key rotates).
     partyTokenResolves: (kind, token) =>
       items.some((item: DeskLeaseRow) =>
-        partyResolver.matches(token, kind, partyLabels(item, kind)),
+        partyResolver.matches(
+          token,
+          kind,
+          partyLabels(item, kind),
+          kind === "owner"
+            ? item.queryKeys.ownerIdentityKeys
+            : item.queryKeys.tenantIdentityKeys,
+        ),
       ),
   });
   const query = entry.state;

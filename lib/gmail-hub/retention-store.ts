@@ -1,4 +1,10 @@
-import type { Firestore } from "firebase-admin/firestore";
+import {
+  assertPublicationContentReference,
+  publicationContentChunkDocumentId,
+  PUBLICATION_CONTENT_CHUNK_COLLECTION,
+} from "@/lib/publication/content";
+import type { PublicationContentReference } from "@/lib/publication/types";
+import type { Firestore, Transaction } from "firebase-admin/firestore";
 
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
@@ -310,7 +316,14 @@ export class FirestoreCommunicationsCleanupStore implements CommunicationsCleanu
       const current = snapshot.exists
         ? parseRetentionCandidate(candidate.collection, snapshot.id, snapshot.data())
         : null;
-      if (!current || !isCommunicationsCleanupEligible(current, nowMs)) {
+      const retained = current
+        ? await this.retainedForOperation(
+            transaction,
+            candidate.collection,
+            snapshot.data()!,
+          )
+        : true;
+      if (!current || !isCommunicationsCleanupEligible(current, nowMs) || retained) {
         if (runRef && runSnapshot) {
           const state = parseCleanupRunState(
             runSnapshot.data() as Record<string, unknown>,
@@ -339,7 +352,22 @@ export class FirestoreCommunicationsCleanupStore implements CommunicationsCleanu
         }
         return false;
       }
-      transaction.delete(ref);
+      if (candidate.collection === "gmail_communication_attachments") {
+        const content = snapshot.get("content") as PublicationContentReference;
+        assertPublicationContentReference(content);
+        for (let index = 0; index < content.chunkCount; index++)
+          transaction.delete(
+            this.db
+              .collection(PUBLICATION_CONTENT_CHUNK_COLLECTION)
+              .doc(publicationContentChunkDocumentId(content.contentId, index)),
+          );
+      }
+      if (
+        candidate.collection === "gmail_communication_sequences" ||
+        candidate.collection === "gmail_communication_attachments"
+      )
+        transaction.set(ref, { id: candidate.id, purged: true, retired_at_ms: nowMs });
+      else transaction.delete(ref);
       if (runRef && runSnapshot) {
         const state = parseCleanupRunState(runSnapshot.data() as Record<string, unknown>);
         const processedHashes = [...state.processedHashes, candidateHash];
@@ -365,6 +393,46 @@ export class FirestoreCommunicationsCleanupStore implements CommunicationsCleanu
       }
       return true;
     });
+  }
+
+  /** Native TTL is deliberately not used for sequence/file records: transactional recovery guards are required. */
+  private async retainedForOperation(
+    tx: Transaction,
+    collection: CommunicationsRetentionCollection,
+    data: Record<string, unknown>,
+  ) {
+    const protects = (s: Record<string, unknown> | undefined) =>
+      !!s &&
+      !s.purged &&
+      (s.legal_hold === true ||
+        !!s.unresolvedOccurrenceId ||
+        !["completed", "cancelled"].includes(String(s.state)));
+    if (collection === "gmail_communication_sequences") return protects(data);
+    if (collection === "gmail_communication_attachments") {
+      if (data.state !== "ready") return true;
+      const references = await tx.get(
+        this.db
+          .collection("gmail_communication_sequences")
+          .where("retention_attachment_ids", "array-contains", data.id)
+          .limit(1),
+      );
+      return !references.empty; // Even terminal content retains its files until that snapshot is retired.
+    }
+    const sequenceId =
+      typeof data.sequence_id === "string"
+        ? data.sequence_id
+        : typeof data.sequenceId === "string"
+          ? data.sequenceId
+          : null;
+    return sequenceId
+      ? protects(
+          (
+            await tx.get(
+              this.db.collection("gmail_communication_sequences").doc(sequenceId),
+            )
+          ).data(),
+        )
+      : false;
   }
 
   async recordFailure(candidate: CommunicationsRetentionCandidate, runId: string) {

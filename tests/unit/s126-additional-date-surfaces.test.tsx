@@ -62,7 +62,7 @@ describe("S126 remaining Maintenance, Admin and My Work displays", () => {
     expect(formatDateTime("2026-02-31T00:00:00Z")).toBe("Invalid timestamp");
     expect(formatDateTime("not a timestamp")).toBe("Invalid timestamp");
   });
-  it("shows preapproval calendar dates and review in MM/DD/YYYY while submitting the original ISO value", async () => {
+  it("shows standing-policy instants in Central time and submits the chosen calendar date without changing source data", async () => {
     const preapproval = {
       property_key: "synthetic-property",
       amount_cents: 50000,
@@ -73,29 +73,56 @@ describe("S126 remaining Maintenance, Admin and My Work displays", () => {
     const original = JSON.stringify(preapproval);
     const fetch = vi.fn<
       (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>
-    >(async () => new Response(JSON.stringify({ preapproval }), { status: 200 }));
+    >(async (_url, init) => {
+      const command = JSON.parse(String(init?.body));
+      return Response.json({
+        operation_id: command.operation_id,
+        preapproval: {
+          ...preapproval,
+          amount_cents: command.amount_cents,
+          effective_from_iso: command.effective_from_iso,
+          policy_terms: command.policy_terms,
+          note: command.note,
+          version: 2,
+        },
+      });
+    });
     vi.stubGlobal("fetch", fetch);
     render(
-      <MaintenancePreapprovalControl canManage initialPreapprovals={[preapproval]} />,
+      <MaintenancePreapprovalControl
+        canManage
+        ownerUid="synthetic-admin"
+        initialPreapprovals={[preapproval]}
+      />,
     );
-    expect(screen.getByText(/since 10\/01\/2026/)).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Property key"), {
+    expect(screen.getByText(/effective 09\/30\/2026, 7:00 PM CDT/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Property ID"), {
       target: { value: preapproval.property_key },
     });
-    fireEvent.change(screen.getByLabelText("Preapproved amount"), {
+    fireEvent.change(screen.getByLabelText("Authorized amount"), {
       target: { value: "500" },
+    });
+    fireEvent.change(screen.getByLabelText("Amount boundary"), {
+      target: { value: "inclusive" },
+    });
+    fireEvent.change(screen.getByLabelText("Authorized cost basis"), {
+      target: { value: "total_including_tax_and_markup" },
     });
     const date = screen.getByLabelText(/Effective from/);
     fireEvent.change(date, { target: { value: "2026-10-01" } });
     expect(date).toHaveValue("2026-10-01");
-    expect(screen.getByText("10/01/2026")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Review this preapproval" }));
-    expect(screen.getByText(/effective 10\/01\/2026\?/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Actual approval evidence reference"), {
+      target: { value: "source:synthetic-policy" },
+    });
+    fireEvent.change(screen.getByLabelText("Policy context / correction reason"), {
+      target: { value: "Recorded actual fixture terms" },
+    });
     expect(fetch).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Record this preapproval" }));
-    await screen.findByText("Preapproval recorded.");
+    fireEvent.click(screen.getByRole("button", { name: "Save standing policy" }));
+    await screen.findByText(/Policy change recorded/);
+    expect(fetch).toHaveBeenCalledTimes(1);
     expect(JSON.parse(String(fetch.mock.calls[0][1]!.body)).effective_from_iso).toBe(
-      preapproval.effective_from_iso,
+      "2026-10-01T05:00:00.000Z",
     );
     expect(JSON.stringify(preapproval)).toBe(original);
   });

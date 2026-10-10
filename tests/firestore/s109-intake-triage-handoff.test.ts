@@ -148,9 +148,9 @@ describe("S109 promotion carries triage into the ticket (BEH-S109-3 / MAI-07)", 
       link: null,
       preapproval: null,
     });
-    expect(projection.waitingOn).toBe("resident");
+    expect(projection.waitingOn).toBe("assessment");
     expect(projection.photosNeeded).toBe(true);
-    expect(projection.nextAction).toMatch(/photos/i);
+    expect(projection.nextAction).toMatch(/assess/i);
   });
 
   it("promotes a fire report as Emergency with auto-inferred provenance", async () => {
@@ -170,11 +170,14 @@ describe("S109 promotion carries triage into the ticket (BEH-S109-3 / MAI-07)", 
     });
   });
 
-  it("still honors an explicit operator priority", async () => {
+  it("S222 holds an emergency priority until attributed corrected-facts review", async () => {
     const { id } = await submit({ summary: "There is smoke in the hallway" });
     await expect(
       promoteUnverifiedIntake(editor, id, { priority: "Low" }, db),
-    ).resolves.toMatchObject({ priority: "Low", priority_provenance: "operator-set" });
+    ).resolves.toMatchObject({
+      priority: "Emergency",
+      priority_provenance: "auto-inferred",
+    });
   });
 
   it("records the triage in the promotion activity", async () => {

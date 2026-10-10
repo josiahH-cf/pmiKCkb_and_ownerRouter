@@ -21,6 +21,20 @@ describe("buildMaintenanceProcessTemplate", () => {
     expect(template.steps.map((step) => step.title)).toEqual([...MAINTENANCE_STAGES]);
   });
 
+  it("new process guidance starts with assessment, makes owner contact optional and retains PMI closure", () => {
+    const titles = template.steps.map((step) => step.title);
+    expect(titles).toContain("Assessment and troubleshooting");
+    expect(titles.indexOf("Assessment and troubleshooting")).toBeLessThan(
+      titles.indexOf("Vendor coordination"),
+    );
+    expect(titles).not.toContain("Owner notice");
+    const descriptions = template.steps.map((step) => step.description).join(" ");
+    expect(descriptions).toContain("Owner contact is optional");
+    expect(descriptions).toContain("PMI retains final closure");
+    expect(descriptions).not.toContain("Pending future automation");
+    expect(template.stop_condition).toContain("Urgent guidance remains available");
+  });
+
   it("references the RentVine work-order actions with their live registry readiness", () => {
     const refs = template.action_references ?? [];
     const keys = refs.map((ref) => ref.action_registry_key);

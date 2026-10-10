@@ -1,3 +1,4 @@
+import { readRenewalPricingForViews } from "@/lib/lease-renewal/pricing-policy-read";
 import { readRenewalSheetGridsWithLinks } from "@/lib/lease-renewal/sheet-links";
 import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import { renewalNoticeObserver } from "./notice-read";
@@ -119,6 +120,7 @@ export async function runRenewalAssistantSource(
     resolutionsRead,
     termReviewsRead,
     packetRead,
+    pricingRead,
     workStatusRead,
     timingBasis,
   ] = await measureRead("renewal.supporting", () =>
@@ -154,6 +156,11 @@ export async function runRenewalAssistantSource(
         );
         // S182: the assistant's copy never carries the Dotloop-derived execution projection.
         return options.aiContext ? packetSnapshotsForAiContext(snapshots) : snapshots;
+      }),
+      readRenewalAuxiliary("pricing_policy", async () => {
+        const source = await leaseRead;
+        if (!source) throw new Error("Source unavailable");
+        return readRenewalPricingForViews(user, source.snapshot.views, now);
       }),
       // S119: one bulk read of saved staff work statuses. An unavailable store projects every row as
       // unavailable, never as Not recorded, so the Not recorded filter cannot claim an empty store.
@@ -195,6 +202,7 @@ export async function runRenewalAssistantSource(
     packetRead,
     workStatusRead,
     workingRead,
+    pricingRead,
   ]);
 
   const leaseSnapshotResult = await leaseRead;
@@ -230,6 +238,7 @@ export async function runRenewalAssistantSource(
           renewalNoticeObserver(user),
           leaseSnapshotResult.statusTable,
           renewalAuxiliaryValue(workingRead, new Map()),
+          pricingRead.status === "available" ? pricingRead.value : undefined,
         );
 
   return { outcome, auxiliaryFailures, coverage: window };

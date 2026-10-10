@@ -431,10 +431,13 @@ describe("S110 zero write across every path (AC-S110-2)", () => {
 
   it("keeps every assistant module free of a writer, executor, or provider import", () => {
     for (const path of assistantModules()) {
-      const code = readFileSync(path, "utf8").replaceAll(
-        /\/\*[\s\S]*?\*\/|\/\/.*$/gm,
-        "",
-      );
+      const code = readFileSync(path, "utf8")
+        .replaceAll(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")
+        .replace(
+          /import\s*\{\s*workflowComposerHref\s*\}\s*from\s*['"]@\/lib\/gmail-hub\/composer-navigation['"];?/g,
+          "",
+        );
+      // This reviewed helper constructs only a relative workflow URL; it has no Gmail client, executor or effect.
       for (const forbidden of [
         "action-gate",
         "external-execution/orchestrator",

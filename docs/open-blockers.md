@@ -1,6 +1,6 @@
 # Unblock packet
 
-Last reconciled: 2026-10-08 (A1 now names who can make the Dotloop renewal template: the connected integrations login is a limited Dotloop admin, so a full company admin must create it, and the owner sent that request to Dan on 2026-10-08; runs 5b5c850e and 87920129 released Dotloop PDF renewal v1; the owner approved release warm-ups and a minute-eight observation deadline; other holds retain their recorded evidence).
+Last reconciled: 2026-10-10 (S183–S226 started; accessible Vendoroo, acquisition and native-answering evidence inspected; their five dependent contracts remain pending; A1 now names who can make the Dotloop renewal template: the connected integrations login is a limited Dotloop admin, so a full company admin must create it, and the owner sent that request to Dan on 2026-10-08; runs 5b5c850e and 87920129 released Dotloop PDF renewal v1; the owner approved release warm-ups and a minute-eight observation deadline; other holds retain their recorded evidence).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only the effect named in its row. No hold blocks development,
@@ -13,14 +13,38 @@ substitute value, identifier, credential or human verdict to clear a hold.
 
 | Id        | Blocks only                                                         | Owner step                                                                                                                                                                              | Then the runner                                                                                                        |
 | --------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| B-AUTH2   | Unattended local sessions longer than about 16 hours                | A4: session exception, then re-enroll WSL                                                                                                                                               | Runs the fresh-shell CLI/ADC probe to 25 hours and records the result                                                  |
-| B-MNT1    | Preapproval-based maintenance routing (S108)                        | A3: preview and confirm the RentVine import                                                                                                                                             | Reads back the recorded preapprovals and their effective date                                                          |
+| B-AUTH2   | Separate 25-hour unchanged-enrollment longevity claim               | A4: session exception, then re-enroll WSL                                                                                                                                               | Runs the fresh-shell CLI/ADC probe to 25 hours and records the result                                                  |
+| B-MNT1    | Import of actual RentVine preapproval values (S108)                 | A3: preview and confirm the RentVine import                                                                                                                                             | Reads back the recorded preapprovals and their effective date                                                          |
 | B-S100    | The resident-reply draft key, so S100 and then S36 completion       | A2: ticket, link work order 1756, one sync                                                                                                                                              | Verifies the resident mapping read-only, then runs the bounded draft proof (Q3)                                        |
 | B-TIMING  | Approved 30-day notice classifications (they read Cannot determine) | A5: record the decided basis in Admin                                                                                                                                                   | Reads back the saved basis version                                                                                     |
 | B-DL2     | The Dotloop connection's selected resources                         | A1: a full Dotloop admin (asked: Dan, 2026-10-08) creates the Lease Renewal template and adds the integrations login to the office; then the owner selects the resources in Connections | Reads back profile/template readiness; both Dotloop keys stay closed                                                   |
 | B-DL3     | Approved form content/maps and rules for the selected lease packet  | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup                                                       | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output |
 | B-BROWSER | Release assurance, only when Google signs the Admin profile out     | A6: sign the Admin profile back in                                                                                                                                                      | Recollects prerequisites and continues the release                                                                     |
 | B-HUMAN   | Human verdicts and real-case accuracy claims only                   | E2: observed sessions and real material                                                                                                                                                 | Records each verdict with its evidence; nothing is inferred from tests                                                 |
+
+## Current program dependencies — S183–S226
+
+- **B-AUTH-CURRENT.** Both approved WSL CLI/ADC refresh probes require fresh Google enrollment. Cloud inspection/release waits for the owner recovery command already surfaced in chat. The runner changes no challenge, identity or session policy; independent work continues.
+
+- **B-VENDOROO-CONTRACT (S208).** Dan was already sent the integration/access request. The
+  authorized reply was inspected and supplies no account access or supported integration contract.
+  Complete Vendoroo integration remains required. Await the actual authorized access path and
+  account-scoped event/read/ownership/deduplication/takeover contract; no duplicate message was sent.
+- **B-ACQUISITION-CONTRACT (S217/S218).** No identified actual source sample/custodian, exact
+  object/document list, existing/new matching basis, financial opening/inclusion/cutover decision,
+  or confirmed destination import contract is available. A bounded repository filename inventory
+  does not establish a source schema or exact acquisition count. S216 records the readback.
+- **B-NATIVE-ANSWERING-CONTRACT (S220/S221).** Actual number/channel/provider account and
+  event contract, native/Vendoroo function coverage/holidays/languages/fallback, approved emergency
+  contacts/troubleshooting/consent/recording policy, and cost/cutover/rollback decisions are missing.
+  S219 records the readback. No phone provider, coverage or operating policy is guessed.
+
+These five outcomes remain required. Independent maintenance, reporting, shared policy and
+configuration engineering continues. Runtime policy controls accept only actual staff-reviewed
+inputs; their unset state is not operational policy. The owner execution instruction already
+carries program authority through phases and necessary repairs; these holds request material
+facts, not repeated phase consent. Dotloop A1 remains partially unblocked and its existing row
+still requires office/template eligibility and saved supported selection; both write keys are closed.
 
 ## Owner decisions
 
@@ -44,7 +68,7 @@ Recorded on 2026-10-02 (`accept all recommendations`):
 
 Earlier decisions stand: RentVine's per-property maintenance limits are the S108 source (B-MNT1,
 2026-10-01); RentVine work order 101756 (API id 1756) is the S100 target; B-MNT2 closed with
-Vendoroo's agent writing into RentVine and no direct connector.
+Vendoroo's agent writing into RentVine and no direct connector under that older contract. The owner now explicitly requires complete Vendoroo integration in S207/S208; the older closure does not satisfy it.
 
 ## Owner steps
 

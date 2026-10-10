@@ -1,5 +1,11 @@
 "use client";
-import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
+import { MaintenanceVendorWorkPanel } from "./MaintenanceVendorWorkPanel";
+import { MaintenanceReviews } from "./MaintenanceReviews";
+import { MaintenanceCaseFactsPanel } from "./MaintenanceCaseFactsPanel";
+import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { MaintenanceLifecyclePanel } from "./MaintenanceLifecyclePanel";
+import { useMaintenanceEdits } from "./useMaintenanceEdits";
+import { maintenanceAging } from "@/lib/maintenance/lifecycle";
 import {
   PersonalViewStatus,
   usePersonalFilters,
@@ -10,9 +16,10 @@ import { useEffect, useState } from "react";
 
 import { WorkflowCommunicationPanel } from "@/components/gmail-hub/WorkflowCommunicationPanel";
 import { MaintenanceOwnerNoticeDraftComposer } from "@/components/maintenance/MaintenanceOwnerNoticeDraftComposer";
-import { RentvineWorkOrderPanel } from "@/components/maintenance/RentvineWorkOrderPanel";
+import { OrdinaryRentvineWorkOrderPanel } from "@/components/maintenance/OrdinaryRentvineWorkOrderPanel";
 import { WorkOrderChatPanel } from "@/components/maintenance/WorkOrderChatPanel";
-import { ConfirmationDialog } from "@/components/ui";
+import { useMaintenanceTicketState } from "./MaintenanceTicketProvider";
+import { projectMaintenanceWaitingOn } from "@/lib/maintenance/waiting-on";
 import type { AssignableUser } from "@/lib/maintenance/assignee-model";
 import {
   formatPreapprovalAmount,
@@ -26,7 +33,6 @@ import {
   type MaintenanceWaitingOnProjection,
 } from "@/lib/maintenance/waiting-on";
 import {
-  MAINTENANCE_ALLOWED_STATUS_TRANSITIONS,
   type MaintenanceTicketActivityRecord,
   type MaintenanceTicketRecord,
   type MaintenanceTicketStatus,
@@ -41,12 +47,6 @@ const STATUS_PILL: Record<MaintenanceTicketStatus, string> = {
   Scheduled: "Scheduled",
   Closed: "Completed",
 };
-
-interface PendingTicketTransition {
-  ticket: MaintenanceTicketRecord;
-  kind: "close" | "reopen";
-  nextStatus: MaintenanceTicketStatus;
-}
 
 export function MaintenanceQueue({
   initialTickets,
@@ -73,16 +73,26 @@ export function MaintenanceQueue({
   const liveInitialTickets = initialTickets.filter(
     (ticket) => ticket.data_mode === "live",
   );
-  const focusedTicket = liveInitialTickets.find(
-    (ticket) => ticket.id === focusedTicketId,
+  const [localTickets, setLocalTickets] = useState(liveInitialTickets),
+    shared = useMaintenanceTicketState();
+  const tickets = shared?.tickets ?? localTickets,
+    setTickets = shared?.setTickets ?? setLocalTickets;
+  const focusedTicket = tickets.find((ticket) => ticket.id === focusedTicketId);
+  const [revealedId, setRevealedId] = useState<string | null>(null);
+  const [agingOnly, setAgingOnly] = useState(false);
+  const edits = useMaintenanceEdits(currentUid, tickets, (updated) =>
+    setTickets((previous) =>
+      previous.some((t) => t.id === updated.id)
+        ? previous.map((t) =>
+            t.id === updated.id &&
+            (t.record_version ?? 0) <= (updated.record_version ?? 0)
+              ? updated
+              : t,
+          )
+        : [updated, ...previous],
+    ),
   );
-  const [tickets, setTickets] = useState(liveInitialTickets);
-  const [pendingId, setPendingId] = useState<string | null>(null);
-  const [pendingTransition, setPendingTransition] =
-    useState<PendingTicketTransition | null>(null);
-  const [transitionReason, setTransitionReason] = useState("");
-  const [transitionError, setTransitionError] = useState("");
-  const [status, setStatus] = useState("");
+  const patch = edits.apply;
   const [viewFilters, setViewFilters, resetView] = usePersonalFilters(
     "maintenance-queue",
     { assignee: "", waiting: "all" },
@@ -106,91 +116,13 @@ export function MaintenanceQueue({
     element.scrollIntoView?.({ block: "center" });
   }, [focusedTicket]);
 
-  if (unavailableNote) {
+  if (unavailableNote && tickets.length === 0) {
     return (
       <section aria-label="Ticket queue" className="ui-stack">
         <h2 className="section-subtitle">Ticket queue</h2>
         <p className="muted">{unavailableNote}</p>
       </section>
     );
-  }
-
-  async function patch(
-    ticketId: string,
-    body: Record<string, unknown>,
-  ): Promise<boolean> {
-    setPendingId(ticketId);
-    setStatus("");
-    try {
-      const response = await fetch(
-        `/api/maintenance/tickets/${encodeURIComponent(ticketId)}`,
-        {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(body),
-        },
-      );
-      const payload = (await response.json().catch(() => ({}))) as {
-        ticket?: MaintenanceTicketRecord;
-        error?: string;
-      };
-      if (response.ok && payload.ticket?.data_mode === "live") {
-        const updated = payload.ticket;
-        setTickets((previous) =>
-          previous.map((ticket) => (ticket.id === updated.id ? updated : ticket)),
-        );
-        setStatus(
-          body.op === "status" || body.op === "reopen"
-            ? `Ticket updated to ${updated.status}.`
-            : "Ticket updated.",
-        );
-        return true;
-      } else {
-        setStatus(payload.error ?? "Could not update the ticket.");
-        return false;
-      }
-    } catch (error) {
-      setStatus(waitFailureMessage(error, "Could not reach the ticket service."));
-      return false;
-    } finally {
-      setPendingId(null);
-    }
-  }
-
-  function changeStatus(ticket: MaintenanceTicketRecord, next: MaintenanceTicketStatus) {
-    if (next === ticket.status) return;
-    if (next === "Closed") {
-      setPendingTransition({ ticket, kind: "close", nextStatus: "Closed" });
-      setTransitionReason("");
-      setTransitionError("");
-      return;
-    }
-    void patch(ticket.id, { op: "status", status: next });
-  }
-
-  function reopen(ticket: MaintenanceTicketRecord) {
-    setPendingTransition({ ticket, kind: "reopen", nextStatus: "Open" });
-    setTransitionReason("");
-    setTransitionError("");
-  }
-
-  async function confirmTransition() {
-    const transition = pendingTransition;
-    const reason = transitionReason.trim();
-    if (!transition || pendingId || !reason) return;
-    setTransitionError("");
-    const saved = await patch(
-      transition.ticket.id,
-      transition.kind === "close"
-        ? { op: "status", status: transition.nextStatus, reason }
-        : { op: "reopen", reason },
-    );
-    if (saved) {
-      setPendingTransition(null);
-      setTransitionReason("");
-    } else {
-      setTransitionError("The ticket was not changed. Review the message and try again.");
-    }
   }
 
   function assign(ticket: MaintenanceTicketRecord, assigneeUid: string | null) {
@@ -202,13 +134,25 @@ export function MaintenanceQueue({
     assignedToMe && currentUid
       ? tickets.filter((ticket) => ticket.assignee_uid === currentUid)
       : tickets;
-  const visible =
+  const byWaiting =
     waitingFilter === "all"
       ? mine
-      : mine.filter((ticket) => waitingOn[ticket.id]?.waitingOn === waitingFilter);
+      : mine.filter(
+          (ticket) =>
+            (
+              waitingOn[ticket.id] ??
+              projectMaintenanceWaitingOn({ ticket, link: null, preapproval: null })
+            ).waitingOn === waitingFilter,
+        );
+  const visible = agingOnly
+    ? byWaiting.filter((t) => maintenanceAging(t).aging)
+    : byWaiting;
   const open = visible.filter((ticket) => ticket.status !== "Closed");
   const closed = visible.filter((ticket) => ticket.status === "Closed");
   const focusedTicketMissing = Boolean(focusedTicketId) && !focusedTicket;
+  const created = tickets.find((t) => t.id === shared?.createdId),
+    outside = created && !visible.some((t) => t.id === created.id),
+    revealed = outside && revealedId === created.id ? created : null;
 
   return (
     <section aria-label="Ticket queue" className="ui-stack">
@@ -242,6 +186,14 @@ export function MaintenanceQueue({
           </select>
         </label>
       </div>
+      <label>
+        <input
+          type="checkbox"
+          checked={agingOnly}
+          onChange={(e) => setAgingOnly(e.target.checked)}
+        />
+        Unresolved at least three calendar days
+      </label>
       <div className="ui-actions">
         <PersonalViewStatus surface="maintenance-queue" />
         <button
@@ -255,6 +207,57 @@ export function MaintenanceQueue({
           Reset view
         </button>
       </div>
+      {unavailableNote ? (
+        <p role="status">
+          {unavailableNote} Only confirmed available tickets are shown here.
+        </p>
+      ) : null}
+      {outside ? (
+        <section aria-label="Created ticket visibility">
+          <p>
+            Your created ticket is outside these filters. The chosen filters are kept.
+          </p>
+          <button
+            type="button"
+            onClick={() => setRevealedId(revealed ? null : created.id)}
+          >
+            {revealed ? "Return to filtered queue" : "Reveal created ticket"}
+          </button>
+          {revealed ? (
+            <TicketCard
+              ticket={revealed}
+              assignees={assignees}
+              canEdit={canEdit}
+              onAssign={(uid) => assign(revealed, uid)}
+              onEstimate={(amount, costBasis) =>
+                patch(revealed.id, {
+                  op: "estimate",
+                  amountCents: amount,
+                  ...(costBasis ? { costBasis } : {}),
+                })
+              }
+              onNote={(text) => patch(revealed.id, { op: "note", text })}
+              onReadCurrent={() => edits.readCurrent(revealed.id)}
+              pendingCommand={
+                edits.pending?.ticketId === revealed.id
+                  ? edits.pending.command
+                  : undefined
+              }
+              onApply={(command) => patch(revealed.id, command)}
+              pending={edits.blocked}
+              statusConflict={statusConflicts[revealed.id] ?? null}
+              waitingOn={
+                waitingOn[revealed.id] ??
+                projectMaintenanceWaitingOn({
+                  ticket: revealed,
+                  link: null,
+                  preapproval: null,
+                })
+              }
+            />
+          ) : null}
+        </section>
+      ) : null}
       {tickets.length === 0 ? (
         <p className="muted">
           No tickets yet. Build a work-order draft and create a ticket.
@@ -278,16 +281,26 @@ export function MaintenanceQueue({
           assignees={assignees}
           canEdit={canEdit}
           onAssign={(assigneeUid) => assign(ticket, assigneeUid)}
-          onEstimate={(amountCents) =>
-            void patch(ticket.id, { op: "estimate", amountCents })
+          onEstimate={(amountCents, costBasis) =>
+            patch(ticket.id, {
+              op: "estimate",
+              amountCents,
+              ...(costBasis ? { costBasis } : {}),
+            })
           }
           onNote={(text) => patch(ticket.id, { op: "note", text })}
-          onReopen={() => reopen(ticket)}
-          onStatus={(next) => changeStatus(ticket, next)}
-          pending={pendingId === ticket.id}
+          onReadCurrent={() => edits.readCurrent(ticket.id)}
+          pendingCommand={
+            edits.pending?.ticketId === ticket.id ? edits.pending.command : undefined
+          }
+          onApply={(command) => patch(ticket.id, command)}
+          pending={edits.blocked}
           statusConflict={statusConflicts[ticket.id] ?? null}
           ticket={ticket}
-          waitingOn={waitingOn[ticket.id] ?? null}
+          waitingOn={
+            waitingOn[ticket.id] ??
+            projectMaintenanceWaitingOn({ ticket, link: null, preapproval: null })
+          }
         />
       ))}
       {closed.length > 0 ? (
@@ -302,74 +315,64 @@ export function MaintenanceQueue({
               assignees={assignees}
               canEdit={canEdit}
               onAssign={(assigneeUid) => assign(ticket, assigneeUid)}
-              onEstimate={(amountCents) =>
-                void patch(ticket.id, { op: "estimate", amountCents })
+              onEstimate={(amountCents, costBasis) =>
+                patch(ticket.id, {
+                  op: "estimate",
+                  amountCents,
+                  ...(costBasis ? { costBasis } : {}),
+                })
               }
               onNote={(text) => patch(ticket.id, { op: "note", text })}
-              onReopen={() => reopen(ticket)}
-              onStatus={(next) => changeStatus(ticket, next)}
-              pending={pendingId === ticket.id}
+              onReadCurrent={() => edits.readCurrent(ticket.id)}
+              pendingCommand={
+                edits.pending?.ticketId === ticket.id ? edits.pending.command : undefined
+              }
+              onApply={(command) => patch(ticket.id, command)}
+              pending={edits.blocked}
               statusConflict={statusConflicts[ticket.id] ?? null}
               ticket={ticket}
-              waitingOn={waitingOn[ticket.id] ?? null}
+              waitingOn={
+                waitingOn[ticket.id] ??
+                projectMaintenanceWaitingOn({ ticket, link: null, preapproval: null })
+              }
             />
           ))}
         </details>
       ) : null}
       <p aria-atomic="true" aria-live="polite" className="muted" role="status">
-        {status}
+        {edits.status}
       </p>
-      <ConfirmationDialog
-        busy={pendingId === pendingTransition?.ticket.id}
-        busyLabel={
-          pendingTransition?.kind === "reopen" ? "Reopening ticket" : "Closing ticket"
-        }
-        confirmDisabled={transitionReason.trim().length === 0}
-        confirmLabel={
-          pendingTransition?.kind === "reopen" ? "Reopen ticket" : "Close ticket"
-        }
-        confirmVariant={pendingTransition?.kind === "reopen" ? "primary" : "destructive"}
-        description="This changes the ticket's tracked lifecycle state in PMI."
-        error={transitionError}
-        onCancel={() => {
-          setPendingTransition(null);
-          setTransitionReason("");
-          setTransitionError("");
-        }}
-        onConfirm={() => void confirmTransition()}
-        open={pendingTransition !== null}
-        title={
-          pendingTransition?.kind === "reopen"
-            ? "Reopen maintenance ticket"
-            : "Close maintenance ticket"
-        }
-      >
-        {pendingTransition ? (
-          <>
-            <dl className="ui-confirmation-summary">
-              <dt>Ticket</dt>
-              <dd>{pendingTransition.ticket.summary}</dd>
-              <dt>Ticket ID</dt>
-              <dd>{pendingTransition.ticket.id}</dd>
-              <dt>Current status</dt>
-              <dd>{pendingTransition.ticket.status}</dd>
-              <dt>Next status</dt>
-              <dd>{pendingTransition.nextStatus}</dd>
-            </dl>
-            <label htmlFor="maintenance-ticket-transition-reason">
-              Reason
-              <textarea
-                disabled={pendingId === pendingTransition.ticket.id}
-                id="maintenance-ticket-transition-reason"
-                onChange={(event) => setTransitionReason(event.target.value)}
-                required
-                rows={3}
-                value={transitionReason}
-              />
-            </label>
-          </>
-        ) : null}
-      </ConfirmationDialog>
+      {edits.pending ? (
+        <section aria-label="Original ticket edit recovery">
+          <p>
+            The original edit is unresolved; no replacement edit runs during recovery.
+          </p>
+          {["scope", "reason", "text"].map((key) =>
+            typeof edits.pending?.command[key] === "string" ? (
+              <p key={key}>{String(edits.pending.command[key])}</p>
+            ) : null,
+          )}
+          <button type="button" disabled={edits.busy} onClick={() => void edits.check()}>
+            Check original edit
+          </button>
+          <button
+            type="button"
+            disabled={edits.busy}
+            onClick={() => void edits.stopOriginal()}
+          >
+            Stop original app edit if it has not committed
+          </button>
+          <p>
+            Stopping records an exact cutoff. If it committed first, its actual result is
+            recovered.
+          </p>
+        </section>
+      ) : null}
+      {edits.conflictId ? (
+        <button type="button" disabled={edits.busy} onClick={() => void edits.refresh()}>
+          Read current ticket after conflict
+        </button>
+      ) : null}
     </section>
   );
 }
@@ -381,8 +384,9 @@ function TicketCard({
   pending,
   assignees,
   canEdit,
-  onStatus,
-  onReopen,
+  onApply,
+  pendingCommand,
+  onReadCurrent,
   onAssign,
   onNote,
   onEstimate,
@@ -393,11 +397,15 @@ function TicketCard({
   pending: boolean;
   assignees: AssignableUser[];
   canEdit: boolean;
-  onStatus: (next: MaintenanceTicketStatus) => void;
-  onReopen: () => void;
+  onApply: (command: Record<string, unknown>) => Promise<boolean>;
+  pendingCommand?: Record<string, unknown>;
+  onReadCurrent: () => Promise<void>;
   onAssign: (assigneeUid: string | null) => void;
-  onNote: (text: string) => void;
-  onEstimate: (amountCents: number | null) => void;
+  onNote: (text: string) => Promise<boolean>;
+  onEstimate: (
+    amountCents: number | null,
+    costBasis?: MaintenanceTicketRecord["estimate_cost_basis"],
+  ) => Promise<boolean>;
 }>) {
   const [note, setNote] = useState("");
   const assigneeOffRoster =
@@ -451,46 +459,18 @@ function TicketCard({
       {ticket.closed_reason ? (
         <p className="muted">Closed: {ticket.closed_reason}</p>
       ) : null}
+      <MaintenanceLifecyclePanel
+        ticket={ticket}
+        canEdit={canEdit}
+        pending={pending}
+        onApply={onApply}
+      />
       <div className="field-row">
-        {ticket.status === "Closed" ? (
-          <div className="select-field">
-            <span>Status</span>
-            <strong>Closed</strong>
-            <button
-              className="secondary-button"
-              disabled={pending}
-              onClick={onReopen}
-              type="button"
-            >
-              Reopen ticket
-            </button>
-          </div>
-        ) : (
-          <label className="select-field" htmlFor={`status-${ticket.id}`}>
-            Status
-            <select
-              disabled={pending}
-              id={`status-${ticket.id}`}
-              onChange={(event) =>
-                onStatus(event.target.value as MaintenanceTicketStatus)
-              }
-              value={ticket.status}
-            >
-              {[
-                ticket.status,
-                ...MAINTENANCE_ALLOWED_STATUS_TRANSITIONS[ticket.status],
-              ].map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+        <p>App status: {ticket.status}</p>
         <label className="select-field" htmlFor={`assignee-${ticket.id}`}>
           Assignee
           <select
-            disabled={pending}
+            disabled={pending || !canEdit}
             id={`assignee-${ticket.id}`}
             onChange={(event) =>
               onAssign(event.target.value === "" ? null : event.target.value)
@@ -523,10 +503,9 @@ function TicketCard({
         </label>
         <button
           className="secondary-button"
-          disabled={pending || note.trim().length === 0}
-          onClick={() => {
-            onNote(note.trim());
-            setNote("");
+          disabled={pending || !canEdit || note.trim().length === 0}
+          onClick={async () => {
+            if (await onNote(note.trim())) setNote("");
           }}
           type="button"
         >
@@ -534,6 +513,29 @@ function TicketCard({
         </button>
       </div>
       <TicketHistory ticketId={ticket.id} />
+      <MaintenanceVendorWorkPanel
+        ticket={ticket}
+        canEdit={canEdit}
+        blocked={pending}
+        onApply={onApply}
+        pendingCommand={pendingCommand}
+      />
+      <MaintenanceReviews
+        ticket={ticket}
+        canEdit={canEdit}
+        blocked={pending}
+        onApply={onApply}
+        pendingCommand={pendingCommand}
+        onReadCurrent={onReadCurrent}
+      />
+      <MaintenanceCaseFactsPanel
+        ticket={ticket}
+        canEdit={canEdit}
+        blocked={pending}
+        onApply={onApply}
+        pendingCommand={pendingCommand}
+        onReadCurrent={onReadCurrent}
+      />
       <section className="ui-callout" aria-label="Live write boundary">
         <p>
           <strong>Live write boundary:</strong> each external action must show its exact
@@ -548,15 +550,18 @@ function TicketCard({
           pending={pending}
         />
       ) : null}
-      {canEdit && waitingOn?.ownerDecisionRequired !== false ? (
-        <MaintenanceOwnerNoticeDraftComposer ticketRef={ticket.id} />
+      {canEdit ? (
+        <details>
+          <summary>Optional owner communication</summary>
+          <MaintenanceOwnerNoticeDraftComposer ticketRef={ticket.id} />
+        </details>
       ) : null}
       {canEdit && waitingOn?.ownerDecisionRequired === false ? (
         <p className="muted">{waitingOn.ownerDecisionDetail}</p>
       ) : null}
       <details>
         <summary>RentVine work order</summary>
-        <RentvineWorkOrderPanel
+        <OrdinaryRentvineWorkOrderPanel
           canEdit={canEdit}
           hasVerifiedUnit={Boolean(ticket.unit)}
           initialLink={null}
@@ -568,6 +573,7 @@ function TicketCard({
         <WorkOrderChatPanel canEdit={canEdit} ticketId={ticket.id} />
       </details>
       <WorkflowCommunicationPanel
+        discoveryOnly
         canLink
         entityId={ticket.id}
         entityType="maintenance_ticket"
@@ -676,9 +682,15 @@ function EstimateControl({
 }: Readonly<{
   currentCents: number | null;
   pending: boolean;
-  onRecord: (amountCents: number | null) => void;
+  onRecord: (
+    amountCents: number | null,
+    costBasis?: MaintenanceTicketRecord["estimate_cost_basis"],
+  ) => Promise<boolean>;
 }>) {
   const [value, setValue] = useState("");
+  const [costBasis, setCostBasis] = useState<
+    MaintenanceTicketRecord["estimate_cost_basis"] | ""
+  >("");
   const [error, setError] = useState("");
 
   return (
@@ -698,14 +710,35 @@ function EstimateControl({
           value={value}
         />
       </label>
+      <label className="ui-field">
+        <span>Estimate cost basis</span>
+        <select
+          value={costBasis}
+          onChange={(event) => setCostBasis(event.target.value as typeof costBasis)}
+        >
+          <option value="">Choose the actual basis</option>
+          <option value="total_including_tax_and_markup">
+            Total including tax and PMI markup
+          </option>
+          <option value="vendor_cost_including_tax">
+            Vendor cost including tax, excluding PMI markup
+          </option>
+          <option value="vendor_cost_excluding_tax">
+            Vendor cost excluding tax and PMI markup
+          </option>
+        </select>
+      </label>
       <div className="ui-row">
         <button
-          disabled={pending || value.trim() === ""}
-          onClick={() => {
+          disabled={pending || value.trim() === "" || !costBasis}
+          onClick={async () => {
             try {
-              onRecord(parsePreapprovalAmountCents(value));
-              setValue("");
-              setError("");
+              if (
+                await onRecord(parsePreapprovalAmountCents(value), costBasis || undefined)
+              ) {
+                setValue("");
+                setError("");
+              }
             } catch (caught) {
               setError(
                 caught instanceof Error ? caught.message : "Enter an exact amount.",

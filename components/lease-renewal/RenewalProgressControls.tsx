@@ -1,4 +1,8 @@
 "use client";
+import {
+  firstUsableComparables,
+  comparableDistanceLabel,
+} from "@/lib/lease-renewal/comparable-presentation";
 import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 import { useRenewalSaveFocus } from "./RenewalSaveFocus";
 import {
@@ -1692,42 +1696,58 @@ export function OwnerDecisionForm({
                 </p>
               ) : null}
               {compLookup.comparables && compLookup.comparables.length > 0 ? (
-                <ol className="ui-rows">
-                  {compLookup.comparables.map((comp, index) => (
-                    <li key={[index, comp.rent, comp.correlation ?? "none"].join("-")}>
-                      Comp {index + 1}: {formatMoney(comp.rent)}
-                      {comp.correlation !== undefined ? (
-                        <> · {Math.round(comp.correlation * 100)}% correlation</>
-                      ) : null}
-                      {comp.distanceMiles !== undefined ? (
-                        <> · {comp.distanceMiles} mi</>
-                      ) : null}
-                      {comp.propertyType ? <> · {comp.propertyType}</> : null}
-                      {comp.bedrooms !== undefined ? <> · {comp.bedrooms} bed</> : null}
-                      {comp.bathrooms !== undefined ? (
-                        <> · {comp.bathrooms} bath</>
-                      ) : null}
-                      {comp.squareFootage !== undefined ? (
-                        <> · {comp.squareFootage} sq ft</>
-                      ) : null}
-                      {comp.daysOld !== undefined ? (
-                        <> · {comp.daysOld} days old</>
-                      ) : null}
-                      {comp.daysOnMarket !== undefined ? (
-                        <> · {comp.daysOnMarket} days on market</>
-                      ) : null}
-                      {comp.listedDate ? (
-                        <> · listed {formatCalendarDateOrTimestamp(comp.listedDate)}</>
-                      ) : null}
-                      {comp.lastSeenDate ? (
-                        <>
-                          {" "}
-                          · last seen {formatCalendarDateOrTimestamp(comp.lastSeenDate)}
-                        </>
-                      ) : null}
-                    </li>
-                  ))}
-                </ol>
+                <>
+                  <p className="muted">
+                    First {firstUsableComparables(compLookup.comparables).entries.length}{" "}
+                    usable provider-ranked comparables of {compLookup.comparables.length}{" "}
+                    retained. A usable comparable has a finite positive monthly rent;
+                    other entries are omitted here. The full observation remains retained.
+                  </p>
+                  <ol className="ui-rows">
+                    {firstUsableComparables(compLookup.comparables).entries.map(
+                      ({ value: comp, index }) => (
+                        <li
+                          key={[index, comp.rent, comp.correlation ?? "none"].join("-")}
+                        >
+                          Comp {index + 1}: {formatMoney(comp.rent)}
+                          {comp.correlation !== undefined ? (
+                            <> · {Math.round(comp.correlation * 100)}% correlation</>
+                          ) : null}
+                          <> · {comparableDistanceLabel(comp.distanceMiles)}</>
+                          {comp.propertyType ? <> · {comp.propertyType}</> : null}
+                          {comp.bedrooms !== undefined ? (
+                            <> · {comp.bedrooms} bed</>
+                          ) : null}
+                          {comp.bathrooms !== undefined ? (
+                            <> · {comp.bathrooms} bath</>
+                          ) : null}
+                          {comp.squareFootage !== undefined ? (
+                            <> · {comp.squareFootage} sq ft</>
+                          ) : null}
+                          {comp.daysOld !== undefined ? (
+                            <> · {comp.daysOld} days old</>
+                          ) : null}
+                          {comp.daysOnMarket !== undefined ? (
+                            <> · {comp.daysOnMarket} days on market</>
+                          ) : null}
+                          {comp.listedDate ? (
+                            <>
+                              {" "}
+                              · listed {formatCalendarDateOrTimestamp(comp.listedDate)}
+                            </>
+                          ) : null}
+                          {comp.lastSeenDate ? (
+                            <>
+                              {" "}
+                              · last seen{" "}
+                              {formatCalendarDateOrTimestamp(comp.lastSeenDate)}
+                            </>
+                          ) : null}
+                        </li>
+                      ),
+                    )}
+                  </ol>
+                </>
               ) : null}
             </div>
           ) : null}

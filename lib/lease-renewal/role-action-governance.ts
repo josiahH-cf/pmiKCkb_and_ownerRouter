@@ -400,6 +400,28 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     roleDeniedReason: "Editor access is required to save working information.",
     safeNextAction: "Continue read-only or ask an Admin to review your role.",
   },
+  save_pricing_policy: {
+    label: "Save reusable renewal pricing and standing owner agreement terms",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to save renewal pricing terms.",
+    safeNextAction: "Continue read-only or ask an Admin to review your role.",
+  },
+  save_shared_collection: {
+    label: "Save a reviewed shared lease collection",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to save a reviewed lease collection.",
+    safeNextAction: "Read the saved collection and its current accessible members.",
+  },
   save_desk_preference: {
     label: "Remember the signed-in account's own worklist view",
     roleCapability: "read",
@@ -412,15 +434,16 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     safeNextAction: "Use the worklist with its default view.",
   },
   send_renewal_message: {
-    label: "Send a renewal message from the application",
-    roleCapability: "read",
+    label: "Send a reviewed workflow-linked renewal message",
+    roleCapability: "sendEmail",
     effect: "external_send",
-    externalRequirement: "permanently_closed",
-    actionKeys: ["gmail.renewal_notice.send", "gmail.message.send"],
+    externalRequirement: "exact_action",
+    actionKeys: ["gmail.renewal_notice.send"],
     exactConfirmation: true,
     audit: "external_receipt",
-    roleDeniedReason: "The application never sends renewal messages for any role.",
-    safeNextAction: "Create an unsent draft, review it in Gmail, and send from Gmail.",
+    roleDeniedReason: "Staff email authority is required to send a renewal message.",
+    safeNextAction:
+      "Review the exact linked message and managed sender, then Send or Schedule. Dispatch waits for the exact key and durable execution checks.",
   },
 } as const satisfies Record<string, RenewalGovernanceRow>;
 
@@ -472,7 +495,7 @@ export function renewalRoleCapability(key: RenewalCapabilityKey): Capability {
  * choose between a control and its read-only explanation without importing the raw role table.
  */
 export function hasRenewalRoleAuthority(key: RenewalCapabilityKey, role: Role): boolean {
-  const row = RENEWAL_GOVERNANCE_MATRIX[key];
+  const row: RenewalGovernanceRow = RENEWAL_GOVERNANCE_MATRIX[key];
   return (
     row.externalRequirement !== "permanently_closed" && can(role, row.roleCapability)
   );
@@ -480,7 +503,7 @@ export function hasRenewalRoleAuthority(key: RenewalCapabilityKey, role: Role): 
 
 /** Route-level role refusal with the same reason and safe next action rendered by the UI. */
 export function assertRenewalRoleAuthority(key: RenewalCapabilityKey, role: Role): void {
-  const row = RENEWAL_GOVERNANCE_MATRIX[key];
+  const row: RenewalGovernanceRow = RENEWAL_GOVERNANCE_MATRIX[key];
   if (row.externalRequirement === "permanently_closed") {
     throw new EditableLayerError(`${row.roleDeniedReason} ${row.safeNextAction}`, 403);
   }
@@ -494,7 +517,7 @@ export function evaluateRenewalAuthority(
   capability: RenewalCapabilityKey,
   context: RenewalAuthorityContext,
 ): RenewalAuthorityDecision {
-  const row = RENEWAL_GOVERNANCE_MATRIX[capability];
+  const row: RenewalGovernanceRow = RENEWAL_GOVERNANCE_MATRIX[capability];
   const deny = (
     code: Exclude<RenewalAuthorityDecisionCode, "allowed">,
     reason: string,
@@ -765,6 +788,11 @@ export const RENEWAL_CONTROL_INVENTORY = [
 
 /** Ordered, source-addressable inventory used to make page/API drift mechanically visible. */
 export const RENEWAL_ROUTE_INVENTORY = [
+  {
+    kind: "page",
+    source: "app/lease-renewal/collections/page.tsx",
+    capability: "read_workspace",
+  },
   { kind: "page", source: "app/lease-renewal/page.tsx", capability: "read_workspace" },
   {
     kind: "page",
@@ -1126,5 +1154,29 @@ export const RENEWAL_ROUTE_INVENTORY = [
     source: "app/api/lease-renewal/desk-preferences/route.ts",
     method: "POST",
     capability: "save_desk_preference",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/pricing-policy/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/pricing-policy/route.ts",
+    method: "POST",
+    capability: "save_pricing_policy",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/collections/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/collections/route.ts",
+    method: "POST",
+    capability: "save_shared_collection",
   },
 ] as const satisfies readonly RenewalRouteInventoryEntry[];

@@ -2,6 +2,7 @@
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeading";
 import { useEffect, useState } from "react";
+import { RenewalRecommendation } from "@/components/lease-renewal/RenewalRecommendation";
 import { Card } from "@/components/ui";
 import { OwnerDecisionForm } from "@/components/lease-renewal/RenewalProgressControls";
 import { useRenewalManualWorkspace } from "@/components/lease-renewal/RenewalManualWorkspace";
@@ -12,9 +13,11 @@ export function RenewalCompPreparation({
   currentRent,
   compScreenshotExecutable,
   marketSubject = null,
+  sourceFresh = true,
 }: {
   address: string;
   currentRent?: number;
+  sourceFresh?: boolean;
   compScreenshotExecutable: boolean;
   /** S118: the server-resolved subject behind the starting range and the report links. */
   marketSubject?: MarketSubjectProjection | null;
@@ -65,6 +68,7 @@ export function RenewalCompPreparation({
   return (
     <Card title={renewalCardTitle("market-evidence", "Market evidence")}>
       {error ? <p role="alert">{error}</p> : null}
+      <RenewalRecommendation currentRent={currentRent ?? null} fresh={sourceFresh} />
       <OwnerDecisionForm
         key={state?.cycleId ?? "unrecorded"}
         leaseId={context.leaseId}

@@ -38,7 +38,6 @@ afterEach(() => {
 
 const cycleId = "6c37bdcd-8264-4249-813f-0289307dd725";
 const EXECUTION_ONE = `exec_${"a".repeat(40)}`;
-const EXECUTION_TWO = `exec_${"b".repeat(40)}`;
 
 function tenantFacts(overrides: Partial<RenewalMessageFacts> = {}): RenewalMessageFacts {
   return {
@@ -211,8 +210,8 @@ describe("S161 editable message with missing information", () => {
       expect(button).not.toHaveAttribute("aria-disabled");
     }
     expect(
-      screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeEnabled();
+      screen.getByRole("link", { name: "Compose tenant message in Communications" }),
+    ).toHaveAttribute("target", "_blank");
   });
 
   it("BEH-S161-10: the source, message and Gmail destinations stay beside the message", async () => {
@@ -338,7 +337,7 @@ describe("S161 editable message with missing information", () => {
       expect(document.querySelector('[data-autosave="saved"]')).not.toBeNull(),
     );
     expect(document.activeElement).not.toBe(
-      screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
+      screen.getByRole("link", { name: "Compose tenant message in Communications" }),
     );
   });
 
@@ -433,8 +432,8 @@ describe("S162 copy exactly what is displayed", () => {
       expect(clip.writeText).toHaveBeenCalledWith(composed().plainText),
     );
     expect(
-      screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeDisabled();
+      screen.queryByRole("button", { name: "Preview unsent Gmail draft" }),
+    ).toBeNull();
     expect(api.posts()).toHaveLength(0);
   });
 });
@@ -457,268 +456,94 @@ const createdOutcome = {
   },
 };
 
-describe("S162 unsent Gmail draft from the displayed message", () => {
-  const previewOutcome = (subject: string, body: string) => ({
-    status: "preview",
-    channel: "tenant",
-    recipient: {
-      to: "jordan.s@fixture-rental.net",
-      sourceRef: "rentvine:lease:8800:tenants[0].email",
-      cc: ["riley.s@fixture-rental.net"],
-    },
-    subject,
-    body: `Draft — Review before sending\n\n${body}`,
-    executionId: EXECUTION_ONE,
-    previewHash: "d".repeat(64),
-    template: {
-      ref: "tenant-renewal:v2.0",
-      version: "v2.0",
-      contentHash: "a".repeat(64),
-      status: "approved",
-    },
-  });
-
-  it("BEH-S162-4, BEH-S162-6, BEH-S162-7, BEH-S162-8, AC-S162-2: one explicit action saves the displayed message, binds it, and shows the exact mailbox, To, Cc and content to confirm, with a reminder and no checkbox", async () => {
-    let edited = "";
-    const api = server(preparation(), (body) => {
-      if (body.kind === "draft" && !body.confirm)
-        return Response.json(previewOutcome("Lease Renewal for 88 Sample Row", edited));
-      if (body.kind === "draft")
-        return Response.json({
-          ...createdOutcome,
-          executionId: EXECUTION_ONE,
-        });
-      return savedResponse(body);
-    });
+describe("S193 replaces new creation and preserves original draft recovery", () => {
+  it("opens the canonical workflow composer without preparing a legacy draft", async () => {
+    const api = server(preparation(), () => Response.json({}));
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
-    const body = (await screen.findByLabelText("Email body")) as HTMLTextAreaElement;
-    edited = body.value.replace("Hello Jordan,", "Hi Jordan and Riley,");
-    // The edit is still in the control (no blur, nothing saved) when the draft is requested.
-    fireEvent.change(body, { target: { value: edited } });
-    fireEvent.click(screen.getByRole("button", { name: "Preview unsent Gmail draft" }));
-    await waitFor(() =>
-      expect(api.posts().some((call) => call.body!.kind === "draft")).toBe(true),
-    );
-    const request = api.posts().find((call) => call.body!.kind === "draft")!.body!;
-    expect(request.displayed).toEqual({
-      subject: "Lease Renewal for 88 Sample Row",
-      body: edited,
+    const link = await screen.findByRole("link", {
+      name: "Compose tenant message in Communications",
     });
-    expect(request.save).toMatchObject({
-      expectedRevision: 0,
-      bodyOverride: { text: edited },
-    });
-    const section = screen.getByRole("region", { name: "Unsent Gmail draft" });
-    await waitFor(() =>
-      expect(section).toHaveTextContent("From sample.op@pmikcmetro.com"),
-    );
-    expect(section).toHaveTextContent("To jordan.s@fixture-rental.net");
-    expect(section).toHaveTextContent("Cc riley.s@fixture-rental.net");
-    expect(section).toHaveTextContent("Hi Jordan and Riley,");
-    expect(section).toHaveTextContent("[Needs Verification: renewal rent]");
-    fireEvent.click(screen.getByRole("button", { name: "Review creation confirmation" }));
-    const confirm = screen.getByRole("group", { name: "Confirm exact unsent draft" });
-    expect(confirm).toHaveTextContent(/review it in Gmail before you send it/i);
-    expect(within(confirm).queryByRole("checkbox")).toBeNull();
-    fireEvent.click(
-      within(confirm).getByRole("button", { name: "Create this unsent draft" }),
-    );
-    await waitFor(() =>
-      expect(api.posts().some((call) => Boolean(call.body!.confirm))).toBe(true),
-    );
-    expect(api.posts().find((call) => call.body!.confirm)!.body).toMatchObject({
-      kind: "draft",
-      confirm: { executionId: EXECUTION_ONE, previewHash: "d".repeat(64) },
-    });
-    // BEH-S162-12: the actual Drafts destination is shown; a person sends from Gmail.
-    await waitFor(() =>
-      expect(
-        screen.getByRole("link", { name: "Open the Drafts folder to find this draft" }),
-      ).toHaveAttribute("href", expect.stringContaining("#drafts")),
-    );
-    expect(section).toHaveTextContent("A person sends from Gmail.");
-    // Every request is a save, a preview or an exact confirmation of that preview; none sends.
+    expect(link).toHaveAttribute("href", "/gmail-hub?compose=renewal_tenant&lease=8800");
+    expect(link).toHaveAttribute("target", "_blank");
     expect(
-      api
-        .posts()
-        .every(
-          (call) =>
-            ["save", "draft"].includes(String(call.body!.kind)) &&
-            !("send" in call.body!),
-        ),
-    ).toBe(true);
-  });
-
-  it("BEH-S162-7: when the needed save fails inside the draft action, the failure is reported and no preview appears", async () => {
-    const api = server(preparation(), () =>
-      Response.json(
-        {
-          error:
-            "The message could not be saved, so no draft was prepared. Your wording is kept on screen.",
-          code: "message_save_failed",
-          providerCallAttempted: false,
-        },
-        { status: 409 },
-      ),
-    );
-    render(<RenewalMessagePreparation channel="tenant" canEdit />);
-    const body = (await screen.findByLabelText("Email body")) as HTMLTextAreaElement;
-    const edited = `${body.value}\n\nOne more line.`;
-    fireEvent.change(body, { target: { value: edited } });
-    fireEvent.click(screen.getByRole("button", { name: "Preview unsent Gmail draft" }));
-    await waitFor(() =>
-      expect(
-        screen.getByText(/could not be saved, so no draft was prepared/i),
-      ).toBeInTheDocument(),
-    );
-    expect(
-      screen.queryByRole("button", { name: "Review creation confirmation" }),
+      screen.queryByRole("button", {
+        name: /Preview unsent|Create this unsent|Review creation/,
+      }),
     ).toBeNull();
-    expect((screen.getByLabelText("Email body") as HTMLTextAreaElement).value).toBe(
-      edited,
-    );
-    expect(api.posts()).toHaveLength(1);
+    expect(api.posts()).toHaveLength(0);
   });
-
-  it("BEH-S162-9: an unknown recipient refuses only the draft; editing and copy continue", async () => {
-    const clip = clipboard();
-    server(
+  it("recovers the original consumed execution and keeps its unknown outcome on a failed read", async () => {
+    let fails = true;
+    const api = server(
       preparation({
-        recipients: { status: "blocked", reasons: ["Tenant 2 has no email on file."] },
+        draftAttempt: {
+          executionId: EXECUTION_ONE,
+          state: "Needs reconciliation",
+          recoveryAvailable: true,
+          outcome: null,
+        },
       }),
       (body) =>
-        body.kind === "draft"
-          ? Response.json({
-              status: "blocked",
-              channel: "tenant",
-              reasons: ["Tenant 2 has no email on file."],
-            })
-          : savedResponse(body),
+        fails
+          ? Response.json({ error: "Original mailbox unavailable" }, { status: 503 })
+          : Response.json({ ...createdOutcome, executionId: EXECUTION_ONE }),
     );
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
-    const body = (await screen.findByLabelText("Email body")) as HTMLTextAreaElement;
-    fireEvent.click(screen.getByRole("button", { name: "Preview unsent Gmail draft" }));
-    await waitFor(() =>
-      expect(
-        screen.getAllByText("Tenant 2 has no email on file.").length,
-      ).toBeGreaterThan(0),
-    );
-    fireEvent.change(body, { target: { value: `${body.value}\n\nStill editable.` } });
-    fireEvent.click(screen.getByRole("button", { name: "Copy plain text" }));
-    await waitFor(() =>
-      expect(clip.writeText).toHaveBeenCalledWith(
-        `${composed().plainText}\n\nStill editable.`,
-      ),
-    );
-  });
-
-  it("BEH-S162-10, AC-S162-3: a lost create response is recovered as the same attempt, never created again", async () => {
-    const api = server(
-      preparation({
-        cycleId,
-        saved: {
-          revision: 1,
-          inputs: emptyMessagePreparationInputs(),
-          signatureEmail: null,
-          signatureActorUid: null,
-        },
-      }),
-      (body) => {
-        if (body.kind !== "draft") return savedResponse(body);
-        if (body.reconcile)
-          return Response.json({
-            status: "reconciliation",
-            channel: "tenant",
-            executionId: EXECUTION_ONE,
-            resolution: "created",
-            duplicate: false,
-            draftId: "draft-sample-1",
-            reason:
-              "The exact unsent Gmail draft was found and the execution is reconciled.",
-          });
-        if (body.confirm) throw new TypeError("network lost");
-        return Response.json(
-          previewOutcome("Lease Renewal for 88 Sample Row", composed().plainText),
-        );
-      },
-    );
-    render(<RenewalMessagePreparation channel="tenant" canEdit />);
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Preview unsent Gmail draft" }),
-    );
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Review creation confirmation" }),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Create this unsent draft" }));
-    const recover = await screen.findByRole("button", {
-      name: "Recover exact Gmail attempt",
-    });
-    expect(
-      screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeDisabled();
-    fireEvent.click(recover);
-    await waitFor(() =>
-      expect(api.posts().some((call) => Boolean(call.body!.reconcile))).toBe(true),
-    );
-    expect(api.posts().find((call) => call.body!.reconcile)!.body).toMatchObject({
-      reconcile: { executionId: EXECUTION_ONE },
-    });
-    expect(api.posts().filter((call) => call.body!.confirm)).toHaveLength(1);
-    await waitFor(() =>
-      expect(
-        screen.getByRole("link", { name: "Open the Drafts folder to find this draft" }),
-      ).toBeInTheDocument(),
+    fireEvent.click(await screen.findByText("Earlier Gmail draft"));
+    fireEvent.click(screen.getByRole("button", { name: "Recover exact Gmail attempt" }));
+    await screen.findByText("Original mailbox unavailable");
+    fails = false;
+    fireEvent.click(screen.getByRole("button", { name: "Recover exact Gmail attempt" }));
+    await screen.findByText("The earlier unsent draft is confirmed. Nothing was sent.");
+    expect(api.posts().map((c) => c.body)).toEqual(
+      [0, 1].map(() => ({
+        kind: "draft",
+        leaseId: "8800",
+        channel: "tenant",
+        reconcile: { executionId: EXECUTION_ONE },
+      })),
     );
   });
-
-  it("BEH-S162-11, AC-S162-3: an edit after creation only autosaves; a new preview discloses a second, separate draft", async () => {
-    const created = { ...createdOutcome, executionId: EXECUTION_ONE };
+  it("only autosaves later edits and preserves the earlier created receipt", async () => {
     const api = server(
       preparation({
-        cycleId,
-        saved: {
-          revision: 1,
-          inputs: emptyMessagePreparationInputs(),
-          signatureEmail: null,
-          signatureActorUid: null,
-        },
         draftAttempt: {
           executionId: EXECUTION_ONE,
           state: "Succeeded",
           recoveryAvailable: true,
-          outcome: created,
+          outcome: { ...createdOutcome, executionId: EXECUTION_ONE },
         },
       }),
-      (body) =>
-        body.kind === "draft"
-          ? Response.json({
-              ...previewOutcome("Lease Renewal for 88 Sample Row", "Edited later."),
-              executionId: EXECUTION_TWO,
-            })
-          : savedResponse(body, {
-              draftAttempt: {
-                executionId: EXECUTION_ONE,
-                state: "Succeeded",
-                recoveryAvailable: true,
-                outcome: created,
-              },
-            }),
+      (body) => savedResponse(body),
     );
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
-    const body = (await screen.findByLabelText("Email body")) as HTMLTextAreaElement;
-    fireEvent.change(body, { target: { value: `${body.value}\n\nEdited later.` } });
+    const body = await screen.findByLabelText("Email body");
+    fireEvent.change(body, { target: { value: "Later reviewed wording" } });
     fireEvent.blur(body);
     await waitFor(() => expect(api.posts()).toHaveLength(1));
-    expect(api.posts()[0]!.body!.kind).toBe("save");
-    await waitFor(() =>
-      expect(document.querySelector('[data-autosave="saved"]')).not.toBeNull(),
+    expect(api.posts()[0].body?.kind).toBe("save");
+    expect(screen.queryByRole("button", { name: /Create.*draft/ })).toBeNull();
+  });
+  it("saves the latest wording before opening the new tab and keeps words if that save fails", async () => {
+    const api = server(preparation(), () =>
+      Response.json({ error: "Storage unavailable" }, { status: 503 }),
     );
-    expect(api.posts().some((call) => call.body!.kind === "draft")).toBe(false);
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Preview unsent Gmail draft" }));
-    });
-    expect(await screen.findByRole("note")).toHaveTextContent(
-      /second, separate unsent draft/i,
+    const close = vi.fn(),
+      replace = vi.fn();
+    const tab = { close, location: { replace }, opener: {} };
+    vi.spyOn(window, "open").mockReturnValue(tab as unknown as Window);
+    render(<RenewalMessagePreparation channel="tenant" canEdit />);
+    const body = await screen.findByLabelText("Email body");
+    fireEvent.change(body, { target: { value: "Exact unsaved wording" } });
+    fireEvent.click(
+      screen.getByRole("link", { name: "Compose tenant message in Communications" }),
     );
+    await waitFor(() => expect(close).toHaveBeenCalledTimes(1));
+    expect(replace).not.toHaveBeenCalled();
+    expect(body).toHaveValue("Exact unsaved wording");
+    expect(api.posts()).toHaveLength(1);
+    expect(api.posts()[0].body?.kind).toBe("save");
+    expect(tab.opener).toBeNull();
+    vi.restoreAllMocks();
   });
 });

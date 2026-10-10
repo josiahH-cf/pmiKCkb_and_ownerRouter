@@ -18,6 +18,8 @@ import type { MaintenanceTicketRecord } from "@/lib/maintenance/ticket-model";
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  sessionStorage.clear();
+  history.replaceState(null, "", "/");
 });
 
 const roster: AssignableUser[] = [
@@ -49,7 +51,11 @@ function ticket(
 
 function stubFetchOk() {
   const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(
-    async () => new Response(JSON.stringify({ ticket: ticket() }), { status: 200 }),
+    async (_url, init) =>
+      Response.json({
+        ticket: ticket({ record_version: 1 }),
+        operation_id: JSON.parse(String(init?.body ?? "{}")).operationId,
+      }),
   );
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
@@ -63,6 +69,7 @@ describe("MaintenanceQueue assignee picker", () => {
   it("renders Unassigned + each rostered user's email as options", () => {
     render(
       <MaintenanceQueue
+        canEdit
         initialTickets={[ticket()]}
         assignees={roster}
         currentUid="u-alice"
@@ -83,18 +90,20 @@ describe("MaintenanceQueue assignee picker", () => {
     const fetchMock = stubFetchOk();
     render(
       <MaintenanceQueue
+        canEdit
         initialTickets={[ticket()]}
         assignees={roster}
         currentUid="u-alice"
       />,
     );
 
+    await waitFor(() => expect(screen.getByLabelText("Assignee")).toBeEnabled());
     fireEvent.change(screen.getByLabelText("Assignee"), { target: { value: "u-bob" } });
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("/api/maintenance/tickets/t1");
-    expect(bodyOf(init)).toEqual({
+    expect(bodyOf(init)).toMatchObject({
       op: "assign",
       assigneeUid: "u-bob",
     });
@@ -104,14 +113,16 @@ describe("MaintenanceQueue assignee picker", () => {
     const fetchMock = stubFetchOk();
     render(
       <MaintenanceQueue
+        canEdit
         initialTickets={[ticket({ assignee_uid: "u-bob" })]}
         assignees={roster}
         currentUid="u-alice"
       />,
     );
+    await waitFor(() => expect(screen.getByLabelText("Assignee")).toBeEnabled());
     fireEvent.change(screen.getByLabelText("Assignee"), { target: { value: "" } });
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(bodyOf(fetchMock.mock.calls[0][1])).toEqual({
+    expect(bodyOf(fetchMock.mock.calls[0][1])).toMatchObject({
       op: "assign",
       assigneeUid: null,
     });
@@ -121,11 +132,13 @@ describe("MaintenanceQueue assignee picker", () => {
     const fetchMock = stubFetchOk();
     render(
       <MaintenanceQueue
+        canEdit
         initialTickets={[ticket({ assignee_uid: "u-alice" })]}
         assignees={roster}
         currentUid="u-alice"
       />,
     );
+    await waitFor(() => expect(screen.getByLabelText("Assignee")).toBeEnabled());
     fireEvent.change(screen.getByLabelText("Assignee"), { target: { value: "u-alice" } });
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -133,6 +146,7 @@ describe("MaintenanceQueue assignee picker", () => {
   it("never renders a raw assignee uid; an off-roster assignee shows a value-free label", () => {
     render(
       <MaintenanceQueue
+        canEdit
         initialTickets={[ticket({ assignee_uid: "real-user-xyz" })]}
         assignees={roster}
         currentUid="u-alice"
@@ -151,12 +165,14 @@ describe("MaintenanceQueue assignee picker", () => {
     const fetchMock = stubFetchOk();
     render(
       <MaintenanceQueue
+        canEdit
         initialTickets={[ticket()]} // no assignee_uid
         assignees={roster}
         currentUid="u-alice"
       />,
     );
     // (undefined ?? null) === null must hold so selecting "Unassigned" on an unassigned ticket is a no-op.
+    await waitFor(() => expect(screen.getByLabelText("Assignee")).toBeEnabled());
     fireEvent.change(screen.getByLabelText("Assignee"), { target: { value: "" } });
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -164,6 +180,7 @@ describe("MaintenanceQueue assignee picker", () => {
   it("shows the assigned-to-me empty state when the filter hides every ticket", () => {
     render(
       <MaintenanceQueue
+        canEdit
         initialTickets={[ticket({ assignee_uid: "u-bob" })]}
         assignees={roster}
         currentUid="u-alice"
@@ -177,6 +194,7 @@ describe("MaintenanceQueue assignee picker", () => {
   it("'Assigned to me' filters the queue to the signed-in user's tickets", () => {
     render(
       <MaintenanceQueue
+        canEdit
         initialTickets={[
           ticket({ id: "mine", summary: "My ticket", assignee_uid: "u-alice" }),
           ticket({ id: "theirs", summary: "Bob ticket", assignee_uid: "u-bob" }),
@@ -185,11 +203,11 @@ describe("MaintenanceQueue assignee picker", () => {
         currentUid="u-alice"
       />,
     );
-    expect(screen.getByText("Bob ticket")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Bob ticket" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText("Assigned to me"));
 
-    expect(screen.getByText("My ticket")).toBeInTheDocument();
-    expect(screen.queryByText("Bob ticket")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "My ticket" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Bob ticket" })).not.toBeInTheDocument();
   });
 });

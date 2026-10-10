@@ -617,3 +617,212 @@ export function parseOptionsTable(markdown: string): readonly {
     };
   });
 }
+
+/** S207 extends the existing assessment owner; these facts execute no provider operation. */
+export const VENDOROO_PROGRAM_CAPABILITIES = [
+  "account_modules",
+  "interface_auth",
+  "application_use",
+  "open_work_coverage",
+  "stable_event_identity",
+  "canonical_joins",
+  "field_topology",
+  "ownership_takeover",
+  "limits_recovery",
+  "stateful_reads",
+] as const;
+export const VENDOROO_PRIMARY_REFERENCES = [
+  "https://vendoroo.freshdesk.com/support/solutions/articles/158000457207-connect-rooceptionist-to-your-ai-assistant-mcp-",
+  "https://vendoroo.freshdesk.com/support/solutions/articles/158000402697-resiroo-resident-facing-ai",
+  "https://vendoroo.freshdesk.com/support/solutions/articles/158000403412-escalations-communication-logs-and-live-support-chat",
+] as const;
+export const VendorooProgramEvidenceSchema = z
+  .object({
+    id: z.string().regex(/^E-S207-[A-Z0-9-]{1,40}$/),
+    capability: z.enum(VENDOROO_PROGRAM_CAPABILITIES),
+    sourceKind: z.enum([
+      "official_documentation",
+      "authorized_account_read",
+      "account_administrator_material",
+    ]),
+    sourceRef: z.string().max(240),
+    observedAt: z.string().datetime(),
+    accountScopeHash: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .nullable(),
+    conclusion: z.enum(EVIDENCE_CONCLUSIONS),
+    current: z.boolean(),
+    fields: z
+      .array(
+        z
+          .object({
+            field: z.enum([
+              "call_outcome",
+              "transcript",
+              "recording_reference",
+              "troubleshooting",
+              "photo_reference",
+              "sentiment",
+              "escalation",
+              "ownership",
+              "work_order_identity",
+              "property_identity",
+              "unit_identity",
+              "lease_identity",
+              "event_identity",
+              "timestamp",
+            ]),
+            direction: z.enum(["read", "event", "manual"]),
+            availability: z.enum(["open_work", "close_only", "unknown"]),
+            identity: z.enum(["stable_verified", "human_join", "missing"]),
+            readEffect: z.enum(["none_documented", "stateful", "unknown"]),
+            retention: z.enum(["verified_contract", "unknown"]),
+          })
+          .strict(),
+      )
+      .max(14)
+      .default([]),
+  })
+  .strict()
+  .superRefine((row, ctx) => {
+    const primary = row.sourceKind === "official_documentation";
+    if (
+      primary
+        ? !(VENDOROO_PRIMARY_REFERENCES as readonly string[]).includes(row.sourceRef) ||
+          row.accountScopeHash !== null
+        : !/^private-evidence:[a-f0-9]{64}$/.test(row.sourceRef) || !row.accountScopeHash
+    )
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Use a verified primary reference or opaque private evidence reference bound to the actual account; secret URLs and account material stay private.",
+      });
+    if (new Set(row.fields.map((field) => field.field)).size !== row.fields.length)
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "A field has one explicit contract in this evidence row.",
+      });
+  });
+export type VendorooProgramEvidence = z.infer<typeof VendorooProgramEvidenceSchema>;
+
+/** Public result contains only counts and enums. Public product claims never establish entitlement. */
+export function assessVendorooProgramContract(input: readonly VendorooProgramEvidence[]) {
+  const rows = input.map((row) => VendorooProgramEvidenceSchema.parse(row));
+  const duplicateEvidence = new Set(rows.map((row) => row.id)).size !== rows.length;
+  const accountScopes = new Set(
+    rows
+      .filter((row) => row.current && row.accountScopeHash)
+      .map((row) => row.accountScopeHash),
+  );
+  const conflicts = VENDOROO_PROGRAM_CAPABILITIES.filter((capability) => {
+    const claims = rows.filter(
+      (row) => row.current && row.accountScopeHash && row.capability === capability,
+    );
+    return (
+      claims.some((row) => row.conclusion === "supported") &&
+      claims.some((row) => row.conclusion === "unsupported")
+    );
+  });
+  const supported = VENDOROO_PROGRAM_CAPABILITIES.filter((capability) =>
+    rows.some(
+      (row) =>
+        row.current && row.capability === capability && row.conclusion === "supported",
+    ),
+  );
+  const verified = VENDOROO_PROGRAM_CAPABILITIES.filter((capability) =>
+    rows.some(
+      (row) =>
+        row.current &&
+        row.accountScopeHash &&
+        row.capability === capability &&
+        row.conclusion === "supported",
+    ),
+  );
+  const fieldRows = rows
+    .filter(
+      (row) =>
+        row.current &&
+        row.accountScopeHash &&
+        row.conclusion === "supported" &&
+        row.capability === "field_topology",
+    )
+    .flatMap((row) => row.fields);
+  const requiredFields = [
+    "call_outcome",
+    "transcript",
+    "recording_reference",
+    "troubleshooting",
+    "photo_reference",
+    "sentiment",
+    "escalation",
+    "ownership",
+    "work_order_identity",
+    "property_identity",
+    "unit_identity",
+    "lease_identity",
+    "event_identity",
+    "timestamp",
+  ] as const;
+  const missingFields = requiredFields.filter(
+    (field) =>
+      !fieldRows.some(
+        (row) =>
+          row.field === field &&
+          row.availability === "open_work" &&
+          row.identity === "stable_verified" &&
+          row.readEffect === "none_documented" &&
+          row.retention === "verified_contract",
+      ),
+  );
+  const hasCurrentAccountRead = rows.some(
+    (row) =>
+      row.current &&
+      row.sourceKind === "authorized_account_read" &&
+      row.conclusion === "supported",
+  );
+  const inconsistent =
+    duplicateEvidence || accountScopes.size > 1 || conflicts.length > 0;
+  const missing = VENDOROO_PROGRAM_CAPABILITIES.filter(
+    (capability) => !verified.includes(capability),
+  );
+  return {
+    state: inconsistent
+      ? ("inconclusive" as const)
+      : missing.length === 0 && missingFields.length === 0 && hasCurrentAccountRead
+        ? ("account_contract_ready" as const)
+        : ("requires_material_input" as const),
+    evidenceCount: rows.length,
+    supported: supported.length,
+    accountVerified: verified.length,
+    missing,
+    missingFields,
+    conflicts,
+    duplicateEvidence,
+    accountScopeCount: accountScopes.size,
+    currentAccountRead: hasCurrentAccountRead,
+  };
+}
+
+/** Tabletop disposition only: no adapter, retry or write is reachable from this assessment. */
+export function classifyVendorooObservation(input: {
+  eventIdentity: "stable_verified" | "missing";
+  canonicalJoin: "verified" | "ambiguous" | "missing";
+  ownership: "provider" | "pmi_takeover" | "unknown";
+  access: "current" | "revoked";
+  coverage: "complete" | "partial" | "close_only";
+  readEffect: "none_documented" | "stateful" | "unknown";
+  order: "new" | "duplicate" | "older";
+}) {
+  if (input.access === "revoked") return "hold_access";
+  if (input.readEffect !== "none_documented") return "hold_consequential_read";
+  if (input.eventIdentity !== "stable_verified" || input.canonicalJoin !== "verified")
+    return "hold_identity";
+  if (input.coverage !== "complete") return "hold_coverage";
+  if (input.ownership === "unknown") return "hold_ownership";
+  if (input.order === "duplicate") return "retain_original";
+  if (input.order === "older") return "retain_history_without_regression";
+  return input.ownership === "pmi_takeover"
+    ? "retain_pmi_ownership"
+    : "eligible_readonly_observation";
+}

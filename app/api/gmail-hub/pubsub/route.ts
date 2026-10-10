@@ -16,6 +16,7 @@ export async function POST(request: Request) {
       store: dependencies.store,
       client: dependencies.createClient(notification.mailboxEmail),
       now: dependencies.now,
+      observeSequence: dependencies.observeSequence,
     });
     return NextResponse.json(result);
   } catch (error) {

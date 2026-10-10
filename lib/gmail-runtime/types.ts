@@ -53,6 +53,10 @@ export interface GmailMessageView {
   bodyText: string;
   bodyTruncated: boolean;
   attachments: GmailAttachmentMetadata[];
+  autoSubmitted?: string;
+  precedence?: string;
+  contentType?: string;
+  returnPath?: string;
 }
 
 export interface GmailThreadView {

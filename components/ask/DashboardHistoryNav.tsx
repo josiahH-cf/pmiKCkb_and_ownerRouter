@@ -24,26 +24,36 @@ export function DashboardHistoryNav({
   onOpen,
   onRetry,
   onShowOlder,
+  label = "History",
+  onTogglePin,
+  pinBusy,
+  pinPending,
 }: Readonly<{
   state: HistoryListState;
   activeConversationId: string | null;
   onOpen: (conversationId: string) => void;
   onRetry: () => void;
   onShowOlder: () => void;
+  label?: "History" | "Pinned conversations";
+  onTogglePin?: (entry: HistoryConversationSummary) => void;
+  pinBusy?: ReadonlySet<string>;
+  pinPending?: ReadonlySet<string>;
 }>) {
   return (
     <nav
       aria-busy={state.status === "loading" ? "true" : undefined}
-      aria-label="History"
+      aria-label={label}
       className="panel dashboard-nav"
     >
-      <h2>History</h2>
+      <h2>{label}</h2>
       {state.status === "loading" ? (
         <p className="muted">Loading your history…</p>
       ) : state.status === "failed" ? (
         <>
           <p className="muted" data-history-state="failed">
-            Your history could not be loaded just now. Nothing was removed.
+            {label === "History"
+              ? "Your history could not be loaded just now. Nothing was removed."
+              : "Pinned conversations could not be loaded. Your history is kept."}
           </p>
           <button className="link-button" onClick={onRetry} type="button">
             Try again
@@ -51,7 +61,9 @@ export function DashboardHistoryNav({
         </>
       ) : state.entries.length === 0 ? (
         <p className="muted" data-history-state="empty">
-          No saved conversations yet. Questions you ask here are saved to your history.
+          {label === "History"
+            ? "No saved conversations here. Questions you ask here are saved to your history."
+            : "No pinned conversations yet. Pin a whole thread to return to it here."}
         </p>
       ) : (
         <>
@@ -68,6 +80,25 @@ export function DashboardHistoryNav({
                 >
                   {entry.title}
                 </button>
+                {onTogglePin ? (
+                  <button
+                    type="button"
+                    className="link-button"
+                    disabled={pinBusy?.has(entry.conversationId)}
+                    aria-label={
+                      pinPending?.has(entry.conversationId)
+                        ? `Retry pin change: ${entry.title}`
+                        : `${entry.pinned ? "Unpin" : "Pin"} conversation: ${entry.title}`
+                    }
+                    onClick={() => onTogglePin(entry)}
+                  >
+                    {pinPending?.has(entry.conversationId)
+                      ? "Retry pin change"
+                      : entry.pinned
+                        ? "Unpin conversation"
+                        : "Pin conversation"}
+                  </button>
+                ) : null}
                 <span className="muted">
                   {formatBusinessTimestamp(entry.updatedAtIso)} · {entry.turnCount}{" "}
                   {entry.turnCount === 1 ? "question" : "questions"}
@@ -75,6 +106,10 @@ export function DashboardHistoryNav({
               </li>
             ))}
           </ul>
+        </>
+      )}
+      {state.status === "ok" ? (
+        <>
           {state.olderStatus === "failed" ? (
             <p className="muted" role="status">
               Older history could not be loaded just now.
@@ -91,11 +126,13 @@ export function DashboardHistoryNav({
                 ? "Loading older history…"
                 : state.olderStatus === "failed"
                   ? "Try older history again"
-                  : "Show older history"}
+                  : label === "History"
+                    ? "Show older history"
+                    : "Show older pinned conversations"}
             </button>
           ) : null}
         </>
-      )}
+      ) : null}
     </nav>
   );
 }

@@ -1,3 +1,5 @@
+import type { LeaseFollowUpOrigin } from "./lease-follow-up";
+
 import type { Role } from "@/lib/auth/roles";
 
 export const WORK_TASK_STATES = [
@@ -66,6 +68,7 @@ export interface WorkTaskRecord {
   space_id: string;
   source: WorkSourceReference;
   task_type: string;
+  renewal_follow_up?: LeaseFollowUpOrigin;
   title: string;
   assignee_uid?: string;
   assigner_uid?: string;

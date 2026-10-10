@@ -347,6 +347,7 @@ export function usePersonalFilters<T extends { [K in keyof T]: string }>(
     filtersRef.current = filters;
   }, [filters]);
   const initialized = useRef(false);
+  const restoreGeneration = useRef(0);
   const defaultsRef = useRef(defaults);
   const onRestoreRef = useRef(onRestore);
   useLayoutEffect(() => {
@@ -366,13 +367,16 @@ export function usePersonalFilters<T extends { [K in keyof T]: string }>(
       if (value !== null && value.length <= 120)
         next[key as keyof T] = value as T[keyof T];
     });
+    const restoring = ++restoreGeneration.current;
     queueMicrotask(() => {
+      if (restoring !== restoreGeneration.current) return;
       filtersRef.current = next;
       update(next);
       onRestoreRef.current?.(next);
     });
   }, [enabled, personal.loaded, personal.value.query]);
   const setFilters = (value: T | ((current: T) => T)) => {
+    restoreGeneration.current++;
     initialized.current = true;
     const next = typeof value === "function" ? value(filtersRef.current) : value;
     filtersRef.current = next;
@@ -385,6 +389,7 @@ export function usePersonalFilters<T extends { [K in keyof T]: string }>(
     latest.current.change({ ...latest.current.value, query: query.toString() });
   };
   const reset = () => {
+    restoreGeneration.current++;
     initialized.current = true;
     update(defaultsRef.current);
     filtersRef.current = defaultsRef.current;

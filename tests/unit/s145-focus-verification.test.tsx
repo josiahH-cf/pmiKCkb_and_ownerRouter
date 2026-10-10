@@ -860,8 +860,7 @@ describe(
         }
         const area = document.getElementById("renewal-rent-and-charges")!;
         expect(area).toBeVisible();
-        await user.click(within(area).getByText("Review and confirm…"));
-        await user.click(within(area).getByText("Confirm this exact effect once"));
+        await user.click(within(area).getByText("Apply RentVine update"));
         await settle();
         const posts = routes
           .writes()
@@ -909,33 +908,19 @@ describe(
           call.url.includes("channel=tenant"),
       )!;
       expect(read.url).toContain("leaseId=lease-318-cedar-7");
-      const preview = await within(card).findByRole("button", {
-        name: "Preview unsent Gmail draft",
+      const compose = within(card).getByRole("link", {
+        name: "Compose tenant message in Communications",
       });
-      expect(preview).toBeEnabled();
-      await user.click(preview);
-      await user.click(
-        await within(card).findByRole("button", { name: "Review creation confirmation" }),
+      expect(compose).toBeVisible();
+      expect(compose).toHaveAttribute("target", "_blank");
+      expect(compose).toHaveAttribute(
+        "href",
+        "/gmail-hub?compose=renewal_tenant&lease=lease-318-cedar-7",
       );
-      await user.click(
-        within(card).getByRole("button", { name: "Create this unsent draft" }),
-      );
-      await settle();
-      expect(posts).toHaveLength(2);
-      expect(posts[0]).toMatchObject({
-        kind: "draft",
-        leaseId: "lease-318-cedar-7",
-        channel: "tenant",
-      });
-      expect(posts[1]).toMatchObject({
-        kind: "draft",
-        leaseId: "lease-318-cedar-7",
-        channel: "tenant",
-        confirm: { executionId: PREVIEW.executionId, previewHash: PREVIEW.previewHash },
-      });
-      for (const consequence of within(card).getAllByText(/A person sends from Gmail/)) {
-        expect(consequence).toBeVisible();
-      }
+      expect(
+        within(card).queryByRole("button", { name: "Preview unsent Gmail draft" }),
+      ).toBeNull();
+      expect(posts).toHaveLength(0);
 
       // Opening Gmail and coming back records nothing: the offer is still outstanding staff work.
       await act(async () => {

@@ -105,7 +105,11 @@ describe("S108 preapproval amounts are exact money (AC-S108-3 / AC-S108-4)", () 
 describe("S108 waiting-on projection (ARCH-S108-2 / BEH-S108-2)", () => {
   it("exposes exactly the specified vocabulary", () => {
     expect([...MAINTENANCE_WAITING_ON]).toEqual([
+      "assessment",
+      "pmi_review",
+      "work_progress",
       "owner_approval",
+      "authority_verification",
       "resident",
       "vendor",
       "scheduling",
@@ -118,44 +122,29 @@ describe("S108 waiting-on projection (ARCH-S108-2 / BEH-S108-2)", () => {
     }
   });
 
-  it("skips owner approval for an estimate within the preapproval (BEH-S108-2)", () => {
-    const result = project({
-      ticket: ticket({ estimate_amount_cents: 40_000, status: "Waiting on Vendor" }),
-    });
-    expect(result).toMatchObject({
-      waitingOn: "vendor",
-      ownerDecisionRequired: false,
-      withinPreapproval: true,
-    });
-    expect(result.ownerDecisionDetail).toContain("$500.00");
+  it("an imported amount alone does not replace assessment or establish a newly reviewed cost basis", () => {
+    for (const estimate of [undefined, 40000, 60000])
+      expect(
+        project({ ticket: ticket({ estimate_amount_cents: estimate }) }),
+      ).toMatchObject({
+        waitingOn: "assessment",
+        ownerDecisionRequired: false,
+        withinPreapproval: false,
+      });
   });
-
-  it("waits on the owner above the preapproval (BEH-S108-2)", () => {
-    expect(project({ ticket: ticket({ estimate_amount_cents: 60_000 }) })).toMatchObject({
-      waitingOn: "owner_approval",
-      ownerDecisionRequired: true,
-      withinPreapproval: false,
-    });
-  });
-
-  it("never treats a missing estimate as within preapproval (AC-S108-3 / BEH-S108-2)", () => {
+  it("missing estimate remains unknown and does not require an intake owner message", () => {
     expect(project()).toMatchObject({
-      waitingOn: "owner_approval",
-      ownerDecisionRequired: true,
+      waitingOn: "assessment",
+      ownerDecisionRequired: false,
       withinPreapproval: false,
     });
-    // Absent preapproval record: any estimate still needs the owner.
     expect(
-      project({
-        preapproval: null,
-        ticket: ticket({ estimate_amount_cents: 1_000 }),
-      }),
-    ).toMatchObject({ waitingOn: "owner_approval", ownerDecisionRequired: true });
+      project({ preapproval: null, ticket: ticket({ estimate_amount_cents: 1000 }) }),
+    ).toMatchObject({ waitingOn: "assessment", ownerDecisionRequired: false });
   });
-
-  it("treats a provider-approved work order as approved and asks for the amount", () => {
+  it("old provider approval remains a source fact and does not skip the new scope assessment", () => {
     expect(project({ link: link({ is_owner_approved: "1" }) })).toMatchObject({
-      waitingOn: "estimate",
+      waitingOn: "assessment",
       ownerDecisionRequired: false,
     });
   });
@@ -174,31 +163,23 @@ describe("S108 waiting-on projection (ARCH-S108-2 / BEH-S108-2)", () => {
     ).toMatchObject({ waitingOn: "none", ownerDecisionRequired: false });
   });
 
-  it("derives the remaining blockers from the ticket status once the owner is settled", () => {
-    const covered = { estimate_amount_cents: 40_000 } as const;
-    expect(
-      project({ ticket: ticket({ ...covered, status: "Waiting on Response" }) })
-        .waitingOn,
-    ).toBe("resident");
-    expect(
-      project({ ticket: ticket({ ...covered, status: "Waiting on Vendor" }) }).waitingOn,
-    ).toBe("vendor");
-    expect(
-      project({ ticket: ticket({ ...covered, status: "Scheduled" }) }).waitingOn,
-    ).toBe("scheduling");
-    expect(project({ ticket: ticket({ ...covered, status: "Open" }) }).waitingOn).toBe(
-      "vendor",
-    );
-    expect(
-      project({ ticket: ticket({ ...covered, status: "Open", vendor_id: "v-1" }) })
-        .waitingOn,
-    ).toBe("scheduling");
+  it("legacy status and assignment do not fabricate an assessment", () => {
+    for (const status of [
+      "Open",
+      "Waiting on Response",
+      "Waiting on Vendor",
+      "Scheduled",
+    ] as const)
+      expect(
+        project({
+          ticket: ticket({ status, estimate_amount_cents: 40000, vendor_id: "v-1" }),
+        }).waitingOn,
+      ).toBe("assessment");
   });
-
-  it("renders an app-only ticket without a link as its own state", () => {
+  it("an app-only case retains its distinct missing-provider state", () => {
     expect(
-      project({ link: null, ticket: ticket({ estimate_amount_cents: 40_000 }) }),
-    ).toMatchObject({ waitingOn: "vendor", providerWorkOrderId: null });
+      project({ link: null, ticket: ticket({ estimate_amount_cents: 40000 }) }),
+    ).toMatchObject({ waitingOn: "assessment", providerWorkOrderId: null });
   });
 
   it("carries the RentVine work-order id for the report link", () => {

@@ -4,6 +4,9 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/lib/firestore/presentation-settings", () => ({
+  readApplicationDisplayName: vi.fn(async () => "PMI KC"),
+}));
 vi.mock("@/components/layout/NotificationMenu", () => ({
   NotificationMenu: () => null,
 }));

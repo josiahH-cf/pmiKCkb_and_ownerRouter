@@ -2,11 +2,26 @@
 
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GmailHubHome } from "@/components/gmail-hub/GmailHubHome";
 
-afterEach(cleanup);
+beforeEach(() =>
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) =>
+      Response.json(
+        url.includes("/sequences")
+          ? { sequences: [], cursor: null }
+          : { mailbox: null, linked: [], threads: [] },
+      ),
+    ),
+  ),
+);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 describe("Workflow Communications home (AC-GW-1)", () => {
   it("states the workflow-adapter boundary and exposes no general inbox tools", () => {
@@ -29,35 +44,23 @@ describe("Workflow Communications home (AC-GW-1)", () => {
     expect(screen.queryByRole("heading", { name: "Simulated email chain" })).toBeNull();
   });
 
-  it("keeps governed recovery and paste tools Admin-only after retiring simulation", () => {
+  it("retires pasted/synthetic triage from the shared hub for Admin as well as ordinary staff", async () => {
     render(<GmailHubHome canManageAdmin />);
-    const disclosure = screen.getByText("Admin recovery tools").closest("details")!;
-    expect(disclosure).not.toHaveAttribute("open");
-    fireEvent.click(screen.getByText("Admin recovery tools"));
-    expect(disclosure).toHaveAttribute("open");
+    for (const name of ["Incoming", "Outgoing", "Drafts", "Scheduled"])
+      expect(screen.getByRole("tab", { name })).toBeVisible();
+    for (const name of [
+      "Pasted text and reply patterns",
+      "Anticipatory draft",
+      "Template & triage workspace",
+      "Paste sanitized facts",
+      "Thread summary",
+    ])
+      expect(screen.queryByRole("heading", { name })).not.toBeInTheDocument();
+    expect(screen.queryByText("Admin text tools")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Drafts" }));
+    await screen.findByText("No matching drafts communications in this page.");
     expect(
-      screen.getByRole("heading", {
-        name: "Workflow draft recovery",
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Unsent drafts only\. A person sends from Gmail\./i),
-    ).toBeVisible();
-    expect(
-      screen.queryByRole("heading", { name: "Simulated email chain" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Anticipatory draft" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Template & triage workspace" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Paste sanitized facts" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Thread summary" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Compose draft" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Evaluate" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Summarize thread" })).toBeInTheDocument();
+      vi.mocked(fetch).mock.calls.every(([url]) => !String(url).includes("/templates")),
+    ).toBe(true);
   });
 });

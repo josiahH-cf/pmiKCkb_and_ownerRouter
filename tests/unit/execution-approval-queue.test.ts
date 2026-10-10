@@ -38,18 +38,12 @@ const admin: AuthenticatedUser = {
   uid: "admin-1",
 };
 const preview = {
-  ticket_ref: "fixture-ticket-1",
-  property_id: "9001",
-  unit_id: "9002",
-  description: "Fixture-only repair",
-  priority_id: "2",
-  work_order_status_id: "9101",
-  is_vacant: false,
-  owner_approved: false,
-  shared_with_tenant: "0",
-  shared_with_owner: false,
-  send_vendor_notification: false,
-  send_email: false,
+  vendor: "synthetic-vendor",
+  amount: 125,
+  currency: "USD",
+  account: "synthetic-account",
+  rentvine_work_order_number: "synthetic-work-order",
+  property_unit: "synthetic-property-unit",
 };
 const trustedContext: TrustedExecutionContext = {
   connectionReady: true,
@@ -72,8 +66,8 @@ describe("S20 execution-linked Approval Queue", () => {
     expect(item).toMatchObject({
       action_execution_id: execution.id,
       action_execution_preview_hash: execution.preview_hash,
-      action_needed: "Approve rentvine.work_order.create for execution.",
-      affected_system_action: "rentvine.work_order.create",
+      action_needed: "Approve quickbooks.bill.create_draft for execution.",
+      affected_system_action: "quickbooks.bill.create_draft",
       risk: "High",
       status: "Ready for Approval",
     });
@@ -138,7 +132,7 @@ async function prepareHighExecution(suffix: string, targetDb: Firestore) {
   return prepareActionExecution(
     editor,
     {
-      actionKey: "rentvine.work_order.create",
+      actionKey: "quickbooks.bill.create_draft",
       approvalQueue: {
         directLink: "/maintenance/fixture-ticket",
         processRunRef: { id: `fixture-${suffix}`, label: "Fixture maintenance" },
@@ -148,7 +142,7 @@ async function prepareHighExecution(suffix: string, targetDb: Firestore) {
       preview,
       trustedContext,
     },
-    { db: targetDb, registry: openRegistryAction("rentvine.work_order.create") },
+    { db: targetDb, registry: openRegistryAction("quickbooks.bill.create_draft") },
   );
 }
 

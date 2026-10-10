@@ -156,7 +156,7 @@ describe("S113 common correction destinations", () => {
     });
     expect(requests[1].body).not.toHaveProperty("evidenceRef");
     expect(
-      screen.getByText(/Saved: review and confirm its exact effect/),
+      screen.getByText(/Saved: apply its reviewed change below/),
     ).toBeInTheDocument();
     expect(requests.every((entry) => !entry.body.confirm)).toBe(true);
   });

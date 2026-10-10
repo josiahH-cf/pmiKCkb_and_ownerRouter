@@ -29,7 +29,7 @@ export interface RenewalCompScreenshotClosedResponse {
 }
 
 export async function getRenewalCompScreenshotActionView(
-  registry: CreateActionRegistryInput[] = ACTION_REGISTRY_SEED,
+  registry: readonly CreateActionRegistryInput[] = ACTION_REGISTRY_SEED,
 ): Promise<RenewalCompScreenshotActionView> {
   const executable = await isProductionRuntimeActionExecutable(
     RENEWAL_COMP_SCREENSHOT_ACTION_KEY,

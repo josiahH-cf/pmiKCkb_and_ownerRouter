@@ -1,3 +1,5 @@
+import { leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
+import { readRenewalPricingForViews } from "@/lib/lease-renewal/pricing-policy-read";
 import { RenewalDeskReturnLink } from "@/components/lease-renewal/RenewalDeskReturnLink";
 import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import { renewalNoticeObserver } from "@/lib/lease-renewal/notice-read";
@@ -308,6 +310,15 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const resolutions = renewalAuxiliaryValue(resolutionsRead, []);
   const termReview = renewalAuxiliaryValue(termReviewRead, null);
   const workingRecordRead = await workingRecordReadPromise;
+  const pricingRead = await readRenewalAuxiliary("pricing_policy", async () => {
+    if (leaseSnapshotAttempt?.status !== "available")
+      throw new Error("Source unavailable");
+    return readRenewalPricingForViews(
+      user,
+      leaseSnapshotAttempt.value.snapshot.views.filter((v) => leaseViewId(v) === leaseId),
+      new Date(readTimestamp),
+    );
+  });
   const outcome = await loadLiveRenewalLeaseWorkspace(
     leaseId,
     readTimestamp,
@@ -339,6 +350,8 @@ export default async function LiveRenewalLeaseWorkspacePage({
         (record): record is NonNullable<typeof record> => record !== null,
       ),
     ),
+    renewalAuxiliaryValue(workingRecordRead, null),
+    pricingRead.status === "available" ? pricingRead.value : undefined,
   );
   const dispositions = renewalAuxiliaryValue(dispositionsRead, []);
   const writebackProposal = renewalAuxiliaryValue(writebackProposalRead, null);
@@ -416,6 +429,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const auxiliaryFailures = renewalAuxiliaryFailures([
     manualRead,
     workingRecordRead,
+    pricingRead,
     progressRead,
     packetRead,
     policyRead,

@@ -140,8 +140,9 @@ export async function POST(request: Request) {
   if (!shape.success) {
     return generic(400, "Invalid submission.");
   }
+  let recordedTriage: ReturnType<typeof projectIntakeTriage> | undefined;
   try {
-    await createUnverifiedIntakeFromPublic(
+    const created = await createUnverifiedIntakeFromPublic(
       {
         propertyKey: verified.payload.propertyKey,
         dataMode: "live",
@@ -164,6 +165,7 @@ export async function POST(request: Request) {
       undefined,
       now,
     );
+    recordedTriage = created.triage;
   } catch (error) {
     if (error instanceof IntakeReplayError) {
       return generic(409, "This intake link has already been used.");
@@ -187,25 +189,29 @@ export async function POST(request: Request) {
   // reveals no stored record. It tells a fire reporter to call emergency services, states an urgent
   // acknowledgement for active water, names the photos the team still needs, and offers at most one
   // reviewed link. It promises no completion time and creates no ticket, draft, or provider effect.
-  const triage = projectIntakeTriage({
-    summary: shape.data.summary,
-    description: shape.data.description,
-    issueType: MAINTENANCE_TRADES.includes(shape.data.issueType as MaintenanceTrade)
-      ? (shape.data.issueType as MaintenanceTrade)
-      : null,
-    location: shape.data.location,
-    happeningNow: shape.data.happeningNow ?? null,
-    startedAt: shape.data.startedAt,
-    damageOrAccess: shape.data.damageOrAccess,
-    attemptedSteps: shape.data.attemptedSteps,
-    hasPhotos: false,
-  });
+  const triage =
+    recordedTriage ??
+    projectIntakeTriage({
+      summary: shape.data.summary,
+      description: shape.data.description,
+      issueType: MAINTENANCE_TRADES.includes(shape.data.issueType as MaintenanceTrade)
+        ? (shape.data.issueType as MaintenanceTrade)
+        : null,
+      location: shape.data.location,
+      happeningNow: shape.data.happeningNow ?? null,
+      startedAt: shape.data.startedAt,
+      damageOrAccess: shape.data.damageOrAccess,
+      attemptedSteps: shape.data.attemptedSteps,
+      hasPhotos: false,
+    });
   const resource = selectTroubleshootingResource(triage.issueType, triage.urgency);
   return NextResponse.json(
     {
       status: "received",
       reference: randomUUID(),
       urgency: triage.urgency,
+      policy_version: triage.policyDecision.policyVersion,
+      policy_source: triage.policyDecision.source,
       message: triage.acknowledgement,
       photos_needed: triage.photosNeeded,
       photo_request: triage.evidenceRequest,

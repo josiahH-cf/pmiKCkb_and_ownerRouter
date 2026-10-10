@@ -1578,21 +1578,21 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
   },
   {
     key: "gmail.renewal_notice.send",
-    label: "Retired direct renewal-notice send (not exposed)",
+    label: "Reviewed workflow-linked renewal Send/Schedule (awaiting technical gates)",
     target_system: "Gmail",
     expected_action:
-      "Historical compatibility key retained for evidence only; the product creates an unsent renewal-notice Gmail draft and a person sends it from Gmail.",
+      "Send only the exact workflow-linked message and occurrences authorized by staff Send/Schedule under S183/S189/S190; never generic or model-triggered sending.",
     product_lane: "Lease Renewal Agent",
     readiness: "Disabled",
     evidence_status: "Documented",
     documented_evidence:
-      "D33 retired app-managed direct client sends. The workflow-specific unsent draft is the final app effect, and this compatibility key remains production_allowed:false rather than a future activation target.",
+      "Owner execution instruction 2026-10-09 authorizes this named program operation after technical gates. S189 authorization, S190 at-most-once dispatch/recovery, S191 observation and S192 operational controls remain required before reviewed activation; production_allowed remains false.",
     required_permissions: [],
     event_ingestion_mode: "None",
     preview_schema_note:
-      "Not exposed. Review occurs on the unsent Gmail draft before a person sends from Gmail.",
+      "Exact workflow, sender, verified recipients, subject, plain/HTML content, attachments and approved occurrence configuration; no changed payload dispatch.",
     rollback_note:
-      "No app-managed live effect exists for this key; keep it disabled and use the unsent-draft workflow.",
+      "A sent message cannot be recalled. Pause/cancel future unclaimed work; reconcile the exact admitted attempt before further action. Existing unsent drafts remain independent.",
     connection_health_check_ref: "health.gmail.workspace_api",
     production_allowed: false,
   },
@@ -1656,21 +1656,22 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
   },
   {
     key: "gmail.maintenance_owner_notice.send",
-    label: "Retired direct maintenance owner-notice send (not exposed)",
+    label:
+      "Reviewed workflow-linked maintenance owner Send/Schedule (awaiting technical gates)",
     target_system: "Gmail",
     expected_action:
-      "Historical compatibility key retained for evidence only; the product creates an unsent maintenance owner-notice Gmail draft and a person sends it from Gmail.",
+      "Send only the exact workflow-linked message and occurrences authorized by staff Send/Schedule under S183/S189/S190; never generic or model-triggered sending.",
     product_lane: "PMI KC KB",
     readiness: "Disabled",
     evidence_status: "Documented",
     documented_evidence:
-      "D33 retired app-managed direct client sends. The workflow-specific unsent draft is the final app effect, and this compatibility key remains production_allowed:false rather than a future activation target.",
+      "Owner execution instruction 2026-10-09 authorizes this named program operation after technical gates. S189 authorization, S190 at-most-once dispatch/recovery, S191 observation and S192 operational controls remain required before reviewed activation; production_allowed remains false.",
     required_permissions: [],
     event_ingestion_mode: "None",
     preview_schema_note:
-      "Not exposed. Review occurs on the unsent Gmail draft before a person sends from Gmail.",
+      "Exact workflow, sender, verified recipients, subject, plain/HTML content, attachments and approved occurrence configuration; no changed payload dispatch.",
     rollback_note:
-      "No app-managed live effect exists for this key; keep it disabled and use the unsent-draft workflow.",
+      "A sent message cannot be recalled. Pause/cancel future unclaimed work; reconcile the exact admitted attempt before further action. Existing unsent drafts remain independent.",
     connection_health_check_ref: "health.gmail.workspace_api",
     production_allowed: false,
   },
@@ -1848,10 +1849,21 @@ const BASE_ACTION_REGISTRY_SEED: CreateActionRegistryInput[] = [
  */
 export const OWNER_PROOF_WINDOW_OPEN_KEYS: readonly string[] = [];
 
-export const ACTION_REGISTRY_SEED: CreateActionRegistryInput[] =
-  BASE_ACTION_REGISTRY_SEED.map((entry) => {
-    const schema = FINAL_V1_ACTION_PREVIEW_SCHEMAS[entry.key];
-    return schema
-      ? { ...entry, preview_payload_schema: schema.map((field) => ({ ...field })) }
-      : entry;
-  });
+/** Compiled governance is immutable; runtime suspension and actor/target checks remain fresh. */
+function freezeRegistryValue<T>(value: T): T {
+  if (value && typeof value === "object") {
+    for (const child of Object.values(value)) freezeRegistryValue(child);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+export const ACTION_REGISTRY_SEED: readonly CreateActionRegistryInput[] =
+  freezeRegistryValue(
+    BASE_ACTION_REGISTRY_SEED.map((entry) => {
+      const schema = FINAL_V1_ACTION_PREVIEW_SCHEMAS[entry.key];
+      return schema
+        ? { ...entry, preview_payload_schema: schema.map((field) => ({ ...field })) }
+        : entry;
+    }),
+  );

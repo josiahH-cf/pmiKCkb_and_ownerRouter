@@ -147,90 +147,35 @@ function stubFetch(payload: unknown) {
   return calls;
 }
 
-describe("S129 mounted meeting preflight (AC-S129-3, AC-S129-7)", () => {
-  it("proceeds through a complete message with Gmail unavailable and keeps the draft step pending, requesting no draft", async () => {
+describe("S193 preserves source diagnostics while retiring the old draft preflight", () => {
+  it("keeps editing and copy with unavailable publication and links the canonical composer without effects", async () => {
     const calls = stubFetch(preparation({ ready: true, gmail: false }));
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
-    const details = await screen.findByText(/Meeting preflight:/);
-    const panel = details.closest("details")!;
-    expect(panel).toHaveAttribute("id", "renewal-message-tenant-preflight");
-    expect(panel).toHaveAttribute("data-renewal-preflight", "proceed");
-    expect(panel).toHaveAttribute("data-renewal-preflight-draft", "pending");
-    expect(details).toHaveTextContent(
-      /Editing and copy continue without Gmail; the unsent-draft step stays pending\./,
-    );
-    const items = Array.from(panel.querySelectorAll("[data-renewal-preflight-item]"));
-    const ids = items.map((item) => item.getAttribute("data-renewal-preflight-item"));
-    const stateOf = (id: string) =>
-      items
-        .find((item) => item.getAttribute("data-renewal-preflight-item") === id)
-        ?.getAttribute("data-renewal-preflight-state");
-    // S161/S162: no renewal cycle and no review step exist, so neither is a preflight item.
-    expect(ids).not.toContain("cycle");
-    expect(ids).not.toContain("review");
-    expect(stateOf("required_inputs")).toBe("ready");
-    expect(
-      panel.querySelector('[data-renewal-preflight-item="required_inputs"]'),
-    ).toHaveTextContent(
-      "Values in the tenant message. Every value in the message is filled in.",
-    );
-    expect(stateOf("signature")).toBe("ready");
-    expect(stateOf("sender")).toBe("ready");
-    expect(stateOf("recipients")).toBe("ready");
-    expect(stateOf("gmail_connection")).toBe("unavailable");
-    expect(
-      panel.querySelector('[data-renewal-preflight-item="gmail_connection"]'),
-    ).toHaveTextContent(
-      "Fallback: Copy the formatted or plain body and connect Gmail on Connections; saved work is kept.",
-    );
-    expect(stateOf("template")).toBe("unavailable");
-    expect(
-      panel.querySelector('[data-renewal-preflight-item="template"]'),
-    ).toHaveTextContent(
-      "Fallback: Editing and copy continue; the Gmail draft waits for the approved publication.",
-    );
-    expect(stateOf("meeting_draft")).toBe("pending_meeting");
-    expect(within(panel).getByRole("link", { name: "Open the page" })).toHaveAttribute(
-      "href",
-      "/connections",
-    );
-    expect(panel.textContent).toMatch(/Not observed/);
-    // The body copies locally; the draft preview stays unavailable and nothing was requested.
+    const summary = await screen.findByText("Message sources"),
+      panel = summary.closest("details")!;
+    expect(panel).toHaveAttribute("id", "renewal-message-tenant-sources");
+    expect(panel).toHaveTextContent(SENDER);
+    expect(panel).toHaveTextContent("Exact publication pending.");
+    expect(panel).toHaveTextContent("Send or Schedule");
+    expect(panel).not.toHaveTextContent("only a person sends in Gmail");
     expect(
       screen.getByRole("button", { name: "Copy formatted body" }),
     ).not.toHaveAttribute("aria-disabled");
     expect(
-      screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeDisabled();
+      screen.getByRole("link", { name: "Compose tenant message in Communications" }),
+    ).toHaveAttribute("href", "/gmail-hub?compose=renewal_tenant&lease=701");
+    expect(
+      screen.queryByRole("button", { name: "Preview unsent Gmail draft" }),
+    ).toBeNull();
     expect(calls).toEqual(["GET /api/lease-renewal/message-preparation"]);
   });
-
-  it("lists the marked values and a server policy gate as information and leaves the draft step available", async () => {
+  it("keeps missing values, signature guidance and policy links as editable information", async () => {
     const calls = stubFetch(preparation({ ready: false, gmail: true, policyGate: true }));
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
-    const details = await screen.findByText(/Meeting preflight:/);
-    const panel = details.closest("details")!;
-    // S162 (R-S162-5): marked values and policy notes never withhold the unsent-draft step.
-    expect(panel).toHaveAttribute("data-renewal-preflight", "proceed");
-    expect(panel).toHaveAttribute("data-renewal-preflight-draft", "available");
-    expect(details).toHaveTextContent(
-      /The unsent-draft step can be attempted on explicit confirmation\./,
-    );
-    const inputs = panel.querySelector('[data-renewal-preflight-item="required_inputs"]');
-    expect(inputs).toHaveAttribute("data-renewal-preflight-state", "missing_input");
-    expect(inputs).toHaveTextContent(
-      /Values in the tenant message\. 4 values are marked:/,
-    );
-    expect(inputs).toHaveTextContent(
-      "The message can be edited, copied and drafted as it is.",
-    );
-    expect(
-      panel.querySelector('[data-renewal-preflight-item="signature"]'),
-    ).toHaveAttribute("data-renewal-preflight-state", "missing_input");
+    const panel = (await screen.findByText("Message sources")).closest("details")!;
+    expect(panel).toHaveTextContent("approved");
     const readiness = screen.getByRole("list", { name: "Marked values" });
-    expect(readiness.closest("details")).toHaveTextContent(
-      "4 values are marked in this message. You can edit, copy and draft it as it is.",
-    );
+    expect(readiness).toHaveTextContent("Your sender signature is not entered yet.");
     expect(
       within(readiness).getByRole("link", {
         name: "Rhino policy content and applicability",
@@ -239,14 +184,6 @@ describe("S129 mounted meeting preflight (AC-S129-3, AC-S129-7)", () => {
     expect(readiness).toHaveTextContent(
       "Review whether the Rhino policy applies to this lease before final use.",
     );
-    expect(readiness).toHaveTextContent("Your sender signature is not entered yet.");
-    expect(
-      panel.querySelector('[data-renewal-preflight-item="gmail_connection"]'),
-    ).toHaveAttribute("data-renewal-preflight-state", "ready");
-    expect(
-      screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeEnabled();
-    // Nothing was requested: the surface only shows the preflight and the editable message.
     expect(calls).toEqual(["GET /api/lease-renewal/message-preparation"]);
   });
 });

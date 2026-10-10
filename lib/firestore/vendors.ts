@@ -1,3 +1,15 @@
+import {
+  vendorAssignmentGeneration,
+  reviewedVendorPacket,
+} from "@/lib/vendor/work-projection";
+import type {
+  VendorPacket,
+  VendorSelection,
+  VendorRosterRecord,
+} from "@/lib/maintenance/vendor-work-model";
+import { FieldPath } from "firebase-admin/firestore";
+import { can } from "@/lib/auth/roles";
+import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import type { Firestore } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 
@@ -43,6 +55,7 @@ interface AssignmentRecord {
   vendor_id: string;
   active: boolean;
   data_mode?: DataMode;
+  updated_at?: string;
 }
 
 interface ThreadLinkRecord extends AssignmentRecord {
@@ -57,7 +70,7 @@ function setupEffectIsInProgress(record: VendorRuntimeRecord) {
   return record.setupEffectFence !== undefined;
 }
 
-function vendorAuthorityMatches(
+export function vendorAuthorityMatches(
   record: VendorRuntimeRecord,
   authority: VendorAssignmentAuthority,
 ) {
@@ -72,8 +85,15 @@ function vendorAuthorityMatches(
   );
 }
 
-function ticketProjection(ticket: MaintenanceTicketRecord): VendorTicketProjection {
+function ticketProjection(
+  ticket: MaintenanceTicketRecord,
+  assignment?: AssignmentRecord,
+  vendor?: VendorRuntimeRecord,
+): VendorTicketProjection {
   return {
+    ...(assignment && vendor
+      ? { assignmentGeneration: vendorAssignmentGeneration(vendor, assignment, ticket) }
+      : {}),
     id: ticket.id,
     status: ticket.status,
     priority: ticket.priority,
@@ -270,11 +290,12 @@ export class FirestoreVendorStore
         ),
       );
       return ticketSnapshots
-        .map((snapshot) => {
+        .map((snapshot, index) => {
           if (!snapshot.exists) return null;
           const ticket = snapshot.data() as MaintenanceTicketRecord;
-          return resolveStoredDataMode(ticket) === authority.dataMode
-            ? ticketProjection(ticket)
+          return resolveStoredDataMode(ticket) === authority.dataMode &&
+            (!ticket.vendor_id || ticket.vendor_id === authority.vendorId)
+            ? ticketProjection(ticket, matchingAssignments[index], vendor)
             : null;
         })
         .filter((ticket): ticket is VendorTicketProjection => ticket !== null)
@@ -319,7 +340,22 @@ export class FirestoreVendorStore
       ) {
         return null;
       }
-      return ticketProjection(ticket);
+      if (ticket.vendor_id && ticket.vendor_id !== authority.vendorId) return null;
+      const [packet, selection, roster] = await transaction.getAll(
+        this.db.collection("maintenance_vendor_packets").doc(authority.ticketId),
+        this.db.collection("maintenance_vendor_selections").doc(authority.ticketId),
+        this.db.collection("maintenance_vendor_roster").doc(authority.vendorId),
+      );
+      return {
+        ...ticketProjection(ticket, assignment, vendor),
+        reviewedPacket: reviewedVendorPacket(
+          packet.exists ? (packet.data() as VendorPacket) : null,
+          selection.exists ? (selection.data() as VendorSelection) : null,
+          roster.exists ? (roster.data() as VendorRosterRecord) : null,
+          ticket,
+          authority.vendorId,
+        ),
+      };
     });
   }
 
@@ -667,4 +703,54 @@ export class FirestoreVendorStore
       createdAt: new Date().toISOString(),
     });
   }
+}
+
+/** S203 exposes only active registered vendor identity metadata to managed Maintenance staff.
+ * This read does not establish preferred-vendor status, grant a portal account or assign work. */
+export async function readActiveVendorSearchMetadata(
+  actor: AuthenticatedUser,
+  db: Firestore = getAdminFirestore(),
+) {
+  if (
+    actor.hd !== "pmikcmetro.com" ||
+    !actor.email.toLowerCase().endsWith("@pmikcmetro.com") ||
+    !["Editor", "Approver", "Admin"].includes(actor.role) ||
+    !can(actor.role, "read") ||
+    !hasSpaceAccess(actor, "maintenance")
+  )
+    throw new VendorBoundaryError(
+      "Current managed Maintenance staff access is required.",
+      403,
+    );
+  const records: Array<Pick<VendorRecord, "id" | "displayName" | "email" | "updatedAt">> =
+    [];
+  let after: string | null = null;
+  for (let page = 0; page < 10; page++) {
+    let q = db
+      .collection(VENDOR_COLLECTIONS.vendors)
+      .orderBy(FieldPath.documentId())
+      .limit(500);
+    if (after) q = q.startAfter(after);
+    const result = await q.get();
+    for (const doc of result.docs) {
+      const v = doc.data() as VendorRecord;
+      if (
+        v.id !== doc.id ||
+        v.status !== "active" ||
+        setupEffectIsInProgress(v) ||
+        vendorRecordDataMode(v) !== "live" ||
+        !v.email
+      )
+        continue;
+      records.push({
+        id: v.id,
+        email: v.email,
+        updatedAt: v.updatedAt,
+        ...(v.displayName ? { displayName: v.displayName } : {}),
+      });
+    }
+    if (result.size < 500) return { records, complete: true };
+    after = result.docs.at(-1)!.id;
+  }
+  return { records, complete: false };
 }

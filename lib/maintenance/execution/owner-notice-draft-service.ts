@@ -27,6 +27,7 @@ import {
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
   executeGovernedDraft,
+  reconcileGovernedDraft,
   prepareGovernedDraft,
   type GovernedDraftSeams,
 } from "@/lib/external-execution/governed-draft-execution";
@@ -60,6 +61,8 @@ export interface MaintenanceOwnerNoticeDraftInput {
    * reviewed and gave the ledger nothing to make the attempt idempotent against.
    */
   confirm?: { executionId: string; previewHash: string };
+  /** Read the already-consumed exact original attempt; never dispatch. */
+  reconcile?: { executionId: string };
 }
 
 export interface MaintenanceOwnerNoticeDraftDeps {
@@ -105,7 +108,14 @@ export type MaintenanceOwnerNoticeDraftOutcome =
       draftId: string;
       executionId: string;
     }
-  | { status: "needs_reconciliation"; executionId: string; reason: string };
+  | { status: "needs_reconciliation"; executionId: string; reason: string }
+  | {
+      status: "reconciliation";
+      executionId: string;
+      resolution: "created" | "recorded" | "not_found";
+      reason: string;
+      draftId?: string;
+    };
 
 /**
  * Preview or create a maintenance owner-notice draft for one persisted ticket. Throws EditableLayerError(404)
@@ -185,6 +195,29 @@ export async function prepareMaintenanceOwnerNoticeDraft(
     )!,
     createClient: () => deps.createGmailClient(input.mailbox.email),
   };
+
+  if (input.reconcile) {
+    const recovered = await reconcileGovernedDraft(
+      deps.actor,
+      { ...request, executionId: input.reconcile.executionId },
+      deps.seams,
+    );
+    return {
+      status: "reconciliation",
+      executionId: input.reconcile.executionId,
+      resolution:
+        recovered.status === "not_found"
+          ? "not_found"
+          : recovered.receipt
+            ? "created"
+            : "recorded",
+      ...(recovered.receipt ? { draftId: recovered.receipt.providerRef } : {}),
+      reason:
+        recovered.status === "not_found"
+          ? "The exact earlier draft was not found. Its outcome remains unresolved; no new draft was attempted."
+          : "The original attempt is recorded as succeeded. This recovery sends nothing and creates no draft.",
+    };
+  }
 
   if (!input.confirm) {
     const prepared = await prepareGovernedDraft(deps.actor, request, deps.seams);

@@ -10,6 +10,9 @@ const state = vi.hoisted(() => ({
   returnCookie: undefined as string | undefined,
 }));
 
+vi.mock("@/lib/firestore/presentation-settings", () => ({
+  readApplicationDisplayName: vi.fn(async () => "PMI KC"),
+}));
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);

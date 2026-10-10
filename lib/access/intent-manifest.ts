@@ -9,6 +9,13 @@ import { buildAccessRequestHref } from "@/lib/access/handoff";
  */
 export const ACCESS_INTENT_MANIFEST = [
   {
+    key: "maintenance.history.edit",
+    source_path: "app/maintenance/history/page.tsx",
+    capability: "edit",
+    space: "maintenance",
+    return_to: "/maintenance/history",
+  },
+  {
     key: "renewal_corrections.edit",
     source_path: "components/lease-renewal/RenewalCorrections.tsx",
     capability: "edit",
@@ -26,12 +33,6 @@ export const ACCESS_INTENT_MANIFEST = [
     source_path: "app/connections/page.tsx",
     capability: "manageAdmin",
     return_to: "/connections",
-  },
-  {
-    key: "communications.admin_tools",
-    source_path: "app/gmail-hub/page.tsx",
-    capability: "manageAdmin",
-    return_to: "/gmail-hub",
   },
   {
     key: "renewals.save_progress",

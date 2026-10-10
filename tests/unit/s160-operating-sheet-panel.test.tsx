@@ -205,7 +205,7 @@ describe("S160 staff prepare and confirm a supported Sheet update", () => {
     expect(panel).toHaveTextContent(/Replaces this one cell only/);
   });
 
-  it("BEH-S160-4/5: an Editor confirms the exact update in two deliberate steps, with no approval hand-off", async () => {
+  it("BEH-S160-4/5: S184: an Editor applies the displayed exact update with one action, with no approval hand-off", async () => {
     const proposal = fieldProposal();
     fetchMock.mockResolvedValueOnce(
       jsonResponse({ status: "executed", duplicate: false, receipt: {} }),
@@ -223,9 +223,7 @@ describe("S160 staff prepare and confirm a supported Sheet update", () => {
     });
     expect(screen.queryByText(/Admin action/)).not.toBeInTheDocument();
     expect(screen.queryByText(/an Admin confirms/i)).not.toBeInTheDocument();
-    expect(screen.queryByText("Confirm this exact effect once")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText("Review and confirm…"));
-    fireEvent.click(screen.getByText("Confirm this exact effect once"));
+    fireEvent.click(screen.getByRole("button", { name: "Apply Sheet update" }));
     await waitFor(() =>
       expect(
         screen.getByText(/Applied to the operating Sheet with a receipt/),
@@ -240,6 +238,36 @@ describe("S160 staff prepare and confirm a supported Sheet update", () => {
     });
   });
 
+  it("AC-S184-3: repeated Apply while the first request is pending dispatches once", async () => {
+    const proposal = fieldProposal();
+    let settle!: (value: ReturnType<typeof jsonResponse>) => void;
+    fetchMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          settle = resolve;
+        }),
+    );
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ status: "ok", proposal, effects: statusFor(proposal, "succeeded") }),
+    );
+    renderPanel({
+      initialProposal: proposal,
+      initialEffects: statusFor(proposal, "not_started"),
+    });
+    const apply = screen.getByRole("button", { name: "Apply Sheet update" });
+    fireEvent.click(apply);
+    fireEvent.click(apply);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(apply).toBeDisabled();
+    settle(jsonResponse({ status: "executed", receipt: {}, duplicate: false }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Apply Sheet update" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(2); // one execution, one durable status read
+  });
+
   it("ARCH-S160-1: every staff role is offered the same confirmation; none is sent to an access request", () => {
     const proposal = fieldProposal();
     for (const role of ["Editor", "Approver", "Admin"] as const) {
@@ -248,7 +276,7 @@ describe("S160 staff prepare and confirm a supported Sheet update", () => {
         initialEffects: statusFor(proposal, "not_started"),
         initialProposal: proposal,
       });
-      expect(screen.getByText("Review and confirm…")).toBeInTheDocument();
+      expect(screen.getByText("Apply Sheet update")).toBeInTheDocument();
       expect(screen.queryByText(/Request access/i)).not.toBeInTheDocument();
       unmount();
     }

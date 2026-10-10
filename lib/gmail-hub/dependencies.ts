@@ -28,6 +28,7 @@ export interface GmailHubRuntimeDependencies {
   assertEffectEnvironment(): void;
   assertRuntimeActionExecutable(action: string): Promise<void>;
   now?(): number;
+  observeSequence?(sequenceId: string): Promise<void>;
   createToken?(): string;
   workflowLinkTtlDays?: number;
   isApprovedWorkflowTemplate?(context: WorkflowCommunicationContext): boolean;
@@ -87,6 +88,11 @@ export function createGmailHubRuntimeDependencies(
     isApprovedWorkflowTemplate: isApprovedWorkflowReplyTemplate,
     labelEffects: new FirestoreGmailLabelEffectStore(),
     dataMode: environment.dataMode,
+    observeSequence: async (id) => {
+      const { createCommunicationSequenceService } =
+        await import("./sequence-dependencies");
+      await createCommunicationSequenceService().observeAuthorized(id);
+    },
   };
 }
 

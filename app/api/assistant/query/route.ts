@@ -13,6 +13,11 @@ import {
   runAssistantConversation,
   type ModelInterpreter,
 } from "@/lib/assistant/conversation";
+import { conversationMemoryNote } from "@/lib/assistant-history/memory-types";
+import {
+  ConversationMemoryUnavailable,
+  readConversationMemory,
+} from "@/lib/assistant-history/conversation-memory";
 import { interpretWithModel } from "@/lib/assistant/interpret";
 import { readServerConfig } from "@/lib/config/server";
 import { readCompletedTurnAnswer } from "@/lib/firestore/assistant-history-read";
@@ -35,6 +40,10 @@ const RequestSchema = z
   .object({
     question: z.string().trim().min(1).max(500),
     conversation: ConversationContextSchema.nullable().optional(),
+    conversationKey: z
+      .string()
+      .regex(/^[A-Za-z0-9-]{8,64}$/)
+      .optional(),
     operationId: z
       .string()
       .regex(/^[A-Za-z0-9-]{8,64}$/)
@@ -64,6 +73,15 @@ export async function POST(request: Request) {
     const execute = async () => {
       const now = new Date();
       const config = readServerConfig();
+      const memory =
+        body.conversationKey && historyModeFor(user) === "saved"
+          ? await readConversationMemory(
+              user,
+              body.conversationKey,
+              body.question,
+              body.operationId,
+            )
+          : null;
       let interpret: ModelInterpreter | null = null;
       // The deterministic interpreter answers in local rehearsal and whenever this actor's model
       // budget is spent; a throttled question is still answered, never refused.
@@ -77,17 +95,27 @@ export async function POST(request: Request) {
             ? config.localModelName
             : config.geminiClassifyModel;
         interpret = (question, previous, nowIso) =>
-          interpretWithModel(question, previous, nowIso, { provider, model });
+          interpretWithModel(question, previous, nowIso, {
+            provider,
+            model,
+            ...(memory ? { memory: memory.memory } : {}),
+          });
       }
-      return runAssistantConversation(
-        { question: body.question, conversation: body.conversation ?? null },
+      const answer = await runAssistantConversation(
+        {
+          question: body.question,
+          conversation: memory?.continuation ?? body.conversation ?? null,
+        },
         {
           nowIso: now.toISOString(),
           actorKey: conversationActorKey(user.uid),
           context: createServerOperationalContext(user, now),
           interpret,
+          priorQuestionTexts: memory?.memory.turns.map((t) => t.question),
         },
       );
+      const note = memory ? conversationMemoryNote(memory.memory) : undefined;
+      return { ...answer, ...(note ? { contextNote: note } : {}) };
     };
     if (!body.operationId) return NextResponse.json(await execute());
     const { promise, joined } = runOncePerOperation(
@@ -103,6 +131,11 @@ export async function POST(request: Request) {
     }
     return NextResponse.json(answer);
   } catch (error) {
+    if (error instanceof ConversationMemoryUnavailable)
+      return NextResponse.json(
+        { error: error.message, error_type: "conversation_context_unavailable" },
+        { status: 503 },
+      );
     return apiErrorResponse(error);
   }
 }

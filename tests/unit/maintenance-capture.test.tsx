@@ -30,7 +30,7 @@ describe("MaintenanceCapture", () => {
       screen.queryByLabelText(/photo/i, { selector: "input" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Build work-order draft" }),
+      screen.getByRole("button", { name: "Review reported issue" }),
     ).toBeInTheDocument();
 
     // MWO-3 (§I): Issue + Unit are marked required (asterisk + aria-required) and the primary
@@ -44,14 +44,18 @@ describe("MaintenanceCapture", () => {
       "true",
     );
     expect(screen.getAllByText("*")).toHaveLength(2);
-    expect(screen.getByRole("button", { name: "Build work-order draft" })).toHaveClass(
+    expect(screen.getByRole("button", { name: "Review reported issue" })).toHaveClass(
       "button--large",
     );
   });
 
   it("requires the registry preview and explicit confirmation before an enabled upload", async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn(async () => Response.json({ ref: "stub:fixture.jpg" }));
+    const fetchMock = vi.fn(async (url: string) =>
+      url.includes("operating-policies")
+        ? Response.json({ policies: [] })
+        : Response.json({ ref: "stub:fixture.jpg" }),
+    );
     vi.stubGlobal("fetch", fetchMock);
     render(
       <MaintenanceCapture
@@ -73,9 +77,13 @@ describe("MaintenanceCapture", () => {
 
     expect(screen.getByText("fixture.jpg")).toBeInTheDocument();
     expect(screen.getByText("Safe maintenance folder")).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(
+      fetchMock.mock.calls.filter(([url]) => !url.includes("operating-policies")),
+    ).toHaveLength(0);
     await user.click(screen.getByRole("button", { name: "Confirm photo upload" }));
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(
+      fetchMock.mock.calls.filter(([url]) => !url.includes("operating-policies")),
+    ).toHaveLength(1);
   });
 
   it("builds a clean Live in-app draft after matching the unit", async () => {
@@ -107,10 +115,10 @@ describe("MaintenanceCapture", () => {
     );
     expect(await screen.findByText(/Matched:/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Build work-order draft" }));
+    await user.click(screen.getByRole("button", { name: "Review reported issue" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Work-order draft" }),
+      await screen.findByRole("heading", { name: "Reported issue review" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Dishwasher won't drain" }),
@@ -120,11 +128,11 @@ describe("MaintenanceCapture", () => {
 
     // The non-executable M-5 stages surface alongside the draft.
     expect(
-      screen.getByRole("heading", { name: "Owner notice: draft" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("heading", { name: "Owner notice: draft" }),
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByText(/A person reviews and sends every owner notice from Gmail/),
-    ).toBeInTheDocument();
+      screen.queryByText(/A person reviews and sends every owner notice from Gmail/),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Vendor assignment: suggestion" }),
     ).toBeInTheDocument();
@@ -139,7 +147,7 @@ describe("MaintenanceCapture", () => {
     const user = userEvent.setup();
     render(<MaintenanceCapture reporterUid="u" />);
 
-    await user.click(screen.getByRole("button", { name: "Build work-order draft" }));
+    await user.click(screen.getByRole("button", { name: "Review reported issue" }));
 
     expect(
       await screen.findByText("Add an issue description or voice note."),
@@ -171,7 +179,7 @@ describe("MaintenanceCapture", () => {
       "123 Main",
     );
     await user.click(await screen.findByRole("button", { name: "123 Main St Unit 1" }));
-    await user.click(screen.getByRole("button", { name: "Build work-order draft" }));
+    await user.click(screen.getByRole("button", { name: "Review reported issue" }));
     expect(screen.getByRole("button", { name: "Create ticket" })).toBeEnabled();
 
     await user.type(

@@ -46,7 +46,7 @@ export interface MessagePreflightInput {
   readonly channel: "owner" | "tenant";
   readonly canEdit: boolean;
   readonly senderEmail: string | null;
-  readonly signatureOrigin: "none" | "saved" | "retained_sender";
+  readonly signatureOrigin: "none" | "saved" | "retained_sender" | "business_profile";
   readonly signatureMatchesActor: boolean;
   readonly readiness: MessageReadiness | null;
   readonly recipients:
@@ -175,7 +175,8 @@ export function projectMessagePreflight(input: MessagePreflightInput): MessagePr
           state: "ready",
           detail: "The saved signature belongs to the signed-in sender.",
         }
-      : input.signatureOrigin === "retained_sender"
+      : input.signatureOrigin === "retained_sender" ||
+          input.signatureOrigin === "business_profile"
         ? {
             id: "signature",
             label: "Sender signature",

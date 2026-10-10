@@ -1,3 +1,10 @@
+import { operationStage } from "@/lib/observability/staff-operation";
+import {
+  maintenanceWorkAuthorized,
+  maintenanceWorkScope,
+  hasCurrentRecordedOwnerDecision,
+} from "@/lib/maintenance/lifecycle";
+import type { MaintenanceWorkAuthorizationContext } from "@/lib/maintenance/work-authorization";
 // S99 governed work-order service: bounded reads, one ticket-bound create proposal, and one
 // exact status-update proposal, all through the S20 ledger and linked Approval Queue. The
 // browser supplies only value-bearing selections; the server derives the account, paths, ticket,
@@ -92,16 +99,16 @@ export function buildWorkOrderClients(): WorkOrderExecutionClients | null {
   const apiSecret = process.env.RENTVINE_API_SECRET?.trim();
   if (!baseUrl || !apiKey || !apiSecret) return null;
   assertRentVineAccount(baseUrl, "pmikcmetro");
-  const config = { baseUrl, apiKey, apiSecret };
+  const config = { baseUrl, apiKey, apiSecret },
+    read = createFetchTransport({ timeoutMs: 30_000 }),
+    write = createRentVineWriteFetchTransport({ timeoutMs: 30_000 });
   return {
-    reader: new RentVineWorkOrderReader(
-      config,
-      createFetchTransport({ timeoutMs: 30_000 }),
-    ),
-    writer: new RentVineWorkOrderWriter(
-      config,
-      createRentVineWriteFetchTransport({ timeoutMs: 30_000 }),
-    ),
+    reader: new RentVineWorkOrderReader(config, {
+      send: (request) => operationStage("source_read", () => read.send(request)),
+    }),
+    writer: new RentVineWorkOrderWriter(config, {
+      send: (request) => operationStage("provider_dispatch", () => write.send(request)),
+    }),
   };
 }
 
@@ -260,6 +267,7 @@ export async function assembleWorkOrderCreateAction(
   ticket: MaintenanceTicketRecord,
   selection: WorkOrderCreateSelection,
   attemptSeq: number,
+  authorization?: MaintenanceWorkAuthorizationContext,
 ): Promise<AssembledWorkOrderAction> {
   if (ticket.data_mode !== "live") {
     throw new WorkOrderServiceError(
@@ -267,6 +275,7 @@ export async function assembleWorkOrderCreateAction(
       "Only a Live app ticket can propose a RentVine create.",
     );
   }
+  const authorizationRefs = workOrderCreateAuthorizationRefs(ticket, authorization);
   const description = ticket.description.trim();
   if (!description) {
     throw new WorkOrderServiceError(
@@ -318,6 +327,7 @@ export async function assembleWorkOrderCreateAction(
     values,
     sourceRefs: [
       `ticket:${ticket.id}`,
+      ...authorizationRefs,
       `rentvine:unit:${mapping.unitId}`,
       `rentvine:status-catalog:${status.workOrderStatusId}`,
     ],
@@ -425,12 +435,38 @@ export function workOrderDefinition(actionKey: string) {
 
 export function workOrderExecutor(
   clients: () => WorkOrderExecutionClients,
+  beforeCreate?: ConstructorParameters<typeof RentVineWorkOrderWriteExecutor>[1],
 ): RentVineWorkOrderWriteExecutor {
-  return new RentVineWorkOrderWriteExecutor(clients);
+  return new RentVineWorkOrderWriteExecutor(clients, beforeCreate);
 }
 
 export const workOrderS20 = {
-  prepare: prepareExternalActionWithS20,
-  execute: executeExternalActionWithS20,
-  reconcile: reconcileExternalActionWithS20,
+  prepare: (...args: Parameters<typeof prepareExternalActionWithS20>) =>
+    operationStage("commit", () => prepareExternalActionWithS20(...args)),
+  execute: (...args: Parameters<typeof executeExternalActionWithS20>) =>
+    operationStage("commit", () => executeExternalActionWithS20(...args)),
+  reconcile: (...args: Parameters<typeof reconcileExternalActionWithS20>) =>
+    operationStage("reconcile", () => reconcileExternalActionWithS20(...args)),
 };
+
+/** Bind the provider proposal to the current assessed scope and exact recorded authority. */
+export function workOrderCreateAuthorizationRefs(
+  ticket: MaintenanceTicketRecord,
+  context?: MaintenanceWorkAuthorizationContext,
+) {
+  if (
+    !ticket.property_id ||
+    !maintenanceWorkAuthorized(ticket, context?.preapproval, context?.verifiedOwnerRefs)
+  )
+    throw new WorkOrderServiceError(
+      "ticket_not_eligible",
+      "Assess the issue and record the current exact owner decision or qualified standing policy before creating provider work.",
+    );
+  const authority = hasCurrentRecordedOwnerDecision(ticket)
+    ? ticket.owner_decision
+    : context?.preapproval;
+  return [
+    `maintenance-work-scope:${sha256(maintenanceWorkScope(ticket))}`,
+    `maintenance-work-authority:${sha256(JSON.stringify(authority))}`,
+  ];
+}

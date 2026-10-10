@@ -67,6 +67,14 @@ export function buildRenewalActionSnapshot(
   return {
     leaseId: summary.id,
     role: input.role,
+    ...(summary.renewalPricing
+      ? {
+          standingOwnerAuthority: {
+            ...summary.renewalPricing.authority,
+            manualRevision: input.manualState?.revision ?? 0,
+          },
+        }
+      : {}),
     manualLaneMounted: input.manualLaneMounted,
     manual: input.manualReadUnavailable
       ? { readable: false }

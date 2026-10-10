@@ -35,7 +35,10 @@ function workspaceWithParties(): RenewalLeaseWorkspace {
       email: fact("tenants[1].email", "jordan.lw@example.test"),
     },
     { ...fact("tenants[2]", "Sam Okafor") },
-  ];
+  ].map((party, index) => ({
+    ...party,
+    contactId: fact(`tenants[${index}].contactID`, String(101 + index)),
+  }));
   const owners = [
     {
       ...fact("owners[0]", "Cedar Holdings LLC"),
@@ -45,7 +48,10 @@ function workspaceWithParties(): RenewalLeaseWorkspace {
       ...fact("owners[1]", "Priya Natarajan"),
       email: fact("owners[1].email", "priya@example.test"),
     },
-  ];
+  ].map((party, index) => ({
+    ...party,
+    contactId: fact(`owners[${index}].contactID`, String(201 + index)),
+  }));
   return {
     ...base,
     summary: {
@@ -209,11 +215,11 @@ describe("S114 independent lease-information and process sidebars", () => {
     for (const link of tenantLinks) {
       const href = link.getAttribute("href") ?? "";
       expect(href.startsWith("/lease-renewal/live/desk?")).toBe(true);
-      expect(href).toMatch(/tenantKey=p1_[A-Za-z0-9_-]{43}/);
+      expect(href).toMatch(/tenantKey=p2_[A-Za-z0-9_-]{43}/);
       expect(href).not.toMatch(/ortega|whitfield|okafor/i);
     }
     for (const link of ownerLinks) {
-      expect(link.getAttribute("href")).toMatch(/ownerKey=p1_[A-Za-z0-9_-]{43}/);
+      expect(link.getAttribute("href")).toMatch(/ownerKey=p2_[A-Za-z0-9_-]{43}/);
     }
     // Names are copy targets, not the link; the link is a separate control.
     const name = within(info)

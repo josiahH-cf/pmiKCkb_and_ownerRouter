@@ -254,7 +254,23 @@ describe("S25/S26 external execution to S20 preparation bridge", () => {
   );
 
   it("prepares executable High work as Awaiting Admin and approves the exact preview hash", async () => {
-    const action = externalAction("rentvine.work_order.create", workOrderValues, "high");
+    const action = externalAction(
+      "vendor.assignment.change",
+      {
+        vendor_ref: "synthetic-vendor",
+        vendor_uid: "synthetic-vendor-uid",
+        vendor_company: "Synthetic vendor",
+        vendor_email: "synthetic-vendor@example.test",
+        vendor_updated_at: "2026-10-09T00:00:00Z",
+        ticket_ref: "synthetic-ticket",
+        ticket_updated_at: "2026-10-09T00:00:00Z",
+        current_vendor_ref: "synthetic-current",
+        target_vendor_ref: "synthetic-vendor",
+        assignment_operation: "assign",
+        reason: "Exact fixture assignment",
+      },
+      "high",
+    );
     const execution = await prepareExternalActionWithS20(
       editor,
       {

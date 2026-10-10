@@ -150,11 +150,11 @@ describe("RenewalWorkspace live mode", () => {
     expect(screen.getByText("Reviewed renewal messages")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Prepare owner message" })).toHaveAttribute(
       "href",
-      `/lease-renewal/live/desk/lease/${workspace.summary.id}#renewal-section-owner`,
+      `/gmail-hub?compose=renewal_owner&lease=${workspace.summary.id}`,
     );
     expect(screen.getByRole("link", { name: "Prepare tenant message" })).toHaveAttribute(
       "href",
-      `/lease-renewal/live/desk/lease/${workspace.summary.id}#renewal-section-tenant`,
+      `/gmail-hub?compose=renewal_tenant&lease=${workspace.summary.id}`,
     );
     expect(
       screen.queryByRole("button", { name: "Create Gmail draft" }),

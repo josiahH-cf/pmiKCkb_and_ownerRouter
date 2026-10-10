@@ -480,7 +480,8 @@ export function WorkOrderChatPanel({
       {draftCreated ? (
         <p className="muted" role="status">
           Unsent draft {draftCreated} is in your Gmail Drafts. Review and send or delete
-          it there yourself; the app never sends and never deletes drafts.
+          it there yourself; this resident-reply draft control never sends or deletes
+          drafts.
         </p>
       ) : null}
       {draftCreated ? <p className="muted">{GEMINI_IN_GMAIL_HINT}</p> : null}

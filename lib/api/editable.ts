@@ -80,3 +80,13 @@ function flattenIssues(error: z.ZodError) {
 
   return issues.length ? issues : ["Invalid request body."];
 }
+
+export function parseValidatedValue<T>(payload: unknown, schema: z.ZodType<T>): T {
+  const parsed = schema.safeParse(payload);
+  if (!parsed.success)
+    throw new EditableLayerError(
+      `Invalid input: ${flattenIssues(parsed.error).join("; ")}`,
+      400,
+    );
+  return parsed.data;
+}

@@ -1,3 +1,8 @@
+import {
+  encodeWorkflowMime,
+  verifyWorkflowMimeReadback,
+  type WorkflowMimeMessage,
+} from "./workflow-mime";
 // Per-user Gmail API boundary. The constructor subject comes only from the server-verified app
 // session and is reused as the DWD sub. Methods are deliberately small, scope-split, bounded, and
 // transport-injected so normal tests never contact Gmail.
@@ -216,6 +221,29 @@ export class GmailRuntimeClient {
     return readSendResult(data);
   }
 
+  /** One attempt of a staff-authorized immutable workflow snapshot; no retry is performed here. */
+  async sendWorkflowMessage(input: WorkflowMimeMessage): Promise<GmailSendResult> {
+    if (input.from.toLowerCase() !== this.subject)
+      throw new GmailRuntimeError(
+        "Gmail From must match the approved managed sender.",
+        403,
+        false,
+      );
+    let raw: string;
+    try {
+      raw = encodeWorkflowMime(input);
+    } catch {
+      throw new GmailRuntimeError("The exact workflow message is invalid.", 400, false);
+    }
+    const data = await this.request(GMAIL_COMPOSE_SCOPE, "POST", "/messages/send", {
+      body: {
+        raw,
+        ...(input.threadId ? { threadId: opaqueId(input.threadId, "thread id") } : {}),
+      },
+    });
+    return readSendResult(data);
+  }
+
   async findMessageByRfcMessageId(rfcMessageId: string): Promise<GmailSendResult | null> {
     const messageId = safeRfcMessageId(rfcMessageId);
     const data = await this.request(GMAIL_READONLY_SCOPE, "GET", "/messages", {
@@ -242,6 +270,58 @@ export class GmailRuntimeClient {
     const id = optionalString(first.id);
     const threadId = optionalString(first.threadId);
     return id && threadId ? { messageId: id, threadId, labelIds: [] } : null;
+  }
+
+  async findWorkflowMessage(
+    rfcMessageId: string,
+    expected: WorkflowMimeMessage,
+  ): Promise<(GmailSendResult & { sentAtMs: number }) | null> {
+    if (
+      expected.messageId !== rfcMessageId ||
+      expected.from.toLowerCase() !== this.subject
+    )
+      throw new GmailRuntimeError("The send readback identity is invalid.", 409, true);
+    const found = await this.findMessageByRfcMessageId(rfcMessageId);
+    if (!found) return null;
+    const data = await this.request(
+      GMAIL_READONLY_SCOPE,
+      "GET",
+      `/messages/${opaqueId(found.messageId, "message id")}`,
+      { query: { format: "raw" }, maxResponseBytes: 12 * 1024 * 1024 },
+    );
+    if (
+      !isRecord(data) ||
+      typeof data.raw !== "string" ||
+      !Array.isArray(data.labelIds) ||
+      !data.labelIds.includes("SENT")
+    )
+      throw new GmailRuntimeError(
+        "The send readback is incomplete or is not an outbound message.",
+        409,
+        true,
+      );
+    const sentAtMs = Number(data.internalDate);
+    if (
+      data.id !== found.messageId ||
+      data.threadId !== found.threadId ||
+      !Number.isFinite(sentAtMs) ||
+      sentAtMs <= 0
+    )
+      throw new GmailRuntimeError("The exact send readback did not match.", 409, true);
+    try {
+      verifyWorkflowMimeReadback(data.raw, expected);
+    } catch {
+      throw new GmailRuntimeError(
+        "The exact send readback did not match the approved MIME.",
+        409,
+        true,
+      );
+    }
+    return {
+      ...found,
+      labelIds: data.labelIds.filter((s): s is string => typeof s === "string"),
+      sentAtMs,
+    };
   }
 
   async listLabels(): Promise<GmailLabel[]> {
@@ -520,6 +600,7 @@ export class GmailRuntimeClient {
     options: {
       query?: Record<string, string>;
       body?: unknown;
+      maxResponseBytes?: number;
     } = {},
   ): Promise<unknown> {
     const token = await this.getToken(scope);
@@ -538,6 +619,9 @@ export class GmailRuntimeClient {
           ...(options.body === undefined ? {} : { "content-type": "application/json" }),
         },
         ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
+        ...(options.maxResponseBytes
+          ? { maxResponseBytes: options.maxResponseBytes }
+          : {}),
       });
     } catch {
       throw new GmailRuntimeError(

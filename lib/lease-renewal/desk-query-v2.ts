@@ -7,7 +7,7 @@
 // display labels may be resolved once — against the current authorized projection only — into exact
 // opaque `p1_` tokens; no display label is ever echoed into a v2 URL.
 
-import { LEASE_TERMS, type LeaseTerm } from "@/lib/lease-renewal/lease-term";
+import { LEASE_TERMS, type LeaseTerm } from "@/lib/lease-renewal/lease-term-types";
 import {
   RENEWAL_DESK_DUE_STATES,
   RENEWAL_DESK_WAITING_STATES,
@@ -47,9 +47,10 @@ import {
 export const RENEWAL_DESK_QUERY_V2_VERSION = "2";
 
 /** Opaque `renewal-party-filter-key/v1` URL token shape (the derivation lives server-side). */
-export const PARTY_FILTER_TOKEN_PATTERN = /^p1_[A-Za-z0-9_-]{43}$/;
+export const PARTY_FILTER_TOKEN_PATTERN = /^p[12]_[A-Za-z0-9_-]{43}$/;
 
 export const RENEWAL_DESK_V2_SORTS = [
+  "nonrenewals_first",
   "due",
   "end_date",
   "month",
@@ -174,7 +175,7 @@ export interface RenewalDeskQueryV2State {
 export const DEFAULT_RENEWAL_DESK_QUERY_V2: Readonly<RenewalDeskQueryV2State> = {
   q: "",
   lease: "",
-  sort: "due",
+  sort: "nonrenewals_first",
   direction: "asc",
   scope: "active",
   endDate: "",
@@ -374,7 +375,7 @@ export function parseRenewalDeskQueryV2(
   const state: RenewalDeskQueryV2State = {
     q: boundedText(firstValue(input, "q"), 120),
     lease: boundedText(firstValue(input, "lease"), 120),
-    sort: oneOf(firstValue(input, "sort"), RENEWAL_DESK_V2_SORTS, "due"),
+    sort: oneOf(firstValue(input, "sort"), RENEWAL_DESK_V2_SORTS, "nonrenewals_first"),
     direction: oneOf(firstValue(input, "direction"), ["asc", "desc"] as const, "asc"),
     scope: oneOf(
       firstValue(input, "scope"),
@@ -490,7 +491,9 @@ export interface RenewalDeskV2Item {
     readonly endDateIso: string | null;
     readonly endMonth: string | null;
     readonly normalizedOwners: readonly string[];
+    readonly ownerIdentityKeys?: readonly string[];
     readonly normalizedTenants: readonly string[];
+    readonly tenantIdentityKeys?: readonly string[];
     readonly workflowStepId: string | null;
     readonly workflowStepIndex: number | null;
     readonly waitingOn: string;
@@ -528,6 +531,7 @@ export interface PartyTokenMatcher {
     token: string,
     partyKind: "owner" | "tenant",
     normalizedLabels: readonly string[],
+    sourceIds?: readonly string[],
   ): boolean;
 }
 
@@ -638,13 +642,23 @@ function matchesQuery(
   if (query.due !== "all" && item.queryKeys.dueState !== query.due) return false;
   if (
     query.ownerKey &&
-    !matchParty(query.ownerKey, "owner", item.queryKeys.normalizedOwners)
+    !matchParty(
+      query.ownerKey,
+      "owner",
+      item.queryKeys.normalizedOwners,
+      item.queryKeys.ownerIdentityKeys,
+    )
   ) {
     return false;
   }
   if (
     query.tenantKey &&
-    !matchParty(query.tenantKey, "tenant", item.queryKeys.normalizedTenants)
+    !matchParty(
+      query.tenantKey,
+      "tenant",
+      item.queryKeys.normalizedTenants,
+      item.queryKeys.tenantIdentityKeys,
+    )
   ) {
     return false;
   }
@@ -714,6 +728,12 @@ function primaryValue(
   sort: RenewalDeskV2Sort,
 ): string | number | null {
   switch (sort) {
+    case "nonrenewals_first":
+      return item.queryKeys.manualNonRenewal === true ||
+        item.queryKeys.moveOut === "initiated" ||
+        item.queryKeys.lifecycle === "non_renewal"
+        ? 0
+        : 1;
     case "end_date":
       return item.queryKeys.endDateIso;
     case "month":
@@ -755,6 +775,7 @@ function secondaryValue(item: RenewalDeskV2Item, sort: RenewalDeskV2Sort): strin
   // Attention-style columns break ties chronologically so a sooner renewal never sorts below a
   // later one inside the same band.
   if (
+    sort === "nonrenewals_first" ||
     sort === "overall_status" ||
     sort === "rent_verification" ||
     sort === "blocked" ||

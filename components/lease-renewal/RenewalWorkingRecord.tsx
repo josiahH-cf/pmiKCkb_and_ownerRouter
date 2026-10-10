@@ -23,6 +23,7 @@ import {
   withEdited,
   type AutosaveState,
 } from "./AutosaveStatus";
+import { useRenewalPricingPolicy } from "./RenewalPricingPolicy";
 import { Button, Field } from "@/components/ui";
 import { parseCurrencyInput } from "@/lib/currency-input";
 import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
@@ -232,6 +233,7 @@ interface WorkingFieldProps {
  */
 export function WorkingMoneyField({ field, label, hint, source }: WorkingFieldProps) {
   const context = useRenewalWorkingRecord();
+  const pricing = useRenewalPricingPolicy();
   const id = useId();
   const entry = workingEntry(context?.record, field);
   const saved = typeof entry?.value === "number" ? entry.value : null;
@@ -250,8 +252,11 @@ export function WorkingMoneyField({ field, label, hint, source }: WorkingFieldPr
   const sourceAmount = typeof source?.value === "number" ? source.value : null;
   const differs = saved !== null && sourceAmount !== null && saved !== sourceAmount;
 
+  const prefill =
+    field === "terms_rent" && !entry ? (pricing?.view?.prefill ?? null) : null;
+  const displayText = !dirty && saved === null && prefill ? String(prefill.value) : text;
   async function commit() {
-    const trimmed = text.trim();
+    const trimmed = displayText.trim();
     if (!trimmed) {
       setError(null);
       setDirty(false);
@@ -268,7 +273,15 @@ export function WorkingMoneyField({ field, label, hint, source }: WorkingFieldPr
       setDirty(false);
       return;
     }
-    if (await context!.save(field, parsed.value)) setDirty(false);
+    const options =
+      prefill && !dirty && parsed.value === prefill.value
+        ? {
+            origin: "adopted_source" as const,
+            sourceLabel: `Pricing policy v${prefill.policyVersion}`,
+            context: `${prefill.policyId}: ${prefill.reason}`.slice(0, 1000),
+          }
+        : undefined;
+    if (await context!.save(field, parsed.value, options)) setDirty(false);
   }
 
   return (
@@ -287,9 +300,15 @@ export function WorkingMoneyField({ field, label, hint, source }: WorkingFieldPr
           onKeyDown={(event) => {
             if (event.key === "Enter") void commit();
           }}
-          value={text}
+          value={displayText}
         />
       </Field>
+      {prefill && !entry ? (
+        <p className="muted">
+          Prefilled from policy v{prefill.policyVersion}. {prefill.reason} This amount is
+          saved when you leave or submit the field.
+        </p>
+      ) : null}
       <AutosaveStatus
         onRetry={() => void commit()}
         state={withEdited(state, dirty)}

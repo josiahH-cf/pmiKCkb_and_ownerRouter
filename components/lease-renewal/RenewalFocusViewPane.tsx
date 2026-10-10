@@ -1,4 +1,5 @@
 "use client";
+import { useRenewalPricingPolicy } from "@/components/lease-renewal/RenewalPricingPolicy";
 
 import {
   useEffect,
@@ -167,6 +168,7 @@ export function RenewalFocusViewPane({
 }: Readonly<{ snapshot: RenewalActionSnapshot; facts: RenewalFocusFacts }>) {
   const view = useRenewalFocusView();
   const manual = useRenewalManualWorkspace();
+  const pricing = useRenewalPricingPolicy();
   // The staff-record context carries the newest readback; without the staff lane the server
   // snapshot is the only record.
   const contextual = manual !== null;
@@ -178,8 +180,20 @@ export function RenewalFocusViewPane({
       : readUnavailable
         ? { readable: false }
         : { readable: true, state: contextState };
-    return projectRenewalActions(snapshot, input);
-  }, [snapshot, contextual, readUnavailable, contextState]);
+    const bound = pricing
+      ? {
+          ...snapshot,
+          standingOwnerAuthority: {
+            covered: pricing.view?.authority.covered === true,
+            manualRevision: pricing.view?.manualRevision ?? -1,
+            reason:
+              pricing.view?.authority.reason ??
+              "Current agreement evidence is unavailable.",
+          },
+        }
+      : snapshot;
+    return projectRenewalActions(bound, input);
+  }, [snapshot, contextual, readUnavailable, contextState, pricing]);
   const manualState: RenewalWorkspaceState | null =
     !contextual && snapshot.manual.readable
       ? snapshot.manual.state
@@ -231,7 +245,11 @@ export function RenewalFocusViewPane({
       .filter(
         (element): element is HTMLElement => element !== null && body.contains(element),
       );
-    reveal.current.apply([view.slot, ...targets]);
+    // S197: these owning context controls remain mounted and usable in either view.
+    const contextTargets = [
+      ...body.querySelectorAll<HTMLElement>("[data-renewal-focus-context]"),
+    ];
+    reveal.current.apply([view.slot, ...contextTargets, ...targets]);
     if (pendingFocus.current) {
       const id = pendingFocus.current;
       pendingFocus.current = null;

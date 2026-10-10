@@ -49,7 +49,7 @@ describe("Gmail workflow attention (AC-GW-10, AC-GW-12)", () => {
       family: "maintenance_communications",
       title: "Maintenance communication needs review",
       message: "A linked maintenance communication has a new message.",
-      href: "/maintenance?ticket_id=ticket-1",
+      href: "/gmail-hub?workflow=maintenance_ticket&record=ticket-1&purpose=maintenance_owner",
     });
     expect(JSON.stringify(notifications)).not.toContain("thread-1");
     expect(JSON.stringify(notifications)).not.toContain("message-secret");

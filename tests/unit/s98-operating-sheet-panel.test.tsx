@@ -179,9 +179,7 @@ describe("S98 operating-sheet panel", () => {
         workspaceContext={WORKSPACE_CONTEXT}
       />,
     );
-    expect(screen.queryByText("Confirm this exact effect once")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText("Review and confirm…"));
-    fireEvent.click(screen.getByText("Confirm this exact effect once"));
+    fireEvent.click(screen.getByRole("button", { name: "Apply Sheet update" }));
     await waitFor(() => {
       expect(
         screen.getByText(/Applied to the operating Sheet with a receipt/),
@@ -210,7 +208,7 @@ describe("S98 operating-sheet panel", () => {
     );
     expect(screen.getByText(/The Sheet outcome is unproven/)).toBeInTheDocument();
     expect(screen.getByText("Reconcile from Sheet state")).toBeInTheDocument();
-    expect(screen.queryByText("Review and confirm…")).not.toBeInTheDocument();
+    expect(screen.queryByText("Apply Sheet update")).not.toBeInTheDocument();
     expect(screen.queryByText(/retry/i)).not.toBeInTheDocument();
   });
 
@@ -283,8 +281,7 @@ describe("S98 operating-sheet panel", () => {
         workspaceContext={WORKSPACE_CONTEXT}
       />,
     );
-    fireEvent.click(screen.getByText("Review and confirm…"));
-    fireEvent.click(screen.getByText("Confirm this exact effect once"));
+    fireEvent.click(screen.getByRole("button", { name: "Apply Sheet update" }));
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("The write flag is off.");
     });
@@ -304,7 +301,7 @@ describe("S98 operating-sheet panel", () => {
       );
       expect(screen.getByText("Add Sheet row")).toBeInTheDocument();
       expect(screen.queryByText(/Admin action/)).not.toBeInTheDocument();
-      expect(screen.getByText("Review and confirm…")).toBeInTheDocument();
+      expect(screen.getByText("Apply Sheet update")).toBeInTheDocument();
       unmount();
     }
   });
@@ -323,6 +320,6 @@ describe("S98 operating-sheet panel", () => {
       />,
     );
     expect(screen.getByText(/confirmation window has expired/)).toBeInTheDocument();
-    expect(screen.queryByText("Review and confirm…")).not.toBeInTheDocument();
+    expect(screen.queryByText("Apply Sheet update")).not.toBeInTheDocument();
   });
 });

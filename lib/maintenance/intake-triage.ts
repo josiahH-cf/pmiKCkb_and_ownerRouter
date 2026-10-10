@@ -10,45 +10,18 @@ import {
   type MaintenanceTrade,
 } from "@/lib/maintenance/constants";
 
-export const MAINTENANCE_INTAKE_URGENCIES = [
-  "emergency_fire",
-  "urgent_flooding",
-  "normal",
-] as const;
+import {
+  maintenanceUrgencies,
+  projectMaintenanceUrgency,
+  EXISTING_MAINTENANCE_GUIDANCE,
+  maintenanceTermHits,
+  type OperatingPolicyVersion,
+} from "./operating-policy";
+export const MAINTENANCE_INTAKE_URGENCIES = maintenanceUrgencies;
 
 export type MaintenanceIntakeUrgency = (typeof MAINTENANCE_INTAKE_URGENCIES)[number];
 
 export type MaintenanceIntakeEvidence = "photos";
-
-/** Life-safety terms. Any hit routes the reporter to emergency services before anything else. */
-const FIRE_TERMS = [
-  "fire",
-  "smoke",
-  "smoking",
-  "smoky",
-  "gasoline",
-  "gas leak",
-  "smell gas",
-  "smells like gas",
-  "gas",
-  "carbon monoxide",
-] as const;
-
-/** Water that is moving now. A term hit alone is enough; a plain leak needs `happeningNow`. */
-const ACTIVE_WATER_TERMS = [
-  "flood",
-  "flooding",
-  "flooded",
-  "burst",
-  "overflow",
-  "overflowing",
-  "sewage",
-  "water everywhere",
-  "pouring water",
-  "gushing",
-] as const;
-
-const LEAK_TERMS = ["leak", "leaking", "dripping", "running water"] as const;
 
 const DAMAGE_TERMS = [
   "damage",
@@ -79,17 +52,9 @@ export const MAINTENANCE_REQUIRED_EVIDENCE: Record<
   General: [],
 };
 
-const COPY: Record<MaintenanceIntakeUrgency, string> = {
-  emergency_fire: "Call 911 now if anyone is in danger. We have recorded your report.",
-  urgent_flooding:
-    "We have your report and we are treating it as urgent. If you can do it safely, shut off the water at the fixture or at the main shutoff, and move what you can away from the water.",
-  normal:
-    "Thank you. We have your report and a member of the team will review it and follow up with you.",
-};
-
 /** The approved acknowledgement for one urgency. No template promises a completion time. */
 export function intakeTriageCopy(urgency: MaintenanceIntakeUrgency): string {
-  return COPY[urgency];
+  return EXISTING_MAINTENANCE_GUIDANCE[urgency];
 }
 
 export interface IntakeTriageInput {
@@ -117,6 +82,7 @@ export interface IntakeTriageProjection {
   readonly acknowledgement: string;
   /** The report is stored either way; an emergency is recorded and escalated, never dropped. */
   readonly recorded: true;
+  readonly policyDecision: ReturnType<typeof projectMaintenanceUrgency>;
 }
 
 function haystack(input: IntakeTriageInput): string {
@@ -126,26 +92,8 @@ function haystack(input: IntakeTriageInput): string {
     .toLowerCase();
 }
 
-const TERM_PATTERNS = new Map<string, RegExp>();
-
-/**
- * A term matches only as a whole word or phrase, never as a fragment of a longer word: "gas" is
- * life-safety, "gasket" is a dishwasher part. An `s`, `es`, `d`, `ed`, `ing`, or `y` ending is
- * allowed so "smoked", "leaks", and "leaky" still count; adjectives that change the stem ("smoky",
- * "gasoline") are listed as their own terms.
- */
-function termPattern(term: string): RegExp {
-  let pattern = TERM_PATTERNS.get(term);
-  if (!pattern) {
-    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
-    pattern = new RegExp(`(?:^|[^a-z0-9])${escaped}(?:s|es|d|ed|ing|y)?(?=$|[^a-z0-9])`);
-    TERM_PATTERNS.set(term, pattern);
-  }
-  return pattern;
-}
-
 function hits(text: string, terms: readonly string[]): boolean {
-  return terms.some((term) => termPattern(term).test(text));
+  return terms.some((term) => maintenanceTermHits(text, term));
 }
 
 /** Deterministic trade inference from the report text, reusing the committed keyword taxonomy. */
@@ -163,14 +111,13 @@ export function inferIntakeIssueType(text: string): MaintenanceTrade {
   return best;
 }
 
-export function projectIntakeTriage(input: IntakeTriageInput): IntakeTriageProjection {
+export function projectIntakeTriage(
+  input: IntakeTriageInput,
+  policy: OperatingPolicyVersion | null = null,
+): IntakeTriageProjection {
   const text = haystack(input);
-  const urgency: MaintenanceIntakeUrgency = hits(text, FIRE_TERMS)
-    ? "emergency_fire"
-    : hits(text, ACTIVE_WATER_TERMS) ||
-        (input.happeningNow === true && hits(text, LEAK_TERMS))
-      ? "urgent_flooding"
-      : "normal";
+  const decision = projectMaintenanceUrgency(input, policy),
+    urgency = decision.urgency;
 
   const issueType = input.issueType ?? null;
   const byType = issueType ? MAINTENANCE_REQUIRED_EVIDENCE[issueType] : [];
@@ -188,7 +135,8 @@ export function projectIntakeTriage(input: IntakeTriageInput): IntakeTriageProje
     evidenceRequest: photosNeeded
       ? "Please send a photo of the problem and one of the area around it, so the team can size the work before anyone visits."
       : null,
-    acknowledgement: intakeTriageCopy(urgency),
+    acknowledgement: decision.guidance,
+    policyDecision: decision,
     recorded: true,
   };
 }

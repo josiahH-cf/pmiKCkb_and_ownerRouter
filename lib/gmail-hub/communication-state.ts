@@ -115,3 +115,34 @@ export function describeCommunicationState(
     ].join(" · "),
   };
 }
+
+/** An admitted occurrence is never a confirmed send, including after cancellation. */
+export function describeSequenceState(input: {
+  state: import("./sequence-model").SequenceState;
+  scheduled: boolean;
+  confirmedCount: number;
+  unresolvedOccurrenceId: string | null;
+}) {
+  const needsVerification =
+    !!input.unresolvedOccurrenceId || input.state === "needs_reconciliation";
+  const label = needsVerification
+    ? "Needs verification"
+    : input.state === "active"
+      ? input.scheduled
+        ? "Scheduled"
+        : "Awaiting send"
+      : (
+          {
+            draft: "Draft in app",
+            paused: "Paused",
+            cancelled: "Cancelled",
+            completed: input.confirmedCount > 0 ? "Sent" : "Completed",
+            needs_reconciliation: "Needs verification",
+          } as const
+        )[input.state];
+  return {
+    label,
+    confirmed: `${input.confirmedCount} confirmed message${input.confirmedCount === 1 ? "" : "s"}`,
+    needsVerification,
+  };
+}

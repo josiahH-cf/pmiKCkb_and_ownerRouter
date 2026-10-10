@@ -14,6 +14,7 @@ const LABELS: Record<RenewalAuxiliaryReadKey, string> = {
   manual_workspace: "recorded manual cycle and preparation",
   work_status: "staff work status",
   working_record: "Saved working values",
+  pricing_policy: "Renewal pricing policies and standing owner authority",
   packet: "document packet status",
   notice_policy: "notice timing policy",
   communications: "linked communication status",

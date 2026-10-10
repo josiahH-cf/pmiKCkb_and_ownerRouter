@@ -276,7 +276,9 @@ describe("S100 WorkOrderChatPanel", () => {
       executionId: "exec_draft_1",
       previewHash: "b".repeat(64),
     });
-    expect(screen.getByText(/never sends and never deletes drafts/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/this resident-reply draft control never sends or deletes drafts/),
+    ).toBeInTheDocument();
     // S140: one wording hint, only once the draft exists.
     expect(screen.getAllByText(GEMINI_IN_GMAIL_HINT)).toHaveLength(1);
   });

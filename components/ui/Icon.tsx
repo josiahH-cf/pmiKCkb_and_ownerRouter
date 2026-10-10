@@ -11,6 +11,7 @@ export type IconName =
   | "check"
   | "chevron-right"
   | "clipboard-checklist"
+  | "copy"
   | "close"
   | "error"
   | "external"
@@ -49,6 +50,12 @@ const GLYPHS: Readonly<Record<IconName, ReactNode>> = {
     <>
       <path d="M9 5H6a2 2 0 0 0-2 2v12h16V7a2 2 0 0 0-2-2h-3" />
       <path d="M9 3h6v4H9V3Zm0 8-1.5 1.5L6.5 11M11 12h5m-7 4-1.5 1.5-1-1M11 17h5" />
+    </>
+  ),
+  copy: (
+    <>
+      <rect x="8" y="8" width="12" height="13" rx="1" />
+      <path d="M16 8V3H3v13h5" />
     </>
   ),
   close: <path d="M6 6l12 12M18 6 6 18" />,

@@ -18,6 +18,8 @@ export interface HistoryConversationSummary {
   readonly updatedAtIso: string;
   readonly turnCount: number;
   readonly lastState: "submitted" | "completed" | "failed" | "interrupted";
+  readonly pinned?: boolean;
+  readonly pinVersion?: number;
 }
 
 export interface HistoryPage {
@@ -25,6 +27,9 @@ export interface HistoryPage {
   readonly persisted: boolean;
   readonly conversations: readonly HistoryConversationSummary[];
   readonly nextCursor: string | null;
+  readonly activeSelection?: { conversationId: string | null; version: number };
+  readonly pinnedConversations?: readonly HistoryConversationSummary[];
+  readonly pinnedNextCursor?: string | null;
 }
 
 export type HistoryPageOutcome =
@@ -49,6 +54,7 @@ export interface RestoredConversation {
   readonly ownerKey: string;
   readonly conversation: HistoryConversationSummary;
   readonly turns: readonly RestoredTurn[];
+  readonly nextTurnCursor?: number | null;
 }
 
 export type TurnSaveOutcome =
@@ -65,9 +71,14 @@ async function readJson<T>(response: Response): Promise<T | null> {
 
 export async function fetchHistoryPage(
   cursor: string | null,
+  kind?: "pinned",
 ): Promise<HistoryPageOutcome> {
   try {
-    const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
+    const params = new URLSearchParams({
+      ...(cursor ? { cursor } : {}),
+      ...(kind ? { kind } : {}),
+    });
+    const query = params.size ? `?${params}` : "";
     const response = await fetch(`/api/assistant/history${query}`, { cache: "no-store" });
     if (!response.ok) return { status: "failed" };
     const page = await readJson<HistoryPage>(response);
@@ -81,12 +92,64 @@ export async function fetchConversation(
   conversationId: string,
 ): Promise<RestoredConversation | null> {
   try {
-    const response = await fetch(
-      `/api/assistant/history/${encodeURIComponent(conversationId)}`,
-      { cache: "no-store" },
-    );
-    if (!response.ok) return null;
-    return await readJson<RestoredConversation>(response);
+    let after = 0;
+    let combined: RestoredConversation | null = null;
+    const turns = new Map<string, RestoredTurn>();
+    do {
+      const response = await fetch(
+        `/api/assistant/history/${encodeURIComponent(conversationId)}${after ? `?after=${after}` : ""}`,
+        { cache: "no-store" },
+      );
+      if (!response.ok) return null;
+      const page = await readJson<RestoredConversation>(response);
+      if (
+        !page ||
+        page.conversation.conversationId !== conversationId ||
+        !Array.isArray(page.turns)
+      )
+        return null;
+      if (
+        combined &&
+        (page.ownerKey !== combined.ownerKey ||
+          page.conversation.conversationKey !== combined.conversation.conversationKey)
+      )
+        return null;
+      for (const turn of page.turns) turns.set(turn.operationId, turn);
+      combined = page;
+      if (page.nextTurnCursor == null) break;
+      if (!Number.isSafeInteger(page.nextTurnCursor) || page.nextTurnCursor <= after)
+        return null;
+      after = page.nextTurnCursor;
+    } while (true);
+    return combined
+      ? {
+          ...combined,
+          turns: [...turns.values()].sort((a, b) => a.seq - b.seq),
+          nextTurnCursor: null,
+        }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/** S199 remembers the thread as soon as its first submitted turn has a durable identity. */
+export async function beginHistoryTurnWithId(input: {
+  operationId: string;
+  conversationKey: string;
+  question: string;
+}): Promise<string | null> {
+  try {
+    const r = await fetch("/api/assistant/history/turns", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    if (!r.ok) return null;
+    const value = await r.json();
+    return /^[a-f0-9]{32}$/.test(value.conversationId ?? "")
+      ? value.conversationId
+      : null;
   } catch {
     return null;
   }
@@ -272,6 +335,44 @@ export async function runSavedQuestionRequest(
     return body && body.turn.displayState === "completed"
       ? { status: "ok", ...body }
       : { status: "failed" };
+  } catch {
+    return { status: "failed" };
+  }
+}
+
+export type ThreadMetadataInput =
+  | {
+      action: "select";
+      conversationId: string | null;
+      expectedVersion: number;
+      operationId: string;
+    }
+  | {
+      action: "pin";
+      conversationId: string;
+      pinned: boolean;
+      expectedVersion: number;
+      operationId: string;
+    };
+export async function updateThreadMetadata(input: ThreadMetadataInput): Promise<
+  | {
+      status: "ok";
+      ownerKey: string;
+      selection: { conversationId: string | null; version: number };
+      conversation: HistoryConversationSummary | null;
+    }
+  | { status: "conflict" | "failed" }
+> {
+  try {
+    const r = await fetch("/api/assistant/history/metadata", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    if (r.status === 409) return { status: "conflict" };
+    if (!r.ok) return { status: "failed" };
+    const body = await r.json();
+    return { status: "ok", ...body };
   } catch {
     return { status: "failed" };
   }

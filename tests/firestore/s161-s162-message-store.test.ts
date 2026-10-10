@@ -116,12 +116,9 @@ import {
   POST as postMessageRoute,
 } from "@/app/api/lease-renewal/message-preparation/route";
 import { MESSAGE_SUBJECT_OVERRIDE_COLLECTION } from "@/lib/firestore/renewal-message-body-overrides";
-import { publishSuppliedRenewalTemplate } from "@/lib/firestore/renewal-message-publication";
+import { missingValueMarker } from "@/lib/lease-renewal/renewal-message-content";
 import { saveRenewalWorkingField } from "@/lib/firestore/renewal-working-record";
 import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
-import { decodeRawDraft } from "@/lib/gmail-runtime/raw-message";
-import { DRAFT_BANNER } from "@/lib/constants";
-import { missingValueMarker } from "@/lib/lease-renewal/renewal-message-content";
 
 const projectId = "pmi-kc-kb-s161-message-store-test";
 let app: App;
@@ -363,185 +360,46 @@ describe("S161 message persistence without a cycle step", () => {
   });
 });
 
-describe("S162 the explicit draft action from the displayed message", () => {
-  it("BEH-S162-4/5/6/7/8/10, ARCH-S162-2/3, AC-S162-2/3: saves what is displayed, refuses a mismatch before Gmail, gives a changed envelope its own attempt and creates one unsent draft with its markers", async () => {
-    // Publication is the existing Admin step; it stays the one prerequisite of the Gmail action.
-    await publishSuppliedRenewalTemplate(
-      { ...editor, uid: "s161-admin", email: "s161-admin@pmikcmetro.com", role: "Admin" },
-      "tenant",
-      db,
-    );
+describe("S193 retires new draft HTTP effects while keeping ordinary saves", () => {
+  it("refuses both older creation stages without saving supplied words, preparing a claim or contacting Gmail", async () => {
     const fresh = await read();
-    expect(fresh.publication.status).toBe("approved");
-    const body = fresh.content.plainText.replace(
-      "Hello Emulator,",
-      "Hi Emulator and all,",
-    );
-
-    // R-S162-7: the needed save fails honestly inside the action; nothing is previewed.
-    const failedSave = await post({
-      kind: "draft",
-      leaseId: "701",
-      channel: "tenant",
-      displayed: { subject: fresh.content.subject, body },
-      save: {
-        expectedRevision: 4,
-        operationId: randomUUID(),
-        inputs: fresh.inputs,
-        bodyOverride: { text: body, baseHash: fresh.bodyBaseHash },
-      },
-    });
-    expect(failedSave.status).toBe(409);
-    expect(failedSave.data).toMatchObject({
-      code: "message_save_failed",
-      providerCallAttempted: false,
-    });
-    expect(failedSave.data.error).toContain("no draft was prepared");
-    expect(await getRenewalWorkspace(editor, "701", db)).toBeNull();
-
-    // The one action saves the displayed message (establishing the work record) and previews
-    // exactly that content. The first save moves the notice-safety scope to the new record, so
-    // the draft waits for one fresh admitted source read, as Refresh data provides.
-    const first = await post({
-      kind: "draft",
-      leaseId: "701",
-      channel: "tenant",
-      displayed: { subject: fresh.content.subject, body },
-      save: {
-        expectedRevision: 0,
-        operationId: randomUUID(),
-        inputs: fresh.inputs,
-        bodyOverride: { text: body, baseHash: fresh.bodyBaseHash },
-      },
-    });
-    expect(first.status).toBe(200);
-    const afterSave = await read();
-    expect(afterSave.saved.revision).toBe(1);
-    expect(afterSave.content.plainText).toBe(body);
-    if (first.data.status !== "preview") {
-      expect(first.data.status).toBe("blocked");
-      expect(first.data.reasons.join(" ")).toMatch(/notice|Refresh/i);
-      refreshSource();
-    }
-    const preview = await post({
-      kind: "draft",
-      leaseId: "701",
-      channel: "tenant",
-      displayed: { subject: afterSave.content.subject, body },
-    });
-    expect(preview.status, JSON.stringify(preview.data)).toBe(200);
-    expect(preview.data.status, JSON.stringify(preview.data)).toBe("preview");
-    expect(preview.data.subject).toBe(afterSave.content.subject);
-    expect(preview.data.body).toBe(`${DRAFT_BANNER}\n\n${body}`);
-    expect(preview.data.body).toContain("Hi Emulator and all,");
-    expect(preview.data.body).toContain(missingValueMarker("renewal rent"));
-    expect(preview.data.recipient).toMatchObject({
-      to: "tenant@fixture-rental.net",
-      cc: ["second@fixture-rental.net"],
-    });
-    expect(gmail.creates).toBe(0);
-
-    // R-S162-6: what is on screen must be what is saved; otherwise nothing is prepared.
-    const mismatch = await post({
-      kind: "draft",
-      leaseId: "701",
-      channel: "tenant",
-      displayed: { subject: afterSave.content.subject, body: `${body}\n\nUnsaved line.` },
-    });
-    expect(mismatch.status).toBe(409);
-    expect(mismatch.data).toMatchObject({
-      code: "message_changed",
-      providerCallAttempted: false,
-    });
-
-    // The same revision now reads with a changed envelope (the working rent changed the facts
-    // behind the message). The preview gets its own attempt instead of an idempotency refusal.
-    await saveRenewalWorkingField(
-      editor,
+    for (const extra of [
       {
+        displayed: { subject: fresh.content.subject, body: "Unsaved words" },
+        save: {
+          expectedRevision: 0,
+          operationId: randomUUID(),
+          inputs: fresh.inputs,
+          bodyOverride: { text: "Unsaved words", baseHash: fresh.bodyBaseHash },
+        },
+      },
+      { confirm: { executionId: `exec_${"a".repeat(40)}`, previewHash: "b".repeat(64) } },
+    ]) {
+      const refused = await post({
+        kind: "draft",
         leaseId: "701",
-        field: "terms_rent",
-        value: 1600,
-        expectedRevision: 0,
-        operationId: randomUUID(),
-      },
-      db,
-    );
-    const changed = await read();
-    expect(changed.saved.revision).toBe(1);
-    expect(changed.content.plainText).toBe(body);
-    const again = await post({
-      kind: "draft",
-      leaseId: "701",
-      channel: "tenant",
-      displayed: { subject: changed.content.subject, body },
-    });
-    expect(again.status, JSON.stringify(again.data)).toBe(200);
-    expect(again.data.status).toBe("preview");
-    expect(again.data.executionId).not.toBe(preview.data.executionId);
-    expect((await read()).saved.revision).toBe(2);
-    const earlier = await db
-      .collection("action_executions")
-      .doc(preview.data.executionId)
-      .get();
-    expect(earlier.get("attempt_count")).toBe(0);
+        channel: "tenant",
+        ...extra,
+      });
+      expect(refused.status).toBe(410);
+      expect(refused.data).toMatchObject({
+        code: "communications_composer_required",
+        providerCallAttempted: false,
+        href: "/gmail-hub?compose=renewal_tenant&lease=701",
+      });
+    }
     expect(gmail.creates).toBe(0);
-
-    // The stale confirmation is refused exactly; the current one creates one unsent draft.
-    const stale = await post({
+    expect(await getRenewalWorkspace(editor, "701", db)).toBeNull();
+    expect((await db.collection("action_executions").get()).size).toBe(0);
+  });
+  it("refuses a forged original-attempt recovery before Gmail", async () => {
+    const result = await post({
       kind: "draft",
       leaseId: "701",
       channel: "tenant",
-      confirm: {
-        executionId: preview.data.executionId,
-        previewHash: preview.data.previewHash,
-      },
+      reconcile: { executionId: `exec_${"a".repeat(40)}` },
     });
-    expect(stale.status).toBe(409);
+    expect(result.status).toBe(404);
     expect(gmail.creates).toBe(0);
-    const confirm = {
-      kind: "draft",
-      leaseId: "701",
-      channel: "tenant",
-      confirm: {
-        executionId: again.data.executionId,
-        previewHash: again.data.previewHash,
-      },
-    };
-    const created = await post(confirm);
-    expect(created.status, JSON.stringify(created.data)).toBe(200);
-    expect(created.data.status).toBe("created");
-    expect(gmail.creates).toBe(1);
-    const decoded = decodeRawDraft(gmail.raw);
-    expect(decoded.to).toBe("tenant@fixture-rental.net");
-    expect(decoded.from).toBe(editor.email);
-    expect(decoded.body).toBe(again.data.body);
-    expect(decoded.body).toContain(missingValueMarker("renewal rent"));
-    expect(decoded.body).toContain("Hi Emulator and all,");
-    // BEH-S162-10: the same confirmation again is the same draft, never a second one.
-    expect((await post(confirm)).data.status).toBe("created");
-    expect(gmail.creates).toBe(1);
-    // BEH-S162-11: a later save does not touch the created draft.
-    const later = await read();
-    const edited = await post({
-      kind: "save",
-      leaseId: "701",
-      channel: "tenant",
-      cycleId: later.cycleId,
-      expectedRevision: later.saved.revision,
-      operationId: randomUUID(),
-      inputs: later.inputs,
-      bodyOverride: {
-        text: `${body}\n\nEdited after the draft.`,
-        baseHash: later.bodyBaseHash,
-      },
-    });
-    expect(edited.status).toBe(200);
-    expect(gmail.creates).toBe(1);
-    expect(decodeRawDraft(gmail.raw).body).not.toContain("Edited after the draft.");
-    expect((await read()).draftAttempt).toMatchObject({
-      executionId: again.data.executionId,
-      state: "Succeeded",
-    });
   });
 });

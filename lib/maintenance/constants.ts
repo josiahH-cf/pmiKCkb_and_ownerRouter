@@ -1,15 +1,13 @@
-// Maintenance Work Order Intake shared vocabulary (S4). Metadata only — no runtime trigger, queue, or
-// external write. The RentVine work-order create stays gated (Action Registry production_allowed:false).
-
-// The intake stage model: field capture -> match -> draft -> notice -> assignment -> (gated) write.
+// Display stages for newly authored maintenance process guidance. Existing published definitions,
+// ticket stages, provider receipts and stored run histories are not migrated by this vocabulary.
 export const MAINTENANCE_STAGES = [
-  "Capture",
-  "Location match",
-  "Work-order draft",
-  "Owner notice",
-  "Vendor assignment",
-  "System-of-record update",
-  "Closeout",
+  "Capture and location",
+  "Assessment and troubleshooting",
+  "Estimate and owner authority",
+  "Vendor coordination",
+  "Work and contributions",
+  "PMI review and closure",
+  "History and reports",
 ] as const;
 
 export const MAINTENANCE_PRIORITIES = ["Emergency", "High", "Normal", "Low"] as const;
@@ -34,8 +32,8 @@ export const MAINTENANCE_EMERGENCY_KEYWORDS = [
 ] as const;
 
 // Vendor TRADES for the vendor-assignment SUGGESTION (M-5). We can deterministically suggest the trade
-// a work order needs; we CANNOT name a specific vendor — no vendor roster exists yet (client-owned,
-// Needs-Verification). "General" is the fallback when no trade keyword hits.
+// a work order needs. Actual vendor selection uses the separately verified roster and current
+// assignment contract; a trade suggestion never assigns. "General" is the fallback.
 export const MAINTENANCE_TRADES = [
   "Plumbing",
   "Electrical",

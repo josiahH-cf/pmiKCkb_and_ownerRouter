@@ -1,115 +1,106 @@
 # PMI KC current product contract
 
-Updated: 2026-09-29.
+Updated: 2026-10-10.
 
-## Application
+## Application and current delivery
 
-PMI KC is one authenticated operations application with the Dashboard (the Console/Ask surface),
-My Work, Internal Processes (the Spaces collection), processes, approvals, Lease Renewal,
-Maintenance, Workflow Communications, Admin, feedback, Vendor/resident seams, and staff work.
-Primary navigation renders three actor-filtered disclosure groups — My Work, Operations, and Admin —
-with descriptive destination rows; routes and internal Console/Space contracts are unchanged.
+PMI KC is one authenticated operations application: Dashboard/Ask, My Work, Internal Processes
+(Spaces), processes, approvals, Lease Renewal, Maintenance, Workflow Communications, Admin,
+feedback, Vendor/resident seams and staff work. Navigation and record access use current server
+permissions. Business titles and display names grant no role or privilege.
 
-Production contains Live data only. Local rehearsal can inspect bounded live reads and cannot cause
-provider effects. The owner-approved notice safeguard may persist only lease-bound version/hash/time
-approval-invalidation metadata; it cannot record workflow progress or create a draft/provider write.
+The last independent serving readback on October 9 identified commit
+`337ac163c5709381e8db8d2c18810bec357d8a96` / `pmi-kc-app-rmuz9g28p-0a2909d490e1`, with 100%
+production traffic, Production + Live, managed runtime identity, eleven Spaces, Demo=false and
+Sheet=true. The verified release and its exact checks remain in `docs/facts.md`. Fresh cloud
+readback and release work currently wait on approved WSL Google enrollment; this historical
+readback is not evidence that a new program revision is serving.
 
-## Dashboard and knowledge
+The owner started `operations-communications-maintenance-2026-10` (S183–S226, intake 055–098)
+on October 9, including scoped protected governance edits and gated exact-key activation.
+All 44 suites / 238 requirements remain in the program. Implementation and local verification
+are in progress; none is verified delivered. S208/S217/S218/S220/S221 remain PENDING until their
+account, source, financial, coverage and transition contracts are complete. Their dependencies do
+not prevent independent implementation and do not authorize invented inputs.
 
-- The Dashboard (internally the Console surface) summarizes bodyless operational state and
-  attention.
-- Ask answers from approved sources and visibly reports missing support.
-- Internal Processes (internally Spaces) organize approved sources and process definitions.
-- Workflow Communications compatibility does not appear as an unbacked normal Space.
-- Admin exposes connection state, action gates, support reports, people/access, and operational setup.
+## Dashboard, knowledge and conversations
+
+- Summarize authorized operational state and link to the correct current record.
+- Give best-effort contextual answers with approved facts, source gaps and inferences visibly
+  distinguished. Missing source/model support never becomes fabricated evidence or an action.
+- Preserve private whole-thread history and pins separately from shared reviewed monthly lease
+  collections. Reopening rechecks current permissions before displaying retained details.
+- An explicitly requested supported staff operation uses the ordinary application service and its
+  authorization/recovery contract. Generated text and inferred intent cannot execute effects.
+- Global search uses authorized entity metadata, partial matches, filters and record navigation.
 
 ## Lease renewal
 
-- Read all RentVine lease pages and the operating renewal Sheet.
-- Join by stable lease/row identity; never persist address/name as the sole key.
-- Land renewal work on one sortable, filterable table with per-lease identity, RentVine renewal
-  date and current base rent, deterministic status/verification states, and direct blocker links;
-  S113 provides one full dashboard, working source links, accessible sections and an actionable next
-  control. S122–S134 add explicit all-lease/worklist views, retained cycles, notice review, date
-  presentation, issue guidance, lifecycle controls and bounded preparation/assessment workflows.
-- Classify agreement, conflict, one-sided, missing, intentional semantic difference, stale, and
-  ambiguous joins.
-- Verify current rent only from fresh agreement or exact current resolution.
-- Use RentCast as a reference input with source link, cache, counter, and allowance stop.
-- Keep offered rent Admin-approved and separate from provider estimates.
-- Preserve the immutable six-step `renewal-v1` provider evidence and historical meaning. S113 adds
-  separate audited manual activity that advances the full checklist through staff-recorded
-  completion; it cannot fabricate provider receipts. Reopen affected work when its terms change.
-- Let Renewals-space Editors read and perform ordinary app-owned work; keep Approver reconciliation,
-  Admin pricing/source approvals and configuration, and exact action readiness as independent terms.
-- Address all owners/tenants of record through separated channels.
-- Prepare human-reviewed unsent drafts; never direct-send.
-- Keep packet truth fail-closed until approved artifacts/provider mappings exist.
+- Read all RentVine lease pages and the operating Sheet; join by stable lease/row identity.
+  Classify conflict, one-sided, missing, intentional semantic difference, stale and ambiguous joins.
+- Verify rent from current source agreement or an exact current resolution. RentCast is a bounded
+  reference with provenance, cache, counter and allowance; it cannot establish owner authority.
+- Preserve delivered S113's dashboard, manual progress, supported source corrections, rich/plain
+  preparation and immutable provider evidence. Staff-recorded completion is separate from receipts.
+- S194–S198 extend the existing owners with reusable policies, untouched-term prefilling, current
+  standing-owner-authority evidence, visible recommendations, first-five comparables in owner
+  messages, readable worklists, lease workspace/copy controls and lease-linked staff tasks.
+  MKD's intended policy is 3.5%; real membership and agreement evidence remain required.
+- Ordinary authorized Save/Apply captures the exact visible intent once. Existing backend roles,
+  current source/target checks, conflicts, receipts and recovery remain enforceable.
+- Keep packet output dependent on real approved artifacts/mappings. S182 API-origin exclusions
+  remain. Dotloop OAuth connection alone does not prove office-agent/template eligibility or saved
+  supported profile/template/status selection; both write keys remain closed.
 
 ## Maintenance and work
 
-- Capture and manage work with explicit unit/source context.
-- Staff work uses app-owned tasks and user-started sessions.
-- Track factual time and corrections without surveillance or productivity inference.
-- Tasks may include job location, materials needed, and materials already bought/on hand.
-- Move-out deposit disposition remains process-validation work until the client walkthrough.
+- Extend the existing maintenance owner from assessment through creation, progress, discovery,
+  deduplication/reconciliation, durable case history, assigned-vendor contributions and PMI closure.
+- Keep vendor completion distinct from PMI final closure, and estimates, invoices, credits, reported
+  payment and provider-verified financial evidence distinct. Unknown opening state stays unknown.
+- Preserve original-operation recovery, current property/lease/unit association and explicit primary/
+  backup vendor management. Shared emergency/chargeback policy requires reviewed current scope.
+- Provide readable monthly/custom-period PDF/CSV reporting from a frozen, source-bound snapshot.
+- Staff tasks/time remain factual app-owned records, without surveillance or productivity inference.
+- Vendoroo ingestion, acquisition extraction/import and native answering/cutover stay required;
+  missing interfaces, schemas, contacts, consent or operational policy cannot be substituted.
 
-## External effects
+## Communications and effects
 
-Every effect is exact-key gated and follows preview, exact confirmation, one bounded attempt or
-provider idempotency, receipt, readback, ambiguity recovery, and separate reversal/correction. S100's
-manual chat sync is the sole specified non-reversible stateful-read exception: its explicit warning
-states that RentVine marks retrieved manager messages read and documents no unread restoration.
-The exact S97 renewal writes, S98 operating-Sheet keys, S99 work-order operations and S100 manual
-chat sync retain their exact contracts. S113 implements normal Sheet append and owner-approved
-field updates with fresh target/value checks, exact confirmation, one attempt, receipt/readback
-and fresh confirmed correction. S128 currently pauses every operating-Sheet mutation with the
-production switch false; open keys cannot override that pause. Reads and app-owned saves remain.
-Row deletion and completed proof replay remain unavailable. The S100
-resident-reply Gmail draft remains closed pending its exact eligible mapping, proof, and activation.
-Direct notice sends, generic/bulk provider calls, vendor assignment, attachments, RentVine chat
-posting, and autonomous/model-triggered effects remain out of scope.
+S183 supersedes categorical draft-only and repeated-consent restrictions only for this named
+program. An authorized staff member's Send/Schedule binds the exact managed sender, targets,
+message/attachments, version and schedule. The approved initial/follow-up occurrences then use
+S189–S192's durable bounded dispatcher, current-access checks, inbound-reply pause, receipts,
+readback and ambiguity recovery. A changed message/schedule/sender requires current authorization.
+Model output, migration, an old draft, page load and copied text grant no sending authority.
 
-## Current acceptance
+The committed Registry still has 48 exact keys, 16 open and 32 closed. The renewal/maintenance
+notice send keys remain technically closed pending their technical gates and reviewed exact
+activation. Generic `gmail.message.send`, arbitrary/bulk provider calls, unrequested autonomous
+or model-driven effects, vendor assignment, provider attachment upload and RentVine chat posting
+remain closed. Retiring a UI does not rewrite or redispatch an earlier attempted effect.
 
-Run `f2036ad3-065e-4cac-8641-22f4946c975e` released all thirteen features together at
-`843e222f436cee824ccb89cef23e8eea59d78d5d` / `pmi-kc-app-rmun4mghg-35be42b3c74f` with 100% production traffic.
-Exact [CI 36624189352](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/36624189352) passed.
-Recovery receipt `aede1a91-9cd9-4483-a80f-992a0e20a4d8` issued at 2026-09-29T20:36:35.193Z.
-The one application build `9329e6de-525a-4b54-b244-5d6398d0a885` succeeded at
-2026-09-29T20:40:46.626383Z. Candidate assurance issued at 2026-09-29T20:58:02.530Z;
-promotion verified at 2026-09-29T20:58:19.150Z. The 300,000 ms observation passed
-with two checkpoints in 404,390 ms. All 311 source/projected/rendered records matched,
-with zero missing/unexpected records, duplicates, field mismatches or invalid destinations.
-Monitoring read zero candidate 5xx and unresolved live effects during observation.
-Independent canonical/tagged identity, traffic, configuration, receipts and domain readbacks passed.
-Production + Live, managed identity, eleven Spaces, Demo=false and Sheet=false are verified.
-Tag: `cand-rmun4mghg-35be42b3c74f`. Fingerprint: `sha256:4ce7c7bd5d180115c27a604f38f1fca178e9b807119c0f34871d7c9991bf9ca8`.
-The guarded remote product supplement passed; no provider or business mutation was used as proof.
-Editor browser coverage remains `not_run` under the approved Admin-only contract.
+Existing S97/S99/S100 exact contracts retain their meanings. S159 serves Sheet=true for normal
+append and recognized-field updates behind current target/value checks and human confirmation;
+false pauses those effects. Row deletion, historical restore and completed proof replay remain
+unavailable. S100's warned, manually confirmed manager-chat read marker has no provider unread
+restoration; the resident-reply draft key remains closed pending its exact mapping/proof/activation.
 
-The final application gate passed 7,438 unit tests and 234 backend tests, with four existing
-configuration skips, all required checks and production build. The notice portfolio repair
-preserves per-lease invalidation semantics while processing 311 leases in ten bounded transactions;
-its regression failed on the original fan-out and passed after repair. Mixed admission and
-concurrent observations passed actual emulator transactions. My Work's initial loading repair
-passed three regressions that failed on the original source and 23 focused checks. The full
-118-reference litmus matrix and G1–G7 retain their exact unit/backend/compiled-browser scopes
-in the shared batch audit. Earlier failed attempts remain failed in immutable evidence outside Git.
+Every live effect needs a current exact key, actor/target validation, conflict handling, idempotency
+or one durable at-most-once attempt, receipt/readback and documented recovery/correction. Internal
+transactional notices retain their narrow metadata-only scope. No live customer effect is used to
+demonstrate a test. Production contains Live data only; local synthetic rehearsals cannot authorize
+or create production records. Private data and raw evidence remain outside Git.
 
-## Current unfinished work
+## Acceptance and continuation
 
-Use `docs/plan.md`, `docs/loop-state.md`, and `docs/feature-suites/README.md`. Historical V1/Demo and
-superseded proof specifications are not part of this contract. S82 conformance, S113 consolidation and expanded S51/S54 assurance are deployed. S97-S99 are complete and deployed. S100 chat sync is complete, proven, and open; S100
-remains blocked only on the exact mapped resident/email input required for its closed unsent-draft
-key. S36 is queued behind complete S100 and has not started. S87-S95 and S101 are
-specification-only desired behavior for minimal-home, decluttering and broad assistant-read
-coverage. S110's bounded three-intent Dashboard assistant is deployed. The batch implementation/release is complete; a missing runtime or approved-policy input blocks only
-its dependent gate and is never permission to invent or substitute evidence.
+Use `docs/plan.md`, `docs/loop-state.md`, the canonical suite register and the native program ledger.
+Authoring readiness, owner execution authority, implementation verification, provider activation
+and verified deployment are separate states. Complete canonical checks, exact-main CI, release lock,
+fresh prerequisites/permit, candidate assurance, promotion, full observation and independent
+readbacks before claiming delivery. Preserve failed and ambiguous outcomes. Human verdicts remain
+NOT RUN without a human observer. Completed historical implementations/proofs are not rerun.
 
-The September 10 S113 amendment explicitly repairs the existing RentCast comp/trend feature and
-incorporates supplied private owner/tenant templates. One deterministic content model supplies
-reviewed rich/plain copy and the existing governed Gmail draft path; mailbox readiness cannot block
-local preparation. Exact RentVine operations, paused Sheet synchronization, cycle isolation and
-manual applicability are specified in S113 F2.4–F4.1. S106/S34 own the prepared Dotloop packet end
-state and conditional deployment; absent signature-send/status capability is not invented.
+Revised S87 is deployed in batch 005; overlapping S88–S93/S101 and S95 proposals are superseded,
+S94 is unexecuted, and S36 waits behind complete S100. Historical specifications and superseded
+Demo policies cannot grant work or contradict the current router.

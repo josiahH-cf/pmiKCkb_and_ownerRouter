@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the service; keep the real Zod schemas (the routes parse with them).
 vi.mock("@/lib/firestore/maintenance-tickets", async (importActual) => {
@@ -8,9 +8,17 @@ vi.mock("@/lib/firestore/maintenance-tickets", async (importActual) => {
     ...actual,
     listMaintenanceTickets: vi.fn(),
     createMaintenanceTicket: vi.fn(),
+    readMaintenanceTicketCreation: vi.fn(async () => ({
+      state: "not_recorded",
+      ticket: null,
+    })),
     transitionMaintenanceTicket: vi.fn(),
   };
 });
+
+vi.mock("@/lib/maintenance/verified-ticket-property", () => ({
+  verifyMaintenanceCreationUnit: vi.fn(async () => undefined),
+}));
 
 import { GET, POST } from "@/app/api/maintenance/tickets/route";
 import { PATCH } from "@/app/api/maintenance/tickets/[ticketId]/route";
@@ -32,7 +40,15 @@ function setEditor() {
 
 function jsonRequest(url: string, method: string, body: unknown) {
   return new Request(url, {
-    body: JSON.stringify(body),
+    body: JSON.stringify(
+      method === "PATCH" && body && typeof body === "object"
+        ? {
+            ...body,
+            expectedVersion: 0,
+            operationId: "10f3de4b-2f2c-470a-8bd4-524ddbd075ab",
+          }
+        : body,
+    ),
     headers: { "content-type": "application/json" },
     method,
   });
@@ -40,8 +56,13 @@ function jsonRequest(url: string, method: string, body: unknown) {
 
 const ticketCtx = { params: Promise.resolve({ ticketId: "t1" }) };
 
+beforeEach(() => {
+  vi.stubEnv("ENVIRONMENT_KIND", "production");
+  vi.stubEnv("DATA_CONTEXT", "live");
+});
 afterEach(() => {
   setAuthResolverForTest(null);
+  vi.unstubAllEnvs();
   vi.mocked(listMaintenanceTickets).mockReset();
   vi.mocked(createMaintenanceTicket).mockReset();
   vi.mocked(transitionMaintenanceTicket).mockReset();
@@ -89,6 +110,7 @@ describe("maintenance tickets API route", () => {
     } as never);
     const response = await POST(
       jsonRequest("http://localhost/api/maintenance/tickets", "POST", {
+        creation_id: "10f3de4b-2f2c-470a-8bd4-524ddbd075ab",
         summary: "Leak",
         description: "Water is leaking below the kitchen sink.",
         priority: "Emergency",

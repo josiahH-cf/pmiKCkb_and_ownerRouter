@@ -9,6 +9,7 @@ import { formatBusinessTimestamp } from "@/lib/date-display";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
+import { LeaseFollowUpOriginView } from "./LeaseFollowUpOriginView";
 import { WorkActivityController } from "@/components/work/WorkActivityController";
 import {
   actualTaskMinutes,
@@ -868,6 +869,7 @@ function WorkTaskCard({
         </p>
       ) : null}
 
+      <LeaseFollowUpOriginView task={task} />
       <div className="work-actions" aria-label={`Actions for ${task.title}`}>
         {canStart ? (
           <button
@@ -934,7 +936,8 @@ function WorkTaskCard({
           onMutate={onMutate}
         />
       ) : null}
-      {mode === "team" && isTerminalTaskState(task.state) ? (
+      {(mode === "team" || (editable && task.renewal_follow_up)) &&
+      isTerminalTaskState(task.state) ? (
         <TaskReasonTransition
           task={task}
           state="Paused"

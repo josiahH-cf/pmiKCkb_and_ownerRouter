@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { authErrorResponse, requireCapability } from "@/lib/auth/session";
 import { askModelRateLimiter } from "@/lib/api/model-call-throttle";
+import { historyModeFor } from "@/lib/assistant-history/route-support";
+import {
+  ConversationMemoryUnavailable,
+  readConversationMemory,
+} from "@/lib/assistant-history/conversation-memory";
 import { answerQuestion } from "@/lib/ask/service";
 import { AnswerGenerationSetupError } from "@/lib/llm/answer";
 import { RetrievalSetupError } from "@/lib/retrieval/vertex-search";
@@ -48,9 +53,25 @@ export async function POST(request: Request) {
   }
 
   try {
-    const response: AskResponse = await answerQuestion(user, scopedRequest);
+    const memory =
+      scopedRequest.conversationKey && historyModeFor(user) === "saved"
+        ? await readConversationMemory(
+            user,
+            scopedRequest.conversationKey,
+            scopedRequest.question,
+            scopedRequest.operationId,
+          )
+        : null;
+    const response: AskResponse = memory
+      ? await answerQuestion(user, scopedRequest, { memory: memory.memory })
+      : await answerQuestion(user, scopedRequest);
     return NextResponse.json(response);
   } catch (error) {
+    if (error instanceof ConversationMemoryUnavailable)
+      return NextResponse.json(
+        { error: error.message, error_type: "conversation_context_unavailable" },
+        { status: 503 },
+      );
     if (
       error instanceof RetrievalSetupError ||
       error instanceof AnswerGenerationSetupError

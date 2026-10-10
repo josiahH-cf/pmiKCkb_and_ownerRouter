@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useLayoutEffect, useRef, useState } from "react";
+import { Icon } from "@/components/ui";
 import { boundedLocalWait } from "@/lib/ui/local-lifetime";
 
 // S114: exact whole-value and one-audience copy over the projected lease facts. A copy never
@@ -119,7 +120,8 @@ export function RenewalCopyValue({
         onClick={() => void copy(value, `${label} copied.`)}
         type="button"
       >
-        {state.kind === "copied" ? "Copied" : "Copy"}
+        <Icon name={state.kind === "copied" ? "check" : "copy"} size={16} />
+        <span className="sr-only">{state.kind === "copied" ? "Copied" : "Copy"}</span>
       </button>
       <CopyStatus id={statusId} state={state} />
     </span>

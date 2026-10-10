@@ -10,6 +10,8 @@ import type { MaintenanceTicketRecord } from "@/lib/maintenance/ticket-model";
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  sessionStorage.clear();
+  history.replaceState(null, "", "/");
 });
 
 function ticket(
@@ -61,6 +63,8 @@ describe("MaintenanceQueue status pills + history", () => {
   it("focuses a linked Live ticket and opens its Closed group", () => {
     render(
       <MaintenanceQueue
+        canEdit
+        currentUid="u1"
         focusedTicketId="t1"
         initialTickets={[ticket({ status: "Closed", closed_reason: "resolved" })]}
       />,
@@ -68,7 +72,7 @@ describe("MaintenanceQueue status pills + history", () => {
 
     expect(document.getElementById("maintenance-ticket-t1")).toHaveFocus();
     expect(screen.getByText("Closed (1)").closest("details")).toHaveAttribute("open");
-    expect(screen.getByRole("button", { name: "Reopen ticket" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Reopen for assessment" })).toBeDisabled();
     expect(screen.getByText("LIVE DATA")).toBeVisible();
   });
 
@@ -143,61 +147,90 @@ describe("MaintenanceQueue status pills + history", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("shows the exact ticket transition and reason before closing", async () => {
-    const closed = ticket({ status: "Closed", closed_reason: "resolved" });
-    const fetchMock = vi.fn(async () => Response.json({ ticket: closed }));
+  it("one PMI closeout action applies the displayed case stage, retained evidence and reason", async () => {
+    const current = ticket({
+        record_version: 2,
+        workflow_stage: "resolved_troubleshooting",
+        assessment: {
+          outcome: "resolved_troubleshooting",
+          scope: "Fixture issue resolved",
+          evidence_refs: ["staff-note:fixture"],
+          version: 1,
+          recorded_at: "2026-10-09T15:00:00Z",
+          recorded_by_uid: "u1",
+        },
+      }),
+      closed = {
+        ...current,
+        record_version: 3,
+        status: "Closed" as const,
+        workflow_stage: "closed" as const,
+        closed_reason: "PMI reviewed the work",
+      };
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+      Response.json({
+        ticket: closed,
+        operation_id: JSON.parse(String(init?.body)).operationId,
+      }),
+    );
     vi.stubGlobal("fetch", fetchMock);
-    render(<MaintenanceQueue initialTickets={[ticket()]} />);
-
-    fireEvent.change(screen.getByRole("combobox", { name: "Status" }), {
-      target: { value: "Closed" },
+    render(<MaintenanceQueue initialTickets={[current]} canEdit currentUid="u1" />);
+    fireEvent.change(screen.getByLabelText("Next case stage"), {
+      target: { value: "closed" },
     });
+    fireEvent.change(screen.getByLabelText("Reason for the stage change"), {
+      target: { value: "PMI reviewed the work" },
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Apply case stage" })).toBeEnabled(),
+    );
     expect(fetchMock).not.toHaveBeenCalled();
-    const dialog = screen.getByRole("dialog", { name: "Close maintenance ticket" });
-    expect(dialog).toHaveTextContent("Kitchen leak");
-    expect(dialog).toHaveTextContent("t1");
-    expect(dialog).toHaveTextContent("Current status");
-    expect(dialog).toHaveTextContent("Open");
-    expect(dialog).toHaveTextContent("Next status");
-    expect(dialog).toHaveTextContent("Closed");
-    expect(screen.getByRole("button", { name: "Close ticket" })).toBeDisabled();
-
-    fireEvent.change(screen.getByRole("textbox", { name: "Reason" }), {
-      target: { value: "work completed" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Close ticket" }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply case stage" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(fetchMock).toHaveBeenCalledWith("/api/maintenance/tickets/t1", {
-      body: JSON.stringify({ op: "status", status: "Closed", reason: "work completed" }),
-      headers: { "content-type": "application/json" },
-      method: "PATCH",
-      signal: expect.any(AbortSignal),
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({
+      op: "lifecycle",
+      stage: "closed",
+      reason: "PMI reviewed the work",
+      evidence_refs: ["staff-note:fixture"],
+      expectedVersion: 2,
+      operationId: expect.stringMatching(/^[0-9a-f-]{36}$/),
     });
-    expect(await screen.findByText("Ticket updated to Closed.")).toBeVisible();
+    expect(await screen.findByText(/App edit saved/)).toBeVisible();
   });
-
-  it("keeps a reopen inert until its exact confirmation", async () => {
-    const fetchMock = vi.fn(async () =>
-      Response.json({ ticket: ticket({ status: "Open" }) }),
+  it("reopening stays inert while entering the reason and uses one explicit current-version action", async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+      Response.json({
+        ticket: ticket({
+          status: "Open",
+          record_version: 1,
+          workflow_stage: "assessment",
+        }),
+        operation_id: JSON.parse(String(init?.body)).operationId,
+      }),
     );
     vi.stubGlobal("fetch", fetchMock);
     render(
       <MaintenanceQueue
         initialTickets={[ticket({ status: "Closed", closed_reason: "resolved" })]}
+        canEdit
+        currentUid="u1"
       />,
     );
-
-    fireEvent.click(screen.getByRole("button", { name: "Reopen ticket" }));
-    expect(fetchMock).not.toHaveBeenCalled();
-    const dialog = screen.getByRole("dialog", { name: "Reopen maintenance ticket" });
-    expect(dialog).toHaveTextContent("Closed");
-    expect(dialog).toHaveTextContent("Open");
-    fireEvent.change(screen.getByRole("textbox", { name: "Reason" }), {
-      target: { value: "issue returned" },
+    expect(screen.getByRole("button", { name: "Reopen for assessment" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Reason for the stage change"), {
+      target: { value: "Issue returned" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Reopen for assessment" })).toBeEnabled(),
+    );
     expect(fetchMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Reopen for assessment" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toMatchObject({
+      op: "reopen",
+      reason: "Issue returned",
+      expectedVersion: 0,
+    });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

@@ -103,6 +103,8 @@ export class FirestorePublicationContentStore implements PublicationContentStore
     contentId: string;
   }): Promise<PublicationContentReference> {
     assertContentIdentity(input.content, input.contentHash, input.contentId);
+    if (input.contentId.startsWith("maintenance_artifact_"))
+      throw new Error("Retained maintenance evidence requires immutable storage.");
     const chunkCount = Math.ceil(
       input.content.byteLength / PUBLICATION_CONTENT_CHUNK_BYTES,
     );
@@ -117,7 +119,7 @@ export class FirestorePublicationContentStore implements PublicationContentStore
         );
         await this.db
           .collection(PUBLICATION_CONTENT_CHUNK_COLLECTION)
-          .doc(chunkDocumentId(input.contentId, index))
+          .doc(publicationContentChunkDocumentId(input.contentId, index))
           .set({
             byteSize: chunk.byteLength,
             chunkBase64: Buffer.from(chunk).toString("base64"),
@@ -132,13 +134,56 @@ export class FirestorePublicationContentStore implements PublicationContentStore
         writtenIndexes.map((index) =>
           this.db
             .collection(PUBLICATION_CONTENT_CHUNK_COLLECTION)
-            .doc(chunkDocumentId(input.contentId, index))
+            .doc(publicationContentChunkDocumentId(input.contentId, index))
             .delete(),
         ),
       ).catch(() => undefined);
       throw error;
     }
 
+    return {
+      byteSize: input.content.byteLength,
+      chunkCount,
+      contentHash: input.contentHash,
+      contentId: input.contentId,
+      storage: "firestore-chunks-v1",
+    };
+  }
+
+  /** An admitted app-owned upload may resume exact bytes without deleting another writer's chunks. */
+  async putImmutable(input: {
+    content: Uint8Array;
+    contentHash: string;
+    contentId: string;
+  }): Promise<PublicationContentReference> {
+    assertContentIdentity(input.content, input.contentHash, input.contentId);
+    const chunkCount = Math.ceil(
+      input.content.byteLength / PUBLICATION_CONTENT_CHUNK_BYTES,
+    );
+    for (let index = 0; index < chunkCount; index += 1) {
+      const chunk = input.content.slice(
+        index * PUBLICATION_CONTENT_CHUNK_BYTES,
+        (index + 1) * PUBLICATION_CONTENT_CHUNK_BYTES,
+      );
+      const data = {
+        byteSize: chunk.byteLength,
+        chunkBase64: Buffer.from(chunk).toString("base64"),
+        chunkHash: sha256(chunk),
+        contentId: input.contentId,
+        index,
+      };
+      const ref = this.db
+        .collection(PUBLICATION_CONTENT_CHUNK_COLLECTION)
+        .doc(publicationContentChunkDocumentId(input.contentId, index));
+      await this.db.runTransaction(async (tx) => {
+        const prior = await tx.get(ref);
+        if (prior.exists) {
+          const value = prior.data();
+          if (Object.entries(data).some(([key, expected]) => value?.[key] !== expected))
+            throw new Error("Immutable content chunk conflicts with the admitted bytes.");
+        } else tx.create(ref, data);
+      });
+    }
     return {
       byteSize: input.content.byteLength,
       chunkCount,
@@ -156,7 +201,7 @@ export class FirestorePublicationContentStore implements PublicationContentStore
     for (let index = 0; index < reference.chunkCount; index += 1) {
       const snapshot = await this.db
         .collection(PUBLICATION_CONTENT_CHUNK_COLLECTION)
-        .doc(chunkDocumentId(reference.contentId, index))
+        .doc(publicationContentChunkDocumentId(reference.contentId, index))
         .get();
       const data = snapshot.data();
       if (
@@ -197,11 +242,15 @@ export class FirestorePublicationContentStore implements PublicationContentStore
 
   async delete(reference: PublicationContentReference): Promise<void> {
     assertPublicationContentReference(reference);
+    if (reference.contentId.startsWith("maintenance_artifact_"))
+      throw new Error(
+        "Retained maintenance core evidence is indefinite and cannot be deleted by publication or communications cleanup.",
+      );
     await Promise.all(
       Array.from({ length: reference.chunkCount }, (_, index) =>
         this.db
           .collection(PUBLICATION_CONTENT_CHUNK_COLLECTION)
-          .doc(chunkDocumentId(reference.contentId, index))
+          .doc(publicationContentChunkDocumentId(reference.contentId, index))
           .delete(),
       ),
     );
@@ -251,7 +300,7 @@ export function assertPublicationContentReference(
   }
 }
 
-function chunkDocumentId(contentId: string, index: number) {
+export function publicationContentChunkDocumentId(contentId: string, index: number) {
   return `${contentId}_${index.toString().padStart(3, "0")}`;
 }
 

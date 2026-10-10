@@ -310,11 +310,11 @@ describe("S148 Dashboard history in the workspace", () => {
   it("AC-S148: an empty history says so plainly", async () => {
     await renderSaved(firstPage([]));
     expect(screen.getByRole("navigation", { name: "History" })).toHaveTextContent(
-      "No saved conversations yet. Questions you ask here are saved to your history.",
+      "No saved conversations here. Questions you ask here are saved to your history.",
     );
   });
 
-  it("AC-S148: reopening reads the stored conversation once, labels it, and asks nothing", async () => {
+  it("AC-S148/S200: reopening rechecks the stored conversation, labels it, and asks nothing", async () => {
     const restored = {
       ownerKey: OWNER,
       conversation: summary(4, { turnCount: 3 }),
@@ -390,9 +390,10 @@ describe("S148 Dashboard history in the workspace", () => {
       `GET /api/assistant/history/${summary(4).conversationId}`,
     ]);
 
-    // Opening it again from the list reuses what is already loaded.
+    // S199/S200 rechecks current access and later turns on every open; it still never infers.
     await user.click(screen.getByRole("button", { name: "Saved question 4" }));
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(calls().every((call) => call.method === "GET")).toBe(true);
   });
 
   it("AC-S148: a follow-up in a reopened conversation continues its stored context and saves there", async () => {

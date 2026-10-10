@@ -104,7 +104,8 @@ describe("S166 what may be remembered (ARCH-S166-2)", () => {
       "v=2&q=Jane+Doe&lease=123+Main+St&sort=end_date&direction=desc&scope=all",
     );
     expect(canonicalDeskPreferenceView("v=2&q=Jane+Doe")).toBe("v=2&q=Jane+Doe");
-    expect(canonicalDeskPreferenceView("v=2&scope=active&sort=due")).toBe("");
+    // S196: Due is now a deliberate sort; preserve it rather than silently choosing the new default.
+    expect(canonicalDeskPreferenceView("v=2&scope=active&sort=due")).toBe("v=2&sort=due");
   });
 
   it("BEH-S166-10: only a version 2 desk query within the size limit is accepted, and unknown values fall back per key", () => {

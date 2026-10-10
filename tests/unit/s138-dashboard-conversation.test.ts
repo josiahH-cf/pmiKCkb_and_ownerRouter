@@ -774,10 +774,11 @@ describe("S138 knowledge and unsupported questions", () => {
     expect(answer.knowledgeQuestion).not.toBeNull();
   });
 
-  it("names what it covers for an unrelated question and reads nothing", async () => {
+  it("hands open discussion to labeled knowledge guidance and reads no unrelated records", async () => {
     const { answer, calls } = await ask("What is the weather tomorrow?");
     expect(answer.kind).toBe("unsupported");
-    expect(answer.summary).toContain("leases and renewals");
+    expect(answer.summary).toContain("clearly labeled guidance");
+    expect(answer.knowledgeQuestion).toBe("What is the weather tomorrow?");
     expect(calls).toEqual([]);
   });
 });

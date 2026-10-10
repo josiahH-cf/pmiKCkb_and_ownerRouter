@@ -123,7 +123,10 @@ export function applyRefinedBody(
   );
   const paragraphs: MessageRun[][] = refinedParagraphTexts(text).map(
     (paragraph) =>
-      composed.get(paragraph) ?? paragraph.split("\n").map((line) => ({ text: line })),
+      composed.get(paragraph) ??
+      paragraph
+        .split("\n")
+        .map((line, index) => ({ text: line, ...(index ? { breakBefore: true } : {}) })),
   );
   return {
     ...content,

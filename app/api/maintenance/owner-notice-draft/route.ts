@@ -13,12 +13,14 @@ import {
   MAX_OWNER_NOTICE_BODY_LENGTH,
   prepareMaintenanceOwnerNoticeDraft,
 } from "@/lib/maintenance/execution/owner-notice-draft-service";
-import { listCreatedOwnerNoticeDrafts } from "@/lib/firestore/owner-notice-draft-history";
+import {
+  listLegacyOwnerNoticeAttempts,
+  listCreatedOwnerNoticeDrafts,
+} from "@/lib/firestore/owner-notice-draft-history";
 import { getUnitIndex } from "@/lib/maintenance/unit-index";
 import {
   ActionNotExecutableError,
   ActionRuntimeSuspendedError,
-  assertProductionRuntimeActionExecutable,
 } from "@/lib/operations/runtime-suspension-gate";
 
 const OwnerNoticeDraftBodySchema = z
@@ -26,6 +28,10 @@ const OwnerNoticeDraftBodySchema = z
     ticketRef: z.string().trim().min(1).max(120),
     // S139: the person's reviewed wording; absent uses the standard body composed from the ticket.
     body: z.string().max(MAX_OWNER_NOTICE_BODY_LENGTH).optional(),
+    reconcile: z
+      .object({ executionId: z.string().regex(/^exec_[a-f0-9]{40}$/) })
+      .strict()
+      .optional(),
     // Confirmation carries the exact prepared execution and the preview hash it was reviewed at.
     confirm: z
       .object({
@@ -43,19 +49,45 @@ const OwnerNoticeDraftBodySchema = z
   })
   .strict();
 
-/**
- * Preview or create (confirm:true) a real UNSENT maintenance owner-notice Gmail draft for one persisted
- * ticket. The recipient + property facts come from the authoritative live RentVine read (owner is a
- * PROPERTY attribute, resolved unit -> propertyId -> portfolio -> contact); the body is composed from the
- * ticket's own facts. Draft-only — the service re-asserts the production gate and never sends.
- */
+/** Only original-attempt recovery remains here. New messages use Communications. */
+export async function GET(request: Request) {
+  try {
+    const user = await requireCapabilityInSpace("read", "maintenance");
+    const query = z
+      .object({
+        ticketRef: z.string().trim().min(1).max(120),
+        cursor: z
+          .string()
+          .regex(/^exec_[a-f0-9]{40}$/)
+          .optional(),
+      })
+      .strict()
+      .parse(Object.fromEntries(new URL(request.url).searchParams));
+    if (!(await getMaintenanceTicket(user, query.ticketRef)))
+      return NextResponse.json({ error: "That ticket is unavailable." }, { status: 404 });
+    return NextResponse.json(
+      await listLegacyOwnerNoticeAttempts(user, query.ticketRef, query.cursor),
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+  } catch (error) {
+    return apiErrorResponse(error);
+  }
+}
 export async function POST(request: Request) {
   try {
     const user = await requireCapabilityInSpace("edit", "maintenance");
     const body = await parseJsonBody(request, OwnerNoticeDraftBodySchema);
-    await assertProductionRuntimeActionExecutable(
-      MAINTENANCE_OWNER_NOTICE_DRAFT_ACTION_KEY,
-    );
+    if (!body.reconcile || body.confirm)
+      return NextResponse.json(
+        {
+          error:
+            "New messages open in Communications. Only read-only recovery of an earlier attempt is available here.",
+          code: "communications_composer_required",
+          providerCallAttempted: false,
+          href: `/gmail-hub?compose=maintenance_owner&ticket=${encodeURIComponent(body.ticketRef)}`,
+        },
+        { status: 410, headers: { "Cache-Control": "private, no-store" } },
+      );
 
     const config = buildLiveRentVineConfig();
     if (!config.ok) {
@@ -110,7 +142,7 @@ export async function POST(request: Request) {
       {
         ticketRef: body.ticketRef,
         ...(body.body !== undefined ? { body: body.body } : {}),
-        ...(body.confirm ? { confirm: body.confirm } : {}),
+        reconcile: body.reconcile,
         mailbox: { email: user.email, sourceRef: `app:session:${user.uid}` },
       },
     );

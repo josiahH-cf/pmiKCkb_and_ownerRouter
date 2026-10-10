@@ -263,8 +263,17 @@ it does not authorize a session-policy, IAM, claim, or credential-store substitu
 
 ## Permanent safety boundaries
 
-- No autonomous, scheduled, bulk, or model-triggered client-facing send.
-- Renewal and maintenance initiation ends with an unsent Gmail draft; a person sends from Gmail.
+- No model-triggered, unapproved background, generic or bulk client-facing send.
+- Under the owner's 2026-10-09 S183–S226 execution instruction, a staff member's explicit Send or
+  Schedule authorizes the exact reviewed workflow-linked initial/follow-up content, verified
+  recipients, managed sender and schedule. Durable approved occurrences may execute without a
+  repeated prompt after the named operation's technical gates and reviewed exact-key activation.
+  Changed content, sender, scope or material source facts require a new reviewed authorization.
+  Existing unsent Gmail drafts remain available and never become authorization by migration.
+- Ordinary supported staff edits use one visible Save/Apply as exact intent. Preserve server-side
+  permissions, real target/version/conflict checks, durable one-attempt claims, receipts, readback
+  and recovery. A chat-originated explicit supported action uses the same operation service;
+  informational model output supplies no execution authority.
 - Every live system-of-record write is human-initiated, exact-previewed, exact-confirmed,
   idempotent or at-most-once, receipted, read back, and reversible/correctable. The sole specified
   exception is S100's manual RentVine chat GET: the official provider marks retrieved manager
@@ -322,8 +331,11 @@ Open keys as of 2026-09-02:
 
 The other 32 keys are closed. In particular:
 
-- `gmail.renewal_notice.send`, `gmail.maintenance_owner_notice.send`, and
-  `gmail.message.send` remain permanently closed under D33;
+- `gmail.renewal_notice.send` and `gmail.maintenance_owner_notice.send` remain technically closed
+  until the program's reviewed Send/Schedule, durable dispatch, observation and recovery gates
+  pass and their exact activation is reviewed. The owner's S183 instruction supersedes D33's
+  categorical draft-only restriction for those named workflow operations, not for generic sends;
+- `gmail.message.send` remains closed; no arbitrary inbox/send capability is authorized;
 - `gmail.maintenance_resident_reply.draft_create` remains closed pending its exact S100 live proof;
 - the retired `rentvine.lease.renewal_writeback` compatibility identifier remains closed;
 - `google_sheets.renewal_checklist.writeback` remains closed.
@@ -402,6 +414,18 @@ general delete authority. S98's active correction finds no such fixed-row Sheet 
 every unlisted provider key remain closed. S36 separately authorizes one temporary, bounded Space
 provision/import/readback/retirement pilot under its exact lifecycle; it is not Action Registry
 category authority.
+
+## October operations program authority — 2026-10-09
+
+The owner explicitly started `operations-communications-maintenance-2026-10`, S183–S226,
+intake 055–098, including S183's necessary scoped protected governance edits and reviewed exact-key
+activation for its specifically defined operations after technical gates. This carries through
+implementation, verified repairs and existing delivery without phase-only consent. Authoring
+READY is not implementation, activation or delivery. All five PENDING outcomes remain required;
+complete accessible bounded investigations and surface genuinely missing material inputs once.
+No unrelated key, identity, privilege, budget, destructive data or model-driven effect is granted.
+Preserve S182 Dotloop API-origin exclusions; OAuth connection does not prove resource eligibility
+or saved supported profile/template/status selection. Both Dotloop write keys remain closed.
 
 ## Protected paths
 

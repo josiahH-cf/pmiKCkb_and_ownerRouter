@@ -40,7 +40,10 @@ function baseRecord(): Record<string, unknown> {
   };
 }
 
-function harness(overrides: Partial<FakeState> = {}) {
+function harness(
+  overrides: Partial<FakeState> = {},
+  beforeCreate?: (input: ExternalActionInput) => Promise<void>,
+) {
   const state: FakeState = {
     created: false,
     record: baseRecord(),
@@ -126,10 +129,13 @@ function harness(overrides: Partial<FakeState> = {}) {
       return respond(400, { error: `unexpected ${request.method} ${path}` });
     },
   };
-  const executor = new RentVineWorkOrderWriteExecutor(() => ({
-    reader: new RentVineWorkOrderReader(CONFIG, transport),
-    writer: new RentVineWorkOrderWriter(CONFIG, transport),
-  }));
+  const executor = new RentVineWorkOrderWriteExecutor(
+    () => ({
+      reader: new RentVineWorkOrderReader(CONFIG, transport),
+      writer: new RentVineWorkOrderWriter(CONFIG, transport),
+    }),
+    beforeCreate,
+  );
   return { executor, state, posts };
 }
 
@@ -324,4 +330,23 @@ describe("S99 official-contract work-order executor: update_status", () => {
       }),
     ).toMatch(/wrong action key/);
   });
+});
+
+it("rechecks the current assessed spending authority immediately before the create POST and never treats reconciliation as a new create", async () => {
+  let checks = 0;
+  const h = harness({}, async () => {
+    checks++;
+    throw new ExternalExecutionError(
+      "The standing authority was revoked during preparation.",
+      "provider",
+    );
+  });
+  await expect(h.executor.execute(createInput())).rejects.toMatchObject({
+    message: "The standing authority was revoked during preparation.",
+  });
+  expect(checks).toBe(1);
+  expect(h.posts).toHaveLength(0);
+  await h.executor.reconcile(createInput());
+  expect(checks).toBe(1);
+  expect(h.posts).toHaveLength(0);
 });

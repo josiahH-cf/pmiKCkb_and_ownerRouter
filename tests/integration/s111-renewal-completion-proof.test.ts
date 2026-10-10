@@ -348,6 +348,17 @@ describe("S111 maintenance routing and intake compose (READY-05)", () => {
     return {
       id: "ticket-1",
       data_mode: "live",
+      property_id: "7",
+      workflow_stage: "owner_decision",
+      estimate_cost_basis: "total_including_tax_and_markup",
+      assessment: {
+        outcome: "work_required",
+        scope: "Assess and replace the fixture part",
+        evidence_refs: ["fixture-quote:one"],
+        version: 1,
+        recorded_at: NOW,
+        recorded_by_uid: "uid-1",
+      },
       status: "Open",
       priority: "Normal",
       priority_provenance: "operator-set",
@@ -390,6 +401,16 @@ describe("S111 maintenance routing and intake compose (READY-05)", () => {
     effective_from_iso: "2026-01-01T00:00:00.000Z",
     recorded_by_uid: "admin-1",
     version: 1,
+    policy_terms: {
+      scope: "property" as const,
+      property_keys: ["7"],
+      owner_ref: null,
+      comparison: "inclusive" as const,
+      cost_basis: "total_including_tax_and_markup" as const,
+      evidence_ref: "fixture-owner:policy",
+      expires_at: null,
+      revoked_at: null,
+    },
   };
 
   it("skips the owner inside the preapproval and asks the owner above it", () => {
@@ -440,7 +461,19 @@ describe("S111 maintenance routing and intake compose (READY-05)", () => {
   });
 
   it("carries the intake photo blocker into the ticket the operator sees", () => {
-    const promoted = ticket({ photos_needed: true, estimate_amount_cents: 40_000 });
+    const promoted = ticket({
+      photos_needed: true,
+      estimate_amount_cents: 40_000,
+      workflow_stage: "needs_information",
+      assessment: {
+        outcome: "needs_information",
+        scope: "Obtain missing fixture photos",
+        evidence_refs: [],
+        version: 1,
+        recorded_at: NOW,
+        recorded_by_uid: "uid-1",
+      },
+    });
     const projection = projectMaintenanceWaitingOn({
       ticket: promoted,
       link,

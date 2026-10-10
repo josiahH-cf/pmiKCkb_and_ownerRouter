@@ -1,3 +1,7 @@
+import {
+  projectMaintenanceUrgency,
+  type OperatingPolicyVersion,
+} from "./operating-policy";
 // Maintenance work-order intake — the pure domain core (S4). Turns a field capture (reporter, unit,
 // typed note and/or voice transcript, photos, priority) into a structured, source-backed work-order
 // DRAFT for human review. NO external write: the RentVine work-order create stays gated
@@ -5,10 +9,7 @@
 // are resolved by the surrounding seams and passed IN; this module assembles + validates the draft and
 // flags the gaps a human must close first. Deterministic: takes capturedAt as input, never Date.now().
 
-import {
-  MAINTENANCE_EMERGENCY_KEYWORDS,
-  type MAINTENANCE_PRIORITIES,
-} from "@/lib/maintenance/constants";
+import { type MAINTENANCE_PRIORITIES } from "@/lib/maintenance/constants";
 
 export type MaintenancePriority = (typeof MAINTENANCE_PRIORITIES)[number];
 export type UnitMatchConfidence = "Verified" | "Likely" | "Needs Review";
@@ -33,6 +34,7 @@ export interface MaintenanceCapture {
   priority?: MaintenancePriority;
   /** ISO timestamp captured at read time (injected; never Date.now()). */
   capturedAt: string;
+  operatingPolicy?: OperatingPolicyVersion | null;
 }
 
 export interface WorkOrderDraft {
@@ -58,10 +60,7 @@ function combineDescription(capture: MaintenanceCapture): string {
 
 /** Emergency when the text hits a health/safety/damage keyword, else Normal. Pure + case-insensitive. */
 export function inferPriority(description: string): MaintenancePriority {
-  const text = description.toLowerCase();
-  return MAINTENANCE_EMERGENCY_KEYWORDS.some((keyword) => text.includes(keyword))
-    ? "Emergency"
-    : "Normal";
+  return projectMaintenanceUrgency({ summary: description }, null).priority;
 }
 
 function summarize(description: string): string {
@@ -84,7 +83,10 @@ function summarize(description: string): string {
 export function buildWorkOrderDraft(capture: MaintenanceCapture): WorkOrderDraft {
   const description = combineDescription(capture);
   const priority =
-    capture.priority ?? (description ? inferPriority(description) : "Normal");
+    projectMaintenanceUrgency({ summary: description }, capture.operatingPolicy ?? null)
+      .priority === "Emergency"
+      ? "Emergency"
+      : (capture.priority ?? "Normal");
   const photoRefs = capture.photoRefs ?? [];
 
   const blockers: string[] = [];

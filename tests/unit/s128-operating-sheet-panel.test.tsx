@@ -79,14 +79,14 @@ describe("S128 OperatingSheetPanel pause surfacing", () => {
       screen.getAllByText(/Sheet updates are off by policy/i).length,
     ).toBeGreaterThan(0);
     expect(screen.getByText(/save in the app, and Sheet reads continue/i)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /review and confirm/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /apply Sheet update/i })).toBeNull();
     expect(screen.getByText(/so this one waits/i)).toBeTruthy();
   });
 
   it("offers the execute control when writes are enabled", () => {
     renderPanel(false);
     expect(screen.queryAllByText(/Sheet updates are off by policy/i)).toHaveLength(0);
-    expect(screen.getByRole("button", { name: /review and confirm/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /apply Sheet update/i })).toBeTruthy();
   });
 
   it("disables new proposal preparation during the pause", () => {
@@ -109,7 +109,7 @@ describe("S128 OperatingSheetPanel pause surfacing", () => {
         writebackPaused={false}
       />,
     );
-    expect(screen.queryByRole("button", { name: /review and confirm/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /apply Sheet update/i })).toBeNull();
     expect(
       screen.getByText(/belongs to an earlier release or pause/),
     ).toBeInTheDocument();

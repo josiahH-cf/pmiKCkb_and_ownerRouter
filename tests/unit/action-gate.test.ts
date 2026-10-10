@@ -1,6 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
+import {
+  CreateActionRegistryInputSchema,
+  type CreateActionRegistryInput,
+} from "@/lib/firestore/schemas";
 import {
   ActionNotExecutableError,
   assertActionExecutable,
@@ -58,6 +61,27 @@ describe("action-gate", () => {
     expect(isActionExecutable(GATED_KEY, flipped)).toBe(true);
     // The real committed seed is unchanged — this still-gated key's default path stays closed.
     expect(isActionExecutable(GATED_KEY)).toBe(false);
+  });
+
+  it("S185: repeated production lookups do not repeat immutable seed validation", () => {
+    const parse = vi.spyOn(CreateActionRegistryInputSchema, "parse");
+    try {
+      for (let i = 0; i < 100; i++) {
+        expect(isActionExecutable("gmail.mailbox.read")).toBe(true);
+        expect(isActionExecutable("gmail.message.send")).toBe(false);
+      }
+      expect(parse).not.toHaveBeenCalled();
+    } finally {
+      parse.mockRestore();
+    }
+  });
+
+  it("S185: caller-owned registries are checked afresh and cannot poison production", () => {
+    const registry = [{ ...seedEntry("gmail.mailbox.read") }];
+    expect(isActionExecutable("gmail.mailbox.read", registry)).toBe(true);
+    registry[0].production_allowed = false;
+    expect(isActionExecutable("gmail.mailbox.read", registry)).toBe(false);
+    expect(isActionExecutable("gmail.mailbox.read")).toBe(true);
   });
 
   it("cannot be opened by flipping production_allowed alone (schema enforces Approved+Documented)", () => {

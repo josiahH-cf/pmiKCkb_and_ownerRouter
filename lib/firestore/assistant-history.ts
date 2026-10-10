@@ -6,7 +6,6 @@
 // write can only finish its own turn, never replace a newer one. The query route stays a read; it
 // imports only `assistant-history-read.ts`.
 
-import { createHash } from "node:crypto";
 import type { Firestore, Transaction } from "firebase-admin/firestore";
 import { z } from "zod";
 
@@ -20,6 +19,7 @@ import { EditableLayerError } from "@/lib/errors/editable-layer-error";
 import {
   ASSISTANT_HISTORY_COLLECTIONS,
   historyOwnerKey,
+  conversationIdFor,
   turnIdFor,
   type StoredTurnRecord,
 } from "@/lib/firestore/assistant-history-read";
@@ -28,7 +28,7 @@ import {
   StoredKnowledgeAnswerSchema,
 } from "@/lib/assistant-history/stored-answer";
 
-export { historyOwnerKey, turnIdFor };
+export { historyOwnerKey, turnIdFor, conversationIdFor };
 
 /** A client operation id: one submission of one question. */
 export const OperationIdSchema = z.string().regex(/^[A-Za-z0-9-]{8,64}$/);
@@ -79,15 +79,6 @@ export interface TurnWriteResult {
   readonly state: StoredTurnRecord["state"];
   /** False when the same operation had already been recorded and nothing new was written. */
   readonly created: boolean;
-}
-
-function hash(value: string): string {
-  return createHash("sha256").update(value).digest("hex");
-}
-
-/** The deterministic id of one user's conversation, from its first question's operation id. */
-export function conversationIdFor(uid: string, conversationKey: string): string {
-  return hash(`assistant-history/v1:conversation:${uid}:${conversationKey}`).slice(0, 32);
 }
 
 function excerpt(text: string, max = 80): string {
@@ -185,6 +176,14 @@ export async function beginAssistantTurn(
     if (existing.exists) {
       const record = existing.data() as StoredTurnRecord;
       if (record.owner_uid !== user.uid) throw notFound();
+      if (
+        record.question !== input.question ||
+        record.conversation_id !== conversationIdFor(user.uid, input.conversationKey)
+      )
+        throw new EditableLayerError(
+          "This question operation already belongs to different conversation content.",
+          409,
+        );
       return {
         conversationId: record.conversation_id,
         turnId,
@@ -249,6 +248,14 @@ export async function finalizeAssistantTurn(
     if (snapshot.exists) {
       record = snapshot.data() as StoredTurnRecord;
       if (record.owner_uid !== user.uid) throw notFound();
+      if (
+        record.question !== input.question ||
+        record.conversation_id !== conversationIdFor(user.uid, input.conversationKey)
+      )
+        throw new EditableLayerError(
+          "This question operation already belongs to different conversation content.",
+          409,
+        );
       if (record.state === "completed") {
         if (input.state === "completed" && sameAnswer(record, input)) {
           return {

@@ -4,6 +4,8 @@
 // re-deriving values that fresh provider state could have changed. Bodyless beyond the reviewed
 // preview values; browser code never reads or writes this collection.
 
+import { createHash } from "node:crypto";
+import type { ActionExecutionCompanion } from "@/lib/firestore/action-executions";
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { z } from "zod";
 
@@ -38,6 +40,10 @@ const PreparedActionSchema = z
       })
       .strict(),
     prepared_by_uid: z.string().min(1).max(200),
+    review_hash: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
   })
   .strict();
 
@@ -52,10 +58,28 @@ export async function savePreparedWorkOrderAction(
     throw new EditableLayerError("Preparing a work-order action requires edit.", 403);
   }
   const parsed = PreparedActionSchema.parse(record);
-  await db
+  const ref = db
     .collection(WORK_ORDER_PREPARED_ACTION_COLLECTION)
-    .doc(parsed.execution_id)
-    .set({ ...parsed, updated_at: FieldValue.serverTimestamp() });
+    .doc(parsed.execution_id);
+  await db.runTransaction(async (tx) => {
+    const current = await tx.get(ref);
+    if (current.exists) {
+      const raw = { ...current.data() };
+      delete raw.updated_at;
+      delete raw.snapshotHash;
+      const original = PreparedActionSchema.parse(raw);
+      if (
+        JSON.stringify(original.action) !== JSON.stringify(parsed.action) ||
+        original.ticket_ref !== parsed.ticket_ref
+      )
+        throw new EditableLayerError(
+          "The original prepared work-order snapshot identifies different content. It was preserved.",
+          409,
+        );
+      return;
+    }
+    tx.create(ref, { ...parsed, updated_at: FieldValue.serverTimestamp() });
+  });
 }
 
 export async function loadPreparedWorkOrderAction(
@@ -76,7 +100,18 @@ export async function loadPreparedWorkOrderAction(
   if (!snapshot.exists) return null;
   const data = { ...snapshot.data() };
   delete data["updated_at"];
-  return PreparedActionSchema.parse(data);
+  const snapshotHash = data["snapshotHash"];
+  delete data["snapshotHash"];
+  const parsed = PreparedActionSchema.parse(data);
+  if (
+    snapshotHash &&
+    snapshotHash !== createHash("sha256").update(JSON.stringify(parsed)).digest("hex")
+  )
+    throw new EditableLayerError(
+      "The original work-order snapshot changed. Preserve it for reconciliation.",
+      409,
+    );
+  return parsed;
 }
 
 /** Rehydrate the exact prepared action for the S20 bridge. */
@@ -93,5 +128,19 @@ export function preparedActionInput(
     contractRef: record.action.contractRef,
     connectionRef: record.action.connectionRef,
     mappingRef: record.action.mappingRef,
+  };
+}
+
+/** New ordinary actions retain the exact snapshot atomically with their S20 claim identity. */
+export function workOrderActionCompanion(
+  record: PreparedWorkOrderAction,
+): ActionExecutionCompanion {
+  const parsed = PreparedActionSchema.parse(record);
+  return {
+    collection: WORK_ORDER_PREPARED_ACTION_COLLECTION,
+    document: () => ({
+      ...parsed,
+      snapshotHash: createHash("sha256").update(JSON.stringify(parsed)).digest("hex"),
+    }),
   };
 }

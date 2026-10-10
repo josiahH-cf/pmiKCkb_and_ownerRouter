@@ -364,7 +364,7 @@ describe("buildRenewalFollowUpProjection", () => {
 });
 
 describe("S75 provider/effect boundary", () => {
-  it("keeps the exact renewal-lease Gmail context read-only", () => {
+  it("accepts the specified workflow reply context while refusing generic draft/send/label grants", () => {
     const base = {
       lane: "renewals",
       entityType: "renewal_lease",
@@ -378,9 +378,14 @@ describe("S75 provider/effect boundary", () => {
         actionKey: "gmail.mailbox.read",
       }).success,
     ).toBe(true);
+    expect(
+      WorkflowCommunicationContextSchema.safeParse({
+        ...base,
+        actionKey: "gmail.thread.reply",
+      }).success,
+    ).toBe(true);
     for (const actionKey of [
       "gmail.draft.create",
-      "gmail.thread.reply",
       "gmail.message.send",
       "gmail.label.apply",
     ]) {

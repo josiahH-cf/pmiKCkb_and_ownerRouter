@@ -1,3 +1,4 @@
+import { legacyMessageAttemptFixture } from "@/tests/helpers/legacy-message-attempt";
 import { readIndependentDecisionFacts } from "../../scripts/run-production-reconciliation";
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
@@ -39,12 +40,23 @@ const testState = vi.hoisted(() => ({
 vi.mock("@/lib/firestore/admin", () => ({ getAdminFirestore: () => testState.db }));
 vi.mock("@/lib/auth/session", async (original) => ({
   ...(await original<typeof import("@/lib/auth/session")>()),
+  requireCapability: async () => ({
+    uid: testState.uid,
+    email: "s113-operator@pmikcmetro.com",
+    hd: "pmikcmetro.com",
+    role: testState.role,
+  }),
   requireCapabilityInSpace: async () => ({
     uid: testState.uid,
     email: "s113-operator@pmikcmetro.com",
     hd: "pmikcmetro.com",
     role: testState.role,
   }),
+}));
+vi.mock("@/lib/work-accountability/roster", () => ({
+  listWorkAssignableUsers: async () => [
+    { uid: "s113-operator", email: "s113-operator@pmikcmetro.com", role: "Admin" },
+  ],
 }));
 vi.mock("@/lib/google-sheets/write-client", () => ({
   GoogleSheetsApiWriter: class {
@@ -1338,6 +1350,7 @@ vi.mock("@/lib/lease-renewal/live-config", async (original) => {
           unit: { unitID: "702", rent: "1400.00" },
           property: { propertyID: 702, streetName: "701 Emulator Avenue" },
           portfolio: {
+            portfolioID: "704",
             owners: [{ name: "Emulator Owner", email: "owner@fixture-rental.net" }],
           },
         },
@@ -1475,6 +1488,11 @@ async function preparedMessage() {
   expect(response.status).toBe(200);
   return { state, save, result: await response.json() };
 }
+// Compatibility cases below seed earlier attempts through the retained service; recovery still
+// crosses the real HTTP route. This fixture path cannot prepare ordinary new communications.
+async function postLegacyMessageFixture(request: Request) {
+  return legacyMessageAttemptFixture(request, actor);
+}
 describe("S113 message HTTP paths, persisted preparation and existing governed Gmail service", () => {
   it("adopts a saved signature only through an explicit current actor instruction", async () => {
     const { state, result } = await preparedMessage();
@@ -1512,13 +1530,13 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
   it("retains an ambiguous earlier-cycle Gmail attempt and recovers its original content after a new cycle starts", async () => {
     const { state } = await preparedMessage();
     const preview = await (
-      await postMessageRoute(
+      await postLegacyMessageFixture(
         messageRequest({ kind: "draft", leaseId: "701", channel: "tenant" }),
       )
     ).json();
     messageTransport.loseResponse = true;
     const attempt = await (
-      await postMessageRoute(
+      await postLegacyMessageFixture(
         messageRequest({
           kind: "draft",
           leaseId: "701",
@@ -1540,7 +1558,7 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
       },
     ]);
     const recovered = await (
-      await postMessageRoute(
+      await postLegacyMessageFixture(
         messageRequest({
           kind: "draft",
           leaseId: "701",
@@ -1565,7 +1583,7 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
     async (changed) => {
       const { state } = await preparedMessage();
       const preview = await (
-        await postMessageRoute(
+        await postLegacyMessageFixture(
           messageRequest({ kind: "draft", leaseId: "701", channel: "tenant" }),
         )
       ).json();
@@ -1616,11 +1634,11 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
     expect(result.content.missing).toEqual([]);
     expect(result.content.plainText.startsWith("Hello Emulator,")).toBe(true);
     expect(result.publication.status).toBe("approved");
-    expect((await (await postMessageRoute(messageRequest(save))).json()).duplicate).toBe(
-      true,
-    );
+    expect(
+      (await (await postLegacyMessageFixture(messageRequest(save))).json()).duplicate,
+    ).toBe(true);
     expect((await readMessage()).saved).toEqual(result.saved);
-    const previewResponse = await postMessageRoute(
+    const previewResponse = await postLegacyMessageFixture(
       messageRequest({ kind: "draft", leaseId: "701", channel: "tenant" }),
     );
     expect(
@@ -1636,7 +1654,9 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
       channel: "tenant",
       confirm: { executionId: preview.executionId, previewHash: preview.previewHash },
     };
-    const created = await (await postMessageRoute(messageRequest(request))).json();
+    const created = await (
+      await postLegacyMessageFixture(messageRequest(request))
+    ).json();
     expect(created.status).toBe("created");
     expect(messageTransport.creates).toBe(1);
     const decoded = decodeRawDraft(messageTransport.raw);
@@ -1644,9 +1664,9 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
     expect(decoded.body).toBe(preview.body);
     expect(decoded.to).toBe("tenant@fixture-rental.net");
     expect(decoded.from).toBe(actor.email);
-    expect((await (await postMessageRoute(messageRequest(request))).json()).status).toBe(
-      "created",
-    );
+    expect(
+      (await (await postLegacyMessageFixture(messageRequest(request))).json()).status,
+    ).toBe("created");
     expect(messageTransport.creates).toBe(1);
     const execution = await db
       .collection("action_executions")
@@ -1665,7 +1685,7 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
   it("preserves prose after changed owner terms, refuses the stale confirmation exactly and keeps copy after Gmail failure", async () => {
     const { state, save, result } = await preparedMessage();
     const preview = await (
-      await postMessageRoute(
+      await postLegacyMessageFixture(
         messageRequest({ kind: "draft", leaseId: "701", channel: "tenant" }),
       )
     ).json();
@@ -1679,7 +1699,7 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
     expect(reread.inputs).toEqual(result.inputs);
     expect(reread.content.plainText).toContain("$1,200.00");
     // S161: changed terms never refuse a save, and the saved entries stay exactly as they were.
-    const resaved = await postMessageRoute(
+    const resaved = await postLegacyMessageFixture(
       messageRequest({
         ...save,
         cycleId: next.state.cycleId,
@@ -1691,7 +1711,7 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
     expect((await resaved.json()).inputs).toEqual(result.inputs);
     // S162: the earlier preview no longer reads as the current message, so confirming it is
     // refused exactly, before any Gmail call; a new preview is needed.
-    const refusedResponse = await postMessageRoute(
+    const refusedResponse = await postLegacyMessageFixture(
       messageRequest({
         kind: "draft",
         leaseId: "701",
@@ -1703,12 +1723,12 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
     expect((await refusedResponse.json()).error).toContain("changed after this preview");
     expect(messageTransport.creates).toBe(0);
     const fresh = await (
-      await postMessageRoute(
+      await postLegacyMessageFixture(
         messageRequest({ kind: "draft", leaseId: "701", channel: "tenant" }),
       )
     ).json();
     messageTransport.disconnected = true;
-    const failedResponse = await postMessageRoute(
+    const failedResponse = await postLegacyMessageFixture(
       messageRequest({
         kind: "draft",
         leaseId: "701",
@@ -1726,7 +1746,7 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
     expect(pending.get("state")).toBe("Ready");
     messageTransport.disconnected = false;
     const retried = await (
-      await postMessageRoute(
+      await postLegacyMessageFixture(
         messageRequest({
           kind: "draft",
           leaseId: "701",
@@ -1741,14 +1761,14 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
   it("recovers the immutable rich attempt after a lost response, reload and changed owner terms without creating twice", async () => {
     const { state } = await preparedMessage();
     const preview = await (
-      await postMessageRoute(
+      await postLegacyMessageFixture(
         messageRequest({ kind: "draft", leaseId: "701", channel: "tenant" }),
       )
     ).json();
     expect(preview.status, JSON.stringify(preview)).toBe("preview");
     messageTransport.loseResponse = true;
     const uncertain = await (
-      await postMessageRoute(
+      await postLegacyMessageFixture(
         messageRequest({
           kind: "draft",
           leaseId: "701",
@@ -1771,7 +1791,7 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
     });
     expect((await readMessage()).content.plainText).toContain("$1,300.00");
     const recovered = await (
-      await postMessageRoute(
+      await postLegacyMessageFixture(
         messageRequest({
           kind: "draft",
           leaseId: "701",
@@ -2747,7 +2767,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         "/api/lease-renewal/workspace": "workspace",
         "/api/lease-renewal/message-preparation": "message_preparation",
         "/api/lease-renewal/notice-review": "notice_review",
-        "/api/lease-renewal/rent-suggestion": "rent_suggestion",
+        "/api/lease-renewal/pricing-policy": "pricing_policy",
         "/api/lease-renewal/operating-sheet": "operating_sheet",
         "/api/lease-renewal/market-comps": "market_comps",
         "/api/lease-renewal/resource-locations": "resource_locations",
@@ -2774,7 +2794,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       const owningGetRoutes = [
         "message_preparation",
         "notice_review",
-        "rent_suggestion",
+        "pricing_policy",
       ] as const;
       type OwningGetRoute = (typeof owningGetRoutes)[number];
       const owningGetCounts = Object.fromEntries(
@@ -2982,12 +3002,12 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         );
         expect(noticeReads.ready, "Real notice source was ready").toBeGreaterThan(0);
         expect(
-          routeCounts.rent_suggestion.started,
-          "Mounted rent suggestion GETs",
+          routeCounts.pricing_policy.started,
+          "Mounted pricing policy GETs",
         ).toBeGreaterThan(0);
         expect(
           rentSuggestionReads.http200,
-          "Real rent suggestion route returned HTTP200",
+          "Real pricing policy route returned HTTP200",
         ).toBeGreaterThan(0);
         // Aggregate successful readback evidence only; no source values or response bodies.
         console.info(
@@ -3029,6 +3049,8 @@ describe("S113 mounted operator journey with persisted backend state", () => {
                 },
           );
         }
+        if (url.pathname === "/api/work" && (init?.method ?? "GET") === "GET")
+          return (await import("@/app/api/work/route")).GET(new Request(url, init));
         if (!url.pathname.startsWith("/api/lease-renewal/"))
           return originalFetch(input, init);
         const request = new Request(url, init);
@@ -3125,9 +3147,11 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           }
           return response;
         }
-        if (url.pathname.endsWith("/rent-suggestion") && request.method === "GET") {
-          const response = await getRentSuggestionRoute(request);
-          owningGetReturned("rent_suggestion", response);
+        if (url.pathname.endsWith("/pricing-policy") && request.method === "GET") {
+          const response = await (
+            await import("@/app/api/lease-renewal/pricing-policy/route")
+          ).GET(request);
+          owningGetReturned("pricing_policy", response);
           bridgeRead.status = response.status;
           bridgeRead.phase = "route_returned";
           rentSuggestionReads.returned = Math.min(4096, rentSuggestionReads.returned + 1);
@@ -3139,10 +3163,10 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             .clone()
             .json()
             .catch((error: unknown) => {
-              countOwningGet("rent_suggestion", "parseFailed");
+              countOwningGet("pricing_policy", "parseFailed");
               throw error;
             });
-          owningGetParsed("rent_suggestion", result);
+          owningGetParsed("pricing_policy", result);
           return response;
         }
         if (url.pathname.endsWith("/operating-sheet"))
@@ -3367,14 +3391,11 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         fireEvent.click(
           screen.getByRole("button", { name: "Prepare selected destination previews" }),
         );
-        await screen.findByText(/Saved: review and confirm its exact effect below/);
+        await screen.findByText(/Saved: apply its reviewed change below/);
         expect(mutations).toBe(0);
         mounted.unmount();
         mounted = await mountCurrent();
-        fireEvent.click(screen.getByRole("button", { name: "Review and confirm…" }));
-        fireEvent.click(
-          screen.getByRole("button", { name: "Confirm this exact effect once" }),
-        );
+        fireEvent.click(screen.getByRole("button", { name: "Apply Sheet update" }));
         await screen.findByText(
           "Applied to the operating Sheet with a receipt and exact readback.",
           {},
@@ -3399,9 +3420,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         expect(
           await screen.findByText("Applied with receipt", {}, { timeout: 10_000 }),
         ).toBeInTheDocument();
-        expect(
-          screen.queryByRole("button", { name: "Confirm this exact effect once" }),
-        ).toBeNull();
+        expect(screen.queryByRole("button", { name: "Apply Sheet update" })).toBeNull();
 
         // No owner decision is needed for the restored operator-triggered lookup.
         const comps = within(
@@ -3629,8 +3648,8 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         );
         // The publication is still pending, so only the Gmail step waits; copy is open.
         expect(
-          tenant.getByRole("button", { name: "Preview unsent Gmail draft" }),
-        ).toBeDisabled();
+          tenant.queryByRole("button", { name: "Preview unsent Gmail draft" }),
+        ).toBeNull();
         expect(tenant.getByLabelText("tenant formatted body").textContent).not.toContain(
           "https://example",
         );
@@ -3699,8 +3718,8 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           { timeout: 10_000 },
         );
         expect(
-          message.getByRole("button", { name: "Preview unsent Gmail draft" }),
-        ).toBeEnabled();
+          message.queryByRole("button", { name: "Preview unsent Gmail draft" }),
+        ).toBeNull();
         mounted.unmount();
         // S124 binds each admitted lease generation to the reviewed draft audience, and an
         // approval read admits a new generation once the 60 s soft TTL has passed. Admit that
@@ -3709,21 +3728,20 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         await settleJourneyRequests();
         invalidateLiveLeaseCache();
         mounted = await mountCurrent();
-        const resumed = within(
-          screen.getByRole("region", { name: "Tenant offer and response" }),
-        );
+        const resumed = () =>
+          within(screen.getByRole("region", { name: "Tenant offer and response" }));
         // Saved entries survive the reload; the new source generation asks for nothing.
         await waitFor(
           () =>
             expect(
-              resumed.getByLabelText("Response request (optional wording edit)"),
+              resumed().getByLabelText("Response request (optional wording edit)"),
             ).toHaveValue("Please share your preferred next step."),
           { timeout: 10_000 },
         );
-        expect(resumed.getByLabelText("Sender name")).toHaveValue("Emulator Staff");
+        expect(resumed().getByLabelText("Sender name")).toHaveValue("Emulator Staff");
         expect(
-          resumed.getByRole("button", { name: "Preview unsent Gmail draft" }),
-        ).toBeEnabled();
+          resumed().queryByRole("button", { name: "Preview unsent Gmail draft" }),
+        ).toBeNull();
         Object.defineProperty(navigator, "clipboard", {
           configurable: true,
           value: {
@@ -3732,42 +3750,23 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             }),
           },
         });
-        fireEvent.click(resumed.getByRole("button", { name: "Copy plain text" }));
-        await resumed.findByText(/Clipboard access was denied/);
+        fireEvent.click(resumed().getByRole("button", { name: "Copy plain text" }));
+        await resumed().findByText(/Clipboard access was denied/);
         expect(
-          (resumed.getByLabelText("Email body") as HTMLTextAreaElement).value,
+          (resumed().getByLabelText("Email body") as HTMLTextAreaElement).value,
         ).toContain("https://fixture-rental.net/form");
-        fireEvent.click(
-          resumed.getByRole("button", { name: "Preview unsent Gmail draft" }),
-        );
-        fireEvent.click(
-          await resumed.findByRole("button", { name: "Review creation confirmation" }),
-        );
-        messageTransport.disconnected = true;
-        fireEvent.click(
-          resumed.getByRole("button", { name: "Create this unsent draft" }),
-        );
-        await resumed.findByText(/No Gmail request was made/);
+        expect(
+          resumed().getByRole("link", {
+            name: "Compose tenant message in Communications",
+          }),
+        ).toHaveAttribute("target", "_blank");
+        expect(
+          resumed().getByRole("link", {
+            name: "Compose tenant message in Communications",
+          }),
+        ).toHaveAttribute("href", "/gmail-hub?compose=renewal_tenant&lease=701");
         expect(messageTransport.creates).toBe(0);
-        expect(resumed.getByRole("button", { name: "Copy plain text" })).toBeEnabled();
-        messageTransport.disconnected = false;
-        fireEvent.click(
-          resumed.getByRole("button", { name: "Review creation confirmation" }),
-        );
-        fireEvent.click(
-          resumed.getByRole("button", { name: "Create this unsent draft" }),
-        );
-        await resumed.findByText(
-          "An unsent Gmail draft was created and recorded. Review it in Gmail before you send it; a person sends it.",
-        );
-        expect(messageTransport.creates).toBe(1);
-        expect(decodeRawDraft(messageTransport.raw).to).toBe("tenant@fixture-rental.net");
-        expect(decodeRawDraft(messageTransport.raw).body).toContain(
-          "Please share your preferred next step.",
-        );
-        const durable = await db.collection("action_executions").get();
-        expect(durable.size).toBe(1);
-        expect(durable.docs[0].get("state")).toBe("Succeeded");
+        expect((await db.collection("action_executions").get()).size).toBe(0);
       }
       await respond(
         "tenant",
@@ -3965,10 +3964,9 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           ).toMatchObject({ complete: true, nonRenewal: true }),
         );
       }
-      expect((await db.collection("action_executions").get()).size).toBe(
-        start === "fresh" ? 1 : 0,
-      );
-      expect(messageTransport.creates).toBe(start === "fresh" ? 1 : 0);
+      // S193 ordinary draft creation has moved to the explicit Communications composer.
+      expect((await db.collection("action_executions").get()).size).toBe(0);
+      expect(messageTransport.creates).toBe(0);
       expect(mutations).toBe(start === "fresh" ? 1 : 0);
       expect(
         (await db.collection(RENEWAL_WORKSPACE_COLLECTIONS.activity).get()).size,

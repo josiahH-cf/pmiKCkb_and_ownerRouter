@@ -189,6 +189,7 @@ form[aria-busy="true"],
 }
 
 .data-table-viewport {
+  --table-header-row-height: 3.1rem;
   overflow: auto;
   max-height: min(72dvh, 54rem);
   position: relative;
@@ -212,7 +213,7 @@ form[aria-busy="true"],
   vertical-align: top;
 }
 .data-table-viewport thead tr:nth-child(2) th {
-  top: 3.1rem;
+  top: var(--table-header-row-height, 3.1rem);
 }
 .resizable-column {
   position: relative;
@@ -2897,6 +2898,25 @@ label.secondary-button:focus-within {
   top: 0;
 }
 
+/* Row identity stays readable across a wide table in either supported theme. */
+.renewal-table tbody tr {
+  --renewal-row-surface: var(--ui-surface);
+}
+.renewal-table tbody tr:nth-child(even) {
+  --renewal-row-surface: var(--ui-surface-recessed);
+}
+.renewal-table tbody tr > td,
+.renewal-table tbody tr > th[scope="row"] {
+  background: var(--renewal-row-surface);
+}
+.renewal-table tbody tr:focus-within {
+  outline: 2px solid var(--ui-focus);
+  outline-offset: -2px;
+}
+.renewal-table tbody tr:hover {
+  --renewal-row-surface: var(--ui-surface-raised);
+}
+
 /* The lease/location column stays identifiable while the region scrolls horizontally. */
 .renewal-table th:first-child,
 .renewal-table td:first-child,
@@ -4420,5 +4440,283 @@ body {
     font-size: var(--font-size-min);
     font-weight: 400;
     margin-top: 2px;
+  }
+}
+
+.communication-rich-editor {
+  min-height: 12rem;
+  padding: var(--space-4);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  background: var(--ui-surface);
+  overflow-wrap: anywhere;
+}
+.communication-rich-editor:focus-visible {
+  outline: 2px solid var(--action-link);
+  outline-offset: 2px;
+}
+.gmail-hub .communication-composer label {
+  display: grid;
+  gap: var(--space-2);
+  flex: 1 1 12rem;
+}
+.gmail-hub .communication-plain-body {
+  white-space: pre-wrap;
+}
+
+/* S197: keep current work and its recorded outcome together; narrow layouts retain both. */
+.renewal-primary-progress {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+.renewal-primary-progress > * {
+  min-width: 0;
+  margin: 0;
+}
+.renewal-copy-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+}
+@media (min-width: 1100px) {
+  .renewal-primary-progress {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* S204 global metadata lookup beside the home mark, with a bounded local suggestion panel. */
+.topbar {
+  position: relative;
+}
+.global-entity-search {
+  position: static;
+  flex: 0 1 24rem;
+  min-width: 14rem;
+  max-width: 100%;
+  color: var(--ui-text);
+}
+.global-entity-search-fields {
+  display: flex;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.global-entity-search-fields input {
+  flex: 1 1 auto;
+  width: 11rem;
+  min-width: 0;
+  padding: 0.45rem;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-sm);
+}
+.global-entity-search-fields select {
+  flex: 0 1 7.5rem;
+  min-width: 0;
+  padding: 0.4rem;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-sm);
+}
+.global-entity-search-popover {
+  position: absolute;
+  z-index: 960;
+  top: calc(100% + 0.35rem);
+  left: 1rem;
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: 65vh;
+  overflow: auto;
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elevation-overlay);
+  padding: 0.75rem;
+}
+.global-entity-search-popover ul,
+.entity-search-results {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.global-entity-search-popover a[role="option"] {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.55rem;
+  border-radius: var(--radius-sm);
+  color: var(--ui-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.global-entity-search-popover a[aria-selected="true"],
+.global-entity-search-popover a[role="option"]:hover {
+  background: var(--ui-selected-surface);
+  outline: 2px solid var(--ui-focus);
+}
+.global-search-popup-status {
+  position: absolute;
+  top: 100%;
+  z-index: 60;
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  padding: 0.5rem;
+  border: 1px solid var(--ui-border);
+}
+.entity-search-results {
+  display: grid;
+  gap: 0.75rem;
+}
+@media (max-width: 760px) {
+  .global-entity-search {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+  }
+  .global-entity-search-fields input {
+    width: 0;
+  }
+}
+
+.global-entity-search-popover {
+  max-height: 65dvh;
+}
+
+/* Maintenance evidence and mobile vendor work keep long source/file identifiers inside their cards. */
+.maintenance-case-facts,
+.maintenance-vendor-work,
+.vendor-workspace {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.maintenance-case-facts code,
+.maintenance-vendor-work code,
+.vendor-workspace code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+.maintenance-case-facts fieldset,
+.maintenance-vendor-work fieldset,
+.vendor-workspace fieldset {
+  min-width: 0;
+}
+.maintenance-case-facts input,
+.maintenance-case-facts textarea,
+.maintenance-case-facts select,
+.maintenance-vendor-work input,
+.maintenance-vendor-work textarea,
+.maintenance-vendor-work select,
+.vendor-workspace input,
+.vendor-workspace textarea,
+.vendor-workspace select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.maintenance-history-reports {
+  overflow-wrap: anywhere;
+}
+.maintenance-history-reports fieldset {
+  min-width: 0;
+}
+.maintenance-history-reports input,
+.maintenance-history-reports select {
+  max-width: 100%;
+}
+.maintenance-history-reports code {
+  word-break: break-all;
+}
+.maintenance-report-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: 1rem;
+}
+.maintenance-report-counts strong {
+  font-size: 2rem;
+}
+.maintenance-report-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  gap: 0.6rem;
+}
+.maintenance-report-totals div {
+  padding: 0.6rem;
+  background: var(--ui-surface-recessed);
+}
+.maintenance-report-totals dd {
+  margin: 0;
+  font-weight: 700;
+}
+.maintenance-report-trend > div {
+  display: grid;
+  gap: 0.2rem;
+  width: 100%;
+}
+.maintenance-report-trend span {
+  display: block;
+  height: 0.45rem;
+  background: var(--state-verified-text);
+}
+.maintenance-report-trend span + span {
+  background: var(--ui-border);
+}
+
+.maintenance-operating-policies,
+.maintenance-reviews {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.maintenance-operating-policies fieldset,
+.maintenance-reviews fieldset {
+  min-width: 0;
+  max-width: 100%;
+}
+.maintenance-operating-policies textarea,
+.maintenance-reviews textarea,
+.maintenance-operating-policies input,
+.maintenance-reviews input,
+.maintenance-reviews select {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.maintenance-operating-policies article {
+  border-top: 1px solid var(--ui-border);
+  padding-block: 1rem;
+}
+.maintenance-reviews summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding-block: 0.65rem;
+}
+.preserve-lines {
+  white-space: pre-wrap;
+}
+
+.application-display-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 14rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+.presentation-name-preview,
+.presentation-signature-preview {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  font: inherit;
+}
+@media (max-width: 760px) {
+  .application-display-name {
+    max-width: 12rem;
+    font-size: 0.8rem;
+  }
+  .brand {
+    min-width: 0;
   }
 }

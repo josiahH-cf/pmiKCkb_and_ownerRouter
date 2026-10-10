@@ -106,7 +106,12 @@ import {
 export interface DeskPartyShortcuts {
   readonly available: boolean;
   /** Active-key token for one row party, from the server resolver; null renders plain text. */
-  tokenFor(partyKind: "owner" | "tenant", normalizedLabel: string): string | null;
+  tokenFor(
+    partyKind: "owner" | "tenant",
+    normalizedLabel: string,
+    sourceId?: string,
+  ): string | null;
+  canonicalTokenFor?(partyKind: "owner" | "tenant", token: string): string | null;
 }
 
 export interface DeskPartyFilterOption {
@@ -252,6 +257,7 @@ export function buildDeskPartyFilterOptions(
   const collect = (kind: "owner" | "tenant"): DeskPartyFilterOption[] => {
     if (!shortcuts.available) return [];
     const byToken = new Map<string, DeskPartyFilterOption>();
+    const sourceByToken = new Map<string, string>();
     for (const row of rows) {
       const labels = kind === "owner" ? row.ownerNameLabels : row.tenantNameLabels;
       const normalized =
@@ -259,14 +265,36 @@ export function buildDeskPartyFilterOptions(
           ? row.queryKeys.normalizedOwners
           : row.queryKeys.normalizedTenants;
       labels.forEach((label, index) => {
-        const token = shortcuts.tokenFor(kind, normalized[index] ?? "");
+        const identities =
+          kind === "owner"
+            ? row.queryKeys.ownerIdentityKeys
+            : row.queryKeys.tenantIdentityKeys;
+        const token = shortcuts.tokenFor(
+          kind,
+          normalized[index] ?? "",
+          identities?.[index] ?? "",
+        );
         if (!token || !PARTY_FILTER_TOKEN_PATTERN.test(token)) return;
-        if (!byToken.has(token)) byToken.set(token, { label, token });
+        if (!byToken.has(token)) {
+          byToken.set(token, { label, token });
+          sourceByToken.set(token, identities?.[index] ?? "");
+        }
       });
     }
-    return [...byToken.values()].sort((left, right) =>
-      left.label.localeCompare(right.label, "en-US"),
-    );
+    const choices = [...byToken.values()];
+    const labelCounts = new Map<string, number>();
+    for (const choice of choices)
+      labelCounts.set(choice.label, (labelCounts.get(choice.label) ?? 0) + 1);
+    return choices
+      .map((choice) => {
+        if ((labelCounts.get(choice.label) ?? 0) < 2) return choice;
+        const sourceId = sourceByToken.get(choice.token);
+        return {
+          ...choice,
+          label: sourceId ? `${choice.label} · Contact ${sourceId}` : choice.label,
+        };
+      })
+      .sort((left, right) => left.label.localeCompare(right.label, "en-US"));
   };
   return { owner: collect("owner"), tenant: collect("tenant") };
 }
@@ -816,7 +844,11 @@ function PartyCell({
     <ul className="renewal-party-list">
       {labels.map((label, index) => {
         const token = shortcuts.available
-          ? shortcuts.tokenFor(kind, normalized[index] ?? "")
+          ? shortcuts.tokenFor(
+              kind,
+              normalized[index] ?? "",
+              parties[index]?.contactId?.label ?? "",
+            )
           : null;
         if (!token || !PARTY_FILTER_TOKEN_PATTERN.test(token)) {
           return (
@@ -906,6 +938,18 @@ export function RenewalDeskTable({
     sourceReadOk && loadedCount > 0 && dependentStateComplete;
   const availablePartyOptions =
     partyOptions ?? buildDeskPartyFilterOptions(rows, shortcuts);
+  const selectedOptions = (kind: "owner" | "tenant") => {
+    const selected = state[kind === "owner" ? "ownerKey" : "tenantKey"];
+    const options = availablePartyOptions[kind];
+    if (!selected || options.some((option) => option.token === selected)) return options;
+    const canonical = shortcuts.canonicalTokenFor?.(kind, selected),
+      option = options.find((option) => option.token === canonical);
+    return option ? [...options, { ...option, token: selected }] : options;
+  };
+  const chosenPartyLabel = (kind: "owner" | "tenant") =>
+    selectedOptions(kind).find(
+      (option) => option.token === state[kind === "owner" ? "ownerKey" : "tenantKey"],
+    )?.label;
 
   return (
     <RenewalDeskViewMemory
@@ -917,6 +961,18 @@ export function RenewalDeskTable({
       viewSource={viewMemory.source}
     >
       <div className="renewal-table-toolbar">
+        <Link
+          prefetch={false}
+          className="secondary-button"
+          aria-current={
+            state.sort === "nonrenewals_first" && state.direction === "asc"
+              ? "page"
+              : undefined
+          }
+          href={href({ ...state, sort: "nonrenewals_first", direction: "asc" })}
+        >
+          Nonrenewals first
+        </Link>
         <nav
           aria-label={RENEWAL_DESK_WORKLIST_VIEW_CONTROL_LABEL}
           className="renewal-view-switch"
@@ -968,10 +1024,16 @@ export function RenewalDeskTable({
             {chips.map((chip) => (
               <li key={chip.key}>
                 <span className="renewal-filter-chip">
-                  <span>{chip.label}</span>
+                  <span>
+                    {chip.key === "ownerKey"
+                      ? `Owner: ${chosenPartyLabel("owner") ?? "selection needs verification"}`
+                      : chip.key === "tenantKey"
+                        ? `Tenant: ${chosenPartyLabel("tenant") ?? "selection needs verification"}`
+                        : chip.label}
+                  </span>
                   <Link
                     prefetch={false}
-                    aria-label={`Remove filter: ${chip.label}`}
+                    aria-label={`Remove filter: ${chip.key === "ownerKey" ? `Owner: ${chosenPartyLabel("owner") ?? "selection needs verification"}` : chip.key === "tenantKey" ? `Tenant: ${chosenPartyLabel("tenant") ?? "selection needs verification"}` : chip.label}`}
                     className="renewal-filter-chip-remove"
                     href={href(chip.withoutFilter)}
                   >
@@ -1057,7 +1119,7 @@ export function RenewalDeskTable({
                 {shortcuts.available ? (
                   <PartyHeaderFilter
                     kind="owner"
-                    options={availablePartyOptions.owner}
+                    options={selectedOptions("owner")}
                     state={state}
                   />
                 ) : (
@@ -1068,7 +1130,7 @@ export function RenewalDeskTable({
                 {shortcuts.available ? (
                   <PartyHeaderFilter
                     kind="tenant"
-                    options={availablePartyOptions.tenant}
+                    options={selectedOptions("tenant")}
                     state={state}
                   />
                 ) : (
@@ -1430,12 +1492,25 @@ function DeskRow({
     >
       <th className="renewal-td-lease" scope="row">
         {workspaceHref ? (
-          <Link prefetch={false} className="renewal-lease-link" href={workspaceHref}>
+          <Link
+            prefetch={false}
+            className="renewal-lease-link"
+            href={workspaceHref}
+            target={EXTERNAL_LINK_TARGET}
+            rel={EXTERNAL_LINK_REL}
+            aria-describedby={`pmi-lease-destination-${row.id}`}
+            title={`Open PMI lease workspace in a new tab`}
+          >
             {row.addressLabel}
           </Link>
         ) : (
           <span>{row.addressLabel}</span>
         )}
+        {workspaceHref ? (
+          <span id={`pmi-lease-destination-${row.id}`} className="renewal-td-secondary">
+            PMI lease workspace ↗
+          </span>
+        ) : null}
         <span className="renewal-td-secondary">
           {row.propertyNameLabel ? `${row.propertyNameLabel} · ` : ""}
           Lease {row.id || "Needs Verification"}

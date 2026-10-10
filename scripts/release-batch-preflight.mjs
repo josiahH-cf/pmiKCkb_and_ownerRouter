@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { selectReleaseCheckoutPair } from "./release-checkout-pair.mjs";
 // Read-only readiness check for one explicitly authorized batch of queued release items.
 //
 //   npm run release:batch-preflight            # human checklist + verdict
@@ -110,6 +111,16 @@ export function evaluateBatchPreflight(input) {
         ? "Exact run is prepared or admitted"
         : "Release held: exact prepared run permit required",
       "Admission is issued only from fresh GO while holding release.lock.",
+    ),
+  );
+  checks.push(
+    check(
+      "checkout_pair",
+      input.checkoutPairValid === false ? "blocked" : "ready",
+      input.checkoutPairValid === false
+        ? "Release checkout selection is invalid"
+        : "Existing or registered release checkout pair",
+      "Both selected worktrees retain exact-main alignment, clean-tree and reviewed environment checks; authoring checkouts are preserved.",
     ),
   );
   const aligned =
@@ -449,9 +460,13 @@ export function gatherBatchPreflight({
     ? readFileSync(join(root, "docs", "loop-state.md"), "utf8")
     : "";
   const queue = parseAwaitingReleaseQueue(loopState);
-  const nativeRoot = join(homedir(), "pmi-kc-work", "main");
-  const sourceRoot =
-    "/mnt/c/Users/josia/Documents/github-windows/pmiKCkb_and_ownerRouter";
+  const pair = selectReleaseCheckoutPair({
+    stateRoot,
+    nativeAnchor: join(homedir(), "pmi-kc-work", "main"),
+    sourceAnchor: "/mnt/c/Users/josia/Documents/github-windows/pmiKCkb_and_ownerRouter",
+    callerRoot: root,
+  });
+  const { nativeRoot, sourceRoot } = pair;
   const prerequisite =
     suppliedPrerequisite ?? readJson(join(stateRoot, "prerequisites.json"));
   const safeExec = (bin, args) => {
@@ -477,10 +492,14 @@ export function gatherBatchPreflight({
     safeExec("flock", ["--nonblock", join(stateRoot, "release.lock"), "true"]) !== null;
   return {
     headSha,
-    treeClean: [root, nativeRoot, sourceRoot].every(
-      (checkout) =>
-        (git(["status", "--porcelain", "--untracked-files=no"], checkout) ?? "x") === "",
-    ),
+    checkoutPairValid: pair.valid,
+    treeClean:
+      pair.valid &&
+      [root, nativeRoot, sourceRoot].every(
+        (checkout) =>
+          (git(["status", "--porcelain", "--untracked-files=no"], checkout) ?? "x") ===
+          "",
+      ),
     ci: exactCi,
     checkpoint,
     changedPaths: diff ? diff.split(/\r?\n/).filter(Boolean) : ["lib/unknown"],
@@ -502,10 +521,12 @@ export function gatherBatchPreflight({
           ),
       ),
     envFlags: readEnvFlags(root),
-    mirroredEnvFlags: readEnvFlags(root === nativeRoot ? sourceRoot : nativeRoot),
+    mirroredEnvFlags: pair.valid
+      ? readEnvFlags(root === sourceRoot ? nativeRoot : sourceRoot)
+      : {},
     remoteHeadSha: git(["ls-remote", "origin", "refs/heads/main"], root)?.split(/\s/)[0],
-    nativeHeadSha: git(["rev-parse", "HEAD"], nativeRoot),
-    sourceHeadSha: git(["rev-parse", "HEAD"], sourceRoot),
+    nativeHeadSha: pair.valid ? git(["rev-parse", "HEAD"], nativeRoot) : null,
+    sourceHeadSha: pair.valid ? git(["rev-parse", "HEAD"], sourceRoot) : null,
     nativeTools:
       process.platform === "linux" &&
       process.versions.node.startsWith("22.") &&

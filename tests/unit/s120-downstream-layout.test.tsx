@@ -190,7 +190,9 @@ describe("S120 downstream chronology", () => {
       within(ownerPreparation).getByRole("region", { name: "Copy the message" }),
     ).toBeInTheDocument();
     expect(
-      within(ownerPreparation).getByRole("region", { name: "Unsent Gmail draft" }),
+      within(ownerPreparation).getByRole("link", {
+        name: "Compose owner message in Communications",
+      }),
     ).toBeInTheDocument();
   });
 });

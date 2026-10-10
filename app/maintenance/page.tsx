@@ -1,3 +1,4 @@
+import { MaintenanceTicketProvider } from "@/components/maintenance/MaintenanceTicketProvider";
 import {
   maintenancePropertyIdentity,
   effectivePropertyPreapproval,
@@ -137,40 +138,48 @@ export default async function MaintenancePage({ searchParams }: MaintenancePageP
 
   return (
     <AppShell user={user}>
-      <section className="content content--workspace ui-stack">
-        <h1 className="section-title">Maintenance</h1>
-        {can(user.role, "edit") ? (
-          <MaintenanceCapture reporterUid={user.uid} photoAction={photoAction} />
-        ) : (
-          <p className="muted">
-            Creating and updating maintenance work requires Editor access in Maintenance.{" "}
-            <RequestAccessLink surface="maintenance.edit" />
+      <MaintenanceTicketProvider key={user.uid} initialTickets={tickets}>
+        <section className="content content--workspace ui-stack">
+          <h1 className="section-title">Maintenance</h1>
+          <p>
+            <a href="/maintenance/history">
+              Maintenance history and reviewed PDF/CSV reports
+            </a>
           </p>
-        )}
-        <UnverifiedIntakeReview
-          initialIntake={intake}
-          unavailableNote={intakeUnavailableNote}
-        />
-        <MaintenanceBlockerReport
-          rows={blockerRows}
-          unavailableNote={blockerUnavailableNote}
-        />
-        <MaintenancePreapprovalControl
-          canManage={can(user.role, "manageAdmin")}
-          initialPreapprovals={preapprovals}
-        />
-        <MaintenanceQueue
-          initialTickets={tickets}
-          statusConflicts={statusConflicts}
-          waitingOn={waitingOn}
-          unavailableNote={unavailableNote}
-          assignees={assignees}
-          currentUid={user.uid}
-          canEdit={can(user.role, "edit")}
-          focusedTicketId={focusedTicketId}
-        />
-        <MaintenanceExecutionReadiness />
-      </section>
+          {can(user.role, "edit") ? (
+            <MaintenanceCapture reporterUid={user.uid} photoAction={photoAction} />
+          ) : (
+            <p className="muted">
+              Creating and updating maintenance work requires Editor access in
+              Maintenance. <RequestAccessLink surface="maintenance.edit" />
+            </p>
+          )}
+          <UnverifiedIntakeReview
+            initialIntake={intake}
+            unavailableNote={intakeUnavailableNote}
+          />
+          <MaintenanceBlockerReport
+            rows={blockerRows}
+            unavailableNote={blockerUnavailableNote}
+          />
+          <MaintenancePreapprovalControl
+            canManage={can(user.role, "manageAdmin")}
+            ownerUid={user.uid}
+            initialPreapprovals={preapprovals}
+          />
+          <MaintenanceQueue
+            initialTickets={tickets}
+            statusConflicts={statusConflicts}
+            waitingOn={waitingOn}
+            unavailableNote={unavailableNote}
+            assignees={assignees}
+            currentUid={user.uid}
+            canEdit={can(user.role, "edit")}
+            focusedTicketId={focusedTicketId}
+          />
+          <MaintenanceExecutionReadiness />
+        </section>
+      </MaintenanceTicketProvider>
     </AppShell>
   );
 }

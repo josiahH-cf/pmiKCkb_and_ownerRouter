@@ -201,7 +201,7 @@ describe("S182 staff confirmation through the actual S20 ledger", () => {
     ).rejects.toThrow(/target or source context is stale/);
   });
 
-  it("refuses verification identities and every non-packet High action", async () => {
+  it("refuses verification identities and unrelated High actions", async () => {
     const packet = await prepare("dotloop.document.upload", "fixture-upload-3");
     await expect(
       approveActionExecution(
@@ -214,7 +214,7 @@ describe("S182 staff confirmation through the actual S20 ledger", () => {
     await expect(getActionExecution(canaryEditor, packet.id, db)).rejects.toThrow(
       /not available/,
     );
-    const other = await prepare("rentvine.work_order.create", "fixture-other-1");
+    const other = await prepare("vendor.assignment.change", "fixture-other-1");
     await expect(
       approveActionExecution(
         colleague,
@@ -232,6 +232,8 @@ describe("S182 staff confirmation through the actual S20 ledger", () => {
     expect(STAFF_CONFIRMED_ACTION_KEYS).toEqual([
       "dotloop.loop.create_from_template",
       "dotloop.document.upload",
+      "rentvine.work_order.create",
+      "rentvine.work_order.update_status",
     ]);
     expect(canConfirmAsStaff("Vendor", "dotloop.document.upload")).toBe(false);
     const decision = decideExecutionAuthority({
@@ -243,7 +245,7 @@ describe("S182 staff confirmation through the actual S20 ledger", () => {
         previewHash,
         reason: "Forged basis on another key.",
       },
-      classification: classification("rentvine.work_order.create"),
+      classification: classification("vendor.assignment.change"),
       previewHash,
     });
     expect(decision).toMatchObject({ canExecute: false, disposition: "denied" });
@@ -404,14 +406,10 @@ describe("S182 a colleague continues a packet action whatever happened to its pr
     ).rejects.toThrow(/not available/);
     expect(companionOf(record.id)).toMatchObject({ preparation: "fixture-preparation" });
 
-    // Another person's non-packet High action is never continued by a colleague.
-    await prepareWithCompanion(
-      preparer,
-      "rentvine.work_order.create",
-      "fixture-other-13",
-    );
+    // Another person's unrelated High action is never continued by a colleague.
+    await prepareWithCompanion(preparer, "vendor.assignment.change", "fixture-other-13");
     await expect(
-      prepareWithCompanion(colleague, "rentvine.work_order.create", "fixture-other-13"),
+      prepareWithCompanion(colleague, "vendor.assignment.change", "fixture-other-13"),
     ).rejects.toThrow(/not available/);
   });
 

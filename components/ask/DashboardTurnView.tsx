@@ -1,4 +1,5 @@
 "use client";
+import { sharedCollectionEntryHref } from "@/lib/lease-renewal/shared-collections";
 import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
 import Link from "next/link";
@@ -8,6 +9,7 @@ import { BusyIndicator, Field, Notice, StatusPill } from "@/components/ui";
 import type { AnswerGroup, ConversationAnswer } from "@/lib/assistant/conversation";
 import type { ConversationContext } from "@/lib/assistant/conversation-plan";
 import { formatBusinessTimestamp, formatCalendarDate } from "@/lib/date-display";
+import { CLAIM_LABELS } from "@/lib/ask/evidence-context";
 import { AskCorrectionKinds, type AskResponse } from "@/lib/schemas";
 import { launchSpaces } from "@/lib/spaces";
 
@@ -178,6 +180,11 @@ export function TurnView({
           yet.
         </p>
       ) : null}
+      {turn.assistant?.contextNote || turn.knowledge?.context_note ? (
+        <p className="muted" role="note">
+          {turn.assistant?.contextNote ?? turn.knowledge?.context_note}
+        </p>
+      ) : null}
       {turn.assistant && turn.assistant.kind !== "knowledge" ? (
         <section aria-label="Assistant answer" className="ui-stack">
           <ConversationAnswerView answer={turn.assistant} />
@@ -329,7 +336,52 @@ function KnowledgeAnswerView({ result }: Readonly<{ result: AskResponse }>) {
     <section aria-label="Knowledge answer" className="ui-stack">
       <SourceStateBanner state={result.source_state} />
       <h2>Answer</h2>
-      <p>{result.answer}</p>
+      {result.evidence_context?.claims.length ? (
+        <div className="ui-stack">
+          {result.evidence_context.claims.map((claim, index) => (
+            <section key={index} aria-label={CLAIM_LABELS[claim.kind]}>
+              <strong>{CLAIM_LABELS[claim.kind]}</strong>
+              <p>{claim.text}</p>
+              {claim.source_ids.length ? (
+                <p className="muted">
+                  {claim.source_ids.map((id) => {
+                    const citation = result.citations.find((c) => c.source_id === id);
+                    return citation ? (
+                      <a key={id} href={citation.url} rel="noreferrer" target="_blank">
+                        {citation.title}{" "}
+                      </a>
+                    ) : null;
+                  })}
+                </p>
+              ) : null}
+              {claim.history_seq ? (
+                <p className="muted">
+                  Earlier conversation turn {claim.history_seq}; historical context.
+                </p>
+              ) : null}
+            </section>
+          ))}
+        </div>
+      ) : (
+        <p>{result.answer}</p>
+      )}
+      {result.evidence_context ? (
+        <footer className="muted" aria-label="Answer evidence context">
+          <p>
+            Answer time: {formatBusinessTimestamp(result.evidence_context.answered_at)} ·{" "}
+            {result.evidence_context.mode === "mixed"
+              ? "Source facts and labeled guidance"
+              : result.evidence_context.mode === "source_facts"
+                ? "Source facts"
+                : result.evidence_context.mode === "guidance"
+                  ? "Labeled guidance"
+                  : "Unknown or unresolved facts"}
+          </p>
+          {result.evidence_context.coverage.map((note) => (
+            <p key={note}>{note}</p>
+          ))}
+        </footer>
+      ) : null}
       {result.answered_by ? (
         <p className="muted">
           Answered by {result.answered_by.model} · {result.answered_by.source_count}{" "}
@@ -650,6 +702,20 @@ function AnswerGroupView({
             </li>
           ))}
         </ol>
+      ) : null}
+      {group.source === "renewals" && group.items.length > 0 ? (
+        <p>
+          <Link
+            href={sharedCollectionEntryHref(
+              group.items
+                .filter((item) => item.ref.source === "renewals")
+                .map((item) => item.ref.id),
+              "assistant",
+            )}
+          >
+            Review these leases for a shared collection
+          </Link>
+        </p>
       ) : null}
       {group.notes.map((note) => (
         <p className="muted" key={note}>

@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import Link from "next/link";
+import { GlobalEntitySearch } from "@/components/search/GlobalEntitySearch";
 import { PmiWordmark } from "@/components/brand/PmiWordmark";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { EnvironmentBadge } from "@/components/layout/EnvironmentBadge";
@@ -15,6 +17,7 @@ import {
   resolveEnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
 import type { AuthenticatedUser } from "@/lib/auth/session";
+import { readApplicationDisplayName } from "@/lib/firestore/presentation-settings";
 import { PMI_WORDMARK, PRODUCT_NAME } from "@/lib/constants";
 import {
   resolvePrimaryNavigation,
@@ -31,6 +34,7 @@ export async function AppShell({
   user: AuthenticatedUser;
   navigationProjection?: PrimaryNavigationProjection;
 }>) {
+  const displayName = await readApplicationDisplayName();
   const environment = resolveEnvironmentDescriptor();
   const mutationControlsVisible =
     environment.ok && allowsMutation(environment.descriptor);
@@ -49,10 +53,14 @@ export async function AppShell({
           <Link
             className="brand"
             href="/"
-            aria-label={`${PMI_WORDMARK} · ${PRODUCT_NAME}`}
+            aria-label={`${PMI_WORDMARK} · ${displayName}`}
           >
             <PmiWordmark variant="inline" />
+            {displayName !== PRODUCT_NAME ? (
+              <span className="application-display-name">{displayName}</span>
+            ) : null}
           </Link>
+          <GlobalEntitySearch key={user.uid} />
           {/* Sits beside the wordmark, before the nav, so it cannot collide with the nav's own
             wrapping at narrow widths. Renders nothing at all in ordinary live Production. */}
           <EnvironmentBadge descriptor={environment} />
@@ -62,10 +70,15 @@ export async function AppShell({
           <NotificationMenu />
           <Appearance />
           {mutationControlsVisible ? <ReportIssueButton /> : null}
-          <span className="user-role">{user.role}</span>
+          <Link href="/profile" className="user-role" aria-label="My business profile">
+            {user.role}
+          </Link>
           <SignOutButton />
         </header>
-        <NavigationFeedback>{children}</NavigationFeedback>
+        <Suspense fallback={null}>
+          <NavigationFeedback />
+        </Suspense>
+        {children}
         {/* TIX-1/2: persistent global "Report an issue" affordance on every signed-in page. */}
         {/* NOTIF-6: idle session timeout with a 28-min warning + 2-min countdown + auto sign-out. */}
         <SessionTimeout />

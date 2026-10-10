@@ -31,7 +31,7 @@ export class ActionRuntimeSuspendedError extends EditableLayerError {
 export async function isRuntimeActionExecutable(
   actionKey: string,
   readSuspension: RuntimeSuspensionReader,
-  registry?: CreateActionRegistryInput[],
+  registry?: readonly CreateActionRegistryInput[],
 ): Promise<boolean> {
   const seedAllowed =
     registry === undefined
@@ -50,7 +50,7 @@ export async function isRuntimeActionExecutable(
 export async function assertRuntimeActionExecutable(
   actionKey: string,
   readSuspension: RuntimeSuspensionReader,
-  registry?: CreateActionRegistryInput[],
+  registry?: readonly CreateActionRegistryInput[],
 ): Promise<void> {
   if (registry === undefined) {
     assertActionExecutable(actionKey);
@@ -67,7 +67,7 @@ export async function assertRuntimeActionExecutable(
 /** Production-bound boolean gate. The reader is fixed to the fresh, fail-closed Firestore reader. */
 export function isProductionRuntimeActionExecutable(
   actionKey: string,
-  registry?: CreateActionRegistryInput[],
+  registry?: readonly CreateActionRegistryInput[],
 ): Promise<boolean> {
   return isRuntimeActionExecutable(actionKey, readRuntimeActionSuspension, registry);
 }
@@ -75,7 +75,7 @@ export function isProductionRuntimeActionExecutable(
 /** Production-bound assertion gate. The reader is never optional and never defaults to clear. */
 export function assertProductionRuntimeActionExecutable(
   actionKey: string,
-  registry?: CreateActionRegistryInput[],
+  registry?: readonly CreateActionRegistryInput[],
 ): Promise<void> {
   return assertRuntimeActionExecutable(actionKey, readRuntimeActionSuspension, registry);
 }
@@ -88,7 +88,7 @@ export async function runRuntimeGatedAction<T>(
   actionKey: string,
   readSuspension: RuntimeSuspensionReader,
   effect: () => Promise<T> | T,
-  registry?: CreateActionRegistryInput[],
+  registry?: readonly CreateActionRegistryInput[],
 ): Promise<T> {
   await assertRuntimeActionExecutable(actionKey, readSuspension, registry);
   return effect();
@@ -98,7 +98,7 @@ export async function runRuntimeGatedAction<T>(
 export function runProductionRuntimeGatedAction<T>(
   actionKey: string,
   effect: () => Promise<T> | T,
-  registry?: CreateActionRegistryInput[],
+  registry?: readonly CreateActionRegistryInput[],
 ): Promise<T> {
   return runRuntimeGatedAction(actionKey, readRuntimeActionSuspension, effect, registry);
 }

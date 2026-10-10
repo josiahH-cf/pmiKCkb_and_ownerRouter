@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AnswerClaimsSchema } from "@/lib/ask/evidence-context";
 import type { ServerConfig } from "@/lib/config/server";
 import { DRAFT_BANNER, SOURCE_STATES } from "@/lib/constants";
 import type { GroundedSearchResult } from "@/lib/retrieval/vertex-search";
@@ -23,6 +24,7 @@ export { AnswerGenerationSetupError } from "@/lib/llm/model-provider";
 const GeneratedAnswerSchema = z
   .object({
     answer: z.string().trim().min(1),
+    claims: AnswerClaimsSchema.optional(),
     citations: z.array(CitationSchema),
     draft: z.string(),
     // Optional, but schema-constrained local models (and occasionally Gemini) emit it as an empty
@@ -40,6 +42,25 @@ export const ANSWER_RESPONSE_JSON_SCHEMA = {
   additionalProperties: false,
   properties: {
     answer: { type: "string" },
+    claims: {
+      type: "array",
+      minItems: 1,
+      maxItems: 20,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          kind: {
+            type: "string",
+            enum: ["source_fact", "historical", "recommendation", "unknown"],
+          },
+          text: { type: "string" },
+          source_ids: { type: "array", items: { type: "string" } },
+          history_seq: { type: ["integer", "null"] },
+        },
+        required: ["kind", "text", "source_ids", "history_seq"],
+      },
+    },
     citations: {
       items: {
         additionalProperties: false,
@@ -84,6 +105,7 @@ export interface AnswerGenerationRequest {
   grounding: GroundedSearchResult;
   sourceState: SourceState;
   process?: AnswerProcessContext;
+  memory?: import("@/lib/assistant-history/memory-types").ConversationMemory;
 }
 
 export interface AnswerGenerator {

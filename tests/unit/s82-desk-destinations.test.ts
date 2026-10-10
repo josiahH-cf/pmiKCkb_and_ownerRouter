@@ -1,3 +1,4 @@
+import { buildManagedGmailThreadDestination } from "@/lib/lease-renewal/desk-destinations";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -102,4 +103,17 @@ describe("S82 workspace phase resolution", () => {
       }),
     ).toBe("/lease-renewal/live/desk/lease/L-9?step=verify-renewal");
   });
+});
+
+it("opens only an exact already linked thread in the displayed managed mailbox", () => {
+  expect(
+    buildManagedGmailThreadDestination("Staff@pmikcmetro.com", "18aa901_f")?.href,
+  ).toBe("https://mail.google.com/mail/u/?authuser=staff%40pmikcmetro.com#all/18aa901_f");
+  for (const [email, id] of [
+    ["personal@gmail.com", "18aa901"],
+    ["staff@pmikcmetro.com", "../other"],
+    ["staff@pmikcmetro.com", "https://example.invalid"],
+    ["staff@pmikcmetro.com", ""],
+  ])
+    expect(buildManagedGmailThreadDestination(email, id)).toBeNull();
 });

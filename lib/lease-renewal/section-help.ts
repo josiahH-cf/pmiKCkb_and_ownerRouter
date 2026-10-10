@@ -213,7 +213,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
     steps: [
       "Enter the renewal rent, effective date and end date in Working renewal terms.",
       "Review the billing schedule shown here and choose Prepare this future-rent preview.",
-      "Review and confirm the exact RentVine effect under Review RentVine updates.",
+      "Read the current and proposed values under Review RentVine updates, then choose Apply RentVine update.",
     ],
     saves:
       "A saved future-schedule preview in the app. Only your exact confirmation changes RentVine, and the app reads the charge back afterwards.",
@@ -239,7 +239,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
       "Shows the one Sheet change waiting for review, or none, and lets you apply it exactly once to the operating renewal tab.",
     steps: [
       "Read the target row, the current value and the proposed value.",
-      "Choose Review and confirm, then Confirm this exact effect once.",
+      "Choose Apply Sheet update to apply the reviewed change once.",
       "The app writes that one cell or row, reads it back and shows the receipt. If the outcome is unproven, use Reconcile from Sheet state before anything else.",
     ],
     saves:
@@ -257,7 +257,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
       "Shows the RentVine change waiting for review, or none, and lets you apply each supported effect exactly once: renewal dates or a recurring charge.",
     steps: [
       "Read the exact source lease, the current values and each proposed effect.",
-      "Choose Review and confirm, then confirm the exact effect once.",
+      "Choose Apply RentVine update to apply the reviewed change once.",
       "The app applies it, reads the lease and charge back and shows the receipt. Recover an uncertain attempt before trying again.",
     ],
     saves:
@@ -395,43 +395,43 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
   "message-preparation-owner": {
     label: "Owner message preparation",
     purpose:
-      "Builds the owner email from the lease facts, the saved comparison and your signature. Edit the subject and body, which save by themselves, then copy the message or create an unsent Gmail draft.",
+      "Builds the owner email from the lease facts, the saved comparison and your signature. Edit the subject and body, which save by themselves, then copy the message or open Communications in a new tab.",
     steps: [
       "Each value the app could not fill is a Needs Verification marker, listed under Marked values with a link to its control.",
-      "Copy the subject and body exactly as displayed, or preview and confirm an unsent Gmail draft, then send it yourself.",
+      "Copy the subject and body exactly as displayed, or open Communications to review the sender, recipients, rich content and files before Send or Schedule.",
     ],
     saves:
-      "Your edits are stored with this lease. A confirmed Gmail draft is created unsent in the signed-in managed mailbox.",
+      "Your edits are stored with this lease. Opening Communications prepares app-owned work; only your explicit Send or Schedule can authorize delivery after its current readiness checks.",
     notDone:
-      "The app never sends. Copying or drafting records no delivery, and attachments are separate files you add yourself.",
+      "Copying or preparing records no delivery. Communications accepts reviewed files and reports confirmed, paused or unresolved delivery separately; unavailable sending stays visibly blocked.",
   },
   "message-preparation-tenant": {
     label: "Tenant message preparation",
     purpose:
-      "Builds the tenant offer from the working terms, applicable charges, insurance wording and resource links. Edit the subject and body, which save by themselves, then copy the message or create an unsent Gmail draft.",
+      "Builds the tenant offer from the working terms, applicable charges, insurance wording and resource links. Edit the subject and body, which save by themselves, then copy the message or open Communications in a new tab.",
     steps: [
       "Review lease origin and applicable charges; fill a charge from a current RentVine charge when it matches.",
       "Each value the app could not fill is a Needs Verification marker, listed under Marked values with a link to its control.",
-      "Copy the subject and body exactly as displayed, or preview and confirm an unsent Gmail draft, then send it yourself.",
+      "Copy the subject and body exactly as displayed, or open Communications to review the sender, recipients, rich content and files before Send or Schedule.",
     ],
     saves:
-      "Your edits are stored with this lease. A confirmed Gmail draft is created unsent in the signed-in managed mailbox.",
+      "Your edits are stored with this lease. Opening Communications prepares app-owned work; only your explicit Send or Schedule can authorize delivery after its current readiness checks.",
     notDone:
-      "The app never sends. The plain text also serves portal or text work; copying records no delivery.",
+      "The plain text also serves portal or text work; copying records no delivery. Communications requires explicit Send or Schedule and current readiness before any email dispatch.",
   },
   "renewal-notice-draft": {
     label: "Renewal-notice draft",
     purpose:
-      "Composes the tenant renewal notice from this lease's live RentVine record and the recorded owner decision, ending in an unsent Gmail draft.",
+      "Opens the current workflow-linked Communications composer for new renewal messages and preserves inspection of an earlier unsent-draft attempt.",
     steps: [
       "Review the offer facts and the recipients the app resolved.",
-      "Preview the exact draft and confirm it once.",
-      "Open Gmail and send it yourself.",
+      "For new work, open Communications and review the exact content before Send or Schedule.",
+      "For an earlier draft attempt, inspect its original receipt and managed Gmail destination; recovery does not create a new draft or send.",
     ],
     saves:
-      "The confirmed draft is created unsent in the signed-in managed mailbox and its receipt is stored with this lease.",
+      "New work is saved in Communications. Original draft receipts retain their unsent meaning and original managed mailbox.",
     notDone:
-      "Nothing is sent by the app. A draft receipt is not delivery or a tenant response.",
+      "Opening the composer and reading an original receipt authorize no send. A draft receipt is not delivery or a tenant response.",
   },
   "document-preparation": {
     label: "Document preparation",

@@ -24,6 +24,10 @@ import {
   withEdited,
   type AutosaveState,
 } from "./AutosaveStatus";
+import {
+  useRenewalPricingPolicy,
+  useStandingOwnerAuthority,
+} from "./RenewalPricingPolicy";
 import { WorkingDateField, WorkingMoneyField } from "./RenewalWorkingRecord";
 import { Button, Card, Field } from "@/components/ui";
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
@@ -73,11 +77,17 @@ interface ManualProviderProps {
   leaseId: string;
   initialState: RenewalWorkspaceState | null | undefined;
   children: ReactNode;
+  nextAction?: ReactNode;
+  statusLog?: ReactNode;
   cycleBasis?: RenewalCycleBasis | null;
 }
 export function RenewalManualProvider(props: ManualProviderProps) {
   return props.initialState === undefined && !props.unavailable ? (
-    <>{props.children}</>
+    <>
+      {props.nextAction}
+      {props.statusLog}
+      {props.children}
+    </>
   ) : (
     // The provider stays mounted when the first save establishes the work record, so entries in
     // other controls are never lost to a remount.
@@ -121,10 +131,13 @@ function ActiveManualProvider({
   leaseId,
   initialState,
   children,
+  nextAction,
+  statusLog,
   cycleBasis,
   writebackPaused = false,
   unavailable = false,
 }: ManualProviderProps) {
+  const pricing = useRenewalPricingPolicy();
   const [pausedReadback, setPaused] = useState<boolean | null>(null);
   // The freshest server observation of the Sheet switch wins: a save or reload response is newer
   // than the page that rendered this provider.
@@ -146,6 +159,10 @@ function ActiveManualProvider({
         : (recordedState ?? initialState ?? null),
     [initialState, recordedState],
   );
+  const reloadPricing = pricing?.reload;
+  useEffect(() => {
+    if (reloadPricing) void reloadPricing();
+  }, [state?.revision, reloadPricing]);
   const stateRef = useRef(state);
   useEffect(() => {
     stateRef.current = state;
@@ -336,7 +353,7 @@ function ActiveManualProvider({
         throw new Error(result.error ?? "This Sheet update could not be prepared.");
       applyState(result.state);
       setMessage(
-        "Sheet update prepared. Review and confirm its exact change under Lease details.",
+        "Sheet update prepared. Read the exact change under Lease details, then choose Apply Sheet update.",
       );
       router.refresh();
     } catch (error) {
@@ -367,7 +384,8 @@ function ActiveManualProvider({
       setDeliberate(false);
     }
   }
-  const summary = manualRenewalSummary(state);
+  const covered = useStandingOwnerAuthority(state?.revision ?? 0);
+  const summary = manualRenewalSummary(state, { standingOwnerAuthority: covered });
   return (
     <Context.Provider
       value={{
@@ -382,61 +400,65 @@ function ActiveManualProvider({
         prepareSource,
       }}
     >
-      <Card
-        id="renewal-card-manual-records"
-        title={renewalCardTitle("renewal-cycle", "Recorded renewal work")}
-      >
-        <p>
-          {readUnavailable
-            ? "Current staff records could not be read. Reload before recording work"
-            : summary.label}
-          . Provider evidence is shown separately below.
-        </p>
-        {state ? (
+      <div className="renewal-primary-progress" data-renewal-focus-context>
+        {nextAction}
+        <Card
+          id="renewal-card-manual-records"
+          title={renewalCardTitle("renewal-cycle", "Recorded renewal work")}
+        >
           <p>
-            {state.basis.kind === "lease_bound"
-              ? `Work saved on this lease without a cycle date · ${state.basis.source}.`
-              : `Work recorded against ${state.basis.kind === "lease_end" ? "lease end" : "review date"} ${formatCalendarDate(state.basis.dateIso)} · ${state.basis.source}.`}
+            {readUnavailable
+              ? "Current staff records could not be read. Reload before recording work"
+              : summary.label}
+            . Provider evidence is shown separately below.
           </p>
-        ) : readUnavailable ? null : (
-          <p id="renewal-manual-cycle" tabIndex={-1}>
-            No staff activity recorded yet.
-          </p>
-        )}
-        {state ? (
-          <CycleSourceDateNote state={state} cycleBasis={cycleBasis ?? null} />
-        ) : null}
-        {state ? (
-          <p>
-            <a href={`#renewal-manual-${summary.nextActivity}`}>
-              Suggested next: {manualActionLabel(summary.nextActivity)}
-            </a>
-          </p>
-        ) : null}
-        <Button onClick={() => void reload()} disabled={deliberate} variant="secondary">
-          Reload records and history
-        </Button>
-        {message ? <p role="status">{message}</p> : null}
-        {history ? (
-          <details>
-            <summary>Staff activity history ({history.length})</summary>
-            <ol>
-              {history.map((entry) => (
-                <li key={String(entry.id)}>
-                  {formatBusinessTimestamp(
-                    typeof entry.recorded_at === "string" ? entry.recorded_at : null,
-                  )}{" "}
-                  · {String(entry.actor_uid)} ·{" "}
-                  {String((entry.action as Record<string, unknown>)?.kind)}
-                  <pre style={{ whiteSpace: "pre-wrap" }}>
-                    {JSON.stringify(entry.action, null, 2)}
-                  </pre>
-                </li>
-              ))}
-            </ol>
-          </details>
-        ) : null}
-      </Card>
+          {state ? (
+            <p>
+              {state.basis.kind === "lease_bound"
+                ? `Work saved on this lease without a cycle date · ${state.basis.source}.`
+                : `Work recorded against ${state.basis.kind === "lease_end" ? "lease end" : "review date"} ${formatCalendarDate(state.basis.dateIso)} · ${state.basis.source}.`}
+            </p>
+          ) : readUnavailable ? null : (
+            <p id="renewal-manual-cycle" tabIndex={-1}>
+              No staff activity recorded yet.
+            </p>
+          )}
+          {state ? (
+            <CycleSourceDateNote state={state} cycleBasis={cycleBasis ?? null} />
+          ) : null}
+          {state ? (
+            <p>
+              <a href={`#renewal-manual-${summary.nextActivity}`}>
+                Suggested next: {manualActionLabel(summary.nextActivity)}
+              </a>
+            </p>
+          ) : null}
+          <Button onClick={() => void reload()} disabled={deliberate} variant="secondary">
+            Reload records and history
+          </Button>
+          {message ? <p role="status">{message}</p> : null}
+          {history ? (
+            <details>
+              <summary>Staff activity history ({history.length})</summary>
+              <ol>
+                {history.map((entry) => (
+                  <li key={String(entry.id)}>
+                    {formatBusinessTimestamp(
+                      typeof entry.recorded_at === "string" ? entry.recorded_at : null,
+                    )}{" "}
+                    · {String(entry.actor_uid)} ·{" "}
+                    {String((entry.action as Record<string, unknown>)?.kind)}
+                    <pre style={{ whiteSpace: "pre-wrap" }}>
+                      {JSON.stringify(entry.action, null, 2)}
+                    </pre>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          ) : null}
+        </Card>
+      </div>
+      {statusLog}
       {children}
     </Context.Provider>
   );
@@ -481,11 +503,12 @@ export function RenewalManualSection({
   section: "owner" | "tenant" | "documents";
 }) {
   const context = useRenewalManualWorkspace();
+  const covered = useStandingOwnerAuthority(context?.state?.revision ?? 0);
   if (!context) return null;
   const { state } = context;
   if (context.readUnavailable && !state)
     return <p>Reload current staff records above before recording work.</p>;
-  const summary = manualRenewalSummary(state);
+  const summary = manualRenewalSummary(state, { standingOwnerAuthority: covered });
   const activities = Object.entries(MANUAL_ACTIVITIES)
     .filter(
       ([key, value]) =>
@@ -587,6 +610,7 @@ function savedSource(source: string | undefined): string {
   return source && source !== STAFF_RECORD_SOURCE ? source : "";
 }
 function ActivityForm({ activity }: { activity: ManualActivity }) {
+  const pricing = useRenewalPricingPolicy();
   const context = useRenewalManualWorkspace()!,
     state = context.state,
     definition = MANUAL_ACTIVITIES[activity],
@@ -615,7 +639,12 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
     if (!touched.has("reason")) setReason(current?.reason ?? "");
     if (!touched.has("occurredAt")) setOccurredAt(toLocalDateTime(current?.occurredAt));
   }
-  const isNext = manualRenewalSummary(state).nextActivity === activity;
+  const isNext =
+    manualRenewalSummary(state, {
+      standingOwnerAuthority:
+        pricing?.view?.manualRevision === (state?.revision ?? 0) &&
+        pricing.view.authority.covered,
+    }).nextActivity === activity;
   const key = `activity:${activity}`;
   // A typed detail that differs from the saved record is not saved yet.
   const detailEdited =

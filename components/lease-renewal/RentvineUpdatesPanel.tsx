@@ -159,7 +159,6 @@ export function RentvineUpdatesPanel({
   const [serverLifecycleLocked, setServerLifecycleLocked] = useState(
     initialProposal !== null && initialEffects === null,
   );
-  const [armedEffect, setArmedEffect] = useState<string | null>(null);
   const [reversalPreviews, setReversalPreviews] = useState<
     Record<string, ReversalPreview>
   >({});
@@ -206,7 +205,11 @@ export function RentvineUpdatesPanel({
             ["running", "ambiguous"].includes(effect.reversal_state)),
       ));
 
+  const pendingRef = useRef(false);
+
   async function run(action: () => Promise<void>) {
+    if (pendingRef.current) return;
+    pendingRef.current = true;
     setPending(true);
     setError("");
     setNotice("");
@@ -220,6 +223,7 @@ export function RentvineUpdatesPanel({
       );
       queueMicrotask(() => errorRef.current?.focus());
     } finally {
+      pendingRef.current = false;
       setPending(false);
     }
   }
@@ -364,7 +368,7 @@ export function RentvineUpdatesPanel({
       leaseId,
       previewHash: proposal.preview_hash,
     });
-    setArmedEffect(null);
+
     await refreshStatus();
     setNotice(
       "Proposal cleared. Any completed generation remains in immutable recovery history.",
@@ -380,7 +384,7 @@ export function RentvineUpdatesPanel({
       effectHash: effect.effect_hash,
       confirm: true,
     });
-    setArmedEffect(null);
+
     setNotice(
       payload.duplicate
         ? "This exact effect already completed; showing its durable receipt."
@@ -574,31 +578,12 @@ export function RentvineUpdatesPanel({
                   {executor ? (
                     <div className="ui-actions">
                       {state === "not_started" && !expired && !futureBlocked ? (
-                        armedEffect === effect.effect_hash ? (
-                          <>
-                            <Button
-                              disabled={pending}
-                              onClick={() => void run(() => executeEffect(effect))}
-                            >
-                              Confirm this exact effect once
-                            </Button>
-                            <Button
-                              disabled={pending}
-                              onClick={() => setArmedEffect(null)}
-                              variant="secondary"
-                            >
-                              Keep reviewing
-                            </Button>
-                          </>
-                        ) : (
-                          <Button
-                            disabled={pending}
-                            onClick={() => setArmedEffect(effect.effect_hash)}
-                            variant="secondary"
-                          >
-                            Review and confirm…
-                          </Button>
-                        )
+                        <Button
+                          disabled={pending}
+                          onClick={() => void run(() => executeEffect(effect))}
+                        >
+                          Apply RentVine update
+                        </Button>
                       ) : null}
                       {state === "ambiguous" || state === "running" ? (
                         <Button

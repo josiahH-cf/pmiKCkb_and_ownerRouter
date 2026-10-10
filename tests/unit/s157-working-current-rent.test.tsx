@@ -459,7 +459,7 @@ describe("S160 RentVine rent charge update beside the working value", () => {
       ],
     });
     expect(body).not.toHaveProperty("confirm");
-    const notice = await screen.findByText(/Review and confirm/);
+    const notice = await screen.findByText(/choose Apply RentVine update/);
     expect(notice.closest("[role='status']")).not.toBeNull();
     expect(
       within(notice.closest("[role='status']") as HTMLElement).getByRole("link", {

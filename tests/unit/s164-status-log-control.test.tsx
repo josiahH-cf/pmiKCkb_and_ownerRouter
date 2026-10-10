@@ -284,8 +284,8 @@ describe("S164 running Status log", () => {
         }}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Lease information" }));
-    const info = screen.getByRole("complementary", { name: "Lease information" });
+    // S197: the same owning status/note control is now beside current work.
+    const info = screen.getByRole("region", { name: "Staff status and Status log" });
     const select = within(info).getByLabelText("Work status (recorded by staff)");
     const box = within(info).getByLabelText("Add a note");
     // The note entry follows the status control, and the log follows the note entry.
@@ -687,8 +687,8 @@ describe("S164 running Status log", () => {
         }}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Lease information" }));
-    const info = screen.getByRole("complementary", { name: "Lease information" });
+    // S197: the same owning status/note control is now beside current work.
+    const info = screen.getByRole("region", { name: "Staff status and Status log" });
     const box = within(info).getByLabelText("Add a note");
     fireEvent.change(box, {
       target: {

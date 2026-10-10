@@ -42,7 +42,6 @@ describe("Maintenance execution authority", () => {
     for (const key of [
       "vendor.account.invite",
       "vendor.assignment.change",
-      "rentvine.work_order.create",
       "quickbooks.bill.create_draft",
     ]) {
       const definition = MAINTENANCE_EXECUTION_DEFINITION_MAP.get(key)!;

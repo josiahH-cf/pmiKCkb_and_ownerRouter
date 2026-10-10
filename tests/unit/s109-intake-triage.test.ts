@@ -37,6 +37,7 @@ describe("S109 urgency rules are deterministic (ARCH-S109-1 / BEH-S109-2)", () =
     expect([...MAINTENANCE_INTAKE_URGENCIES]).toEqual([
       "emergency_fire",
       "urgent_flooding",
+      "urgent_property",
       "normal",
     ]);
   });
@@ -97,7 +98,7 @@ describe("S109 urgency rules are deterministic (ARCH-S109-1 / BEH-S109-2)", () =
   it("escalates a leak the resident says is happening now", () => {
     expect(
       triage({ summary: "Leaking under the sink", happeningNow: false }).urgency,
-    ).toBe("normal");
+    ).toBe("urgent_property");
     expect(
       triage({ summary: "Leaking under the sink", happeningNow: true }).urgency,
     ).toBe("urgent_flooding");

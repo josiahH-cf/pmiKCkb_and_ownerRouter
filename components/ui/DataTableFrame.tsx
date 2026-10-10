@@ -35,6 +35,22 @@ export function DataTableFrame({
     ];
     const cleanup: (() => void)[] = [];
     let cancelDrag: (() => void) | null = null;
+    const firstRow = table.querySelector("thead tr:first-child");
+    const measureHeader = () => {
+      const height = firstRow?.getBoundingClientRect().height ?? 0;
+      if (height > 0)
+        region.style.setProperty("--table-header-row-height", `${Math.ceil(height)}px`);
+    };
+    const headerObserver =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(measureHeader) : null;
+    if (firstRow) headerObserver?.observe(firstRow);
+    measureHeader();
+    window.addEventListener("resize", measureHeader);
+    cleanup.push(() => {
+      headerObserver?.disconnect();
+      window.removeEventListener("resize", measureHeader);
+      region.style.removeProperty("--table-header-row-height");
+    });
     headers.forEach((header, index) => {
       if (index > 39) return;
       const key = `c${index}`;

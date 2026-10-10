@@ -307,7 +307,7 @@ describe("RenewalWorkspace (S113 dashboard with S82 evidence)", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Prepare tenant message" })).toHaveAttribute(
       "href",
-      `/lease-renewal/live/desk/lease/${workspace.summary.id}#renewal-section-tenant`,
+      `/gmail-hub?compose=renewal_tenant&lease=${workspace.summary.id}`,
     );
   });
 

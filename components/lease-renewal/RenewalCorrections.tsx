@@ -237,7 +237,7 @@ export function RenewalCorrections({
         }));
         setPrepared((previous) => ({
           ...previous,
-          [target]: "Saved: review and confirm its exact effect below",
+          [target]: "Saved: apply its reviewed change below",
         }));
       } catch (error) {
         setPrepared((previous) => ({

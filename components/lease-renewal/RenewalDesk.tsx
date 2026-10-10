@@ -6,6 +6,7 @@
 // component; every control navigates one canonical GET URL.
 
 import Link from "next/link";
+import { sharedCollectionEntryHref } from "@/lib/lease-renewal/shared-collections";
 import { RenewalDeskInventory } from "@/components/lease-renewal/RenewalDeskInventory";
 
 import { RenewalDeskRefresh } from "@/components/lease-renewal/RenewalDeskRefresh";
@@ -29,6 +30,7 @@ import type { DeskDataCurrency, RenewalDeskView } from "@/lib/lease-renewal/desk
 import {
   DEFAULT_RENEWAL_DESK_QUERY_V2,
   applyRenewalDeskQueryV2,
+  serializeRenewalDeskQueryV2,
   type PartyTokenMatcher,
   type RenewalDeskQueryV2State,
 } from "@/lib/lease-renewal/desk-query-v2";
@@ -139,6 +141,18 @@ export function RenewalDesk({
         actions={
           <>
             <ModeChip tone="live">Live data</ModeChip>
+            <Link href="/lease-renewal/collections">Shared lease collections</Link>
+            {result.items.length > 0 && result.items.length <= 2000 ? (
+              <Link
+                href={sharedCollectionEntryHref(
+                  result.items.map((row) => row.id),
+                  "worklist",
+                  serializeRenewalDeskQueryV2(query),
+                )}
+              >
+                Save reviewed leases as a shared collection
+              </Link>
+            ) : null}
             <RenewalDeskRefresh
               readAtMs={Date.parse(view.dataCurrency.readAtIso)}
               ttlMs={LEASE_EXPORT_TTL_MS}

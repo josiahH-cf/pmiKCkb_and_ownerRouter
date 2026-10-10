@@ -921,10 +921,10 @@ describe("S82 chips, clear control, and zero states", () => {
       />,
     );
     const chips = screen.getByRole("list", { name: "Active filters" });
-    expect(within(chips).getByText("Owner: selected")).toBeInTheDocument();
+    expect(within(chips).getByText("Owner: Owner Alpha")).toBeInTheDocument();
     expect(within(chips).getByText("Status: ready")).toBeInTheDocument();
     const removeOwner = screen.getByRole("link", {
-      name: "Remove filter: Owner: selected",
+      name: "Remove filter: Owner: Owner Alpha",
     });
     expect(removeOwner.getAttribute("href")).not.toContain("ownerKey");
     const clear = screen.getByRole("link", { name: "Clear filters" });
@@ -978,4 +978,26 @@ describe("S82 chips, clear control, and zero states", () => {
     expect(screen.queryByText(FILTERED_EMPTY_COPY)).toBeNull();
     expect(screen.getByText(/cannot claim an empty worklist/)).toBeInTheDocument();
   });
+});
+
+it("S196 opens a verified internal lease in a distinct new tab at its top, retaining the list view", () => {
+  render(
+    <RenewalDeskTable
+      rows={[row("7001")]}
+      sourceReadOk
+      role="Admin"
+      state={{ ...DEFAULT_RENEWAL_DESK_QUERY_V2, sort: "owner", scope: "all" }}
+      shortcuts={shortcuts}
+    />,
+  );
+  const link = screen.getByText("7001 Main St").closest("a")!;
+  expect(link).toHaveAttribute("target", "_blank");
+  expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
+  expect(link.getAttribute("href")).toContain("/lease/7001?");
+  expect(link.getAttribute("href")).not.toContain("#");
+  expect(link).toHaveAccessibleDescription("PMI lease workspace ↗");
+  expect(screen.getByRole("link", { name: "Nonrenewals first" })).toHaveAttribute(
+    "href",
+    expect.stringContaining("scope=all"),
+  );
 });
