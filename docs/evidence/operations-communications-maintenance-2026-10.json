@@ -11,7 +11,7 @@
     "readbackDate": "2026-10-09"
   },
   "state": "in_progress",
-  "humanVerdict": "NOT RUN \u2014 no human observer",
+  "humanVerdict": "NOT RUN — no human observer",
   "suites": [
     {
       "suite": "S183",
@@ -618,7 +618,7 @@
       "integration": "passed",
       "evidence": [
         "The measured repeated-history workload uses one request-bound read instead of three while retaining six current permission checks and fresh effect scopes.",
-        "Six actual paired Firestore samples document fewer reads and local median18\u21926ms; immutable catalog warm lookup improves while one cold assay110.9\u2192136.2ms is explicitly slower. No production/whole-page SLA or universal latency improvement is claimed; role/conflict/claim/recovery checks pass independently.",
+        "Six actual paired Firestore samples document fewer reads and local median18→6ms; immutable catalog warm lookup improves while one cold assay110.9→136.2ms is explicitly slower. No production/whole-page SLA or universal latency improvement is claimed; role/conflict/claim/recovery checks pass independently.",
         "Local engineering only: existing role/one-action/closed-key/exact-target/conflict/receipt preservation, canonical-backend-2 actual transactions, two-staff actual S184 admission2, chat/owning-route parity20, and production-built maintenance31/Communications15/search11 scope are recorded. Exact-main canonical/CI and cloud candidate delivery are still pending; no live customer effect, new identity/privilege, activation or human observation is claimed."
       ],
       "live_effect": "not_run",
@@ -4017,7 +4017,7 @@
       "preservation": "passed",
       "integration": "passed",
       "evidence": [
-        "The native canonical register retains all44 suites/intake055\u2013098/238 requirements, MF-A/B, MKD3.5%, and every pending investigation dependency.",
+        "The native canonical register retains all44 suites/intake055–098/238 requirements, MF-A/B, MKD3.5%, and every pending investigation dependency.",
         "Executable register/spec/readiness/count/drop/duplicate/false-completion adversaries and selected original authoring transfer preserve exact scope; no historical backfill or unspecified morning issue is added.",
         "Local engineering only: existing role/one-action/closed-key/exact-target/conflict/receipt preservation, canonical-backend-2 actual transactions, two-staff actual S184 admission2, chat/owning-route parity20, and production-built maintenance31/Communications15/search11 scope are recorded. Exact-main canonical/CI and cloud candidate delivery are still pending; no live customer effect, new identity/privilege, activation or human observation is claimed."
       ],
@@ -4219,7 +4219,7 @@
       "log": "/home/josiah/.local/state/pmi-kc-operations-20261009/desk-navigation-2.log"
     },
     {
-      "scope": "typecheck at the S194\u2013S197 development checkpoint",
+      "scope": "typecheck at the S194–S197 development checkpoint",
       "result": "passed",
       "log": "/home/josiah/.local/state/pmi-kc-operations-20261009/typecheck-25.log"
     },
@@ -4751,7 +4751,7 @@
       "result": "passed",
       "scope": "actual Firestore emulator transactions",
       "checks": 37,
-      "detail": "Sequence concurrency/recovery/retention and private-rule refusals; business profile canary/role/current identity; standing and legacy preapproval/import preservation; frozen reports. S185 six alternating paired samples: actual three lookups, history3\u21921, permission6\u21926, median18ms\u21926ms; external source/provider reads excluded."
+      "detail": "Sequence concurrency/recovery/retention and private-rule refusals; business profile canary/role/current identity; standing and legacy preapproval/import preservation; frozen reports. S185 six alternating paired samples: actual three lookups, history3→1, permission6→6, median18ms→6ms; external source/provider reads excluded."
     },
     {
       "id": "ask-outage-preservation-1",
@@ -5197,6 +5197,24 @@
       "log": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery/build-heap-local-2.log",
       "artifact": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery/build-heap-local-2.json",
       "limitation": "Actual clean local build; PSS apportions shared pages. Existing standard Cloud Build worker is retained; no machine flag, resource, budget, runtime limit or type-check bypass is added. This is not cloud or cgroup assurance."
+    },
+    {
+      "scope": "Scheduler enable/run/pause/restore with safe calendar, own consumed receipt, ambiguity/conflict; watcher/lock/recovery preservation",
+      "result": "passed",
+      "tests": 110,
+      "files": 4,
+      "privateLog": "scheduler-probe-focused-3.log"
+    },
+    {
+      "scope": "Full Scheduler repair canonical: npm ci, production audit, format/lint/type, unit/backend, router/falsification/context/path/spec/copy/redaction/cost and production build",
+      "result": "passed",
+      "unitTests": 9509,
+      "unitFiles": 1013,
+      "backendTests": 455,
+      "backendFiles": 79,
+      "productionAuditFindings": 0,
+      "completedAt": "2026-10-10T14:47:03.368417+00:00",
+      "privateLog": "canonical-scheduler-repair-8.log"
     }
   ],
   "preservedFailedRuns": [
@@ -5676,6 +5694,28 @@
         "build-failure-1.private.log"
       ],
       "recordedAt": "2026-10-10T13:05:20.577173+00:00"
+    },
+    {
+      "runId": "d33ddb4a-4dc3-4883-872a-9db5fe048ad4",
+      "sha": "a4ee34920a7c497465eb0e6a5149e5dca00e6ec1",
+      "phase": "assurance",
+      "result": "failed_managed_worker_probe_restored",
+      "buildId": "2e7689b8-569b-4db8-bf95-2fc6214f3cbe",
+      "buildResult": "SUCCESS",
+      "buildFinishedAt": "2026-10-10T14:17:10.259319Z",
+      "revision": "pmi-kc-app-rmv2gmgev-de84ffa8b3a8",
+      "probeId": "22286a0f-804a-461a-a9da-57baa65397a7",
+      "probeRestored": true,
+      "reason": "RunJob rejected because Job.state must be ENABLED. Annual GET job restored PAUSED; no readiness invocation or customer effect. Zero-traffic candidate passed smoke/fingerprint/domains; no promotion. Consumed failed probe cannot rerun; fresh repaired candidate required.",
+      "privateLog": "release-watch-5.log"
+    },
+    {
+      "scope": "Provider-faithful Scheduler state and restoration falsification",
+      "result": "failed_expected_falsification",
+      "testsFailed": 8,
+      "testsPassed": 2,
+      "reason": "Old harness invoked RunJob while PAUSED and omitted enable/calendar/restoration behavior. No live request; provider-faithful deterministic adapter.",
+      "privateLog": "scheduler-probe-fail-first-1.log"
     }
   ],
   "verificationLimitations": [
@@ -5711,7 +5751,7 @@
       "outcome": "Public provider descriptions inspected; actual account/coverage/contact/consent/emergency and transition contract remain unverified."
     }
   },
-  "updatedAt": "2026-10-10T13:33:47.210650+00:00",
+  "updatedAt": "2026-10-10T14:47:40.611133+00:00",
   "preservedInterruptedRuns": [
     {
       "log": "/home/josiah/.local/state/pmi-kc-operations-20261009/maintenance-browser-23.log",
@@ -5761,7 +5801,7 @@
       "suites": ["S183", "S186", "S189", "S190", "S191", "S192", "S193"],
       "state": "missing_input",
       "requiredForCompletion": true,
-      "detail": "Reviewed exact-key activation and managed worker deployment/readbacks are not yet complete. Authentication currently blocks cloud work."
+      "detail": "Reviewed two-key activation, managed worker validation/deployment/readbacks and full verified release remain required. Approved reauthentication passed. D33 failed consumed paused-job probe was restored; verified harness repair requires a fresh candidate."
     },
     {
       "id": "B-DOTLOOP-A1",
@@ -5848,14 +5888,14 @@
     "limitation": "The one application build for run6cb8d512 failed before candidate creation; canonical predecessor337ac163 remains100%. Preserve the failed checkpoint, admitted permit and consumed build claim. A verified repair, exact-main CI, archived failed checkpoint and fresh run/pair/permit are required. All44/238 and the five pending contracts remain required; no customer effect is proof."
   },
   "mainlineVerification": {
-    "sha": "f6a8375432e47be88f02b88b7cd362e5eabf777e",
+    "sha": "a4ee34920a7c497465eb0e6a5149e5dca00e6ec1",
     "branch": "main",
     "event": "push",
-    "ciRun": 38033099009,
-    "url": "https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38033099009",
+    "ciRun": 38056498765,
+    "url": "https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38056498765",
     "result": "passed",
     "jobs": ["firestore", "policy-build", "quality", "unit", "verify"],
-    "unitTestsPassed": 9481,
+    "unitTestsPassed": 9499,
     "unitConfigurationSkips": 4,
     "backendTestsPassed": 455,
     "limitation": "Applies to this exact main head; subsequent documentation closure requires its own exact-main CI. No deployment, activation or human observation."
@@ -5969,7 +6009,7 @@
     },
     "vendorooDirection": "Use the existing RentVine integration first; separate access is conditional on a demonstrated coverage or operational-contract gap. The account-scoped required data/freshness/takeover contract is still pending.",
     "privateEvidenceRoot": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery",
-    "humanVerdict": "NOT RUN \u2014 no human observer",
+    "humanVerdict": "NOT RUN — no human observer",
     "readOnlyProbe": {
       "job": "pmi-kc-communication-worker-readiness",
       "state": "PAUSED",
@@ -6094,6 +6134,14 @@
     "cloudWorkerChanged": false,
     "servingTrafficChanged": false,
     "canonicalVerification": "passed;9503unit/455backend",
-    "replacementRelease": "not_started"
+    "replacementRelease": "d33ddb4a built successfully; failed consumed paused-job readiness probe; zero-traffic candidate, no promotion"
+  },
+  "schedulerProbeRepairContinuation": {
+    "failedRun": "d33ddb4a-4dc3-4883-872a-9db5fe048ad4",
+    "repair": "Temporarily enable only annual managed GET after safe UTC calendar and exact target checks; verify provider scheduleTime; one durable RunJob then pause and restore original canonical target. Conflict or uncertain response remains failed; no second invocation.",
+    "canonicalVerification": "passed;9509 unit/1013 files,455 backend/79 files; required checks/build; production audit zero",
+    "newCandidate": "not_started",
+    "minuteWorker": "PAUSED",
+    "productionTrafficChanged": false
   }
 }

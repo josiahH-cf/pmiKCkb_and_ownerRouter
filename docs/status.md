@@ -9,13 +9,25 @@ unfinished. The isolated WSL branch from main 8406181c preserves both original c
 44/238 evidence: `docs/evidence/operations-communications-maintenance-2026-10.json`; 201 requirements
 have four local engineering scopes passed. No program feature is verified delivered.
 
-Implementation `64eec96f098f11f7f8d10ea634f0e75f210f687c` and its queue documentation are on main.
-Exact-main [CI 38033099009](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38033099009) passed all five jobs for
-`f6a8375432e47be88f02b88b7cd362e5eabf777e`: 9,481 unit tests/four configuration skips, all 455 backend tests,
-quality, policy checks and production build. The one queued implementation slice remains held for
-fresh cloud prerequisites and replacement Communications runtime readiness; the full program is open.
+Implementation `64eec96f098f11f7f8d10ea634f0e75f210f687c` and cumulative repairs are on main.
+Exact-main [CI 38056498765](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38056498765)
+passed all five jobs for `a4ee34920a7c497465eb0e6a5149e5dca00e6ec1`: 9,499 unit tests/four
+existing configuration skips and all455 backend tests. Its full local canonical gate passed
+9,503 unit tests/1,013 files and455 backend tests/79 files, required checks, production build and
+zero production audit findings. The current Scheduler harness repair passed its full canonical gate:9,509 unit tests,455
+backend tests, all required checks/build and zero production audit findings. Exact-main CI and
+a fresh cumulative candidate remain required.
 
-Complete canonical verification passed 9,485 unit tests/1,010 files, 455 backend tests/79 files,
+Run `d33ddb4a-4dc3-4883-872a-9db5fe048ad4` built the cumulative application successfully
+(build `2e7689b8-569b-4db8-bf95-2fc6214f3cbe`) and passed zero-traffic smoke, fingerprint and
+authorized-domain checks at `pmi-kc-app-rmv2gmgev-de84ffa8b3a8`. Mandatory worker assurance failed:
+Cloud Scheduler requires an ENABLED job for RunJob. The annual GET probe was restored PAUSED;
+its failed consumed receipt is preserved. No readiness request, customer effect, promotion or
+traffic rollback occurred. Production remains337ac163 at100%. The repaired harness briefly
+enables only the nonce-bound annual GET job, requires a safe provider/calendar next-run time,
+and pauses/restores canonical configuration; the minute POST worker remains PAUSED.
+
+Complete current canonical verification passed9,509 unit tests/1,013 files, 455 backend tests/79 files,
 all policy checks, zero production audit findings and the production build. Core E2E passed 32 tests with 22 existing configuration skips after one old retired-tools
 assertion failed first; application code remains canonical-green. Production-built
 maintenance 31, Communications 15, search 11, history/collections 15 and settings 3 passed. These scopes
@@ -24,11 +36,12 @@ no live customer/provider business effect was test proof.
 
 S208/S217/S218/S220/S221 remain PENDING and required. Accessible investigations retain actual
 Vendoroo/account, acquisition/source/opening/cutover and phone/coverage/consent/transition holds.
-Approved WSL Google enrollment blocks cloud work. Both notice send and both Dotloop write keys
-stay closed; Dotloop A1 is partial and S182 exclusions remain. Legacy new admissions, pasted tools
-and notice-first guidance are locally retired with original recovery/history preserved; no live
-retirement, worker configuration, activation, promotion or delivery is claimed. Last independent
-serving readback was October 9 for the unchanged baseline below; no fresh cloud check is claimed.
+Fresh approved WSL CLI/ADC and managed Admin browser checks passed. The two source notice keys
+select reviewed activation; the Firestore mirror remains48 keys/16 open/32 closed pending verified
+delivery. Both Dotloop write keys stay closed; A1 is partial and S182 exclusions remain. Legacy
+new admissions, pasted tools and notice-first guidance are locally retired with original
+recovery/history preserved. Eight program indexes are READY; both Scheduler jobs are PAUSED.
+No live retirement, worker enablement, promotion or delivery is claimed.
 
 ## Serving release
 

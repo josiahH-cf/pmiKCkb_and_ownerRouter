@@ -1,4 +1,4 @@
-// Read-only service-authenticated candidate gate. The permanently paused probe job issues GET,
+// Read-only service-authenticated candidate gate. The normally paused annual probe issues GET,
 // never POST, so no customer occurrence or synthetic production record is used as test proof.
 // Scheduler contract: https://docs.cloud.google.com/scheduler/docs/reference/rest/v1/projects.locations.jobs/run
 import { randomUUID } from "node:crypto";
@@ -61,6 +61,7 @@ export function assertCommunicationProbeJob(job) {
     job?.name !== JOB ||
     job.state !== "PAUSED" ||
     job.schedule !== "0 0 1 1 *" ||
+    !["UTC", "utc", "Etc/UTC"].includes(job.timeZone) ||
     job.attemptDeadline !== "120s" ||
     (job.retryConfig?.retryCount ?? 0) !== 0 ||
     t?.httpMethod !== "GET" ||
@@ -71,6 +72,19 @@ export function assertCommunicationProbeJob(job) {
     t.oidcToken?.audience !== BASE + PATH
   )
     throw new Error("communication_worker_probe_configuration_unverified");
+}
+// The annual calendar must leave time for the bounded probe plus restoration. A paused
+// job has no scheduleTime; verify the provider's next time separately after enabling.
+function assertProbeCalendar(nowMs, deadlineMs, nextTime) {
+  const nextAnnual = Date.UTC(new Date(nowMs).getUTCFullYear() + 1, 0, 1);
+  const providerNext = nextTime === undefined ? nextAnnual : Date.parse(nextTime);
+  if (!Number.isFinite(providerNext) || providerNext <= nowMs + deadlineMs + 180_000)
+    throw new Error("communication_worker_probe_calendar_overlap");
+}
+function sameProbeConfiguration(job, original) {
+  return ["name", "schedule", "timeZone", "attemptDeadline", "retryConfig"].every((key) =>
+    equal(job[key], original[key]),
+  );
 }
 export async function verifyCommunicationWorkerAssurance(
   cp,
@@ -91,7 +105,10 @@ export async function verifyCommunicationWorkerAssurance(
     !/^cand-[a-z0-9-]+---pmi-kc-app-kq6wuvpiva-uc\.a\.run\.app$/.test(origin.hostname) ||
     !/^[a-f0-9]{40}$/.test(cp.sha) ||
     !/^pmi-kc-app-[a-z0-9-]+$/.test(cp.revision) ||
-    !stateRoot
+    !stateRoot ||
+    !Number.isFinite(deadlineMs) ||
+    deadlineMs <= 0 ||
+    deadlineMs > 90_000
   )
     throw new Error("communication_worker_candidate_binding_invalid");
   const file = join(stateRoot, `communication-worker-${cp.revision}.json`);
@@ -129,6 +146,7 @@ export async function verifyCommunicationWorkerAssurance(
   }
   assertCommunicationProbeJob(original);
   const started = now();
+  assertProbeCalendar(started, deadlineMs);
   const state = {
     schemaVersion: 1,
     sha: cp.sha,
@@ -140,6 +158,7 @@ export async function verifyCommunicationWorkerAssurance(
     outcome: "pending",
     restored: false,
     originalTarget: original.httpTarget,
+    originalCalendar: { schedule: original.schedule, timeZone: original.timeZone },
   };
   const target = {
     ...original.httpTarget,
@@ -159,8 +178,26 @@ export async function verifyCommunicationWorkerAssurance(
       httpTarget: target,
     });
     const bound = await request("GET", url);
-    if (bound.state !== "PAUSED" || !targetEqual(bound.httpTarget, target))
+    if (
+      bound.state !== "PAUSED" ||
+      !sameProbeConfiguration(bound, original) ||
+      !targetEqual(bound.httpTarget, target)
+    )
       throw new Error("communication_worker_probe_target_conflict");
+    // RunJob requires ENABLED. Only this annual GET job is briefly enabled; the
+    // production POST worker is never selected or changed by candidate assurance.
+    state.phase = "enable_pending";
+    save(file, state);
+    await request("POST", url + ":resume", {});
+    const enabled = await request("GET", url);
+    if (
+      enabled.state !== "ENABLED" ||
+      !sameProbeConfiguration(enabled, original) ||
+      !targetEqual(enabled.httpTarget, target) ||
+      !enabled.scheduleTime
+    )
+      throw new Error("communication_worker_probe_enable_unverified");
+    assertProbeCalendar(now(), deadlineMs, enabled.scheduleTime);
     state.phase = "dispatch_pending";
     save(file, state);
     // This unique claim is durably consumed before the one managed GET invocation.
@@ -190,7 +227,11 @@ export async function verifyCommunicationWorkerAssurance(
         break;
       }
       const job = await request("GET", url);
-      if (job.state !== "PAUSED" || !targetEqual(job.httpTarget, target))
+      if (
+        job.state !== "ENABLED" ||
+        !sameProbeConfiguration(job, original) ||
+        !targetEqual(job.httpTarget, target)
+      )
         throw new Error("communication_worker_probe_target_conflict");
       if (
         Date.parse(job.lastAttemptTime ?? "") >= started &&
@@ -208,19 +249,40 @@ export async function verifyCommunicationWorkerAssurance(
     save(file, state);
   } finally {
     try {
-      const current = await request("GET", url);
-      if (current.state !== "PAUSED")
+      let current = await request("GET", url);
+      if (!sameProbeConfiguration(current, original))
         throw new Error("communication_worker_probe_restore_conflict");
       if (targetEqual(current.httpTarget, target)) {
+        if (current.state === "ENABLED") {
+          state.phase = "pause_pending";
+          save(file, state);
+          await request("POST", url + ":pause", {});
+          current = await request("GET", url);
+        }
+        if (
+          current.state !== "PAUSED" ||
+          !sameProbeConfiguration(current, original) ||
+          !targetEqual(current.httpTarget, target)
+        )
+          throw new Error("communication_worker_probe_restore_conflict");
         state.phase = "restore_pending";
         save(file, state);
         await request("PATCH", url + "?updateMask=httpTarget", {
           name: JOB,
           httpTarget: original.httpTarget,
         });
-      } else if (!targetEqual(current.httpTarget, original.httpTarget))
+      } else if (
+        current.state !== "PAUSED" ||
+        !targetEqual(current.httpTarget, original.httpTarget)
+      )
         throw new Error("communication_worker_probe_restore_conflict");
-      assertCommunicationProbeJob(await request("GET", url));
+      const restored = await request("GET", url);
+      assertCommunicationProbeJob(restored);
+      if (
+        !sameProbeConfiguration(restored, original) ||
+        !targetEqual(restored.httpTarget, original.httpTarget)
+      )
+        throw new Error("communication_worker_probe_restore_conflict");
       state.restored = true;
       state.phase = "complete";
       save(file, state);

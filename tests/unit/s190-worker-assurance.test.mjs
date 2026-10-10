@@ -14,6 +14,8 @@ function fixture(options = {}) {
     name: "projects/pmi-kc-kb-prod/locations/us-central1/jobs/pmi-kc-communication-worker-readiness",
     state: "PAUSED",
     schedule: "0 0 1 1 *",
+    timeZone: "UTC",
+    scheduleTime: "2027-01-01T00:00:00Z",
     attemptDeadline: "120s",
     retryConfig: { retryCount: 0 },
     httpTarget: {
@@ -32,6 +34,8 @@ function fixture(options = {}) {
   if (options.badIdentity)
     job.httpTarget.oidcToken.serviceAccountEmail =
       "unapproved@pmi-kc-kb-prod.iam.gserviceaccount.com";
+  if (options.nearScheduledRun) clock = Date.parse("2026-12-31T23:59:00Z");
+  if (options.badTimeZone) job.timeZone = "America/Chicago";
   const calls = [];
   const file = join(root, `communication-worker-${cp.revision}.json`);
   const read = () => JSON.parse(readFileSync(file, "utf8"));
@@ -61,10 +65,28 @@ function fixture(options = {}) {
         job.httpTarget = structuredClone(request.data.httpTarget);
         return { data: structuredClone(job) };
       }
+      if (request.url.endsWith(":resume")) {
+        expect(read().phase).toBe("enable_pending");
+        expect(job.state).toBe("PAUSED");
+        expect(job.httpTarget.httpMethod).toBe("GET");
+        job.state = "ENABLED";
+        if (options.resumeDueSchedule) job.scheduleTime = new Date(clock).toISOString();
+        if (options.resumeLostResponse) throw new Error("uncertain_resume_response");
+      }
+      if (request.url.endsWith(":pause")) {
+        expect(read().phase).toBe("pause_pending");
+        expect(job.state).toBe("ENABLED");
+        if (options.pauseFailure) throw new Error("pause_unverified");
+        job.state = "PAUSED";
+      }
       if (request.url.endsWith(":run")) {
+        // Actual Cloud Scheduler rejected the previous candidate's paused RunJob.
+        if (job.state !== "ENABLED")
+          throw new Error("Job.state must be ENABLED for RunJob.");
         runs++;
         expect(read().phase).toBe("dispatch_pending");
         expect(job.httpTarget.httpMethod).toBe("GET");
+        if (options.foreignTarget) job.httpTarget.uri = "https://another.example/worker";
         if (options.lostResponse) throw new Error("uncertain_run_response");
       }
       return { data: structuredClone(job) };
@@ -99,6 +121,14 @@ it("one durably claimed managed GET proves exact candidate readiness and restore
   try {
     expect((await verifyCommunicationWorkerAssurance(cp, f.config)).verified).toBe(true);
     expect(f.runs).toBe(1);
+    expect(f.calls.filter((c) => c.url.endsWith(":resume"))).toHaveLength(1);
+    expect(f.calls.filter((c) => c.url.endsWith(":pause"))).toHaveLength(1);
+    expect(f.calls.filter((c) => c.url.endsWith(":run"))).toHaveLength(1);
+    expect(
+      f.calls
+        .filter((c) => c.url.includes("cloudscheduler"))
+        .every((c) => c.url.includes("/jobs/pmi-kc-communication-worker-readiness")),
+    ).toBe(true);
     expect(f.job).toEqual(f.original);
     expect(f.read()).toMatchObject({
       sha: cp.sha,
@@ -159,6 +189,86 @@ it("an unrelated candidate origin cannot choose a target", async () => {
       ),
     ).rejects.toThrow("binding_invalid");
     expect(f.calls).toEqual([]);
+  } finally {
+    f.close();
+  }
+});
+
+it.each([{ nearScheduledRun: true }, { badTimeZone: true }])(
+  "scheduled overlap or non-UTC calendar refuses before mutation: %s",
+  async (options) => {
+    const f = fixture(options);
+    try {
+      await expect(verifyCommunicationWorkerAssurance(cp, f.config)).rejects.toThrow();
+      expect(f.calls.every((c) => c.method === "GET")).toBe(true);
+      expect(f.runs).toBe(0);
+    } finally {
+      f.close();
+    }
+  },
+);
+it("a lost enable response restores the owned paused target without invoking RunJob", async () => {
+  const f = fixture({ resumeLostResponse: true });
+  try {
+    await expect(verifyCommunicationWorkerAssurance(cp, f.config)).rejects.toThrow(
+      "uncertain_resume_response",
+    );
+    expect(f.runs).toBe(0);
+    expect(f.job).toEqual(f.original);
+    expect(f.read()).toMatchObject({ outcome: "failed", restored: true });
+    await expect(verifyCommunicationWorkerAssurance(cp, f.config)).rejects.toThrow(
+      "reconciliation_required",
+    );
+    expect(f.runs).toBe(0);
+  } finally {
+    f.close();
+  }
+});
+it("failure to pause cannot claim restoration or reuse the consumed invocation", async () => {
+  const f = fixture({ pauseFailure: true });
+  try {
+    await expect(verifyCommunicationWorkerAssurance(cp, f.config)).rejects.toThrow(
+      "pause_unverified",
+    );
+    expect(f.runs).toBe(1);
+    expect(f.job.state).toBe("ENABLED");
+    expect(f.job.httpTarget.uri).toBe(
+      cp.candidateOrigin + "/api/gmail-hub/sequence-worker",
+    );
+    expect(f.read()).toMatchObject({ outcome: "failed", restored: false });
+    await expect(verifyCommunicationWorkerAssurance(cp, f.config)).rejects.toThrow(
+      "reconciliation_required",
+    );
+    expect(f.runs).toBe(1);
+  } finally {
+    f.close();
+  }
+});
+it("a changed target is preserved and never receives a restoration overwrite", async () => {
+  const f = fixture({ foreignTarget: true, noReadback: true });
+  try {
+    await expect(verifyCommunicationWorkerAssurance(cp, f.config)).rejects.toThrow(
+      "conflict",
+    );
+    expect(f.runs).toBe(1);
+    expect(f.job.httpTarget.uri).toBe("https://another.example/worker");
+    expect(f.calls.filter((c) => c.method === "PATCH")).toHaveLength(1);
+    expect(f.read()).toMatchObject({ outcome: "failed", restored: false });
+  } finally {
+    f.close();
+  }
+});
+
+it("a provider catch-up time refuses RunJob and restores the paused owned target", async () => {
+  const f = fixture({ resumeDueSchedule: true });
+  try {
+    await expect(verifyCommunicationWorkerAssurance(cp, f.config)).rejects.toThrow(
+      "calendar_overlap",
+    );
+    expect(f.runs).toBe(0);
+    expect(f.job.state).toBe("PAUSED");
+    expect(f.job.httpTarget).toEqual(f.original.httpTarget);
+    expect(f.read()).toMatchObject({ outcome: "failed", restored: true });
   } finally {
     f.close();
   }

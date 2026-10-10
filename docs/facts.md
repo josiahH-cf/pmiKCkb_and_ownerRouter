@@ -21,20 +21,28 @@ current-source search, assessment-first maintenance, assigned-vendor contributio
 financial evidence/reports, shared reviewed policy, business signatures and application naming.
 39 contracts remain READY; S208/S217/S218/S220/S221 remain PENDING and required.
 
-Implementation `64eec96f098f11f7f8d10ea634f0e75f210f687c` and its queue documentation are on main.
-Exact-main [CI 38034229039](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38034229039) passed all five jobs for
-`63005b7106cdeff004841fd7d749630ccede0594`: 9,481 unit tests/four configuration skips, all 455 backend tests,
-quality, policy checks and production build. The one queued implementation slice remains held for
-fresh cloud prerequisites and replacement Communications runtime readiness; the full program is open.
+Implementation `64eec96f098f11f7f8d10ea634f0e75f210f687c` and cumulative repairs are on main.
+Exact-main [CI 38056498765](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38056498765)
+passed all five jobs for `a4ee34920a7c497465eb0e6a5149e5dca00e6ec1`: 9,499 unit tests/four
+existing configuration skips and all455 backend tests. Its full local canonical gate passed
+9,503 unit tests/1,013 files and455 backend tests/79 files, required checks, production build and
+zero production audit findings. The current Scheduler harness repair passed its full canonical gate:9,509 unit tests,455
+backend tests, all required checks/build and zero production audit findings. Exact-main CI and
+a fresh cumulative candidate remain required.
+
+Run `d33ddb4a-4dc3-4883-872a-9db5fe048ad4` built the cumulative application successfully
+(build `2e7689b8-569b-4db8-bf95-2fc6214f3cbe`) and passed zero-traffic smoke, fingerprint and
+authorized-domain checks at `pmi-kc-app-rmv2gmgev-de84ffa8b3a8`. Mandatory worker assurance failed:
+Cloud Scheduler requires an ENABLED job for RunJob. The annual GET probe was restored PAUSED;
+its failed consumed receipt is preserved. No readiness request, customer effect, promotion or
+traffic rollback occurred. Production remains337ac163 at100%. The repaired harness briefly
+enables only the nonce-bound annual GET job, requires a safe provider/calendar next-run time,
+and pauses/restores canonical configuration; the minute POST worker remains PAUSED.
 
 The implementation baseline `bash scripts/verify.sh` gate passed: 9,485 unit tests in 1,010 files,
 all 455 backend tests in 79 files, format/lint/type/policy checks, zero production audit findings
 and the production build. Core E2E passed 32 tests with 22 existing configuration skips after its first attempt failed one
 obsolete retired-tools assertion (31 passed). Application source was unchanged by that correction. Each later release head still requires its own exact-main CI.
-The reviewed activation/retirement/worker-gate delta passed its final complete canonical run:
-9,501 unit tests / 1,012 files, all 455 backend tests / 79 files, required checks, production build
-and zero production audit findings. It is ready for mainline continuation; its own exact-main CI
-and every candidate/delivery gate remain required. Earlier failed/interrupted runs retain outcomes.
 Production-built Communications 15, maintenance 31, global search 11, Ask/history/collections 15 and
 isolated settings 3 passed using actual local routes/emulator state and deterministic external
 adapters. This is no live customer/provider effect or human observation.
