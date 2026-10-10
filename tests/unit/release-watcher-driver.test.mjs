@@ -636,6 +636,9 @@ describe("fresh replacement recovery bootstrap", () => {
     expect(cloud.request.mock.calls.every(([request]) => request.method === "GET")).toBe(
       true,
     );
+    expect(cloud.request.mock.calls[0][0].headers).toEqual({
+      "x-goog-user-project": "pmi-kc-kb-prod",
+    });
     expect(h.runCommand.mock.calls).toHaveLength(1);
   });
   it.each([

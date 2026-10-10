@@ -11,7 +11,7 @@
     "readbackDate": "2026-10-09"
   },
   "state": "in_progress",
-  "humanVerdict": "NOT RUN — no human observer",
+  "humanVerdict": "NOT RUN \u2014 no human observer",
   "suites": [
     {
       "suite": "S183",
@@ -618,7 +618,7 @@
       "integration": "passed",
       "evidence": [
         "The measured repeated-history workload uses one request-bound read instead of three while retaining six current permission checks and fresh effect scopes.",
-        "Six actual paired Firestore samples document fewer reads and local median18→6ms; immutable catalog warm lookup improves while one cold assay110.9→136.2ms is explicitly slower. No production/whole-page SLA or universal latency improvement is claimed; role/conflict/claim/recovery checks pass independently.",
+        "Six actual paired Firestore samples document fewer reads and local median18\u21926ms; immutable catalog warm lookup improves while one cold assay110.9\u2192136.2ms is explicitly slower. No production/whole-page SLA or universal latency improvement is claimed; role/conflict/claim/recovery checks pass independently.",
         "Local engineering only: existing role/one-action/closed-key/exact-target/conflict/receipt preservation, canonical-backend-2 actual transactions, two-staff actual S184 admission2, chat/owning-route parity20, and production-built maintenance31/Communications15/search11 scope are recorded. Exact-main canonical/CI and cloud candidate delivery are still pending; no live customer effect, new identity/privilege, activation or human observation is claimed."
       ],
       "live_effect": "not_run",
@@ -4017,7 +4017,7 @@
       "preservation": "passed",
       "integration": "passed",
       "evidence": [
-        "The native canonical register retains all44 suites/intake055–098/238 requirements, MF-A/B, MKD3.5%, and every pending investigation dependency.",
+        "The native canonical register retains all44 suites/intake055\u2013098/238 requirements, MF-A/B, MKD3.5%, and every pending investigation dependency.",
         "Executable register/spec/readiness/count/drop/duplicate/false-completion adversaries and selected original authoring transfer preserve exact scope; no historical backfill or unspecified morning issue is added.",
         "Local engineering only: existing role/one-action/closed-key/exact-target/conflict/receipt preservation, canonical-backend-2 actual transactions, two-staff actual S184 admission2, chat/owning-route parity20, and production-built maintenance31/Communications15/search11 scope are recorded. Exact-main canonical/CI and cloud candidate delivery are still pending; no live customer effect, new identity/privilege, activation or human observation is claimed."
       ],
@@ -4219,7 +4219,7 @@
       "log": "/home/josiah/.local/state/pmi-kc-operations-20261009/desk-navigation-2.log"
     },
     {
-      "scope": "typecheck at the S194–S197 development checkpoint",
+      "scope": "typecheck at the S194\u2013S197 development checkpoint",
       "result": "passed",
       "log": "/home/josiah/.local/state/pmi-kc-operations-20261009/typecheck-25.log"
     },
@@ -4751,7 +4751,7 @@
       "result": "passed",
       "scope": "actual Firestore emulator transactions",
       "checks": 37,
-      "detail": "Sequence concurrency/recovery/retention and private-rule refusals; business profile canary/role/current identity; standing and legacy preapproval/import preservation; frozen reports. S185 six alternating paired samples: actual three lookups, history3→1, permission6→6, median18ms→6ms; external source/provider reads excluded."
+      "detail": "Sequence concurrency/recovery/retention and private-rule refusals; business profile canary/role/current identity; standing and legacy preapproval/import preservation; frozen reports. S185 six alternating paired samples: actual three lookups, history3\u21921, permission6\u21926, median18ms\u21926ms; external source/provider reads excluded."
     },
     {
       "id": "ask-outage-preservation-1",
@@ -5163,6 +5163,40 @@
       "backendFiles": 79,
       "log": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery/canonical-activation-5.log",
       "limitation": "Local canonical engineering only; source still awaits new exact-main CI, candidate managed probe, assurance/promotion/observation and independent serving readbacks. No customer send or human observation was used as proof."
+    },
+    {
+      "scope": "Exact-main CI for reviewed workflow notice activation and mandatory managed worker assurance",
+      "result": "passed",
+      "sha": "ef4e8118f88b4a30fc736bd88b227df1fe3b360b",
+      "ciRun": 38052079121,
+      "unitTestsPassed": 9497,
+      "unitConfigurationSkips": 4,
+      "backendTestsPassed": 455,
+      "log": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery/ci-exact-test-totals-1.json",
+      "limitation": "Five CI jobs passed. The subsequent cloud build failed; this is not serving delivery."
+    },
+    {
+      "scope": "Complete canonical aggregate after build-only heap and explicit existing-project quota-context repair",
+      "result": "passed",
+      "command": "bash scripts/verify.sh",
+      "unitTests": 9503,
+      "unitFiles": 1013,
+      "backendTests": 455,
+      "backendFiles": 79,
+      "productionBuild": "passed",
+      "productionAuditFindings": 0,
+      "log": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery/canonical-build-repair-6.log",
+      "limitation": "Three regressions failed first; all122 focused checks passed after repair. No cloud build outcome is inferred."
+    },
+    {
+      "scope": "Clean local production build with fixed4096 MiB build-only V8 heap and memory profiling",
+      "result": "passed",
+      "elapsedSeconds": 85.317,
+      "peakAggregateRssMiB": 7902.91,
+      "peakAggregatePssMiB": 5977.19,
+      "log": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery/build-heap-local-2.log",
+      "artifact": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery/build-heap-local-2.json",
+      "limitation": "Actual clean local build; PSS apportions shared pages. Existing standard Cloud Build worker is retained; no machine flag, resource, budget, runtime limit or type-check bypass is added. This is not cloud or cgroup assurance."
     }
   ],
   "preservedFailedRuns": [
@@ -5625,6 +5659,23 @@
       "testsFailed": 1,
       "testsSkipped": 22,
       "reason": "Core Admin governance assertion still expected pasted/synthetic Label rules/Reply patterns/evaluator controls intentionally retired under S193. Updated to verify the canonical Communications handoff, immutable original artifacts, role guards and absence of the replaced tools. Application code unchanged after canonical pass."
+    },
+    {
+      "runId": "6cb8d512-c0c9-40b7-8f28-b7c15dd9cbe6",
+      "sha": "ef4e8118f88b4a30fc736bd88b227df1fe3b360b",
+      "phase": "deploy",
+      "result": "failed_build_reconciled_no_candidate",
+      "buildId": "26db2890-3b90-4167-970b-822ad9f83836",
+      "buildFinishedAt": "2026-10-10T12:59:13.457362Z",
+      "reason": "Cloud source builder compiled successfully, then Next TypeScript exhausted the default roughly 2 GiB V8 heap. Build terminal FAILURE; exact candidate revision absent, regional active builds zero, canonical predecessor still 100%. One build claim remains used; no promotion, customer effect or rollback. New reviewed replacement required.",
+      "evidenceRoot": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery",
+      "logs": [
+        "release-watch-1.log",
+        "release-watch-2.log",
+        "release-watch-3.log",
+        "build-failure-1.private.log"
+      ],
+      "recordedAt": "2026-10-10T13:05:20.577173+00:00"
     }
   ],
   "verificationLimitations": [
@@ -5660,7 +5711,7 @@
       "outcome": "Public provider descriptions inspected; actual account/coverage/contact/consent/emergency and transition contract remain unverified."
     }
   },
-  "updatedAt": "2026-10-10T12:26:49.676115+00:00",
+  "updatedAt": "2026-10-10T13:33:47.210650+00:00",
   "preservedInterruptedRuns": [
     {
       "log": "/home/josiah/.local/state/pmi-kc-operations-20261009/maintenance-browser-23.log",
@@ -5786,7 +5837,7 @@
   ],
   "mainlineImplementationCommit": "64eec96f098f11f7f8d10ea634f0e75f210f687c",
   "releaseQueue": {
-    "state": "held_prerequisites",
+    "state": "replacement_pending_after_failed_build",
     "items": [
       {
         "suite": "S183",
@@ -5794,7 +5845,7 @@
         "scope": "Current independent operations program owning-service implementation and local engineering verification"
       }
     ],
-    "limitation": "All44/238 remain required; five pending contracts and external/live prerequisites are not delivered by this queued slice. No permit, key activation, build or production effect has run."
+    "limitation": "The one application build for run6cb8d512 failed before candidate creation; canonical predecessor337ac163 remains100%. Preserve the failed checkpoint, admitted permit and consumed build claim. A verified repair, exact-main CI, archived failed checkpoint and fresh run/pair/permit are required. All44/238 and the five pending contracts remain required; no customer effect is proof."
   },
   "mainlineVerification": {
     "sha": "f6a8375432e47be88f02b88b7cd362e5eabf777e",
@@ -5918,7 +5969,7 @@
     },
     "vendorooDirection": "Use the existing RentVine integration first; separate access is conditional on a demonstrated coverage or operational-contract gap. The account-scoped required data/freshness/takeover contract is still pending.",
     "privateEvidenceRoot": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery",
-    "humanVerdict": "NOT RUN — no human observer",
+    "humanVerdict": "NOT RUN \u2014 no human observer",
     "readOnlyProbe": {
       "job": "pmi-kc-communication-worker-readiness",
       "state": "PAUSED",
@@ -6023,6 +6074,26 @@
       "interruptedChecks": [
         "canonical-activation-4: local verification process group was checked and stopped before completion to repair the discovered absent/partial worker-configuration bypass. Partial log preserved; no cloud effect or pass claimed."
       ]
+    },
+    {
+      "at": "2026-10-10T13:05:20.577173+00:00",
+      "scope": "build/quota repair",
+      "priorSource": "ef4e8118f88b4a30fc736bd88b227df1fe3b360b",
+      "falsification": "Three regressions failed on the prior source: build heap, budget quota project and Identity Platform quota header.",
+      "focused": "All six focused files passed after build-only 4096 MiB heap and explicit same-project quota context; full canonical replacement gate pending.",
+      "sourceChanges": "No skipped type check, runtime limit, machine type, identity, credential store, IAM, key or budget change."
     }
-  ]
+  ],
+  "buildRepairContinuation": {
+    "failedRun": "6cb8d512-c0c9-40b7-8f28-b7c15dd9cbe6",
+    "failedBuild": "26db2890-3b90-4167-970b-822ad9f83836",
+    "failure": "V8 heap exhausted in production TypeScript step; no candidate revision",
+    "repair": "Fixed build-only NODE_OPTIONS=--max-old-space-size=4096, explicit existing-project billing/quota context for budget and Identity Platform reads",
+    "runtimeChanged": false,
+    "typeCheckSkipped": false,
+    "cloudWorkerChanged": false,
+    "servingTrafficChanged": false,
+    "canonicalVerification": "passed;9503unit/455backend",
+    "replacementRelease": "not_started"
+  }
 }

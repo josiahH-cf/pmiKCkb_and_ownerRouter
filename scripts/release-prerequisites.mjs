@@ -223,7 +223,13 @@ export async function collectReleasePrerequisites({
     }
     try {
       const [budgets, guardrail, topic, ...channels] = await Promise.all([
-        gcloud(["billing", "budgets", "list", `--billing-account=${ACCOUNT}`]),
+        gcloud([
+          "billing",
+          "budgets",
+          "list",
+          `--billing-account=${ACCOUNT}`,
+          `--billing-project=${PROJECT}`,
+        ]),
         gcloud(
           [
             "functions",

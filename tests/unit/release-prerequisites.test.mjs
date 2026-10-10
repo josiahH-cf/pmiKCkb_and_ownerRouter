@@ -88,6 +88,26 @@ function fixtureExec(calls, mutate = (value) => value) {
   };
 }
 describe("fresh release prerequisite collection", () => {
+  it("reads account budgets through the existing project quota context after re-enrollment", async () => {
+    const stateDir = mkdtempSync(join(tmpdir(), "release-quota-project-"));
+    roots.push(stateDir);
+    const calls = [],
+      base = fixtureExec(calls);
+    const { receipt } = await collectReleasePrerequisites({
+      root: stateDir,
+      stateDir,
+      permit,
+      now,
+      assertHeld: () => {},
+      assertRuntime: () => {},
+      exec: async (file, args) => {
+        if (args[0] === "billing" && !args.includes("--billing-project=pmi-kc-kb-prod"))
+          throw Error("SERVICE_DISABLED: quota project required");
+        return base(file, args);
+      },
+    });
+    expect(receipt.checks.cost_controls).toBe("ready");
+  });
   it("requires exact existing cost controls and refuses missing, duplicate or narrowed protections", () => {
     expect(costControlsReady(controls())).toBe(true);
     for (const change of [

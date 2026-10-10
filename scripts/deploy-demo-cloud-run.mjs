@@ -456,7 +456,9 @@ function resolvePublicBuildEnv(
 
 function readRequiredBuildEnv(env, errors) {
   const names = PUBLIC_BUILD_KEYS;
-  const values = {};
+  // The cloud builder's default ~2 GiB V8 heap cannot type-check the complete application.
+  // Bound only the build process; retain the normal build/type check and runtime limits.
+  const values = { NODE_OPTIONS: "--max-old-space-size=4096" };
 
   for (const name of names) {
     const value = readString(env[name]);

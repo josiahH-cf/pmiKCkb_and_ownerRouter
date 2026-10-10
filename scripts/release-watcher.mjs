@@ -364,6 +364,7 @@ export function createDriver({
         await cloudClient.request({
           method,
           url: `https://identitytoolkit.googleapis.com/admin/v2/projects/${PROJECT}/config${method === "PATCH" ? "?updateMask=authorizedDomains" : ""}`,
+          headers: { "x-goog-user-project": PROJECT },
           ...(data ? { data } : {}),
           timeout: 30_000,
           signal: lockSignal,
