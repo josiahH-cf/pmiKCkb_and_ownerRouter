@@ -26,15 +26,17 @@ const CURRENT_PROVIDERS = [
 describe("current provider and environment documentation", () => {
   it("pins the exact serving environment instead of a historical cutover target", () => {
     expect(handoff).toContain(
-      "| Serving revision          | `pmi-kc-app-rmuz9g28p-0a2909d490e1`",
+      "| Serving revision          | `pmi-kc-app-rmv2ixuq7-b0c62b52cd5d`",
     );
     expect(handoff).toContain(
-      "| Serving commit            | `337ac163c5709381e8db8d2c18810bec357d8a96`",
+      "| Serving commit            | `780f48db1d7d6a7cc855035d934621f77a28a257`",
     );
     expect(handoff).toContain(
-      "Captured predecessor: `pmi-kc-app-rmuybjtnr-f43dfa3d6d26` from commit",
+      "Captured predecessor: `pmi-kc-app-rmuz9g28p-0a2909d490e1` from commit",
     );
-    expect(handoff).toContain("5ee574b2fba81c83fa63086496d7f2ebb299268c");
+    expect(handoff).toContain("337ac163c5709381e8db8d2c18810bec357d8a96");
+    expect(handoff).toContain("pmi-kc-app-recovery-5b3dfb902624406a");
+    expect(handoff).toContain("f2603722-261c-4748-96c8-ab2bc276e7f2");
     expect(handoff).toContain("Forward restoration");
     expect(handoff).toContain("Production + Live");
     expect(handoff).toContain("Sheet write-back");
@@ -61,7 +63,7 @@ describe("current provider and environment documentation", () => {
       "RentCast | Reference rental listings/market data with cache, usage counter, cap 50 | Exact read key open; never sets offered rent",
     );
     expect(normalizedIntegrations).toContain(
-      "Gmail | Workflow reads, replies, labels, unsent renewal/maintenance drafts | Direct/generic notice sends closed",
+      "Gmail | Workflow reads/replies/labels, rich linked drafts and human Send/Schedule | Two scoped human notice sequence keys open; generic send closed",
     );
     expect(integrations).not.toContain("Q-RENTCAST-ACCOUNT-403");
     expect(integrations).not.toContain("RentCast action stays gated");

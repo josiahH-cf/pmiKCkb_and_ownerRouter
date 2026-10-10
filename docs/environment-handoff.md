@@ -412,7 +412,7 @@ activations; generic send, resident draft and Dotloop write keys remain closed.
 
 ## Current rollback
 
-Captured predecessor:`pmi-kc-app-rmuz9g28p-0a2909d490e1` from
+Captured predecessor: `pmi-kc-app-rmuz9g28p-0a2909d490e1` from commit
 `337ac163c5709381e8db8d2c18810bec357d8a96`, Sheet=true. Run-bound recovery target
 `pmi-kc-app-recovery-5b3dfb902624406a` has fingerprint
 `sha256:a52280044bfad3bbf657d03836fedb5c275ec581f6f346bba419d3e341f36960` and Sheet=true.

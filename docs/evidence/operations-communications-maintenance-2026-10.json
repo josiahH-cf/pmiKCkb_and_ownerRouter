@@ -5378,6 +5378,13 @@
       "scope": "Current router/falsification/context/paths/spec/copy/redaction gates",
       "result": "passed",
       "log": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery/closure-policy-4.log"
+    },
+    {
+      "scope": "Current serving/provider documentation plus native register/Registry integrity",
+      "result": "passed",
+      "tests": 42,
+      "files": 7,
+      "log": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery/closure-repair-focused-1.log"
     }
   ],
   "preservedFailedRuns": [
@@ -5887,7 +5894,8 @@
     "dan-weekly-draft-1.log: provider RFC Message-ID differed after one successful draft create; original failure retained; read-only original draft/message receipt and exact business-content reconciliation passed with no duplicate create/send.",
     "closure-policy-1.log: current recovery rewrite omitted the explicit Forward restoration phrase; restored without changing recovery gates",
     "closure-policy-2.log: boundary validator still required historical closed-key wording after verified activation; preserved before current-state reconciliation",
-    "closure-policy-3.log: remaining historical closed-key wording assertion failed; replaced by actual passed exact-key gates plus explicit closed generic-send check; policy4 passed"
+    "closure-policy-3.log: remaining historical closed-key wording assertion failed; replaced by actual passed exact-key gates plus explicit closed generic-send check; policy4 passed",
+    "closure-ci-unit-failed-1.private.log: CI38065492737 two stale current environment/provider assertions failed;9503 passed/four existing skips,455 backend and other lanes passed. Original failed CI retained."
   ],
   "verificationLimitations": [
     "203 of238 requirements have all four mapped engineering scopes passed;35 independent suites are verified delivered. Five PENDING contracts, three bounded investigations with missing material inputs and S226 integrated closure remain unfinished. Authoring READY never establishes implementation or delivery.",
@@ -6570,5 +6578,20 @@
     "originalMismatchPreserved": true,
     "privateEvidence": "/home/josiah/.local/state/pmi-kc-operations-20261010-delivery/dan-weekly-draft-reconciliation-1.private.json",
     "limitation": "This internal status draft is separate from customer-communication test proof. No external message sent; no provider header normalization inferred as general behavior."
-  }
+  },
+  "closureMainlineAttempts": [
+    {
+      "commit": "1b9508b10af749d8805056a6ed2eacc5a5365aea",
+      "ciRun": 38065492737,
+      "result": "failed",
+      "unitPassed": 9503,
+      "unitFailed": 2,
+      "configurationSkips": 4,
+      "backendPassed": 455,
+      "passedJobs": ["quality", "firestore", "policy-build"],
+      "failedJobs": ["unit", "verify"],
+      "reason": "The current environment/provider documentation test still pinned predecessor337 as serving and categorical draft-only Gmail wording. Application tests otherwise passed; no serving change occurred. Assertions are being reconciled to the actual780f/rmv2 release and scoped two-key contract without removing current-state/boundary checks.",
+      "repair": "Current-state assertions now pin serving780f/rmv2 and predecessor337/recovery5b3, plus scoped human notice sequences/generic closed. All42 focused checks in seven files passed; fresh exact-main CI remains required."
+    }
+  ]
 }
