@@ -4,57 +4,52 @@ Last updated: 2026-10-11 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-The prior Focus/maintenance and rent-anchor repairs are committed, pushed and verified deployed.
-Initial repair 8462d2c6 and observed server/client rent-anchor repair e9cd59f1 are carried at exact
-main 72a30e25537e8ea7ff79391146246c1f9b94375e / pmi-kc-app-rmv3vlx5t-b86fdd4c74ae, 100% traffic.
-Run f0f1747f-53ff-4cec-b5bb-ff320b3b4467 COMPLETE; permit CONSUMED. Full local checks 9519 unit/
+The scoped Focus/maintenance follow-up is committed, pushed and verified deployed. Initial
+8462d2c6, rent-anchor e9cd59f1 and typed move-out instruction 4da1c0cc are carried at exact main
+eb5d35991c3ec128a102e4483d3779af16106821 / pmi-kc-app-rmv3yavsf-2cece39f7605, 100% traffic.
+Run 859ff7f8-0106-48c1-acfa-823d4a592422 COMPLETE; permit CONSUMED. Full local gate 9523 unit/
 455 backend, all policies/build/audit zero; core E2E 32 passed/22 existing skips. Exact CI
-38143875385 all five jobs passed (9515 unit/four existing configuration skips/455 backend).
-One build 2ea4d8b7-3b2e-4bc8-a5ac-2fa31e7b964e succeeded. Candidate receipt
-c56f1f00-7fe6-49f9-8ce8-80aa4931d2f7; promotion 14:01:38.036Z. GET readiness passed/restored PAUSED.
-Observation passed two checkpoints 393764ms; all 318 source/projected/rendered records matched,
-zero discrepancies/5xx/unresolved effects. Eleven independent sections matched 14:08:41Z.
-Fingerprint sha256:aa6e15f51ddd0f5e3fcd3340b6345e9e242a85f9ab5c57eabeddfe62dd85c249.
+38148921619 all five jobs passed (9519 unit/four existing configuration skips/455 backend).
+One build 6dfce397-47d1-4b27-beee-4addc0b70ec2 succeeded. Candidate receipt
+ff9ee6cf-4d66-4b0f-a4b6-5775cda5abf4; promotion 15:20:05.911Z. GET readiness passed/restored PAUSED.
+Observation passed two checkpoints 391789ms; all 318 records matched, zero discrepancies/5xx/
+unresolved effects. Eleven independent sections matched 15:27:29Z.
+Fingerprint sha256:6e57b2a65a60f8e6a218c0b4b0e4cb8db791bad0a8a45a2322457a030393da2c.
 
-Fresh guarded production Focus checks passed all 28 tasks on each of three workspaces, three
-Full/Focus round trips each at desktop/390px, unchanged disclosures/scroll/return links and zero
-app requests/writes/navigations/page errors. Dedicated outreach check passed both widths: collapsed
-context/secondary list, pointer/keyboard, unique alternatives, actual rent controls and repaired
-anchor; zero mutation attempts/errors/overflow. Internal-browser inspection also passed; its owned
-tab closed and viewport reset. Dirty input preservation was exercised locally, with no production
-field edits. Human acceptance and physical-phone testing remain NOT RUN.
+Fresh guarded Focus checks passed all 28 tasks on each of three workspaces, three Full/Focus
+round trips each at desktop/390px, unchanged Full view/disclosures/scroll/return links, and zero
+app requests/writes/navigations/page errors/overflow. Dedicated outreach checks passed both widths,
+including initiated-move-out instruction and warning, collapsed context/secondary tasks, pointer/
+keyboard, 21 distinct alternatives, actual rent controls and repaired field anchor. Internal-browser
+normal-outreach review passed with 19 alternatives, separate equal-rent meanings and the Sheet
+warning. Its owned tab closed and viewport reset. Dirty input preservation was exercised locally;
+no production field edits. Human acceptance and physical phone NOT RUN.
 
-Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=true, five existing secrets and
-allowance 50 retained; all 54 runtime keys match the predecessor except APP_COMMIT_SHA. No provider
-key, test/customer record, external message or RentVine chat read was used. Weekly draft original
-business content unchanged/unsent at 14:09:25.179Z. Complete Vendoroo integration remains open.
+Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=true, five secrets and allowance
+50 retained; all 54 runtime keys match the predecessor except APP_COMMIT_SHA. No provider key,
+production test record, external message or RentVine chat read was used. Weekly draft original
+content unchanged/unsent at 15:28:19.425Z. Complete Vendoroo integration remains open.
 
-Captured predecessor 623152fb / pmi-kc-app-rmv3tf7u6-16d1e4a13e04, Sheet=true. Run-bound recovery
-pmi-kc-app-recovery-f0f1747f53ff4cec, receipt 5af7decd-6f32-4d76-9ac8-c26028837aa8, reference
-sha256:4694b0dc8c65eae4f33e4662667934595f06be2cdb0d6aee11a325986e69b06a. No rollback. Failed
-4d6494fc stopped before intent/build; original sub-check cause remains unverified. Its 617 state
-files and all first-release e4ea4d39 receipts/consumed state remain preserved outside Git.
-Evidence: docs/evidence/focus-maintenance-release-2026-10-11.md; initial verification/gap trace and
-Dan/Jon discussion: docs/evidence/focus-maintenance-followup-2026-10-11.md.
-Final screenshot review found a move-out instruction conflict after staff choose Owner outreach:
-ordinary message preparation was suggested while the source warning says it is unavailable.
-Default move-out guidance was correct. A typed-disposition copy repair preserves outside-contact
-recording and the warning; fail-first reproduced the conflict. Corrected-source full gate passed
-9523 unit/455 backend, required checks/build/audit zero; core 32/22 existing skips. NEXT:
-exact-main CI, new frozen pair/admission/release and actual move-out
-instruction readback. Earlier scoped technical passes do not accept the conflicting instruction.
+Captured predecessor 72a30e25 / pmi-kc-app-rmv3vlx5t-b86fdd4c74ae, Sheet=true. Recovery
+pmi-kc-app-recovery-859ff7f8010648c1; receipt f10a32be-ff3d-4b3b-998f-ef2149914db0, reference
+sha256:758544475e0d3bb34aad6e2c559a4a7a8653d293579aef85a8cb6c6973c9f301. No rollback. Failed
+4d6494fc stopped before intent/build; original sub-check cause remains unverified. All 617 failed
+state files and completed e4ea4d39/f0f1747f/859ff7f8 receipts/state remain preserved outside Git.
+The screenshot conflict after f0f1747f was repaired and freshly released; earlier scoped browser
+passes did not accept it. Evidence: docs/evidence/focus-maintenance-release-2026-10-11.md;
+initial gap trace and Dan/Jon discussion: docs/evidence/focus-maintenance-followup-2026-10-11.md.
+No further implementation or deployment is queued for this follow-up. Documentation closure
+uses focused/policy checks and exact-main CI; documentation does not deploy.
 
-The entire October program S183–S226/intake 055–098 remains unfinished: 44 suites/238 requirements,
-203 mapped requirements verified/35 suites delivered. Keep five pending outcomes, three partial
-investigations and S226 closure. No unrelated acquisition/native-phone implementation was started.
+The entire S183–S226/intake 055–098 program remains unfinished: 44 suites/238 requirements,
+203 requirements verified/35 suites delivered. Keep five pending outcomes, three partial
+investigations and S226 closure. No unrelated acquisition/native-phone implementation started.
 
 ## Awaiting release
 
-1. S197: move-out-aware Owner outreach instruction repair `4da1c0cc2686364ae18ff82c5cb5d722cfecd0f3`, carrying the already delivered Focus/maintenance and rent-anchor repairs. Owner authorized full checks, commit/push and existing gated delivery. Corrected-source full local gate 9523 unit/455 backend/all required checks/build/audit zero; core E2E 32 passed/22 existing skips. Exact-main CI, fresh admission and actual rendered move-out instruction readback remain required.
-
-Completed f0f1747f state/permit/selector/prerequisites were copied under the release lock with
-matching hashes; never reuse its consumed permit. Register a fresh clean pair with the reviewed
-configuration and retain all prior failed/completed receipts.
+None. Scoped Focus/maintenance repairs were verified delivered in run 859ff7f8. The permit is
+consumed. Completed state/permit/selector/prerequisites were copied under the release lock with
+matching hashes; never reuse that permit or an old receipt. No broader pending suite is queued.
 
 ## Remaining material dependencies
 
@@ -76,7 +71,7 @@ S208/S217/S218/S220/S221 PENDING. Accessible S207/S216/S219 investigation is par
 Dan weekly review:one unsent draft saved/read back via original provider draft/message receipt;
 exact recipient/subject/body matched. Gmail supplied a different RFC header, stable on readback;
 original mismatch preserved. One creation, zero additional creates or sends. Body/private evidence
-stay outside Git. Original draft was again unchanged/unsent at 2026-10-11T14:09:25.179Z; zero creates/sends.
+stay outside Git. Original draft was again unchanged/unsent at 2026-10-11T15:28:19.425Z; zero creates/sends.
 Next:consolidate missing material inputs in ordinary chat; do not Send.
 On new evidence revise the SAME five pending specifications, validate registrations before READY,
 then implement/verify/deliver their complete slices through existing gates. No phase-only consent.
@@ -86,9 +81,9 @@ Separate 24-hour enrollment longevity and human observations remain unverified, 
 
 Native authoring: /home/josiah/pmi-kc-work/focus-maintenance-followup-20261011, branch
 codex/focus-maintenance-followup-20261011. Preserve original Windows HEAD 8406181c and all 64 dirty
-file hashes (matched 13:45:40Z), and original native operations checkout HEAD bd1b3962/clean
-(matched 13:47:10Z). Frozen registered pair C at 72a30e25:
-focus-maintenance-release-20261011c / focus-maintenance-20261011c. Never alter admitted/completed
+file hashes (matched 15:37:30Z), and original native operations checkout HEAD bd1b3962/clean
+(matched 15:37:30Z). Frozen registered pair D at eb5d3599:
+focus-maintenance-release-20261011d / focus-maintenance-20261011d. Never alter admitted/completed
 frozen checkouts. Disposable local canaries were cleaned; retained logs/screenshots are evidence.
 Private release state: /home/josiah/.local/state/pmi-kc-followup-20261011-release. Prior private
 operations evidence and original failed outcomes remain intact. Approved managed WSL stores and

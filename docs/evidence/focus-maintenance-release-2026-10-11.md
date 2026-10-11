@@ -222,3 +222,52 @@ all policies, budget check and production build; production dependency audit zer
 32 tests with 22 existing configuration skips. The isolated Firestore port was 43343; the
 unrelated existing service on 8080 was preserved. Raw failures and complete logs remain private.
 Exact-main CI, fresh admission and deployed rendered instruction readback are still required.
+
+## Final move-out instruction release and rendered observations
+
+Source repair 4da1c0cc2686364ae18ff82c5cb5d722cfecd0f3 and queue commit
+eb5d35991c3ec128a102e4483d3779af16106821 were pushed to main. Exact CI 38148921619 passed all five
+jobs, including 9519 unit/four existing configuration skips and 455 backend. Fresh clean pair D
+preserved the reviewed configuration byte-for-byte; fresh prerequisites all READY and locked
+preflight GO admitted run 859ff7f8-0106-48c1-acfa-823d4a592422. One application build
+6dfce397-47d1-4b27-beee-4addc0b70ec2 succeeded 15:12:49.695114Z and is independently bound by the
+new revision's Cloud Run build annotation. Candidate ff9ee6cf-4d66-4b0f-a4b6-5775cda5abf4 issued
+15:19:42.137Z. Promotion verified 15:20:05.911Z to pmi-kc-app-rmv3yavsf-2cece39f7605, 100% traffic.
+Observation passed two checkpoints over 391789ms; 318 source/projected/rendered records matched,
+zero discrepancies/5xx/unresolved effects. Eleven independent sections matched 15:27:29Z.
+Permit consumed. All 54 runtime keys matched predecessor 72a30e25 except APP_COMMIT_SHA; five
+secret bindings and worker settings were unchanged. Run-bound recovery
+pmi-kc-app-recovery-859ff7f8010648c1 preserves that actual predecessor image/configuration/Sheet=true;
+receipt f10a32be-ff3d-4b3b-998f-ef2149914db0, reference
+sha256:758544475e0d3bb34aad6e2c559a4a7a8653d293579aef85a8cb6c6973c9f301. No rollback.
+
+At 15:29:50.429Z, fresh guarded production Focus verification passed three real workspaces:
+28 tasks and three Full/Focus round trips each, unchanged Full view/scroll/return link, zero app
+requests/writes/navigations/page errors/overflow. At 15:31:36.625Z the dedicated outreach check
+passed 1280/390px with the actual initiated-move-out instruction and warning, closed context/list,
+pointer/Space/Enter/hidden-tab exclusion, 21 distinct alternatives, actual rent controls and repaired
+anchor. Card heights were 437/654px. The observed lease had no entered offer; supplied working terms
+and dirty entries remain separately exercised in local preservation journeys, not invented in production.
+
+Internal-browser normal-outreach review showed 19 distinct alternatives; card heights 344px desktop
+and 480px at 390px, width 351.2px and client/scroll widths both 375px. The separate Sheet warning
+remained visible despite equal displayed operational/contractual amounts. The actual secondary rent
+controls and current-rent anchor/field worked. Owned tab closed and viewport reset. These are agent
+observations, not human acceptance or physical-phone testing; both remain NOT RUN.
+
+The original managed-mailbox draft was unchanged/unsent at 15:28:19.425Z, same business-content hash;
+zero creates/sends. Original 64 dirty-file hashes and both original HEADs matched at 15:37:30Z;
+original native checkout remained clean. Completed run state was preserved under the real lock
+with four matching file hashes. Earlier failures and completed releases remain immutable outside Git.
+Complete Vendoroo event ingestion, takeover and outstanding account/interface inputs remain open.
+
+Final documentation/preservation group passed 44 checks/seven files; whole-tree formatting,
+type checking, router/falsification/context/active-path/traceability/copy/redaction policies passed.
+Recovery assertions were updated to the observed binding without removing their requirements.
+At 15:42:29Z all disposable canary ports were closed in WSL; Windows independently showed no
+listener on those ports. Both exact owned staging roots remained absent. The unrelated Obsidian
+service on port 8080 was preserved. Guarded browser contexts exited and the owned internal tab
+closed with the temporary viewport reset. Evidence and frozen release checkouts remain retained.
+The final actual mobile image shows the corrected outside-contact instruction, source move-out/
+notice-timing/Sheet warnings and collapsed secondary tasks without clipping or overflow.
+This documentation closure changes no runtime; exact-main CI remains required on its pushed head.

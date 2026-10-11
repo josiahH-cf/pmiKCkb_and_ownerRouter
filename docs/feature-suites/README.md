@@ -1,15 +1,14 @@
 # Active feature suites
 
-The latest gated release is run f0f1747f-53ff-4cec-b5bb-ff320b3b4467 at
-72a30e25537e8ea7ff79391146246c1f9b94375e / pmi-kc-app-rmv3vlx5t-b86fdd4c74ae, 100% traffic.
-Exact CI 38143875385, candidate/promotion/full observation and eleven independent sections passed.
-It carries October 10 functionality and the Owner outreach/maintenance repairs, including the
-observed server/client rent-anchor defect. Fresh three-workspace guarded Focus preservation and
-dedicated desktop/390px outreach/anchor checks passed their scoped assertions. Final image review
-found an Owner outreach instruction conflict after move-out starts. Its narrow repair passed the
-full 9523-unit/455-backend gate and core 32/22; exact CI and a new release remain required. The entire 44/238 program remains unfinished:
-35 suites delivered, 203 requirements verified, five PENDING contracts, three partial investigations
-and S226 closure open. Human/physical phone NOT RUN; Editor browser not_run. See docs/facts.md and
+The latest gated release is run 859ff7f8-0106-48c1-acfa-823d4a592422 at
+eb5d35991c3ec128a102e4483d3779af16106821 / pmi-kc-app-rmv3yavsf-2cece39f7605, 100% traffic.
+Exact CI 38148921619, candidate/promotion/full observation and eleven independent sections passed.
+It carries October 10 functionality and the scoped Owner outreach/maintenance repairs, including
+rent-anchor and typed move-out instructions. Full local gate 9523 unit/455 backend; core 32/22.
+Fresh three-workspace Focus preservation, desktop/390px outreach/move-out copy/anchor checks and
+internal-browser visual review passed. The entire 44/238 program remains unfinished: 35 suites
+delivered, 203 requirements verified, five PENDING contracts, three partial investigations and S226
+closure open. Human/physical phone NOT RUN; Editor browser not_run. See docs/facts.md and
 docs/evidence/focus-maintenance-release-2026-10-11.md for actual scopes.
 
 This directory contains current operating contracts, unfinished specifications, recent completed
