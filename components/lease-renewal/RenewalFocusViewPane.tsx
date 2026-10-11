@@ -3,6 +3,7 @@ import { useRenewalPricingPolicy } from "@/components/lease-renewal/RenewalPrici
 
 import {
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -413,11 +414,26 @@ function FocusPane({
   showInFull: () => void;
 }>) {
   const working = useRenewalWorkingRecord();
+  const [otherReadyOpen, setOtherReadyOpen] = useState(false);
+  const otherReadyId = useId();
   const labels = (id: string) =>
     projection.actions.find((action) => action.id === id)?.label ?? id;
-  const otherReady = projection.actions.filter(
-    (action) => action.status === "ready_for_actor" && action.id !== selected?.id,
-  );
+  const otherReady = [
+    ...new Map(
+      projection.actions
+        .filter(
+          (action) => action.status === "ready_for_actor" && action.id !== selected?.id,
+        )
+        .map((action) => [action.id, action]),
+    ).values(),
+  ];
+  const state = selected ? stateText(selected, labels, projection.diagnostics) : "";
+  const distinctDetail =
+    selected?.detail &&
+    selected.detail.replace(/[.\s]+$/g, "") !== state.replace(/[.\s]+$/g, "") &&
+    selected.detail !== selected.label
+      ? selected.detail
+      : null;
   // S153/S156: the same working-value precedence and renewal terms the Rent and charges card uses.
   const workingRecord = working?.record ?? null;
   const terms = describeRenewalTerms(
@@ -451,6 +467,7 @@ function FocusPane({
       className="panel ui-stack renewal-focus-pane"
       data-renewal-focus-action={selected?.id ?? "none"}
       data-renewal-focus-status={selected?.status ?? "none"}
+      data-renewal-presentation-control
     >
       {complete ? (
         <p className="renewal-focus-outcome" role="status">
@@ -468,11 +485,15 @@ function FocusPane({
             {selected.label}
           </h2>
           <p className="renewal-focus-state" data-renewal-focus-state={selected.status}>
-            {stateText(selected, labels, projection.diagnostics)}
+            {state}
           </p>
-          {selected.detail && selected.detail !== selected.label ? (
-            <p className="muted">{selected.detail}</p>
+          {selected.id === "manual.owner_outreach" &&
+          selected.status === "ready_for_actor" ? (
+            <p>
+              Prepare the owner message below. Record outreach after contacting the owner.
+            </p>
           ) : null}
+          {distinctDetail ? <p className="muted">{distinctDetail}</p> : null}
           {selected.status === "unknown" && recovery && recovery.id !== selected.id ? (
             <p>
               <button
@@ -519,10 +540,16 @@ function FocusPane({
           {missingControls ? (
             <p className="muted">This task&apos;s controls are shown in Full view.</p>
           ) : null}
-          <p className="muted">Done when: {selected.evidence}</p>
+          {selected.group !== "staff_work" &&
+          !/^(done|recorded|complete)[.!\s]*$/i.test(selected.evidence) ? (
+            <details className="renewal-focus-completion">
+              <summary>Completion evidence</summary>
+              <p>{selected.evidence}</p>
+            </details>
+          ) : null}
           {manualMessage ? <p role="status">{manualMessage}</p> : null}
           <p>
-            <button className="secondary-button" onClick={showInFull} type="button">
+            <button className="text-link" onClick={showInFull} type="button">
               Show this task in Full view
             </button>
           </p>
@@ -543,49 +570,58 @@ function FocusPane({
           ))}
         </ul>
       ) : null}
-      <dl className="renewal-focus-context">
-        {manualState ? (
+      <details className="renewal-focus-facts">
+        <summary>Rent and lease context</summary>
+        <dl className="renewal-focus-context">
+          {manualState ? (
+            <div>
+              <dt>Cycle</dt>
+              <dd>
+                {manualState.basis.kind === "lease_bound"
+                  ? "Saved on the lease, no cycle date"
+                  : `${manualState.basis.kind === "lease_end" ? "Lease end" : "Review date"} ${formatCalendarDate(manualState.basis.dateIso)}`}
+              </dd>
+            </div>
+          ) : null}
+          {terms ? (
+            <div>
+              <dt>Working renewal terms</dt>
+              <dd>{terms}</dd>
+            </div>
+          ) : null}
           <div>
-            <dt>Cycle</dt>
-            <dd>
-              {manualState.basis.kind === "lease_bound"
-                ? "Saved on the lease, no cycle date"
-                : `${manualState.basis.kind === "lease_end" ? "Lease end" : "Review date"} ${formatCalendarDate(manualState.basis.dateIso)}`}
+            <dt>Current rent</dt>
+            <dd data-current-rent-basis={rent.basis}>
+              {rent.amount === null ? "Needs Verification" : USD.format(rent.amount)}{" "}
+              <span className="muted">{rent.label}</span>
             </dd>
           </div>
-        ) : null}
-        {terms ? (
           <div>
-            <dt>Working renewal terms</dt>
-            <dd>{terms}</dd>
+            <dt>Contractual lease rent (RentVine)</dt>
+            <dd>
+              {typeof facts.currentRent === "number"
+                ? USD.format(facts.currentRent)
+                : "Needs Verification"}
+            </dd>
           </div>
-        ) : null}
-        <div>
-          <dt>Current rent</dt>
-          <dd data-current-rent-basis={rent.basis}>
-            {rent.amount === null ? "Needs Verification" : USD.format(rent.amount)}{" "}
-            <span className="muted">{rent.label}</span>
-          </dd>
-        </div>
-        <div>
-          <dt>Contractual lease rent (RentVine)</dt>
-          <dd>
-            {typeof facts.currentRent === "number"
-              ? USD.format(facts.currentRent)
-              : "Needs Verification"}
-          </dd>
-        </div>
-        <div>
-          <dt>Lease ends</dt>
-          <dd>{formatCalendarDate(facts.endDateIso, "Needs Verification")}</dd>
-        </div>
-        {facts.lifecycleLabel ? (
           <div>
-            <dt>Status</dt>
-            <dd>{facts.lifecycleLabel}</dd>
+            <dt>Lease ends</dt>
+            <dd>{formatCalendarDate(facts.endDateIso, "Needs Verification")}</dd>
           </div>
-        ) : null}
-      </dl>
+          {facts.lifecycleLabel ? (
+            <div>
+              <dt>Status</dt>
+              <dd>{facts.lifecycleLabel}</dd>
+            </div>
+          ) : null}
+        </dl>
+      </details>
+      {rent.amount === null || facts.currentRent === null ? (
+        <p className="renewal-notice" role="note">
+          Rent information needs verification. Review Rent and lease context and refresh
+          the sources.
+        </p>
+      ) : null}
       {moveOutNotice ? (
         <p className="renewal-notice" role="note">
           {moveOutNotice}
@@ -620,22 +656,39 @@ function FocusPane({
         </ul>
       ) : null}
       {otherReady.length > 0 ? (
-        <nav aria-label="Other ready tasks" className="renewal-focus-ready">
-          <p className="muted">Also ready for you:</p>
-          <ul>
-            {otherReady.map((action) => (
-              <li key={action.id}>
-                <button
-                  className="text-link"
-                  onClick={() => choose(action.id)}
-                  type="button"
-                >
-                  {action.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <div className="renewal-focus-ready">
+          <button
+            type="button"
+            className="text-link"
+            aria-expanded={otherReadyOpen}
+            aria-controls={otherReadyId}
+            onClick={() => setOtherReadyOpen((open) => !open)}
+          >
+            Also ready for you ({otherReady.length})
+          </button>
+          <div id={otherReadyId}>
+            {otherReadyOpen ? (
+              <nav aria-label="Other ready tasks">
+                <ul>
+                  {otherReady.map((action) => (
+                    <li key={action.id}>
+                      <button
+                        className="text-link"
+                        onClick={() => {
+                          setOtherReadyOpen(false);
+                          choose(action.id);
+                        }}
+                        type="button"
+                      >
+                        {action.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ) : null}
+          </div>
+        </div>
       ) : null}
       <details className="renewal-focus-all">
         <summary>All renewal work ({projection.actions.length})</summary>

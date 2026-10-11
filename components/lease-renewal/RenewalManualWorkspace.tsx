@@ -1,6 +1,6 @@
 "use client";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
-import { isProgrammaticFocusMove } from "./RenewalDashboardNavigation";
+import { isRenewalPresentationMove } from "./RenewalDashboardNavigation";
 import { formatCalendarDate, formatBusinessTimestamp } from "@/lib/date-display";
 import {
   RenewalSectionHeading,
@@ -672,8 +672,8 @@ function ActivityForm({ activity }: { activity: ManualActivity }) {
   }
   // A text entry saves when the person leaves the control and it differs from the saved record.
   // Focus moved by the page itself (a refresh, a chosen task) keeps the entry as a draft.
-  function saveDetail() {
-    if (isProgrammaticFocusMove()) return;
+  function saveDetail(event: React.FocusEvent<HTMLInputElement>) {
+    if (isRenewalPresentationMove(event.relatedTarget)) return;
     if (
       source.trim() === savedSource(current?.source) &&
       reason.trim() === (current?.reason ?? "") &&
@@ -872,7 +872,8 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
           id={`${id}-source`}
           maxLength={240}
           value={source}
-          onBlur={() => {
+          onBlur={(event) => {
+            if (isRenewalPresentationMove(event.relatedTarget)) return;
             if (source.trim() === savedSource(current?.source)) setDirty(false);
             else save();
           }}

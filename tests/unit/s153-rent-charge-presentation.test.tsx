@@ -407,6 +407,10 @@ describe("S153 consumers in the lease workspace", () => {
       />,
     );
     const pane = screen.getByRole("region", { name: "Focus view" });
+    const context = within(pane).getByText("Rent and lease context");
+    expect(context.closest("details")).not.toHaveAttribute("open");
+    fireEvent.click(context);
+    expect(context.closest("details")).toHaveAttribute("open");
     const paneRent = within(pane).getByText("Current rent").nextElementSibling!;
     expect(paneRent).toHaveTextContent("$1,250.00");
     expect(paneRent).toHaveTextContent("Staff working value");

@@ -1,8 +1,21 @@
 # Current plan
 
-Updated: 2026-10-10 (UTC). Batch 005 is verified deployed by run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` under its named owner instruction. The S152–S167 program is verified deployed by run `47fabb7c`. Batch 004 (S146–S151) and S108's import are verified deployed by runs `98f7e743` and `729d5716`, with its corrective read-order repair by run `0eb2cfeb` and the S113 approval-read fix by run `3a32f7a2`, on top of request 001, batches 002–003, the thirteen-feature batch and confirmed adversarial repairs.
+Updated: 2026-10-11 (UTC). Batch 005 is verified deployed by run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` under its named owner instruction. The S152–S167 program is verified deployed by run `47fabb7c`. Batch 004 (S146–S151) and S108's import are verified deployed by runs `98f7e743` and `729d5716`, with its corrective read-order repair by run `0eb2cfeb` and the S113 approval-read fix by run `3a32f7a2`, on top of request 001, batches 002–003, the thirteen-feature batch and confirmed adversarial repairs.
 
 ## Active: operations-communications-maintenance-2026-10
+
+The October 11 Focus/maintenance verification is complete with local, uncommitted repairs in the
+attached focus-maintenance-verification worktree at bd1b3962. Focus presentation changes preserve
+entered work; the existing RentVine read path exposes detail/status/assignment and supplied optional
+context; automatic review refresh keeps save acknowledgement. Fresh local UI/preservation, 29
+backend and 31 compiled checks passed. Human/physical-phone acceptance is unverified. Preserve the
+original checkout. The subsequent owner instruction authorizes full checks, commit/push and gated
+deployment of these repairs. Full local gate passed 9518 unit/455 backend, required policies/build
+and production audit 0; core E2E 32 passed/22 existing skips. S208 still
+requires complete verified account/source/ownership/freshness/retention/takeover contracts and
+runtime ingestion; reuse RentVine data before considering gap-specific additional access. Current
+production is confirmed at 780f48db, the October 10 rollout; the weekly draft remains unchanged and
+unsent. Disposable canaries were cleaned up. [Evidence and unresolved discussion points](evidence/focus-maintenance-followup-2026-10-11.md).
 
 The owner-authorized program covers S183–S226 / intake 055–098, all 44 suites/238 requirements.
 The independent implementation and cumulative repairs are merged and serving at 780f48db in

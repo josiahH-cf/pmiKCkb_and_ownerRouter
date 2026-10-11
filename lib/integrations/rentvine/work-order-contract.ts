@@ -223,6 +223,56 @@ export function decodeWorkOrderListResponse(body: unknown): WorkOrderProjection[
 export interface WorkOrderDetail {
   workOrder: WorkOrderProjection;
   schedulingStatusId: number | null;
+  /** GET-only supplemental context; never part of write validation or receipt equality. */
+  readContext?: WorkOrderReadContext;
+}
+
+export interface WorkOrderReadField {
+  availability: "supplied" | "blank" | "not_supplied" | "unrecognized";
+  value: string | null;
+}
+
+export interface WorkOrderReadContext {
+  createdAt: WorkOrderReadField;
+  modifiedAt: WorkOrderReadField;
+  closedAt: WorkOrderReadField;
+  closingDescription: WorkOrderReadField;
+  vendorClosingComments: WorkOrderReadField;
+  diagnosticSummary: WorkOrderReadField;
+  agentSummary: WorkOrderReadField;
+}
+
+function readContextField(value: unknown): WorkOrderReadField {
+  if (value === null || value === undefined)
+    return { availability: "not_supplied", value: null };
+  if (typeof value !== "string") return { availability: "unrecognized", value: null };
+  return { availability: value.trim() ? "supplied" : "blank", value };
+}
+
+/**
+ * Supplemental fields observed on the existing GET detail response (2026-10-11). Keep their
+ * provider text/time representation and absence explicit. A summary is not a full event log,
+ * and provider closeout text is not PMI closure or verified financial evidence.
+ * The original write/create decoder and its contract snapshot remain unchanged.
+ */
+export function decodeWorkOrderReadResponse(body: unknown): WorkOrderDetail {
+  const detail = decodeWorkOrderDetailResponse(body);
+  const raw = requireRecord(
+    requireRecord(body, "detail response")["workOrder"],
+    "workOrder",
+  );
+  return {
+    ...detail,
+    readContext: {
+      createdAt: readContextField(raw["dateTimeCreated"]),
+      modifiedAt: readContextField(raw["dateTimeModified"]),
+      closedAt: readContextField(raw["dateClosed"]),
+      closingDescription: readContextField(raw["closingDescription"]),
+      vendorClosingComments: readContextField(raw["vendorClosingComments"]),
+      diagnosticSummary: readContextField(raw["diagnosticSummary"]),
+      agentSummary: readContextField(raw["agentSummary"]),
+    },
+  };
 }
 
 /** Detail and create responses share the exact { workOrder, schedulingStatusID } root. */

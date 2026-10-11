@@ -1,8 +1,26 @@
 # Loop state
 
-Last updated:2026-10-10 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated:2026-10-11 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
+
+October 11 verification follow-up is complete locally in the attached
+focus-maintenance-verification worktree, base bd1b3962 plus uncommitted source/test changes.
+The owner subsequently directed full checks, mainline commit/push and deployment through the
+existing release gates. Native authoring: /home/josiah/pmi-kc-work/focus-maintenance-followup-20261011.
+Full local gate passed 9518 unit/455 backend, all required policies/build and audit 0; core E2E
+32 passed/22 existing skips. First full gate's three outdated disclosure assumptions were repaired;
+failed evidence is retained. Release evidence: docs/evidence/focus-maintenance-release-2026-10-11.md.
+Owner outreach/readback/refresh-acknowledgement repairs passed fresh local preservation, 29 backend
+and 31 compiled checks. Agent desktop/390px checks passed; human/physical phone NOT RUN.
+Production remains 780f48db / pmi-kc-app-rmv2ixuq7-b0c62b52cd5d,100% traffic. Original weekly draft
+unchanged/unsent at 10:54:46.218Z. No deployment, provider activation, production test record,
+external message or consequential chat read. Disposable local resources cleaned up; preserve the
+managed worktree's repairs and private failed/passed evidence. Release authorization covers these
+repairs; unrelated acquisition/native-phone implementation remains outside this follow-up. Exact source binding,
+gap trace and unresolved Dan/Jon discussion: docs/evidence/focus-maintenance-followup-2026-10-11.md.
+Complete Vendoroo integration remains required: missing account/source contracts differ from absent
+runtime event ingestion and takeover controls; do not substitute staff history for provider evidence.
 
 ACTIVE:owner-authorized `operations-communications-maintenance-2026-10`, S183–S226,
 intake 055–098, all 44 suites/238 requirements. Authoring39 READY/five PENDING is distinct from
@@ -48,7 +66,8 @@ drafts, receipts, failed attempts, legal holds, definitions/runs and external pr
 
 ## Awaiting release
 
-None. The independent implementation queued at64eec96f is verified delivered in run 5b3dfb90.
+None admitted. The independent implementation queued at64eec96f is verified delivered in run 5b3dfb90.
+The owner-authorized October 11 follow-up awaits full checks and commit-bound queue entries.
 The overall 44/238 program remains ACTIVE; missing contracts are not an omitted queue slice.
 
 ## Remaining material dependencies

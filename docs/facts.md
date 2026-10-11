@@ -1,12 +1,28 @@
 # PMI KC facts
 
-Last reconciled:2026-10-10 (mainline delivery, production observation, eleven independent readbacks,
-exact two-key activation, normal managed-worker tick and five guarded mobile routes verified).
+Last reconciled:2026-10-11 (read-only serving/draft checks and local Focus/maintenance follow-up;
+the October 10 production release remains unchanged).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
 
 ## Current feature
+
+The October 11 owner-requested verification repaired Owner outreach presentation/navigation,
+exposed existing RentVine maintenance readback and optional GET context, and fixed an automatic
+review-refresh acknowledgement race in an isolated worktree at bd1b3962 plus uncommitted changes.
+Fresh local Focus/maintenance UI, 29 emulator backend tests and 31 compiled workflow checks passed;
+desktop and 390px visual checks are agent observations, not human or physical-phone acceptance.
+The owner subsequently authorized full checks, commit/push and gated deployment of these repairs;
+that release is pending. Canonical version/managed service readback still identify
+780f48db / pmi-kc-app-rmv2ixuq7-b0c62b52cd5d,100% traffic, resolving the stale October 8 ledger.
+The original managed weekly draft remained unsent and unchanged at 2026-10-11T10:54:46.218Z.
+No production test records, provider activations, chat reads, external messages or release actions were used.
+Disposable local routes, servers, emulators and staging resources were cleaned up. Evidence and
+the exact local source binding: [follow-up verification](evidence/focus-maintenance-followup-2026-10-11.md).
+S208 still lacks verified provider event ingestion, open-work chronology and takeover/stop controls;
+null sampled fields do not prove global provider unavailability. Reuse established RentVine data
+first; the linked assessment traces remaining provider/account inputs separately from missing code.
 
 The owner-authorized program covers S183–S226 / intake 055–098, all 44 suites/238 requirements.
 The independent implementation and cumulative repairs are merged and serving at 780f48db in

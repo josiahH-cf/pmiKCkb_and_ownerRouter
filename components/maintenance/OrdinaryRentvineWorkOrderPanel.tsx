@@ -3,6 +3,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import type { WorkOrderLinkView } from "./RentvineWorkOrderPanel";
 import { Button } from "@/components/ui/Button";
+import {
+  RentvineWorkOrderReadback,
+  type RentvineReadback,
+} from "./RentvineWorkOrderReadback";
+import type { WorkOrderDetail } from "@/lib/integrations/rentvine/work-order-contract";
 type Selection =
   | {
       kind: "create";
@@ -19,23 +24,7 @@ interface Review {
   preview: Record<string, unknown>;
   selection: Selection;
 }
-interface Catalog {
-  statuses: Array<{
-    workOrderStatusId: string;
-    primaryWorkOrderStatusId: string;
-    name: string;
-  }>;
-  trades: Array<{ vendorTradeId: string; name: string }>;
-  list: {
-    rows: Array<{
-      workOrderId: string;
-      workOrderNumber: string;
-      isSharedWithTenant: string;
-      isSharedWithOwner: string;
-    }>;
-    complete: boolean;
-  } | null;
-}
+type Catalog = RentvineReadback;
 async function request(body: Record<string, unknown>) {
   const r = await fetch("/api/maintenance/rentvine-work-orders", {
       method: "POST",
@@ -65,6 +54,9 @@ export function OrdinaryRentvineWorkOrderPanel({
   initialLink: WorkOrderLinkView | null;
 }) {
   const [catalog, setCatalog] = useState<Catalog | null>(null),
+    [observedAt, setObservedAt] = useState<string | null>(null),
+    [detail, setDetail] = useState<WorkOrderDetail | null>(null),
+    [detailAt, setDetailAt] = useState<string | null>(null),
     [link, setLink] = useState(initialLink),
     [kind, setKind] = useState<"create" | "status">("create"),
     [priority, setPriority] = useState<"1" | "2" | "3">("2"),
@@ -195,6 +187,9 @@ export function OrdinaryRentvineWorkOrderPanel({
       l = await request({ operation: "link_status", ticketId });
     if (live.current) {
       setCatalog(p);
+      setObservedAt(new Date().toISOString());
+      setDetail(null);
+      setDetailAt(null);
       setLink(l.link ?? null);
       setReview(null);
       setNote(
@@ -203,6 +198,19 @@ export function OrdinaryRentvineWorkOrderPanel({
           : "Current catalog read; the work-order list may be incomplete. Exact reads and recovery remain available.",
       );
     }
+  }
+  async function inspectDetail(workOrderId: string) {
+    const p = await request({ operation: "read", ticketId, workOrderId });
+    if (!live.current) return;
+    if (p.detail?.workOrder?.workOrderId !== workOrderId)
+      throw Error(
+        "The exact work-order identity could not be verified. The previous observation is kept.",
+      );
+    setDetail(p.detail);
+    setDetailAt(new Date().toISOString());
+    setCatalog((current) =>
+      current ? { ...current, statuses: p.statuses, trades: p.trades } : current,
+    );
   }
   function selection(): Selection {
     if (kind === "create") {
@@ -272,6 +280,16 @@ export function OrdinaryRentvineWorkOrderPanel({
       <Button variant="secondary" disabled={busy} onClick={() => void run(read)}>
         Check RentVine
       </Button>
+      {catalog && observedAt ? (
+        <RentvineWorkOrderReadback
+          result={catalog}
+          observedAt={observedAt}
+          detail={detail}
+          detailAt={detailAt}
+          busy={busy}
+          inspect={(id) => void run(() => inspectDetail(id))}
+        />
+      ) : null}
       {canEdit ? (
         <>
           <fieldset disabled={blocked}>

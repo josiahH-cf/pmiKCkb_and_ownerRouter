@@ -1,4 +1,5 @@
 "use client";
+import { isRenewalPresentationMove } from "./RenewalDashboardNavigation";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 import { useRouter } from "next/navigation";
@@ -576,7 +577,9 @@ export function RenewalWorkStatusControl({
           className="renewal-status-note-input"
           disabled={!canEdit}
           id={noteFieldId}
-          onBlur={() => void commitNote()}
+          onBlur={(event) => {
+            if (!isRenewalPresentationMove(event.relatedTarget)) void commitNote();
+          }}
           onChange={(event) => typeNote(event.target.value)}
           ref={noteInput}
           rows={3}

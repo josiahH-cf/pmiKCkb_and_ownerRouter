@@ -2320,7 +2320,11 @@ label.secondary-button:focus-within {
 }
 
 .renewal-focus-pane {
-  gap: var(--space-3);
+  gap: var(--space-2);
+}
+
+.renewal-focus-pane .text-link {
+  margin-bottom: 0;
 }
 
 .renewal-focus-pane > p,
@@ -2330,6 +2334,26 @@ label.secondary-button:focus-within {
 
 .renewal-focus-state {
   font-weight: 600;
+}
+
+.renewal-focus-task {
+  gap: var(--space-1);
+}
+
+.renewal-focus-task h2,
+.renewal-focus-task p {
+  margin: 0;
+}
+
+.renewal-focus-facts[open] > dl,
+.renewal-focus-ready nav {
+  margin-top: var(--space-2);
+}
+
+.renewal-focus-ready button {
+  white-space: normal;
+  text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .renewal-focus-context {

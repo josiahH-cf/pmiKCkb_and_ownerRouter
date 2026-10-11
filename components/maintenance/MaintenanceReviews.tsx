@@ -89,44 +89,52 @@ export function MaintenanceReviews({
       invalidateReads();
     };
   }, [invalidateReads]);
-  const read = useCallback(async () => {
-    if (lock.current) return;
-    lock.current = true;
-    setBusy(true);
-    const gen = ++generation.current;
-    try {
-      const response = await fetch(
-          `/api/maintenance/tickets/${encodeURIComponent(ticket.id)}/review-context`,
-          { cache: "no-store" },
-        ),
-        data = await response.json();
-      if (!response.ok)
-        throw new UserActionError(data.error ?? "Current review context is unavailable.");
-      if (!live.current || gen !== generation.current) return;
-      if (data.ticket?.id !== ticket.id || !data.emergency || !data.chargeback)
-        throw Error("The review context could not be matched to this case.");
-      setContext(data);
-      setError("");
-      setStatus("Current policy and review context read. Your entered facts are kept.");
-    } catch (e) {
-      if (live.current && gen === generation.current) {
-        setContext(null);
-        setError(
-          actionFailureMessage(
-            e,
-            "Current policy could not be read. Your entered facts are kept.",
+  const read = useCallback(
+    async (announce = true) => {
+      if (lock.current) return;
+      lock.current = true;
+      setBusy(true);
+      const gen = ++generation.current;
+      try {
+        const response = await fetch(
+            `/api/maintenance/tickets/${encodeURIComponent(ticket.id)}/review-context`,
+            { cache: "no-store" },
           ),
-        );
+          data = await response.json();
+        if (!response.ok)
+          throw new UserActionError(
+            data.error ?? "Current review context is unavailable.",
+          );
+        if (!live.current || gen !== generation.current) return;
+        if (data.ticket?.id !== ticket.id || !data.emergency || !data.chargeback)
+          throw Error("The review context could not be matched to this case.");
+        setContext(data);
+        setError("");
+        if (announce)
+          setStatus(
+            "Current policy and review context read. Your entered facts are kept.",
+          );
+      } catch (e) {
+        if (live.current && gen === generation.current) {
+          setContext(null);
+          setError(
+            actionFailureMessage(
+              e,
+              "Current policy could not be read. Your entered facts are kept.",
+            ),
+          );
+        }
+      } finally {
+        lock.current = false;
+        if (live.current) setBusy(false);
       }
-    } finally {
-      lock.current = false;
-      if (live.current) setBusy(false);
-    }
-  }, [ticket.id]);
+    },
+    [ticket.id],
+  );
   useEffect(() => {
     if (open)
       void Promise.resolve().then(() => {
-        if (live.current) void read();
+        if (live.current) void read(false);
       });
   }, [open, read, ticket.record_version]);
   useEffect(() => {

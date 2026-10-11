@@ -360,6 +360,16 @@ let programmaticFocusMove = false;
 export function isProgrammaticFocusMove(): boolean {
   return programmaticFocusMove;
 }
+/** Presentation controls keep typed work local; leaving for another form control still autosaves. */
+export function isRenewalPresentationMove(target: EventTarget | null): boolean {
+  return (
+    programmaticFocusMove ||
+    (target instanceof Element &&
+      target.closest(
+        "[data-renewal-presentation-control], [data-renewal-view-switch]",
+      ) !== null)
+  );
+}
 /** Move focus as the page itself, never as the person leaving a field. */
 export function focusProgrammatically(target: HTMLElement) {
   programmaticFocusMove = true;

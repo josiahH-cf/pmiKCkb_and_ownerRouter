@@ -1,8 +1,22 @@
 # PMI KC current status
 
-Last updated: 2026-10-10 (UTC).
+Last updated: 2026-10-11 (UTC).
 
 ## Current authorized program
+
+The requested Focus/maintenance follow-up is locally verified with uncommitted, undeployed repairs
+in the isolated focus-maintenance-verification worktree (base bd1b3962). Owner outreach now has
+compact task/state/action wording and a separate initially collapsed secondary-task list; entered
+work survives presentation changes. Existing RentVine status/detail/assignment/timing readback is
+exposed, and automatic review refresh preserves the successful save acknowledgement. Fresh local
+UI/preservation, 29 backend and 31 compiled checks passed; 390px observations are not physical-phone
+or human acceptance. Production remains the October 10 780f48db revision with 100% traffic. The
+weekly draft is unchanged/unsent; no provider activation, chat read, release or production canary ran.
+Local canary resources were cleaned up. [Evidence and remaining integration gaps](evidence/focus-maintenance-followup-2026-10-11.md).
+The subsequent owner instruction authorizes full checks, commit/push and gated deployment of these
+repairs. Unrelated pending-feature execution remains outside this follow-up. Complete
+Vendoroo ingestion/chronology/takeover remains required and unverified; existing app-owned history
+and reporting do not establish provider synchronization.
 
 The owner-authorized program covers S183–S226 / intake 055–098, all 44 suites/238 requirements.
 The independent implementation and cumulative repairs are merged and serving at 780f48db in

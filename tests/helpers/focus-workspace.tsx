@@ -261,6 +261,15 @@ export function focusPane() {
   return pane;
 }
 
+/** Open the secondary choices deliberately; their initial collapsed state is checked separately. */
+export async function openOtherReadyTasks(user: {
+  click: (element: Element) => Promise<unknown>;
+}) {
+  const toggle = within(focusPane()).getByRole("button", { name: /Also ready for you/ });
+  if (toggle.getAttribute("aria-expanded") !== "true") await user.click(toggle);
+  return within(focusPane()).getByRole("navigation", { name: "Other ready tasks" });
+}
+
 /** The lease-level view switch button; S152 marks the selected view with aria-pressed. */
 export function viewButton(name: "Focus view" | "Full view") {
   return within(screen.getByRole("group", { name: "Lease view" })).getByRole("button", {

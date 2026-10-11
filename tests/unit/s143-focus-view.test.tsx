@@ -15,6 +15,7 @@ import { focusRenewalDashboardControl } from "@/components/lease-renewal/Renewal
 import { AFTER_ACCEPTANCE, manualFixture } from "@/tests/helpers/renewal-action-fixtures";
 import {
   focusPane,
+  openOtherReadyTasks,
   renderWorkspace,
   settle,
   stubRenewalRoutes,
@@ -158,6 +159,9 @@ describe("S143 Focus view switch", { timeout: 60_000 }, () => {
     const form = document.getElementById("renewal-manual-owner_outreach")!;
     const source = within(form).getByLabelText(/Source or channel/);
     await user.type(source, "Owner phone call on Monday");
+    // A normal field exit still saves; presentation changes alone do not.
+    await user.click(within(form).getByLabelText(/Comment/));
+    await settle();
     await user.click(viewButton("Full view"));
     await settle();
     const writesAfterBlur = routes.writes();
@@ -238,9 +242,9 @@ describe("S143 Focus view switch", { timeout: 60_000 }, () => {
     await renderWorkspace({ manual: manualFixture() });
     // The suggestion is owner outreach; the tenant offer is offered as another ready task.
     await user.click(
-      within(
-        within(focusPane()).getByRole("navigation", { name: "Other ready tasks" }),
-      ).getByRole("button", { name: "Tenant offer delivered" }),
+      within(await openOtherReadyTasks(user)).getByRole("button", {
+        name: "Tenant offer delivered",
+      }),
     );
     await settle();
     expect(
@@ -269,7 +273,7 @@ describe("S143 Focus view switch", { timeout: 60_000 }, () => {
     expect(
       within(pane).getByRole("heading", { name: "Information form sent" }),
     ).toBeVisible();
-    const others = within(pane).getByRole("navigation", { name: "Other ready tasks" });
+    const others = await openOtherReadyTasks(user);
     const offered = within(others)
       .getAllByRole("button")
       .map((button) => button.textContent);
@@ -316,9 +320,9 @@ describe("S143 Focus view switch", { timeout: 60_000 }, () => {
     stubRenewalRoutes(fresh);
     await renderWorkspace({ manual: fresh });
     await user.click(
-      within(
-        within(focusPane()).getByRole("navigation", { name: "Other ready tasks" }),
-      ).getByRole("button", { name: "Record tenant response" }),
+      within(await openOtherReadyTasks(user)).getByRole("button", {
+        name: "Record tenant response",
+      }),
     );
     await settle();
     const chosen = focusPane();

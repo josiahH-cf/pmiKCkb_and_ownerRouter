@@ -20,6 +20,7 @@ import {
 } from "@/lib/lease-renewal/workspace-state";
 import {
   focusPane,
+  openOtherReadyTasks,
   settle,
   stubRenewalRoutes,
   workspaceElement,
@@ -249,6 +250,7 @@ describe("S145 Focus journeys", { timeout: 300_000 }, () => {
     // keeps the tenant answer open (and chosen) rather than finished.
     expect(manualRenewalSummary(routes.state()).nextActivity).toBe("owner_response");
     expect(heading()).toHaveTextContent("Record tenant response");
+    await openOtherReadyTasks(user);
     expect(
       within(focusPane()).getByRole("navigation", { name: "Other ready tasks" }),
     ).toHaveTextContent("Record owner response");
@@ -259,6 +261,7 @@ describe("S145 Focus journeys", { timeout: 300_000 }, () => {
       ),
     ).toBeVisible();
     // S156: the tenant answer is not held behind the reopened response.
+    await openOtherReadyTasks(user);
     expect(
       within(focusPane()).getByRole("navigation", { name: "Other ready tasks" }),
     ).toHaveTextContent("Record tenant response");
@@ -330,6 +333,7 @@ describe("S145 Focus journeys", { timeout: 300_000 }, () => {
     render(workspaceElement({ manual: start }));
     await settle();
     expect(heading()).toHaveTextContent("Owner outreach");
+    await openOtherReadyTasks(user);
     const ready = within(focusPane()).getByRole("navigation", {
       name: "Other ready tasks",
     });

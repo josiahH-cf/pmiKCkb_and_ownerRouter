@@ -27,7 +27,10 @@ import {
   policyMessageGates,
   projectPolicyApplicability,
 } from "@/lib/lease-renewal/policy-content";
-import { focusRenewalDashboardControl } from "@/components/lease-renewal/RenewalDashboardNavigation";
+import {
+  focusRenewalDashboardControl,
+  isRenewalPresentationMove,
+} from "@/components/lease-renewal/RenewalDashboardNavigation";
 import {
   composeRenewalMessage,
   MESSAGE_CHARGES,
@@ -929,7 +932,8 @@ function MessagePreparationEditor({
                   );
                   touch();
                 }}
-                onBlur={() => {
+                onBlur={(event) => {
+                  if (isRenewalPresentationMove(event.relatedTarget)) return;
                   if (subjectText !== null && !subjectText.trim()) setSubjectText(null);
                   commit();
                 }}
@@ -1049,7 +1053,8 @@ function MessagePreparationEditor({
                           },
                     )
                   }
-                  onBlur={() => {
+                  onBlur={(event) => {
+                    if (isRenewalPresentationMove(event.relatedTarget)) return;
                     if (override && !override.text.trim()) overrideChange(null);
                     commit();
                   }}
@@ -1154,7 +1159,9 @@ function MessagePreparationEditor({
             id={MESSAGE_CONTROL_IDS.inputs(channel)}
             disabled={!canEdit}
             className="ui-stack"
-            onBlur={commit}
+            onBlur={(event) => {
+              if (!isRenewalPresentationMove(event.relatedTarget)) commit();
+            }}
             onChange={(event) => {
               // A choice saves when it is made; typed text saves when its field is left.
               const target = event.target as unknown;

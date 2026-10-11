@@ -1,4 +1,5 @@
 "use client";
+import { isRenewalPresentationMove } from "./RenewalDashboardNavigation";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 // S157/S156/S155: the lease-bound working record on the lease page. Each working field saves on
@@ -291,7 +292,9 @@ export function WorkingMoneyField({ field, label, hint, source }: WorkingFieldPr
           disabled={!context.canEdit}
           id={`${id}-input`}
           inputMode="decimal"
-          onBlur={() => void commit()}
+          onBlur={(event) => {
+            if (!isRenewalPresentationMove(event.relatedTarget)) void commit();
+          }}
           onChange={(event) => {
             setText(event.target.value);
             setDirty(true);
@@ -400,7 +403,9 @@ export function WorkingDateField({ field, label, hint }: WorkingFieldProps) {
         <input
           disabled={!context.canEdit}
           id={`${id}-input`}
-          onBlur={() => void commit(text)}
+          onBlur={(event) => {
+            if (!isRenewalPresentationMove(event.relatedTarget)) void commit(text);
+          }}
           onChange={(event) => {
             setText(event.target.value);
             setDirty(true);

@@ -5,7 +5,10 @@ import {
   RentVineWorkOrderReader,
   RentVineWorkOrderWriter,
 } from "@/lib/integrations/rentvine/work-order-client";
-import { WorkOrderContractError } from "@/lib/integrations/rentvine/work-order-contract";
+import {
+  WorkOrderContractError,
+  decodeWorkOrderDetailResponse,
+} from "@/lib/integrations/rentvine/work-order-contract";
 
 const CONFIG = {
   baseUrl: "https://pmikcmetro.rentvine.com/api/manager",
@@ -61,6 +64,52 @@ function listRow(id: string) {
 }
 
 describe("S99 work-order reader", () => {
+  it("retains supplemental GET context without changing the write projection or inventing missing history", async () => {
+    const body = {
+      workOrder: {
+        ...rawWorkOrder("5150"),
+        dateTimeCreated: "2026-10-01 09:00:00",
+        dateTimeModified: "2026-10-11 08:00:00",
+        closingDescription: "Synthetic provider closeout note",
+        vendorClosingComments: "",
+        diagnosticSummary: null,
+        agentSummary: { unexpected: true },
+      },
+      schedulingStatusID: null,
+    };
+    const { sent, transport } = transportOf(() => ({ status: 200, body }));
+    const result = await new RentVineWorkOrderReader(CONFIG, transport).getWorkOrder(
+      5150,
+    );
+    expect(result.readContext).toMatchObject({
+      createdAt: { availability: "supplied", value: "2026-10-01 09:00:00" },
+      modifiedAt: { availability: "supplied", value: "2026-10-11 08:00:00" },
+      closingDescription: {
+        availability: "supplied",
+        value: "Synthetic provider closeout note",
+      },
+      vendorClosingComments: { availability: "blank", value: "" },
+      diagnosticSummary: { availability: "not_supplied", value: null },
+      agentSummary: { availability: "unrecognized", value: null },
+      closedAt: { availability: "not_supplied", value: null },
+    });
+    expect(decodeWorkOrderDetailResponse(body)).toEqual({
+      workOrder: result.workOrder,
+      schedulingStatusId: null,
+    });
+    expect(sent.map((request) => request.method)).toEqual(["GET"]);
+  });
+
+  it("refuses a work-order detail whose identity differs from the requested path id", async () => {
+    const { transport } = transportOf(() => ({
+      status: 200,
+      body: { workOrder: rawWorkOrder("5151"), schedulingStatusID: null },
+    }));
+    await expect(
+      new RentVineWorkOrderReader(CONFIG, transport).getWorkOrder(5150),
+    ).rejects.toThrow(/identity/);
+  });
+
   it("sends exact typed list queries with explicit page and the documented pageSize", async () => {
     const { sent, transport } = transportOf(() => ({ status: 200, body: [] }));
     const reader = new RentVineWorkOrderReader(CONFIG, transport);

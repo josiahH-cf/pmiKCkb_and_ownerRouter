@@ -1,0 +1,87 @@
+{
+  "observedAt": "2026-10-11T11:02:48.9777822Z",
+  "baseCommit": "bd1b3962623c9f7259d4cffe9d3db90f87bf9b12",
+  "servingCommit": "780f48db1d7d6a7cc855035d934621f77a28a257",
+  "servingRevision": "pmi-kc-app-rmv2ixuq7-b0c62b52cd5d",
+  "localChangesCommitted": false,
+  "deployed": false,
+  "bundleHash": "sha256:7effc9eb5385cca545ad70e799c84b5bb09a612602124d64302030459194e1a4",
+  "files": [
+    {
+      "path": "app/globals.css",
+      "sha256": "2ab5209876f27e62e56741c68a2a5866b3f70259b22576eb4063572db14c248c"
+    },
+    {
+      "path": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+      "sha256": "0da4db25e99ac758b57566468d0e75dd7c796795a25c984a63f1134f2234aed3"
+    },
+    {
+      "path": "components/lease-renewal/RenewalFocusViewPane.tsx",
+      "sha256": "84efc0413e8728b3025d24c28efc307e69041e0b0b0d2ce85af4f78b056c467d"
+    },
+    {
+      "path": "components/lease-renewal/RenewalManualWorkspace.tsx",
+      "sha256": "2d8be322ce97a8c93d31764f9f0eeb5236db51336c0b8c2d04c2e6e6637a31fd"
+    },
+    {
+      "path": "components/lease-renewal/RenewalMessagePreparation.tsx",
+      "sha256": "97ecc2f1d9d448224dc09a85a91ea3549fa647aabdff2583d0119378c7b1b461"
+    },
+    {
+      "path": "components/lease-renewal/RenewalWorkingRecord.tsx",
+      "sha256": "07d5e53bb69b6973cd1caa899945b582eefa4810cd3f99183d9b94a5d6e3eebc"
+    },
+    {
+      "path": "components/lease-renewal/RenewalWorkStatusControl.tsx",
+      "sha256": "4b3904ecbe906ae7682209132db519773389ef936707bfa616d18404fa73f2bc"
+    },
+    {
+      "path": "components/maintenance/MaintenanceReviews.tsx",
+      "sha256": "81ca145cf9d9c81667229157da1b6d721fbf43e1dacd2969db36cb9c4d5874fa"
+    },
+    {
+      "path": "components/maintenance/OrdinaryRentvineWorkOrderPanel.tsx",
+      "sha256": "5d0c48460bc45042b5e1b3991e88a24231acfebcc6c9e08edc136d7a201ab34c"
+    },
+    {
+      "path": "components/maintenance/RentvineWorkOrderReadback.tsx",
+      "sha256": "911260a4c195f6f9942d62390b96a65317714145ef8aee90c2d7a3bcf833e8bb"
+    },
+    {
+      "path": "lib/integrations/rentvine/work-order-client.ts",
+      "sha256": "c94c65e8245345c9cc7d0cd140ce95d6173731b0d29bd9f05f5096c864b81c42"
+    },
+    {
+      "path": "lib/integrations/rentvine/work-order-contract.ts",
+      "sha256": "3f0c98d2ca5906b3272efd3abc42b1988b248fe61f151bf358110c3c7c405745"
+    },
+    {
+      "path": "tests/helpers/focus-workspace.tsx",
+      "sha256": "ee3f2202c77e575cfb95c98aa1ebf4470ba54960a16b15b44a531c0b9d905d58"
+    },
+    {
+      "path": "tests/unit/focus-owner-outreach-followup.test.tsx",
+      "sha256": "3359a64afccc6ef6da2f9def983480ac076ad639f21e7f3822c364ab073ce331"
+    },
+    {
+      "path": "tests/unit/maintenance-readback-followup.test.tsx",
+      "sha256": "b9389464808e56055621d8fe26bb3ebaaf0ff517043ae8873e5a23f78d56e455"
+    },
+    {
+      "path": "tests/unit/maintenance-review-read-race-followup.test.tsx",
+      "sha256": "efa0beb147f6bd180ddde7e7286f92d8661c5687ebdbf38065c13e36f0389934"
+    },
+    {
+      "path": "tests/unit/s143-focus-view.test.tsx",
+      "sha256": "03fa7ab95cc1efbb006dd427ecab9d2d2ed653fdee12ab4c11f6cea10d2e2b68"
+    },
+    {
+      "path": "tests/unit/s145-focus-verification.test.tsx",
+      "sha256": "098c8e8adc96a98efe75dcc8087f682e3d5d0e7eb4556d807dadebcb867655b7"
+    },
+    {
+      "path": "tests/unit/s99-work-order-client.test.ts",
+      "sha256": "5e3b8555811e9e911e5ba422d9f591d776ffdf3e6d47b32be9a9e2471980e7d2"
+    }
+  ]
+}

@@ -24,6 +24,7 @@ import {
   decodeTradeDetailResponse,
   decodeTradeListResponse,
   decodeWorkOrderDetailResponse,
+  decodeWorkOrderReadResponse,
   decodeWorkOrderListResponse,
   decodeWorkOrderUpdateResponse,
   serializeCreateBody,
@@ -165,10 +166,20 @@ export class RentVineWorkOrderReader {
 
   /** Authoritative single work-order read: the { workOrder, schedulingStatusID } envelope. */
   async getWorkOrder(workOrderId: number): Promise<WorkOrderDetail> {
-    const response = await this.get(
-      `maintenance/work-orders/${canonicalPathId(workOrderId, "workOrderID")}`,
+    const pathId = canonicalPathId(workOrderId, "workOrderID");
+    const response = await this.get(`maintenance/work-orders/${pathId}`);
+    const detail = await decodeOk(
+      response,
+      "work-order detail",
+      decodeWorkOrderReadResponse,
     );
-    return decodeOk(response, "work-order detail", decodeWorkOrderDetailResponse);
+    if (detail.workOrder.workOrderId !== pathId) {
+      throw new RentVineError(
+        "Work-order detail identity does not match the requested id.",
+        response.status,
+      );
+    }
+    return detail;
   }
 
   /** Full account status catalog (identity only; no mutation exists on this client). */

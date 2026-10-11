@@ -26,6 +26,7 @@ import {
 } from "@/lib/lease-renewal/workspace-state";
 import {
   focusPane,
+  openOtherReadyTasks,
   renderWorkspace,
   settle,
   stubRenewalRoutes,
@@ -254,9 +255,7 @@ describe(
       const view = render(workspaceElement({ manual: ACCEPTED }));
       await settle();
       await openFocus(user);
-      const others = within(focusPane()).getByRole("navigation", {
-        name: "Other ready tasks",
-      });
+      const others = await openOtherReadyTasks(user);
       await user.click(
         within(others).getByRole("button", { name: "Pet registration follow-up" }),
       );
@@ -288,9 +287,7 @@ describe(
       expect(heading()).toHaveTextContent("Pet registration follow-up");
       expect(within(focusPane()).getByText("Ready for you.")).toBeVisible();
       expect(within(focusPane()).queryByText(/^Starts after: /)).toBeNull();
-      expect(
-        within(focusPane()).getByRole("navigation", { name: "Other ready tasks" }),
-      ).toHaveTextContent("Record owner response");
+      expect(await openOtherReadyTasks(user)).toHaveTextContent("Record owner response");
       expect(manualRenewalSummary(routes.state()).nextActivity).toBe("owner_response");
       expect(workspaceWrites(routes)).toEqual([]);
     });
@@ -325,9 +322,9 @@ describe(
       expect(within(form).getByLabelText(/Source or channel/)).toHaveValue(
         "Unsaved form note",
       );
-      expect(
-        within(focusPane()).getByRole("navigation", { name: "Other ready tasks" }),
-      ).not.toHaveTextContent("Pet registration follow-up");
+      expect(await openOtherReadyTasks(user)).not.toHaveTextContent(
+        "Pet registration follow-up",
+      );
       expect(workspaceWrites(routes)).toEqual([]);
     });
 
@@ -342,9 +339,7 @@ describe(
       );
       await settle();
       expect(heading()).toHaveTextContent("Owner outreach");
-      const others = within(focusPane()).getByRole("navigation", {
-        name: "Other ready tasks",
-      });
+      const others = await openOtherReadyTasks(user);
       await user.click(
         within(others).getByRole("button", { name: "Tenant offer delivered" }),
       );
@@ -415,7 +410,7 @@ describe(
       ).toBeVisible();
     });
 
-    it("keeps a value typed in Full view through Focus and back; only leaving the control saves it (FV-25)", async () => {
+    it("keeps a value typed in Full view through Focus and back; a normal field exit saves it (FV-25)", async () => {
       const routes = stubRenewalRoutes(manualFixture());
       const user = userEvent.setup();
       await renderWorkspace({ manual: manualFixture() });
@@ -430,13 +425,8 @@ describe(
       await openFocus(user);
       await settle(10);
       expect(offer).not.toBeVisible();
-      // S155: leaving the control saved the note once; the switch itself sent nothing more.
-      const saves = workspaceWrites(routes);
-      expect(saves).toHaveLength(1);
-      expect(saves[0]!.body?.action).toMatchObject({
-        activity: "tenant_offer",
-        source: "Typed in Full view",
-      });
+      // A view switch keeps the edit in place without silently saving it.
+      expect(workspaceWrites(routes)).toEqual([]);
       const requests = routes.calls.length;
       await user.click(screen.getByRole("button", { name: "Full view" }));
       await settle();
@@ -447,6 +437,15 @@ describe(
       await settle();
       expect(field).toHaveValue("Typed in Full view");
       expect(routes.calls.length).toBe(requests);
+      await user.click(field);
+      await user.click(within(offer).getByLabelText(/Comment/));
+      await settle(10);
+      const saves = workspaceWrites(routes);
+      expect(saves).toHaveLength(1);
+      expect(saves[0]!.body?.action).toMatchObject({
+        activity: "tenant_offer",
+        source: "Typed in Full view",
+      });
     });
   },
 );
@@ -488,13 +487,12 @@ describe(
       await renderWorkspace({ manual: accepted });
       await openFocus(user);
       const title = screen.getByRole("heading", { level: 1 });
+      await user.click(within(focusPane()).getByText("Rent and lease context"));
       const cycle = () => within(focusPane()).getByText("Cycle").nextElementSibling!;
       expect(title).toBeVisible();
       expect(cycle()).toHaveTextContent("Lease end 12/31/2026");
       expect(within(focusPane()).getByText("Working renewal terms")).toBeVisible();
-      const others = within(focusPane()).getByRole("navigation", {
-        name: "Other ready tasks",
-      });
+      const others = await openOtherReadyTasks(user);
       await user.click(
         within(others).getByRole("button", { name: "Utility proof follow-up" }),
       );
@@ -526,11 +524,15 @@ describe(
       }
       expect(wraps).toBe(2);
       expect([...reached]).toContain("Market rent comparison");
+      expect(
+        within(focusPane()).queryByRole("navigation", { name: "Other ready tasks" }),
+      ).toBeNull();
+      expect([...reached].some((name) => name.startsWith("Also ready for you"))).toBe(
+        true,
+      );
       expect([...reached]).toContain("Show this task in Full view");
       // Enter on another ready task chooses it and moves focus to its heading.
-      const others = within(focusPane()).getByRole("navigation", {
-        name: "Other ready tasks",
-      });
+      const others = await openOtherReadyTasks(user);
       within(others).getByRole("button", { name: "Market rent comparison" }).focus();
       await user.keyboard("{Enter}");
       await settle();
