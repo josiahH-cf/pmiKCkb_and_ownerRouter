@@ -10,7 +10,7 @@ evidence; an earlier receipt never authorizes a new attempt.
 
 The October 11 owner-requested verification repaired Owner outreach presentation/navigation,
 exposed existing RentVine maintenance readback and optional GET context, and fixed an automatic
-review-refresh acknowledgement race in an isolated worktree at bd1b3962 plus uncommitted changes.
+review-refresh acknowledgement race, committed at8462d2c6 in isolated native authoring.
 Fresh local Focus/maintenance UI, 29 emulator backend tests and 31 compiled workflow checks passed;
 desktop and 390px visual checks are agent observations, not human or physical-phone acceptance.
 The owner subsequently authorized full checks, commit/push and gated deployment of these repairs;

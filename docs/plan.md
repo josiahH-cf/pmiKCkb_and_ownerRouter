@@ -4,8 +4,8 @@ Updated: 2026-10-11 (UTC). Batch 005 is verified deployed by run `8b7dc3f1-4c5b-
 
 ## Active: operations-communications-maintenance-2026-10
 
-The October 11 Focus/maintenance verification is complete with local, uncommitted repairs in the
-attached focus-maintenance-verification worktree at bd1b3962. Focus presentation changes preserve
+The October 11 Focus/maintenance verification is complete with repairs committed at8462d2c6 in
+isolated native authoring. Focus presentation changes preserve
 entered work; the existing RentVine read path exposes detail/status/assignment and supplied optional
 context; automatic review refresh keeps save acknowledgement. Fresh local UI/preservation, 29
 backend and 31 compiled checks passed. Human/physical-phone acceptance is unverified. Preserve the

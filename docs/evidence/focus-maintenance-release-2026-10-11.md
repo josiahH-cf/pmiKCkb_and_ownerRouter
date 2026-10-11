@@ -27,8 +27,8 @@ rent meaning, workflow completion or provider effects was removed. The corrected
 passed all 17 preservation tests. The complete corrected-tree gate then passed 9,518 unit tests
 across 1,016 files, all 455 backend tests across 79 files, required format/lint/type/policy/budget
 checks and the production build. Production dependency audit: zero findings. Core E2E passed 32
-tests with 22 existing configuration skips. The existing lint warning and React test-harness
-warnings retain their actual scope; no errors were suppressed. All 19 initial source-manifest
+tests with 22 existing configuration skips. Lint reported zero errors and 79 warnings; React
+test-harness warnings were retained, and no errors were suppressed. All 19 initial source-manifest
 hashes still match; the two additional preservation files only open the new disclosures.
 
 Previous completed run 5b3dfb90 and its consumed permit, prerequisite receipt and checkout selection
@@ -37,7 +37,7 @@ receipts, claims and failed attempts remain outside Git. Original authoring chec
 
 ## Delivery state
 
-Full local checks are green. Exact main CI, gated candidate/recovery assurance, promotion, full
+Repair commit:8462d2c6. Full local checks are green. Exact main CI, gated candidate/recovery assurance, promotion, full
 observation and independent readbacks are pending. Production remains
 780f48db / pmi-kc-app-rmv2ixuq7-b0c62b52cd5d.
 Human acceptance and physical-phone testing remain NOT RUN.

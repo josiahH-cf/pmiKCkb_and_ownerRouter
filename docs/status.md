@@ -4,8 +4,8 @@ Last updated: 2026-10-11 (UTC).
 
 ## Current authorized program
 
-The requested Focus/maintenance follow-up is locally verified with uncommitted, undeployed repairs
-in the isolated focus-maintenance-verification worktree (base bd1b3962). Owner outreach now has
+The requested Focus/maintenance follow-up is locally verified and committed at8462d2c6;
+the repairs await gated deployment. Owner outreach now has
 compact task/state/action wording and a separate initially collapsed secondary-task list; entered
 work survives presentation changes. Existing RentVine status/detail/assignment/timing readback is
 exposed, and automatic review refresh preserves the successful save acknowledgement. Fresh local

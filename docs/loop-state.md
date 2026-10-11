@@ -4,8 +4,8 @@ Last updated:2026-10-11 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-October 11 verification follow-up is complete locally in the attached
-focus-maintenance-verification worktree, base bd1b3962 plus uncommitted source/test changes.
+October 11 verification follow-up repairs are committed at8462d2c6 in native authoring;
+the attached focus-maintenance-verification worktree retains the matching local files.
 The owner subsequently directed full checks, mainline commit/push and deployment through the
 existing release gates. Native authoring: /home/josiah/pmi-kc-work/focus-maintenance-followup-20261011.
 Full local gate passed 9518 unit/455 backend, all required policies/build and audit 0; core E2E
@@ -66,8 +66,10 @@ drafts, receipts, failed attempts, legal holds, definitions/runs and external pr
 
 ## Awaiting release
 
-None admitted. The independent implementation queued at64eec96f is verified delivered in run 5b3dfb90.
-The owner-authorized October 11 follow-up awaits full checks and commit-bound queue entries.
+1. S197: Simplify Owner outreach, collapse secondary tasks/context and preserve entries across task/view changes; `8462d2c6`.
+2. S209: Expose existing RentVine maintenance readback/context and preserve review-save acknowledgement; `8462d2c6`.
+
+Full checks passed; exact main CI and fresh locked release admission remain required.
 The overall 44/238 program remains ACTIVE; missing contracts are not an omitted queue slice.
 
 ## Remaining material dependencies
