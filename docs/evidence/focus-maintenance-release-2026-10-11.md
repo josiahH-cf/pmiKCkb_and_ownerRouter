@@ -96,7 +96,8 @@ checks passed 9,519 unit tests/1,017 files and all 455 backend tests/79 files, a
 format/lint/type/policy/budget gates and the production build. Core E2E again passed 32 tests with
 22 existing configuration skips. The new regression's fixture was then changed to unknown rent,
 and 39 focused checks/seven files passed again; no customer value is part of that regression.
-Runtime code is unchanged from the full gate. Exact-main CI, a new admitted release and rendered
+Runtime code is unchanged from the full gate. Repair commit e9cd59f1 is the sole S197 queue item.
+Exact-main CI, a new admitted release and rendered
 navigation readback remain required.
 
 Human acceptance and physical-phone testing remain NOT RUN. Complete Vendoroo event ingestion,

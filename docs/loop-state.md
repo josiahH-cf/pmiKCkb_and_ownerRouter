@@ -23,7 +23,7 @@ critical warnings and actual secondary rent controls. It also found the pre-exis
 Correct the current rent anchor caused by a server importing a value from a use-client module.
 A shared-target repair passed its fail-first boundary regression and 17 affected checks/four files.
 Full corrected-tree checks passed 9519 unit/455 backend, all gates/build/audit 0; core 32/22 skips.
-NEXT: commit/push, pin only this S197 follow-up, exact-main CI and
+The anchor repair is committed at e9cd59f1. NEXT: exact-main CI and
 new frozen pair/admission/release, then fresh actual rendered anchor and desktop/390px readbacks.
 Do not alter completed/admitted frozen checkouts or reuse the consumed permit. Technical first-run
 passes do not close this observed navigation failure. Release evidence:
@@ -49,8 +49,10 @@ follow-up. Complete Vendoroo integration remains required; staff history is not 
 
 ## Awaiting release
 
-No committed slice since the completed first follow-up release. The uncommitted current-rent
-anchor repair passed full checks and awaits an exact committed S197 queue entry before admission.
+1. S197: Repair the observed current-rent navigation across the server/client boundary; `e9cd59f1`.
+
+Full corrected-tree checks and core E2E passed. Exact-main CI, fresh prerequisites and locked
+admission remain required; S209 is already delivered and remains carried in this candidate.
 
 ## Remaining material dependencies
 
