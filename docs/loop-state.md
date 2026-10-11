@@ -41,7 +41,7 @@ ordinary message preparation was suggested while the source warning says it is u
 Default move-out guidance was correct. A typed-disposition copy repair preserves outside-contact
 recording and the warning; fail-first reproduced the conflict. Corrected-source full gate passed
 9523 unit/455 backend, required checks/build/audit zero; core 32/22 existing skips. NEXT:
-commit/push, exact S197 queue pin/CI, new frozen pair/admission/release and actual move-out
+exact-main CI, new frozen pair/admission/release and actual move-out
 instruction readback. Earlier scoped technical passes do not accept the conflicting instruction.
 
 The entire October program S183–S226/intake 055–098 remains unfinished: 44 suites/238 requirements,
@@ -50,9 +50,11 @@ investigations and S226 closure. No unrelated acquisition/native-phone implement
 
 ## Awaiting release
 
-No committed slice after f41b6e51. The uncommitted Owner outreach move-out instruction repair
-passed full local/core checks and awaits an exact S197 commit pin. Completed f0f1747f state/permit/selector/prerequisites
-were copied under the release lock with matching hashes; never reuse its consumed permit.
+1. S197: move-out-aware Owner outreach instruction repair `4da1c0cc2686364ae18ff82c5cb5d722cfecd0f3`, carrying the already delivered Focus/maintenance and rent-anchor repairs. Owner authorized full checks, commit/push and existing gated delivery. Corrected-source full local gate 9523 unit/455 backend/all required checks/build/audit zero; core E2E 32 passed/22 existing skips. Exact-main CI, fresh admission and actual rendered move-out instruction readback remain required.
+
+Completed f0f1747f state/permit/selector/prerequisites were copied under the release lock with
+matching hashes; never reuse its consumed permit. Register a fresh clean pair with the reviewed
+configuration and retain all prior failed/completed receipts.
 
 ## Remaining material dependencies
 
