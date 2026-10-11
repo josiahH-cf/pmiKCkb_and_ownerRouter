@@ -6,7 +6,7 @@ import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeadi
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import type { RenewalDiscrepancyDisposition } from "@/lib/firestore/renewal-discrepancy-dispositions";
 import { RenewalFutureRent } from "./RenewalFutureRent";
-import { WORKING_CURRENT_RENT_TARGET } from "./RenewalCurrentRent";
+import { WORKING_CURRENT_RENT_TARGET } from "@/lib/lease-renewal/workspace-targets";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";

@@ -1,6 +1,6 @@
 # Environment and release handoff
 
-Updated 2026-10-10 (UTC).
+Updated 2026-10-11 (UTC).
 
 The named October operations instruction and AGENTS.md continuity carry the authorized scope
 through necessary Cloud Build/Cloud Run actions, diagnosed/verified repairs, resumes/replacements,
@@ -8,36 +8,35 @@ promotion, receipt-bound recovery and documentation closure. Attempt counts and 
 do not require another consent. Technical gates, real inputs and exact effect boundaries remain.
 Failed attempts and consumed permits retain immutable outcomes.
 
-Run `5b3dfb90-2624-406a-9791-5f8581befcf5` delivered the independent operations implementation at
-`780f48db1d7d6a7cc855035d934621f77a28a257` / `pmi-kc-app-rmv2ixuq7-b0c62b52cd5d`,100% traffic.
-Exact [CI 38061050765](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38061050765)
-passed all five jobs:9,505 unit tests/four existing configuration skips and 455 backend tests.
-Complete local canonical:9,509 unit tests/1,013 files,455 backend tests/79 files, all required
-format/lint/type/policy/budget checks, production audit 0 and production build. Core E2E 32 passed
-with 22 existing configuration skips in its recorded scope. One build
-`333e5e32-d65d-451a-bd8e-fe06bce48b0f` succeeded 2026-10-10T15:14:59.641111Z.
-Candidate receipt `6dd720ec-0337-4d6b-b38f-b44173b0df8c` issued 15:21:27.007Z; receipt-bound promotion
-verified 15:21:52.305Z. Managed candidate GET readiness passed/restored PAUSED. Observation passed two
-checkpoints in 400,540ms within 300,000–480,000ms. All 318 source/projected/rendered records matched,
-zero discrepancies/5xx/unresolved effects. Eleven independent sections matched 15:30:08Z. Five
-guarded 390px mobile routes passed 15:33:10.849Z, zero errors/overflow/mutation attempts; normal managed
-Gmail connection ready. Automated checks do not establish human acceptance or a physical-phone test.
-Production/Live, managed runtime identity, eleven Spaces, Demo=false, Sheet=true, five secret bindings
-and RentCast allowance 50 remain verified. Registry source/mirror:48 keys / 18 open/30 closed; only
-two reviewed notice send keys activated with backup/CAS/readback. Minute worker ENABLED and normal
-empty tick passed with zero sequences/occurrences/sends; annual GET probe PAUSED.
-Tag `cand-rmv2ixuq7-b0c62b52cd5d`; fingerprint
-`sha256:878fdc039aad6150caee0eb5fc7bcf5352ebf8bc07b0adb69f50bcbc13665b92`.
-Captured predecessor:`337ac163c5709381e8db8d2c18810bec357d8a96` / `pmi-kc-app-rmuz9g28p-0a2909d490e1`,
-Sheet=true. Recovery:`pmi-kc-app-recovery-5b3dfb902624406a`, receipt
-`f2603722-261c-4748-96c8-ab2bc276e7f2`, reference
-`sha256:54a55011c26a44a4d0c39e5121ecb2c90f4db7aa6d6f9b1abfb52ef8ce4f0e37`, preserving its actual
-image/configuration. No traffic rollback or customer effect was test proof. Failed 6cb8d512 and D33
-attempts retain immutable evidence and consumed claims/probes.
-Independent implementation queue delivered/empty; exact permit consumed. Full 44/238 program remains
-open: 203 requirements verified, 35 suites delivered. Five PENDING contracts, three incomplete
-investigations and S226 integrated closure remain required. Both Dotloop write keys closed; S182
-API-origin exclusions retained. Editor browser:not_run under approved Admin-only policy.
+Run `e4ea4d39-d9f7-4a0d-804d-21f4111cd3d3` released the Focus/maintenance follow-up at
+`623152fb1718007d085dbfeb99fc22627ef5b3bf` / `pmi-kc-app-rmv3tf7u6-16d1e4a13e04`, 100% traffic.
+Exact [CI 38138750552](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38138750552)
+passed all five jobs: 9,514 unit/four existing configuration skips and 455 backend. Complete local
+gate: 9,518 unit/1,016 files, 455 backend/79 files, required checks/build and production audit 0;
+core E2E 32 passed/22 existing skips. Lint passed with 79 warnings. One application build
+`b28f842d-834a-4c3c-8584-69eee50aac3b` succeeded 2026-10-11T12:53:56.914633Z. Candidate receipt
+`62fb69d0-3fa0-44ff-b0b0-dbfb65a39f25` issued 12:59:40.471Z; promotion verified 13:00:03.385Z.
+Managed GET readiness passed/restored PAUSED. Observation passed two checkpoints in 427,976ms
+within 300,000–480,000ms: all 318 source/projected/rendered records matched, zero discrepancies/
+5xx/unresolved effects. Eleven independent sections matched 13:08:51Z. Permit consumed.
+Production/Live, managed runtime identity, eleven Spaces, Demo=false, Sheet=true, five existing
+secret bindings and RentCast allowance 50 remain verified. All 54 runtime environment keys matched
+the predecessor except APP_COMMIT_SHA; existing worker settings and key boundaries were preserved.
+Tag `cand-rmv3tf7u6-16d1e4a13e04`; fingerprint
+`sha256:26514be5d859fc67422645320cd445f9b0eb0543500c35f41ddc6086de7b46c3`.
+Captured predecessor: `780f48db1d7d6a7cc855035d934621f77a28a257` / `pmi-kc-app-rmv2ixuq7-b0c62b52cd5d`,
+Sheet=true. Recovery: `pmi-kc-app-recovery-e4ea4d39d9f74a0d`, receipt
+`24c94459-0064-4ad6-9b27-35c8b599864f`, reference
+`sha256:2c82a497ba45ede35e908822e2b3092fa48086dbded1f9bb42e55cb0ae3ed096`, preserving the actual
+predecessor image/configuration. No traffic rollback or business mutation was test proof.
+Failed run 4d6494fc stopped before any recovery intent/build; its original sub-check cause is
+unverified. All 617 state files were preserved before a fresh pair reused reviewed configuration.
+Subsequent rendered inspection found a pre-existing current-rent correction anchor broken across
+the server/client boundary. A narrow repair passed its fail-first regression and affected checks;
+full checks and another gated release remain required. Evidence: docs/evidence/focus-maintenance-release-2026-10-11.md.
+The full 44/238 program remains unfinished (203 requirements verified, 35 suites delivered).
+Vendoroo/acquisition/native-phone/Dotloop inputs stay open; no provider key was activated and the
+weekly update remains unsent. Editor browser: not_run under approved Admin-only policy.
 Human verdicts: **NOT RUN — no human observer**.
 
 ## Verified corrective review
@@ -52,8 +51,8 @@ Five confirmed adversarial findings are repaired and verified deployed: lifecycl
 | Region                    | `us-central1`                                                                      |
 | Cloud Run service         | `pmi-kc-app`                                                                       |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`                                       |
-| Serving revision          | `pmi-kc-app-rmv2ixuq7-b0c62b52cd5d`                                                |
-| Serving commit            | `780f48db1d7d6a7cc855035d934621f77a28a257`                                         |
+| Serving revision          | `pmi-kc-app-rmv3tf7u6-16d1e4a13e04`                                                |
+| Serving commit            | `623152fb1718007d085dbfeb99fc22627ef5b3bf`                                         |
 | Traffic                   | 100%                                                                               |
 | Descriptor                | Production + Live                                                                  |
 | Runtime identity          | project-managed PMI KC runtime service account                                     |
@@ -412,18 +411,17 @@ activations; generic send, resident draft and Dotloop write keys remain closed.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmuz9g28p-0a2909d490e1` from commit
-`337ac163c5709381e8db8d2c18810bec357d8a96`, Sheet=true. Run-bound recovery target
-`pmi-kc-app-recovery-5b3dfb902624406a` has fingerprint
-`sha256:a52280044bfad3bbf657d03836fedb5c275ec581f6f346bba419d3e341f36960` and Sheet=true.
-Receipt `f2603722-261c-4748-96c8-ab2bc276e7f2` issued 2026-10-10T15:08:37.313Z; reference
-`sha256:54a55011c26a44a4d0c39e5121ecb2c90f4db7aa6d6f9b1abfb52ef8ce4f0e37` binds original
-image/configuration, actual predecessor switch, target identity and preparation assurance to
-run 5b3dfb90. Its bootstrap separately preserved the actual prior candidate tag binding to
-pmi-kc-app-rmv2gmgev-de84ffa8b3a8 while cloning only canonical 337 configuration. A receipt never
-transfers to another run. Forward restoration and rollback require fresh actual state and exact receipt-bound
-reconciliation; source changes do not grant blind rollback or redispatch. This run had no traffic
-rollback. Earlier false-switch recovery targets are historical, not current targets.
+Captured predecessor: `pmi-kc-app-rmv2ixuq7-b0c62b52cd5d` from commit
+`780f48db1d7d6a7cc855035d934621f77a28a257`, Sheet=true. Run-bound recovery target
+`pmi-kc-app-recovery-e4ea4d39d9f74a0d` has fingerprint
+`sha256:878fdc039aad6150caee0eb5fc7bcf5352ebf8bc07b0adb69f50bcbc13665b92` and Sheet=true.
+Receipt `24c94459-0064-4ad6-9b27-35c8b599864f` issued 2026-10-11T12:48:58.040Z; reference
+`sha256:2c82a497ba45ede35e908822e2b3092fa48086dbded1f9bb42e55cb0ae3ed096` binds original image/
+configuration, actual predecessor switch, target identity and preparation assurance to run e4ea4d39.
+Its bootstrap separately captured the actual prior tag binding to the canonical 780f48db revision.
+A receipt never transfers to another run. Forward restoration and rollback require fresh actual
+state and exact receipt-bound reconciliation; source changes do not grant blind redispatch.
+No traffic rollback occurred. Earlier recovery targets retain historical meaning.
 
 Historical recovery coordinates remain provenance only. The prior S113 release captured
 `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` / `d243911cb20ffb01773072c0e27c723648eeea34`;

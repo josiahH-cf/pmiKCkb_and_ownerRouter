@@ -1,76 +1,56 @@
 # Loop state
 
-Last updated:2026-10-11 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-10-11 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-October 11 verification follow-up repairs are committed at8462d2c6 in native authoring;
-the attached focus-maintenance-verification worktree retains the matching local files.
-The owner subsequently directed full checks, mainline commit/push and deployment through the
-existing release gates. Native authoring: /home/josiah/pmi-kc-work/focus-maintenance-followup-20261011.
-Full local gate passed 9518 unit/455 backend, all required policies/build and audit 0; core E2E
-32 passed/22 existing skips. First full gate's three outdated disclosure assumptions were repaired;
-failed evidence is retained. Release evidence: docs/evidence/focus-maintenance-release-2026-10-11.md.
-Owner outreach/readback/refresh-acknowledgement repairs passed fresh local preservation, 29 backend
-and 31 compiled checks. Agent desktop/390px checks passed; human/physical phone NOT RUN.
-Production remains 780f48db / pmi-kc-app-rmv2ixuq7-b0c62b52cd5d,100% traffic. Original weekly draft
-unchanged/unsent at 10:54:46.218Z. No deployment, provider activation, production test record,
-external message or consequential chat read. Disposable local resources cleaned up; preserve the
-managed worktree's repairs and private failed/passed evidence. Release authorization covers these
-repairs; unrelated acquisition/native-phone implementation remains outside this follow-up. Exact source binding,
-gap trace and unresolved Dan/Jon discussion: docs/evidence/focus-maintenance-followup-2026-10-11.md.
-Complete Vendoroo integration remains required: missing account/source contracts differ from absent
-runtime event ingestion and takeover controls; do not substitute staff history for provider evidence.
+The owner directed full checks, mainline commit/push and gated deployment of Focus/maintenance
+repairs; the weekly update must remain unsent and Vendoroo gaps open. Native authoring:
+/home/josiah/pmi-kc-work/focus-maintenance-followup-20261011. Preserve original unrelated work.
 
-ACTIVE:owner-authorized `operations-communications-maintenance-2026-10`, S183–S226,
-intake 055–098, all 44 suites/238 requirements. Authoring39 READY/five PENDING is distinct from
-implementation. Native `docs/evidence/operations-communications-maintenance-2026-10.json` records
-203 mapped requirements verified and 35 independent suites verified delivered. Full program is
-unfinished; keep all five pending outcomes, three incomplete investigations and S226 closure.
+Initial repairs 8462d2c6 released at exact main 623152fb1718007d085dbfeb99fc22627ef5b3bf /
+pmi-kc-app-rmv3tf7u6-16d1e4a13e04, 100% traffic, run e4ea4d39-d9f7-4a0d-804d-21f4111cd3d3 COMPLETE;
+permit CONSUMED. Full local 9518 unit/455 backend, required checks/build/audit 0; core E2E 32/22
+existing skips. Exact CI 38138750552 all five jobs passed (9514 unit/four existing skips/455 backend).
+One build b28f842d-834a-4c3c-8584-69eee50aac3b succeeded. Candidate receipt
+62fb69d0-3fa0-44ff-b0b0-dbfb65a39f25; promotion 13:00:03.385Z. GET readiness passed/restored PAUSED.
+Observation passed two checkpoints 427976ms, all 318 source/projected/rendered records matched,
+zero discrepancies/5xx/unresolved effects. Eleven independent sections matched 13:08:51Z.
+Fingerprint sha256:26514be5d859fc67422645320cd445f9b0eb0543500c35f41ddc6086de7b46c3.
 
-Serving source main:`780f48db1d7d6a7cc855035d934621f77a28a257`, exact CI 38061050765 all five jobs
-passed (9505 unit/four existing configuration skips,455 backend). Complete local canonical 9509/
-455, required policies/build/audit 0 passed. Core E2E 32/22 existing skips; compiled maintenance 31,
-Communications 15, search 11, history 15 and settings 3 retain their exact scopes. Later documentation/
-test closure changes no served source and requires green focused checks/exact-main CI.
+Internal-browser inspection confirmed compact Owner outreach, initially hidden nineteen-task list,
+critical warnings and actual secondary rent controls. It also found the pre-existing malformed
+Correct the current rent anchor caused by a server importing a value from a use-client module.
+A shared-target repair passed its fail-first boundary regression and 17 affected checks/four files.
+Full corrected-tree checks passed 9519 unit/455 backend, all gates/build/audit 0; core 32/22 skips.
+NEXT: commit/push, pin only this S197 follow-up, exact-main CI and
+new frozen pair/admission/release, then fresh actual rendered anchor and desktop/390px readbacks.
+Do not alter completed/admitted frozen checkouts or reuse the consumed permit. Technical first-run
+passes do not close this observed navigation failure. Release evidence:
+docs/evidence/focus-maintenance-release-2026-10-11.md.
 
-Run `5b3dfb90-2624-406a-9791-5f8581befcf5` COMPLETE; exact permit CONSUMED. One build
-`333e5e32-d65d-451a-bd8e-fe06bce48b0f` succeeded. Serving revision
-`pmi-kc-app-rmv2ixuq7-b0c62b52cd5d`,100% traffic, canonical
-https://pmi-kc-app-kq6wuvpiva-uc.a.run.app. Fingerprint
-`sha256:878fdc039aad6150caee0eb5fc7bcf5352ebf8bc07b0adb69f50bcbc13665b92`.
-Candidate receipt `6dd720ec-0337-4d6b-b38f-b44173b0df8c`; promotion15:21:52.305Z;
-observation passed two checkpoints 400540ms,318 source/projected/rendered matched, zero discrepancy/
-5xx/unresolved effects. Eleven independent sections matched 15:30:08Z. Guarded five-route 390px
-mobile navigation passed 15:33:10.849Z, zero page errors/overflow/mutation attempts. Normal Gmail
-connection ready. Human NOT RUN; Editor browser not_run under approved Admin-only policy.
+Runtime Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=true, five secret
+bindings and allowance 50 are preserved. Independent comparison: all 54 env keys matched except
+APP_COMMIT_SHA; worker/secret bindings unchanged. No provider key, customer message/record or
+RentVine chat read was used as proof. Original weekly draft unchanged/unsent at 10:54:46.218Z;
+perform a final read-only draft check after delivery. Human/physical phone NOT RUN.
 
-Production/Live, managed runtime identity, eleven Spaces, Demo=false, Sheet=true, five existing
-secret bindings, allowance 50 and original alert recipient retained. Registry source/mirror 48/18/30;
-only `gmail.renewal_notice.send` and `gmail.maintenance_owner_notice.send` activated for exact human
-S189–S192 sequences. Metadata backup/CAS/readback preserved 46 unrelated records. Generic send,
-resident-draft and both Dotloop keys CLOSED. No customer message or synthetic record was test proof.
-Minute POST worker ENABLED; normal scheduled empty tick passed (zero sequences/occurrences/sends),
-no manual RunJob. Annual nonce-bound GET probe passed/restored PAUSED. Eight new indexes READY.
+Captured predecessor 780f48db / pmi-kc-app-rmv2ixuq7-b0c62b52cd5d, Sheet=true. Run-bound recovery
+pmi-kc-app-recovery-e4ea4d39d9f74a0d, receipt 24c94459-0064-4ad6-9b27-35c8b599864f,
+reference sha256:2c82a497ba45ede35e908822e2b3092fa48086dbded1f9bb42e55cb0ae3ed096. No rollback.
+Failed 4d6494fc stopped before recovery intent/build; original sub-check cause unverified, independent
+13-route/monitoring diagnosis passed. Its 617 state files were archived before replacing the pair
+with reviewed configuration. Earlier failed runs/claims and all current receipts remain private.
 
-Captured predecessor337ac163 / pmi-kc-app-rmuz9g28p-0a2909d490e1, Sheet=true. Recovery
-pmi-kc-app-recovery-5b3dfb902624406a, receipt f2603722-261c-4748-96c8-ab2bc276e7f2,
-reference sha256:54a55011c26a44a4d0c39e5121ecb2c90f4db7aa6d6f9b1abfb52ef8ce4f0e37.
-Actual prior tag/revision binding was captured separately. No traffic rollback. Never reuse this
-consumed permit or completed probe/claim. Failed 6cb8d512 OOM and D33 paused-RunJob probe retain
-immutable archives590/600 files and original frozen pairs/permits/claims; neither is a pass.
-
-Four process groups/six entry points retired with replacement parity/delivery: new legacy draft/
-send admissions, pasted/synthetic governance tools and notice-first maintenance. Preserve original
-drafts, receipts, failed attempts, legal holds, definitions/runs and external provider history.
+ACTIVE October program S183–S226/intake 055–098 remains unfinished: 44 suites/238 requirements,
+203 mapped requirements verified/35 suites delivered. Keep five pending outcomes, three partial
+investigations and S226 closure. Unrelated acquisition/native-phone implementation is outside this
+follow-up. Complete Vendoroo integration remains required; staff history is not provider ingestion.
 
 ## Awaiting release
 
-1. S197: Simplify Owner outreach, collapse secondary tasks/context and preserve entries across task/view changes; `8462d2c6`.
-2. S209: Expose existing RentVine maintenance readback/context and preserve review-save acknowledgement; `8462d2c6`.
-
-Full checks passed; exact main CI and fresh locked release admission remain required.
-The overall 44/238 program remains ACTIVE; missing contracts are not an omitted queue slice.
+No committed slice since the completed first follow-up release. The uncommitted current-rent
+anchor repair passed full checks and awaits an exact committed S197 queue entry before admission.
 
 ## Remaining material dependencies
 

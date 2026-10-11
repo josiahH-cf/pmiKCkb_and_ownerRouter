@@ -11,7 +11,6 @@ import { renewalCardTitle } from "@/components/lease-renewal/RenewalSectionHeadi
 import {
   RenewalCurrentRent,
   RentChargeUpdateStatus,
-  WORKING_CURRENT_RENT_TARGET,
 } from "@/components/lease-renewal/RenewalCurrentRent";
 import { Card } from "@/components/ui";
 import {
@@ -27,6 +26,7 @@ import {
   EXTERNAL_LINK_TARGET,
 } from "@/lib/lease-renewal/desk-destinations";
 import type { RentChargeOutcomeRow } from "@/lib/lease-renewal/rent-charge-outcomes";
+import { WORKING_CURRENT_RENT_TARGET } from "@/lib/lease-renewal/workspace-targets";
 import type {
   RenewalChargeInventory,
   RenewalChargeOption,

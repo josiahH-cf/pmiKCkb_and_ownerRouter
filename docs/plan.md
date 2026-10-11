@@ -4,22 +4,28 @@ Updated: 2026-10-11 (UTC). Batch 005 is verified deployed by run `8b7dc3f1-4c5b-
 
 ## Active: operations-communications-maintenance-2026-10
 
-The October 11 Focus/maintenance verification is complete with repairs committed at8462d2c6 in
-isolated native authoring. Focus presentation changes preserve
-entered work; the existing RentVine read path exposes detail/status/assignment and supplied optional
-context; automatic review refresh keeps save acknowledgement. Fresh local UI/preservation, 29
-backend and 31 compiled checks passed. Human/physical-phone acceptance is unverified. Preserve the
-original checkout. The subsequent owner instruction authorizes full checks, commit/push and gated
-deployment of these repairs. Full local gate passed 9518 unit/455 backend, required policies/build
-and production audit 0; core E2E 32 passed/22 existing skips. S208 still
-requires complete verified account/source/ownership/freshness/retention/takeover contracts and
-runtime ingestion; reuse RentVine data before considering gap-specific additional access. Current
-production is confirmed at 780f48db, the October 10 rollout; the weekly draft remains unchanged and
-unsent. Disposable canaries were cleaned up. [Evidence and unresolved discussion points](evidence/focus-maintenance-followup-2026-10-11.md).
+The October 11 Owner outreach and maintenance readback/refresh repairs were committed at
+8462d2c6 and released at 623152fb / pmi-kc-app-rmv3tf7u6-16d1e4a13e04 in run e4ea4d39.
+Full local checks passed 9518 unit/455 backend, all required policies/build and audit 0; core E2E
+32 passed/22 existing skips. Exact-main CI 38138750552 passed all five jobs. Candidate/promotion,
+two-checkpoint 427976ms observation and eleven independent sections passed; all 318 records
+matched, zero discrepancies/5xx/unresolved effects. Production is 100% on that identified revision.
+
+Rendered inspection confirmed compact Owner outreach, a separate initially closed nineteen-task
+list, visible source warnings and secondary-task controls. It also found a pre-existing malformed
+Correct the current rent anchor caused by importing a constant across a use-client boundary.
+A narrow shared-target repair passed the fail-first regression and affected 17 checks/four files;
+full corrected-tree checks, exact-main CI and another gated release remain required before final
+follow-up acceptance. No test/customer record, provider activation, external message or RentVine
+chat read was used. The original weekly draft remains unsent; human/physical-phone acceptance is
+NOT RUN. Complete Vendoroo event ingestion, open-work chronology and takeover remain open;
+reuse verified RentVine data before gap-specific additional access. Native authoring is isolated
+from the preserved original checkout. [Evidence and unresolved discussion points](evidence/focus-maintenance-followup-2026-10-11.md);
+[release and navigation evidence](evidence/focus-maintenance-release-2026-10-11.md).
 
 The owner-authorized program covers S183–S226 / intake 055–098, all 44 suites/238 requirements.
-The independent implementation and cumulative repairs are merged and serving at 780f48db in
-run 5b3dfb90. Native `docs/evidence/operations-communications-maintenance-2026-10.json` records 203
+The independent implementation was delivered at 780f48db in run 5b3dfb90 and is carried
+in the current release. Native `docs/evidence/operations-communications-maintenance-2026-10.json` records 203
 verified requirements and 35 verified delivered suites. Original Windows 64 dirty file hashes/
 HEAD 8406181c and original native clean HEAD 43bad3ad were verified unchanged 15:27:12Z. No unrelated
 work was absorbed. Later documentation/test closure does not change the deployed application.
@@ -179,41 +185,40 @@ independent work proceeds. No material product clarification remains. Final focu
 
 ## Outcome
 
-Run `5b3dfb90-2624-406a-9791-5f8581befcf5` delivered the independent operations implementation at
-`780f48db1d7d6a7cc855035d934621f77a28a257` / `pmi-kc-app-rmv2ixuq7-b0c62b52cd5d`,100% traffic.
-Exact [CI 38061050765](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38061050765)
-passed all five jobs:9,505 unit tests/four existing configuration skips and 455 backend tests.
-Complete local canonical:9,509 unit tests/1,013 files,455 backend tests/79 files, all required
-format/lint/type/policy/budget checks, production audit 0 and production build. Core E2E 32 passed
-with 22 existing configuration skips in its recorded scope. One build
-`333e5e32-d65d-451a-bd8e-fe06bce48b0f` succeeded 2026-10-10T15:14:59.641111Z.
-Candidate receipt `6dd720ec-0337-4d6b-b38f-b44173b0df8c` issued 15:21:27.007Z; receipt-bound promotion
-verified 15:21:52.305Z. Managed candidate GET readiness passed/restored PAUSED. Observation passed two
-checkpoints in 400,540ms within 300,000–480,000ms. All 318 source/projected/rendered records matched,
-zero discrepancies/5xx/unresolved effects. Eleven independent sections matched 15:30:08Z. Five
-guarded 390px mobile routes passed 15:33:10.849Z, zero errors/overflow/mutation attempts; normal managed
-Gmail connection ready. Automated checks do not establish human acceptance or a physical-phone test.
-Production/Live, managed runtime identity, eleven Spaces, Demo=false, Sheet=true, five secret bindings
-and RentCast allowance 50 remain verified. Registry source/mirror:48 keys / 18 open/30 closed; only
-two reviewed notice send keys activated with backup/CAS/readback. Minute worker ENABLED and normal
-empty tick passed with zero sequences/occurrences/sends; annual GET probe PAUSED.
-Tag `cand-rmv2ixuq7-b0c62b52cd5d`; fingerprint
-`sha256:878fdc039aad6150caee0eb5fc7bcf5352ebf8bc07b0adb69f50bcbc13665b92`.
-Captured predecessor:`337ac163c5709381e8db8d2c18810bec357d8a96` / `pmi-kc-app-rmuz9g28p-0a2909d490e1`,
-Sheet=true. Recovery:`pmi-kc-app-recovery-5b3dfb902624406a`, receipt
-`f2603722-261c-4748-96c8-ab2bc276e7f2`, reference
-`sha256:54a55011c26a44a4d0c39e5121ecb2c90f4db7aa6d6f9b1abfb52ef8ce4f0e37`, preserving its actual
-image/configuration. No traffic rollback or customer effect was test proof. Failed 6cb8d512 and D33
-attempts retain immutable evidence and consumed claims/probes.
-Independent implementation queue delivered/empty; exact permit consumed. Full 44/238 program remains
-open: 203 requirements verified, 35 suites delivered. Five PENDING contracts, three incomplete
-investigations and S226 integrated closure remain required. Both Dotloop write keys closed; S182
-API-origin exclusions retained. Editor browser:not_run under approved Admin-only policy.
+Run `e4ea4d39-d9f7-4a0d-804d-21f4111cd3d3` released the Focus/maintenance follow-up at
+`623152fb1718007d085dbfeb99fc22627ef5b3bf` / `pmi-kc-app-rmv3tf7u6-16d1e4a13e04`, 100% traffic.
+Exact [CI 38138750552](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38138750552)
+passed all five jobs: 9,514 unit/four existing configuration skips and 455 backend. Complete local
+gate: 9,518 unit/1,016 files, 455 backend/79 files, required checks/build and production audit 0;
+core E2E 32 passed/22 existing skips. Lint passed with 79 warnings. One application build
+`b28f842d-834a-4c3c-8584-69eee50aac3b` succeeded 2026-10-11T12:53:56.914633Z. Candidate receipt
+`62fb69d0-3fa0-44ff-b0b0-dbfb65a39f25` issued 12:59:40.471Z; promotion verified 13:00:03.385Z.
+Managed GET readiness passed/restored PAUSED. Observation passed two checkpoints in 427,976ms
+within 300,000–480,000ms: all 318 source/projected/rendered records matched, zero discrepancies/
+5xx/unresolved effects. Eleven independent sections matched 13:08:51Z. Permit consumed.
+Production/Live, managed runtime identity, eleven Spaces, Demo=false, Sheet=true, five existing
+secret bindings and RentCast allowance 50 remain verified. All 54 runtime environment keys matched
+the predecessor except APP_COMMIT_SHA; existing worker settings and key boundaries were preserved.
+Tag `cand-rmv3tf7u6-16d1e4a13e04`; fingerprint
+`sha256:26514be5d859fc67422645320cd445f9b0eb0543500c35f41ddc6086de7b46c3`.
+Captured predecessor: `780f48db1d7d6a7cc855035d934621f77a28a257` / `pmi-kc-app-rmv2ixuq7-b0c62b52cd5d`,
+Sheet=true. Recovery: `pmi-kc-app-recovery-e4ea4d39d9f74a0d`, receipt
+`24c94459-0064-4ad6-9b27-35c8b599864f`, reference
+`sha256:2c82a497ba45ede35e908822e2b3092fa48086dbded1f9bb42e55cb0ae3ed096`, preserving the actual
+predecessor image/configuration. No traffic rollback or business mutation was test proof.
+Failed run 4d6494fc stopped before any recovery intent/build; its original sub-check cause is
+unverified. All 617 state files were preserved before a fresh pair reused reviewed configuration.
+Subsequent rendered inspection found a pre-existing current-rent correction anchor broken across
+the server/client boundary. A narrow repair passed its fail-first regression and affected checks;
+full checks and another gated release remain required. Evidence: docs/evidence/focus-maintenance-release-2026-10-11.md.
+The full 44/238 program remains unfinished (203 requirements verified, 35 suites delivered).
+Vendoroo/acquisition/native-phone/Dotloop inputs stay open; no provider key was activated and the
+weekly update remains unsent. Editor browser: not_run under approved Admin-only policy.
 Human verdicts: **NOT RUN — no human observer**.
 
 ## Current implementation baseline
 
-Run `e372f7b5-3a1d-4224-945e-148a5f040660` serves `337ac163c5709381e8db8d2c18810bec357d8a96`: the release-tooling and audit follow-up (S51 warm-ups and the 480,000 ms
+Run `e372f7b5-3a1d-4224-945e-148a5f040660` released `337ac163c5709381e8db8d2c18810bec357d8a96`: the release-tooling and audit follow-up (S51 warm-ups and the 480,000 ms
 decision deadline; S54 Firestore contention bound and Next.js 16.3.8).
 Run `5622decd-0a6d-479a-bb75-545ba4aa0069` released the S130 stale-value follow-up at `5ee574b2fba81c83fa63086496d7f2ebb299268c`.
 Run `87920129-23c0-4420-a787-13036029d6f8` released the Dotloop PDF renewal v1 second release (S182, S66, S130 and S34) at `755009bae534cb2699789c1cfd07fa79aad8f94a`.

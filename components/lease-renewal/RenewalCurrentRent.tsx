@@ -36,6 +36,7 @@ import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
 import { planRentChargeRequests } from "@/lib/lease-renewal/rent-charge-intent";
 import type { RentChargeOutcomeRow } from "@/lib/lease-renewal/rent-charge-outcomes";
 import { workingCurrentRent } from "@/lib/lease-renewal/working-record";
+import { WORKING_CURRENT_RENT_TARGET } from "@/lib/lease-renewal/workspace-targets";
 import type {
   RenewalChargeInventory,
   RenewalChargeOption,
@@ -43,7 +44,6 @@ import type {
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import { useRenewalWorkingRecord, WorkingMoneyField } from "./RenewalWorkingRecord";
 
-export const WORKING_CURRENT_RENT_TARGET = "renewal-working-current-rent";
 const RENTVINE_UPDATES_ANCHOR = "#rentvine-updates-title";
 
 const money = formatMoneyReference;

@@ -1,13 +1,14 @@
 # Active feature suites
 
-The latest verified serving release is run 5b3dfb90-2624-406a-9791-5f8581befcf5 at
-780f48db1d7d6a7cc855035d934621f77a28a257 / pmi-kc-app-rmv2ixuq7-b0c62b52cd5d, 100% traffic.
-Exact CI 38061050765, candidate/promotion/full observation and eleven independent readbacks passed.
-The independent implementation queue is empty and permit consumed; the entire 44/238 program is
-unfinished. 35 suites are delivered,203 requirements verified; five PENDING contracts, three
-incomplete bounded investigations and integrated S226 remain required. Earlier released contracts
-are carried. Human verdicts NOT RUN; Editor browser not_run under approved Admin-only policy.
-See docs/facts.md and native operations evidence for scope and failed-attempt preservation.
+The latest gated release is run e4ea4d39-d9f7-4a0d-804d-21f4111cd3d3 at
+623152fb1718007d085dbfeb99fc22627ef5b3bf / pmi-kc-app-rmv3tf7u6-16d1e4a13e04, 100% traffic.
+Exact CI 38138750552, candidate/promotion/full observation and eleven independent sections passed.
+It carries the October 10 implementation and Owner outreach/maintenance readback repairs. Rendered
+inspection then found a pre-existing current-rent correction anchor defect; its narrow repair is
+locally verified and awaits full checks/commit/new release. The entire 44/238 program remains
+unfinished: 35 suites delivered, 203 requirements verified, five PENDING contracts, three partial
+investigations and S226 closure open. Human/physical phone NOT RUN; Editor browser not_run.
+See docs/facts.md and docs/evidence/focus-maintenance-release-2026-10-11.md for actual scopes.
 
 This directory contains current operating contracts, unfinished specifications, recent completed
 release contracts, and one explicitly unauthorized proposal. Older completed and superseded suite
