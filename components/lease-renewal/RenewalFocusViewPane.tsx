@@ -17,6 +17,7 @@ import type { ActionGraphDiagnostic } from "@/lib/lease-renewal/action-graph";
 import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
 import { describeRenewalTerms } from "@/lib/lease-renewal/current-rent-display";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
+import type { MoveOutDispositionState } from "@/lib/lease-renewal/move-out-disposition";
 import {
   projectRenewalActions,
   selectRenewalAction,
@@ -68,6 +69,7 @@ export interface RenewalFocusFacts {
   /** Supporting reads that failed on this page, in the Full view notice's own words. */
   readonly unavailableReads?: readonly string[];
   /** The move-out disposition the Full view states at the top of the page, if any. */
+  readonly moveOutState?: MoveOutDispositionState;
   readonly moveOutNotice?: string | null;
 }
 
@@ -490,7 +492,11 @@ function FocusPane({
           {selected.id === "manual.owner_outreach" &&
           selected.status === "ready_for_actor" ? (
             <p>
-              Prepare the owner message below. Record outreach after contacting the owner.
+              {facts.moveOutState === "initiated"
+                ? "Record owner contact that happened outside the app. Use the move-out guidance below for the next action."
+                : facts.moveOutState === "unknown"
+                  ? "Review the move-out status before preparing an owner message. You can still record owner contact that happened outside the app."
+                  : "Prepare the owner message below. Record outreach after contacting the owner."}
             </p>
           ) : null}
           {distinctDetail ? <p className="muted">{distinctDetail}</p> : null}

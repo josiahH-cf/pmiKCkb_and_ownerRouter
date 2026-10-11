@@ -4,26 +4,28 @@ Last updated: 2026-10-11 (UTC).
 
 ## Current authorized program
 
-The October 11 Owner outreach and maintenance readback/refresh repairs (8462d2c6), including
-current-rent server-rendered navigation repair e9cd59f1, are verified delivered at 72a30e25 /
-pmi-kc-app-rmv3vlx5t-b86fdd4c74ae in run f0f1747f, 100% traffic. Full local checks passed 9519
-unit/455 backend, required policies/build/audit zero; core E2E 32 passed/22 existing skips. Exact-main
-CI 38143875385 passed all five jobs (9515 unit/four existing skips/455 backend). Candidate/promotion,
-two-checkpoint 393764ms observation and eleven independent sections passed; all 318 records matched,
-zero discrepancies, candidate 5xx or unresolved effects.
+The existing Owner outreach/maintenance repairs and current-rent anchor repair are committed,
+pushed and verified released at 72a30e25 / pmi-kc-app-rmv3vlx5t-b86fdd4c74ae, 100% traffic,
+run f0f1747f COMPLETE. Full local 9519 unit/455 backend, required checks/build/audit zero, core
+E2E 32/22 existing skips; exact CI 38143875385 all five jobs passed. Observation passed two
+checkpoints 393764ms, all 318 records matched, zero discrepancy/5xx/unresolved effects; eleven
+independent sections matched. Documentation closure f41b6e51 CI 38146669229 all five jobs passed.
 
-Fresh guarded production checks passed three real-workspace Full/Focus journeys and the separate
-Owner outreach disclosure at desktop and 390px. Initially collapsed alternatives and rent context,
-pointer/keyboard controls, unique eligible tasks, actual rent controls and the corrected anchor
-passed with zero mutation attempts, page errors or horizontal overflow. Internal-browser visual
-inspection also passed. The working offer was unentered on the examined production leases;
-separate supplied working terms and unsaved-entry preservation were exercised locally. No test or
-customer record, provider activation, external message or RentVine chat read was used as proof.
-The original weekly draft was unchanged/unsent at 14:09:25.179Z. Human/physical-phone acceptance is
-NOT RUN. Complete Vendoroo ingestion, open-work chronology and takeover remain open; reuse verified
-RentVine data before gap-specific additional access. Original checkouts remain preserved.
-[Evidence and unresolved discussion points](evidence/focus-maintenance-followup-2026-10-11.md);
-[release, rendered navigation and cleanup evidence](evidence/focus-maintenance-release-2026-10-11.md).
+Final screenshot review then found a real move-out instruction conflict: after staff deliberately
+select Owner outreach, its preparation instruction conflicts with the warning that ordinary
+renewal outreach is unavailable. The default move-out guidance was correct; past outside contact
+can still be recorded. A typed-disposition copy repair is in progress, preserving source warnings,
+manual records and existing provider boundaries. Its fail-first regression reproduced the conflict.
+The corrected-source full local gate passed 9523 unit/455 backend, required checks/build/audit
+zero; core E2E 32/22 existing skips. Exact-main CI and another admitted release remain required
+before final instruction acceptance. Earlier technical/browser passes retain their narrower actual scope.
+
+The original weekly draft remains unchanged/unsent (14:09:25.179Z). Complete Vendoroo ingestion,
+open-work chronology and takeover remain open; reuse verified RentVine data before additional
+access. No provider activation, real-recipient message, consequential chat read or production test
+record. Human acceptance and physical phone NOT RUN; originals and failed evidence preserved.
+[Evidence and discussion points](evidence/focus-maintenance-followup-2026-10-11.md);
+[release and instruction evidence](evidence/focus-maintenance-release-2026-10-11.md).
 
 The owner-authorized program covers S183–S226 / intake 055–098, all 44 suites/238 requirements.
 The independent implementation was delivered at 780f48db in run 5b3dfb90 and is carried
@@ -84,6 +86,11 @@ Internal-browser inspection also verified the actual rent controls and repaired 
 Initial repairs 8462d2c6 and the fail-first server/client-boundary anchor repair e9cd59f1 are delivered.
 Failed run 4d6494fc, its unknown original sub-check cause and all 617 archived state files retain
 their actual outcomes; the completed first release e4ea4d39 and its receipts remain preserved.
+Final screenshot review then found a move-out instruction conflict when staff select Owner
+outreach: ordinary message preparation was still suggested despite the source move-out warning.
+The typed-disposition copy repair passed the full corrected-source local gate: 9,523 unit,
+455 backend, all required checks/build and audit zero; core E2E 32 passed/22 existing skips.
+Exact-main CI, a new admitted release and actual move-out instruction readback remain required.
 Evidence: docs/evidence/focus-maintenance-release-2026-10-11.md.
 The full 44/238 program remains unfinished (203 requirements verified, 35 suites delivered).
 Vendoroo/acquisition/native-phone/Dotloop inputs stay open; no provider key was activated. At

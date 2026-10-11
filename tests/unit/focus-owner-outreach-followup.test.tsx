@@ -114,3 +114,79 @@ it("keeps the source difference visible independently of equal rent amounts and 
     within(pane).getByText(/RentVine and the operating Sheet do not agree/),
   ).toBeVisible();
 });
+
+it("keeps outside owner-contact recording distinct from unavailable ordinary outreach after move-out starts", async () => {
+  const manual = manualFixture();
+  const workspace = actionFixture({ manual, moveOutInitiated: true }).workspace;
+  const routes = stubRenewalRoutes(manual);
+  await renderWorkspace({ manual, workspace });
+  const pane = focusPane();
+  const user = userEvent.setup();
+  await user.click(within(pane).getByText(/All renewal work \(/));
+  await user.click(within(pane).getByRole("button", { name: /^Owner outreach$/ }));
+  expect(within(pane).getByRole("heading", { name: "Owner outreach" })).toBeVisible();
+  expect(pane).not.toHaveTextContent("Prepare the owner message below.");
+  expect(pane).toHaveTextContent("Record owner contact that happened outside the app.");
+  expect(pane).toHaveTextContent("Use the move-out guidance below for the next action.");
+  expect(pane).toHaveTextContent("RentVine shows a move-out notice for this lease.");
+  expect(document.getElementById("renewal-manual-owner_outreach")).toBeVisible();
+  expect(routes.writes()).toEqual([]);
+});
+
+it("asks staff to review unknown move-out status before owner-message preparation without hiding the record controls", async () => {
+  const manual = manualFixture();
+  const original = actionFixture({ manual, moveOutInitiated: true }).workspace;
+  const workspace = {
+    ...original,
+    summary: {
+      ...original.summary,
+      moveOut: {
+        ...original.summary.moveOut!,
+        state: "unknown" as const,
+        label: "Move-out status needs verification.",
+      },
+    },
+  };
+  const routes = stubRenewalRoutes(manual);
+  await renderWorkspace({ manual, workspace });
+  const user = userEvent.setup(),
+    pane = focusPane();
+  await user.click(within(pane).getByText(/All renewal work \(/));
+  await user.click(within(pane).getByRole("button", { name: /^Owner outreach$/ }));
+  expect(pane).not.toHaveTextContent("Prepare the owner message below.");
+  expect(pane).toHaveTextContent(
+    "Review the move-out status before preparing an owner message.",
+  );
+  expect(pane).toHaveTextContent("Move-out status needs verification.");
+  expect(document.getElementById("renewal-manual-owner_outreach")).toBeVisible();
+  expect(routes.writes()).toEqual([]);
+});
+
+it.each(["not_initiated", "withdrawn"] as const)(
+  "preserves ordinary owner preparation for the reviewed %s disposition",
+  async (state) => {
+    const manual = manualFixture();
+    const original = actionFixture({ manual, moveOutInitiated: true }).workspace;
+    const workspace = {
+      ...original,
+      summary: {
+        ...original.summary,
+        moveOut: {
+          ...original.summary.moveOut!,
+          state,
+          label: "Reviewed disposition.",
+        },
+      },
+    };
+    const routes = stubRenewalRoutes(manual);
+    await renderWorkspace({ manual, workspace });
+    const user = userEvent.setup(),
+      pane = focusPane();
+    await user.click(within(pane).getByText(/All renewal work \(/));
+    await user.click(within(pane).getByRole("button", { name: /^Owner outreach$/ }));
+    expect(pane).toHaveTextContent(
+      "Prepare the owner message below. Record outreach after contacting the owner.",
+    );
+    expect(routes.writes()).toEqual([]);
+  },
+);

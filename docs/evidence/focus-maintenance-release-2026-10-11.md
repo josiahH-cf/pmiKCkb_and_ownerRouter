@@ -28,8 +28,8 @@ passed all 17 preservation tests. The complete corrected-tree gate then passed 9
 across 1,016 files, all 455 backend tests across 79 files, required format/lint/type/policy/budget
 checks and the production build. Production dependency audit: zero findings. Core E2E passed 32
 tests with 22 existing configuration skips. Lint reported zero errors and 79 warnings; React
-test-harness warnings were retained, and no errors were suppressed. All 19 initial source-manifest
-hashes still match; the two additional preservation files only open the new disclosures.
+test-harness warnings were retained, and no errors were suppressed. At that first gate, all 19 initial source-manifest
+hashes matched; the two additional preservation files only open the new disclosures.
 
 Previous completed run 5b3dfb90 and its consumed permit, prerequisite receipt and checkout selection
 were copied byte-for-byte under the actual release lock, with matching hashes. Original immutable
@@ -193,3 +193,32 @@ or test criterion was removed.
 The corrected documentation-closure group passed all 40 checks/seven files. Router, falsification,
 context, active paths, traceability, copy-voice and redaction checks passed again. Existing unrelated
 fact review-date warnings remain warnings; they do not claim fresh verification of those facts.
+
+## Move-out instruction finding after the completed release
+
+Documentation closure f41b6e51 passed exact-main CI 38146669229, all five jobs. The completed
+release f0f1747f remains technically passed. Final examination of its actual 390px outreach image
+also found a conflict not asserted by that script: on an initiated move-out lease, deliberately
+choosing Owner outreach still said Prepare the owner message below while the critical source
+warning said ordinary renewal outreach is unavailable. The default selected move-out guidance
+was correct; the failure concerns the explicitly selected manual Owner outreach task.
+
+The first new regression setup expected Owner outreach by default and failed before testing the
+copy. After selecting it through the actual All renewal work control, the regression reproduced
+the conflicting instruction. Raw failures remain private. The repair passes the typed source
+move-out disposition from the owning workspace instead of inferring it from warning text. Initiated
+move-out copy directs the next action to the existing move-out guidance and distinguishes recording
+outside contact. Unknown disposition asks for review before preparing a message. Reviewed
+not-initiated/withdrawn states retain ordinary preparation. Source warnings, staff-record controls,
+readiness projections, provider operations and their boundaries stay unchanged. Full checks, exact
+CI, a new admitted release and actual rendered copy readback remain required; human/physical phone
+and complete Vendoroo integration are still open.
+
+The first focused copy group passed 38 checks/three files, then type checking rejected an
+unsupported test-query option. The selectors were corrected to an anchored accessible-name
+matcher without changing the assertions. The required full local gate on the corrected source
+passed 9,523 unit tests/1,017 files and all 455 backend tests/79 files, format/lint/type checks,
+all policies, budget check and production build; production dependency audit zero. Core E2E passed
+32 tests with 22 existing configuration skips. The isolated Firestore port was 43343; the
+unrelated existing service on 8080 was preserved. Raw failures and complete logs remain private.
+Exact-main CI, fresh admission and deployed rendered instruction readback are still required.

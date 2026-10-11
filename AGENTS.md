@@ -48,6 +48,11 @@ Internal-browser inspection also verified the actual rent controls and repaired 
 Initial repairs 8462d2c6 and the fail-first server/client-boundary anchor repair e9cd59f1 are delivered.
 Failed run 4d6494fc, its unknown original sub-check cause and all 617 archived state files retain
 their actual outcomes; the completed first release e4ea4d39 and its receipts remain preserved.
+Final screenshot review then found a move-out instruction conflict when staff select Owner
+outreach: ordinary message preparation was still suggested despite the source move-out warning.
+The typed-disposition copy repair passed the full corrected-source local gate: 9,523 unit,
+455 backend, all required checks/build and audit zero; core E2E 32 passed/22 existing skips.
+Exact-main CI, a new admitted release and actual move-out instruction readback remain required.
 Evidence: docs/evidence/focus-maintenance-release-2026-10-11.md.
 The full 44/238 program remains unfinished (203 requirements verified, 35 suites delivered).
 Vendoroo/acquisition/native-phone/Dotloop inputs stay open; no provider key was activated. At

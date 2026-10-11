@@ -313,6 +313,7 @@ export function RenewalWorkspace({
     // The page-level notices Focus would otherwise hide: failed supporting reads and the move-out
     // disposition, in the same words the Full view uses.
     unavailableReads: auxiliaryFailures.map(renewalAuxiliaryFailureText),
+    moveOutState: summary.moveOut?.state,
     moveOutNotice:
       summary.moveOut && summary.moveOut.state !== "not_initiated"
         ? summary.moveOut.label

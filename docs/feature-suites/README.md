@@ -5,7 +5,9 @@ The latest gated release is run f0f1747f-53ff-4cec-b5bb-ff320b3b4467 at
 Exact CI 38143875385, candidate/promotion/full observation and eleven independent sections passed.
 It carries October 10 functionality and the Owner outreach/maintenance repairs, including the
 observed server/client rent-anchor defect. Fresh three-workspace guarded Focus preservation and
-dedicated desktop/390px outreach/anchor checks passed. The entire 44/238 program remains unfinished:
+dedicated desktop/390px outreach/anchor checks passed their scoped assertions. Final image review
+found an Owner outreach instruction conflict after move-out starts. Its narrow repair passed the
+full 9523-unit/455-backend gate and core 32/22; exact CI and a new release remain required. The entire 44/238 program remains unfinished:
 35 suites delivered, 203 requirements verified, five PENDING contracts, three partial investigations
 and S226 closure open. Human/physical phone NOT RUN; Editor browser not_run. See docs/facts.md and
 docs/evidence/focus-maintenance-release-2026-10-11.md for actual scopes.

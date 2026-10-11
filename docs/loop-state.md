@@ -4,7 +4,7 @@ Last updated: 2026-10-11 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-The requested Focus/maintenance verification repairs are committed, pushed and verified deployed.
+The prior Focus/maintenance and rent-anchor repairs are committed, pushed and verified deployed.
 Initial repair 8462d2c6 and observed server/client rent-anchor repair e9cd59f1 are carried at exact
 main 72a30e25537e8ea7ff79391146246c1f9b94375e / pmi-kc-app-rmv3vlx5t-b86fdd4c74ae, 100% traffic.
 Run f0f1747f-53ff-4cec-b5bb-ff320b3b4467 COMPLETE; permit CONSUMED. Full local checks 9519 unit/
@@ -36,8 +36,13 @@ sha256:4694b0dc8c65eae4f33e4662667934595f06be2cdb0d6aee11a325986e69b06a. No roll
 files and all first-release e4ea4d39 receipts/consumed state remain preserved outside Git.
 Evidence: docs/evidence/focus-maintenance-release-2026-10-11.md; initial verification/gap trace and
 Dan/Jon discussion: docs/evidence/focus-maintenance-followup-2026-10-11.md.
-Runtime work is complete. Documentation-only closure changes no served runtime; GitHub records its
-exact-main CI result. NEXT: chat L01–L26 report and unresolved-input discussion; do not redeploy docs.
+Final screenshot review found a move-out instruction conflict after staff choose Owner outreach:
+ordinary message preparation was suggested while the source warning says it is unavailable.
+Default move-out guidance was correct. A typed-disposition copy repair preserves outside-contact
+recording and the warning; fail-first reproduced the conflict. Corrected-source full gate passed
+9523 unit/455 backend, required checks/build/audit zero; core 32/22 existing skips. NEXT:
+commit/push, exact S197 queue pin/CI, new frozen pair/admission/release and actual move-out
+instruction readback. Earlier scoped technical passes do not accept the conflicting instruction.
 
 The entire October program S183–S226/intake 055–098 remains unfinished: 44 suites/238 requirements,
 203 mapped requirements verified/35 suites delivered. Keep five pending outcomes, three partial
@@ -45,8 +50,9 @@ investigations and S226 closure. No unrelated acquisition/native-phone implement
 
 ## Awaiting release
 
-None. Both scoped repairs are verified delivered. This run's permit is consumed; no new candidate
-is authorized by the empty queue. Complete Vendoroo and other pending inputs retain their holds.
+No committed slice after f41b6e51. The uncommitted Owner outreach move-out instruction repair
+passed full local/core checks and awaits an exact S197 commit pin. Completed f0f1747f state/permit/selector/prerequisites
+were copied under the release lock with matching hashes; never reuse its consumed permit.
 
 ## Remaining material dependencies
 
