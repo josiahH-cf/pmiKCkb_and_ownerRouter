@@ -4,55 +4,49 @@ Last updated: 2026-10-11 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-The owner directed full checks, mainline commit/push and gated deployment of Focus/maintenance
-repairs; the weekly update must remain unsent and Vendoroo gaps open. Native authoring:
-/home/josiah/pmi-kc-work/focus-maintenance-followup-20261011. Preserve original unrelated work.
+The requested Focus/maintenance verification repairs are committed, pushed and verified deployed.
+Initial repair 8462d2c6 and observed server/client rent-anchor repair e9cd59f1 are carried at exact
+main 72a30e25537e8ea7ff79391146246c1f9b94375e / pmi-kc-app-rmv3vlx5t-b86fdd4c74ae, 100% traffic.
+Run f0f1747f-53ff-4cec-b5bb-ff320b3b4467 COMPLETE; permit CONSUMED. Full local checks 9519 unit/
+455 backend, all policies/build/audit zero; core E2E 32 passed/22 existing skips. Exact CI
+38143875385 all five jobs passed (9515 unit/four existing configuration skips/455 backend).
+One build 2ea4d8b7-3b2e-4bc8-a5ac-2fa31e7b964e succeeded. Candidate receipt
+c56f1f00-7fe6-49f9-8ce8-80aa4931d2f7; promotion 14:01:38.036Z. GET readiness passed/restored PAUSED.
+Observation passed two checkpoints 393764ms; all 318 source/projected/rendered records matched,
+zero discrepancies/5xx/unresolved effects. Eleven independent sections matched 14:08:41Z.
+Fingerprint sha256:aa6e15f51ddd0f5e3fcd3340b6345e9e242a85f9ab5c57eabeddfe62dd85c249.
 
-Initial repairs 8462d2c6 released at exact main 623152fb1718007d085dbfeb99fc22627ef5b3bf /
-pmi-kc-app-rmv3tf7u6-16d1e4a13e04, 100% traffic, run e4ea4d39-d9f7-4a0d-804d-21f4111cd3d3 COMPLETE;
-permit CONSUMED. Full local 9518 unit/455 backend, required checks/build/audit 0; core E2E 32/22
-existing skips. Exact CI 38138750552 all five jobs passed (9514 unit/four existing skips/455 backend).
-One build b28f842d-834a-4c3c-8584-69eee50aac3b succeeded. Candidate receipt
-62fb69d0-3fa0-44ff-b0b0-dbfb65a39f25; promotion 13:00:03.385Z. GET readiness passed/restored PAUSED.
-Observation passed two checkpoints 427976ms, all 318 source/projected/rendered records matched,
-zero discrepancies/5xx/unresolved effects. Eleven independent sections matched 13:08:51Z.
-Fingerprint sha256:26514be5d859fc67422645320cd445f9b0eb0543500c35f41ddc6086de7b46c3.
+Fresh guarded production Focus checks passed all 28 tasks on each of three workspaces, three
+Full/Focus round trips each at desktop/390px, unchanged disclosures/scroll/return links and zero
+app requests/writes/navigations/page errors. Dedicated outreach check passed both widths: collapsed
+context/secondary list, pointer/keyboard, unique alternatives, actual rent controls and repaired
+anchor; zero mutation attempts/errors/overflow. Internal-browser inspection also passed; its owned
+tab closed and viewport reset. Dirty input preservation was exercised locally, with no production
+field edits. Human acceptance and physical-phone testing remain NOT RUN.
 
-Internal-browser inspection confirmed compact Owner outreach, initially hidden nineteen-task list,
-critical warnings and actual secondary rent controls. It also found the pre-existing malformed
-Correct the current rent anchor caused by a server importing a value from a use-client module.
-A shared-target repair passed its fail-first boundary regression and 17 affected checks/four files.
-Full corrected-tree checks passed 9519 unit/455 backend, all gates/build/audit 0; core 32/22 skips.
-The anchor repair is committed at e9cd59f1. NEXT: exact-main CI and
-new frozen pair/admission/release, then fresh actual rendered anchor and desktop/390px readbacks.
-Do not alter completed/admitted frozen checkouts or reuse the consumed permit. Technical first-run
-passes do not close this observed navigation failure. Release evidence:
-docs/evidence/focus-maintenance-release-2026-10-11.md.
+Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=true, five existing secrets and
+allowance 50 retained; all 54 runtime keys match the predecessor except APP_COMMIT_SHA. No provider
+key, test/customer record, external message or RentVine chat read was used. Weekly draft original
+business content unchanged/unsent at 14:09:25.179Z. Complete Vendoroo integration remains open.
 
-Runtime Production/Live, managed identity, eleven Spaces, Demo=false, Sheet=true, five secret
-bindings and allowance 50 are preserved. Independent comparison: all 54 env keys matched except
-APP_COMMIT_SHA; worker/secret bindings unchanged. No provider key, customer message/record or
-RentVine chat read was used as proof. Original weekly draft unchanged/unsent at 10:54:46.218Z;
-perform a final read-only draft check after delivery. Human/physical phone NOT RUN.
+Captured predecessor 623152fb / pmi-kc-app-rmv3tf7u6-16d1e4a13e04, Sheet=true. Run-bound recovery
+pmi-kc-app-recovery-f0f1747f53ff4cec, receipt 5af7decd-6f32-4d76-9ac8-c26028837aa8, reference
+sha256:4694b0dc8c65eae4f33e4662667934595f06be2cdb0d6aee11a325986e69b06a. No rollback. Failed
+4d6494fc stopped before intent/build; original sub-check cause remains unverified. Its 617 state
+files and all first-release e4ea4d39 receipts/consumed state remain preserved outside Git.
+Evidence: docs/evidence/focus-maintenance-release-2026-10-11.md; initial verification/gap trace and
+Dan/Jon discussion: docs/evidence/focus-maintenance-followup-2026-10-11.md.
+Runtime work is complete. Documentation-only closure changes no served runtime; GitHub records its
+exact-main CI result. NEXT: chat L01–L26 report and unresolved-input discussion; do not redeploy docs.
 
-Captured predecessor 780f48db / pmi-kc-app-rmv2ixuq7-b0c62b52cd5d, Sheet=true. Run-bound recovery
-pmi-kc-app-recovery-e4ea4d39d9f74a0d, receipt 24c94459-0064-4ad6-9b27-35c8b599864f,
-reference sha256:2c82a497ba45ede35e908822e2b3092fa48086dbded1f9bb42e55cb0ae3ed096. No rollback.
-Failed 4d6494fc stopped before recovery intent/build; original sub-check cause unverified, independent
-13-route/monitoring diagnosis passed. Its 617 state files were archived before replacing the pair
-with reviewed configuration. Earlier failed runs/claims and all current receipts remain private.
-
-ACTIVE October program S183–S226/intake 055–098 remains unfinished: 44 suites/238 requirements,
+The entire October program S183–S226/intake 055–098 remains unfinished: 44 suites/238 requirements,
 203 mapped requirements verified/35 suites delivered. Keep five pending outcomes, three partial
-investigations and S226 closure. Unrelated acquisition/native-phone implementation is outside this
-follow-up. Complete Vendoroo integration remains required; staff history is not provider ingestion.
+investigations and S226 closure. No unrelated acquisition/native-phone implementation was started.
 
 ## Awaiting release
 
-1. S197: Repair the observed current-rent navigation across the server/client boundary; `e9cd59f1`.
-
-Full corrected-tree checks and core E2E passed. Exact-main CI, fresh prerequisites and locked
-admission remain required; S209 is already delivered and remains carried in this candidate.
+None. Both scoped repairs are verified delivered. This run's permit is consumed; no new candidate
+is authorized by the empty queue. Complete Vendoroo and other pending inputs retain their holds.
 
 ## Remaining material dependencies
 
@@ -74,17 +68,20 @@ S208/S217/S218/S220/S221 PENDING. Accessible S207/S216/S219 investigation is par
 Dan weekly review:one unsent draft saved/read back via original provider draft/message receipt;
 exact recipient/subject/body matched. Gmail supplied a different RFC header, stable on readback;
 original mismatch preserved. One creation, zero additional creates or sends. Body/private evidence
-stay outside Git. Next:consolidate missing material inputs in ordinary chat; do not Send.
+stay outside Git. Original draft was again unchanged/unsent at 2026-10-11T14:09:25.179Z; zero creates/sends.
+Next:consolidate missing material inputs in ordinary chat; do not Send.
 On new evidence revise the SAME five pending specifications, validate registrations before READY,
 then implement/verify/deliver their complete slices through existing gates. No phase-only consent.
 Separate 24-hour enrollment longevity and human observations remain unverified, not release gates.
 
 ## Workspace/evidence continuity
 
-Editing:/home/josiah/pmi-kc-work/operations-20261009, branch
-codex/operations-communications-maintenance-20261009. Original Windows HEAD 8406181c/64 dirty
-file hashes and original native HEAD 43bad3ad/clean status verified unchanged 15:27:12Z. Do not reset,
-absorb unrelated changes or edit admitted checkouts. Frozen registered C pair at 780f48db:
-operations-release-20261010c / operations-20261010c. Private receipts/config/evidence remain outside
-Git at /home/josiah/.local/state/pmi-kc-operations-20261010-delivery. Failed/ambiguous outcomes
-remain preserved. Use approved josiah@pmikcmetro.com WSL stores/profile only.
+Native authoring: /home/josiah/pmi-kc-work/focus-maintenance-followup-20261011, branch
+codex/focus-maintenance-followup-20261011. Preserve original Windows HEAD 8406181c and all 64 dirty
+file hashes (matched 13:45:40Z), and original native operations checkout HEAD bd1b3962/clean
+(matched 13:47:10Z). Frozen registered pair C at 72a30e25:
+focus-maintenance-release-20261011c / focus-maintenance-20261011c. Never alter admitted/completed
+frozen checkouts. Disposable local canaries were cleaned; retained logs/screenshots are evidence.
+Private release state: /home/josiah/.local/state/pmi-kc-followup-20261011-release. Prior private
+operations evidence and original failed outcomes remain intact. Approved managed WSL stores and
+owner-admin profile only; no identity, IAM, claim or credential-store substitution.

@@ -1,14 +1,14 @@
 # Active feature suites
 
-The latest gated release is run e4ea4d39-d9f7-4a0d-804d-21f4111cd3d3 at
-623152fb1718007d085dbfeb99fc22627ef5b3bf / pmi-kc-app-rmv3tf7u6-16d1e4a13e04, 100% traffic.
-Exact CI 38138750552, candidate/promotion/full observation and eleven independent sections passed.
-It carries the October 10 implementation and Owner outreach/maintenance readback repairs. Rendered
-inspection then found a pre-existing current-rent correction anchor defect; its narrow repair is
-locally verified and awaits full checks/commit/new release. The entire 44/238 program remains
-unfinished: 35 suites delivered, 203 requirements verified, five PENDING contracts, three partial
-investigations and S226 closure open. Human/physical phone NOT RUN; Editor browser not_run.
-See docs/facts.md and docs/evidence/focus-maintenance-release-2026-10-11.md for actual scopes.
+The latest gated release is run f0f1747f-53ff-4cec-b5bb-ff320b3b4467 at
+72a30e25537e8ea7ff79391146246c1f9b94375e / pmi-kc-app-rmv3vlx5t-b86fdd4c74ae, 100% traffic.
+Exact CI 38143875385, candidate/promotion/full observation and eleven independent sections passed.
+It carries October 10 functionality and the Owner outreach/maintenance repairs, including the
+observed server/client rent-anchor defect. Fresh three-workspace guarded Focus preservation and
+dedicated desktop/390px outreach/anchor checks passed. The entire 44/238 program remains unfinished:
+35 suites delivered, 203 requirements verified, five PENDING contracts, three partial investigations
+and S226 closure open. Human/physical phone NOT RUN; Editor browser not_run. See docs/facts.md and
+docs/evidence/focus-maintenance-release-2026-10-11.md for actual scopes.
 
 This directory contains current operating contracts, unfinished specifications, recent completed
 release contracts, and one explicitly unauthorized proposal. Older completed and superseded suite

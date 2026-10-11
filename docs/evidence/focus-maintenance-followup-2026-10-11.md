@@ -20,7 +20,8 @@ Complete S208 integration remains open.
 - Local repaired source: base bd1b3962623c9f7259d4cffe9d3db90f87bf9b12 plus the 19 source/test
   file hashes in [the source manifest](focus-maintenance-followup-2026-10-11.source.json).
   Bundle sha256:7effc9eb5385cca545ad70e799c84b5bb09a612602124d64302030459194e1a4.
-  Changes are uncommitted and undeployed. All changed runtime sources matched the disposable
+  At that initial checkpoint the changes were uncommitted and undeployed. All changed runtime
+  sources matched the disposable
   compiled maintenance fixture before its cleanup.
 - Current contracts consulted: AGENTS.md, facts, loop state, active suite index, S197,
   S207/S208 and S209–S215. S208 remains pending actual account/interface and operating inputs.

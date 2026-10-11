@@ -97,10 +97,99 @@ format/lint/type/policy/budget gates and the production build. Core E2E again pa
 22 existing configuration skips. The new regression's fixture was then changed to unknown rent,
 and 39 focused checks/seven files passed again; no customer value is part of that regression.
 Runtime code is unchanged from the full gate. Repair commit e9cd59f1 is the sole S197 queue item.
-Exact-main CI, a new admitted release and rendered
-navigation readback remain required.
+Exact-main CI, the new admitted release and rendered
+navigation readback subsequently passed as recorded below.
 
 Human acceptance and physical-phone testing remain NOT RUN. Complete Vendoroo event ingestion,
 open-work chronology, photos/call/troubleshooting/escalation coverage and takeover/stop contracts
 remain open. Existing RentVine data is reused where verified. The bounded provider read and
 historical reconciliation/mobile counts retain their exact scope. The weekly draft remains unsent.
+
+## Final cumulative release and rendered verification
+
+Run `f0f1747f-53ff-4cec-b5bb-ff320b3b4467` released the cumulative Focus/maintenance repairs at
+`72a30e25537e8ea7ff79391146246c1f9b94375e` / `pmi-kc-app-rmv3vlx5t-b86fdd4c74ae`, 100% traffic.
+Exact [CI 38143875385](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38143875385)
+passed all five jobs: 9,515 unit/four existing configuration skips and 455 backend. Complete local
+gate: 9,519 unit/1,017 files, 455 backend/79 files, required checks/build and production audit zero;
+core E2E 32 passed/22 existing skips. Lint passed with 79 warnings. One application build
+`2ea4d8b7-3b2e-4bc8-a5ac-2fa31e7b964e` succeeded 2026-10-11T13:54:46.423319Z. Candidate receipt
+`c56f1f00-7fe6-49f9-8ce8-80aa4931d2f7` issued 14:01:14.454Z; promotion verified 14:01:38.036Z.
+Managed GET readiness passed/restored PAUSED. Observation passed two checkpoints in 393,764ms
+within 300,000–480,000ms: all 318 source/projected/rendered records matched, zero discrepancies,
+candidate 5xx or unresolved effects. Eleven independent sections matched 14:08:41Z. Permit consumed.
+Production/Live, managed runtime identity, eleven Spaces, Demo=false, Sheet=true, five existing
+secret bindings and RentCast allowance 50 remain verified. All 54 runtime environment keys matched
+the predecessor except APP_COMMIT_SHA; worker settings and key boundaries were preserved.
+Tag `cand-rmv3vlx5t-b86fdd4c74ae`; fingerprint
+`sha256:aa6e15f51ddd0f5e3fcd3340b6345e9e242a85f9ab5c57eabeddfe62dd85c249`.
+Captured predecessor: `623152fb1718007d085dbfeb99fc22627ef5b3bf` / `pmi-kc-app-rmv3tf7u6-16d1e4a13e04`,
+Sheet=true. Recovery: `pmi-kc-app-recovery-f0f1747f53ff4cec`, receipt
+`5af7decd-6f32-4d76-9ac8-c26028837aa8`, reference
+`sha256:4694b0dc8c65eae4f33e4662667934595f06be2cdb0d6aee11a325986e69b06a`, preserving the actual
+predecessor image/configuration. No traffic rollback or business mutation was test proof.
+Three real-workspace guarded Focus journeys and the dedicated desktop/390px outreach check passed:
+all task/view round trips preserved the Full view; zero mutation attempts, page errors or overflow.
+Internal-browser inspection also verified the actual rent controls and repaired field anchor.
+Initial repairs 8462d2c6 and the fail-first server/client-boundary anchor repair e9cd59f1 are delivered.
+Failed run 4d6494fc, its unknown original sub-check cause and all 617 archived state files retain
+their actual outcomes; the completed first release e4ea4d39 and its receipts remain preserved.
+Evidence: docs/evidence/focus-maintenance-release-2026-10-11.md.
+The full 44/238 program remains unfinished (203 requirements verified, 35 suites delivered).
+Vendoroo/acquisition/native-phone/Dotloop inputs stay open; no provider key was activated. At
+14:09:25.179Z the original weekly draft was unchanged and unsent, with zero creates/sends.
+Editor browser: not_run under approved Admin-only policy.
+Human verdicts: **NOT RUN — no human observer**.
+
+The new frozen C pair used the reviewed B configuration byte-for-byte. All thirteen fresh preflight
+checks returned GO; locked admission collected fresh prerequisites again. The completed first run's
+checkpoint, consumed permit, prerequisites and selector were copied with matching hashes under the
+release lock before the new pair was registered. No admitted checkout or old receipt was rewritten.
+The single build is independently tied to the new Cloud Run revision through its build annotation,
+exact APP_COMMIT_SHA and deployed digest. Production versus predecessor comparison found the same
+54 keys with only APP_COMMIT_SHA changed; secret and worker bindings were identical.
+
+Guarded Focus preservation completed 14:10:53.057Z: three actual workspaces, all 28 tasks each,
+three Full/Focus round trips each, desktop and 390px, unchanged Full view signature, disclosure
+state, scroll position and desk link. Each journey recorded zero app requests, writes, navigations,
+page errors and horizontal overflow; the firewall recorded zero mutation attempts/blocked requests.
+
+Dedicated outreach verification completed 14:12:32.169Z on another bounded actual workspace at
+1280px and 390px: separate initially collapsed alternatives and rent context, pointer/Space/Enter,
+expanded-state announcements, hidden-tab exclusion, 21 distinct alternatives excluding the selected
+task, actual contractual-rent controls, repaired current-rent anchor and return to Owner outreach.
+Card heights were 437px/654px; no page overflow, page errors or mutation attempts. Internal-browser
+inspection of an actual workspace independently observed 19 alternatives and 424px/656px cards,
+actual rent-field navigation and preserved RentVine-versus-Sheet discrepancy despite equal displayed
+RentVine amounts. These are different lease observations, not a percentage-reduction comparison.
+Neither examined production lease had an entered working offer. Supplied working terms and dirty
+entry preservation were verified in the actual owning workspace locally; no production field was
+edited to manufacture proof. Human acceptance and physical-phone testing remain NOT RUN.
+
+The approved managed Gmail client read the original existing receipt at 14:09:25.179Z. The draft
+still existed; original from/to/subject/body matched. Body hash
+bffce288cc38ac81df43b195b1b35c01e7c4f10fb8bd776d1953a92c80a81128. Zero draft creates/sends.
+No Dan/Jon contact, provider activation, consequential RentVine chat read or production/customer
+test record was made. The October 10 draft retains its own bounded release/provider/mobile scope;
+these new Focus checks and the older 318/eleven/five-page counts do not prove complete Vendoroo
+coverage or physical-phone acceptance. Remaining Vendoroo, acquisition, native-phone and Dotloop
+inputs remain accurately open; the 44/238 program is not complete.
+
+Disposable local fixture source routes/staging roots, servers and emulator stores were cleaned
+after the local verification. Fresh full-suite emulator/core-E2E runners exited successfully and
+shut down their disposable resources. All owned internal-browser tabs are closed and its viewport
+reset; both guarded checks closed their managed browser contexts. Failed/passed logs, screenshots,
+immutable receipts and frozen release/recovery checkouts are retained as evidence. Original
+Windows HEAD and all 64 dirty-file hashes match; original native operations checkout remains clean
+at bd1b3962. No unrelated work was reset or staged. Documentation-only final closure changes no
+served runtime and requires its focused/policy checks and exact-main CI; no further deployment.
+
+The first documentation-closure focused run failed one stale predecessor-revision string in the
+handoff pin test (39 tests passed); the receipt and actual handoff predecessor were correct. The
+pin was aligned to the captured 623152fb revision without weakening the recovery assertions.
+The next focused run retained one failure because the rewritten handoff omitted the tested phrase
+Forward restoration. That wording and its receipt/reconciliation boundary were restored; no gate
+or test criterion was removed.
+The corrected documentation-closure group passed all 40 checks/seven files. Router, falsification,
+context, active paths, traceability, copy-voice and redaction checks passed again. Existing unrelated
+fact review-date warnings remain warnings; they do not claim fresh verification of those facts.
