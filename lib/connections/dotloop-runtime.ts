@@ -399,7 +399,7 @@ function failureKind(error: unknown): DotloopReadFailure {
 
 /**
  * Explicit, bounded resource discovery for the current connection generation: the account, the
- * profiles, the templates of each supported (and the selected) profile, and the optional
+ * profiles, templates for bounded supported and company/office diagnostic profiles, and the optional
  * subscription read. It is run only by an Admin's refresh, the post-consent verification and
  * provider-write admission; ordinary page renders reuse its labeled result.
  */
@@ -435,6 +435,9 @@ export async function observeDotloopResources(input: {
       ...profiles
         .filter((profile) => isSupportedDotloopProfileType(profile.type))
         .map((profile) => profile.id),
+      // A template visible to an admin can belong to a company/office. Observe that visibility
+      // without making the owning profile eligible for Loop-It or changing the saved selection.
+      ...profiles.map((profile) => profile.id),
     ]),
   ];
   const profilesTruncated = candidates.length > DOTLOOP_OBSERVED_PROFILE_LIMIT;

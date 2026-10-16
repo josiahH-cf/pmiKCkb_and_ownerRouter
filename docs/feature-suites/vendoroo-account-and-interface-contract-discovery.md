@@ -3,60 +3,41 @@
 
 # S207 — Verify the Vendoroo account and integration contract
 
-> Status: READY — finalized specification for later authorized implementation; no application, provider or Registry change is performed by authoring.
+> Status: READY — original authoring state retained for historical ledger consistency; operational requirements superseded by S227. Current scope is read-only retention compatibility; no operational execution is authorized by this file.
 > Intake: 079. Authored: 2026-10-09. Source baseline: WSL main `43bad3ad`; recorded serving baseline: `337ac163` (2026-10-08). These are contextual baselines, not new live verification.
 > Bundle: `operations-communications-maintenance-2026-10`.
 
 **Goal.**
 
-Establish a source-backed account/interface contract that either enables a precise Vendoroo integration specification or names the exact missing capability and owner/vendor input.
+Retain the original maintenance/vendor records, receipts, permissions and historical requirement evidence after custom maintenance retirement. S227 owns the current operating contract; Vendoroo remains standalone.
 
 **Current state / intended end state.**
 
-S133 delivered a bounded assessment, and the October 1 decision previously chose Vendoroo through shared RentVine records with no direct connector. The newer owner direction requests complete Vendoroo integration and supersedes that desired scope. No direct connector exists in current code. Official Vendoroo documentation now describes a company-scoped read-only Rooceptionist MCP, but this account's access and open-work-order coverage are unverified.
-
-Complete a bounded necessary investigation of the actual subscribed modules and approved integration interface, with a field/identity/freshness/effect/retention contract and explicit findings for every required maintenance input. This is READY discovery scope; it is not a disguised finalized S208.
-
-**October 10 execution continuation.** The owner's latest direction makes separate Vendoroo
-access conditional on a demonstrated gap; investigate the existing Vendoroo–RentVine integration
-first. The approved existing typed RentVine reader passed one bounded 15-order page, 15 status
-definitions and one detail. All sampled orders were lease-linked and nine had vendor associations.
-This proves current read access only, without historical backfill or a new provider effect. It does
-not establish Vendoroo origin, call/transcript/troubleshooting completeness, event/freshness semantics
-or staff takeover. Required coverage and ownership must be verified through the real RentVine
-projection or, only where a demonstrated gap requires it, an actual supported Vendoroo interface.
-No duplicate access request is authorized. S208 remains PENDING until that contract is complete;
-direct connector credentials are not assumed to be a universal prerequisite.
+October 15 30:54–31:32 and the confirming maintenance emails retire the custom workflow. The source baseline 0b892865 contains the earlier implementation or proposal recorded below; S227 retires operational entry and preserves authorized read-only history. S227–S229 are under verification, with no new deployment claimed. Earlier authoring and delivery evidence retains its original scope.
 
 **Actors and entry conditions.**
 
-Authorized implementation runner reads official material and harmless approved account surfaces; PMI's account administrator and Vendoroo account manager supply account-specific facts. No browser password/code/passkey, account change or provider action is performed as discovery.
+Existing authorized readers retain their current permissions. No new maintenance intake, vendor work, provider action, maintenance draft, integration access request or old proof window may start from this contract. Shared renewal and knowledge behavior remains separately owned.
 
 **What it is / how it functions.**
 
-- **R-S207-1 — Identify actual account and modules.** Verify company/account, subscription and enabled Rooceptionist, ResiRoo or other modules from authorized source material. Treat Vendoroo/Roo terminology as one verified product family without assuming every advertised module is subscribed.
-- **R-S207-2 — Establish supported interface and application use.** Verify MCP/API/export/webhook availability, credentials, permitted application embedding/server use, tool/schema/version, rate/size limits and account scope. Official company-secret MCP URL access is read-only; do not guess endpoints or infer production-use terms.
-- **R-S207-3 — Prove required data coverage and joins.** Inventory call outcomes, transcripts/recording links, troubleshooting attempts, photos, sentiment, escalation/ownership, work-order/property/unit/lease identifiers and timestamps. Establish open-work-order versus close-only availability and stable event identity; distinguish imported provider claims from staff review.
-- **R-S207-4 — Own takeover, effects and recovery.** Verify who owns intake, troubleshooting, escalation, resident communication, staff takeover and status; establish duplicate/out-of-order handling and any stateful reads. Preserve the documented ResiRoo stop-on-PM-takeover meaning where applicable.
-- **R-S207-5 — Deliver actionable readiness and unblock output.** Produce a counts/enums-only public finding plus private contract evidence and a precise approved-account input list for Dan/provider. S208 becomes authorable only when interface/application permission/open-ticket/identity semantics are established or the owner explicitly selects a narrower supported outcome.
+Read-only retention uses the existing stores and receipt/history readers under their original authorization, with operational requests refused before dispatch. No records are deleted or relabeled. Current maintenance is managed in standalone Vendoroo; no destination URL or integration is invented.
 
 **In scope / out of scope.**
 
-In scope: account/module/interface/data/effect/ownership investigation and an actionable evidence-backed unblock result. Out of scope: integration implementation, phone routing or subscription changes, credential sharing in Git/chat, contacting a guessed recipient, proof records or provider writes.
+Only retention, historical interpretation and permission compatibility remain applicable. All former operational maintenance/vendor requirements and Vendoroo ingestion work in the historical trace below are superseded by S227. Raw private sources remain outside Git. This file grants no new execution or release authority.
 
 **Open questions & assumptions.**
 
-The subscribed modules, enabled account interface, permitted application use, actual tool/schema contract, open-work-order coverage and stable identity/event linkage are not established. Those are this investigation's necessary output, not invented assumptions. An exact input may remain externally blocked after all accessible investigation is complete.
-
-No material product decision is deferred inside this READY scope. Actual identities, approved runtime policies, financial values and provider configuration are inputs, not values the implementation runner invents. Their absence blocks only the named dependent operation; implementation and independent verification proceed.
+Former provider/account/policy inputs are not prerequisites for retirement and must not trigger duplicate requests. Fresh read-only provider evidence and deployment are held only by the exact authentication/browser limitations recorded in docs/open-blockers.md. Missing observations are not success.
 
 **Cross-product impacts.**
 
-- `lib/maintenance/external-agent-handoff-assessment.ts`; existing S133 evidence qualification and capability/ownership schema.
-- `docs/open-blockers.md`, `docs/integration-architecture.md` and S208 — later verified account holds and integration contract reconciliation.
-- Current RentVine reader/chat/link owners — assess actual shared-record coverage without assuming it includes Vendoroo's open-work-order evidence.
+S227 owns retired HTTP and shared effect admission, authorized history and reports. Existing stores, receipts and permissions remain unchanged. Renewal, workflow-linked unsent communications, search and knowledge retain their independent contracts. The historical architecture below identifies original owners for preservation only; it does not request extensions or integration.
 
 **Authority and evidence map.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 | Input                                                                            | Classification                             | Use and limitation                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | -------------------------------------------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -68,6 +49,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 
 **Architecture outcome (deterministic, fail-first).**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 - **ARCH-S207-1** — Extend the evidence/ownership structures in `external-agent-handoff-assessment.ts`; bind each conclusion to source/date/account scope with secrets kept private. Freeze a focused falsification before changing this boundary.
 - **ARCH-S207-2** — Document a concrete interface contract only from primary material/authorized harmless inspection; store credential references privately and redact secret URLs from artifacts. Freeze a focused falsification before changing this boundary.
 - **ARCH-S207-3** — Produce a field/direction/freshness/identity matrix with real documented sample topology kept private; evaluate verified RentVine overlap without double-counting. Freeze a focused falsification before changing this boundary.
@@ -75,6 +58,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 - **ARCH-S207-5** — Validate discovery completeness using the existing assessment schema, with supported/unsupported/inconclusive states; do not create an invented connector to satisfy an evidence row. Freeze a focused falsification before changing this boundary.
 
 **Behavior outcome (deterministic, fail-first).**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 - **BEH-S207-1** — The finding names the subscribed modules or the exact missing account evidence; marketing is not reported as enabled capability.
 - **BEH-S207-2** — The implementer can tell which interface may be used by this application and which usage/transport is still unsupported.
@@ -84,6 +69,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 
 **Human litmus outcome.**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 ### Know exactly what the actual Vendoroo account can support
 
 **If this was built correctly:** PMI reviews a clear account-backed coverage matrix showing which intake, call, troubleshooting and open-work data the subscribed Vendoroo service can supply, which interface the app is allowed to use, and precisely what account or provider input is still needed. Public marketing or a test adapter does not make the integration ready.
@@ -92,6 +79,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 | Requirement                                                 | Architecture outcome | Behavior outcome | Human litmus                                              | Acceptance / deterministic falsification                                                                                                                                                 |
 | ----------------------------------------------------------- | -------------------- | ---------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -109,6 +98,8 @@ Preservation is a separate result from new behavior. Existing tests are retained
 
 **Adversarial acceptance checks.**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 - **AC-S207-1** — R-S207-1, ARCH-S207-1, BEH-S207-1: Supply marketing-only, conflicting and actual account evidence; only the account-backed conclusion may establish subscription.
 - **AC-S207-2** — R-S207-2, ARCH-S207-2, BEH-S207-2: A valid documentation page without account entitlement or application permission cannot make readiness true; an unavailable interface produces an exact unblock request.
 - **AC-S207-3** — R-S207-3, ARCH-S207-3, BEH-S207-3: Check same-name residents, multiple leases, absent stable IDs and close-only communication logs; none silently establishes a reliable join or timely open-ticket integration.
@@ -123,34 +114,32 @@ Across this suite: no fabricated customer/provider identity or amount, secret/ra
 
 **Dependencies / sequencing.**
 
-First dependency for S208 final authoring. May proceed alongside S205/S206/S209–S215. S133 is reused as evidence structure, not revived as an independent old integration program.
+Use S227 for maintenance retirement and retained read-only compatibility. S228 owns current Dotloop diagnostics and S229 renewal/unsent communications preservation. Do not resume the old maintenance, Vendoroo integration or proof sequence from this historical contract.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** Complete bounded discovery matrix, source-qualified ownership/data/recovery findings and exact unblock request; validated even when a capability honestly reads Not established.
-- **Consumes, but does not assume:** Official documents, actual approved company account materials and account-manager inputs; absence is preserved at the affected matrix cell.
-- **Externally blocked effect:** Account-only inspection/schema and entitlement confirmation wait for actual approved account access/vendor response; no provider proof is authorized or needed by this suite.
-- **Produces for downstream suites:** Exact provider/account/field/identity/effect contract or named evidence gaps that determine S208's next clarification.
+- **Deliverable now:** The S227 retirement/retention slice, preserving original evidence without migration effects.
+- **Consumes, but does not assume:** Existing authorized history and exact receipts.
+- **Externally blocked effect:** No former maintenance/provider effect is requested. Current live verification holds are in docs/open-blockers.md.
+- **Produces for downstream suites:** Original record/receipt meanings and permissions, without new operational authority.
 
 **Verification and delivery contract.**
 
-1. Re-read current owners and refresh the baseline before implementation. Materialize the named architecture, behavior and acceptance falsifications; record pre-existing unrelated failures separately.
-2. Exercise every row with service/transaction and rendered journeys appropriate to the outcome, including denial, interruption, concurrency and partial completion. Use isolated local fixtures and deterministic external adapters; keep the preservation result separate.
-3. Read back saved artifacts/state and reconcile them with the acted-on identity/version. A UI success label, supplied example or passing adapter cannot establish live provider success.
-4. Run focused checks, then `bash scripts/verify.sh` and applicable compiled-browser checks for any later ship candidate. Audit secrets/PII, authority, runtime configuration and cross-suite traceability.
-5. A later authorized implementation reports ALL_GATES_GREEN only for completed declared engineering checks; a named live/account proof remains separately BLOCKED when its input is missing. BUDGET_EXHAUSTED applies only to an explicit budget. Never label the whole operational outcome complete from a partial green slice.
-6. Authoring registration/validation is documentary only. Commit, push, deployment, implementation-loop start and external communication require their own explicit instruction.
+1. Verify current S227 retirement and read-only retention through the real request, service and authorized reader boundaries.
+2. Preserve original requirement IDs, historical verdicts, records and receipt meanings. Do not execute the superseded operational acceptance outcomes or collect retired integration inputs.
+3. Use S227-S229 for current focused regressions, required repository checks and authorized gated delivery. Record local, live-provider, human and deployment outcomes separately; missing evidence cannot become success.
+4. Report ALL_GATES_GREEN only for actually completed current engineering gates, BUDGET_EXHAUSTED only for an explicit budget, or BLOCKED with its exact unavailable external input after independent work. These terminal states do not resume the superseded operational outcomes.
 
 **Ordered prompt sequence.**
 
-1. Re-verify current source, accepted decisions, dependency contracts and relevant read-only state.
-2. Freeze the requirement/architecture/behavior/acceptance matrix and preservation baseline before implementation.
-3. Implement the bounded owner and all unavailable/recovery paths; reuse existing services and keep adjacent suite ownership explicit.
-4. Falsify every row, read back persisted results, run focused/canonical checks, update verified current documentation and deliver only when separately authorized.
+1. Read the current router and S227; verify actual retirement/retention behavior.
+2. Use original evidence below only for provenance and preservation scope.
+3. Do not execute former operational instructions, collect retired integration inputs or rerun completed proofs.
+4. Verify and deliver the currently authorized S227–S229 slice through existing gates.
 
 **Deletion/merge recommendation.**
 
-Merge verified findings into the finalized S208 contract and current integration/open-blocker facts when supported. Keep S208 pending for any remaining material gap; discovery completion never implies connector completion.
+The original operational contract is superseded by S227. Its historical trace remains temporarily available for native program-ledger consistency; it is not an execution queue. Remove that provenance only with its remaining evidence references reconciled, retaining originals in Git history.
 
 ## Execution investigation readback — 2026-10-10 UTC
 

@@ -1,6 +1,6 @@
 # Unblock packet
 
-Last reconciled: 2026-10-10 (S183–S226 started; accessible Vendoroo, acquisition and native-answering evidence inspected; their five dependent contracts remain pending; A1 now names who can make the Dotloop renewal template: the connected integrations login is a limited Dotloop admin, so a full company admin must create it, and the owner sent that request to Dan on 2026-10-08; runs 5b5c850e and 87920129 released Dotloop PDF renewal v1; the owner approved release warm-ups and a minute-eight observation deadline; other holds retain their recorded evidence).
+Last reconciled: 2026-10-16 (template reported active; obsolete creation request removed; current managed authentication/browser holds recorded).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only its named effect or dependent release phase; independent
@@ -11,23 +11,26 @@ substitute value, identifier, credential or human verdict to clear a hold.
 
 ## Holds at a glance
 
-| Id        | Blocks only                                                         | Owner step                                                                                                                                                                              | Then the runner                                                                                                        |
-| --------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| B-AUTH2   | Separate 25-hour unchanged-enrollment longevity claim               | A4: session exception, then re-enroll WSL                                                                                                                                               | Runs the fresh-shell CLI/ADC probe to 25 hours and records the result                                                  |
-| B-MNT1    | Import of actual RentVine preapproval values (S108)                 | A3: preview and confirm the RentVine import                                                                                                                                             | Reads back the recorded preapprovals and their effective date                                                          |
-| B-S100    | The resident-reply draft key, so S100 and then S36 completion       | A2: ticket, link work order 1756, one sync                                                                                                                                              | Verifies the resident mapping read-only, then runs the bounded draft proof (Q3)                                        |
-| B-TIMING  | Approved 30-day notice classifications (they read Cannot determine) | A5: record the decided basis in Admin                                                                                                                                                   | Reads back the saved basis version                                                                                     |
-| B-DL2     | The Dotloop connection's selected resources                         | A1: a full Dotloop admin (asked: Dan, 2026-10-08) creates the Lease Renewal template and adds the integrations login to the office; then the owner selects the resources in Connections | Reads back profile/template readiness; both Dotloop keys stay closed                                                   |
-| B-DL3     | Approved form content/maps and rules for the selected lease packet  | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup                                                       | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output |
-| B-BROWSER | Release assurance, only when Google signs the Admin profile out     | A6: sign the Admin profile back in                                                                                                                                                      | Recollects prerequisites and continues the release                                                                     |
-| B-HUMAN   | Human verdicts and real-case accuracy claims only                   | E2: observed sessions and real material                                                                                                                                                 | Records each verdict with its evidence; nothing is inferred from tests                                                 |
+| Id        | Blocks only                                                          | Owner step                                                                                                                        | Then the runner                                                                                                           |
+| --------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| B-AUTH2   | Separate historical 25-hour unchanged-enrollment longevity claim     | No longevity or policy-change step requested by this execution                                                                    | Preserve the unverified claim; current reauthentication is handled by B-AUTH-CURRENT                                      |
+| B-MNT1    | No current effect; maintenance import retired                        | No owner import step requested                                                                                                    | Preserve original preapproval/history records; S227 owns current retention                                                |
+| B-S100    | No current proof; remaining maintenance resident-draft proof retired | No ticket/link/sync step requested                                                                                                | Preserve completed receipts and closed resident-draft key; no proof rerun                                                 |
+| B-TIMING  | Approved 30-day notice classifications (they read Cannot determine)  | A5: record the decided basis in Admin                                                                                             | Reads back the saved basis version                                                                                        |
+| B-DL2     | Fresh supported Dotloop resource/selection evidence only             | Template reported active October 15; no repeat setup request                                                                      | Runner rechecks current owning-profile visibility and selection after approved auth recovery; both write keys stay closed |
+| B-DL3     | Approved form content/maps and rules for the selected lease packet   | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output    |
+| B-BROWSER | Release assurance, only when Google signs the Admin profile out      | A6: sign the Admin profile back in                                                                                                | Recollects prerequisites and continues the release                                                                        |
+| B-HUMAN   | Human verdicts and real-case accuracy claims only                    | E2: observed sessions and real material                                                                                           | Records each verdict with its evidence; nothing is inferred from tests                                                    |
 
-## Current program dependencies — S183–S226
+## Current hold and historical program dependencies
 
-- **B-AUTH-CURRENT — cleared October 10.** Fresh approved WSL CLI/ADC refresh and existing
-  managed Admin browser assurance passed for josiah@pmikcmetro.com. The selected clean release pair
-  reuses only the approved three-field RentVine provider configuration with production flags.
-  Independent session longevity remains unverified and is not a repeated release prerequisite.
+- **B-AUTH-CURRENT — October 16.** Approved WSL `auth:ensure -- --unattended` reports
+  CLI/ADC refresh requires human reauthentication for the existing managed account; GitHub is ready.
+  Run `npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com` through the approved
+  WSL host when available, then the runner rechecks the same store/identity. No substitute credentials
+  or identity change. This blocks fresh cloud/provider reads and gated release only; local work continues.
+  Browser automation separately fails before inventory (platform directory unavailable), including
+  one reset/retry. Restore that supported runtime before browser assurance. No login UI was automated.
 - **B-COMMUNICATIONS-RUNTIME — verified October 10.** Run5b3dfb90 passed exact managed candidate
   GET readiness/restoration, normal Gmail connection, guarded assurance, promotion, full observation
   and eleven readbacks. Only two notice keys activated; minute worker ENABLED with normal empty
@@ -35,13 +38,10 @@ substitute value, identifier, credential or human verdict to clear a hold.
   probes and original attempts remain preserved. No new Gmail subscription or customer send was
   proof. This is no longer a hold.
 
-- **B-VENDOROO-CONTRACT (S208).** The owner's latest direction makes separate Vendoroo access
-  conditional on a demonstrated gap in the existing RentVine integration. Current typed RentVine
-  reads passed one 15-order page, 15 statuses and one detail, with verified lease/vendor associations.
-  This establishes bounded access, not full call/troubleshooting/attribution/freshness/takeover
-  coverage. Verify those required inputs through the real RentVine projection first; request direct
-  access only if a demonstrated missing capability needs it. S208 remains PENDING. The existing
-  access request and authorized reply were checked; no duplicate/additional message was sent.
+- **B-VENDOROO-CONTRACT — retired by October 15 direction.** Custom maintenance and Vendoroo
+  integration are outside the current application. Vendoroo stays standalone. No new Vendoroo
+  account/interface/access request or integration implementation is needed for S227–S229. Original
+  S207/S208 investigation evidence retains its historical scope and is not an execution trigger.
 - **B-ACQUISITION-CONTRACT (S217/S218).** No identified actual source sample/custodian, exact
   object/document list, existing/new matching basis, financial opening/inclusion/cutover decision,
   or confirmed destination import contract is available. A bounded repository filename inventory
@@ -51,13 +51,13 @@ substitute value, identifier, credential or human verdict to clear a hold.
   contacts/troubleshooting/consent/recording policy, and cost/cutover/rollback decisions are missing.
   S219 records the readback. No phone provider, coverage or operating policy is guessed.
 
-The five pending outcomes remain required. Independent owning-service implementation and 35
-suites are verified delivered at 780f48db / run 5b3dfb90;203 of238 requirements are verified. Runtime
-Communications is no longer blocked by enrollment or deployment. Unset reviewed policy remains
+The older program ledger retains its original five pending outcomes as historical scope; the October 16 execution does not resume them. Independent owning-service implementation and 35
+suites are verified delivered at 780f48db / run 5b3dfb90;203 of238 requirements are verified. The October 10 runtime receipt is historical; current fresh provider/release verification is blocked by the managed authentication/browser holds above. Unset reviewed policy remains
 unset. The owner instruction carries scope through phases and repairs; remaining holds request
-material facts. Dotloop A1 remains partial: eligible office/profile/template and saved supported
-profile/template/status are missing; existing owners retain requests, both write keys closed and
-S182 exclusions preserved.
+material facts only for their original scope. Earlier Dotloop A1 lacked a supported resource
+selection. Current owning-profile visibility and saved selection remain unverified until fresh
+authorized readback; the October 15 active-template report must be checked before any setup request.
+Both write keys remain closed and S182 exclusions are preserved.
 
 ## Owner decisions
 
@@ -81,121 +81,45 @@ Recorded on 2026-10-02 (`accept all recommendations`):
 
 Earlier decisions stand: RentVine's per-property maintenance limits are the S108 source (B-MNT1,
 2026-10-01); RentVine work order 101756 (API id 1756) is the S100 target; B-MNT2 closed with
-Vendoroo's agent writing into RentVine and no direct connector under that older contract. The owner now explicitly requires complete Vendoroo integration in S207/S208; the older closure does not satisfy it.
+Vendoroo's agent writing into RentVine and no direct connector under that older contract. The October 15 direction supersedes custom maintenance and Vendoroo integration; S227 retains their historical evidence without an integration request.
 
 ## Owner steps
 
-**A1. Dotloop renewal template and resources (B-DL2).** Waiting on a full Dotloop admin since
-2026-10-08. The company connection is authorized (2026-10-07, granted scopes `account:*`,
-`profile:*`, `loop:*`, `contact:*` and `template:*`; F-DOTLOOP-CONNECTION-CHECK). Why it waits
-(F-DOTLOOP-ADMIN-RIGHTS):
+**A1. Dotloop renewal template and resources (B-DL2).** October 15 3:01–8:22 reports that
+an active Lease Renewal loop template already exists. The older request to create it is superseded;
+do not ask the owner to repeat completed setup. An API defect is a hypothesis, not established cause.
 
-Fresh 2026-10-10T11:47:04.831Z owning-service resource readback passed: account, two profiles,
-one supported individual, zero templates and no saved profile/template/transaction selection.
-Loop-write scope is reported; readiness remains missing_resources. Both keys stay closed.
-This refresh supersedes the authentication hold, not the full-admin template/office request.
+The last recorded owning-service read was October 10: two profiles, one supported individual,
+zero templates and no saved supported selection. It predates the reported template. Current source
+adds bounded company/office template observations for diagnosis; these do not grant Loop-It eligibility.
 
-- The connected login, `integrations@pmikcmetro.com`, holds a free personal "Default Profile"
-  (the individual profile the app sees, with zero templates) and a limited admin profile for
-  "PMI KC Metro Company" on Business+. That admin profile's top bar shows Reporting, Loops and
-  Tasks but no People or Templates, which is how Dotloop presents an admin whose Manage People
-  and Manage Templates rights are off. The login cannot create a loop template or add itself to
-  the office.
-- The app lists templates only for individual profiles (`lib/connections/dotloop-readiness.ts`),
-  and a company loop template reaches only individual profiles attached to the company, so the
-  integrations login also needs an agent profile in the office.
-
-Step 1, a full company admin (the owner emailed these steps to Dan on 2026-10-08; he may take a
-while). Sign in at https://www.dotloop.com/my/login (it shows a Zillow Pro sign-in page), switch
-to the PMI KC Metro Company admin profile and check that People and Templates appear, then:
-
-1. Templates → Loop Templates → + New Loop Template. Name **Lease Renewal**, transaction type
-   **Lease** (the API's `LEASE_OFFER`; it cannot be changed later), Create Template, Save at the
-   bottom of the page, then **Enable** on the "This loop template is disabled" bar. No documents
-   are needed, and "Make global and hidden" stays off.
-2. People → the office listed under the company (not the company level) → + Add Person: full
-   name Integrations API, email `integrations@pmikcmetro.com`, message blank, Add as admin
-   unchecked → Add Person. The owner confirmed the paid seat is not a constraint.
-
-Dotloop's guides: https://support.dotloop.com/s/article/Loop-Templates and
-https://support.dotloop.com/s/article/Add-agent-and-remove-agent. If Add Person refuses the
-existing email, Dotloop support (support@dotloop.com or the in-app chat) handles an admin with no
-agent-level profile. Alternative: a full admin ticks Manage Templates and Manage People for
-Integrations API (People → Brokerage → ⋮ Show Admins → ⋮ Edit Admin Rights) and the owner does
-step 1 as integrations@; the first route keeps the integration login least-privileged.
-
-Step 2, the owner: sign in to Dotloop once as integrations@ and accept the pop-up that offers the
-company profile as the default. Then in the production app, as an Admin: **Connections** →
-**Refresh Dotloop resources** → **Dotloop profile**: the PMI KC Metro agent profile, not "Default
-Profile" → **Renewal template**: Lease Renewal → **Initial loop status**: the team's choice
-(Pre-offer is the first lease-offer status) → **Save renewal resources**. Nobody shares the
-integrations password or reconnects Dotloop for this step.
-
-Runner, once the owner reports A1 done: run the read-only readback, which reads
-`connector_connections/dotloop`, `dotloop_connection_observations/current` and
-`dotloop_renewal_settings/current` through ADC and prints only enums, counts and booleans (the
-script is git-ignored and lives only in this native checkout):
-
-```bash
-cd ~/pmi-kc-work/dlv1 && export PATH=/home/josiah/.local/opt/node-v22.23.2-linux-x64/bin:/snap/google-cloud-cli/current/bin:$PATH GOOGLE_CLOUD_PROJECT=pmi-kc-kb-prod && timeout 120 npx tsx output/dotloop-connection-readback.ts
-```
-
-Done when the connection reads connected on its current generation, the observation lists the new
-individual profile with at least one template and no error, and the selection reads back a
-supported profile, a lease-type template and an initial status, so readiness moves past
-`missing_resources`. Record the counts here and in F-DOTLOOP-CONNECTION-CHECK, then remove the
-row. Selecting resources creates no loop and uploads nothing; both Dotloop keys stay closed.
-
-**A2. S100 ticket, link and sync (B-S100).** In the app's Maintenance area, signed in as yourself:
-
-1. Create the app ticket for work order 101756, with its verified unit.
-2. Choose **Link an existing work order** (not Create work order), enter id `1756` and confirm the
-   preview.
-3. Run **Sync resident messages** once and confirm its warning. The provider marks the retrieved
-   manager messages read and cannot undo that.
-
-Done when the ticket shows work order 1756 linked and one completed sync.
-
-Readback 2026-10-02 (after A2 was reported done): production holds no ticket for work order
-101756, no link to work order 1756 and no synchronized message. Its maintenance tickets, links,
-prepared actions, activity and chat records are unchanged since 2026-09-02, and no execution was
-recorded that day. Redo the three steps on the production app
-(`https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`) signed in as `josiah@pmikcmetro.com`, completing
-each preview's confirmation. A local or demo app writes elsewhere and does not count.
-
-**A3. S108 preapproval import (B-MNT1).** Maintenance → Import from RentVine: **Preview RentVine
-maintenance limits**, read the "Left for manual review" notes, set **Effective from** (today unless
-you want a later date), then **Review the import** → **Record these preapprovals**. The preview
-covered 30 of 121 active properties on 2026-10-01; the records are app-owned and correctable.
-
-**A4. Google Cloud session exception and re-enrollment (B-AUTH2, Q1 = A).** As a super admin in
-admin.google.com:
-
-1. Directory → Organizational units: create a child of your current unit (for example "Release
-   automation") and move `josiah@pmikcmetro.com` into it.
-2. Security → Access and data control → API controls → Manage third-party app access: mark
-   **Google Cloud SDK** (`32555940559.apps.googleusercontent.com`) and **Google Auth Library**
-   (`764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com`) Trusted for that unit.
-3. Security → Access and data control → Google Cloud session control: select that unit, choose
-   Override, keep Require reauthentication, tick **Exempt Trusted apps**, save. Changes usually
-   apply within minutes and can take up to 24 hours.
-4. When no release is running, re-enroll in WSL:
+Runner follow-up: restore the approved managed read route, observe current account/profile/office
+and template responses through the existing typed GET client, distinguish failed/empty/unobserved
+lists, and verify a fresh supported profile/template/transaction/status selection. Request an exact
+remaining office/profile eligibility action only if those current observations prove it is needed.
+Both Dotloop write keys stay closed. No loop, upload, signature, forced expiry or customer mutation
+is proof. S182 API-origin exclusions remain.
+**A2. Remaining S100 maintenance proof — retired from this execution.** Do not create a ticket,
+link a work order or synchronize consequential manager chat reads to prove maintenance after
+retirement. Original completed receipts retain their meanings; the resident-draft key stays closed.
+No synthetic or live customer draft is proof. Shared Space-pilot work receives no new execution grant.
+**A3. Maintenance preapproval import — retired from this execution.** Existing preapprovals and
+financial evidence remain retained and readable under their original permissions. No import,
+provider read/write or policy activation is required for current maintenance retirement.
+**A4. Current managed authentication and separate longevity claim.** The October 16 approved
+WSL CLI/ADC refresh probes require human reauthentication for the existing managed account.
+Use the existing approved enrollment flow; the runner does not change any session policy, IAM,
+claim, identity or credential store and never enters a password, code, passkey or CAPTCHA.
 
 ```bash
 cd ~/pmi-kc-work/main && npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com
 ```
 
-Done when the command ends READY for WSL CLI and ADC. The Cloud console in a browser still asks
-for sign-in on its own schedule.
-
-Readback 2026-10-02 18:17Z: the WSL CLI refresh failed on Google's reauthentication wall while ADC
-still refreshed. A deploy needs both, so the next release waits for this command (step 4) even
-before the session exception exists.
-
-Readback 2026-10-02 19:43Z: after the owner signed in again, an unattended `auth:ensure` returned
-READY with verified token refresh for the WSL CLI and ADC, so releases proceed. The 25-hour
-fresh-shell probe follows once the session exception (steps 1–3) is in place.
-
+After the approved store changes, the runner performs fresh auth:ensure probes and resumes the
+same unambiguous read/release checkpoint. No source/provider success is inferred from elapsed
+time or enrollment alone. The separate 25-hour unchanged-enrollment longevity claim is unverified
+and is not a release prerequisite. Earlier session-policy instructions remain in Git history;
+they are not a required change or new grant in this execution.
 **A5. Record the notice timing basis (B-TIMING, Q2 = A).** Admin → notice timing basis: target
 **contractual lease-end date**, counting rule calendar days (target minus notice, exactly the
 threshold satisfies it), threshold **30**, and a review note naming who confirmed it and where.

@@ -3,49 +3,41 @@
 
 # S205 — Assessment-first maintenance lifecycle and staff control
 
-> Status: READY — finalized specification for later authorized implementation; no application, provider or Registry change is performed by authoring.
+> Status: READY — original authoring state retained for historical ledger consistency; operational requirements superseded by S227. Current scope is read-only retention compatibility; no operational execution is authorized by this file.
 > Intake: 077. Authored: 2026-10-09. Source baseline: WSL main `43bad3ad`; recorded serving baseline: `337ac163` (2026-10-08). These are contextual baselines, not new live verification.
 > Bundle: `operations-communications-maintenance-2026-10`.
 
 **Goal.**
 
-PMI staff can assess a reported issue and its troubleshooting evidence before deciding whether any owner approval, vendor action or communication is necessary.
+Retain the original maintenance/vendor records, receipts, permissions and historical requirement evidence after custom maintenance retirement. S227 owns the current operating contract; Vendoroo remains standalone.
 
 **Current state / intended end state.**
 
-`MaintenanceCapture.tsx` builds a work-order draft, owner-notice preview and vendor-trade suggestion together. `waiting-on.ts` prioritizes owner approval when an estimate/preapproval is absent, without a complete assessment lifecycle. Tickets already support staff status/note/estimate/close/reopen actions; public intake is separately quarantined.
-
-Introduce an explicit, durable assessment-first journey over the existing ticket: assess and resolve through troubleshooting where possible, otherwise size work, apply an actual standing preapproval or request the required owner decision, coordinate approved work, review completion and close through PMI. An intake does not automatically require an owner email.
+October 15 30:54–31:32 and the confirming maintenance emails retire the custom workflow. The source baseline 0b892865 contains the earlier implementation or proposal recorded below; S227 retires operational entry and preserves authorized read-only history. S227–S229 are under verification, with no new deployment claimed. Earlier authoring and delivery evidence retains its original scope.
 
 **Actors and entry conditions.**
 
-Ordinary authorized maintenance staff assess and manage real tickets; current Admin controls maintain approved policies. Assigned vendors report their own work through S211/S212. PMI staff retain final closure/reopening; a vendor's completion report is not closure or provider verification.
+Existing authorized readers retain their current permissions. No new maintenance intake, vendor work, provider action, maintenance draft, integration access request or old proof window may start from this contract. Shared renewal and knowledge behavior remains separately owned.
 
 **What it is / how it functions.**
 
-- **R-S205-1 — Assess before approval.** Present intake facts, source/troubleshooting evidence, urgency and unresolved location as the first working context. Staff may record resolved-by-troubleshooting, needs information, estimate needed or work required, with attributable time/reason; owner approval is evaluated after that assessment.
-- **R-S205-2 — Conditional owner decision.** Derive whether owner approval is actually required from the current assessed work, cost basis, effective policy and provider evidence. Recognize actual standing preapproval; absent or conflicting policy is clearly unresolved. Preserve a staff option to communicate without making email a gate.
-- **R-S205-3 — Staff-controlled lifecycle.** Support troubleshooting resolution, awaiting information/estimate, owner decision, vendor coordination, scheduled/in progress, completion review, closed/cancelled and reopening as explicit observable outcomes. Reuse existing status vocabulary where suitable; distinguish richer workflow stages from RentVine status.
-- **R-S205-4 — PMI final closure.** Vendors can report work complete; only permitted PMI staff accept completion and close/reopen the ticket. Closing retains disposition, evidence, unresolved financial reconciliation and source-status differences rather than inventing payment/provider completion.
-- **R-S205-5 — Usable next action and aging.** Show the next useful action, current owner, age since creation and since the last meaningful staff/vendor progress. Flag unresolved work at three calendar days from creation in the configured business timezone; read/import timestamp churn does not reset progress age.
+Read-only retention uses the existing stores and receipt/history readers under their original authorization, with operational requests refused before dispatch. No records are deleted or relabeled. Current maintenance is managed in standalone Vendoroo; no destination URL or integration is invented.
 
 **In scope / out of scope.**
 
-In scope: assessment, conditional routing, staff lifecycle, PMI closeout and internal aging visibility. Out of scope: Vendoroo transport, vendor account provisioning, accounting posting/payment, new autonomous dispatch or any sending cadence owned by the separate communications program.
+Only retention, historical interpretation and permission compatibility remain applicable. All former operational maintenance/vendor requirements and Vendoroo ingestion work in the historical trace below are superseded by S227. Raw private sources remain outside Git. This file grants no new execution or release authority.
 
 **Open questions & assumptions.**
 
-Specific real preapproval values, named participants and approved escalation destinations remain runtime inputs. The accepted configurable $250 recommendation is not a universal approved rate or blanket permission; S213 owns an explicit boundary and cost basis.
-
-No material product decision is deferred inside this READY scope. Actual identities, approved runtime policies, financial values and provider configuration are inputs, not values the implementation runner invents. Their absence blocks only the named dependent operation; implementation and independent verification proceed.
+Former provider/account/policy inputs are not prerequisites for retirement and must not trigger duplicate requests. Fresh read-only provider evidence and deployment are held only by the exact authentication/browser limitations recorded in docs/open-blockers.md. Missing observations are not success.
 
 **Cross-product impacts.**
 
-- `components/maintenance/MaintenanceCapture.tsx`, `MaintenanceQueue.tsx`, `MaintenanceBlockerReport.tsx`; `app/maintenance/page.tsx` — current capture/queue/report owners.
-- `lib/maintenance/ticket-model.ts`, `lib/firestore/maintenance-tickets.ts`, `lib/maintenance/waiting-on.ts` — lifecycle, activity and blocker projection.
-- `app/api/maintenance/tickets/[ticketId]/route.ts`; S108, S109, S213 and S222/S223 — existing transition, triage and policy boundaries.
+S227 owns retired HTTP and shared effect admission, authorized history and reports. Existing stores, receipts and permissions remain unchanged. Renewal, workflow-linked unsent communications, search and knowledge retain their independent contracts. The historical architecture below identifies original owners for preservation only; it does not request extensions or integration.
 
 **Authority and evidence map.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 | Input                                                         | Classification                             | Use and limitation                                                                                                                                                                                                                                                                                           |
 | ------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -57,6 +49,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 
 **Architecture outcome (deterministic, fail-first).**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 - **ARCH-S205-1** — Extend the existing ticket/activity owner rather than create a competing workflow store or overwrite provider status. Freeze a focused falsification before changing this boundary.
 - **ARCH-S205-2** — Make one assessment-aware projection extend `projectMaintenanceWaitingOn`, consuming S213 policy/results and keeping source versus staff decisions distinct. Freeze a focused falsification before changing this boundary.
 - **ARCH-S205-3** — Define legal transitions and version conflict handling within the current ticket/activity service; persist actor/time/reason for material transitions. Freeze a focused falsification before changing this boundary.
@@ -64,6 +58,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 - **ARCH-S205-5** — Use one queue/detail projection over ticket/activity records; no new external follow-up sender is introduced. Freeze a focused falsification before changing this boundary.
 
 **Behavior outcome (deterministic, fail-first).**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 - **BEH-S205-1** — A newly captured routine issue opens in assessment and does not tell staff to email an owner merely because no estimate exists.
 - **BEH-S205-2** — The ticket explains the applicable standing approval or exact owner decision needed after assessment; unchanged trivial intake creates no communication automatically.
@@ -73,6 +69,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 
 **Human litmus outcome.**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 ### Assess and finish maintenance with clear PMI control
 
 **If this was built correctly:** A PMI staff member records an issue, assesses it before deciding whether owner approval or a vendor is needed, and sees the current next action and how long it has waited. A vendor can submit completed work, but PMI reviews the evidence and makes the final closure decision.
@@ -81,6 +79,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 | Requirement                            | Architecture outcome | Behavior outcome | Human litmus                                         | Acceptance / deterministic falsification                                                                                                                                      |
 | -------------------------------------- | -------------------- | ---------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -98,6 +98,8 @@ Preservation is a separate result from new behavior. Existing tests are retained
 
 **Adversarial acceptance checks.**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 - **AC-S205-1** — R-S205-1, ARCH-S205-1, BEH-S205-1: A missing-estimate intake starts at assessment; a resolved-by-troubleshooting outcome needs no owner draft and retains its evidence.
 - **AC-S205-2** — R-S205-2, ARCH-S205-2, BEH-S205-2: Exercise absent estimate, within/equal/above configured threshold, revoked policy and existing provider approval; no test substitutes a made-up production policy.
 - **AC-S205-3** — R-S205-3, ARCH-S205-3, BEH-S205-3: Table-test every supported forward/return/cancel/reopen transition and concurrent conflicting transitions; provider status is never silently rewritten.
@@ -112,31 +114,29 @@ Across this suite: no fabricated customer/provider identity or amount, secret/ra
 
 **Dependencies / sequencing.**
 
-Governance clarification defines any revised staff effect contract. S213 supplies actual preapproval/financial semantics; S222 supplies unified emergency policy. S206 fixes creation/reconciliation; S209 supplies durable history. The core assessment state/UI can be built independently with explicit missing inputs.
+Use S227 for maintenance retirement and retained read-only compatibility. S228 owns current Dotloop diagnostics and S229 renewal/unsent communications preservation. Do not resume the old maintenance, Vendoroo integration or proof sequence from this historical contract.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** Assessment state/transition projection, staff controls, PMI closure checks, internal aging views and deterministic verification with actual missing-policy representations.
-- **Consumes, but does not assume:** Existing ticket/activity and source snapshots; S212 vendor completion; S213 effective policy. Missing evidence remains named and does not fabricate approval.
-- **Externally blocked effect:** Any actual provider update, owner communication or policy-dependent authorization waits for its verified exact contract/configuration; the app assessment slice has no dependency on a Vendoroo account.
-- **Produces for downstream suites:** One assessment/lifecycle contract, staff review state and internal next-action projection for S210–S215.
+- **Deliverable now:** The S227 retirement/retention slice, preserving original evidence without migration effects.
+- **Consumes, but does not assume:** Existing authorized history and exact receipts.
+- **Externally blocked effect:** No former maintenance/provider effect is requested. Current live verification holds are in docs/open-blockers.md.
+- **Produces for downstream suites:** Original record/receipt meanings and permissions, without new operational authority.
 
 **Verification and delivery contract.**
 
-1. Re-read current owners and refresh the baseline before implementation. Materialize the named architecture, behavior and acceptance falsifications; record pre-existing unrelated failures separately.
-2. Exercise every row with service/transaction and rendered journeys appropriate to the outcome, including denial, interruption, concurrency and partial completion. Use isolated local fixtures and deterministic external adapters; keep the preservation result separate.
-3. Read back saved artifacts/state and reconcile them with the acted-on identity/version. A UI success label, supplied example or passing adapter cannot establish live provider success.
-4. Run focused checks, then `bash scripts/verify.sh` and applicable compiled-browser checks for any later ship candidate. Audit secrets/PII, authority, runtime configuration and cross-suite traceability.
-5. A later authorized implementation reports ALL_GATES_GREEN only for completed declared engineering checks; a named live/account proof remains separately BLOCKED when its input is missing. BUDGET_EXHAUSTED applies only to an explicit budget. Never label the whole operational outcome complete from a partial green slice.
-6. Authoring registration/validation is documentary only. Commit, push, deployment, implementation-loop start and external communication require their own explicit instruction.
+1. Verify current S227 retirement and read-only retention through the real request, service and authorized reader boundaries.
+2. Preserve original requirement IDs, historical verdicts, records and receipt meanings. Do not execute the superseded operational acceptance outcomes or collect retired integration inputs.
+3. Use S227-S229 for current focused regressions, required repository checks and authorized gated delivery. Record local, live-provider, human and deployment outcomes separately; missing evidence cannot become success.
+4. Report ALL_GATES_GREEN only for actually completed current engineering gates, BUDGET_EXHAUSTED only for an explicit budget, or BLOCKED with its exact unavailable external input after independent work. These terminal states do not resume the superseded operational outcomes.
 
 **Ordered prompt sequence.**
 
-1. Re-verify current source, accepted decisions, dependency contracts and relevant read-only state.
-2. Freeze the requirement/architecture/behavior/acceptance matrix and preservation baseline before implementation.
-3. Implement the bounded owner and all unavailable/recovery paths; reuse existing services and keep adjacent suite ownership explicit.
-4. Falsify every row, read back persisted results, run focused/canonical checks, update verified current documentation and deliver only when separately authorized.
+1. Read the current router and S227; verify actual retirement/retention behavior.
+2. Use original evidence below only for provenance and preservation scope.
+3. Do not execute former operational instructions, collect retired integration inputs or rerun completed proofs.
+4. Verify and deliver the currently authorized S227–S229 slice through existing gates.
 
 **Deletion/merge recommendation.**
 
-Retain this suite until its full behavior, remaining dependencies and acceptance evidence are represented in current code/tests/facts. Then merge its operating contract into current maintenance documentation; preserve historical evidence without keeping duplicate active instructions.
+The original operational contract is superseded by S227. Its historical trace remains temporarily available for native program-ledger consistency; it is not an execution queue. Remove that provenance only with its remaining evidence references reconciled, retaining originals in Git history.

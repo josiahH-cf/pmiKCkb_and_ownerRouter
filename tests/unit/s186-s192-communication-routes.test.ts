@@ -116,7 +116,7 @@ describe("S186–S192 private sequence HTTP boundaries", () => {
     expect(r.status).toBe(400);
     expect(mocks.save).not.toHaveBeenCalled();
   });
-  it("uses the reviewed one-action command and the same durable dispatcher for Send", async () => {
+  it("refuses Send before service construction or dispatch under the unsent-only contract", async () => {
     mocks.authorize.mockResolvedValue({ ...sequence, version: 2, state: "active" });
     mocks.dispatch.mockResolvedValue({
       sequence: { ...sequence, version: 2, state: "completed", confirmedCount: 1 },
@@ -132,12 +132,12 @@ describe("S186–S192 private sequence HTTP boundaries", () => {
         schedule: null,
       }),
     );
-    expect(r.status).toBe(200);
-    expect(mocks.authorize).toHaveBeenCalledTimes(1);
-    expect(mocks.dispatch).toHaveBeenCalledExactlyOnceWith(id);
-    expect((await r.json()).sequence.confirmedCount).toBe(1);
+    expect(r.status).toBe(410);
+    expect(mocks.createService).not.toHaveBeenCalled();
+    expect(mocks.authorize).not.toHaveBeenCalled();
+    expect(mocks.dispatch).not.toHaveBeenCalled();
   });
-  it("returns recorded ownership when a post-authorization dispatch cannot be completed", async () => {
+  it("keeps old authorization and attempt ownership untouched when a new Send is refused", async () => {
     mocks.authorize.mockResolvedValue({ ...sequence, version: 2, state: "active" });
     mocks.dispatch.mockRejectedValue(new Error("unavailable"));
     mocks.get.mockResolvedValue({ ...sequence, version: 2, state: "active" });
@@ -152,9 +152,9 @@ describe("S186–S192 private sequence HTTP boundaries", () => {
         schedule: null,
       }),
     );
-    expect((await r.json()).sequence.state).toBe("active");
-    expect(mocks.dispatch).toHaveBeenCalledTimes(1);
-    expect(mocks.get).toHaveBeenCalledTimes(1);
+    expect(r.status).toBe(410);
+    expect(mocks.dispatch).not.toHaveBeenCalled();
+    expect(mocks.get).not.toHaveBeenCalled();
   });
   it("does not expose arbitrary mailbox or recipient query options", async () => {
     expect(
@@ -183,6 +183,12 @@ describe("S186–S192 private sequence HTTP boundaries", () => {
     expect((await WORKER(request({ id, to: ["forged@example.invalid"] }))).status).toBe(
       400,
     );
+    expect(mocks.runWorker).not.toHaveBeenCalled();
+  });
+  it("accepts an authenticated empty tick without constructing or dispatching business work", async () => {
+    const response = await WORKER(request({}));
+    expect(await response.json()).toEqual({ status: "draft_only", dispatched: 0 });
+    expect(mocks.createService).not.toHaveBeenCalled();
     expect(mocks.runWorker).not.toHaveBeenCalled();
   });
 });

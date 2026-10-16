@@ -678,6 +678,15 @@ async function assertRouteOutcome(
       .getByRole("heading", { name: definition.heading, exact: true })
       .count()) === 1;
   if (!headingPresent) return { passed: false, diagnostic: "landmark_missing" };
+  if (definition.key === "maintenance" && definition.path === "/maintenance/history") {
+    const operationalControls = await page
+      .getByRole("button", {
+        name: /Capture maintenance|Create work order|Save reviewed report|Resume exact original report save/i,
+      })
+      .count();
+    if (operationalControls !== 0)
+      return { passed: false, diagnostic: "landmark_missing" };
+  }
   if (definition.key === "communications") {
     // Genuine managed-mailbox read through the ordinary app contract. Return only readiness,
     // never the profile/address or a provider body; the browser mutation guard remains active.

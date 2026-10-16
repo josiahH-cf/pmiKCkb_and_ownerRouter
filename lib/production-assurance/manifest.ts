@@ -50,9 +50,9 @@ const COMMON_ROUTES: readonly CanaryRouteDefinition[] = [
   },
   {
     key: "maintenance",
-    path: "/maintenance",
+    path: "/maintenance/history",
     expectedOutcome: "rendered",
-    heading: "Maintenance",
+    heading: "Read-only maintenance history",
     requiredSpace: "maintenance",
   },
   {
@@ -123,10 +123,22 @@ export function routesForRole(
   const routes = AUTHENTICATED_CANARY_MANIFEST[role];
   // The captured serving image (including its run-bound recovery clone) retains this exact title.
   // Candidates and unknown commits still require the current landmark; no alternate is accepted.
+  if (
+    [
+      "337ac163c5709381e8db8d2c18810bec357d8a96",
+      "72a30e25537e8ea7ff79391146246c1f9b94375e",
+      "eb5d35991c3ec128a102e4483d3779af16106821",
+    ].includes(expectedCommit ?? "")
+  )
+    return routes.map((route) =>
+      route.key === "maintenance"
+        ? { ...route, path: "/maintenance", heading: "Maintenance" }
+        : route,
+    );
   if (expectedCommit !== "e106a88a50d541b4a012111019b09c2183f6ce20") return routes;
   return routes.map((route) =>
     route.key === "maintenance"
-      ? { ...route, heading: "Maintenance Work Order Intake" }
+      ? { ...route, path: "/maintenance", heading: "Maintenance Work Order Intake" }
       : route,
   );
 }

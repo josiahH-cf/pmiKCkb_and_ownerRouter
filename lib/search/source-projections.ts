@@ -191,7 +191,7 @@ export function projectMaintenanceSearchEntities(
     fields: [
       { label: "Ticket summary", value: t.summary },
       { label: "Ticket ID", value: t.id },
-      { label: "Status", value: t.status },
+      { label: "Recorded status", value: t.status },
       ...(t.unit ? [{ label: "Unit address", value: t.unit.label }] : []),
     ],
     relations: [
@@ -223,7 +223,7 @@ export function projectMaintenanceSearchEntities(
           ]
         : []),
     ],
-    href: `/maintenance?${new URLSearchParams({ ticket_id: t.id })}`,
+    href: `/maintenance/history?${new URLSearchParams({ ticket_id: t.id })}`,
     asOf,
   }));
 }

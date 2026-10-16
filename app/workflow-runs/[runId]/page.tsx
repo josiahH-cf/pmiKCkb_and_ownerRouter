@@ -14,6 +14,10 @@ import type {
   WorkflowRunStepCheckRecord,
 } from "@/lib/firestore/types";
 import { canAccessWorkflowRun } from "@/lib/space-scope-resources";
+import {
+  isRetiredMaintenanceWorkflow,
+  MAINTENANCE_RETIREMENT_MESSAGE,
+} from "@/lib/maintenance/retirement";
 
 interface WorkflowRunPageProps {
   params: Promise<{ runId: string }>;
@@ -57,6 +61,9 @@ export default async function WorkflowRunPage({ params }: WorkflowRunPageProps) 
     <AppShell user={user}>
       <section className="content">
         <h1 className="section-title">Workflow Run</h1>
+        {run && isRetiredMaintenanceWorkflow(run.space_id, run.definition_id) ? (
+          <p>{MAINTENANCE_RETIREMENT_MESSAGE}</p>
+        ) : null}
         {loadError || !run ? (
           <article className="panel">
             <p className="muted">
@@ -66,7 +73,10 @@ export default async function WorkflowRunPage({ params }: WorkflowRunPageProps) 
           </article>
         ) : (
           <WorkflowRunClient
-            canEdit={can(user.role, "edit")}
+            canEdit={
+              can(user.role, "edit") &&
+              !isRetiredMaintenanceWorkflow(run.space_id, run.definition_id)
+            }
             initialChecks={checks}
             initialRun={run}
             initialSteps={steps}

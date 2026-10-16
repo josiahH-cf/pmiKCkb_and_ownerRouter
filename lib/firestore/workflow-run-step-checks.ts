@@ -16,6 +16,10 @@ import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
+import {
+  isRetiredMaintenanceWorkflow,
+  MAINTENANCE_RETIREMENT_MESSAGE,
+} from "@/lib/maintenance/retirement";
 import type {
   ProcessDefinitionRecord,
   WorkflowRunRecord,
@@ -72,6 +76,8 @@ export async function setWorkflowRunStepCheck(
       throw new EditableLayerError("Workflow run not found.", 404);
     }
     const run = readRecord<WorkflowRunRecord>(runSnapshot.id, runSnapshot.data()!);
+    if (isRetiredMaintenanceWorkflow(run.space_id, run.definition_id))
+      throw new EditableLayerError(MAINTENANCE_RETIREMENT_MESSAGE, 410);
     if (["Completed", "Cancelled", "Failed"].includes(run.status)) {
       throw new EditableLayerError(
         "Checklist steps cannot be changed after a workflow run is closed.",

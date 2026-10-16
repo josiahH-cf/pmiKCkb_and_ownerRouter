@@ -3,6 +3,10 @@ import { z } from "zod";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
+import {
+  isRetiredMaintenanceWorkflow,
+  MAINTENANCE_RETIREMENT_MESSAGE,
+} from "@/lib/maintenance/retirement";
 import { getProcessDefinition } from "@/lib/firestore/workflows";
 import { resolvePublicationPolicyForSpace } from "@/lib/publication/policy";
 import { resolvePublicationScanner } from "@/lib/publication/provider";
@@ -38,6 +42,8 @@ export async function publishProcessDefinition(
   const parsed = PublishProcessDefinitionSchema.parse(input);
   const definition = await getProcessDefinition(actor, definitionId, db);
   assertProcessDefinitionRecordAccess(actor, definition);
+  if (isRetiredMaintenanceWorkflow(definition.space_id, definition.id))
+    throw new EditableLayerError(MAINTENANCE_RETIREMENT_MESSAGE, 410);
   const spaceId = spaceIdForProcessDefinition(definition);
   if (!spaceId) {
     throw new EditableLayerError(

@@ -1,4 +1,5 @@
 import type { SpaceScope } from "@/lib/constants";
+import { MAINTENANCE_HISTORY_PATH } from "@/lib/maintenance/retirement";
 
 export interface LaunchSpace {
   id: string;
@@ -42,15 +43,15 @@ export const launchSpaces: readonly LaunchSpace[] = [
   },
   {
     id: "maintenance-work-order-intake",
-    name: "Maintenance Work Order Intake",
-    processCategory: "Maintenance",
+    name: "Maintenance history",
+    processCategory: "Retained maintenance knowledge and history",
     processDefinitionId: "maintenance-work-order-intake",
     scope: "maintenance",
   },
   {
     id: "vendor-assignment-handoff",
-    name: "Vendor Assignment Handoff",
-    processCategory: "Maintenance",
+    name: "Vendor handoff history",
+    processCategory: "Retained maintenance knowledge and history",
   },
   {
     id: "daily-inbox-triage",
@@ -86,12 +87,12 @@ export const directorySpaces = launchSpaces.filter(
   (space) => space.showInDirectory !== false,
 );
 
-/** Where a launch space opens. Lease Renewals and Maintenance Work Order Intake have built operator
+/** Where a launch space opens. Lease Renewals has the current operator
  *  desks; every other space opens its space detail. Centralized so the home launcher and the Spaces
  *  directory stay consistent. */
 export function spaceHref(space: Pick<LaunchSpace, "id">): string {
   if (space.id === "lease-renewals") return "/lease-renewal";
-  if (space.id === "maintenance-work-order-intake") return "/maintenance";
+  if (space.id === "maintenance-work-order-intake") return MAINTENANCE_HISTORY_PATH;
   if (space.id === "owner-email") return "/gmail-hub";
   return `/spaces/${space.id}`;
 }

@@ -218,7 +218,10 @@ export async function verifyCommunicationWorkerAssurance(
       if (
         (entries.entries ?? []).some(
           (e) =>
-            e.jsonPayload?.ready === true && e.jsonPayload?.probeId === state.probeId,
+            e.jsonPayload?.ready === true &&
+            e.jsonPayload?.probeId === state.probeId &&
+            e.jsonPayload?.mode === "draft_only" &&
+            e.jsonPayload?.dispatchEnabled === false,
         )
       ) {
         state.outcome = "passed";

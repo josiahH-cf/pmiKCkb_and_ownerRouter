@@ -64,7 +64,7 @@ describe("resolveAskAction (AC-S33-1)", () => {
     ).toBeNull();
   });
 
-  it("falls back (null) for maintenance until the S38a draft surface is available", () => {
+  it("never offers retired maintenance even when an old surface and open key are reported", () => {
     expect(
       resolveAskAction({
         detected: { processId: "maintenance-work-order-intake" },
@@ -72,15 +72,13 @@ describe("resolveAskAction (AC-S33-1)", () => {
         isExecutable: isOpen,
       }),
     ).toBeNull();
-    // Once S38a's surface is present the maintenance draft route lights up.
     const route = resolveAskAction({
       detected: { processId: "maintenance-work-order-intake" },
       target: null,
       isExecutable: isOpen,
       maintenanceDraftAvailable: true,
     });
-    expect(route?.surface).toBe("maintenance-owner-notice");
-    expect(route?.actionKey).toBe(MAINTENANCE_OWNER_DRAFT_ACTION_KEY);
+    expect(route).toBeNull();
   });
 
   it("even with the S38a surface present, a closed maintenance gate yields null", () => {

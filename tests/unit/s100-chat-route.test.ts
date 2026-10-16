@@ -1,3 +1,9 @@
+// Historical execution/receipt machinery is exercised with deterministic adapters here.
+// Real current retirement admission is separately proved by oct15-production-effects and
+// oct15-maintenance-retirement; this fixture adds no application/runtime policy bypass.
+vi.mock("@/lib/operations/application-effect-policy", () => ({
+  applicationEffectBlockReason: () => null,
+}));
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { FakeFirestore } from "../helpers/fake-firestore";

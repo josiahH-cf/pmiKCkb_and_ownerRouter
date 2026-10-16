@@ -11,6 +11,11 @@ export function GmailHubHome({
     <section className="content content--workspace ui-stack gmail-hub">
       <div>
         <h1 className="section-title">Workflow Communications</h1>
+        <p role="note">
+          Sending and scheduling are unavailable. Saved schedules and delivery history are
+          retained for reference and will not dispatch. Review unsent Gmail drafts in the
+          linked lease workflow.
+        </p>
         <p className="muted">Linked workflows · mailbox management stays in Gmail.</p>
       </div>
       <WorkflowCommunicationsHub authenticatedEmail={authenticatedEmail} />

@@ -11,7 +11,7 @@
 
 **Goal.**
 
-Produce an evidence-based decision packet describing whether and how the external maintenance agent mentioned as “Rue” can hand work to or from PMI KC, without building a replacement agent or assuming an API exists.
+Retain the original maintenance/vendor records, receipts, permissions and historical requirement evidence after custom maintenance retirement. S227 owns the current operating contract; Vendoroo remains standalone.
 
 **Core outcome alignment.**
 
@@ -19,41 +19,15 @@ C07 — Understand the external maintenance handoff without duplicating or broad
 
 **Current state / intended end state.**
 
-**Current evidence:** The bounded assessment implementation and decision packet are delivered. Evidence-source qualification, minimal handoff data, verified identity joins, ownership/reconciliation boundaries and conditional options are tested. Vendor/account/interface feasibility remains unestablished under B-MNT2. No vendor connector, webhook, scheduler, contact, key or provider grant was created. Exact deployed and source-bound verification scopes are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
-
-**Required end state:** A bounded capability/ownership/data-flow assessment identifies verified supported handoff options, genuinely missing evidence, and one decision needed before any future integration spec. When access/material is unavailable, the packet explicitly says feasibility is not established and names the exact input; no fictional connector is scaffolded.
-
-Current statements are grounded in the source map below at the pinned revision; they are not a fresh production readback. All new data shapes, labels, and defaults introduced here are proposed requirements unless explicitly identified as existing code or an owner decision.
+October 15 30:54–31:32 and the confirming maintenance emails retire the custom workflow. The source baseline 0b892865 contains the earlier implementation or proposal recorded below; S227 retires operational entry and preserves authorized read-only history. S227–S229 are under verification, with no new deployment claimed. Earlier authoring and delivery evidence retains its original scope.
 
 **Actors and entry conditions.**
 
-PMI’s maintenance owner and vendor account administrator provide authorized materials/read-only access; an analyst evaluates them; the project owner approves any later integration scope. No vendor is contacted, account connected, or credential requested in chat by writing this spec.
+Existing authorized readers retain their current permissions. No new maintenance intake, vendor work, provider action, maintenance draft, integration access request or old proof window may start from this contract. Shared renewal and knowledge behavior remains separately owned.
 
 **What it is / how it functions.**
 
-### R-F13-01 — Verify identity and permitted access before choosing technology
-
-Confirm the vendor/product/account with owner-supplied authoritative material; preserve “Rue” as the transcript label until resolved. Inspect only approved documentation and authorized harmless read-only surfaces. Do not guess a domain/API from a phonetic name, scrape a login, bypass a paywall, or substitute another vendor.
-
-### R-F13-02 — Inventory actual capabilities and limits
-
-For each relevant interface, record documentation/version, supported input/output, identity linkage, permissions, transport, effect semantics, event freshness, retry/duplication behavior, and unavailable operations. Distinguish API, documented webhook, export/import, verified deep link, and human handoff. A marketing claim is not evidence of an enabled account endpoint.
-
-### R-F13-03 — Map ownership of the maintenance workflow
-
-Document who receives a request/call, gathers facts, performs troubleshooting, creates the work order, decides escalation, authorizes spending/vendor assignment, contacts residents, resolves/reopens the issue, and owns source-of-truth status. Compare with current PMI KC/RentVine behavior to reveal duplicate tickets, duplicate communications, and unowned failures. No external agent’s autonomy becomes permission for the PMI application to send or spend.
-
-### R-F13-04 — Define minimal data and a real identity join
-
-For a potential handoff, identify only necessary property/unit/lease/work-order/contact fields, provenance, and permitted retention/access. Require stable verified IDs or an explicit human association step; matching names/addresses alone is insufficient. Keep raw resident communications and account credentials out of public evidence. Note whether a nominal read has a mark-read or other provider effect.
-
-### R-F13-05 — Assess failure and double-action risks
-
-Where an interface is actually supported, evaluate delayed/duplicate/reordered events, source drift, missing contacts, access revocation, vendor outage, partial creation, escalation ambiguity, and human takeover. Specify what evidence would prove handoff receipt and who reconciles uncertainty. Do not invent idempotency, automatic retries, polling, or notification behavior to fill gaps.
-
-### R-F13-06 — Deliver a bounded decision, not an implementation
-
-Produce: capability/evidence matrix; current-versus-vendor responsibility map; minimal data contract candidate; security/cost/retention questions; viable documented handoff options including a manual option when supported; and the exact owner decision required for a later build. Mark conclusions supported, unsupported, or inconclusive. Do not create a connector, scheduler, webhook, replacement troubleshooting agent, or new action grant.
+Read-only retention uses the existing stores and receipt/history readers under their original authorization, with operational requests refused before dispatch. No records are deleted or relabeled. Current maintenance is managed in standalone Vendoroo; no destination URL or integration is invented.
 
 **Data, state, and integration contract.**
 
@@ -71,29 +45,19 @@ For F13, this contract applies to evidence gathering only: there is no applicati
 
 **In scope / out of scope.**
 
-In scope: bounded vendor identification, capability/ownership/privacy/recovery assessment and decision artifact. Out of scope: production integration, autonomous notifications, phone routing changes, vendor assignment/spend execution, building a new AI agent, or changing existing Maintenance behavior.
+Only retention, historical interpretation and permission compatibility remain applicable. All former operational maintenance/vendor requirements and Vendoroo ingestion work in the historical trace below are superseded by S227. Raw private sources remain outside Git. This file grants no new execution or release authority.
 
 **Open questions & assumptions.**
 
-Unresolved: exact vendor/product identity, approved account access, interface documentation, owner’s intended handoff, data permission/retention, and commercial/API terms. Bounded external search in this drafting pass did not establish these; no outside guess has replaced transcript terminology.
-
-Unverified business/provider facts cannot be replaced by a plausible default. An explicitly labeled presentation/engineering default may be implemented within the approved scope; source semantics, policy applicability, legal wording, and provider permissions require their actual evidence. Missing input blocks only the dependent outcome identified below.
+Former provider/account/policy inputs are not prerequisites for retirement and must not trigger duplicate requests. Fresh read-only provider evidence and deployment are held only by the exact authentication/browser limitations recorded in docs/open-blockers.md. Missing observations are not success.
 
 **Cross-product impacts.**
 
-These are verified paths or explicitly marked candidate owners, not authorization to replace them:
-
-- `docs/integration-architecture.md` and current Maintenance contracts — action/data boundary inventory.
-
-- `docs/facts.md` and `docs/open-blockers.md` — existing capabilities and actual remaining gates.
-
-- Current RentVine Maintenance and work-order chat owning modules — candidate reuse points, to be named precisely after inspecting the relevant handoff.
-
-- A bounded decision record in the existing documentation/evidence structure — proposed artifact; no new provider module authorized.
-
-Update only affected current contracts and facts after verification. Existing historical evidence remains historical. Original approval numbers remain stable; any later S-number remap must update all namespaced acceptance and outcome references consistently.
+S227 owns retired HTTP and shared effect admission, authorized history and reports. Existing stores, receipts and permissions remain unchanged. Renewal, workflow-linked unsent communications, search and knowledge retain their independent contracts. The historical architecture below identifies original owners for preservation only; it does not request extensions or integration.
 
 **Authority and evidence map.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 | Source          | Location                                                                                                                            | What it supports and what it does not                                                                                                                             |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -106,10 +70,14 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **Architecture outcome (deterministic, fail-first).**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 - **ARCH-S133-1** — The owning boundaries listed above implement the data and state contract without a duplicate authoritative workflow, provider reader, or competing status model. A focused structural/service test or, for F13, a source-traceable assessment artifact demonstrates the named ownership and exact inputs/outputs.
 - **ARCH-S133-2** — Actor scope, provenance/version binding, no-effect reads, explicit unavailable states, and existing effect/receipt boundaries remain enforced. Tests inject denied, missing, stale, conflicting, or interrupted evidence and assert the exact refusal/recovery described by each requirement.
 
 **Behavior outcome (deterministic, fail-first).**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 - **BEH-S133-1** — R-F13-01: Verify identity and permitted access before choosing technology. The observable result must satisfy AC-S133-1; a UI label alone is insufficient where a service/provider boundary is required.
 
@@ -125,6 +93,8 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 
 **Human litmus outcome.**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 ### External maintenance-agent handoff assessment
 
 **If this was built correctly:** The maintenance owner can see what the purchased agent actually handles, what the app would receive or hand off, what remains manual or unknown, and what must be decided before any build.
@@ -134,6 +104,8 @@ Transcript references use the supplied **Cherry Bridge + PMI: App Training, Sept
 - Any later human observation is recorded independently of implementation and provider verification.
 
 **Requirement-to-outcome traceability.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 | Requirement | Owning boundary                                             | Architecture             | Behavior   | Acceptance / test scenario                                                 |
 | ----------- | ----------------------------------------------------------- | ------------------------ | ---------- | -------------------------------------------------------------------------- |
@@ -153,6 +125,8 @@ Existing Maintenance intake/work-order/approval behavior; exact provider keys; r
 Keep preservation results separate from new-feature results. Passing one does not compensate for failing the other.
 
 **Adversarial acceptance checks.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 - **AC-S133-1** — R-F13-01 / BEH-S133-1, ARCH-S133-1 and ARCH-S133-2: The evidence table either names the verified source/account/access scope or marks them Not established with an exact requested owner input; no unsupported identity is recorded as fact.
 
@@ -177,14 +151,14 @@ F08 is the only approved policy change in this pack: pause operating-Sheet mutat
 
 **Dependencies / sequencing.**
 
-Independent from the renewal feature bundle and the next renewal meeting. Reuse current S99/S100/S108/S109 evidence; do not reopen already completed proof programs or use this assessment to bypass their remaining gates.
+Use S227 for maintenance retirement and retained read-only compatibility. S228 owns current Dotloop diagnostics and S229 renewal/unsent communications preservation. Do not resume the old maintenance, Vendoroo integration or proof sequence from this historical contract.
 
 **Standalone delivery contract.**
 
-- **Deliverable now, in a later implementation task:** A bounded assessment protocol and evidence/decision templates; when adequate authorized material exists, a traceable report. Without it, complete the application-side inventory and return an explicitly inconclusive provider feasibility result.
-- **Consumes, but does not assume:** the exact source/configuration/cross-feature inputs above; missing or unverified values retain their explicit unavailable representation.
-- **Externally blocked or deferred outcome:** Owner-confirmed vendor identity and approved documentation/access. A future integration requires a separate approved implementation scope after this assessment.
-- **Produces for downstream work:** the stable evidence/state contract and acceptance record defined here. No inferred approval or provider receipt is produced by a technical test.
+- **Deliverable now:** The S227 retirement/retention slice, preserving original evidence without migration effects.
+- **Consumes, but does not assume:** Existing authorized history and exact receipts.
+- **Externally blocked effect:** No former maintenance/provider effect is requested. Current live verification holds are in docs/open-blockers.md.
+- **Produces for downstream suites:** Original record/receipt meanings and permissions, without new operational authority.
 
 **Bounded feature spike.**
 
@@ -200,21 +174,18 @@ Independent from the renewal feature bundle and the next renewal meeting. Reuse 
 
 **Verification and delivery contract.**
 
-1. Re-read `AGENTS.md`, `docs/facts.md`, `docs/loop-state.md`, the current suite registry, and the implementation owners listed here. Compare the working revision with the pinned discovery baseline. Inspect only authorized read-only live evidence when needed. Do not treat repository deployment prose as a new live verification.
-2. Record the preservation baseline and materialize each architecture, behavior, and adversarial check. A genuinely missing behavior must fail for its intended reason before its fix. An already-correct behavior is a preservation check; do not manufacture a failure or rebuild it merely to claim new work.
-3. Run the focused checks, actual backend/service integration with controlled external adapters, and applicable served-browser checks. Keep source coverage, app-owned state, provider effects, and human observations separate in the result ledger. Use synthetic values only in local tests/emulators, never in Production.
-4. Before an authorized code delivery, run `bash scripts/verify.sh`, `npm run test:firestore`, and `npm run test:e2e:core` as applicable under the current repository contract. Run the relevant compiled renewal desk/guide browser checks, inspect accessibility and source parity, and audit the diff for secrets, customer data, protected paths, provider gates, and unintended scope. Never weaken checks to fit a new label or bypass a missing input.
-5. Implementation/release is a later task, not performed by this export. When authorized, use the existing serialized green-commit, exact-SHA CI, zero-traffic candidate, smoke/assurance, promotion, observation, readback, and captured-predecessor rollback path. Documentation-only changes do not trigger a production deploy unless they change a served asset. F08's pause must survive a rollback.
-6. Report the implementation terminal as `ALL_GATES_GREEN`, `BLOCKED`, or `BUDGET_EXHAUSTED` (the last only with an explicit user-supplied run budget). External inputs and future meeting acceptance are tracked separately. A green scaffold does not make live validation complete. Record `Human verdict: NOT RUN — no human observer` until an actual authorized observation occurs. Do not set any verdict to PASS merely because this specification was written.
+1. Verify current S227 retirement and read-only retention through the real request, service and authorized reader boundaries.
+2. Preserve original requirement IDs, historical verdicts, records and receipt meanings. Do not execute the superseded operational acceptance outcomes or collect retired integration inputs.
+3. Use S227-S229 for current focused regressions, required repository checks and authorized gated delivery. Record local, live-provider, human and deployment outcomes separately; missing evidence cannot become success.
+4. Report ALL_GATES_GREEN only for actually completed current engineering gates, BUDGET_EXHAUSTED only for an explicit budget, or BLOCKED with its exact unavailable external input after independent work. These terminal states do not resume the superseded operational outcomes.
 
 **Ordered prompt sequence.**
 
-1. Inspect the current owning code and existing contracts; resolve only the bounded evidence questions identified here.
-2. Freeze the feature-specific checks and preservation baseline. Establish the smallest complete change and the explicit no-effect boundary.
-3. Build or reuse the owning implementation, including unavailable, stale, denied, interrupted, and recovery paths; do not introduce a parallel workflow engine.
-4. Run every acceptance row and the preservation gates, then the repository's authorized verification/release loop. Record exact evidence and remaining external inputs.
-5. Update current documentation only to what was demonstrated. Keep future meeting results, missing approved materials, and deferred provider activation pending rather than fabricating closure.
+1. Read the current router and S227; verify actual retirement/retention behavior.
+2. Use original evidence below only for provenance and preservation scope.
+3. Do not execute former operational instructions, collect retired integration inputs or rerun completed proofs.
+4. Verify and deliver the currently authorized S227–S229 slice through existing gates.
 
 **Deletion/merge recommendation.**
 
-Keep this specification independent of adjacent features until its own code/evidence and remaining dependencies are represented by current implementation contracts, tests, and facts. Preserve the original F13 approval mapping. Do not delete an external-input or meeting-validation gap merely because scaffolding passed. If existing behavior already meets part of the spec, link that evidence and merge only redundant explanatory prose—not acceptance coverage, history, or the user’s separate-feature boundary.
+The original operational contract is superseded by S227. Its historical trace remains temporarily available for native program-ledger consistency; it is not an execution queue. Remove that provenance only with its remaining evidence references reconciled, retaining originals in Git history.

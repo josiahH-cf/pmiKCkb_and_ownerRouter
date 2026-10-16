@@ -55,6 +55,8 @@ const ALLOW_UNAUTHENTICATED = new Set([
   "vendor/sign-in/page.tsx",
   "vendor/setup/page.tsx",
   "maintenance/report/page.tsx",
+  // Static retirement notice only; all linked historical records retain their own guards.
+  "maintenance/retired/page.tsx",
 ]);
 
 describe("App page auth-boundary invariant", () => {

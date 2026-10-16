@@ -361,14 +361,16 @@ export function MaintenanceHistoryReports({
           <button disabled={busy} onClick={() => void recover()}>
             Check original report save
           </button>
-          {pending ? (
+          {pending && canEdit ? (
             <button disabled={busy} onClick={() => void submit(pending)}>
               Resume exact original report save
             </button>
           ) : null}
-          <button disabled={busy} onClick={() => void recover(true)}>
-            Stop original save if not admitted
-          </button>
+          {canEdit ? (
+            <button disabled={busy} onClick={() => void recover(true)}>
+              Stop original save if not admitted
+            </button>
+          ) : null}
         </section>
       ) : null}
       {report ? (

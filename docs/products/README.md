@@ -8,8 +8,9 @@ PMI KC is one application with three connected product lanes.
 | Lease Renewal Agent     | `docs/products/lease-renewal-agent.md` | Live reads, reconciliation, comps, reviewed drafts    |
 | Workflow Communications | `docs/products/gmail-inbox-zero.md`    | Workflow-linked Gmail adapter; compatibility filename |
 
-Maintenance, Vendor/resident work, feedback, approvals, and staff work are application capabilities,
-not separate Demo products. Use `docs/status.md` for deployment truth and
+Retained maintenance knowledge/history, feedback, approvals and staff work are application capabilities,
+not separate Demo products. Custom maintenance, operational Vendor work and resident intake are retired
+in current source; Vendoroo stays standalone. Use `docs/status.md` for deployment truth and
 `docs/feature-suites/README.md` for unfinished behavior.
 
 ## Wednesday packet and reusable training

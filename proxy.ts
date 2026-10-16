@@ -3,6 +3,11 @@ import { type NextRequest, NextResponse } from "next/server";
 import { resolveEnvironmentDescriptor } from "@/lib/environment/descriptor";
 import { decideLiveReadonlyRequest } from "@/lib/environment/live-readonly-request-policy";
 import {
+  maintenanceRequestDisposition,
+  MAINTENANCE_RETIREMENT_MESSAGE,
+  MAINTENANCE_RETIREMENT_PATH,
+} from "@/lib/maintenance/retirement";
+import {
   authenticateSessionCookie,
   getSessionCookieName,
   readLocalDemoSessionRole,
@@ -27,6 +32,21 @@ export function proxy(request: NextRequest) {
 }
 
 async function applyRequestPolicies(request: NextRequest) {
+  const maintenance = maintenanceRequestDisposition(
+    request.method,
+    request.nextUrl.pathname,
+  );
+  if (maintenance === "refuse") {
+    return NextResponse.json(
+      { error: MAINTENANCE_RETIREMENT_MESSAGE, error_type: "MaintenanceRetired" },
+      { status: 410, headers: { "cache-control": "no-store" } },
+    );
+  }
+  if (maintenance === "notice") {
+    return NextResponse.rewrite(new URL(MAINTENANCE_RETIREMENT_PATH, request.url), {
+      headers: { "cache-control": "no-store" },
+    });
+  }
   const decision = decideLiveReadonlyRequest({
     descriptor: resolveEnvironmentDescriptor(),
     method: request.method,

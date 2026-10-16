@@ -53,7 +53,7 @@ describe("Spaces directory for staff", () => {
       expect(screen.getByRole("heading", { name: space.name })).toBeInTheDocument();
     }
     expect(
-      screen.getByRole("heading", { name: "Maintenance Work Order Intake" }),
+      screen.getByRole("heading", { name: "Maintenance history" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Lease Renewals" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Move-In" })).toBeInTheDocument();

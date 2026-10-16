@@ -1,6 +1,17 @@
 # Integration architecture
 
-Updated: 2026-10-10.
+Updated: 2026-10-16.
+
+## Current application admission
+
+The October 16 instruction supersedes the operational applicability of the earlier maintenance and
+S183 sending contracts below. One current operation policy refuses retired maintenance/vendor
+effects and client sends/schedules before provider construction, even when their historical Registry
+metadata is open. HTTP, shared workflow admission, UI and the non-dispatching worker enforce the same
+boundary. Knowledge, authorized history, renewal source updates and permitted unsent Gmail drafting
+retain their separate contracts. Vendoroo stays standalone; no private data or live customer effect
+is verification proof. Source behavior is not yet deployed. Current evidence and holds are in
+docs/facts.md and docs/loop-state.md.
 
 ## Effect model
 
@@ -29,10 +40,13 @@ owner authority, provider effects and source writes remain separate rows.
 
 An open action key does not grant page/role access, and a role cannot open a key. Exact action state,
 runtime suspension, quota, provider readiness, preview/confirmation, receipts, readback, and rollback
-remain downstream effect checks. S183 authorizes human Send/Schedule through S189–S192 only after
+remain downstream effect checks. Historically, S183 authorized human Send/Schedule through S189-S192 only after
 their technical gates and reviewed exact-key activation, passed in run 5b3dfb90 for only those two keys.
 
-## Current open keys
+## Current source key metadata and last recorded Admin mirror
+
+This inventory describes activation metadata, not current execution eligibility. The current
+application-admission refusal above overrides retired maintenance and all client-send keys.
 
 - `rentvine.work_order.create`
 - `rentvine.work_order.read`
@@ -53,25 +67,28 @@ their technical gates and reviewed exact-key activation, passed in run 5b3dfb90 
 - `rentvine.lease.recurring_charge.update`
 - `rentvine.work_order.chat.sync`
 
-The committed Registry and read-back Admin mirror contain 48 exact keys: these 18 are open and the other 30 are closed. The mirror cannot grant execution. Notice send keys are confined to explicit human
+The committed Registry and last recorded Admin mirror contain 48 exact keys: these 18 are open and the other 30 are closed. The mirror cannot grant execution. The historical notice send keys were confined to explicit human
 S189–S192 sequences; generic send, S100 resident-draft, retired broad writeback identifiers,
 provider Vendor assignment, RentVine attachments/chat posting and every unlisted effect stay closed.
 
 ## Providers
 
-| Provider                 | Current role                                                                    | Write/effect state                                                                                                                                                                                                                  |
-| ------------------------ | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| RentVine                 | Complete lease reads; work-order reads; authoritative lease/unit/portfolio data | Exact S97 renewal, S99 work-order, and S100 chat-sync keys are open                                                                                                                                                                 |
-| Google Sheets            | Operating renewal read source and exact append/update target                    | Both exact keys remain open; the reviewed S159 switch value true serves normal append and recognized-field updates behind exact confirmation; false pauses all operating-Sheet mutations; reads and app-owned work remain available |
-| RentCast                 | Reference rental listings/market data with cache, usage counter, cap 50         | Exact read key open; never sets offered rent                                                                                                                                                                                        |
-| Gmail                    | Workflow reads/replies/labels, rich linked drafts and human Send/Schedule       | Two scoped human notice sequence keys open; generic send closed                                                                                                                                                                     |
-| Firestore                | App-owned state, approvals, receipts, tasks, snapshots                          | Rules/transactions govern writes                                                                                                                                                                                                    |
-| Drive/Storage            | Approved sources and bounded artifacts                                          | No broad source replacement/delete                                                                                                                                                                                                  |
-| Dotloop                  | Typed packet/binding seam; S106 connection and S34 packet lifecycle specified   | OAuth connected; office-agent/template eligibility and saved supported selection unverified; both write keys closed                                                                                                                 |
-| LeadSimple               | Typed connector seam                                                            | Account contract/credential pending                                                                                                                                                                                                 |
-| Resident/Vendor channels | Tokenized app intake and staff work seams                                       | Manual chat sync and scoped app vendor contributions available; resident draft and provider Vendor effects closed                                                                                                                   |
+| Provider                 | Current role                                                                             | Write/effect state                                                                                                                                                                                                                  |
+| ------------------------ | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RentVine                 | Complete lease reads; retained work-order reads; authoritative lease/unit/portfolio data | Exact renewal contracts remain; maintenance creation/status/chat effects are retired at operation admission regardless of open metadata                                                                                             |
+| Google Sheets            | Operating renewal read source and exact append/update target                             | Both exact keys remain open; the reviewed S159 switch value true serves normal append and recognized-field updates behind exact confirmation; false pauses all operating-Sheet mutations; reads and app-owned work remain available |
+| RentCast                 | Reference rental listings/market data with cache, usage counter, cap 50                  | Exact read key open; never sets offered rent                                                                                                                                                                                        |
+| Gmail                    | Workflow-linked reads/labels, permitted rich unsent drafts and delivery history          | Client sends, schedules and worker dispatch refused; protected activation metadata unchanged                                                                                                                                        |
+| Firestore                | App-owned state, approvals, receipts, tasks, snapshots                                   | Rules/transactions govern writes                                                                                                                                                                                                    |
+| Drive/Storage            | Approved sources and bounded artifacts                                                   | No broad source replacement/delete                                                                                                                                                                                                  |
+| Dotloop                  | Read-only profile/template diagnostics; existing typed packet/binding seam               | Last recorded OAuth connection; fresh owning-profile/selection evidence unavailable; both write keys closed                                                                                                                         |
+| LeadSimple               | Typed connector seam                                                                     | Account contract/credential pending                                                                                                                                                                                                 |
+| Resident/Vendor channels | Retained authorized records and receipt/history readers                                  | Operational intake, vendor work and maintenance chat retired; no new provider effect or activation                                                                                                                                  |
 
 ## RentVine write boundary
+
+The maintenance proof/activation details in this section are historical. Current admission refuses
+those maintenance effects; they cannot restart from an old key or receipt. Renewal contracts remain.
 
 S97's exact renewal-date, recurring-charge-create, and recurring-charge-update keys and S99's exact
 work-order read/create/status keys completed their bounded proof and activation lifecycles. S100's
@@ -104,6 +121,10 @@ receipt/readback and separately confirmed current-state correction remain requir
 historical restore and proof replay remain unavailable; no new provider-contract prerequisite applies.
 
 ## Messaging boundary
+
+Current source permits workflow-linked reads and unsent drafts and refuses client dispatch. The
+following October 9-10 authorization, worker configuration and receipts retain historical scope only;
+they do not override the current application policy or establish fresh managed-runtime readback.
 
 The owner's S183 instruction authorizes the named program's human Send/Schedule only through the
 two reviewed notice contracts. The two notice

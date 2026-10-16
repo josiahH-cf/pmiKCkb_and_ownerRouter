@@ -35,6 +35,11 @@ import { buildEvidencePacket } from "@/lib/move-out/evidence-packet";
 import { SPACE_CONNECTOR_IDS } from "@/lib/space-card-state";
 import { canAccessLaunchSpace } from "@/lib/space-scope-resources";
 import { launchSpaces } from "@/lib/spaces";
+import {
+  isRetiredMaintenanceWorkflow,
+  MAINTENANCE_RETIREMENT_MESSAGE,
+  MAINTENANCE_HISTORY_PATH,
+} from "@/lib/maintenance/retirement";
 
 /** The domain-specific desk Card(s) for a Space, if any:
  *  Move-In welcome / Move-Out evidence packet; the three Renewals Spaces get the read-only effective
@@ -106,7 +111,11 @@ export default async function SpaceDetailPage({
 
   // Spaces ⊇ Processes: a Space that carries a process gets a Process sub-tab beside its Overview.
   // The Overview stays the default so the existing content (and smoke coverage) is unchanged.
-  const hasProcess = Boolean(space.processDefinitionId);
+  const retiredMaintenance = isRetiredMaintenanceWorkflow(
+    space.id,
+    space.processDefinitionId,
+  );
+  const hasProcess = Boolean(space.processDefinitionId) && !retiredMaintenance;
   const requestedTab = (await searchParams)?.tab;
   const activeTab = hasProcess && requestedTab === "process" ? "process" : "overview";
 
@@ -176,7 +185,11 @@ export default async function SpaceDetailPage({
             <h1 className="section-title">{space.name}</h1>
             <p className="muted">
               {space.processCategory}
-              {space.readOnly ? " - Read-only" : " - Process space"}
+              {retiredMaintenance
+                ? " - Read-only history"
+                : space.readOnly
+                  ? " - Read-only"
+                  : " - Process space"}
             </p>
           </div>
           {config.askDemoMode ? <span className="review-pill">Local demo</span> : null}
@@ -214,7 +227,17 @@ export default async function SpaceDetailPage({
           </aside>
         ) : null}
 
-        {activeTab === "process" && space.processDefinitionId ? (
+        {retiredMaintenance ? (
+          <section className="panel">
+            <h2>Custom maintenance is retired</h2>
+            <p>{MAINTENANCE_RETIREMENT_MESSAGE}</p>
+            <p>
+              Existing knowledge and publication records retain their original
+              permissions.
+            </p>
+            <Link href={MAINTENANCE_HISTORY_PATH}>Read-only maintenance history</Link>
+          </section>
+        ) : activeTab === "process" && space.processDefinitionId ? (
           <ProcessSummaryPanel
             definitionId={space.processDefinitionId}
             definition={processDefinition}

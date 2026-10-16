@@ -291,9 +291,52 @@ function DotloopResourcePicker({
           choosing.
         </Notice>
       ) : null}
+      {picker.resourceReadFailed ? (
+        <Notice tone="caution">
+          The account or profile read did not complete. Refresh resources before saving a
+          selection; failed reads do not establish that a template is absent.
+        </Notice>
+      ) : null}
+      <details>
+        <summary>Observed template visibility by profile</summary>
+        <p className="muted">
+          Company and office templates are shown for diagnosis. Renewal loop selection
+          still requires a supported individual profile. A visible template does not
+          enable loop creation or uploads.
+        </p>
+        <ul>
+          {picker.profiles.map((profile) => {
+            const error = picker.templateReadErrors?.[profile.id];
+            const observed = Object.prototype.hasOwnProperty.call(
+              picker.templatesByProfile,
+              profile.id,
+            );
+            const found = picker.templatesByProfile[profile.id] ?? [];
+            return (
+              <li key={profile.id}>
+                {profile.name || profile.id} ({profile.type ?? "type unreported"}):{" "}
+                {error
+                  ? `template read failed (${error})`
+                  : !observed
+                    ? "templates not observed"
+                    : found.length === 0
+                      ? "no templates returned"
+                      : found.map((entry) => entry.name || entry.id).join(", ")}
+                {profile.supported ? "" : " · diagnostic visibility only"}
+              </li>
+            );
+          })}
+        </ul>
+        {picker.profilesTruncated ? (
+          <p role="status">
+            This bounded resource check did not read every profile. An unobserved profile
+            is not evidence of an empty template list.
+          </p>
+        ) : null}
+      </details>
       <Field htmlFor="dotloop-profile" label="Dotloop profile" required>
         <select
-          disabled={busy || picker.stale}
+          disabled={busy || picker.stale || picker.resourceReadFailed}
           id="dotloop-profile"
           onChange={(event) => {
             setProfileId(event.target.value);
@@ -313,7 +356,7 @@ function DotloopResourcePicker({
       </Field>
       <Field htmlFor="dotloop-template" label="Renewal template" required>
         <select
-          disabled={busy || picker.stale || !profileId}
+          disabled={busy || picker.stale || picker.resourceReadFailed || !profileId}
           id="dotloop-template"
           onChange={(event) => {
             setTemplateId(event.target.value);
@@ -334,7 +377,9 @@ function DotloopResourcePicker({
       </Field>
       <Field htmlFor="dotloop-initial-status" label="Initial loop status" required>
         <select
-          disabled={busy || picker.stale || !template?.supported}
+          disabled={
+            busy || picker.stale || picker.resourceReadFailed || !template?.supported
+          }
           id="dotloop-initial-status"
           onChange={(event) => setInitialStatus(event.target.value)}
           value={initialStatus}
@@ -351,7 +396,13 @@ function DotloopResourcePicker({
         <Button
           busy={busy}
           busyLabel="Saving the renewal resources"
-          disabled={picker.stale || !profileId || !template?.supported || !initialStatus}
+          disabled={
+            picker.stale ||
+            picker.resourceReadFailed ||
+            !profileId ||
+            !template?.supported ||
+            !initialStatus
+          }
           type="submit"
           variant="secondary"
         >

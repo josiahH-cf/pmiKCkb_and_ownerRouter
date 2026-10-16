@@ -64,7 +64,7 @@ it("opens the actual maintenance ticket focus route and keeps only source-backed
     ],
     time,
   );
-  expect(records[0].href).toBe("/maintenance?ticket_id=ticket-one");
+  expect(records[0].href).toBe("/maintenance/history?ticket_id=ticket-one");
   expect(records[0].relations).toEqual([
     { type: "unit", id: "103", label: "East 123 Fixture Lane" },
     { type: "property", id: "55", label: "Property 55" },

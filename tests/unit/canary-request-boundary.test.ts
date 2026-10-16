@@ -53,9 +53,13 @@ describe("server canary boundary before route execution", () => {
     "refuses %s %s without forwarding to an executor or writer",
     async (method, path) => {
       const response = await request(method, path);
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(path.startsWith("/api/maintenance/") ? 410 : 403);
       expect(response.headers.get("x-middleware-next")).toBeNull();
-      expect(await response.json()).toMatchObject({ error_type: "canary_read_only" });
+      expect(await response.json()).toMatchObject({
+        error_type: path.startsWith("/api/maintenance/")
+          ? "MaintenanceRetired"
+          : "canary_read_only",
+      });
     },
   );
   it.each([

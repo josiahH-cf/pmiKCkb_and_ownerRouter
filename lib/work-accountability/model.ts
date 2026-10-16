@@ -160,7 +160,7 @@ export function canonicalSourceLink(
     return `/lease-renewal/live/desk/lease/${encoded}`;
   }
   if (type === "maintenance_ticket") {
-    return `/maintenance?ticket_id=${encoded}`;
+    return `/maintenance/history?ticket_id=${encoded}`;
   }
   return `/approval-queue?item_id=${encoded}`;
 }

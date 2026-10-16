@@ -19,7 +19,32 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — 2026-10-11
+## Current execution — October 16 application instruction
+
+S227–S229 execute the prepared October 16 instruction: retire custom maintenance while retaining
+authorized read-only history, keep Vendoroo standalone, diagnose Dotloop renewal-template visibility,
+and preserve renewal usability and workflow-linked Gmail reads/unsent drafting. Original checkouts,
+private evidence and parallel audit/importer work remain separate. New leasing is deferred.
+
+This instruction narrows the earlier October 9 Send/Schedule program. Current source refuses
+client sends/schedules at production operation admission and makes the worker non-dispatching.
+Previously open Registry activation metadata is unchanged; an open key cannot override this
+operation-level refusal. Earlier authorizations, drafts, attempts and receipts remain historical
+evidence, never a backlog to execute. Both Dotloop write keys remain closed.
+
+The bounded implementation and preservation checks are complete in source; release qualification
+requires the actual canonical and exact-main CI receipts reported with publication. No production
+delivery is claimed. Approved WSL CLI/ADC currently require
+human reauthentication; the browser automation runtime fails before inventory. These hold fresh live
+Dotloop/Gmail/Cloud Run readbacks and release phases only. Continue independent verification and green
+mainline work. Do not ask the owner to recreate the template reported active on October 15 before
+checking actual current owning-profile visibility and selection. See docs/loop-state.md.
+
+## Present production truth - last recorded managed release 2026-10-11
+
+The public bodyless version endpoint reported the same commit/revision below at
+2026-10-16T09:18:48Z. Fresh managed traffic/configuration readback remains unavailable. The
+following detailed release evidence retains its October 11 scope; S227-S229 are not deployed.
 
 Run `859ff7f8-0106-48c1-acfa-823d4a592422` released the cumulative Focus/maintenance repairs at
 `eb5d35991c3ec128a102e4483d3779af16106821` / `pmi-kc-app-rmv3yavsf-2cece39f7605`, 100% traffic.
@@ -98,8 +123,9 @@ S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger 
 - S96 and the S83-S86 access/navigation/theme/interaction foundation remain deployed. S97-S99 and
   S100 chat-sync proof-qualified exact keys retain their contracts; completed proofs were not rerun.
 - Source and read-back Admin Registry mirror contain 48 exact keys, 18 open and 30 closed. Only the two reviewed workflow notice send keys activated, with backup/CAS/readback;46 unrelated metadata records were unchanged. The maintenance-draft descriptive note was separately aligned without an activation change.
-- S100 resident-draft activation still needs the exact synchronized resident/verified-email input;
-  S36 remains queued behind complete S100. Revised S87 is deployed in batch 005; overlapping S88-S93/S101 and S95 proposals are superseded, while S94 remains unexecuted.
+- The earlier S100 resident-draft activation and S36 queue are historical; the current maintenance
+  retirement instruction requests neither proof nor activation. Revised S87 is deployed in batch 005;
+  overlapping S88-S93/S101 and S95 proposals are superseded, while S94 remains unexecuted.
 - Existing monitoring and domain gates passed. The managed alert recipient remains unchanged.
   No paid comp request, live customer draft/send, new provider proof or signature effect ran.
 - Both private supplied v2 templates are published and read back approved. Private sources and
@@ -122,12 +148,12 @@ PMI KC is one deployed application with three connected lanes:
 - PMI KC KB: source-backed knowledge, Console, Spaces, processes, approvals, and Admin.
 - Lease Renewal Agent: complete RentVine/Sheet reads, reconciliation, comps, reviewed drafts, and
   lease-specific work.
-- Workflow Communications: linked Gmail reads/labels/replies, rich drafts and exact human
-  Send/Schedule for the two reviewed notice contracts, with durable recovery and reply pauses.
-  General inbox and model-triggered messaging are outside its scope.
+- Workflow Communications: linked Gmail reads/labels, reviewed unsent drafts and retained delivery
+  history. Current operation policy refuses client sends and schedules. A general inbox and
+  autonomous messaging are outside scope.
 
-Maintenance, resident intake, Vendor work, feedback, and staff work accountability are application
-capabilities within those lanes, not separate Demo products.
+Custom maintenance, resident intake and operational Vendor work are retired in current source;
+authorized read-only records remain. Feedback, staff work accountability and knowledge are preserved.
 
 ## Standing authority
 
@@ -260,12 +286,10 @@ it does not authorize a session-policy, IAM, claim, or credential-store substitu
 ## Permanent safety boundaries
 
 - No model-triggered, unapproved background, generic or bulk client-facing send.
-- Under the owner's 2026-10-09 S183–S226 execution instruction, a staff member's explicit Send or
-  Schedule authorizes the exact reviewed workflow-linked initial/follow-up content, verified
-  recipients, managed sender and schedule. Durable approved occurrences may execute without a
-  repeated prompt after the named operation's technical gates and reviewed exact-key activation.
-  Changed content, sender, scope or material source facts require a new reviewed authorization.
-  Existing unsent Gmail drafts remain available and never become authorization by migration.
+- The October 16 application instruction limits this execution to linked reads and unsent Gmail
+  drafts. Client sends, scheduled dispatch and Resume are refused at operation admission. Prior
+  October 9 authorizations/activations retain their historical meaning but cannot bypass current
+  refusal. Existing drafts, receipts and ambiguous-attempt reconciliation remain available.
 - Ordinary supported staff edits use one visible Save/Apply as exact intent. Preserve server-side
   permissions, real target/version/conflict checks, durable one-attempt claims, receipts, readback
   and recovery. A chat-originated explicit supported action uses the same operation service;

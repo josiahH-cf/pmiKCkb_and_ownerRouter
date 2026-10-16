@@ -1,12 +1,17 @@
 # PMI KC
 
 PMI KC is a production Next.js application for source-backed operations, lease renewals, workflow
-communications, maintenance, approvals, and staff work.
+communications, approvals, staff work and retained maintenance history.
+
+Current source follows the October 16 direction: custom maintenance/vendor operations are retired,
+Vendoroo stays standalone, and workflow communications remain reads and unsent drafts. Existing
+history, knowledge, permissions and receipt meanings are preserved. This source change is not deployed.
 
 Production: [pmi-kc-app](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app)
 
-Current deployed code is commit `1d68c7fb0a4f3138b9d0ba410d221b44bfb5534c` on Cloud Run revision
-`pmi-kc-app-rmtg73suu-fe8734d35330`. Production is explicit Live-only. Local rehearsal may use live
+The public bodyless version endpoint reported commit `eb5d35991c3ec128a102e4483d3779af16106821` on
+revision `pmi-kc-app-rmv3yavsf-2cece39f7605` at 2026-10-16T09:18:48Z. Managed traffic/configuration
+readback remains blocked by approved-account reauthentication. Production is explicit Live-only. Local rehearsal may use live
 reads but refuses persistence and provider effects.
 
 ## Start here
@@ -52,6 +57,7 @@ the named candidate. See `docs/environment-handoff.md`.
 
 ## Safety summary
 
-Client-facing sends are never autonomous. Renewal and maintenance notices are unsent Gmail drafts
-that a human sends. System-of-record writes require exact human confirmation and rollback proof.
+Current operation policy refuses client sends and schedules, including previously admitted schedules.
+Permitted renewal notices remain reviewed unsent Gmail drafts that staff can send from Gmail.
+Retired maintenance effects cannot execute. System-of-record writes require exact human confirmation and rollback proof.
 Production never receives sample/test data. Secrets and client data never enter Git.

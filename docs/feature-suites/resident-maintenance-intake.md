@@ -4,80 +4,40 @@
 # S47 — Tokenized resident maintenance intake
 
 > Status: Complete and deployed for Live tokenized app intake, quarantine, and staff review; RentVine
+> Current applicability: historical delivery evidence only; operational requirements are superseded by S227. No former maintenance or provider proof is queued.
 > work-order chat synchronization and resident-reply drafting are separate S100 scope.
 
 **Goal.**
 
-Accept one bounded maintenance report through a staff-issued link, quarantine it as unverified, and
-let an authorized staff member promote or dismiss it without creating any provider effect.
+Retain the original maintenance/vendor records, receipts, permissions and historical requirement evidence after custom maintenance retirement. S227 owns the current operating contract; Vendoroo remains standalone.
 
 **Current state / intended end state.**
 
-The deployed Live flow lets a managed staff Editor with Maintenance Space access mint a signed
-property-scoped intake token. A token bearer may submit bounded text to the one public intake route.
-The route writes only an unverified quarantine record after token, replay, revocation, rate, and size
-checks. An authorized staff member may atomically promote that record to one app maintenance ticket
-or dismiss it with a reason. This suite preserves that behavior as the complete S47 boundary.
-
-The invitation-oriented inert seam in `lib/maintenance/rentvine-resident-channel.ts` is not an active
-S47 provider contract and is not a dependency for tokenized intake. S100 replaces that obsolete
-future direction with an exact manual RentVine work-order-chat sync and a separate unsent Gmail
-resident-reply draft. S47 neither waits for nor infers a RentVine invitation, webhook, or reply API.
+October 15 30:54–31:32 and the confirming maintenance emails retire the custom workflow. The source baseline 0b892865 contains the earlier implementation or proposal recorded below; S227 retires operational entry and preserves authorized read-only history. S227–S229 are under verification, with no new deployment claimed. Earlier authoring and delivery evidence retains its original scope.
 
 **Actors and entry conditions.**
 
-- A managed Editor with `edit` capability and Maintenance Space access may mint a Live token and may
-  promote or dismiss quarantined intake. Token minting refuses when the maintenance-intake secrets
-  or property key are unavailable or invalid.
-- An external resident or reporter may submit only while holding an unexpired, unrevoked,
-  property-scoped HMAC token. Possession of the token grants only the bounded quarantine submission;
-  it grants no app session, ticket access, unit authority, or provider authority.
-- A single-use token is valid for at most seven days and is consumed once. A deliberately reusable
-  signage token is valid for at most thirty days and remains subject to the tighter configured daily
-  cap. The current property revocation epoch invalidates older tokens.
-- Production accepts only `data_mode=live`. Retired Test intake cannot be submitted, promoted, or
-  dismissed.
+Existing authorized readers retain their current permissions. No new maintenance intake, vendor work, provider action, maintenance draft, integration access request or old proof window may start from this contract. Shared renewal and knowledge behavior remains separately owned.
 
 **What it is / how it functions.**
 
-Staff minting returns the exact property key, expiry, single-use state, public submit path, and token
-header. The public route accepts `summary`, optional `description`, and optional `contact` under a
-16-KiB request-body ceiling. It performs the configured-availability check, token lookup, IP-based
-burst pre-gate, HMAC/expiry/epoch validation, bounded body read, strict shape validation, sanitation,
-transactional nonce and per-property daily-cap enforcement, then writes one unverified record plus
-one activity record. Its `202` response uses a fresh random reference rather than an internal record
-id or token nonce.
-
-The quarantine record is not a verified resident, unit, ticket, or RentVine work order. Promotion is
-one transaction that creates one Live app ticket and its activity record while changing the intake
-state to `promoted`. Staff may confirm an exact unit during promotion. Without that confirmation, the
-ticket keeps `unit=null` and a visible `Needs Verification` label. Dismissal changes the intake to
-`dismissed`, records the reviewer and reason, and creates no ticket. A second or concurrent promote
-or dismiss refuses with no duplicate ticket.
+Read-only retention uses the existing stores and receipt/history readers under their original authorization, with operational requests refused before dispatch. No records are deleted or relabeled. Current maintenance is managed in standalone Vendoroo; no destination URL or integration is invented.
 
 **In scope / out of scope.**
 
-In scope: token minting; expiry and property revocation; single-use replay protection; reusable-link
-and daily caps; bounded, sanitized text intake; generic public errors; quarantine retention; staff
-review; optional exact-unit confirmation; atomic promotion or dismissal; and app activity evidence.
-
-Out of scope: public file or image upload; resident identity verification from free-form contact
-text; automatic unit matching as authority; RentVine chat reads or writes; RentVine work-order
-creation or status changes; Gmail drafts or sends; notifications derived from provider chat; and the
-obsolete RentVine invitation lifecycle. S100 owns provider chat sync and a resident-reply draft.
+Only retention, historical interpretation and permission compatibility remain applicable. All former operational maintenance/vendor requirements and Vendoroo ingestion work in the historical trace below are superseded by S227. Raw private sources remain outside Git. This file grants no new execution or release authority.
 
 **Open questions & assumptions.**
 
-No material product question remains in S47. Configured cap values and secrets remain environment
-inputs and must fail closed when absent; their absence does not widen or redesign the contract.
+Former provider/account/policy inputs are not prerequisites for retirement and must not trigger duplicate requests. Fresh read-only provider evidence and deployment are held only by the exact authentication/browser limitations recorded in docs/open-blockers.md. Missing observations are not success.
 
 **Cross-product impacts.**
 
-Maintenance page access, public intake routes, quarantine and activity collections, app maintenance
-tickets, unit verification, product-record retention, rate/cost controls, Firestore rules, and S100's
-downstream mapped-ticket entry condition.
+S227 owns retired HTTP and shared effect admission, authorized history and reports. Existing stores, receipts and permissions remain unchanged. Renewal, workflow-linked unsent communications, search and knowledge retain their independent contracts. The historical architecture below identifies original owners for preservation only; it does not request extensions or integration.
 
 **Authority and evidence map.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 | Input                                                            | Classification                | Use and limitation                                                                                                                                                     |
 | ---------------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -87,6 +47,8 @@ downstream mapped-ticket entry condition.
 | S100                                                             | Separate desired contract     | Owns manual RentVine work-order-chat sync and the human-reviewed resident-reply Gmail draft; it cannot be used to reinterpret public intake as verified provider data. |
 
 **Architecture outcome (deterministic, fail-first).**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 - **ARCH-S47-1** — The public route remains structurally isolated from authenticated ticket writers,
   RentVine, Gmail, and provider execution. A negative-import/effect-spy check fails if the public path
@@ -103,6 +65,8 @@ downstream mapped-ticket entry condition.
 
 **Behavior outcome (deterministic, fail-first).**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 - **BEH-S47-1** — A valid token and bounded valid report return `202 received` with an opaque public
   reference and create exactly one unverified quarantine item, never a ticket or provider record.
 - **BEH-S47-2** — Missing/invalid/expired/revoked tokens, replay, retired data mode, oversize or
@@ -115,6 +79,8 @@ downstream mapped-ticket entry condition.
   work-order/status mutation, Gmail draft, or message send.
 
 **Human litmus outcome.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 ### Submit and review one maintenance request
 
@@ -131,6 +97,8 @@ created in RentVine or Gmail.
 
 **Requirement-to-outcome traceability.**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 | Requirement                                              | Architecture outcome       | Behavior outcome         | Human litmus                              | Deterministic evidence / falsification                                                                                             |
 | -------------------------------------------------------- | -------------------------- | ------------------------ | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Public submissions reach quarantine only                 | `ARCH-S47-1`, `ARCH-S47-4` | `BEH-S47-1`, `BEH-S47-4` | Submit and review one maintenance request | Negative-import scan and provider/ticket spies prove the public writer can touch only quarantine/activity/cap records.             |
@@ -145,6 +113,8 @@ quarantine, review-route, review-store, Firestore-rule, ticket, unit matcher, an
 tests remain green as a separate gate. S100 tests must not be used to substitute for S47 preservation.
 
 **Adversarial acceptance checks.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 - **AC-S47-1** — `ARCH-S47-1/4` and `BEH-S47-1/4` prove the only unauthenticated write remains the
   quarantine path and cannot import ticket creation, RentVine, Gmail, or generic execution.
@@ -166,46 +136,29 @@ invitation seam as an S47 dependency or claim that it implements S100.
 
 **Dependencies / sequencing.**
 
-S47 is the deployed app-intake foundation and has no provider dependency. S100 may consume an exact
-staff-reviewed app ticket and verified provider bindings, but S100 must not change S47's public route,
-turn unverified intake into provider truth, or make sync/draft availability a condition for intake.
+Use S227 for maintenance retirement and retained read-only compatibility. S228 owns current Dotloop diagnostics and S229 renewal/unsent communications preservation. Do not resume the old maintenance, Vendoroo integration or proof sequence from this historical contract.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** Preserve the complete tokenized Live intake, quarantine, and staff disposition
-  contract and retire S47's obsolete invitation-provider ambiguity in documentation and tests.
-- **Consumes, but does not assume:** Runtime secrets, caps, retention policy, and Firestore are current
-  environment inputs; absence yields the existing unavailable/refusal state.
-- **Externally blocked effect:** None. S47 has no external provider effect. RentVine chat and Gmail
-  resident drafts are S100 gates, not S47 blockers.
-- **Produces for downstream suites:** One reviewed Live app ticket with explicit unit-verification
-  state and immutable intake/activity provenance; it does not produce a resident or work-order map.
+- **Deliverable now:** The S227 retirement/retention slice, preserving original evidence without migration effects.
+- **Consumes, but does not assume:** Existing authorized history and exact receipts.
+- **Externally blocked effect:** No former maintenance/provider effect is requested. Current live verification holds are in docs/open-blockers.md.
+- **Produces for downstream suites:** Original record/receipt meanings and permissions, without new operational authority.
 
 **Verification and delivery contract.**
 
-1. Re-read the current token, public-route, quarantine, review, and rules contracts and record the
-   preservation baseline before any S47 edit.
-2. Run the focused token, public-route, rate, sanitation, quarantine, review, transaction,
-   Firestore-rule, role/Space, Live-only, and negative-import/effect-spy checks.
-3. Run `bash scripts/verify.sh`, inspect the mechanical diff, and audit secrets, PII, public error
-   bodies, retention, provider imports, exact action gates, and scope traceability.
-4. Report `ALL_GATES_GREEN` only when all S47 architecture, behavior, adversarial, and preservation
-   gates pass; use `BLOCKED` only after independent closed-safe work is complete and one exact runtime
-   prerequisite remains unavailable. `BUDGET_EXHAUSTED` is available only with an explicit owner-set
-   budget. An unavailable runtime secret does not justify widening the route or reviving the
-   invitation seam.
+1. Verify current S227 retirement and read-only retention through the real request, service and authorized reader boundaries.
+2. Preserve original requirement IDs, historical verdicts, records and receipt meanings. Do not execute the superseded operational acceptance outcomes or collect retired integration inputs.
+3. Use S227-S229 for current focused regressions, required repository checks and authorized gated delivery. Record local, live-provider, human and deployment outcomes separately; missing evidence cannot become success.
+4. Report ALL_GATES_GREEN only for actually completed current engineering gates, BUDGET_EXHAUSTED only for an explicit budget, or BLOCKED with its exact unavailable external input after independent work. These terminal states do not resume the superseded operational outcomes.
 
 **Ordered prompt sequence.**
 
-1. Re-verify tokenized intake and freeze its isolation, role, transaction, and Live-only baselines.
-2. Materialize any missing negative-import/provider-spy and concurrent replay/review checks.
-3. Preserve the bounded intake and disposition behavior; remove only obsolete S47 invitation
-   ownership or ambiguity.
-4. Run focused and canonical verification, reconcile current docs, and ship only through the
-   authorized release path.
+1. Read the current router and S227; verify actual retirement/retention behavior.
+2. Use original evidence below only for provenance and preservation scope.
+3. Do not execute former operational instructions, collect retired integration inputs or rerun completed proofs.
+4. Verify and deliver the currently authorized S227–S229 slice through existing gates.
 
 **Deletion/merge recommendation.**
 
-Retain S47 as the active tokenized-intake operating contract until its boundary is fully represented
-in current product/engineering documentation and regression tests. Do not merge it into S100: public
-quarantine intake and consequential provider chat sync have different actors, authority, and effects.
+The original operational contract is superseded by S227. Its historical trace remains temporarily available for native program-ledger consistency; it is not an execution queue. Remove that provenance only with its remaining evidence references reconciled, retaining originals in Git history.

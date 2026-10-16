@@ -3,50 +3,41 @@
 
 # S214 — Readable maintenance history, monthly owner reports and PDF/CSV exports
 
-> Status: READY — finalized specification for later authorized implementation; no application, provider or Registry change is performed by authoring.
+> Status: READY — original authoring state retained for historical ledger consistency; operational requirements superseded by S227. Current scope is read-only retention compatibility; no operational execution is authorized by this file.
 > Intake: 086. Authored: 2026-10-09. Source baseline: WSL main `43bad3ad`; recorded serving baseline: `337ac163` (2026-10-08). These are contextual baselines, not new live verification.
 > Bundle: `operations-communications-maintenance-2026-10`.
 
 **Goal.**
 
-PMI staff can explain maintenance over a selected month or date range with attractive, readable reports whose ticket counts, costs and evidence remain traceable years later.
+Retain the original maintenance/vendor records, receipts, permissions and historical requirement evidence after custom maintenance retirement. S227 owns the current operating contract; Vendoroo remains standalone.
 
 **Current state / intended end state.**
 
-`MaintenanceBlockerReport.tsx` reports current blockers/estimates/preapproval/assignee and last activity. There is no historical maintenance analytics, owner/lease cost report, or dedicated PDF/CSV export service.
-
-Provide monthly/custom-period history views and presentation-quality exports over S209's prospective history and S213's explicit financial categories. Report coverage, count/date definitions, missing evidence and payment verification clearly; do not backfill history or automatically send reports.
+October 15 30:54–31:32 and the confirming maintenance emails retire the custom workflow. The source baseline 0b892865 contains the earlier implementation or proposal recorded below; S227 retires operational entry and preserves authorized read-only history. S227–S229 are under verification, with no new deployment claimed. Earlier authoring and delivery evidence retains its original scope.
 
 **Actors and entry conditions.**
 
-Authorized PMI staff prepare/view/export reports for a real owner/property/unit/lease scope. Vendors see only their assigned work under their own projection. Owner-facing export is a reviewed artifact, not a new owner account or delivery grant.
+Existing authorized readers retain their current permissions. No new maintenance intake, vendor work, provider action, maintenance draft, integration access request or old proof window may start from this contract. Shared renewal and knowledge behavior remains separately owned.
 
 **What it is / how it functions.**
 
-- **R-S214-1 — Explicit scope, period and coverage.** Select owner/property/unit/lease and calendar month or custom date range in the configured business timezone. Show period and history coverage start; define opened-in-period, completed-in-period and open-as-of-end counts separately, and keep service/invoice/payment date labels distinct.
-- **R-S214-2 — Separated cost and payment totals.** Display estimated, invoiced/vendor cost, reviewed owner charge/markup and verified-paid amounts separately with source/period basis. Unknown is not zero, credits/partial allocation are explicit, and an invoice is not labelled paid.
-- **R-S214-3 — History and evidence drilldown.** Show chronological jobs, trade/vendor, assessment/work/completion dates, reviewed scope, cost and permitted retained documents with source labels. Keep raw sentiment/internal conversations out of default owner-ready content; expired raw source is marked unavailable.
-- **R-S214-4 — Useful visual design.** Provide clear summary hierarchy, readable tables, monthly trend charts and concise legends with accessible text equivalents; chart axes/counts/totals must agree with the underlying report. Handle empty/incomplete periods and long addresses/vendor names gracefully.
-- **R-S214-5 — Reliable PDF and CSV export.** Generate a readable paginated PDF and a data-faithful UTF-8 CSV for the same selected report snapshot. Include scope/period/generated time/coverage/definitions, repeat table headers and prevent clipping; CSV neutralizes spreadsheet formula injection without losing values.
-- **R-S214-6 — Long-term reproducibility and access.** Retain a report's selected facts/version references and approved export artifact as core evidence when deliberately saved. Corrected source records yield a newly identified report, without silently altering an earlier exported artifact; exports remain subject to current actor scope.
+Read-only retention uses the existing stores and receipt/history readers under their original authorization, with operational requests refused before dispatch. No records are deleted or relabeled. Current maintenance is managed in standalone Vendoroo; no destination URL or integration is invented.
 
 **In scope / out of scope.**
 
-In scope: staff report workspace, monthly/custom range projections, readable charts/tables, reviewed owner-ready PDF/CSV, evidence drilldown and reproducibility. Out of scope: historical maintenance backfill, automated report send, owner portal, accounting posting, inferred liability or raw-conversation retention changes.
+Only retention, historical interpretation and permission compatibility remain applicable. All former operational maintenance/vendor requirements and Vendoroo ingestion work in the historical trace below are superseded by S227. Raw private sources remain outside Git. This file grants no new execution or release authority.
 
 **Open questions & assumptions.**
 
-Actual cost/markup/payment policies come from S213 and remain explicit. Date/count definitions above are required presentation semantics, not claims about current data. The report states incomplete prospective coverage and unavailable payment evidence rather than inventing an arbitrary accuracy target.
-
-No material product decision is deferred inside this READY scope. Actual identities, approved runtime policies, financial values and provider configuration are inputs, not values the implementation runner invents. Their absence blocks only the named dependent operation; implementation and independent verification proceed.
+Former provider/account/policy inputs are not prerequisites for retirement and must not trigger duplicate requests. Fresh read-only provider evidence and deployment are held only by the exact authentication/browser limitations recorded in docs/open-blockers.md. Missing observations are not success.
 
 **Cross-product impacts.**
 
-- `components/maintenance/MaintenanceBlockerReport.tsx`, `app/maintenance/page.tsx` — current operational report entry to extend without replacing its blocker purpose.
-- `lib/firestore/maintenance-tickets.ts`, `maintenance-work-order-links.ts`; S209/S212/S213 — canonical history, artifacts and financial projection.
-- Existing authorized artifact storage/product retention — candidate reuse for saved report artifacts; a new report/export owner is implementation work, not an established path.
+S227 owns retired HTTP and shared effect admission, authorized history and reports. Existing stores, receipts and permissions remain unchanged. Renewal, workflow-linked unsent communications, search and knowledge retain their independent contracts. The historical architecture below identifies original owners for preservation only; it does not request extensions or integration.
 
 **Authority and evidence map.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 | Input                                                         | Classification                             | Use and limitation                                                                                                                                                                                                                                                                                           |
 | ------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -58,6 +49,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 
 **Architecture outcome (deterministic, fail-first).**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 - **ARCH-S214-1** — Build one report projection over canonical S209 identities/history; preserve point-in-time associations instead of attributing all old work to the current tenancy/owner. Freeze a focused falsification before changing this boundary.
 - **ARCH-S214-2** — Consume S213 category/allocation projections and produce reproducible totals; do not recalculate policy or make accounting writes inside reporting. Freeze a focused falsification before changing this boundary.
 - **ARCH-S214-3** — Use durable artifact access and minimized audience projections from S209/S212/S213, with report snapshot/source references for reproducibility. Freeze a focused falsification before changing this boundary.
@@ -66,6 +59,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 - **ARCH-S214-6** — Integrate with S209 retention/artifact lineage and query pagination; bounded projections explicitly report incomplete reads rather than silently truncating. Freeze a focused falsification before changing this boundary.
 
 **Behavior outcome (deterministic, fail-first).**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 - **BEH-S214-1** — A user can explain what 'five tickets this month' means and see whether prior coverage is incomplete.
 - **BEH-S214-2** — Staff can explain why owner charge differs from vendor invoice and which amounts await review/payment evidence.
@@ -76,6 +71,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 
 **Human litmus outcome.**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 ### Export a readable owner maintenance history
 
 **If this was built correctly:** PMI chooses an owner, property, unit or lease and a month or custom period, then sees clearly defined work counts, separate financial totals and evidence links. The matching PDF is readable across pages, the CSV contains the same scoped facts, and a later correction is distinguishable from an earlier retained export.
@@ -84,6 +81,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 | Requirement                                    | Architecture outcome | Behavior outcome | Human litmus                                | Acceptance / deterministic falsification                                                                                                                                                         |
 | ---------------------------------------------- | -------------------- | ---------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -102,6 +101,8 @@ Preservation is a separate result from new behavior. Existing tests are retained
 
 **Adversarial acceptance checks.**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 - **AC-S214-1** — R-S214-1, ARCH-S214-1, BEH-S214-1: Use turnover, tickets spanning months, late-recorded events and a pre-rollout period; counts match their declared definition with no invented backfill.
 - **AC-S214-2** — R-S214-2, ARCH-S214-2, BEH-S214-2: Reconcile totals for estimate-only, credit, revised/duplicate invoice, split cost and partial payment fixtures; no category mixing or double-counting.
 - **AC-S214-3** — R-S214-3, ARCH-S214-3, BEH-S214-3: Expire raw communications and provider links while retaining core artifacts; report evidence still works, inappropriate raw/internal content never enters export.
@@ -117,31 +118,29 @@ Across this suite: no fabricated customer/provider identity or amount, secret/ra
 
 **Dependencies / sequencing.**
 
-S209 canonical prospective history and S213 financial semantics supply report inputs; S212 artifacts add evidence. Full Vendoroo integration is not required for ordinary staff/vendor reports, and missing S208 data is visibly limited.
+Use S227 for maintenance retirement and retained read-only compatibility. S228 owns current Dotloop diagnostics and S229 renewal/unsent communications preservation. Do not resume the old maintenance, Vendoroo integration or proof sequence from this historical contract.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** One historical report projection/UI, PDF+CSV service, evidence/access/coverage handling and rendered export verification across representative cases.
-- **Consumes, but does not assume:** Retained actual history/financial facts and current user scope; missing categories remain missing and provenance is preserved.
-- **Externally blocked effect:** None for engineering/report preparation. Actual owner delivery and unavailable provider/payment evidence remain separate; reports cannot claim missing information has been verified.
-- **Produces for downstream suites:** Readable traceable period report snapshots and exports for staff/owner handoff and S215 integrated verification.
+- **Deliverable now:** The S227 retirement/retention slice, preserving original evidence without migration effects.
+- **Consumes, but does not assume:** Existing authorized history and exact receipts.
+- **Externally blocked effect:** No former maintenance/provider effect is requested. Current live verification holds are in docs/open-blockers.md.
+- **Produces for downstream suites:** Original record/receipt meanings and permissions, without new operational authority.
 
 **Verification and delivery contract.**
 
-1. Re-read current owners and refresh the baseline before implementation. Materialize the named architecture, behavior and acceptance falsifications; record pre-existing unrelated failures separately.
-2. Exercise every row with service/transaction and rendered journeys appropriate to the outcome, including denial, interruption, concurrency and partial completion. Use isolated local fixtures and deterministic external adapters; keep the preservation result separate.
-3. Read back saved artifacts/state and reconcile them with the acted-on identity/version. A UI success label, supplied example or passing adapter cannot establish live provider success.
-4. Run focused checks, then `bash scripts/verify.sh` and applicable compiled-browser checks for any later ship candidate. Audit secrets/PII, authority, runtime configuration and cross-suite traceability.
-5. A later authorized implementation reports ALL_GATES_GREEN only for completed declared engineering checks; a named live/account proof remains separately BLOCKED when its input is missing. BUDGET_EXHAUSTED applies only to an explicit budget. Never label the whole operational outcome complete from a partial green slice.
-6. Authoring registration/validation is documentary only. Commit, push, deployment, implementation-loop start and external communication require their own explicit instruction.
+1. Verify current S227 retirement and read-only retention through the real request, service and authorized reader boundaries.
+2. Preserve original requirement IDs, historical verdicts, records and receipt meanings. Do not execute the superseded operational acceptance outcomes or collect retired integration inputs.
+3. Use S227-S229 for current focused regressions, required repository checks and authorized gated delivery. Record local, live-provider, human and deployment outcomes separately; missing evidence cannot become success.
+4. Report ALL_GATES_GREEN only for actually completed current engineering gates, BUDGET_EXHAUSTED only for an explicit budget, or BLOCKED with its exact unavailable external input after independent work. These terminal states do not resume the superseded operational outcomes.
 
 **Ordered prompt sequence.**
 
-1. Re-verify current source, accepted decisions, dependency contracts and relevant read-only state.
-2. Freeze the requirement/architecture/behavior/acceptance matrix and preservation baseline before implementation.
-3. Implement the bounded owner and all unavailable/recovery paths; reuse existing services and keep adjacent suite ownership explicit.
-4. Falsify every row, read back persisted results, run focused/canonical checks, update verified current documentation and deliver only when separately authorized.
+1. Read the current router and S227; verify actual retirement/retention behavior.
+2. Use original evidence below only for provenance and preservation scope.
+3. Do not execute former operational instructions, collect retired integration inputs or rerun completed proofs.
+4. Verify and deliver the currently authorized S227–S229 slice through existing gates.
 
 **Deletion/merge recommendation.**
 
-Retain this suite until its full behavior, remaining dependencies and acceptance evidence are represented in current code/tests/facts. Then merge its operating contract into current maintenance documentation; preserve historical evidence without keeping duplicate active instructions.
+The original operational contract is superseded by S227. Its historical trace remains temporarily available for native program-ledger consistency; it is not an execution queue. Remove that provenance only with its remaining evidence references reconciled, retaining originals in Git history.

@@ -141,8 +141,9 @@ export const ADMIN_TASK_GROUPS: readonly AdminTaskGroup[] = [
       },
       {
         id: "admin-vendors",
-        label: "Manage Vendor access",
-        description: "Review existing Live Vendor accounts and assignments.",
+        label: "Retained maintenance history",
+        description:
+          "Read historical maintenance records. Current maintenance remains in Vendoroo.",
         href: "/admin/vendors",
         requiredCapability: "manageAdmin",
         surface: "admin",

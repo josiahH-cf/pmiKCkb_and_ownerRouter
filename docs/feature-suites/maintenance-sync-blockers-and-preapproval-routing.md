@@ -4,94 +4,41 @@
 # S108 — Maintenance work-order alignment, blockers, and preapproval routing
 
 > Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. Verified provider snapshots and property-bound effective preapproval drive one waiting-on projection. Missing/conflicting/legacy property evidence remains unresolved. B-MNT1 live proof still needs exact properties, amounts and dates.
+> Current applicability: historical delivery evidence only; operational requirements are superseded by S227. No former maintenance or provider proof is queued.
 >
 > Amendment 2026-10-01 (owner decision, B-MNT1): the RentVine maintenance-limit preapproval import is implemented and tested; its release is queued.
 
 **Goal.**
 
-Managers see the same current maintenance work in the app and in RentVine, each item shows what it
-is waiting on with a working RentVine link, and properties with an established preapproval amount
-skip only the unnecessary owner-approval step.
+Retain the original maintenance/vendor records, receipts, permissions and historical requirement evidence after custom maintenance retirement. S227 owns the current operating contract; Vendoroo remains standalone.
 
 **Current state / intended end state.**
 
-| Package requirement (PMI-08)                         | Classification                     | Evidence                                                                                                                                                                            |
-| ---------------------------------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Link each app record to its work-order identity      | Already satisfied                  | `maintenance_work_order_links` with `provider_work_order_id` and claim (`lib/firestore/maintenance-work-order-links.ts`)                                                            |
-| Synchronize status, notes, photos, unit, assignment  | Partially                          | Status via S99 read/update; resident messages via S100; unit via ticket; photos stay app-side in Drive (`lib/maintenance/image-store.ts`); attachments and vendor assignment closed |
-| Ownership per field and conflict visibility          | Partially                          | App status and RentVine status are separate by contract (S99); no side-by-side conflict marker                                                                                      |
-| No duplicate tickets, notes, photos, assignments     | Already satisfied                  | Link claim refuses a second create; S100 dedupes by account/message id                                                                                                              |
-| Concise waiting-on state                             | Partially                          | Ticket statuses `Open`, `Waiting on Response`, `Waiting on Vendor`, `Scheduled`, `Closed` (`lib/maintenance/ticket-model.ts`); no owner-approval or scheduling category             |
-| Property preapproval setting                         | Missing                            | No property settings model; `isOwnerApproved` is read-only provider data and hard-coded `false` on create                                                                           |
-| Skip owner approval only within preapproval          | Missing                            | Owner approval today is the `gmail.maintenance_owner_notice.draft_create` request path                                                                                              |
-| Blocker, amount, assignment, activity, RentVine link | Partially                          | `RentvineWorkOrderPanel` shows a fresh read; queue shows status and assignee                                                                                                        |
-| Reuse vendor and maintenance features                | Already satisfied                  | No vendor portal required                                                                                                                                                           |
-| Photos or attachments into RentVine                  | Conflicting with project authority | S99 excludes `attachments`/`issueImages`; the attachment key is closed                                                                                                              |
-
-Intended end state: a ticket-level provider snapshot recorded from each human-initiated S99 read,
-one waiting-on projection, an Admin-managed property preapproval record, and preapproval-aware
-owner-approval routing, all through existing keys and stores.
+October 15 30:54–31:32 and the confirming maintenance emails retire the custom workflow. The source baseline 0b892865 contains the earlier implementation or proposal recorded below; S227 retires operational entry and preserves authorized read-only history. S227–S229 are under verification, with no new deployment claimed. Earlier authoring and delivery evidence retains its original scope.
 
 **Actors and entry conditions.**
 
-Maintenance-space staff read tickets; Editors record estimate amounts and request owner approval;
-Admins manage preapprovals. Provider reads remain human-initiated under `rentvine.work_order.read`;
-no polling is added.
+Existing authorized readers retain their current permissions. No new maintenance intake, vendor work, provider action, maintenance draft, integration access request or old proof window may start from this contract. Shared renewal and knowledge behavior remains separately owned.
 
 **What it is / how it functions.**
 
-1. **Provider snapshot.** After each successful S99 read, store on the link document
-   `provider_snapshot` = `{ workOrderStatusID, statusLabel, priorityID, isOwnerApproved,
-assignedVendorTradeID, updatedAt, readAt }`. Show it beside the app status; when they differ,
-   render `Differs from RentVine` with both values and the exact next action (update status in
-   the app or through the S99 status action).
-2. **Waiting-on projection.** `projectMaintenanceWaitingOn(ticket, link, preapproval)` returns one of
-   `owner_approval`, `resident`, `vendor`, `scheduling`, `estimate`, `unit_verification`, `none`,
-   derived from ticket status, estimate presence, owner-approval state, assignee, provider snapshot,
-   and unit verification. The queue and the report render it as the blocker column with the
-   RentVine link when a work order exists.
-3. **Preapproval record.** New collection `maintenance_property_preapprovals` keyed by property key
-   with `amount`, `effectiveFromIso`, `recordedByUid`, and version history, managed from the
-   Maintenance page by a current Admin with cancel-first confirmation (S86). Absent record means no
-   preapproval.
-4. **Routing.** A ticket needs an owner decision when `estimate_amount` is absent or exceeds the
-   current preapproval. Within preapproval the ticket shows `Owner approval not required (preapproved
-up to <amount>)`, the owner-notice draft control is not offered as a blocker, and the fact is
-   shown on the ticket (it is not written to ticket activity). Routing applies only once the linked
-   work order has been read at least once, because the property key comes from the provider snapshot
-   and tickets carry none. Above it, or without an estimate, the ticket waits on
-   `owner_approval` and offers the existing owner-notice draft. The app never sets
-   `isOwnerApproved` in RentVine.
-5. **Report.** The maintenance queue gains a `Waiting on` filter and a read-only blocker report view
-   listing ticket, unit, waiting-on, estimate/preapproval, assignee, last activity, and RentVine link.
-6. **Recorded conflict.** Photo and attachment synchronization into RentVine remains closed; photos
-   stay in the app's Drive store with their links on the ticket.
-7. **RentVine maintenance-limit import (owner decision 2026-10-01, B-MNT1).** RentVine stores a
-   per-property `maintenanceLimitAmount`, and the owner chose it as the source of the app's
-   preapprovals. A Maintenance Admin previews every active property with an exact positive limit
-   (add, change amount, or already matches), sees each RentVine maintenance note, picks the
-   effective date and records every change in one cancel-first confirmation. The server re-reads
-   RentVine and records nothing unless the plan's hash still equals the confirmed preview, then
-   writes every change in one transaction through the same versioned, audited record, with a note
-   naming the RentVine source. Unreadable, duplicate or over-limit values are listed for manual
-   review. The import never clears an app preapproval and never writes to RentVine.
+Read-only retention uses the existing stores and receipt/history readers under their original authorization, with operational requests refused before dispatch. No records are deleted or relabeled. Current maintenance is managed in standalone Vendoroo; no destination URL or integration is invented.
 
 **In scope / out of scope.**
 
-In scope: snapshot, projection, preapproval record and Admin control, routing, report, fixtures.
-Out of scope: vendor portal, vendor dispatch, attachments to RentVine, polling, replacing RentVine as
-system of record.
+Only retention, historical interpretation and permission compatibility remain applicable. All former operational maintenance/vendor requirements and Vendoroo ingestion work in the historical trace below are superseded by S227. Raw private sources remain outside Git. This file grants no new execution or release authority.
 
 **Open questions & assumptions.**
 
-Preapproval amounts are entered by an Admin from the owner's records; none is seeded.
+Former provider/account/policy inputs are not prerequisites for retirement and must not trigger duplicate requests. Fresh read-only provider evidence and deployment are held only by the exact authentication/browser limitations recorded in docs/open-blockers.md. Missing observations are not success.
 
 **Cross-product impacts.**
 
-Maintenance queue and page, link store and rules, ticket schema (`estimate_amount`), owner-notice
-draft entry, S109 intake handoff, S110 (out of V1 scope), S111 proof.
+S227 owns retired HTTP and shared effect admission, authorized history and reports. Existing stores, receipts and permissions remain unchanged. Renewal, workflow-linked unsent communications, search and knowledge retain their independent contracts. The historical architecture below identifies original owners for preservation only; it does not request extensions or integration.
 
 **Authority and evidence map.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 | Input                                                   | Classification                   | Use and limitation                                                                   |
 | ------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------ |
@@ -99,6 +46,8 @@ draft entry, S109 intake handoff, S110 (out of V1 scope), S111 proof.
 | Owner package PMI-08                                    | Intent evidence                  | Blocker visibility and preapproval routing.                                          |
 
 **Architecture outcome (deterministic, fail-first).**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 - **ARCH-S108-1** — Provider snapshot persists on the link document from the S99 read path only; a
   fixture expecting a snapshot after a read fails today.
@@ -109,6 +58,8 @@ draft entry, S109 intake handoff, S110 (out of V1 scope), S111 proof.
   every amount, version, action, note and skip.
 
 **Behavior outcome (deterministic, fail-first).**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 - **BEH-S108-1** — A read work order appears once with status, snapshot, unit, and assignment; a
   second read updates, never duplicates.
@@ -121,6 +72,8 @@ draft entry, S109 intake handoff, S110 (out of V1 scope), S111 proof.
   preapproval.
 
 **Human litmus outcome.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 ### Every open item says what it is waiting on
 
@@ -140,6 +93,8 @@ RentVine work order. Small jobs at preapproved properties do not wait on the own
 
 **Requirement-to-outcome traceability.**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 | Requirement                         | Architecture outcome | Behavior outcome | Human litmus                               | Deterministic evidence / falsification |
 | ----------------------------------- | -------------------- | ---------------- | ------------------------------------------ | -------------------------------------- |
 | MSYNC-01, MSYNC-03 once, no dupes   | `ARCH-S108-1`        | `BEH-S108-1`     | Every open item says what it is waiting on | Read-twice fixture                     |
@@ -154,6 +109,8 @@ S99 and S100 client, contract, route, panel, and link tests; maintenance ticket,
 owner-notice suites; `maintenance-ai-boundary.test.ts`.
 
 **Adversarial acceptance checks.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 - **AC-S108-1** — `ARCH-S108-1`: no snapshot is written without a human-initiated S99 read.
 - **AC-S108-2** — `BEH-S108-2`: preapproval never sets `isOwnerApproved` or creates a provider effect.
@@ -173,31 +130,29 @@ in RentVine, no autonomous notice.
 
 **Dependencies / sequencing.**
 
-Independent of the renewal suites; S109 hands intake into it; S111 proves it.
+Use S227 for maintenance retirement and retained read-only compatibility. S228 owns current Dotloop diagnostics and S229 renewal/unsent communications preservation. Do not resume the old maintenance, Vendoroo integration or proof sequence from this historical contract.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** snapshot, projection, preapproval record, routing, report, fixtures.
-- **Consumes, but does not assume:** a RentVine work-order link; absent link renders app-only state.
-- **Externally blocked effect:** none.
-- **Produces for downstream suites:** waiting-on projection and preapproval lookup.
+- **Deliverable now:** The S227 retirement/retention slice, preserving original evidence without migration effects.
+- **Consumes, but does not assume:** Existing authorized history and exact receipts.
+- **Externally blocked effect:** No former maintenance/provider effect is requested. Current live verification holds are in docs/open-blockers.md.
+- **Produces for downstream suites:** Original record/receipt meanings and permissions, without new operational authority.
 
 **Verification and delivery contract.**
 
-1. Freeze snapshot, projection, and routing fixtures failing for the expected reason.
-2. Run focused maintenance, link-store, rules, and queue checks plus a rehearsal-browser check of
-   the report.
-3. Run `bash scripts/verify.sh` and `npm run test:e2e:core`.
-4. Report `ALL_GATES_GREEN`, `BUDGET_EXHAUSTED` only with an explicit budget, or `BLOCKED` (not
-   expected).
+1. Verify current S227 retirement and read-only retention through the real request, service and authorized reader boundaries.
+2. Preserve original requirement IDs, historical verdicts, records and receipt meanings. Do not execute the superseded operational acceptance outcomes or collect retired integration inputs.
+3. Use S227-S229 for current focused regressions, required repository checks and authorized gated delivery. Record local, live-provider, human and deployment outcomes separately; missing evidence cannot become success.
+4. Report ALL_GATES_GREEN only for actually completed current engineering gates, BUDGET_EXHAUSTED only for an explicit budget, or BLOCKED with its exact unavailable external input after independent work. These terminal states do not resume the superseded operational outcomes.
 
 **Ordered prompt sequence.**
 
-1. Re-verify the S99 read path and link store.
-2. Materialize fail-first fixtures.
-3. Implement snapshot, projection, preapproval, routing, report.
-4. Run focused and canonical checks; update current docs.
+1. Read the current router and S227; verify actual retirement/retention behavior.
+2. Use original evidence below only for provenance and preservation scope.
+3. Do not execute former operational instructions, collect retired integration inputs or rerun completed proofs.
+4. Verify and deliver the currently authorized S227–S229 slice through existing gates.
 
 **Deletion/merge recommendation.**
 
-Merge into S99 once deployed and read back.
+The original operational contract is superseded by S227. Its historical trace remains temporarily available for native program-ledger consistency; it is not an execution queue. Remove that provenance only with its remaining evidence references reconciled, retaining originals in Git history.

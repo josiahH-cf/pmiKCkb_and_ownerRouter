@@ -33,7 +33,7 @@ const admin = (scopes?: readonly string[]): AuthenticatedUser =>
     ...(scopes ? { scopes } : {}),
   });
 
-const ALL_OPERATIONS = ["Lease Renewal", "Maintenance", "Internal Processes"];
+const ALL_OPERATIONS = ["Lease Renewal", "Maintenance history", "Internal Processes"];
 const originalAllowedHd = process.env.ALLOWED_HD;
 
 beforeEach(() => {
@@ -55,7 +55,7 @@ describe("S84 primary-navigation manifest", () => {
       PRIMARY_NAVIGATION_MANIFEST.map((group) => group.items.map((item) => item.label)),
     ).toEqual([
       ["My Work", "Dashboard", "Approval Queue"],
-      ["Lease Renewal", "Maintenance", "Internal Processes"],
+      ["Lease Renewal", "Maintenance history", "Internal Processes"],
       ["Admin", "Connections", "Communications"],
     ]);
     expect(PRIMARY_NAVIGATION_MANIFEST.flatMap((group) => group.items)).toHaveLength(9);
@@ -240,7 +240,7 @@ describe("S84 primary-navigation manifest", () => {
       "/ask": "app/ask/page.tsx",
       "/approval-queue": "app/approval-queue/page.tsx",
       "/lease-renewal": "app/lease-renewal/page.tsx",
-      "/maintenance": "app/maintenance/page.tsx",
+      "/maintenance/history": "app/maintenance/history/page.tsx",
       "/spaces": "app/spaces/page.tsx",
       "/admin": "app/admin/page.tsx",
       "/connections": "app/connections/page.tsx",
@@ -270,7 +270,7 @@ describe("S84 primary-navigation manifest", () => {
 
     expect(() =>
       validatePrimaryNavigationManifest(PRIMARY_NAVIGATION_MANIFEST, {
-        routeExists: (href) => href !== "/maintenance",
+        routeExists: (href) => href !== "/maintenance/history",
       }),
     ).toThrow(/dead route.*maintenance/i);
   });

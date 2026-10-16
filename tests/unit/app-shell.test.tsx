@@ -45,7 +45,7 @@ describe("AppShell role-based navigation", () => {
       }),
     );
     fireEvent.click(screen.getByRole("button", { name: "Operations" }));
-    fireEvent.click(screen.getByRole("link", { name: "Maintenance" }));
+    fireEvent.click(screen.getByRole("link", { name: "Maintenance history" }));
     expect(screen.getByRole("status", { name: "Page navigation" })).toHaveTextContent(
       /Opening Maintenance/,
     );
@@ -95,7 +95,7 @@ describe("AppShell role-based navigation", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Operations" }));
     expect(screen.getByRole("link", { name: "Internal Processes" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Maintenance" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Maintenance history" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Lease Renewal" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Admin" }));
     expect(screen.getByRole("link", { name: "Connections" })).toBeInTheDocument();
@@ -151,7 +151,7 @@ describe("AppShell role-based navigation", () => {
       expect(screen.getByRole("link", { name: link })).toBeInTheDocument();
     }
     fireEvent.click(screen.getByRole("button", { name: "Operations" }));
-    for (const link of ["Lease Renewal", "Maintenance", "Internal Processes"]) {
+    for (const link of ["Lease Renewal", "Maintenance history", "Internal Processes"]) {
       expect(screen.getByRole("link", { name: link })).toBeInTheDocument();
     }
     fireEvent.click(screen.getByRole("button", { name: "Admin" }));

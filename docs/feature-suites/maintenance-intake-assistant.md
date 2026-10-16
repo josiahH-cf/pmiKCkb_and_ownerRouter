@@ -4,88 +4,39 @@
 # S109 — Maintenance intake triage and troubleshooting assistant
 
 > Status: DEPLOYED in `f5faf1665121db9cacff913a57e7fdcc80513116` / `pmi-kc-app-rmtwdl4di-4439f17911f4`. Exact CI 34556917662 and S51/S54 candidate, promotion, observation and readback passed. Bounded structured intake, pure triage and approved matching troubleshooting resources preserve the public route boundary and writer-derived evidence; no upload or provider/draft path is added.
+> Current applicability: historical delivery evidence only; operational requirements are superseded by S227. No former maintenance or provider proof is queued.
 
 **Goal.**
 
-A resident intake gathers the facts the team normally chases, routes active flooding to the urgent
-path, tells a fire reporter to call emergency services, sets realistic expectations for ordinary
-issues, offers only reviewed troubleshooting resources, and lands in the normal maintenance
-workflow with its blockers visible.
+Retain the original maintenance/vendor records, receipts, permissions and historical requirement evidence after custom maintenance retirement. S227 owns the current operating contract; Vendoroo remains standalone.
 
 **Current state / intended end state.**
 
-| Package requirement (PMI-09)                       | Classification                     | Evidence                                                                                                                               |
-| -------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Use the existing resident intake surface           | Already satisfied                  | S47 public route `app/api/maintenance/intake/public/route.ts`, quarantine, staff promotion                                             |
-| Structured summary fields                          | Missing                            | Only `summary`, `description`, `contact`                                                                                               |
-| Require photos before normal processing            | Conflicting with project authority | S47 forbids public file or image upload; staff photo upload exists (`app/api/maintenance/photo/route.ts`)                              |
-| Project-owned urgency and evidence rules           | Partially                          | `MAINTENANCE_EMERGENCY_KEYWORDS` and `inferPriority` (`lib/maintenance/constants.ts`, `work-order-draft.ts`) run only on staff capture |
-| Flooding to the urgent path                        | Missing on public path             | Keywords exist; no public-path routing or urgent label                                                                                 |
-| Fire: tell the resident to call emergency services | Missing                            | No copy or rule                                                                                                                        |
-| Realistic timing language                          | Missing                            | No approved copy; copy-voice gate applies                                                                                              |
-| Reviewed troubleshooting catalog                   | Missing                            | None exists                                                                                                                            |
-| Save summary, responses, urgency, resource         | Partially                          | Quarantine record holds text only                                                                                                      |
-| Hand off to S108 blockers                          | Missing                            | Promotion creates a ticket without triage carry-over                                                                                   |
-| Model interprets, rules decide                     | Partially                          | `lib/llm/model-provider.ts` gateway exists; unused in maintenance                                                                      |
-
-Intended end state: a deterministic triage module that owns urgency, evidence, expectation, and
-resource selection; an extended bounded intake payload; optional schema-validated model
-interpretation of free text; triage carried into the promoted ticket and S108 projection; photos
-requested as a visible blocker rather than uploaded publicly.
+October 15 30:54–31:32 and the confirming maintenance emails retire the custom workflow. The source baseline 0b892865 contains the earlier implementation or proposal recorded below; S227 retires operational entry and preserves authorized read-only history. S227–S229 are under verification, with no new deployment claimed. Earlier authoring and delivery evidence retains its original scope.
 
 **Actors and entry conditions.**
 
-An external reporter holding a valid S47 token submits intake. Staff review, promote, and attach
-photos through the existing photo action. Production accepts `data_mode=live` only. No provider or
-messaging effect occurs on submission.
+Existing authorized readers retain their current permissions. No new maintenance intake, vendor work, provider action, maintenance draft, integration access request or old proof window may start from this contract. Shared renewal and knowledge behavior remains separately owned.
 
 **What it is / how it functions.**
 
-1. **Structured intake.** Extend `PublicIntakeBodySchema` with optional bounded fields: `issueType`
-   (from the existing trade taxonomy in `lib/maintenance/constants.ts`), `location`, `happeningNow`,
-   `startedAt`, `damageOrAccess`, `attemptedSteps`; total body stays under the 16-KiB ceiling with the
-   existing sanitation. The public page renders these as a few focused questions.
-2. **Triage rules.** A pure triage module under the maintenance library: `urgency` = `emergency_fire` when
-   fire/smoke/gas/carbon-monoxide terms appear, `urgent_flooding` when active-water terms appear, else
-   `normal`; `requiredEvidence` per issue type from a small owner-reviewed table (default: photos for
-   water, damage, appliance, pest); `expectationCopy` from approved templates; `resource` from the
-   catalog when exactly one entry matches the issue type and urgency is `normal`.
-3. **Model interpretation (optional).** When a model provider is configured, map free text to
-   `issueType` and urgency hints through `lib/llm/model-provider.ts` with a strict JSON schema and a
-   deterministic fallback; rules remain authoritative and the model never selects a resource or
-   overrides `emergency_fire`.
-4. **Copy.** Fire: `Call 911 now if anyone is in danger. We have recorded your report.` Flooding:
-   urgent acknowledgement and immediate-action guidance. Normal: calm acknowledgement without a
-   completion promise. All copy passes `verify:copy-voice`.
-5. **Catalog.** A reviewed catalog module under the maintenance library holds entries
-   `{ id, issueType, title, url, reviewedOnIso }`; empty until the owner supplies links; unknown
-   issue types receive none.
-6. **Persistence and handoff.** The quarantine record stores the structured summary, urgency,
-   required-evidence state (`photos_needed`), and resource id. Promotion copies them into the ticket
-   (priority `Emergency` for fire/flooding with `priority_provenance: "auto-inferred"`,
-   `photos_needed` as an S108 waiting-on input) and activity.
-7. **Recorded conflict.** Public photo upload stays forbidden under S47. The intake explains exactly
-   what photos are needed; staff attach them through the existing photo action or the resident sends
-   them through the property team's channel; the ticket shows `Photos needed` until then.
+Read-only retention uses the existing stores and receipt/history readers under their original authorization, with operational requests refused before dispatch. No records are deleted or relabeled. Current maintenance is managed in standalone Vendoroo; no destination URL or integration is invented.
 
 **In scope / out of scope.**
 
-In scope: schema extension, triage module, copy, catalog, model adapter, persistence, promotion
-carry-over, tests. Out of scope: repair diagnosis, vendor dispatch, spending approval, public
-uploads, concierge assistant, pricing or marketing.
+Only retention, historical interpretation and permission compatibility remain applicable. All former operational maintenance/vendor requirements and Vendoroo ingestion work in the historical trace below are superseded by S227. Raw private sources remain outside Git. This file grants no new execution or release authority.
 
 **Open questions & assumptions.**
 
-The three troubleshooting links were supplied and reviewed by the owner on 2026-09-04. The
-required-evidence table remains an owner input; an empty catalog entry disables only that resource
-offer.
+Former provider/account/policy inputs are not prerequisites for retirement and must not trigger duplicate requests. Fresh read-only provider evidence and deployment are held only by the exact authentication/browser limitations recorded in docs/open-blockers.md. Missing observations are not success.
 
 **Cross-product impacts.**
 
-Public intake route and page, quarantine and ticket schemas, promotion transaction, S108 projection,
-copy-voice gate, model provider configuration, S111 proof.
+S227 owns retired HTTP and shared effect admission, authorized history and reports. Existing stores, receipts and permissions remain unchanged. Renewal, workflow-linked unsent communications, search and knowledge retain their independent contracts. The historical architecture below identifies original owners for preservation only; it does not request extensions or integration.
 
 **Authority and evidence map.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 | Input                                                     | Classification                   | Use and limitation                                                                    |
 | --------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------- |
@@ -95,12 +46,16 @@ copy-voice gate, model provider configuration, S111 proof.
 
 **Architecture outcome (deterministic, fail-first).**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 - **ARCH-S109-1** — Triage is a pure module with no model dependency; a flooding fixture fails today
   (no urgency on the public path) and returns `urgent_flooding` after.
 - **ARCH-S109-2** — The public route still imports no ticket writer, provider, or messaging module;
   the S47 negative-import scan stays green with the new fields.
 
 **Behavior outcome (deterministic, fail-first).**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 - **BEH-S109-1** — A water report without photos records `photos_needed` and a focused photo request
   and is not complete intake.
@@ -110,6 +65,8 @@ copy-voice gate, model provider configuration, S111 proof.
   receives at most one matching reviewed resource; an unknown issue receives none.
 
 **Human litmus outcome.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 ### The intake asks the right questions and knows an emergency
 
@@ -134,6 +91,8 @@ the ticket.
 
 **Requirement-to-outcome traceability.**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 | Requirement                          | Architecture outcome | Behavior outcome | Human litmus                                               | Deterministic evidence / falsification          |
 | ------------------------------------ | -------------------- | ---------------- | ---------------------------------------------------------- | ----------------------------------------------- |
 | MAI-01 photos required               | `ARCH-S109-1`        | `BEH-S109-1`     | The intake asks the right questions and knows an emergency | Water-without-photos fixture                    |
@@ -148,6 +107,8 @@ All S47 token, public-route, rate, sanitation, quarantine, review, rules, and ne
 
 **Adversarial acceptance checks.**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 - **AC-S109-1** — `ARCH-S109-1`: no model output can downgrade `emergency_fire` or select a resource.
 - **AC-S109-2** — `BEH-S109-1`: no path marks intake complete while required evidence is missing.
 - **AC-S109-3** — `ARCH-S109-2`: the public route cannot reach a ticket writer, provider, or draft.
@@ -160,32 +121,29 @@ model-owned rule, no unreviewed link.
 
 **Dependencies / sequencing.**
 
-After S108 projection exists; S111 proves the handoff.
+Use S227 for maintenance retirement and retained read-only compatibility. S228 owns current Dotloop diagnostics and S229 renewal/unsent communications preservation. Do not resume the old maintenance, Vendoroo integration or proof sequence from this historical contract.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** schema, triage, copy, catalog scaffold, model adapter, persistence, handoff,
-  fixtures.
-- **Consumes, but does not assume:** a configured model provider and owner resource links.
-- **Externally blocked effect:** none.
-- **Produces for downstream suites:** triage fields on quarantine and ticket records.
+- **Deliverable now:** The S227 retirement/retention slice, preserving original evidence without migration effects.
+- **Consumes, but does not assume:** Existing authorized history and exact receipts.
+- **Externally blocked effect:** No former maintenance/provider effect is requested. Current live verification holds are in docs/open-blockers.md.
+- **Produces for downstream suites:** Original record/receipt meanings and permissions, without new operational authority.
 
 **Verification and delivery contract.**
 
-1. Freeze triage, route, and promotion fixtures failing for the expected reason.
-2. Run focused intake, sanitation, triage, model-adapter, promotion, and copy-voice checks plus a
-   rehearsal-browser walk of the public form.
-3. Run `bash scripts/verify.sh` and `npm run test:e2e:core`.
-4. Report `ALL_GATES_GREEN`, `BUDGET_EXHAUSTED` only with an explicit budget, or `BLOCKED` (not
-   expected).
+1. Verify current S227 retirement and read-only retention through the real request, service and authorized reader boundaries.
+2. Preserve original requirement IDs, historical verdicts, records and receipt meanings. Do not execute the superseded operational acceptance outcomes or collect retired integration inputs.
+3. Use S227-S229 for current focused regressions, required repository checks and authorized gated delivery. Record local, live-provider, human and deployment outcomes separately; missing evidence cannot become success.
+4. Report ALL_GATES_GREEN only for actually completed current engineering gates, BUDGET_EXHAUSTED only for an explicit budget, or BLOCKED with its exact unavailable external input after independent work. These terminal states do not resume the superseded operational outcomes.
 
 **Ordered prompt sequence.**
 
-1. Re-verify S47 boundaries.
-2. Materialize fail-first triage and route fixtures.
-3. Implement schema, triage, copy, catalog, adapter, handoff.
-4. Run focused and canonical checks; update current docs.
+1. Read the current router and S227; verify actual retirement/retention behavior.
+2. Use original evidence below only for provenance and preservation scope.
+3. Do not execute former operational instructions, collect retired integration inputs or rerun completed proofs.
+4. Verify and deliver the currently authorized S227–S229 slice through existing gates.
 
 **Deletion/merge recommendation.**
 
-Merge into S47 once deployed and read back.
+The original operational contract is superseded by S227. Its historical trace remains temporarily available for native program-ledger consistency; it is not an execution queue. Remove that provenance only with its remaining evidence references reconciled, retaining originals in Git history.

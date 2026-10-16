@@ -94,7 +94,7 @@ describe("S187 one linked rich composer", () => {
     expect(JSON.stringify(paragraphs)).not.toContain("javascript:");
     expect(JSON.stringify(paragraphs)).not.toContain("unsafe()");
   });
-  it("flushes the last visible edit then authorizes it once under repeated Send clicks", async () => {
+  it("saves the last visible rich edit once while Send and Schedule remain unavailable", async () => {
     const commands: Record<string, unknown>[] = [];
     let release: (() => void) | undefined;
     vi.stubGlobal(
@@ -128,30 +128,29 @@ describe("S187 one linked rich composer", () => {
     mount();
     const editor = await screen.findByRole("textbox", { name: "Initial message body" });
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Send" })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Send" })).toBeDisabled(),
     );
     editor.innerHTML = "<p>Final <strong>reviewed</strong> wording</p>";
     fireEvent.input(editor);
-    const send = screen.getByRole("button", { name: "Send" });
-    fireEvent.click(send);
-    fireEvent.click(send);
+    expect(screen.getByRole("button", { name: "Schedule" })).toBeDisabled();
+    const save = screen.getByRole("button", { name: "Save draft" });
+    fireEvent.click(save);
+    fireEvent.click(save);
     await waitFor(() =>
       expect(commands.filter((c) => c.action === "save")).toHaveLength(1),
     );
     expect(commands.filter((c) => c.action === "send")).toHaveLength(0);
     release!();
     await waitFor(() =>
-      expect(commands.filter((c) => c.action === "send")).toHaveLength(1),
+      expect(screen.getByRole("button", { name: "Save draft" })).toBeEnabled(),
     );
-    expect(commands.find((c) => c.action === "send")).toMatchObject({
-      expectedVersion: 2,
-      reviewedDraftHash: "c".repeat(64),
-      reviewedTargetHash: "b".repeat(64),
-    });
+    expect(
+      commands.filter((c) => ["send", "schedule", "resume"].includes(String(c.action))),
+    ).toHaveLength(0);
     expect(JSON.stringify(commands[0])).toContain('"bold":true');
     expect(editor).toHaveTextContent("Final reviewed wording");
     expect(screen.queryByText("Review exact message")).toBeNull();
-    await screen.findByRole("button", { name: "Check admitted send" });
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
   });
   it("retains wording after a lost save response and retries that identical save intent", async () => {
     const saves: Record<string, unknown>[] = [];

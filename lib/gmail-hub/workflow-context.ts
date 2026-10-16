@@ -209,7 +209,7 @@ export function workflowEntityHref(
 ): string {
   switch (input.entity_type) {
     case "maintenance_ticket":
-      return `/maintenance?ticket_id=${encodeURIComponent(input.entity_id)}`;
+      return `/maintenance/history?ticket_id=${encodeURIComponent(input.entity_id)}`;
     case "renewal_run":
       return `/lease-renewal/runs/${encodeURIComponent(input.entity_id)}`;
     case "renewal_lease":

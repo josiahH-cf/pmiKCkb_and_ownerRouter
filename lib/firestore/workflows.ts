@@ -35,6 +35,10 @@ import type {
   WorkflowRunTimelineRecord,
 } from "@/lib/firestore/types";
 import { productRecordRetentionFields } from "@/lib/operations/product-record-retention";
+import {
+  isRetiredMaintenanceWorkflow,
+  MAINTENANCE_RETIREMENT_MESSAGE,
+} from "@/lib/maintenance/retirement";
 
 const COLLECTIONS = {
   processDefinitions: "process_definitions",
@@ -78,6 +82,8 @@ export async function createProcessDefinition(
 ) {
   assertCan(actor, "edit");
   const parsed = CreateProcessDefinitionInputSchema.parse(input);
+  if (isRetiredMaintenanceWorkflow(parsed.space_id))
+    throw new EditableLayerError(MAINTENANCE_RETIREMENT_MESSAGE, 410);
   const id = uuidv7();
   const record: Omit<ProcessDefinitionRecord, "created_at" | "updated_at"> & {
     created_at: FieldValue;
@@ -108,6 +114,11 @@ export async function updateProcessDefinition(
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(definitionRef(db, definitionId));
     const current = readRequiredProcessDefinition(snapshot.id, snapshot.data());
+    if (
+      isRetiredMaintenanceWorkflow(current.space_id, current.id) ||
+      isRetiredMaintenanceWorkflow(parsed.space_id)
+    )
+      throw new EditableLayerError(MAINTENANCE_RETIREMENT_MESSAGE, 410);
     assertDefinitionEditable(current);
 
     const updates = stripUndefined({
@@ -141,6 +152,9 @@ export async function submitProcessDefinitionForApproval(
   assertCan(actor, "edit");
   const parsed = SubmitProcessDefinitionInputSchema.parse(input);
   const definition = await getProcessDefinition(actor, definitionId, db);
+
+  if (isRetiredMaintenanceWorkflow(definition.space_id, definition.id))
+    throw new EditableLayerError(MAINTENANCE_RETIREMENT_MESSAGE, 410);
 
   if (definition.status === "Active" || definition.status === "Retired") {
     throw new EditableLayerError(
@@ -202,6 +216,8 @@ export async function startWorkflowRun(
   const parsed = StartWorkflowRunInputSchema.parse(input);
   const definition = await getProcessDefinition(actor, definitionId, db);
 
+  if (isRetiredMaintenanceWorkflow(definition.space_id, definition.id))
+    throw new EditableLayerError(MAINTENANCE_RETIREMENT_MESSAGE, 410);
   if (definition.status === "Retired") {
     throw new EditableLayerError("Retired process definitions cannot be started.", 409);
   }
@@ -342,6 +358,8 @@ export async function updateWorkflowRunOutcome(
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(runRef(db, runId));
     const current = readRequiredWorkflowRun(snapshot.id, snapshot.data());
+    if (isRetiredMaintenanceWorkflow(current.space_id, current.definition_id))
+      throw new EditableLayerError(MAINTENANCE_RETIREMENT_MESSAGE, 410);
 
     if (isTerminalRunStatus(current.status)) {
       throw new EditableLayerError("This workflow run is already closed.", 409);

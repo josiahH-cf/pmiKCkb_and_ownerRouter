@@ -16,6 +16,7 @@ import {
 } from "@/lib/space-card-state";
 import { canAccessLaunchSpace } from "@/lib/space-scope-resources";
 import { launchSpaces, spaceHref } from "@/lib/spaces";
+import { isRetiredMaintenanceWorkflow } from "@/lib/maintenance/retirement";
 
 export default async function SpacesPage() {
   const user = await requirePageCapability("read");
@@ -69,7 +70,9 @@ export default async function SpacesPage() {
                   className="space-card-state-pill"
                   data-tone={SPACE_CARD_STATE_TONE[state]}
                 >
-                  {SPACE_CARD_STATE_LABEL[state]}
+                  {isRetiredMaintenanceWorkflow(space.id, space.processDefinitionId)
+                    ? "Read-only history"
+                    : SPACE_CARD_STATE_LABEL[state]}
                 </span>
                 {waiting > 0 ? (
                   <span className="review-pill space-card-waiting">

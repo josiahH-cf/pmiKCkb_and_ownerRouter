@@ -303,6 +303,8 @@ export function projectDotloopReadiness(input: DotloopReadinessInput): DotloopRe
     ? (input.connection.generationId != null &&
         observation.generationId !== input.connection.generationId) ||
       !Number.isFinite(Date.parse(observation.observedAt)) ||
+      !Number.isFinite(now) ||
+      now < Date.parse(observation.observedAt) ||
       now - Date.parse(observation.observedAt) > DOTLOOP_OBSERVATION_MAX_AGE_MS
     : true;
   const selectionDetail = projectDotloopSelection(input.selection, observation);

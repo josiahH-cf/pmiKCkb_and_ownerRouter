@@ -52,9 +52,9 @@ describe("current provider and environment documentation", () => {
     }
   });
 
-  it("records the live read/write boundaries without resurrecting old blockers", () => {
+  it("separates preserved key metadata from current operation eligibility without resurrecting old blockers", () => {
     expect(normalizedIntegrations).toContain(
-      "RentVine | Complete lease reads; work-order reads; authoritative lease/unit/portfolio data | Exact S97 renewal, S99 work-order, and S100 chat-sync keys are open",
+      "RentVine | Complete lease reads; retained work-order reads; authoritative lease/unit/portfolio data | Exact renewal contracts remain; maintenance creation/status/chat effects are retired at operation admission regardless of open metadata",
     );
     expect(normalizedIntegrations).toContain(
       "Google Sheets | Operating renewal read source and exact append/update target | Both exact keys remain open; the reviewed S159 switch value true serves normal append and recognized-field updates behind exact confirmation; false pauses all operating-Sheet mutations; reads and app-owned work remain available",
@@ -63,7 +63,14 @@ describe("current provider and environment documentation", () => {
       "RentCast | Reference rental listings/market data with cache, usage counter, cap 50 | Exact read key open; never sets offered rent",
     );
     expect(normalizedIntegrations).toContain(
-      "Gmail | Workflow reads/replies/labels, rich linked drafts and human Send/Schedule | Two scoped human notice sequence keys open; generic send closed",
+      "Gmail | Workflow-linked reads/labels, permitted rich unsent drafts and delivery history | Client sends, schedules and worker dispatch refused; protected activation metadata unchanged",
+    );
+    expect(integrations).toContain("Current application admission");
+    expect(normalizedIntegrations).toContain(
+      "these 18 are open and the other 30 are closed",
+    );
+    expect(normalizedIntegrations).toContain(
+      "current application-admission refusal above overrides retired maintenance and all client-send keys",
     );
     expect(integrations).not.toContain("Q-RENTCAST-ACCOUNT-403");
     expect(integrations).not.toContain("RentCast action stays gated");
@@ -74,7 +81,8 @@ describe("current provider and environment documentation", () => {
     expect(checklist).toContain("S98's bounded operating-Sheet proof is complete");
     expect(checklist).toContain("designated proof lease must not be reused");
     expect(checklist).toContain("never create a fake person, lease, work");
-    expect(checklist).toContain("remains closed until one synchronized resident message");
+    expect(checklist).toContain("maintenance proof is retired");
+    expect(checklist).toContain("asking anyone to repeat setup");
     expect(checklist).not.toContain("active API plan");
     expect(checklist).not.toContain("Q-RENTCAST-ACCOUNT-403");
   });

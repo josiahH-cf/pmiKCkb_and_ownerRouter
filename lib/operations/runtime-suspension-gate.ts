@@ -1,4 +1,5 @@
 import type { CreateActionRegistryInput } from "@/lib/firestore/schemas";
+import { applicationEffectBlockReason } from "@/lib/operations/application-effect-policy";
 import { readRuntimeActionSuspension } from "@/lib/firestore/runtime-action-suspensions";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
@@ -65,18 +66,21 @@ export async function assertRuntimeActionExecutable(
 }
 
 /** Production-bound boolean gate. The reader is fixed to the fresh, fail-closed Firestore reader. */
-export function isProductionRuntimeActionExecutable(
+export async function isProductionRuntimeActionExecutable(
   actionKey: string,
   registry?: readonly CreateActionRegistryInput[],
 ): Promise<boolean> {
+  if (applicationEffectBlockReason(actionKey)) return false;
   return isRuntimeActionExecutable(actionKey, readRuntimeActionSuspension, registry);
 }
 
 /** Production-bound assertion gate. The reader is never optional and never defaults to clear. */
-export function assertProductionRuntimeActionExecutable(
+export async function assertProductionRuntimeActionExecutable(
   actionKey: string,
   registry?: readonly CreateActionRegistryInput[],
 ): Promise<void> {
+  const blocked = applicationEffectBlockReason(actionKey);
+  if (blocked) throw new EditableLayerError(blocked, 410);
   return assertRuntimeActionExecutable(actionKey, readRuntimeActionSuspension, registry);
 }
 
@@ -95,11 +99,13 @@ export async function runRuntimeGatedAction<T>(
 }
 
 /** Production-bound high-order effect gate. */
-export function runProductionRuntimeGatedAction<T>(
+export async function runProductionRuntimeGatedAction<T>(
   actionKey: string,
   effect: () => Promise<T> | T,
   registry?: readonly CreateActionRegistryInput[],
 ): Promise<T> {
+  const blocked = applicationEffectBlockReason(actionKey);
+  if (blocked) throw new EditableLayerError(blocked, 410);
   return runRuntimeGatedAction(actionKey, readRuntimeActionSuspension, effect, registry);
 }
 

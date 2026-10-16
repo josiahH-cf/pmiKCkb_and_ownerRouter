@@ -1,3 +1,9 @@
+// Historical execution/receipt machinery is exercised with deterministic adapters here.
+// Real current retirement admission is separately proved by oct15-production-effects and
+// oct15-maintenance-retirement; this fixture adds no application/runtime policy bypass.
+vi.mock("@/lib/operations/application-effect-policy", () => ({
+  applicationEffectBlockReason: () => null,
+}));
 // Generic S20/transport tests isolate the lease-specific current-message companion guard.
 // Actual renewal admission is exercised by notice-safety claim tests and real backend journeys.
 vi.mock("@/lib/firestore/renewal-message-claim", () => ({

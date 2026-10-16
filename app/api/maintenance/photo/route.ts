@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { authErrorResponse, requireCapabilityInSpace } from "@/lib/auth/session";
 import { apiErrorResponse } from "@/lib/api/editable";
+import { EditableLayerError } from "@/lib/firestore/errors";
 import { readServerConfig } from "@/lib/config/server";
 import {
   assertMutationAllowed,
@@ -130,5 +131,6 @@ function maintenancePhotoGateErrorResponse(error: unknown) {
       status: error.status,
     });
   }
+  if (error instanceof EditableLayerError) return apiErrorResponse(error);
   throw error;
 }

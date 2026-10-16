@@ -13,11 +13,16 @@ point for historical documents removed during the 2026-08-26 context reset.
 5. The one relevant product, integration, or active-suite document.
 
 `docs/open-blockers.md` is the unblock packet for external and human holds. Each hold blocks only
-its named effect, never development, tests, merges or releases; open it only when a task exercises
+its named effect or dependent release phase; independent development, tests and merges continue. Open it only when a task exercises
 one of those effects or the owner reports a step done.
 
 Do not read removed Demo/V1 launchers, old audits, completed program prompts, or ignored
 `docs/temp/` scratch as current context.
+
+S227-S229 own the current October 16 application instruction: retire custom maintenance with
+authorized read-only history, keep Vendoroo standalone, diagnose Dotloop resource visibility and
+preserve renewal/unsent Gmail workflows. Older maintenance/integration contracts retain historical
+requirement evidence only. Current source and deployed behavior remain distinct until gated release.
 
 S113 is complete and deployed. Its five feature specifications and current review evidence define
 the consolidated renewal workflow and accepted resource-input limits. The Wednesday materials below

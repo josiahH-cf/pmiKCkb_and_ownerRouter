@@ -3391,7 +3391,13 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         fireEvent.click(
           screen.getByRole("button", { name: "Prepare selected destination previews" }),
         );
-        await screen.findByText(/Saved: apply its reviewed change below/);
+        // Proposal persistence crosses the real emulator, just like savedAfter and the Apply
+        // readback below. The one-second DOM default can expire during transaction backoff.
+        await screen.findByText(
+          /Saved: apply its reviewed change below/,
+          {},
+          { timeout: 10_000 },
+        );
         expect(mutations).toBe(0);
         mounted.unmount();
         mounted = await mountCurrent();

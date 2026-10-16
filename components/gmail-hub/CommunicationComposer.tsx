@@ -120,7 +120,7 @@ export function CommunicationComposer({
       {},
     ),
     [attachmentNotice, setAttachmentNotice] = useState<string | null>(null);
-  const [scheduleOpen, setScheduleOpen] = useState(false),
+  const [scheduleOpen] = useState(false),
     [date, setDate] = useState(""),
     [time, setTime] = useState(""),
     [zone, setZone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone),
@@ -233,7 +233,7 @@ export function CommunicationComposer({
             .catch(() => {
               if (active.current)
                 setAttachmentNotice(
-                  "Current recipients are unavailable. Drafting and history stay available; Send/Schedule waits for a fresh source read.",
+                  "Current recipients are unavailable. Drafting and history stay available; verify recipients before using the Gmail draft control in the linked lease.",
                 );
             });
         } else {
@@ -655,7 +655,7 @@ export function CommunicationComposer({
         </p>
       ) : null}
       {sequence?.observation?.state === "unavailable" ? (
-        <p>Incoming evidence is unavailable. Sending waits for a complete check.</p>
+        <p>Incoming evidence is unavailable. Saved wording and history are retained.</p>
       ) : null}
       {sequence?.unresolvedOccurrenceId ? (
         <p>An admitted send needs reconciliation. No second send will be attempted.</p>
@@ -693,7 +693,7 @@ export function CommunicationComposer({
                   ? "This message is not editable while an operation is pending or completed."
                   : null
               }
-              appliedNotice="Revision applied to the message. Review its wording and formatting before Send or Schedule."
+              appliedNotice="Revision applied to the message. Review its wording and formatting before copying it to a Gmail draft."
               onApply={(revision) =>
                 change({
                   ...draft,
@@ -741,7 +741,7 @@ export function CommunicationComposer({
                       ),
                     });
                     setStatus(
-                      "Your current business signature was added as an explicit draft edit. Review and remove any prior inline signature before Send or Schedule.",
+                      "Your current business signature was added as an explicit draft edit. Review and remove any prior inline signature before copying it to a Gmail draft.",
                     );
                   }}
                 >
@@ -824,6 +824,11 @@ export function CommunicationComposer({
           Add follow-up message
         </button>
       ) : null}
+      <p role="note">
+        Messages saved here remain in the app. Sending and scheduling are unavailable.
+        Existing delivery history is retained. Use the reviewed Gmail draft control in the
+        linked lease to create an unsent Gmail draft.
+      </p>
       <div className="ui-row">
         <button
           disabled={busy || terminal}
@@ -831,33 +836,8 @@ export function CommunicationComposer({
         >
           {saveNeedsRetry ? "Retry same save" : "Save draft"}
         </button>
-        <button
-          disabled={
-            busy ||
-            terminal ||
-            !canAuthorize ||
-            filesUnverified ||
-            !reviewedTargetHash ||
-            !!sequence?.unresolvedOccurrenceId ||
-            !!blocks.length
-          }
-          onClick={() => void run("send")}
-        >
-          Send
-        </button>
-        <button
-          disabled={
-            busy ||
-            terminal ||
-            !canAuthorize ||
-            filesUnverified ||
-            !reviewedTargetHash ||
-            !!sequence?.unresolvedOccurrenceId
-          }
-          onClick={() => setScheduleOpen(!scheduleOpen)}
-        >
-          Schedule
-        </button>
+        <button disabled>Send</button>
+        <button disabled>Schedule</button>
       </div>
       {scheduleOpen ? (
         <fieldset disabled={busy || terminal} className="ui-stack">
@@ -939,18 +919,7 @@ export function CommunicationComposer({
             Cancel future messages
           </button>
           {sequence.state === "paused" ? (
-            <button
-              disabled={
-                busy ||
-                !canAuthorize ||
-                filesUnverified ||
-                !reviewedTargetHash ||
-                !!sequence.unresolvedOccurrenceId
-              }
-              onClick={() => void run("resume")}
-            >
-              Resume reviewed sequence
-            </button>
+            <button disabled>Resume reviewed sequence</button>
           ) : null}
           {sequence.unresolvedOccurrenceId ? (
             <button disabled={busy} onClick={() => void run("reconcile")}>
@@ -984,8 +953,8 @@ export function CommunicationComposer({
             Transfer responsibility
           </button>
           <p>
-            A transfer pauses future messages. The new sender reviews and authorizes the
-            next operation.
+            A transfer preserves the history and pauses future messages. The new
+            responsible staff member can review the saved wording.
           </p>
         </div>
       ) : null}
@@ -994,8 +963,8 @@ export function CommunicationComposer({
           <h3>Linked conversation</h3>
           {thread.truncated ? (
             <p>
-              Only part of this conversation is available. Dispatch waits for a complete
-              read.
+              Only part of this conversation is available. Read the full conversation in
+              Gmail before preparing a response.
             </p>
           ) : null}
           {thread.messages.map((m) => (

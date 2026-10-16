@@ -1,8 +1,16 @@
 # Client, owner, and provider execution inputs
 
-Updated: 2026-09-11 (UTC).
+Updated: 2026-10-16 (UTC); earlier readbacks below retain their recorded dates.
 
-Recorded authority remains in force. S113 is deployed after backend/review, exact CI, candidate,
+Current application scope is S227-S229. Custom maintenance, Vendoroo integration and the remaining
+maintenance proof is retired; no maintenance/pilot input collection or S36 execution is requested.
+Keep Vendoroo standalone. The October 15 renewal template was reported active: after approved
+authentication recovery, inspect its current owning profile and saved supported selection before
+asking anyone to repeat setup. Both Dotloop write keys stay closed. Workflow communications remain
+linked reads and reviewed unsent drafts; current operation policy refuses sends and schedules.
+See docs/open-blockers.md for current external holds; missing fresh evidence cannot become success.
+
+Recorded renewal authority remains in force within the current boundary above. S113 was deployed after backend/review, exact CI, candidate,
 promotion, observation and final serving/backend readbacks. The existing owner account passed
 CLI/ADC refresh and displayed Admin assurance on both origins. Separate 24-hour authentication
 longevity remains unverified; no broader directory inventory is inferred from the owner readback.
@@ -28,12 +36,13 @@ never become customer links or legal content. No client effect or completion was
   and separately confirmed correction. Row delete and historical restore remain unavailable. No
   new provider safety-contract prerequisite is required.
 - S99's bounded work-order proofs are complete and its exact read/create/status-update keys are
-  active. Proof work order 1731 is already in its final `Cancelled` state and is not a future target.
-- S100's manual authenticated inbound work-order-chat synchronization is active. Its unsent Gmail
-  resident-reply draft key remains closed until one synchronized resident message maps to a verified
-  resident email in the signed-in user's connected managed mailbox.
-- S36 runs one temporary provision/import/query/readback/retirement pilot and restores the original
-  eleven-store/config baseline.
+  active in historical metadata; current maintenance operation admission refuses creation/status effects.
+  Proof work order 1731 is already in its final `Cancelled` state and is not a future target.
+- S100's manual authenticated inbound work-order-chat synchronization retains its completed historical
+  proof. Current maintenance chat and the remaining resident-draft proof are retired; the draft key
+  remains closed. The old synchronized-message input is no longer requested by this execution.
+- S36's earlier temporary provision/import/query/readback/retirement pilot contract is historical;
+  it has no new execution grant from this checklist.
 - Normal S106 connection/readiness and S34 packet handoffs are deployed. Real managed connection,
   approved resources and separately activated exact keys still govern dependent effects. LeadSimple
   remains deferred to a later separately grounded scope.
@@ -42,17 +51,20 @@ never become customer links or legal content. No client effect or completion was
 
 ## Renewal-completion inputs (S102-S111, S34, S106)
 
-| Input                                                                               | Needed by   | Refusal rule when absent                                                                                                                                                 |
-| ----------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Dotloop OAuth application (client id, secret, redirect URI) bound in Secret Manager | S106, S34   | Connection shows `credentials_not_configured`; only the live readiness/packet proof is `BLOCKED`. Dotloop issues credentials by approved request, not self-registration. |
-| A connected managed Dotloop account with the office profile and renewal template    | S106, S34   | Readiness reports `missing_resources`; deterministic adapter verification runs independently.                                                                            |
-| Approved S66 artifact catalog                                                       | S34         | Packet creation stays blocked at `document-packet`.                                                                                                                      |
-| Exact property identifiers, amounts, and effective dates entered by an Admin        | S108        | Every ticket waits on owner approval as today.                                                                                                                           |
-| Reviewed troubleshooting links and required-evidence table                          | S109        | No resource is offered; default evidence table applies.                                                                                                                  |
-| Owner-approved managed Admin browser profile                                        | S51 release | Candidate assurance and promotion cannot run; the zero-traffic candidate waits.                                                                                          |
-| The candidate hostname added to Firebase authorized domains                         | S51 release | No managed identity can sign in on the candidate origin, so the profiles above cannot be used.                                                                           |
+| Input                                                                                                 | Needed by   | Refusal rule when absent                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Dotloop OAuth application (client id, secret, redirect URI) bound in Secret Manager                   | S106, S34   | Connection shows `credentials_not_configured`; only the live readiness/packet proof is `BLOCKED`. Dotloop issues credentials by approved request, not self-registration. |
+| Existing managed Dotloop connection with a supported individual profile and reported renewal template | S106, S34   | Recheck actual owning-profile visibility and selection after authentication recovery; diagnostic company/office visibility does not grant loop eligibility.              |
+| Approved S66 artifact catalog                                                                         | S34         | Packet creation stays blocked at `document-packet`.                                                                                                                      |
+| Exact property identifiers, amounts, and effective dates entered by an Admin                          | S108        | Every ticket waits on owner approval as today.                                                                                                                           |
+| Reviewed troubleshooting links and required-evidence table                                            | S109        | No resource is offered; default evidence table applies.                                                                                                                  |
+| Owner-approved managed Admin browser profile                                                          | S51 release | Candidate assurance and promotion cannot run; the zero-traffic candidate waits.                                                                                          |
+| The candidate hostname added to Firebase authorized domains                                           | S51 release | No managed identity can sign in on the candidate origin, so the profiles above cannot be used.                                                                           |
 
 ## Runtime evidence by suite
+
+Maintenance and pilot rows S99/S100/S36 below preserve their original evidence contracts only.
+Their former effects, input requests and proofs cannot resume under the current retirement scope.
 
 | Suite | Resolve immediately before the bounded effect                                                                                                                                                                                                                                      | Refusal/closeout rule                                                                                                                                                                                                      |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

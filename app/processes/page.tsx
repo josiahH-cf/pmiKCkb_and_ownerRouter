@@ -11,6 +11,7 @@ import {
   filterWorkflowRunsForUser,
 } from "@/lib/space-scope-resources";
 import { launchSpaces } from "@/lib/spaces";
+import { isRetiredMaintenanceWorkflow } from "@/lib/maintenance/retirement";
 
 export default async function ProcessesPage() {
   const user = await requirePageCapability("read");
@@ -52,7 +53,9 @@ export default async function ProcessesPage() {
         <ProcessDefinitionListClient
           availableSpaces={launchSpaces.filter(
             (space) =>
-              space.showInDirectory !== false && canAccessLaunchSpace(user, space),
+              space.showInDirectory !== false &&
+              !isRetiredMaintenanceWorkflow(space.id, space.processDefinitionId) &&
+              canAccessLaunchSpace(user, space),
           )}
           canEdit={can(user.role, "edit")}
           currentUserUid={user.uid}

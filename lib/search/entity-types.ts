@@ -14,8 +14,8 @@ export const ENTITY_LABELS: Record<(typeof ENTITY_TYPES)[number], string> = {
   resident: "Resident",
   property: "Property",
   unit: "Unit",
-  ticket: "Maintenance ticket",
-  vendor: "Vendor",
+  ticket: "Maintenance history",
+  vendor: "Retained vendor record",
 };
 const Id = z.string().regex(/^[A-Za-z0-9_:-]{1,160}$/),
   Type = z.enum(ENTITY_TYPES);

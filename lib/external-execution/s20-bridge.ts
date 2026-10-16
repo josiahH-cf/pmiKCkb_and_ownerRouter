@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { applicationEffectBlockReason } from "@/lib/operations/application-effect-policy";
 
 import type { Firestore } from "firebase-admin/firestore";
 
@@ -428,6 +429,9 @@ function assertCurrentCommunicationAdmission(
   actionKey: string,
   options: ExternalS20BridgeOptions,
 ) {
+  const blocked = applicationEffectBlockReason(actionKey);
+  if (options.registry === undefined && blocked)
+    throw new ExternalExecutionError(blocked, "blocked");
   // A source-owned, explicitly test-only registry can still exercise the historical S20 safety
   // primitives. assertTestOnlyOptions rejects that seam in Production. Default admissions and
   // queued dispatches must never inherit the new Communications activation or authorize old work.

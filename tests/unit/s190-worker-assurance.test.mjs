@@ -55,6 +55,8 @@ function fixture(options = {}) {
                       event: "communication_worker_readiness",
                       probeId: id,
                       ready: true,
+                      mode: options.dispatchEnabled ? "active" : "draft_only",
+                      dispatchEnabled: options.dispatchEnabled === true,
                     },
                   },
                 ],
@@ -154,7 +156,7 @@ it("a wrong managed identity fails before patch or invocation", async () => {
     f.close();
   }
 });
-it.each([{ lostResponse: true }, { noReadback: true }])(
+it.each([{ lostResponse: true }, { noReadback: true }, { dispatchEnabled: true }])(
   "uncertain or absent readback remains failed, restores configuration and cannot consume a second invocation: %s",
   async (options) => {
     const f = fixture(options);

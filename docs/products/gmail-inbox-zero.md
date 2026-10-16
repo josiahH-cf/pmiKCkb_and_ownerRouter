@@ -3,7 +3,17 @@
 The filename is retained for compatibility. This is a workflow communication adapter, not a general
 Gmail inbox.
 
-## Last verified serving capability
+## Current October 16 source boundary
+
+S229 narrows the historical program below to workflow-linked reads, labels and reviewed unsent
+renewal Gmail drafts. Current production-operation admission refuses client Send/Schedule/Resume,
+generic replies and worker dispatch before provider construction. App-saved wording is identified
+separately from a Gmail draft. Custom maintenance effects are retired under S227; Vendoroo remains
+standalone. Original attempts, delivery records and own-attempt recovery retain their meaning.
+This source change is not yet deployed, and fresh managed Gmail readback remains blocked by approved
+account reauthentication. See docs/spec.md and docs/loop-state.md.
+
+## Historical verified serving capability
 
 - Authenticated workflow-linked mailbox reads, exact thread replies and governed labels.
 - Renewal and maintenance owner unsent-draft creation, with a human sending from Gmail.
@@ -12,7 +22,12 @@ Gmail inbox.
 
 The October 9 serving readback is recorded in `docs/facts.md`; it does not deliver the new program.
 
-## Authorized program in progress
+## Historical S183 program and activation wording
+
+The following paragraphs preserve the earlier authorization and pre-activation wording for
+compatibility and provenance. The notice keys subsequently activated in the October 10 release;
+their protected metadata is unchanged. The current October 16 operation-level refusal overrides
+those open keys. Neither this history nor an earlier receipt authorizes sending or a proof rerun.
 
 The owner's S183 instruction authorizes human Send/Schedule for the named S183–S226 program.
 The shared workflow hub/composer binds the exact managed sender, current record/recipients,
@@ -28,9 +43,9 @@ reply and unknown-attempt history retains its actual meaning and own-attempt rec
 ## Boundaries
 
 - No free-form general inbox browsing, generic compose or blast send.
-- No autonomous client-facing send; dispatch requires the named human Send/Schedule authorization.
+- No autonomous client-facing send; current operation policy also refuses human client sends and schedules in the app.
 - Outside Gmail discovery/linking remains scoped and read-only.
-- S100 resident-reply draft remains closed pending its separate exact mapping/proof/activation.
+- S100 resident-reply draft remains closed; its remaining maintenance proof/activation is retired.
 - Sample/test content cannot create a real draft, send or production record.
 - Missing sender/runtime/key, stale targets, conflicting edits and unresolved provider attempts
   remain explicit holds. No live customer effect is used to demonstrate a test.

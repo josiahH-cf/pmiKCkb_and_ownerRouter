@@ -63,6 +63,7 @@ export interface ResolveAskActionInput {
 export function resolveAskAction(input: ResolveAskActionInput): AskActionRoute | null {
   const { detected, target, isExecutable } = input;
   if (!detected) return null;
+  if (detected.processId === "maintenance-work-order-intake") return null;
   const mapping = PROCESS_ACTION_MAP[detected.processId];
   if (!mapping) return null;
   // Only ever route to an already-open gate.

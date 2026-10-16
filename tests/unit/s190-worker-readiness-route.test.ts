@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   gate: vi.fn(),
   create: vi.fn(),
   run: vi.fn(),
+  policy: vi.fn(),
 }));
 vi.mock("@/lib/gmail-hub/sequence-worker", () => ({
   verifyCommunicationWorkerRequest: mocks.verify,
@@ -16,9 +17,11 @@ vi.mock("@/lib/operations/runtime-suspension-gate", async (original) => ({
   ...(await original<typeof import("@/lib/operations/runtime-suspension-gate")>()),
   assertProductionRuntimeActionExecutable: mocks.gate,
 }));
+vi.mock("@/lib/operations/application-effect-policy", () => ({
+  applicationEffectBlockReason: mocks.policy,
+}));
 import { GET } from "@/app/api/gmail-hub/sequence-worker/route";
 import { GmailPushAuthError } from "@/lib/gmail-hub/pubsub";
-import { EditableLayerError } from "@/lib/firestore/errors";
 const probeId = "3785c149-59a4-45fa-85de-a33a71f757d8";
 const request = (query = "", id: string | null = probeId) =>
   new Request("https://app.test/api/gmail-hub/sequence-worker" + query, {
@@ -26,6 +29,7 @@ const request = (query = "", id: string | null = probeId) =>
   });
 beforeEach(() => {
   vi.resetAllMocks();
+  mocks.policy.mockReturnValue("Sending is unavailable");
   vi.spyOn(console, "log").mockImplementation(() => {});
 });
 afterEach(() => vi.restoreAllMocks());
@@ -37,11 +41,11 @@ it("rejects an unverified service before reading gates, logging readiness or con
   expect(mocks.create).not.toHaveBeenCalled();
   expect(mocks.run).not.toHaveBeenCalled();
 });
-it("proves only the managed service and two current exact gates without claiming or dispatching an occurrence", async () => {
+it("proves the managed service and non-dispatching policy without claiming a customer occurrence", async () => {
   const response = await GET(request());
   expect(response.status).toBe(200);
-  expect(await response.json()).toEqual({ status: "ready" });
-  expect(mocks.gate.mock.calls).toEqual([
+  expect(await response.json()).toEqual({ status: "draft_only", dispatchEnabled: false });
+  expect(mocks.policy.mock.calls).toEqual([
     ["gmail.renewal_notice.send"],
     ["gmail.maintenance_owner_notice.send"],
   ]);
@@ -49,6 +53,8 @@ it("proves only the managed service and two current exact gates without claiming
     event: "communication_worker_readiness",
     probeId,
     ready: true,
+    mode: "draft_only",
+    dispatchEnabled: false,
   });
   expect(mocks.create).not.toHaveBeenCalled();
   expect(mocks.run).not.toHaveBeenCalled();
@@ -66,8 +72,8 @@ it.each([
     expect(mocks.create).not.toHaveBeenCalled();
   },
 );
-it("a current runtime suspension cannot produce a readiness success log", async () => {
-  mocks.gate.mockRejectedValue(new EditableLayerError("Suspended", 409));
+it("an absent unsent-only policy cannot produce a readiness success log", async () => {
+  mocks.policy.mockReturnValue(null);
   expect((await GET(request())).status).toBe(409);
   expect(console.log).not.toHaveBeenCalled();
   expect(mocks.run).not.toHaveBeenCalled();

@@ -6,6 +6,10 @@ import { can } from "@/lib/auth/roles";
 import { primarySpaceHref, requirePageCapability } from "@/lib/auth/page-guards";
 import { getProcessDefinition, listWorkflowRuns } from "@/lib/firestore/workflows";
 import { canAccessProcessDefinition } from "@/lib/space-scope-resources";
+import {
+  isRetiredMaintenanceWorkflow,
+  MAINTENANCE_RETIREMENT_MESSAGE,
+} from "@/lib/maintenance/retirement";
 
 interface ProcessDefinitionPageProps {
   params: Promise<{ definitionId: string }>;
@@ -39,6 +43,10 @@ export default async function ProcessDefinitionPage({
           Back to Processes
         </Link>
         <h1 className="section-title">Process Definition</h1>
+        {definition &&
+        isRetiredMaintenanceWorkflow(definition.space_id, definition.id) ? (
+          <p>{MAINTENANCE_RETIREMENT_MESSAGE}</p>
+        ) : null}
         {loadError || !definition ? (
           <article className="panel">
             <p className="muted">
@@ -48,7 +56,10 @@ export default async function ProcessDefinitionPage({
           </article>
         ) : (
           <ProcessDefinitionDetailClient
-            canEdit={can(user.role, "edit")}
+            canEdit={
+              can(user.role, "edit") &&
+              !isRetiredMaintenanceWorkflow(definition.space_id, definition.id)
+            }
             initialDefinition={definition}
             initialRuns={runs}
           />

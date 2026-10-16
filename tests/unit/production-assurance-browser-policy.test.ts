@@ -145,10 +145,10 @@ describe("authenticated role manifests", () => {
       expect(
         routesForRole(role, "f".repeat(40)).find((route) => route.key === "maintenance")
           ?.heading,
-      ).toBe("Maintenance");
+      ).toBe("Read-only maintenance history");
       expect(
         routesForRole(role).find((route) => route.key === "maintenance")?.heading,
-      ).toBe("Maintenance");
+      ).toBe("Read-only maintenance history");
     }
   });
   it("has unique complete route keys for each managed role", () => {

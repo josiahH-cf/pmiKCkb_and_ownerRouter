@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+// Preserve historical dynamic-gate/error behavior with deterministic adapters. The actual
+// current retirement admission is covered separately without this local policy double.
+vi.mock("@/lib/operations/application-effect-policy", () => ({
+  applicationEffectBlockReason: () => null,
+}));
+
 const { createStoreMock, putMock, runtimeGate } = vi.hoisted(() => ({
   createStoreMock: vi.fn(),
   putMock: vi.fn(),

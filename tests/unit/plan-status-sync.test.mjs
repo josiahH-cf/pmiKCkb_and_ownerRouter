@@ -12,7 +12,9 @@ const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const PLAN_PATH = join(root, "docs", "plan.md");
 
 describe("plan.md present-truth freshness", () => {
-  const plan = readFileSync(PLAN_PATH, "utf8");
+  const plan = readFileSync(PLAN_PATH, "utf8")
+    .replace(/\s+/g, " ")
+    .replace(/[\u2013\u2014]/g, "-");
 
   it("keeps only the active outcome, current baseline, authority, queue, and delivery rule", () => {
     expect(plan).toContain("## Outcome");
@@ -27,10 +29,12 @@ describe("plan.md present-truth freshness", () => {
     expect(plan).toContain("72a30e25537e8ea7ff79391146246c1f9b94375e");
     expect(plan).toContain("pmi-kc-app-rmv3vlx5t-b86fdd4c74ae");
     expect(plan).toContain("Completed S97-S99 and S100 chat proofs are not rerun");
-    expect(plan).toContain("S36 is queued behind complete S100");
+    expect(plan).toContain("S36 has no new execution grant");
+    expect(plan).toContain("S227-S229");
+    expect(plan).toContain("operation admission");
     expect(plan).toContain("refuses row deletion and historical restore");
-    expect(plan).toContain("S96 — safe connector disconnect and reconciliation");
-    expect(plan).toContain("S87 — final six-cohort product-wide content reconciliation");
+    expect(plan).toContain("S96 - safe connector disconnect and reconciliation");
+    expect(plan).toContain("S87 - final six-cohort product-wide content reconciliation");
     expect(plan).toContain("ALL_GATES_GREEN");
   });
 });

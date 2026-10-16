@@ -3,49 +3,41 @@
 
 # S222 — Unified approved maintenance emergency policy and escalation configuration
 
-> Status: READY — finalized specification for later authorized implementation; no application, provider or Registry change is performed by authoring.
+> Status: READY — original authoring state retained for historical ledger consistency; operational requirements superseded by S227. Current scope is read-only retention compatibility; no operational execution is authorized by this file.
 > Intake: 094. Authored: 2026-10-09. Source baseline: WSL main `43bad3ad`; recorded serving baseline: `337ac163` (2026-10-08). These are contextual baselines, not new live verification.
 > Bundle: `operations-communications-maintenance-2026-10`.
 
 **Goal.**
 
-Every supported maintenance entry point applies the same approved emergency policy and immediately presents appropriate existing or verified guidance, while PMI can maintain escalation configuration without inventing policy or contacts.
+Retain the original maintenance/vendor records, receipts, permissions and historical requirement evidence after custom maintenance retirement. S227 owns the current operating contract; Vendoroo remains standalone.
 
 **Current state / intended end state.**
 
-`lib/maintenance/constants.ts` contains a broad emergency keyword list consumed by work-order drafting, while `lib/maintenance/intake-triage.ts` separately classifies fire/gas/carbon-monoxide and active flooding and owns approved acknowledgements/evidence requirements. The triage projection stores reports even when evidence is missing; its model helper may suggest a trade but cannot downgrade urgency. There is no single approved, versioned runtime emergency-policy configuration serving all these entry points.
-
-One deterministic, versioned policy projection governs urgency and approved guidance across staff capture, public intake and any later configured phone/provider channel. Existing urgent guidance remains available when no approved replacement exists. PMI maintains real routing/policy inputs, while emergency response and routine financial approval remain distinct.
+October 15 30:54–31:32 and the confirming maintenance emails retire the custom workflow. The source baseline 0b892865 contains the earlier implementation or proposal recorded below; S227 retires operational entry and preserves authorized read-only history. S227–S229 are under verification, with no new deployment claimed. Earlier authoring and delivery evidence retains its original scope.
 
 **Actors and entry conditions.**
 
-Authorized PMI policy managers maintain draft and approved runtime policy under the current role model and the separate governance contract. Staff/reporter channels consume only applicable approved versions. Models and external provider observations may supply attributable facts or suggestions, but cannot approve policy or silently downgrade urgency. A real escalation contact/channel must be verified before it is offered as an actionable destination.
+Existing authorized readers retain their current permissions. No new maintenance intake, vendor work, provider action, maintenance draft, integration access request or old proof window may start from this contract. Shared renewal and knowledge behavior remains separately owned.
 
 **What it is / how it functions.**
 
-- **R-S222-1 — Approved scoped policy versions.** Provide a manageable policy configuration with purpose/scope, effective period, approval attribution, urgency rules, approved guidance and escalation references, plus draft, approved, superseded/revoked or unset states. Support applicable property/organization policy without creating conflicting simultaneous precedence. Missing or draft inputs never become approved policy. Seed no new legal/emergency wording, liability rule, phone number or service promise.
-- **R-S222-2 — One urgency projection across channels.** Replace competing app-owned urgency logic with one shared projection and an explicit mapping to existing staff work-order priority and public-intake urgency fields. Preserve channel-specific evidence collection and display. The same facts and applicable policy produce compatible urgency outcomes; a model/provider label alone cannot downgrade an emergency. Retain the current whole-word protection against incidental terms such as gasket matching gas.
-- **R-S222-3 — Immediate guidance without routine gates.** Keep existing approved emergency/flooding acknowledgements available as the fallback until a real replacement is approved. Present applicable urgent guidance when the report is recognized, record the report and outstanding evidence, and keep escalation visible even when photos, assessment completion, estimate or owner approval are missing. Routine assessment/preapproval does not certify emergency-response sufficiency or block existing life-safety guidance.
-- **R-S222-4 — Verified escalation and takeover configuration.** Maintain actual escalation responsibility, verified contact/channel, availability/coverage and human takeover expectations as configuration. Show a clear unavailable/needs-staff-routing state when no valid contact exists. Internal staff routing and provider/phone takeover use only the later supported channel contract and exact authority; this suite itself creates no new phone call, vendor dispatch, emergency-service request or customer send.
-- **R-S222-5 — Attributable staff review and safe revisions.** Record urgency review/override, original facts, reason, actor, time and policy version without overwriting the original decision. Staff may correct facts and route to review under actual approved rules; models cannot own an override. A policy change affects new decisions prospectively and flags active affected work for review when needed rather than silently rewriting closed historical urgency or reversing a prior escalation.
+Read-only retention uses the existing stores and receipt/history readers under their original authorization, with operational requests refused before dispatch. No records are deleted or relabeled. Current maintenance is managed in standalone Vendoroo; no destination URL or integration is invented.
 
 **In scope / out of scope.**
 
-In scope: maintained approved-policy capability, shared deterministic urgency/priority projection, existing guidance fallback, verified escalation references and attributed reviews. Out of scope: inventing actual emergency/after-hours policy or legal wording, new phone/provider dispatch or send activation, guarantees of emergency-service response, automatic approval of emergency costs, and historical reclassification/backfill.
+Only retention, historical interpretation and permission compatibility remain applicable. All former operational maintenance/vendor requirements and Vendoroo ingestion work in the historical trace below are superseded by S227. Raw private sources remain outside Git. This file grants no new execution or release authority.
 
 **Open questions & assumptions.**
 
-Actual approved replacement wording, escalation contacts, availability and property-specific rules are runtime inputs to obtain from PMI. Their absence does not block the configuration/projection capability; the preserved current guidance remains available and only an unconfigured routing action waits. No particular fee, liability threshold, personal assignee or expanded emergency definition is established here.
-
-No material product decision is deferred inside this READY scope. Actual identities, approved runtime policies, financial values and provider configuration are inputs, not values the implementation runner invents. Their absence blocks only the named dependent operation; implementation and independent verification proceed.
+Former provider/account/policy inputs are not prerequisites for retirement and must not trigger duplicate requests. Fresh read-only provider evidence and deployment are held only by the exact authentication/browser limitations recorded in docs/open-blockers.md. Missing observations are not success.
 
 **Cross-product impacts.**
 
-- Policy consumers and present divergence: `lib/maintenance/constants.ts`, `lib/maintenance/work-order-draft.ts`, `lib/maintenance/intake-triage.ts` and `lib/maintenance/intake-triage-model.ts`.
-- Staff/public intake owners: `components/maintenance/MaintenanceCapture.tsx`, current maintenance intake routes and triage review surfaces.
-- Related boundaries: S205 assessment lifecycle, S207/S208 actual Vendoroo/channel contract, S209 durable policy-decision history, S213 financial preapproval, S223 responsibility guidance and the separately scoped staff/governance policy manager.
+S227 owns retired HTTP and shared effect admission, authorized history and reports. Existing stores, receipts and permissions remain unchanged. Renewal, workflow-linked unsent communications, search and knowledge retain their independent contracts. The historical architecture below identifies original owners for preservation only; it does not request extensions or integration.
 
 **Authority and evidence map.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 | Input                                                         | Classification                             | Use and limitation                                                                                                                                                                                                                                                                                           |
 | ------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -57,6 +49,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 
 **Architecture outcome (deterministic, fail-first).**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 - **ARCH-S222-1** — A typed app-owned policy repository and deterministic applicability resolver own version/approval/effective-state selection. The resolver exposes the applicable version and an explicit unavailable/conflicting state instead of choosing an arbitrary draft or silently combining rules. Freeze a focused falsification before changing this boundary.
 - **ARCH-S222-2** — `lib/maintenance/intake-triage.ts`, `work-order-draft.ts` and their consumers use the shared pure approved-policy projection rather than separate authoritative keyword lists. Compatibility mappings preserve existing records without retroactively reclassifying their original evidence. Freeze a focused falsification before changing this boundary.
 - **ARCH-S222-3** — The intake/workflow projection separates recorded report, urgency/guidance and evidence completeness from dispatch/financial approval. Current acknowledgement text remains a preserved source-controlled fallback, not new prose authored by the model. Freeze a focused falsification before changing this boundary.
@@ -64,6 +58,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 - **ARCH-S222-5** — Append/version decision events link to S209 history and current ticket projection. Revision/revocation selects the active policy prospectively and exposes relevant stale decisions; model output is typed advisory input outside the approval owner. Freeze a focused falsification before changing this boundary.
 
 **Behavior outcome (deterministic, fail-first).**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 - **BEH-S222-1** — A policy manager can review which approved policy will apply and replace/revoke it; staff can see which version governed a report. Unset configuration does not display an invented contact or policy.
 - **BEH-S222-2** — A staff-captured issue and the same public/provider report show consistent urgency and guidance, with the source facts and policy version available for review. Trade suggestions do not decide emergency status.
@@ -73,6 +69,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 
 **Human litmus outcome.**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 ### Recognize and route urgent maintenance consistently
 
 **If this was built correctly:** A staff member or reporter describes an urgent issue and sees the appropriate approved guidance immediately. PMI sees the same urgency, the responsible verified escalation route or an honest missing-route state, and the policy and review history behind the decision.
@@ -81,6 +79,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 | Requirement                                              | Architecture outcome | Behavior outcome | Human litmus                                        | Acceptance / deterministic falsification                                                                                                                                                                                                                                                                          |
 | -------------------------------------------------------- | -------------------- | ---------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -98,6 +98,8 @@ Preservation is a separate result from new behavior. Existing tests are retained
 
 **Adversarial acceptance checks.**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 - **AC-S222-1** — R-S222-1, ARCH-S222-1, BEH-S222-1: Exercise approved, future, expired/revoked, draft-only and competing applicable versions. Assert only the explicit valid version governs, draft data never leaks into active guidance and ambiguity is visible with existing safe guidance preserved.
 - **AC-S222-2** — R-S222-2, ARCH-S222-2, BEH-S222-2: Feed the same life-safety, active-water, ordinary issue and incidental-word cases through each supported entry adapter. Compare the shared decision/version and compatible display; prove a model normal/trade suggestion cannot overwrite deterministic urgent evidence.
 - **AC-S222-3** — R-S222-3, ARCH-S222-3, BEH-S222-3: Submit urgent reports without photos, estimate, owner decision or configured replacement. Read back the saved report and verify the current approved urgent guidance appears immediately, no promised response time/dispatch is fabricated, and ordinary financial gates do not erase the urgent path.
@@ -112,31 +114,29 @@ Across this suite: no fabricated customer/provider identity or amount, secret/ra
 
 **Dependencies / sequencing.**
 
-Consumes the existing current S109 fallback and later authorized policy-manager/governance contract. Exposes versioned urgency/guidance/routing to S205, S208 and later phone intake; integration may consume only finalized provider interfaces. S213 defines financial preapproval separately, and S209 retains the decision history.
+Use S227 for maintenance retirement and retained read-only compatibility. S228 owns current Dotloop diagnostics and S229 renewal/unsent communications preservation. Do not resume the old maintenance, Vendoroo integration or proof sequence from this historical contract.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** Versioned approved-policy configuration/resolution, one shared urgency projection and compatibility mapping, existing-guidance fallback, explicit routing holds and attributed staff review with deterministic service/rendered tests.
-- **Consumes, but does not assume:** Actual PMI-approved rules/copy and verified contacts/coverage; later supported phone/provider channel delivery/takeover contracts. Unset, conflicting, expired or revoked values have explicit visible states.
-- **Externally blocked effect:** A new configured escalation or provider/phone effect remains BLOCKED until its real approved contact/channel/coverage and separately required authority exist. Configuration, fallback guidance, deterministic classification and review checks remain independently deliverable.
-- **Produces for downstream suites:** A shared policy-version/urgency/guidance/routing result, maintained actual escalation inputs and attributable decision records for lifecycle, intake, vendor/provider and report consumers.
+- **Deliverable now:** The S227 retirement/retention slice, preserving original evidence without migration effects.
+- **Consumes, but does not assume:** Existing authorized history and exact receipts.
+- **Externally blocked effect:** No former maintenance/provider effect is requested. Current live verification holds are in docs/open-blockers.md.
+- **Produces for downstream suites:** Original record/receipt meanings and permissions, without new operational authority.
 
 **Verification and delivery contract.**
 
-1. Re-read current owners and refresh the baseline before implementation. Materialize the named architecture, behavior and acceptance falsifications; record pre-existing unrelated failures separately.
-2. Exercise every row with service/transaction and rendered journeys appropriate to the outcome, including denial, interruption, concurrency and partial completion. Use isolated local fixtures and deterministic external adapters; keep the preservation result separate.
-3. Read back saved artifacts/state and reconcile them with the acted-on identity/version. A UI success label, supplied example or passing adapter cannot establish live provider success.
-4. Run focused checks, then `bash scripts/verify.sh` and applicable compiled-browser checks for any later ship candidate. Audit secrets/PII, authority, runtime configuration and cross-suite traceability.
-5. A later authorized implementation reports ALL_GATES_GREEN only for completed declared engineering checks; a named live/account proof remains separately BLOCKED when its input is missing. BUDGET_EXHAUSTED applies only to an explicit budget. Never label the whole operational outcome complete from a partial green slice.
-6. Authoring registration/validation is documentary only. Commit, push, deployment, implementation-loop start and external communication require their own explicit instruction.
+1. Verify current S227 retirement and read-only retention through the real request, service and authorized reader boundaries.
+2. Preserve original requirement IDs, historical verdicts, records and receipt meanings. Do not execute the superseded operational acceptance outcomes or collect retired integration inputs.
+3. Use S227-S229 for current focused regressions, required repository checks and authorized gated delivery. Record local, live-provider, human and deployment outcomes separately; missing evidence cannot become success.
+4. Report ALL_GATES_GREEN only for actually completed current engineering gates, BUDGET_EXHAUSTED only for an explicit budget, or BLOCKED with its exact unavailable external input after independent work. These terminal states do not resume the superseded operational outcomes.
 
 **Ordered prompt sequence.**
 
-1. Re-verify current source, accepted decisions, dependency contracts and relevant read-only state.
-2. Freeze the requirement/architecture/behavior/acceptance matrix and preservation baseline before implementation.
-3. Implement the bounded owner and all unavailable/recovery paths; reuse existing services and keep adjacent suite ownership explicit.
-4. Falsify every row, read back persisted results, run focused/canonical checks, update verified current documentation and deliver only when separately authorized.
+1. Read the current router and S227; verify actual retirement/retention behavior.
+2. Use original evidence below only for provenance and preservation scope.
+3. Do not execute former operational instructions, collect retired integration inputs or rerun completed proofs.
+4. Verify and deliver the currently authorized S227–S229 slice through existing gates.
 
 **Deletion/merge recommendation.**
 
-Retain this suite until its full behavior, remaining dependencies and acceptance evidence are represented in current code/tests/facts. Then merge its operating contract into current maintenance documentation; preserve historical evidence without keeping duplicate active instructions.
+The original operational contract is superseded by S227. Its historical trace remains temporarily available for native program-ledger consistency; it is not an execution queue. Remove that provenance only with its remaining evidence references reconciled, retaining originals in Git history.

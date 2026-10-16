@@ -33,6 +33,9 @@ export interface DotloopPickerView {
   readonly profiles: readonly DotloopPickerProfile[];
   readonly templatesByProfile: Readonly<Record<string, readonly DotloopPickerTemplate[]>>;
   readonly profilesTruncated: boolean;
+  readonly resourceReadFailed?: boolean;
+  /** Missing means not observed; null is a successful read, including a truly empty list. */
+  readonly templateReadErrors?: Readonly<Record<string, string | null>>;
 }
 
 export function observationIsFresh(
@@ -43,9 +46,12 @@ export function observationIsFresh(
   if (!observation || !generationId || observation.generationId !== generationId)
     return false;
   const observed = Date.parse(observation.observedAt);
+  const now = Date.parse(nowIso);
   return (
     Number.isFinite(observed) &&
-    Date.parse(nowIso) - observed <= DOTLOOP_OBSERVATION_MAX_AGE_MS
+    Number.isFinite(now) &&
+    now >= observed &&
+    now - observed <= DOTLOOP_OBSERVATION_MAX_AGE_MS
   );
 }
 
@@ -56,17 +62,34 @@ export function projectDotloopPicker(
   nowIso: string,
 ): DotloopPickerView {
   const templatesByProfile: Record<string, DotloopPickerTemplate[]> = {};
+  const resourceReadFailed = Boolean(
+    observation.accountError || !observation.account || observation.profilesError,
+  );
+  const templateReadErrors: Record<string, string | null> = {};
   for (const entry of observation.templates) {
+    templateReadErrors[entry.profileId] = entry.error;
+    const supportedProfile = observation.profiles.some(
+      (profile) =>
+        profile.id === entry.profileId && isSupportedDotloopProfileType(profile.type),
+    );
     templatesByProfile[entry.profileId] = entry.templates.map((template) => ({
       id: template.id,
       name: template.name,
       transactionType: template.transactionType,
-      supported: isLeaseTransactionType(template.transactionType),
-      statuses: isLeaseTransactionType(template.transactionType)
-        ? DOTLOOP_LEASE_STATUSES[
-            template.transactionType as keyof typeof DOTLOOP_LEASE_STATUSES
-          ]
-        : [],
+      supported:
+        !resourceReadFailed &&
+        !entry.error &&
+        supportedProfile &&
+        isLeaseTransactionType(template.transactionType),
+      statuses:
+        !resourceReadFailed &&
+        !entry.error &&
+        supportedProfile &&
+        isLeaseTransactionType(template.transactionType)
+          ? DOTLOOP_LEASE_STATUSES[
+              template.transactionType as keyof typeof DOTLOOP_LEASE_STATUSES
+            ]
+          : [],
     }));
   }
   return {
@@ -81,6 +104,8 @@ export function projectDotloopPicker(
     })),
     templatesByProfile,
     profilesTruncated: observation.profilesTruncated,
+    resourceReadFailed,
+    templateReadErrors,
   };
 }
 
@@ -115,6 +140,12 @@ export function checkDotloopSelection(input: {
       reason: "Refresh Dotloop resources for this connection before choosing them.",
     };
   const observation = input.observation;
+  if (observation.accountError || !observation.account || observation.profilesError)
+    return {
+      ok: false,
+      reason:
+        "The account or profile read failed. Refresh Dotloop resources before saving a selection.",
+    };
   const profile = observation.profiles.find((entry) => entry.id === input.profileId);
   if (!profile)
     return {

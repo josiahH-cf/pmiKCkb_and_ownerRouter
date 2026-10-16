@@ -22,9 +22,10 @@ export default async function GmailInboxZeroAdminPage() {
         <div>
           <h1 className="section-title">{`${WORKFLOW_COMMUNICATIONS_NAME} Governance`}</h1>
           <p className="muted">
-            Workflow-linked Gmail only. A staff member reviews the exact message and
-            chooses Send or Schedule in Communications. Old drafts retain their original
-            state. <Link href="/gmail-hub">Open Workflow Communications</Link> ·{" "}
+            Workflow-linked Gmail only. A staff member reviews an unsent Gmail draft and
+            sends it from Gmail. Sending and scheduling are unavailable here. Old drafts
+            retain their original state.{" "}
+            <Link href="/gmail-hub">Open Workflow Communications</Link> ·{" "}
             <Link href="/admin">Back to Admin</Link>
           </p>
         </div>

@@ -3,49 +3,41 @@
 
 # S206 — Reliable maintenance creation, progress, deduplication and reconciliation
 
-> Status: READY — finalized specification for later authorized implementation; no application, provider or Registry change is performed by authoring.
+> Status: READY — original authoring state retained for historical ledger consistency; operational requirements superseded by S227. Current scope is read-only retention compatibility; no operational execution is authorized by this file.
 > Intake: 078. Authored: 2026-10-09. Source baseline: WSL main `43bad3ad`; recorded serving baseline: `337ac163` (2026-10-08). These are contextual baselines, not new live verification.
 > Bundle: `operations-communications-maintenance-2026-10`.
 
 **Goal.**
 
-Creating a maintenance ticket shows honest progress, reveals the saved ticket immediately and reconciles an unknown outcome before offering another attempt.
+Retain the original maintenance/vendor records, receipts, permissions and historical requirement evidence after custom maintenance retirement. S227 owns the current operating contract; Vendoroo remains standalone.
 
 **Current state / intended end state.**
 
-`MaintenanceCapture.tsx` prevents same-component concurrent clicks but sends no durable creation identity and tells the user to reload after success. `createMaintenanceTicket` allocates a fresh ticket ID per call. Queue filtering/loading is separate. The reported MF-20261008-B duplicate ticket effects have not been independently established.
-
-One user creation intent has a durable identity and local pending state through save, interruption and reopening. Success links/reveals the persisted ticket with filter-aware visibility. Uncertain outcomes remain recoverable and cannot silently become a second ticket or provider operation.
+October 15 30:54–31:32 and the confirming maintenance emails retire the custom workflow. The source baseline 0b892865 contains the earlier implementation or proposal recorded below; S227 retires operational entry and preserves authorized read-only history. S227–S229 are under verification, with no new deployment claimed. Earlier authoring and delivery evidence retains its original scope.
 
 **Actors and entry conditions.**
 
-Authorized maintenance staff create app tickets from actual captured data. Quarantine promotion and provider work-order creation retain their own services/claims. The same user intent must remain identifiable across transport failure and refresh.
+Existing authorized readers retain their current permissions. No new maintenance intake, vendor work, provider action, maintenance draft, integration access request or old proof window may start from this contract. Shared renewal and knowledge behavior remains separately owned.
 
 **What it is / how it functions.**
 
-- **R-S206-1 — Visible bounded pending state.** Show local creation progress and preserve entered work while saving. Prevent repeated UI submission for the same intent; cancellation before dispatch has no effect and interruption after dispatch is an unknown outcome.
-- **R-S206-2 — One durable app creation.** Make retries of the same creation intent return its one persisted ticket and initial activity. Bind intent to actor and captured content; changed content becomes a deliberate new intent, not a mutation of the old attempt.
-- **R-S206-3 — Immediate filter-aware reveal.** After confirmed save, update the current queue and provide the exact ticket link without requiring a page reload. Preserve the user's chosen filters; explain when the new ticket is outside them and offer a deliberate reveal.
-- **R-S206-4 — Reconcile before retry.** Provide a bounded lookup/readback for the same creation intent and show pending, found, failed-before-commit or unresolved. Never treat elapsed time, a list/query failure or inability to find a row as proof of non-creation.
-- **R-S206-5 — Keep app and provider effects separate.** Track app-ticket result and separately requested RentVine work-order result independently. Diagnose creation/readback/query failures with exact bounded evidence; repair only verified causes and do not record reported two-effect hypotheses as facts.
+Read-only retention uses the existing stores and receipt/history readers under their original authorization, with operational requests refused before dispatch. No records are deleted or relabeled. Current maintenance is managed in standalone Vendoroo; no destination URL or integration is invented.
 
 **In scope / out of scope.**
 
-In scope: app creation identity, local pending/result UI, queue reveal, bounded reconciliation and targeted creation/readback diagnosis. Out of scope: live reproduction with customer records, automatic retries of ambiguous provider effects, automatic work-order creation, or speculative infrastructure/schema repairs.
+Only retention, historical interpretation and permission compatibility remain applicable. All former operational maintenance/vendor requirements and Vendoroo ingestion work in the historical trace below are superseded by S227. Raw private sources remain outside Git. This file grants no new execution or release authority.
 
 **Open questions & assumptions.**
 
-MF-20261008-B is intent evidence of confusing creation behavior. The number and nature of actual live ticket effects remain unverified; preserve that uncertainty without making more live mutations to investigate it.
-
-No material product decision is deferred inside this READY scope. Actual identities, approved runtime policies, financial values and provider configuration are inputs, not values the implementation runner invents. Their absence blocks only the named dependent operation; implementation and independent verification proceed.
+Former provider/account/policy inputs are not prerequisites for retirement and must not trigger duplicate requests. Fresh read-only provider evidence and deployment are held only by the exact authentication/browser limitations recorded in docs/open-blockers.md. Missing observations are not success.
 
 **Cross-product impacts.**
 
-- `components/maintenance/MaintenanceCapture.tsx`, `MaintenanceQueue.tsx`; `app/api/maintenance/tickets/route.ts` — current save/queue behavior.
-- `lib/firestore/maintenance-tickets.ts`, `lib/maintenance/verified-ticket-property.ts` — ticket/initial activity transaction and verified property binding.
-- `lib/firestore/maintenance-intake-review.ts`, `maintenance-work-order-links.ts` and S99 — distinct promotion/provider identity/claim owners.
+S227 owns retired HTTP and shared effect admission, authorized history and reports. Existing stores, receipts and permissions remain unchanged. Renewal, workflow-linked unsent communications, search and knowledge retain their independent contracts. The historical architecture below identifies original owners for preservation only; it does not request extensions or integration.
 
 **Authority and evidence map.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 | Input                                                         | Classification                             | Use and limitation                                                                                                                                                                                                                                                                                           |
 | ------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -57,6 +49,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 
 **Architecture outcome (deterministic, fail-first).**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 - **ARCH-S206-1** — Connect capture state to a durable server-resolved app creation identity while retaining current access/property validation. Freeze a focused falsification before changing this boundary.
 - **ARCH-S206-2** — Extend the transactional ticket creation owner; claim, ticket and initial activity settle atomically and conflict on reused identity with different content. Freeze a focused falsification before changing this boundary.
 - **ARCH-S206-3** — Use shared creation-result/queue projection instead of mutating independent copies or discarding filter state. Freeze a focused falsification before changing this boundary.
@@ -64,6 +58,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 - **ARCH-S206-5** — Preserve S99 existing link/create claims and S47 promotion deduplication; creation UI cannot trigger a provider write as recovery. Freeze a focused falsification before changing this boundary.
 
 **Behavior outcome (deterministic, fail-first).**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 - **BEH-S206-1** — Staff see Creating, Created or Needs reconciliation rather than a stalled form or an unfounded failure.
 - **BEH-S206-2** — A double click, browser retry or reopened tab finds the original ticket; it does not silently produce another.
@@ -73,6 +69,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 
 **Human litmus outcome.**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 ### Create once and find the maintenance ticket immediately
 
 **If this was built correctly:** A staff member submits a report, sees that it is saving, and then gets a direct link to the created ticket with a way to reveal it in the queue without losing their filters. If the response is lost, the app checks the original submission and explains the known outcome before offering another attempt.
@@ -81,6 +79,8 @@ No material product decision is deferred inside this READY scope. Actual identit
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**
+
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
 
 | Requirement                                      | Architecture outcome | Behavior outcome | Human litmus                                            | Acceptance / deterministic falsification                                                                                                                            |
 | ------------------------------------------------ | -------------------- | ---------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -98,6 +98,8 @@ Preservation is a separate result from new behavior. Existing tests are retained
 
 **Adversarial acceptance checks.**
 
+The following definitions record the original pre-retirement contract and its evidence. They retain their original meanings for provenance; S227 supersedes their operational applicability. They are not new acceptance claims or execution instructions.
+
 - **AC-S206-1** — R-S206-1, ARCH-S206-1, BEH-S206-1: Delay and abort the transport before/after commit; ensure entered values persist and each displayed state matches known dispatch/outcome.
 - **AC-S206-2** — R-S206-2, ARCH-S206-2, BEH-S206-2: Concurrent identical intents produce one ticket/activity; identity/content mismatch refuses; transaction failure leaves no partial ticket.
 - **AC-S206-3** — R-S206-3, ARCH-S206-3, BEH-S206-3: Create under matching/nonmatching filters, then reveal and return; queue count, ticket identity and original filters remain coherent.
@@ -112,31 +114,29 @@ Across this suite: no fabricated customer/provider identity or amount, secret/ra
 
 **Dependencies / sequencing.**
 
-Extends current ticket creation directly. S205/S209 consume its stable ticket/intent identity. S215 verifies the whole journey and retiring reload-only guidance.
+Use S227 for maintenance retirement and retained read-only compatibility. S228 owns current Dotloop diagnostics and S229 renewal/unsent communications preservation. Do not resume the old maintenance, Vendoroo integration or proof sequence from this historical contract.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** Durable creation/reconciliation service contract, capture/queue result UI, conflict/unavailable handling and fail-first concurrency/interruption tests.
-- **Consumes, but does not assume:** Actual capture data and current unit/property evidence; source provider execution remains a separate explicit operation.
-- **Externally blocked effect:** None for app-owned implementation. Any later real datastore/configuration repair requires an observed exact need and verified readback under existing deployment authority.
-- **Produces for downstream suites:** Stable creation-intent result and canonical ticket reference for downstream history/workflow; evidence that app and provider outcomes are separate.
+- **Deliverable now:** The S227 retirement/retention slice, preserving original evidence without migration effects.
+- **Consumes, but does not assume:** Existing authorized history and exact receipts.
+- **Externally blocked effect:** No former maintenance/provider effect is requested. Current live verification holds are in docs/open-blockers.md.
+- **Produces for downstream suites:** Original record/receipt meanings and permissions, without new operational authority.
 
 **Verification and delivery contract.**
 
-1. Re-read current owners and refresh the baseline before implementation. Materialize the named architecture, behavior and acceptance falsifications; record pre-existing unrelated failures separately.
-2. Exercise every row with service/transaction and rendered journeys appropriate to the outcome, including denial, interruption, concurrency and partial completion. Use isolated local fixtures and deterministic external adapters; keep the preservation result separate.
-3. Read back saved artifacts/state and reconcile them with the acted-on identity/version. A UI success label, supplied example or passing adapter cannot establish live provider success.
-4. Run focused checks, then `bash scripts/verify.sh` and applicable compiled-browser checks for any later ship candidate. Audit secrets/PII, authority, runtime configuration and cross-suite traceability.
-5. A later authorized implementation reports ALL_GATES_GREEN only for completed declared engineering checks; a named live/account proof remains separately BLOCKED when its input is missing. BUDGET_EXHAUSTED applies only to an explicit budget. Never label the whole operational outcome complete from a partial green slice.
-6. Authoring registration/validation is documentary only. Commit, push, deployment, implementation-loop start and external communication require their own explicit instruction.
+1. Verify current S227 retirement and read-only retention through the real request, service and authorized reader boundaries.
+2. Preserve original requirement IDs, historical verdicts, records and receipt meanings. Do not execute the superseded operational acceptance outcomes or collect retired integration inputs.
+3. Use S227-S229 for current focused regressions, required repository checks and authorized gated delivery. Record local, live-provider, human and deployment outcomes separately; missing evidence cannot become success.
+4. Report ALL_GATES_GREEN only for actually completed current engineering gates, BUDGET_EXHAUSTED only for an explicit budget, or BLOCKED with its exact unavailable external input after independent work. These terminal states do not resume the superseded operational outcomes.
 
 **Ordered prompt sequence.**
 
-1. Re-verify current source, accepted decisions, dependency contracts and relevant read-only state.
-2. Freeze the requirement/architecture/behavior/acceptance matrix and preservation baseline before implementation.
-3. Implement the bounded owner and all unavailable/recovery paths; reuse existing services and keep adjacent suite ownership explicit.
-4. Falsify every row, read back persisted results, run focused/canonical checks, update verified current documentation and deliver only when separately authorized.
+1. Read the current router and S227; verify actual retirement/retention behavior.
+2. Use original evidence below only for provenance and preservation scope.
+3. Do not execute former operational instructions, collect retired integration inputs or rerun completed proofs.
+4. Verify and deliver the currently authorized S227–S229 slice through existing gates.
 
 **Deletion/merge recommendation.**
 
-Retain this suite until its full behavior, remaining dependencies and acceptance evidence are represented in current code/tests/facts. Then merge its operating contract into current maintenance documentation; preserve historical evidence without keeping duplicate active instructions.
+The original operational contract is superseded by S227. Its historical trace remains temporarily available for native program-ledger consistency; it is not an execution queue. Remove that provenance only with its remaining evidence references reconciled, retaining originals in Git history.

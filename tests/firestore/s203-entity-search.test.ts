@@ -131,7 +131,7 @@ it("actual authenticated HTTP returns every supported metadata type, labeled rel
   );
   expect(
     result.results.find((r: SearchResult) => r.entity.type === "ticket").entity.href,
-  ).toBe(`/maintenance?ticket_id=${ticketId}`);
+  ).toBe(`/maintenance/history?ticket_id=${ticketId}`);
   expect(result.limitations).toEqual([]);
   expect(JSON.stringify(result)).not.toMatch(/PRIVATE_/);
   expect((await db.collection("action_executions").get()).empty).toBe(true);
