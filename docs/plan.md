@@ -13,8 +13,8 @@ Vendoroo stays standalone. The private Shockwave audit, standalone importer and 
 Source starts at upstream 0b89286522aeacb92fed37d57dc83368279d893a in an isolated worktree; both
 original checkouts and their dirty work are preserved. Last recorded serving application is
 eb5d3599 / pmi-kc-app-rmv3yavsf-2cece39f7605, released October 11. A public bodyless version
-read returned that same commit/revision at 2026-10-16T09:18:48Z; fresh managed traffic/configuration
-readback remains unavailable. Its recorded predecessor is 72a30e25537e8ea7ff79391146246c1f9b94375e /
+read returned that same commit/revision at 2026-10-16T09:18:48Z; October 16 managed service readback
+confirms the same revision at 100% traffic. Its recorded predecessor is 72a30e25537e8ea7ff79391146246c1f9b94375e /
 pmi-kc-app-rmv3vlx5t-b86fdd4c74ae. Local source is not deployed.
 
 ## Authority and closed decisions
@@ -46,7 +46,10 @@ proof is retired from this execution; S36 has no new execution grant.
 ## Per-suite delivery rule
 
 ALL_GATES_GREEN requires actual passed gates. A local green slice can retain a named BLOCKED live
-read/release. CLI/ADC require human reauthentication and browser runtime startup fails; GitHub is
-available. These block fresh Dotloop/Gmail/Cloud Run evidence and release, not local implementation.
-Resume the exact checkpoint after approved store recovery; never substitute credentials or infer
-provider success. Current working state is in docs/loop-state.md; external holds in docs/open-blockers.md.
+read/release. Implementation c99659d5 passed the complete canonical command and is on main; read
+exact-main CI from its exact-SHA receipt. Approved CLI/ADC refresh now passes. Managed production
+and Dotloop record reads completed; the current provider account GET returned 401 refresh_needed.
+The Admin browser's Google password/challenge blocks guarded assurance and release. Resume the
+checkpoint after that approved profile recovers, then use normal managed resource refresh without
+recreating the reported template. Never substitute credentials or infer provider success. Current
+working state is in docs/loop-state.md; external holds in docs/open-blockers.md.

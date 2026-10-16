@@ -3,7 +3,7 @@
 
 # S228 — Diagnose Dotloop renewal-template visibility without opening writes
 
-> Status: PARTIAL - bounded diagnostic repair and local regressions are complete; fresh managed profile/selection/root-cause verification and production delivery remain BLOCKED.
+> Status: PARTIAL - diagnostic repair and local regressions passed; managed connection/cache/absent selection and 401 were read; fresh profile/template visibility and delivery remain BLOCKED.
 
 **Goal.**
 
@@ -11,11 +11,11 @@ An Admin can distinguish unsupported owning-profile visibility, failed provider 
 
 **Current state / intended end state.**
 
-October 15 3:01-8:22 reports an active Lease Renewal loop template visible in Dotloop. An API defect was proposed, not established. Baseline 0b892865 observes only individual/selected profiles; this change adds bounded company/office diagnostics and rejects future or failed account/profile observations. Fresh managed connection/provider readback remains unavailable while approved Google authentication and browser runtime need recovery. Local coverage repair does not establish the live template's owning profile or root cause.
+October 15 3:01-8:22 reports an active Lease Renewal loop template visible in Dotloop. An API defect was proposed, not established. Baseline 0b892865 observes only individual/selected profiles; this change adds bounded company/office diagnostics and rejects future or failed account/profile observations. October 16 managed reads found an empty individual-profile cache, an unobserved company-profile template list and no saved renewal selection. The stored access credential is expired; an account GET returned 401 refresh_needed. This confirms the cached coverage gap, not the reported template's current owning profile or an API defect.
 
 **Actors and entry conditions.**
 
-Existing managed staff and authorized historical Vendor readers retain their current scope; no role, identity or credential substitute is introduced. An Admin observes/selects Dotloop resources; only existing exact supported operations remain eligible.
+An existing authorized Admin inspects the managed Dotloop connection and its exact profile/template selection. Diagnostic reads do not save a selection, widen supported profile types or grant either write key. Existing staff read scope remains unchanged; no identity or credential substitute is introduced.
 
 **What it is / how it functions.**
 
@@ -27,7 +27,7 @@ Use the documented profile/template GET contract and existing managed connection
 
 **Open questions & assumptions.**
 
-Fresh provider responses, current connection/selection and the reported Lease Renewal template cannot be verified while approved CLI/ADC need reauthentication and the browser runtime cannot start. Local coverage repair does not establish live root cause. These are evidence limitations, not permission to guess provider success or delay independent implementation.
+Approved CLI/ADC refresh passes and the current managed connection/cache/selection were read. A bounded account GET returned 401 using the stored expired access credential. No provider token refresh or observation/selection write was diagnostic proof. Current template visibility needs normal managed refresh; the Admin browser currently reaches Google's human password/challenge. Do not request template recreation or claim an API defect from this evidence.
 
 **Cross-product impacts.**
 
@@ -40,7 +40,7 @@ Existing Next request proxy, owning server services, navigation/components, Fire
 | October 16 prepared application brief, read in full locally                  | Explicit execution instruction           | Carries confirmed scope through implementation and authorized delivery; no customer proof effects.                                          |
 | October 15 meeting at the timestamps above and confirming maintenance emails | Intent/reported or demonstrated behavior | Establishes decisions; does not prove API defects, provider success or human acceptance. Private sources stay outside Git.                  |
 | AGENTS.md, upstream 0b892865 code/tests and current facts                    | Authority / implementation evidence      | Existing send authority differs from this task's narrower explicit limit. Record the conflict honestly; no protected-key change is implied. |
-| Managed live readback unavailable in this session                            | External dependency                      | No stale blocker is relabeled as a fresh observation.                                                                                       |
+| October 16 exact managed records, account GET and write-key readbacks        | Current observation                      | Cache omits company templates; selection absent; account GET 401; three records unchanged; both write keys closed.                          |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -56,7 +56,7 @@ Existing Next request proxy, owning server services, navigation/components, Fire
 
 **If this was built correctly:** An Admin can distinguish unsupported owning-profile visibility, failed provider reads, true empty lists, stale observations and a supported saved renewal selection.
 
-- Model verdict: NOT RUN — implementation evidence pending.
+- Model verdict: PARTIAL - local repair passed and managed limitations were read; current template visibility and delivery remain unverified.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
@@ -90,7 +90,7 @@ Implementation proceeds independently. Fresh external evidence blocks only the n
 
 - **Deliverable now:** Complete bounded code/test/documentation slice, including refusal and recovery behavior.
 - **Consumes, but does not assume:** Existing managed connections, real source versions and supported exact resources. Missing values remain explicitly unavailable.
-- **Externally blocked effect:** Fresh provider responses, current connection/selection and the reported Lease Renewal template cannot be verified while approved CLI/ADC need reauthentication and the browser runtime cannot start. Local coverage repair does not establish live root cause.
+- **Externally blocked effect:** Current template visibility needs normal managed resource refresh after the approved Admin browser's Google challenge is completed. Host access and managed record reads pass; account GET returned 401. No template recreation, OAuth reenrollment or write-key activation is requested by this evidence.
 - **Produces for downstream suites:** Tested retained contracts and exact truthful evidence; no new execution queue for older suites.
 
 **Verification and delivery contract.**

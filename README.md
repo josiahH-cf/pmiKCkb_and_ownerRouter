@@ -10,9 +10,10 @@ history, knowledge, permissions and receipt meanings are preserved. This source 
 Production: [pmi-kc-app](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app)
 
 The public bodyless version endpoint reported commit `eb5d35991c3ec128a102e4483d3779af16106821` on
-revision `pmi-kc-app-rmv3yavsf-2cece39f7605` at 2026-10-16T09:18:48Z. Managed traffic/configuration
-readback remains blocked by approved-account reauthentication. Production is explicit Live-only. Local rehearsal may use live
-reads but refuses persistence and provider effects.
+revision `pmi-kc-app-rmv3yavsf-2cece39f7605` at 2026-10-16T09:18:48Z. October 16 managed readback
+confirms the same revision at 100% traffic. Approved host credentials refresh successfully; the
+Admin browser profile still requires Google's human password/challenge step before release assurance.
+Production is explicit Live-only. Local rehearsal may use live reads but refuses persistence and provider effects.
 
 ## Start here
 

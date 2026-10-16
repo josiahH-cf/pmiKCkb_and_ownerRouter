@@ -1,6 +1,6 @@
 # PMI KC facts
 
-Last reconciled: 2026-10-16 (current source retirement scope; live verification remains blocked).
+Last reconciled: 2026-10-16 (published implementation; fresh managed reads; guarded release held).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
@@ -10,22 +10,33 @@ evidence; an earlier receipt never authorizes a new attempt.
 The October 16 prepared application instruction is implemented in source as S227-S229: retire custom
 maintenance with authorized read-only history, diagnose Dotloop template visibility and preserve
 renewal/unsent Gmail workflows. Deterministic retirement, diagnosis and preservation checks exercise
-the owning boundaries. The completed canonical, source publication and exact-main CI verdicts are
-reported with the session receipt; an unfinished or failed attempt is never a pass. No candidate,
-promotion or new production behavior is claimed. A public bodyless version read at
-2026-10-16T09:18:48Z reported the same production identity below; fresh managed traffic/configuration
-readback remains blocked.
+the owning boundaries. Implementation c99659d5 passed the complete canonical command: 9,585 unit
+tests (four existing skips), 455 backend tests, required checks and production build. Core served
+E2E passed 39 with 22 existing configuration skips. All five exact-main CI jobs passed for c99659d5
+in run 38891578460; any later mainline commit needs its own exact-SHA result. No candidate,
+promotion or new production behavior is claimed. October 16
+managed service readback confirms the production identity below at 100% traffic, the existing
+runtime service account and 54 environment keys; the public bodyless read agrees.
 
 Source baseline is upstream 0b892865. Last recorded serving evidence is the October 11 eb5d3599 /
 pmi-kc-app-rmv3yavsf-2cece39f7605 release; its historical receipts cannot authorize another attempt.
-Current approved CLI/ADC probes require human reauthentication. GitHub is ready; browser runtime
-cannot start. These block fresh Dotloop/Gmail/Cloud Run evidence and deployment, not local work.
+Current approved CLI/ADC refresh and GitHub access pass. The repository's existing Admin browser
+profile starts but reaches Google's password/challenge page; guarded browser assurance and release
+remain blocked. Earlier computer-use runtime failures remain failed evidence, not a current host
+credential failure. No substitute identity or credential store is used.
 
 October 15 reports an active Lease Renewal template and confirms maintenance retirement, reinforced
 by both maintenance-direction emails. An API defect remains a hypothesis. The older request to
 create that template is not a fresh prerequisite. Local discovery now observes bounded company/office
 templates diagnostically without making those profiles supported loop targets. Failed account/profile
-reads and future observations cannot qualify selection. Both Dotloop keys and S182 exclusions remain.
+reads and future observations cannot qualify selection. Fresh exact-document reads found a connected
+generation, its October 10 cached observation and no saved renewal selection. The cache has an empty
+individual-profile template list and a company profile whose templates were not observed. The current
+stored access credential is expired; an account GET returned 401 refresh_needed. No token refresh or
+observation/selection write was diagnostic proof, and all three records read back unchanged. The
+reported template's current owning profile and visibility remain unverified; normal managed refresh
+is the next read-dependent step, not template recreation. Both exact Dotloop write keys read back
+closed. S182 exclusions remain.
 
 The current upstream October 9 Send/Schedule implementation conflicts with the prepared instruction's
 narrower unsent-only scope. Local operation admission now refuses client sends/scheduling while

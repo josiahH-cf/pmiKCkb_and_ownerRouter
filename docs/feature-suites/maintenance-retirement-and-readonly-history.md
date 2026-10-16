@@ -15,7 +15,7 @@ Upstream 0b892865 serves maintenance capture, operational queues, policies, vend
 
 **Actors and entry conditions.**
 
-Existing managed staff and authorized historical Vendor readers retain their current scope; no role, identity or credential substitute is introduced. An Admin observes/selects Dotloop resources; only existing exact supported operations remain eligible.
+Existing managed staff and authorized historical Vendor readers retain their existing record scope. Operational maintenance/vendor controls are retired for every role; retained history and knowledge keep their original permissions. No role, identity or credential substitute is introduced.
 
 **What it is / how it functions.**
 
@@ -27,7 +27,7 @@ Retire navigation, direct pages, public intake, maintenance/vendor mutation APIs
 
 **Open questions & assumptions.**
 
-Fresh production readback and release require the approved WSL CLI/ADC reauthentication. This does not block the local fail-closed implementation. These are evidence limitations, not permission to guess provider success or delay independent implementation.
+Approved WSL CLI/ADC refresh and fresh managed service reads now pass. The existing Admin browser reaches Google's password/challenge page, which holds guarded assurance and release. Production still serves the preceding revision; local retirement checks do not establish deployed behavior.
 
 **Cross-product impacts.**
 
@@ -40,7 +40,7 @@ Existing Next request proxy, owning server services, navigation/components, Fire
 | October 16 prepared application brief, read in full locally                  | Explicit execution instruction           | Carries confirmed scope through implementation and authorized delivery; no customer proof effects.                                          |
 | October 15 meeting at the timestamps above and confirming maintenance emails | Intent/reported or demonstrated behavior | Establishes decisions; does not prove API defects, provider success or human acceptance. Private sources stay outside Git.                  |
 | AGENTS.md, upstream 0b892865 code/tests and current facts                    | Authority / implementation evidence      | Existing send authority differs from this task's narrower explicit limit. Record the conflict honestly; no protected-key change is implied. |
-| Managed live readback unavailable in this session                            | External dependency                      | No stale blocker is relabeled as a fresh observation.                                                                                       |
+| October 16 managed service and Admin-profile reads                           | Current observation                      | Prior revision still serves at 100% traffic; Google requires a person before guarded release assurance.                                     |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -56,7 +56,7 @@ Existing Next request proxy, owning server services, navigation/components, Fire
 
 **If this was built correctly:** Staff use the renewal and knowledge application without active custom-maintenance intake, vendor operations or maintenance provider effects; authorized historical records remain readable.
 
-- Model verdict: NOT RUN — implementation evidence pending.
+- Model verdict: PARTIAL - local retirement and preservation checks passed; production delivery remains blocked.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
@@ -90,7 +90,7 @@ Implementation proceeds independently. Fresh external evidence blocks only the n
 
 - **Deliverable now:** Complete bounded code/test/documentation slice, including refusal and recovery behavior.
 - **Consumes, but does not assume:** Existing managed connections, real source versions and supported exact resources. Missing values remain explicitly unavailable.
-- **Externally blocked effect:** Fresh production readback and release require the approved WSL CLI/ADC reauthentication. This does not block the local fail-closed implementation.
+- **Externally blocked effect:** Guarded assurance and release require the approved Admin browser's human Google step. Host credentials and managed readback pass; no deployed retirement is claimed.
 - **Produces for downstream suites:** Tested retained contracts and exact truthful evidence; no new execution queue for older suites.
 
 **Verification and delivery contract.**

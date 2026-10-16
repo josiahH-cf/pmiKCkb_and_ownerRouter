@@ -32,19 +32,23 @@ Previously open Registry activation metadata is unchanged; an open key cannot ov
 operation-level refusal. Earlier authorizations, drafts, attempts and receipts remain historical
 evidence, never a backlog to execute. Both Dotloop write keys remain closed.
 
-The bounded implementation and preservation checks are complete in source; release qualification
-requires the actual canonical and exact-main CI receipts reported with publication. No production
-delivery is claimed. Approved WSL CLI/ADC currently require
-human reauthentication; the browser automation runtime fails before inventory. These hold fresh live
-Dotloop/Gmail/Cloud Run readbacks and release phases only. Continue independent verification and green
-mainline work. Do not ask the owner to recreate the template reported active on October 15 before
-checking actual current owning-profile visibility and selection. See docs/loop-state.md.
+The bounded implementation is published at c99659d5. Complete canonical verification passed 9,585
+unit tests (four existing skips), 455 backend tests, all required checks and the production build.
+All five exact-main CI jobs passed for c99659d5 in run 38891578460. Later mainline qualification must
+use its own exact-SHA receipt; source publication does not prove deployment. Approved WSL CLI/ADC
+refresh now passes. Managed reads confirm the serving revision and
+Dotloop connection/cache/absent selection; a bounded Dotloop account GET returned 401 refresh_needed.
+The existing Admin browser profile reaches Google's password/challenge page, which holds guarded
+assurance and release. No provider token refresh or customer effect was proof. Do not ask the owner
+to recreate the template reported active on October 15 before checking current owning-profile
+visibility after normal managed refresh. See docs/loop-state.md.
 
 ## Present production truth - last recorded managed release 2026-10-11
 
 The public bodyless version endpoint reported the same commit/revision below at
-2026-10-16T09:18:48Z. Fresh managed traffic/configuration readback remains unavailable. The
-following detailed release evidence retains its October 11 scope; S227-S229 are not deployed.
+2026-10-16T09:18:48Z. October 16 managed service readback independently confirms that revision at
+100% traffic, its existing runtime service account and 54 environment keys. The following detailed
+release evidence retains its October 11 scope; S227-S229 are not deployed.
 
 Run `859ff7f8-0106-48c1-acfa-823d4a592422` released the cumulative Focus/maintenance repairs at
 `eb5d35991c3ec128a102e4483d3779af16106821` / `pmi-kc-app-rmv3yavsf-2cece39f7605`, 100% traffic.

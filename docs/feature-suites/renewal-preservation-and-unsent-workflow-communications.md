@@ -11,11 +11,11 @@ Staff retain Focus/Full renewal work, readable facts, copy controls, saved worki
 
 **Current state / intended end state.**
 
-October 15 17:42–25:48 demonstrates renewal/search/composer behavior and requests Gmail draft verification; demonstration is not proof. Current upstream records human Send/Schedule and two notice send keys enabled under the October 9 program, conflicting with the prepared October 16 brief's unsent-only boundary. The required end state is the observable goal above, with preserved records and permissions.
+October 15 17:42-25:48 demonstrates renewal/search/composer behavior and requests Gmail draft verification; demonstration is not proof. Baseline 0b892865 records human Send/Schedule and two notice send keys enabled under the October 9 program, conflicting with the prepared October 16 brief's unsent-only boundary. Current source refuses those operations while preserving the records, permissions and observable goal above.
 
 **Actors and entry conditions.**
 
-Existing managed staff and authorized historical Vendor readers retain their current scope; no role, identity or credential substitute is introduced. An Admin observes/selects Dotloop resources; only existing exact supported operations remain eligible.
+Existing managed staff work on their authorized leases and workflow-linked communications. Existing role, Space, mailbox and source scopes remain enforced. Governed unsent Gmail drafting stays an explicit permitted staff action; no role, identity or credential substitute is introduced.
 
 **What it is / how it functions.**
 
@@ -40,7 +40,7 @@ Existing Next request proxy, owning server services, navigation/components, Fire
 | October 16 prepared application brief, read in full locally                  | Explicit execution instruction           | Carries confirmed scope through implementation and authorized delivery; no customer proof effects.                                          |
 | October 15 meeting at the timestamps above and confirming maintenance emails | Intent/reported or demonstrated behavior | Establishes decisions; does not prove API defects, provider success or human acceptance. Private sources stay outside Git.                  |
 | AGENTS.md, upstream 0b892865 code/tests and current facts                    | Authority / implementation evidence      | Existing send authority differs from this task's narrower explicit limit. Record the conflict honestly; no protected-key change is implied. |
-| Managed live readback unavailable in this session                            | External dependency                      | No stale blocker is relabeled as a fresh observation.                                                                                       |
+| October 16 managed service and Admin-profile reads                           | Current observation                      | Prior revision still serves; host credentials pass; Google requires a person before guarded browser/Gmail release assurance.                |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -56,7 +56,7 @@ Existing Next request proxy, owning server services, navigation/components, Fire
 
 **If this was built correctly:** Staff retain Focus/Full renewal work, readable facts, copy controls, saved working values and governed Gmail drafts while this task performs no client sends or schedules.
 
-- Model verdict: NOT RUN — implementation evidence pending.
+- Model verdict: PARTIAL - local renewal/draft preservation and dispatch refusals passed; guarded live assurance and delivery remain blocked.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

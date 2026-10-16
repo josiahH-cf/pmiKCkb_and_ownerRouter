@@ -1,6 +1,6 @@
 # Unblock packet
 
-Last reconciled: 2026-10-16 (template reported active; obsolete creation request removed; current managed authentication/browser holds recorded).
+Last reconciled: 2026-10-16 (host credentials recovered; managed records read; Admin browser challenge remains).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only its named effect or dependent release phase; independent
@@ -11,26 +11,32 @@ substitute value, identifier, credential or human verdict to clear a hold.
 
 ## Holds at a glance
 
-| Id        | Blocks only                                                          | Owner step                                                                                                                        | Then the runner                                                                                                           |
-| --------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| B-AUTH2   | Separate historical 25-hour unchanged-enrollment longevity claim     | No longevity or policy-change step requested by this execution                                                                    | Preserve the unverified claim; current reauthentication is handled by B-AUTH-CURRENT                                      |
-| B-MNT1    | No current effect; maintenance import retired                        | No owner import step requested                                                                                                    | Preserve original preapproval/history records; S227 owns current retention                                                |
-| B-S100    | No current proof; remaining maintenance resident-draft proof retired | No ticket/link/sync step requested                                                                                                | Preserve completed receipts and closed resident-draft key; no proof rerun                                                 |
-| B-TIMING  | Approved 30-day notice classifications (they read Cannot determine)  | A5: record the decided basis in Admin                                                                                             | Reads back the saved basis version                                                                                        |
-| B-DL2     | Fresh supported Dotloop resource/selection evidence only             | Template reported active October 15; no repeat setup request                                                                      | Runner rechecks current owning-profile visibility and selection after approved auth recovery; both write keys stay closed |
-| B-DL3     | Approved form content/maps and rules for the selected lease packet   | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output    |
-| B-BROWSER | Release assurance, only when Google signs the Admin profile out      | A6: sign the Admin profile back in                                                                                                | Recollects prerequisites and continues the release                                                                        |
-| B-HUMAN   | Human verdicts and real-case accuracy claims only                    | E2: observed sessions and real material                                                                                           | Records each verdict with its evidence; nothing is inferred from tests                                                    |
+| Id        | Blocks only                                                          | Owner step                                                                                                                        | Then the runner                                                                                                                                       |
+| --------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B-AUTH2   | Separate historical 25-hour unchanged-enrollment longevity claim     | No longevity or policy-change step requested by this execution                                                                    | Preserve the unverified claim; host credentials recovered; B-BROWSER separately holds assurance                                                       |
+| B-MNT1    | No current effect; maintenance import retired                        | No owner import step requested                                                                                                    | Preserve original preapproval/history records; S227 owns current retention                                                                            |
+| B-S100    | No current proof; remaining maintenance resident-draft proof retired | No ticket/link/sync step requested                                                                                                | Preserve completed receipts and closed resident-draft key; no proof rerun                                                                             |
+| B-TIMING  | Approved 30-day notice classifications (they read Cannot determine)  | A5: record the decided basis in Admin                                                                                             | Reads back the saved basis version                                                                                                                    |
+| B-DL2     | Fresh supported Dotloop resource/selection evidence only             | Template reported active October 15; no repeat setup request                                                                      | Runner refreshes managed resources after the Admin browser recovers, then checks owning-profile visibility and selection; both write keys stay closed |
+| B-DL3     | Approved form content/maps and rules for the selected lease packet   | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output                                |
+| B-BROWSER | Release assurance, only when Google signs the Admin profile out      | A6: sign the Admin profile back in                                                                                                | Recollects prerequisites and continues the release                                                                                                    |
+| B-HUMAN   | Human verdicts and real-case accuracy claims only                    | E2: observed sessions and real material                                                                                           | Records each verdict with its evidence; nothing is inferred from tests                                                                                |
 
 ## Current hold and historical program dependencies
 
-- **B-AUTH-CURRENT — October 16.** Approved WSL `auth:ensure -- --unattended` reports
-  CLI/ADC refresh requires human reauthentication for the existing managed account; GitHub is ready.
-  Run `npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com` through the approved
-  WSL host when available, then the runner rechecks the same store/identity. No substitute credentials
-  or identity change. This blocks fresh cloud/provider reads and gated release only; local work continues.
-  Browser automation separately fails before inventory (platform directory unavailable), including
-  one reset/retry. Restore that supported runtime before browser assurance. No login UI was automated.
+- **B-AUTH-CURRENT - resolved October 16.** Fresh approved WSL CLI/ADC refresh now passes for the
+  existing managed account; GitHub is ready. Managed Cloud Run and exact Dotloop document reads
+  completed. No host reenrollment or substitute credentials are needed. The existing Admin browser
+  profile starts through the repository verifier but reaches Google's password/challenge page;
+  B-BROWSER/A6 holds guarded assurance and release. Earlier computer-use launcher failures remain
+  recorded; no password, code, passkey or CAPTCHA was entered by the runner.
+- **B-DL2 - current readback.** The connected generation has an October 10 cached observation:
+  an empty individual-profile template list and a company profile whose templates were not observed.
+  No renewal selection is saved. The stored access credential is expired, and the documented
+  account GET returned 401 refresh_needed. No refresh or observation/selection write was proof;
+  all three records remained unchanged, and both exact write keys read back closed. After the
+  approved Admin browser recovers, perform normal managed resource refresh and inspect current
+  owning-profile visibility before requesting any setup. Do not recreate the reported active template.
 - **B-COMMUNICATIONS-RUNTIME — verified October 10.** Run5b3dfb90 passed exact managed candidate
   GET readiness/restoration, normal Gmail connection, guarded assurance, promotion, full observation
   and eleven readbacks. Only two notice keys activated; minute worker ENABLED with normal empty
@@ -106,20 +112,13 @@ No synthetic or live customer draft is proof. Shared Space-pilot work receives n
 **A3. Maintenance preapproval import — retired from this execution.** Existing preapprovals and
 financial evidence remain retained and readable under their original permissions. No import,
 provider read/write or policy activation is required for current maintenance retirement.
-**A4. Current managed authentication and separate longevity claim.** The October 16 approved
-WSL CLI/ADC refresh probes require human reauthentication for the existing managed account.
-Use the existing approved enrollment flow; the runner does not change any session policy, IAM,
-claim, identity or credential store and never enters a password, code, passkey or CAPTCHA.
-
-```bash
-cd ~/pmi-kc-work/main && npm run auth:enroll:wsl -- --attended --account=josiah@pmikcmetro.com
-```
-
-After the approved store changes, the runner performs fresh auth:ensure probes and resumes the
-same unambiguous read/release checkpoint. No source/provider success is inferred from elapsed
-time or enrollment alone. The separate 25-hour unchanged-enrollment longevity claim is unverified
-and is not a release prerequisite. Earlier session-policy instructions remain in Git history;
-they are not a required change or new grant in this execution.
+**A4. Recovered host authentication and separate longevity claim.** The October 16 approved
+WSL CLI/ADC refresh probes now pass for the existing managed account. No host recovery step is
+requested. The Admin browser challenge has its own A6 step below. The runner changes no session
+policy, IAM, claim, identity or credential store and never enters a password, code, passkey or CAPTCHA.
+No provider success follows from enrollment alone. The separate 25-hour unchanged-enrollment
+longevity claim remains unverified and is not a release prerequisite. Earlier session-policy
+instructions remain historical rather than a required change or new grant.
 **A5. Record the notice timing basis (B-TIMING, Q2 = A).** Admin → notice timing basis: target
 **contractual lease-end date**, counting rule calendar days (target minus notice, exactly the
 threshold satisfies it), threshold **30**, and a review note naming who confirmed it and where.
