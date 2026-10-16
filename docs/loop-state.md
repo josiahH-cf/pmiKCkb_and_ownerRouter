@@ -25,6 +25,10 @@ cached coverage/selection gaps; the reported template's current visibility and r
 
 ## Awaiting release
 
+1. S227: Retire custom maintenance and preserve authorized read-only history — `c99659d5`.
+2. S228: Bounded Dotloop template visibility/freshness diagnostics; both write keys closed — `c99659d5`.
+3. S229: Preserve renewal usability and workflow-linked unsent Gmail; refuse sends/schedules/Resume/dispatch — `c99659d5`.
+
 No release run is admitted or permit prepared. Source c99659d5 is published after the complete
 canonical gate; use the exact-main CI receipt for its verdict. Production remains eb5d3599 /
 pmi-kc-app-rmv3yavsf-2cece39f7605 from October 11. October 16 managed service readback confirms

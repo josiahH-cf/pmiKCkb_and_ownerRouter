@@ -1,6 +1,6 @@
 # Batched release runbook
 
-Updated 2026-10-11 (UTC). One candidate must ship every queued feature.
+Updated 2026-10-16 (UTC). One candidate must ship every queued feature.
 
 The named October program instruction and AGENTS.md feature-run continuity authorize delivery
 of approved independent slices and diagnosed/verified replacements without phase-only consent.
@@ -272,7 +272,7 @@ renew permission. Failed predecessors retain their exact reports and claims. Ext
 holds live in `docs/open-blockers.md`; they do not alter the completed implementation or release
 verdict.
 
-## October operations Communications prerequisite
+## Current Communications prerequisite
 
 For the reviewed S183/S189–S192 configuration, the existing watcher assurance phase invokes
 `scripts/communication-worker-assurance.mjs` before issuing the candidate receipt. The normally
@@ -283,11 +283,13 @@ sequence is constructed, occurrence claimed, customer message sent or test produ
 A failed/uncertain invocation remains consumed and holds for exact reconciliation. The ordinary
 Communications browser canary also requires its real read-only managed-mailbox connection.
 
-Keep the actual `pmi-kc-communication-sequence-worker` dispatch job paused until the candidate gate,
-assurance, exact promotion and full observation pass, followed by scoped Registry metadata alignment. Resume/read it back only for the promoted implementation under
-the approved schedule contract; no existing draft, old backlog or migrated record gains authorization.
-The generic Gmail send and both Dotloop write keys remain closed. Every resulting configuration
-mutation and readback stays in the same run evidence; the five pending outcomes remain in the program.
+The October 16 S227–S229 instruction supersedes the earlier Send/Schedule continuation.
+Client sends, schedules, Resume and worker dispatch remain refused by current operation admission
+and the non-dispatching worker, regardless of earlier open Registry metadata or Scheduler state.
+Do not resume client dispatch or align protected activation metadata as a release step. Existing
+drafts, attempts and receipts keep their original meaning. The annual managed GET readiness probe
+still requires exact candidate binding and PAUSED restoration. Both Dotloop write keys stay closed;
+no customer draft/send or provider business write is verification proof.
 
 Both reviewed worker environment fields are mandatory before candidate assurance. Missing, partial
 or unreadable configuration holds before browser auth/subprocesses; it cannot skip the managed
