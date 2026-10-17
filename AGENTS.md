@@ -26,47 +26,70 @@ authorized read-only history, keep Vendoroo standalone, diagnose Dotloop renewal
 and preserve renewal usability and workflow-linked Gmail reads/unsent drafting. Original checkouts,
 private evidence and parallel audit/importer work remain separate. New leasing is deferred.
 
-This instruction narrows the earlier October 9 Send/Schedule program. Current source refuses
+This instruction narrows the earlier October 9 Send/Schedule program. Serving code refuses
 client sends/schedules at production operation admission and makes the worker non-dispatching.
 Previously open Registry activation metadata is unchanged; an open key cannot override this
 operation-level refusal. Earlier authorizations, drafts, attempts and receipts remain historical
 evidence, never a backlog to execute. Both Dotloop write keys remain closed.
 
-Implementation `c99659d5` and documentation `15648c0e` were already on main. Delivery preparation
-`85b7e03c` repaired the three-item machine-readable queue and removed stale dispatch-resumption
-instructions. Its complete local gate passed 9,589 unit tests (no skips under the reviewed local
-configuration), 455 backend tests, required checks/build and production audit zero. All five
-exact-head CI jobs passed in run 38957524699. Core served E2E retains its c99659d5 scope: 39 passed,
-22 existing configuration skips. New repairs require their own green qualification.
+Implementation c99659d5 and documentation 15648c0e were already on main. Delivery preparation
+85b7e03c and scoped repair a7bce098 were published normally without a manufactured merge.
 
-Fresh approved CLI/ADC, GitHub and exact managed-account Admin browser checks passed October 17.
-Normal managed Dotloop resource refresh succeeded. The supported individual profile returned an
-empty template list; the company template read failed as unavailable, rather than proving an empty
-company list. No supported renewal selection is saved. The reported active template's owning
-visibility/root cause remains unestablished; do not request template recreation. Both Dotloop write
-keys remain closed. Gmail reads report the expected mailbox connected with degraded sync health.
-Normal connection refresh updates credential/observation metadata; no customer/provider business
-write, draft, send, loop, upload or signature was verification proof.
+The complete corrected-tree bash scripts/verify.sh gate passed 9,590 unit tests across 1,022
+files with no local skips, all 455 backend tests across 79 files, lint/typecheck/format, required
+policy checks, production build and zero production audit findings. The 79 existing lint warnings
+remain. All five exact-main CI jobs passed in run 39024854536 (CI unit: 9,586 passed/four existing
+configuration skips; backend: 455 passed). Fresh served core E2E on a7bce098 passed 39 tests with
+22 existing configuration skips. Canonical verification used native WSL Node 24/Java 21; the
+release controller used native Node 22.23.2 and snap gcloud.
 
 ## Present production truth — 2026-10-17
 
-Run `a97c579c-f11b-4d74-a366-9a7122eb58f7` built and promoted exact main
-`85b7e03c5faad8fb9a9cc97f348ed973125edae6` / `pmi-kc-app-rmvc7c5lz-ec2410dd001a`, then failed
-post-promotion observation: the final Notifications browser route exceeded its 30-second bound.
-The failed report remains failed: one successful checkpoint, 477,992 ms elapsed, all 318 records
-matched, zero discrepancies, candidate 5xx or unresolved effects. Receipt-bound rollback verified
-at 2026-10-17T10:05:14.585Z. Production serves predecessor commit
-`eb5d35991c3ec128a102e4483d3779af16106821` through
-`pmi-kc-app-recovery-a97c579cf11b4d74` at 100%; S227-S229 delivery remains pending.
-The failed run, original receipts, claims and cloud operations remain immutable outside Git.
+Run `d33c7174-23b1-4126-ac11-657738b1864f` released S227-S229 plus the scoped Notifications latency repair at
+`a7bce0981badc7523a6498949b6ea5f2effb198e` / `pmi-kc-app-rmvc9kmq6-1c2699db16f8` with 100% canonical traffic. One application build
+`0983c589-af35-4219-9f5f-1bc1018f4043` succeeded at 2026-10-17T10:50:56.561207Z. Candidate receipt
+`5b8ba2f6-8531-4936-86d6-5d01d85db110` issued 2026-10-17T10:58:13.931Z; promotion verified
+2026-10-17T10:58:38.332Z. Full observation passed two checkpoints in 434,351 ms
+against the 300,000 ms minimum and 480,000 ms deadline. All 318 source/projected/rendered
+records matched with zero discrepancies, candidate 5xx or unresolved effects. Eleven independent
+readback sections matched at 2026-10-17T11:06:16Z. The checkpoint is complete and permit consumed.
+Tag `cand-rmvc9kmq6-1c2699db16f8`; fingerprint `sha256:dcbcdd544dd0c6d4d9a294748997aa324aaf2a09008dc1baf0c2aa060dbb1095`.
 
-The server request took 29.175 seconds. The Notifications loader also serialized independent
-review/support reads behind the event sources. A fail-first regression confirms that waterfall;
-the scoped parallel-read repair preserves permission gates, counts and feed content. Browser
-bounds and all release gates remain unchanged; replacement qualification/delivery is pending.
-The prior October 11 release retains its own evidence in
-`docs/evidence/focus-maintenance-release-2026-10-11.md`.
-Editor browser coverage remains `not_run`; human verdicts remain **NOT RUN — no human observer**.
+Captured predecessor: `pmi-kc-app-recovery-a97c579cf11b4d74` / `eb5d35991c3ec128a102e4483d3779af16106821`, Sheet=true.
+Run-bound recovery `pmi-kc-app-recovery-d33c717423b14126`, receipt `07b55751-a159-4b01-bb4c-068178f8815b`, reference
+`sha256:d376fa106048928a155fc69da5d8588071a1f9c0e45fb3c3ad83a834d418042c`, preserves that actual image/configuration. Its fingerprint
+is `sha256:6e57b2a65a60f8e6a218c0b4b0e4cb8db791bad0a8a45a2322457a030393da2c`. The previously authorized tag was separately captured
+as bound to `pmi-kc-app-rmvc7c5lz-ec2410dd001a`; canonical serving traffic was not substituted for it.
+No traffic rollback was used in this successful run.
+
+Production/Live, the managed runtime service account, eleven Spaces, Demo=false, Sheet=true,
+five existing secret bindings (Dotloop client secret version 1), RentCast allowance 50 and existing
+cost/security controls are verified. All 54 environment keys match the captured predecessor except
+APP_COMMIT_SHA; the five secret bindings and runtime identity match. Both workers' captured target
+fields, states and schedules match; the annual GET probe is restored PAUSED. Registry metadata remains
+48 exact keys, 18 open/30 closed; operation refusal overrides old send/maintenance metadata.
+Editor browser coverage remains not_run under owner-admin-2026-09-10; backend restrictions remain.
+Human acceptance and physical-phone checks: NOT RUN — no human observer.
+
+Normal managed Dotloop resource refresh succeeded on production. The supported individual
+template list is empty; the company-template read failed as unavailable, which does not prove an
+empty company list. No supported renewal selection is saved. The reported active template's owning
+visibility/root cause remains unestablished; no template recreation is requested. The live UI
+distinguishes failed and empty reads and excludes unsupported profiles from selection. Both Dotloop
+write keys remain closed. Gmail's provider profile read succeeded for the expected managed mailbox;
+sync health reports degraded. No customer draft/send, loop, upload, signature, paid comp request or
+production test record was verification proof. Normal connection refresh updates only its existing
+credential/observation metadata; it is separate from guarded read-only release assurance.
+
+The first run a97c579c at 85b7e03c passed build/candidate/promotion, then failed its final
+Notifications browser route at 30,006 ms. Observation remains failed (one checkpoint, 477,992 ms),
+with all 318 records matched and zero candidate 5xx/unresolved effects. Receipt-bound rollback
+verified at 2026-10-17T10:05:14.585Z. Its terminal checkpoint, admitted permit state, claims,
+receipts and operation ids were archived byte-for-byte under the real lock before replacement;
+none was rewritten or reused. The slow document request took 29.175 seconds. A fail-first test
+confirmed independent review/support reads waited behind event reads; the repair starts those
+reads together without changing counts, permissions, content or browser bounds.
+Evidence: docs/evidence/application-delivery-2026-10-17.md.
 
 The September 30 thirteen-feature gate passed 7,462 unit tests and 234 backend tests, with four existing
 configuration skips, all required checks and production build. The notice portfolio repair
@@ -98,7 +121,7 @@ Persistent labeled insurance-flyer, renewal-information-form and seven legal-for
 S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger execution and own-receipt recovery are implemented and deployed. Real approved forms/catalog/mappings, managed Dotloop credentials/connection/selection and separately authorized exact-key activation remain gates. Both Dotloop keys remain closed. Signature work is a human handoff; document presence and submitted content hashes do not prove signatures or provider-owned content verification.
 
 - Project `pmi-kc-kb-prod`, service `pmi-kc-app`, region `us-central1`; canonical https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-- Current serving recovery: `pmi-kc-app-recovery-a97c579cf11b4d74` / `eb5d35991c3ec128a102e4483d3779af16106821`, Sheet=true. Run a97c579c captured predecessor `pmi-kc-app-rmv3yavsf-2cece39f7605`; recovery receipt `39404a52-2527-4177-aab8-7df25dcba7fd`. Its receipt-bound traffic rollback verified. Earlier receipts retain their historical meaning.
+- Current captured predecessor: `pmi-kc-app-recovery-a97c579cf11b4d74` / `eb5d35991c3ec128a102e4483d3779af16106821`, Sheet=true. Run-bound recovery: `pmi-kc-app-recovery-d33c717423b14126`, receipt `07b55751-a159-4b01-bb4c-068178f8815b`. This successful run used no traffic rollback; the failed first run retains its verified rollback.
 - Runtime remains Production + Live, managed runtime identity, eleven Spaces, Sheet write-back
   true since the S152–S167 release (run `47fabb7c`; the current recovery target keeps true), false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
 - S82 conformance, S97 replay/ambiguity integrity, S98 normal append and owner-approved field
@@ -137,7 +160,7 @@ PMI KC is one deployed application with three connected lanes:
   history. Current operation policy refuses client sends and schedules. A general inbox and
   autonomous messaging are outside scope.
 
-Custom maintenance, resident intake and operational Vendor work are retired in current source;
+Custom maintenance, resident intake and operational Vendor work are retired in the serving application;
 authorized read-only records remain. Feedback, staff work accountability and knowledge are preserved.
 
 ## Standing authority

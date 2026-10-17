@@ -8,20 +8,42 @@ Keep all pending outcomes in the overall program. Exact-main CI, fresh prerequis
 one watcher/application build, receipts, full observation and recovery remain mandatory. Failed
 attempts and consumed permits are immutable and never reusable.
 
-Run `a97c579c-f11b-4d74-a366-9a7122eb58f7` built and promoted exact main
-`85b7e03c5faad8fb9a9cc97f348ed973125edae6` / `pmi-kc-app-rmvc7c5lz-ec2410dd001a`, then failed
-post-promotion observation: the final Notifications browser route exceeded its 30-second bound.
-The failed report remains failed: one successful checkpoint, 477,992 ms elapsed, all 318 records
-matched, zero discrepancies, candidate 5xx or unresolved effects. Receipt-bound rollback verified
-at 2026-10-17T10:05:14.585Z. Production serves predecessor commit
-`eb5d35991c3ec128a102e4483d3779af16106821` through
-`pmi-kc-app-recovery-a97c579cf11b4d74` at 100%; S227-S229 delivery remains pending.
-The failed run, original receipts, claims and cloud operations remain immutable outside Git.
+Run `d33c7174-23b1-4126-ac11-657738b1864f` released S227-S229 plus the scoped Notifications latency repair at
+`a7bce0981badc7523a6498949b6ea5f2effb198e` / `pmi-kc-app-rmvc9kmq6-1c2699db16f8` with 100% canonical traffic. One application build
+`0983c589-af35-4219-9f5f-1bc1018f4043` succeeded at 2026-10-17T10:50:56.561207Z. Candidate receipt
+`5b8ba2f6-8531-4936-86d6-5d01d85db110` issued 2026-10-17T10:58:13.931Z; promotion verified
+2026-10-17T10:58:38.332Z. Full observation passed two checkpoints in 434,351 ms
+against the 300,000 ms minimum and 480,000 ms deadline. All 318 source/projected/rendered
+records matched with zero discrepancies, candidate 5xx or unresolved effects. Eleven independent
+readback sections matched at 2026-10-17T11:06:16Z. The checkpoint is complete and permit consumed.
+Tag `cand-rmvc9kmq6-1c2699db16f8`; fingerprint `sha256:dcbcdd544dd0c6d4d9a294748997aa324aaf2a09008dc1baf0c2aa060dbb1095`.
 
-The Notifications repair preserves every timing/identity/recovery gate. Original failed reports
-and successful rollback remain distinct. Exact corrected-tree qualification and green-main CI are
-required before the checked retirement/new-run procedure below. Prior successful release evidence:
-`docs/evidence/focus-maintenance-release-2026-10-11.md`.
+Captured predecessor: `pmi-kc-app-recovery-a97c579cf11b4d74` / `eb5d35991c3ec128a102e4483d3779af16106821`, Sheet=true.
+Run-bound recovery `pmi-kc-app-recovery-d33c717423b14126`, receipt `07b55751-a159-4b01-bb4c-068178f8815b`, reference
+`sha256:d376fa106048928a155fc69da5d8588071a1f9c0e45fb3c3ad83a834d418042c`, preserves that actual image/configuration. Its fingerprint
+is `sha256:6e57b2a65a60f8e6a218c0b4b0e4cb8db791bad0a8a45a2322457a030393da2c`. The previously authorized tag was separately captured
+as bound to `pmi-kc-app-rmvc7c5lz-ec2410dd001a`; canonical serving traffic was not substituted for it.
+No traffic rollback was used in this successful run.
+
+The complete corrected-tree bash scripts/verify.sh gate passed 9,590 unit tests across 1,022
+files with no local skips, all 455 backend tests across 79 files, lint/typecheck/format, required
+policy checks, production build and zero production audit findings. The 79 existing lint warnings
+remain. All five exact-main CI jobs passed in run 39024854536 (CI unit: 9,586 passed/four existing
+configuration skips; backend: 455 passed). Fresh served core E2E on a7bce098 passed 39 tests with
+22 existing configuration skips. Canonical verification used native WSL Node 24/Java 21; the
+release controller used native Node 22.23.2 and snap gcloud.
+
+The first run a97c579c at 85b7e03c passed build/candidate/promotion, then failed its final
+Notifications browser route at 30,006 ms. Observation remains failed (one checkpoint, 477,992 ms),
+with all 318 records matched and zero candidate 5xx/unresolved effects. Receipt-bound rollback
+verified at 2026-10-17T10:05:14.585Z. Its terminal checkpoint, admitted permit state, claims,
+receipts and operation ids were archived byte-for-byte under the real lock before replacement;
+none was rewritten or reused. The slow document request took 29.175 seconds. A fail-first test
+confirmed independent review/support reads waited behind event reads; the repair starts those
+reads together without changing counts, permissions, content or browser bounds.
+
+Current delivery evidence: docs/evidence/application-delivery-2026-10-17.md. The queue is delivered
+and empty; this runbook and older READY rows grant no new work or reuse of consumed permission.
 
 ## Authorized replacement preparation
 

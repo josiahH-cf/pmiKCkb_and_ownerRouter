@@ -1,6 +1,6 @@
 # Unblock packet
 
-Last reconciled: 2026-10-17 (approved authentication recovered; managed resources refreshed; release repair pending).
+Last reconciled: 2026-10-17 (approved authentication recovered; managed resources refreshed; guarded release and independent readbacks complete).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only its named effect or dependent release phase; independent
@@ -33,8 +33,7 @@ substitute value, identifier, credential or human verdict to clear a hold.
   remains unestablished; do not recreate it. Both write keys remain closed. Normal refresh updates
   credential/observation metadata without a provider business effect.
 - **B-COMMUNICATIONS-RUNTIME.** The candidate managed GET readiness passed and restored its
-  annual probe PAUSED; candidate code refuses sends/schedules/Resume and worker dispatch. Actual
-  delivery remains pending after the failed observation/verified rollback. Gmail reports the
+  annual probe PAUSED; candidate code refuses sends/schedules/Resume and worker dispatch. Run d33c7174 verified production delivery after the first failed observation/verified rollback. Gmail reports the
   expected managed mailbox connected with degraded sync health; no subscription repair, customer
   draft or send was proof. The earlier October 10 worker/key receipt retains historical scope.
 
@@ -53,8 +52,9 @@ substitute value, identifier, credential or human verdict to clear a hold.
 
 The older program ledger retains its historical 35 delivered suites/203 verified requirements
 and five pending contracts. This execution does not restart that program. Current release
-authentication passes; run a97c579c failed final Notifications timing and verified rollback.
-The runner owns the scoped latency repair, full qualification and guarded replacement. External
+authentication passes. Run d33c7174 delivered the scoped latency repair after full qualification,
+exact-main CI, guarded promotion/observation and independent readbacks; the first a97c579c failure
+and verified rollback remain preserved. External
 resources above hold only their dependent capability; they do not block delivery of S227-S229.
 
 ## Owner decisions

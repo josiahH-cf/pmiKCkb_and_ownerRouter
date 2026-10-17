@@ -3,7 +3,7 @@
 
 # S227 — Retire custom maintenance and preserve read-only history
 
-> Status: PARTIAL — implementation and scoped checks passed; run a97c579c failed observation and verified rollback; corrected-tree qualification and replacement delivery pending.
+> Status: COMPLETE — bounded implementation and engineering/release gates verified deployed in run d33c7174; external resource limits and human NOT RUN remain explicit.
 
 **Goal.**
 
@@ -27,17 +27,16 @@ Retire navigation, direct pages, public intake, maintenance/vendor mutation APIs
 
 **Open questions & assumptions.**
 
-Fresh approved CLI/ADC, GitHub and exact managed-account Admin browser checks passed October 17.
-Normal managed Dotloop resource refresh succeeded. The supported individual profile returned an
-empty template list; the company template read failed as unavailable, rather than proving an empty
-company list. No supported renewal selection is saved. The reported active template's owning
-visibility/root cause remains unestablished; do not request template recreation. Both Dotloop write
-keys remain closed. Gmail reads report the expected mailbox connected with degraded sync health.
-Normal connection refresh updates credential/observation metadata; no customer/provider business
-write, draft, send, loop, upload or signature was verification proof.
-
-Run a97c579c failed final Notifications timing and verified rollback. The scoped parallel-read
-repair must pass the complete gate, exact-main CI and a fresh guarded delivery. Human verdict NOT RUN.
+Normal managed Dotloop resource refresh succeeded on production. The supported individual
+template list is empty; the company-template read failed as unavailable, which does not prove an
+empty company list. No supported renewal selection is saved. The reported active template's owning
+visibility/root cause remains unestablished; no template recreation is requested. The live UI
+distinguishes failed and empty reads and excludes unsupported profiles from selection. Both Dotloop
+write keys remain closed. Gmail's provider profile read succeeded for the expected managed mailbox;
+sync health reports degraded. No customer draft/send, loop, upload, signature, paid comp request or
+production test record was verification proof. Normal connection refresh updates only its existing
+credential/observation metadata; it is separate from guarded read-only release assurance.
+All guarded release gates and independent production readbacks passed; human verdict remains NOT RUN.
 
 **Cross-product impacts.**
 
@@ -45,12 +44,13 @@ Existing Next request proxy, owning server services, navigation/components, Fire
 
 **Authority and evidence map.**
 
-| Input                                                                        | Classification                           | Use and limitation                                                                                                                                                |
-| ---------------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| October 16 prepared application brief, read in full locally                  | Explicit execution instruction           | Carries confirmed scope through implementation and authorized delivery; no customer proof effects.                                                                |
-| October 15 meeting at the timestamps above and confirming maintenance emails | Intent/reported or demonstrated behavior | Establishes decisions; does not prove API defects, provider success or human acceptance. Private sources stay outside Git.                                        |
-| AGENTS.md, upstream 0b892865 code/tests and current facts                    | Authority / implementation evidence      | Existing send authority differs from this task's narrower explicit limit. Record the conflict honestly; no protected-key change is implied.                       |
-| October 17 approved-Admin managed reads and release receipts                 | Current observation                      | Authentication ready; normal refresh succeeded, supported templates empty, company read failed, selection absent; final observation failed and rollback verified. |
+| Input                                                                        | Classification                           | Use and limitation                                                                                                                                             |
+| ---------------------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| October 16 prepared application brief, read in full locally                  | Explicit execution instruction           | Carries confirmed scope through implementation and authorized delivery; no customer proof effects.                                                             |
+| October 15 meeting at the timestamps above and confirming maintenance emails | Intent/reported or demonstrated behavior | Establishes decisions; does not prove API defects, provider success or human acceptance. Private sources stay outside Git.                                     |
+| AGENTS.md, upstream 0b892865 code/tests and current facts                    | Authority / implementation evidence      | Existing send authority differs from this task's narrower explicit limit. Record the conflict honestly; no protected-key change is implied.                    |
+| October 17 first attempt and managed reads                                   | Historical observation                   | Authentication/resource reads succeeded; first run a97c579c failed observation and verified rollback. Its actual evidence remains unchanged.                   |
+| October 17 run d33c7174 and independent production checks                    | Current observation                      | Exact a7bce098 candidate, promotion, full two-checkpoint observation and eleven independent sections passed; bounded provider resource limits remain explicit. |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -66,7 +66,7 @@ Existing Next request proxy, owning server services, navigation/components, Fire
 
 **If this was built correctly:** Staff use the renewal and knowledge application without active custom-maintenance intake, vendor operations or maintenance provider effects; authorized historical records remain readable.
 
-- Model verdict: PARTIAL — deterministic checks and candidate assurance passed; production delivery remains pending after verified rollback.
+- Model verdict: ALL_GATES_GREEN — bounded diagnostic/preservation implementation and guarded production delivery passed; no human or provider business-effect acceptance is inferred.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
@@ -100,7 +100,7 @@ Implementation proceeds independently. Fresh external evidence blocks only the n
 
 - **Deliverable now:** Complete bounded code/test/documentation slice, including refusal and recovery behavior.
 - **Consumes, but does not assume:** Existing managed connections, real source versions and supported exact resources. Missing values remain explicitly unavailable.
-- **Externally blocked effect:** Authentication is ready. Template/selection-dependent output remains unavailable: supported templates empty, company read failed, saved selection absent. Both write keys stay closed. Release latency repair/qualification is runner-owned, not a human-authentication hold.
+- **Externally blocked effect:** Delivered implementation/release has no authentication hold. Template/selection-dependent Dotloop output waits on real supported resources and both closed keys; Gmail sync health is degraded. Human acceptance remains NOT RUN. No customer effect is proof.
 - **Produces for downstream suites:** Tested retained contracts and exact truthful evidence; no new execution queue for older suites.
 
 **Verification and delivery contract.**

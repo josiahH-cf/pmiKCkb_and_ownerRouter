@@ -22,7 +22,7 @@ Do not read removed Demo/V1 launchers, old audits, completed program prompts, or
 S227-S229 own the current October 16 application instruction: retire custom maintenance with
 authorized read-only history, keep Vendoroo standalone, diagnose Dotloop resource visibility and
 preserve renewal/unsent Gmail workflows. Older maintenance/integration contracts retain historical
-requirement evidence only. Current source remains distinct from the predecessor serving after run a97c579c failed observation and verified rollback.
+requirement evidence only. Run d33c7174 verified their delivery at a7bce098 after the first attempt failed observation and rolled back. Current evidence: `docs/evidence/application-delivery-2026-10-17.md`.
 
 S113 is complete and deployed. Its five feature specifications and current review evidence define
 the consolidated renewal workflow and accepted resource-input limits. The Wednesday materials below

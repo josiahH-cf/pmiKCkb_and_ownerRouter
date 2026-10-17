@@ -111,8 +111,8 @@ contracts. Permission to implement/deploy does not remove any of those controls.
   may be derived from a guessed schedule.
 - RentCast keeps provider order and remains reference-only; no extra freshness/selection rule exists.
 - Permitted renewal initiation ends with an unsent Gmail draft; a person sends from Gmail.
-  Current source refuses sends/schedules/Resume and dispatch regardless of earlier open metadata.
-  Retired maintenance effects do not resume. Replacement production delivery is still pending.
+  Serving code refuses sends/schedules/Resume and dispatch regardless of earlier open metadata.
+  Retired maintenance effects do not resume. Production delivery was verified by run d33c7174.
 - Real human litmus observations are recorded as `NOT RUN — no human observer` when nobody is
   present; a runner or model never impersonates a reviewer.
 
