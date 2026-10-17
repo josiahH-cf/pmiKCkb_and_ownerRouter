@@ -130,6 +130,39 @@ describe("loadNotificationHub — Admin-only review digest (AC-S17-6)", () => {
     expect(feed.families.map((f) => f.key)).toContain("team_review");
   });
 
+  it("starts independent full-hub reads while the event/preferences read is still pending", async () => {
+    seedReviewData();
+    mocks.listSupportReports.mockResolvedValue([
+      { id: "r1", status: "new", created_at: "2026-07-23T00:00:00.000Z" },
+    ]);
+    let releasePreferences!: (value: ReturnType<typeof prefs>) => void;
+    mocks.getNotificationPreferences.mockReturnValueOnce(
+      new Promise((resolve) => {
+        releasePreferences = resolve;
+      }),
+    );
+
+    const pending = loadNotificationHub(admin, {
+      full: true,
+      now: "2026-07-23T12:00:00.000Z",
+    });
+    try {
+      expect(mocks.listAllLeaseRenewalResolutions).toHaveBeenCalledOnce();
+      expect(mocks.listAllWritebackApprovals).toHaveBeenCalledOnce();
+      expect(mocks.listSupportReports).toHaveBeenCalledOnce();
+    } finally {
+      releasePreferences(prefs());
+      await pending;
+    }
+
+    const feed = await pending;
+    expect(feed.review?.detail).toBe(
+      "1 high-risk override, 2 self-corrections this period",
+    );
+    expect(feed.support.map((signal) => signal.signal_key)).toContain("support:new");
+    expect(feed.notifications).toEqual([]);
+  });
+
   it("never serves the review digest OR the team_review family to an Editor", async () => {
     seedReviewData();
     const feed = await loadNotificationHub(editor, { full: true });

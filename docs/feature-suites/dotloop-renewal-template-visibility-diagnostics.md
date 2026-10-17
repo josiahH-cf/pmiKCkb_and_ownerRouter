@@ -3,7 +3,7 @@
 
 # S228 — Diagnose Dotloop renewal-template visibility without opening writes
 
-> Status: PARTIAL - diagnostic repair and local regressions passed; managed connection/cache/absent selection and 401 were read; fresh profile/template visibility and delivery remain BLOCKED.
+> Status: PARTIAL — implementation and scoped checks passed; run a97c579c failed observation and verified rollback; corrected-tree qualification and replacement delivery pending.
 
 **Goal.**
 
@@ -11,7 +11,7 @@ An Admin can distinguish unsupported owning-profile visibility, failed provider 
 
 **Current state / intended end state.**
 
-October 15 3:01-8:22 reports an active Lease Renewal loop template visible in Dotloop. An API defect was proposed, not established. Baseline 0b892865 observes only individual/selected profiles; this change adds bounded company/office diagnostics and rejects future or failed account/profile observations. October 16 managed reads found an empty individual-profile cache, an unobserved company-profile template list and no saved renewal selection. The stored access credential is expired; an account GET returned 401 refresh_needed. This confirms the cached coverage gap, not the reported template's current owning profile or an API defect.
+October 15 3:01-8:22 reports an active Lease Renewal loop template visible in Dotloop. An API defect was proposed, not established. Baseline 0b892865 observes only individual/selected profiles; this change adds bounded company/office diagnostics and rejects future or failed account/profile observations. October 16 managed reads found an empty individual-profile cache, an unobserved company-profile template list and no saved renewal selection. That historical stored credential was expired and the account GET returned 401; normal managed refresh succeeded October 17. This confirms the cached coverage gap, not the reported template's current owning profile or an API defect.
 
 **Actors and entry conditions.**
 
@@ -27,7 +27,17 @@ Use the documented profile/template GET contract and existing managed connection
 
 **Open questions & assumptions.**
 
-Approved CLI/ADC refresh passes and the current managed connection/cache/selection were read. A bounded account GET returned 401 using the stored expired access credential. No provider token refresh or observation/selection write was diagnostic proof. Current template visibility needs normal managed refresh; the Admin browser currently reaches Google's human password/challenge. Do not request template recreation or claim an API defect from this evidence.
+Fresh approved CLI/ADC, GitHub and exact managed-account Admin browser checks passed October 17.
+Normal managed Dotloop resource refresh succeeded. The supported individual profile returned an
+empty template list; the company template read failed as unavailable, rather than proving an empty
+company list. No supported renewal selection is saved. The reported active template's owning
+visibility/root cause remains unestablished; do not request template recreation. Both Dotloop write
+keys remain closed. Gmail reads report the expected mailbox connected with degraded sync health.
+Normal connection refresh updates credential/observation metadata; no customer/provider business
+write, draft, send, loop, upload or signature was verification proof.
+
+Run a97c579c failed final Notifications timing and verified rollback. The scoped parallel-read
+repair must pass the complete gate, exact-main CI and a fresh guarded delivery. Human verdict NOT RUN.
 
 **Cross-product impacts.**
 
@@ -35,12 +45,12 @@ Existing Next request proxy, owning server services, navigation/components, Fire
 
 **Authority and evidence map.**
 
-| Input                                                                        | Classification                           | Use and limitation                                                                                                                          |
-| ---------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| October 16 prepared application brief, read in full locally                  | Explicit execution instruction           | Carries confirmed scope through implementation and authorized delivery; no customer proof effects.                                          |
-| October 15 meeting at the timestamps above and confirming maintenance emails | Intent/reported or demonstrated behavior | Establishes decisions; does not prove API defects, provider success or human acceptance. Private sources stay outside Git.                  |
-| AGENTS.md, upstream 0b892865 code/tests and current facts                    | Authority / implementation evidence      | Existing send authority differs from this task's narrower explicit limit. Record the conflict honestly; no protected-key change is implied. |
-| October 16 exact managed records, account GET and write-key readbacks        | Current observation                      | Cache omits company templates; selection absent; account GET 401; three records unchanged; both write keys closed.                          |
+| Input                                                                        | Classification                           | Use and limitation                                                                                                                                                |
+| ---------------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| October 16 prepared application brief, read in full locally                  | Explicit execution instruction           | Carries confirmed scope through implementation and authorized delivery; no customer proof effects.                                                                |
+| October 15 meeting at the timestamps above and confirming maintenance emails | Intent/reported or demonstrated behavior | Establishes decisions; does not prove API defects, provider success or human acceptance. Private sources stay outside Git.                                        |
+| AGENTS.md, upstream 0b892865 code/tests and current facts                    | Authority / implementation evidence      | Existing send authority differs from this task's narrower explicit limit. Record the conflict honestly; no protected-key change is implied.                       |
+| October 17 approved-Admin managed reads and release receipts                 | Current observation                      | Authentication ready; normal refresh succeeded, supported templates empty, company read failed, selection absent; final observation failed and rollback verified. |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -56,7 +66,7 @@ Existing Next request proxy, owning server services, navigation/components, Fire
 
 **If this was built correctly:** An Admin can distinguish unsupported owning-profile visibility, failed provider reads, true empty lists, stale observations and a supported saved renewal selection.
 
-- Model verdict: PARTIAL - local repair passed and managed limitations were read; current template visibility and delivery remain unverified.
+- Model verdict: PARTIAL — deterministic checks and candidate assurance passed; production delivery remains pending after verified rollback.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
@@ -90,7 +100,7 @@ Implementation proceeds independently. Fresh external evidence blocks only the n
 
 - **Deliverable now:** Complete bounded code/test/documentation slice, including refusal and recovery behavior.
 - **Consumes, but does not assume:** Existing managed connections, real source versions and supported exact resources. Missing values remain explicitly unavailable.
-- **Externally blocked effect:** Current template visibility needs normal managed resource refresh after the approved Admin browser's Google challenge is completed. Host access and managed record reads pass; account GET returned 401. No template recreation, OAuth reenrollment or write-key activation is requested by this evidence.
+- **Externally blocked effect:** Authentication is ready. Template/selection-dependent output remains unavailable: supported templates empty, company read failed, saved selection absent. Both write keys stay closed. Release latency repair/qualification is runner-owned, not a human-authentication hold.
 - **Produces for downstream suites:** Tested retained contracts and exact truthful evidence; no new execution queue for older suites.
 
 **Verification and delivery contract.**

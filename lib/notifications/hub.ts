@@ -62,7 +62,9 @@ export async function loadNotificationHub(
   const canReadMaintenance = hasSpaceAccess(user, "maintenance");
   const isAdmin = can(user.role, "manageAdmin");
 
-  const [preferences, approval, maintenance, gmail, coverage, decision] =
+  // These reads are independent. Starting review/support only after the event sources finish
+  // adds two Firestore round trips to the full hub's critical path.
+  const [preferences, approval, maintenance, gmail, coverage, decision, review, support] =
     await Promise.all([
       getNotificationPreferences(user),
       // F-NOTIF-3: approval-queue notifications are personal, so a recipient always sees their OWN ones
@@ -90,20 +92,19 @@ export async function loadNotificationHub(
       full && canReadRenewals
         ? gatherDecisionAttention(user)
         : Promise.resolve({ attention: EMPTY_DECISION_ATTENTION }),
+      full && isAdmin && canReadRenewals
+        ? buildReviewDigest(user)
+        : Promise.resolve(null),
+      // The same Admin-scoped gather also supplies the /admin panel badge.
+      full && isAdmin
+        ? gatherSupportAttention(user, { now }).then((attention) => attention.signals)
+        : Promise.resolve([]),
     ]);
 
   const standing: AttentionSignal[] =
     full && coverage
       ? buildStandingSignals(resolveConnectionsState(process.env).items, coverage.items)
       : [];
-
-  const review =
-    full && isAdmin && canReadRenewals ? await buildReviewDigest(user) : null;
-
-  // S39: the support (feedback) lane is Admin-scoped, gathered ONLY for an Admin hub view (mirroring the
-  // review digest). The SAME gather feeds the /admin panel badge, so their counts cannot diverge.
-  const support =
-    full && isAdmin ? (await gatherSupportAttention(user, { now })).signals : [];
 
   const feed = buildNotificationFeed({
     approval,

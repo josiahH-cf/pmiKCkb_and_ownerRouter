@@ -1,27 +1,31 @@
 # Loop state
 
-Last updated: 2026-10-16 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-10-17 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-The prepared October 16 application instruction is implemented in source as S227-S229 in isolated
-branch codex/oct15-application-20261016 from upstream 0b892865. Both existing checkouts and all
-private inputs are preserved. Implementation c99659d5 is published on main. Prompt receipt and
-continuation checkpoint remain outside Git.
+Implementation c99659d5 and documentation 15648c0e were already on main. Delivery preparation
+85b7e03c supplied the correctly ordered queue and reconciled stale dispatch instructions. Its
+complete gate passed 9,589 unit tests, 455 backend tests, required checks/build and zero production
+audit findings. All five exact-main CI jobs passed (38957524699). Core served E2E: 39 passed,
+22 existing configuration skips on c99659d5; later changes were documentation only.
 
-Fail-first checks demonstrated reachable retired HTTP entry, absent company/office discovery,
-future observation freshness and failed-account selection admission. Retirement HTTP (22),
-Dotloop repair (3) and existing connection preservation (23) checks passed. Production-effect,
-legacy-Space, direct photo, renewal/Gmail preservation and served retirement checks also exercise
-their owning boundaries. Complete canonical verification passed 9,585 unit tests with four existing
-skips, 455 backend tests, all required checks and production build. Core served E2E passed 39 with
-22 existing configuration skips. All five exact-main CI jobs passed for c99659d5 in run 38891578460;
-later mainline qualification must be read from its own exact-SHA receipt.
-Raw failed/interrupted attempts and the continuation checkpoint remain outside Git.
-Source now fences maintenance/vendor HTTP operations, retains authorized history/report reads,
-closes maintenance/client-send operation admission without changing Registry metadata, disables
-sequence dispatch, and adds bounded company/office Dotloop diagnostics. Fresh reads confirmed
-cached coverage/selection gaps; the reported template's current visibility and root cause remain unverified.
+Run `a97c579c-f11b-4d74-a366-9a7122eb58f7` built and promoted exact main
+`85b7e03c5faad8fb9a9cc97f348ed973125edae6` / `pmi-kc-app-rmvc7c5lz-ec2410dd001a`, then failed
+post-promotion observation: the final Notifications browser route exceeded its 30-second bound.
+The failed report remains failed: one successful checkpoint, 477,992 ms elapsed, all 318 records
+matched, zero discrepancies, candidate 5xx or unresolved effects. Receipt-bound rollback verified
+at 2026-10-17T10:05:14.585Z. Production serves predecessor commit
+`eb5d35991c3ec128a102e4483d3779af16106821` through
+`pmi-kc-app-recovery-a97c579cf11b4d74` at 100%; S227-S229 delivery remains pending.
+The failed run, original receipts, claims and cloud operations remain immutable outside Git.
+
+The isolated repair removes the Notifications loader's sequential independent read waves.
+Its fail-first regression failed on the original source and all 12 hub tests passed after repair.
+Run the complete corrected-tree gate and exact-main CI before preparing a replacement. Preserve
+the terminal failed checkpoint, permit state, receipts, claims and operation ids byte-for-byte;
+prove no process/cloud effect remains unresolved and use the reviewed lock-held retirement path.
+Never edit an admitted checkout or reuse the failed run's permit/build claim/receipt.
 
 ## Awaiting release
 
@@ -29,40 +33,27 @@ cached coverage/selection gaps; the reported template's current visibility and r
 2. S228: Bounded Dotloop template visibility/freshness diagnostics; both write keys closed — `c99659d5`.
 3. S229: Preserve renewal usability and workflow-linked unsent Gmail; refuse sends/schedules/Resume/dispatch — `c99659d5`.
 
-No release run is admitted or permit prepared. Source c99659d5 is published after the complete
-canonical gate; use the exact-main CI receipt for its verdict. Production remains eb5d3599 /
-pmi-kc-app-rmv3yavsf-2cece39f7605 from October 11. October 16 managed service readback confirms
-100% traffic, its existing runtime service account and 54 environment keys; the public bodyless
-version agrees. Its completed permit/receipts cannot be reused. Fresh
-exact-main CI, lock, prerequisites/GO, candidate assurance, promotion, observation and independent
-readbacks remain required. No new deployed behavior is claimed.
+All three remain queued until verified delivery. The replacement carries the same scope plus the
+necessary Notifications latency repair. Require a clean registered pair, fresh credentials/cost/
+prerequisites, GO, exact-main CI, one build, zero-traffic assurance, receipt-bound promotion, full
+300,000 ms observation with required checkpoints and independent readbacks.
 
 ## Current external dependencies
 
-- Approved WSL CLI/ADC refresh and GitHub access now pass under the existing account/store.
-- The repository's unattended Admin-profile check reaches Google's password/challenge page.
-  That human step blocks guarded assurance/release. The earlier computer-use runtime failures
-  remain failed evidence. Recovery and the precise current hold are in docs/open-blockers.md.
-- Exact managed Dotloop reads found no saved renewal selection and an October 10 cache that read
-  an empty individual template list but never read the company profile's templates. Its current
-  stored access credential is expired; a documented account GET returned 401 refresh_needed.
-  No token refresh, observation write or selection change was proof; all three records are unchanged.
-  Both exact Dotloop write keys read back closed. Use normal managed resource refresh after the
-  approved Admin session recovers; current provider template ownership remains unverified.
-- October 15 shows the Lease Renewal template already created/active. Recheck current owning
-  profile/office visibility and saved supported selection before asking anyone to repeat setup.
-  Company/office diagnostics do not grant Loop-It eligibility. Both Dotloop write keys stay closed.
+Fresh approved CLI/ADC, GitHub and exact managed-account Admin browser checks passed October 17.
+Normal managed Dotloop resource refresh succeeded. The supported individual profile returned an
+empty template list; the company template read failed as unavailable, rather than proving an empty
+company list. No supported renewal selection is saved. The reported active template's owning
+visibility/root cause remains unestablished; do not request template recreation. Both Dotloop write
+keys remain closed. Gmail reads report the expected mailbox connected with degraded sync health.
+Normal connection refresh updates credential/observation metadata; no customer/provider business
+write, draft, send, loop, upload or signature was verification proof.
 
 ## Scope and continuation
 
-Keep renewal Focus/Full/mobile/readable facts/copy/autosave, source-update contracts, linked Gmail
-reads/unsent drafting, knowledge, records, permissions and exact receipts. The latest instruction
-narrows older Send/Schedule scope. Previously open source keys remain unchanged; operation refusal
-is a separate term and is not a claimed activation edit. Vendoroo stays standalone. Old custom
-maintenance/integration/native-maintenance-phone work is not queued. Shockwave audit, standalone
-importer, new leasing and OA Fable are outside this worktree.
-
-Next: read the current canonical/source/CI receipts. After the approved Admin browser recovers,
-inspect fresh managed Dotloop/Gmail state and continue the existing gated
-release with a new lock/prerequisite/GO/candidate/promotion/observation chain. Never reuse an old permit.
-Preserve failed attempts honestly. No customer/provider mutation is test proof. Human verdict NOT RUN.
+Keep renewal Focus/Full/mobile/facts/copy/autosave, supported source-update contracts, linked Gmail
+reads/permitted unsent drafting, knowledge, records, permissions and exact receipts. Current source
+refuses sends/schedules/Resume and dispatch even when prior Registry metadata remains open.
+Vendoroo stays standalone. Old maintenance/integration/native-maintenance-phone work, Shockwave,
+standalone importer, Espansr, OA Fable and new leasing are outside this execution.
+Human verdict remains NOT RUN. Raw evidence and the private continuation checkpoint remain outside Git.

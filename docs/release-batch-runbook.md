@@ -1,6 +1,6 @@
 # Batched release runbook
 
-Updated 2026-10-16 (UTC). One candidate must ship every queued feature.
+Updated 2026-10-17 (UTC). One candidate must ship every queued feature.
 
 The named October program instruction and AGENTS.md feature-run continuity authorize delivery
 of approved independent slices and diagnosed/verified replacements without phase-only consent.
@@ -8,42 +8,20 @@ Keep all pending outcomes in the overall program. Exact-main CI, fresh prerequis
 one watcher/application build, receipts, full observation and recovery remain mandatory. Failed
 attempts and consumed permits are immutable and never reusable.
 
-Run `859ff7f8-0106-48c1-acfa-823d4a592422` released the cumulative Focus/maintenance repairs at
-`eb5d35991c3ec128a102e4483d3779af16106821` / `pmi-kc-app-rmv3yavsf-2cece39f7605`, 100% traffic.
-Exact [CI 38148921619](https://github.com/josiahH-cf/pmiKCkb_and_ownerRouter/actions/runs/38148921619)
-passed all five jobs: 9,519 unit/four existing configuration skips and 455 backend. Complete local
-gate: 9,523 unit/1,017 files, 455 backend/79 files, all required checks/build and production audit
-zero; core E2E 32 passed/22 existing skips. One application build
-`6dfce397-47d1-4b27-beee-4addc0b70ec2` succeeded 2026-10-11T15:12:49.695114Z. Candidate receipt
-`ff9ee6cf-4d66-4b0f-a4b6-5775cda5abf4` issued 15:19:42.137Z; promotion verified 15:20:05.911Z.
-Managed GET readiness passed/restored PAUSED. Observation passed two checkpoints in 391,789ms
-within 300,000–480,000ms: all 318 source/projected/rendered records matched, zero discrepancies,
-candidate 5xx or unresolved effects. Eleven independent sections matched 15:27:29Z. Permit consumed.
-Production/Live, managed runtime identity, eleven Spaces, Demo=false, Sheet=true, five existing
-secret bindings and RentCast allowance 50 remain verified. All 54 runtime environment keys matched
-the predecessor except APP_COMMIT_SHA; worker settings and key boundaries were preserved.
-Tag `cand-rmv3yavsf-2cece39f7605`; fingerprint
-`sha256:6e57b2a65a60f8e6a218c0b4b0e4cb8db791bad0a8a45a2322457a030393da2c`.
-Captured predecessor: `72a30e25537e8ea7ff79391146246c1f9b94375e` / `pmi-kc-app-rmv3vlx5t-b86fdd4c74ae`,
-Sheet=true. Recovery: `pmi-kc-app-recovery-859ff7f8010648c1`, receipt
-`f10a32be-ff3d-4b3b-998f-ef2149914db0`, reference
-`sha256:758544475e0d3bb34aad6e2c559a4a7a8653d293579aef85a8cb6c6973c9f301`, preserving the actual
-predecessor image/configuration. No traffic rollback or business mutation was test proof.
-Three fresh guarded real-workspace journeys passed all 28 tasks and three Full/Focus round trips
-each at desktop/390px; original Full view, scroll and return links were preserved. Zero app requests,
-writes, navigations, page errors or overflow. The dedicated outreach check passed both widths,
-including the corrected initiated-move-out instruction, visible warning, initially closed context/
-secondary tasks, keyboard/pointer controls, unique alternatives and actual rent controls/field link.
-Internal-browser review also preserved the Sheet warning despite equal displayed rent amounts.
-Initial repairs 8462d2c6, rent-anchor repair e9cd59f1 and typed move-out instruction repair 4da1c0cc
-are delivered. Failed 4d6494fc and its unknown original sub-check cause, all 617 archived state files,
-and completed e4ea4d39/f0f1747f releases retain their actual outcomes and receipts outside Git.
-Evidence: docs/evidence/focus-maintenance-release-2026-10-11.md.
-The full 44/238 program remains unfinished (203 requirements verified, 35 suites delivered).
-Vendoroo/acquisition/native-phone/Dotloop inputs stay open; no provider key was activated. At
-15:28:19.425Z the original weekly draft was unchanged and unsent, with zero creates/sends.
-Editor browser: not_run under approved Admin-only policy.
-Human verdicts: **NOT RUN — no human observer**.
+Run `a97c579c-f11b-4d74-a366-9a7122eb58f7` built and promoted exact main
+`85b7e03c5faad8fb9a9cc97f348ed973125edae6` / `pmi-kc-app-rmvc7c5lz-ec2410dd001a`, then failed
+post-promotion observation: the final Notifications browser route exceeded its 30-second bound.
+The failed report remains failed: one successful checkpoint, 477,992 ms elapsed, all 318 records
+matched, zero discrepancies, candidate 5xx or unresolved effects. Receipt-bound rollback verified
+at 2026-10-17T10:05:14.585Z. Production serves predecessor commit
+`eb5d35991c3ec128a102e4483d3779af16106821` through
+`pmi-kc-app-recovery-a97c579cf11b4d74` at 100%; S227-S229 delivery remains pending.
+The failed run, original receipts, claims and cloud operations remain immutable outside Git.
+
+The Notifications repair preserves every timing/identity/recovery gate. Original failed reports
+and successful rollback remain distinct. Exact corrected-tree qualification and green-main CI are
+required before the checked retirement/new-run procedure below. Prior successful release evidence:
+`docs/evidence/focus-maintenance-release-2026-10-11.md`.
 
 ## Authorized replacement preparation
 

@@ -11,22 +11,24 @@ integration under this direction. Their delivered records and receipts retain hi
 The present upstream Send/Schedule authority conflicts with this instruction's narrower boundary;
 S229 uses an operation-level refusal and does not change protected Registry activation metadata.
 
-| Suite | Active contract                                                                  | State                                                                                                                  |
-| ----- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| S227  | `docs/feature-suites/maintenance-retirement-and-readonly-history.md`             | READY — authorized implementation; verification and delivery pending.                                                  |
-| S228  | `docs/feature-suites/dotloop-renewal-template-visibility-diagnostics.md`         | READY — authorized implementation; fresh managed-provider evidence blocked by Google reauthentication/browser runtime. |
-| S229  | `docs/feature-suites/renewal-preservation-and-unsent-workflow-communications.md` | READY — authorized implementation; verification and delivery pending.                                                  |
+| Suite | Active contract                                                                  | State                                                                                                                                             |
+| ----- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S227  | `docs/feature-suites/maintenance-retirement-and-readonly-history.md`             | PARTIAL — implemented on main; candidate assurance passed, observation failed and rollback verified; diagnosed replacement qualification pending. |
+| S228  | `docs/feature-suites/dotloop-renewal-template-visibility-diagnostics.md`         | PARTIAL — implemented on main; candidate assurance passed, observation failed and rollback verified; diagnosed replacement qualification pending. |
+| S229  | `docs/feature-suites/renewal-preservation-and-unsent-workflow-communications.md` | PARTIAL — implemented on main; candidate assurance passed, observation failed and rollback verified; diagnosed replacement qualification pending. |
 
-The latest gated release is run 859ff7f8-0106-48c1-acfa-823d4a592422 at
-eb5d35991c3ec128a102e4483d3779af16106821 / pmi-kc-app-rmv3yavsf-2cece39f7605, 100% traffic.
-Exact CI 38148921619, candidate/promotion/full observation and eleven independent sections passed.
-It carries October 10 functionality and the scoped Owner outreach/maintenance repairs, including
-rent-anchor and typed move-out instructions. Full local gate 9523 unit/455 backend; core 32/22.
-Fresh three-workspace Focus preservation, desktop/390px outreach/move-out copy/anchor checks and
-internal-browser visual review passed. The entire 44/238 program remains unfinished: 35 suites
-delivered, 203 requirements verified, five PENDING contracts, three partial investigations and S226
-closure open. Human/physical phone NOT RUN; Editor browser not_run. See docs/facts.md and
-docs/evidence/focus-maintenance-release-2026-10-11.md for actual scopes.
+Run `a97c579c-f11b-4d74-a366-9a7122eb58f7` built and promoted exact main
+`85b7e03c5faad8fb9a9cc97f348ed973125edae6` / `pmi-kc-app-rmvc7c5lz-ec2410dd001a`, then failed
+post-promotion observation: the final Notifications browser route exceeded its 30-second bound.
+The failed report remains failed: one successful checkpoint, 477,992 ms elapsed, all 318 records
+matched, zero discrepancies, candidate 5xx or unresolved effects. Receipt-bound rollback verified
+at 2026-10-17T10:05:14.585Z. Production serves predecessor commit
+`eb5d35991c3ec128a102e4483d3779af16106821` through
+`pmi-kc-app-recovery-a97c579cf11b4d74` at 100%; S227-S229 delivery remains pending.
+The failed run, original receipts, claims and cloud operations remain immutable outside Git.
+
+The prior successful October 11 release retains its original evidence in
+`docs/evidence/focus-maintenance-release-2026-10-11.md`. Human/physical-phone verdicts remain NOT RUN.
 
 This directory contains current operating contracts, unfinished specifications, recent completed
 release contracts, and one explicitly unauthorized proposal. Older completed and superseded suite

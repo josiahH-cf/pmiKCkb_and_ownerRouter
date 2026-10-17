@@ -1,6 +1,6 @@
 # Unblock packet
 
-Last reconciled: 2026-10-16 (host credentials recovered; managed records read; Admin browser challenge remains).
+Last reconciled: 2026-10-17 (approved authentication recovered; managed resources refreshed; release repair pending).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only its named effect or dependent release phase; independent
@@ -11,38 +11,32 @@ substitute value, identifier, credential or human verdict to clear a hold.
 
 ## Holds at a glance
 
-| Id        | Blocks only                                                          | Owner step                                                                                                                        | Then the runner                                                                                                                                       |
-| --------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| B-AUTH2   | Separate historical 25-hour unchanged-enrollment longevity claim     | No longevity or policy-change step requested by this execution                                                                    | Preserve the unverified claim; host credentials recovered; B-BROWSER separately holds assurance                                                       |
-| B-MNT1    | No current effect; maintenance import retired                        | No owner import step requested                                                                                                    | Preserve original preapproval/history records; S227 owns current retention                                                                            |
-| B-S100    | No current proof; remaining maintenance resident-draft proof retired | No ticket/link/sync step requested                                                                                                | Preserve completed receipts and closed resident-draft key; no proof rerun                                                                             |
-| B-TIMING  | Approved 30-day notice classifications (they read Cannot determine)  | A5: record the decided basis in Admin                                                                                             | Reads back the saved basis version                                                                                                                    |
-| B-DL2     | Fresh supported Dotloop resource/selection evidence only             | Template reported active October 15; no repeat setup request                                                                      | Runner refreshes managed resources after the Admin browser recovers, then checks owning-profile visibility and selection; both write keys stay closed |
-| B-DL3     | Approved form content/maps and rules for the selected lease packet   | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output                                |
-| B-BROWSER | Release assurance, only when Google signs the Admin profile out      | A6: sign the Admin profile back in                                                                                                | Recollects prerequisites and continues the release                                                                                                    |
-| B-HUMAN   | Human verdicts and real-case accuracy claims only                    | E2: observed sessions and real material                                                                                           | Records each verdict with its evidence; nothing is inferred from tests                                                                                |
+| Id       | Blocks only                                                          | Owner step                                                                                                                        | Then the runner                                                                                                        |
+| -------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| B-AUTH2  | Separate historical 25-hour unchanged-enrollment longevity claim     | No longevity or policy-change step requested by this execution                                                                    | Preserve the unverified longevity claim; current release authentication passes                                         |
+| B-MNT1   | No current effect; maintenance import retired                        | No owner import step requested                                                                                                    | Preserve original preapproval/history records; S227 owns current retention                                             |
+| B-S100   | No current proof; remaining maintenance resident-draft proof retired | No ticket/link/sync step requested                                                                                                | Preserve completed receipts and closed resident-draft key; no proof rerun                                              |
+| B-TIMING | Approved 30-day notice classifications (they read Cannot determine)  | A5: record the decided basis in Admin                                                                                             | Reads back the saved basis version                                                                                     |
+| B-DL2    | Supported Dotloop template/selection-dependent output only           | No template recreation requested                                                                                                  | Fresh supported list is empty; company read failed as unavailable; selection absent; both write keys closed            |
+| B-DL3    | Approved form content/maps and rules for the selected lease packet   | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output |
+| B-HUMAN  | Human verdicts and real-case accuracy claims only                    | E2: observed sessions and real material                                                                                           | Records each verdict with its evidence; nothing is inferred from tests                                                 |
 
 ## Current hold and historical program dependencies
 
-- **B-AUTH-CURRENT - resolved October 16.** Fresh approved WSL CLI/ADC refresh now passes for the
-  existing managed account; GitHub is ready. Managed Cloud Run and exact Dotloop document reads
-  completed. No host reenrollment or substitute credentials are needed. The existing Admin browser
-  profile starts through the repository verifier but reaches Google's password/challenge page;
-  B-BROWSER/A6 holds guarded assurance and release. Earlier computer-use launcher failures remain
-  recorded; no password, code, passkey or CAPTCHA was entered by the runner.
-- **B-DL2 - current readback.** The connected generation has an October 10 cached observation:
-  an empty individual-profile template list and a company profile whose templates were not observed.
-  No renewal selection is saved. The stored access credential is expired, and the documented
-  account GET returned 401 refresh_needed. No refresh or observation/selection write was proof;
-  all three records remained unchanged, and both exact write keys read back closed. After the
-  approved Admin browser recovers, perform normal managed resource refresh and inspect current
-  owning-profile visibility before requesting any setup. Do not recreate the reported active template.
-- **B-COMMUNICATIONS-RUNTIME — verified October 10.** Run5b3dfb90 passed exact managed candidate
-  GET readiness/restoration, normal Gmail connection, guarded assurance, promotion, full observation
-  and eleven readbacks. Only two notice keys activated; minute worker ENABLED with normal empty
-  tick, annual GET probe PAUSED. Replacement parity/retirement is delivered. Earlier failed consumed
-  probes and original attempts remain preserved. No new Gmail subscription or customer send was
-  proof. This is no longer a hold.
+- **B-AUTH-CURRENT / B-BROWSER — resolved October 17.** The owner completed the approved WSL
+  Admin enrollment. Fresh CLI/ADC, GitHub, exact managed-account/Admin, candidate/canonical and
+  rollback verification passed. No runner-entered challenge, account/store/profile substitution,
+  IAM/claim/policy or display-controller change was used. Earlier failures remain failed evidence.
+- **B-DL2 — fresh normal managed refresh October 17.** Supported individual templates: zero from
+  a successful read. Company templates: read failed as unavailable, not a proven empty list.
+  No supported selection is saved. The reported active template's owning visibility/root cause
+  remains unestablished; do not recreate it. Both write keys remain closed. Normal refresh updates
+  credential/observation metadata without a provider business effect.
+- **B-COMMUNICATIONS-RUNTIME.** The candidate managed GET readiness passed and restored its
+  annual probe PAUSED; candidate code refuses sends/schedules/Resume and worker dispatch. Actual
+  delivery remains pending after the failed observation/verified rollback. Gmail reports the
+  expected managed mailbox connected with degraded sync health; no subscription repair, customer
+  draft or send was proof. The earlier October 10 worker/key receipt retains historical scope.
 
 - **B-VENDOROO-CONTRACT — retired by October 15 direction.** Custom maintenance and Vendoroo
   integration are outside the current application. Vendoroo stays standalone. No new Vendoroo
@@ -57,13 +51,11 @@ substitute value, identifier, credential or human verdict to clear a hold.
   contacts/troubleshooting/consent/recording policy, and cost/cutover/rollback decisions are missing.
   S219 records the readback. No phone provider, coverage or operating policy is guessed.
 
-The older program ledger retains its original five pending outcomes as historical scope; the October 16 execution does not resume them. Independent owning-service implementation and 35
-suites are verified delivered at 780f48db / run 5b3dfb90;203 of238 requirements are verified. The October 10 runtime receipt is historical; current fresh provider/release verification is blocked by the managed authentication/browser holds above. Unset reviewed policy remains
-unset. The owner instruction carries scope through phases and repairs; remaining holds request
-material facts only for their original scope. Earlier Dotloop A1 lacked a supported resource
-selection. Current owning-profile visibility and saved selection remain unverified until fresh
-authorized readback; the October 15 active-template report must be checked before any setup request.
-Both write keys remain closed and S182 exclusions are preserved.
+The older program ledger retains its historical 35 delivered suites/203 verified requirements
+and five pending contracts. This execution does not restart that program. Current release
+authentication passes; run a97c579c failed final Notifications timing and verified rollback.
+The runner owns the scoped latency repair, full qualification and guarded replacement. External
+resources above hold only their dependent capability; they do not block delivery of S227-S229.
 
 ## Owner decisions
 
@@ -95,16 +87,13 @@ Vendoroo's agent writing into RentVine and no direct connector under that older 
 an active Lease Renewal loop template already exists. The older request to create it is superseded;
 do not ask the owner to repeat completed setup. An API defect is a hypothesis, not established cause.
 
-The last recorded owning-service read was October 10: two profiles, one supported individual,
-zero templates and no saved supported selection. It predates the reported template. Current source
-adds bounded company/office template observations for diagnosis; these do not grant Loop-It eligibility.
+Fresh normal managed resource refresh on October 17 read the supported individual template list
+successfully (empty) and attempted company-template discovery (failed as unavailable). No supported
+selection is saved. Company diagnostics do not grant Loop-It eligibility. This establishes the
+current visibility limit without establishing the reported template's owning profile or an API defect.
+Request an exact office/profile eligibility action only if verified evidence identifies it; no repeat
+template creation, loop/upload/signature or forced expiry is verification proof. S182 remains.
 
-Runner follow-up: restore the approved managed read route, observe current account/profile/office
-and template responses through the existing typed GET client, distinguish failed/empty/unobserved
-lists, and verify a fresh supported profile/template/transaction/status selection. Request an exact
-remaining office/profile eligibility action only if those current observations prove it is needed.
-Both Dotloop write keys stay closed. No loop, upload, signature, forced expiry or customer mutation
-is proof. S182 API-origin exclusions remain.
 **A2. Remaining S100 maintenance proof — retired from this execution.** Do not create a ticket,
 link a work order or synchronize consequential manager chat reads to prove maintenance after
 retirement. Original completed receipts retain their meanings; the resident-draft key stays closed.
@@ -114,7 +103,7 @@ financial evidence remain retained and readable under their original permissions
 provider read/write or policy activation is required for current maintenance retirement.
 **A4. Recovered host authentication and separate longevity claim.** The October 16 approved
 WSL CLI/ADC refresh probes now pass for the existing managed account. No host recovery step is
-requested. The Admin browser challenge has its own A6 step below. The runner changes no session
+requested. The approved Admin browser also recovered October 17; A6 is conditional future recovery only. The runner changes no session
 policy, IAM, claim, identity or credential store and never enters a password, code, passkey or CAPTCHA.
 No provider success follows from enrollment alone. The separate 25-hour unchanged-enrollment
 longevity claim remains unverified and is not a release prerequisite. Earlier session-policy
@@ -134,8 +123,9 @@ cd ~/pmi-kc-work/main && npm run auth:ensure -- --need=canary --origins=https://
 A Chrome window opens for the sign-in. Done when the canary line reads ok for admin and the
 command ends READY. The runner never types a password, code or passkey.
 
-Readback 2026-10-02 (after A6 was reported done): the unattended, headless canary check reads the
-Admin profile signed in as Admin on the canonical origin (existing session); READY.
+Readback October 17: owner-completed enrollment exited normally; fresh exact managed identity/Admin
+checks, candidate/canonical assurance and rollback verification passed. READY. The approved profile
+is used sequentially; do not overlap enrollment, manual browser and verifier ownership.
 
 **A7. Phone same-tab sign-in redirect (optional, S165).** Only if staff report that the Google
 pop-up cannot open on a phone or in-app browser. In the Google Cloud console for
@@ -159,9 +149,9 @@ Until then phones use the pop-up, which the S152–S167 release already repairs.
 4. Done 2026-10-07: run 5b5c850e released the non-secret client id and registered callback, the
    client-secret Secret Manager reference (version 1) and the connector vault project; the
    independent revision readback matched.
-5. Consent is done (item 1). Template availability and resource selection follow A1: a full
-   Dotloop admin creates the template and attaches the integrations login to the office, then the
-   owner selects a supported individual profile, the template and the initial status. The owner's
+5. Consent is done (item 1). Template availability and resource selection follow A1. The template was reported active;
+   fresh successful individual reads are empty and company reads failed. Verify the actual supported
+   owning visibility before requesting an exact remaining eligibility or selection action. The owner's
    2026-10-08 screenshots show the company on Business+. Do not require an office-only profile
    selection.
 6. Feature scope is finalized in intake 050–054. The S66/S130 configuration path will accept the
@@ -176,8 +166,8 @@ Until then phones use the pop-up, which the S152–S167 release already repairs.
 already released; do not rerun them or request another secret. Read back actual office-agent/template
 eligibility and the saved supported profile/template/status selection after the existing owners
 complete A1. A company-roster screenshot does not establish these prerequisites. Preserve S182's
-API-origin exclusions and actual prior receipts. Both Dotloop keys remain closed until their scoped
-technical gates and reviewed exact-key activation pass under the owner's current S183–S226 authority.
+API-origin exclusions and actual prior receipts. Both Dotloop keys remain closed. The current S227-S229 instruction grants diagnostics,
+not provider execution or activation; older program authority cannot reopen effects.
 No live customer/provider business effect may be created merely as a test, and document presence
 never establishes signature completion. The full current program is implementation work, not the
 prior specification-only cycle.
@@ -205,10 +195,11 @@ held only as Dotloop vault references.
 
 Remaining, within the authorized flows:
 
-1. A full Dotloop admin creates the renewal template and attaches the integrations login to the
-   office, then the owner selects the resources (A1, B-DL2); the runner reads back the selection
-   and readiness with enums and counts only.
-2. Leave live refresh/revocation/reconnect testing to its separately directed lifecycle flow.
+1. The renewal template was reported active. Fresh October 17 supported-individual templates
+   are empty; company-template discovery failed as unavailable. No saved supported selection exists.
+   Check exact owning visibility/eligibility before requesting any remaining action (A1, B-DL2).
+2. Normal managed resource refresh succeeded October 17. Revocation/reconnect testing remains
+   separate; no lifecycle or business mutation was diagnostic proof.
    That flow must preserve S96's preview/confirmation/credential-removal/readback contract;
    denied storage or cleanup means recovery needed, not connected.
 3. Verify both Dotloop action keys remain closed and no signature completion is inferred.

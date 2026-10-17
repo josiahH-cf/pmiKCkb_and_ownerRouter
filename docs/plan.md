@@ -1,6 +1,6 @@
 # Current plan
 
-Updated: 2026-10-16 (UTC).
+Updated: 2026-10-17 (UTC).
 
 ## Outcome
 
@@ -10,12 +10,13 @@ Vendoroo stays standalone. The private Shockwave audit, standalone importer and 
 
 ## Current implementation baseline
 
-Source starts at upstream 0b89286522aeacb92fed37d57dc83368279d893a in an isolated worktree; both
-original checkouts and their dirty work are preserved. Last recorded serving application is
-eb5d3599 / pmi-kc-app-rmv3yavsf-2cece39f7605, released October 11. A public bodyless version
-read returned that same commit/revision at 2026-10-16T09:18:48Z; October 16 managed service readback
-confirms the same revision at 100% traffic. Its recorded predecessor is 72a30e25537e8ea7ff79391146246c1f9b94375e /
-pmi-kc-app-rmv3vlx5t-b86fdd4c74ae. Local source is not deployed.
+Implementation began at upstream 0b892865 in an isolated worktree; original checkouts remain
+preserved. Source c99659d5/15648c0e was already on main. Delivery head 85b7e03c passed the full
+local gate and exact-main CI 38957524699, but its observation failed and rollback verified.
+Production serves eb5d35991c3ec128a102e4483d3779af16106821 through
+pmi-kc-app-recovery-a97c579cf11b4d74 at 100%. The failed run captured predecessor
+pmi-kc-app-rmv3yavsf-2cece39f7605 with that same commit. The Notifications parallel-read repair
+requires new qualification and guarded replacement delivery; no failed result becomes a pass.
 
 ## Authority and closed decisions
 
@@ -45,11 +46,11 @@ proof is retired from this execution; S36 has no new execution grant.
 
 ## Per-suite delivery rule
 
-ALL_GATES_GREEN requires actual passed gates. A local green slice can retain a named BLOCKED live
-read/release. Implementation c99659d5 passed the complete canonical command and is on main; read
-exact-main CI from its exact-SHA receipt. Approved CLI/ADC refresh now passes. Managed production
-and Dotloop record reads completed; the current provider account GET returned 401 refresh_needed.
-The Admin browser's Google password/challenge blocks guarded assurance and release. Resume the
-checkpoint after that approved profile recovers, then use normal managed resource refresh without
-recreating the reported template. Never substitute credentials or infer provider success. Current
-working state is in docs/loop-state.md; external holds in docs/open-blockers.md.
+ALL_GATES_GREEN requires actual passed gates. Approved CLI/ADC/GitHub/Admin authentication now
+passes. Run a97c579c failed final Notifications timing and verified rollback; its evidence remains
+immutable. Qualify the diagnosed repair with bash scripts/verify.sh, publish green mainline and
+exact-head CI, then archive only through the checked procedure and admit a fresh run. Complete
+candidate assurance, receipt-bound promotion, full observation and independent readbacks. Normal
+managed Dotloop reads found an empty supported template list, a failed company-template read and
+no saved selection; both write keys stay closed. Human/physical-phone verdicts remain NOT RUN.
+Current work is in docs/loop-state.md; external holds are in docs/open-blockers.md.

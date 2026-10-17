@@ -1,11 +1,11 @@
 # Client, owner, and provider execution inputs
 
-Updated: 2026-10-16 (UTC); earlier readbacks below retain their recorded dates.
+Updated: 2026-10-17 (UTC); earlier readbacks below retain their recorded dates.
 
 Current application scope is S227-S229. Custom maintenance, Vendoroo integration and the remaining
 maintenance proof is retired; no maintenance/pilot input collection or S36 execution is requested.
-Keep Vendoroo standalone. The October 15 renewal template was reported active: after approved
-authentication recovery, inspect its current owning profile and saved supported selection before
+Keep Vendoroo standalone. The October 15 renewal template was reported active: fresh normal managed refresh found an empty supported-individual list, a failed company-template
+read and no supported selection. Actual owning visibility remains unresolved; check it before
 asking anyone to repeat setup. Both Dotloop write keys stay closed. Workflow communications remain
 linked reads and reviewed unsent drafts; current operation policy refuses sends and schedules.
 See docs/open-blockers.md for current external holds; missing fresh evidence cannot become success.
@@ -110,8 +110,9 @@ contracts. Permission to implement/deploy does not remove any of those controls.
 - Renewal follow-up timing remains intentionally unset. No due time, reminder, task, draft, or send
   may be derived from a guessed schedule.
 - RentCast keeps provider order and remains reference-only; no extra freshness/selection rule exists.
-- Renewal/maintenance initiation ends with an unsent Gmail draft. A person edits and sends from
-  Gmail; direct application send keys remain closed.
+- Permitted renewal initiation ends with an unsent Gmail draft; a person sends from Gmail.
+  Current source refuses sends/schedules/Resume and dispatch regardless of earlier open metadata.
+  Retired maintenance effects do not resume. Replacement production delivery is still pending.
 - Real human litmus observations are recorded as `NOT RUN — no human observer` when nobody is
   present; a runner or model never impersonates a reviewer.
 

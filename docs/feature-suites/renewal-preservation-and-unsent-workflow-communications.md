@@ -3,7 +3,7 @@
 
 # S229 — Preserve renewal usability and enforce unsent workflow communications
 
-> Status: PARTIAL - implementation and local workflow/refusal preservation checks are complete; managed Gmail readback and production delivery remain BLOCKED.
+> Status: PARTIAL — implementation and scoped checks passed; run a97c579c failed observation and verified rollback; corrected-tree qualification and replacement delivery pending.
 
 **Goal.**
 
@@ -27,7 +27,17 @@ Follow the latest explicit task's reads/unsent-draft limit through an operation-
 
 **Open questions & assumptions.**
 
-Production Gmail connection/provider readback and a gated deployment require approved managed authentication. No test may create customer drafts or sends. Existing send keys are recorded open from prior delivery; this slice does not change protected activation metadata. These are evidence limitations, not permission to guess provider success or delay independent implementation.
+Fresh approved CLI/ADC, GitHub and exact managed-account Admin browser checks passed October 17.
+Normal managed Dotloop resource refresh succeeded. The supported individual profile returned an
+empty template list; the company template read failed as unavailable, rather than proving an empty
+company list. No supported renewal selection is saved. The reported active template's owning
+visibility/root cause remains unestablished; do not request template recreation. Both Dotloop write
+keys remain closed. Gmail reads report the expected mailbox connected with degraded sync health.
+Normal connection refresh updates credential/observation metadata; no customer/provider business
+write, draft, send, loop, upload or signature was verification proof.
+
+Run a97c579c failed final Notifications timing and verified rollback. The scoped parallel-read
+repair must pass the complete gate, exact-main CI and a fresh guarded delivery. Human verdict NOT RUN.
 
 **Cross-product impacts.**
 
@@ -35,12 +45,12 @@ Existing Next request proxy, owning server services, navigation/components, Fire
 
 **Authority and evidence map.**
 
-| Input                                                                        | Classification                           | Use and limitation                                                                                                                          |
-| ---------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| October 16 prepared application brief, read in full locally                  | Explicit execution instruction           | Carries confirmed scope through implementation and authorized delivery; no customer proof effects.                                          |
-| October 15 meeting at the timestamps above and confirming maintenance emails | Intent/reported or demonstrated behavior | Establishes decisions; does not prove API defects, provider success or human acceptance. Private sources stay outside Git.                  |
-| AGENTS.md, upstream 0b892865 code/tests and current facts                    | Authority / implementation evidence      | Existing send authority differs from this task's narrower explicit limit. Record the conflict honestly; no protected-key change is implied. |
-| October 16 managed service and Admin-profile reads                           | Current observation                      | Prior revision still serves; host credentials pass; Google requires a person before guarded browser/Gmail release assurance.                |
+| Input                                                                        | Classification                           | Use and limitation                                                                                                                                                |
+| ---------------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| October 16 prepared application brief, read in full locally                  | Explicit execution instruction           | Carries confirmed scope through implementation and authorized delivery; no customer proof effects.                                                                |
+| October 15 meeting at the timestamps above and confirming maintenance emails | Intent/reported or demonstrated behavior | Establishes decisions; does not prove API defects, provider success or human acceptance. Private sources stay outside Git.                                        |
+| AGENTS.md, upstream 0b892865 code/tests and current facts                    | Authority / implementation evidence      | Existing send authority differs from this task's narrower explicit limit. Record the conflict honestly; no protected-key change is implied.                       |
+| October 17 approved-Admin managed reads and release receipts                 | Current observation                      | Authentication ready; normal refresh succeeded, supported templates empty, company read failed, selection absent; final observation failed and rollback verified. |
 
 **Architecture outcome (deterministic, fail-first).**
 
@@ -56,7 +66,7 @@ Existing Next request proxy, owning server services, navigation/components, Fire
 
 **If this was built correctly:** Staff retain Focus/Full renewal work, readable facts, copy controls, saved working values and governed Gmail drafts while this task performs no client sends or schedules.
 
-- Model verdict: PARTIAL - local renewal/draft preservation and dispatch refusals passed; guarded live assurance and delivery remain blocked.
+- Model verdict: PARTIAL — deterministic checks and candidate assurance passed; production delivery remains pending after verified rollback.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
@@ -90,7 +100,7 @@ Implementation proceeds independently. Fresh external evidence blocks only the n
 
 - **Deliverable now:** Complete bounded code/test/documentation slice, including refusal and recovery behavior.
 - **Consumes, but does not assume:** Existing managed connections, real source versions and supported exact resources. Missing values remain explicitly unavailable.
-- **Externally blocked effect:** Production Gmail connection/provider readback and a gated deployment require approved managed authentication. No test may create customer drafts or sends. Existing send keys are recorded open from prior delivery; this slice does not change protected activation metadata.
+- **Externally blocked effect:** Authentication is ready. Template/selection-dependent output remains unavailable: supported templates empty, company read failed, saved selection absent. Both write keys stay closed. Release latency repair/qualification is runner-owned, not a human-authentication hold.
 - **Produces for downstream suites:** Tested retained contracts and exact truthful evidence; no new execution queue for older suites.
 
 **Verification and delivery contract.**

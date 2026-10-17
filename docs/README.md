@@ -22,7 +22,7 @@ Do not read removed Demo/V1 launchers, old audits, completed program prompts, or
 S227-S229 own the current October 16 application instruction: retire custom maintenance with
 authorized read-only history, keep Vendoroo standalone, diagnose Dotloop resource visibility and
 preserve renewal/unsent Gmail workflows. Older maintenance/integration contracts retain historical
-requirement evidence only. Current source and deployed behavior remain distinct until gated release.
+requirement evidence only. Current source remains distinct from the predecessor serving after run a97c579c failed observation and verified rollback.
 
 S113 is complete and deployed. Its five feature specifications and current review evidence define
 the consolidated renewal workflow and accepted resource-input limits. The Wednesday materials below
@@ -101,8 +101,8 @@ Manual client workflows: [presentation and weekly status commands](weekly-client
 The October operations program S183–S226 has 35 independent suites delivered at 780f48db /
 run 5b3dfb90. 203/238 requirements are verified; full closure remains open for five pending contracts,
 three bounded investigations and Dotloop prerequisites. Use native operations evidence, current facts
-and the unblock packet. Communications supports only two explicit human notice Send/Schedule
-contracts; generic send stays closed. Mobile navigation and normal managed Gmail connection passed
+and the unblock packet. That earlier program enabled two human notice Send/Schedule contracts; current S229 source refuses
+client sends/schedules/Resume and dispatch regardless of preserved activation metadata. Mobile navigation and normal managed Gmail connection passed
 guarded automated checks. Earlier unsent drafts retain historical receipt/recovery meanings.
 
 Use `docs/feature-suites/README.md` for the suite registry and Markdown feature intake. Its
