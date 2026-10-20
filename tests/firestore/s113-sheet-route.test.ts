@@ -2758,6 +2758,9 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         contentPresent: boolean;
         errorPresent: boolean;
         cloneParseFailed: boolean;
+        cyclePresent: boolean;
+        savedRevision: number | null;
+        expectedSavedEntryPresent: boolean;
         errorName: string | null;
         errorCode: string | number | null;
         errorCategory: string | null;
@@ -3071,6 +3074,9 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             contentPresent: false,
             errorPresent: false,
             cloneParseFailed: false,
+            cyclePresent: false,
+            savedRevision: null,
+            expectedSavedEntryPresent: false,
             errorName: null,
             errorCode: null,
             errorCategory: null,
@@ -3102,10 +3108,19 @@ describe("S113 mounted operator journey with persisted backend state", () => {
               })) as {
               content?: { htmlBody?: unknown };
               error?: unknown;
+              cycleId?: unknown;
+              saved?: { revision?: unknown };
+              inputs?: { edits?: { responseRequest?: unknown } };
             } | null;
             owningGetParsed("message_preparation", body);
             read.contentPresent = typeof body?.content?.htmlBody === "string";
             read.errorPresent = typeof body?.error === "string";
+            read.cyclePresent = typeof body?.cycleId === "string";
+            read.savedRevision =
+              typeof body?.saved?.revision === "number" ? body.saved.revision : null;
+            read.expectedSavedEntryPresent =
+              body?.inputs?.edits?.responseRequest ===
+              "Please share your preferred next step.";
             read.phase = "completed";
             countMessageRead("completed");
             return response;
@@ -3742,7 +3757,32 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             expect(
               resumed().getByLabelText("Response request (optional wording edit)"),
             ).toHaveValue("Please share your preferred next step."),
-          { timeout: 10_000 },
+          {
+            timeout: 10_000,
+            onTimeout: () => {
+              const regions = screen.queryAllByRole("region", {
+                name: "Tenant offer and response",
+              });
+              const entries = regions.flatMap((region) =>
+                within(region).queryAllByLabelText(
+                  "Response request (optional wording edit)",
+                ),
+              );
+              return new Error(
+                `Saved tenant entry reload diagnostics: ${JSON.stringify({
+                  regionCount: regions.length,
+                  entryCount: entries.length,
+                  expectedEntryPresent: entries.some(
+                    (entry) =>
+                      (entry as HTMLTextAreaElement).value ===
+                      "Please share your preferred next step.",
+                  ),
+                  requests: journeyRequests.snapshot(),
+                  ...mountedReadDiagnostics(),
+                })}`,
+              );
+            },
+          },
         );
         expect(resumed().getByLabelText("Sender name")).toHaveValue("Emulator Staff");
         expect(
