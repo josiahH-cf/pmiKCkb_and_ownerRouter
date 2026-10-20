@@ -3,7 +3,7 @@
 
 # S228 — Diagnose Dotloop renewal-template visibility without opening writes
 
-> Status: COMPLETE — bounded implementation and engineering/release gates verified deployed in run d33c7174; external resource limits and human NOT RUN remain explicit.
+> Status: COMPLETE — carried and independently verified in run 91710ba5 at b8829897; original d33c7174 delivery, external resource limits and human NOT RUN retain their scopes.
 
 **Goal.**
 
@@ -17,8 +17,7 @@ October 15 3:01-8:22 reports an active Lease Renewal loop template visible in Do
 
 October 19 follow-up reads returned account/profiles 200, individual templates 200 with zero
 results, and company templates 403. The provider's exact refusal cause and the reported active
-template's owning visibility remain unestablished. The prepared access-denied diagnostic is in
-bounded repair qualification; no template recreation, supported-profile widening or write-key
+template's owning visibility remain unestablished. The access-denied diagnostic is deployed and verified in run 91710ba5; no template recreation, supported-profile widening or write-key
 activation follows from it.
 
 An existing authorized Admin inspects the managed Dotloop connection and its exact profile/template selection. Diagnostic reads do not save a selection, widen supported profile types or grant either write key. Existing staff read scope remains unchanged; no identity or credential substitute is introduced.
@@ -33,7 +32,7 @@ Use the documented profile/template GET contract and existing managed connection
 
 **Open questions & assumptions.**
 
-Normal managed Dotloop resource refresh succeeded on production. The supported individual
+The dated October 17 normal managed Dotloop resource refresh succeeded on production. The supported individual
 template list is empty; the company-template read failed as unavailable, which does not prove an
 empty company list. No supported renewal selection is saved. The reported active template's owning
 visibility/root cause remains unestablished; no template recreation is requested. The live UI
@@ -126,3 +125,10 @@ Implementation proceeds independently. Fresh external evidence blocks only the n
 **Deletion/merge recommendation.**
 
 Retire this narrative only when remaining acceptance and dependency truth is fully represented by tests and current facts.
+
+## October 20 delivery readback
+
+The scoped follow-up and carried contract are deployed at `b8829897e407dafdad94da0fd560afbcc539e397` / `pmi-kc-app-rmvgkpxub-17a20f3efe73`.
+Both observation checkpoints and all eleven independent readbacks passed; all 371 records matched.
+No live provider business effect or human acceptance was created as proof. Exact qualification,
+failed-attempt history and remaining limits: `docs/evidence/application-delivery-2026-10-20.md`.

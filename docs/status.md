@@ -2,89 +2,79 @@
 
 Updated: 2026-10-20 (UTC).
 
-The scoped October 19 implementation `006798e4` and qualification follow-up `a9a63d7c`
-are published on main. This cumulative repair is not deployed. It repairs typed source holds,
-exact message saving/preview/confirmation and own-attempt recovery, independent source reads
-and truthful freshness, managed Gmail health, Dotloop access/selection refusals and exact packet
-binding. Existing retirement, source-update, client-send/schedule/Resume refusals, non-dispatching
-worker and closed Dotloop keys remain.
+The scoped October 19 implementation `006798e4`, qualification follow-up `a9a63d7c`,
+CI repairs `5015efc1`/`6beddcf9` and bounded diagnostic follow-up `b8829897` are published and
+deployed. Run `91710ba5-db96-4982-8931-366661f3843c` serves `b8829897e407dafdad94da0fd560afbcc539e397` as
+`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% traffic. Full observation passed two checkpoints in
+408,672 ms; all 371 records matched and eleven independent readback sections passed.
+The two-item queue is delivered and empty; its exact permit is consumed.
 
-The real local `bash scripts/verify.sh` passed on the exact `a9a63d7c` tree (manifest `a504f8e6`):
-9,647 unit tests/four existing configuration skips, all 464 backend tests/no skips, quality and
-eight policy/budget checks, zero production audit findings and the default Next 16.3.8 production
-build. All twelve original font hashes matched. All fourteen isolation phases and normal font
-closures passed; twenty result/RSS writers and independent whole process/source closure completed.
-Private evidence retains one exact zero-RSS, absent-child historical namespace-read observation
-without asserting its unknown cause or continuous historical visibility.
+Typed source holds, exact message save/preview/confirmation and own-attempt recovery, truthful
+freshness and independent source reads, managed Gmail health, Dotloop access/selection refusals
+and exact packet binding are deployed. Maintenance retirement, standalone Vendoroo, supported
+renewal source updates, client-send/schedule/Resume refusals, the non-dispatching worker and both
+closed Dotloop write keys remain. Original October 16 commits were already on main; no merge was
+manufactured. See `docs/evidence/application-delivery-2026-10-20.md` for aggregate scope and exact evidence.
 
-All fourteen served HTTP files completed on manifest `5c069851`: 59 passed/four existing
-configuration skips with Firestore; core passed 40 with 23 configuration skips (22 carried and
-one added emulator-only case). The unchanged application-route browser passed Notices and
-Notifications, role restrictions, mobile widths and real Poppins. The compiled component journey
-and complete Focus/Full oracle passed on `64307589`, including exact save retries, autosave/copy,
-source holds, separate creation confirmation, one simulated unsent draft/own-receipt recovery,
-keyboard, unsaved-input, scroll and no-write/navigation checks. Explicit synthetic component
-route/transport adapters do not prove live provider effects, real login or human acceptance.
+The actual `bash scripts/verify.sh` passed on `a9a63d7c` (manifest `a504f8e6`):
+9,647 unit tests with four existing configuration skips, all 464 backend tests with no skips,
+format/lint/typecheck, eight policy/budget checks, zero production audit findings and the default
+Next 16.3.8 production build. All twelve original font hashes matched. Final exact-main CI
+`39410047957` passed all five jobs at `b8829897`; its unit/backend counts match the canonical gate.
+All 1,212 runtime files match the qualified canonical, HTTP and browser source snapshots byte-for-byte.
+Later changes are confined to CI, documentation and bounded test diagnostics.
 
-Exact-main CI run `39404097093` failed before dependencies or tests: the default shallow Actions
-checkout produced an incomplete Git source bundle. The scoped CI repair fetches full history in
-all four lanes and preserves disabled credential persistence. The unchanged public staging driver
-failed on an actual shallow clone and passed after full history was fetched. Fresh green CI for
-the repaired exact main head remains required before release admission; no failed result is relabeled.
+An initial assurance attempt paused with a preserved generic gate failure. Separate unchanged
+read-only checks passed, then supported same-run resume passed the full gate without another build
+or Scheduler invocation. The original cause remains unestablished; no failure was relabeled.
+Human/physical-phone acceptance remains NOT RUN; Editor browser remains not_run under the approved
+Admin-only policy. External resource-dependent outputs retain their actual input/activation holds.
 
-The owner's October 20 instruction authorizes green publication and guarded delivery without
-phase-only consent. Approved CLI, ADC principal and separate guarded Admin identity reads passed
-on October 20; preserve their current stores. Admission still collects fresh authentication,
-billing/cost and environment prerequisites. A7 is the last verified production release at 100%;
-its consumed permit cannot admit this follow-up. The two queued items remain until proved delivery.
+## Verified delivery
 
-The October 17 release below remains the last verified deployment.
+Run `91710ba5-db96-4982-8931-366661f3843c` delivered the scoped S228/S229 follow-up at
+`b8829897e407dafdad94da0fd560afbcc539e397` / `pmi-kc-app-rmvgkpxub-17a20f3efe73` with 100% canonical traffic.
+One application build `d6f49c25-1ada-4a63-86c5-03649b5b9535` succeeded at 2026-10-20T11:11:48.400974Z.
+Candidate receipt `4eb6c7f9-39bb-497a-8ad9-52956042722c` issued 11:50:56.504Z;
+receipt-bound promotion verified 11:51:17.974Z. Observation passed two checkpoints in 408,672 ms
+against the 300,000 ms minimum and 480,000 ms deadline. All 371 source/projected/rendered records
+matched with zero discrepancies, candidate 5xx or unresolved effects. All eleven independent
+readback sections matched at 2026-10-20T11:59:01Z. The checkpoint is complete and permit consumed.
+Tag `cand-rmvgkpxub-17a20f3efe73`; fingerprint
+`sha256:53715974ba3d26ffd6bb2adc2bbb9fa8bba92b25f0c436332b1218d7eea6165f`.
 
-Run `d33c7174-23b1-4126-ac11-657738b1864f` released S227-S229 plus the scoped Notifications latency repair at
-`a7bce0981badc7523a6498949b6ea5f2effb198e` / `pmi-kc-app-rmvc9kmq6-1c2699db16f8` with 100% canonical traffic. One application build
-`0983c589-af35-4219-9f5f-1bc1018f4043` succeeded at 2026-10-17T10:50:56.561207Z. Candidate receipt
-`5b8ba2f6-8531-4936-86d6-5d01d85db110` issued 2026-10-17T10:58:13.931Z; promotion verified
-2026-10-17T10:58:38.332Z. Full observation passed two checkpoints in 434,351 ms
-against the 300,000 ms minimum and 480,000 ms deadline. All 318 source/projected/rendered
-records matched with zero discrepancies, candidate 5xx or unresolved effects. Eleven independent
-readback sections matched at 2026-10-17T11:06:16Z. The checkpoint is complete and permit consumed.
-Tag `cand-rmvc9kmq6-1c2699db16f8`; fingerprint `sha256:dcbcdd544dd0c6d4d9a294748997aa324aaf2a09008dc1baf0c2aa060dbb1095`.
+Captured predecessor: `pmi-kc-app-rmvc9kmq6-1c2699db16f8` / `a7bce0981badc7523a6498949b6ea5f2effb198e`, Sheet=true.
+Run-bound recovery `pmi-kc-app-recovery-91710ba5db964982`, receipt
+`1ef5e0f7-867b-429d-817a-ea75038c9b9d`, reference
+`sha256:e7d3f67e84ddfb3d74fe319d84bb092677e3b6225ee235880af965828fd58ca4`, preserves
+the actual predecessor image/configuration and Sheet=true. Original and target fingerprints are
+`sha256:dcbcdd544dd0c6d4d9a294748997aa324aaf2a09008dc1baf0c2aa060dbb1095`.
+The separately captured prior tag `cand-rmvc9kmq6-1c2699db16f8` was bound to the actual A7 revision;
+canonical traffic was not substituted for that binding. No traffic rollback occurred in this run.
 
-Captured predecessor: `pmi-kc-app-recovery-a97c579cf11b4d74` / `eb5d35991c3ec128a102e4483d3779af16106821`, Sheet=true.
-Run-bound recovery `pmi-kc-app-recovery-d33c717423b14126`, receipt `07b55751-a159-4b01-bb4c-068178f8815b`, reference
-`sha256:d376fa106048928a155fc69da5d8588071a1f9c0e45fb3c3ad83a834d418042c`, preserves that actual image/configuration. Its fingerprint
-is `sha256:6e57b2a65a60f8e6a218c0b4b0e4cb8db791bad0a8a45a2322457a030393da2c`. The previously authorized tag was separately captured
-as bound to `pmi-kc-app-rmvc7c5lz-ec2410dd001a`; canonical serving traffic was not substituted for it.
-No traffic rollback was used in this successful run.
+All 54 environment keys match the captured A7 predecessor except APP_COMMIT_SHA. Runtime identity,
+both exact eleven-Space maps, five secret bindings, resources, concurrency and timeout are unchanged.
+Production/Live, Demo=false, Sheet=true, Dotloop client-secret version 1 and RentCast allowance 50
+are verified. Registry readback retains 48 keys, 18 open/30 closed; operation refusal remains
+separate from activation metadata. The managed annual GET readiness probe passed and was restored
+PAUSED; same-run resume reused its verified receipt.
 
-The complete corrected-tree bash scripts/verify.sh gate passed 9,590 unit tests across 1,022
-files with no local skips, all 455 backend tests across 79 files, lint/typecheck/format, required
-policy checks, production build and zero production audit findings. The 79 existing lint warnings
-remain. All five exact-main CI jobs passed in run 39024854536 (CI unit: 9,586 passed/four existing
-configuration skips; backend: 455 passed). Fresh served core E2E on a7bce098 passed 39 tests with
-22 existing configuration skips. Canonical verification used native WSL Node 24/Java 21; the
-release controller used native Node 22.23.2 and snap gcloud.
+## Qualification and limits
 
-Production/Live, the managed runtime service account, eleven Spaces, Demo=false, Sheet=true,
-five existing secret bindings (Dotloop client secret version 1), RentCast allowance 50 and existing
-cost/security controls are verified. All 54 environment keys match the captured predecessor except
-APP_COMMIT_SHA; the five secret bindings and runtime identity match. Both workers' captured target
-fields, states and schedules match; the annual GET probe is restored PAUSED. Registry metadata remains
-48 exact keys, 18 open/30 closed; operation refusal overrides old send/maintenance metadata.
-Editor browser coverage remains not_run under owner-admin-2026-09-10; backend restrictions remain.
-Human acceptance and physical-phone checks: NOT RUN — no human observer.
+All fourteen served HTTP files passed 59 tests with four existing configuration skips on `5c069851`.
+Core passed 40 with 23 skips: 22 carried configuration skips and one added emulator-only case.
+Unchanged-route Chromium checks and compiled owning-component/Focus-Full checks passed on their
+recorded source snapshots; all runtime bytes match this deployed candidate. Fixtures and simulated
+provider effects do not establish real customer/provider completion.
 
-Normal managed Dotloop resource refresh succeeded on production. The supported individual
-template list is empty; the company-template read failed as unavailable, which does not prove an
-empty company list. No supported renewal selection is saved. The reported active template's owning
-visibility/root cause remains unestablished; no template recreation is requested. The live UI
-distinguishes failed and empty reads and excludes unsupported profiles from selection. Both Dotloop
-write keys remain closed. Gmail's provider profile read succeeded for the expected managed mailbox;
-sync health reports degraded. No customer draft/send, loop, upload, signature, paid comp request or
-production test record was verification proof. Normal connection refresh updates only its existing
-credential/observation metadata; it is separate from guarded read-only release assurance.
+The latest dated managed Dotloop read found individual templates empty, company templates denied
+with contents unknown, and no supported saved selection. Owning visibility/root cause remains
+unestablished. Approved content/maps/packet inputs and exact activations hold only dependent output.
+The dated Gmail profile read matched the managed mailbox; it does not establish future sync health.
+No customer draft, send, provider business write, signature, paid comp or production test record
+was verification proof. Human and physical-phone acceptance remain NOT RUN.
 
-The original three-item queue was delivered. The scoped follow-up remains queued in
-docs/loop-state.md. Older READY proposals and parallel projects are not resumed. Failed
-first-attempt evidence remains failed and immutable. See
-docs/evidence/application-delivery-2026-10-17.md for aggregate changes and actual evidence scopes.
+Original implementation `c99659d5`/`15648c0e` and October 17 A7 delivery are carried from the captured
+`eb5d35991c3ec128a102e4483d3779af16106821` baseline. Their immutable history remains in
+`docs/evidence/application-delivery-2026-10-17.md`. Current aggregate evidence is
+`docs/evidence/application-delivery-2026-10-20.md`. Later documentation-only closure changes no runtime assets.

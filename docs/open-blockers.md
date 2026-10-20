@@ -1,6 +1,6 @@
 # Unblock packet
 
-Last reconciled: 2026-10-20 (scoped local qualification; guarded delivery remains agent-owned).
+Last reconciled: 2026-10-20 (guarded delivery and independent production verification complete).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only its named effect or dependent release phase; independent
@@ -23,14 +23,14 @@ substitute value, identifier, credential or human verdict to clear a hold.
 
 ## Current hold and historical program dependencies
 
-- **Bounded repair delivery.** Implementation and qualification are published at `a9a63d7c`.
-  The actual local canonical gate passed 9,647 units/four existing skips and all 464 backend
-  tests, required checks and production build. HTTP/core/browser source scopes are recorded in
-  docs/facts.md. First exact-main CI failed before tests because checkout history was shallow;
-  the full-history CI repair passed an actual staging counterexample. Fresh exact-head green CI
-  and guarded deployment remain agent-owned. No phase-only approval is needed; A7 remains the
-  last verified production delivery.
-- **B-DL2/B-DL3 — October20 managed readback.** Account/profile reads succeeded; the
+- **Bounded repair delivery — resolved October 20.** Run91710ba5 delivered b8829897 at 100%
+  traffic after exact green CI 39410047957, full 408,672 ms/two-checkpoint observation and eleven
+  independent readbacks. All 371 records matched; exact 54-key environment and Registry preservation
+  reads passed. The two-item queue is delivered/empty and permit consumed. An initial assurance
+  gate failure and all earlier failed attempts remain immutable; supported same-run resume passed
+  the full unchanged gate after separate read-only diagnosis. No owner action remains for delivery.
+  Evidence: `docs/evidence/application-delivery-2026-10-20.md`.
+- **B-DL2/B-DL3 — October 20 managed readback.** Account/profile reads succeeded; the
   individual template list returned200/count0, while company-template access returned403/access_denied.
   Its exact permission/ownership cause is unknown. No supported selection, current approved
   artifact catalog/charge policy, source mapping or saved packet state was found. Existing
@@ -47,8 +47,8 @@ substitute value, identifier, credential or human verdict to clear a hold.
   remains unestablished; do not recreate it. Both write keys remain closed. Normal refresh updates
   credential/observation metadata without a provider business effect.
 - **B-COMMUNICATIONS-RUNTIME.** The candidate managed GET readiness passed and restored its
-  annual probe PAUSED; candidate code refuses sends/schedules/Resume and worker dispatch. Run d33c7174 verified production delivery after the first failed observation/verified rollback. Gmail reports the
-  expected managed mailbox connected with degraded sync health; no subscription repair, customer
+  annual probe PAUSED; candidate code refuses sends/schedules/Resume and worker dispatch. Run91710ba5 verified the current cumulative production delivery; the earlier d33c7174 record and first failed observation/verified rollback retain historical scope. The dated Gmail profile read matched the
+  expected managed mailbox; future sync freshness is not inferred; no subscription repair, customer
   draft or send was proof. The earlier October 10 worker/key receipt retains historical scope.
 
 - **B-VENDOROO-CONTRACT — retired by October 15 direction.** Custom maintenance and Vendoroo

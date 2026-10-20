@@ -60,41 +60,33 @@ Updated: 2026-10-20.
 - E2E is bounded and must terminate on setup failure.
 - A release smoke must match the exact commit and revision.
 
-The scoped October 19 implementation `006798e4` and qualification follow-up `a9a63d7c`
-are published on main. This cumulative repair is not deployed. It repairs typed source holds,
-exact message saving/preview/confirmation and own-attempt recovery, independent source reads
-and truthful freshness, managed Gmail health, Dotloop access/selection refusals and exact packet
-binding. Existing retirement, source-update, client-send/schedule/Resume refusals, non-dispatching
-worker and closed Dotloop keys remain.
+The scoped October 19 implementation `006798e4`, qualification follow-up `a9a63d7c`,
+CI repairs `5015efc1`/`6beddcf9` and bounded diagnostic follow-up `b8829897` are published and
+deployed. Run `91710ba5-db96-4982-8931-366661f3843c` serves `b8829897e407dafdad94da0fd560afbcc539e397` as
+`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% traffic. Full observation passed two checkpoints in
+408,672 ms; all 371 records matched and eleven independent readback sections passed.
+The two-item queue is delivered and empty; its exact permit is consumed.
 
-The real local `bash scripts/verify.sh` passed on the exact `a9a63d7c` tree (manifest `a504f8e6`):
-9,647 unit tests/four existing configuration skips, all 464 backend tests/no skips, quality and
-eight policy/budget checks, zero production audit findings and the default Next 16.3.8 production
-build. All twelve original font hashes matched. All fourteen isolation phases and normal font
-closures passed; twenty result/RSS writers and independent whole process/source closure completed.
-Private evidence retains one exact zero-RSS, absent-child historical namespace-read observation
-without asserting its unknown cause or continuous historical visibility.
+Typed source holds, exact message save/preview/confirmation and own-attempt recovery, truthful
+freshness and independent source reads, managed Gmail health, Dotloop access/selection refusals
+and exact packet binding are deployed. Maintenance retirement, standalone Vendoroo, supported
+renewal source updates, client-send/schedule/Resume refusals, the non-dispatching worker and both
+closed Dotloop write keys remain. Original October 16 commits were already on main; no merge was
+manufactured. See `docs/evidence/application-delivery-2026-10-20.md` for aggregate scope and exact evidence.
 
-All fourteen served HTTP files completed on manifest `5c069851`: 59 passed/four existing
-configuration skips with Firestore; core passed 40 with 23 configuration skips (22 carried and
-one added emulator-only case). The unchanged application-route browser passed Notices and
-Notifications, role restrictions, mobile widths and real Poppins. The compiled component journey
-and complete Focus/Full oracle passed on `64307589`, including exact save retries, autosave/copy,
-source holds, separate creation confirmation, one simulated unsent draft/own-receipt recovery,
-keyboard, unsaved-input, scroll and no-write/navigation checks. Explicit synthetic component
-route/transport adapters do not prove live provider effects, real login or human acceptance.
+The actual `bash scripts/verify.sh` passed on `a9a63d7c` (manifest `a504f8e6`):
+9,647 unit tests with four existing configuration skips, all 464 backend tests with no skips,
+format/lint/typecheck, eight policy/budget checks, zero production audit findings and the default
+Next 16.3.8 production build. All twelve original font hashes matched. Final exact-main CI
+`39410047957` passed all five jobs at `b8829897`; its unit/backend counts match the canonical gate.
+All 1,212 runtime files match the qualified canonical, HTTP and browser source snapshots byte-for-byte.
+Later changes are confined to CI, documentation and bounded test diagnostics.
 
-Exact-main CI run `39404097093` failed before dependencies or tests: the default shallow Actions
-checkout produced an incomplete Git source bundle. The scoped CI repair fetches full history in
-all four lanes and preserves disabled credential persistence. The unchanged public staging driver
-failed on an actual shallow clone and passed after full history was fetched. Fresh green CI for
-the repaired exact main head remains required before release admission; no failed result is relabeled.
-
-The owner's October 20 instruction authorizes green publication and guarded delivery without
-phase-only consent. Approved CLI, ADC principal and separate guarded Admin identity reads passed
-on October 20; preserve their current stores. Admission still collects fresh authentication,
-billing/cost and environment prerequisites. A7 is the last verified production release at 100%;
-its consumed permit cannot admit this follow-up. The two queued items remain until proved delivery.
+An initial assurance attempt paused with a preserved generic gate failure. Separate unchanged
+read-only checks passed, then supported same-run resume passed the full gate without another build
+or Scheduler invocation. The original cause remains unestablished; no failure was relabeled.
+Human/physical-phone acceptance remains NOT RUN; Editor browser remains not_run under the approved
+Admin-only policy. External resource-dependent outputs retain their actual input/activation holds.
 
 `scripts/isolated-verify.py` is the Linux engineering entry point. It stages only public Git
 objects and explicitly named source files into a fresh owned checkout with physical dependencies

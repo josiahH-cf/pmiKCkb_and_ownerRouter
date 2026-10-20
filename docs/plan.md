@@ -4,106 +4,67 @@ Updated: 2026-10-20 (UTC).
 
 ## Outcome
 
-Complete the explicitly authorized October 19 repair through qualification, green mainline
-and the existing guarded deployment workflow. Preserve maintenance retirement, standalone
-Vendoroo, operation-level send/schedule/Resume refusals, the non-dispatching worker and both
-closed Dotloop write keys.
-
-The scoped October 19 implementation `006798e4` and qualification follow-up `a9a63d7c`
-are published on main. This cumulative repair is not deployed. It repairs typed source holds,
-exact message saving/preview/confirmation and own-attempt recovery, independent source reads
-and truthful freshness, managed Gmail health, Dotloop access/selection refusals and exact packet
-binding. Existing retirement, source-update, client-send/schedule/Resume refusals, non-dispatching
-worker and closed Dotloop keys remain.
-
-The real local `bash scripts/verify.sh` passed on the exact `a9a63d7c` tree (manifest `a504f8e6`):
-9,647 unit tests/four existing configuration skips, all 464 backend tests/no skips, quality and
-eight policy/budget checks, zero production audit findings and the default Next 16.3.8 production
-build. All twelve original font hashes matched. All fourteen isolation phases and normal font
-closures passed; twenty result/RSS writers and independent whole process/source closure completed.
-Private evidence retains one exact zero-RSS, absent-child historical namespace-read observation
-without asserting its unknown cause or continuous historical visibility.
-
-All fourteen served HTTP files completed on manifest `5c069851`: 59 passed/four existing
-configuration skips with Firestore; core passed 40 with 23 configuration skips (22 carried and
-one added emulator-only case). The unchanged application-route browser passed Notices and
-Notifications, role restrictions, mobile widths and real Poppins. The compiled component journey
-and complete Focus/Full oracle passed on `64307589`, including exact save retries, autosave/copy,
-source holds, separate creation confirmation, one simulated unsent draft/own-receipt recovery,
-keyboard, unsaved-input, scroll and no-write/navigation checks. Explicit synthetic component
-route/transport adapters do not prove live provider effects, real login or human acceptance.
-
-Exact-main CI run `39404097093` failed before dependencies or tests: the default shallow Actions
-checkout produced an incomplete Git source bundle. The scoped CI repair fetches full history in
-all four lanes and preserves disabled credential persistence. The unchanged public staging driver
-failed on an actual shallow clone and passed after full history was fetched. Fresh green CI for
-the repaired exact main head remains required before release admission; no failed result is relabeled.
-
-The owner's October 20 instruction authorizes green publication and guarded delivery without
-phase-only consent. Approved CLI, ADC principal and separate guarded Admin identity reads passed
-on October 20; preserve their current stores. Admission still collects fresh authentication,
-billing/cost and environment prerequisites. A7 is the last verified production release at 100%;
-its consumed permit cannot admit this follow-up. The two queued items remain until proved delivery.
-
-S227-S229 and the Notifications repair were delivered October 17. Only this scoped follow-up
-is queued for a fresh release; no older or parallel program is resumed.
+The explicitly authorized application direction and scoped follow-up are verified deployed.
+Maintenance retirement, standalone Vendoroo, renewal usability/source contracts and workflow-linked
+unsent drafting are retained. Client sends/schedules/Resume and worker dispatch remain refused;
+both Dotloop write keys remain closed. The release queue is delivered and empty.
 
 ## Current implementation baseline
 
-Run `d33c7174-23b1-4126-ac11-657738b1864f` released S227-S229 plus the scoped Notifications latency repair at
-`a7bce0981badc7523a6498949b6ea5f2effb198e` / `pmi-kc-app-rmvc9kmq6-1c2699db16f8` with 100% canonical traffic. One application build
-`0983c589-af35-4219-9f5f-1bc1018f4043` succeeded at 2026-10-17T10:50:56.561207Z. Candidate receipt
-`5b8ba2f6-8531-4936-86d6-5d01d85db110` issued 2026-10-17T10:58:13.931Z; promotion verified
-2026-10-17T10:58:38.332Z. Full observation passed two checkpoints in 434,351 ms
-against the 300,000 ms minimum and 480,000 ms deadline. All 318 source/projected/rendered
-records matched with zero discrepancies, candidate 5xx or unresolved effects. Eleven independent
-readback sections matched at 2026-10-17T11:06:16Z. The checkpoint is complete and permit consumed.
-Tag `cand-rmvc9kmq6-1c2699db16f8`; fingerprint `sha256:dcbcdd544dd0c6d4d9a294748997aa324aaf2a09008dc1baf0c2aa060dbb1095`.
+Run `91710ba5-db96-4982-8931-366661f3843c` delivered the scoped S228/S229 follow-up at
+`b8829897e407dafdad94da0fd560afbcc539e397` / `pmi-kc-app-rmvgkpxub-17a20f3efe73` with 100% canonical traffic.
+One application build `d6f49c25-1ada-4a63-86c5-03649b5b9535` succeeded at 2026-10-20T11:11:48.400974Z.
+Candidate receipt `4eb6c7f9-39bb-497a-8ad9-52956042722c` issued 11:50:56.504Z;
+receipt-bound promotion verified 11:51:17.974Z. Observation passed two checkpoints in 408,672 ms
+against the 300,000 ms minimum and 480,000 ms deadline. All 371 source/projected/rendered records
+matched with zero discrepancies, candidate 5xx or unresolved effects. All eleven independent
+readback sections matched at 2026-10-20T11:59:01Z. The checkpoint is complete and permit consumed.
+Tag `cand-rmvgkpxub-17a20f3efe73`; fingerprint
+`sha256:53715974ba3d26ffd6bb2adc2bbb9fa8bba92b25f0c436332b1218d7eea6165f`.
 
-Captured predecessor: `pmi-kc-app-recovery-a97c579cf11b4d74` / `eb5d35991c3ec128a102e4483d3779af16106821`, Sheet=true.
-Run-bound recovery `pmi-kc-app-recovery-d33c717423b14126`, receipt `07b55751-a159-4b01-bb4c-068178f8815b`, reference
-`sha256:d376fa106048928a155fc69da5d8588071a1f9c0e45fb3c3ad83a834d418042c`, preserves that actual image/configuration. Its fingerprint
-is `sha256:6e57b2a65a60f8e6a218c0b4b0e4cb8db791bad0a8a45a2322457a030393da2c`. The previously authorized tag was separately captured
-as bound to `pmi-kc-app-rmvc7c5lz-ec2410dd001a`; canonical serving traffic was not substituted for it.
-No traffic rollback was used in this successful run.
+The actual `bash scripts/verify.sh` passed on `a9a63d7c` (manifest `a504f8e6`):
+9,647 unit tests with four existing configuration skips, all 464 backend tests with no skips,
+format/lint/typecheck, eight policy/budget checks, zero production audit findings and the default
+Next 16.3.8 production build. All twelve original font hashes matched. Final exact-main CI
+`39410047957` passed all five jobs at `b8829897`; its unit/backend counts match the canonical gate.
+All 1,212 runtime files match the qualified canonical, HTTP and browser source snapshots byte-for-byte.
+Later changes are confined to CI, documentation and bounded test diagnostics.
 
-The complete corrected-tree bash scripts/verify.sh gate passed 9,590 unit tests across 1,022
-files with no local skips, all 455 backend tests across 79 files, lint/typecheck/format, required
-policy checks, production build and zero production audit findings. The 79 existing lint warnings
-remain. All five exact-main CI jobs passed in run 39024854536 (CI unit: 9,586 passed/four existing
-configuration skips; backend: 455 passed). Fresh served core E2E on a7bce098 passed 39 tests with
-22 existing configuration skips. Canonical verification used native WSL Node 24/Java 21; the
-release controller used native Node 22.23.2 and snap gcloud.
+Captured predecessor is `pmi-kc-app-rmvc9kmq6-1c2699db16f8` / `a7bce0981badc7523a6498949b6ea5f2effb198e`;
+run-bound recovery is `pmi-kc-app-recovery-91710ba5db964982`, Sheet=true. All 54 environment keys
+match the predecessor except APP_COMMIT_SHA, with unchanged identity, maps and secret bindings.
+The aggregate comparison starts at `eb5d35991c3ec128a102e4483d3779af16106821`; original October 16
+commits were already on main and their A7 delivery remains dated history.
 
 ## Authority and closed decisions
 
-The prepared October 16 instruction carries this scope through checks, green mainline and existing
-gated delivery without phase-only consent. It narrows the October 9 Send/Schedule contract: current
-source refuses client sends/schedules at operation admission, preserves unsent drafting and original
-attempts/receipts, and changes no protected Registry activation metadata. Both Dotloop write keys
-stay closed. No customer draft, send, loop or upload is verification proof. Normal supported renewal
-source updates retain their contracts; Sheet still refuses row deletion and historical restore.
+The prepared October 16 instruction and October 20 continuation carried this exact scope through
+qualification, green publication, diagnosed recovery and existing guarded delivery without phase-only
+consent. S227-S229 are delivered; no older READY proposal or parallel program restarts from a row.
+Current operation admission refuses client sends/schedules/Resume and worker dispatch while retaining
+permitted unsent drafts and original attempts/receipts. Protected activation metadata was unchanged.
+Normal Sheet append/recognized-field updates retain exact human confirmation, claims and readbacks;
+the application refuses row deletion and historical restore. Both Dotloop write keys remain closed.
 
-Old maintenance/Vendoroo integration and native maintenance-phone work cannot restart from READY.
-Acquisition/native-answering contracts are outside this run. S96 - safe connector disconnect and
-reconciliation and S87 - final six-cohort product-wide content reconciliation remain preservation
-owners. Completed S97-S99 and S100 chat proofs are not rerun. Remaining maintenance resident-draft
-proof is retired from this execution; S36 has no new execution grant.
+S96 - safe connector disconnect and reconciliation and S87 - final six-cohort product-wide content
+reconciliation remain preservation owners. Completed S97-S99 and S100 chat proofs are not rerun.
+Remaining maintenance proof is retired from this execution; S36 has no new execution grant.
 
 ## Canonical closure sequence
 
-1. Implementation c99659d5/15648c0e was already on main; no manufactured merge.
-2. Correct queue/runbook preparation 85b7e03c and diagnosed parallel-read repair a7bce098 published normally.
-3. Complete corrected-tree qualification, fresh core E2E and exact-head CI passed.
-4. Fresh guarded run d33c7174 passed recovery, one build, zero-traffic candidate assurance,
-   receipt-bound promotion, full observation and independent readbacks.
-5. Current documentation closes this delivered scope; its later main commit changes no runtime assets.
+1. Confirm original implementation and documentation ancestry; no manufactured merge.
+2. Publish the scoped implementation/qualification and necessary CI/diagnostic repairs normally.
+3. Complete the actual canonical, HTTP/browser and exact-main CI gates with their recorded scopes.
+4. Run one guarded release, preserve its initial assurance failure, diagnose with unchanged read-only
+   components and resume the same pinned candidate through the full gate, promotion and observation.
+5. Complete all eleven independent readbacks plus exact environment/Registry preservation reads.
+6. Close current documentation and the queue, run required documentation checks, and publish normally.
+   A later documentation-only main commit does not require a runtime deployment.
 
 ## Per-suite delivery rule
 
-ALL_GATES_GREEN applies to the actual engineering/release gates above. Human and physical-phone
-verdicts remain NOT RUN. Template/selection-dependent Dotloop output remains unavailable and both
-write keys stay closed; Gmail reports degraded sync health despite a successful provider profile
-read. These limits are separate from delivered diagnostic/preservation code. Failed a97c579c and
-its verified rollback remain immutable; no receipt or permit transfers between runs. Current
-terminal state is in docs/loop-state.md; exact external holds are in docs/open-blockers.md.
+ALL_GATES_GREEN describes actual engineering/release gates. Human and physical-phone verdicts remain
+NOT RUN; Editor browser remains not_run under the approved Admin-only policy. Dotloop template,
+selection, approved content/maps and activation holds affect only dependent output. Dated Gmail
+metadata is not future freshness. All failed attempts, claims and receipts retain their actual
+meaning. Current terminal state is in docs/loop-state.md; external limits are in docs/open-blockers.md.

@@ -3,17 +3,16 @@
 
 # S229 — Preserve renewal usability and enforce unsent workflow communications
 
-> Status: COMPLETE — bounded implementation and engineering/release gates verified deployed in run d33c7174; external resource limits and human NOT RUN remain explicit.
+> Status: COMPLETE — carried and independently verified in run 91710ba5 at b8829897; original d33c7174 delivery, external resource limits and human NOT RUN retain their scopes.
 
 **Goal.**
 
-The separately approved October 19 follow-up restores the existing governed unsent-draft entry
-point and original-receipt recovery, preserves editable wording during source holds, and retains
-actual source freshness for decisions. Focused application proof passed; later refusal-classification
-and CI-isolation changes still await full qualification and integration. A later canonical
-snapshot passed install/audit/format/lint/typecheck, but its whole unit inventory was interrupted
-by the shared deadline; later inventories/build were not reached. This follow-up is not
-deployed and preserves the Send/Schedule/Resume refusal and non-dispatching worker.
+The approved October 19 follow-up is deployed at b8829897: exact governed unsent-draft
+preview/confirmation and original-receipt recovery, editable wording during typed source holds,
+truthful freshness and independent reads. Complete canonical verification and exact-main CI passed;
+run 91710ba5 passed recovery, one build, assurance, promotion, full observation and independent
+readbacks. Send/Schedule/Resume and worker dispatch remain refused. Prior failed/interrupted
+attempts retain their exact evidence; none is relabeled a pass.
 
 Staff retain Focus/Full renewal work, readable facts, copy controls, saved working values and governed Gmail drafts while this task performs no client sends or schedules.
 
@@ -35,7 +34,7 @@ Follow the latest explicit task's reads/unsent-draft limit through an operation-
 
 **Open questions & assumptions.**
 
-Normal managed Dotloop resource refresh succeeded on production. The supported individual
+The dated October 17 normal managed Dotloop resource refresh succeeded on production. The supported individual
 template list is empty; the company-template read failed as unavailable, which does not prove an
 empty company list. No supported renewal selection is saved. The reported active template's owning
 visibility/root cause remains unestablished; no template recreation is requested. The live UI
@@ -128,3 +127,10 @@ Implementation proceeds independently. Fresh external evidence blocks only the n
 **Deletion/merge recommendation.**
 
 Retire this narrative only when remaining acceptance and dependency truth is fully represented by tests and current facts.
+
+## October 20 delivery readback
+
+The scoped follow-up and carried contract are deployed at `b8829897e407dafdad94da0fd560afbcc539e397` / `pmi-kc-app-rmvgkpxub-17a20f3efe73`.
+Both observation checkpoints and all eleven independent readbacks passed; all 371 records matched.
+No live provider business effect or human acceptance was created as proof. Exact qualification,
+failed-attempt history and remaining limits: `docs/evidence/application-delivery-2026-10-20.md`.

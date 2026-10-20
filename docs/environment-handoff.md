@@ -2,47 +2,41 @@
 
 Updated 2026-10-20 (UTC).
 
-The scoped October 19 implementation `006798e4` and qualification follow-up `a9a63d7c`
-are published on main. This cumulative repair is not deployed. It repairs typed source holds,
-exact message saving/preview/confirmation and own-attempt recovery, independent source reads
-and truthful freshness, managed Gmail health, Dotloop access/selection refusals and exact packet
-binding. Existing retirement, source-update, client-send/schedule/Resume refusals, non-dispatching
-worker and closed Dotloop keys remain.
+The scoped October 19 implementation `006798e4`, qualification follow-up `a9a63d7c`,
+CI repairs `5015efc1`/`6beddcf9` and bounded diagnostic follow-up `b8829897` are published and
+deployed. Run `91710ba5-db96-4982-8931-366661f3843c` serves `b8829897e407dafdad94da0fd560afbcc539e397` as
+`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% traffic. Full observation passed two checkpoints in
+408,672 ms; all 371 records matched and eleven independent readback sections passed.
+The two-item queue is delivered and empty; its exact permit is consumed.
 
-The real local `bash scripts/verify.sh` passed on the exact `a9a63d7c` tree (manifest `a504f8e6`):
-9,647 unit tests/four existing configuration skips, all 464 backend tests/no skips, quality and
-eight policy/budget checks, zero production audit findings and the default Next 16.3.8 production
-build. All twelve original font hashes matched. All fourteen isolation phases and normal font
-closures passed; twenty result/RSS writers and independent whole process/source closure completed.
-Private evidence retains one exact zero-RSS, absent-child historical namespace-read observation
-without asserting its unknown cause or continuous historical visibility.
+Typed source holds, exact message save/preview/confirmation and own-attempt recovery, truthful
+freshness and independent source reads, managed Gmail health, Dotloop access/selection refusals
+and exact packet binding are deployed. Maintenance retirement, standalone Vendoroo, supported
+renewal source updates, client-send/schedule/Resume refusals, the non-dispatching worker and both
+closed Dotloop write keys remain. Original October 16 commits were already on main; no merge was
+manufactured. See `docs/evidence/application-delivery-2026-10-20.md` for aggregate scope and exact evidence.
 
-All fourteen served HTTP files completed on manifest `5c069851`: 59 passed/four existing
-configuration skips with Firestore; core passed 40 with 23 configuration skips (22 carried and
-one added emulator-only case). The unchanged application-route browser passed Notices and
-Notifications, role restrictions, mobile widths and real Poppins. The compiled component journey
-and complete Focus/Full oracle passed on `64307589`, including exact save retries, autosave/copy,
-source holds, separate creation confirmation, one simulated unsent draft/own-receipt recovery,
-keyboard, unsaved-input, scroll and no-write/navigation checks. Explicit synthetic component
-route/transport adapters do not prove live provider effects, real login or human acceptance.
+The actual `bash scripts/verify.sh` passed on `a9a63d7c` (manifest `a504f8e6`):
+9,647 unit tests with four existing configuration skips, all 464 backend tests with no skips,
+format/lint/typecheck, eight policy/budget checks, zero production audit findings and the default
+Next 16.3.8 production build. All twelve original font hashes matched. Final exact-main CI
+`39410047957` passed all five jobs at `b8829897`; its unit/backend counts match the canonical gate.
+All 1,212 runtime files match the qualified canonical, HTTP and browser source snapshots byte-for-byte.
+Later changes are confined to CI, documentation and bounded test diagnostics.
 
-Exact-main CI run `39404097093` failed before dependencies or tests: the default shallow Actions
-checkout produced an incomplete Git source bundle. The scoped CI repair fetches full history in
-all four lanes and preserves disabled credential persistence. The unchanged public staging driver
-failed on an actual shallow clone and passed after full history was fetched. Fresh green CI for
-the repaired exact main head remains required before release admission; no failed result is relabeled.
-
-The owner's October 20 instruction authorizes green publication and guarded delivery without
-phase-only consent. Approved CLI, ADC principal and separate guarded Admin identity reads passed
-on October 20; preserve their current stores. Admission still collects fresh authentication,
-billing/cost and environment prerequisites. A7 is the last verified production release at 100%;
-its consumed permit cannot admit this follow-up. The two queued items remain until proved delivery.
+An initial assurance attempt paused with a preserved generic gate failure. Separate unchanged
+read-only checks passed, then supported same-run resume passed the full gate without another build
+or Scheduler invocation. The original cause remains unestablished; no failure was relabeled.
+Human/physical-phone acceptance remains NOT RUN; Editor browser remains not_run under the approved
+Admin-only policy. External resource-dependent outputs retain their actual input/activation holds.
 
 The completed October 16 operations instruction and AGENTS.md continuity carried that authorized scope
 through necessary Cloud Build/Cloud Run actions, diagnosed/verified repairs, resumes/replacements,
 promotion, receipt-bound recovery and documentation closure. Attempt counts and phase transitions
 do not require another consent. Technical gates, real inputs and exact effect boundaries remain.
 Failed attempts and consumed permits retain immutable outcomes.
+
+## Previous October 17 delivery (historical)
 
 Run `d33c7174-23b1-4126-ac11-657738b1864f` released S227-S229 plus the scoped Notifications latency repair at
 `a7bce0981badc7523a6498949b6ea5f2effb198e` / `pmi-kc-app-rmvc9kmq6-1c2699db16f8` with 100% canonical traffic. One application build
@@ -99,8 +93,8 @@ Five confirmed adversarial findings are repaired and verified deployed: lifecycl
 | Region                    | `us-central1`                                                                      |
 | Cloud Run service         | `pmi-kc-app`                                                                       |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`                                       |
-| Serving revision          | `pmi-kc-app-rmvc9kmq6-1c2699db16f8`                                                |
-| Serving commit            | `a7bce0981badc7523a6498949b6ea5f2effb198e`                                         |
+| Serving revision          | `pmi-kc-app-rmvgkpxub-17a20f3efe73`                                                |
+| Serving commit            | `b8829897e407dafdad94da0fd560afbcc539e397`                                         |
 | Traffic                   | 100%                                                                               |
 | Descriptor                | Production + Live                                                                  |
 | Runtime identity          | project-managed PMI KC runtime service account                                     |
@@ -185,11 +179,13 @@ it did not reverify product routes or every environment setting.
 
 ### Local release watcher
 
-Run d33c7174-23b1-4126-ac11-657738b1864f is complete with consumed permit. Its single watcher exited after passed full
-observation; no old or consumed permission authorizes another launch. The registered native/source
-release pair remains clean and pinned at a7bce0981badc7523a6498949b6ea5f2effb198e. Documentation closure uses a separate worktree;
-the admitted source pair and immutable checkout remain unchanged. Failed first-run evidence stays
-archived with its actual verdict, permit state, claims, receipts and verified rollback.
+Run `91710ba5-db96-4982-8931-366661f3843c` is complete with consumed permit. Its single watcher exited
+after passed full observation; no old or consumed permission authorizes another launch. The registered
+native/source release pair is clean and pinned at `b8829897e407dafdad94da0fd560afbcc539e397`. Its directory
+names retain the earlier `application-delivery-20261020-6beddcf9` label; actual Git HEAD is authoritative.
+Documentation closure uses a separate owned worktree. Original checkouts, the previous A7 admitted
+pair and the current admitted pair were preserved. Failed attempts retain their actual verdicts,
+permit states, claims, receipts and any verified recovery.
 
 Every mutation-capable entry requires actual inherited kernel-lock ownership, the exact
 run/SHA/revision checkpoint and admitted permission. Follow the ordered batch runbook. No direct
@@ -458,15 +454,18 @@ activations; generic send, resident draft and Dotloop write keys remain closed.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-recovery-a97c579cf11b4d74` from commit
-`eb5d35991c3ec128a102e4483d3779af16106821`, Sheet=true. Run-bound recovery target
-`pmi-kc-app-recovery-d33c717423b14126` has fingerprint `sha256:6e57b2a65a60f8e6a218c0b4b0e4cb8db791bad0a8a45a2322457a030393da2c` and Sheet=true.
-Receipt `07b55751-a159-4b01-bb4c-068178f8815b` issued 2026-10-17T10:44:37.028Z; reference
-`sha256:d376fa106048928a155fc69da5d8588071a1f9c0e45fb3c3ad83a834d418042c` binds actual predecessor image/configuration, switch,
-target and preparation assurance to run d33c7174. Its separately captured prior tag binding was
-the failed candidate pmi-kc-app-rmvc7c5lz-ec2410dd001a. Forward restoration and rollback require
-fresh actual state and exact receipt-bound reconciliation. No traffic rollback occurred in this
-successful run. Earlier failed run a97c579c retains its own ROLLED_BACK_VERIFIED outcome.
+Captured predecessor: `pmi-kc-app-rmvc9kmq6-1c2699db16f8` from commit
+`a7bce0981badc7523a6498949b6ea5f2effb198e`, Sheet=true. Run-bound recovery target
+`pmi-kc-app-recovery-91710ba5db964982` has fingerprint
+`sha256:dcbcdd544dd0c6d4d9a294748997aa324aaf2a09008dc1baf0c2aa060dbb1095` and Sheet=true.
+Receipt `1ef5e0f7-867b-429d-817a-ea75038c9b9d` issued 2026-10-20T11:07:00.161Z; reference
+`sha256:e7d3f67e84ddfb3d74fe319d84bb092677e3b6225ee235880af965828fd58ca4` binds actual image,
+configuration, target and assurance to run 91710ba5. The prior tag was captured as bound to A7,
+separately from canonical traffic. Forward restoration and rollback require fresh actual state
+and exact receipt-bound reconciliation. No traffic rollback occurred in this run.
+
+Earlier recovery receipts, the failed October 17 attempt and its verified rollback retain their
+original scope in docs/evidence/application-delivery-2026-10-17.md. They do not authorize a new effect.
 
 Historical recovery coordinates remain provenance only. The prior S113 release captured
 `pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` / `d243911cb20ffb01773072c0e27c723648eeea34`;

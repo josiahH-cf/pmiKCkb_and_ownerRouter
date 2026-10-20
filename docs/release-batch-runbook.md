@@ -8,6 +8,35 @@ Keep all pending outcomes in the overall program. Exact-main CI, fresh prerequis
 one watcher/application build, receipts, full observation and recovery remain mandatory. Failed
 attempts and consumed permits are immutable and never reusable.
 
+## Current verified delivery
+
+Run `91710ba5-db96-4982-8931-366661f3843c` delivered the scoped S228/S229 follow-up at
+`b8829897e407dafdad94da0fd560afbcc539e397` / `pmi-kc-app-rmvgkpxub-17a20f3efe73` with 100% canonical traffic.
+One application build `d6f49c25-1ada-4a63-86c5-03649b5b9535` succeeded at 2026-10-20T11:11:48.400974Z.
+Candidate receipt `4eb6c7f9-39bb-497a-8ad9-52956042722c` issued 11:50:56.504Z;
+receipt-bound promotion verified 11:51:17.974Z. Observation passed two checkpoints in 408,672 ms
+against the 300,000 ms minimum and 480,000 ms deadline. All 371 source/projected/rendered records
+matched with zero discrepancies, candidate 5xx or unresolved effects. All eleven independent
+readback sections matched at 2026-10-20T11:59:01Z. The checkpoint is complete and permit consumed.
+Tag `cand-rmvgkpxub-17a20f3efe73`; fingerprint
+`sha256:53715974ba3d26ffd6bb2adc2bbb9fa8bba92b25f0c436332b1218d7eea6165f`.
+
+Captured predecessor: `pmi-kc-app-rmvc9kmq6-1c2699db16f8` / `a7bce0981badc7523a6498949b6ea5f2effb198e`, Sheet=true.
+Run-bound recovery `pmi-kc-app-recovery-91710ba5db964982`, receipt
+`1ef5e0f7-867b-429d-817a-ea75038c9b9d`, reference
+`sha256:e7d3f67e84ddfb3d74fe319d84bb092677e3b6225ee235880af965828fd58ca4`, preserves
+the actual predecessor image/configuration and Sheet=true. Original and target fingerprints are
+`sha256:dcbcdd544dd0c6d4d9a294748997aa324aaf2a09008dc1baf0c2aa060dbb1095`.
+The separately captured prior tag `cand-rmvc9kmq6-1c2699db16f8` was bound to the actual A7 revision;
+canonical traffic was not substituted for that binding. No traffic rollback occurred in this run.
+
+The two-item follow-up queue is delivered and empty; the exact permit is consumed. An initial
+assurance failure was preserved and diagnosed with separate unchanged read-only verifier reports.
+Supported same-run resume passed the full gate, reused the one build and original verified worker
+probe, then promoted and observed normally. No phase-only consent or gate relaxation was used.
+
+## Previous October 17 delivery (historical)
+
 Run `d33c7174-23b1-4126-ac11-657738b1864f` released S227-S229 plus the scoped Notifications latency repair at
 `a7bce0981badc7523a6498949b6ea5f2effb198e` / `pmi-kc-app-rmvc9kmq6-1c2699db16f8` with 100% canonical traffic. One application build
 `0983c589-af35-4219-9f5f-1bc1018f4043` succeeded at 2026-10-17T10:50:56.561207Z. Candidate receipt
@@ -43,8 +72,7 @@ confirmed independent review/support reads waited behind event reads; the repair
 reads together without changing counts, permissions, content or browser bounds.
 
 The original three-item delivery is recorded in docs/evidence/application-delivery-2026-10-17.md.
-The scoped October 19 follow-up is separately authorized and remains queued in docs/loop-state.md
-until its own guarded delivery is proved. This runbook and older READY rows grant no unrelated
+The scoped October 19 follow-up was delivered by run 91710ba5; docs/loop-state.md has an empty queue. This runbook and older READY rows grant no unrelated
 work or reuse of consumed permission.
 
 ## Authorized replacement preparation
@@ -127,7 +155,7 @@ gcloud beta billing projects describe pmi-kc-kb-prod --format="value(billingEnab
 
 Expect True and account `01A5A3-65CA5A-614D45`. Stop if billing is disabled.
 
-**2. Verify the watcher and checkpoint before any start.** Last verified run `d33c7174-23b1-4126-ac11-657738b1864f` is complete,
+**2. Verify the watcher and checkpoint before any start.** Last verified run `91710ba5-db96-4982-8931-366661f3843c` is complete,
 its permit consumed and its original receipts preserved. The stale S128-only checkpoint and later
 failed cumulative attempts were archived through checked retirement; none was relabeled a pass.
 Blocked runs `dc4e1ac8`, `6eb157e1` and `a83ed59b` were archived the same way as superseded.
@@ -165,7 +193,7 @@ before dispatch. Preserve actual tag binding independently of canonical traffic.
 Use the native Node 22 and snap gcloud paths in WSL. With no other watcher and the lock free:
 
 ```bash
-cd ~/pmi-kc-work/main
+# Run from the verified registered nativeRoot in checkout-pair.json; preserve original checkouts.
 export PATH=/home/josiah/.local/opt/node-v22.23.2-linux-x64/bin:/snap/google-cloud-cli/current/bin:/home/josiah/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 node scripts/release-control.mjs --prepare
 node scripts/release-prerequisites.mjs

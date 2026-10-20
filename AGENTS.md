@@ -35,15 +35,43 @@ evidence, never a backlog to execute. Both Dotloop write keys remain closed.
 Implementation c99659d5 and documentation 15648c0e were already on main. Delivery preparation
 85b7e03c and scoped repair a7bce098 were published normally without a manufactured merge.
 
-The complete corrected-tree bash scripts/verify.sh gate passed 9,590 unit tests across 1,022
-files with no local skips, all 455 backend tests across 79 files, lint/typecheck/format, required
-policy checks, production build and zero production audit findings. The 79 existing lint warnings
-remain. All five exact-main CI jobs passed in run 39024854536 (CI unit: 9,586 passed/four existing
-configuration skips; backend: 455 passed). Fresh served core E2E on a7bce098 passed 39 tests with
-22 existing configuration skips. Canonical verification used native WSL Node 24/Java 21; the
-release controller used native Node 22.23.2 and snap gcloud.
+The actual `bash scripts/verify.sh` passed on `a9a63d7c` (manifest `a504f8e6`):
+9,647 unit tests with four existing configuration skips, all 464 backend tests with no skips,
+format/lint/typecheck, eight policy/budget checks, zero production audit findings and the default
+Next 16.3.8 production build. All twelve original font hashes matched. Final exact-main CI
+`39410047957` passed all five jobs at `b8829897`; its unit/backend counts match the canonical gate.
+All 1,212 runtime files match the qualified canonical, HTTP and browser source snapshots byte-for-byte.
+Later changes are confined to CI, documentation and bounded test diagnostics.
 
-## Present production truth — 2026-10-17
+## Present production truth — 2026-10-20
+
+Run `91710ba5-db96-4982-8931-366661f3843c` delivered the scoped S228/S229 follow-up at
+`b8829897e407dafdad94da0fd560afbcc539e397` / `pmi-kc-app-rmvgkpxub-17a20f3efe73` with 100% canonical traffic.
+One application build `d6f49c25-1ada-4a63-86c5-03649b5b9535` succeeded at 2026-10-20T11:11:48.400974Z.
+Candidate receipt `4eb6c7f9-39bb-497a-8ad9-52956042722c` issued 11:50:56.504Z;
+receipt-bound promotion verified 11:51:17.974Z. Observation passed two checkpoints in 408,672 ms
+against the 300,000 ms minimum and 480,000 ms deadline. All 371 source/projected/rendered records
+matched with zero discrepancies, candidate 5xx or unresolved effects. All eleven independent
+readback sections matched at 2026-10-20T11:59:01Z. The checkpoint is complete and permit consumed.
+Tag `cand-rmvgkpxub-17a20f3efe73`; fingerprint
+`sha256:53715974ba3d26ffd6bb2adc2bbb9fa8bba92b25f0c436332b1218d7eea6165f`.
+
+Captured predecessor: `pmi-kc-app-rmvc9kmq6-1c2699db16f8` / `a7bce0981badc7523a6498949b6ea5f2effb198e`, Sheet=true.
+Run-bound recovery `pmi-kc-app-recovery-91710ba5db964982`, receipt
+`1ef5e0f7-867b-429d-817a-ea75038c9b9d`, reference
+`sha256:e7d3f67e84ddfb3d74fe319d84bb092677e3b6225ee235880af965828fd58ca4`, preserves
+the actual predecessor image/configuration and Sheet=true. Original and target fingerprints are
+`sha256:dcbcdd544dd0c6d4d9a294748997aa324aaf2a09008dc1baf0c2aa060dbb1095`.
+The separately captured prior tag `cand-rmvc9kmq6-1c2699db16f8` was bound to the actual A7 revision;
+canonical traffic was not substituted for that binding. No traffic rollback occurred in this run.
+
+An initial assurance gate failure remains preserved; supported same-run resume passed the full
+unchanged gate after independent read-only diagnosis. All 54 environment keys match A7 except
+APP_COMMIT_SHA; identity, exact maps, five bindings and existing controls match. Both Dotloop keys
+remain closed. The two-item queue is delivered and empty; its permit is consumed. Human and
+physical-phone verdicts remain NOT RUN. Evidence: docs/evidence/application-delivery-2026-10-20.md.
+
+## Previous production truth — 2026-10-17 (historical)
 
 Run `d33c7174-23b1-4126-ac11-657738b1864f` released S227-S229 plus the scoped Notifications latency repair at
 `a7bce0981badc7523a6498949b6ea5f2effb198e` / `pmi-kc-app-rmvc9kmq6-1c2699db16f8` with 100% canonical traffic. One application build
@@ -121,7 +149,7 @@ Persistent labeled insurance-flyer, renewal-information-form and seven legal-for
 S106/S34 normal packet preparation, approval, exact S21 bytes, S20 queue/ledger execution and own-receipt recovery are implemented and deployed. Real approved forms/catalog/mappings, managed Dotloop credentials/connection/selection and separately authorized exact-key activation remain gates. Both Dotloop keys remain closed. Signature work is a human handoff; document presence and submitted content hashes do not prove signatures or provider-owned content verification.
 
 - Project `pmi-kc-kb-prod`, service `pmi-kc-app`, region `us-central1`; canonical https://pmi-kc-app-kq6wuvpiva-uc.a.run.app.
-- Current captured predecessor: `pmi-kc-app-recovery-a97c579cf11b4d74` / `eb5d35991c3ec128a102e4483d3779af16106821`, Sheet=true. Run-bound recovery: `pmi-kc-app-recovery-d33c717423b14126`, receipt `07b55751-a159-4b01-bb4c-068178f8815b`. This successful run used no traffic rollback; the failed first run retains its verified rollback.
+- Current captured predecessor: `pmi-kc-app-rmvc9kmq6-1c2699db16f8` / `a7bce0981badc7523a6498949b6ea5f2effb198e`, Sheet=true. Run-bound recovery: `pmi-kc-app-recovery-91710ba5db964982`, receipt `1ef5e0f7-867b-429d-817a-ea75038c9b9d`. No traffic rollback occurred in this run; older receipts retain their historical scope.
 - Runtime remains Production + Live, managed runtime identity, eleven Spaces, Sheet write-back
   true since the S152–S167 release (run `47fabb7c`; the current recovery target keeps true), false Demo flags, existing RentVine/RentCast secret bindings and RentCast allowance 50.
 - S82 conformance, S97 replay/ambiguity integrity, S98 normal append and owner-approved field
