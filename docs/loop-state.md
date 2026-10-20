@@ -18,20 +18,20 @@ claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, mod
 unapproved background sends remain unavailable. No protected activation metadata changes.
 
 Source base is main `e40eb7f88edf61be8f5785da28abbbad4f059c59`; isolated branch
-`codex/dotloop-readiness-20261020`. Implementation is under qualification and not yet published or
-deployed. Preserve original checkouts, prior admitted release pairs, other sessions and failed evidence.
+`codex/dotloop-readiness-20261020`. The implementation is qualified; guarded runtime deployment is pending. Preserve original checkouts, prior admitted release pairs, other sessions and failed evidence.
 
 ## Awaiting release
 
-Empty pending qualification and publication of the newly authorized amendment. No consumed permit
-or older READY row can admit it. Numbered entries will reference its actual ancestral commits.
+1. S227 Complete maintenance/history/vendor retirement while retaining stored evidence. `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3`
+2. S228 Approved integrations identity, Dotloop/template process readiness and reviewed Sheet/Drive delegated-subject migration. `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3`
+3. S229 Fresh staff-confirmed renewal Send, Schedule, Resume and linked replies with legacy holds; patched Hono dependency. `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3`
 
 ## Captured production baseline
 
 Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
 `pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
 `91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
-amendment is being qualified; it is not yet deployed. Prior delivery evidence remains in
+amendment is qualified and queued for guarded release; it is not yet deployed. Prior delivery evidence remains in
 `docs/evidence/application-delivery-2026-10-20.md`.
 
 The prior run passed two observation checkpoints in 408,672 ms, reconciled all 371 records and passed
@@ -58,7 +58,7 @@ change through a new guarded release pair; production still uses the prior subje
 
 ## Required next work
 
-Finish full canonical and served verification, inspect the exact diff, publish a green head and its
-ordered queue, then perform the guarded release and independent closure. Check actual lock/process/
+Canonical and served verification passed. Publish the qualified source and ordered queue, require
+exact-head green CI, then perform the guarded release and independent closure. Check actual lock/process/
 cloud operation and approved Admin-profile ownership again before admission. A human challenge
 holds only its dependent check. No customer effect is test proof.

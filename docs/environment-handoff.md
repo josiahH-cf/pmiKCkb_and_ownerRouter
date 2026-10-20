@@ -38,8 +38,10 @@ Drive DWD scope probe under the previously configured subject was refused; no sc
 Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
 `pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
 `91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
-amendment is being qualified; it is not yet deployed. Prior delivery evidence remains in
+amendment is qualified and queued for guarded release; it is not yet deployed. Prior delivery evidence remains in
 `docs/evidence/application-delivery-2026-10-20.md`.
+
+Implementation `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3` passed the complete `bash scripts/verify.sh` gate: 9,659 unit tests (four existing configuration skips), all 465 backend tests, required quality/policy checks, production build and zero production audit findings. The patched source also passed all 65 served E2E tests with four existing configuration skips across all fourteen files. Exact-head main CI and guarded delivery remain required.
 
 ## Previous October 17 delivery (historical)
 

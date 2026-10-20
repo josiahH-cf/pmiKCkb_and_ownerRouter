@@ -4,7 +4,7 @@
 
 # S227 — Completely retire custom maintenance
 
-> Status: IN PROGRESS — October 20 owner amendment implemented under qualification; prior delivery at b8829897 retains its original scope.
+> Status: IN PROGRESS — October 20 amendment qualified and awaiting guarded release; prior delivery at b8829897 retains its original scope.
 
 **Goal.**
 
@@ -15,7 +15,7 @@ The maintenance component, history/reports, obsolete connection wiring, ticket s
 Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
 `pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
 `91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
-amendment is being qualified; it is not yet deployed. Prior delivery evidence remains in
+amendment is qualified and queued for guarded release; it is not yet deployed. Prior delivery evidence remains in
 `docs/evidence/application-delivery-2026-10-20.md`.
 
 The owner explicitly amended the earlier October 16 history/unsent-only boundary. This suite owns
@@ -77,7 +77,7 @@ runtime identity, Production/Live, Demo=false, Sheet=true and existing secret/co
 
 **If this was built correctly:** The maintenance component, history/reports, obsolete connection wiring, ticket search and vendor operational entry points disappear. Stored records and receipts are not purged; unrelated renewal, knowledge and permissions remain intact.
 
-- Model verdict: NOT RUN — full new qualification and guarded delivery are pending; focused results retain exact source coverage.
+- Model verdict: PASS — deterministic implementation qualification; guarded delivery and external-resource verification remain separate.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

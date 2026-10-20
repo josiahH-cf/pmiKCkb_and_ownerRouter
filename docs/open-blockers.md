@@ -34,7 +34,7 @@ Source presence is not legal approval, field/signer mapping or a Dotloop selecti
 Drive DWD scope probe under the previously configured subject was refused; no scope grant changed.
 
 Normal credential refresh and app metadata saves are distinct from business effects. The newly
-authorized confirmed renewal delivery implementation is under qualification; production still runs
+authorized confirmed renewal delivery implementation is qualified and queued; production still runs
 the prior b8829897 refusal. No protected write key, provider permission or scope grant was changed.
 
 The integrations `drive.file` API profile read succeeded, then a known source-file metadata read
