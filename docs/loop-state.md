@@ -4,42 +4,45 @@ Last updated: 2026-10-20 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
 
-The owner explicitly requested merge and deployment of the scoped October 19 repair on October 20.
-Continue the existing owned branch `codex/bounded-repair-20261019`; do not alter original or other
-sessions' checkouts. Local commit `006798e4` is based on main `5b9c6b8e`; neither remote repair
-branch nor PR exists. The remote main CI is green, but it does not qualify the unpublished repair.
+The owner explicitly requested completion of this scoped follow-up. Continue only the owned
+branch `codex/bounded-repair-20261019`; preserve original and other sessions' checkouts. Publication,
+qualification and exact release checkpoints are recorded privately under the current session.
 
-The scoped October 19 repair is committed locally at `006798e4`, based on main `5b9c6b8e`,
-with subsequent qualification repairs in the same owned worktree. This follow-up is not yet
-published or deployed. It repairs typed source holds, exact message saving/preview/confirmation
-and own-attempt recovery, independent source reads and truthful freshness, managed Gmail health,
-Dotloop access/selection refusals and exact packet binding. Existing retirement, source-update,
-client-send/schedule/Resume refusals, non-dispatching worker and closed Dotloop keys are preserved.
+The scoped October 19 implementation `006798e4` and qualification follow-up `a9a63d7c`
+are published on main. This cumulative repair is not deployed. It repairs typed source holds,
+exact message saving/preview/confirmation and own-attempt recovery, independent source reads
+and truthful freshness, managed Gmail health, Dotloop access/selection refusals and exact packet
+binding. Existing retirement, source-update, client-send/schedule/Resume refusals, non-dispatching
+worker and closed Dotloop keys remain.
+
+The real local `bash scripts/verify.sh` passed on the exact `a9a63d7c` tree (manifest `a504f8e6`):
+9,647 unit tests/four existing configuration skips, all 464 backend tests/no skips, quality and
+eight policy/budget checks, zero production audit findings and the default Next 16.3.8 production
+build. All twelve original font hashes matched. All fourteen isolation phases and normal font
+closures passed; twenty result/RSS writers and independent whole process/source closure completed.
+Private evidence retains one exact zero-RSS, absent-child historical namespace-read observation
+without asserting its unknown cause or continuous historical visibility.
 
 All fourteen served HTTP files completed on manifest `5c069851`: 59 passed/four existing
-configuration skips with Firestore; core passed 40 with 23 configuration skips (22 carried skips
-and one added emulator-only case). The unchanged application-route browser passed authenticated
-local Notices/Notifications, role restrictions, 1366/390/320 widths and real Poppins weights.
-The compiled component journey passed exact save retries, autosave/copy, definite source holds,
-separate creation confirmation and one simulated unsent draft with own-receipt recovery. The
-complete Focus/Full oracle passed pointer, keyboard, unsaved-input, scroll, phone-width and
-no-write/navigation checks after its ambiguous selector was corrected to the unique Lease view
-group. Component pages use explicit synthetic route/transport adapters; these checks do not prove
-live provider effects, real authentication, physical-phone or human acceptance.
+configuration skips with Firestore; core passed 40 with 23 configuration skips (22 carried and
+one added emulator-only case). The unchanged application-route browser passed Notices and
+Notifications, role restrictions, mobile widths and real Poppins. The compiled component journey
+and complete Focus/Full oracle passed on `64307589`, including exact save retries, autosave/copy,
+source holds, separate creation confirmation, one simulated unsent draft/own-receipt recovery,
+keyboard, unsaved-input, scroll and no-write/navigation checks. Explicit synthetic component
+route/transport adapters do not prove live provider effects, real login or human acceptance.
 
-The earlier exact `54910c7f` canonical gate passed 9,643 units/four existing skips, all 464 backend
-tests, required checks, zero production audit findings and the default Next 16.3.8 production
-build. Later isolated unit source `d3d29b2f` passed 9,646/four existing skips. These are their
-actual source scopes; final code still requires the canonical `bash scripts/verify.sh` gate,
-independent review and exact-head green CI before publication and guarded release. Every failed
-attempt keeps its immutable original outcome. Owned process, namespace, mount, port and source
-closure passed for the completed HTTP/core/browser attempts.
+Exact-main CI run `39404097093` failed before dependencies or tests: the default shallow Actions
+checkout produced an incomplete Git source bundle. The scoped CI repair fetches full history in
+all four lanes and preserves disabled credential persistence. The unchanged public staging driver
+failed on an actual shallow clone and passed after full history was fetched. Fresh green CI for
+the repaired exact main head remains required before release admission; no failed result is relabeled.
 
-The owner's October 20 instruction authorizes this scoped green merge and guarded delivery
-without phase-only consent. Approved CLI checks and managed production/cost preparation passed;
-fresh approved CLI/ADC and separate guarded Admin browser prerequisites remain mandatory at
-admission. Preserve the current approved credential store as found. A7 remains the last verified
-production release at 100%; its consumed permit cannot admit this follow-up.
+The owner's October 20 instruction authorizes green publication and guarded delivery without
+phase-only consent. Approved CLI, ADC principal and separate guarded Admin identity reads passed
+on October 20; preserve their current stores. Admission still collects fresh authentication,
+billing/cost and environment prerequisites. A7 is the last verified production release at 100%;
+its consumed permit cannot admit this follow-up. The two queued items remain until proved delivery.
 
 Next: run the final exact-code canonical gate, review and green CI, publish normally, then prepare
 the clean exact-head release pair and a new guarded release. No original or other session checkout

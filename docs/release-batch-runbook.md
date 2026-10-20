@@ -108,7 +108,7 @@ Batch 004 shipped in two candidates by owner direction: run `98f7e743-7345-4b74-
 Run `0eb2cfeb-a238-4b37-b35f-f999eadfacff` then carried batch 004's corrective repair (two queued items) in one build and candidate, after run `175fee1d` rolled back verified.
 Run `3a32f7a2-fd58-4652-b519-5a31517b0142` carried the S113 approval-read fix. Run `47fabb7c-b26b-4032-b993-f6bc49c66abd` carried the S152–S167 program (one queued item) in one build and candidate, after run `a83ed59b` stopped at candidate assurance and was archived as superseded.
 Run `8b7dc3f1-4c5b-482a-94ca-26985150c68d` carried batch 005 (fifteen queued items), run `5d1b4e3a-ef6d-4354-aef1-e9952dd28687` its verification repairs (four queued items), run `7753e5f5-2325-4b19-b83d-dc3475d71b0b` its follow-up fixes (five queued items), run `61659874-478d-4135-9810-5033b2f732bf` its open-item fixes (seven queued items) run `5b5c850e-a131-4e37-996a-457f5f9fd62c` the S106 connection slice (one queued item) run `87920129-23c0-4420-a787-13036029d6f8` the Dotloop v1 second release (four queued items) run `5622decd-0a6d-479a-bb75-545ba4aa0069` the S130 stale-value follow-up (one queued item) and run `e372f7b5-3a1d-4224-945e-148a5f040660` the release-tooling and audit follow-up (two queued items), each in one build and candidate.
-The cumulative corrective queue is cleared after independent verification. An empty queue refuses fresh admission; docs/loop-state.md records the completed state.
+The cumulative corrective queue is cleared after independent verification. An empty queue refuses fresh admission; docs/loop-state.md records the actual current queue.
 
 ## Before you start
 

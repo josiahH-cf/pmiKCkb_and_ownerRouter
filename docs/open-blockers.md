@@ -23,14 +23,15 @@ substitute value, identifier, credential or human verdict to clear a hold.
 
 ## Current hold and historical program dependencies
 
-- **Bounded repair delivery.** Full fourteen-file HTTP inventory passed 59/four existing
-  configuration skips; core passed 40/23 configuration skips, including one added emulator-only
-  case. Unchanged routes, compiled message journey and the complete Focus/Full browser oracle
-  passed within their actual synthetic scopes. Final canonical qualification, review, exact-head
-  CI/mainline and a fresh guarded release remain agent-owned. The October 20 direction authorizes
-  their completion; no phase-only approval is needed. A7 at 100% is the last verified deployment.
-- **B-DL2/B-DL3 — current October19 readback.** Typed account/profile reads succeeded; the
-  supported individual template list returned zero, while company-template access returned403.
+- **Bounded repair delivery.** Implementation and qualification are published at `a9a63d7c`.
+  The actual local canonical gate passed 9,647 units/four existing skips and all 464 backend
+  tests, required checks and production build. HTTP/core/browser source scopes are recorded in
+  docs/facts.md. First exact-main CI failed before tests because checkout history was shallow;
+  the full-history CI repair passed an actual staging counterexample. Fresh exact-head green CI
+  and guarded deployment remain agent-owned. No phase-only approval is needed; A7 remains the
+  last verified production delivery.
+- **B-DL2/B-DL3 — October20 managed readback.** Account/profile reads succeeded; the
+  individual template list returned200/count0, while company-template access returned403/access_denied.
   Its exact permission/ownership cause is unknown. No supported selection, current approved
   artifact catalog/charge policy, source mapping or saved packet state was found. Existing
   template inspection precedes any recreation request. Both write keys remain closed; synthetic
