@@ -2,14 +2,13 @@
 
 Updated 2026-10-20 (UTC).
 
-The owner requested `integrations@pmikcmetro.com` for provider work. Dotloop already reads that
-account and the exact Gmail readonly profile passed. The owner approved the one-file renewal Sheet
-Editor grant with notification off and the delegated-subject migration. The grant is read back and
-the normal reader verifies all 29 tabs as integrations, without reading or changing cell values.
-Production still uses `josiah@pmikcmetro.com` until guarded release. Change only that reviewed
-environment value in a new release pair; preserve the actual predecessor configuration for recovery.
-Preserve the runtime service identity, source IDs/maps, secrets and all other configuration. CLI/ADC
-and guarded Admin assurance retain the approved host identity and store.
+The owner-approved one-file Editor grant was applied with notification off and read back.
+Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
+reader freshly verified all 29 tabs after promotion without reading/changing cell values.
+Only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differ among the 54 environment keys versus the
+captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
+Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
+Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
 
 ## Current work — October 20 renewal run amendment
 
@@ -26,22 +25,35 @@ before actor/mailbox/source reads. Current role/Space, runtime suspension, exact
 claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
 unapproved background sends remain unavailable. No protected activation metadata changes.
 
-Fresh October 20 Dotloop reads verified the existing connection as
-`integrations@pmikcmetro.com`: account/profiles succeeded, the individual-template list was empty,
-and company templates returned 403/FORBIDDEN. This does not establish the reported active
-template's owning visibility or a specific permission defect. No supported selection is saved;
-no recreation is requested. The owner's browser human check fails and remains a human boundary.
-The same integrations account can read the Drive folder containing eight PDF reference sources.
-Source presence is not legal approval, field/signer mapping or a Dotloop selection. A read-only
-Drive DWD scope probe under the previously configured subject was refused; no scope grant changed.
+Normal deployed-app Dotloop refresh at 2026-10-20T18:02:36.963Z verified
+`integrations@pmikcmetro.com` and saved a fresh, untruncated observation. The supported individual
+profile returned an empty template list; company templates remain access_denied. No supported
+selection exists. The reported active template's owning visibility/root cause remains unknown;
+no recreation is requested. The owner-reported failing Press & Hold remains a human boundary.
+Both Dotloop write keys remain closed. The existing template's sharing/assignment and individual-
+profile eligibility need inspection by an already signed-in Dotloop administrator or Dotloop support.
 
-Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
-`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
-`91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
-amendment is qualified and queued for guarded release; it is not yet deployed. Prior delivery evidence remains in
+Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
+read back at resource version 8, all unverified. The deployed readiness page displays ten form
+families across renewal extension, full lease and owner acknowledgment. Actual originals and
+reviewed field/signer maps remain unapproved for all ten families. Source presence is not legal,
+customer-link or signing approval. Existing drive.file authenticated the integrations account but
+returned 404/notFound for a browser-visible source; no scope grant changed.
+
+Production serves `157b6992279467e73dcf91aa43eb3c247f96ff2f` /
+`pmi-kc-app-rmvgyw7tj-a7aa7a96b63a` at 100% canonical traffic. Run
+`57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` completed candidate assurance, receipt-bound promotion,
+two observation checkpoints in 409,796 ms and all eleven independent readback sections.
+The three-item queue is delivered and empty; its permit is consumed. Evidence:
 `docs/evidence/application-delivery-2026-10-20.md`.
 
-Implementation `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3` passed the complete `bash scripts/verify.sh` gate: 9,659 unit tests (four existing configuration skips), all 465 backend tests, required quality/policy checks, production build and zero production audit findings. The patched source also passed all 65 served E2E tests with four existing configuration skips across all fourteen files. Exact-head main CI and guarded delivery remain required.
+Implementation `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3` passed the actual complete
+`bash scripts/verify.sh`: 9,659 unit tests with four existing configuration skips, all 465 backend
+tests with no skips, required checks, production build and zero production audit findings.
+Served E2E passed 65 tests with four existing configuration skips across all fourteen files.
+Exact-main CI `39464866553` passed all five jobs on deployed `157b6992`. Canonical v11 covers
+all final code/tests; policy-build v3 and served E2E v2 cover identical runtime/package bytes,
+with two later test-only assertion/synchronization changes covered by canonical v11.
 
 ## Previous October 17 delivery (historical)
 
@@ -100,8 +112,8 @@ Five confirmed adversarial findings are repaired and verified deployed: lifecycl
 | Region                    | `us-central1`                                                                      |
 | Cloud Run service         | `pmi-kc-app`                                                                       |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`                                       |
-| Serving revision          | `pmi-kc-app-rmvgkpxub-17a20f3efe73`                                                |
-| Serving commit            | `b8829897e407dafdad94da0fd560afbcc539e397`                                         |
+| Serving revision          | `pmi-kc-app-rmvgyw7tj-a7aa7a96b63a`                                                |
+| Serving commit            | `157b6992279467e73dcf91aa43eb3c247f96ff2f`                                         |
 | Traffic                   | 100%                                                                               |
 | Descriptor                | Production + Live                                                                  |
 | Runtime identity          | project-managed PMI KC runtime service account                                     |
@@ -186,13 +198,12 @@ it did not reverify product routes or every environment setting.
 
 ### Local release watcher
 
-Run `91710ba5-db96-4982-8931-366661f3843c` is complete with consumed permit. Its single watcher exited
-after passed full observation; no old or consumed permission authorizes another launch. The registered
-native/source release pair is clean and pinned at `b8829897e407dafdad94da0fd560afbcc539e397`. Its directory
-names retain the earlier `application-delivery-20261020-6beddcf9` label; actual Git HEAD is authoritative.
-Documentation closure uses a separate owned worktree. Original checkouts, the previous A7 admitted
-pair and the current admitted pair were preserved. Failed attempts retain their actual verdicts,
-permit states, claims, receipts and any verified recovery.
+Run `57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` is complete with consumed permit. Its one watcher
+exited after passed full observation; an independent separate-open kernel lock probe verified the
+lock free. The registered clean native/Windows pair remains pinned at
+`157b6992279467e73dcf91aa43eb3c247f96ff2f`, directory label
+`renewal-readiness-20261020-157b6992`. Both earlier admitted pairs and original checkouts are preserved.
+Documentation closure uses the separate owned authoring worktree. Never reuse consumed permission.
 
 Every mutation-capable entry requires actual inherited kernel-lock ownership, the exact
 run/SHA/revision checkpoint and admitted permission. Follow the ordered batch runbook. No direct
@@ -461,25 +472,28 @@ activations; generic send, resident draft and Dotloop write keys remain closed.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmvc9kmq6-1c2699db16f8` from commit
-`a7bce0981badc7523a6498949b6ea5f2effb198e`, Sheet=true. Run-bound recovery target
-`pmi-kc-app-recovery-91710ba5db964982` has fingerprint
-`sha256:dcbcdd544dd0c6d4d9a294748997aa324aaf2a09008dc1baf0c2aa060dbb1095` and Sheet=true.
-Receipt `1ef5e0f7-867b-429d-817a-ea75038c9b9d` issued 2026-10-20T11:07:00.161Z; reference
-`sha256:e7d3f67e84ddfb3d74fe319d84bb092677e3b6225ee235880af965828fd58ca4` binds actual image,
-configuration, target and assurance to run 91710ba5. The prior tag was captured as bound to A7,
-separately from canonical traffic. Forward restoration and rollback require fresh actual state
-and exact receipt-bound reconciliation. No traffic rollback occurred in this run.
+Captured predecessor: `pmi-kc-app-rmvgkpxub-17a20f3efe73` from commit
+`b8829897e407dafdad94da0fd560afbcc539e397`, Sheet=true.
+Run-bound recovery `pmi-kc-app-recovery-57e4a1b5dd254302`, receipt
+`3efefa59-4522-4ea7-8777-2e139c2b6c43`, reference
+`sha256:60ca763a5e7211485776078c49a1966a2fde7a7629ca283e91799d83762d6a38`, preserves
+that actual image/configuration, including its original delegated subject and Sheet=true.
+Original and target fingerprints are
+`sha256:53715974ba3d26ffd6bb2adc2bbb9fa8bba92b25f0c436332b1218d7eea6165f`.
+The actual prior tag binding was captured independently of canonical traffic and moved only under
+that receipt. All other bindings are preserved. No traffic rollback occurred in this run.
 
-Earlier recovery receipts, the failed October 17 attempt and its verified rollback retain their
-original scope in docs/evidence/application-delivery-2026-10-17.md. They do not authorize a new effect.
+Forward restoration and rollback require fresh actual state and exact receipt-bound reconciliation. Earlier failed attempts and recovery receipts retain their original scope outside Git.
 
-Historical recovery coordinates remain provenance only. The prior S113 release captured
-`pmi-kc-app-rmtkmhj1z-8855e4c6dbfb` / `d243911cb20ffb01773072c0e27c723648eeea34`;
-that release had captured `pmi-kc-app-rmtkgn08q-db89a37c43dc`.
+Historical S113/v4 exception coordinates remain provenance only: captured predecessor
+pmi-kc-app-rmtkmhj1z-8855e4c6dbfb / d243911cb20ffb01773072c0e27c723648eeea34.
+The owner-approved blocked legacy My Work reconcile exception is confined to that exact
+predecessor; it grants no candidate or current mutation exception and is not a current rollback target.
+
+That historical S113 predecessor had captured pmi-kc-app-rmtkgn08q-db89a37c43dc.
 The 2026-08-27 rollback rehearsal moved 100% traffic to predecessor
-`pmi-kc-app-rmtafuqbg-4e2e4ffe0f48`, then restored `pmi-kc-app-rmtbh280n-61b78ef991cc`.
-Those preserved outcomes were not rerun and do not authorize a Sheet-enabled rollback now.
+pmi-kc-app-rmtafuqbg-4e2e4ffe0f48, then restored pmi-kc-app-rmtbh280n-61b78ef991cc.
+Those outcomes were not rerun and grant no new traffic or source-write authority.
 
 ## Configuration invariants
 

@@ -15,17 +15,18 @@ before actor/mailbox/source reads. Current role/Space, runtime suspension, exact
 claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
 unapproved background sends remain unavailable. No protected activation metadata changes.
 
-Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
-`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
-`91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
-amendment is being qualified; it is not yet deployed. Prior delivery evidence remains in
+Production serves `157b6992279467e73dcf91aa43eb3c247f96ff2f` /
+`pmi-kc-app-rmvgyw7tj-a7aa7a96b63a` at 100% canonical traffic. Run
+`57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` completed candidate assurance, receipt-bound promotion,
+two observation checkpoints in 409,796 ms and all eleven independent readback sections.
+The three-item queue is delivered and empty; its permit is consumed. Evidence:
 `docs/evidence/application-delivery-2026-10-20.md`.
 
-| Suite | Active contract                                                                  | State                                                                                              |
-| ----- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| S227  | `docs/feature-suites/maintenance-retirement-and-readonly-history.md`             | IN PROGRESS — complete component retirement; amendment delivery pending.                           |
-| S228  | `docs/feature-suites/dotloop-renewal-template-visibility-diagnostics.md`         | IN PROGRESS — approved identity and process/source readiness; provider access limits remain exact. |
-| S229  | `docs/feature-suites/renewal-preservation-and-unsent-workflow-communications.md` | IN PROGRESS — fresh confirmed renewal delivery and backlog refusal; amendment delivery pending.    |
+| Suite | Active contract                                                                  | State                                                                                        |
+| ----- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| S227  | `docs/feature-suites/maintenance-retirement-and-readonly-history.md`             | DELIVERED — complete retirement; retained evidence; run57e4a1b5.                             |
+| S228  | `docs/feature-suites/dotloop-renewal-template-visibility-diagnostics.md`         | DELIVERED — approved identity/readiness and delegation; exact provider/content holds remain. |
+| S229  | `docs/feature-suites/renewal-preservation-and-unsent-workflow-communications.md` | DELIVERED — fresh confirmed renewal delivery and backlog refusal; run57e4a1b5.               |
 
 Earlier completed registry rows retain their original acceptance scope. The amendment is confined
 to these existing owners; older READY/PENDING proposals and parallel projects do not execute.

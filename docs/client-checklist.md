@@ -1,21 +1,23 @@
 # Client, owner, and provider execution inputs
 
-+October 20 update: the owner requests end-to-end lease renewal on October 22 with exact confirmed
+October 20 update: the owner requests end-to-end lease renewal on October 22 with exact confirmed
 Send/Schedule/Resume. The complete maintenance component is retired. Use integrations@pmikcmetro.com
 for provider connections. Both Dotloop write keys stay closed; signing remains a human handoff.
 The integrations account can read the eight Drive reference PDFs; recorded locations, reviewed
 field/signer maps, legal approval and each lease's actual facts remain distinct configuration steps.
 Company-template API access is 403/FORBIDDEN and the browser human challenge fails; do not ask
-for template recreation. Independent qualification and guarded release continue.
+for template recreation. The amendment is verified deployed at 157b6992. Eight actual reference locations are recorded
+unverified at version 8; no original, legal-content or signer-map approval is inferred.
 
-Updated: 2026-10-17 (UTC); earlier readbacks below retain their recorded dates.
+Updated: 2026-10-20 (UTC); earlier proof rows below retain historical scope.
 
 Current application scope is S227-S229. Custom maintenance, Vendoroo integration and the remaining
 maintenance proof is retired; no maintenance/pilot input collection or S36 execution is requested.
 Keep Vendoroo standalone. The October 15 renewal template was reported active: fresh normal managed refresh found an empty supported-individual list, a failed company-template
 read and no supported selection. Actual owning visibility remains unresolved; check it before
-asking anyone to repeat setup. Both Dotloop write keys stay closed. Workflow communications remain
-linked reads and reviewed unsent drafts; current operation policy refuses sends and schedules.
+asking anyone to repeat setup. Both Dotloop write keys stay closed. Workflow communications preserve linked reads/reviewed unsent drafts and the deployed October 20
+exact staff-confirmed renewal Send/Schedule/Resume contract. Legacy authorizations and maintenance
+lanes cannot dispatch.
 See docs/open-blockers.md for current external holds; missing fresh evidence cannot become success.
 
 Recorded renewal authority remains in force within the current boundary above. S113 was deployed after backend/review, exact CI, candidate,
@@ -44,7 +46,7 @@ never become customer links or legal content. No client effect or completion was
   and separately confirmed correction. Row delete and historical restore remain unavailable. No
   new provider safety-contract prerequisite is required.
 - S99's bounded work-order proofs are complete and its exact read/create/status-update keys are
-  active in historical metadata; current maintenance operation admission refuses creation/status effects.
+  active in historical metadata; current maintenance operation admission refuses every work-order operation, including reads.
   Proof work order 1731 is already in its final `Cancelled` state and is not a future target.
 - S100's manual authenticated inbound work-order-chat synchronization retains its completed historical
   proof. Current maintenance chat and the remaining resident-draft proof are retired; the draft key
@@ -84,11 +86,11 @@ Their former effects, input requests and proofs cannot resume under the current 
 
 ## Wednesday decisions and staff authority
 
-Bring back the B-DL3 blank-form location and coverage of all seven artifact families, B-S100 work-order
-identifier with resident chat and confirmed verified email, and B-MNT1 exact properties, amounts,
-and effective dates. `docs/open-blockers.md` owns their complete readback gates. The company Dotloop
-connection is authorized; template availability and verified selection are owner-owned (B-DL2).
-Both Dotloop keys remain closed. V-DL checks readiness and cannot perform loop/upload proof itself.
+Current remaining inputs are the existing template's supported visibility/selection (B-DL2),
+approved applicable originals/maps and rules (B-DL3), the actual timing basis where required, and
+human real-case acceptance. Do not collect maintenance imports, ticket links or historical proofs.
+The integration account's Sheet Editor access and production delegation are verified. Both Dotloop
+keys remain closed; V-DL reads readiness and cannot perform loop/upload proof.
 
 The remaining confirm-with-default questions in docs/facts.md concern monthly-answer scope and
 annual-review cadence. The owner-approved claim-less managed-account Editor policy is preserved.

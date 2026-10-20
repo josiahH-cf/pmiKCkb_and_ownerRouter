@@ -9,65 +9,55 @@ a listed effect or the owner reports a step done. When the owner reports a step,
 performs that row's follow-up, records the readback here and removes the row. Never invent a
 substitute value, identifier, credential or human verdict to clear a hold.
 
-The exact integrations Gmail profile read passed on October 20 through the existing readonly DWD
-client; no messages, drafts or delivery effects were exercised. After the owner explicitly approved
-the one-file grant and migration, Editor access to the existing renewal Sheet was granted with
-notification off and independently read back. The normal Sheets reader verified the same source
-and all 29 tabs as `integrations@pmikcmetro.com`; no cell values were read or changed.
-B-INTEGRATIONS-SHEET source access is resolved. Production still delegates Sheet/Drive access as
-`josiah@pmikcmetro.com` until the reviewed single-value change passes guarded release in a new
-checkout pair. No credential store, IAM, runtime service identity, source ID or customer value changed.
+The owner-approved one-file Editor grant was applied with notification off and read back.
+Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
+reader freshly verified all 29 tabs after promotion without reading/changing cell values.
+Only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differ among the 54 environment keys versus the
+captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
+Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
+Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
 
-A managed setup read found all ten form families readable, zero approved originals/maps and no
-recorded source locations. Eight actual Drive PDF reference locations are mapped privately to the
-existing process contracts; source presence grants no legal approval or field/signer mapping.
+Normal deployed-app Dotloop refresh at 2026-10-20T18:02:36.963Z verified
+`integrations@pmikcmetro.com` and saved a fresh, untruncated observation. The supported individual
+profile returned an empty template list; company templates remain access_denied. No supported
+selection exists. The reported active template's owning visibility/root cause remains unknown;
+no recreation is requested. The owner-reported failing Press & Hold remains a human boundary.
+Both Dotloop write keys remain closed. The existing template's sharing/assignment and individual-
+profile eligibility need inspection by an already signed-in Dotloop administrator or Dotloop support.
 
-## October 20 current provider checkpoint
+Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
+read back at resource version 8, all unverified. The deployed readiness page displays ten form
+families across renewal extension, full lease and owner acknowledgment. Actual originals and
+reviewed field/signer maps remain unapproved for all ten families. Source presence is not legal,
+customer-link or signing approval. Existing drive.file authenticated the integrations account but
+returned 404/notFound for a browser-visible source; no scope grant changed.
 
-Fresh October 20 Dotloop reads verified the existing connection as
-`integrations@pmikcmetro.com`: account/profiles succeeded, the individual-template list was empty,
-and company templates returned 403/FORBIDDEN. This does not establish the reported active
-template's owning visibility or a specific permission defect. No supported selection is saved;
-no recreation is requested. The owner's browser human check fails and remains a human boundary.
-The same integrations account can read the Drive folder containing eight PDF reference sources.
-Source presence is not legal approval, field/signer mapping or a Dotloop selection. A read-only
-Drive DWD scope probe under the previously configured subject was refused; no scope grant changed.
-
-Normal credential refresh and app metadata saves are distinct from business effects. The newly
-authorized confirmed renewal delivery implementation is qualified and queued; production still runs
-the prior b8829897 refusal. No protected write key, provider permission or scope grant was changed.
-
-The integrations `drive.file` API profile read succeeded, then a known source-file metadata read
-returned 404/notFound. The source remains visible in that account's browser. Use the existing trusted
-original-file intake independently; do not label API scope access or legal approval as verified.
+Normal deployed-app credential/resource refresh and real Admin source-reference saves completed through their owning routes. They create no customer/provider business effect. The current confirmed renewal delivery contract is deployed; no old authorization or retired maintenance lane can dispatch.
 
 ## Holds at a glance
 
-| Id       | Blocks only                                                          | Owner step                                                                                                                        | Then the runner                                                                                                        |
-| -------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| B-AUTH2  | Separate historical 25-hour unchanged-enrollment longevity claim     | No longevity or policy-change step requested by this execution                                                                    | Preserve the unverified longevity claim; use separate fresh authentication checks                                      |
-| B-MNT1   | No current effect; maintenance import retired                        | No owner import step requested                                                                                                    | Preserve original preapproval/history records; S227 owns current retention                                             |
-| B-S100   | No current proof; remaining maintenance resident-draft proof retired | No ticket/link/sync step requested                                                                                                | Preserve completed receipts and closed resident-draft key; no proof rerun                                              |
-| B-TIMING | Approved 30-day notice classifications (they read Cannot determine)  | A5: record the decided basis in Admin                                                                                             | Reads back the saved basis version                                                                                     |
-| B-DL2    | Supported Dotloop template/selection-dependent output only           | No template recreation requested                                                                                                  | Supported list empty; company read 403/access denied, contents unknown; selection absent; both write keys closed       |
-| B-DL3    | Approved form content/maps and rules for the selected lease packet   | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output |
-| B-HUMAN  | Human verdicts and real-case accuracy claims only                    | E2: observed sessions and real material                                                                                           | Records each verdict with its evidence; nothing is inferred from tests                                                 |
+| Id       | Blocks only                                                          | Owner step                                                                                                                                                                    | Then the runner                                                                                                        |
+| -------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| B-AUTH2  | Separate historical 25-hour unchanged-enrollment longevity claim     | No longevity or policy-change step requested by this execution                                                                                                                | Preserve the unverified longevity claim; use separate fresh authentication checks                                      |
+| B-MNT1   | No current effect; maintenance import retired                        | No owner import step requested                                                                                                                                                | Preserve original preapproval/history records; S227 owns current retention                                             |
+| B-S100   | No current proof; remaining maintenance resident-draft proof retired | No ticket/link/sync step requested                                                                                                                                            | Preserve completed receipts and closed resident-draft key; no proof rerun                                              |
+| B-TIMING | Approved 30-day notice classifications (they read Cannot determine)  | A5: record the decided basis in Admin                                                                                                                                         | Reads back the saved basis version                                                                                     |
+| B-DL2    | Supported Dotloop template/selection-dependent output only           | Inspect existing sharing/assignment and supported individual-profile eligibility as a signed-in Dotloop administrator; resolve the failing human check with Dotloop if needed | Fresh supported list empty; company read denied; selection absent; both write keys closed                              |
+| B-DL3    | Approved form content/maps and rules for the selected lease packet   | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup                                             | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output |
+| B-HUMAN  | Human verdicts and real-case accuracy claims only                    | E2: observed sessions and real material                                                                                                                                       | Records each verdict with its evidence; nothing is inferred from tests                                                 |
 
 ## Current hold and historical program dependencies
 
-- **Bounded repair delivery — resolved October 20.** Run91710ba5 delivered b8829897 at 100%
-  traffic after exact green CI 39410047957, full 408,672 ms/two-checkpoint observation and eleven
-  independent readbacks. All 371 records matched; exact 54-key environment and Registry preservation
-  reads passed. The two-item queue is delivered/empty and permit consumed. An initial assurance
-  gate failure and all earlier failed attempts remain immutable; supported same-run resume passed
-  the full unchanged gate after separate read-only diagnosis. No owner action remains for delivery.
-  Evidence: `docs/evidence/application-delivery-2026-10-20.md`.
-- **B-DL2/B-DL3 — October 20 managed readback.** Account/profile reads succeeded; the
-  individual template list returned200/count0, while company-template access returned403/access_denied.
-  Its exact permission/ownership cause is unknown. No supported selection, current approved
-  artifact catalog/charge policy, source mapping or saved packet state was found. Existing
-  template inspection precedes any recreation request. Both write keys remain closed; synthetic
-  non-legal packet bytes and modeled signing do not clear these live resource/activation holds.
+- **Application delivery — resolved October 20.** Run57e4a1b5 delivered 157b6992 at 100% traffic,
+  all five exact-head CI jobs green, two checkpoints/409,796 ms observation and eleven independent
+  readbacks. The three-item queue is delivered/empty and permit consumed. All earlier failures
+  retain immutable evidence. The approved integrations Sheet/Drive delegation is independently
+  verified; source access and migration are resolved. No owner delivery step remains.
+- **B-DL2/B-DL3 — fresh deployed-app checkpoint.** Integrations identity and resource refresh
+  succeeded; supported individual templates remain empty, company templates access_denied and
+  selection absent. Eight actual source references are saved unverified; all ten original/map
+  approvals remain absent. Only the exact dependent packet/form/signature capability waits.
+  The existing active template is to be inspected, not recreated. Both write keys remain closed.
 
 - **B-AUTH-CURRENT / B-BROWSER — resolved October 17.** The owner completed the approved WSL
   Admin enrollment. Fresh CLI/ADC, GitHub, exact managed-account/Admin, candidate/canonical and
@@ -78,10 +68,12 @@ original-file intake independently; do not label API scope access or legal appro
   No supported selection is saved. The reported active template's owning visibility/root cause
   remains unestablished; do not recreate it. Both write keys remain closed. Normal refresh updates
   credential/observation metadata without a provider business effect.
-- **B-COMMUNICATIONS-RUNTIME.** The candidate managed GET readiness passed and restored its
-  annual probe PAUSED; candidate code refuses sends/schedules/Resume and worker dispatch. Run91710ba5 verified the current cumulative production delivery; the earlier d33c7174 record and first failed observation/verified rollback retain historical scope. The dated Gmail profile read matched the
-  expected managed mailbox; future sync freshness is not inferred; no subscription repair, customer
-  draft or send was proof. The earlier October 10 worker/key receipt retains historical scope.
+- **B-COMMUNICATIONS-RUNTIME — resolved for the deployed contract.** The managed candidate GET
+  readiness and annual-probe restoration passed; its separate empty observation dispatched no
+  effect. The current worker admits only freshly staff-confirmed renewal authorizations and skips
+  old authorizations/maintenance before provider reads. Fresh integrations Gmail getProfile passed;
+  exact send/reply/draft metadata is open and runtime clear. No live delivery or customer draft
+  was verification proof, and future mailbox freshness is not inferred.
 
 - **B-VENDOROO-CONTRACT — retired by October 15 direction.** Custom maintenance and Vendoroo
   integration are outside the current application. Vendoroo stays standalone. No new Vendoroo

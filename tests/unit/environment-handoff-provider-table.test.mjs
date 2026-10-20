@@ -26,17 +26,17 @@ const CURRENT_PROVIDERS = [
 describe("current provider and environment documentation", () => {
   it("pins the exact serving environment instead of a historical cutover target", () => {
     expect(handoff).toContain(
-      "| Serving revision          | `pmi-kc-app-rmvgkpxub-17a20f3efe73`",
+      "| Serving revision          | `pmi-kc-app-rmvgyw7tj-a7aa7a96b63a`",
     );
     expect(handoff).toContain(
-      "| Serving commit            | `b8829897e407dafdad94da0fd560afbcc539e397`",
+      "| Serving commit            | `157b6992279467e73dcf91aa43eb3c247f96ff2f`",
     );
     expect(handoff).toContain(
-      "Captured predecessor: `pmi-kc-app-rmvc9kmq6-1c2699db16f8` from commit",
+      "Captured predecessor: `pmi-kc-app-rmvgkpxub-17a20f3efe73` from commit",
     );
-    expect(handoff).toContain("a7bce0981badc7523a6498949b6ea5f2effb198e");
-    expect(handoff).toContain("pmi-kc-app-recovery-91710ba5db964982");
-    expect(handoff).toContain("1ef5e0f7-867b-429d-817a-ea75038c9b9d");
+    expect(handoff).toContain("b8829897e407dafdad94da0fd560afbcc539e397");
+    expect(handoff).toContain("pmi-kc-app-recovery-57e4a1b5dd254302");
+    expect(handoff).toContain("3efefa59-4522-4ea7-8777-2e139c2b6c43");
     expect(handoff).toContain("Forward restoration");
     expect(handoff).toContain("Production + Live");
     expect(handoff).toContain("Sheet write-back");
@@ -54,7 +54,7 @@ describe("current provider and environment documentation", () => {
 
   it("separates preserved key metadata from current operation eligibility without resurrecting old blockers", () => {
     expect(normalizedIntegrations).toContain(
-      "RentVine | Complete lease reads; retained work-order reads; authoritative lease/unit/portfolio data | Exact renewal contracts remain; maintenance creation/status/chat effects are retired at operation admission regardless of open metadata",
+      "RentVine | Complete lease reads; authoritative lease/unit/portfolio data; maintenance reads retired | Exact renewal contracts remain; all work-order operations are retired at operation admission regardless of open metadata",
     );
     expect(normalizedIntegrations).toContain(
       "Google Sheets | Operating renewal read source and exact append/update target | Both exact keys remain open; the reviewed S159 switch value true serves normal append and recognized-field updates behind exact confirmation; false pauses all operating-Sheet mutations; reads and app-owned work remain available",
@@ -63,14 +63,14 @@ describe("current provider and environment documentation", () => {
       "RentCast | Reference rental listings/market data with cache, usage counter, cap 50 | Exact read key open; never sets offered rent",
     );
     expect(normalizedIntegrations).toContain(
-      "Gmail | Workflow-linked reads/labels, permitted rich unsent drafts and delivery history | Client sends, schedules and worker dispatch refused; protected activation metadata unchanged",
+      "Gmail | Workflow-linked reads/labels, reviewed unsent drafts and exact confirmed renewal delivery | Fresh staff-confirmed renewal Send/Schedule/Resume and linked replies; old authorizations and maintenance refused; protected activation metadata unchanged",
     );
     expect(integrations).toContain("Current application admission");
     expect(normalizedIntegrations).toContain(
       "these 18 are open and the other 30 are closed",
     );
     expect(normalizedIntegrations).toContain(
-      "current application-admission refusal above overrides retired maintenance and all client-send keys",
+      "current application-admission policy above overrides retired maintenance keys and legacy delivery authorizations",
     );
     expect(integrations).not.toContain("Q-RENTCAST-ACCOUNT-403");
     expect(integrations).not.toContain("RentCast action stays gated");

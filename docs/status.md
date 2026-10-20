@@ -2,7 +2,13 @@
 
 Updated: 2026-10-20 (UTC).
 
-Implementation `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3` passed the complete `bash scripts/verify.sh` gate: 9,659 unit tests (four existing configuration skips), all 465 backend tests, required quality/policy checks, production build and zero production audit findings. The patched source also passed all 65 served E2E tests with four existing configuration skips across all fourteen files. Exact-head main CI and guarded delivery remain required.
+Implementation `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3` passed the actual complete
+`bash scripts/verify.sh`: 9,659 unit tests with four existing configuration skips, all 465 backend
+tests with no skips, required checks, production build and zero production audit findings.
+Served E2E passed 65 tests with four existing configuration skips across all fourteen files.
+Exact-main CI `39464866553` passed all five jobs on deployed `157b6992`. Canonical v11 covers
+all final code/tests; policy-build v3 and served E2E v2 cover identical runtime/package bytes,
+with two later test-only assertion/synchronization changes covered by canonical v11.
 
 ## Current work — October 20 renewal run amendment
 
@@ -19,21 +25,34 @@ before actor/mailbox/source reads. Current role/Space, runtime suspension, exact
 claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
 unapproved background sends remain unavailable. No protected activation metadata changes.
 
-Fresh October 20 Dotloop reads verified the existing connection as
-`integrations@pmikcmetro.com`: account/profiles succeeded, the individual-template list was empty,
-and company templates returned 403/FORBIDDEN. This does not establish the reported active
-template's owning visibility or a specific permission defect. No supported selection is saved;
-no recreation is requested. The owner's browser human check fails and remains a human boundary.
-The same integrations account can read the Drive folder containing eight PDF reference sources.
-Source presence is not legal approval, field/signer mapping or a Dotloop selection. A read-only
-Drive DWD scope probe under the previously configured subject was refused; no scope grant changed.
+Normal deployed-app Dotloop refresh at 2026-10-20T18:02:36.963Z verified
+`integrations@pmikcmetro.com` and saved a fresh, untruncated observation. The supported individual
+profile returned an empty template list; company templates remain access_denied. No supported
+selection exists. The reported active template's owning visibility/root cause remains unknown;
+no recreation is requested. The owner-reported failing Press & Hold remains a human boundary.
+Both Dotloop write keys remain closed. The existing template's sharing/assignment and individual-
+profile eligibility need inspection by an already signed-in Dotloop administrator or Dotloop support.
 
-Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
-`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
-`91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
-amendment is qualified and queued for guarded release; it is not yet deployed. Prior delivery evidence remains in
+Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
+read back at resource version 8, all unverified. The deployed readiness page displays ten form
+families across renewal extension, full lease and owner acknowledgment. Actual originals and
+reviewed field/signer maps remain unapproved for all ten families. Source presence is not legal,
+customer-link or signing approval. Existing drive.file authenticated the integrations account but
+returned 404/notFound for a browser-visible source; no scope grant changed.
+
+Production serves `157b6992279467e73dcf91aa43eb3c247f96ff2f` /
+`pmi-kc-app-rmvgyw7tj-a7aa7a96b63a` at 100% canonical traffic. Run
+`57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` completed candidate assurance, receipt-bound promotion,
+two observation checkpoints in 409,796 ms and all eleven independent readback sections.
+The three-item queue is delivered and empty; its permit is consumed. Evidence:
 `docs/evidence/application-delivery-2026-10-20.md`.
 
-Focused confirmation/worker/identity regressions have passed. Exact-main CI,
-guarded release, full observation and independent readbacks for the amendment remain pending.
+Focused confirmation/worker/identity regressions, exact-main CI, guarded release, full observation
+and independent readbacks passed. The owner-approved one-file Editor grant was applied with notification off and read back.
+Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
+reader freshly verified all 29 tabs after promotion without reading/changing cell values.
+Only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differ among the 54 environment keys versus the
+captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
+Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
+Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
 Human acceptance, physical-phone acceptance and a real provider/signature journey are NOT RUN.

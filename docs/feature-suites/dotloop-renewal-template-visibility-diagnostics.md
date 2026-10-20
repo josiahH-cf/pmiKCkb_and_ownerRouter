@@ -4,7 +4,7 @@
 
 # S228 — Verify approved template visibility and process readiness
 
-> Status: IN PROGRESS — October 20 amendment qualified and awaiting guarded release; prior delivery at b8829897 retains its original scope.
+> Status: DELIVERED — October 20 amendment at 157b6992 / run57e4a1b5; actual resource and human acceptance holds remain scoped in docs/open-blockers.md.
 
 **Goal.**
 
@@ -12,10 +12,11 @@ The app verifies the approved integrations account, distinguishes failed/empty/s
 
 **Current state / intended end state.**
 
-Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
-`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
-`91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
-amendment is qualified and queued for guarded release; it is not yet deployed. Prior delivery evidence remains in
+Production serves `157b6992279467e73dcf91aa43eb3c247f96ff2f` /
+`pmi-kc-app-rmvgyw7tj-a7aa7a96b63a` at 100% canonical traffic. Run
+`57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` completed candidate assurance, receipt-bound promotion,
+two observation checkpoints in 409,796 ms and all eleven independent readback sections.
+The three-item queue is delivered and empty; its permit is consumed. Evidence:
 `docs/evidence/application-delivery-2026-10-20.md`.
 
 The owner explicitly amended the earlier October 16 history/unsent-only boundary. This suite owns
@@ -38,14 +39,20 @@ identity privilege change, budget change, guessed resource or signature API is g
 
 **Open questions & assumptions.**
 
-Fresh October 20 Dotloop reads verified the existing connection as
-`integrations@pmikcmetro.com`: account/profiles succeeded, the individual-template list was empty,
-and company templates returned 403/FORBIDDEN. This does not establish the reported active
-template's owning visibility or a specific permission defect. No supported selection is saved;
-no recreation is requested. The owner's browser human check fails and remains a human boundary.
-The same integrations account can read the Drive folder containing eight PDF reference sources.
-Source presence is not legal approval, field/signer mapping or a Dotloop selection. A read-only
-Drive DWD scope probe under the previously configured subject was refused; no scope grant changed.
+Normal deployed-app Dotloop refresh at 2026-10-20T18:02:36.963Z verified
+`integrations@pmikcmetro.com` and saved a fresh, untruncated observation. The supported individual
+profile returned an empty template list; company templates remain access_denied. No supported
+selection exists. The reported active template's owning visibility/root cause remains unknown;
+no recreation is requested. The owner-reported failing Press & Hold remains a human boundary.
+Both Dotloop write keys remain closed. The existing template's sharing/assignment and individual-
+profile eligibility need inspection by an already signed-in Dotloop administrator or Dotloop support.
+
+Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
+read back at resource version 8, all unverified. The deployed readiness page displays ten form
+families across renewal extension, full lease and owner acknowledgment. Actual originals and
+reviewed field/signer maps remain unapproved for all ten families. Source presence is not legal,
+customer-link or signing approval. Existing drive.file authenticated the integrations account but
+returned 404/notFound for a browser-visible source; no scope grant changed.
 
 These limits hold dependent output; implementation and release continue independently.
 

@@ -34,47 +34,53 @@ before actor/mailbox/source reads. Current role/Space, runtime suspension, exact
 claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
 unapproved background sends remain unavailable. No protected activation metadata changes.
 
-Provider connections use `integrations@pmikcmetro.com`. The approved WSL CLI/ADC and guarded
-Admin release-assurance identities remain `josiah@pmikcmetro.com` under the existing host contract;
-this provider correction does not switch credential stores or grant IAM/claims. Existing
-The owner approved Editor access to the existing renewal Sheet with notification off and migration
-of the existing Sheet/Drive delegated subject. The grant and normal-reader access to all 29 tabs
-are verified; the single-value runtime change awaits guarded release. Preserve all other
-configuration. Current provider access holds are recorded in docs/open-blockers.md.
+The owner-approved one-file Editor grant was applied with notification off and read back.
+Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
+reader freshly verified all 29 tabs after promotion without reading/changing cell values.
+Only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differ among the 54 environment keys versus the
+captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
+Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
+Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
 
-Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
-`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
-`91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
-amendment is qualified and queued for guarded release; it is not yet deployed. Prior delivery evidence remains in
+Production serves `157b6992279467e73dcf91aa43eb3c247f96ff2f` /
+`pmi-kc-app-rmvgyw7tj-a7aa7a96b63a` at 100% canonical traffic. Run
+`57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` completed candidate assurance, receipt-bound promotion,
+two observation checkpoints in 409,796 ms and all eleven independent readback sections.
+The three-item queue is delivered and empty; its permit is consumed. Evidence:
 `docs/evidence/application-delivery-2026-10-20.md`.
 
 ## Present production truth — 2026-10-20
 
-Run `91710ba5-db96-4982-8931-366661f3843c` delivered the scoped S228/S229 follow-up at
-`b8829897e407dafdad94da0fd560afbcc539e397` / `pmi-kc-app-rmvgkpxub-17a20f3efe73` with 100% canonical traffic.
-One application build `d6f49c25-1ada-4a63-86c5-03649b5b9535` succeeded at 2026-10-20T11:11:48.400974Z.
-Candidate receipt `4eb6c7f9-39bb-497a-8ad9-52956042722c` issued 11:50:56.504Z;
-receipt-bound promotion verified 11:51:17.974Z. Observation passed two checkpoints in 408,672 ms
-against the 300,000 ms minimum and 480,000 ms deadline. All 371 source/projected/rendered records
-matched with zero discrepancies, candidate 5xx or unresolved effects. All eleven independent
-readback sections matched at 2026-10-20T11:59:01Z. The checkpoint is complete and permit consumed.
-Tag `cand-rmvgkpxub-17a20f3efe73`; fingerprint
+Run `57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` delivered the October 20 S227–S229 amendment at
+`157b6992279467e73dcf91aa43eb3c247f96ff2f` / `pmi-kc-app-rmvgyw7tj-a7aa7a96b63a` with 100% canonical traffic.
+One application build `8a94a614-50bc-4433-9030-cde701d03a59` succeeded at 17:47:39.088478Z.
+Candidate receipt `495cd2fd-bbaa-4e95-a65f-7f3f36e0e26b` issued 17:54:03.508Z; receipt-bound
+promotion verified 17:54:26.523Z. Observation passed two checkpoints in 409,796 ms against the
+300,000 ms minimum and 480,000 ms deadline. All 371 source/projected/rendered records matched
+with zero discrepancies, candidate 5xx or unresolved effects. All eleven independent readback
+sections matched at 2026-10-20T18:01:37Z. The checkpoint is complete, watcher exited and permit consumed.
+Tag `cand-rmvgyw7tj-a7aa7a96b63a`; fingerprint
+`sha256:fe88b8b3715890110e487a6a37e7bf745e446d393d5f47e959ea1025cd9e15c8`.
+
+Captured predecessor: `pmi-kc-app-rmvgkpxub-17a20f3efe73` / `b8829897e407dafdad94da0fd560afbcc539e397`, Sheet=true.
+Run-bound recovery `pmi-kc-app-recovery-57e4a1b5dd254302`, receipt
+`3efefa59-4522-4ea7-8777-2e139c2b6c43`, reference
+`sha256:60ca763a5e7211485776078c49a1966a2fde7a7629ca283e91799d83762d6a38`, preserves
+that actual image/configuration, including its original delegated subject and Sheet=true.
+Original and target fingerprints are
 `sha256:53715974ba3d26ffd6bb2adc2bbb9fa8bba92b25f0c436332b1218d7eea6165f`.
+The actual prior tag binding was captured independently of canonical traffic and moved only under
+that receipt. All other bindings are preserved. No traffic rollback occurred in this run.
 
-Captured predecessor: `pmi-kc-app-rmvc9kmq6-1c2699db16f8` / `a7bce0981badc7523a6498949b6ea5f2effb198e`, Sheet=true.
-Run-bound recovery `pmi-kc-app-recovery-91710ba5db964982`, receipt
-`1ef5e0f7-867b-429d-817a-ea75038c9b9d`, reference
-`sha256:e7d3f67e84ddfb3d74fe319d84bb092677e3b6225ee235880af965828fd58ca4`, preserves
-the actual predecessor image/configuration and Sheet=true. Original and target fingerprints are
-`sha256:dcbcdd544dd0c6d4d9a294748997aa324aaf2a09008dc1baf0c2aa060dbb1095`.
-The separately captured prior tag `cand-rmvc9kmq6-1c2699db16f8` was bound to the actual A7 revision;
-canonical traffic was not substituted for that binding. No traffic rollback occurred in this run.
+The owner-approved one-file Editor grant was applied with notification off and read back.
+Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
+reader freshly verified all 29 tabs after promotion without reading/changing cell values.
+Only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differ among the 54 environment keys versus the
+captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
+Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
+Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
 
-An initial assurance gate failure remains preserved; supported same-run resume passed the full
-unchanged gate after independent read-only diagnosis. All 54 environment keys match A7 except
-APP_COMMIT_SHA; identity, exact maps, five bindings and existing controls match. Both Dotloop keys
-remain closed. The two-item queue is delivered and empty; its permit is consumed. Human and
-physical-phone verdicts remain NOT RUN. Evidence: docs/evidence/application-delivery-2026-10-20.md.
+Both Dotloop keys remain closed. The three-item queue is delivered and empty. Human and physical-phone verdicts remain NOT RUN. Evidence: docs/evidence/application-delivery-2026-10-20.md.
 
 ## Previous production truth — 2026-10-17 (historical)
 

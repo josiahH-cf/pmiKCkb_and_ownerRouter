@@ -17,48 +17,59 @@ before actor/mailbox/source reads. Current role/Space, runtime suspension, exact
 claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
 unapproved background sends remain unavailable. No protected activation metadata changes.
 
-Source base is main `e40eb7f88edf61be8f5785da28abbbad4f059c59`; isolated branch
-`codex/dotloop-readiness-20261020`. The implementation is qualified; guarded runtime deployment is pending. Preserve original checkouts, prior admitted release pairs, other sessions and failed evidence.
+Implementation e5c1c9e6 and the parser-qualified queue were normally fast-forward published to main
+at `157b6992279467e73dcf91aa43eb3c247f96ff2f`. No merge was manufactured for already-ancestral
+October 16 source. Original and admitted checkouts remain preserved.
 
 ## Awaiting release
 
-1. S227 Complete maintenance/history/vendor retirement while retaining stored evidence. `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3`
-2. S228 Approved integrations identity, Dotloop/template process readiness and reviewed Sheet/Drive delegated-subject migration. `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3`
-3. S229 Fresh staff-confirmed renewal Send, Schedule, Resume and linked replies with legacy holds; patched Hono dependency. `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3`
+Empty. S227, S228 and S229 were independently verified delivered by run 57e4a1b5.
 
-## Captured production baseline
+## Verified production
 
-Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
-`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
-`91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
-amendment is qualified and queued for guarded release; it is not yet deployed. Prior delivery evidence remains in
+Production serves `157b6992279467e73dcf91aa43eb3c247f96ff2f` /
+`pmi-kc-app-rmvgyw7tj-a7aa7a96b63a` at 100% canonical traffic. Run
+`57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` completed candidate assurance, receipt-bound promotion,
+two observation checkpoints in 409,796 ms and all eleven independent readback sections.
+The three-item queue is delivered and empty; its permit is consumed. Evidence:
 `docs/evidence/application-delivery-2026-10-20.md`.
 
-The prior run passed two observation checkpoints in 408,672 ms, reconciled all 371 records and passed
-all eleven independent readback sections. That qualification does not qualify the current edits.
-Runtime identity, eleven Spaces, secret bindings, Production/Live, Demo=false and Sheet=true remain
-preservation requirements. No new release run, permit or application build has been started.
+Implementation `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3` passed the actual complete
+`bash scripts/verify.sh`: 9,659 unit tests with four existing configuration skips, all 465 backend
+tests with no skips, required checks, production build and zero production audit findings.
+Served E2E passed 65 tests with four existing configuration skips across all fourteen files.
+Exact-main CI `39464866553` passed all five jobs on deployed `157b6992`. Canonical v11 covers
+all final code/tests; policy-build v3 and served E2E v2 cover identical runtime/package bytes,
+with two later test-only assertion/synchronization changes covered by canonical v11.
+
+The owner-approved one-file Editor grant was applied with notification off and read back.
+Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
+reader freshly verified all 29 tabs after promotion without reading/changing cell values.
+Only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differ among the 54 environment keys versus the
+captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
+Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
+Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
 
 ## Provider checkpoint
 
-Fresh October 20 Dotloop reads verified the existing connection as
-`integrations@pmikcmetro.com`: account/profiles succeeded, the individual-template list was empty,
-and company templates returned 403/FORBIDDEN. This does not establish the reported active
-template's owning visibility or a specific permission defect. No supported selection is saved;
-no recreation is requested. The owner's browser human check fails and remains a human boundary.
-The same integrations account can read the Drive folder containing eight PDF reference sources.
-Source presence is not legal approval, field/signer mapping or a Dotloop selection. A read-only
-Drive DWD scope probe under the previously configured subject was refused; no scope grant changed.
+Normal deployed-app Dotloop refresh at 2026-10-20T18:02:36.963Z verified
+`integrations@pmikcmetro.com` and saved a fresh, untruncated observation. The supported individual
+profile returned an empty template list; company templates remain access_denied. No supported
+selection exists. The reported active template's owning visibility/root cause remains unknown;
+no recreation is requested. The owner-reported failing Press & Hold remains a human boundary.
+Both Dotloop write keys remain closed. The existing template's sharing/assignment and individual-
+profile eligibility need inspection by an already signed-in Dotloop administrator or Dotloop support.
 
-The integrations Gmail profile read passed with no message content or delivery effect. The owner
-approved the existing renewal Sheet Editor grant with notification off and verified migration.
-The grant is read back and the normal reader now verifies all 29 tabs as integrations; no cell
-values were read or changed. Source access is resolved. Carry only the approved delegated-subject
-change through a new guarded release pair; production still uses the prior subject until promotion.
+Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
+read back at resource version 8, all unverified. The deployed readiness page displays ten form
+families across renewal extension, full lease and owner acknowledgment. Actual originals and
+reviewed field/signer maps remain unapproved for all ten families. Source presence is not legal,
+customer-link or signing approval. Existing drive.file authenticated the integrations account but
+returned 404/notFound for a browser-visible source; no scope grant changed.
 
-## Required next work
+## Continuation
 
-Canonical and served verification passed. Publish the qualified source and ordered queue, require
-exact-head green CI, then perform the guarded release and independent closure. Check actual lock/process/
-cloud operation and approved Admin-profile ownership again before admission. A human challenge
-holds only its dependent check. No customer effect is test proof.
+Documentation-only closure records the verified delivery; it requires no runtime deployment.
+The deployed source remains 157b6992. Preserve private receipts and failed attempts outside Git.
+Actual template visibility/selection, applicable approved originals/maps, required timing inputs
+and human real-case acceptance remain open for the requested Thursday journey; no customer effect was proof.
