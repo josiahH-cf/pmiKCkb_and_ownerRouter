@@ -20,6 +20,10 @@ jobs:
         with:
           node-version: "24"
           cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
       - name: Actual quality checks in a credential-free namespace
         run: python3 scripts/isolated-verify.py --ci-sudo --task quality --output "$RUNNER_TEMP/pmi-quality" --timeout-seconds 900 --memory-mib 4096 --typecheck-heap-mib 3072
 
@@ -34,6 +38,10 @@ jobs:
         with:
           node-version: "24"
           cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
       - name: Complete unit inventory after OS isolation controls
         run: python3 scripts/isolated-verify.py --ci-sudo --task unit --output "$RUNNER_TEMP/pmi-unit" --timeout-seconds 900 --memory-mib 4096
 
@@ -66,6 +74,10 @@ jobs:
         with:
           node-version: "24"
           cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
       - name: Public font preparation, actual production audit, policy checks and build
         run: python3 scripts/isolated-verify.py --ci-sudo --task policy-build --output "$RUNNER_TEMP/pmi-policy-build" --timeout-seconds 900 --memory-mib 6144 --build-heap-mib 3072
 
