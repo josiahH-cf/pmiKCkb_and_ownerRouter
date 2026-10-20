@@ -1,5 +1,4 @@
 import type { SpaceScope } from "@/lib/constants";
-import { MAINTENANCE_HISTORY_PATH } from "@/lib/maintenance/retirement";
 
 export interface LaunchSpace {
   id: string;
@@ -92,7 +91,6 @@ export const directorySpaces = launchSpaces.filter(
  *  directory stay consistent. */
 export function spaceHref(space: Pick<LaunchSpace, "id">): string {
   if (space.id === "lease-renewals") return "/lease-renewal";
-  if (space.id === "maintenance-work-order-intake") return MAINTENANCE_HISTORY_PATH;
   if (space.id === "owner-email") return "/gmail-hub";
   return `/spaces/${space.id}`;
 }

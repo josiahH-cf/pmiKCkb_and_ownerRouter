@@ -1,25 +1,26 @@
 # PMI KC current product contract
 
-Updated: 2026-10-16.
+Updated: 2026-10-20.
 
 ## Application and current delivery
 
 PMI KC is one authenticated operations application: Dashboard/Ask, My Work, Internal Processes
-(Spaces), processes, approvals, Lease Renewal, retained maintenance history, Workflow Communications,
+(Spaces), processes, approvals, Lease Renewal, Workflow Communications,
 Admin, feedback and staff work. Custom maintenance, resident intake and operational Vendor work are
 retired in current source; Vendoroo stays standalone. Navigation and record access use current server
 permissions. Business titles and display names grant no role or privilege.
 
-The public bodyless version endpoint reported `eb5d35991c3ec128a102e4483d3779af16106821` /
-`pmi-kc-app-rmv3yavsf-2cece39f7605` at 2026-10-16T09:18:48Z. Its October 11 release evidence lives
-in `docs/facts.md`. Fresh managed traffic/configuration and provider readback remain blocked by
-approved Google reauthentication/browser runtime. S227-S229 source behavior is not yet deployed.
+Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
+`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
+`91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
+amendment is being qualified; it is not yet deployed. Prior delivery evidence remains in
+`docs/evidence/application-delivery-2026-10-20.md`.
 
 The historical S183-S226 program retains all 44 suites/238 requirements.35 independent suites
 are verified delivered;203 requirements have all mapped engineering scopes passed. S208/S217/S218/
 S220/S221 remain PENDING, S207/S216/S219 investigations await real contracts and S226 integrated
 closure remains incomplete in that original ledger. S227-S229 supersede operational maintenance/
-Vendoroo scope and narrow the communications boundary. Historical READY/PENDING rows cannot restart
+Vendoroo scope. October 20 reopens the exact confirmed renewal delivery contract. Historical READY/PENDING rows cannot restart
 those operations or input collection. Shockwave consolidation, the standalone importer and new leasing
 are outside this application execution. Missing evidence is never guessed.
 
@@ -71,17 +72,15 @@ are outside this application execution. Missing evidence is never guessed.
 
 ## Communications and effects
 
-The October 16 instruction narrows the earlier S183 Send/Schedule program. Permit workflow-linked
-reads and reviewed unsent Gmail drafts; refuse new Send/Schedule/Resume and worker dispatch before
-provider construction. App-saved message wording is identified separately from a Gmail draft. Existing
-attempts, uncertain effects and receipts retain read-only reconciliation and their original meaning.
-No model output, prior draft, schedule, old authority, page load or copied text can bypass this refusal.
+New renewal authorizations bind current content, recipients, source values, sender and a new
+delivery-policy version. The worker skips old authorizations and every retired maintenance lane
+before actor/mailbox/source reads. Current role/Space, runtime suspension, exact-key, at-most-once
+claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
+unapproved background sends remain unavailable. No protected activation metadata changes.
 
-The last recorded Registry and Admin metadata mirror contain 48 exact keys, 18 open and 30 closed.
-Only `gmail.renewal_notice.send` and `gmail.maintenance_owner_notice.send` activated after the
-reviewed technical gates. Protected activation metadata is unchanged; current operation-level refusal
-overrides those two open keys. The earlier minute worker configuration is historical evidence; current
-source makes its authenticated tick non-dispatching and its readiness explicitly draft-only.
++The Registry retains 48 exact keys, 18 open and 30 closed. Only previously activated renewal send
+and linked reply keys are exercised by the resumed renewal contract. Maintenance operation refusal
+overrides historical open maintenance metadata. Both Dotloop write keys remain closed.
 Generic `gmail.message.send`, arbitrary/bulk provider calls, unrequested autonomous
 or model-driven effects, vendor assignment, provider attachment upload and RentVine chat posting
 remain closed. Retiring a UI does not rewrite or redispatch an earlier attempted effect.

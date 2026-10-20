@@ -181,7 +181,8 @@ describe("S100 WorkOrderChatPanel", () => {
     expect(
       screen.queryByRole("button", { name: "Draft email reply" }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText(/Editor actions/)).toBeInTheDocument();
+    expect(screen.getByText(/Custom maintenance is retired/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Request access/ })).toBeNull();
   });
 
   it("syncs only through the cancel-first exact confirmation and reports counts", async () => {
@@ -283,7 +284,7 @@ describe("S100 WorkOrderChatPanel", () => {
     expect(screen.getAllByText(GEMINI_IN_GMAIL_HINT)).toHaveLength(1);
   });
 
-  it("refines the reply body on request and previews the accepted wording (S139)", async () => {
+  it("keeps retired maintenance refinement refused even if an old component is mounted", async () => {
     thread = {
       status: "ok",
       work_order_id: "9005",
@@ -292,40 +293,15 @@ describe("S100 WorkOrderChatPanel", () => {
     };
     render(<WorkOrderChatPanel canEdit ticketId="ticket-9" />);
     await loadConversation();
-
     fireEvent.click(screen.getByRole("button", { name: "Draft email reply" }));
-    expect(screen.getByRole("button", { name: "Refine wording" })).toBeDisabled();
-    expect(screen.queryByText(GEMINI_IN_GMAIL_HINT)).toBeNull();
-    fireEvent.change(screen.getByLabelText("Subject"), {
-      target: { value: "Re: your maintenance request" },
-    });
     fireEvent.change(screen.getByLabelText("Reply body"), {
-      target: { value: "The plumber arrives Tuesday morning." },
+      target: { value: "Fixture wording" },
     });
     fireEvent.change(screen.getByLabelText("Refine with AI"), {
-      target: { value: "Thank them first" },
+      target: { value: "Fixture instruction" },
     });
+    expect(screen.getByRole("button", { name: "Refine wording" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Refine wording" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Use this revision" }));
-
-    const refinement = sent.find((entry) => entry.url === "/api/email-refinement");
-    expect(refinement?.body).toEqual({
-      surface: "maintenance_resident_reply",
-      messageId: 501,
-      currentBody: "The plumber arrives Tuesday morning.",
-      instruction: "Thank them first",
-    });
-    expect(screen.getByLabelText("Reply body")).toHaveValue(
-      "Thanks for letting us know. The plumber arrives Tuesday morning.",
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Preview draft" }));
-    await screen.findByText(/server-verified resident resident9@residents-pmikc\.net/);
-    const preview = sent.find(
-      (entry) => entry.url.endsWith("/resident-reply-draft") && !entry.body.confirm,
-    );
-    expect(preview?.body.body).toBe(
-      "Thanks for letting us know. The plumber arrives Tuesday morning.",
-    );
+    expect(sent.some((entry) => entry.url === "/api/email-refinement")).toBe(false);
   });
 });

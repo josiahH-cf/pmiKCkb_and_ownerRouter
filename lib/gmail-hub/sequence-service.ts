@@ -1,3 +1,9 @@
+import {
+  hasCurrentRenewalAuthorization,
+  isRenewalDeliveryContext,
+  RENEWAL_DELIVERY_POLICY_VERSION,
+} from "./delivery-policy";
+import { MAINTENANCE_RETIREMENT_MESSAGE } from "@/lib/maintenance/retirement";
 import type { StaffBusinessProfile } from "@/lib/staff/business-profile";
 import { matchesBusinessSignature } from "./business-signature";
 import {
@@ -99,6 +105,8 @@ function assertWorkflowAccess(
   actor: AuthenticatedUser,
   context: WorkflowCommunicationContext,
 ) {
+  if (context.lane === "maintenance")
+    throw new EditableLayerError(MAINTENANCE_RETIREMENT_MESSAGE, 410);
   communicationSendKey(context);
   if (!hasSpaceAccess(actor, context.lane))
     throw new EditableLayerError(
@@ -122,7 +130,10 @@ export class WorkflowCommunicationSequenceService {
     return {
       ...page,
       sequences: page.sequences
-        .filter((s) => hasSpaceAccess(actor, s.context.lane))
+        .filter(
+          (s) =>
+            isRenewalDeliveryContext(s.context) && hasSpaceAccess(actor, s.context.lane),
+        )
         .map((s) => ({
           id: s.id,
           workflowLabel: s.workflowLabel,
@@ -137,6 +148,11 @@ export class WorkflowCommunicationSequenceService {
           confirmedCount: s.confirmedCount,
           lastSentAtMs: s.lastSentAtMs,
           scheduled: !!s.authorization?.schedule,
+          requiresReview:
+            !!s.authorization &&
+            !["completed", "cancelled"].includes(s.state) &&
+            !s.unresolvedOccurrenceId &&
+            !hasCurrentRenewalAuthorization(s),
           pause: s.pause,
           observation: s.observation,
           unresolvedOccurrenceId: s.unresolvedOccurrenceId,
@@ -478,6 +494,7 @@ export class WorkflowCommunicationSequenceService {
           ? firstOccurrence(schedule, nowMs).instantMs
           : nowMs;
     const a = {
+      deliveryPolicyVersion: RENEWAL_DELIVERY_POLICY_VERSION,
       revision: (s.authorization?.revision ?? 0) + 1,
       approvedByUid: actor.uid,
       senderEmail: actor.email.toLowerCase(),
@@ -700,6 +717,7 @@ export class WorkflowCommunicationSequenceService {
       s.nextDueAtMs > this.now()
     )
       return { status: "not_due", sequence: s };
+    if (!hasCurrentRenewalAuthorization(s)) return { status: "refused", sequence: s };
     // Never bind prepared content/mailbox/threading to a replacement authorization or later count.
     // The transaction compares this original basis, even if observation returns a newer record.
     const prepared = {

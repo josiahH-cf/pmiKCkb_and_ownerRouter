@@ -82,7 +82,14 @@ describe("S186–S192 private sequence HTTP boundaries", () => {
     expect(body).not.toHaveBeenCalled();
     expect(mocks.createService).not.toHaveBeenCalled();
   });
-  it.each(["to", "cc", "from", "mailboxEmail", "production_allowed"])(
+  it.each([
+    "to",
+    "cc",
+    "from",
+    "mailboxEmail",
+    "production_allowed",
+    "deliveryPolicyVersion",
+  ])(
     "rejects forged %s effect authority instead of accepting browser fields",
     async (field) => {
       const r = await POST(
@@ -116,7 +123,7 @@ describe("S186–S192 private sequence HTTP boundaries", () => {
     expect(r.status).toBe(400);
     expect(mocks.save).not.toHaveBeenCalled();
   });
-  it("refuses Send before service construction or dispatch under the unsent-only contract", async () => {
+  it("dispatches one exact staff authorization through its owning sequence service", async () => {
     mocks.authorize.mockResolvedValue({ ...sequence, version: 2, state: "active" });
     mocks.dispatch.mockResolvedValue({
       sequence: { ...sequence, version: 2, state: "completed", confirmedCount: 1 },
@@ -132,12 +139,11 @@ describe("S186–S192 private sequence HTTP boundaries", () => {
         schedule: null,
       }),
     );
-    expect(r.status).toBe(410);
-    expect(mocks.createService).not.toHaveBeenCalled();
-    expect(mocks.authorize).not.toHaveBeenCalled();
-    expect(mocks.dispatch).not.toHaveBeenCalled();
+    expect(r.status).toBe(200);
+    expect(mocks.authorize).toHaveBeenCalledTimes(1);
+    expect(mocks.dispatch).toHaveBeenCalledExactlyOnceWith(id);
   });
-  it("keeps old authorization and attempt ownership untouched when a new Send is refused", async () => {
+  it("recovers the recorded authorization after an uncertain immediate dispatch without redispatching", async () => {
     mocks.authorize.mockResolvedValue({ ...sequence, version: 2, state: "active" });
     mocks.dispatch.mockRejectedValue(new Error("unavailable"));
     mocks.get.mockResolvedValue({ ...sequence, version: 2, state: "active" });
@@ -152,9 +158,10 @@ describe("S186–S192 private sequence HTTP boundaries", () => {
         schedule: null,
       }),
     );
-    expect(r.status).toBe(410);
-    expect(mocks.dispatch).not.toHaveBeenCalled();
-    expect(mocks.get).not.toHaveBeenCalled();
+    expect(r.status).toBe(200);
+    expect(mocks.dispatch).toHaveBeenCalledExactlyOnceWith(id);
+    expect(mocks.get).toHaveBeenCalledExactlyOnceWith(actor, id);
+    expect((await r.json()).sequence.state).toBe("active");
   });
   it("does not expose arbitrary mailbox or recipient query options", async () => {
     expect(
@@ -185,10 +192,11 @@ describe("S186–S192 private sequence HTTP boundaries", () => {
     );
     expect(mocks.runWorker).not.toHaveBeenCalled();
   });
-  it("accepts an authenticated empty tick without constructing or dispatching business work", async () => {
+  it("accepts only an authenticated empty tick through the bounded worker", async () => {
+    mocks.runWorker.mockResolvedValue({ status: "processed", inspected: 0, sent: 0 });
     const response = await WORKER(request({}));
-    expect(await response.json()).toEqual({ status: "draft_only", dispatched: 0 });
-    expect(mocks.createService).not.toHaveBeenCalled();
-    expect(mocks.runWorker).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({ status: "processed", inspected: 0, sent: 0 });
+    expect(mocks.createService).toHaveBeenCalledTimes(1);
+    expect(mocks.runWorker).toHaveBeenCalledTimes(1);
   });
 });

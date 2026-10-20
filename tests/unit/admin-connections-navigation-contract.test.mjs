@@ -50,6 +50,11 @@ describe("S81 task-oriented Admin and Connections navigation contract", () => {
       groups.flatMap((group) => group.items.map((item) => item.def.id)).sort(),
     ).toEqual(CONNECTORS.map((connector) => connector.id).sort());
 
+    expect(
+      TASK_NAVIGATION_LINKS.some((link) =>
+        /\/(?:maintenance|vendor)|\/admin\/vendors/.test(link.href),
+      ),
+    ).toBe(false);
     const ids = TASK_NAVIGATION_LINKS.map((link) => link.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const link of TASK_NAVIGATION_LINKS) {

@@ -34,7 +34,9 @@ describe("workflow communication governance page", () => {
     expect(html).toContain("Gemini Status");
     // S193 retires the pasted/synthetic tools; immutable artifact history remains inspectable.
     expect(html).toContain("Open Workflow Communications");
-    expect(html).toContain("Sending and scheduling are unavailable here");
+    expect(html).toContain(
+      "Confirmed renewal Send and Schedule are available in Workflow Communications",
+    );
     expect(html).toContain("Old drafts retain their original");
     expect(html).toContain("Approved v1.0 communication artifacts");
     expect(html).toContain("Immutable base copy only");

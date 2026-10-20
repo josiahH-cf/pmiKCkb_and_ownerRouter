@@ -79,7 +79,7 @@ describe("S120 shared resource configuration", () => {
 
   it("AC-S120-3: the edit panel keeps every one of the ten entries individually addressable for a deep link", () => {
     render(<RenewalResourceLocations role="Admin" initialSettings={settings()} />);
-    expect(RENEWAL_RESOURCE_FIELDS).toHaveLength(10);
+    expect(RENEWAL_RESOURCE_FIELDS).toHaveLength(13);
     for (const field of RENEWAL_RESOURCE_FIELDS) {
       const entry = document.getElementById(`renewal-resource-entry-${field.id}`);
       expect(entry, field.id).not.toBeNull();

@@ -313,13 +313,13 @@ sequence is constructed, occurrence claimed, customer message sent or test produ
 A failed/uncertain invocation remains consumed and holds for exact reconciliation. The ordinary
 Communications browser canary also requires its real read-only managed-mailbox connection.
 
-The October 16 S227–S229 instruction supersedes the earlier Send/Schedule continuation.
-Client sends, schedules, Resume and worker dispatch remain refused by current operation admission
-and the non-dispatching worker, regardless of earlier open Registry metadata or Scheduler state.
-Do not resume client dispatch or align protected activation metadata as a release step. Existing
-drafts, attempts and receipts keep their original meaning. The annual managed GET readiness probe
-still requires exact candidate binding and PAUSED restoration. Both Dotloop write keys stay closed;
-no customer draft/send or provider business write is verification proof.
+The October 20 owner amendment supersedes the October 16 renewal-send refusal for the existing
+exact staff-confirmed renewal Send, Schedule, Resume and linked-reply contracts. Fresh reviewed
+authorizations bind the current delivery-policy version; the worker holds all legacy authorizations
+and retired maintenance work before mailbox/source reads. This release changes no protected
+activation metadata. Existing attempts and receipts retain their original meaning. The annual
+managed GET readiness probe still requires exact candidate binding and PAUSED restoration. Both
+Dotloop write keys stay closed; no customer draft/send or provider business write is verification proof.
 
 Both reviewed worker environment fields are mandatory before candidate assurance. Missing, partial
 or unreadable configuration holds before browser auth/subprocesses; it cannot skip the managed

@@ -33,7 +33,7 @@ const admin = (scopes?: readonly string[]): AuthenticatedUser =>
     ...(scopes ? { scopes } : {}),
   });
 
-const ALL_OPERATIONS = ["Lease Renewal", "Maintenance history", "Internal Processes"];
+const ALL_OPERATIONS = ["Lease Renewal", "Internal Processes"];
 const originalAllowedHd = process.env.ALLOWED_HD;
 
 beforeEach(() => {
@@ -45,7 +45,7 @@ afterEach(() => {
 });
 
 describe("S84 primary-navigation manifest", () => {
-  it("owns exactly the requested groups and nine ordered destination definitions", () => {
+  it("owns exactly the requested groups and eight ordered destinations with no retired maintenance entry", () => {
     expect(PRIMARY_NAVIGATION_MANIFEST.map((group) => group.label)).toEqual([
       "My Work",
       "Operations",
@@ -55,17 +55,22 @@ describe("S84 primary-navigation manifest", () => {
       PRIMARY_NAVIGATION_MANIFEST.map((group) => group.items.map((item) => item.label)),
     ).toEqual([
       ["My Work", "Dashboard", "Approval Queue"],
-      ["Lease Renewal", "Maintenance history", "Internal Processes"],
+      ["Lease Renewal", "Internal Processes"],
       ["Admin", "Connections", "Communications"],
     ]);
-    expect(PRIMARY_NAVIGATION_MANIFEST.flatMap((group) => group.items)).toHaveLength(9);
+    expect(PRIMARY_NAVIGATION_MANIFEST.flatMap((group) => group.items)).toHaveLength(8);
+    expect(
+      PRIMARY_NAVIGATION_MANIFEST.flatMap((group) => group.items).some((item) =>
+        item.href.startsWith("/maintenance"),
+      ),
+    ).toBe(false);
     expect(
       new Set(
         PRIMARY_NAVIGATION_MANIFEST.flatMap((group) =>
           group.items.map((item) => item.icon),
         ),
       ).size,
-    ).toBe(9);
+    ).toBe(8);
     expect(PRIMARY_NAVIGATION_MANIFEST.map((group) => group.tone)).toEqual([
       "work",
       "operations",
@@ -240,7 +245,6 @@ describe("S84 primary-navigation manifest", () => {
       "/ask": "app/ask/page.tsx",
       "/approval-queue": "app/approval-queue/page.tsx",
       "/lease-renewal": "app/lease-renewal/page.tsx",
-      "/maintenance/history": "app/maintenance/history/page.tsx",
       "/spaces": "app/spaces/page.tsx",
       "/admin": "app/admin/page.tsx",
       "/connections": "app/connections/page.tsx",
@@ -270,9 +274,9 @@ describe("S84 primary-navigation manifest", () => {
 
     expect(() =>
       validatePrimaryNavigationManifest(PRIMARY_NAVIGATION_MANIFEST, {
-        routeExists: (href) => href !== "/maintenance/history",
+        routeExists: (href) => href !== "/lease-renewal",
       }),
-    ).toThrow(/dead route.*maintenance/i);
+    ).toThrow(/dead route.*lease-renewal/i);
   });
 });
 

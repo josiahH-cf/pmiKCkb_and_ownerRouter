@@ -796,6 +796,11 @@ export const RENEWAL_ROUTE_INVENTORY = [
   { kind: "page", source: "app/lease-renewal/page.tsx", capability: "read_workspace" },
   {
     kind: "page",
+    source: "app/lease-renewal/readiness/page.tsx",
+    capability: "read_workspace",
+  },
+  {
+    kind: "page",
     source: "app/lease-renewal/lease/[leaseId]/page.tsx",
     capability: "read_workspace",
   },

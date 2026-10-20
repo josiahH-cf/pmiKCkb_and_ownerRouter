@@ -139,15 +139,6 @@ export const ADMIN_TASK_GROUPS: readonly AdminTaskGroup[] = [
         requiredCapability: "manageAdmin",
         surface: "admin",
       },
-      {
-        id: "admin-vendors",
-        label: "Retained maintenance history",
-        description:
-          "Read historical maintenance records. Current maintenance remains in Vendoroo.",
-        href: "/admin/vendors",
-        requiredCapability: "manageAdmin",
-        surface: "admin",
-      },
     ],
   },
   {

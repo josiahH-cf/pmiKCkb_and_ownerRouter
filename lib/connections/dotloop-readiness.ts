@@ -7,6 +7,7 @@
 // the absence of any signature API never disable supported packet work, and no readiness state opens
 // an Action Registry key.
 
+import { isApprovedIntegrationAccount } from "./provider-identity";
 import { DOTLOOP_OAUTH_ENV } from "@/lib/connections/dotloop-env-names";
 
 export const DOTLOOP_READINESS_STATES = [
@@ -25,6 +26,7 @@ export const DOTLOOP_READINESS_REASONS = [
   "callback_configuration",
   "secure_storage",
   "account_connection",
+  "provider_account",
   "compatible_profile",
   "renewal_template",
   "loop_write_scope",
@@ -43,6 +45,8 @@ export const DOTLOOP_READINESS_REASON_TEXT: Record<DotloopReadinessReason, strin
   callback_configuration: "The Dotloop authorization callback address is not configured.",
   secure_storage: "Secure credential storage is not configured, so no token can be held.",
   account_connection: "No Dotloop account read succeeded for this connection.",
+  provider_account:
+    "The approved integrations@pmikcmetro.com Dotloop account read has not been verified.",
   compatible_profile: "No Dotloop profile is selected for renewal work.",
   renewal_template: "No Dotloop renewal template is selected.",
   loop_write_scope: "The connection does not carry the loop write scope.",
@@ -63,7 +67,9 @@ export const DOTLOOP_READINESS_NEXT_ACTION: Record<DotloopReadinessReason, strin
   callback_configuration: "Release the reviewed Dotloop callback address.",
   secure_storage: "Release the reviewed connector vault configuration.",
   account_connection: "Refresh resources, or reconnect the company Dotloop account.",
-  compatible_profile: "An Admin selects the company profile below.",
+  provider_account:
+    "Connect the approved integrations account before choosing resources.",
+  compatible_profile: "An Admin selects a supported individual profile below.",
   renewal_template: "An Admin selects the renewal template below.",
   loop_write_scope: "Ask Dotloop API Support to grant loop write access, then reconnect.",
   provider_scope_unreported:
@@ -338,6 +344,13 @@ export function projectDotloopReadiness(input: DotloopReadinessInput): DotloopRe
     return build("disconnected", []);
   }
 
+  if (
+    observation &&
+    !stale &&
+    observation.accountEmail &&
+    !isApprovedIntegrationAccount(observation.accountEmail)
+  )
+    return build("missing_resources", ["provider_account"]);
   // Connected, but only a real read for this generation proves the account is reachable.
   const accountOk = observation
     ? !stale && observation.accountOk && observation.profilesOk
@@ -349,6 +362,8 @@ export function projectDotloopReadiness(input: DotloopReadinessInput): DotloopRe
     );
   }
 
+  if (observation && !isApprovedIntegrationAccount(observation.accountEmail))
+    return build("missing_resources", ["provider_account"]);
   const missing: DotloopReadinessReason[] = [];
   if (selectionDetail.profile === "unselected" || !input.selection.profileId)
     missing.push("compatible_profile");

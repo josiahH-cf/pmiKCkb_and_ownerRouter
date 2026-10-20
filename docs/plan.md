@@ -2,69 +2,51 @@
 
 Updated: 2026-10-20 (UTC).
 
-## Outcome
+## Authorized outcome
 
-The explicitly authorized application direction and scoped follow-up are verified deployed.
-Maintenance retirement, standalone Vendoroo, renewal usability/source contracts and workflow-linked
-unsent drafting are retained. Client sends/schedules/Resume and worker dispatch remain refused;
-both Dotloop write keys remain closed. The release queue is delivered and empty.
+The owner amended S227–S229 on October 20: completely retire the maintenance component,
+including history/reports and obsolete wiring; diagnose the existing Dotloop template through
+`integrations@pmikcmetro.com`; map form sources to their existing processes; and finalize the
+existing staff-confirmed renewal Send, Schedule and Resume journey for October 22.
+Both Dotloop write keys remain closed. Signing is a human Dotloop handoff. No customer send,
+draft, provider business write or production test record is verification proof.
 
-## Current implementation baseline
+New renewal authorizations bind current content, recipients, source values, sender and a new
+delivery-policy version. The worker skips old authorizations and every retired maintenance lane
+before actor/mailbox/source reads. Current role/Space, runtime suspension, exact-key, at-most-once
+claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
+unapproved background sends remain unavailable. No protected activation metadata changes.
 
-Run `91710ba5-db96-4982-8931-366661f3843c` delivered the scoped S228/S229 follow-up at
-`b8829897e407dafdad94da0fd560afbcc539e397` / `pmi-kc-app-rmvgkpxub-17a20f3efe73` with 100% canonical traffic.
-One application build `d6f49c25-1ada-4a63-86c5-03649b5b9535` succeeded at 2026-10-20T11:11:48.400974Z.
-Candidate receipt `4eb6c7f9-39bb-497a-8ad9-52956042722c` issued 11:50:56.504Z;
-receipt-bound promotion verified 11:51:17.974Z. Observation passed two checkpoints in 408,672 ms
-against the 300,000 ms minimum and 480,000 ms deadline. All 371 source/projected/rendered records
-matched with zero discrepancies, candidate 5xx or unresolved effects. All eleven independent
-readback sections matched at 2026-10-20T11:59:01Z. The checkpoint is complete and permit consumed.
-Tag `cand-rmvgkpxub-17a20f3efe73`; fingerprint
-`sha256:53715974ba3d26ffd6bb2adc2bbb9fa8bba92b25f0c436332b1218d7eea6165f`.
+## Delivery sequence
 
-The actual `bash scripts/verify.sh` passed on `a9a63d7c` (manifest `a504f8e6`):
-9,647 unit tests with four existing configuration skips, all 464 backend tests with no skips,
-format/lint/typecheck, eight policy/budget checks, zero production audit findings and the default
-Next 16.3.8 production build. All twelve original font hashes matched. Final exact-main CI
-`39410047957` passed all five jobs at `b8829897`; its unit/backend counts match the canonical gate.
-All 1,212 runtime files match the qualified canonical, HTTP and browser source snapshots byte-for-byte.
-Later changes are confined to CI, documentation and bounded test diagnostics.
+1. Preserve original checkouts and prior admitted release roots; edit only the isolated owned source.
+2. Verify complete maintenance retirement, fresh confirmed renewal delivery and template/process readiness.
+3. Complete focused mutation scenarios with fixtures/emulators, then actual bash scripts/verify.sh,
+   served browser checks and exact-head green CI. Preserve failures and existing skips.
+4. Prepare a numbered release queue whose commits are ancestral to the admitted head; create a fresh
+   aligned registered native/Windows pair. Require fresh auth, prerequisite GO, cost readbacks and lock.
+5. Use the existing controller, one application build, zero-traffic candidate, exact identity/fingerprint
+   smoke and guarded assurance. Promote only its receipt-bound candidate, observe at least 300,000 ms
+   with required checkpoints, and independently read back production.
+6. Clear the queue only after delivery is proved; publish concise facts/status/plan/loop/environment
+   and suite closure. Keep private provider material and detailed receipts outside Git.
 
-Captured predecessor is `pmi-kc-app-rmvc9kmq6-1c2699db16f8` / `a7bce0981badc7523a6498949b6ea5f2effb198e`;
-run-bound recovery is `pmi-kc-app-recovery-91710ba5db964982`, Sheet=true. All 54 environment keys
-match the predecessor except APP_COMMIT_SHA, with unchanged identity, maps and secret bindings.
-The aggregate comparison starts at `eb5d35991c3ec128a102e4483d3779af16106821`; original October 16
-commits were already on main and their A7 delivery remains dated history.
+## Captured baseline and external seams
 
-## Authority and closed decisions
+Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
+`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
+`91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
+amendment is being qualified; it is not yet deployed. Prior delivery evidence remains in
+`docs/evidence/application-delivery-2026-10-20.md`.
 
-The prepared October 16 instruction and October 20 continuation carried this exact scope through
-qualification, green publication, diagnosed recovery and existing guarded delivery without phase-only
-consent. S227-S229 are delivered; no older READY proposal or parallel program restarts from a row.
-Current operation admission refuses client sends/schedules/Resume and worker dispatch while retaining
-permitted unsent drafts and original attempts/receipts. Protected activation metadata was unchanged.
-Normal Sheet append/recognized-field updates retain exact human confirmation, claims and readbacks;
-the application refuses row deletion and historical restore. Both Dotloop write keys remain closed.
+Fresh October 20 Dotloop reads verified the existing connection as
+`integrations@pmikcmetro.com`: account/profiles succeeded, the individual-template list was empty,
+and company templates returned 403/FORBIDDEN. This does not establish the reported active
+template's owning visibility or a specific permission defect. No supported selection is saved;
+no recreation is requested. The owner's browser human check fails and remains a human boundary.
+The same integrations account can read the Drive folder containing eight PDF reference sources.
+Source presence is not legal approval, field/signer mapping or a Dotloop selection. A read-only
+Drive DWD scope probe under the previously configured subject was refused; no scope grant changed.
 
-S96 - safe connector disconnect and reconciliation and S87 - final six-cohort product-wide content
-reconciliation remain preservation owners. Completed S97-S99 and S100 chat proofs are not rerun.
-Remaining maintenance proof is retired from this execution; S36 has no new execution grant.
-
-## Canonical closure sequence
-
-1. Confirm original implementation and documentation ancestry; no manufactured merge.
-2. Publish the scoped implementation/qualification and necessary CI/diagnostic repairs normally.
-3. Complete the actual canonical, HTTP/browser and exact-main CI gates with their recorded scopes.
-4. Run one guarded release, preserve its initial assurance failure, diagnose with unchanged read-only
-   components and resume the same pinned candidate through the full gate, promotion and observation.
-5. Complete all eleven independent readbacks plus exact environment/Registry preservation reads.
-6. Close current documentation and the queue, run required documentation checks, and publish normally.
-   A later documentation-only main commit does not require a runtime deployment.
-
-## Per-suite delivery rule
-
-ALL_GATES_GREEN describes actual engineering/release gates. Human and physical-phone verdicts remain
-NOT RUN; Editor browser remains not_run under the approved Admin-only policy. Dotloop template,
-selection, approved content/maps and activation holds affect only dependent output. Dated Gmail
-metadata is not future freshness. All failed attempts, claims and receipts retain their actual
-meaning. Current terminal state is in docs/loop-state.md; external limits are in docs/open-blockers.md.
+External access or actual legal inputs hold only their dependent capability. No older READY program,
+new leasing, maintenance, Shockwave audit or standalone importer is admitted by this plan.

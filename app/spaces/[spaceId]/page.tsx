@@ -38,7 +38,6 @@ import { launchSpaces } from "@/lib/spaces";
 import {
   isRetiredMaintenanceWorkflow,
   MAINTENANCE_RETIREMENT_MESSAGE,
-  MAINTENANCE_HISTORY_PATH,
 } from "@/lib/maintenance/retirement";
 
 /** The domain-specific desk Card(s) for a Space, if any:
@@ -235,7 +234,6 @@ export default async function SpaceDetailPage({
               Existing knowledge and publication records retain their original
               permissions.
             </p>
-            <Link href={MAINTENANCE_HISTORY_PATH}>Read-only maintenance history</Link>
           </section>
         ) : activeTab === "process" && space.processDefinitionId ? (
           <ProcessSummaryPanel
@@ -248,9 +246,9 @@ export default async function SpaceDetailPage({
             <h2>Workflow communication reference</h2>
             <p className="muted">
               Gmail authorization applies per user, and the app stays scoped to your
-              workflows. It reads only deliberately linked renewal or maintenance threads
-              and stores only bodyless workflow/audit metadata. Gmail remains the message
-              system of record.
+              workflows. It reads only deliberately linked renewal threads and stores only
+              bodyless workflow/audit metadata. Gmail remains the message system of
+              record.
             </p>
             <ul className="compact-list">
               {ownerEmailReadOnlySources.map((source) => (

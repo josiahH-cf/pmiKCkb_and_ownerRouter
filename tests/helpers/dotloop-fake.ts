@@ -150,7 +150,11 @@ export function createDotloopFake(options: DotloopFakeOptions = {}): DotloopFake
 
       if (input.url.endsWith("/account")) {
         return jsonResponse(200, {
-          data: options.account ?? { id: 55, name: "PMI KC Metro" },
+          data: options.account ?? {
+            id: 55,
+            name: "PMI KC Metro",
+            email: "integrations@pmikcmetro.com",
+          },
         });
       }
       if (input.url.includes("/loop-template")) {

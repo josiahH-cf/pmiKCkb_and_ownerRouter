@@ -1,3 +1,4 @@
+import { isApprovedIntegrationAccount } from "./provider-identity";
 import { randomUUID } from "node:crypto";
 
 import type {
@@ -415,6 +416,20 @@ export async function observeDotloopResources(input: {
   let accountError: DotloopReadFailure | null = null;
   try {
     account = await input.client.getAccount();
+    if (!isApprovedIntegrationAccount(account.email)) {
+      return {
+        generationId: input.generationId,
+        observedAt,
+        observedByUid: input.actorUid,
+        account,
+        accountError: "access_denied",
+        profiles: [],
+        profilesError: "access_denied",
+        profilesTruncated: false,
+        templates: [],
+        subscriptionsReadable: null,
+      };
+    }
   } catch (error) {
     if (error instanceof DotloopClientError && error.kind === "refresh_needed")
       throw error;

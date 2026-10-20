@@ -15,28 +15,36 @@ describe("plan.md present-truth freshness", () => {
   const plan = readFileSync(PLAN_PATH, "utf8")
     .replace(/\s+/g, " ")
     .replace(/[\u2013\u2014]/g, "-");
-
-  it("keeps only the active outcome, current baseline, authority, queue, and delivery rule", () => {
-    expect(plan).toContain("## Outcome");
-    expect(plan).toContain("## Current implementation baseline");
-    expect(plan).toContain("## Authority and closed decisions");
-    expect(plan).toContain("## Canonical closure sequence");
-    expect(plan).toContain("## Per-suite delivery rule");
+  it("keeps only the current authorized outcome, delivery sequence and captured external seams", () => {
+    for (const heading of [
+      "## Authorized outcome",
+      "## Delivery sequence",
+      "## Captured baseline and external seams",
+    ])
+      expect(plan).toContain(heading);
     expect(plan).not.toContain("## Cross-Product Phases");
-  });
-
-  it("pins current production, the exact effect boundary, canonical endpoints, and terminal rule", () => {
-    expect(plan).toContain("b8829897e407dafdad94da0fd560afbcc539e397");
-    expect(plan).toContain("pmi-kc-app-rmvgkpxub-17a20f3efe73");
-    expect(plan).toContain("eb5d35991c3ec128a102e4483d3779af16106821");
-    expect(plan).toContain("pmi-kc-app-rmvc9kmq6-1c2699db16f8");
-    expect(plan).toContain("Completed S97-S99 and S100 chat proofs are not rerun");
-    expect(plan).toContain("S36 has no new execution grant");
     expect(plan).toContain("S227-S229");
-    expect(plan).toContain("operation admission");
-    expect(plan).toContain("refuses row deletion and historical restore");
-    expect(plan).toContain("S96 - safe connector disconnect and reconciliation");
-    expect(plan).toContain("S87 - final six-cohort product-wide content reconciliation");
-    expect(plan).toContain("ALL_GATES_GREEN");
+    expect(plan).toContain("No older READY program");
+  });
+  it("preserves exact renewal authority, closed Dotloop writes and actual release qualification", () => {
+    expect(plan).toMatch(/[a-f0-9]{40}/);
+    expect(plan).toMatch(/pmi-kc-app-[a-z0-9-]+/);
+    for (const contract of [
+      "integrations@pmikcmetro.com",
+      "Both Dotloop write keys remain closed",
+      "fresh confirmed renewal delivery",
+      "worker skips old authorizations",
+      "No protected activation metadata changes",
+      "fixtures/emulators",
+      "bash scripts/verify.sh",
+      "exact-head green CI",
+      "receipt-bound candidate",
+      "300,000 ms",
+      "Clear the queue only after delivery is proved",
+    ])
+      expect(plan).toContain(contract);
+    expect(plan).toContain(
+      "No customer send, draft, provider business write or production test record is verification proof",
+    );
   });
 });

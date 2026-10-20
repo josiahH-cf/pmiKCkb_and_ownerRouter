@@ -12,9 +12,9 @@ export function GmailHubHome({
       <div>
         <h1 className="section-title">Workflow Communications</h1>
         <p role="note">
-          Sending and scheduling are unavailable. Saved schedules and delivery history are
-          retained for reference and will not dispatch. Review unsent Gmail drafts in the
-          linked lease workflow.
+          Review and confirm lease-renewal messages here. Schedule follow-ups, pause them,
+          and review again before Resume. Older authorizations remain on hold until a
+          fresh confirmation.
         </p>
         <p className="muted">Linked workflows · mailbox management stays in Gmail.</p>
       </div>

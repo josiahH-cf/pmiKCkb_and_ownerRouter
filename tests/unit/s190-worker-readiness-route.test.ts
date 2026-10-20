@@ -21,6 +21,7 @@ vi.mock("@/lib/operations/application-effect-policy", () => ({
   applicationEffectBlockReason: mocks.policy,
 }));
 import { GET } from "@/app/api/gmail-hub/sequence-worker/route";
+import { EditableLayerError } from "@/lib/firestore/errors";
 import { GmailPushAuthError } from "@/lib/gmail-hub/pubsub";
 const probeId = "3785c149-59a4-45fa-85de-a33a71f757d8";
 const request = (query = "", id: string | null = probeId) =>
@@ -29,7 +30,9 @@ const request = (query = "", id: string | null = probeId) =>
   });
 beforeEach(() => {
   vi.resetAllMocks();
-  mocks.policy.mockReturnValue("Sending is unavailable");
+  mocks.policy.mockImplementation((key: string) =>
+    key.startsWith("gmail.maintenance_") ? "Retired" : null,
+  );
   vi.spyOn(console, "log").mockImplementation(() => {});
 });
 afterEach(() => vi.restoreAllMocks());
@@ -41,10 +44,15 @@ it("rejects an unverified service before reading gates, logging readiness or con
   expect(mocks.create).not.toHaveBeenCalled();
   expect(mocks.run).not.toHaveBeenCalled();
 });
-it("proves the managed service and non-dispatching policy without claiming a customer occurrence", async () => {
+it("proves confirmed renewal readiness without constructing or claiming a customer occurrence", async () => {
   const response = await GET(request());
   expect(response.status).toBe(200);
-  expect(await response.json()).toEqual({ status: "draft_only", dispatchEnabled: false });
+  expect(await response.json()).toEqual({
+    status: "ready",
+    dispatchEnabled: true,
+    legacyDispatchEnabled: false,
+    deliveryPolicyVersion: "renewal-confirmed-delivery/2026-10-20",
+  });
   expect(mocks.policy.mock.calls).toEqual([
     ["gmail.renewal_notice.send"],
     ["gmail.maintenance_owner_notice.send"],
@@ -53,8 +61,10 @@ it("proves the managed service and non-dispatching policy without claiming a cus
     event: "communication_worker_readiness",
     probeId,
     ready: true,
-    mode: "draft_only",
-    dispatchEnabled: false,
+    mode: "confirmed_renewal",
+    dispatchEnabled: true,
+    legacyDispatchEnabled: false,
+    deliveryPolicyVersion: "renewal-confirmed-delivery/2026-10-20",
   });
   expect(mocks.create).not.toHaveBeenCalled();
   expect(mocks.run).not.toHaveBeenCalled();
@@ -72,9 +82,17 @@ it.each([
     expect(mocks.create).not.toHaveBeenCalled();
   },
 );
-it("an absent unsent-only policy cannot produce a readiness success log", async () => {
+it("an absent maintenance retirement cannot produce a readiness success log", async () => {
   mocks.policy.mockReturnValue(null);
   expect((await GET(request())).status).toBe(409);
   expect(console.log).not.toHaveBeenCalled();
+  expect(mocks.run).not.toHaveBeenCalled();
+});
+
+it("a closed current runtime gate cannot log readiness or construct a sequence service", async () => {
+  mocks.gate.mockRejectedValue(new EditableLayerError("Current gate unavailable", 409));
+  expect((await GET(request())).status).toBe(409);
+  expect(console.log).not.toHaveBeenCalled();
+  expect(mocks.create).not.toHaveBeenCalled();
   expect(mocks.run).not.toHaveBeenCalled();
 });

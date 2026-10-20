@@ -94,7 +94,7 @@ describe("S187 one linked rich composer", () => {
     expect(JSON.stringify(paragraphs)).not.toContain("javascript:");
     expect(JSON.stringify(paragraphs)).not.toContain("unsafe()");
   });
-  it("saves the last visible rich edit once while Send and Schedule remain unavailable", async () => {
+  it("saves the final visible edit before one confirmed Send and preserves an unresolved attempt", async () => {
     const commands: Record<string, unknown>[] = [];
     let release: (() => void) | undefined;
     vi.stubGlobal(
@@ -128,14 +128,14 @@ describe("S187 one linked rich composer", () => {
     mount();
     const editor = await screen.findByRole("textbox", { name: "Initial message body" });
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Send" })).toBeDisabled(),
+      expect(screen.getByRole("button", { name: "Send" })).toBeEnabled(),
     );
     editor.innerHTML = "<p>Final <strong>reviewed</strong> wording</p>";
     fireEvent.input(editor);
-    expect(screen.getByRole("button", { name: "Schedule" })).toBeDisabled();
-    const save = screen.getByRole("button", { name: "Save draft" });
-    fireEvent.click(save);
-    fireEvent.click(save);
+    expect(screen.getByRole("button", { name: "Schedule" })).toBeEnabled();
+    const send = screen.getByRole("button", { name: "Send" });
+    fireEvent.click(send);
+    fireEvent.click(send);
     await waitFor(() =>
       expect(commands.filter((c) => c.action === "save")).toHaveLength(1),
     );
@@ -144,8 +144,13 @@ describe("S187 one linked rich composer", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Save draft" })).toBeEnabled(),
     );
+    expect(commands.filter((c) => c.action === "send")).toHaveLength(1);
+    expect(commands.find((c) => c.action === "send")).toMatchObject({
+      reviewedDraftHash: "c".repeat(64),
+      reviewedTargetHash: "b".repeat(64),
+    });
     expect(
-      commands.filter((c) => ["send", "schedule", "resume"].includes(String(c.action))),
+      commands.filter((c) => ["schedule", "resume"].includes(String(c.action))),
     ).toHaveLength(0);
     expect(JSON.stringify(commands[0])).toContain('"bold":true');
     expect(editor).toHaveTextContent("Final reviewed wording");
@@ -179,4 +184,68 @@ describe("S187 one linked rich composer", () => {
     await waitFor(() => expect(saves).toHaveLength(2));
     expect(saves[1]).toEqual(saves[0]);
   });
+});
+
+it("opens the schedule controls and authorizes exactly the reviewed local date, time and bounds", async () => {
+  const scheduledBase = {
+    ...base,
+    followUp: plainCommunicationMessage(
+      "Reviewed follow-up",
+      "Fixture follow-up content",
+    ),
+  };
+  const commands: Record<string, unknown>[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, options?: RequestInit) => {
+      if (url.includes("composition")) return reply(composition);
+      if (!options?.body)
+        return reply({ sequence: scheduledBase, reviewedDraftHash: "a".repeat(64) });
+      const command = JSON.parse(String(options.body));
+      commands.push(command);
+      return reply({
+        sequence: { ...scheduledBase, version: 2, state: "active" },
+        reviewedDraftHash: "a".repeat(64),
+      });
+    }),
+  );
+  mount();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Schedule" })).toBeEnabled(),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Schedule" }));
+  fireEvent.change(screen.getByLabelText("First date"), {
+    target: { value: "2026-10-22" },
+  });
+  fireEvent.change(screen.getByLabelText("Local time"), { target: { value: "09:00" } });
+  fireEvent.change(screen.getByLabelText("Timezone"), {
+    target: { value: "America/Chicago" },
+  });
+  fireEvent.change(screen.getByLabelText("Repeat every calendar days (optional)"), {
+    target: { value: "3" },
+  });
+  fireEvent.change(
+    screen.getByLabelText("Total send limit including initial (optional)"),
+    { target: { value: "2" } },
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Schedule messages" }));
+  await waitFor(() =>
+    expect(commands.filter((c) => c.action === "schedule")).toHaveLength(1),
+  );
+  expect(commands[0]).toMatchObject({
+    action: "schedule",
+    id,
+    expectedVersion: 1,
+    reviewedDraftHash: "a".repeat(64),
+    reviewedTargetHash: "b".repeat(64),
+    schedule: {
+      firstDate: "2026-10-22",
+      time: "09:00",
+      timeZone: "America/Chicago",
+      everyDays: 3,
+      sendLimit: 2,
+      endDate: null,
+    },
+  });
+  expect(commands.some((c) => c.action === "send")).toBe(false);
 });

@@ -14,7 +14,7 @@ vi.mock("@/lib/environment/descriptor", () => ({
 }));
 import { proxy } from "../../proxy";
 
-describe("October 15 maintenance retirement HTTP boundary", () => {
+describe("October 20 complete maintenance retirement HTTP boundary", () => {
   it.each([
     ["POST", "/api/maintenance/tickets"],
     ["PATCH", "/api/maintenance/tickets/retained-ticket"],
@@ -25,6 +25,10 @@ describe("October 15 maintenance retirement HTTP boundary", () => {
     ["POST", "/api/vendor/tickets/retained-ticket/work"],
     ["POST", "/api/admin/vendors/live/actions"],
     ["GET", "/api/maintenance/units/search"],
+    ["GET", "/api/maintenance/tickets"],
+    ["HEAD", "/api/maintenance/tickets/retained-ticket/history"],
+    ["GET", "/api/maintenance/reports"],
+    ["GET", "/api/vendor/tickets/retained-ticket/work"],
   ])("refuses retired %s %s before its handler can execute", async (method, path) => {
     const response = await proxy(
       new NextRequest(`https://app.invalid${path}`, { method }),
@@ -37,27 +41,24 @@ describe("October 15 maintenance retirement HTTP boundary", () => {
   it.each([
     "/maintenance",
     "/maintenance/vendors",
+    "/maintenance/history",
+    "/maintenance/report",
+    "/maintenance/retired",
     "/maintenance/policies",
     "/vendor",
     "/vendor/setup",
     "/admin/vendors",
-  ])("replaces operational page %s with a retirement notice", async (path) => {
+  ])("redirects retired page %s without a history component", async (path) => {
     const response = await proxy(new NextRequest(`https://app.invalid${path}`));
-    expect(response.headers.get("x-middleware-rewrite")).toBe(
-      "https://app.invalid/maintenance/retired",
-    );
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://app.invalid/lease-renewal");
   });
 
-  it.each([
-    "/maintenance/history",
-    "/api/maintenance/tickets",
-    "/api/maintenance/tickets/retained-ticket/history",
-    "/api/maintenance/reports",
-    "/lease-renewal",
-    "/api/gmail-hub/connection",
-    "/api/ask",
-  ])("preserves the existing authorization handler for %s", async (path) => {
-    const response = await proxy(new NextRequest(`https://app.invalid${path}`));
-    expect(response.headers.get("x-middleware-next")).toBe("1");
-  });
+  it.each(["/lease-renewal", "/api/gmail-hub/connection", "/api/ask"])(
+    "preserves the existing authorization handler for %s",
+    async (path) => {
+      const response = await proxy(new NextRequest(`https://app.invalid${path}`));
+      expect(response.headers.get("x-middleware-next")).toBe("1");
+    },
+  );
 });

@@ -3,7 +3,6 @@ import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 import { useState } from "react";
 
-import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { Button, ConfirmationDialog, Field } from "@/components/ui";
 
 interface WorkOrderRow {
@@ -535,8 +534,8 @@ export function RentvineWorkOrderPanel({
         </>
       ) : (
         <p className="muted">
-          Proposing a RentVine work-order change is an Editor action.{" "}
-          <RequestAccessLink surface="maintenance.edit" />
+          Custom maintenance is retired. This archived control cannot request operational
+          access.
         </p>
       )}
 

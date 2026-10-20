@@ -137,7 +137,6 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   // S222: fresh read-only property identity before a separately admitted policy save.
   "lib/firestore/maintenance-operating-policies.ts:verifyProperty:buildLiveRentVineConfig",
   // Actual-source read-only membership/recipient factories; no provider mutation is exposed.
-  "lib/gmail-hub/sequence-dependencies.ts:maintenanceTarget:buildLiveRentVineConfig",
   "lib/lease-renewal/pricing-policy-dependencies.ts:read:buildLiveRentVineConfig",
   // S198/S203: complete source identity resolution for app tasks and read-only entity metadata.
   "lib/work-accountability/lease-follow-up-source.ts:resolveLeaseFollowUpSource:buildLiveRentVineConfig",

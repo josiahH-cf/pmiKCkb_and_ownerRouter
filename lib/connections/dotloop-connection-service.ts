@@ -1,3 +1,4 @@
+import { isApprovedIntegrationAccount } from "./provider-identity";
 // S106: the one server-owned Dotloop connection service.
 //
 // It owns beginning an authorization, completing the callback, and the health-check transport. It
@@ -345,6 +346,13 @@ export function dotloopHealthCheckTransport(deps: {
   readonly client: DotloopClient;
   readonly env?: Record<string, string | undefined>;
 }): HealthCheckTransport {
+  let accountCheck: Promise<boolean> | null = null;
+  const approvedAccount = () =>
+    (accountCheck ??= deps.client
+      .getAccount()
+      .then((account) => isApprovedIntegrationAccount(account.email)));
+  const wrongAccount =
+    "Connect integrations@pmikcmetro.com; another or unverified account does not qualify.";
   return {
     async probe(
       _contract: HealthCheckContract,
@@ -362,14 +370,20 @@ export function dotloopHealthCheckTransport(deps: {
         }
         case "dotloop.auth": {
           try {
-            await deps.client.getAccount();
-            return { ok: true, detail: "An authenticated account read succeeded." };
+            const approved = await approvedAccount();
+            return {
+              ok: approved,
+              detail: approved
+                ? "The approved integrations account read succeeded."
+                : wrongAccount,
+            };
           } catch (error) {
             return { ok: false, detail: probeDetail(error) };
           }
         }
         case "dotloop.probe": {
           try {
+            if (!(await approvedAccount())) return { ok: false, detail: wrongAccount };
             const profiles = await deps.client.listProfiles();
             return {
               ok: profiles.length > 0,
@@ -383,6 +397,7 @@ export function dotloopHealthCheckTransport(deps: {
           }
         }
         case "dotloop.webhooks": {
+          if (!(await approvedAccount())) return { ok: false, detail: wrongAccount };
           const readable = await deps.client.readSubscriptionsAvailable();
           return {
             ok: readable,

@@ -134,6 +134,11 @@ export function DotloopConnectionPanel({
         their own open keys and exact confirmation. Preparing and downloading filled forms
         does not need this connection.
       </p>
+      <p>
+        Provider connection: integrations@pmikcmetro.com. A company template must be
+        available to this account&apos;s supported individual profile before the app can
+        select it. Drive PDFs and a Dotloop loop template are separate resources.
+      </p>
       {readiness.accountEmail ? (
         <p data-dotloop-account>Connected Dotloop account: {readiness.accountEmail}</p>
       ) : null}

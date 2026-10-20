@@ -1,3 +1,4 @@
+import { hasCurrentRenewalAuthorization } from "./delivery-policy";
 import { randomUUID } from "node:crypto";
 import type { Firestore } from "firebase-admin/firestore";
 import { OAuth2Client } from "google-auth-library";
@@ -90,6 +91,10 @@ export async function runCommunicationWorker(input: {
     counts.inspected += 1;
     if (!original.authorization || ["completed", "cancelled"].includes(original.state))
       continue;
+    if (!hasCurrentRenewalAuthorization(original)) {
+      counts.held += 1;
+      continue;
+    }
     try {
       // Current staff authority and the stored real workflow scope precede any mailbox construction.
       const actor = await input.service.deps.readActor(original.responsibleUid);

@@ -46,29 +46,19 @@ it("projects verified person IDs and distinct equal names into related-lease vie
   );
   expect(JSON.stringify(records)).not.toContain("EXCLUDED_PRIVATE_BODY");
 });
-it("opens the actual maintenance ticket focus route and keeps only source-backed canonical relations", () => {
-  const records = projectMaintenanceSearchEntities(
-    [
-      {
-        id: "ticket-one",
-        summary: "Dripping fixture",
-        unit: {
-          unitId: "unit:103",
-          label: "East 123 Fixture Lane",
+it("omits retired ticket projections without reading or fabricating a destination", () => {
+  expect(
+    projectMaintenanceSearchEntities(
+      [
+        {
+          id: "retained-fixture",
+          summary: "Fixture",
+          unit: null,
+          status: "Open",
+          updated_at: time,
         },
-        status: "Open",
-        updated_at: time,
-        property_id: "55",
-        vendor_id: "vendor-1",
-      },
-    ],
-    time,
-  );
-  expect(records[0].href).toBe("/maintenance/history?ticket_id=ticket-one");
-  expect(records[0].relations).toEqual([
-    { type: "unit", id: "103", label: "East 123 Fixture Lane" },
-    { type: "property", id: "55", label: "Property 55" },
-    { type: "vendor", id: "vendor-1", label: "Assigned vendor vendor-1" },
-  ]);
-  expect(records[0].asOf).toBe(time);
+      ],
+      time,
+    ),
+  ).toEqual([]);
 });

@@ -24,7 +24,15 @@ describe("S83 access request handoff registry", () => {
     expect(validateAccessReturnTarget("/lease-renewal/live/desk")).toBe(
       "/lease-renewal/live/desk",
     );
-    expect(validateAccessReturnTarget("/maintenance")).toBe("/maintenance");
+    for (const retired of [
+      "/maintenance",
+      "/maintenance/history",
+      "/vendor",
+      "/admin/vendors",
+    ])
+      expect(() => validateAccessReturnTarget(retired)).toThrow(
+        "not an allowed access return destination",
+      );
     expect(() => validateAccessReturnTarget("https://example.test/admin")).toThrow(
       "not an allowed access return destination",
     );

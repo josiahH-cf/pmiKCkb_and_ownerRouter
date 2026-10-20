@@ -1,22 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { VendorPortal } from "@/components/vendor/VendorPortal";
-import { FirestoreVendorStore } from "@/lib/firestore/vendors";
-import { listVendorTickets } from "@/lib/vendor/assignment";
-import { confirmVendorPortalAccess } from "@/lib/vendor/access";
-import { getVendorSession } from "@/lib/vendor/auth";
-
-export default async function VendorPage() {
-  const principal = await getVendorSession();
-  if (!principal) redirect("/vendor/sign-in");
-  const store = new FirestoreVendorStore();
-  if (!(await confirmVendorPortalAccess(principal, store))) {
-    redirect("/vendor/sign-in?error=unavailable");
-  }
-  return (
-    <VendorPortal
-      email={principal.email}
-      tickets={await listVendorTickets(principal, store)}
-    />
-  );
+/** Legacy bookmarks leave the fully retired component without reading its records. */
+export default function RetiredMaintenancePage() {
+  redirect("/lease-renewal");
 }

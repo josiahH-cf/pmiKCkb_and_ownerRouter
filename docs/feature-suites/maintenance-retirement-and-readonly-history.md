@@ -1,129 +1,137 @@
 <!-- spec-shape: overhaul-v1 -->
 <!-- feature-handoff: oct15-application-2026-10-16 -->
+<!-- owner-amendment: 2026-10-20 -->
 
-# S227 — Retire custom maintenance and preserve read-only history
+# S227 — Completely retire custom maintenance
 
-> Status: COMPLETE — carried and independently verified in run 91710ba5 at b8829897; original d33c7174 delivery, external resource limits and human NOT RUN retain their scopes.
+> Status: IN PROGRESS — October 20 owner amendment implemented under qualification; prior delivery at b8829897 retains its original scope.
 
 **Goal.**
 
-Staff use the renewal and knowledge application without active custom-maintenance intake, vendor operations or maintenance provider effects; authorized historical records remain readable.
+The maintenance component, history/reports, obsolete connection wiring, ticket search and vendor operational entry points disappear. Stored records and receipts are not purged; unrelated renewal, knowledge and permissions remain intact.
 
 **Current state / intended end state.**
 
-Upstream 0b892865 serves maintenance capture, operational queues, policies, vendor work and shared workflow entry points. October 15 30:54–31:32 confirms retirement; Dan's email and Chasity's agreement independently reinforce it. The required end state is the observable goal above, with preserved records and permissions.
+Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
+`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
+`91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
+amendment is being qualified; it is not yet deployed. Prior delivery evidence remains in
+`docs/evidence/application-delivery-2026-10-20.md`.
+
+The owner explicitly amended the earlier October 16 history/unsent-only boundary. This suite owns
+its corresponding revision; no older READY row or other program is newly executed.
 
 **Actors and entry conditions.**
 
-Existing managed staff and authorized historical Vendor readers retain their existing record scope. Operational maintenance/vendor controls are retired for every role; retained history and knowledge keep their original permissions. No role, identity or credential substitute is introduced.
+Managed staff retain current role/Space/mailbox permissions. Provider connections use the approved
+integrations account; WSL CLI/ADC and guarded Admin assurance retain their existing identities.
 
 **What it is / how it functions.**
 
-One unconditional retirement policy covers HTTP entry and shared operation admission before any write/provider construction. Retained read handlers keep their original authorization. No production data migration or deletion occurs.
+The maintenance component, history/reports, obsolete connection wiring, ticket search and vendor operational entry points disappear. Stored records and receipts are not purged; unrelated renewal, knowledge and permissions remain intact.
 
 **In scope / out of scope.**
 
-Retire navigation, direct pages, public intake, maintenance/vendor mutation APIs, shared execution admission and background maintenance effects. Keep records, receipts, existing permissions, read-only history/reports, shared knowledge and renewal consumers. Vendoroo remains standalone with no invented URL. Acquisition audit, standalone importer and new leasing are excluded.
+Implement this outcome through existing owning boundaries and guarded release. No production purge,
+customer/provider proof effect, generic send, maintenance revival, new leasing, protected activation,
+identity privilege change, budget change, guessed resource or signature API is granted.
 
 **Open questions & assumptions.**
 
-The dated October 17 normal managed Dotloop resource refresh succeeded on production. The supported individual
-template list is empty; the company-template read failed as unavailable, which does not prove an
-empty company list. No supported renewal selection is saved. The reported active template's owning
-visibility/root cause remains unestablished; no template recreation is requested. The live UI
-distinguishes failed and empty reads and excludes unsupported profiles from selection. Both Dotloop
-write keys remain closed. Gmail's provider profile read succeeded for the expected managed mailbox;
-sync health reports degraded. No customer draft/send, loop, upload, signature, paid comp request or
-production test record was verification proof. Normal connection refresh updates only its existing
-credential/observation metadata; it is separate from guarded read-only release assurance.
-All guarded release gates and independent production readbacks passed; human verdict remains NOT RUN.
+Fresh October 20 Dotloop reads verified the existing connection as
+`integrations@pmikcmetro.com`: account/profiles succeeded, the individual-template list was empty,
+and company templates returned 403/FORBIDDEN. This does not establish the reported active
+template's owning visibility or a specific permission defect. No supported selection is saved;
+no recreation is requested. The owner's browser human check fails and remains a human boundary.
+The same integrations account can read the Drive folder containing eight PDF reference sources.
+Source presence is not legal approval, field/signer mapping or a Dotloop selection. A read-only
+Drive DWD scope probe under the previously configured subject was refused; no scope grant changed.
+
+These limits hold dependent output; implementation and release continue independently.
 
 **Cross-product impacts.**
 
-Existing Next request proxy, owning server services, navigation/components, Firestore records, current facts/loop/register and focused deterministic tests. Shared source consumers and safety boundaries remain separately owned.
+HTTP/page admission, navigation, shared source projections, renewal communications, existing
+connections, form intake/configuration and release assurance must agree. Preserve all eleven Spaces,
+runtime identity, Production/Live, Demo=false, Sheet=true and existing secret/cost/security controls.
 
 **Authority and evidence map.**
 
-| Input                                                                        | Classification                           | Use and limitation                                                                                                                                             |
-| ---------------------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| October 16 prepared application brief, read in full locally                  | Explicit execution instruction           | Carries confirmed scope through implementation and authorized delivery; no customer proof effects.                                                             |
-| October 15 meeting at the timestamps above and confirming maintenance emails | Intent/reported or demonstrated behavior | Establishes decisions; does not prove API defects, provider success or human acceptance. Private sources stay outside Git.                                     |
-| AGENTS.md, upstream 0b892865 code/tests and current facts                    | Authority / implementation evidence      | Existing send authority differs from this task's narrower explicit limit. Record the conflict honestly; no protected-key change is implied.                    |
-| October 17 first attempt and managed reads                                   | Historical observation                   | Authentication/resource reads succeeded; first run a97c579c failed observation and verified rollback. Its actual evidence remains unchanged.                   |
-| October 17 run d33c7174 and independent production checks                    | Current observation                      | Exact a7bce098 candidate, promotion, full two-checkpoint observation and eleven independent sections passed; bounded provider resource limits remain explicit. |
+| Input                                                                        | Classification      | Use and limitation                                                                           |
+| ---------------------------------------------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------- |
+| October 20 owner request and explicit Send/Schedule/Resume reply             | Execution authority | Revises this exact scope through qualification, publication and existing guarded deployment. |
+| Current committed code, deterministic tests and direct managed/browser reads | Evidence            | Distinguish fixtures, observations and production effects; detailed material stays private.  |
+| Earlier releases and registry metadata                                       | Historical evidence | No backlog execution, renewed permission or present provider success follows.                |
 
 **Architecture outcome (deterministic, fail-first).**
 
-- **ARCH-S227-1** — One unconditional retirement policy covers HTTP entry and shared operation admission before any write/provider construction. Retained read handlers keep their original authorization. No production data migration or deletion occurs.
+- **ARCH-S227-1** — The maintenance component, history/reports, obsolete connection wiring, ticket search and vendor operational entry points disappear. Stored records and receipts are not purged; unrelated renewal, knowledge and permissions remain intact.
 
 **Behavior outcome (deterministic, fail-first).**
 
-- **BEH-S227-1** — Operational pages show a clear retirement notice and a link to authorized read-only history. Retired APIs refuse with a stable 410 and no-store; unknown future mutation routes under the retired namespaces also refuse. Renewal, communications reads/drafts and knowledge continue.
+- **BEH-S227-1** — The maintenance component, history/reports, obsolete connection wiring, ticket search and vendor operational entry points disappear. Stored records and receipts are not purged; unrelated renewal, knowledge and permissions remain intact.
 
 **Human litmus outcome.**
 
-### Retire custom maintenance and preserve read-only history
+### Completely retire custom maintenance
 
-**If this was built correctly:** Staff use the renewal and knowledge application without active custom-maintenance intake, vendor operations or maintenance provider effects; authorized historical records remain readable.
+**If this was built correctly:** The maintenance component, history/reports, obsolete connection wiring, ticket search and vendor operational entry points disappear. Stored records and receipts are not purged; unrelated renewal, knowledge and permissions remain intact.
 
-- Model verdict: ALL_GATES_GREEN — bounded diagnostic/preservation implementation and guarded production delivery passed; no human or provider business-effect acceptance is inferred.
+- Model verdict: NOT RUN — full new qualification and guarded delivery are pending; focused results retain exact source coverage.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                                                                                                              | Architecture outcome | Behavior outcome | Human litmus                                             | Deterministic evidence / falsification                                                                                        |
-| ------------------------------------------------------------------------------------------------------------------------ | -------------------- | ---------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| R-S227-1 — Hide active maintenance/vendor entry controls and replace direct operational routes with a retirement notice. | ARCH-S227-1          | BEH-S227-1       | Retire custom maintenance and preserve read-only history | tests/unit/oct15-maintenance-retirement.test.ts; proxy integration, navigation, shared-admission and read-only history checks |
-| R-S227-2 — Refuse intake, maintenance/vendor mutation, shared workflow execution and job effects before dispatch.        | ARCH-S227-1          | BEH-S227-1       | Retire custom maintenance and preserve read-only history | tests/unit/oct15-maintenance-retirement.test.ts; proxy integration, navigation, shared-admission and read-only history checks |
-| R-S227-3 — Retain authorized ticket/history/report/receipt reads and all stored evidence without widening permissions.   | ARCH-S227-1          | BEH-S227-1       | Retire custom maintenance and preserve read-only history | tests/unit/oct15-maintenance-retirement.test.ts; proxy integration, navigation, shared-admission and read-only history checks |
-| R-S227-4 — Keep shared renewal, communications and knowledge functionality usable and Vendoroo standalone.               | ARCH-S227-1          | BEH-S227-1       | Retire custom maintenance and preserve read-only history | tests/unit/oct15-maintenance-retirement.test.ts; proxy integration, navigation, shared-admission and read-only history checks |
+| Requirement                                                                                                                                 | Architecture outcome | Behavior outcome | Human litmus                         | Deterministic evidence / falsification                                                                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- | ---------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R-S227-1 — Remove maintenance/history navigation and redirect legacy page bookmarks without loading records.                                | ARCH-S227-1          | BEH-S227-1       | Completely retire custom maintenance | tests/unit/oct15-maintenance-retirement.test.ts; tests/unit/oct15-shared-maintenance-workflow.test.ts; tests/unit/oct15-production-effects.test.ts; tests/unit/s203-search-projections.test.ts |
+| R-S227-2 — Refuse all retired API namespaces, including historical reads, before handler/provider construction; retain genuine logout only. | ARCH-S227-1          | BEH-S227-1       | Completely retire custom maintenance | tests/unit/oct15-maintenance-retirement.test.ts; tests/unit/oct15-shared-maintenance-workflow.test.ts; tests/unit/oct15-production-effects.test.ts; tests/unit/s203-search-projections.test.ts |
+| R-S227-3 — Remove shared maintenance/vendor search and composition consumers while preserving retained records and receipts.                | ARCH-S227-1          | BEH-S227-1       | Completely retire custom maintenance | tests/unit/oct15-maintenance-retirement.test.ts; tests/unit/oct15-shared-maintenance-workflow.test.ts; tests/unit/oct15-production-effects.test.ts; tests/unit/s203-search-projections.test.ts |
+| R-S227-4 — Preserve renewal usability, shared provider connections, staff knowledge and standalone Vendoroo without an invented URL.        | ARCH-S227-1          | BEH-S227-1       | Completely retire custom maintenance | tests/unit/oct15-maintenance-retirement.test.ts; tests/unit/oct15-shared-maintenance-workflow.test.ts; tests/unit/oct15-production-effects.test.ts; tests/unit/s203-search-projections.test.ts |
 
 **Preservation set.**
 
-Existing authorization, exact action gates, receipt/history interpretation, source versions, renewal Focus/Full/working values, permitted Gmail drafts and S182 boundaries remain green separately from the new outcomes. Exact legacy maintenance and vendor-handoff Space IDs must refuse create/edit/publication/start/checklist/outcome changes. Their directory and direct Space views retain knowledge and authorized publication records while removing operational desks and new-process choices; no stored status is rewritten.
+Current authorization, source truth, supported renewal updates, exact receipts/recovery, pending
+input semantics, guarded release and both closed Dotloop write keys remain independent requirements.
 
 **Adversarial acceptance checks.**
 
-- **AC-S227-1** — Exercise the primary workflow/refusal through its real owning boundary; fail against the unchanged baseline for the named reason.
-- **AC-S227-2** — Exercise stale, failed, unsupported, direct-route and recovery variants relevant to this scope; no missing evidence becomes success.
-- **AC-S227-3** — Preserve authorized reads/history and unrelated renewal/knowledge consumers with no production data or provider mutation as proof.
+- **AC-S227-1** — Exercise the actual owning HTTP/service/component boundary and preservation set.
+- **AC-S227-2** — Exercise failed/stale/wrong-source, unsupported and ambiguous/recovery variants; unknown is never ready.
+- **AC-S227-3** — Verify no customer/provider business effect, production test record or backlog is proof.
 
 **Forbidden actions / hard gates.**
 
-No production data deletion, credentials/private raw evidence in Git, customer test draft/send, Dotloop writes, identity/permission change, invented Vendoroo URL or unrelated program execution. Protected paths retain their explicit-owner-direction rule. Existing exact-main CI, release lock, fresh prerequisites/GO, candidate assurance, receipt-bound promotion, full observation and independent readbacks remain mandatory.
+No private provider/customer material or credentials in Git. No direct deployment bypass. Require
+actual bash scripts/verify.sh, exact-main green CI, fresh auth/prerequisites/GO, real lock ownership,
+one build, zero-traffic smoke, candidate assurance, receipt-bound promotion, at least 300,000 ms
+observation with required checkpoints and independent managed/public readbacks.
 
 **Dependencies / sequencing.**
 
-Implementation proceeds independently. Fresh external evidence blocks only the named provider or release verification. Original Windows proposals and all other sessions remain untouched.
+Implement and qualify independently of missing external inputs. Complete only actual owner/provider
+steps; never solve the human authentication challenge, infer legal approval or open either write key.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** Complete bounded code/test/documentation slice, including refusal and recovery behavior.
-- **Consumes, but does not assume:** Existing managed connections, real source versions and supported exact resources. Missing values remain explicitly unavailable.
-- **Externally blocked effect:** Delivered implementation/release has no authentication hold. Template/selection-dependent Dotloop output waits on real supported resources and both closed keys; Gmail sync health is degraded. Human acceptance remains NOT RUN. No customer effect is proof.
-- **Produces for downstream suites:** Tested retained contracts and exact truthful evidence; no new execution queue for older suites.
+- **Deliverable now:** The verified code/test/documentation revision and authorized guarded deployment.
+- **Consumes, but does not assume:** Real supported resources, current provider access and approved content/maps.
+- **Externally blocked effect:** The exact dependent template, legal form or signature step; independent work continues.
+- **Produces for downstream suites:** Source-bound checks and honest readiness without new authority.
 
 **Verification and delivery contract.**
 
-1. Preserve the baseline and intended failure evidence outside Git before implementation edits.
-2. Run tests/unit/oct15-maintenance-retirement.test.ts; proxy integration, navigation, shared-admission and read-only history checks; keep preservation results separate.
-3. Run bash scripts/verify.sh, inspect the diff, audit scope/PII/secrets/gates and deliver only green source.
-4. Report ALL_GATES_GREEN only for actual passed gates; BUDGET_EXHAUSTED only for an explicit budget; BLOCKED names an exact unavailable input after independent work. Local passes do not establish provider/deployment success.
+1. Preserve baseline failures and prior receipts; verify meaningful focused regressions.
+2. Complete canonical/served checks and exact-head CI, inspect scope and publish only green changes.
+3. Deliver through existing locked gates and update closure only after independent production proof.
 
 **Ordered prompt sequence.**
 
-1. Recheck current code and available live state.
-2. Record fail-first checks and preservation baseline.
-3. Implement bounded behavior, refusals and recovery.
-4. Verify, reconcile current documentation and perform authorized gated delivery where prerequisites pass.
+1. Read current code and managed state.
+2. Implement this exact owner amendment and test refusals/recovery.
+3. Qualify, publish, deploy and independently verify.
+4. Reconcile concise facts and private receipts to actual outcomes.
 
 **Deletion/merge recommendation.**
 
-Retire this narrative only when remaining acceptance and dependency truth is fully represented by tests and current facts.
-
-## October 20 delivery readback
-
-The scoped follow-up and carried contract are deployed at `b8829897e407dafdad94da0fd560afbcc539e397` / `pmi-kc-app-rmvgkpxub-17a20f3efe73`.
-Both observation checkpoints and all eleven independent readbacks passed; all 371 records matched.
-No live provider business effect or human acceptance was created as proof. Exact qualification,
-failed-attempt history and remaining limits: `docs/evidence/application-delivery-2026-10-20.md`.
+Update this existing suite in place; do not duplicate its outcome or rewrite earlier failed evidence.

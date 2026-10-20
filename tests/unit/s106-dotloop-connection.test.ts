@@ -127,7 +127,9 @@ function tokens(fake: ReturnType<typeof createDotloopFake>, initial: string) {
 let fake: ReturnType<typeof createDotloopFake>;
 
 beforeEach(() => {
-  fake = createDotloopFake();
+  fake = createDotloopFake({
+    account: { id: 55, name: "PMI KC Metro", email: "integrations@pmikcmetro.com" },
+  });
 });
 
 describe("S106 Dotloop client over the documented endpoints (ARCH-S106-1)", () => {
@@ -595,6 +597,7 @@ describe("S106 readiness projection (ARCH-S106-2 / BEH-S106-3)", () => {
       "callback_configuration",
       "secure_storage",
       "account_connection",
+      "provider_account",
       "compatible_profile",
       "renewal_template",
       "loop_write_scope",
@@ -643,4 +646,22 @@ describe("S106 health check wiring (DLCONN-05)", () => {
     expect(result.steps[0]).toMatchObject({ step_id: "dotloop.config", ok: false });
     expect(result.steps[1]).toMatchObject({ ok: false, detail: "not attempted" });
   });
+});
+
+it("an unexpected provider account cannot reach health profile or subscription probes", async () => {
+  const provider = createDotloopFake({
+    account: { id: 55, email: "other@pmikcmetro.com" },
+  });
+  const client = new DotloopClient({
+    transport: provider,
+    tokens: tokens(provider, "access-1"),
+    sleep: async () => undefined,
+  });
+  const result = await runHealthCheck(
+    getHealthCheckContract("health.dotloop.oauth_app")!,
+    dotloopHealthCheckTransport({ client, env: ENV }),
+  );
+  expect(result.ok).toBe(false);
+  expect(provider.calls).toHaveLength(1);
+  expect(new URL(provider.calls[0].url).pathname).toMatch(/\/account$/);
 });

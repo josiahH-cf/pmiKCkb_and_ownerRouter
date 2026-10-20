@@ -3,6 +3,7 @@
 // profile, one of that profile's lease templates, the template's own transaction type and a
 // documented initial status for it. Names are labels only; renames never change the selection.
 
+import { isApprovedIntegrationAccount } from "./provider-identity";
 import {
   DOTLOOP_OBSERVATION_MAX_AGE_MS,
   isLeaseTransactionType,
@@ -63,7 +64,10 @@ export function projectDotloopPicker(
 ): DotloopPickerView {
   const templatesByProfile: Record<string, DotloopPickerTemplate[]> = {};
   const resourceReadFailed = Boolean(
-    observation.accountError || !observation.account || observation.profilesError,
+    observation.accountError ||
+    !observation.account ||
+    !isApprovedIntegrationAccount(observation.account.email) ||
+    observation.profilesError,
   );
   const templateReadErrors: Record<string, string | null> = {};
   for (const entry of observation.templates) {
@@ -145,6 +149,12 @@ export function checkDotloopSelection(input: {
       ok: false,
       reason:
         "The account or profile read failed. Refresh Dotloop resources before saving a selection.",
+    };
+  if (!isApprovedIntegrationAccount(observation.account.email))
+    return {
+      ok: false,
+      reason:
+        "Connect integrations@pmikcmetro.com and refresh its resources before saving a selection.",
     };
   const profile = observation.profiles.find((entry) => entry.id === input.profileId);
   if (!profile)

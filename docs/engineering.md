@@ -30,10 +30,10 @@ Updated: 2026-10-20.
 - Read back the provider result.
 - Reconcile ambiguity before retry.
 - Every write has a documented rollback/correction.
-- The October 16 contract refuses client Send, Schedule and Resume at operation admission; the
-  communications worker does not dispatch. Older S183 activation receipts and Registry metadata
-  retain historical meaning and cannot override those refusals. Permitted unsent drafting still
-  requires exact preview/confirmation, one attempt, receipt/readback and original-attempt recovery.
+- The October 20 direction permits exact staff-confirmed renewal Send/Schedule/Resume and linked
+  renewal replies. A new authorization version prevents historical schedules from becoming a
+  dispatch backlog. Preserve previews, current source/target checks, claims, receipts/readback and
+  original-attempt recovery; generic and maintenance sends remain unavailable.
 - Ordinary authorized Save/Apply captures visible intent once; internal technical interlocks do not
   add another consent ceremony. Backend permissions and current target/conflict checks remain.
 

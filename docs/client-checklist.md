@@ -1,5 +1,13 @@
 # Client, owner, and provider execution inputs
 
++October 20 update: the owner requests end-to-end lease renewal on October 22 with exact confirmed
+Send/Schedule/Resume. The complete maintenance component is retired. Use integrations@pmikcmetro.com
+for provider connections. Both Dotloop write keys stay closed; signing remains a human handoff.
+The integrations account can read the eight Drive reference PDFs; recorded locations, reviewed
+field/signer maps, legal approval and each lease's actual facts remain distinct configuration steps.
+Company-template API access is 403/FORBIDDEN and the browser human challenge fails; do not ask
+for template recreation. Independent qualification and guarded release continue.
+
 Updated: 2026-10-17 (UTC); earlier readbacks below retain their recorded dates.
 
 Current application scope is S227-S229. Custom maintenance, Vendoroo integration and the remaining

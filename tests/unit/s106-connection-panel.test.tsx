@@ -97,11 +97,15 @@ describe("S106 Dotloop readiness panel", () => {
     expect(
       screen.getByText(/Dotloop is connected and its account check passed/),
     ).toBeVisible();
-    expect(screen.getByText(/integrations@pmikcmetro\.com/)).toBeVisible();
+    expect(
+      screen.getByText("Connected Dotloop account: integrations@pmikcmetro.com"),
+    ).toBeVisible();
     expect(screen.getByText(/Resources last checked/)).toBeVisible();
     expect(screen.getByText(/loop writing yes/)).toBeVisible();
     expect(screen.getByText(/No Dotloop profile is selected/)).toBeVisible();
-    expect(screen.getByText(/An Admin selects the company profile below/)).toBeVisible();
+    expect(
+      screen.getByText(/An Admin selects a supported individual profile below/),
+    ).toBeVisible();
     expect(screen.getByText(/completed by a person in Dotloop/)).toBeVisible();
   });
 

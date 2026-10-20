@@ -127,40 +127,57 @@ it("actual authenticated HTTP returns every supported metadata type, labeled rel
   expect(response.headers.get("cache-control")).toBe("private, no-store");
   const result = await response.json();
   expect(new Set(result.results.map((r: SearchResult) => r.entity.type))).toEqual(
-    new Set(["lease", "owner", "resident", "property", "unit", "ticket", "vendor"]),
+    new Set(["lease", "owner", "resident", "property", "unit"]),
   );
   expect(
-    result.results.find((r: SearchResult) => r.entity.type === "ticket").entity.href,
-  ).toBe(`/maintenance/history?ticket_id=${ticketId}`);
+    result.results.some((r: SearchResult) =>
+      ["ticket", "vendor"].includes(r.entity.type),
+    ),
+  ).toBe(false);
+  expect((await db.collection(M.tickets).doc(ticketId).get()).exists).toBe(true);
+  expect((await db.collection(V.vendors).doc("vendor-1").get()).exists).toBe(true);
   expect(result.limitations).toEqual([]);
   expect(JSON.stringify(result)).not.toMatch(/PRIVATE_/);
   expect((await db.collection("action_executions").get()).empty).toBe(true);
 });
-it("fresh edits, deletes and vendor suspension supersede previous index metadata, including selected-result hydration", async () => {
+it("fresh active-source edits and removal replace old metadata while retired records never hydrate", async () => {
   await searchEntities(staff, { q: "Miller" });
+  expect((await readSearchEntity(staff, "property", "901")).entity?.label).toBe(
+    "Miller property",
+  );
+  fixture.views[0] = {
+    ...fixture.views[0],
+    property: {
+      ...(fixture.views[0].property as Record<string, unknown>),
+      name: "Repaired property",
+    },
+  };
+  expect(
+    (await searchEntities(staff, { q: "Repaired", type: "property" })).results[0].entity
+      .id,
+  ).toBe("901");
+  expect((await readSearchEntity(staff, "property", "901")).entity?.label).toBe(
+    "Repaired property",
+  );
   await db
     .collection(M.tickets)
     .doc(ticketId)
-    .update({ summary: "Repaired kitchen fixture" });
-  expect((await searchEntities(staff, { q: "Miller", type: "ticket" })).results).toEqual(
-    [],
-  );
+    .update({ summary: "Repaired historical fixture" });
   expect(
-    (await searchEntities(staff, { q: "Repaired", type: "ticket" })).results[0].entity.id,
-  ).toBe(ticketId);
-  await db.collection(M.tickets).doc(ticketId).delete();
+    (await searchEntities(staff, { q: "Repaired", type: "ticket" })).results,
+  ).toEqual([]);
   expect((await readSearchEntity(staff, "ticket", ticketId)).entity).toBeNull();
   await db.collection(V.vendors).doc("vendor-1").update({ status: "disabled" });
   expect((await readSearchEntity(staff, "vendor", "vendor-1")).entity).toBeNull();
-  expect((await searchEntities(staff, { q: "Miller", type: "vendor" })).results).toEqual(
-    [],
-  );
+  fixture.views = [];
+  expect((await readSearchEntity(staff, "property", "901")).entity).toBeNull();
+  expect((await db.collection(M.tickets).doc(ticketId).get()).exists).toBe(true);
 });
 it("a failed source replaces its former cache with an explicit partial result and recovers without serving an old identity", async () => {
   await searchEntities(staff, { q: "Miller" });
   fixture.fail = true;
   const failed = await searchEntities(staff, { q: "Miller" });
-  expect(failed.results.map((r) => r.entity.type).sort()).toEqual(["ticket", "vendor"]);
+  expect(failed.results).toEqual([]);
   expect(failed.limitations).toEqual([
     expect.objectContaining({ source: "renewals", status: "unavailable" }),
   ]);
@@ -171,7 +188,7 @@ it("a failed source replaces its former cache with an explicit partial result an
     (await searchEntities(staff, { q: "Miller" })).results
       .map((r) => r.entity.type)
       .sort(),
-  ).toEqual(["ticket", "vendor"]);
+  ).toEqual([]);
   fixture.partial = true;
   expect((await searchEntities(staff, { q: "nothing" })).limitations[0]).toMatchObject({
     source: "renewals",

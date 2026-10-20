@@ -220,8 +220,11 @@ export async function verifyCommunicationWorkerAssurance(
           (e) =>
             e.jsonPayload?.ready === true &&
             e.jsonPayload?.probeId === state.probeId &&
-            e.jsonPayload?.mode === "draft_only" &&
-            e.jsonPayload?.dispatchEnabled === false,
+            e.jsonPayload?.mode === "confirmed_renewal" &&
+            e.jsonPayload?.dispatchEnabled === true &&
+            e.jsonPayload?.legacyDispatchEnabled === false &&
+            e.jsonPayload?.deliveryPolicyVersion ===
+              "renewal-confirmed-delivery/2026-10-20",
         )
       ) {
         state.outcome = "passed";

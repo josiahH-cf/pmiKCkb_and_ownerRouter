@@ -1,13 +1,13 @@
 import { z } from "zod";
-export const ENTITY_TYPES = [
+export const SEARCHABLE_ENTITY_TYPES = [
   "lease",
   "owner",
   "resident",
   "property",
   "unit",
-  "ticket",
-  "vendor",
 ] as const;
+/** Legacy record shapes remain readable; retired entities are absent from active search. */
+export const ENTITY_TYPES = [...SEARCHABLE_ENTITY_TYPES, "ticket", "vendor"] as const;
 export const ENTITY_LABELS: Record<(typeof ENTITY_TYPES)[number], string> = {
   lease: "Lease",
   owner: "Owner",

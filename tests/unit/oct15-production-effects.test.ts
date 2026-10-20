@@ -12,13 +12,13 @@ import {
 describe("October 15 production operation refusals", () => {
   it.each([
     "rentvine.work_order.create",
+    "rentvine.work_order.read",
     "rentvine.work_order.update_status",
     "rentvine.work_order.chat.sync",
     "google_drive.maintenance_photo.store",
     "gmail.maintenance_owner_notice.draft_create",
-    "gmail.renewal_notice.send",
     "gmail.maintenance_owner_notice.send",
-    "gmail.thread.reply",
+    "gmail.message.send",
   ])("refuses %s before a store read or provider factory", async (key) => {
     suspension.mockClear();
     const provider = vi.fn();
@@ -35,7 +35,8 @@ describe("October 15 production operation refusals", () => {
   it.each([
     "gmail.renewal_notice.draft_create",
     "gmail.mailbox.read",
-    "rentvine.work_order.read",
+    "gmail.renewal_notice.send",
+    "gmail.thread.reply",
   ])("retains the independent runtime gate for %s", async (key) => {
     suspension.mockClear();
     expect(await isProductionRuntimeActionExecutable(key)).toBe(true);

@@ -21,6 +21,7 @@ export const ROUTE_KEYS = [
   "renewal_desk",
   "renewal_workspace",
   "maintenance",
+  "renewal_readiness",
   "communications",
   "internal_processes",
   "notifications",

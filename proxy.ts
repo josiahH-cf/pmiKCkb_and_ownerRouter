@@ -43,7 +43,7 @@ async function applyRequestPolicies(request: NextRequest) {
     );
   }
   if (maintenance === "notice") {
-    return NextResponse.rewrite(new URL(MAINTENANCE_RETIREMENT_PATH, request.url), {
+    return NextResponse.redirect(new URL(MAINTENANCE_RETIREMENT_PATH, request.url), {
       headers: { "cache-control": "no-store" },
     });
   }

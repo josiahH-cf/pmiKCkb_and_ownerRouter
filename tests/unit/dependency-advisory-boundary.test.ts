@@ -21,7 +21,8 @@ describe("I11 patched transitive dependency boundaries", () => {
     expect(installedVersion("next")).toBe("16.3.8");
     expect(installedVersion("sharp")).toBe("0.35.5");
     expect(installedVersion("fast-uri")).toBe("3.1.8");
-    expect(installedVersion("hono")).toBe("4.13.7");
+    // October 20: GHSA-5r4p-p66f-jhc7 is patched in 4.13.11.
+    expect(installedVersion("hono")).toBe("4.13.11");
     expect(installedVersion("ip-address")).toBe("10.7.1");
     expect(installedVersion("nanoid")).toBe("3.3.18");
     expect(installedVersion("qs")).toBe("6.16.0");

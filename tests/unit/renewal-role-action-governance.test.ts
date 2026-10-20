@@ -16,6 +16,7 @@ import {
 const PAGE_EXPECTATIONS = [
   ["app/lease-renewal/collections/page.tsx", "read_workspace"],
   ["app/lease-renewal/page.tsx", "read_workspace"],
+  ["app/lease-renewal/readiness/page.tsx", "read_workspace"],
   ["app/lease-renewal/lease/[leaseId]/page.tsx", "read_workspace"],
   ["app/lease-renewal/live/page.tsx", "read_workspace"],
   ["app/lease-renewal/live/desk/page.tsx", "read_workspace"],

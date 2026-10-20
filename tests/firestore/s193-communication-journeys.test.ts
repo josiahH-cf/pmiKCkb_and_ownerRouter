@@ -350,8 +350,19 @@ describe("S193 integrated durable service/worker journeys with deterministic ext
       ).toBe(hasReply ? 1 : 2);
     },
   );
-  it("maintenance pause and team takeover preserve old history and require new sender authority", async () => {
-    const f = fixture(true),
+  it("complete maintenance retirement refuses composition before a durable sequence or provider attempt", async () => {
+    const retired = fixture(true);
+    await expect(retired.begin()).rejects.toMatchObject({ status: 410 });
+    expect(retired.send).not.toHaveBeenCalled();
+    expect(
+      (await db.collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences).get()).empty,
+    ).toBe(true);
+    expect(
+      (await db.collection(COMMUNICATION_SEQUENCE_COLLECTIONS.occurrences).get()).empty,
+    ).toBe(true);
+  });
+  it("renewal pause and team takeover preserve old history and require new sender authority", async () => {
+    const f = fixture(),
       s = await f.begin();
     f.at("2026-10-10T14:00:00Z");
     await f.run();

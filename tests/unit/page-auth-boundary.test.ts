@@ -39,25 +39,30 @@ function stripComments(src: string): string {
 const PAGE_GUARD =
   /require(?:PageCapability|PageRole|PageSpaceAccess)\b|getVendorSession\b/;
 
-// The ONLY pages allowed to render without an auth guard — each is itself an entry point to authentication:
-//   - sign-in/page.tsx is the staff sign-in surface (reads any existing session only to bounce a
-//     signed-in user to "/"; it does not gate access to itself).
-//   - vendor/sign-in/page.tsx is the vendor sign-in shell.
-//   - vendor/setup/page.tsx is the inert public shell for a fragment-delivered, one-time setup
-//     challenge. Its bridge strips the fragment before any request and the POST route performs the
-//     actual Production+Live and challenge checks.
-//   - maintenance/report/page.tsx is the S109 inert public shell for the S47 tokenized resident
-//     intake. It has no session to guard: its bridge reads the intake token from the fragment,
-//     clears the fragment before any request, and the public POST route performs the token, rate,
-//     epoch, and daily-cap checks and writes only to the unverified quarantine.
-const ALLOW_UNAUTHENTICATED = new Set([
-  "sign-in/page.tsx",
+// Only the staff sign-in shell can render unguarded. Fully retired bookmarks may only perform
+// the exact inert redirect below; matching a retired pathname alone never exempts page code.
+const ALLOW_UNAUTHENTICATED = new Set(["sign-in/page.tsx"]);
+const RETIRED_REDIRECTS = new Set([
+  "maintenance/page.tsx",
+  "maintenance/vendors/page.tsx",
+  "maintenance/history/page.tsx",
+  "maintenance/report/page.tsx",
+  "maintenance/retired/page.tsx",
+  "maintenance/policies/page.tsx",
+  "vendor/page.tsx",
   "vendor/sign-in/page.tsx",
   "vendor/setup/page.tsx",
-  "maintenance/report/page.tsx",
-  // Static retirement notice only; all linked historical records retain their own guards.
-  "maintenance/retired/page.tsx",
+  "vendor/tickets/[ticketId]/page.tsx",
+  "admin/vendors/page.tsx",
 ]);
+const RETIRED_REDIRECT_CODE =
+  'import { redirect } from "next/navigation"; export default function RetiredMaintenancePage() { redirect("/lease-renewal"); }';
+function isInertRetiredRedirect(relPath: string, source: string) {
+  return (
+    RETIRED_REDIRECTS.has(relPath) &&
+    stripComments(source).replace(/\s+/g, " ").trim() === RETIRED_REDIRECT_CODE
+  );
+}
 
 describe("App page auth-boundary invariant", () => {
   const pages = walkPages(APP_ROOT);
@@ -72,9 +77,28 @@ describe("App page auth-boundary invariant", () => {
       .filter((relPath) => !ALLOW_UNAUTHENTICATED.has(relPath))
       .filter(
         (relPath) =>
-          !PAGE_GUARD.test(stripComments(readFileSync(join(APP_ROOT, relPath), "utf8"))),
+          !PAGE_GUARD.test(
+            stripComments(readFileSync(join(APP_ROOT, relPath), "utf8")),
+          ) &&
+          !isInertRetiredRedirect(relPath, readFileSync(join(APP_ROOT, relPath), "utf8")),
       );
     expect(offenders).toEqual([]);
+  });
+
+  it("retired bookmarks contain only the exact redirect and no record, provider or rendering code", () => {
+    for (const retired of RETIRED_REDIRECTS)
+      expect(
+        isInertRetiredRedirect(retired, readFileSync(join(APP_ROOT, retired), "utf8")),
+      ).toBe(true);
+    expect(
+      isInertRetiredRedirect(
+        "admin/vendors/page.tsx",
+        RETIRED_REDIRECT_CODE + " readProvider();",
+      ),
+    ).toBe(false);
+    expect(isInertRetiredRedirect("new-public/page.tsx", RETIRED_REDIRECT_CODE)).toBe(
+      false,
+    );
   });
 
   it("the allow-list contains no stale entries (each file still exists and is a page)", () => {

@@ -547,7 +547,8 @@ describe("synthetic isolated renewal journey through current services and durabl
     expect(decoded.body).toContain("$1,525.00");
     expect(decoded.body).toContain("2027");
 
-    // These genuine current operation boundaries remain closed even in this positive fixture.
+    // Reopened delivery still requires a real, current saved sequence and exact review;
+    // arbitrary sequence identifiers cannot create delivery authority or an occurrence.
     for (const action of ["send", "schedule", "resume"]) {
       const refused = await communicationCommand(
         new Request("http://fixture.invalid/api/gmail-hub/sequences", {
@@ -564,7 +565,8 @@ describe("synthetic isolated renewal journey through current services and durabl
           }),
         }),
       );
-      expect(refused.status).toBe(410);
+      expect(refused.status).toBe(404);
+      expect((await refused.json()).error).toMatch(/does not exist/);
     }
     for (const actionKey of [
       "dotloop.loop.create_from_template",

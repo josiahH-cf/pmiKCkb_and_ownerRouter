@@ -51,13 +51,6 @@ export const ACCESS_INTENT_MANIFEST = [
     return_to: "/lease-renewal/live/desk",
   },
   {
-    key: "maintenance.edit",
-    source_path: "app/maintenance/page.tsx",
-    capability: "edit",
-    space: "maintenance",
-    return_to: "/maintenance",
-  },
-  {
     key: "notifications.manage",
     source_path: "app/notifications/page.tsx",
     capability: "manageAdmin",

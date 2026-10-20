@@ -64,7 +64,8 @@ export const CONNECTORS: readonly ConnectorDef[] = [
   {
     id: "google_drive",
     name: "Google Drive",
-    powers: "Approved templates and the documents the app cites in answers.",
+    powers:
+      "Reviewed source documents. A saved Drive link alone does not approve a legal template or authorize API access.",
     method: "google",
     healthCheckRef: "health.google_drive.dwd",
     // Truth (S13 D2): Drive uploads run through the same DWD identity as Sheets.
@@ -103,7 +104,7 @@ export const CONNECTORS: readonly ConnectorDef[] = [
     id: "gmail_inbox",
     name: "Gmail (workflow communications)",
     powers:
-      "Links pertinent renewal and maintenance threads, drafts, replies, labels, and review attention. Gmail stays the message system of record.",
+      "Links pertinent renewal threads, drafts, confirmed replies, schedules, and review attention. Gmail stays the message system of record.",
     method: "google",
     requiredConfig: [
       "GMAIL_DWD_SA",

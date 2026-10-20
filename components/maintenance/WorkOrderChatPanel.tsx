@@ -3,7 +3,7 @@ import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 
 import { useState } from "react";
 
-import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
+import { MAINTENANCE_RETIREMENT_MESSAGE } from "@/lib/maintenance/retirement";
 import { RefineWithAi } from "@/components/email/RefineWithAi";
 import { Button, Field } from "@/components/ui";
 import { GEMINI_IN_GMAIL_HINT } from "@/lib/email-refinement/hint";
@@ -251,10 +251,7 @@ export function WorkOrderChatPanel({
         </p>
       ) : null}
       {thread?.eligible && !canEdit ? (
-        <p className="muted">
-          Syncing and replying are Editor actions.{" "}
-          <RequestAccessLink surface="maintenance.edit" />
-        </p>
+        <p className="muted">{MAINTENANCE_RETIREMENT_MESSAGE}</p>
       ) : null}
 
       {syncPreview ? (
@@ -405,9 +402,7 @@ export function WorkOrderChatPanel({
                   <RefineWithAi
                     appliedNotice="Revision applied. Preview this reply before creating the draft."
                     currentBody={body}
-                    disabledReason={
-                      body.trim() ? null : "Write a first reply before refining it."
-                    }
+                    disabledReason={MAINTENANCE_RETIREMENT_MESSAGE}
                     onApply={(revision) => {
                       setBody(revision.body);
                       setDraftPreview(null);

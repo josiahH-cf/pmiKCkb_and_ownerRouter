@@ -91,9 +91,7 @@ describe("work accountability pure contract", () => {
     expect(canonicalSourceLink("renewal_lease", "lease:1")).toBe(
       "/lease-renewal/live/desk/lease/lease%3A1",
     );
-    expect(canonicalSourceLink("maintenance_ticket", "ticket-1")).toBe(
-      "/maintenance/history?ticket_id=ticket-1",
-    );
+    expect(canonicalSourceLink("maintenance_ticket", "ticket-1")).toBeUndefined();
     expect(canonicalSourceLink("approval_item", "item-1")).toBe(
       "/approval-queue?item_id=item-1",
     );

@@ -25,8 +25,6 @@ export const ACCESS_RETURN_DESTINATIONS = [
   { key: "connections", path: "/connections" },
   { key: "communications", path: "/gmail-hub" },
   { key: "internal_processes", path: "/spaces" },
-  { key: "maintenance", path: "/maintenance" },
-  { key: "maintenance_history", path: "/maintenance/history" },
   { key: "admin", path: "/admin" },
   { key: "renewal_desk", path: "/lease-renewal/live/desk" },
 ] as const;

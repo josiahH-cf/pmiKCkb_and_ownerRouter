@@ -49,11 +49,11 @@ const COMMON_ROUTES: readonly CanaryRouteDefinition[] = [
     dynamicFrom: "renewal_desk",
   },
   {
-    key: "maintenance",
-    path: "/maintenance/history",
+    key: "renewal_readiness",
+    path: "/lease-renewal/readiness",
     expectedOutcome: "rendered",
-    heading: "Read-only maintenance history",
-    requiredSpace: "maintenance",
+    heading: "Renewal run readiness",
+    requiredSpace: "renewals",
   },
   {
     key: "communications",
@@ -120,7 +120,28 @@ export function routesForRole(
   role: AssuranceRole,
   expectedCommit?: string,
 ): readonly CanaryRouteDefinition[] {
-  const routes = AUTHENTICATED_CANARY_MANIFEST[role];
+  const current = AUTHENTICATED_CANARY_MANIFEST[role];
+  const historical = [
+    "337ac163c5709381e8db8d2c18810bec357d8a96",
+    "72a30e25537e8ea7ff79391146246c1f9b94375e",
+    "eb5d35991c3ec128a102e4483d3779af16106821",
+    "e106a88a50d541b4a012111019b09c2183f6ce20",
+    "a7bce0981badc7523a6498949b6ea5f2effb198e",
+    "b8829897e407dafdad94da0fd560afbcc539e397",
+  ].includes(expectedCommit ?? "");
+  const routes: readonly CanaryRouteDefinition[] = historical
+    ? current.map((route) =>
+        route.key === "renewal_readiness"
+          ? {
+              key: "maintenance",
+              path: "/maintenance/history",
+              expectedOutcome: "rendered",
+              heading: "Read-only maintenance history",
+              requiredSpace: "maintenance",
+            }
+          : route,
+      )
+    : current;
   // The captured serving image (including its run-bound recovery clone) retains this exact title.
   // Candidates and unknown commits still require the current landmark; no alternate is accepted.
   if (

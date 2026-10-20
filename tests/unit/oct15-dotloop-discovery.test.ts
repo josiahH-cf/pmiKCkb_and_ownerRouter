@@ -17,7 +17,7 @@ function client() {
     getAccount: vi.fn(async () => ({
       id: "account",
       name: null,
-      email: null,
+      email: "integrations@pmikcmetro.com",
       defaultProfileId: "individual",
     })),
     listProfiles: vi.fn(async () =>
@@ -132,4 +132,20 @@ describe("October 15 Dotloop visibility and readiness", () => {
       }).ok,
     ).toBe(false);
   });
+});
+
+it("stops provider discovery on an unexpected account before reading profiles, templates or subscriptions", async () => {
+  const c = client();
+  c.getAccount.mockResolvedValue({
+    id: "other-account",
+    name: null,
+    email: "different@pmikcmetro.com",
+    defaultProfileId: "individual",
+  });
+  const read = await observation(c);
+  expect(read.accountError).toBe("access_denied");
+  expect(c.listProfiles).not.toHaveBeenCalled();
+  expect(c.listLoopTemplates).not.toHaveBeenCalled();
+  expect(c.readSubscriptionsAvailable).not.toHaveBeenCalled();
+  expect(projectDotloopPicker(read, "generation", now).resourceReadFailed).toBe(true);
 });

@@ -1,4 +1,5 @@
 "use client";
+import { hasCurrentRenewalAuthorization } from "@/lib/gmail-hub/delivery-policy";
 import { buildManagedGmailThreadDestination } from "@/lib/lease-renewal/desk-destinations";
 import { applyBusinessSignature } from "@/lib/gmail-hub/business-signature";
 import type { StaffBusinessProfile } from "@/lib/staff/business-profile";
@@ -120,7 +121,7 @@ export function CommunicationComposer({
       {},
     ),
     [attachmentNotice, setAttachmentNotice] = useState<string | null>(null);
-  const [scheduleOpen] = useState(false),
+  const [scheduleOpen, setScheduleOpen] = useState(false),
     [date, setDate] = useState(""),
     [time, setTime] = useState(""),
     [zone, setZone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone),
@@ -825,9 +826,11 @@ export function CommunicationComposer({
         </button>
       ) : null}
       <p role="note">
-        Messages saved here remain in the app. Sending and scheduling are unavailable.
-        Existing delivery history is retained. Use the reviewed Gmail draft control in the
-        linked lease to create an unsent Gmail draft.
+        Review the recipients, message and attachments before Send or Schedule. Replies
+        and failed delivery pause follow-ups; Resume requires a fresh review.
+        {sequence?.authorization && !hasCurrentRenewalAuthorization(sequence)
+          ? " This older authorization will not dispatch. Review it and choose Send or Schedule again."
+          : ""}
       </p>
       <div className="ui-row">
         <button
@@ -836,8 +839,42 @@ export function CommunicationComposer({
         >
           {saveNeedsRetry ? "Retry same save" : "Save draft"}
         </button>
-        <button disabled>Send</button>
-        <button disabled>Schedule</button>
+        <button
+          disabled={
+            busy ||
+            terminal ||
+            conflict ||
+            pendingFile ||
+            !canAuthorize ||
+            draftIncomplete ||
+            filesUnverified ||
+            !reviewedTargetHash ||
+            !recipientTo.length ||
+            !!blocks.length ||
+            !!sequence?.unresolvedOccurrenceId
+          }
+          onClick={() => void run("send")}
+        >
+          Send
+        </button>
+        <button
+          disabled={
+            busy ||
+            terminal ||
+            conflict ||
+            pendingFile ||
+            !canAuthorize ||
+            draftIncomplete ||
+            filesUnverified ||
+            !reviewedTargetHash ||
+            !recipientTo.length ||
+            !!blocks.length ||
+            !!sequence?.unresolvedOccurrenceId
+          }
+          onClick={() => setScheduleOpen((v) => !v)}
+        >
+          Schedule
+        </button>
       </div>
       {scheduleOpen ? (
         <fieldset disabled={busy || terminal} className="ui-stack">
@@ -888,7 +925,17 @@ export function CommunicationComposer({
           <button
             type="button"
             disabled={
-              !canAuthorize || filesUnverified || !reviewedTargetHash || !!blocks.length
+              busy ||
+              terminal ||
+              conflict ||
+              pendingFile ||
+              !canAuthorize ||
+              draftIncomplete ||
+              filesUnverified ||
+              !reviewedTargetHash ||
+              !recipientTo.length ||
+              !!blocks.length ||
+              !!sequence?.unresolvedOccurrenceId
             }
             onClick={() => void run("schedule")}
           >
@@ -919,7 +966,24 @@ export function CommunicationComposer({
             Cancel future messages
           </button>
           {sequence.state === "paused" ? (
-            <button disabled>Resume reviewed sequence</button>
+            <button
+              disabled={
+                busy ||
+                terminal ||
+                conflict ||
+                pendingFile ||
+                !canAuthorize ||
+                draftIncomplete ||
+                filesUnverified ||
+                !reviewedTargetHash ||
+                !recipientTo.length ||
+                !!blocks.length ||
+                !!sequence?.unresolvedOccurrenceId
+              }
+              onClick={() => void run("resume")}
+            >
+              Resume reviewed sequence
+            </button>
           ) : null}
           {sequence.unresolvedOccurrenceId ? (
             <button disabled={busy} onClick={() => void run("reconcile")}>

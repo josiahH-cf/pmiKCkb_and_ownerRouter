@@ -337,11 +337,6 @@ export default async function AdminPage() {
               <p>
                 <Link href="/admin/team-work">Assign and review team work</Link>
               </p>
-              <p>
-                <Link href="/admin/vendors">
-                  Manage Live Vendor accounts and assignments
-                </Link>
-              </p>
             </article>
             <article className="panel">
               <h2>Sign-in domain</h2>

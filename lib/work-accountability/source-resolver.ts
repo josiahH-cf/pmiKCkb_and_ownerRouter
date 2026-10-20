@@ -83,10 +83,7 @@ export class ExistingWorkSourceResolver implements WorkSourceResolver {
       }
 
       if (input.type === "maintenance_ticket") {
-        const ticket = await this.readers.getMaintenanceTicket(actor, id, this.db);
-        return ticket
-          ? this.verified(actor, input, ticket.space_id, ticket.updated_at)
-          : { source: unverifiedSource(input.type, id) };
+        return { source: unverifiedSource(input.type, id) };
       }
 
       if (input.type === "approval_item") {

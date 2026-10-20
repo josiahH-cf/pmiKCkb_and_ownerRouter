@@ -67,13 +67,13 @@ function context(
   overrides: Partial<WorkflowCommunicationContext> = {},
 ): WorkflowCommunicationContext {
   return {
-    lane: "maintenance",
-    entityType: "maintenance_ticket",
+    lane: "renewals",
+    entityType: "renewal_run",
     entityId: "ticket-synthetic-1",
-    purpose: "maintenance_owner",
+    purpose: "renewal_owner",
     actionKey: "gmail.label.apply",
-    sourceRefs: ["maintenance_ticket:ticket-synthetic-1"],
-    templateRef: "maintenance-owner:v1.0",
+    sourceRefs: ["renewal_run:ticket-synthetic-1"],
+    templateRef: "renewal-owner:v1.0",
     replyPolicyRef: WORKFLOW_REPLY_POLICY_REF,
     ...overrides,
   };
@@ -172,13 +172,13 @@ function harness(options: HarnessOptions = {}) {
     id: "link-1",
     actor_uid: actor.uid,
     mailbox_key: gmailMailboxKey(actor.email),
-    lane: "maintenance",
-    entity_type: "maintenance_ticket",
+    lane: "renewals",
+    entity_type: "renewal_run",
     entity_id: "ticket-synthetic-1",
-    purpose: "maintenance_owner",
+    purpose: "renewal_owner",
     origin_action_key: "gmail.mailbox.read",
-    source_refs: options.sourceRefs ?? ["maintenance_ticket:ticket-synthetic-1"],
-    template_ref: "maintenance-owner:v1.0",
+    source_refs: options.sourceRefs ?? ["renewal_run:ticket-synthetic-1"],
+    template_ref: "renewal-owner:v1.0",
     reply_policy_ref: WORKFLOW_REPLY_POLICY_REF,
     gmail_thread_id: "thread-1",
     status: "linked",
@@ -420,7 +420,7 @@ describe("gmail.label.apply — refusals before any provider construction", () =
     await expect(
       service().applyThreadLabel("thread-1", {
         ...labelInput,
-        context: context({ sourceRefs: ["maintenance_ticket:forged"] }),
+        context: context({ sourceRefs: ["renewal_run:forged"] }),
       }),
     ).rejects.toBeInstanceOf(Error);
     expect(client.mutations).toEqual([]);

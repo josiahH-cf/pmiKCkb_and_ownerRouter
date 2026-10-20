@@ -9,6 +9,38 @@ a listed effect or the owner reports a step done. When the owner reports a step,
 performs that row's follow-up, records the readback here and removes the row. Never invent a
 substitute value, identifier, credential or human verdict to clear a hold.
 
+The exact integrations Gmail profile read passed on October 20 through the existing readonly DWD
+client; no messages, drafts or delivery effects were exercised. After the owner explicitly approved
+the one-file grant and migration, Editor access to the existing renewal Sheet was granted with
+notification off and independently read back. The normal Sheets reader verified the same source
+and all 29 tabs as `integrations@pmikcmetro.com`; no cell values were read or changed.
+B-INTEGRATIONS-SHEET source access is resolved. Production still delegates Sheet/Drive access as
+`josiah@pmikcmetro.com` until the reviewed single-value change passes guarded release in a new
+checkout pair. No credential store, IAM, runtime service identity, source ID or customer value changed.
+
+A managed setup read found all ten form families readable, zero approved originals/maps and no
+recorded source locations. Eight actual Drive PDF reference locations are mapped privately to the
+existing process contracts; source presence grants no legal approval or field/signer mapping.
+
+## October 20 current provider checkpoint
+
+Fresh October 20 Dotloop reads verified the existing connection as
+`integrations@pmikcmetro.com`: account/profiles succeeded, the individual-template list was empty,
+and company templates returned 403/FORBIDDEN. This does not establish the reported active
+template's owning visibility or a specific permission defect. No supported selection is saved;
+no recreation is requested. The owner's browser human check fails and remains a human boundary.
+The same integrations account can read the Drive folder containing eight PDF reference sources.
+Source presence is not legal approval, field/signer mapping or a Dotloop selection. A read-only
+Drive DWD scope probe under the previously configured subject was refused; no scope grant changed.
+
+Normal credential refresh and app metadata saves are distinct from business effects. The newly
+authorized confirmed renewal delivery implementation is under qualification; production still runs
+the prior b8829897 refusal. No protected write key, provider permission or scope grant was changed.
+
+The integrations `drive.file` API profile read succeeded, then a known source-file metadata read
+returned 404/notFound. The source remains visible in that account's browser. Use the existing trusted
+original-file intake independently; do not label API scope access or legal approval as verified.
+
 ## Holds at a glance
 
 | Id       | Blocks only                                                          | Owner step                                                                                                                        | Then the runner                                                                                                        |

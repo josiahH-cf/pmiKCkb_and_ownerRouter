@@ -97,15 +97,6 @@ export const PRIMARY_NAVIGATION_MANIFEST: readonly PrimaryNavigationGroupDefinit
         visibility: "renewals",
       },
       {
-        id: "maintenance",
-        label: "Maintenance history",
-        description: "Read retained maintenance records and historical reports.",
-        href: "/maintenance/history",
-        activePaths: ["/maintenance/history"],
-        icon: "wrench",
-        visibility: "maintenance",
-      },
-      {
         id: "internal-processes",
         label: "Internal Processes",
         description: "Find the instructions and tools for each type of work.",

@@ -212,7 +212,7 @@ describe("S99 RentVine work-order panel", () => {
     });
   });
 
-  it("hands non-editors to the access request and exposes no write control", () => {
+  it("keeps an archived non-editor control free of retired access requests and writes", () => {
     render(
       <RentvineWorkOrderPanel
         canEdit={false}
@@ -221,12 +221,14 @@ describe("S99 RentVine work-order panel", () => {
         ticketId="ticket-9"
       />,
     );
-    expect(
-      screen.getByText(/Proposing a RentVine work-order change is an Editor action/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Custom maintenance is retired/)).toBeInTheDocument();
     expect(screen.queryByText("Create in RentVine")).not.toBeInTheDocument();
     expect(screen.queryByText("Update RentVine status")).not.toBeInTheDocument();
-    // The bounded read stays available; no vendor/share/delete CONTROL exists anywhere
+    expect(
+      screen.queryByRole("link", { name: /request access/i }),
+    ).not.toBeInTheDocument();
+    // Archived unit coverage retains the old read control; no current page mounts this panel.
+    // No vendor/share/delete CONTROL exists anywhere
     // (the descriptive copy may name them only to say they are absent).
     expect(screen.getByText("Check RentVine")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /assign/i })).not.toBeInTheDocument();

@@ -2,39 +2,44 @@
 
 Updated 2026-10-20 (UTC).
 
-The scoped October 19 implementation `006798e4`, qualification follow-up `a9a63d7c`,
-CI repairs `5015efc1`/`6beddcf9` and bounded diagnostic follow-up `b8829897` are published and
-deployed. Run `91710ba5-db96-4982-8931-366661f3843c` serves `b8829897e407dafdad94da0fd560afbcc539e397` as
-`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% traffic. Full observation passed two checkpoints in
-408,672 ms; all 371 records matched and eleven independent readback sections passed.
-The two-item queue is delivered and empty; its exact permit is consumed.
+The owner requested `integrations@pmikcmetro.com` for provider work. Dotloop already reads that
+account and the exact Gmail readonly profile passed. The owner approved the one-file renewal Sheet
+Editor grant with notification off and the delegated-subject migration. The grant is read back and
+the normal reader verifies all 29 tabs as integrations, without reading or changing cell values.
+Production still uses `josiah@pmikcmetro.com` until guarded release. Change only that reviewed
+environment value in a new release pair; preserve the actual predecessor configuration for recovery.
+Preserve the runtime service identity, source IDs/maps, secrets and all other configuration. CLI/ADC
+and guarded Admin assurance retain the approved host identity and store.
 
-Typed source holds, exact message save/preview/confirmation and own-attempt recovery, truthful
-freshness and independent source reads, managed Gmail health, Dotloop access/selection refusals
-and exact packet binding are deployed. Maintenance retirement, standalone Vendoroo, supported
-renewal source updates, client-send/schedule/Resume refusals, the non-dispatching worker and both
-closed Dotloop write keys remain. Original October 16 commits were already on main; no merge was
-manufactured. See `docs/evidence/application-delivery-2026-10-20.md` for aggregate scope and exact evidence.
+## Current work — October 20 renewal run amendment
 
-The actual `bash scripts/verify.sh` passed on `a9a63d7c` (manifest `a504f8e6`):
-9,647 unit tests with four existing configuration skips, all 464 backend tests with no skips,
-format/lint/typecheck, eight policy/budget checks, zero production audit findings and the default
-Next 16.3.8 production build. All twelve original font hashes matched. Final exact-main CI
-`39410047957` passed all five jobs at `b8829897`; its unit/backend counts match the canonical gate.
-All 1,212 runtime files match the qualified canonical, HTTP and browser source snapshots byte-for-byte.
-Later changes are confined to CI, documentation and bounded test diagnostics.
+The owner amended S227–S229 on October 20: completely retire the maintenance component,
+including history/reports and obsolete wiring; diagnose the existing Dotloop template through
+`integrations@pmikcmetro.com`; map form sources to their existing processes; and finalize the
+existing staff-confirmed renewal Send, Schedule and Resume journey for October 22.
+Both Dotloop write keys remain closed. Signing is a human Dotloop handoff. No customer send,
+draft, provider business write or production test record is verification proof.
 
-An initial assurance attempt paused with a preserved generic gate failure. Separate unchanged
-read-only checks passed, then supported same-run resume passed the full gate without another build
-or Scheduler invocation. The original cause remains unestablished; no failure was relabeled.
-Human/physical-phone acceptance remains NOT RUN; Editor browser remains not_run under the approved
-Admin-only policy. External resource-dependent outputs retain their actual input/activation holds.
+New renewal authorizations bind current content, recipients, source values, sender and a new
+delivery-policy version. The worker skips old authorizations and every retired maintenance lane
+before actor/mailbox/source reads. Current role/Space, runtime suspension, exact-key, at-most-once
+claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
+unapproved background sends remain unavailable. No protected activation metadata changes.
 
-The completed October 16 operations instruction and AGENTS.md continuity carried that authorized scope
-through necessary Cloud Build/Cloud Run actions, diagnosed/verified repairs, resumes/replacements,
-promotion, receipt-bound recovery and documentation closure. Attempt counts and phase transitions
-do not require another consent. Technical gates, real inputs and exact effect boundaries remain.
-Failed attempts and consumed permits retain immutable outcomes.
+Fresh October 20 Dotloop reads verified the existing connection as
+`integrations@pmikcmetro.com`: account/profiles succeeded, the individual-template list was empty,
+and company templates returned 403/FORBIDDEN. This does not establish the reported active
+template's owning visibility or a specific permission defect. No supported selection is saved;
+no recreation is requested. The owner's browser human check fails and remains a human boundary.
+The same integrations account can read the Drive folder containing eight PDF reference sources.
+Source presence is not legal approval, field/signer mapping or a Dotloop selection. A read-only
+Drive DWD scope probe under the previously configured subject was refused; no scope grant changed.
+
+Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
+`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
+`91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
+amendment is being qualified; it is not yet deployed. Prior delivery evidence remains in
+`docs/evidence/application-delivery-2026-10-20.md`.
 
 ## Previous October 17 delivery (historical)
 

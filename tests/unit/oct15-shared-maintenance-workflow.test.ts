@@ -95,16 +95,28 @@ it.each(["maintenance", "maintenance-work-order-intake", "vendor-assignment-hand
   },
 );
 it.each(["Admin", "Editor"] as const)(
-  "requires read-only history for a new %s candidate without accepting older operational landmarks",
+  "verifies renewal readiness for a new %s candidate and preserves the exact predecessor landmark",
   (role) => {
     const route = routesForRole(role, "a".repeat(40)).find(
       (r) => r.key === "maintenance",
     );
-    expect(route).toMatchObject({
-      path: "/maintenance/history",
-      heading: "Read-only maintenance history",
-      expectedOutcome: "rendered",
-    });
+    expect(route).toBeUndefined();
+    expect(routesForRole(role, "a".repeat(40))).toContainEqual(
+      expect.objectContaining({
+        key: "renewal_readiness",
+        path: "/lease-renewal/readiness",
+        heading: "Renewal run readiness",
+      }),
+    );
+    expect(
+      routesForRole(role, "b8829897e407dafdad94da0fd560afbcc539e397"),
+    ).toContainEqual(
+      expect.objectContaining({
+        key: "maintenance",
+        path: "/maintenance/history",
+        heading: "Read-only maintenance history",
+      }),
+    );
     const predecessor = routesForRole(
       role,
       "eb5d35991c3ec128a102e4483d3779af16106821",

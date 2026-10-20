@@ -5,8 +5,6 @@ import { createHash } from "node:crypto";
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { can } from "@/lib/auth/roles";
 import { EditableLayerError } from "@/lib/firestore/errors";
-import { readMaintenanceSearchMetadata } from "@/lib/firestore/maintenance-tickets";
-import { readActiveVendorSearchMetadata } from "@/lib/firestore/vendors";
 import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import { readCoherentRenewalDisplaySource } from "@/lib/lease-renewal/admitted-notice-source";
 import {
@@ -15,10 +13,7 @@ import {
   entityKey,
   type EntityIndex,
 } from "./entity-index";
-import {
-  projectLeaseSearchEntities,
-  projectMaintenanceSearchEntities,
-} from "./source-projections";
+import { projectLeaseSearchEntities } from "./source-projections";
 import type { SearchBatch, SearchEntity } from "./entity-types";
 export interface EntitySearchDependencies {
   renewals: () => Promise<SearchBatch>;
@@ -80,40 +75,20 @@ function defaultDependencies(
         entities: projectLeaseSearchEntities(read.snapshot.views, asOf),
       };
     },
-    maintenance: async () => {
-      const read = await readMaintenanceSearchMetadata(actor);
-      return {
-        source: "maintenance",
-        status: read.complete ? "ok" : "partial",
-        asOf: now.toISOString(),
-        note: read.complete
-          ? null
-          : "Maintenance search reached its 10,000-record read bound.",
-        entities: projectMaintenanceSearchEntities(read.records, now.toISOString()),
-      };
-    },
-    vendors: async () => {
-      const read = await readActiveVendorSearchMetadata(actor);
-      return {
-        source: "vendors",
-        status: read.complete ? "ok" : "partial",
-        asOf: now.toISOString(),
-        note: read.complete ? null : "Vendor search reached its 5,000-record read bound.",
-        entities: read.records.map((v) => ({
-          type: "vendor",
-          id: v.id,
-          label: v.displayName ?? v.email,
-          fields: [
-            { label: "Registered vendor name", value: v.displayName ?? v.email },
-            { label: "Registered account contact", value: v.email },
-            { label: "Vendor ID", value: v.id },
-          ],
-          relations: [],
-          href: `/search/entity?${new URLSearchParams({ type: "vendor", id: v.id })}`,
-          asOf: now.toISOString(),
-        })),
-      };
-    },
+    maintenance: async () => ({
+      source: "maintenance",
+      status: "not_authorized",
+      asOf: null,
+      note: "Custom maintenance is retired.",
+      entities: [],
+    }),
+    vendors: async () => ({
+      source: "vendors",
+      status: "not_authorized",
+      asOf: null,
+      note: "Custom vendor operations are retired.",
+      entities: [],
+    }),
   };
 }
 export async function readEntitySearchIndex(
@@ -123,10 +98,10 @@ export async function readEntitySearchIndex(
 ) {
   const scope = entitySearchScope(actor),
     deps = dependencies ?? defaultDependencies(actor, now),
-    sources = ["renewals", "maintenance", "vendors"] as const;
+    sources = ["renewals"] as const;
   const batches = await Promise.all(
     sources.map(async (source) => {
-      const space = source === "renewals" ? "renewals" : "maintenance";
+      const space = "renewals";
       if (!hasSpaceAccess(actor, space))
         return {
           source,
@@ -142,7 +117,7 @@ export async function readEntitySearchIndex(
           source,
           status: "unavailable" as const,
           asOf: null,
-          note: `${source === "renewals" ? "Lease and related entity" : source === "maintenance" ? "Maintenance" : "Vendor"} metadata could not be read. Retry this search.`,
+          note: "Lease and related entity metadata could not be read. Retry this search.",
           entities: [],
         };
       }

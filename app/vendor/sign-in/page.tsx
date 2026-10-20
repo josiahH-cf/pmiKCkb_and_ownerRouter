@@ -1,9 +1,6 @@
-import { VendorSignIn } from "@/components/vendor/VendorSignIn";
+import { redirect } from "next/navigation";
 
-export default function VendorSignInPage() {
-  return (
-    <main className="content auth-shell">
-      <VendorSignIn />
-    </main>
-  );
+/** Legacy bookmarks leave the fully retired component without reading its records. */
+export default function RetiredMaintenancePage() {
+  redirect("/lease-renewal");
 }

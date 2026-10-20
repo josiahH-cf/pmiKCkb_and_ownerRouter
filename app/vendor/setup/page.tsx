@@ -1,12 +1,6 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { VendorSetupBridge } from "@/components/vendor/VendorSetupBridge";
-
-export const metadata: Metadata = {
-  referrer: "no-referrer",
-  robots: { index: false, follow: false, noarchive: true },
-};
-
-export default function VendorSetupPage() {
-  return <VendorSetupBridge />;
+/** Legacy bookmarks leave the fully retired component without reading its records. */
+export default function RetiredMaintenancePage() {
+  redirect("/lease-renewal");
 }

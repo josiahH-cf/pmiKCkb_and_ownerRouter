@@ -285,9 +285,9 @@ export const HEALTH_CHECK_CONTRACTS: readonly HealthCheckContract[] = [
         id: "google_drive.config",
         kind: "config_presence",
         description:
-          "The DWD service account, subject, and maintenance folder id are configured.",
+          "The DWD service account and delegated subject are configured; KB source prefixes are separate from Drive template folders.",
         expected_evidence:
-          "SHEETS_IMPERSONATE_SA + SHEETS_DWD_SUBJECT present; SPACE_DRIVE_FOLDER_IDS includes the maintenance folder.",
+          "Read the actual delegated identity and authorized Drive scope; configuration presence does not verify template visibility.",
       },
       {
         id: "google_drive.auth",
@@ -295,7 +295,7 @@ export const HEALTH_CHECK_CONTRACTS: readonly HealthCheckContract[] = [
         description:
           "Keyless DWD mints a Drive-scoped token acting AS the pmikcmetro.com subject.",
         expected_evidence:
-          "Drive-scoped DWD token minted as the subject (scope authorized + live-verified 2026-06-29, F-DRIVE-DWD).",
+          "Fresh token exchange for the requested scope and the approved managed subject; a denied scope remains unavailable.",
       },
       {
         id: "google_drive.probe",

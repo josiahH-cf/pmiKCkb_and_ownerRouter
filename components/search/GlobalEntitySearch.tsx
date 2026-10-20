@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { registerTransientLayer, activateTransientLayer } from "@/lib/ui/transient-layer";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import {
-  ENTITY_TYPES,
+  SEARCHABLE_ENTITY_TYPES,
   ENTITY_LABELS,
   EntitySearchPageSchema,
   entityOpenHref,
@@ -161,7 +161,7 @@ export function GlobalEntitySearch() {
           }}
         >
           <option value="all">All records</option>
-          {ENTITY_TYPES.map((t) => (
+          {SEARCHABLE_ENTITY_TYPES.map((t) => (
             <option key={t} value={t}>
               {ENTITY_LABELS[t]}
             </option>

@@ -182,6 +182,7 @@ export class GmailHubService {
     ).filter(
       (link) =>
         link.actor_uid === this.actor.uid &&
+        link.lane === "renewals" &&
         hasSpaceAccess(this.actor, link.lane) &&
         isCommunicationsRecordActive(
           "gmail_workflow_communications",
@@ -1341,6 +1342,8 @@ export class GmailHubService {
   }
 
   private assertContextAction(context: WorkflowCommunicationContext, expected: string) {
+    if (context.lane === "maintenance")
+      throw new GmailHubError("Custom maintenance is retired.", 410);
     if (context.actionKey !== expected) {
       throw new GmailHubError(
         `Workflow Gmail context must declare action ${expected}.`,
@@ -1717,7 +1720,7 @@ function providerMessageTime(value: string | undefined): number {
 export class GmailHubError extends Error {
   constructor(
     message: string,
-    readonly status: 403 | 409 | 503,
+    readonly status: 403 | 409 | 410 | 503,
   ) {
     super(message);
     this.name = "GmailHubError";

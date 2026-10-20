@@ -107,6 +107,8 @@ export interface CommunicationThreading {
   references: string[];
 }
 export interface CommunicationAuthorization {
+  /** Absent on legacy records, which remain readable but cannot dispatch. */
+  deliveryPolicyVersion?: string;
   reply?: CommunicationReplyBinding;
   revision: number;
   approvedByUid: string;

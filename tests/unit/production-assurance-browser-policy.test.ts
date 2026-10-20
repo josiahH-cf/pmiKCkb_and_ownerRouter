@@ -135,20 +135,31 @@ describe("production assurance browser policy", () => {
 });
 
 describe("authenticated role manifests", () => {
-  it("keeps the Maintenance predecessor landmark bound only to its exact deployed commit", () => {
-    const predecessor = "e106a88a50d541b4a012111019b09c2183f6ce20";
+  it("binds historical maintenance landmarks to captured commits and requires renewal readiness for every new candidate", () => {
+    const legacy = "e106a88a50d541b4a012111019b09c2183f6ce20";
+    const serving = "b8829897e407dafdad94da0fd560afbcc539e397";
     for (const role of ["Admin", "Editor"] as const) {
       expect(
-        routesForRole(role, predecessor).find((route) => route.key === "maintenance")
-          ?.heading,
+        routesForRole(role, legacy).find((route) => route.key === "maintenance")?.heading,
       ).toBe("Maintenance Work Order Intake");
       expect(
-        routesForRole(role, "f".repeat(40)).find((route) => route.key === "maintenance")
-          ?.heading,
-      ).toBe("Read-only maintenance history");
-      expect(
-        routesForRole(role).find((route) => route.key === "maintenance")?.heading,
-      ).toBe("Read-only maintenance history");
+        routesForRole(role, serving).find((route) => route.key === "maintenance"),
+      ).toMatchObject({
+        path: "/maintenance/history",
+        heading: "Read-only maintenance history",
+      });
+      for (const head of [undefined, "f".repeat(40)]) {
+        expect(
+          routesForRole(role, head).some((route) => route.key === "maintenance"),
+        ).toBe(false);
+        expect(
+          routesForRole(role, head).find((route) => route.key === "renewal_readiness"),
+        ).toMatchObject({
+          path: "/lease-renewal/readiness",
+          heading: "Renewal run readiness",
+          requiredSpace: "renewals",
+        });
+      }
     }
   });
   it("has unique complete route keys for each managed role", () => {

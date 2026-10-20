@@ -181,49 +181,10 @@ export type MaintenanceSearchRecord = Pick<
   "id" | "summary" | "unit" | "property_id" | "status" | "updated_at" | "vendor_id"
 >;
 export function projectMaintenanceSearchEntities(
-  tickets: readonly MaintenanceSearchRecord[],
-  asOf: string,
+  _tickets: readonly MaintenanceSearchRecord[],
+  _asOf: string,
 ): SearchEntity[] {
-  return tickets.map((t) => ({
-    type: "ticket",
-    id: t.id,
-    label: t.summary,
-    fields: [
-      { label: "Ticket summary", value: t.summary },
-      { label: "Ticket ID", value: t.id },
-      { label: "Recorded status", value: t.status },
-      ...(t.unit ? [{ label: "Unit address", value: t.unit.label }] : []),
-    ],
-    relations: [
-      ...(t.unit
-        ? [
-            {
-              type: "unit" as const,
-              id: t.unit.unitId.replace(/^unit:/, ""),
-              label: t.unit.label,
-            },
-          ]
-        : []),
-      ...(t.property_id
-        ? [
-            {
-              type: "property" as const,
-              id: t.property_id,
-              label: `Property ${t.property_id}`,
-            },
-          ]
-        : []),
-      ...(t.vendor_id
-        ? [
-            {
-              type: "vendor" as const,
-              id: t.vendor_id,
-              label: `Assigned vendor ${t.vendor_id}`,
-            },
-          ]
-        : []),
-    ],
-    href: `/maintenance/history?${new URLSearchParams({ ticket_id: t.id })}`,
-    asOf,
-  }));
+  void _tickets;
+  void _asOf;
+  return []; // The retired component is absent from shared search.
 }

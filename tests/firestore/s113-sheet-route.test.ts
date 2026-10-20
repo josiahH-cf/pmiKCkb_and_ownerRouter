@@ -3749,6 +3749,10 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         await settleJourneyRequests();
         invalidateLiveLeaseCache();
         mounted = await mountCurrent();
+        // The remount starts new owning GETs, which can outlive the DOM-only assertion
+        // budget under emulator contention. Drain that actual batch before inspecting its
+        // saved input; keep the existing bounded drain and the unchanged value assertion.
+        await settleJourneyRequests();
         const resumed = () =>
           within(screen.getByRole("region", { name: "Tenant offer and response" }));
         // Saved entries survive the reload; the new source generation asks for nothing.

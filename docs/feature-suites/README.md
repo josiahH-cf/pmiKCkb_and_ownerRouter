@@ -1,51 +1,34 @@
 # Active feature suites
 
-## October 15 application direction — current execution
+## October 20 renewal run amendment — current execution
 
-The October 16 prepared application instruction is executed as S227–S229. Its Core Outcome
-Contract is a renewal-focused application with retained knowledge and workflow-linked reads/unsent
-Gmail drafts, a coherently retired custom-maintenance workflow, and evidence-backed Dotloop resource
-diagnostics. Vendoroo stays standalone. Raw transcript, email and customer evidence stays outside Git.
-The October 9 maintenance/Vendoroo-integration proposals do not authorize continued operations or
-integration under this direction. Their delivered records and receipts retain historical meaning.
-The present upstream Send/Schedule authority conflicts with this instruction's narrower boundary;
-S229 uses an operation-level refusal and does not change protected Registry activation metadata.
+The owner amended S227–S229 on October 20: completely retire the maintenance component,
+including history/reports and obsolete wiring; diagnose the existing Dotloop template through
+`integrations@pmikcmetro.com`; map form sources to their existing processes; and finalize the
+existing staff-confirmed renewal Send, Schedule and Resume journey for October 22.
+Both Dotloop write keys remain closed. Signing is a human Dotloop handoff. No customer send,
+draft, provider business write or production test record is verification proof.
 
-The scoped October 19 implementation `006798e4`, qualification follow-up `a9a63d7c`,
-CI repairs `5015efc1`/`6beddcf9` and bounded diagnostic follow-up `b8829897` are published and
-deployed. Run `91710ba5-db96-4982-8931-366661f3843c` serves `b8829897e407dafdad94da0fd560afbcc539e397` as
-`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% traffic. Full observation passed two checkpoints in
-408,672 ms; all 371 records matched and eleven independent readback sections passed.
-The two-item queue is delivered and empty; its exact permit is consumed.
+New renewal authorizations bind current content, recipients, source values, sender and a new
+delivery-policy version. The worker skips old authorizations and every retired maintenance lane
+before actor/mailbox/source reads. Current role/Space, runtime suspension, exact-key, at-most-once
+claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
+unapproved background sends remain unavailable. No protected activation metadata changes.
 
-Typed source holds, exact message save/preview/confirmation and own-attempt recovery, truthful
-freshness and independent source reads, managed Gmail health, Dotloop access/selection refusals
-and exact packet binding are deployed. Maintenance retirement, standalone Vendoroo, supported
-renewal source updates, client-send/schedule/Resume refusals, the non-dispatching worker and both
-closed Dotloop write keys remain. Original October 16 commits were already on main; no merge was
-manufactured. See `docs/evidence/application-delivery-2026-10-20.md` for aggregate scope and exact evidence.
+Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
+`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
+`91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
+amendment is being qualified; it is not yet deployed. Prior delivery evidence remains in
+`docs/evidence/application-delivery-2026-10-20.md`.
 
-The actual `bash scripts/verify.sh` passed on `a9a63d7c` (manifest `a504f8e6`):
-9,647 unit tests with four existing configuration skips, all 464 backend tests with no skips,
-format/lint/typecheck, eight policy/budget checks, zero production audit findings and the default
-Next 16.3.8 production build. All twelve original font hashes matched. Final exact-main CI
-`39410047957` passed all five jobs at `b8829897`; its unit/backend counts match the canonical gate.
-All 1,212 runtime files match the qualified canonical, HTTP and browser source snapshots byte-for-byte.
-Later changes are confined to CI, documentation and bounded test diagnostics.
+| Suite | Active contract                                                                  | State                                                                                              |
+| ----- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| S227  | `docs/feature-suites/maintenance-retirement-and-readonly-history.md`             | IN PROGRESS — complete component retirement; amendment delivery pending.                           |
+| S228  | `docs/feature-suites/dotloop-renewal-template-visibility-diagnostics.md`         | IN PROGRESS — approved identity and process/source readiness; provider access limits remain exact. |
+| S229  | `docs/feature-suites/renewal-preservation-and-unsent-workflow-communications.md` | IN PROGRESS — fresh confirmed renewal delivery and backlog refusal; amendment delivery pending.    |
 
-An initial assurance attempt paused with a preserved generic gate failure. Separate unchanged
-read-only checks passed, then supported same-run resume passed the full gate without another build
-or Scheduler invocation. The original cause remains unestablished; no failure was relabeled.
-Human/physical-phone acceptance remains NOT RUN; Editor browser remains not_run under the approved
-Admin-only policy. External resource-dependent outputs retain their actual input/activation holds.
-
-The COMPLETE rows include the verified October 20 cumulative delivery and its independently verified follow-up. Human and external-input limits remain separate.
-
-| Suite | Active contract                                                                  | State                                                                                                                                                                                                 |
-| ----- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S227  | `docs/feature-suites/maintenance-retirement-and-readonly-history.md`             | COMPLETE — bounded implementation and gated delivery verified in run d33c7174 at a7bce098; external resource limits and human NOT RUN remain separate.                                                |
-| S228  | `docs/feature-suites/dotloop-renewal-template-visibility-diagnostics.md`         | COMPLETE — bounded implementation and gated delivery verified in run d33c7174 at a7bce098; scoped follow-up delivered in run 91710ba5 at b8829897; external limits and human NOT RUN remain separate. |
-| S229  | `docs/feature-suites/renewal-preservation-and-unsent-workflow-communications.md` | COMPLETE — bounded implementation and gated delivery verified in run d33c7174 at a7bce098; scoped follow-up delivered in run 91710ba5 at b8829897; external limits and human NOT RUN remain separate. |
+Earlier completed registry rows retain their original acceptance scope. The amendment is confined
+to these existing owners; older READY/PENDING proposals and parallel projects do not execute.
 
 ## Previous October 17 delivery (historical)
 

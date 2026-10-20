@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { REQUIRED_LEASE_ARTIFACTS } from "@/lib/lease-documents/artifact-catalog";
+import { LEASE_ARTIFACT_FAMILIES } from "@/lib/lease-documents/artifact-catalog";
 
 export const RENEWAL_RESOURCE_FIELDS = [
   { id: "insurance_flyer", label: "Insurance flyer", kind: "information" },
@@ -9,7 +9,7 @@ export const RENEWAL_RESOURCE_FIELDS = [
     label: "Renewal information form",
     kind: "information",
   },
-  ...REQUIRED_LEASE_ARTIFACTS.map((artifact) => ({
+  ...LEASE_ARTIFACT_FAMILIES.map((artifact) => ({
     id: artifact.kind,
     label: `${artifact.label} location`,
     kind: "legal",

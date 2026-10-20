@@ -142,6 +142,7 @@ export function RenewalDesk({
           <>
             <ModeChip tone="live">Live data</ModeChip>
             <Link href="/lease-renewal/collections">Shared lease collections</Link>
+            <Link href="/lease-renewal/readiness">Renewal run readiness</Link>
             {result.items.length > 0 && result.items.length <= 2000 ? (
               <Link
                 href={sharedCollectionEntryHref(

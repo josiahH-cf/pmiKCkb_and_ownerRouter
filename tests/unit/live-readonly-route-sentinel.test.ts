@@ -89,7 +89,6 @@ const REVIEWED_DIRECT_DEFENSE_BOUNDARIES = new Map([
     "app/api/connections/dotloop/callback/route.ts:GET:completeDotloopConnection",
     "dotloop-authorization-callback",
   ],
-  ["app/vendor/page.tsx:VendorPage:confirmVendorPortalAccess", "vendor-portal-access"],
 ]);
 
 const SUSPICIOUS_CALL_NAME =
@@ -602,7 +601,6 @@ describe("Live-read-only route sentinel", () => {
     expect(sorted(REVIEWED_DIRECT_DEFENSE_BOUNDARIES.values())).toEqual([
       "comp-screenshot-recovery",
       "dotloop-authorization-callback",
-      "vendor-portal-access",
       "vendor-portal-access",
     ]);
   });

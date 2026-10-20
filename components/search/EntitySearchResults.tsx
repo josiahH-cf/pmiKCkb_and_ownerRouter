@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import {
-  ENTITY_TYPES,
+  SEARCHABLE_ENTITY_TYPES,
   ENTITY_LABELS,
   EntitySearchPageSchema,
   entityOpenHref,
@@ -15,7 +15,11 @@ export function EntitySearchResults({
 }: Readonly<{ initialQuery?: string; initialType?: string }>) {
   const [query, setQuery] = useState(initialQuery),
     [input, setInput] = useState(initialQuery),
-    [type, setType] = useState(initialType),
+    [type, setType] = useState(
+      (SEARCHABLE_ENTITY_TYPES as readonly string[]).includes(initialType)
+        ? initialType
+        : "all",
+    ),
     [page, setPage] = useState<EntitySearchPage | null>(null),
     [loading, setLoading] = useState(false),
     [error, setError] = useState(""),
@@ -34,7 +38,9 @@ export function EntitySearchResults({
         filter = q.get("type") ?? "all";
       setQuery(value);
       setInput(value);
-      setType((ENTITY_TYPES as readonly string[]).includes(filter) ? filter : "all");
+      setType(
+        (SEARCHABLE_ENTITY_TYPES as readonly string[]).includes(filter) ? filter : "all",
+      );
     };
     window.addEventListener("popstate", sync);
     return () => {
@@ -159,7 +165,7 @@ export function EntitySearchResults({
             onChange={(e) => apply(query, e.target.value)}
           >
             <option value="all">All records</option>
-            {ENTITY_TYPES.map((t) => (
+            {SEARCHABLE_ENTITY_TYPES.map((t) => (
               <option key={t} value={t}>
                 {ENTITY_LABELS[t]}
               </option>

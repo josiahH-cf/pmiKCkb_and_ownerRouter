@@ -45,9 +45,9 @@ describe("AppShell role-based navigation", () => {
       }),
     );
     fireEvent.click(screen.getByRole("button", { name: "Operations" }));
-    fireEvent.click(screen.getByRole("link", { name: "Maintenance history" }));
+    fireEvent.click(screen.getByRole("link", { name: "Lease Renewal" }));
     expect(screen.getByRole("status", { name: "Page navigation" })).toHaveTextContent(
-      /Opening Maintenance/,
+      /Opening Lease Renewal/,
     );
     expect(screen.getByLabelText("Unsaved task")).toHaveValue("Keep this edit");
   });
@@ -95,7 +95,7 @@ describe("AppShell role-based navigation", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Operations" }));
     expect(screen.getByRole("link", { name: "Internal Processes" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Maintenance history" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Maintenance history" })).toBeNull();
     expect(screen.getByRole("link", { name: "Lease Renewal" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Admin" }));
     expect(screen.getByRole("link", { name: "Connections" })).toBeInTheDocument();
@@ -151,7 +151,7 @@ describe("AppShell role-based navigation", () => {
       expect(screen.getByRole("link", { name: link })).toBeInTheDocument();
     }
     fireEvent.click(screen.getByRole("button", { name: "Operations" }));
-    for (const link of ["Lease Renewal", "Maintenance history", "Internal Processes"]) {
+    for (const link of ["Lease Renewal", "Internal Processes"]) {
       expect(screen.getByRole("link", { name: link })).toBeInTheDocument();
     }
     fireEvent.click(screen.getByRole("button", { name: "Admin" }));

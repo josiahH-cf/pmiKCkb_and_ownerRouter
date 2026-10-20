@@ -1,3 +1,7 @@
+import {
+  runCommunicationWorker,
+  CommunicationWorkerStore,
+} from "@/lib/gmail-hub/sequence-worker";
 import type { StaffBusinessProfile } from "@/lib/staff/business-profile";
 import { applyBusinessSignature } from "@/lib/gmail-hub/business-signature";
 import type { Firestore } from "firebase-admin/firestore";
@@ -726,5 +730,110 @@ it("takeover retains historical signature evidence and requires the new sender's
   const approved = await authorize(edited);
   expect(approved.authorization?.initial.signature?.email).toBe(other.email);
   expect(original.authorization?.initial.signature?.email).toBe(actor.email);
+  expect(f.send).not.toHaveBeenCalled();
+});
+
+describe("October 20 renewal delivery", () => {
+  it("holds a pre-retirement schedule without reading a mailbox or creating an attempt", async () => {
+    const f = setup();
+    const approved = await f.approve("schedule");
+    const legacy = structuredClone(
+      f.db.store.get(`gmail_communication_sequences/${approved.id}`),
+    ) as unknown as typeof approved;
+    delete (legacy.authorization as unknown as Record<string, unknown>)
+      .deliveryPolicyVersion;
+    const legacyPayload = Object.fromEntries(
+      Object.entries(legacy.authorization!).filter(([key]) => key !== "payloadHash"),
+    );
+    legacy.authorization!.payloadHash = sequenceHash(legacyPayload);
+    f.db.seed(
+      `gmail_communication_sequences/${legacy.id}`,
+      legacy as unknown as Record<string, unknown>,
+    );
+    f.setNow(approved.nextDueAtMs! + 1);
+    f.createClient.mockClear();
+    f.deps.resolveTarget.mockClear();
+    const before = JSON.stringify([...f.db.store]);
+    const result = await f.service.dispatch(legacy.id);
+    expect(result.status).toBe("refused");
+    expect(f.createClient).not.toHaveBeenCalled();
+    expect(f.deps.resolveTarget).not.toHaveBeenCalled();
+    expect(f.send).not.toHaveBeenCalled();
+    expect(JSON.stringify([...f.db.store])).toBe(before);
+  });
+  it("binds a fresh reviewed schedule to the current delivery policy and sends at most once", async () => {
+    const f = setup();
+    const approved = await f.approve("schedule");
+    expect(approved.authorization).toMatchObject({
+      deliveryPolicyVersion: "renewal-confirmed-delivery/2026-10-20",
+    });
+    f.setNow(approved.nextDueAtMs! + 1);
+    expect((await f.service.dispatch(approved.id)).status).toBe("sent");
+    expect((await f.service.dispatch(approved.id)).status).toBe("not_due");
+    expect(f.send).toHaveBeenCalledTimes(1);
+  });
+  it("refuses retired maintenance composition before a provider or source read", async () => {
+    const f = setup();
+    await expect(
+      f.service.save(
+        actor,
+        {
+          ...f.draft,
+          context: {
+            lane: "maintenance",
+            entityType: "maintenance_ticket",
+            entityId: "fixture-retained",
+            purpose: "maintenance_owner",
+            actionKey: "gmail.maintenance_owner_notice.send",
+            sourceRefs: [],
+          },
+        },
+        0,
+        randomUUID(),
+      ),
+    ).rejects.toMatchObject({ status: 410 });
+    expect(f.createClient).not.toHaveBeenCalled();
+    expect(f.deps.resolveTarget).not.toHaveBeenCalled();
+    expect(f.db.store.size).toBe(0);
+  });
+});
+
+it("the worker holds legacy and retired-lane authorizations before actor, mailbox, source or dispatch construction", async () => {
+  const f = setup();
+  const approved = await f.approve("schedule");
+  const legacy = structuredClone(approved);
+  delete legacy.authorization!.deliveryPolicyVersion;
+  const retired = {
+    ...approved,
+    context: {
+      ...approved.context,
+      lane: "maintenance" as const,
+      entityType: "maintenance_ticket" as const,
+      purpose: "maintenance_owner" as const,
+    },
+  };
+  vi.spyOn(f.store, "list").mockResolvedValue({
+    sequences: [legacy, retired],
+    cursor: null,
+  });
+  f.createClient.mockClear();
+  f.deps.readActor.mockClear();
+  f.deps.resolveTarget.mockClear();
+  const result = await runCommunicationWorker({
+    service: f.service,
+    store: new CommunicationWorkerStore(f.db as unknown as Firestore),
+    now: f.now,
+  });
+  expect(result).toMatchObject({
+    status: "processed",
+    inspected: 2,
+    observed: 0,
+    sent: 0,
+    held: 2,
+    failures: 0,
+  });
+  expect(f.deps.readActor).not.toHaveBeenCalled();
+  expect(f.createClient).not.toHaveBeenCalled();
+  expect(f.deps.resolveTarget).not.toHaveBeenCalled();
   expect(f.send).not.toHaveBeenCalled();
 });

@@ -19,29 +19,34 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Current execution — October 16 application instruction
+## Current execution — October 20 renewal run amendment
 
-S227–S229 execute the prepared October 16 instruction: retire custom maintenance while retaining
-authorized read-only history, keep Vendoroo standalone, diagnose Dotloop renewal-template visibility,
-and preserve renewal usability and workflow-linked Gmail reads/unsent drafting. Original checkouts,
-private evidence and parallel audit/importer work remain separate. New leasing is deferred.
+The owner amended S227–S229 on October 20: completely retire the maintenance component,
+including history/reports and obsolete wiring; diagnose the existing Dotloop template through
+`integrations@pmikcmetro.com`; map form sources to their existing processes; and finalize the
+existing staff-confirmed renewal Send, Schedule and Resume journey for October 22.
+Both Dotloop write keys remain closed. Signing is a human Dotloop handoff. No customer send,
+draft, provider business write or production test record is verification proof.
 
-This instruction narrows the earlier October 9 Send/Schedule program. Serving code refuses
-client sends/schedules at production operation admission and makes the worker non-dispatching.
-Previously open Registry activation metadata is unchanged; an open key cannot override this
-operation-level refusal. Earlier authorizations, drafts, attempts and receipts remain historical
-evidence, never a backlog to execute. Both Dotloop write keys remain closed.
+New renewal authorizations bind current content, recipients, source values, sender and a new
+delivery-policy version. The worker skips old authorizations and every retired maintenance lane
+before actor/mailbox/source reads. Current role/Space, runtime suspension, exact-key, at-most-once
+claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
+unapproved background sends remain unavailable. No protected activation metadata changes.
 
-Implementation c99659d5 and documentation 15648c0e were already on main. Delivery preparation
-85b7e03c and scoped repair a7bce098 were published normally without a manufactured merge.
+Provider connections use `integrations@pmikcmetro.com`. The approved WSL CLI/ADC and guarded
+Admin release-assurance identities remain `josiah@pmikcmetro.com` under the existing host contract;
+this provider correction does not switch credential stores or grant IAM/claims. Existing
+The owner approved Editor access to the existing renewal Sheet with notification off and migration
+of the existing Sheet/Drive delegated subject. The grant and normal-reader access to all 29 tabs
+are verified; the single-value runtime change awaits guarded release. Preserve all other
+configuration. Current provider access holds are recorded in docs/open-blockers.md.
 
-The actual `bash scripts/verify.sh` passed on `a9a63d7c` (manifest `a504f8e6`):
-9,647 unit tests with four existing configuration skips, all 464 backend tests with no skips,
-format/lint/typecheck, eight policy/budget checks, zero production audit findings and the default
-Next 16.3.8 production build. All twelve original font hashes matched. Final exact-main CI
-`39410047957` passed all five jobs at `b8829897`; its unit/backend counts match the canonical gate.
-All 1,212 runtime files match the qualified canonical, HTTP and browser source snapshots byte-for-byte.
-Later changes are confined to CI, documentation and bounded test diagnostics.
+Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
+`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
+`91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
+amendment is being qualified; it is not yet deployed. Prior delivery evidence remains in
+`docs/evidence/application-delivery-2026-10-20.md`.
 
 ## Present production truth — 2026-10-20
 
@@ -184,12 +189,12 @@ PMI KC is one deployed application with three connected lanes:
 - PMI KC KB: source-backed knowledge, Console, Spaces, processes, approvals, and Admin.
 - Lease Renewal Agent: complete RentVine/Sheet reads, reconciliation, comps, reviewed drafts, and
   lease-specific work.
-- Workflow Communications: linked Gmail reads/labels, reviewed unsent drafts and retained delivery
-  history. Current operation policy refuses client sends and schedules. A general inbox and
-  autonomous messaging are outside scope.
+- Workflow Communications: linked renewal reads/labels, reviewed drafts and exact staff-confirmed
+  sends, schedules and Resume. It remains separate from general mailbox management and model-driven sending.
 
-Custom maintenance, resident intake and operational Vendor work are retired in the serving application;
-authorized read-only records remain. Feedback, staff work accountability and knowledge are preserved.
+The complete custom maintenance component, resident intake and operational Vendor work are retired
+under the current direction. No data purge is authorized. Feedback, staff work accountability and
+authorized knowledge remain; Vendoroo stays standalone.
 
 ## Standing authority
 
@@ -322,10 +327,10 @@ it does not authorize a session-policy, IAM, claim, or credential-store substitu
 ## Permanent safety boundaries
 
 - No model-triggered, unapproved background, generic or bulk client-facing send.
-- The October 16 application instruction limits this execution to linked reads and unsent Gmail
-  drafts. Client sends, scheduled dispatch and Resume are refused at operation admission. Prior
-  October 9 authorizations/activations retain their historical meaning but cannot bypass current
-  refusal. Existing drafts, receipts and ambiguous-attempt reconciliation remain available.
+- October 20 explicitly reopens only the existing exact staff-confirmed renewal Send, Schedule and
+  Resume contract and linked renewal replies. Historical authorizations cannot dispatch until a
+  fresh reviewed authorization binds the current policy. Preserve exact source/target checks,
+  one-attempt claims, receipts and ambiguity reconciliation; maintenance remains retired.
 - Ordinary supported staff edits use one visible Save/Apply as exact intent. Preserve server-side
   permissions, real target/version/conflict checks, durable one-attempt claims, receipts, readback
   and recovery. A chat-originated explicit supported action uses the same operation service;

@@ -209,7 +209,7 @@ export function workflowEntityHref(
 ): string {
   switch (input.entity_type) {
     case "maintenance_ticket":
-      return `/maintenance/history?ticket_id=${encodeURIComponent(input.entity_id)}`;
+      return "/gmail-hub"; // Retained link metadata does not expose the retired component.
     case "renewal_run":
       return `/lease-renewal/runs/${encodeURIComponent(input.entity_id)}`;
     case "renewal_lease":

@@ -1,5 +1,4 @@
 import { EditableLayerError } from "@/lib/firestore/errors";
-import { WORKFLOW_SEND_POLICY_MESSAGE } from "@/lib/operations/application-effect-policy";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireCapability } from "@/lib/auth/session";
@@ -35,13 +34,27 @@ export async function POST(request: Request) {
     const input = SequenceCommandSchema.parse(
       JSON.parse((await boundedCommunicationBody(request)).toString("utf8")),
     );
-    if (["send", "schedule", "resume"].includes(input.action))
-      throw new EditableLayerError(WORKFLOW_SEND_POLICY_MESSAGE, 410);
     const service = createCommunicationSequenceService();
     if (input.action === "save")
       return sequenceResponse(
         await service.save(actor, input.draft, input.expectedVersion, input.operationId),
       );
+    if (
+      input.action === "send" ||
+      input.action === "schedule" ||
+      input.action === "resume"
+    ) {
+      const sequence = await service.authorize(actor, input);
+      // Send now is this one user-authorized operation, using the same durable occurrence as the worker.
+      if (input.action === "send") {
+        try {
+          return sequenceResponse((await service.dispatch(sequence.id)).sequence);
+        } catch {
+          return sequenceResponse(await service.get(actor, sequence.id));
+        } // accepted authority remains visible and owned; no blind second dispatch
+      }
+      return sequenceResponse(sequence);
+    }
     if (input.action === "reconcile")
       return sequenceResponse(await service.reconcile(actor, input.id));
     if (input.action === "refresh")

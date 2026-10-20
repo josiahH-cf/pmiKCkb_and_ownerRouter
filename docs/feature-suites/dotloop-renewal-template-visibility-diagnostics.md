@@ -1,134 +1,139 @@
 <!-- spec-shape: overhaul-v1 -->
 <!-- feature-handoff: oct15-application-2026-10-16 -->
+<!-- owner-amendment: 2026-10-20 -->
 
-# S228 — Diagnose Dotloop renewal-template visibility without opening writes
+# S228 — Verify approved template visibility and process readiness
 
-> Status: COMPLETE — carried and independently verified in run 91710ba5 at b8829897; original d33c7174 delivery, external resource limits and human NOT RUN retain their scopes.
+> Status: IN PROGRESS — October 20 owner amendment implemented under qualification; prior delivery at b8829897 retains its original scope.
 
 **Goal.**
 
-An Admin can distinguish unsupported owning-profile visibility, failed provider reads, true empty lists, stale observations and a supported saved renewal selection.
+The app verifies the approved integrations account, distinguishes failed/empty/stale/truncated reads, accepts only supported current selections, and maps recorded source/form families to their actual packet processes. No source location or provider visibility grants legal approval or write authority.
 
 **Current state / intended end state.**
 
-October 15 3:01-8:22 reports an active Lease Renewal loop template visible in Dotloop. An API defect was proposed, not established. Baseline 0b892865 observes only individual/selected profiles; this change adds bounded company/office diagnostics and rejects future or failed account/profile observations. October 16 managed reads found an empty individual-profile cache, an unobserved company-profile template list and no saved renewal selection. That historical stored credential was expired and the account GET returned 401; normal managed refresh succeeded October 17. This confirms the cached coverage gap, not the reported template's current owning profile or an API defect.
+Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
+`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
+`91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
+amendment is being qualified; it is not yet deployed. Prior delivery evidence remains in
+`docs/evidence/application-delivery-2026-10-20.md`.
+
+The owner explicitly amended the earlier October 16 history/unsent-only boundary. This suite owns
+its corresponding revision; no older READY row or other program is newly executed.
 
 **Actors and entry conditions.**
 
-October 19 follow-up reads returned account/profiles 200, individual templates 200 with zero
-results, and company templates 403. The provider's exact refusal cause and the reported active
-template's owning visibility remain unestablished. The access-denied diagnostic is deployed and verified in run 91710ba5; no template recreation, supported-profile widening or write-key
-activation follows from it.
-
-An existing authorized Admin inspects the managed Dotloop connection and its exact profile/template selection. Diagnostic reads do not save a selection, widen supported profile types or grant either write key. Existing staff read scope remains unchanged; no identity or credential substitute is introduced.
+Managed staff retain current role/Space/mailbox permissions. Provider connections use the approved
+integrations account; WSL CLI/ADC and guarded Admin assurance retain their existing identities.
 
 **What it is / how it functions.**
 
-Existing typed client and observation store own bounded discovery. The picker and readiness must agree on freshness and only accept current generation, successful account/profile reads and exact supported profile/template/status ids.
+The app verifies the approved integrations account, distinguishes failed/empty/stale/truncated reads, accepts only supported current selections, and maps recorded source/form families to their actual packet processes. No source location or provider visibility grants legal approval or write authority.
 
 **In scope / out of scope.**
 
-Use the documented profile/template GET contract and existing managed connection. Read bounded company/office observations for diagnosis, retain individual-profile loop support, identify read failure/truncation, reject future/stale/failed observations for selection. Keep both Dotloop write keys closed and all S182 AI-origin exclusions. No OAuth reenrollment, resource changes, loop creation, upload or signatures as proof.
+Implement this outcome through existing owning boundaries and guarded release. No production purge,
+customer/provider proof effect, generic send, maintenance revival, new leasing, protected activation,
+identity privilege change, budget change, guessed resource or signature API is granted.
 
 **Open questions & assumptions.**
 
-The dated October 17 normal managed Dotloop resource refresh succeeded on production. The supported individual
-template list is empty; the company-template read failed as unavailable, which does not prove an
-empty company list. No supported renewal selection is saved. The reported active template's owning
-visibility/root cause remains unestablished; no template recreation is requested. The live UI
-distinguishes failed and empty reads and excludes unsupported profiles from selection. Both Dotloop
-write keys remain closed. Gmail's provider profile read succeeded for the expected managed mailbox;
-sync health reports degraded. No customer draft/send, loop, upload, signature, paid comp request or
-production test record was verification proof. Normal connection refresh updates only its existing
-credential/observation metadata; it is separate from guarded read-only release assurance.
-All guarded release gates and independent production readbacks passed; human verdict remains NOT RUN.
+Fresh October 20 Dotloop reads verified the existing connection as
+`integrations@pmikcmetro.com`: account/profiles succeeded, the individual-template list was empty,
+and company templates returned 403/FORBIDDEN. This does not establish the reported active
+template's owning visibility or a specific permission defect. No supported selection is saved;
+no recreation is requested. The owner's browser human check fails and remains a human boundary.
+The same integrations account can read the Drive folder containing eight PDF reference sources.
+Source presence is not legal approval, field/signer mapping or a Dotloop selection. A read-only
+Drive DWD scope probe under the previously configured subject was refused; no scope grant changed.
+
+These limits hold dependent output; implementation and release continue independently.
 
 **Cross-product impacts.**
 
-Existing Next request proxy, owning server services, navigation/components, Firestore records, current facts/loop/register and focused deterministic tests. Shared source consumers and safety boundaries remain separately owned.
+HTTP/page admission, navigation, shared source projections, renewal communications, existing
+connections, form intake/configuration and release assurance must agree. Preserve all eleven Spaces,
+runtime identity, Production/Live, Demo=false, Sheet=true and existing secret/cost/security controls.
 
 **Authority and evidence map.**
 
-| Input                                                                        | Classification                           | Use and limitation                                                                                                                                             |
-| ---------------------------------------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| October 16 prepared application brief, read in full locally                  | Explicit execution instruction           | Carries confirmed scope through implementation and authorized delivery; no customer proof effects.                                                             |
-| October 15 meeting at the timestamps above and confirming maintenance emails | Intent/reported or demonstrated behavior | Establishes decisions; does not prove API defects, provider success or human acceptance. Private sources stay outside Git.                                     |
-| AGENTS.md, upstream 0b892865 code/tests and current facts                    | Authority / implementation evidence      | Existing send authority differs from this task's narrower explicit limit. Record the conflict honestly; no protected-key change is implied.                    |
-| October 17 first attempt and managed reads                                   | Historical observation                   | Authentication/resource reads succeeded; first run a97c579c failed observation and verified rollback. Its actual evidence remains unchanged.                   |
-| October 17 run d33c7174 and independent production checks                    | Current observation                      | Exact a7bce098 candidate, promotion, full two-checkpoint observation and eleven independent sections passed; bounded provider resource limits remain explicit. |
+| Input                                                                        | Classification      | Use and limitation                                                                           |
+| ---------------------------------------------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------- |
+| October 20 owner request and explicit Send/Schedule/Resume reply             | Execution authority | Revises this exact scope through qualification, publication and existing guarded deployment. |
+| Current committed code, deterministic tests and direct managed/browser reads | Evidence            | Distinguish fixtures, observations and production effects; detailed material stays private.  |
+| Earlier releases and registry metadata                                       | Historical evidence | No backlog execution, renewed permission or present provider success follows.                |
 
 **Architecture outcome (deterministic, fail-first).**
 
-- **ARCH-S228-1** — Existing typed client and observation store own bounded discovery. The picker and readiness must agree on freshness and only accept current generation, successful account/profile reads and exact supported profile/template/status ids.
+- **ARCH-S228-1** — The app verifies the approved integrations account, distinguishes failed/empty/stale/truncated reads, accepts only supported current selections, and maps recorded source/form families to their actual packet processes. No source location or provider visibility grants legal approval or write authority.
 
 **Behavior outcome (deterministic, fail-first).**
 
-- **BEH-S228-1** — A company/office template may be visible diagnostically while remaining unavailable as a loop target. Empty, failed, skipped and truncated checks are distinct. No template name infers provider eligibility or silently saves resources.
+- **BEH-S228-1** — The app verifies the approved integrations account, distinguishes failed/empty/stale/truncated reads, accepts only supported current selections, and maps recorded source/form families to their actual packet processes. No source location or provider visibility grants legal approval or write authority.
 
 **Human litmus outcome.**
 
-### Diagnose Dotloop renewal-template visibility without opening writes
+### Verify approved template visibility and process readiness
 
-**If this was built correctly:** An Admin can distinguish unsupported owning-profile visibility, failed provider reads, true empty lists, stale observations and a supported saved renewal selection.
+**If this was built correctly:** The app verifies the approved integrations account, distinguishes failed/empty/stale/truncated reads, accepts only supported current selections, and maps recorded source/form families to their actual packet processes. No source location or provider visibility grants legal approval or write authority.
 
-- Model verdict: ALL_GATES_GREEN — bounded diagnostic/preservation implementation and guarded production delivery passed; no human or provider business-effect acceptance is inferred.
+- Model verdict: NOT RUN — full new qualification and guarded delivery are pending; focused results retain exact source coverage.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
 
-| Requirement                                                                                                                                                         | Architecture outcome | Behavior outcome | Human litmus                                                        | Deterministic evidence / falsification                                                                                           |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- | ---------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| R-S228-1 — Read templates for bounded observed company/office profiles as well as supported individual profiles.                                                    | ARCH-S228-1          | BEH-S228-1       | Diagnose Dotloop renewal-template visibility without opening writes | tests/unit/oct15-dotloop-discovery.test.ts; existing S106 client/readiness/picker, runtime refresh and S182 boundary regressions |
-| R-S228-2 — Display visibility/read-failure/truncation evidence without granting unsupported profile eligibility.                                                    | ARCH-S228-1          | BEH-S228-1       | Diagnose Dotloop renewal-template visibility without opening writes | tests/unit/oct15-dotloop-discovery.test.ts; existing S106 client/readiness/picker, runtime refresh and S182 boundary regressions |
-| R-S228-3 — Reject future-dated, stale, other-generation or failed account/profile observations consistently.                                                        | ARCH-S228-1          | BEH-S228-1       | Diagnose Dotloop renewal-template visibility without opening writes | tests/unit/oct15-dotloop-discovery.test.ts; existing S106 client/readiness/picker, runtime refresh and S182 boundary regressions |
-| R-S228-4 — Recheck the managed live connection and report exact current evidence or the precise unavailable read; never claim the meeting hypothesis as root cause. | ARCH-S228-1          | BEH-S228-1       | Diagnose Dotloop renewal-template visibility without opening writes | tests/unit/oct15-dotloop-discovery.test.ts; existing S106 client/readiness/picker, runtime refresh and S182 boundary regressions |
+| Requirement                                                                                                                                                                          | Architecture outcome | Behavior outcome | Human litmus                                              | Deterministic evidence / falsification                                                                                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------- | ---------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R-S228-1 — Read the documented account/profile/template contracts through the existing approved connection and identify actual failed versus empty reads.                            | ARCH-S228-1          | BEH-S228-1       | Verify approved template visibility and process readiness | tests/unit/oct15-dotloop-discovery.test.ts; tests/unit/s106-dotloop-connection.test.ts; tests/unit/oct20-template-process-readiness.test.ts; tests/unit/s120-resource-configuration.test.tsx |
+| R-S228-2 — Reject stale, future, failed or wrong-generation observations and unsupported profile/template/status selections.                                                         | ARCH-S228-1          | BEH-S228-1       | Verify approved template visibility and process readiness | tests/unit/oct15-dotloop-discovery.test.ts; tests/unit/s106-dotloop-connection.test.ts; tests/unit/oct20-template-process-readiness.test.ts; tests/unit/s120-resource-configuration.test.tsx |
+| R-S228-3 — Keep both Dotloop write keys closed, preserve S182 exclusions and retain a human signature handoff.                                                                       | ARCH-S228-1          | BEH-S228-1       | Verify approved template visibility and process readiness | tests/unit/oct15-dotloop-discovery.test.ts; tests/unit/s106-dotloop-connection.test.ts; tests/unit/oct20-template-process-readiness.test.ts; tests/unit/s120-resource-configuration.test.tsx |
+| R-S228-4 — Map all ten existing form families to renewal-extension, full-lease or owner-acknowledgment contracts; show source, applicability, mapping and approval holds separately. | ARCH-S228-1          | BEH-S228-1       | Verify approved template visibility and process readiness | tests/unit/oct15-dotloop-discovery.test.ts; tests/unit/s106-dotloop-connection.test.ts; tests/unit/oct20-template-process-readiness.test.ts; tests/unit/s120-resource-configuration.test.tsx |
+| R-S228-5 — Verify integrations@pmikcmetro.com before resource discovery or selection; release CLI/Admin identities remain separate.                                                  | ARCH-S228-1          | BEH-S228-1       | Verify approved template visibility and process readiness | tests/unit/oct15-dotloop-discovery.test.ts; tests/unit/s106-dotloop-connection.test.ts; tests/unit/oct20-template-process-readiness.test.ts; tests/unit/s120-resource-configuration.test.tsx |
+| R-S228-6 — Expose the existing source-location controls for the additional disclosures, brokerage and insurance families without approving them or inventing customer values.        | ARCH-S228-1          | BEH-S228-1       | Verify approved template visibility and process readiness | tests/unit/oct15-dotloop-discovery.test.ts; tests/unit/s106-dotloop-connection.test.ts; tests/unit/oct20-template-process-readiness.test.ts; tests/unit/s120-resource-configuration.test.tsx |
 
 **Preservation set.**
 
-Existing authorization, exact action gates, receipt/history interpretation, source versions, renewal Focus/Full/working values, permitted Gmail drafts and S182 boundaries remain green separately from the new outcomes.
+Current authorization, source truth, supported renewal updates, exact receipts/recovery, pending
+input semantics, guarded release and both closed Dotloop write keys remain independent requirements.
 
 **Adversarial acceptance checks.**
 
-- **AC-S228-1** — Exercise the primary workflow/refusal through its real owning boundary; fail against the unchanged baseline for the named reason.
-- **AC-S228-2** — Exercise stale, failed, unsupported, direct-route and recovery variants relevant to this scope; no missing evidence becomes success.
-- **AC-S228-3** — Preserve authorized reads/history and unrelated renewal/knowledge consumers with no production data or provider mutation as proof.
+- **AC-S228-1** — Exercise the actual owning HTTP/service/component boundary and preservation set.
+- **AC-S228-2** — Exercise failed/stale/wrong-source, unsupported and ambiguous/recovery variants; unknown is never ready.
+- **AC-S228-3** — Verify no customer/provider business effect, production test record or backlog is proof.
 
 **Forbidden actions / hard gates.**
 
-No production data deletion, credentials/private raw evidence in Git, customer test draft/send, Dotloop writes, identity/permission change, invented Vendoroo URL or unrelated program execution. Protected paths retain their explicit-owner-direction rule. Existing exact-main CI, release lock, fresh prerequisites/GO, candidate assurance, receipt-bound promotion, full observation and independent readbacks remain mandatory.
+No private provider/customer material or credentials in Git. No direct deployment bypass. Require
+actual bash scripts/verify.sh, exact-main green CI, fresh auth/prerequisites/GO, real lock ownership,
+one build, zero-traffic smoke, candidate assurance, receipt-bound promotion, at least 300,000 ms
+observation with required checkpoints and independent managed/public readbacks.
 
 **Dependencies / sequencing.**
 
-Implementation proceeds independently. Fresh external evidence blocks only the named provider or release verification. Original Windows proposals and all other sessions remain untouched.
+Implement and qualify independently of missing external inputs. Complete only actual owner/provider
+steps; never solve the human authentication challenge, infer legal approval or open either write key.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** Complete bounded code/test/documentation slice, including refusal and recovery behavior.
-- **Consumes, but does not assume:** Existing managed connections, real source versions and supported exact resources. Missing values remain explicitly unavailable.
-- **Externally blocked effect:** Delivered implementation/release has no authentication hold. Template/selection-dependent Dotloop output waits on real supported resources and both closed keys; Gmail sync health is degraded. Human acceptance remains NOT RUN. No customer effect is proof.
-- **Produces for downstream suites:** Tested retained contracts and exact truthful evidence; no new execution queue for older suites.
+- **Deliverable now:** The verified code/test/documentation revision and authorized guarded deployment.
+- **Consumes, but does not assume:** Real supported resources, current provider access and approved content/maps.
+- **Externally blocked effect:** The exact dependent template, legal form or signature step; independent work continues.
+- **Produces for downstream suites:** Source-bound checks and honest readiness without new authority.
 
 **Verification and delivery contract.**
 
-1. Preserve the baseline and intended failure evidence outside Git before implementation edits.
-2. Run tests/unit/oct15-dotloop-discovery.test.ts; existing S106 client/readiness/picker, runtime refresh and S182 boundary regressions; keep preservation results separate.
-3. Run bash scripts/verify.sh, inspect the diff, audit scope/PII/secrets/gates and deliver only green source.
-4. Report ALL_GATES_GREEN only for actual passed gates; BUDGET_EXHAUSTED only for an explicit budget; BLOCKED names an exact unavailable input after independent work. Local passes do not establish provider/deployment success.
+1. Preserve baseline failures and prior receipts; verify meaningful focused regressions.
+2. Complete canonical/served checks and exact-head CI, inspect scope and publish only green changes.
+3. Deliver through existing locked gates and update closure only after independent production proof.
 
 **Ordered prompt sequence.**
 
-1. Recheck current code and available live state.
-2. Record fail-first checks and preservation baseline.
-3. Implement bounded behavior, refusals and recovery.
-4. Verify, reconcile current documentation and perform authorized gated delivery where prerequisites pass.
+1. Read current code and managed state.
+2. Implement this exact owner amendment and test refusals/recovery.
+3. Qualify, publish, deploy and independently verify.
+4. Reconcile concise facts and private receipts to actual outcomes.
 
 **Deletion/merge recommendation.**
 
-Retire this narrative only when remaining acceptance and dependency truth is fully represented by tests and current facts.
-
-## October 20 delivery readback
-
-The scoped follow-up and carried contract are deployed at `b8829897e407dafdad94da0fd560afbcc539e397` / `pmi-kc-app-rmvgkpxub-17a20f3efe73`.
-Both observation checkpoints and all eleven independent readbacks passed; all 371 records matched.
-No live provider business effect or human acceptance was created as proof. Exact qualification,
-failed-attempt history and remaining limits: `docs/evidence/application-delivery-2026-10-20.md`.
+Update this existing suite in place; do not duplicate its outcome or rewrite earlier failed evidence.

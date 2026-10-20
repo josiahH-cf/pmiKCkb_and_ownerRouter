@@ -1,6 +1,5 @@
 import { readBusinessProfile } from "@/lib/firestore/presentation-settings";
 import { applyBusinessSignature } from "./business-signature";
-import { readMaintenanceReviewContext } from "@/lib/firestore/maintenance-case-records";
 import { communicationMessageFromRenewalContent } from "@/lib/gmail-hub/renewal-composition";
 import { randomUUID } from "node:crypto";
 import { bindWorkflowReply } from "./workflow-reply-binding";
@@ -11,14 +10,6 @@ import { validateAuthClaims } from "@/lib/auth/session";
 import { getFirebaseAdminApp } from "@/lib/firebase/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { currentRenewalMessage } from "@/lib/lease-renewal/current-renewal-message";
-import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
-import { resolveOwnerContactFromPropertyId } from "@/lib/lease-renewal/live-owner-recipient";
-import { getUnitIndex } from "@/lib/maintenance/unit-index";
-import {
-  buildWorkOrderDraft,
-  type MaintenancePriority,
-} from "@/lib/maintenance/work-order-draft";
-import { buildOwnerNoticeDraft } from "@/lib/maintenance/owner-notice-draft";
 import {
   assertLiveProviderActionAllowed,
   requireEnvironmentDescriptor,
@@ -36,12 +27,7 @@ import {
   assertCommunicationStaff,
   type CommunicationSequenceDependencies,
 } from "./sequence-service";
-import {
-  communicationSendKey,
-  plainCommunicationMessage,
-  type VerifiedCommunicationTarget,
-  type RichCommunicationMessage,
-} from "./sequence-model";
+import { communicationSendKey, type VerifiedCommunicationTarget } from "./sequence-model";
 import {
   WorkflowCommunicationContextSchema,
   type WorkflowCommunicationContext,
@@ -166,95 +152,18 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
       : null,
   };
 }
-async function maintenanceTarget(
-  actor: AuthenticatedUser,
-  c: WorkflowCommunicationContext,
-) {
-  const review = await readMaintenanceReviewContext(actor, c.entityId);
-  const ticket = review.ticket;
-  if (!ticket || ticket.data_mode !== "live")
-    throw new EditableLayerError("Choose a real Live maintenance ticket.", 404);
-  const workOrder = buildWorkOrderDraft({
-    reporterUid: ticket.reporter.uid ?? actor.uid,
-    typedNote: ticket.description,
-    unit: ticket.unit ? { ...ticket.unit, confidence: "Verified" } : null,
-    priority: ticket.priority as MaintenancePriority,
-    photoRefs: ticket.photo_refs,
-    capturedAt: ticket.created_at,
-  });
-  const notice = buildOwnerNoticeDraft({ workOrder, propertyLabel: ticket.unit?.label });
-  const reviewedBody = review.approvedGuidance
-    ? `${notice.body}\n\n${review.approvedGuidance}`
-    : notice.body;
-  const config = buildLiveRentVineConfig();
-  const index = await getUnitIndex();
-  const candidate =
-    index.status === "ok" && ticket.unit
-      ? index.candidates.find((u) => u.unitId === ticket.unit!.unitId)
-      : null;
-  const owner =
-    config.ok && candidate?.propertyId
-      ? await resolveOwnerContactFromPropertyId(
-          config.rentvineClient,
-          candidate.propertyId,
-        )
-      : null;
-  const to = owner ? [owner.email] : [],
-    sourceRefs =
-      owner && candidate?.propertyId
-        ? [
-            `rentvine:property:${candidate.propertyId}:portfolio:${owner.portfolioId}:contact:${owner.contactId}.email`,
-          ]
-        : [];
-  const blockers = owner
-    ? []
-    : [
-        "The ticket's current property owner email could not be verified. Wording can be saved; Send/Schedule waits for that read.",
-      ];
-  const target: VerifiedCommunicationTarget = {
-    context: c,
-    to,
-    cc: [],
-    sourceRefs,
-    label: ticket.summary,
-    blockers,
-    materialSourceHash: sequenceHash({
-      ticketId: ticket.id,
-      unitId: ticket.unit?.unitId ?? null,
-      propertyId: candidate?.propertyId ?? null,
-      to,
-      estimate: ticket.estimate_amount_cents ?? null,
-      assessment: ticket.assessment ?? null,
-      association: ticket.maintenance_association ?? null,
-      responsibility: ticket.responsibility_decision ?? null,
-      responsibilityPolicy: review.chargeback.policy
-        ? { id: review.chargeback.policy.id, version: review.chargeback.policy.version }
-        : null,
-      responsibilityNeedsReview: review.responsibilityNeedsReview,
-      status: ticket.status === "Closed" ? "closed" : "open",
-      blockers,
-    }),
-  };
-  const profile = await readBusinessProfile(actor).catch(() => null);
-  const initial = plainCommunicationMessage(notice.subject, reviewedBody);
-  return {
-    target,
-    initial: profile ? applyBusinessSignature(initial, profile, actor.email) : initial,
-    attachmentNotice: null,
-  };
-}
 export async function prepareWorkflowComposition(
   actor: AuthenticatedUser,
   context: WorkflowCommunicationContext,
 ) {
   assertCommunicationStaff(actor, "read");
   const c = WorkflowCommunicationContextSchema.parse(context);
+  if (c.lane === "maintenance")
+    throw new EditableLayerError("Custom maintenance is retired.", 410);
   communicationSendKey(c);
   if (!hasSpaceAccess(actor, c.lane))
     throw new EditableLayerError("The linked workflow Space is unavailable.", 403);
-  const result = await (c.entityType === "renewal_lease"
-    ? renewalTarget(actor, c)
-    : maintenanceTarget(actor, c));
+  const result = await renewalTarget(actor, c);
   if (!c.replyTo) return result;
   const service = createCommunicationSequenceService();
   const original = await service.get(actor, c.replyTo.sequenceId);

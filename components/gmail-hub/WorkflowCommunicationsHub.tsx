@@ -29,7 +29,7 @@ type Summary = Pick<
   | "pause"
   | "observation"
   | "unresolvedOccurrenceId"
-> & { scheduled: boolean };
+> & { scheduled: boolean; requiresReview?: boolean };
 type Entry = Parameters<typeof CommunicationComposer>[0]["entry"];
 const TABS = ["Incoming", "Outgoing", "Drafts", "Scheduled"] as const;
 export function WorkflowCommunicationsHub({
@@ -92,7 +92,7 @@ export function WorkflowCommunicationsHub({
           actionKey: "gmail.mailbox.read",
           sourceRefs: [],
         });
-        if (result.success) {
+        if (result.success && result.data.lane === "renewals") {
           setEntry(null);
           setLegacy(result.data);
         } else setError("Choose a linked conversation from its authorized workflow.");
@@ -119,10 +119,7 @@ export function WorkflowCommunicationsHub({
         q.get("lease")
       )
         setEntry({ lease: q.get("lease")!, purpose: compose });
-      else if (compose === "maintenance_owner" && q.get("ticket"))
-        setEntry({ ticket: q.get("ticket")!, purpose: compose });
-      else if (id || compose)
-        setError("Choose a communication from its real lease or maintenance ticket.");
+      else if (id || compose) setError("Choose a communication from its real lease.");
       else setEntry(null);
     };
     const timer = setTimeout(() => {
@@ -183,24 +180,14 @@ export function WorkflowCommunicationsHub({
         >
           Open linked record
         </a>
-        {legacy.entityType === "renewal_lease" ||
-        legacy.entityType === "maintenance_ticket" ? (
+        {legacy.entityType === "renewal_lease" ? (
           <a
             className="primary-button"
-            href={
-              legacy.entityType === "renewal_lease"
-                ? workflowComposerHref({
-                    leaseId: legacy.entityId,
-                    purpose:
-                      legacy.purpose === "renewal_owner"
-                        ? "renewal_owner"
-                        : "renewal_tenant",
-                  })
-                : workflowComposerHref({
-                    ticketId: legacy.entityId,
-                    purpose: "maintenance_owner",
-                  })
-            }
+            href={workflowComposerHref({
+              leaseId: legacy.entityId,
+              purpose:
+                legacy.purpose === "renewal_owner" ? "renewal_owner" : "renewal_tenant",
+            })}
           >
             Compose in Communications
           </a>
@@ -246,8 +233,7 @@ export function WorkflowCommunicationsHub({
         ))}
       </div>
       <p>
-        Start a message from its lease or maintenance ticket. The team can continue the
-        same linked work here.
+        Start a message from its lease. The team can continue the same linked work here.
       </p>
       <div className="ui-row">
         <label>
@@ -312,10 +298,12 @@ export function WorkflowCommunicationsHub({
                 {s.context.entityId}
               </h2>
               <p>
-                {describeSequenceState(s).label} · {describeSequenceState(s).confirmed} ·{" "}
-                {s.senderEmail}
+                {s.requiresReview
+                  ? "On hold; fresh review required"
+                  : describeSequenceState(s).label}{" "}
+                · {describeSequenceState(s).confirmed} · {s.senderEmail}
               </p>
-              {s.nextDueAtMs ? (
+              {s.nextDueAtMs && !s.requiresReview ? (
                 <p>Next: {new Date(s.nextDueAtMs).toLocaleString()}</p>
               ) : null}
               {s.pause ? <p>Pause: {s.pause.cause.replaceAll("_", " ")}</p> : null}
