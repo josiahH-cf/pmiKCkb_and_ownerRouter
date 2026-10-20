@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 export const E2E_PROJECT_ID = "pmi-kc-kb-e2e";
 export const E2E_FIREBASE_CONFIG = "firebase.e2e.json";
 
-const TEST_COMMAND = "vitest run --config vitest.e2e.config.ts";
+const TEST_COMMAND = "node scripts/run-e2e-inventory.mjs";
 const DEFAULT_RUN_TIMEOUT_MS = 10 * 60_000;
 const MAX_RUN_TIMEOUT_MS = 15 * 60_000;
 const DEFAULT_PROBE_TIMEOUT_MS = 90_000;
@@ -150,6 +150,7 @@ function runWindows(commandString, env, stdio, timeout) {
 }
 
 function runVitestDirectly(env, timeout) {
+  env = { ...env, E2E_SUITE_DEADLINE_MS: String(Date.now() + timeout) };
   let result;
 
   if (process.platform === "win32") {
@@ -163,6 +164,7 @@ function runVitestDirectly(env, timeout) {
 }
 
 function runWithEmulator(env, timeout) {
+  env = { ...env, E2E_SUITE_DEADLINE_MS: String(Date.now() + timeout) };
   const result =
     process.platform === "win32"
       ? runWindows(emulatorExecCommandString(), env, "inherit", timeout)

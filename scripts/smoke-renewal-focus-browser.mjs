@@ -106,7 +106,7 @@ async function verifyLease(href) {
   });
   await signIn(page);
   await page.goto(new URL(href, baseUrl).href, { waitUntil: "domcontentloaded" });
-  const toolbarSwitch = page.locator("[data-renewal-view-switch]");
+  const toolbarSwitch = page.getByRole("group", { name: "Lease view", exact: true });
   try {
     await toolbarSwitch.waitFor({ timeout: ROUTE_BUDGET_MS });
   } catch {
@@ -127,6 +127,9 @@ async function verifyLease(href) {
       (await fullButton.getAttribute("aria-pressed")) === "false",
     "Focus view is not the default.",
   );
+  await page.getByRole("region", { name: "Focus view", exact: true }).waitFor({
+    timeout: ROUTE_BUDGET_MS,
+  });
   assert(
     (await page.getByRole("region", { name: "Focus view" }).count()) === 1,
     "The Focus pane is missing when the lease opens.",
@@ -189,14 +192,24 @@ async function verifyLease(href) {
   await pane.waitFor({ state: "detached" });
   await expectBaseline(page, baseline, "after the pointer round trip");
 
-  // Keyboard round trip: Enter on Focus view, Shift+Tab to Full view, Space.
+  // Keyboard round trip follows the actual Focus-then-Full toolbar order in both directions.
   await focusButton.focus();
   await page.keyboard.press("Enter");
   await pane.waitFor();
-  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
   assert(
     await fullButton.evaluate((node) => node === document.activeElement),
-    "Shift+Tab from Focus view did not reach Full view.",
+    "Tab from Focus view did not reach Full view.",
+  );
+  await page.keyboard.press("Shift+Tab");
+  assert(
+    await focusButton.evaluate((node) => node === document.activeElement),
+    "Shift+Tab from Full view did not reach Focus view.",
+  );
+  await page.keyboard.press("Tab");
+  assert(
+    await fullButton.evaluate((node) => node === document.activeElement),
+    "Tab did not return to Full view before its Space activation.",
   );
   await page.keyboard.press("Space");
   await pane.waitFor({ state: "detached" });

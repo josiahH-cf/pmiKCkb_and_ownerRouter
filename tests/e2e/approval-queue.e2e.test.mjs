@@ -12,8 +12,25 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("approval queue flows", ()
   let client;
 
   beforeAll(async () => {
-    const { resetDemoRecords } = await import("../../scripts/demo-firestore.mjs");
+    const { resetDemoRecords, getVerifiedDemoFirestore } =
+      await import("../../scripts/demo-firestore.mjs");
     await resetDemoRecords({ note: "Reset before approval-queue e2e suite." });
+    const { db } = await getVerifiedDemoFirestore();
+    // These supported app-owned fixtures exist only in the verified loopback emulator.
+    // Retained legacy records stay unchanged and must still refuse mutation below.
+    for (const id of [
+      "demo-queue-lease-renewals-owner-comms",
+      "demo-queue-owner-onboarding-cleanup",
+    ]) {
+      const ref = db.collection("approval_queue_items").doc(id);
+      if (!(await ref.get()).exists)
+        throw new Error(`Missing seeded approval fixture: ${id}`);
+      await ref.update({ data_mode: "live" });
+    }
+    await db
+      .collection("approval_queue_items")
+      .doc("demo-queue-maintenance-routing-blocked")
+      .update({ data_mode: "test" });
 
     client = createClient();
     await client.signInDemo();
@@ -63,6 +80,23 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("approval queue flows", ()
     expect(body.item.id).toBe("demo-queue-lease-renewals-owner-comms");
     expect(body.item.status).toBe("Ready for Approval");
     expect(body.activity.length).toBeGreaterThan(0);
+  });
+
+  it("retains legacy queue history but refuses changes without recording an effect", async () => {
+    const path = "/api/approval-queue/demo-queue-maintenance-routing-blocked";
+    const before = await (await client.get(path)).json();
+    const response = await client.sendJson("PATCH", path, {
+      action: "snooze",
+      reason: "Synthetic legacy-refusal check.",
+      snooze_until: "2026-11-01",
+    });
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "This legacy non-Live Approval Queue record is unavailable.",
+    });
+    const after = await (await client.get(path)).json();
+    expect(after.item).toEqual(before.item);
+    expect(after.activity).toEqual(before.activity);
   });
 
   it("requires high-risk confirmation before approving a High item", async () => {
@@ -119,7 +153,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("approval queue flows", ()
   it("blocks bulk execute without attempting external writes", async () => {
     const response = await client.postJson("/api/approval-queue/bulk", {
       action: "execute",
-      item_ids: ["demo-queue-maintenance-routing-blocked"],
+      item_ids: ["demo-queue-owner-onboarding-cleanup"],
     });
 
     expect(response.status).toBe(200);

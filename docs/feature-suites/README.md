@@ -11,23 +11,46 @@ integration under this direction. Their delivered records and receipts retain hi
 The present upstream Send/Schedule authority conflicts with this instruction's narrower boundary;
 S229 uses an operation-level refusal and does not change protected Registry activation metadata.
 
-The separately approved October 19 bounded follow-up remains uncommitted and in qualification.
-V9 passed 9,633 units with four existing skips, all 464 backend tests without skips and all policies,
-then failed the actual default Turbopack build on prepared Poppins local-file URLs. The source-only
-isolated loopback font transport passed v10's nine sets of seventeen controls and normal child
-closures; default Turbopack compiled, then its TypeScript worker exhausted the 1536 MiB heap. The
-build failed and canonical never started. The prepared build-only memory repair now needs a newly
-bound cleanup proof, focused whole-build/emission and full-gate proof under new resource grants.
-Overall drain/source closure passed and the entire resource loan is returned. Served/core E2E,
-browser qualification, actual CI, review and green integration remain. This grants no new
-deployment or provider activation. The COMPLETE rows below describe the October 17 release,
-not an acceptance claim for the unreleased follow-up. Current work is in `docs/plan.md`.
+The scoped October 19 repair is committed locally at `006798e4`, based on main `5b9c6b8e`,
+with subsequent qualification repairs in the same owned worktree. This follow-up is not yet
+published or deployed. It repairs typed source holds, exact message saving/preview/confirmation
+and own-attempt recovery, independent source reads and truthful freshness, managed Gmail health,
+Dotloop access/selection refusals and exact packet binding. Existing retirement, source-update,
+client-send/schedule/Resume refusals, non-dispatching worker and closed Dotloop keys are preserved.
 
-| Suite | Active contract                                                                  | State                                                                                                                                                  |
-| ----- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| S227  | `docs/feature-suites/maintenance-retirement-and-readonly-history.md`             | COMPLETE — bounded implementation and gated delivery verified in run d33c7174 at a7bce098; external resource limits and human NOT RUN remain separate. |
-| S228  | `docs/feature-suites/dotloop-renewal-template-visibility-diagnostics.md`         | COMPLETE — bounded implementation and gated delivery verified in run d33c7174 at a7bce098; external resource limits and human NOT RUN remain separate. |
-| S229  | `docs/feature-suites/renewal-preservation-and-unsent-workflow-communications.md` | COMPLETE — bounded implementation and gated delivery verified in run d33c7174 at a7bce098; external resource limits and human NOT RUN remain separate. |
+All fourteen served HTTP files completed on manifest `5c069851`: 59 passed/four existing
+configuration skips with Firestore; core passed 40 with 23 configuration skips (22 carried skips
+and one added emulator-only case). The unchanged application-route browser passed authenticated
+local Notices/Notifications, role restrictions, 1366/390/320 widths and real Poppins weights.
+The compiled component journey passed exact save retries, autosave/copy, definite source holds,
+separate creation confirmation and one simulated unsent draft with own-receipt recovery. The
+complete Focus/Full oracle passed pointer, keyboard, unsaved-input, scroll, phone-width and
+no-write/navigation checks after its ambiguous selector was corrected to the unique Lease view
+group. Component pages use explicit synthetic route/transport adapters; these checks do not prove
+live provider effects, real authentication, physical-phone or human acceptance.
+
+The earlier exact `54910c7f` canonical gate passed 9,643 units/four existing skips, all 464 backend
+tests, required checks, zero production audit findings and the default Next 16.3.8 production
+build. Later isolated unit source `d3d29b2f` passed 9,646/four existing skips. These are their
+actual source scopes; final code still requires the canonical `bash scripts/verify.sh` gate,
+independent review and exact-head green CI before publication and guarded release. Every failed
+attempt keeps its immutable original outcome. Owned process, namespace, mount, port and source
+closure passed for the completed HTTP/core/browser attempts.
+
+The owner's October 20 instruction authorizes this scoped green merge and guarded delivery
+without phase-only consent. Approved CLI checks and managed production/cost preparation passed;
+fresh approved CLI/ADC and separate guarded Admin browser prerequisites remain mandatory at
+admission. Preserve the current approved credential store as found. A7 remains the last verified
+production release at 100%; its consumed permit cannot admit this follow-up.
+
+The COMPLETE rows below describe October 17 delivery; they do not claim acceptance of the
+unreleased follow-up. Current work is in `docs/plan.md`.
+
+| Suite | Active contract                                                                  | State                                                                                                                                                                                                               |
+| ----- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S227  | `docs/feature-suites/maintenance-retirement-and-readonly-history.md`             | COMPLETE — bounded implementation and gated delivery verified in run d33c7174 at a7bce098; external resource limits and human NOT RUN remain separate.                                                              |
+| S228  | `docs/feature-suites/dotloop-renewal-template-visibility-diagnostics.md`         | COMPLETE — bounded implementation and gated delivery verified in run d33c7174 at a7bce098; scoped October 19 follow-up remains queued for a new guarded release; external limits and human NOT RUN remain separate. |
+| S229  | `docs/feature-suites/renewal-preservation-and-unsent-workflow-communications.md` | COMPLETE — bounded implementation and gated delivery verified in run d33c7174 at a7bce098; scoped October 19 follow-up remains queued for a new guarded release; external limits and human NOT RUN remain separate. |
 
 Run `d33c7174-23b1-4126-ac11-657738b1864f` released S227-S229 plus the scoped Notifications latency repair at
 `a7bce0981badc7523a6498949b6ea5f2effb198e` / `pmi-kc-app-rmvc9kmq6-1c2699db16f8` with 100% canonical traffic. One application build

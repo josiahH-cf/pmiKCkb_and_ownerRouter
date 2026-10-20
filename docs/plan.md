@@ -4,26 +4,45 @@ Updated: 2026-10-20 (UTC).
 
 ## Outcome
 
-Complete the separately approved bounded repair through real full qualification, independent
-review and normal green mainline. Current repairs preserve available message editing while strict
-source admission holds drafting, restore deliberate governed unsent drafting/recovery, retain true
-Dashboard source age, avoid a redundant lease export, and strengthen packet/template diagnostics.
-The latest v9 source passed 9,633 units with four existing skips, all 464 backend tests without
-skips and required policy checks, but its actual default Turbopack build failed on local-file
-Poppins URLs. The v10 isolated loopback repair passed all nine commands' seventeen controls and
-normal font-child closures, then compiled default Turbopack before its TypeScript worker exhausted
-1536 MiB. The whole build failed and canonical did not start. Overall drain/source closure passed
-and the entire loan returned. Prepare explicit build-only 3072 MiB heap/6144 MiB aggregate bounds
-and numeric owned-process RSS evidence, preserving defaults, other lanes and all checks. The
-changed driver needs a newly pinned actual cleanup proof, focused default build/emitted-font check
-and separate fresh canonical under matching new resource handoffs. No runtime or leftover-time
-retry is authorized. Served/core E2E, browser tests, CI, independent
-review and green integration still follow their real prerequisites. Earlier results retain their
-own source scopes. No new deployment is authorized.
+Complete the explicitly authorized October 19 repair through qualification, green mainline
+and the existing guarded deployment workflow. Preserve maintenance retirement, standalone
+Vendoroo, operation-level send/schedule/Resume refusals, the non-dispatching worker and both
+closed Dotloop write keys.
 
-S227-S229 and the necessary Notifications latency repair are verified deployed. Maintenance is
-retired with authorized read-only history; renewal and permitted unsent communications remain.
-Vendoroo stays standalone. The queue is empty; no older or parallel program is resumed.
+The scoped October 19 repair is committed locally at `006798e4`, based on main `5b9c6b8e`,
+with subsequent qualification repairs in the same owned worktree. This follow-up is not yet
+published or deployed. It repairs typed source holds, exact message saving/preview/confirmation
+and own-attempt recovery, independent source reads and truthful freshness, managed Gmail health,
+Dotloop access/selection refusals and exact packet binding. Existing retirement, source-update,
+client-send/schedule/Resume refusals, non-dispatching worker and closed Dotloop keys are preserved.
+
+All fourteen served HTTP files completed on manifest `5c069851`: 59 passed/four existing
+configuration skips with Firestore; core passed 40 with 23 configuration skips (22 carried skips
+and one added emulator-only case). The unchanged application-route browser passed authenticated
+local Notices/Notifications, role restrictions, 1366/390/320 widths and real Poppins weights.
+The compiled component journey passed exact save retries, autosave/copy, definite source holds,
+separate creation confirmation and one simulated unsent draft with own-receipt recovery. The
+complete Focus/Full oracle passed pointer, keyboard, unsaved-input, scroll, phone-width and
+no-write/navigation checks after its ambiguous selector was corrected to the unique Lease view
+group. Component pages use explicit synthetic route/transport adapters; these checks do not prove
+live provider effects, real authentication, physical-phone or human acceptance.
+
+The earlier exact `54910c7f` canonical gate passed 9,643 units/four existing skips, all 464 backend
+tests, required checks, zero production audit findings and the default Next 16.3.8 production
+build. Later isolated unit source `d3d29b2f` passed 9,646/four existing skips. These are their
+actual source scopes; final code still requires the canonical `bash scripts/verify.sh` gate,
+independent review and exact-head green CI before publication and guarded release. Every failed
+attempt keeps its immutable original outcome. Owned process, namespace, mount, port and source
+closure passed for the completed HTTP/core/browser attempts.
+
+The owner's October 20 instruction authorizes this scoped green merge and guarded delivery
+without phase-only consent. Approved CLI checks and managed production/cost preparation passed;
+fresh approved CLI/ADC and separate guarded Admin browser prerequisites remain mandatory at
+admission. Preserve the current approved credential store as found. A7 remains the last verified
+production release at 100%; its consumed permit cannot admit this follow-up.
+
+S227-S229 and the Notifications repair were delivered October 17. Only this scoped follow-up
+is queued for a fresh release; no older or parallel program is resumed.
 
 ## Current implementation baseline
 

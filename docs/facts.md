@@ -1,65 +1,45 @@
 # PMI KC facts
 
-Last reconciled: 2026-10-20 (failed focused build and source-only memory repair; no new deployment).
+Last reconciled: 2026-10-20 (scoped HTTP/core/browser checks passed; guarded follow-up delivery remains).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
 
 ## Current feature
 
-The separately approved bounded October 19 repair remains uncommitted, unintegrated and undeployed.
-The latest canonical attempt on source manifest
-`2bb46d841cf285ee2c94d3ee000305ce0c427e8ab9105a69deb06d629dcbb9e3` finished at
-2026-10-20T00:53:16Z with exit 1. The focused three-case S205 recovery file passed, then the
-complete unit inventory passed 9,633 tests with four existing configuration skips across 1,024
-files. All 464 backend tests across 81 files passed without skips. Actual clean installation,
-zero-finding production audit, format, lint, typecheck and all eight policy/budget checks passed.
-The default Next 16.3.8 Turbopack production build failed on twelve Poppins file resolutions:
-`request should be cloneable` while fetching the prepared `/opt/public-fonts/` URLs. This is a
-failed whole gate; it proves neither a production build nor CI/mainline readiness.
+The scoped October 19 repair is committed locally at `006798e4`, based on main `5b9c6b8e`,
+with subsequent qualification repairs in the same owned worktree. This follow-up is not yet
+published or deployed. It repairs typed source holds, exact message saving/preview/confirmation
+and own-attempt recovery, independent source reads and truthful freshness, managed Gmail health,
+Dotloop access/selection refusals and exact packet binding. Existing retirement, source-update,
+client-send/schedule/Resume refusals, non-dispatching worker and closed Dotloop keys are preserved.
 
-The cache hook used a local-file shortcut supported by the installed Node loader, while the exact
-Turbopack version's hook replaces CSS and still fetches font-file URLs over HTTP. The repair
-provides nonce-bound loopback HTTP for the original verified font bytes entirely inside
-each isolated namespace. It retains the default build, Poppins declaration, anonymous bounded
-acquisition, read-only data maps, all seventeen controls and strict emitted-font hash checks. The
-owned chrooted server has only digest routes, no proxy or general file access; its parent pins a
-pidfd before application code and requires exact normal shutdown.
+All fourteen served HTTP files completed on manifest `5c069851`: 59 passed/four existing
+configuration skips with Firestore; core passed 40 with 23 configuration skips (22 carried skips
+and one added emulator-only case). The unchanged application-route browser passed authenticated
+local Notices/Notifications, role restrictions, 1366/390/320 widths and real Poppins weights.
+The compiled component journey passed exact save retries, autosave/copy, definite source holds,
+separate creation confirmation and one simulated unsent draft with own-receipt recovery. The
+complete Focus/Full oracle passed pointer, keyboard, unsaved-input, scroll, phone-width and
+no-write/navigation checks after its ambiguous selector was corrected to the unique Lease view
+group. Component pages use explicit synthetic route/transport adapters; these checks do not prove
+live provider effects, real authentication, physical-phone or human acceptance.
 
-The v10 focused attempt on manifest `d7a9ef0f` finished at 2026-10-20T01:47:12Z with exit 1.
-Installation, zero-finding audit, eight policies, all nine commands' seventeen controls and all nine
-normal font-child closures passed. Default Turbopack compiled in 33.6 seconds; post-failure
-inspection found twelve emitted WOFF2 files matching the original public hash set. The actual build
-then failed its TypeScript child at the 1536 MiB heap limit after 72.934 seconds. Sampled aggregate
-build RSS peaked at 3,555,557,376 bytes, with no aggregate/deadline termination. Canonical did not
-start. Independent overall closure found all fifteen groups, nine namespaces and nine control ports
-absent, no mounts or missing writers, and all 2,885 source hashes unchanged. The entire loan is
-returned; immutable failure evidence has 205 archive entries. Partial compilation/font emission
-does not prove a whole build or qualify later source.
+The earlier exact `54910c7f` canonical gate passed 9,643 units/four existing skips, all 464 backend
+tests, required checks, zero production audit findings and the default Next 16.3.8 production
+build. Later isolated unit source `d3d29b2f` passed 9,646/four existing skips. These are their
+actual source scopes; final code still requires the canonical `bash scripts/verify.sh` gate,
+independent review and exact-head green CI before publication and guarded release. Every failed
+attempt keeps its immutable original outcome. Owned process, namespace, mount, port and source
+closure passed for the completed HTTP/core/browser attempts.
 
-Prepared source now adds explicit build-only heap selection, numeric owned-process RSS evidence and
-CI policy-build bounds of 3072 MiB heap/6144 MiB aggregate. Defaults and all other lanes remain
-unchanged. The changed driver needs a new pinned actual cleanup proof, focused default build and
-fresh canonical under matching resource allocations; none is currently granted or run. No prior
-build output or remaining loan is reused.
+The owner's October 20 instruction authorizes this scoped green merge and guarded delivery
+without phase-only consent. Approved CLI checks and managed production/cost preparation passed;
+fresh approved CLI/ADC and separate guarded Admin browser prerequisites remain mandatory at
+admission. Preserve the current approved credential store as found. A7 remains the last verified
+production release at 100%; its consumed permit cannot admit this follow-up.
 
-The failed v9 run returned within its 1,500-second whole-phase bound, including cleanup. Final
-independent readbacks found all 24 owned groups, fifteen namespaces and fifteen host-control ports
-absent, no global mounts or missing result receipts, and all 2,884 source hashes unchanged. The
-entire resource loan is returned. Its raw archive and every earlier failed/interrupted gate remain
-immutable outside Git. The generic leader-first pidfd timeout proof passed on the unchanged public
-supervisor; it does not qualify the newly changed driver. Earlier focused
-131-unit/40-backend results retain only their `fd980551` source coverage and are not added to v9.
-
-The S205 repair controls the pending read and awaits React effects while retaining strict version
-3, typed wording, one read and a new operation identity. It passed both the focused file and full
-unit inventory. No product hook or retired maintenance admission changed, and the ordering diagnosis
-does not establish a live maintenance defect. Served/core E2E, browser qualification, actual CI and
-mainline integration remain pending. No new production deployment is authorized. The full managed
-identity/traffic and public-version observation at 2026-10-19T17:08:55.472162Z still recorded the
-October 17 A7 release below at 100% traffic; no fresh production observation is inferred from v9.
-
-Fresh typed Dotloop reads at 17:42 UTC returned account/profiles 200, individual templates
+October 19 typed Dotloop reads at 17:42 UTC returned account/profiles 200, individual templates
 200 with zero results, and company templates 403. The current reason for that provider refusal and
 the reported active template's owning visibility remain unestablished. Saved selection was absent
 in the 17:15 UTC configuration read. The
@@ -67,7 +47,7 @@ in the 17:15 UTC configuration read. The
 mapping, packet input, head or snapshot records. Both Dotloop write keys remain closed. These are
 capability-specific input/visibility holds, not a request to recreate the existing template.
 
-At 19:14 UTC the approved local CLI/ADC refresh passed READY and GitHub remained logged in.
+On October 19 at 19:14 UTC the approved local CLI/ADC refresh passed READY and GitHub remained logged in.
 At 19:16 UTC the normal keyless Gmail read-only profile matched the approved managed subject.
 Saved mailbox state reported connected, a successful-sync age below 24 hours and no watch expiry
 or pending watch attempt. No mailbox bodies, draft, send or subscription operation was used.

@@ -1,6 +1,6 @@
 # Batched release runbook
 
-Updated 2026-10-17 (UTC). One candidate must ship every queued feature.
+Updated 2026-10-20 (UTC). One candidate must ship every queued feature.
 
 The named October program instruction and AGENTS.md feature-run continuity authorize delivery
 of approved independent slices and diagnosed/verified replacements without phase-only consent.
@@ -42,8 +42,10 @@ none was rewritten or reused. The slow document request took 29.175 seconds. A f
 confirmed independent review/support reads waited behind event reads; the repair starts those
 reads together without changing counts, permissions, content or browser bounds.
 
-Current delivery evidence: docs/evidence/application-delivery-2026-10-17.md. The queue is delivered
-and empty; this runbook and older READY rows grant no new work or reuse of consumed permission.
+The original three-item delivery is recorded in docs/evidence/application-delivery-2026-10-17.md.
+The scoped October 19 follow-up is separately authorized and remains queued in docs/loop-state.md
+until its own guarded delivery is proved. This runbook and older READY rows grant no unrelated
+work or reuse of consumed permission.
 
 ## Authorized replacement preparation
 
@@ -125,7 +127,7 @@ gcloud beta billing projects describe pmi-kc-kb-prod --format="value(billingEnab
 
 Expect True and account `01A5A3-65CA5A-614D45`. Stop if billing is disabled.
 
-**2. Verify the watcher and checkpoint before any start.** Current run `e372f7b5-3a1d-4224-945e-148a5f040660` is complete,
+**2. Verify the watcher and checkpoint before any start.** Last verified run `d33c7174-23b1-4126-ac11-657738b1864f` is complete,
 its permit consumed and its original receipts preserved. The stale S128-only checkpoint and later
 failed cumulative attempts were archived through checked retirement; none was relabeled a pass.
 Blocked runs `dc4e1ac8`, `6eb157e1` and `a83ed59b` were archived the same way as superseded.
@@ -153,8 +155,8 @@ Verify Admin browser readiness separately; CLI/ADC readiness does not establish 
 browser session. An expired rollback remains held until authentication and exact recovery readback
 return. The separate 24-hour longevity proof remains open.
 
-**4. Prepare only an authorized current batch.** An empty queue must refuse admission. This
-corrective review is complete; any future explicitly authorized batch requires reviewed scope, green
+**4. Prepare only an authorized current batch.** An empty queue must refuse admission. The
+scoped October 19 repair is already authorized; its new batch requires reviewed scope, green
 exact-main CI, fresh prerequisites, compatible
 checkpoint and actual lock ownership. Never reuse this consumed permit, one-build claim or receipt.
 The local interlock refuses missing, malformed, held, expired, consumed or wrong-head permission

@@ -1,6 +1,6 @@
 # Engineering and security contract
 
-Updated: 2026-10-19.
+Updated: 2026-10-20.
 
 ## Runtime
 
@@ -60,87 +60,74 @@ Updated: 2026-10-19.
 - E2E is bounded and must terminate on setup failure.
 - A release smoke must match the exact commit and revision.
 
-The October 19 bounded repair has matching focused proof: 131 unit tests and 40 backend tests passed
-with no skips. Full canonical qualification, CI and served E2E for the repair remain pending; the
-later auth/pre-claim and runner/CI preparation is not covered by that application-source manifest.
-The v9 attempt on source manifest `2bb46d84` passed 9,633 units with four existing configuration
-skips, all 464 backend tests without skips, clean installation, zero-finding production audit,
-format/lint/typecheck and all eight policy/budget checks. Its actual default Next 16.3.8 Turbopack
-build failed while fetching twelve Poppins local-file URLs. The whole gate remains failed; actual
-CI, integration and browser qualification are pending. The S205 controlled-read/awaited-act fixture
-passed all three cases both focused and in the full inventory, preserving strict refreshed version,
-typed work, one read and a distinct operation identity without changing the retired product hook.
-Earlier failed/interrupted source scopes remain immutable in private evidence. The generic
-leader-first pidfd timeout proof passed; independent v9 overall closure found all 24 groups,
-fifteen namespaces and fifteen control ports absent, with no global mounts, missing results or
-source changes. The entire loan was returned within its original bound.
+The scoped October 19 repair is committed locally at `006798e4`, based on main `5b9c6b8e`,
+with subsequent qualification repairs in the same owned worktree. This follow-up is not yet
+published or deployed. It repairs typed source holds, exact message saving/preview/confirmation
+and own-attempt recovery, independent source reads and truthful freshness, managed Gmail health,
+Dotloop access/selection refusals and exact packet binding. Existing retirement, source-update,
+client-send/schedule/Resume refusals, non-dispatching worker and closed Dotloop keys are preserved.
 
-`scripts/isolated-verify.py` is the prepared Linux engineering entry point. It creates a new owned
-source checkout from public Git objects plus explicitly named new source files, with a fresh
-credential-free Git config and physical dependencies. Anonymous npm installation/audit and public
-emulator acquisition happen separately from fixture execution. Before each actual application
-command, kernel mount/network/PID isolation, an empty home, absent credential/host paths, positive
-isolated loopback and negative host/external/metadata controls must pass. No failed isolation check
-falls back to a host fixture run. CI's temporary sudo bootstrap drops host capabilities before
-application code; it changes no host policy, IAM, identity, browser profile or provider activation.
-This new entry point still requires actual runtime qualification before a green-mainline claim.
-The explicit `--typecheck-heap-mib 3072` option changes only `npm run typecheck`. CI's quality lane
-selects that heap and retains its 4096 MiB aggregate RSS bound. The prepared `--build-heap-mib 3072`
-option changes only exact `npm run build` and its children; CI's policy-build lane selects it with
-a 6144 MiB aggregate bound. Defaults remain 1536 MiB per Node process and 4096 MiB aggregate;
-other Node commands retain 1536 MiB and Java retains 768 MiB. No build/typecheck/configuration
-switch is changed. Every local run needs an actual matching resource handoff; these new build
-bounds are prepared, not qualified or currently granted.
+All fourteen served HTTP files completed on manifest `5c069851`: 59 passed/four existing
+configuration skips with Firestore; core passed 40 with 23 configuration skips (22 carried skips
+and one added emulator-only case). The unchanged application-route browser passed authenticated
+local Notices/Notifications, role restrictions, 1366/390/320 widths and real Poppins weights.
+The compiled component journey passed exact save retries, autosave/copy, definite source holds,
+separate creation confirmation and one simulated unsent draft with own-receipt recovery. The
+complete Focus/Full oracle passed pointer, keyboard, unsaved-input, scroll, phone-width and
+no-write/navigation checks after its ambiguous selector was corrected to the unique Lease view
+group. Component pages use explicit synthetic route/transport adapters; these checks do not prove
+live provider effects, real authentication, physical-phone or human acceptance.
 
-Anonymous public-font preparation reads the literal Poppins declaration as data and uses the
-installed Next loader's URL and User-Agent. It acquires real public CSS/WOFF2 through exact HTTPS
-destinations, with no credentials, proxy, cookies or redirects: CSS at most 256 KiB, each font at
-most 256 KiB, at most 32 files and 8 MiB total. Provenance stays private. V9 acquired twelve files
-totaling 211,272 bytes, but successful acquisition did not prove production-build font emission.
+The earlier exact `54910c7f` canonical gate passed 9,643 units/four existing skips, all 464 backend
+tests, required checks, zero production audit findings and the default Next 16.3.8 production
+build. Later isolated unit source `d3d29b2f` passed 9,646/four existing skips. These are their
+actual source scopes; final code still requires the canonical `bash scripts/verify.sh` gate,
+independent review and exact-head green CI before publication and guarded release. Every failed
+attempt keeps its immutable original outcome. Owned process, namespace, mount, port and source
+closure passed for the completed HTTP/core/browser attempts.
 
-The exact [Next 16.3.8 Turbopack font implementation](https://github.com/vercel/next.js/blob/v16.3.8/crates/next-core/src/next_font/google/mod.rs)
-replaces mocked CSS while still fetching the font URLs. The installed Node loader's local-file
-shortcut therefore did not qualify the default bundler. The prepared repair uses a credential-free
-font child inside each network/PID/chroot boundary. It binds only ephemeral IPv4 loopback, serves
-only original digest-allowlisted bytes already in memory, limits requests to 256, and exposes no
-directory, proxy, query, traversal or effect endpoint. A data-only map changes only the original
-font URLs to that listener's nonce-bound digest URLs and is mounted read-only before controls or
-application code. CI helpers use the same dropped UID/capabilities as the fixture; local root stays
-mapped to the approved unprivileged host owner. No host path/profile or external route is added.
+The owner's October 20 instruction authorizes this scoped green merge and guarded delivery
+without phase-only consent. Approved CLI checks and managed production/cost preparation passed;
+fresh approved CLI/ADC and separate guarded Admin browser prerequisites remain mandatory at
+admission. Preserve the current approved credential store as found. A7 remains the last verified
+production release at 100%; its consumed permit cannot admit this follow-up.
 
-All seventeen controls remain mandatory. Prepared font checks additionally require exact child
-PID/start time/UID/namespaces, map/provenance identity, real HTTP byte/hash response and rejected
-unknown/traversal/query/POST/Host requests. The namespace init pins the direct child with a pidfd
-before app code, then requires its normal exit and exact terminal receipt; a missing/failed shutdown
-fails the phase. The unchanged outside supervisor still owns hard-timeout/descendant drain. This
-transport passed all seventeen controls and all nine normal child closures in the actual v10
-focused lane on manifest `d7a9ef0f`. Default Turbopack compiled in 33.6 seconds and emitted twelve
-WOFF2 files matching the original public hashes, but its TypeScript child then exhausted the
-1536 MiB heap. The build failed after 72.934 seconds, with sampled aggregate peak RSS
-3,555,557,376 bytes and no aggregate/deadline termination. Canonical never started. Partial font
-emission is not a completed build. All fifteen groups, nine namespaces and nine host-control ports
-drained; the entire loan was returned and failed evidence preserved.
+`scripts/isolated-verify.py` is the Linux engineering entry point. It stages only public Git
+objects and explicitly named source files into a fresh owned checkout with physical dependencies
+and anonymous preparation. Every application command requires kernel mount/network/PID isolation,
+an empty home, absent host/credential paths, positive isolated loopback and negative host,
+external and metadata controls. A failed control never falls back to a host fixture run. CI's
+ephemeral bootstrap drops host capabilities before application code; local mapped root remains
+the approved unprivileged owner. Runtime configuration, identities and provider gates do not change.
 
-Installed Next 16.3.8 creates one TypeScript worker with `isolatedMemory: false`; its worker keeps
-the parent build's Node heap option. The prepared build-only option addresses that actual fatal
-heap failure without disabling checking. The monitor now prepares numeric PID/start-time/namespace
-and per-process RSS peaks plus the simultaneous aggregate-peak snapshot, sampled only from owned
-processes; no argv or environment is read. V10 retained only aggregate RSS, so individual peaks
-cannot be reconstructed. Changing this driver invalidates the old full-driver cleanup-proof binding.
-A newly pinned actual negative cleanup proof, focused default build/emitted-byte check and separate
-clean canonical are required under fresh matching allocations. No remaining-time retry is allowed.
+The canonical lane executes the real `bash scripts/verify.sh` through its supported `NPM_CMD`
+hook. Each original npm command runs; no cached result substitutes for a check. Typecheck and
+build may explicitly use 3072 MiB heaps with their aggregate RSS guards, while other Node
+commands retain 1536 MiB and Java retains 768 MiB. Defaults remain bounded. Owned-process monitoring
+records numeric PID/start-time/namespace/RSS samples and simultaneous peak snapshots without
+reading argv or environment. The current driver's actual negative cleanup proof passed.
 
-The actual default `npm run build` and strict emission readback must match every acquired font
-hash. Browser qualification must separately prove the real WOFF2 responses and loaded Poppins
-weights. No copied build, fake URL buffer, fallback-font claim, webpack switch, unbounded heap,
-typecheck/build skip or source exclusion substitutes for those checks.
+Public Poppins preparation acquires original CSS and WOFF2 anonymously through exact HTTPS
+destinations, bounded by 256 KiB per response, 32 files and 8 MiB total. The app receives only
+those read-only digest-allowlisted bytes from a nonce-bound ephemeral loopback child in its own
+namespace. All seventeen isolation controls, exact child/map/provenance identity, positive bytes
+and negative HTTP cases must pass. Its normal exit, terminal receipt and closed port are required;
+missing shutdown fails the phase. Actual default production build emission must match all twelve
+original hashes. Browser qualification separately checks real response bytes and loaded Poppins
+300/400/600/700 faces. Next development-toolbar font bytes are separately qualified against the
+exact installed Next package. No fallback font, copied build or alternate bundler proves success.
 
-The canonical lane invokes the actual `bash scripts/verify.sh`, using its supported `NPM_CMD` hook
-to run real install/audit phases in anonymous preparation and real checks/tests/build in isolation.
-No cached success replaces a gate. Served E2E is a separate actual lane with the same boundary.
-Raw attempt evidence and fixture outputs remain outside Git. Synthetic packet bytes are not legal
-forms; modeled outside-human work is not verified signing, and the isolated correction covers the
-supported lease end date, preserving the original lease start date and recurring charges.
+Served E2E discovers every original test file, runs them serially under one original total
+deadline and checks the complete JSON inventory and unchanged source hashes. All eleven original
+warm-up routes run once; fresh per-file server lifetimes limit Turbopack retention. Graceful stop,
+bounded hard kill and actual listener closure precede replacement. Four explicitly mutable
+app-owned emulator files use Demo/demo only with both verified pmi-kc-kb-e2e project IDs and a
+loopback Firestore host. Other files retain Live-read-only admission, including refusal cases.
+The isolated dev configuration alone uses full Turbopack eviction; default production is unchanged.
+
+Raw attempts, fixture outputs and detailed provenance stay outside Git. Synthetic packet bytes
+are not legal forms, modeled outside work is not signing, and isolated date correction preserves
+the original lease start date and recurring charges. Human acceptance remains NOT RUN.
 
 ## Documentation
 

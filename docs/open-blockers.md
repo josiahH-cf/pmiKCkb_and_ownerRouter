@@ -1,6 +1,6 @@
 # Unblock packet
 
-Last reconciled: 2026-10-20 (failed focused build; bounded build-memory repair remains agent-owned).
+Last reconciled: 2026-10-20 (scoped local qualification; guarded delivery remains agent-owned).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only its named effect or dependent release phase; independent
@@ -13,7 +13,7 @@ substitute value, identifier, credential or human verdict to clear a hold.
 
 | Id       | Blocks only                                                          | Owner step                                                                                                                        | Then the runner                                                                                                        |
 | -------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| B-AUTH2  | Separate historical 25-hour unchanged-enrollment longevity claim     | No longevity or policy-change step requested by this execution                                                                    | Preserve the unverified longevity claim; current release authentication passes                                         |
+| B-AUTH2  | Separate historical 25-hour unchanged-enrollment longevity claim     | No longevity or policy-change step requested by this execution                                                                    | Preserve the unverified longevity claim; use separate fresh authentication checks                                      |
 | B-MNT1   | No current effect; maintenance import retired                        | No owner import step requested                                                                                                    | Preserve original preapproval/history records; S227 owns current retention                                             |
 | B-S100   | No current proof; remaining maintenance resident-draft proof retired | No ticket/link/sync step requested                                                                                                | Preserve completed receipts and closed resident-draft key; no proof rerun                                              |
 | B-TIMING | Approved 30-day notice classifications (they read Cannot determine)  | A5: record the decided basis in Admin                                                                                             | Reads back the saved basis version                                                                                     |
@@ -23,15 +23,12 @@ substitute value, identifier, credential or human verdict to clear a hold.
 
 ## Current hold and historical program dependencies
 
-- **Bounded repair qualification.** V9 passed 9,633 units/four existing skips, all 464 backend
-  tests without skips and all policies, then failed the actual default build on its Poppins URL
-  transport. V10 passed the loopback transport's nine sets of seventeen controls and normal child
-  closures, compiled Turbopack, then failed the TypeScript child's 1536 MiB heap. Canonical did not
-  start. Process/namespace/port/mount/source closure passed and the entire loan returned. Prepared
-  explicit build-only heap/RSS selection changes the driver and requires a new actual cleanup
-  proof plus focused/full qualification under matching new handoffs. Served/core E2E, browser
-  checks, CI, review and green integration remain agent-owned. Deployment stays outside this repair scope. This is
-  neither a provider input nor a phase-only owner approval hold.
+- **Bounded repair delivery.** Full fourteen-file HTTP inventory passed 59/four existing
+  configuration skips; core passed 40/23 configuration skips, including one added emulator-only
+  case. Unchanged routes, compiled message journey and the complete Focus/Full browser oracle
+  passed within their actual synthetic scopes. Final canonical qualification, review, exact-head
+  CI/mainline and a fresh guarded release remain agent-owned. The October 20 direction authorizes
+  their completion; no phase-only approval is needed. A7 at 100% is the last verified deployment.
 - **B-DL2/B-DL3 — current October19 readback.** Typed account/profile reads succeeded; the
   supported individual template list returned zero, while company-template access returned403.
   Its exact permission/ownership cause is unknown. No supported selection, current approved

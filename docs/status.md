@@ -2,19 +2,39 @@
 
 Updated: 2026-10-20 (UTC).
 
-The bounded October 19 source repair is uncommitted, unintegrated and undeployed. The latest
-canonical attempt on manifest `2bb46d84` passed all 9,633 unit tests with four existing skips,
-all 464 backend tests without skips, install/audit/format/lint/typecheck and eight policy checks.
-Its default Next 16.3.8 Turbopack build failed on twelve prepared Poppins local-file URLs, so the
-whole gate is failed. The v10 focused lane on `d7a9ef0f` passed all nine commands' seventeen controls
-and normal font-child closures, compiled default Turbopack in 33.6 seconds, then failed its
-TypeScript worker at the 1536 MiB heap limit. Canonical never started; twelve matching emitted
-WOFF2 files are partial evidence only. All fifteen groups/nine namespaces/nine control ports
-drained, source matched and the whole loan returned. A source-only explicit build-heap/RSS repair
-now needs a newly bound cleanup proof and fresh focused/full qualification; no runtime is granted.
-Earlier focused/failed attempts retain their own exact scopes.
-Served/core E2E, browser tests, CI, review and green integration remain. No live performance/provider
-improvement is inferred; no new production deployment is authorized. The release below stays complete.
+The scoped October 19 repair is committed locally at `006798e4`, based on main `5b9c6b8e`,
+with subsequent qualification repairs in the same owned worktree. This follow-up is not yet
+published or deployed. It repairs typed source holds, exact message saving/preview/confirmation
+and own-attempt recovery, independent source reads and truthful freshness, managed Gmail health,
+Dotloop access/selection refusals and exact packet binding. Existing retirement, source-update,
+client-send/schedule/Resume refusals, non-dispatching worker and closed Dotloop keys are preserved.
+
+All fourteen served HTTP files completed on manifest `5c069851`: 59 passed/four existing
+configuration skips with Firestore; core passed 40 with 23 configuration skips (22 carried skips
+and one added emulator-only case). The unchanged application-route browser passed authenticated
+local Notices/Notifications, role restrictions, 1366/390/320 widths and real Poppins weights.
+The compiled component journey passed exact save retries, autosave/copy, definite source holds,
+separate creation confirmation and one simulated unsent draft with own-receipt recovery. The
+complete Focus/Full oracle passed pointer, keyboard, unsaved-input, scroll, phone-width and
+no-write/navigation checks after its ambiguous selector was corrected to the unique Lease view
+group. Component pages use explicit synthetic route/transport adapters; these checks do not prove
+live provider effects, real authentication, physical-phone or human acceptance.
+
+The earlier exact `54910c7f` canonical gate passed 9,643 units/four existing skips, all 464 backend
+tests, required checks, zero production audit findings and the default Next 16.3.8 production
+build. Later isolated unit source `d3d29b2f` passed 9,646/four existing skips. These are their
+actual source scopes; final code still requires the canonical `bash scripts/verify.sh` gate,
+independent review and exact-head green CI before publication and guarded release. Every failed
+attempt keeps its immutable original outcome. Owned process, namespace, mount, port and source
+closure passed for the completed HTTP/core/browser attempts.
+
+The owner's October 20 instruction authorizes this scoped green merge and guarded delivery
+without phase-only consent. Approved CLI checks and managed production/cost preparation passed;
+fresh approved CLI/ADC and separate guarded Admin browser prerequisites remain mandatory at
+admission. Preserve the current approved credential store as found. A7 remains the last verified
+production release at 100%; its consumed permit cannot admit this follow-up.
+
+The October 17 release below remains the last verified deployment.
 
 Run `d33c7174-23b1-4126-ac11-657738b1864f` released S227-S229 plus the scoped Notifications latency repair at
 `a7bce0981badc7523a6498949b6ea5f2effb198e` / `pmi-kc-app-rmvc9kmq6-1c2699db16f8` with 100% canonical traffic. One application build
@@ -60,6 +80,7 @@ sync health reports degraded. No customer draft/send, loop, upload, signature, p
 production test record was verification proof. Normal connection refresh updates only its existing
 credential/observation metadata; it is separate from guarded read-only release assurance.
 
-The three-item queue is delivered and empty. Older READY proposals and parallel projects are not
-resumed. Failed first-attempt evidence remains failed and immutable. See
+The original three-item queue was delivered. The scoped follow-up remains queued in
+docs/loop-state.md. Older READY proposals and parallel projects are not resumed. Failed
+first-attempt evidence remains failed and immutable. See
 docs/evidence/application-delivery-2026-10-17.md for aggregate changes and actual evidence scopes.

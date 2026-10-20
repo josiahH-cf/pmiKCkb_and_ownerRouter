@@ -90,6 +90,21 @@ describe("auth guards", () => {
     });
   });
 
+  it("refuses app-owned capture mutations in the Live-read-only context", async () => {
+    const client = createClient();
+    await client.signInDemo();
+    const response = await client.postJson("/api/ask/capture", {
+      question: "Synthetic read-only refusal check.",
+      source_state: "No Reliable Source Found",
+      space_id: "lease-renewals",
+      priority: "P1",
+    });
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error_type: "LiveReadOnlyMutationRefused",
+    });
+  });
+
   it("redirects signed-in users away from /sign-in", async () => {
     const client = createClient();
     await client.signInDemo();

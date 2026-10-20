@@ -28,12 +28,16 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
     let editor;
     let definitionId;
     let created;
+    let db;
 
     beforeAll(async () => {
       admin = createClient();
       await admin.signInDemo();
       editor = createClient();
       await editor.signInDemo("Editor");
+      const { getVerifiedDemoFirestore } =
+        await import("../../scripts/demo-firestore.mjs");
+      ({ db } = await getVerifiedDemoFirestore());
       const response = await admin.postJson(
         "/api/process-definitions",
         DEFINITION_PAYLOAD,
@@ -107,17 +111,28 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
     });
 
     it("keeps the removed simulation endpoint absent without creating a workflow run", async () => {
-      const before = await (await admin.get("/api/workflow-runs")).json();
+      const before = await (
+        await admin.get(`/api/process-definitions/${definitionId}`)
+      ).json();
+      const allBefore = (await db.collection("workflow_runs").get()).docs
+        .map((doc) => doc.id)
+        .sort();
       const started = await admin.postJson(
         `/api/process-definitions/${definitionId}/test-runs`,
         {},
       );
 
       expect(started.status).toBe(404);
-      const after = await (await admin.get("/api/workflow-runs")).json();
+      const after = await (
+        await admin.get(`/api/process-definitions/${definitionId}`)
+      ).json();
       expect(after.runs.map((run) => run.id).sort()).toEqual(
         before.runs.map((run) => run.id).sort(),
       );
+      const allAfter = (await db.collection("workflow_runs").get()).docs
+        .map((doc) => doc.id)
+        .sort();
+      expect(allAfter).toEqual(allBefore);
     });
 
     it("rejects obsolete complete_test before looking up or changing any workflow run", async () => {

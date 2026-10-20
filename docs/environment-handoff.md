@@ -2,22 +2,37 @@
 
 Updated 2026-10-20 (UTC).
 
-Current execution is the separately approved bounded repair on the owned native branch
-`codex/bounded-repair-20261019`, with original checkouts preserved. The latest v9 attempt on
-manifest `2bb46d84` passed 9,633 units with four existing configuration skips, all 464 backend
-tests without skips and all policy checks. Its default Turbopack build failed on prepared Poppins
-local-file URLs, so the whole gate remains failed. The v10 focused loopback-font lane on `d7a9ef0f`
-passed all nine commands' seventeen controls and normal child closures, then compiled default
-Turbopack before its TypeScript worker exhausted 1536 MiB. The build failed and canonical never
-started. Independent final closure found all fifteen groups/nine namespaces/nine control ports
-drained, no mounts or missing writers, and unchanged source. The whole loan is returned. Prepared
-build-only heap/RSS bounds are 3072/6144 MiB, with defaults and other lanes unchanged. The changed
-driver requires a newly pinned actual cleanup proof and focused/full qualification under new
-allocations; no runtime is granted. Earlier focused/failed attempts keep their exact scopes.
-Served/core E2E, browser checks, actual CI, review and integration remain. Further execution needs
-a fresh actual source/plan/resource handoff, preserving the original bounds and cleanup proof gate.
-No release is admitted or authorized by this repair, and no old consumed permit can be reused.
-The October 17 record follows.
+The scoped October 19 repair is committed locally at `006798e4`, based on main `5b9c6b8e`,
+with subsequent qualification repairs in the same owned worktree. This follow-up is not yet
+published or deployed. It repairs typed source holds, exact message saving/preview/confirmation
+and own-attempt recovery, independent source reads and truthful freshness, managed Gmail health,
+Dotloop access/selection refusals and exact packet binding. Existing retirement, source-update,
+client-send/schedule/Resume refusals, non-dispatching worker and closed Dotloop keys are preserved.
+
+All fourteen served HTTP files completed on manifest `5c069851`: 59 passed/four existing
+configuration skips with Firestore; core passed 40 with 23 configuration skips (22 carried skips
+and one added emulator-only case). The unchanged application-route browser passed authenticated
+local Notices/Notifications, role restrictions, 1366/390/320 widths and real Poppins weights.
+The compiled component journey passed exact save retries, autosave/copy, definite source holds,
+separate creation confirmation and one simulated unsent draft with own-receipt recovery. The
+complete Focus/Full oracle passed pointer, keyboard, unsaved-input, scroll, phone-width and
+no-write/navigation checks after its ambiguous selector was corrected to the unique Lease view
+group. Component pages use explicit synthetic route/transport adapters; these checks do not prove
+live provider effects, real authentication, physical-phone or human acceptance.
+
+The earlier exact `54910c7f` canonical gate passed 9,643 units/four existing skips, all 464 backend
+tests, required checks, zero production audit findings and the default Next 16.3.8 production
+build. Later isolated unit source `d3d29b2f` passed 9,646/four existing skips. These are their
+actual source scopes; final code still requires the canonical `bash scripts/verify.sh` gate,
+independent review and exact-head green CI before publication and guarded release. Every failed
+attempt keeps its immutable original outcome. Owned process, namespace, mount, port and source
+closure passed for the completed HTTP/core/browser attempts.
+
+The owner's October 20 instruction authorizes this scoped green merge and guarded delivery
+without phase-only consent. Approved CLI checks and managed production/cost preparation passed;
+fresh approved CLI/ADC and separate guarded Admin browser prerequisites remain mandatory at
+admission. Preserve the current approved credential store as found. A7 remains the last verified
+production release at 100%; its consumed permit cannot admit this follow-up.
 
 The completed October 16 operations instruction and AGENTS.md continuity carried that authorized scope
 through necessary Cloud Build/Cloud Run actions, diagnosed/verified repairs, resumes/replacements,

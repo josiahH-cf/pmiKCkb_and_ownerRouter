@@ -4,7 +4,12 @@ const nextConfig: NextConfig = {
   // The HTTP e2e runner may execute while the owner's normal dev server is open. Give that
   // runner an isolated build directory so Next's single-writer .next/dev lock is not shared.
   ...(process.env.NEXT_E2E_ISOLATED_BUILD === "true"
-    ? { distDir: "temp/e2e/.next" }
+    ? {
+        distDir: "temp/e2e/.next",
+        // Persist compiled dev tasks, then evict them after each cache snapshot. The HTTP
+        // suite visits many routes in one bounded server; production keeps Next's defaults.
+        experimental: { turbopackMemoryEviction: "full" as const },
+      }
     : {}),
   poweredByHeader: false,
   // S165: Firebase's Google sign-in helper asks for these fixed paths on whichever host is the

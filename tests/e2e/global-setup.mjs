@@ -1,7 +1,9 @@
 import { spawn } from "node:child_process";
 import { mkdirSync, createWriteStream } from "node:fs";
+import { createConnection } from "node:net";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { e2eDataContextForFile } from "../../scripts/run-e2e-inventory.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const port = Number(process.env.E2E_PORT ?? 4310);
@@ -23,26 +25,39 @@ const WARMUP_PATHS = [
 ];
 
 export default async function setup({ provide }) {
-  if (process.env.FIRESTORE_EMULATOR_HOST) {
+  if (
+    process.env.FIRESTORE_EMULATOR_HOST &&
+    (!process.env.E2E_INVENTORY_INDEX || process.env.E2E_INVENTORY_INDEX === "0")
+  ) {
     await seedEmulator();
   }
 
-  const { child, logPath, logTail } = startDevServer();
+  const firstFile =
+    !process.env.E2E_INVENTORY_INDEX || process.env.E2E_INVENTORY_INDEX === "0";
+  let server;
 
   try {
-    await waitForReady(child, logTail);
-    await warmUp();
-    assertDevServerRunning(child, logTail);
+    if (firstFile) {
+      server = startDevServer("warmup");
+      await waitForReady(server.child, server.logTail);
+      await warmUp();
+      assertDevServerRunning(server.child, server.logTail);
+      // Preserve the original eleven authenticated route checks once per complete inventory.
+      await stopProcessTree(server.child);
+    }
+    server = startDevServer("test");
+    await waitForReady(server.child, server.logTail);
+    assertDevServerRunning(server.child, server.logTail);
   } catch (error) {
-    await stopProcessTree(child);
+    if (server) await stopProcessTree(server.child);
     throw error;
   }
 
   provide("e2eBaseUrl", baseUrl);
-  console.log(`e2e dev server ready at ${baseUrl} (log: ${logPath})`);
+  console.log(`e2e dev server ready at ${baseUrl} (log: ${server.logPath})`);
 
   return async () => {
-    await stopProcessTree(child);
+    await stopProcessTree(server.child);
   };
 }
 
@@ -54,11 +69,18 @@ async function seedEmulator() {
   );
 }
 
-function startDevServer() {
+function startDevServer(phase) {
   const logDir = join(root, "temp", "e2e");
   mkdirSync(logDir, { recursive: true });
   const logPath = join(logDir, "next-dev.log");
-  const logStream = createWriteStream(logPath);
+  const logStream = createWriteStream(logPath, { flags: "a" });
+  const dataContext =
+    phase === "warmup"
+      ? "live_readonly"
+      : e2eDataContextForFile(process.env.E2E_INVENTORY_FILE ?? "");
+  logStream.write(
+    `[e2e harness] ${phase} ${process.env.E2E_INVENTORY_FILE ?? "direct run"} (demo/${dataContext})\n`,
+  );
   const logTail = [];
 
   const child = spawn(
@@ -72,10 +94,8 @@ function startDevServer() {
       detached: shouldDetachDevServer(),
       env: {
         ...process.env,
-        // Match the current local-rehearsal contract. `dataContext:demo` is the retired product
-        // fixture lane and makes the Console refuse; deterministic test-only Ask fixtures remain
-        // permitted inside this automated harness.
-        DATA_CONTEXT: "live_readonly",
+        // Mutable app-owned fixtures use only the verified local emulator's Demo context.
+        DATA_CONTEXT: dataContext,
         ENVIRONMENT_KIND: "demo",
         ASK_DEMO_MODE: "true",
         LOCAL_DEMO_AUTH: "true",
@@ -129,6 +149,7 @@ async function waitForReady(child, logTail) {
       });
 
       if (response.status === 200) {
+        await response.text();
         return;
       }
     } catch {
@@ -195,30 +216,58 @@ export async function warmUp({ origin = baseUrl, fetchImpl = fetch } = {}) {
   }
 }
 
-async function stopProcessTree(child) {
-  if (child.exitCode !== null || child.signalCode) {
-    return;
-  }
-
-  const exited = new Promise((resolve) => {
-    child.once("exit", resolve);
-  });
-
-  try {
-    process.kill(-child.pid, "SIGTERM");
-  } catch {
-    child.kill("SIGTERM");
-  }
-
-  const timeout = sleep(5_000).then(() => "timeout");
-
-  if ((await Promise.race([exited, timeout])) === "timeout") {
+export async function stopProcessTree(
+  child,
+  { serverPort = port, timeoutMs = 5_000 } = {},
+) {
+  const deadline = Date.now() + timeoutMs;
+  const signal = (name) => {
     try {
-      process.kill(-child.pid, "SIGKILL");
+      process.kill(-child.pid, name);
     } catch {
-      child.kill("SIGKILL");
+      child.kill(name);
+    }
+  };
+  if (child.exitCode === null && !child.signalCode) {
+    signal("SIGTERM");
+    if (!(await waitForExit(child, Math.floor(timeoutMs * 0.7)))) {
+      signal("SIGKILL");
+      if (!(await waitForExit(child, Math.max(0, deadline - Date.now()))))
+        throw new Error("e2e_server_exit_unconfirmed");
     }
   }
+  while (Date.now() < deadline) {
+    if (await serverPortClosed(serverPort, Math.min(100, deadline - Date.now()))) return;
+    await sleep(Math.min(50, Math.max(0, deadline - Date.now())));
+  }
+  throw new Error("e2e_server_listener_did_not_close");
+}
+
+function waitForExit(child, timeoutMs) {
+  if (child.exitCode !== null || child.signalCode) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const finish = (exited) => {
+      clearTimeout(timer);
+      child.off("exit", onExit);
+      resolve(exited);
+    };
+    const onExit = () => finish(true);
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    child.once("exit", onExit);
+  });
+}
+
+function serverPortClosed(serverPort, timeoutMs) {
+  return new Promise((resolve) => {
+    const socket = createConnection({ host: "localhost", port: serverPort });
+    const finish = (closed) => {
+      socket.destroy();
+      resolve(closed);
+    };
+    socket.once("connect", () => finish(false));
+    socket.once("error", (error) => finish(error.code === "ECONNREFUSED"));
+    socket.setTimeout(timeoutMs, () => finish(false));
+  });
 }
 
 function sleep(ms) {
