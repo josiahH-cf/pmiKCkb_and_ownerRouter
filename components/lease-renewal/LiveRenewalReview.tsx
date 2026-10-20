@@ -56,13 +56,55 @@ export function LiveRenewalReview({
   isAdmin: boolean;
   resolutionsError: boolean;
 }>) {
+  const decisionReady = meta.currencyState === "fresh" && !resolutionsError;
+  const comparison = (
+    <>
+      {view.groups.length === 0 ? (
+        <EmptyState
+          description={
+            decisionReady
+              ? "Every reconciled field agrees across sources. Nothing needs a decision right now."
+              : "The retained comparison has no rows. Refresh its source and saved decisions before current work can be established."
+          }
+          title={decisionReady ? "No open items" : "Retained comparison"}
+        />
+      ) : (
+        view.groups.map((group) => (
+          <section
+            aria-label={`${group.severity} items`}
+            className="ui-stack-tight"
+            key={group.severity}
+          >
+            <h2 className="section-subtitle">
+              <StatusPill value={group.severity} /> {group.flags.length} item
+              {group.flags.length === 1 ? "" : "s"}
+            </h2>
+            {group.flags.map((flag) => (
+              <LiveFlagCard
+                canResolve={canResolve}
+                decisionReady={decisionReady}
+                flag={flag}
+                isAdmin={isAdmin}
+                key={flag.sourceTriggerKey}
+                runId={view.runId}
+              />
+            ))}
+          </section>
+        ))
+      )}
+    </>
+  );
   return (
     <div className="ui-stack">
       <PageHeader
         actions={<ModeChip tone="live">Live data</ModeChip>}
-        subtitle={`${view.totalFlags} item${
-          view.totalFlags === 1 ? "" : "s"
-        } need a human decision`}
+        subtitle={
+          decisionReady
+            ? `${view.totalFlags} item${
+                view.totalFlags === 1 ? "" : "s"
+              } need a human decision`
+            : "Retained comparison; refresh the source and saved decisions before acting"
+        }
         title="Live renewal review"
       />
 
@@ -71,10 +113,18 @@ export function LiveRenewalReview({
       </p>
 
       <p className="muted">
-        Data status: <strong>{meta.currencyState}</strong> from a direct read at{" "}
+        Data status: <strong>{meta.currencyState}</strong> from the RentVine read at{" "}
         <time dateTime={meta.readAtIso}>{formatBusinessTimestamp(meta.readAtIso)}</time>.{" "}
         <Link href="/lease-renewal/live">Refresh now</Link>
       </p>
+
+      {meta.currencyState !== "fresh" ? (
+        <p className="workflow-blocker" role="status">
+          Retained RentVine facts are {meta.currencyState}. Refresh the source before
+          recording decisions; this comparison cannot establish current approval or an
+          all-clear state.
+        </p>
+      ) : null}
 
       {resolutionsError ? (
         <p className="workflow-blocker">
@@ -84,41 +134,18 @@ export function LiveRenewalReview({
         </p>
       ) : null}
 
-      <RenewalReviewMode
-        canDefer={canDefer ?? canResolve}
-        canResolve={canResolve}
-        isAdmin={isAdmin}
-        view={view}
-      >
-        {view.groups.length === 0 ? (
-          <EmptyState
-            description="Every reconciled field agrees across sources. Nothing needs a decision right now."
-            title="No open items"
-          />
-        ) : (
-          view.groups.map((group) => (
-            <section
-              aria-label={`${group.severity} items`}
-              className="ui-stack-tight"
-              key={group.severity}
-            >
-              <h2 className="section-subtitle">
-                <StatusPill value={group.severity} /> {group.flags.length} item
-                {group.flags.length === 1 ? "" : "s"}
-              </h2>
-              {group.flags.map((flag) => (
-                <LiveFlagCard
-                  canResolve={canResolve}
-                  flag={flag}
-                  isAdmin={isAdmin}
-                  key={flag.sourceTriggerKey}
-                  runId={view.runId}
-                />
-              ))}
-            </section>
-          ))
-        )}
-      </RenewalReviewMode>
+      {decisionReady ? (
+        <RenewalReviewMode
+          canDefer={canDefer ?? canResolve}
+          canResolve={canResolve}
+          isAdmin={isAdmin}
+          view={view}
+        >
+          {comparison}
+        </RenewalReviewMode>
+      ) : (
+        comparison
+      )}
 
       <Disclosure summary="Read details">
         <p className="muted">
@@ -140,11 +167,13 @@ export function LiveRenewalReview({
 
 function LiveFlagCard({
   flag,
+  decisionReady,
   runId,
   canResolve,
   isAdmin,
 }: Readonly<{
   flag: RenewalFlagView;
+  decisionReady: boolean;
   runId: string;
   canResolve: boolean;
   isAdmin: boolean;
@@ -204,7 +233,7 @@ function LiveFlagCard({
         />
       ) : null}
 
-      {flag.writebackApproval ? (
+      {flag.writebackApproval && decisionReady ? (
         <WritebackApprovalControl
           approval={flag.writebackApproval}
           isAdmin={isAdmin}
@@ -214,12 +243,20 @@ function LiveFlagCard({
         />
       ) : null}
 
-      <FlagResolveForm
-        canResolve={canResolve}
-        flag={flag}
-        isAdmin={isAdmin}
-        runId={runId}
-      />
+      {flag.writebackApproval && !decisionReady ? (
+        <p>
+          Saved write-back state: {flag.writebackApproval.state}. Current source and saved
+          decisions are required before changing it.
+        </p>
+      ) : null}
+      {decisionReady ? (
+        <FlagResolveForm
+          canResolve={canResolve}
+          flag={flag}
+          isAdmin={isAdmin}
+          runId={runId}
+        />
+      ) : null}
     </article>
   );
 }

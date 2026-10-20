@@ -7,6 +7,14 @@
 
 **Goal.**
 
+The separately approved October 19 follow-up restores the existing governed unsent-draft entry
+point and original-receipt recovery, preserves editable wording during source holds, and retains
+actual source freshness for decisions. Focused application proof passed; later refusal-classification
+and CI-isolation changes still await full qualification and integration. A later canonical
+snapshot passed install/audit/format/lint/typecheck, but its whole unit inventory was interrupted
+by the shared deadline; later inventories/build were not reached. This follow-up is not
+deployed and preserves the Send/Schedule/Resume refusal and non-dispatching worker.
+
 Staff retain Focus/Full renewal work, readable facts, copy controls, saved working values and governed Gmail drafts while this task performs no client sends or schedules.
 
 **Current state / intended end state.**

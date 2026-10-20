@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import { act, render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import { it, expect, afterEach, vi } from "vitest";
 import { MaintenanceQueue } from "@/components/maintenance/MaintenanceQueue";
 import { MaintenanceTicketProvider } from "@/components/maintenance/MaintenanceTicketProvider";
@@ -146,6 +146,10 @@ it("reload reads the original operation and displays its retained words only for
 it("conflict preserves typed work and requires a fresh read before a deliberately new operation", async () => {
   const commands: Array<Record<string, unknown>> = [];
   let reads = 0;
+  let resolveCurrentRead!: (response: Response) => void;
+  const currentRead = new Promise<Response>((resolve) => {
+    resolveCurrentRead = resolve;
+  });
   vi.stubGlobal(
     "fetch",
     vi.fn(async (_url: string, options?: RequestInit) => {
@@ -160,7 +164,7 @@ it("conflict preserves typed work and requires a fresh read before a deliberatel
         });
       }
       reads++;
-      return Response.json({ ticket: { ...ticket, record_version: 3 } });
+      return currentRead;
     }),
   );
   mount();
@@ -179,10 +183,26 @@ it("conflict preserves typed work and requires a fresh read before a deliberatel
   fireEvent.click(
     screen.getByRole("button", { name: "Read current ticket after conflict" }),
   );
+  try {
+    await waitFor(() => expect(reads).toBe(1));
+    expect(screen.getByRole("button", { name: "Save assessment" })).toBeDisabled();
+    expect(commands).toHaveLength(1);
+    expect(screen.getByLabelText("Issue assessment and proposed work")).toHaveValue(
+      assessed.assessment!.scope,
+    );
+  } finally {
+    // A rendered progress message is not a React effect-settlement barrier. Deliberately finish
+    // the current-record read and its queued context update before choosing new work.
+    await act(async () => {
+      resolveCurrentRead(Response.json({ ticket: { ...ticket, record_version: 3 } }));
+    });
+  }
   await screen.findByText(/Current ticket read/);
   expect(reads).toBe(1);
+  expect(screen.getByRole("button", { name: "Save assessment" })).toBeEnabled();
   fireEvent.click(screen.getByRole("button", { name: "Save assessment" }));
   await screen.findByRole("heading", { name: "Awaiting information" });
+  expect(commands).toHaveLength(2);
   expect(commands[1]).toMatchObject({
     scope: assessed.assessment!.scope,
     expectedVersion: 3,

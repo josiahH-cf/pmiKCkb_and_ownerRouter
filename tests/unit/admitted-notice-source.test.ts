@@ -29,6 +29,7 @@ import {
   buildLiveRenewalConfig,
 } from "@/lib/lease-renewal/live-config";
 import { configuredNoticeReaderScope } from "@/lib/lease-renewal/notice-source-admission";
+import { apiErrorResponse } from "@/lib/api/editable";
 
 const seam = vi.hoisted(() => ({
   afterReservation: null as null | (() => Promise<void>),
@@ -108,6 +109,42 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("bounded lease-specific notice admission recovery", () => {
+  it("returns a typed private hold for unavailable status evidence and permits a bounded reconnect", async () => {
+    const { db, reader } = fixture();
+    reader.listLeaseStatuses.mockRejectedValueOnce(
+      new Error("synthetic-provider-body-must-stay-private"),
+    );
+    let refused: unknown;
+    try {
+      await readAdmittedRenewalNoticeLease(actor, "9001", reader, Date.now(), db);
+    } catch (error) {
+      refused = error;
+    }
+    expect(refused).toMatchObject({ status: 409, reason: "status_unavailable" });
+    const response = apiErrorResponse(refused);
+    expect(response.status).toBe(409);
+    expect(response.headers.get("Cache-Control")).toContain("no-store");
+    const body = await response.json();
+    expect(body).toMatchObject({
+      code: "renewal_notice_source_unavailable",
+      reason: "status_unavailable",
+    });
+    expect(JSON.stringify(body)).not.toContain("synthetic-provider-body");
+    expect(JSON.stringify(body)).not.toContain("9001");
+    expect(reader.listAllLeasesExport).toHaveBeenCalledTimes(1);
+    expect(reader.listLeaseStatuses).toHaveBeenCalledTimes(1);
+    const recovered = await readAdmittedRenewalNoticeLease(
+      actor,
+      "9001",
+      reader,
+      Date.now(),
+      db,
+    );
+    expect(recovered.statusTable.status).toBe("available");
+    expect(reader.listAllLeasesExport).toHaveBeenCalledTimes(1);
+    expect(reader.listLeaseStatuses).toHaveBeenCalledTimes(2);
+  });
+
   it("coalesces overlapping owner, tenant and notice reads into one admitted recovery", async () => {
     const { db, reader } = fixture();
     await getLiveLeaseSnapshot(reader, Date.now());
@@ -268,7 +305,10 @@ describe("bounded lease-specific notice admission recovery", () => {
       }
       await expect(
         readAdmittedRenewalNoticeLease(actor, "9001", reader, Date.now(), db),
-      ).rejects.toThrow("did not admit");
+      ).rejects.toMatchObject({
+        status: 409,
+        reason: kind === "lease" ? "lease_not_admitted" : "status_not_admitted",
+      });
       expect(reader.listAllLeasesExport).toHaveBeenCalledTimes(1);
       expect(reader.listLeaseStatuses).toHaveBeenCalledTimes(kind === "lease" ? 0 : 1);
     },
@@ -333,7 +373,10 @@ describe("bounded lease-specific notice admission recovery", () => {
         Date.now(),
         db,
       );
-      const refused = expect(pending).rejects.toThrow(/admit|expired/);
+      const refused = expect(pending).rejects.toMatchObject({
+        status: 409,
+        reason: kind === "clear" ? "status_not_admitted" : "lease_not_current",
+      });
       await entered.promise;
       if (kind === "invalidate") invalidateLiveLeaseCache();
       else if (kind === "clear") {

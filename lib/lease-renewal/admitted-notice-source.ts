@@ -22,6 +22,7 @@ import {
   type LeaseStatusTableReader,
 } from "./lease-status-table";
 import { noticeAdmissionContextFor } from "./notice-source-admission";
+import { RenewalNoticeSourceError } from "./notice-source-error";
 
 type Reader = LeaseExportReader & LeaseStatusTableReader;
 type AdmittedRead = Awaited<ReturnType<typeof readLiveLeaseSnapshotForAdmission>> & {
@@ -79,11 +80,11 @@ async function readSharedAdmittedSource(
             minimum.leaseKeys,
           )
         )
-          throw new Error("The held admitted lease source is unavailable or expired.");
+          throw new RenewalNoticeSourceError("lease_not_current");
         // Display callers already acquired their initial generation before reading minima.
         // Refuse before dispatching a second replacement, even when durable authority churns.
         if (!heldLease && replacedInitialLease)
-          throw new Error("The display lease source exhausted its bounded replacement.");
+          throw new RenewalNoticeSourceError("replacement_limit");
         const read =
           heldLease ??
           (await readLiveLeaseSnapshotForAdmission(
@@ -115,7 +116,7 @@ async function readSharedAdmittedSource(
             minimum.leaseKeys,
           )
         )
-          throw new Error("The held admitted status source is unavailable or expired.");
+          throw new RenewalNoticeSourceError("status_not_current");
         const statusTable =
           heldStatus ??
           (await readLeaseStatusTableForAdmission(
@@ -139,7 +140,20 @@ async function readSharedAdmittedSource(
         )
           return { read: previous, leaseKeys: minimum.leaseKeys };
       }
-      throw new Error("The admitted notice source changed during its bounded read.");
+      // Keep the failing predicate without a lease id, timestamp, hash or provider response.
+      throw new RenewalNoticeSourceError(
+        previous!.snapshot.readAtMs < minimum.lease
+          ? "lease_minimum_advanced"
+          : previous!.statusTable.status !== "available"
+            ? "status_unavailable"
+            : (previous!.statusTable.readAtMs ?? -1) < minimum.status
+              ? "status_minimum_advanced"
+              : !minimum.leaseKeys.every((key) =>
+                    previous!.snapshot.noticeAdmission?.leaseKeys.includes(key),
+                  )
+                ? "lease_not_admitted"
+                : "status_not_admitted",
+      );
     })();
     scope.pending.set(slot, pending);
   }
@@ -156,7 +170,10 @@ async function readSharedAdmittedSource(
       completedAt,
       scope.context,
       result.leaseKeys,
-    ) ||
+    )
+  )
+    throw new RenewalNoticeSourceError("lease_not_current");
+  if (
     !leaseStatusTableHasAdmission(
       result.read.statusTable,
       completedAt,
@@ -164,7 +181,7 @@ async function readSharedAdmittedSource(
       result.leaseKeys,
     )
   )
-    throw new Error("The admitted notice source is unavailable or expired.");
+    throw new RenewalNoticeSourceError("status_not_current");
   return {
     ...result.read,
     currency: {
@@ -233,7 +250,7 @@ export async function readCoherentRenewalDisplaySource(
       options.sourceRefreshAfter != null &&
       result.snapshot.readAtMs < options.sourceRefreshAfter
     )
-      throw new Error("The notice source predates the confirmed source write.");
+      throw new RenewalNoticeSourceError("source_before_write");
     return result;
   } catch {
     const completedAt = Math.max(nowMs, Date.now());

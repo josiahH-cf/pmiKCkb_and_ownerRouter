@@ -372,7 +372,7 @@ describe("S139 renewal message refinement", () => {
     expect(screen.queryByText(STALE_REFINED_BODY_MESSAGE)).toBeNull();
   });
 
-  it("keeps the earlier receipt after refinement without offering a second legacy draft", async () => {
+  it("keeps the earlier receipt after refinement while another unsent draft remains deliberate", async () => {
     const executionId = `exec_${"a".repeat(40)}`;
     stubFetch({
       get: () =>
@@ -390,7 +390,7 @@ describe("S139 renewal message refinement", () => {
     expect(screen.getByText("Earlier Gmail draft")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeNull();
+    ).toBeEnabled();
     expect(
       screen.getByRole("link", { name: "Compose tenant message in Communications" }),
     ).toHaveAttribute("target", "_blank");

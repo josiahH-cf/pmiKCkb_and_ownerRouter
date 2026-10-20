@@ -1,0 +1,23 @@
+{
+  "quality": [
+    ["run", "format:check"],
+    ["run", "lint"],
+    ["run", "typecheck"]
+  ],
+  "unit": [["test"]],
+  "firestore": [["run", "test:firestore"]],
+  "policy-build": [
+    ["run", "verify:dependencies"],
+    ["run", "verify:router-boundary"],
+    ["run", "verify:falsification"],
+    ["run", "verify:context-freshness"],
+    ["run", "verify:active-doc-paths"],
+    ["run", "verify:spec-traceability"],
+    ["run", "verify:copy-voice"],
+    ["run", "verify:redaction"],
+    ["run", "check:budget-guard"],
+    ["run", "build"]
+  ],
+  "e2e": [["run", "test:e2e", "--", "--firestore"]],
+  "e2e-core": [["run", "test:e2e:core"]]
+}

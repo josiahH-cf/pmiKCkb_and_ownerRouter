@@ -63,6 +63,8 @@ export function bindCurrentPacketForDotloop(input: {
     );
   }
   if (
+    currentHead.leaseId !== snapshot.leaseId ||
+    currentHead.transactionId !== snapshot.transactionId ||
     currentHead.snapshotId !== snapshot.snapshotId ||
     currentHead.payloadHash !== snapshot.payloadHash ||
     currentHead.snapshotVersion !== snapshot.snapshotVersion ||
@@ -124,6 +126,11 @@ export function bindCurrentPacketForDotloop(input: {
     }
     return ref;
   });
+  if (new Set(participantRefs).size !== participantRefs.length)
+    throw new EditableLayerError(
+      "Packet participants must have distinct Dotloop participant mappings.",
+      409,
+    );
 
   return {
     packetSnapshotId: snapshot.snapshotId,

@@ -5,35 +5,42 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
           cache: npm
-      - run: npm ci
-      - run: npm run format:check
-      - run: npm run lint
-      - run: npm run typecheck
+      - name: Actual quality checks in a credential-free namespace
+        run: python3 scripts/isolated-verify.py --ci-sudo --task quality --output "$RUNNER_TEMP/pmi-quality" --timeout-seconds 900 --memory-mib 4096 --typecheck-heap-mib 3072
 
   unit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
           cache: npm
-      - run: npm ci
-      - run: npm test
+      - name: Complete unit inventory after OS isolation controls
+        run: python3 scripts/isolated-verify.py --ci-sudo --task unit --output "$RUNNER_TEMP/pmi-unit" --timeout-seconds 900 --memory-mib 4096
 
   firestore:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
@@ -42,32 +49,21 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-      - uses: actions/cache@v5
-        with:
-          path: ~/.cache/firebase/emulators
-          key: ${{ runner.os }}-firebase-emulators-${{ hashFiles('package-lock.json') }}
-      - run: npm ci
-      - run: npm run test:firestore
+      - name: Complete backend inventory with public emulator binaries and no provider route
+        run: python3 scripts/isolated-verify.py --ci-sudo --task firestore --output "$RUNNER_TEMP/pmi-firestore" --timeout-seconds 900 --memory-mib 4096
 
   policy-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
           cache: npm
-      - run: npm ci
-      - run: npm run verify:dependencies
-      - run: npm run verify:router-boundary
-      - run: npm run verify:falsification
-      - run: npm run verify:context-freshness
-      - run: npm run verify:active-doc-paths
-      - run: npm run verify:spec-traceability
-      - run: npm run verify:copy-voice
-      - run: npm run verify:redaction
-      - run: npm run check:budget-guard
-      - run: npm run build
+      - name: Public font preparation, actual production audit, policy checks and build
+        run: python3 scripts/isolated-verify.py --ci-sudo --task policy-build --output "$RUNNER_TEMP/pmi-policy-build" --timeout-seconds 900 --memory-mib 6144 --build-heap-mib 3072
 
   verify:
     if: ${{ always() }}

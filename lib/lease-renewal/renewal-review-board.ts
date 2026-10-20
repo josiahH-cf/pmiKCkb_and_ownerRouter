@@ -11,12 +11,13 @@ import {
 } from "@/lib/lease-renewal/live-review";
 import type { RenewalRunView } from "@/lib/lease-renewal/run-view";
 import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline";
+import { EditableLayerError } from "@/lib/errors/editable-layer-error";
 
 export interface RenewalRunViewContext {
   views: RenewalRunView[];
   /** The same current-source runs from which `views` were projected. */
   runs: RenewalRunResult[];
-  sourceStatus: "available" | Exclude<LiveReviewStatus, "ok">;
+  sourceStatus: "available" | "stale" | "expired" | Exclude<LiveReviewStatus, "ok">;
   overlayStatus: "available" | "unavailable";
 }
 
@@ -27,28 +28,27 @@ export interface RenewalRunViewContext {
 export async function loadRenewalRunViewContext(
   user: AuthenticatedUser,
 ): Promise<RenewalRunViewContext> {
-  let resolutions: Awaited<ReturnType<typeof listResolutionsForRun>> = [];
-  let approvals: Awaited<ReturnType<typeof listWritebackApprovalsForRun>> = [];
   let overlayStatus: RenewalRunViewContext["overlayStatus"] = "available";
-  try {
-    [resolutions, approvals] = await Promise.all([
-      listResolutionsForRun(user, LIVE_REVIEW_RUN_ID),
-      listWritebackApprovalsForRun(user, LIVE_REVIEW_RUN_ID),
-    ]);
-  } catch {
-    // The Live read remains useful without saved decision overlays.
-    overlayStatus = "unavailable";
-  }
+  const overlay = Promise.all([
+    listResolutionsForRun(user, LIVE_REVIEW_RUN_ID),
+    listWritebackApprovalsForRun(user, LIVE_REVIEW_RUN_ID),
+  ]).then(
+    ([resolutions, approvals]) => ({ resolutions, approvals }),
+    () => {
+      overlayStatus = "unavailable";
+      return { resolutions: [], approvals: [] };
+    },
+  );
 
-  const outcome = await loadLiveRenewalReview(user, new Date().toISOString(), {
-    resolutions,
-    approvals,
-  });
+  const outcome = await loadLiveRenewalReview(user, new Date().toISOString(), overlay);
   return outcome.status === "ok"
     ? {
         views: [outcome.view],
         runs: [outcome.run],
-        sourceStatus: "available",
+        sourceStatus:
+          outcome.meta.currencyState === "fresh"
+            ? "available"
+            : outcome.meta.currencyState,
         overlayStatus,
       }
     : {
@@ -62,5 +62,11 @@ export async function loadRenewalRunViewContext(
 export async function loadRenewalRunViews(
   user: AuthenticatedUser,
 ): Promise<RenewalRunView[]> {
-  return (await loadRenewalRunViewContext(user)).views;
+  const context = await loadRenewalRunViewContext(user);
+  if (context.sourceStatus !== "available" || context.overlayStatus !== "available")
+    throw new EditableLayerError(
+      "The current renewal comparison or saved decisions are unavailable. Retained rows cannot establish that nothing needs attention.",
+      409,
+    );
+  return context.views;
 }

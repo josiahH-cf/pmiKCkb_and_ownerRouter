@@ -3655,7 +3655,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         // The publication is still pending, so only the Gmail step waits; copy is open.
         expect(
           tenant.queryByRole("button", { name: "Preview unsent Gmail draft" }),
-        ).toBeNull();
+        ).toBeDisabled();
         expect(tenant.getByLabelText("tenant formatted body").textContent).not.toContain(
           "https://example",
         );
@@ -3725,7 +3725,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         );
         expect(
           message.queryByRole("button", { name: "Preview unsent Gmail draft" }),
-        ).toBeNull();
+        ).toBeEnabled();
         mounted.unmount();
         // S124 binds each admitted lease generation to the reviewed draft audience, and an
         // approval read admits a new generation once the 60 s soft TTL has passed. Admit that
@@ -3747,7 +3747,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         expect(resumed().getByLabelText("Sender name")).toHaveValue("Emulator Staff");
         expect(
           resumed().queryByRole("button", { name: "Preview unsent Gmail draft" }),
-        ).toBeNull();
+        ).toBeEnabled();
         Object.defineProperty(navigator, "clipboard", {
           configurable: true,
           value: {

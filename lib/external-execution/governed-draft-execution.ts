@@ -2,6 +2,7 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   assertLiveProviderActionAllowed,
+  EnvironmentContextError,
   requireEnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
 import {
@@ -28,7 +29,10 @@ import {
   type ResolvedRenewalDraftAttachment,
 } from "@/lib/lease-renewal/execution/renewal-draft-attachment";
 import { assertAuthoritativeRenewalRecipient } from "@/lib/lease-renewal/execution/renewal-draft-request";
-import { assertProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
+import {
+  assertProductionRuntimeActionExecutable,
+  ActionNotExecutableError,
+} from "@/lib/operations/runtime-suspension-gate";
 
 /**
  * The shared one-attempt seam for both governed unsent-draft actions.
@@ -50,10 +54,17 @@ export interface GovernedDraftSeams {
   readonly assertEffectEnvironment?: () => void;
 }
 
+export interface GovernedDraftPreClaimRefusal {
+  readonly status: number;
+  readonly error: string;
+}
+
 export interface GovernedDraftRequest {
   readonly action: ExternalActionPreparationInput;
   readonly definition: Readonly<ExternalActionDefinition>;
   readonly createClient: () => RenewalDraftGmailClient;
+  /** Server-owned observation for this invocation only; never changes a gate or exception. */
+  readonly onPreClaimRefusal?: (failure: GovernedDraftPreClaimRefusal) => void;
   /** Owner-renewal only. It must gate/reload/verify Drive before Gmail construction. */
   readonly resolveAttachment?: (
     expected: RenewalDraftAttachmentIdentity,
@@ -170,40 +181,74 @@ export async function executeGovernedDraft(
   },
   seams: GovernedDraftSeams = {},
 ) {
-  assertAuthoritativeRenewalRecipient({
-    ...request.action,
-    authority: undefined,
-  } as never);
-  await assertProductionRuntimeActionExecutable(request.action.actionKey);
-  assertEffectEnvironment(seams);
   let resolvedAttachment: ResolvedRenewalDraftAttachment | undefined;
-  const expectedAttachment = renewalDraftAttachmentFromAction(request.action);
-  if (expectedAttachment) {
-    if (!request.resolveAttachment) {
-      throw new ExternalExecutionError(
-        "The exact receipt-bound comp screenshot resolver is unavailable.",
-        "blocked",
-      );
-    }
-    const resolved = validateResolvedRenewalDraftAttachment(
-      await request.resolveAttachment(expectedAttachment),
-    );
-    if (!sameRenewalDraftAttachmentIdentity(expectedAttachment, resolved)) {
-      throw new ExternalExecutionError(
-        "The resolved comp screenshot changed after the exact preview.",
-        "blocked",
-      );
-    }
-    resolvedAttachment = resolved;
-  }
-  // Keep construction in the exact gated entry point; connection failure does not claim an attempt.
   let client: RenewalDraftGmailClient;
+  let checkingAttachment = false;
   try {
-    client = request.createClient();
-  } catch {
-    throw new GovernedDraftConnectionError();
+    assertAuthoritativeRenewalRecipient({
+      ...request.action,
+      authority: undefined,
+    } as never);
+    await assertProductionRuntimeActionExecutable(request.action.actionKey);
+    assertEffectEnvironment(seams);
+    checkingAttachment = true;
+    const expectedAttachment = renewalDraftAttachmentFromAction(request.action);
+    if (expectedAttachment) {
+      if (!request.resolveAttachment) {
+        throw new ExternalExecutionError(
+          "The exact receipt-bound comp screenshot resolver is unavailable.",
+          "blocked",
+        );
+      }
+      const resolved = validateResolvedRenewalDraftAttachment(
+        await request.resolveAttachment(expectedAttachment),
+      );
+      if (!sameRenewalDraftAttachmentIdentity(expectedAttachment, resolved)) {
+        throw new ExternalExecutionError(
+          "The resolved comp screenshot changed after the exact preview.",
+          "blocked",
+        );
+      }
+      resolvedAttachment = resolved;
+    }
+    checkingAttachment = false;
+    // Keep construction in the exact gated entry point; connection failure does not claim an attempt.
+    try {
+      client = request.createClient();
+    } catch {
+      throw new GovernedDraftConnectionError();
+    }
+  } catch (error) {
+    if (error !== null && typeof error === "object") {
+      const known =
+        error instanceof EditableLayerError ||
+        error instanceof EnvironmentContextError ||
+        (error instanceof ExternalExecutionError &&
+          ["blocked", "dependency", "stale_preview"].includes(error.code)) ||
+        error instanceof ActionNotExecutableError;
+      const programming =
+        error instanceof TypeError ||
+        error instanceof ReferenceError ||
+        error instanceof SyntaxError;
+      request.onPreClaimRefusal?.({
+        status:
+          error instanceof EditableLayerError
+            ? error.status
+            : known || (checkingAttachment && !programming)
+              ? 409
+              : 500,
+        error:
+          checkingAttachment && !programming
+            ? "The exact comp screenshot could not be verified before drafting. No new Gmail attempt was made; reload the attachment and preview again."
+            : known && error instanceof Error
+              ? error.message
+              : "A draft check failed before the execution attempt was claimed. No new Gmail draft was attempted.",
+      });
+    }
+    throw error;
   }
   const execute = seams.execute ?? executeExternalActionWithS20;
+  // The request-local observer is never called after entering S20, even for reused errors.
   return execute(actor, {
     action: request.action,
     confirmedPreviewHash: request.previewHash,

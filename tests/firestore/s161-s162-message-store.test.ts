@@ -360,36 +360,27 @@ describe("S161 message persistence without a cycle step", () => {
   });
 });
 
-describe("S193 retires new draft HTTP effects while keeping ordinary saves", () => {
-  it("refuses both older creation stages without saving supplied words, preparing a claim or contacting Gmail", async () => {
+describe("current governed unsent drafts preserve ordinary saves and receipt recovery", () => {
+  it("saves displayed wording but holds an unpublished draft before any claim or Gmail call", async () => {
     const fresh = await read();
-    for (const extra of [
-      {
-        displayed: { subject: fresh.content.subject, body: "Unsaved words" },
-        save: {
-          expectedRevision: 0,
-          operationId: randomUUID(),
-          inputs: fresh.inputs,
-          bodyOverride: { text: "Unsaved words", baseHash: fresh.bodyBaseHash },
-        },
+    const authored = "Synthetic saved words for the unsent draft";
+    const held = await post({
+      kind: "draft",
+      leaseId: "701",
+      channel: "tenant",
+      displayed: { subject: fresh.content.subject, body: authored },
+      save: {
+        expectedRevision: 0,
+        operationId: randomUUID(),
+        inputs: fresh.inputs,
+        bodyOverride: { text: authored, baseHash: fresh.bodyBaseHash },
       },
-      { confirm: { executionId: `exec_${"a".repeat(40)}`, previewHash: "b".repeat(64) } },
-    ]) {
-      const refused = await post({
-        kind: "draft",
-        leaseId: "701",
-        channel: "tenant",
-        ...extra,
-      });
-      expect(refused.status).toBe(410);
-      expect(refused.data).toMatchObject({
-        code: "communications_composer_required",
-        providerCallAttempted: false,
-        href: "/gmail-hub?compose=renewal_tenant&lease=701",
-      });
-    }
+    });
+    expect(held.status).toBe(200);
+    expect(held.data.status).toBe("blocked");
+    expect(held.data.reasons.join(" ")).toMatch(/approved|published/i);
+    expect((await read()).content.plainText).toBe(authored);
     expect(gmail.creates).toBe(0);
-    expect(await getRenewalWorkspace(editor, "701", db)).toBeNull();
     expect((await db.collection("action_executions").get()).size).toBe(0);
   });
   it("refuses a forged original-attempt recovery before Gmail", async () => {

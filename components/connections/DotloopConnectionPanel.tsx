@@ -316,7 +316,9 @@ function DotloopResourcePicker({
               <li key={profile.id}>
                 {profile.name || profile.id} ({profile.type ?? "type unreported"}):{" "}
                 {error
-                  ? `template read failed (${error})`
+                  ? error === "access_denied"
+                    ? "template read failed (access denied by Dotloop); the template list is unknown"
+                    : `template read failed (${error})`
                   : !observed
                     ? "templates not observed"
                     : found.length === 0

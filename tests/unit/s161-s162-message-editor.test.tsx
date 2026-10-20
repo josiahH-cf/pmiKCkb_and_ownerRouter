@@ -456,8 +456,24 @@ const createdOutcome = {
   },
 };
 
-describe("S193 replaces new creation and preserves original draft recovery", () => {
-  it("opens the canonical workflow composer without preparing a legacy draft", async () => {
+const draftPreview = {
+  status: "preview",
+  channel: "tenant",
+  recipient: createdOutcome.recipient,
+  subject: createdOutcome.subject,
+  body: composed().plainText,
+  executionId: EXECUTION_ONE,
+  previewHash: "b".repeat(64),
+  template: createdOutcome.template,
+};
+const storedPreparation = () =>
+  preparation({
+    cycleId,
+    saved: { revision: 1, inputs: emptyMessagePreparationInputs() },
+  });
+
+describe("reviewed unsent Gmail creation and original draft recovery", () => {
+  it("keeps Communications available and exposes only a deliberate unsent preview", async () => {
     const api = server(preparation(), () => Response.json({}));
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
     const link = await screen.findByRole("link", {
@@ -466,11 +482,135 @@ describe("S193 replaces new creation and preserves original draft recovery", () 
     expect(link).toHaveAttribute("href", "/gmail-hub?compose=renewal_tenant&lease=8800");
     expect(link).toHaveAttribute("target", "_blank");
     expect(
-      screen.queryByRole("button", {
-        name: /Preview unsent|Create this unsent|Review creation/,
-      }),
+      screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: /Create this unsent|Review creation/ }),
     ).toBeNull();
     expect(api.posts()).toHaveLength(0);
+  });
+  it("shows the exact preview and requires a separate human confirmation before creating", async () => {
+    const api = server(storedPreparation(), (body) =>
+      Response.json(
+        body.confirm ? { ...createdOutcome, executionId: EXECUTION_ONE } : draftPreview,
+      ),
+    );
+    render(<RenewalMessagePreparation channel="tenant" canEdit />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Preview unsent Gmail draft" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Review creation confirmation" }),
+    );
+    expect(api.posts()).toHaveLength(1);
+    expect(api.posts()[0].body).toMatchObject({
+      kind: "draft",
+      displayed: { body: composed().plainText },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create this unsent draft" }));
+    await screen.findByText(/An unsent Gmail draft was created and recorded/);
+    expect(api.posts()).toHaveLength(2);
+    expect(api.posts()[1].body).toMatchObject({
+      confirm: { executionId: EXECUTION_ONE, previewHash: draftPreview.previewHash },
+    });
+    expect(screen.queryByRole("button", { name: /^(Send|Schedule|Resume)$/ })).toBeNull();
+  });
+  it.each([401, 403, 409])(
+    "keeps a definite pre-effect %s refusal retryable instead of labeling it consumed",
+    async (status) => {
+      let confirms = 0;
+      const api = server(storedPreparation(), (body) => {
+        if (body.confirm && ++confirms === 1)
+          return Response.json(
+            {
+              error: "Synthetic source changed before dispatch",
+              providerCallAttempted: false,
+            },
+            { status },
+          );
+        return Response.json(
+          body.confirm ? { ...createdOutcome, executionId: EXECUTION_ONE } : draftPreview,
+        );
+      });
+      render(<RenewalMessagePreparation channel="tenant" canEdit />);
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Preview unsent Gmail draft" }),
+      );
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Review creation confirmation" }),
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Create this unsent draft" }));
+      await screen.findByText("Synthetic source changed before dispatch");
+      expect(
+        screen.queryByRole("button", { name: "Recover exact Gmail attempt" }),
+      ).toBeNull();
+      expect(
+        screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
+      ).toBeEnabled();
+      fireEvent.click(screen.getByRole("button", { name: "Preview unsent Gmail draft" }));
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Review creation confirmation" }),
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Create this unsent draft" }));
+      await screen.findByText(/An unsent Gmail draft was created and recorded/);
+      expect(api.posts().filter((p) => p.body?.confirm)).toHaveLength(2);
+    },
+  );
+  it("retries the same wording-save identity after a lost preview response", async () => {
+    let previews = 0;
+    const api = server(preparation(), (body) => {
+      if (body.kind === "save") return savedResponse(body);
+      if (++previews === 1)
+        throw new TypeError("Synthetic response lost after preview save");
+      api.setCurrent(storedPreparation());
+      return Response.json(draftPreview);
+    });
+    render(<RenewalMessagePreparation channel="tenant" canEdit />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Preview unsent Gmail draft" }),
+    );
+    await screen.findByText("Synthetic response lost after preview save");
+    fireEvent.click(screen.getByRole("button", { name: "Preview unsent Gmail draft" }));
+    await screen.findByRole("button", { name: "Review creation confirmation" });
+    const requests = api.posts().filter((p) => p.body?.kind === "draft");
+    expect(requests).toHaveLength(2);
+    expect(requests[0].body?.save).toEqual(requests[1].body?.save);
+    expect(requests[0].body?.save).toMatchObject({ operationId: expect.any(String) });
+    expect(requests.every((p) => !p.body?.confirm)).toBe(true);
+  });
+  it("holds a lost create response for own-receipt recovery and never creates again", async () => {
+    let creates = 0;
+    const api = server(storedPreparation(), (body) => {
+      if (body.confirm) {
+        creates++;
+        throw new TypeError("Synthetic response lost after creation");
+      }
+      return Response.json(
+        body.reconcile ? { ...createdOutcome, executionId: EXECUTION_ONE } : draftPreview,
+      );
+    });
+    render(<RenewalMessagePreparation channel="tenant" canEdit />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Preview unsent Gmail draft" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Review creation confirmation" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Create this unsent draft" }));
+    const recover = await screen.findByRole("button", {
+      name: "Recover exact Gmail attempt",
+    });
+    expect(
+      screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
+    ).toBeDisabled();
+    fireEvent.click(recover);
+    await screen.findByText(
+      "The existing unsent Gmail draft is confirmed. Nothing was sent.",
+    );
+    expect(creates).toBe(1);
+    expect(api.posts().at(-1)?.body).toMatchObject({
+      reconcile: { executionId: EXECUTION_ONE },
+    });
   });
   it("recovers the original consumed execution and keeps its unknown outcome on a failed read", async () => {
     let fails = true;
@@ -494,7 +634,9 @@ describe("S193 replaces new creation and preserves original draft recovery", () 
     await screen.findByText("Original mailbox unavailable");
     fails = false;
     fireEvent.click(screen.getByRole("button", { name: "Recover exact Gmail attempt" }));
-    await screen.findByText("The earlier unsent draft is confirmed. Nothing was sent.");
+    await screen.findByText(
+      "The existing unsent Gmail draft is confirmed. Nothing was sent.",
+    );
     expect(api.posts().map((c) => c.body)).toEqual(
       [0, 1].map(() => ({
         kind: "draft",

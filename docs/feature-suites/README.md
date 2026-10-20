@@ -11,6 +11,18 @@ integration under this direction. Their delivered records and receipts retain hi
 The present upstream Send/Schedule authority conflicts with this instruction's narrower boundary;
 S229 uses an operation-level refusal and does not change protected Registry activation metadata.
 
+The separately approved October 19 bounded follow-up remains uncommitted and in qualification.
+V9 passed 9,633 units with four existing skips, all 464 backend tests without skips and all policies,
+then failed the actual default Turbopack build on prepared Poppins local-file URLs. The source-only
+isolated loopback font transport passed v10's nine sets of seventeen controls and normal child
+closures; default Turbopack compiled, then its TypeScript worker exhausted the 1536 MiB heap. The
+build failed and canonical never started. The prepared build-only memory repair now needs a newly
+bound cleanup proof, focused whole-build/emission and full-gate proof under new resource grants.
+Overall drain/source closure passed and the entire resource loan is returned. Served/core E2E,
+browser qualification, actual CI, review and green integration remain. This grants no new
+deployment or provider activation. The COMPLETE rows below describe the October 17 release,
+not an acceptance claim for the unreleased follow-up. Current work is in `docs/plan.md`.
+
 | Suite | Active contract                                                                  | State                                                                                                                                                  |
 | ----- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | S227  | `docs/feature-suites/maintenance-retirement-and-readonly-history.md`             | COMPLETE — bounded implementation and gated delivery verified in run d33c7174 at a7bce098; external resource limits and human NOT RUN remain separate. |

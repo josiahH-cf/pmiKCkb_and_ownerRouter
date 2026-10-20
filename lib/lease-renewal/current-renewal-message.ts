@@ -6,7 +6,12 @@ import {
 } from "@/lib/lease-renewal/desk-destinations";
 import { messageResourceFingerprint } from "./message-claim-basis";
 import { observeRenewalNotice } from "@/lib/firestore/renewal-notice-safety";
-import { readAdmittedRenewalNoticeLease } from "./admitted-notice-source";
+import {
+  readAdmittedRenewalNoticeLease,
+  readCoherentRenewalDisplaySource,
+} from "./admitted-notice-source";
+import { RenewalNoticeSourceError } from "./notice-source-error";
+import { RentVineError } from "@/lib/integrations/rentvine/client";
 import { manualNonRenewalReason } from "./notice-safety";
 import {
   getCurrentMessageDraft,
@@ -118,6 +123,34 @@ export interface MessageChargeInventoryLine {
 /** The label a message's working terms carry as their source. */
 export const WORKING_TERMS_MESSAGE_SOURCE = "Working renewal terms";
 
+/** Only observed provider/network error identities are recoverable; programming errors propagate. */
+function messageSourceFailure(error: unknown): never {
+  const networkCodes = new Set([
+    "ENETUNREACH",
+    "EAI_AGAIN",
+    "ENOTFOUND",
+    "ECONNREFUSED",
+    "ECONNRESET",
+    "ETIMEDOUT",
+    "UND_ERR_CONNECT_TIMEOUT",
+    "UND_ERR_HEADERS_TIMEOUT",
+    "UND_ERR_SOCKET",
+  ]);
+  const cause = error instanceof TypeError ? error.cause : null;
+  if (
+    error instanceof RentVineError ||
+    (error instanceof DOMException &&
+      ["AbortError", "TimeoutError"].includes(error.name)) ||
+    (cause &&
+      typeof cause === "object" &&
+      "code" in cause &&
+      typeof cause.code === "string" &&
+      networkCodes.has(cause.code))
+  )
+    throw new RenewalNoticeSourceError("lease_unavailable");
+  throw error;
+}
+
 /**
  * Read-only assembly. Missing Gmail or publication readiness never prevents body preparation.
  *
@@ -132,6 +165,7 @@ export async function currentRenewalMessage(
   leaseId: string,
   channel: "owner" | "tenant",
   db: Firestore = getAdminFirestore(),
+  options: { requireFreshNotice?: boolean } = {},
 ) {
   const config = buildLiveRentVineConfig();
   if (!config.ok)
@@ -150,7 +184,18 @@ export async function currentRenewalMessage(
     businessProfile,
     policyMaterial,
   ] = await Promise.all([
-    readAdmittedRenewalNoticeLease(actor, leaseId, config.rentvineClient, nowMs, db),
+    // Editing/copy use the available lease view. An unavailable admitted notice pair is
+    // projected as unknown below, and remains a server-side draft/approval hold.
+    (options.requireFreshNotice
+      ? readAdmittedRenewalNoticeLease(actor, leaseId, config.rentvineClient, nowMs, db)
+      : readCoherentRenewalDisplaySource(
+          actor,
+          config.rentvineClient,
+          nowMs,
+          { leaseId },
+          db,
+        )
+    ).catch(messageSourceFailure),
     getRenewalWorkspace(actor, leaseId, db),
     getRenewalWorkingRecord(actor, leaseId, db).catch(() => "unavailable" as const),
     getRenewalResourceLocations(actor, db).catch(() => null),
@@ -167,6 +212,8 @@ export async function currentRenewalMessage(
   ]);
   if (leaseRead.currency.state === "expired")
     throw new LeaseDataExpiredError(leaseRead.currency.ageMs);
+  if (options.requireFreshNotice && leaseRead.currency.state !== "fresh")
+    throw new RenewalNoticeSourceError("lease_not_current");
   const matching = leaseRead.snapshot.views.filter(
     (view) => leaseViewId(view) === leaseId,
   );
@@ -183,7 +230,7 @@ export async function currentRenewalMessage(
       statusTable: leaseRead.statusTable,
       freshness: leaseRead.currency.state,
       leaseReadAtMs: leaseRead.snapshot.readAtMs,
-      observedAtMs: nowMs,
+      observedAtMs: Math.max(nowMs, Date.now()),
       noticeAdmitted: leaseRead.snapshot.noticeAdmitted,
       admittedLeaseKeys: leaseRead.snapshot.noticeAdmission?.leaseKeys,
     },

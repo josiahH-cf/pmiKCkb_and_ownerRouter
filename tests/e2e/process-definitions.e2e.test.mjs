@@ -2,50 +2,53 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { createClient } from "./helpers/client.mjs";
 
 const DEFINITION_PAYLOAD = {
-  name: "E2E Lease Renewal Confirmation",
-  short_outcome: "Confirm renewal terms with the owner before tenant outreach.",
-  trigger: "A lease enters the 90-day renewal window.",
+  name: "Synthetic E2E Internal Training Process",
+  space_id: "fathom-training",
+  short_outcome: "Record the synthetic internal training checklist.",
+  trigger: "A synthetic training exercise starts.",
   owner_uid: "local-demo-admin",
   default_approver_uid: "local-demo-admin",
   source_links: [
     {
-      label: "Lease Renewals Demo SOP",
-      url: "https://example.com/demo/lease-renewals-sop",
+      label: "Synthetic training source",
+      url: "https://fixture.invalid/training-source",
     },
   ],
   steps: [
-    { title: "Check the renewal tracker for the current lease." },
-    { title: "Confirm owner direction before tenant-facing commitments." },
+    { title: "Read the synthetic training source." },
+    { title: "Record internal training notes." },
   ],
-  success_condition: "Owner confirms direction and the tracker is updated.",
+  success_condition: "The synthetic internal training is recorded.",
 };
 
 describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
-  "process definition lifecycle",
+  "current process definition admission and retired routes",
   () => {
     let admin;
     let editor;
     let definitionId;
+    let created;
 
     beforeAll(async () => {
       admin = createClient();
       await admin.signInDemo();
       editor = createClient();
       await editor.signInDemo("Editor");
-    });
-
-    it("creates a Draft definition", async () => {
       const response = await admin.postJson(
         "/api/process-definitions",
         DEFINITION_PAYLOAD,
       );
 
       expect(response.status).toBe(201);
-      const body = await response.json();
+      created = (await response.json()).definition;
+      expect(created.id).toBeTruthy();
+      definitionId = created.id;
+    });
 
-      expect(body.definition.status).toBe("Draft");
-      expect(body.definition.name).toBe(DEFINITION_PAYLOAD.name);
-      definitionId = body.definition.id;
+    it("creates a Draft in an explicit writable Space", async () => {
+      expect(created.status).toBe("Draft");
+      expect(created.space_id).toBe(DEFINITION_PAYLOAD.space_id);
+      expect(created.name).toBe(DEFINITION_PAYLOAD.name);
     });
 
     it("lists the new definition and serves its detail page", async () => {
@@ -57,17 +60,20 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
       expect(detail.html).toContain(DEFINITION_PAYLOAD.name);
     });
 
-    it("submits the definition for approval and queues a review item", async () => {
+    it("refuses retired queue submission without changing the Draft or queuing publication", async () => {
       const response = await admin.postJson(
         `/api/process-definitions/${definitionId}/submit`,
         {},
       );
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(409);
       const body = await response.json();
-
-      expect(body.definition.status).toBe("Pending Approval");
-      expect(body.definition.pending_queue_item_id).toBeTruthy();
+      expect(body.error).toMatch(/retired.*publish/i);
+      const detail = await (
+        await admin.get(`/api/process-definitions/${definitionId}`)
+      ).json();
+      expect(detail.definition.status).toBe("Draft");
+      expect(detail.definition.pending_queue_item_id ?? null).toBeNull();
 
       const queue = await (
         await admin.get(
@@ -77,8 +83,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
         )
       ).json();
 
-      expect(queue.items.length).toBe(1);
-      expect(queue.items[0].item_type).toBe("ProcessDefinitionChange");
+      expect(queue.items).toHaveLength(0);
     });
 
     it("blocks Editors from activating a definition", async () => {
@@ -101,51 +106,31 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)(
       expect(body.error).toMatch(/publish/i);
     });
 
-    it("records a completed simulation test run", async () => {
+    it("keeps the removed simulation endpoint absent without creating a workflow run", async () => {
+      const before = await (await admin.get("/api/workflow-runs")).json();
       const started = await admin.postJson(
         `/api/process-definitions/${definitionId}/test-runs`,
         {},
       );
 
-      expect(started.status).toBe(201);
-      const { run } = await started.json();
-      expect(run.status).toBe("In Progress");
-
-      const completed = await admin.sendJson("PATCH", `/api/workflow-runs/${run.id}`, {
-        action: "complete_test",
-        notes: "Simulated owner confirmation path end to end.",
-      });
-
-      expect(completed.status).toBe(200);
-
-      const runPage = await admin.getHtml(`/workflow-runs/${run.id}`);
-      expect(runPage.response.status).toBe(200);
+      expect(started.status).toBe(404);
+      const after = await (await admin.get("/api/workflow-runs")).json();
+      expect(after.runs.map((run) => run.id).sort()).toEqual(
+        before.runs.map((run) => run.id).sort(),
+      );
     });
 
-    it("keeps the activate route retired even after the queue item is approved (F-SPACE-2)", async () => {
-      const detail = await (
-        await admin.get(`/api/process-definitions/${definitionId}`)
-      ).json();
-      const queueItemId = detail.definition.pending_queue_item_id;
-
-      const approve = await admin.sendJson(
+    it("rejects obsolete complete_test before looking up or changing any workflow run", async () => {
+      const response = await admin.sendJson(
         "PATCH",
-        `/api/approval-queue/${queueItemId}`,
+        "/api/workflow-runs/synthetic-nonexistent-run",
         {
-          action: "approve",
-          confirm_high_risk: true,
-          reason: "QA e2e: approve the pending process-definition queue item.",
+          action: "complete_test",
+          notes: "Synthetic obsolete command must not complete work.",
         },
       );
-      expect(approve.status).toBe(200);
-
-      // Even with the queue item approved, activation is retired: publish is the one path to Active.
-      const response = await admin.postJson(
-        `/api/process-definitions/${definitionId}/activate`,
-        {},
-      );
-
-      expect(response.status).toBe(409);
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toMatch(/action|invalid/i);
     });
   },
 );

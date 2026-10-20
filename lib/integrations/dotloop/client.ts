@@ -79,6 +79,7 @@ export interface DotloopAccessTokenProvider {
 
 export type DotloopClientErrorKind =
   | "refresh_needed"
+  | "access_denied"
   | "rate_limited"
   | "unavailable"
   | "not_found"
@@ -666,6 +667,13 @@ export class DotloopClient {
 
       if (response.status === 404) {
         throw new DotloopClientError("not_found", "Dotloop has no such resource.", 404);
+      }
+      if (response.status === 403) {
+        throw new DotloopClientError(
+          "access_denied",
+          "Dotloop denied access to this resource. The resource contents were not observed.",
+          403,
+        );
       }
       if (mutating && (response.status === 408 || response.status >= 500)) {
         throw new DotloopClientError(

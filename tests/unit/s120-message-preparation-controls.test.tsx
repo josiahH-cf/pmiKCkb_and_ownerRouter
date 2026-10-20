@@ -302,7 +302,7 @@ describe("S120 mounted message preparation", () => {
     // draft unavailable without blocking local copy.
     expect(
       screen.queryByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeNull();
+    ).toBeDisabled();
     expect(screen.getByRole("button", { name: "Copy recipients" })).toBeDisabled();
   });
 
@@ -657,7 +657,7 @@ describe("S120 mounted message preparation", () => {
     ).toHaveAttribute("target", "_blank");
     expect(
       screen.queryByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeNull();
+    ).toBeDisabled();
     expect(screen.queryByRole("link", { name: "Open Gmail Drafts" })).toBeNull();
   });
 });

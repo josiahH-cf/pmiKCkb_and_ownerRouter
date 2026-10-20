@@ -40,8 +40,11 @@ const BASELINE_PATH = join(
   __dirname,
   "..",
   "fixtures",
-  "s193-communications-full-view-presentation.json",
+  "s229-reviewed-draft-full-view-presentation.json",
 );
+// The bounded S229 repair restores deliberate unsent-draft controls and current manual-Gmail
+// instructions. Record that authorized presentation separately; S193 and all prior fixtures stay
+// immutable. The capability comparison below still requires every earlier unsent-preview button.
 // S187 changes the ordinary preparation destinations to Communications; S195 adds the source-bound
 // recommendation; S197 relocates the existing progress controls and adds local identity copies.
 // The S145 and S181 fixtures remain immutable. Only these named capability deltas are authorized.
@@ -76,13 +79,9 @@ function retiredLinks(testCase: BaselineCase) {
         `Prepare tenant message -> /lease-renewal/live/desk/lease/${testCase.leaseId}#renewal-section-tenant`,
       ];
 }
-// S193 retires only the two ordinary legacy draft controls and their empty regions.
+// Preserve the draft regions restored by the bounded S229 repair; only the named old links retire.
 function retiredEntry(field: string, entry: string, testCase: BaselineCase) {
-  return field === "links"
-    ? retiredLinks(testCase).includes(entry)
-    : field === "regions"
-      ? entry === "Unsent Gmail draft"
-      : false;
+  return field === "links" ? retiredLinks(testCase).includes(entry) : false;
 }
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
 const PINNED_NOW = new Date("2026-09-30T17:00:00.000Z");
@@ -330,11 +329,7 @@ describe("S145 preservation with authorized S187/S195/S197 presentation", () => 
           ].sort(),
         );
       }
-      expect(signature.buttons).toEqual(
-        expect.arrayContaining(
-          prior[name].buttons.filter((button) => button !== "Preview unsent Gmail draft"),
-        ),
-      );
+      expect(signature.buttons).toEqual(expect.arrayContaining(prior[name].buttons));
     }
   }, 120_000);
 });

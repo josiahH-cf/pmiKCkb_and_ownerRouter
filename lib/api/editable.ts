@@ -3,6 +3,7 @@ import { z } from "zod";
 import { EnvironmentContextError } from "@/lib/environment/descriptor";
 import { EditableLayerError, editableLayerErrorResponse } from "@/lib/firestore/errors";
 import { PublicationValidationError } from "@/lib/publication/validation";
+import { RenewalNoticeSourceError } from "@/lib/lease-renewal/notice-source-error";
 
 export async function parseJsonBody<T>(request: Request, schema: z.ZodType<T>) {
   const payload = await request.json().catch(() => {
@@ -51,6 +52,13 @@ export function noContent() {
 }
 
 export function apiErrorResponse(error: unknown) {
+  if (error instanceof RenewalNoticeSourceError) {
+    return NextResponse.json(
+      { code: error.code, reason: error.reason, error: error.message },
+      { status: error.status, headers: { "Cache-Control": "private, no-store" } },
+    );
+  }
+
   if (error instanceof SyntaxError) {
     return NextResponse.json({ error: "Invalid JSON request body." }, { status: 400 });
   }

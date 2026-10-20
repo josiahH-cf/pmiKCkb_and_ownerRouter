@@ -149,7 +149,11 @@ export class GmailHubService {
     const nowMs = this.now();
     const pushDegraded = Boolean(
       mailboxState &&
-      ((mailboxState.watch_expiration_ms ?? 0) <= nowMs ||
+      ((mailboxState.health === "watching" && mailboxState.watch_expiration_ms == null) ||
+        mailboxState.watch_attempt?.state === "claimed" ||
+        mailboxState.watch_attempt?.state === "ambiguous" ||
+        (mailboxState.watch_expiration_ms != null &&
+          mailboxState.watch_expiration_ms <= nowMs) ||
         (mailboxState.last_successful_sync_ms ?? 0) < nowMs - 24 * 60 * 60 * 1000),
     );
     return {

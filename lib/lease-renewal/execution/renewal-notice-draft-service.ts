@@ -19,6 +19,7 @@ import {
   prepareGovernedDraft,
   reconcileGovernedDraft,
   type GovernedDraftSeams,
+  type GovernedDraftPreClaimRefusal,
 } from "@/lib/external-execution/governed-draft-execution";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import type { RawLease } from "@/lib/integrations/rentvine/client";
@@ -99,6 +100,8 @@ export interface RenewalNoticeDraftDeps {
   ): Promise<ResolvedRenewalDraftAttachment>;
   /** Build a draft-capable Gmail client for the authenticated sender (subject === mailbox email). */
   createGmailClient(subject: string): RenewalDraftGmailClient;
+  /** Report a definite pre-claim failure only to this server-owned invocation. */
+  onPreClaimRefusal?: (failure: GovernedDraftPreClaimRefusal) => void;
   /** The signed-in operator; the S20 ledger owns approval, claim, and actor scope. */
   actor: AuthenticatedUser;
   /** Production uses the current review-only/approved registry; tests may inject an approved fixture. */
@@ -241,6 +244,7 @@ export async function finalizeRenewalNoticeDraft(
     action: preview.action as never,
     definition: LEASE_EXECUTION_DEFINITION_MAP.get(RENEWAL_NOTICE_DRAFT_ACTION_KEY)!,
     createClient: () => deps.createGmailClient(mailbox.email),
+    onPreClaimRefusal: deps.onPreClaimRefusal,
     ...(preview.attachment && deps.resolveCompScreenshotAttachment
       ? {
           resolveAttachment: (expected: RenewalDraftAttachmentIdentity) =>

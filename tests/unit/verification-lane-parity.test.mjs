@@ -32,6 +32,15 @@ function npmScripts(text) {
 
 const verifySh = readFileSync(join(root, "scripts", "verify.sh"), "utf8");
 const ciYml = readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8");
+// CI invokes these explicit command arrays through the OS-isolation driver. Follow only tasks
+// actually selected by workflow run steps, so a renamed/missing lane still fails this sentinel.
+const isolatedLanes = JSON.parse(
+  readFileSync(join(root, "scripts", "isolation", "lanes.json"), "utf8"),
+);
+const ciCommands = [...ciYml.matchAll(/isolated-verify\.py[^\n]*--task\s+([a-z-]+)/g)]
+  .flatMap((match) => isolatedLanes[match[1]] ?? [])
+  .map((args) => `npm ${args.join(" ")}`)
+  .join("\n");
 
 // Gates that MUST run in both lanes. Each one exists because something shipped past it before.
 const REQUIRED_IN_BOTH = [
@@ -53,7 +62,7 @@ const REQUIRED_IN_BOTH = [
 
 describe("S54 verification lane parity", () => {
   const local = npmScripts(verifySh);
-  const ci = npmScripts(ciYml);
+  const ci = npmScripts(`${ciYml}\n${ciCommands}`);
 
   it.each(REQUIRED_IN_BOTH)("scripts/verify.sh runs %s", (name) => {
     expect(local.has(name), `scripts/verify.sh does not run ${name}`).toBe(true);
@@ -70,5 +79,12 @@ describe("S54 verification lane parity", () => {
       { onlyLocal, onlyCi },
       "The two verification lanes have drifted. A gate that runs in only one lane means a regression can reach main through the other.",
     ).toEqual({ onlyLocal: [], onlyCi: [] });
+  });
+
+  it("public asset preparation preserves the native build command and default engine", () => {
+    const scripts = JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts;
+    expect(scripts.build).toBe("next build");
+    expect(local.has("build")).toBe(true);
+    expect(ci.has("build")).toBe(true);
   });
 });

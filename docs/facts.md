@@ -1,11 +1,77 @@
 # PMI KC facts
 
-Last reconciled: 2026-10-17 (verified guarded application delivery and independent production readbacks).
+Last reconciled: 2026-10-20 (failed focused build and source-only memory repair; no new deployment).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
 
 ## Current feature
+
+The separately approved bounded October 19 repair remains uncommitted, unintegrated and undeployed.
+The latest canonical attempt on source manifest
+`2bb46d841cf285ee2c94d3ee000305ce0c427e8ab9105a69deb06d629dcbb9e3` finished at
+2026-10-20T00:53:16Z with exit 1. The focused three-case S205 recovery file passed, then the
+complete unit inventory passed 9,633 tests with four existing configuration skips across 1,024
+files. All 464 backend tests across 81 files passed without skips. Actual clean installation,
+zero-finding production audit, format, lint, typecheck and all eight policy/budget checks passed.
+The default Next 16.3.8 Turbopack production build failed on twelve Poppins file resolutions:
+`request should be cloneable` while fetching the prepared `/opt/public-fonts/` URLs. This is a
+failed whole gate; it proves neither a production build nor CI/mainline readiness.
+
+The cache hook used a local-file shortcut supported by the installed Node loader, while the exact
+Turbopack version's hook replaces CSS and still fetches font-file URLs over HTTP. The repair
+provides nonce-bound loopback HTTP for the original verified font bytes entirely inside
+each isolated namespace. It retains the default build, Poppins declaration, anonymous bounded
+acquisition, read-only data maps, all seventeen controls and strict emitted-font hash checks. The
+owned chrooted server has only digest routes, no proxy or general file access; its parent pins a
+pidfd before application code and requires exact normal shutdown.
+
+The v10 focused attempt on manifest `d7a9ef0f` finished at 2026-10-20T01:47:12Z with exit 1.
+Installation, zero-finding audit, eight policies, all nine commands' seventeen controls and all nine
+normal font-child closures passed. Default Turbopack compiled in 33.6 seconds; post-failure
+inspection found twelve emitted WOFF2 files matching the original public hash set. The actual build
+then failed its TypeScript child at the 1536 MiB heap limit after 72.934 seconds. Sampled aggregate
+build RSS peaked at 3,555,557,376 bytes, with no aggregate/deadline termination. Canonical did not
+start. Independent overall closure found all fifteen groups, nine namespaces and nine control ports
+absent, no mounts or missing writers, and all 2,885 source hashes unchanged. The entire loan is
+returned; immutable failure evidence has 205 archive entries. Partial compilation/font emission
+does not prove a whole build or qualify later source.
+
+Prepared source now adds explicit build-only heap selection, numeric owned-process RSS evidence and
+CI policy-build bounds of 3072 MiB heap/6144 MiB aggregate. Defaults and all other lanes remain
+unchanged. The changed driver needs a new pinned actual cleanup proof, focused default build and
+fresh canonical under matching resource allocations; none is currently granted or run. No prior
+build output or remaining loan is reused.
+
+The failed v9 run returned within its 1,500-second whole-phase bound, including cleanup. Final
+independent readbacks found all 24 owned groups, fifteen namespaces and fifteen host-control ports
+absent, no global mounts or missing result receipts, and all 2,884 source hashes unchanged. The
+entire resource loan is returned. Its raw archive and every earlier failed/interrupted gate remain
+immutable outside Git. The generic leader-first pidfd timeout proof passed on the unchanged public
+supervisor; it does not qualify the newly changed driver. Earlier focused
+131-unit/40-backend results retain only their `fd980551` source coverage and are not added to v9.
+
+The S205 repair controls the pending read and awaits React effects while retaining strict version
+3, typed wording, one read and a new operation identity. It passed both the focused file and full
+unit inventory. No product hook or retired maintenance admission changed, and the ordering diagnosis
+does not establish a live maintenance defect. Served/core E2E, browser qualification, actual CI and
+mainline integration remain pending. No new production deployment is authorized. The full managed
+identity/traffic and public-version observation at 2026-10-19T17:08:55.472162Z still recorded the
+October 17 A7 release below at 100% traffic; no fresh production observation is inferred from v9.
+
+Fresh typed Dotloop reads at 17:42 UTC returned account/profiles 200, individual templates
+200 with zero results, and company templates 403. The current reason for that provider refusal and
+the reported active template's owning visibility remain unestablished. Saved selection was absent
+in the 17:15 UTC configuration read. The
+17:29UTC configuration read found no current artifact catalog/charge policy and no saved source
+mapping, packet input, head or snapshot records. Both Dotloop write keys remain closed. These are
+capability-specific input/visibility holds, not a request to recreate the existing template.
+
+At 19:14 UTC the approved local CLI/ADC refresh passed READY and GitHub remained logged in.
+At 19:16 UTC the normal keyless Gmail read-only profile matched the approved managed subject.
+Saved mailbox state reported connected, a successful-sync age below 24 hours and no watch expiry
+or pending watch attempt. No mailbox bodies, draft, send or subscription operation was used.
+This raw metadata read is not a claim that the unreleased health projection is serving.
 
 Run `d33c7174-23b1-4126-ac11-657738b1864f` released S227-S229 plus the scoped Notifications latency repair at
 `a7bce0981badc7523a6498949b6ea5f2effb198e` / `pmi-kc-app-rmvc9kmq6-1c2699db16f8` with 100% canonical traffic. One application build

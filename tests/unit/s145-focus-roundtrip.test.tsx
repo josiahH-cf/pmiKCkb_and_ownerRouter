@@ -29,10 +29,13 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 
 const BASELINE = JSON.parse(
   readFileSync(
-    join(__dirname, "..", "fixtures", "s193-communications-full-view-presentation.json"),
+    join(__dirname, "..", "fixtures", "s229-reviewed-draft-full-view-presentation.json"),
     "utf8",
   ),
 ) as Record<string, ReturnType<typeof fullViewSignature>>;
+// The authorized S229 repair adds the reviewed unsent-draft regions. Use its separately recorded
+// presentation for every round trip; S193 and all prior fixtures stay immutable. The complete
+// signature, keyboard/disclosure checks and zero-request/write/navigation assertions still apply.
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
 const PINNED_NOW = new Date("2026-09-30T17:00:00.000Z");
 

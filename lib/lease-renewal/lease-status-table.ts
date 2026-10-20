@@ -4,6 +4,7 @@ import {
   type NoticeSourceAdmission,
 } from "./notice-source-admission";
 import type { LeaseStatusTableRead } from "@/lib/lease-renewal/move-out-disposition";
+import { RenewalNoticeSourceError } from "./notice-source-error";
 
 // S124: one bounded, memoized read of the documented RentVine lease status table (`GET
 // /leases/statuses`). The table is account configuration, not customer data, and changes rarely; a
@@ -135,7 +136,9 @@ export async function readLeaseStatusTableForAdmission(
     ) ||
     !accepted()
   ) {
-    throw new Error("The status source did not admit the requested notice context.");
+    throw new RenewalNoticeSourceError(
+      result.status !== "available" ? "status_unavailable" : "status_not_admitted",
+    );
   }
   return result;
 }

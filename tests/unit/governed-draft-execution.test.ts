@@ -33,6 +33,7 @@ import {
   reconcileExternalActionWithS20,
 } from "@/lib/external-execution/s20-bridge";
 import { getActionExecution } from "@/lib/firestore/action-executions";
+import { EditableLayerError } from "@/lib/firestore/errors";
 import { LEASE_EXECUTION_DEFINITION_MAP } from "@/lib/lease-renewal/execution/matrix";
 import type { RenewalDraftGmailClient } from "@/lib/lease-renewal/execution/live-gmail-draft-provider";
 import { ActionNotExecutableError } from "@/lib/integrations/action-gate";
@@ -96,6 +97,7 @@ function harness(options: HarnessOptions = {}) {
   const db = new FakeFirestore();
   const firestore = db as unknown as Firestore;
   const attention: LiveEffectAttentionEvent[] = [];
+  const preClaimRefusal = vi.fn();
   const createDraft = vi.fn(
     options.createDraftImpl ?? (async () => ({ draftId: "draft-1" })),
   );
@@ -125,9 +127,11 @@ function harness(options: HarnessOptions = {}) {
     action: action as never,
     definition: LEASE_EXECUTION_DEFINITION_MAP.get(RENEWAL_NOTICE_DRAFT_ACTION_KEY)!,
     createClient,
+    onPreClaimRefusal: preClaimRefusal,
   });
   return {
     attention,
+    preClaimRefusal,
     createClient,
     createDraft,
     db,
@@ -143,6 +147,48 @@ beforeEach(() => {
 });
 
 describe("governed draft — one attempt through the S20 ledger", () => {
+  it("distinguishes a pre-claim refusal from the same exception object after a committed create", async () => {
+    const h = harness();
+    const prepared = await prepareGovernedDraft(actor, h.request(), h.seams);
+    const confirmed = {
+      ...h.request(),
+      executionId: prepared.id,
+      previewHash: prepared.preview_hash,
+    };
+    const reused = new EditableLayerError("Synthetic pre-claim refusal", 409);
+    await expect(
+      executeGovernedDraft(actor, confirmed, {
+        ...h.seams,
+        assertEffectEnvironment: () => {
+          throw reused;
+        },
+      }),
+    ).rejects.toBe(reused);
+    expect(h.preClaimRefusal).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 409 }),
+    );
+    expect(h.createClient).not.toHaveBeenCalled();
+    expect(await getActionExecution(actor, prepared.id, h.firestore)).toMatchObject({
+      state: "Ready",
+      attempt_count: 0,
+    });
+    h.preClaimRefusal.mockClear();
+    await expect(
+      executeGovernedDraft(actor, confirmed, {
+        ...h.seams,
+        execute: async (user, input) => {
+          await h.seams.execute!(user, input);
+          throw reused;
+        },
+      }),
+    ).rejects.toBe(reused);
+    expect(h.preClaimRefusal).not.toHaveBeenCalled();
+    expect(h.createDraft).toHaveBeenCalledTimes(1);
+    expect(await getActionExecution(actor, prepared.id, h.firestore)).toMatchObject({
+      state: "Succeeded",
+      attempt_count: 1,
+    });
+  });
   it("prepares without contacting Gmail and stamps a deterministic RFC Message-ID", async () => {
     const h = harness();
     const action = draftAction();
@@ -188,17 +234,19 @@ describe("governed draft — one attempt through the S20 ledger", () => {
     };
     const prepared = await prepareGovernedDraft(actor, request, h.seams);
 
-    await expect(
-      executeGovernedDraft(
-        actor,
-        {
-          ...request,
-          executionId: prepared.id,
-          previewHash: prepared.preview_hash,
-        },
-        h.seams,
-      ),
-    ).rejects.toBeInstanceOf(ActionNotExecutableError);
+    const refusal = await executeGovernedDraft(
+      actor,
+      {
+        ...request,
+        executionId: prepared.id,
+        previewHash: prepared.preview_hash,
+      },
+      h.seams,
+    ).catch((error: unknown) => error);
+    expect(refusal).toBeInstanceOf(ActionNotExecutableError);
+    expect(h.preClaimRefusal).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 409 }),
+    );
     expect(request.resolveAttachment).toHaveBeenCalledWith(
       TEST_RENEWAL_ATTACHMENT_IDENTITY,
     );
@@ -241,17 +289,19 @@ describe("governed draft — one attempt through the S20 ledger", () => {
     };
     const prepared = await prepareGovernedDraft(actor, request, h.seams);
 
-    await expect(
-      executeGovernedDraft(
-        actor,
-        {
-          ...request,
-          executionId: prepared.id,
-          previewHash: prepared.preview_hash,
-        },
-        h.seams,
-      ),
-    ).rejects.toThrow(/bytes.*reviewed identity/i);
+    const refusal = await executeGovernedDraft(
+      actor,
+      {
+        ...request,
+        executionId: prepared.id,
+        previewHash: prepared.preview_hash,
+      },
+      h.seams,
+    ).catch((error: unknown) => error);
+    expect(String(refusal)).toMatch(/bytes.*reviewed identity/i);
+    expect(h.preClaimRefusal).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 409 }),
+    );
     expect(h.createClient).not.toHaveBeenCalled();
   });
 

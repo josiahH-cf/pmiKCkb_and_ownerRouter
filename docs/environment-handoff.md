@@ -1,8 +1,25 @@
 # Environment and release handoff
 
-Updated 2026-10-17 (UTC).
+Updated 2026-10-20 (UTC).
 
-The named October operations instruction and AGENTS.md continuity carry the authorized scope
+Current execution is the separately approved bounded repair on the owned native branch
+`codex/bounded-repair-20261019`, with original checkouts preserved. The latest v9 attempt on
+manifest `2bb46d84` passed 9,633 units with four existing configuration skips, all 464 backend
+tests without skips and all policy checks. Its default Turbopack build failed on prepared Poppins
+local-file URLs, so the whole gate remains failed. The v10 focused loopback-font lane on `d7a9ef0f`
+passed all nine commands' seventeen controls and normal child closures, then compiled default
+Turbopack before its TypeScript worker exhausted 1536 MiB. The build failed and canonical never
+started. Independent final closure found all fifteen groups/nine namespaces/nine control ports
+drained, no mounts or missing writers, and unchanged source. The whole loan is returned. Prepared
+build-only heap/RSS bounds are 3072/6144 MiB, with defaults and other lanes unchanged. The changed
+driver requires a newly pinned actual cleanup proof and focused/full qualification under new
+allocations; no runtime is granted. Earlier focused/failed attempts keep their exact scopes.
+Served/core E2E, browser checks, actual CI, review and integration remain. Further execution needs
+a fresh actual source/plan/resource handoff, preserving the original bounds and cleanup proof gate.
+No release is admitted or authorized by this repair, and no old consumed permit can be reused.
+The October 17 record follows.
+
+The completed October 16 operations instruction and AGENTS.md continuity carried that authorized scope
 through necessary Cloud Build/Cloud Run actions, diagnosed/verified repairs, resumes/replacements,
 promotion, receipt-bound recovery and documentation closure. Attempt counts and phase transitions
 do not require another consent. Technical gates, real inputs and exact effect boundaries remain.

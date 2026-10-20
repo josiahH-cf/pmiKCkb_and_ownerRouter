@@ -37,6 +37,8 @@ import {
   type LeaseDetailReader,
 } from "@/lib/integrations/rentvine/lease-detail-enrichment";
 import { leaseViewsFromExport } from "@/lib/integrations/rentvine/lease-mapper";
+import { EditableLayerError } from "@/lib/errors/editable-layer-error";
+import { RenewalNoticeSourceError } from "./notice-source-error";
 
 export { LEASE_DETAIL_READ_CONCURRENCY };
 
@@ -110,13 +112,14 @@ export type AttemptedLiveLeaseSnapshotResult =
   | { status: "unavailable" };
 
 /** Thrown by requireCurrentLeaseViews when the served data is at or beyond the hard max age. */
-export class LeaseDataExpiredError extends Error {
+export class LeaseDataExpiredError extends EditableLayerError {
   readonly ageMs: number;
   constructor(ageMs: number) {
     super(
       `The live lease data is ${Math.round(ageMs / 60_000)} minutes old, past the ${Math.round(
         LEASE_EXPORT_MAX_AGE_MS / 60_000,
       )}-minute maximum. Refresh the desk before composing or recording.`,
+      409,
     );
     this.name = "LeaseDataExpiredError";
     this.ageMs = ageMs;
@@ -385,7 +388,7 @@ export async function readLiveLeaseSnapshotForAdmission(
   }
   if (!snapshot) snapshot = await readOnce(reader, nowMs);
   if (!accepted(snapshot)) {
-    throw new Error("The lease source did not admit the requested notice context.");
+    throw new RenewalNoticeSourceError("lease_not_admitted");
   }
   return {
     snapshot,

@@ -56,6 +56,7 @@ import {
   type RenewalNoticeDraftOutcome,
 } from "@/lib/lease-renewal/execution/renewal-notice-draft-contract";
 import { formatRecipientsForCopy } from "@/lib/lease-renewal/recipient-resolution";
+import { GEMINI_IN_GMAIL_HINT } from "@/lib/email-refinement/hint";
 import { RefineWithAi } from "@/components/email/RefineWithAi";
 import {
   AuthoredSubjectSchema,
@@ -367,7 +368,11 @@ function MessagePreparationEditor({
   const [commitTick, setCommitTick] = useState(0);
   const [pending, setPending] = useState(false),
     [notice, setNotice] = useState("");
+  const [confirming, setConfirming] = useState(false);
   const [outcome, setOutcome] = useState<RenewalNoticeDraftOutcome | null>(null);
+  // A lost preview response may have saved the wording. Retry the same request identity while
+  // its exact local state and expected revision match; never invent another save on uncertainty.
+  const previewSaveIdentity = useRef<{ key: string; operationId: string } | null>(null);
   const [loadedAtIso, setLoadedAtIso] = useState<string | null>(null);
   const base = useId();
   const loadSequence = useRef(0);
@@ -818,52 +823,164 @@ function MessagePreparationEditor({
       openingComposer.current = false;
     }
   }
-  /** Recovery uses the original persisted snapshot; it never prepares or dispatches a new draft. */
+  /**
+   * S162: the deliberate unsent-draft step. The preview request carries exactly what is displayed
+   * and, when it is not saved yet, the message itself, so the one action saves, binds and previews
+   * it. Creation stays a separate exact confirmation of that preview. Nothing is ever sent.
+   */
+  async function draft(
+    kind: "preview" | "create" | "reconcile",
+    priorExecutionId?: string,
+  ) {
+    setPending(true);
+    setConfirming(false);
+    setNotice("");
+    try {
+      let preview: Record<string, unknown> = {};
+      let savedWith: string | null = null;
+      if (kind === "preview") {
+        // An autosave already on its way finishes first, so the two never save over each other.
+        await saving.current?.catch(() => undefined);
+        const server = currentRef.current;
+        if (!server || !shownContent) return;
+        const state = savePayload(localRef.current, server);
+        if (state.wordingUnfinished) {
+          setNotice(
+            "The wording has characters that cannot be saved, so no draft was prepared. Remove double braces and control characters, then preview again.",
+          );
+          return;
+        }
+        const serialized = canonical(state.value);
+        const needsSave = serialized !== lastSavedRef.current || !server.saved;
+        if (needsSave) savedWith = serialized;
+        const saveKey = canonical({
+          leaseId,
+          channel,
+          sender: server.senderEmail,
+          cycleId: server.cycleId,
+          revision: server.saved?.revision ?? 0,
+          value: state.value,
+        });
+        if (needsSave && previewSaveIdentity.current?.key !== saveKey)
+          previewSaveIdentity.current = {
+            key: saveKey,
+            operationId: crypto.randomUUID(),
+          };
+        preview = {
+          displayed: { subject: shownContent.subject, body: shownContent.plainText },
+          ...(needsSave
+            ? {
+                save: {
+                  ...(server.cycleId ? { cycleId: server.cycleId } : {}),
+                  expectedRevision: server.saved?.revision ?? 0,
+                  operationId: previewSaveIdentity.current!.operationId,
+                  ...state.value,
+                },
+              }
+            : {}),
+        };
+      }
+      const request = {
+        kind: "draft",
+        leaseId,
+        channel,
+        ...preview,
+        ...(kind === "create" && outcome?.status === "preview"
+          ? {
+              confirm: {
+                executionId: outcome.executionId,
+                previewHash: outcome.previewHash,
+              },
+            }
+          : {}),
+        ...(kind === "reconcile" &&
+        (priorExecutionId || (outcome && "executionId" in outcome))
+          ? {
+              reconcile: {
+                executionId:
+                  priorExecutionId ??
+                  (outcome && "executionId" in outcome ? outcome.executionId : ""),
+              },
+            }
+          : {}),
+      };
+      const response = await fetch("/api/lease-renewal/message-preparation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(request),
+      });
+      const data = await response.json();
+      if (!response.ok && data.providerCallAttempted === false) {
+        setNotice(data.error);
+        if (kind === "create") setOutcome(null);
+        // The message was saved but reads differently now: show the current message.
+        if (data.code === "message_changed") {
+          if (savedWith) lastSavedRef.current = savedWith;
+          await load().catch(() => undefined);
+        }
+        return;
+      }
+      if (!response.ok)
+        throw new Error(
+          data.error ??
+            "Gmail drafting is unavailable. Copy remains available; no new draft is confirmed.",
+        );
+      if (savedWith) {
+        // The draft action saved the message. Read its new revision; what is on screen stays.
+        lastSavedRef.current = savedWith;
+        outstanding.current = null;
+        await load().catch(() => undefined);
+      }
+      const parsed = RenewalNoticeDraftOutcomeSchema.parse(data);
+      previewSaveIdentity.current = null;
+      setOutcome(parsed);
+      if (parsed.status === "blocked") setNotice(parsed.reasons.join(" "));
+      if (parsed.status === "created")
+        setNotice(
+          kind === "reconcile"
+            ? "The existing unsent Gmail draft is confirmed. Nothing was sent."
+            : "An unsent Gmail draft was created and recorded. Review it in Gmail before you send it; a person sends it.",
+        );
+      if (parsed.status === "needs_reconciliation" || parsed.status === "reconciliation")
+        setNotice(parsed.reason);
+    } catch (error) {
+      setNotice(
+        error instanceof Error
+          ? error.message
+          : "Gmail drafting failed. Copy remains available.",
+      );
+      if (kind === "create" && outcome?.status === "preview")
+        setOutcome({
+          status: "needs_reconciliation",
+          channel,
+          executionId: outcome.executionId,
+          reason:
+            "The create response is uncertain. Recover this exact attempt before preparing another draft.",
+        });
+    } finally {
+      setPending(false);
+    }
+  }
+  const unresolved =
+    outcome?.status === "needs_reconciliation" ||
+    (outcome?.status === "reconciliation" && outcome.resolution !== "created");
+  // S162 (R-S162-5, R-S162-9): only what the exact Gmail action needs is asked of it. Missing
+  // business values, an unrecorded response and an unsaved message never withhold the step.
+  const canDraft = Boolean(
+    canEdit &&
+    current &&
+    shownContent &&
+    current.publication.status === "approved" &&
+    !unresolved,
+  );
+  /** Recover only an existing exact attempt; absence never falls through to a new preview. */
   async function recoverDraft(priorExecutionId?: string) {
     const executionId =
       priorExecutionId ??
       (outcome && "executionId" in outcome
         ? outcome.executionId
         : current?.draftAttempt?.executionId);
-    if (!executionId) return;
-    setPending(true);
-    setNotice("");
-    try {
-      const response = await fetch("/api/lease-renewal/message-preparation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: "draft",
-          leaseId,
-          channel,
-          reconcile: { executionId },
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(
-          data.error ??
-            "The earlier Gmail attempt could not be read. Its recorded status is kept.",
-        );
-      const parsed = RenewalNoticeDraftOutcomeSchema.parse(data);
-      setOutcome(parsed);
-      if (parsed.status === "blocked") setNotice(parsed.reasons.join(" "));
-      else if (parsed.status === "created")
-        setNotice("The earlier unsent draft is confirmed. Nothing was sent.");
-      else if (
-        parsed.status === "needs_reconciliation" ||
-        parsed.status === "reconciliation"
-      )
-        setNotice(parsed.reason);
-    } catch (error) {
-      setNotice(
-        error instanceof Error
-          ? error.message
-          : "The earlier attempt could not be recovered. Retry reads this same attempt.",
-      );
-    } finally {
-      setPending(false);
-    }
+    if (executionId) await draft("reconcile", executionId);
   }
   const paragraph = responseRequestParagraph(
     channel,
@@ -897,7 +1014,8 @@ function MessagePreparationEditor({
         Compose {channel} message in Communications
       </a>
       <p className="muted">
-        Edits save in the app. Open Communications to review and Send or Schedule.
+        Edits save in the app. Review an unsent Gmail draft below. A person sends from
+        Gmail; app sending and scheduling are unavailable.
       </p>
       {notice ? <p role="status">{notice}</p> : null}
       {[...new Set(current?.notices ?? [])].map((value) => (
@@ -1034,7 +1152,7 @@ function MessagePreparationEditor({
               <Field
                 htmlFor={MESSAGE_CONTROL_IDS.body(channel)}
                 label="Email body"
-                hint="Copy uses the wording shown, including unresolved markers. Communications validates the current message before Send or Schedule."
+                hint="Copy uses the wording shown, including unresolved markers. The unsent Gmail draft validates the current message before exact creation confirmation."
               >
                 <textarea
                   className="renewal-message-body"
@@ -1132,15 +1250,112 @@ function MessagePreparationEditor({
               </fieldset>
             </>
           ) : null}
+          <section
+            aria-label="Unsent Gmail draft"
+            className="ui-stack-tight renewal-message-group"
+          >
+            <h3 className="renewal-message-group-title">Unsent Gmail draft</h3>
+            {current.publication.status !== "approved" ? (
+              <p className="muted">{current.publication.reason}</p>
+            ) : null}
+            <div className="ui-actions">
+              {canEdit ? (
+                <Button disabled={!canDraft || pending} onClick={() => draft("preview")}>
+                  Preview unsent Gmail draft
+                </Button>
+              ) : null}
+            </div>
+            {outcome?.status === "preview" ? (
+              <div className="ui-stack">
+                <p>
+                  From {current.senderEmail} · To {outcome.recipient.to}
+                  {outcome.recipient.cc?.length
+                    ? ` · Cc ${outcome.recipient.cc.join(", ")}`
+                    : ""}
+                </p>
+                <p>{outcome.subject}</p>
+                <div className="draft-box">{outcome.body}</div>
+                {current.draftAttempt?.outcome?.status === "created" &&
+                current.draftAttempt.executionId !== outcome.executionId ? (
+                  <p role="note">
+                    A Gmail draft from an earlier version of this message already exists.
+                    Creating this one adds a second, separate unsent draft; the app cannot
+                    replace the earlier one, so delete it in Gmail and send only one.
+                  </p>
+                ) : null}
+                {outcome.attachment ? (
+                  <p>
+                    {outcome.attachment.label} · {outcome.attachment.mimeType} ·{" "}
+                    {outcome.attachment.sizeBytes} bytes
+                  </p>
+                ) : null}
+                {!confirming ? (
+                  <Button
+                    disabled={pending || !canDraft}
+                    onClick={() => setConfirming(true)}
+                  >
+                    Review creation confirmation
+                  </Button>
+                ) : (
+                  <div role="group" aria-label="Confirm exact unsent draft">
+                    <p>
+                      Create this exact unsent draft, with the recipients and wording
+                      shown above, in the displayed managed mailbox? Nothing is sent.
+                      Review it in Gmail before you send it; anything still marked stays
+                      marked in the draft.
+                    </p>
+                    <Button onClick={() => setConfirming(false)}>Cancel</Button>
+                    <Button
+                      disabled={pending || !canDraft}
+                      onClick={() => draft("create")}
+                    >
+                      Create this unsent draft
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : null}
+            {unresolved ? (
+              <div>
+                <p>
+                  Do not create a duplicate. Recover this exact attempt; copy remains
+                  available.
+                </p>
+                <Button disabled={pending} onClick={() => recoverDraft()}>
+                  Recover exact Gmail attempt
+                </Button>
+              </div>
+            ) : null}
+            {outcome && "draftId" in outcome && outcome.draftId ? (
+              <p className="muted">
+                {current.destinations?.gmailDrafts ? (
+                  <a
+                    href={current.destinations.gmailDrafts.href}
+                    target={EXTERNAL_LINK_TARGET}
+                    rel={EXTERNAL_LINK_REL}
+                  >
+                    Open the Drafts folder to find this draft
+                  </a>
+                ) : (
+                  "Open the Drafts folder in your managed Gmail mailbox to find this draft."
+                )}{" "}
+                Mailbox: {current.senderEmail}. A person sends from Gmail.
+              </p>
+            ) : null}
+            {outcome?.status === "created" ||
+            (outcome?.status === "reconciliation" && outcome.resolution === "created") ? (
+              <p className="muted">{GEMINI_IN_GMAIL_HINT}</p>
+            ) : null}
+          </section>
           {current.draftAttempt || outcome ? (
             <details className="ui-stack-tight renewal-message-group">
               <summary>Earlier Gmail draft</summary>
               <p>
-                This earlier attempt keeps its original status. New messages open in
-                Communications.
+                This recorded attempt keeps its original status. New Gmail drafts use the
+                exact preview and confirmation above.
               </p>
               <p>{current.draftAttempt?.state ?? outcome?.status}</p>
-              {current.draftAttempt?.recoveryAvailable || outcome ? (
+              {current.draftAttempt?.recoveryAvailable && !unresolved ? (
                 <Button disabled={pending} onClick={() => recoverDraft()}>
                   Recover exact Gmail attempt
                 </Button>
@@ -1710,7 +1925,8 @@ function MessagePreparationEditor({
               </p>
               <p>
                 Signed-in sender: {current.senderEmail}. Communications resolves the
-                responsible sender and current recipients again before Send or Schedule.
+                responsible sender and current recipients for its saved app draft. Gmail
+                creation separately rechecks the source and exact confirmation.
               </p>
               <p>
                 Message template: {current.publication.status}
@@ -1718,8 +1934,9 @@ function MessagePreparationEditor({
                 {current.publication.reason ?? ""}
               </p>
               <p>
-                Editing and copy remain available. Open Communications to review the exact
-                message, recipients and attachments, then choose Send or Schedule.
+                Editing and copy remain available. Review the exact recipients, wording
+                and attachments before creating an unsent Gmail draft. A person sends from
+                Gmail.
               </p>
             </details>
           ) : null}

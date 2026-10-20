@@ -921,7 +921,7 @@ describe(
       );
       expect(
         within(card).queryByRole("button", { name: "Preview unsent Gmail draft" }),
-      ).toBeNull();
+      ).toBeEnabled();
       expect(posts).toHaveLength(0);
 
       // Opening Gmail and coming back records nothing: the offer is still outstanding staff work.

@@ -156,7 +156,7 @@ describe("S193 preserves source diagnostics while retiring the old draft preflig
     expect(panel).toHaveAttribute("id", "renewal-message-tenant-sources");
     expect(panel).toHaveTextContent(SENDER);
     expect(panel).toHaveTextContent("Exact publication pending.");
-    expect(panel).toHaveTextContent("Send or Schedule");
+    expect(panel).toHaveTextContent("A person sends from Gmail");
     expect(panel).not.toHaveTextContent("only a person sends in Gmail");
     expect(
       screen.getByRole("button", { name: "Copy formatted body" }),
@@ -166,7 +166,7 @@ describe("S193 preserves source diagnostics while retiring the old draft preflig
     ).toHaveAttribute("href", "/gmail-hub?compose=renewal_tenant&lease=701");
     expect(
       screen.queryByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeNull();
+    ).toBeDisabled();
     expect(calls).toEqual(["GET /api/lease-renewal/message-preparation"]);
   });
   it("keeps missing values, signature guidance and policy links as editable information", async () => {

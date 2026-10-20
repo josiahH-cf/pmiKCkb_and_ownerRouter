@@ -543,7 +543,7 @@ describe("notice source coherence across independent runtime caches", () => {
     });
     await expect(
       a.helper.readAdmittedRenewalNoticeLease(actor, "9001", provider, Date.now(), db),
-    ).rejects.toThrow("changed during its bounded read");
+    ).rejects.toMatchObject({ status: 409, reason: "lease_minimum_advanced" });
     expect(provider.listAllLeasesExport).toHaveBeenCalledTimes(3);
     expect(provider.listLeaseStatuses).toHaveBeenCalledTimes(1);
     // Failed work vacates the shared slot; a later bounded read can recover normally.

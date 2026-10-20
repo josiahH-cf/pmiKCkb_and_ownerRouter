@@ -208,6 +208,7 @@ export async function runFullyLiveRenewalReview(
 
   const result = await runLiveRenewalReview({
     rentvineClient: options.rentvineClient,
+    leaseRead: options.leaseRead,
     runId: options.runId,
     readTimestamp: options.readTimestamp,
     fieldMap: options.fieldMap,

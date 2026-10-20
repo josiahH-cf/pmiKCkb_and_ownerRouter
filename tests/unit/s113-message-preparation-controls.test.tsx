@@ -148,7 +148,7 @@ describe("S113 mounted message preparation", () => {
     );
     expect(
       screen.queryByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeNull();
+    ).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Copy plain text" }));
     await screen.findByText(
       "Clipboard access was denied. Select and copy the subject or body below; your wording is kept.",
@@ -162,15 +162,16 @@ describe("S113 mounted message preparation", () => {
     expect(screen.getByLabelText("Email body")).not.toHaveAttribute("readonly");
     expect(fetch).toHaveBeenCalledTimes(1);
   });
-  it("keeps local copy while legacy creation is retired", async () => {
+  it("keeps local copy and requires published content before an unsent preview", async () => {
     const fetch = vi.fn(async () => Response.json(readyPreparation()));
     vi.stubGlobal("fetch", fetch);
     render(<RenewalMessagePreparation channel="tenant" canEdit />);
     await screen.findByLabelText("Email body");
     expect(
-      screen.queryByRole("button", {
-        name: /Preview unsent|Create this unsent|Review creation/,
-      }),
+      screen.getByRole("button", { name: "Preview unsent Gmail draft" }),
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: /Create this unsent|Review creation/ }),
     ).toBeNull();
     expect(
       screen.getByRole("link", { name: "Compose tenant message in Communications" }),
@@ -225,7 +226,7 @@ describe("S113 mounted message preparation", () => {
     expect(screen.queryByText(/Your edits are retained/)).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Preview unsent Gmail draft" }),
-    ).toBeNull();
+    ).toBeDisabled();
     // Leaving the field saves the entry as typed, naming the work record the server reported.
     fireEvent.blur(prose);
     await waitFor(() => expect(posts).toHaveLength(1));

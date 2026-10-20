@@ -1,6 +1,20 @@
 # Current status
 
-Updated: 2026-10-17 (UTC).
+Updated: 2026-10-20 (UTC).
+
+The bounded October 19 source repair is uncommitted, unintegrated and undeployed. The latest
+canonical attempt on manifest `2bb46d84` passed all 9,633 unit tests with four existing skips,
+all 464 backend tests without skips, install/audit/format/lint/typecheck and eight policy checks.
+Its default Next 16.3.8 Turbopack build failed on twelve prepared Poppins local-file URLs, so the
+whole gate is failed. The v10 focused lane on `d7a9ef0f` passed all nine commands' seventeen controls
+and normal font-child closures, compiled default Turbopack in 33.6 seconds, then failed its
+TypeScript worker at the 1536 MiB heap limit. Canonical never started; twelve matching emitted
+WOFF2 files are partial evidence only. All fifteen groups/nine namespaces/nine control ports
+drained, source matched and the whole loan returned. A source-only explicit build-heap/RSS repair
+now needs a newly bound cleanup proof and fresh focused/full qualification; no runtime is granted.
+Earlier focused/failed attempts retain their own exact scopes.
+Served/core E2E, browser tests, CI, review and green integration remain. No live performance/provider
+improvement is inferred; no new production deployment is authorized. The release below stays complete.
 
 Run `d33c7174-23b1-4126-ac11-657738b1864f` released S227-S229 plus the scoped Notifications latency repair at
 `a7bce0981badc7523a6498949b6ea5f2effb198e` / `pmi-kc-app-rmvc9kmq6-1c2699db16f8` with 100% canonical traffic. One application build

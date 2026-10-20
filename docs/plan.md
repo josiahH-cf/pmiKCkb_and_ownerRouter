@@ -1,8 +1,25 @@
 # Current plan
 
-Updated: 2026-10-17 (UTC).
+Updated: 2026-10-20 (UTC).
 
 ## Outcome
+
+Complete the separately approved bounded repair through real full qualification, independent
+review and normal green mainline. Current repairs preserve available message editing while strict
+source admission holds drafting, restore deliberate governed unsent drafting/recovery, retain true
+Dashboard source age, avoid a redundant lease export, and strengthen packet/template diagnostics.
+The latest v9 source passed 9,633 units with four existing skips, all 464 backend tests without
+skips and required policy checks, but its actual default Turbopack build failed on local-file
+Poppins URLs. The v10 isolated loopback repair passed all nine commands' seventeen controls and
+normal font-child closures, then compiled default Turbopack before its TypeScript worker exhausted
+1536 MiB. The whole build failed and canonical did not start. Overall drain/source closure passed
+and the entire loan returned. Prepare explicit build-only 3072 MiB heap/6144 MiB aggregate bounds
+and numeric owned-process RSS evidence, preserving defaults, other lanes and all checks. The
+changed driver needs a newly pinned actual cleanup proof, focused default build/emitted-font check
+and separate fresh canonical under matching new resource handoffs. No runtime or leftover-time
+retry is authorized. Served/core E2E, browser tests, CI, independent
+review and green integration still follow their real prerequisites. Earlier results retain their
+own source scopes. No new deployment is authorized.
 
 S227-S229 and the necessary Notifications latency repair are verified deployed. Maintenance is
 retired with authorized read-only history; renewal and permitted unsent communications remain.

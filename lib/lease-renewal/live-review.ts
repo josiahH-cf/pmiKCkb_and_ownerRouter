@@ -13,7 +13,10 @@
 import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
-import { getLiveLeaseSnapshot } from "@/lib/lease-renewal/live-lease-cache";
+import {
+  getLiveLeaseSnapshot,
+  type LiveLeaseCurrency,
+} from "@/lib/lease-renewal/live-lease-cache";
 import {
   runFullyLiveRenewalReview,
   type FullyLiveRenewalRunResult,
@@ -41,8 +44,8 @@ export interface LiveReviewMeta {
   liveRentvineCandidates: number;
   skippedLeases: number;
   productionAllowed: boolean;
-  /** This route performs direct provider reads, so a successful render is fresh at this instant. */
-  currencyState: "fresh";
+  /** Actual RentVine generation age, including a retained generation after refresh failure. */
+  currencyState: LiveLeaseCurrency["state"];
   readAtIso: string;
 }
 
@@ -98,7 +101,7 @@ async function runLiveReview(
   actor: AuthenticatedUser,
   readTimestamp: string,
 ): Promise<
-  | { status: "ok"; result: FullyLiveRenewalRunResult }
+  | { status: "ok"; result: FullyLiveRenewalRunResult; currency: LiveLeaseCurrency }
   | { status: Exclude<LiveReviewStatus, "ok"> }
 > {
   const config = buildLiveRenewalConfig();
@@ -106,7 +109,7 @@ async function runLiveReview(
 
   try {
     // S102: reuse the live lease generation (export + per-lease detail) instead of a second read.
-    const { snapshot } = await getLiveLeaseSnapshot(
+    const { snapshot, currency } = await getLiveLeaseSnapshot(
       withRenewalNoticeAdmission(actor, config.rentvineClient),
       Date.parse(readTimestamp),
     );
@@ -120,7 +123,7 @@ async function runLiveReview(
       readTimestamp,
       linkJoin: true,
     });
-    return { status: "ok", result };
+    return { status: "ok", result, currency };
   } catch (error) {
     return { status: categorizeLiveReviewError(error) };
   }
@@ -136,9 +139,14 @@ async function runLiveReview(
 export async function loadLiveRenewalReview(
   actor: AuthenticatedUser,
   readTimestamp: string,
-  overlay: LiveReviewOverlay = {},
+  overlay: LiveReviewOverlay | Promise<LiveReviewOverlay> = {},
 ): Promise<LiveReviewOutcome> {
-  const outcome = await runLiveReview(actor, readTimestamp);
+  // Independent source and saved-overlay reads start together. Projection still waits for both;
+  // a pending overlay never becomes an empty approval/decision projection.
+  const [outcome, savedOverlay] = await Promise.all([
+    runLiveReview(actor, readTimestamp),
+    overlay,
+  ]);
   if (outcome.status !== "ok") return { status: outcome.status };
 
   const { result } = outcome;
@@ -147,18 +155,18 @@ export async function loadLiveRenewalReview(
     run: result.run,
     view: buildRenewalRunView(
       result.run,
-      overlay.resolutions ?? [],
+      savedOverlay.resolutions ?? [],
       LIVE_REVIEW_LABEL,
-      overlay.approvals ?? [],
-      overlay.activityByKey ?? new Map(),
+      savedOverlay.approvals ?? [],
+      savedOverlay.activityByKey ?? new Map(),
     ),
     meta: {
       sheetTabsRead: result.sheetTabsRead,
       liveRentvineCandidates: result.liveRentvineCandidates,
       skippedLeases: result.skippedLeases,
       productionAllowed: result.run.production_allowed,
-      currencyState: "fresh",
-      readAtIso: readTimestamp,
+      currencyState: outcome.currency.state,
+      readAtIso: new Date(outcome.currency.readAtMs).toISOString(),
     },
   };
 }
@@ -174,5 +182,7 @@ export async function rebuildLiveRenewalRun(
   readTimestamp: string,
 ): Promise<RenewalRunResult | null> {
   const outcome = await runLiveReview(actor, readTimestamp);
-  return outcome.status === "ok" ? outcome.result.run : null;
+  return outcome.status === "ok" && outcome.currency.state === "fresh"
+    ? outcome.result.run
+    : null;
 }

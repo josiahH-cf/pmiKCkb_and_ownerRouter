@@ -31,6 +31,23 @@ afterEach(() => {
 });
 
 describe("S106 rate handling waits real time (AC-S106-8)", () => {
+  it("preserves a denied template read without refreshing credentials or claiming an empty list", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValue(response(403, {}, { privateProviderBody: "synthetic-only" }));
+    const refresh = vi.fn(async () => null);
+    const client = new DotloopClient({
+      transport: { fetch },
+      tokens: { ...tokens, refresh },
+    });
+    await expect(client.listLoopTemplates("synthetic-company")).rejects.toMatchObject({
+      kind: "access_denied",
+      status: 403,
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
   it("does not resend a rejected read until the provider's Retry-After has elapsed", async () => {
     vi.useFakeTimers();
     const fetch = vi

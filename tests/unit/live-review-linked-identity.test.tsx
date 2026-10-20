@@ -10,7 +10,7 @@ vi.mock("@/lib/firestore/renewal-notice-safety", () => ({
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LiveRenewalReview } from "@/components/lease-renewal/LiveRenewalReview";
@@ -21,7 +21,11 @@ import {
   rebuildLiveRenewalRun,
 } from "@/lib/lease-renewal/live-review";
 import { loadLiveRenewalLeaseWorkspace } from "@/lib/lease-renewal/live-desk";
-import { clearLiveLeaseCache } from "@/lib/lease-renewal/live-lease-cache";
+import {
+  clearLiveLeaseCache,
+  LEASE_EXPORT_TTL_MS,
+  LEASE_EXPORT_MAX_AGE_MS,
+} from "@/lib/lease-renewal/live-lease-cache";
 import { withFakeLeaseDetail } from "@/tests/helpers/rentvine-detail-fake";
 import {
   buildLiveRenewalReviewItemHref,
@@ -123,6 +127,62 @@ afterEach(() => {
 });
 
 describe("Live review linked record identity", () => {
+  it.each([
+    ["stale", LEASE_EXPORT_TTL_MS + 1],
+    ["expired", LEASE_EXPORT_MAX_AGE_MS + 1],
+  ] as const)(
+    "retains %s source age after refresh failure and holds decisions without an all-clear claim",
+    async (state, age) => {
+      const timestamp = "2026-09-02T12:00:00.000Z";
+      const sourceRead = vi.spyOn(
+        mocks.buildLiveRenewalConfig().rentvineClient,
+        "listAllLeasesExport",
+      );
+      expect((await loadLiveRenewalReview(noticeReader, timestamp)).status).toBe("ok");
+      expect(sourceRead).toHaveBeenCalledTimes(1);
+      const config = mocks.buildLiveRenewalConfig();
+      config.rentvineClient.listAllLeasesExport = vi.fn(async () => {
+        throw new Error("synthetic provider refresh failed");
+      });
+      const later = new Date(Date.parse(timestamp) + age).toISOString();
+      const retained = await loadLiveRenewalReview(noticeReader, later, {});
+      expect(retained.status).toBe("ok");
+      if (retained.status !== "ok") throw new Error("Expected retained source rows");
+      expect(retained.meta).toMatchObject({ currencyState: state, readAtIso: timestamp });
+      expect(await rebuildLiveRenewalRun(noticeReader, later)).toBeNull();
+      render(
+        <LiveRenewalReview
+          view={retained.view}
+          meta={retained.meta}
+          canResolve
+          canDefer
+          isAdmin
+          resolutionsError={false}
+        />,
+      );
+      expect(screen.getByRole("status")).toHaveTextContent(
+        `Retained RentVine facts are ${state}`,
+      );
+      expect(screen.queryByRole("button", { name: /Approve|Resolve|Defer/ })).toBeNull();
+      expect(screen.queryByText("No open items")).toBeNull();
+    },
+  );
+
+  it("performs no provider or Sheet read when source admission fails", async () => {
+    const config = mocks.buildLiveRenewalConfig();
+    const exportRead = vi.fn();
+    const sheetRead = vi.spyOn(config.sheetsReader, "batchGet");
+    config.rentvineClient.listAllLeasesExport = exportRead;
+    config.rentvineClient.beforeLeaseSourceRead = async () => {
+      throw new Error("synthetic admission refused");
+    };
+    await expect(
+      loadLiveRenewalReview(noticeReader, "2026-09-02T12:00:00.000Z"),
+    ).resolves.toEqual({ status: "read_error" });
+    expect(exportRead).not.toHaveBeenCalled();
+    expect(sheetRead).not.toHaveBeenCalled();
+  });
+
   it("keeps the linked trigger, exact card destination, rebuild, and persisted resolution aligned", async () => {
     const timestamp = "2026-09-02T12:00:00.000Z";
     const initial = await loadLiveRenewalReview(noticeReader, timestamp);
@@ -175,9 +235,13 @@ describe("Live review linked record identity", () => {
       created_at: timestamp,
       updated_at: timestamp,
     };
-    const withResolution = await loadLiveRenewalReview(noticeReader, timestamp, {
-      resolutions: [resolution],
-    });
+    const withResolution = await loadLiveRenewalReview(
+      noticeReader,
+      timestamp,
+      Promise.resolve({
+        resolutions: [resolution],
+      }),
+    );
     expect(withResolution.status).toBe("ok");
     if (withResolution.status !== "ok") return;
 

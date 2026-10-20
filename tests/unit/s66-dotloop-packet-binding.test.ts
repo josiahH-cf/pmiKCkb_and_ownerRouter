@@ -28,6 +28,47 @@ function readySnapshot(): {
 }
 
 describe("S34 exact S66 packet binding", () => {
+  it.each(["leaseId", "transactionId"] as const)(
+    "refuses a different head %s even when its snapshot version and hash match",
+    (field) => {
+      const { input, snapshot } = readySnapshot();
+      expect(() =>
+        bindCurrentPacketForDotloop({
+          snapshot,
+          currentHead: {
+            leaseId: snapshot.leaseId,
+            transactionId: snapshot.transactionId,
+            snapshotId: snapshot.snapshotId,
+            snapshotVersion: snapshot.snapshotVersion,
+            payloadHash: snapshot.payloadHash,
+            [field]: "synthetic-other-scope",
+          },
+          catalog: input.catalog,
+          confirmedPayloadHash: snapshot.payloadHash,
+        }),
+      ).toThrow(/stale/);
+    },
+  );
+  it("refuses two distinct parties mapped to one Dotloop participant", () => {
+    const { input, snapshot } = readySnapshot();
+    snapshot.manifest!.participants[1].providerBindings = {
+      ...snapshot.manifest!.participants[0].providerBindings!,
+    };
+    expect(() =>
+      bindCurrentPacketForDotloop({
+        snapshot,
+        currentHead: {
+          leaseId: snapshot.leaseId,
+          transactionId: snapshot.transactionId,
+          snapshotId: snapshot.snapshotId,
+          snapshotVersion: snapshot.snapshotVersion,
+          payloadHash: snapshot.payloadHash,
+        },
+        catalog: input.catalog,
+        confirmedPayloadHash: snapshot.payloadHash,
+      }),
+    ).toThrow(/distinct Dotloop participant mappings/);
+  });
   it("binds exact artifact, participant, field, visibility, version, and hash metadata", () => {
     const { input, snapshot } = readySnapshot();
     const binding = bindCurrentPacketForDotloop({

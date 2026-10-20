@@ -1,6 +1,6 @@
 # Unblock packet
 
-Last reconciled: 2026-10-17 (approved authentication recovered; managed resources refreshed; guarded release and independent readbacks complete).
+Last reconciled: 2026-10-20 (failed focused build; bounded build-memory repair remains agent-owned).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only its named effect or dependent release phase; independent
@@ -17,11 +17,27 @@ substitute value, identifier, credential or human verdict to clear a hold.
 | B-MNT1   | No current effect; maintenance import retired                        | No owner import step requested                                                                                                    | Preserve original preapproval/history records; S227 owns current retention                                             |
 | B-S100   | No current proof; remaining maintenance resident-draft proof retired | No ticket/link/sync step requested                                                                                                | Preserve completed receipts and closed resident-draft key; no proof rerun                                              |
 | B-TIMING | Approved 30-day notice classifications (they read Cannot determine)  | A5: record the decided basis in Admin                                                                                             | Reads back the saved basis version                                                                                     |
-| B-DL2    | Supported Dotloop template/selection-dependent output only           | No template recreation requested                                                                                                  | Fresh supported list is empty; company read failed as unavailable; selection absent; both write keys closed            |
+| B-DL2    | Supported Dotloop template/selection-dependent output only           | No template recreation requested                                                                                                  | Supported list empty; company read 403/access denied, contents unknown; selection absent; both write keys closed       |
 | B-DL3    | Approved form content/maps and rules for the selected lease packet   | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output |
 | B-HUMAN  | Human verdicts and real-case accuracy claims only                    | E2: observed sessions and real material                                                                                           | Records each verdict with its evidence; nothing is inferred from tests                                                 |
 
 ## Current hold and historical program dependencies
+
+- **Bounded repair qualification.** V9 passed 9,633 units/four existing skips, all 464 backend
+  tests without skips and all policies, then failed the actual default build on its Poppins URL
+  transport. V10 passed the loopback transport's nine sets of seventeen controls and normal child
+  closures, compiled Turbopack, then failed the TypeScript child's 1536 MiB heap. Canonical did not
+  start. Process/namespace/port/mount/source closure passed and the entire loan returned. Prepared
+  explicit build-only heap/RSS selection changes the driver and requires a new actual cleanup
+  proof plus focused/full qualification under matching new handoffs. Served/core E2E, browser
+  checks, CI, review and green integration remain agent-owned. Deployment stays outside this repair scope. This is
+  neither a provider input nor a phase-only owner approval hold.
+- **B-DL2/B-DL3 — current October19 readback.** Typed account/profile reads succeeded; the
+  supported individual template list returned zero, while company-template access returned403.
+  Its exact permission/ownership cause is unknown. No supported selection, current approved
+  artifact catalog/charge policy, source mapping or saved packet state was found. Existing
+  template inspection precedes any recreation request. Both write keys remain closed; synthetic
+  non-legal packet bytes and modeled signing do not clear these live resource/activation holds.
 
 - **B-AUTH-CURRENT / B-BROWSER — resolved October 17.** The owner completed the approved WSL
   Admin enrollment. Fresh CLI/ADC, GitHub, exact managed-account/Admin, candidate/canonical and

@@ -54,24 +54,24 @@ export default async function LiveRenewalReviewPage() {
   // The live flags are recomputed on each render; only persisted resolutions + write-back approvals +
   // their append-only decision history need Firestore. Load them for run_id "live-review" (the same id
   // the live run is built under) and degrade to a non-fatal banner when Firestore is unavailable.
-  let resolutions: Awaited<ReturnType<typeof listResolutionsForRun>> = [];
-  let approvals: Awaited<ReturnType<typeof listWritebackApprovalsForRun>> = [];
-  let activityByKey: Awaited<ReturnType<typeof listWritebackApprovalActivityForRun>> =
-    new Map();
-  let resolutionsError = false;
-  try {
-    resolutions = await listResolutionsForRun(user, LIVE_REVIEW_RUN_ID);
-    approvals = await listWritebackApprovalsForRun(user, LIVE_REVIEW_RUN_ID);
-    activityByKey = await listWritebackApprovalActivityForRun(user, LIVE_REVIEW_RUN_ID);
-  } catch {
-    resolutionsError = true;
-  }
-
-  const outcome = await loadLiveRenewalReview(user, new Date().toISOString(), {
-    resolutions,
-    approvals,
-    activityByKey,
+  const overlay = Promise.allSettled([
+    listResolutionsForRun(user, LIVE_REVIEW_RUN_ID),
+    listWritebackApprovalsForRun(user, LIVE_REVIEW_RUN_ID),
+    listWritebackApprovalActivityForRun(user, LIVE_REVIEW_RUN_ID),
+  ]).then(([resolutions, approvals, activityByKey]) => {
+    return {
+      resolutionsError: [resolutions, approvals, activityByKey].some(
+        (read) => read.status === "rejected",
+      ),
+      resolutions: resolutions.status === "fulfilled" ? resolutions.value : [],
+      approvals: approvals.status === "fulfilled" ? approvals.value : [],
+      activityByKey:
+        activityByKey.status === "fulfilled" ? activityByKey.value : new Map(),
+    };
   });
+
+  const outcome = await loadLiveRenewalReview(user, new Date().toISOString(), overlay);
+  const { resolutionsError } = await overlay;
 
   return (
     <AppShell user={user}>

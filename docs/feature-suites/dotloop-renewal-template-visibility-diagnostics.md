@@ -15,6 +15,12 @@ October 15 3:01-8:22 reports an active Lease Renewal loop template visible in Do
 
 **Actors and entry conditions.**
 
+October 19 follow-up reads returned account/profiles 200, individual templates 200 with zero
+results, and company templates 403. The provider's exact refusal cause and the reported active
+template's owning visibility remain unestablished. The prepared access-denied diagnostic is in
+bounded repair qualification; no template recreation, supported-profile widening or write-key
+activation follows from it.
+
 An existing authorized Admin inspects the managed Dotloop connection and its exact profile/template selection. Diagnostic reads do not save a selection, widen supported profile types or grant either write key. Existing staff read scope remains unchanged; no identity or credential substitute is introduced.
 
 **What it is / how it functions.**

@@ -1,8 +1,40 @@
 # Loop state
 
-Last updated: 2026-10-17 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-10-20 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current resume point
+
+The owner-approved bounded October 19 repair is uncommitted on
+`codex/bounded-repair-20261019`, based on main `5b9c6b8e`; it is not integrated or deployed.
+The v9 gate on manifest `2bb46d84` finished failed at 2026-10-20T00:53:16Z: its focused S205
+file passed all three cases, full units passed 9,633 with four existing skips, all 464 backend
+tests passed without skips, and install/audit/format/lint/typecheck/eight policies passed. The
+default Next 16.3.8 Turbopack build failed twelve Poppins file resolutions with
+`request should be cloneable` for the prepared local-file URLs. The whole gate remains failed.
+Independent overall closure found all 24 groups/fifteen namespaces/fifteen host-control ports
+absent, no global mounts or missing result receipts, and all 2,884 source hashes unchanged. The
+entire loan was returned; leftover time is not another attempt. Every raw failure stays preserved.
+
+The v10 focused attempt on manifest `d7a9ef0f` passed installation/audit/eight policies, all nine
+commands' seventeen controls and normal pinned font-child closures. Default Turbopack compiled in
+33.6 seconds, then its TypeScript worker exhausted the 1536 MiB heap. The build failed after
+72.934 seconds with aggregate RSS 3,555,557,376 bytes; canonical never started. Twelve emitted
+WOFF2 hashes matched in post-failure inspection, which does not prove a whole build. All fifteen
+groups/nine namespaces/nine host-control ports drained, source matched and the whole loan returned.
+
+Prepare an explicit build-only heap option with 3072 MiB heap/6144 MiB aggregate and numeric
+owned-process RSS evidence. Preserve defaults, standalone typecheck/other lanes, real Poppins,
+default build and every isolation/typecheck/emission gate. The public driver changes, so the old
+full-driver cleanup proof cannot qualify it. A newly pinned actual cleanup proof, one focused
+default build and a separate fresh canonical need matching new resource handoffs. No runtime is
+currently granted; no retry or earlier loan is implicit.
+
+Earlier `fd980551` focused 131-unit/40-backend results, interrupted first window and failed
+`61d6aeaf`/`b9220f75` unit gates retain their exact source scopes. The S229 fixture/copy repairs and
+test-only S205 awaited-read repair passed in v9; original assertions and historical fixtures remain.
+No product maintenance hook or retired entry point changed. Served/core E2E, browser tests, CI,
+independent final review and green integration remain. This repair grants no new production
+deployment. The completed release below, consumed permit and empty release queue remain unchanged.
 
 Run `d33c7174-23b1-4126-ac11-657738b1864f` released S227-S229 plus the scoped Notifications latency repair at
 `a7bce0981badc7523a6498949b6ea5f2effb198e` / `pmi-kc-app-rmvc9kmq6-1c2699db16f8` with 100% canonical traffic. One application build
