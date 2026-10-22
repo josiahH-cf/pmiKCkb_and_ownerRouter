@@ -50,20 +50,20 @@ two observation checkpoints in 409,796 ms and all eleven independent readback se
 The three-item queue is delivered and empty; its permit is consumed. Evidence:
 `docs/evidence/application-delivery-2026-10-20.md`.
 
-Normal deployed-app Dotloop refresh at 2026-10-20T18:02:36.963Z verified
-`integrations@pmikcmetro.com` and saved a fresh, untruncated observation. The supported individual
-profile returned an empty template list; company templates remain access_denied. No supported
-selection exists. The reported active template's owning visibility/root cause remains unknown;
-no recreation is requested. The owner-reported failing Press & Hold remains a human boundary.
-Both Dotloop write keys remain closed. The existing template's sharing/assignment and individual-
-profile eligibility need inspection by an already signed-in Dotloop administrator or Dotloop support.
+The bounded Dotloop read at 2026-10-22T12:58:20Z verified `integrations@pmikcmetro.com` with a
+connected, unexpired credential. Its standalone INDIVIDUAL "Default Profile" lists zero templates;
+its default COMPANY profile "PMI KC Metro" returns 403, which Dotloop's public API documents for
+every non-INDIVIDUAL profile. An office template reaches only its office members' individual
+profiles, and the integrations individual profile carries no office affiliation. A full Dotloop
+admin must add the integrations login to the office that holds the template (A1). No supported
+selection exists. Both Dotloop write keys remain closed; no template was recreated.
 
 Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
 read back at resource version 8, all unverified. The deployed readiness page displays ten form
 families across renewal extension, full lease and owner acknowledgment. Actual originals and
 reviewed field/signer maps remain unapproved for all ten families. Source presence is not legal,
-customer-link or signing approval. Existing drive.file authenticated the integrations account but
-returned 404/notFound for a browser-visible source; no scope grant changed.
+customer-link or signing approval. Source verification is a staff attestation in Admin; the
+least-privilege `drive.file` 404 for a browser-visible file is expected and holds nothing.
 
 The owner-approved one-file Editor grant was applied with notification off and read back.
 Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet

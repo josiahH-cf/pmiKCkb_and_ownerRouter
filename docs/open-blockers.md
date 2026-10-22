@@ -1,6 +1,6 @@
 # Unblock packet
 
-Last reconciled: 2026-10-20 (guarded delivery and independent production verification complete).
+Last reconciled: 2026-10-22 (connections readiness; guarded delivery verified 2026-10-20).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only its named effect or dependent release phase; independent
@@ -17,34 +17,34 @@ captured predecessor. Runtime identity, eleven Space maps, five secret bindings,
 Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
 Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
 
-Normal deployed-app Dotloop refresh at 2026-10-20T18:02:36.963Z verified
-`integrations@pmikcmetro.com` and saved a fresh, untruncated observation. The supported individual
-profile returned an empty template list; company templates remain access_denied. No supported
-selection exists. The reported active template's owning visibility/root cause remains unknown;
-no recreation is requested. The owner-reported failing Press & Hold remains a human boundary.
-Both Dotloop write keys remain closed. The existing template's sharing/assignment and individual-
-profile eligibility need inspection by an already signed-in Dotloop administrator or Dotloop support.
+The bounded Dotloop read at 2026-10-22T12:58:20Z verified `integrations@pmikcmetro.com` with a
+connected, unexpired credential. Its standalone INDIVIDUAL "Default Profile" lists zero templates;
+its default COMPANY profile "PMI KC Metro" returns 403, which Dotloop's public API documents for
+every non-INDIVIDUAL profile. An office template reaches only its office members' individual
+profiles, and the integrations individual profile carries no office affiliation. The integrations
+browser login lacks People and Templates controls, so its Press & Hold check is not on this path.
+No supported selection exists. Both Dotloop write keys remain closed; no template was recreated.
 
 Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
 read back at resource version 8, all unverified. The deployed readiness page displays ten form
 families across renewal extension, full lease and owner acknowledgment. Actual originals and
 reviewed field/signer maps remain unapproved for all ten families. Source presence is not legal,
-customer-link or signing approval. Existing drive.file authenticated the integrations account but
-returned 404/notFound for a browser-visible source; no scope grant changed.
+customer-link or signing approval. Source verification is a staff attestation in Admin; the
+least-privilege `drive.file` 404 for a browser-visible file is expected and holds nothing.
 
 Normal deployed-app credential/resource refresh and real Admin source-reference saves completed through their owning routes. They create no customer/provider business effect. The current confirmed renewal delivery contract is deployed; no old authorization or retired maintenance lane can dispatch.
 
 ## Holds at a glance
 
-| Id       | Blocks only                                                          | Owner step                                                                                                                                                                    | Then the runner                                                                                                        |
-| -------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| B-AUTH2  | Separate historical 25-hour unchanged-enrollment longevity claim     | No longevity or policy-change step requested by this execution                                                                                                                | Preserve the unverified longevity claim; use separate fresh authentication checks                                      |
-| B-MNT1   | No current effect; maintenance import retired                        | No owner import step requested                                                                                                                                                | Preserve original preapproval/history records; S227 owns current retention                                             |
-| B-S100   | No current proof; remaining maintenance resident-draft proof retired | No ticket/link/sync step requested                                                                                                                                            | Preserve completed receipts and closed resident-draft key; no proof rerun                                              |
-| B-TIMING | Approved 30-day notice classifications (they read Cannot determine)  | A5: record the decided basis in Admin                                                                                                                                         | Reads back the saved basis version                                                                                     |
-| B-DL2    | Supported Dotloop template/selection-dependent output only           | Inspect existing sharing/assignment and supported individual-profile eligibility as a signed-in Dotloop administrator; resolve the failing human check with Dotloop if needed | Fresh supported list empty; company read denied; selection absent; both write keys closed                              |
-| B-DL3    | Approved form content/maps and rules for the selected lease packet   | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup                                             | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output |
-| B-HUMAN  | Human verdicts and real-case accuracy claims only                    | E2: observed sessions and real material                                                                                                                                       | Records each verdict with its evidence; nothing is inferred from tests                                                 |
+| Id       | Blocks only                                                          | Owner step                                                                                                                                                                     | Then the runner                                                                                                        |
+| -------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| B-AUTH2  | Separate historical 25-hour unchanged-enrollment longevity claim     | No longevity or policy-change step requested by this execution                                                                                                                 | Preserve the unverified longevity claim; use separate fresh authentication checks                                      |
+| B-MNT1   | No current effect; maintenance import retired                        | No owner import step requested                                                                                                                                                 | Preserve original preapproval/history records; S227 owns current retention                                             |
+| B-S100   | No current proof; remaining maintenance resident-draft proof retired | No ticket/link/sync step requested                                                                                                                                             | Preserve completed receipts and closed resident-draft key; no proof rerun                                              |
+| B-TIMING | Approved 30-day notice classifications (they read Cannot determine)  | A5: record the decided basis in Admin                                                                                                                                          | Reads back the saved basis version                                                                                     |
+| B-DL2    | Supported Dotloop template/selection-dependent output only           | A1: a full Dotloop admin adds `integrations@pmikcmetro.com` as a member of the office that holds the Lease Renewal template and confirms the template is shared to that office | Re-reads until the template lists on the individual profile; an Admin then selects it; both write keys stay closed     |
+| B-DL3    | Approved form content/maps and rules for the selected lease packet   | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup                                              | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output |
+| B-HUMAN  | Human verdicts and real-case accuracy claims only                    | E2: observed sessions and real material                                                                                                                                        | Records each verdict with its evidence; nothing is inferred from tests                                                 |
 
 ## Current hold and historical program dependencies
 
@@ -53,11 +53,11 @@ Normal deployed-app credential/resource refresh and real Admin source-reference 
   readbacks. The three-item queue is delivered/empty and permit consumed. All earlier failures
   retain immutable evidence. The approved integrations Sheet/Drive delegation is independently
   verified; source access and migration are resolved. No owner delivery step remains.
-- **B-DL2/B-DL3 — fresh deployed-app checkpoint.** Integrations identity and resource refresh
-  succeeded; supported individual templates remain empty, company templates access_denied and
-  selection absent. Eight actual source references are saved unverified; all ten original/map
+- **B-DL2/B-DL3 — October 22 checkpoint.** Integrations identity is connected; the individual
+  profile lists no templates and the company profile is outside the documented API boundary.
+  Selection is absent. Eight actual source references are saved unverified; all ten original/map
   approvals remain absent. Only the exact dependent packet/form/signature capability waits.
-  The existing active template is to be inspected, not recreated. Both write keys remain closed.
+  The existing active template is to be shared, not recreated. Both write keys remain closed.
 
 - **B-AUTH-CURRENT / B-BROWSER — resolved October 17.** The owner completed the approved WSL
   Admin enrollment. Fresh CLI/ADC, GitHub, exact managed-account/Admin, candidate/canonical and
@@ -125,12 +125,14 @@ Vendoroo's agent writing into RentVine and no direct connector under that older 
 an active Lease Renewal loop template already exists. The older request to create it is superseded;
 do not ask the owner to repeat completed setup. An API defect is a hypothesis, not established cause.
 
-Fresh normal managed resource refresh on October 17 read the supported individual template list
-successfully (empty) and attempted company-template discovery (failed as unavailable). No supported
-selection is saved. Company diagnostics do not grant Loop-It eligibility. This establishes the
-current visibility limit without establishing the reported template's owning profile or an API defect.
-Request an exact office/profile eligibility action only if verified evidence identifies it; no repeat
-template creation, loop/upload/signature or forced expiry is verification proof. S182 remains.
+The October 22 read identifies the exact action. Dotloop's API serves templates and Loop-It only
+through INDIVIDUAL profiles and refuses company/office profiles by design. The integrations account
+has only a standalone "Default Profile" with no office affiliation, so an office template cannot
+reach it. A full Dotloop admin, signed in as themselves, adds `integrations@pmikcmetro.com` as a
+member of the office that holds the Lease Renewal template and confirms the template is shared to
+that office. The integrations browser login is not needed. Done when the runner's next read lists
+the template on that individual profile; an Admin then selects it in the app and the runner reads
+the selection back. No template recreation, loop, upload, signature or forced expiry. S182 remains.
 
 **A2. Remaining S100 maintenance proof — retired from this execution.** Do not create a ticket,
 link a work order or synchronize consequential manager chat reads to prove maintenance after

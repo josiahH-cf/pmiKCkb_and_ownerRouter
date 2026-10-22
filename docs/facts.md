@@ -1,6 +1,6 @@
 # PMI KC facts
 
-Last reconciled: 2026-10-20 (guarded delivery and independent production readbacks verified).
+Last reconciled: 2026-10-22 (connections readiness readbacks; guarded delivery verified 2026-10-20).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
@@ -20,20 +20,32 @@ before actor/mailbox/source reads. Current role/Space, runtime suspension, exact
 claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
 unapproved background sends remain unavailable. No protected activation metadata changes.
 
-Normal deployed-app Dotloop refresh at 2026-10-20T18:02:36.963Z verified
-`integrations@pmikcmetro.com` and saved a fresh, untruncated observation. The supported individual
-profile returned an empty template list; company templates remain access_denied. No supported
-selection exists. The reported active template's owning visibility/root cause remains unknown;
-no recreation is requested. The owner-reported failing Press & Hold remains a human boundary.
-Both Dotloop write keys remain closed. The existing template's sharing/assignment and individual-
-profile eligibility need inspection by an already signed-in Dotloop administrator or Dotloop support.
+The bounded Dotloop read at 2026-10-22T12:58:20Z (serving revision unchanged) verified
+`integrations@pmikcmetro.com` with a connected, unexpired credential; no token refresh was needed.
+The account lists two profiles: the standalone INDIVIDUAL "Default Profile" (200, zero templates)
+and the default COMPANY profile "PMI KC Metro" (403 Access is denied). Dotloop's public API
+documents 403 for any non-INDIVIDUAL profile and restricts loop access to INDIVIDUAL profiles, so
+the company result is the documented boundary, not an integrations permission defect. An office
+template reaches only the individual profiles of that office's members; the integrations individual
+profile carries no office affiliation. No supported selection exists. The integrations browser login
+is a limited admin without People or Templates controls, so its Press & Hold check cannot expose the
+sharing settings. A full Dotloop admin must make the existing template reach that individual profile.
+Both Dotloop write keys remain closed; no template was recreated.
 
 Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
 read back at resource version 8, all unverified. The deployed readiness page displays ten form
 families across renewal extension, full lease and owner acknowledgment. Actual originals and
 reviewed field/signer maps remain unapproved for all ten families. Source presence is not legal,
-customer-link or signing approval. Existing drive.file authenticated the integrations account but
-returned 404/notFound for a browser-visible source; no scope grant changed.
+customer-link or signing approval. Source verification is a staff attestation in Admin, not a Drive
+API fetch. The app's least-privilege `drive.file` scope sees only files the app created, so its
+404/notFound for a browser-visible source is expected and holds nothing; no scope change is needed.
+
+Connections readiness, 2026-10-22: RentVine's production-bound key and secret (hash-identical to
+the local pair) authenticated and read 374 leases. The production DWD Sheet configuration as
+`integrations@` read all 29 tabs. The Gmail DWD client minted all four approved workflow scopes for
+`integrations@` and its bodyless profile read matched. The communication sequence worker answered
+63 of 63 scheduled runs with HTTP 200 in the hour before 12:52Z, with no ERROR logs since October 21.
+Gmail reply pauses read the linked threads directly; no push watch or Pub/Sub topic is required.
 
 Production serves `157b6992279467e73dcf91aa43eb3c247f96ff2f` /
 `pmi-kc-app-rmvgyw7tj-a7aa7a96b63a` at 100% canonical traffic. Run
@@ -41,11 +53,6 @@ Production serves `157b6992279467e73dcf91aa43eb3c247f96ff2f` /
 two observation checkpoints in 409,796 ms and all eleven independent readback sections.
 The three-item queue is delivered and empty; its permit is consumed. Evidence:
 `docs/evidence/application-delivery-2026-10-20.md`.
-
-The later existing-scope Drive API read authenticated `integrations@pmikcmetro.com` successfully,
-but the exact known extension file returned 404/notFound under `drive.file`. Browser access to the
-same source succeeded. The application scope has not observed that file; this does not prove the
-source is missing and no permission grant was changed. Local trusted form intake remains separate.
 
 Implementation `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3` passed the actual complete
 `bash scripts/verify.sh`: 9,659 unit tests with four existing configuration skips, all 465 backend
@@ -90,20 +97,20 @@ Independent public GETs verified five retired pages redirect to /lease-renewal a
 
 ## Dated provider metadata
 
-Normal deployed-app Dotloop refresh at 2026-10-20T18:02:36.963Z verified
-`integrations@pmikcmetro.com` and saved a fresh, untruncated observation. The supported individual
-profile returned an empty template list; company templates remain access_denied. No supported
-selection exists. The reported active template's owning visibility/root cause remains unknown;
-no recreation is requested. The owner-reported failing Press & Hold remains a human boundary.
-Both Dotloop write keys remain closed. The existing template's sharing/assignment and individual-
-profile eligibility need inspection by an already signed-in Dotloop administrator or Dotloop support.
+The bounded Dotloop read at 2026-10-22T12:58:20Z verified `integrations@pmikcmetro.com` with a
+connected, unexpired credential. Its standalone INDIVIDUAL "Default Profile" lists zero templates;
+its default COMPANY profile "PMI KC Metro" returns 403, which Dotloop's public API documents for
+every non-INDIVIDUAL profile. An office template reaches only its office members' individual
+profiles, and the integrations individual profile carries no office affiliation. A full Dotloop
+admin must add the integrations login to the office that holds the template (A1). No supported
+selection exists. Both Dotloop write keys remain closed; no template was recreated.
 
 Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
 read back at resource version 8, all unverified. The deployed readiness page displays ten form
 families across renewal extension, full lease and owner acknowledgment. Actual originals and
 reviewed field/signer maps remain unapproved for all ten families. Source presence is not legal,
-customer-link or signing approval. Existing drive.file authenticated the integrations account but
-returned 404/notFound for a browser-visible source; no scope grant changed.
+customer-link or signing approval. Source verification is a staff attestation in Admin; the
+least-privilege `drive.file` 404 for a browser-visible file is expected and holds nothing.
 
 The fresh integrations Gmail readonly profile matched; no message bodies, drafts, sends or subscriptions were exercised. Managed key/runtime readbacks confirm renewal send/reply/draft keys open and runtime clear, while both Dotloop write keys are false. No activation changed.
 
