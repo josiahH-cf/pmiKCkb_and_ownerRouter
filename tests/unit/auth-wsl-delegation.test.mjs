@@ -16,20 +16,45 @@ describe("Windows shells report the approved WSL store", () => {
   });
 
   it("maps drive and WSL share checkouts, and refuses paths WSL cannot see", () => {
-    expect(windowsPathToWsl(root)).toBe(
-      "/mnt/c/Users/josia/Documents/github-windows/pmiKCkb_and_ownerRouter",
-    );
-    expect(windowsPathToWsl("D:\\")).toBe("/mnt/d");
-    expect(windowsPathToWsl("\\\\?\\C:\\work\\repo\\")).toBe("/mnt/c/work/repo");
-    expect(windowsPathToWsl("\\\\wsl.localhost\\Ubuntu\\home\\josiah\\repo")).toBe(
-      "/home/josiah/repo",
-    );
+    expect(windowsPathToWsl(root)).toEqual({
+      distribution: null,
+      path: "/mnt/c/Users/josia/Documents/github-windows/pmiKCkb_and_ownerRouter",
+    });
+    expect(windowsPathToWsl("D:\\")).toEqual({ distribution: null, path: "/mnt/d" });
+    expect(windowsPathToWsl("\\\\?\\C:\\work\\repo\\")).toEqual({
+      distribution: null,
+      path: "/mnt/c/work/repo",
+    });
+    expect(windowsPathToWsl("\\\\wsl.localhost\\Ubuntu\\home\\josiah\\repo")).toEqual({
+      distribution: "Ubuntu",
+      path: "/home/josiah/repo",
+    });
     expect(
       windowsPathToWsl("\\\\?\\UNC\\wsl.localhost\\ubuntu\\home\\josiah\\repo"),
-    ).toBe("/home/josiah/repo");
-    expect(windowsPathToWsl("\\\\wsl$\\Ubuntu\\srv\\repo")).toBe("/srv/repo");
+    ).toEqual({ distribution: "ubuntu", path: "/home/josiah/repo" });
+    expect(windowsPathToWsl("\\\\wsl$\\JO-Rescue-20261021\\srv\\repo")).toEqual({
+      distribution: "JO-Rescue-20261021",
+      path: "/srv/repo",
+    });
     expect(windowsPathToWsl("\\\\fileserver\\share\\repo")).toBeNull();
     expect(windowsPathToWsl("relative\\repo")).toBeNull();
+  });
+
+  it("runs a WSL share checkout in its own distribution, not the default one", () => {
+    const invocation = buildWslDelegation({
+      root: "\\\\wsl$\\JO-Rescue-20261021\\home\\josiah\\repo",
+      argv: ["--status"],
+    });
+    expect(invocation.args.slice(0, 5)).toEqual([
+      "--distribution",
+      "JO-Rescue-20261021",
+      "-e",
+      "bash",
+      "-lc",
+    ]);
+    expect(invocation.args[5]).toBe(
+      "cd '/home/josiah/repo' && 'node' 'scripts/auth/ensure.mjs' '--status'",
+    );
   });
 
   it("runs the same script and arguments inside WSL with every argument quoted", () => {
@@ -107,5 +132,20 @@ describe("Windows shells report the approved WSL store", () => {
       "auth: WSL check unavailable (wsl.exe is unavailable); run npm run auth:ensure inside WSL",
     );
     expect(log.mock.calls[0][0]).not.toContain("auth:enroll");
+  });
+
+  it("stops a non-hook run instead of probing or repairing the Windows store", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const delegate = () => ({ delegated: false, reason: "wsl.exe is unavailable" });
+    for (const argv of [["--status"], []]) {
+      const result = await main(argv, {}, { platform: "win32", root, delegate });
+      expect(result).toEqual({ delegated: false, exitCode: 2 });
+      expect(process.exitCode).toBe(2);
+    }
+    expect(log).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalledWith(
+      "WSL check unavailable (wsl.exe is unavailable); run npm run auth:ensure inside WSL",
+    );
   });
 });

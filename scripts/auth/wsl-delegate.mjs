@@ -9,8 +9,9 @@ import { spawnSync } from "node:child_process";
 export const HOOK_DELEGATION_TIMEOUT_MS = 150_000;
 
 /**
- * Map a Windows checkout path to the path WSL sees. Drive paths map under /mnt/<drive>; a
- * \\wsl.localhost\<distro>\ or \\wsl$\<distro>\ path maps to that distro's own root. Anything else
+ * Map a Windows checkout path to the WSL distribution and path that see it. Drive paths map under
+ * /mnt/<drive> in the default distribution; a \\wsl.localhost\<distro>\ or \\wsl$\<distro>\ path
+ * keeps that exact distribution so its own filesystem and credential store are used. Anything else
  * (another UNC share, a relative path) has no WSL equivalent and returns null.
  */
 export function windowsPathToWsl(path) {
@@ -20,10 +21,18 @@ export function windowsPathToWsl(path) {
   const drive = /^([A-Za-z]):[\\/](.*)$/.exec(value);
   if (drive) {
     const rest = drive[2].replaceAll("\\", "/").replace(/\/+$/, "");
-    return `/mnt/${drive[1].toLowerCase()}${rest ? `/${rest}` : ""}`;
+    return {
+      distribution: null,
+      path: `/mnt/${drive[1].toLowerCase()}${rest ? `/${rest}` : ""}`,
+    };
   }
-  const distro = /^\\\\(?:wsl\.localhost|wsl\$)\\[^\\]+\\?(.*)$/i.exec(value);
-  if (distro) return `/${distro[1].replaceAll("\\", "/").replace(/\/+$/, "")}`;
+  const share = /^\\\\(?:wsl\.localhost|wsl\$)\\([^\\]+)\\?(.*)$/i.exec(value);
+  if (share) {
+    return {
+      distribution: share[1],
+      path: `/${share[2].replaceAll("\\", "/").replace(/\/+$/, "")}`,
+    };
+  }
   return null;
 }
 
@@ -31,15 +40,24 @@ function shellQuote(value) {
   return `'${String(value).replaceAll("'", `'\\''`)}'`;
 }
 
-/** The exact wsl.exe invocation: same repository, same script, same arguments. */
+/** The exact wsl.exe invocation: same distribution, repository, script and arguments. */
 export function buildWslDelegation({ root, argv }) {
-  const wslRoot = windowsPathToWsl(root);
-  if (!wslRoot) return null;
+  const target = windowsPathToWsl(root);
+  if (!target) return null;
   const command = [
-    `cd ${shellQuote(wslRoot)}`,
+    `cd ${shellQuote(target.path)}`,
     ["node", "scripts/auth/ensure.mjs", ...argv].map(shellQuote).join(" "),
   ].join(" && ");
-  return { file: "wsl.exe", args: ["-e", "bash", "-lc", command] };
+  return {
+    file: "wsl.exe",
+    args: [
+      ...(target.distribution ? ["--distribution", target.distribution] : []),
+      "-e",
+      "bash",
+      "-lc",
+      command,
+    ],
+  };
 }
 
 /**

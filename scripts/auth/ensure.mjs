@@ -428,15 +428,12 @@ export async function main(
       process.exitCode = hook ? 0 : delegation.status;
       return { delegated: true, exitCode: delegation.status };
     }
-    if (hook) {
-      console.log(
-        `auth: WSL check unavailable (${delegation.reason}); run npm run auth:ensure inside WSL`,
-      );
-      return { delegated: false, exitCode: 0 };
-    }
-    console.error(
-      `WSL check unavailable (${delegation.reason}); showing the Windows shell.`,
-    );
+    // Never fall back to probing or repairing the unused Windows store.
+    const line = `WSL check unavailable (${delegation.reason}); run npm run auth:ensure inside WSL`;
+    if (hook) console.log(`auth: ${line}`);
+    else console.error(line);
+    process.exitCode = hook ? 0 : 2;
+    return { delegated: false, exitCode: hook ? 0 : 2 };
   }
   const identities = resolveIdentities(env);
   const result = await ensureAuthenticated({
