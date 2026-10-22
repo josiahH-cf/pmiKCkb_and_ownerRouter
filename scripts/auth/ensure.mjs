@@ -21,6 +21,7 @@ import {
   redact,
   summarize,
 } from "./plan.mjs";
+import { delegateToWsl } from "./wsl-delegate.mjs";
 
 const ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo";
@@ -405,12 +406,38 @@ function canaryRequests(argv, identities) {
   return requests;
 }
 
-export async function main(argv = process.argv.slice(2), env = process.env) {
+export async function main(
+  argv = process.argv.slice(2),
+  env = process.env,
+  { platform = process.platform, root = ROOT, delegate = delegateToWsl } = {},
+) {
   const need = parseNeed(readFlag(argv, "--need"));
   const unattended = argv.includes("--unattended");
   const json = argv.includes("--json");
   const quiet = argv.includes("--quiet");
   const hook = argv.includes("--hook");
+  if (platform === "win32") {
+    // The approved store is WSL's; report its state instead of the unused Windows store.
+    const delegation = delegate({ root, argv, hook });
+    if (delegation.delegated) {
+      if (hook && delegation.status !== 0) {
+        console.log(
+          `auth: WSL check failed (exit ${delegation.status}); run npm run auth:ensure inside WSL`,
+        );
+      }
+      process.exitCode = hook ? 0 : delegation.status;
+      return { delegated: true, exitCode: delegation.status };
+    }
+    if (hook) {
+      console.log(
+        `auth: WSL check unavailable (${delegation.reason}); run npm run auth:ensure inside WSL`,
+      );
+      return { delegated: false, exitCode: 0 };
+    }
+    console.error(
+      `WSL check unavailable (${delegation.reason}); showing the Windows shell.`,
+    );
+  }
   const identities = resolveIdentities(env);
   const result = await ensureAuthenticated({
     need,

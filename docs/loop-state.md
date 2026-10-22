@@ -9,8 +9,8 @@ The owner launched the connections and unattended-readiness stage. Production is
 ready (facts). Dotloop waits only on A1: a full Dotloop admin adds the integrations login to the
 office that holds the Lease Renewal template. NEXT: after the owner reports A1, rerun the bounded
 Dotloop read; when the template lists, an Admin selects it and the runner reads it back.
-A prepared fix makes Windows-hosted Claude Code and Codex report the WSL credential store through
-`auth:ensure`; it touches protected `scripts/auth` and waits for owner direction. Private receipts:
+Windows-hosted Claude Code and Codex report the WSL credential store through `auth:ensure`
+(protected `scripts/auth`, merged on owner direction). Private receipts:
 `Codex/2026-10-16/pmi-delivery-01a1461d/connections-readiness-20261022/`, outside Git.
 
 ## Current resume point

@@ -294,6 +294,9 @@ the runner never changes that policy or enters a password, code, passkey, or CAP
 - `auth:session`, `auth:enroll`, and `auth:enroll:wsl` all enroll the WSL CLI and ADC. The PowerShell
   compatibility entry point delegates to WSL. Enrollment reads Google's identity once and binds
   the exact ADC file locally because gcloud leaves its account field empty.
+- From a Windows shell, including a Windows-hosted Claude Code or Codex session and its start hook,
+  `auth:status` and `auth:ensure` run the same command inside WSL and report the WSL store. When WSL
+  cannot run it, the result names that failure instead of requesting enrollment.
 - Personal accounts, unexpected managed accounts, impersonation, key files, and credential/store
   overrides cannot substitute for the approved account. Credentials and enrollment evidence stay
   outside Git and source uploads. Status contains no tokens or provider bodies.

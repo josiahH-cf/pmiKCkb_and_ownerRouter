@@ -19,7 +19,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node scripts/auth/ensure.mjs --hook"
+            "command": "node scripts/auth/ensure.mjs --hook",
+            "timeout": 180
           }
         ]
       }
