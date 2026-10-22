@@ -7,7 +7,8 @@ Last updated: 2026-10-22 (UTC). Read AGENTS.md and docs/facts.md first.
 The owner launched the connections and unattended-readiness stage. Production is unchanged at
 157b6992; RentVine, Sheet, Gmail DWD scopes, the sequence worker and sign-in wiring read back
 ready (facts). Dotloop waits only on A1: a full Dotloop admin adds the integrations login to the
-office that holds the Lease Renewal template. NEXT: after the owner reports A1, rerun the bounded
+office that holds the Lease Renewal template. The owner's other full-admin account no longer exists,
+so Dan or Dotloop Support must restore a full admin first. NEXT: after the owner reports A1, rerun the bounded
 Dotloop read; when the template lists, an Admin selects it and the runner reads it back.
 Windows-hosted Claude Code and Codex report the WSL credential store through `auth:ensure`
 (protected `scripts/auth`, merged on owner direction). Private receipts:

@@ -30,6 +30,9 @@ template reaches only the individual profiles of that office's members; the inte
 profile carries no office affiliation. No supported selection exists. The integrations browser login
 is a limited admin without People or Templates controls, so its Press & Hold check cannot expose the
 sharing settings. A full Dotloop admin must make the existing template reach that individual profile.
+On 2026-10-22 the owner found their separate full-admin Dotloop account no longer exists, and the
+integrations login's company context returned "Access denied" for Templates; a full admin must be
+restored (Dan or Dotloop Support) before A1 can run.
 Both Dotloop write keys remain closed; no template was recreated.
 
 Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
