@@ -159,7 +159,8 @@ owner adds the canonical `/__/auth/handler` redirect URI (owner step A7), never 
   proofs do not establish the current browser session. A transient identity lookup receives one
   bounded retry; an unavailable lookup remains blocked without directing unnecessary reenrollment.
 - `auth:session`, `auth:enroll` and `auth:enroll:wsl` enroll CLI and ADC in WSL. The PowerShell
-  compatibility script delegates to WSL. WSL login shells prefer the native snap `gcloud`; the
+  compatibility script delegates to WSL, and Windows `auth:status`/`auth:ensure` runs report the
+  WSL store. WSL login shells prefer the native snap `gcloud`; the
   Windows Cloud SDK that interop appends to PATH shares the store but takes about 16 seconds per
   call. The owner applies the account-scoped Cloud session-policy
   exception and runs `npm run auth:session` in the WSL repository. Enrollment verifies Google identity
