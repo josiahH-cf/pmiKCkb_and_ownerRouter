@@ -2,16 +2,17 @@
 
 Last updated: 2026-10-23 (UTC). Read AGENTS.md and docs/facts.md first.
 
-## Connections readiness — October 22
+## Waiting on Dan — Dotloop A1 (saved October 23)
 
-The owner launched the connections and unattended-readiness stage. Production was unchanged at
-157b6992 until S230 released 79764b56 on October 23; RentVine, Sheet, Gmail DWD scopes, the sequence worker and sign-in wiring read back
-ready (facts). Dotloop waits only on A1: a full Dotloop admin adds the integrations login to the
-office that holds the Lease Renewal template. The owner's other full-admin account no longer exists,
-so Dan or Dotloop Support must restore a full admin first. On October 23 Dan, a full admin, granted
-integrations template rights; it now sees LEASE RENEWAL but is not an office agent, and the API is
-unchanged. The owner asked Dan to add it as an agent. NEXT: after the owner reports A1, rerun the bounded
-Dotloop read; when the template lists, an Admin selects it and the runner reads it back.
+The connections and unattended-readiness stage is complete except Dotloop. RentVine, Sheet, Gmail
+DWD scopes, the sequence worker, sign-in wiring and the guarded Admin canary read back ready
+(facts); S230 released 79764b56 on October 23 and nothing waits to deploy. Dotloop waits only on A1:
+Dan, a full Dotloop admin who granted integrations template rights on October 23, adds
+`integrations@pmikcmetro.com` as an agent in the office that holds the LEASE RENEWAL template.
+NEXT: when the owner reports A1 done, start a fresh session with the resume prompt in
+`docs/dotloop-unblock-runbook.md`. It runs authentication, production and seam checks, the
+bounded Dotloop read, the in-app selection, tests and a read-only canary, the end-to-end gap map,
+a prepared (owner-approved only) first live Dotloop canary, and unattended confirmation.
 Windows-hosted Claude Code and Codex report the WSL credential store through `auth:ensure`
 (protected `scripts/auth`, merged on owner direction). Private receipts:
 `Codex/2026-10-16/pmi-delivery-01a1461d/connections-readiness-20261022/`, outside Git.

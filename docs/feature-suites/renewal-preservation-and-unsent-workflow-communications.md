@@ -12,12 +12,10 @@ Existing managed staff can review the exact renewal message, current recipients 
 
 **Current state / intended end state.**
 
-Production serves `157b6992279467e73dcf91aa43eb3c247f96ff2f` /
-`pmi-kc-app-rmvgyw7tj-a7aa7a96b63a` at 100% canonical traffic. Run
-`57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` completed candidate assurance, receipt-bound promotion,
-two observation checkpoints in 409,796 ms and all eleven independent readback sections.
-The three-item queue is delivered and empty; its permit is consumed. Evidence:
-`docs/evidence/application-delivery-2026-10-20.md`.
+Delivered by run `57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` at `157b6992` on October 20 (evidence:
+`docs/evidence/application-delivery-2026-10-20.md`). Production now serves
+`79764b56011bd2571a56435aa7df21f2677d846a` / `pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` (S230, run
+`eee80164`), which carries this suite unchanged.
 
 The owner explicitly amended the earlier October 16 history/unsent-only boundary. This suite owns
 its corresponding revision; no older READY row or other program is newly executed.
