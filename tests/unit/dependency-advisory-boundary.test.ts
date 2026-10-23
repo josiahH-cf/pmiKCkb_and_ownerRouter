@@ -17,13 +17,16 @@ describe("I11 patched transitive dependency boundaries", () => {
   it("loads the exact patched releases selected through Next and GenAI/MCP", () => {
     // October 8 audit: Next.js 16.0.0 through 16.3.7 carry six advisories the audit rates high
     // (cache poisoning, draft-mode leakage, image-optimization SSRF, metadata-route and dev-server
-    // disclosure); 16.3.8 is the first patched 16.3 release.
-    expect(installedVersion("next")).toBe("16.3.8");
+    // disclosure); 16.3.8 is the first patched 16.3 release. October 23: GHSA-2464-fhr4-w9xw,
+    // GHSA-p3m5-59mp-jv5r and GHSA-673q-mjm6-r5xr affect 16.0.0 through 16.4.0 and have no 16.3
+    // patch, so the boundary moves to 16.4.2.
+    expect(installedVersion("next")).toBe("16.4.2");
     expect(installedVersion("sharp")).toBe("0.35.5");
     expect(installedVersion("fast-uri")).toBe("3.1.8");
     // October 20: GHSA-5r4p-p66f-jhc7 is patched in 4.13.11.
     expect(installedVersion("hono")).toBe("4.13.11");
-    expect(installedVersion("ip-address")).toBe("10.7.1");
+    // October 23: GHSA-rxp7-6hxx-x8q5 affects ip-address through 10.7.3.
+    expect(installedVersion("ip-address")).toBe("10.7.4");
     expect(installedVersion("nanoid")).toBe("3.3.18");
     expect(installedVersion("qs")).toBe("6.16.0");
     // October 6 audit: the MCP SDK (an optional GenAI peer), its express proxy-addr and postcss's
