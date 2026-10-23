@@ -10,32 +10,44 @@ attempts and consumed permits are immutable and never reusable.
 
 ## Current verified delivery
 
-Run `57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` delivered the October 20 S227–S229 amendment at
-`157b6992279467e73dcf91aa43eb3c247f96ff2f` / `pmi-kc-app-rmvgyw7tj-a7aa7a96b63a` with 100% canonical traffic.
-One application build `8a94a614-50bc-4433-9030-cde701d03a59` succeeded at 17:47:39.088478Z.
-Candidate receipt `495cd2fd-bbaa-4e95-a65f-7f3f36e0e26b` issued 17:54:03.508Z; receipt-bound
-promotion verified 17:54:26.523Z. Observation passed two checkpoints in 409,796 ms against the
-300,000 ms minimum and 480,000 ms deadline. All 371 source/projected/rendered records matched
+Run `eee80164-dea4-4601-8d69-965edabeeeb6` delivered S230 (Next.js 16.4.2 and ip-address 10.7.4) at
+`79764b56011bd2571a56435aa7df21f2677d846a` / `pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` with 100% canonical traffic.
+One application build `d7b4417d-afe0-4487-9847-8e45a267f26c` succeeded at 09:05:13.027802Z.
+Candidate receipt `77bbf01f-9c8e-4e64-830d-9de561b7d81a` issued 09:11:37.077Z; receipt-bound
+promotion verified 09:12:11.362Z. Observation passed two checkpoints in 408,894 ms against the
+300,000 ms minimum and 480,000 ms deadline. All 374 source/projected/rendered records matched
 with zero discrepancies, candidate 5xx or unresolved effects. All eleven independent readback
-sections matched at 2026-10-20T18:01:37Z. The checkpoint is complete, watcher exited and permit consumed.
-Tag `cand-rmvgyw7tj-a7aa7a96b63a`; fingerprint
-`sha256:fe88b8b3715890110e487a6a37e7bf745e446d393d5f47e959ea1025cd9e15c8`.
+sections matched at 2026-10-23T09:19:29Z. The checkpoint is complete, watcher exited and permit consumed.
+Tag `cand-rmvkpw2ey-bfdf11ed1ed3`; fingerprint
+`sha256:db4bcc4ee9ba447cb40b56c11c9a63b0ed56a73771d4f5a319777ca755312c67`.
+Only APP_COMMIT_SHA differs among the 54 environment keys versus the captured predecessor; the
+runtime identity, secret bindings, eleven Space maps, Demo=false and Sheet=true match.
 
-Captured predecessor: `pmi-kc-app-rmvgkpxub-17a20f3efe73` / `b8829897e407dafdad94da0fd560afbcc539e397`, Sheet=true.
-Run-bound recovery `pmi-kc-app-recovery-57e4a1b5dd254302`, receipt
-`3efefa59-4522-4ea7-8777-2e139c2b6c43`, reference
-`sha256:60ca763a5e7211485776078c49a1966a2fde7a7629ca283e91799d83762d6a38`, preserves
-that actual image/configuration, including its original delegated subject and Sheet=true.
+Captured predecessor: `pmi-kc-app-rmvgyw7tj-a7aa7a96b63a` / `157b6992279467e73dcf91aa43eb3c247f96ff2f`, Sheet=true.
+Run-bound recovery `pmi-kc-app-recovery-eee80164dea44601`, receipt
+`61ad64bf-9c60-4b50-bdad-7163d4ef2266`, reference
+`sha256:a11e1473ff287bf4144a24ec11a8d8dd47bb7868e5b569e1692e3ed3f7eff3db`, preserves
+that actual image/configuration, including its delegated subject and Sheet=true.
 Original and target fingerprints are
-`sha256:53715974ba3d26ffd6bb2adc2bbb9fa8bba92b25f0c436332b1218d7eea6165f`.
+`sha256:fe88b8b3715890110e487a6a37e7bf745e446d393d5f47e959ea1025cd9e15c8`.
 The actual prior tag binding was captured independently of canonical traffic and moved only under
 that receipt. All other bindings are preserved. No traffic rollback occurred in this run.
+
+The run paused once before any build (`predecessor_baseline_failed`, `recovery_preparation_unverified`).
+The host's WSLg display had failed, so headless Chromium with the display variables set produced
+no animation frames and React's streamed reveals never ran. A read-only Admin canary against
+production with `DISPLAY` and `WAYLAND_DISPLAY` unset passed all 13 routes; `--resume` then
+completed the same run and target with no redispatch. Production code was never at fault.
+
+Run `57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` delivered the October 20 S227–S229 amendment at
+`157b6992279467e73dcf91aa43eb3c247f96ff2f` / `pmi-kc-app-rmvgyw7tj-a7aa7a96b63a`; its record is in
+`docs/facts.md` and `docs/evidence/application-delivery-2026-10-20.md`.
 
 The owner-approved one-file Editor grant was applied with notification off and read back.
 Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
 reader freshly verified all 29 tabs after promotion without reading/changing cell values.
-Only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differ among the 54 environment keys versus the
-captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
+On October 20 only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differed among the 54 environment
+keys versus that run's captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
 Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
 Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
 
