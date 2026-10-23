@@ -89,11 +89,14 @@ Run the checks in this order, recording time, identity and result for each
    Dotloop packet, signature handoff), state what is live and verified, what is configured but
    unproven, and what is missing. Name the owner of each gap and the exact client input needed:
    B-DL3 originals, maps and signers; fees and Rhino; notice basis A5; initial status.
-9. First live Dotloop canary: prepare it, do not run it. Name one real lease, the selected
-   template, the participants, only dotloop.loop.create_from_template to open, the readback, and
-   the cleanup or correction path. Ask me one approval question. Run it only on my explicit reply
-   naming that lease, then close the key again and read everything back. Uploads stay closed
-   until B-DL3 is approved.
+9. First-packet readiness, read only. Packet assembly refuses until a current packet has the
+   owner's approval of the Working terms, an approved form catalog that matches the selected
+   template, and a reviewed name, email and documented Dotloop role for each required signer
+   (assemble() in lib/lease-renewal/execution/normal-packet-action.ts). Report which of these
+   exist and which B-DL3 inputs are missing. Open no write key and create no loop or upload in
+   this run: provider writes are not verification proof. The first real loop is ordinary
+   staff-confirmed production work after the applicable B-DL3 inputs are approved, under its own
+   exact owner authorization.
 10. Unattended confirmation: auth:ensure --unattended READY (gcloud, ADC, env, gh, canary), the
    read-only release prerequisites collector READY, the sequence worker healthy, and no human
    step left for routine operation beyond the named holds.
@@ -147,7 +150,8 @@ npx vitest run tests/unit/oct15-dotloop-discovery.test.ts tests/unit/s106-dotloo
 
 - The template lists on the integrations INDIVIDUAL profile.
 - The selection reads back in the app.
-- Both write keys are still closed, unless the owner approved one supervised canary and it was closed again afterwards.
+- Both write keys are still closed, and no loop, upload or other provider write occurred.
 - The read-only canary passes.
+- The first-packet readiness report names each missing B-DL3 input and its owner.
 - `auth:ensure --unattended` reads READY.
 - The open-blockers packet names only the remaining client content holds and human verdicts.

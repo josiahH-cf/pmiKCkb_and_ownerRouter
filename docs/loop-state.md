@@ -12,7 +12,8 @@ Dan, a full Dotloop admin who granted integrations template rights on October 23
 NEXT: when the owner reports A1 done, start a fresh session with the resume prompt in
 `docs/dotloop-unblock-runbook.md`. It runs authentication, production and seam checks, the
 bounded Dotloop read, the in-app selection, tests and a read-only canary, the end-to-end gap map,
-a prepared (owner-approved only) first live Dotloop canary, and unattended confirmation.
+a read-only first-packet readiness report, and unattended confirmation. The first real loop is
+ordinary staff-confirmed work after B-DL3 approval, outside that run.
 Windows-hosted Claude Code and Codex report the WSL credential store through `auth:ensure`
 (protected `scripts/auth`, merged on owner direction). Private receipts:
 `Codex/2026-10-16/pmi-delivery-01a1461d/connections-readiness-20261022/`, outside Git.
