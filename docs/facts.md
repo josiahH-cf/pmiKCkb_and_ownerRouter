@@ -547,6 +547,11 @@ moderate, one high) remained outside that gate. Neither patched lockfile was dep
 An October 8 recheck failed the same unchanged audit on six Next.js advisories covering 16.0.0
 through 16.3.7; `ea79bbbf` (PR #147) moves next and eslint-config-next to the patched 16.3.8,
 and the production audit reports zero findings; run `e372f7b5` released it.
+An October 23 recheck failed the same unchanged audit on three Next.js advisories covering 16.0.0
+through 16.4.0 with no 16.3 patch (GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r, GHSA-673q-mjm6-r5xr)
+and one ip-address advisory through 10.7.3 (GHSA-rxp7-6hxx-x8q5). S230 (`fc6868e9`) moves next and
+eslint-config-next to 16.4.2 and overrides ip-address to 10.7.4; the production audit reports zero
+findings, and the full gate passed. It is queued for guarded release.
 See docs/evidence/adversary-review-2026-09-29.md for the prior release's exact scope. The
 references below explain the earlier patches, not the current source selection.
 

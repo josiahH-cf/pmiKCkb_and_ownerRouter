@@ -1,6 +1,6 @@
 # Loop state
 
-Last updated: 2026-10-22 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-10-23 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Connections readiness — October 22
 
@@ -37,7 +37,16 @@ October 16 source. Original and admitted checkouts remain preserved.
 
 ## Awaiting release
 
-Empty. S227, S228 and S229 were independently verified delivered by run 57e4a1b5.
+1. S230 `fc6868e9`: Next.js 16.4.2 patches three advisories covering 16.0.0 through 16.4.0
+   (GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r, GHSA-673q-mjm6-r5xr) and ip-address 10.7.4
+   patches GHSA-rxp7-6hxx-x8q5; both failed the unchanged production audit on 2026-10-23.
+
+OWNER DIRECTION, 2026-10-23: "patch Next.js to 16.4.2 and the ip-address advisory, qualify it, and
+release through the normal guarded route." No application route, read or write changes; the
+framework changes under every route, so the full gate, served E2E and the candidate's guarded
+assurance cover it. Admit only after exact main CI on the release head, fresh prerequisites and a
+new run-bound permit. Both Dotloop write keys stay closed; assurance stays read-only. S227, S228
+and S229 were independently verified delivered by run 57e4a1b5.
 
 ## Verified production
 

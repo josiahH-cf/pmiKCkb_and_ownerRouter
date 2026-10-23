@@ -1,6 +1,11 @@
 # Current status
 
-Updated: 2026-10-20 (UTC).
+Updated: 2026-10-23 (UTC).
+
+S230 (`fc6868e9`) patches Next.js to 16.4.2 and ip-address to 10.7.4 after the unchanged
+production audit failed on 2026-10-23. The full gate passed: 9,666 unit tests with four existing
+configuration skips, all 465 backend tests, production build and zero production audit findings.
+It is queued for guarded release; production still serves `157b6992` until that run verifies.
 
 Implementation `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3` passed the actual complete
 `bash scripts/verify.sh`: 9,659 unit tests with four existing configuration skips, all 465 backend
