@@ -32,7 +32,9 @@ is a limited admin without People or Templates controls, so its Press & Hold che
 sharing settings. A full Dotloop admin must make the existing template reach that individual profile.
 On 2026-10-22 the owner found their separate full-admin Dotloop account no longer exists, and the
 integrations login's company context returned "Access denied" for Templates; a full admin must be
-restored (Dan or Dotloop Support) before A1 can run.
+restored (Dan or Dotloop Support) before A1 can run. On 2026-10-23 Dan, a full admin, granted the
+integrations login template rights: its company Templates library opens and lists LEASE RENEWAL, but
+it has no People rights or office agent profile, and the 07:28:55Z API read was unchanged.
 Both Dotloop write keys remain closed; no template was recreated.
 
 Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
