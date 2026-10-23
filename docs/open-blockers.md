@@ -132,11 +132,9 @@ reach it. A full Dotloop admin, signed in as themselves, adds `integrations@pmik
 member of the office that holds the Lease Renewal template and confirms the template is shared to
 that office. The integrations browser login is not needed.
 
-October 22 owner check: the owner's separate full-admin Dotloop account no longer exists. Signed in
-as integrations ("Integrations API"), the company admin context showed only a logo setting and
-`/my/templates` returned "Access denied", matching the API 403. So no available login can do the
-step. Dan, if he holds full admin, or Dotloop Support (+1 888-368-5667) must restore a full company
-admin first; that admin then does the step above.
+October 22 owner check: the owner's separate full-admin Dotloop account no longer exists, and
+the integrations login then had no Templates access. That restoration question is settled: Dan holds
+full admin (October 23), so no account restoration or Dotloop Support call is needed.
 
 October 23: Dan granted the integrations login Dotloop template rights. As integrations, the
 company Templates library now opens and lists the LEASE RENEWAL loop template; the top bar still
@@ -145,6 +143,8 @@ unchanged: Default Profile 200 with zero templates, company profile 403, no offi
 token refresh 200, both write keys closed. Dan, a full admin, does the step above. Done when the runner's next read lists
 the template on that individual profile; an Admin then selects it in the app and the runner reads
 the selection back. No template recreation, loop, upload, signature or forced expiry. S182 remains.
+When the owner reports A1 done, the runner starts from the resume prompt in
+`docs/dotloop-unblock-runbook.md`.
 
 **A2. Remaining S100 maintenance proof — retired from this execution.** Do not create a ticket,
 link a work order or synchronize consequential manager chat reads to prove maintenance after

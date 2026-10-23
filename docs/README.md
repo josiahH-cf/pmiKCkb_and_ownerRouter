@@ -43,6 +43,7 @@ Manual client workflows: [presentation and weekly status commands](weekly-client
 | Current plan                 | `docs/plan.md`                                          |
 | Resume point                 | `docs/loop-state.md`                                    |
 | Unblock packet (holds)       | `docs/open-blockers.md`                                 |
+| Dotloop unblock resume       | `docs/dotloop-unblock-runbook.md`                       |
 | Engineering/security         | `docs/engineering.md`                                   |
 | Engineering checklist        | `docs/engineering-checklist.md`                         |
 | Runner workflow              | `docs/autonomous-agent-runner.md`                       |
