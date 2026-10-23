@@ -21,13 +21,14 @@ Implementation `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3` passed the actual comp
 `bash scripts/verify.sh`: 9,659 unit tests with four existing configuration skips, all 465 backend
 tests with no skips, required checks, production build and zero production audit findings.
 Served E2E passed 65 tests with four existing configuration skips across all fourteen files.
-Exact-main CI `39464866553` passed all five jobs on deployed `157b6992`. Canonical v11 covers
+Exact-main CI `39464866553` passed all five jobs on `157b6992`, deployed October 20. Canonical v11 covers
 all final code/tests; policy-build v3 and served E2E v2 cover identical runtime/package bytes,
 with two later test-only assertion/synchronization changes covered by canonical v11.
 
 ## Delivery sequence
 
-Steps 1–6 are complete for run 57e4a1b5; documentation closure records the observed result.
+Steps 1–6 are complete for run eee80164 (S230) and earlier run 57e4a1b5; documentation closure
+records the observed result.
 
 1. Preserve original checkouts and prior admitted release roots; edit only the isolated owned source.
 2. Verify complete maintenance retirement, fresh confirmed renewal delivery and template/process readiness.
@@ -43,12 +44,14 @@ Steps 1–6 are complete for run 57e4a1b5; documentation closure records the obs
 
 ## Captured baseline and external seams
 
-Production serves `157b6992279467e73dcf91aa43eb3c247f96ff2f` /
-`pmi-kc-app-rmvgyw7tj-a7aa7a96b63a` at 100% canonical traffic. Run
-`57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` completed candidate assurance, receipt-bound promotion,
-two observation checkpoints in 409,796 ms and all eleven independent readback sections.
-The three-item queue is delivered and empty; its permit is consumed. Evidence:
-`docs/evidence/application-delivery-2026-10-20.md`.
+Production serves `79764b56011bd2571a56435aa7df21f2677d846a` /
+`pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` at 100% canonical traffic. Run
+`eee80164-dea4-4601-8d69-965edabeeeb6` delivered S230 (Next.js 16.4.2 and ip-address 10.7.4) with
+candidate assurance, receipt-bound promotion, two observation checkpoints in 408,894 ms and all
+eleven independent readback sections. The one-item queue is delivered and empty; its permit is
+consumed. S230 passed the complete gate, served E2E (65 passed, four existing skips, fourteen
+files) and exact-main CI `39923662033` on `79764b56`. The October 20 S227–S229 delivery evidence
+remains `docs/evidence/application-delivery-2026-10-20.md`.
 
 The bounded Dotloop read at 2026-10-22T12:58:20Z verified `integrations@pmikcmetro.com` with a
 connected, unexpired credential. Its standalone INDIVIDUAL "Default Profile" lists zero templates;
@@ -68,8 +71,8 @@ least-privilege `drive.file` 404 for a browser-visible file is expected and hold
 The owner-approved one-file Editor grant was applied with notification off and read back.
 Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
 reader freshly verified all 29 tabs after promotion without reading/changing cell values.
-Only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differ among the 54 environment keys versus the
-captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
+On October 20 only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differed among the 54 environment
+keys versus that run's captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
 Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
 Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
 

@@ -4,8 +4,8 @@ Last updated: 2026-10-23 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Connections readiness — October 22
 
-The owner launched the connections and unattended-readiness stage. Production is unchanged at
-157b6992; RentVine, Sheet, Gmail DWD scopes, the sequence worker and sign-in wiring read back
+The owner launched the connections and unattended-readiness stage. Production was unchanged at
+157b6992 until S230 released 79764b56 on October 23; RentVine, Sheet, Gmail DWD scopes, the sequence worker and sign-in wiring read back
 ready (facts). Dotloop waits only on A1: a full Dotloop admin adds the integrations login to the
 office that holds the Lease Renewal template. The owner's other full-admin account no longer exists,
 so Dan or Dotloop Support must restore a full admin first. On October 23 Dan, a full admin, granted
@@ -37,39 +37,33 @@ October 16 source. Original and admitted checkouts remain preserved.
 
 ## Awaiting release
 
-1. S230 `fc6868e9`: Next.js 16.4.2 patches three advisories covering 16.0.0 through 16.4.0
-   (GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r, GHSA-673q-mjm6-r5xr) and ip-address 10.7.4
-   patches GHSA-rxp7-6hxx-x8q5; both failed the unchanged production audit on 2026-10-23.
-
-OWNER DIRECTION, 2026-10-23: "patch Next.js to 16.4.2 and the ip-address advisory, qualify it, and
-release through the normal guarded route." No application route, read or write changes; the
-framework changes under every route, so the full gate, served E2E and the candidate's guarded
-assurance cover it. Admit only after exact main CI on the release head, fresh prerequisites and a
-new run-bound permit. Both Dotloop write keys stay closed; assurance stays read-only. S227, S228
-and S229 were independently verified delivered by run 57e4a1b5.
+Empty. S230 (Next.js 16.4.2 and ip-address 10.7.4, owner direction 2026-10-23) was independently
+verified delivered by run eee80164; S227, S228 and S229 by run 57e4a1b5.
 
 ## Verified production
 
-Production serves `157b6992279467e73dcf91aa43eb3c247f96ff2f` /
-`pmi-kc-app-rmvgyw7tj-a7aa7a96b63a` at 100% canonical traffic. Run
-`57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` completed candidate assurance, receipt-bound promotion,
-two observation checkpoints in 409,796 ms and all eleven independent readback sections.
-The three-item queue is delivered and empty; its permit is consumed. Evidence:
-`docs/evidence/application-delivery-2026-10-20.md`.
+Production serves `79764b56011bd2571a56435aa7df21f2677d846a` /
+`pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` at 100% canonical traffic. Run
+`eee80164-dea4-4601-8d69-965edabeeeb6` delivered S230 (Next.js 16.4.2 and ip-address 10.7.4) with
+candidate assurance, receipt-bound promotion, two observation checkpoints in 408,894 ms and all
+eleven independent readback sections. The one-item queue is delivered and empty; its permit is
+consumed. S230 passed the complete gate, served E2E (65 passed, four existing skips, fourteen
+files) and exact-main CI `39923662033` on `79764b56`. The October 20 S227–S229 delivery evidence
+remains `docs/evidence/application-delivery-2026-10-20.md`.
 
 Implementation `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3` passed the actual complete
 `bash scripts/verify.sh`: 9,659 unit tests with four existing configuration skips, all 465 backend
 tests with no skips, required checks, production build and zero production audit findings.
 Served E2E passed 65 tests with four existing configuration skips across all fourteen files.
-Exact-main CI `39464866553` passed all five jobs on deployed `157b6992`. Canonical v11 covers
+Exact-main CI `39464866553` passed all five jobs on `157b6992`, deployed October 20. Canonical v11 covers
 all final code/tests; policy-build v3 and served E2E v2 cover identical runtime/package bytes,
 with two later test-only assertion/synchronization changes covered by canonical v11.
 
 The owner-approved one-file Editor grant was applied with notification off and read back.
 Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
 reader freshly verified all 29 tabs after promotion without reading/changing cell values.
-Only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differ among the 54 environment keys versus the
-captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
+On October 20 only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differed among the 54 environment
+keys versus that run's captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
 Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
 Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
 
@@ -93,6 +87,6 @@ least-privilege `drive.file` 404 for a browser-visible file is expected and hold
 ## Continuation
 
 Documentation-only closure records the verified delivery; it requires no runtime deployment.
-The deployed source remains 157b6992. Preserve private receipts and failed attempts outside Git.
+The deployed source is 79764b56 (S230, run eee80164). Preserve private receipts and failed attempts outside Git.
 Actual template visibility/selection, applicable approved originals/maps, required timing inputs
 and human real-case acceptance remain open for the requested Thursday journey; no customer effect was proof.

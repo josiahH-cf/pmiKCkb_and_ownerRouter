@@ -12,8 +12,8 @@ substitute value, identifier, credential or human verdict to clear a hold.
 The owner-approved one-file Editor grant was applied with notification off and read back.
 Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
 reader freshly verified all 29 tabs after promotion without reading/changing cell values.
-Only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differ among the 54 environment keys versus the
-captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
+On October 20 only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differed among the 54 environment
+keys versus that run's captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
 Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
 Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
 
