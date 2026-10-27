@@ -1,16 +1,18 @@
 # Loop state
 
-Last updated: 2026-10-23 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-10-27 (UTC). Read AGENTS.md and docs/facts.md first.
 
-## Waiting on Dan — Dotloop A1 (saved October 23)
+## Waiting on Dan — Dotloop A1 (re-read October 27)
 
-The connections and unattended-readiness stage is complete except Dotloop. RentVine, Sheet, Gmail
-DWD scopes, the sequence worker, sign-in wiring and the guarded Admin canary read back ready
-(facts); S230 released 79764b56 on October 23 and nothing waits to deploy. Dotloop waits only on A1:
-Dan, a full Dotloop admin who granted integrations template rights on October 23, adds
-`integrations@pmikcmetro.com` as an agent in the office that holds the LEASE RENEWAL template.
-NEXT: when the owner reports A1 done, start a fresh session with the resume prompt in
-`docs/dotloop-unblock-runbook.md`. It runs authentication, production and seam checks, the
+The connections and unattended-readiness stage is complete except Dotloop. On October 27 every
+seam, the read-only Admin canary and `auth:ensure --unattended` read back ready again (facts);
+production is unchanged at 79764b56 and nothing waits to deploy. The owner reported A1 done, but
+the re-read shows Dan made integrations a company admin, not an office agent: People reads
+"PMI KC Metro (admin)" for integrations and the API still lists no template. Remaining A1 step
+(exact text in `docs/open-blockers.md`): Dan adds the PMI KC Metro agent membership to Integrations
+API, keeping admin. The template type (Lease, `LEASE_OFFER`) needs no change; the initial loop
+status is still an owner choice. NEXT: when the owner reports that step done, start a fresh session
+with the resume prompt in `docs/dotloop-unblock-runbook.md`. It runs authentication, production and seam checks, the
 bounded Dotloop read, the in-app selection, tests and a read-only canary, the end-to-end gap map,
 a read-only first-packet readiness report, and unattended confirmation. The first real loop is
 ordinary staff-confirmed work after B-DL3 approval, outside that run.

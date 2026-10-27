@@ -1,6 +1,6 @@
 # Unblock packet
 
-Last reconciled: 2026-10-22 (connections readiness; guarded delivery verified 2026-10-20).
+Last reconciled: 2026-10-27 (A1 re-read after the owner's report; connections readiness 2026-10-22).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only its named effect or dependent release phase; independent
@@ -21,9 +21,17 @@ The bounded Dotloop read at 2026-10-22T12:58:20Z verified `integrations@pmikcmet
 connected, unexpired credential. Its standalone INDIVIDUAL "Default Profile" lists zero templates;
 its default COMPANY profile "PMI KC Metro" returns 403, which Dotloop's public API documents for
 every non-INDIVIDUAL profile. An office template reaches only its office members' individual
-profiles, and the integrations individual profile carries no office affiliation. The integrations
-browser login lacks People and Templates controls, so its Press & Hold check is not on this path.
+profiles, and the integrations individual profile carries no office affiliation.
 No supported selection exists. Both Dotloop write keys remain closed; no template was recreated.
+
+October 27 re-read after the owner reported A1 done: A1 is not done yet. The bounded API read at
+09:17:28Z was unchanged (two profiles; Default Profile 200 with zero templates; company 403; no
+office profile). With the owner signed in as integrations (the owner completed the Press & Hold),
+the profile switcher lists My profiles: Default Profile only, and Admin profiles: PMI KC Metro.
+People for PMI KC Metro lists eight users. Office agents read "PMI KC Metro (admin) and PMI KC
+Metro"; the integrations row reads only "PMI KC Metro (admin)". Integrations was made a company
+admin, not an office agent. The LEASE RENEWAL loop template shows transaction type Lease
+(`LEASE_OFFER`, supported) and no document folders; nothing was edited.
 
 Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
 read back at resource version 8, all unverified. The deployed readiness page displays ten form
@@ -36,15 +44,15 @@ Normal deployed-app credential/resource refresh and real Admin source-reference 
 
 ## Holds at a glance
 
-| Id       | Blocks only                                                          | Owner step                                                                                                                                                               | Then the runner                                                                                                        |
-| -------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| B-AUTH2  | Separate historical 25-hour unchanged-enrollment longevity claim     | No longevity or policy-change step requested by this execution                                                                                                           | Preserve the unverified longevity claim; use separate fresh authentication checks                                      |
-| B-MNT1   | No current effect; maintenance import retired                        | No owner import step requested                                                                                                                                           | Preserve original preapproval/history records; S227 owns current retention                                             |
-| B-S100   | No current proof; remaining maintenance resident-draft proof retired | No ticket/link/sync step requested                                                                                                                                       | Preserve completed receipts and closed resident-draft key; no proof rerun                                              |
-| B-TIMING | Approved 30-day notice classifications (they read Cannot determine)  | A5: record the decided basis in Admin                                                                                                                                    | Reads back the saved basis version                                                                                     |
-| B-DL2    | Supported Dotloop template/selection-dependent output only           | A1: Dan (full admin; granted integrations Templates rights on Oct 23) adds `integrations@pmikcmetro.com` as an agent in the office that holds the Lease Renewal template | Re-reads until the template lists on the individual profile; an Admin then selects it; both write keys stay closed     |
-| B-DL3    | Approved form content/maps and rules for the selected lease packet   | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup                                        | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output |
-| B-HUMAN  | Human verdicts and real-case accuracy claims only                    | E2: observed sessions and real material                                                                                                                                  | Records each verdict with its evidence; nothing is inferred from tests                                                 |
+| Id       | Blocks only                                                          | Owner step                                                                                                                                                                              | Then the runner                                                                                                                                        |
+| -------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| B-AUTH2  | Separate historical 25-hour unchanged-enrollment longevity claim     | No longevity or policy-change step requested by this execution                                                                                                                          | Preserve the unverified longevity claim; use separate fresh authentication checks                                                                      |
+| B-MNT1   | No current effect; maintenance import retired                        | No owner import step requested                                                                                                                                                          | Preserve original preapproval/history records; S227 owns current retention                                                                             |
+| B-S100   | No current proof; remaining maintenance resident-draft proof retired | No ticket/link/sync step requested                                                                                                                                                      | Preserve completed receipts and closed resident-draft key; no proof rerun                                                                              |
+| B-TIMING | Approved 30-day notice classifications (they read Cannot determine)  | A5: record the decided basis in Admin                                                                                                                                                   | Reads back the saved basis version                                                                                                                     |
+| B-DL2    | Supported Dotloop template/selection-dependent output only           | A1: Dan (full admin) adds the PMI KC Metro agent membership to Integrations API in People, keeping admin, so its row reads "PMI KC Metro (admin) and PMI KC Metro" (Oct 27: admin only) | Re-reads until the template lists on the individual profile; the owner names the initial status; an Admin then selects it; both write keys stay closed |
+| B-DL3    | Approved form content/maps and rules for the selected lease packet   | Configure approved versions, applicability, signers and fee policy through the S66/S130 controls; independent of connection setup                                                       | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output                                 |
+| B-HUMAN  | Human verdicts and real-case accuracy claims only                    | E2: observed sessions and real material                                                                                                                                                 | Records each verdict with its evidence; nothing is inferred from tests                                                                                 |
 
 ## Current hold and historical program dependencies
 
@@ -58,6 +66,13 @@ Normal deployed-app credential/resource refresh and real Admin source-reference 
   Selection is absent. Eight actual source references are saved unverified; all ten original/map
   approvals remain absent. Only the exact dependent packet/form/signature capability waits.
   The existing active template is to be shared, not recreated. Both write keys remain closed.
+- **B-DL2/B-DL3 — October 27 checkpoint.** A1 is not yet effective: integrations is a company
+  admin without the office agent membership, and the API still lists no template. Selection reads
+  back `settings: null`; the readiness page shows resource state unavailable (stale observation).
+  Read-only Admin readbacks at 09:21:21Z: no fee/charge policy record, no policy material (Rhino),
+  move-out timing basis missing (A5), notice rules still the unverified seed, no owner policy rules,
+  and no received original or reviewed field/signer map for any of the ten families (city addendum
+  and HOA sources not recorded; eight await verification). The initial loop status is not recorded.
 
 - **B-AUTH-CURRENT / B-BROWSER — resolved October 17.** The owner completed the approved WSL
   Admin enrollment. Fresh CLI/ADC, GitHub, exact managed-account/Admin, candidate/canonical and
@@ -145,6 +160,13 @@ the template on that individual profile; an Admin then selects it in the app and
 the selection back. No template recreation, loop, upload, signature or forced expiry. S182 remains.
 When the owner reports A1 done, the runner starts from the resume prompt in
 `docs/dotloop-unblock-runbook.md`.
+
+October 27: the owner reported A1 done; the re-read shows the admin role was added instead of the
+agent membership (see the checkpoint above). Exact remaining step for Dan, signed in as himself:
+People, PMI KC Metro, open Integrations API (`integrations@pmikcmetro.com`), and add the PMI KC
+Metro office (agent) membership while keeping the admin role, so the row matches his own row,
+"PMI KC Metro (admin) and PMI KC Metro". The template type needs no change. Done when the runner's next API read lists LEASE
+RENEWAL on an integrations INDIVIDUAL profile.
 
 **A2. Remaining S100 maintenance proof — retired from this execution.** Do not create a ticket,
 link a work order or synchronize consequential manager chat reads to prove maintenance after

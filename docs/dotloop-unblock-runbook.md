@@ -25,6 +25,15 @@ paste the prompt below. Nothing in this file grants authority beyond what the pr
   - The API read was unchanged: Default Profile 20643897 returned 200 with zero templates, and company profile 16466152 returned 403. That 403 is documented API behavior: templates reach only an office member's INDIVIDUAL profile.
   - No selection is saved.
   - Both write keys are closed (`dotloop.loop.create_from_template`, `dotloop.document.upload`).
+- **Dotloop on 2026-10-27.** The owner reported A1 done; this run's re-read found it not yet effective.
+  - API at 09:17:28Z: unchanged (Default Profile 200 with zero templates, company 403).
+  - UI as integrations: My profiles lists only Default Profile; People reads "PMI KC Metro (admin)"
+    for integrations, while office agents read "PMI KC Metro (admin) and PMI KC Metro".
+  - Dan's remaining step: add the PMI KC Metro agent membership, keeping admin.
+  - LEASE RENEWAL shows transaction type Lease (`LEASE_OFFER`), so no type change is needed.
+  - Copy `read-managed-access-20261027.cjs` next time; the canary wrapper is
+    `readonly-admin-canary-20261027.sh` (phase `post_promotion`, because `candidate` refuses the
+    canonical origin).
 - **Content holds.** These are independent of A1:
   - B-DL3: approved originals, field and signer maps for the ten form families.
   - The fee policy and the Rhino policy material.
