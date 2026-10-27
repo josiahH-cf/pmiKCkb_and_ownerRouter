@@ -140,6 +140,11 @@ afterEach(() => {
 async function loadConversation() {
   fireEvent.click(screen.getByRole("button", { name: "Load conversation" }));
   await waitFor(() => expect(sent.at(-1)?.body.operation).toBe("thread"));
+  // The request leaves before its reply renders; the button re-enables only after the panel
+  // has stored and rendered the thread, so assertions never race the response.
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Load conversation" })).toBeEnabled(),
+  );
 }
 
 describe("S100 WorkOrderChatPanel", () => {

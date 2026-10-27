@@ -27,8 +27,8 @@ with two later test-only assertion/synchronization changes covered by canonical 
 
 ## Delivery sequence
 
-Steps 1–6 are complete for run eee80164 (S230) and earlier run 57e4a1b5; documentation closure
-records the observed result.
+Steps 1–6 are complete for run 030761c0 (S231) and earlier runs eee80164 and 57e4a1b5;
+documentation closure records the observed result.
 
 1. Preserve original checkouts and prior admitted release roots; edit only the isolated owned source.
 2. Verify complete maintenance retirement, fresh confirmed renewal delivery and template/process readiness.
@@ -44,14 +44,14 @@ records the observed result.
 
 ## Captured baseline and external seams
 
-Production serves `79764b56011bd2571a56435aa7df21f2677d846a` /
-`pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` at 100% canonical traffic. Run
-`eee80164-dea4-4601-8d69-965edabeeeb6` delivered S230 (Next.js 16.4.2 and ip-address 10.7.4) with
-candidate assurance, receipt-bound promotion, two observation checkpoints in 408,894 ms and all
-eleven independent readback sections. The one-item queue is delivered and empty; its permit is
-consumed. S230 passed the complete gate, served E2E (65 passed, four existing skips, fourteen
-files) and exact-main CI `39923662033` on `79764b56`. The October 20 S227–S229 delivery evidence
-remains `docs/evidence/application-delivery-2026-10-20.md`.
+Production serves `6fbd62250ccd9df1b9861a59b5de21c2143a68c0` /
+`pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% canonical traffic. Run
+`030761c0-1e70-4cd2-95a6-77480107657d` delivered S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and
+fast-uri 3.1.9) with candidate assurance, receipt-bound promotion, two observation checkpoints in
+406,404 ms and all eleven independent readback sections. The one-item queue is delivered and empty;
+its permit is consumed. S231 passed the complete gate, served E2E (65 passed, four existing skips,
+fourteen files) and exact-main CI `40487479956` on `6fbd6225`. The October 20 S227–S229 delivery
+evidence remains `docs/evidence/application-delivery-2026-10-20.md`.
 
 The bounded Dotloop read at 2026-10-22T12:58:20Z verified `integrations@pmikcmetro.com` with a
 connected, unexpired credential. Its standalone INDIVIDUAL "Default Profile" lists zero templates;

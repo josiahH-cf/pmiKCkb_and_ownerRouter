@@ -15,14 +15,14 @@ before actor/mailbox/source reads. Current role/Space, runtime suspension, exact
 claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
 unapproved background sends remain unavailable. No protected activation metadata changes.
 
-Production serves `79764b56011bd2571a56435aa7df21f2677d846a` /
-`pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` at 100% canonical traffic. Run
-`eee80164-dea4-4601-8d69-965edabeeeb6` delivered S230 (Next.js 16.4.2 and ip-address 10.7.4) with
-candidate assurance, receipt-bound promotion, two observation checkpoints in 408,894 ms and all
-eleven independent readback sections. The one-item queue is delivered and empty; its permit is
-consumed. S230 passed the complete gate, served E2E (65 passed, four existing skips, fourteen
-files) and exact-main CI `39923662033` on `79764b56`. The October 20 S227–S229 delivery evidence
-remains `docs/evidence/application-delivery-2026-10-20.md`.
+Production serves `6fbd62250ccd9df1b9861a59b5de21c2143a68c0` /
+`pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% canonical traffic. Run
+`030761c0-1e70-4cd2-95a6-77480107657d` delivered S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and
+fast-uri 3.1.9) with candidate assurance, receipt-bound promotion, two observation checkpoints in
+406,404 ms and all eleven independent readback sections. The one-item queue is delivered and empty;
+its permit is consumed. S231 passed the complete gate, served E2E (65 passed, four existing skips,
+fourteen files) and exact-main CI `40487479956` on `6fbd6225`. The October 20 S227–S229 delivery
+evidence remains `docs/evidence/application-delivery-2026-10-20.md`.
 
 | Suite | Active contract                                                                  | State                                                                                        |
 | ----- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
