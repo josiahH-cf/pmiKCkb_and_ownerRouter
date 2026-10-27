@@ -5,7 +5,10 @@ Updated: 2026-10-27 (UTC).
 October 27: the owner reported Dotloop A1 done. The bounded re-read found integrations made a
 company admin rather than an office agent, so the LEASE RENEWAL template still does not reach its
 individual profile and no selection was saved. Every other seam, the read-only Admin canary and
-unattended authentication read back ready; no code changed and nothing deploys. Dan's remaining
+unattended authentication read back ready. The unchanged production audit then failed on new
+advisories; S231 (`63fe588d`) patches zod to 4.6.7, body-parser to 1.20.9/2.4.0 and fast-uri to
+3.1.9 and is queued for the guarded release route. Production still serves 79764b56 until that
+run verifies. Dan's remaining
 step and the client content holds are in `docs/open-blockers.md`.
 
 S230 (`fc6868e9`) patches Next.js to 16.4.2 and ip-address to 10.7.4 after the unchanged

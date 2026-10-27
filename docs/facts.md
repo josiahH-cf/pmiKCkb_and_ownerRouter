@@ -54,6 +54,15 @@ read-only prerequisites collector (09:11:48Z); RentVine 374 leases (09:12:54Z); 
 34 of 34; read-only Admin canary 13 of 13 routes with zero mutation attempts (09:20:07Z);
 `auth:ensure --unattended` READY including the canary session (09:21:55Z).
 
+S231, 2026-10-27: the full gate on the docs-only head failed at `verify:dependencies`. The
+unchanged production audit reported zod below 4.6.6 (GHSA-mrhx-c7xc-m3w5, high, no 4.2 patch),
+body-parser below 1.20.9 and 2.x below 2.4.0 (GHSA-27r3-jxmh-p828, high) and fast-uri through 3.1.8
+(four moderate advisories). `63fe588d` pins zod 4.6.7, overrides fast-uri to 3.1.9 and takes the
+in-range body-parser 1.20.9 and nested 2.4.0; the lockfile changes only those packages plus
+iconv-lite 0.7.3 and a nested content-type 2.1.0. The production audit then reports zero findings
+and the dependency boundary test pins the new versions. Production serves 79764b56 until S231's
+guarded run verifies.
+
 Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
 read back at resource version 8, all unverified. The deployed readiness page displays ten form
 families across renewal extension, full lease and owner acknowledgment. Actual originals and
