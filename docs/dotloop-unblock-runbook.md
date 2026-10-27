@@ -5,6 +5,11 @@ Dotloop admin, has added `integrations@pmikcmetro.com` as an agent in the office
 LEASE RENEWAL loop template (`docs/open-blockers.md`, A1 and B-DL2). Start a fresh session and
 paste the prompt below. Nothing in this file grants authority beyond what the prompt states.
 
+**Completed 2026-10-27.** The resume run verified every seam, resolved A1 (integrations is now an
+office agent; LEASE RENEWAL 228954 lists on its INDIVIDUAL profile 20701283) and saved the
+selection with initial status `PRE_OFFER`. This file is kept as the record of that run and as the
+command reference for later Dotloop reads; `docs/open-blockers.md` carries the remaining holds.
+
 ## State when this was saved
 
 - **Production.** It serves `79764b56011bd2571a56435aa7df21f2677d846a` /

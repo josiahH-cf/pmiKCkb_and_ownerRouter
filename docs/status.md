@@ -2,14 +2,15 @@
 
 Updated: 2026-10-27 (UTC).
 
-October 27: the owner reported Dotloop A1 done. The bounded re-read found integrations made a
-company admin rather than an office agent, so the LEASE RENEWAL template still does not reach its
-individual profile and no selection was saved. Every other seam, the read-only Admin canary and
-unattended authentication read back ready. The unchanged production audit then failed on new
-advisories; S231 (`63fe588d`) patches zod to 4.6.7, body-parser to 1.20.9/2.4.0 and fast-uri to
-3.1.9 and is queued for the guarded release route. Production still serves 79764b56 until that
-run verifies. Dan's remaining
-step and the client content holds are in `docs/open-blockers.md`.
+October 27: Dotloop A1 is resolved. Dan had made integrations a company admin, not an office
+agent, and the company was at Dotloop's eight-user limit. The owner swapped josiah@'s slot,
+re-added integrations as an agent, and the bounded API read at 10:35:30Z listed LEASE RENEWAL on
+the new integrations individual profile. The owner's Admin session saved the selection (Lease
+Renewal, initial status Pre-offer), which reads back in the app and on the readiness page. Every
+other seam, the read-only Admin canary and unattended authentication read back ready. The
+unchanged production audit failed on new advisories; S231 (`63fe588d`) patched zod to 4.6.7,
+body-parser to 1.20.9/2.4.0 and fast-uri to 3.1.9, and run `030761c0` released it. The remaining
+client content holds are in `docs/open-blockers.md`.
 
 S230 (`fc6868e9`) patches Next.js to 16.4.2 and ip-address to 10.7.4 after the unchanged
 production audit failed on 2026-10-23. The full gate passed: 9,666 unit tests with four existing
@@ -54,14 +55,14 @@ reviewed field/signer maps remain unapproved for all ten families. Source presen
 customer-link or signing approval. Source verification is a staff attestation in Admin; the
 least-privilege `drive.file` 404 for a browser-visible file is expected and holds nothing.
 
-Production serves `79764b56011bd2571a56435aa7df21f2677d846a` /
-`pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` at 100% canonical traffic. Run
-`eee80164-dea4-4601-8d69-965edabeeeb6` delivered S230 (Next.js 16.4.2 and ip-address 10.7.4) with
-candidate assurance, receipt-bound promotion, two observation checkpoints in 408,894 ms and all
-eleven independent readback sections. The one-item queue is delivered and empty; its permit is
-consumed. S230 passed the complete gate, served E2E (65 passed, four existing skips, fourteen
-files) and exact-main CI `39923662033` on `79764b56`. The October 20 S227–S229 delivery evidence
-remains `docs/evidence/application-delivery-2026-10-20.md`.
+Production serves `6fbd62250ccd9df1b9861a59b5de21c2143a68c0` /
+`pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% canonical traffic. Run
+`030761c0-1e70-4cd2-95a6-77480107657d` delivered S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and
+fast-uri 3.1.9) with candidate assurance, receipt-bound promotion, two observation checkpoints in
+406,404 ms and all eleven independent readback sections. The one-item queue is delivered and empty;
+its permit is consumed. S231 passed the complete gate, served E2E (65 passed, four existing skips,
+fourteen files) and exact-main CI `40487479956` on `6fbd6225`. The October 20 S227–S229 delivery
+evidence remains `docs/evidence/application-delivery-2026-10-20.md`.
 
 Focused confirmation/worker/identity regressions, exact-main CI, guarded release, full observation
 and independent readbacks passed. The owner-approved one-file Editor grant was applied with notification off and read back.

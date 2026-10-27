@@ -40,14 +40,14 @@ reviewed field/signer maps remain unapproved for all ten families. Source presen
 customer-link or signing approval. Source verification is a staff attestation in Admin; the
 least-privilege `drive.file` 404 for a browser-visible file is expected and holds nothing.
 
-Production serves `79764b56011bd2571a56435aa7df21f2677d846a` /
-`pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` at 100% canonical traffic. Run
-`eee80164-dea4-4601-8d69-965edabeeeb6` delivered S230 (Next.js 16.4.2 and ip-address 10.7.4) with
-candidate assurance, receipt-bound promotion, two observation checkpoints in 408,894 ms and all
-eleven independent readback sections. The one-item queue is delivered and empty; its permit is
-consumed. S230 passed the complete gate, served E2E (65 passed, four existing skips, fourteen
-files) and exact-main CI `39923662033` on `79764b56`. The October 20 S227–S229 delivery evidence
-remains `docs/evidence/application-delivery-2026-10-20.md`.
+Production serves `6fbd62250ccd9df1b9861a59b5de21c2143a68c0` /
+`pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% canonical traffic. Run
+`030761c0-1e70-4cd2-95a6-77480107657d` delivered S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and
+fast-uri 3.1.9) with candidate assurance, receipt-bound promotion, two observation checkpoints in
+406,404 ms and all eleven independent readback sections. The one-item queue is delivered and empty;
+its permit is consumed. S231 passed the complete gate, served E2E (65 passed, four existing skips,
+fourteen files) and exact-main CI `40487479956` on `6fbd6225`. The October 20 S227–S229 delivery
+evidence remains `docs/evidence/application-delivery-2026-10-20.md`.
 
 Implementation `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3` passed the actual complete
 `bash scripts/verify.sh`: 9,659 unit tests with four existing configuration skips, all 465 backend
@@ -114,8 +114,8 @@ Five confirmed adversarial findings are repaired and verified deployed: lifecycl
 | Region                    | `us-central1`                                                                      |
 | Cloud Run service         | `pmi-kc-app`                                                                       |
 | URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`                                       |
-| Serving revision          | `pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3`                                                |
-| Serving commit            | `79764b56011bd2571a56435aa7df21f2677d846a`                                         |
+| Serving revision          | `pmi-kc-app-rmvqk1okt-ecd4a985b1de`                                                |
+| Serving commit            | `6fbd62250ccd9df1b9861a59b5de21c2143a68c0`                                         |
 | Traffic                   | 100%                                                                               |
 | Descriptor                | Production + Live                                                                  |
 | Runtime identity          | project-managed PMI KC runtime service account                                     |
@@ -203,11 +203,11 @@ it did not reverify product routes or every environment setting.
 
 ### Local release watcher
 
-Run `eee80164-dea4-4601-8d69-965edabeeeb6` is complete with consumed permit. Its one watcher
+Run `030761c0-1e70-4cd2-95a6-77480107657d` is complete with consumed permit. Its one watcher
 exited after passed full observation; an independent separate-open kernel lock probe verified the
 lock free. The registered clean native/Windows pair remains pinned at
-`79764b56011bd2571a56435aa7df21f2677d846a`, directory label
-`next-patch-20261023-79764b56`. Earlier admitted pairs and original checkouts are preserved.
+`6fbd62250ccd9df1b9861a59b5de21c2143a68c0`, directory label
+`dep-patch-20261027-6fbd6225`. Earlier admitted pairs and original checkouts are preserved.
 Run the release from a WSL shell with `DISPLAY` and `WAYLAND_DISPLAY` unset when the WSLg display
 has failed: the guarded browser is headless and needs no display.
 Documentation closure uses the separate owned authoring worktree. Never reuse consumed permission.
@@ -479,14 +479,14 @@ activations; generic send, resident draft and Dotloop write keys remain closed.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmvgyw7tj-a7aa7a96b63a` from commit
-`157b6992279467e73dcf91aa43eb3c247f96ff2f`, Sheet=true.
-Run-bound recovery `pmi-kc-app-recovery-eee80164dea44601`, receipt
-`61ad64bf-9c60-4b50-bdad-7163d4ef2266`, reference
-`sha256:a11e1473ff287bf4144a24ec11a8d8dd47bb7868e5b569e1692e3ed3f7eff3db`, preserves
+Captured predecessor: `pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` from commit
+`79764b56011bd2571a56435aa7df21f2677d846a`, Sheet=true.
+Run-bound recovery `pmi-kc-app-recovery-030761c01e704cd2`, receipt
+`b5974bde-d3d6-4240-8c7f-a05e339928cb`, reference
+`sha256:31c1f8f3fb6af9467412b19611dbfc6b6379cd48f3540a7c5f9f8fdc05be75b8`, preserves
 that actual image/configuration, including its delegated subject and Sheet=true.
 Original and target fingerprints are
-`sha256:fe88b8b3715890110e487a6a37e7bf745e446d393d5f47e959ea1025cd9e15c8`.
+`sha256:db4bcc4ee9ba447cb40b56c11c9a63b0ed56a73771d4f5a319777ca755312c67`.
 The actual prior tag binding was captured independently of canonical traffic and moved only under
 that receipt. All other bindings are preserved. No traffic rollback occurred in this run.
 

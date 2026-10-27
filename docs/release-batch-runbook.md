@@ -10,37 +10,34 @@ attempts and consumed permits are immutable and never reusable.
 
 ## Current verified delivery
 
-Run `eee80164-dea4-4601-8d69-965edabeeeb6` delivered S230 (Next.js 16.4.2 and ip-address 10.7.4) at
-`79764b56011bd2571a56435aa7df21f2677d846a` / `pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` with 100% canonical traffic.
-One application build `d7b4417d-afe0-4487-9847-8e45a267f26c` succeeded at 09:05:13.027802Z.
-Candidate receipt `77bbf01f-9c8e-4e64-830d-9de561b7d81a` issued 09:11:37.077Z; receipt-bound
-promotion verified 09:12:11.362Z. Observation passed two checkpoints in 408,894 ms against the
+Run `030761c0-1e70-4cd2-95a6-77480107657d` delivered S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and fast-uri 3.1.9) at
+`6fbd62250ccd9df1b9861a59b5de21c2143a68c0` / `pmi-kc-app-rmvqk1okt-ecd4a985b1de` with 100% canonical traffic.
+One application build `5dd3d8c9-ff0c-48a7-bc08-7fb59729feac` succeeded at 10:50:32.039576Z.
+Candidate receipt `0e94cd63-8140-4898-b87d-3559c9c5491f` issued 10:56:11.150Z; receipt-bound
+promotion verified 10:56:33.045Z. Observation passed two checkpoints in 406,404 ms against the
 300,000 ms minimum and 480,000 ms deadline. All 374 source/projected/rendered records matched
 with zero discrepancies, candidate 5xx or unresolved effects. All eleven independent readback
-sections matched at 2026-10-23T09:19:29Z. The checkpoint is complete, watcher exited and permit consumed.
-Tag `cand-rmvkpw2ey-bfdf11ed1ed3`; fingerprint
-`sha256:db4bcc4ee9ba447cb40b56c11c9a63b0ed56a73771d4f5a319777ca755312c67`.
+sections matched at 2026-10-27T11:03:32Z. The checkpoint is complete, watcher exited and permit consumed.
+Tag `cand-rmvqk1okt-ecd4a985b1de`; fingerprint
+`sha256:82fb1ad6c4e38c3ea1643128a1ed1d5667c7728af8bc87822bad5bea59583e74`.
 Only APP_COMMIT_SHA differs among the 54 environment keys versus the captured predecessor; the
 runtime identity, secret bindings, eleven Space maps, Demo=false and Sheet=true match.
 
-Captured predecessor: `pmi-kc-app-rmvgyw7tj-a7aa7a96b63a` / `157b6992279467e73dcf91aa43eb3c247f96ff2f`, Sheet=true.
-Run-bound recovery `pmi-kc-app-recovery-eee80164dea44601`, receipt
-`61ad64bf-9c60-4b50-bdad-7163d4ef2266`, reference
-`sha256:a11e1473ff287bf4144a24ec11a8d8dd47bb7868e5b569e1692e3ed3f7eff3db`, preserves
+Captured predecessor: `pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` / `79764b56011bd2571a56435aa7df21f2677d846a`, Sheet=true.
+Run-bound recovery `pmi-kc-app-recovery-030761c01e704cd2`, receipt
+`b5974bde-d3d6-4240-8c7f-a05e339928cb`, reference
+`sha256:31c1f8f3fb6af9467412b19611dbfc6b6379cd48f3540a7c5f9f8fdc05be75b8`, preserves
 that actual image/configuration, including its delegated subject and Sheet=true.
 Original and target fingerprints are
-`sha256:fe88b8b3715890110e487a6a37e7bf745e446d393d5f47e959ea1025cd9e15c8`.
+`sha256:db4bcc4ee9ba447cb40b56c11c9a63b0ed56a73771d4f5a319777ca755312c67`.
 The actual prior tag binding was captured independently of canonical traffic and moved only under
 that receipt. All other bindings are preserved. No traffic rollback occurred in this run.
+The run completed without a pause; the watcher ran with `DISPLAY` and `WAYLAND_DISPLAY` unset.
 
-The run paused once before any build (`predecessor_baseline_failed`, `recovery_preparation_unverified`).
-The host's WSLg display had failed, so headless Chromium with the display variables set produced
-no animation frames and React's streamed reveals never ran. A read-only Admin canary against
-production with `DISPLAY` and `WAYLAND_DISPLAY` unset passed all 13 routes; `--resume` then
-completed the same run and target with no redispatch. Production code was never at fault.
-
-Run `57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` delivered the October 20 S227–S229 amendment at
-`157b6992279467e73dcf91aa43eb3c247f96ff2f` / `pmi-kc-app-rmvgyw7tj-a7aa7a96b63a`; its record is in
+Run `eee80164-dea4-4601-8d69-965edabeeeb6` delivered S230 at `79764b56011bd2571a56435aa7df21f2677d846a` /
+`pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` on 2026-10-23 after one display-caused pause; run
+`57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` delivered the October 20 S227–S229 amendment at
+`157b6992279467e73dcf91aa43eb3c247f96ff2f` / `pmi-kc-app-rmvgyw7tj-a7aa7a96b63a`. Their records are in
 `docs/facts.md` and `docs/evidence/application-delivery-2026-10-20.md`.
 
 The owner-approved one-file Editor grant was applied with notification off and read back.
