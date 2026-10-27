@@ -1,6 +1,6 @@
 # PMI KC facts
 
-Last reconciled: 2026-10-22 (connections readiness readbacks; guarded delivery verified 2026-10-20).
+Last reconciled: 2026-10-27 (A1 re-read and seam readbacks; guarded delivery verified 2026-10-23).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
@@ -34,6 +34,34 @@ LEASE RENEWAL. It still has no People rights or office agent profile, and the 07
 unchanged. The remaining step is Dan adding integrations@ as an agent in the template's office (A1);
 the resume sequence for that moment is `docs/dotloop-unblock-runbook.md`.
 Both Dotloop write keys remain closed; no template was recreated.
+
+October 27 (UTC), after the owner reported A1 done: the bounded API read at 09:17:28Z was
+unchanged (Default Profile 200 with zero templates, company 403, no office profile, normal token
+refresh 200, both write keys closed). The owner signed in as integrations and completed the Press &
+Hold; the runner only read. The profile switcher lists My profiles: Default Profile, and Admin
+profiles: PMI KC Metro. People for PMI KC Metro lists eight users; office agents read "PMI KC Metro
+(admin) and PMI KC Metro", while integrations reads only "PMI KC Metro (admin)". Integrations
+became a company admin, not an office agent, so A1 remains: Dan adds the agent membership. The
+LEASE RENEWAL loop template shows transaction type Lease (`LEASE_OFFER`, supported) and no document
+folders. The selection GET returns `settings: null`; no resource refresh or selection was saved.
+
+Seam readbacks, 2026-10-27 (UTC): production `/api/version` and 100% traffic at 79764b56 /
+rmvkpw2ey (09:10Z); revision env 54 keys, five secrets, production/live, Demo=false, Sheet
+write-back true (09:12Z); billing, cost controls, CLI/ADC and Admin browser ready through the
+read-only prerequisites collector (09:11:48Z); RentVine 374 leases (09:12:54Z); Sheet 29 tabs
+(09:13:13Z); Gmail DWD four scopes and a matching bodyless profile read (09:13:53Z); sequence worker
+60 of 60 HTTP 200 in the hour to 09:14Z with no ERROR logs since October 23; focused Dotloop tests
+34 of 34; read-only Admin canary 13 of 13 routes with zero mutation attempts (09:20:07Z);
+`auth:ensure --unattended` READY including the canary session (09:21:55Z).
+
+S231, 2026-10-27: the full gate on the docs-only head failed at `verify:dependencies`. The
+unchanged production audit reported zod below 4.6.6 (GHSA-mrhx-c7xc-m3w5, high, no 4.2 patch),
+body-parser below 1.20.9 and 2.x below 2.4.0 (GHSA-27r3-jxmh-p828, high) and fast-uri through 3.1.8
+(four moderate advisories). `63fe588d` pins zod 4.6.7, overrides fast-uri to 3.1.9 and takes the
+in-range body-parser 1.20.9 and nested 2.4.0; the lockfile changes only those packages plus
+iconv-lite 0.7.3 and a nested content-type 2.1.0. The production audit then reports zero findings
+and the dependency boundary test pins the new versions. Production serves 79764b56 until S231's
+guarded run verifies.
 
 Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
 read back at resource version 8, all unverified. The deployed readiness page displays ten form

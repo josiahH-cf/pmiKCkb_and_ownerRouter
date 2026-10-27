@@ -1,16 +1,19 @@
 # Loop state
 
-Last updated: 2026-10-23 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-10-27 (UTC). Read AGENTS.md and docs/facts.md first.
 
-## Waiting on Dan — Dotloop A1 (saved October 23)
+## Waiting on Dan — Dotloop A1 (re-read October 27)
 
-The connections and unattended-readiness stage is complete except Dotloop. RentVine, Sheet, Gmail
-DWD scopes, the sequence worker, sign-in wiring and the guarded Admin canary read back ready
-(facts); S230 released 79764b56 on October 23 and nothing waits to deploy. Dotloop waits only on A1:
-Dan, a full Dotloop admin who granted integrations template rights on October 23, adds
-`integrations@pmikcmetro.com` as an agent in the office that holds the LEASE RENEWAL template.
-NEXT: when the owner reports A1 done, start a fresh session with the resume prompt in
-`docs/dotloop-unblock-runbook.md`. It runs authentication, production and seam checks, the
+The connections and unattended-readiness stage is complete except Dotloop. On October 27 every
+seam, the read-only Admin canary and `auth:ensure --unattended` read back ready again (facts);
+production is unchanged at 79764b56. The gate's unchanged production audit failed on new zod,
+body-parser and fast-uri advisories, so S231 patches them and awaits release (below). The owner reported A1 done, but
+the re-read shows Dan made integrations a company admin, not an office agent: People reads
+"PMI KC Metro (admin)" for integrations and the API still lists no template. Remaining A1 step
+(exact text in `docs/open-blockers.md`): Dan adds the PMI KC Metro agent membership to Integrations
+API, keeping admin. The template type (Lease, `LEASE_OFFER`) needs no change; the initial loop
+status is still an owner choice. NEXT: when the owner reports that step done, start a fresh session
+with the resume prompt in `docs/dotloop-unblock-runbook.md`. It runs authentication, production and seam checks, the
 bounded Dotloop read, the in-app selection, tests and a read-only canary, the end-to-end gap map,
 a read-only first-packet readiness report, and unattended confirmation. The first real loop is
 ordinary staff-confirmed work after B-DL3 approval, outside that run.
@@ -39,7 +42,16 @@ October 16 source. Original and admitted checkouts remain preserved.
 
 ## Awaiting release
 
-Empty. S230 (Next.js 16.4.2 and ip-address 10.7.4, owner direction 2026-10-23) was independently
+1. S231 `63fe588d`: zod 4.6.7 patches GHSA-mrhx-c7xc-m3w5 (below 4.6.6, no 4.2 patch),
+   body-parser 1.20.9 and 2.4.0 patch GHSA-27r3-jxmh-p828, and fast-uri 3.1.9 patches four
+   advisories through 3.1.8; all failed the unchanged production audit on 2026-10-27.
+
+OWNER DIRECTION, 2026-10-27 (the Dotloop A1 resume prompt): "fix agent-owned defects through
+PMI's normal route" and, when code changes, "release only through docs/release-batch-runbook.md".
+No application route, read or write changes; the validation and request-body libraries change
+under every route, so the full gate, served E2E and the candidate's guarded assurance cover it.
+Admit only after exact main CI on the release head, fresh prerequisites and a new run-bound
+permit. Both Dotloop write keys stay closed; assurance stays read-only. S230 was independently
 verified delivered by run eee80164; S227, S228 and S229 by run 57e4a1b5.
 
 ## Verified production
