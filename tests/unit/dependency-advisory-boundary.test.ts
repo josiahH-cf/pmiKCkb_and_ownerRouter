@@ -22,7 +22,24 @@ describe("I11 patched transitive dependency boundaries", () => {
     // patch, so the boundary moves to 16.4.2.
     expect(installedVersion("next")).toBe("16.4.2");
     expect(installedVersion("sharp")).toBe("0.35.5");
-    expect(installedVersion("fast-uri")).toBe("3.1.8");
+    // October 27: GHSA-w74x-v6f9-j3xg, GHSA-xhq7-xmqj-769h, GHSA-wjr9-j795-jxcr and
+    // GHSA-333x-w4r6-6crp affect fast-uri 3.0.0 through 3.1.8.
+    expect(installedVersion("fast-uri")).toBe("3.1.9");
+    // October 27: GHSA-mrhx-c7xc-m3w5 affects zod below 4.6.6 with no 4.2 patch, so the exact pin
+    // moves to the 4.6 line. GHSA-27r3-jxmh-p828 affects body-parser below 1.20.9 and 2.x below
+    // 2.4.0; express and the MCP SDK's express take the in-range patches.
+    expect(installedVersion("zod")).toBe("4.6.7");
+    expect(installedVersion("body-parser")).toBe("1.20.9");
+    expect(
+      versionAbove(
+        dirname(
+          createRequire(
+            require.resolve("@modelcontextprotocol/sdk/package.json"),
+          ).resolve("body-parser"),
+        ),
+        "body-parser",
+      ),
+    ).toBe("2.4.0");
     // October 20: GHSA-5r4p-p66f-jhc7 is patched in 4.13.11.
     expect(installedVersion("hono")).toBe("4.13.11");
     // October 23: GHSA-rxp7-6hxx-x8q5 affects ip-address through 10.7.3.
