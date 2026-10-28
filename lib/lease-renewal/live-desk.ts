@@ -153,6 +153,7 @@ import {
   type RenewalEvidenceMap,
   type RenewalEvidenceSource,
   type RenewalProcessProjection,
+  type RenewalTenantOutcome,
 } from "@/lib/lease-renewal/renewal-process";
 import { buildTenantOfferDraft } from "@/lib/lease-renewal/tenant-draft";
 import { resolveRenewalRecipient } from "@/lib/lease-renewal/recipient-resolution";
@@ -919,6 +920,11 @@ interface LiveNoticeEvidence {
   readonly sentIso: string | null;
   readonly sentSource: string | null;
   readonly respondedSource: string | null;
+  /** A recorded but still pending app outcome; it keeps the follow-up and is named, not counted. */
+  readonly pendingResponse: {
+    readonly state: "awaiting_response" | "needs_verification";
+    readonly source: string;
+  } | null;
 }
 
 const TENANT_RESPONSE_OUTCOMES = new Set([
@@ -931,10 +937,10 @@ const TENANT_RESPONSE_OUTCOMES = new Set([
  * S232 R-S232-6: the notice status reads the confirmed tenant-offer send (an app send receipt, else a
  * staff-recorded delivery on this end date's cycle) and any recorded tenant response, never nulls.
  */
-function liveNoticeEvidence(input: {
+export function liveNoticeEvidence(input: {
   endDateIso: string;
   evidence: RenewalEvidenceMap;
-  tenantOutcome: unknown;
+  tenantOutcome: RenewalTenantOutcome | null;
   manual: RenewalWorkspaceState | null;
 }): LiveNoticeEvidence {
   const sent = input.evidence["tenant-message-sent"];
@@ -950,8 +956,10 @@ function liveNoticeEvidence(input: {
       : offer?.outcome === "done"
         ? { atIso: offer.occurredAt ?? offer.recordedAt, source: "Staff record" }
         : null;
+  // PR #158 review: awaiting_response and needs_verification are pending states, not a response.
+  const appState = input.tenantOutcome?.state ?? null;
   const respondedSource =
-    input.tenantOutcome != null
+    appState && TENANT_RESPONSE_OUTCOMES.has(appState)
       ? "App renewal record"
       : manual?.tenantResponse &&
           TENANT_RESPONSE_OUTCOMES.has(manual.tenantResponse.outcome)
@@ -961,6 +969,11 @@ function liveNoticeEvidence(input: {
     sentIso: sentAt ? businessDateIso(sentAt.atIso) : null,
     sentSource: sentAt?.source ?? null,
     respondedSource,
+    pendingResponse:
+      !respondedSource &&
+      (appState === "awaiting_response" || appState === "needs_verification")
+        ? { state: appState, source: "App renewal record" }
+        : null,
   };
 }
 
@@ -1006,7 +1019,19 @@ function buildLiveNotice(
               needsVerification: false,
             },
           ]
-        : []),
+        : facts.pendingResponse
+          ? [
+              {
+                label: "Tenant response",
+                value:
+                  facts.pendingResponse.state === "awaiting_response"
+                    ? "Awaiting response"
+                    : "Needs verification",
+                provenance: facts.pendingResponse.source,
+                needsVerification: facts.pendingResponse.state === "needs_verification",
+              },
+            ]
+          : []),
     ],
   };
 }

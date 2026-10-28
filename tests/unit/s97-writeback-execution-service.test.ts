@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { MemoryExternalExecutionStore } from "@/lib/external-execution/memory-store";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
+  RENEWAL_WRITEBACK_SERVICE_MESSAGES,
   RenewalWritebackService,
   RenewalWritebackServiceError,
   type RenewalWritebackDependencies,
@@ -14,6 +15,7 @@ import {
   buildRenewalWritebackProposal,
   legacyRenewalWritebackExecutionId,
   projectRecurringCharge,
+  renewalWritebackExecutionId,
   renewalWritebackReversalExecutionId,
   type RecurringChargeProjection,
   type RenewalWritebackProposal,
@@ -70,6 +72,8 @@ interface Harness {
     writerFailure?: { error: unknown; onMethod: string; afterApply?: boolean };
     readbackOverride?: () => void;
     gateExecutable: boolean;
+    /** PR #158 review: every provider read throws this while set (writes are unaffected). */
+    readFailure?: unknown;
     /** S51 refusal shape; the injected gate resolves every one of these to non-executable. */
     gateRefusalState?: "action_suspended" | "global_suspended" | "unreadable";
     beforeGateRun?: () => void;
@@ -200,9 +204,11 @@ function harness(overrides: Partial<Harness["state"]> = {}): Harness {
     store,
     reads: {
       async getLease() {
+        if (state.readFailure) throw state.readFailure;
         return { lease: { ...state.lease } };
       },
       async getRecurringCharge(_leaseId, chargeId) {
+        if (state.readFailure) throw state.readFailure;
         // The real read client unwraps the {recurringCharge} envelope before returning.
         const found = state.charges.get(chargeId);
         if (!found) throw new ProviderHttpError(404);
@@ -652,6 +658,53 @@ describe("S97 one-attempt execution", () => {
 
     // A second confirmation cannot retry the ambiguous attempt.
     await expectCode(h.service.executeEffect(confirmed(proposal)), "execution_state");
+    expect(h.calls.filter((call) => call.method === "updateLease")).toHaveLength(1);
+  });
+
+  it("PR158 review: a reconciliation read error after an ambiguous update sends nothing new and stays uncertain", async () => {
+    const h = harness();
+    h.state.writerFailure = {
+      onMethod: "updateLease",
+      error: new ProviderHttpError(504),
+    };
+    const proposal = buildRenewalWritebackProposal(proposalInput());
+    await expectCode(h.service.executeEffect(confirmed(proposal)), "provider_ambiguous");
+    h.state.writerFailure = undefined;
+    h.state.readFailure = new ProviderHttpError(503);
+    await expectCode(
+      h.service.reconcileEffect({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+      }),
+      "provider_read_failed",
+    );
+    // Zero new provider writes, and the earlier attempt keeps its uncertain claim and record.
+    expect(h.calls.filter((call) => call.method === "updateLease")).toHaveLength(1);
+    const record = await h.store.get(
+      renewalWritebackExecutionId(proposal, proposal.effects[0]),
+    );
+    expect(record).toMatchObject({ state: "ambiguous", attemptCount: 1 });
+    expect(record?.receipt).toBeUndefined();
+    // The plain outcome cannot claim that no update was ever sent.
+    for (const code of [
+      "provider_read_failed",
+      "provider_shape",
+      "provider_state_drift",
+    ] as const) {
+      const message = RENEWAL_WRITEBACK_SERVICE_MESSAGES[code];
+      expect(message, code).not.toMatch(/Nothing was sent(?! again)/);
+      expect(message, code).toMatch(/sent nothing new/);
+      expect(message, code).toMatch(/earlier attempt keeps its recorded status/);
+    }
+    // Once reads recover, the same uncertain attempt reconciles without a second write.
+    h.state.readFailure = undefined;
+    await expectCode(
+      h.service.reconcileEffect({
+        proposal,
+        effectHash: proposal.effects[0].effectHash,
+      }),
+      "reconcile_not_proven",
+    );
     expect(h.calls.filter((call) => call.method === "updateLease")).toHaveLength(1);
   });
 
