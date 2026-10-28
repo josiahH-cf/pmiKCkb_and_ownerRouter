@@ -16,6 +16,7 @@ import {
   RETURNED_STATE_COLLECTIONS,
   RETURNED_STATE_HISTORY_LIMIT,
   listReturnedStateRecords,
+  readIntakeManifestWithReturnedState,
   readReturnedStateInspected,
   recordReturnedState,
 } from "@/lib/firestore/lease-document-returned-states";
@@ -556,8 +557,17 @@ describe("S236 returned-state records on the emulator", () => {
       .doc("other-family")
       .set({ kind: "lead_disclosure", lease_id: "5001", cycle_id: "other-cycle" });
     expect(await readReturnedStateInspected(manifest, db)).toBe(false);
+    expect(await readIntakeManifestWithReturnedState(db)).toEqual({
+      manifest,
+      returnedStateInspected: false,
+    });
     await change(70, observed(SAM, "tenant", "2026-11-02T16:00:00.000Z"));
     expect(await readReturnedStateInspected(manifest, db)).toBe(true);
+    // The one read the Admin page and the Admin intake route both use carries the same result.
+    expect(await readIntakeManifestWithReturnedState(db)).toEqual({
+      manifest,
+      returnedStateInspected: true,
+    });
   });
 
   it("R-S236-6: a fully tracked packet derives Required signatures complete; without one staff record it", async () => {

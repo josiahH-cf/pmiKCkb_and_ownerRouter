@@ -20,6 +20,7 @@ import {
 } from "@/lib/environment/descriptor";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { getAdminFirestore } from "@/lib/firestore/admin";
+import { readArtifactIntakeManifest } from "@/lib/firestore/lease-artifact-intake";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   LEASE_DOCUMENT_PACKET_COLLECTIONS,
@@ -261,6 +262,18 @@ export async function hasReturnedStateRecordForKind(
  * is satisfied once staff have recorded a returned document for a packet that uses an approved
  * family. Never throws: an unreadable store reads as not yet inspected.
  */
+/** The Admin intake manifest with its R-S236-7 checkpoint input, as one never-throwing read. */
+export async function readIntakeManifestWithReturnedState(db?: Firestore): Promise<{
+  manifest: ArtifactIntakeManifest;
+  returnedStateInspected: boolean;
+}> {
+  const manifest = await readArtifactIntakeManifest(db);
+  return {
+    manifest,
+    returnedStateInspected: await readReturnedStateInspected(manifest, db),
+  };
+}
+
 export async function readReturnedStateInspected(
   manifest: ArtifactIntakeManifest,
   db?: Firestore,

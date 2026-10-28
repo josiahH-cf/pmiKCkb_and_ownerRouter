@@ -16,8 +16,7 @@ import {
 import { readFamilyUseRecord } from "@/lib/firestore/lease-artifact-family-use";
 import { readChargePolicy } from "@/lib/firestore/lease-charge-policy";
 import { resolveFamilyUse } from "@/lib/lease-documents/family-use";
-import { readArtifactIntakeManifest } from "@/lib/firestore/lease-artifact-intake";
-import { readReturnedStateInspected } from "@/lib/firestore/lease-document-returned-states";
+import { readIntakeManifestWithReturnedState } from "@/lib/firestore/lease-document-returned-states";
 import { projectIntakeCheckpoints } from "@/lib/lease-documents/artifact-intake";
 import {
   emptyArtifactIntakeManifest,
@@ -238,14 +237,10 @@ export default async function AdminPage() {
       }),
     // S130: the intake manifest for every form family (this read never throws). S236 R-S236-7:
     // the returned-state checkpoint follows recorded returns for an approved family.
-    readArtifactIntakeManifest()
-      .then((manifest) => {
-        artifactIntake = manifest;
-        return readReturnedStateInspected(manifest);
-      })
-      .then((inspected) => {
-        returnedStateInspected = inspected;
-      }),
+    readIntakeManifestWithReturnedState().then((intake) => {
+      artifactIntake = intake.manifest;
+      returnedStateInspected = intake.returnedStateInspected;
+    }),
     Promise.all([readFamilyUseRecord(), readChargePolicy()]).then(
       ([familyUse, policy]) => {
         renewalPacketPolicy = {
