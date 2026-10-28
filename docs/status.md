@@ -17,8 +17,8 @@ longer claim nothing was sent. PR #160 (merged at `be8c0bf4`) added the S237 Wor
 current-base binding, the locked ambiguous-state statement and one source-update scope statement,
 the S233 incoming-message variants, S235's lease-wide duplicate-loop prevention and read-only
 per-family readiness, and the S236 returned-state projection with its two review fixes (latest
-observation per signer; version notes bound to the document kind). The branch
-claude/renewal-novdec-rows-20261028 adds:
+observation per signer; version notes bound to the document kind). PR #161 (merged at
+`8c84ed04`; exact-main CI `40720550221` passed) added:
 
 - S236: the persisted returned-document record, its route and the Returned documents and
   signatures screen, derived Required signatures complete and the Admin checkpoint from records;
@@ -28,6 +28,10 @@ claude/renewal-novdec-rows-20261028 adds:
   saved Dotloop selection with its last observation;
 - S238: an isolated browser journey through the mounted pages, routes and emulator (14 of 14 steps
   on `a6f99b6e`, 15 of 15 on `743bac8f`, `docs/evidence/s238-isolated-journey-2026-10-28.md`).
+
+The branch claude/renewal-novdec-rows2-20261028 adds S233 per-message evidence with
+attempt-correlated bounces (R-S233-1/2) and S234 approval evidence: who approved, how and when,
+checked against the current owner roster and this lease's own owner thread (R-S234-1).
 
 Production still serves `6fbd6225` (S231); the staff walkthrough is NOT RUN.
 

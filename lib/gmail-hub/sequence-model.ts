@@ -171,6 +171,13 @@ export interface CommunicationSequence
     sentAtMs: number;
   }[];
   observedMessageIds: string[];
+  /** S233 R-S233-1: each incoming message seen on a linked thread, oldest first; absent on older records. */
+  inbound?: CommunicationInboundEvidence[];
+  /**
+   * S233 R-S233-1: the renewal cycle the notice scope named at the latest review. Informational: it
+   * is kept beside the authorization, so the authorization's payload and replay binding are unchanged.
+   */
+  noticeCycleId?: string | null;
   observation: {
     checkedAtMs: number;
     state: "current" | "unavailable";
@@ -179,6 +186,24 @@ export interface CommunicationSequence
   } | null;
   lastOperation: { id: string; hash: string };
 }
+/**
+ * S233 R-S233-1/R-S233-2: one incoming message on a linked thread, as classified when it was first
+ * seen. It records evidence only: no body, subject or address is kept.
+ */
+export interface CommunicationInboundEvidence {
+  /** `${mailboxKey}:${gmailMessageId}`, the same id `observedMessageIds` holds. */
+  id: string;
+  /** The staff mailbox whose thread holds the message. */
+  senderEmail: string;
+  threadId: string;
+  messageId: string;
+  kind: "human" | "auto_reply" | "bounce" | "uncertain";
+  receivedAtMs: number;
+  /** A bounce's attempt by its RFC Message-ID or thread; null when no single attempt is identified. */
+  attemptOccurrenceId?: string | null;
+}
+/** At most this many incoming entries are kept per communication; older ones stay counted as seen. */
+export const INBOUND_EVIDENCE_LIMIT = 200;
 export interface CommunicationOccurrence {
   id: string;
   sequenceId: string;
@@ -199,6 +224,8 @@ export interface CommunicationOccurrence {
 export interface VerifiedCommunicationTarget {
   reply?: CommunicationReplyBinding;
   context: WorkflowCommunicationContext;
+  /** S233 R-S233-1: the renewal cycle of the notice scope; informational, never part of the binding. */
+  noticeCycleId?: string | null;
   to: string[];
   cc: string[];
   sourceRefs: string[];

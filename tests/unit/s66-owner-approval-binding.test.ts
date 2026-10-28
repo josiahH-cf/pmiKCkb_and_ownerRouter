@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 
 import type { ChargePolicyRecord } from "@/lib/lease-documents/charge-policy";
 import {
@@ -77,7 +78,12 @@ function approve(
 ) {
   return planRenewalWorkspaceAction(
     state,
-    { kind: "owner_response", outcome: "approved_terms", source: "Owner phone call" },
+    {
+      kind: "owner_response",
+      outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
+      source: "Owner phone call",
+    },
     {
       actorUid: "editor-1",
       recordedAt: "2026-10-07T02:00:00.000Z",
@@ -141,6 +147,7 @@ describe("S66 owner approval bound to the exact Working terms (AC-S66-8, BEH-S66
       {
         kind: "owner_response",
         outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
         terms: TERMS,
         source: "Legacy terms on the response",
       },

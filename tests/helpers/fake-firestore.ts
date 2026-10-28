@@ -80,6 +80,12 @@ class FakeQuery {
       }),
     };
   }
+
+  limit(count: number) {
+    return {
+      get: async () => ({ docs: (await this.get()).docs.slice(0, count) }),
+    };
+  }
 }
 
 class FakeTransaction {

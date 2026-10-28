@@ -21,8 +21,13 @@ import {
   parseRenewalWorkingRecord,
   renewalWorkingRecordRef,
 } from "@/lib/firestore/renewal-working-record";
+import { COMMUNICATION_SEQUENCE_COLLECTIONS } from "@/lib/gmail-hub/sequence-store";
+import type { CommunicationInboundEvidence } from "@/lib/gmail-hub/sequence-model";
 import {
   ApprovedWorkingTermsSchema,
+  OwnerApprovalEvidenceSchema,
+  missingOwnerApprovalItems,
+  type OwnerApprovalEvidence,
   CycleBasisSchema,
   LeaseBoundBasisSchema,
   MANUAL_ACTIVITIES,
@@ -76,6 +81,7 @@ const stateSchema = z
         ]),
         terms: RenewalTermsSchema.optional(),
         approvedWorkingTerms: ApprovedWorkingTermsSchema.optional(),
+        approval: OwnerApprovalEvidenceSchema.optional(),
       })
       .nullable(),
     tenantResponse: staff
@@ -336,6 +342,31 @@ function startsNewCycle(current: RenewalWorkspaceState, basis: RenewalWorkBasis 
     current.completion && nextDate && nextDate !== workBasisDateIso(current.basis),
   );
 }
+/** S234 R-S234-1: one owner of record from the lease's current source read. */
+export interface OwnerRosterEntry {
+  readonly label: string;
+  readonly sourceRef: string;
+}
+/** S234 R-S234-1: how the store checks an approval's party against the current owner roster. */
+export interface OwnerApprovalVerification {
+  /** The current source read's owners; null when the roster cannot be read. */
+  readonly ownerRoster: () => Promise<readonly OwnerRosterEntry[] | null>;
+}
+/**
+ * PR #162 review: one fingerprint for the roster an approval form showed. Source references are
+ * field paths, so a replaced or reordered owner keeps a path; the fingerprint and the label bind the
+ * choice to the people staff actually saw.
+ */
+export function ownerRosterFingerprint(roster: readonly OwnerRosterEntry[]): string {
+  return createHash("sha256")
+    .update(JSON.stringify(roster.map((entry) => [entry.sourceRef, entry.label])))
+    .digest("hex");
+}
+const ROSTER_CHANGED =
+  "The lease's owner list changed since this page was opened, so the approval was not recorded. Reload the lease and choose who approved again.";
+const ROSTER_UNREADABLE =
+  "The lease's current owner list could not be read, so the approval was not recorded. Refresh the lease data and record it again.";
+
 /**
  * Atomic optimistic concurrency + immutable request identity. No provider receipt or completion
  * flag. S154: the first actual save establishes the work record from the lease's real basis, so no
@@ -346,10 +377,36 @@ export async function saveRenewalWorkspace(
   raw: unknown,
   db: Firestore = getAdminFirestore(),
   resolveBasis?: () => Promise<RenewalWorkBasis | null>,
+  verifyApproval?: OwnerApprovalVerification,
 ) {
   assertActor(actor, true);
   const input = SaveRenewalWorkspaceSchema.parse(raw),
     requestHash = hashExecutionPreview({ actorUid: actor.uid, ...input });
+  // S234 R-S234-1: an approval's party is one owner from the lease's current source read, or a
+  // named representative; the roster is read before the transaction and an unreadable roster
+  // records nothing. A linked reply is checked inside the transaction below.
+  const approvalInput =
+    input.action.kind === "owner_response" && input.action.outcome === "approved_terms"
+      ? input.action.approval
+      : undefined;
+  let verifiedParty: OwnerApprovalEvidence["party"] | null = null;
+  if (approvalInput && !missingOwnerApprovalItems(approvalInput)) {
+    const roster = await verifyApproval?.ownerRoster().catch(() => null);
+    if (!roster) throw new EditableLayerError(ROSTER_UNREADABLE, 409);
+    const party = approvalInput.party!;
+    if (party.kind === "owner") {
+      if (ownerRosterFingerprint(roster) !== party.rosterFingerprint)
+        throw new EditableLayerError(ROSTER_CHANGED, 409);
+      const owner = roster.find((entry) => entry.sourceRef === party.sourceRef);
+      if (!owner)
+        throw new EditableLayerError(
+          "Choose an owner from this lease's current owner list, or Authorized representative with a name and capacity.",
+          409,
+        );
+      if (owner.label !== party.label) throw new EditableLayerError(ROSTER_CHANGED, 409);
+      verifiedParty = { kind: "owner", label: owner.label, sourceRef: owner.sourceRef };
+    } else verifiedParty = party;
+  }
   const refs = headRefs(db, input.leaseId),
     event = db.collection(RENEWAL_WORKSPACE_COLLECTIONS.activity).doc(input.operationId);
   // The source basis is read before the transaction: only when no record exists yet, or when new
@@ -423,11 +480,55 @@ export async function saveRenewalWorkspace(
         policy: chargePolicy,
       });
     }
+    let approvalEvidence: OwnerApprovalEvidence | null = null;
+    if (approvalInput && verifiedParty) {
+      const channel = approvalInput.channel!;
+      let verifiedChannel: OwnerApprovalEvidence["channel"];
+      if (channel.kind === "linked_reply") {
+        // The reply must be a person's reply recorded on this lease's own owner renewal thread.
+        const sequence = await tx.get(
+          db
+            .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences)
+            .doc(channel.sequenceId),
+        );
+        const context = sequence.get("context") as
+          | { entityType?: string; entityId?: string; purpose?: string }
+          | undefined;
+        const reply = (
+          (sequence.get("inbound") as CommunicationInboundEvidence[] | undefined) ?? []
+        ).find((entry) => entry.id === channel.evidenceId && entry.kind === "human");
+        if (
+          !sequence.exists ||
+          context?.entityType !== "renewal_lease" ||
+          context.entityId !== input.leaseId ||
+          context.purpose !== "renewal_owner" ||
+          !reply
+        )
+          throw new EditableLayerError(
+            "Select a reply received in this lease's own owner renewal thread.",
+            409,
+          );
+        verifiedChannel = {
+          kind: "linked_reply",
+          sequenceId: channel.sequenceId,
+          senderEmail: reply.senderEmail,
+          threadId: reply.threadId,
+          messageId: reply.messageId,
+          receivedAt: new Date(reply.receivedAtMs).toISOString(),
+        };
+      } else verifiedChannel = channel;
+      approvalEvidence = {
+        party: verifiedParty,
+        channel: verifiedChannel,
+        occurredAt: approvalInput.occurredAt!,
+      };
+    }
     const next = planRenewalWorkspaceAction(base, input.action, {
       eventId: input.operationId,
       actorUid: actor.uid,
       recordedAt: now,
       approvedWorkingTerms,
+      approvalEvidence,
     });
     if (
       input.action.kind === "preparation" &&

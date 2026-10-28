@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { SYNTHETIC_APPROVAL, SYNTHETIC_OWNER_ROSTER } from "../helpers/owner-approval";
 import {
   RENEWAL_WORKSPACE_COLLECTIONS,
   renewalWorkspaceDocId,
@@ -342,6 +343,7 @@ describe("S97 active proposal generation and lifecycle", () => {
         action: {
           kind: "owner_response",
           outcome: "approved_terms",
+          approval: SYNTHETIC_APPROVAL,
           source: "Emulator owner call",
           terms: { rent: 1275, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
         },
@@ -352,6 +354,7 @@ describe("S97 active proposal generation and lifecycle", () => {
         dateIso: "2026-12-31",
         source: "Emulator lease",
       }),
+      SYNTHETIC_OWNER_ROSTER,
     );
     const cycleId = saved.state!.cycleId;
     vi.unstubAllEnvs();

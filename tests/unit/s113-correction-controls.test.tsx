@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
+import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { RenewalFutureRent } from "@/components/lease-renewal/RenewalFutureRent";
@@ -213,6 +214,7 @@ describe("S113 mounted future-rent preparation", () => {
       {
         kind: "owner_response",
         outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
         terms: { rent: 1500, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
         source: "Owner call",
       },

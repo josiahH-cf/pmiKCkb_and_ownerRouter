@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 
 import {
   planRentChargeRequests,
@@ -314,6 +315,7 @@ describe("S117 typed current and future rent/charge intents (ARCH-S117-1)", () =
     const intent = manualActionSheetIntent({
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       terms,
       source: "Owner call",
     } as unknown as RenewalWorkspaceAction);

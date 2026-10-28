@@ -39,10 +39,16 @@ import {
   manualActionLabel,
   manualRenewalSummary,
   type ManualActivity,
+  type OwnerApprovalInput,
   type RenewalCycleBasis,
   type RenewalWorkspaceAction,
   type RenewalWorkspaceState,
 } from "@/lib/lease-renewal/workspace-state";
+import {
+  describeOwnerApproval,
+  type OwnerApprovalChoices,
+} from "@/lib/lease-renewal/owner-approval-evidence";
+import { OwnerApprovalEvidenceForm } from "./OwnerApprovalEvidenceForm";
 import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 
 interface ManualContext {
@@ -66,6 +72,8 @@ interface ManualContext {
     field: keyof typeof SHEET_FIELD_LABELS,
     eventId: string,
   ) => Promise<void>;
+  /** S234 R-S234-1: the owners of record and owner-thread replies an approval can name. */
+  ownerApproval?: OwnerApprovalChoices;
 }
 const Context = createContext<ManualContext | null>(null);
 export function useRenewalManualWorkspace() {
@@ -80,6 +88,7 @@ interface ManualProviderProps {
   nextAction?: ReactNode;
   statusLog?: ReactNode;
   cycleBasis?: RenewalCycleBasis | null;
+  ownerApproval?: OwnerApprovalChoices;
 }
 export function RenewalManualProvider(props: ManualProviderProps) {
   return props.initialState === undefined && !props.unavailable ? (
@@ -136,6 +145,7 @@ function ActiveManualProvider({
   cycleBasis,
   writebackPaused = false,
   unavailable = false,
+  ownerApproval,
 }: ManualProviderProps) {
   const pricing = useRenewalPricingPolicy();
   const [pausedReadback, setPaused] = useState<boolean | null>(null);
@@ -398,6 +408,7 @@ function ActiveManualProvider({
         states,
         record,
         prepareSource,
+        ownerApproval,
       }}
     >
       <div className="renewal-primary-progress" data-renewal-focus-context>
@@ -809,6 +820,8 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
           ["needs_verification", "Needs verification"],
         ];
   function save(nextOutcome: string = outcome) {
+    // S234 R-S234-1: an approval is recorded only with who approved, how and when.
+    if (audience === "owner" && nextOutcome === "approved_terms") return;
     const common = source.trim() ? { source: source.trim() } : {};
     const action: RenewalWorkspaceAction =
       audience === "owner"
@@ -836,6 +849,22 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
       .then(() => setDirty(false))
       .catch(() => undefined);
   }
+  function recordApproval(approval: OwnerApprovalInput) {
+    void context
+      .record({
+        kind: "owner_response",
+        outcome: "approved_terms",
+        approval,
+        ...(source.trim() ? { source: source.trim() } : {}),
+      })
+      .then(() => {
+        setDirty(false);
+        setNewApproval(false);
+      })
+      .catch(() => undefined);
+  }
+  const [newApproval, setNewApproval] = useState(false);
+  const ownerApproval = audience === "owner" ? state?.ownerResponse : undefined;
   const recordedTerms = audience === "owner" ? state?.ownerResponse?.terms : undefined;
   return (
     <div id={`renewal-manual-${audience}_response`} tabIndex={-1} className="ui-stack">
@@ -866,23 +895,52 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
           ))}
         </select>
       </Field>
-      <Field htmlFor={`${id}-source`} label="Response source or channel (optional)">
-        <input
+      {audience === "owner" && outcome === "approved_terms" ? null : (
+        <Field htmlFor={`${id}-source`} label="Response source or channel (optional)">
+          <input
+            disabled={context.pending}
+            id={`${id}-source`}
+            maxLength={240}
+            value={source}
+            onBlur={(event) => {
+              if (isRenewalPresentationMove(event.relatedTarget)) return;
+              if (source.trim() === savedSource(current?.source)) setDirty(false);
+              else save();
+            }}
+            onChange={(event) => {
+              setSource(event.target.value);
+              setDirty(true);
+            }}
+          />
+        </Field>
+      )}
+      {audience === "owner" && ownerApproval?.outcome === "approved_terms" ? (
+        <p data-renewal-field="owner-approval-recorded">
+          {ownerApproval.approval
+            ? describeOwnerApproval(ownerApproval.approval, formatBusinessTimestamp)
+            : "Approved (recorded before who approved and how were required)."}
+        </p>
+      ) : null}
+      {audience === "owner" &&
+      outcome === "approved_terms" &&
+      (ownerApproval?.outcome !== "approved_terms" || newApproval) ? (
+        <OwnerApprovalEvidenceForm
+          choices={context.ownerApproval}
           disabled={context.pending}
-          id={`${id}-source`}
-          maxLength={240}
-          value={source}
-          onBlur={(event) => {
-            if (isRenewalPresentationMove(event.relatedTarget)) return;
-            if (source.trim() === savedSource(current?.source)) setDirty(false);
-            else save();
-          }}
-          onChange={(event) => {
-            setSource(event.target.value);
-            setDirty(true);
-          }}
+          onRecord={recordApproval}
         />
-      </Field>
+      ) : audience === "owner" && ownerApproval?.outcome === "approved_terms" ? (
+        <div className="ui-row">
+          <button
+            className="text-link"
+            disabled={context.pending}
+            onClick={() => setNewApproval(true)}
+            type="button"
+          >
+            Record a new approval
+          </button>
+        </div>
+      ) : null}
       <AutosaveStatus
         onRetry={() => save()}
         state={saveState}

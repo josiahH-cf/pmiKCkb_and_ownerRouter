@@ -1,4 +1,5 @@
 import { deleteApp, initializeApp, type App } from "firebase-admin/app";
+import { SYNTHETIC_APPROVAL, SYNTHETIC_OWNER_ROSTER } from "../helpers/owner-approval";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import {
   initializeTestEnvironment,
@@ -381,10 +382,13 @@ describe("S66 owner approval captures the exact Working terms and charges (AC-S6
         action: {
           kind: "owner_response",
           outcome: "approved_terms",
+          approval: SYNTHETIC_APPROVAL,
           source: "Owner phone call",
         },
       },
       db,
+      undefined,
+      SYNTHETIC_OWNER_ROSTER,
     );
     const approved = (await getRenewalWorkspace(editor, "701", db))!;
     expect(approved.ownerResponse?.approvedWorkingTerms).toMatchObject({

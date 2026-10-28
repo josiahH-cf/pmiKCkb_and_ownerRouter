@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 import {
   emptyRenewalWorkspace,
   planRenewalWorkspaceAction,
@@ -196,6 +197,7 @@ describe("S156 staff-lane manual projection beside the predecessor projection", 
     let state = act(outreach(), {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       terms: { rent: 1300, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
     });
     state = act(state, { kind: "activity", activity: "tenant_offer", outcome: "done" });
@@ -267,7 +269,11 @@ describe("S156 staff-lane manual projection beside the predecessor projection", 
   });
 
   it("keeps an approval recorded without terms on the owner response in both rule sets", () => {
-    const state = act(outreach(), { kind: "owner_response", outcome: "approved_terms" });
+    const state = act(outreach(), {
+      kind: "owner_response",
+      outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
+    });
     // S156 BEH-4: the approval is the recorded answer; the staff lane moves on to the offer.
     expect(projectIndependentStaffLaneManualRenewal(state)).toMatchObject({
       nextActivity: "tenant_offer",

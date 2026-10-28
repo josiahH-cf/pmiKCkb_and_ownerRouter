@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 
 import {
   buildDeskLeaseGuidance,
@@ -518,6 +519,7 @@ describe("S82 guidance and the suggested next action", () => {
             {
               kind: "owner_response",
               outcome: "approved_terms",
+              approval: SYNTHETIC_APPROVAL,
               terms: { rent: 1550, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
               source: "Owner email",
             },
@@ -549,6 +551,7 @@ describe("S82 guidance and the suggested next action", () => {
             {
               kind: "owner_response",
               outcome: "approved_terms",
+              approval: SYNTHETIC_APPROVAL,
               terms: { rent: 1550, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
               source: "Owner email",
             },

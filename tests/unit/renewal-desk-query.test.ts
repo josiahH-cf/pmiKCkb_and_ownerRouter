@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 
 import type {
   DeskLeaseSummaryBase,
@@ -382,6 +383,7 @@ describe("S113 manual desk projection", () => {
       {
         kind: "owner_response",
         outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
         source: "Owner call",
         terms: { rent: 1500, effectiveDate: "2026-10-01", endDate: "2027-09-30" },
       },

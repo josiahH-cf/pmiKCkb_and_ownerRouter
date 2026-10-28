@@ -7,6 +7,10 @@ import {
   SEQUENCE_PAUSE_CAUSE_LABELS,
   describeSequenceState,
 } from "@/lib/gmail-hub/communication-state";
+import {
+  communicationEvidenceHeading,
+  describeCommunicationEvidence,
+} from "@/lib/gmail-hub/communication-evidence";
 import { classifyIncomingMessage } from "@/lib/gmail-hub/inbound-classification";
 import type { GmailThreadView } from "@/lib/gmail-runtime/types";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -17,6 +21,7 @@ import {
   RichCommunicationMessageSchema,
   renderEditableCommunicationBody,
   type CommunicationAttachment,
+  type CommunicationOccurrence,
   type CommunicationSequence,
   type RichCommunicationMessage,
   type SequenceDraft,
@@ -37,6 +42,9 @@ interface SequencePayload {
   sequence: CommunicationSequence;
   reviewedDraftHash: string;
   notice?: string;
+  /** S233 R-S233-1: present on a communication read; actions keep the last read list. */
+  attempts?: CommunicationOccurrence[];
+  attemptsTruncated?: boolean;
 }
 type Entry =
   | { id: string }
@@ -153,6 +161,8 @@ export function CommunicationComposer({
     expectedVersion: number;
     operationId: string;
   } | null>(null);
+  const [attempts, setAttempts] = useState<CommunicationOccurrence[]>([]),
+    [attemptsTruncated, setAttemptsTruncated] = useState(false);
   const lastResponse = useRef<SequencePayload | null>(null),
     saveFlight = useRef<Promise<SequencePayload> | null>(null),
     locked = useRef(false),
@@ -163,6 +173,10 @@ export function CommunicationComposer({
     version.current = p.sequence.version;
     hash.current = p.reviewedDraftHash;
     setSequence(p.sequence);
+    if (p.attempts) {
+      setAttempts(p.attempts);
+      setAttemptsTruncated(p.attemptsTruncated === true);
+    }
     for (const m of [
       p.sequence.authorization?.initial,
       p.sequence.authorization?.followUp,
@@ -1104,6 +1118,29 @@ export function CommunicationComposer({
               ) : null}
             </article>
           ))}
+        </section>
+      ) : null}
+      {sequence && (attempts.length || sequence.inbound?.length) ? (
+        <section
+          aria-label="Message evidence"
+          data-communication-field="message-evidence"
+        >
+          <h3>What happened to each message</h3>
+          <p>{communicationEvidenceHeading(sequence)}</p>
+          <ol>
+            {describeCommunicationEvidence({
+              sequence,
+              occurrences: attempts,
+              formatTimestamp: (atMs) =>
+                formatZonedInstant(
+                  atMs,
+                  sequence.authorization?.schedule?.timeZone ?? BUSINESS_TIME_ZONE,
+                ),
+            }).map((entry) => (
+              <li key={entry.key}>{entry.label}</li>
+            ))}
+          </ol>
+          {attemptsTruncated ? <p>Only the first 200 attempts are listed.</p> : null}
         </section>
       ) : null}
       {sequence && (sequence.threads.length || sequence.linkedThreads.length) ? (

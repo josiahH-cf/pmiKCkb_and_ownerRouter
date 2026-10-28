@@ -1,4 +1,9 @@
 import { legacyMessageAttemptFixture } from "@/tests/helpers/legacy-message-attempt";
+import {
+  SYNTHETIC_APPROVAL_CHOICES,
+  recordApprovalThroughForm,
+} from "../helpers/owner-approval-form";
+import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 import { readIndependentDecisionFacts } from "../../scripts/run-production-reconciliation";
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
@@ -534,6 +539,10 @@ import {
   type RenewalWorkspaceAction,
 } from "@/lib/lease-renewal/workspace-state";
 vi.mock("@/lib/lease-renewal/workspace-cycle-context", () => ({
+  // S234 R-S234-1: the synthetic lease's current owner roster for an approval's party check.
+  resolveLeaseOwnerRoster: async () => [
+    { label: "Example Owner LLC", sourceRef: "rentvine:export:portfolio.owners[0].name" },
+  ],
   resolveRenewalCycleBasis: async () => ({
     kind: "lease_end",
     dateIso: "2026-12-31",
@@ -645,6 +654,7 @@ describe("S113 actual manual route and durable cycle state", () => {
       await recordManual(state, {
         kind: "owner_response",
         outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
         terms: { rent: 1250, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
         source: "Recorded phone approval",
       })
@@ -719,6 +729,7 @@ describe("S113 actual manual route and durable cycle state", () => {
     const action: RenewalWorkspaceAction = {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       terms: { rent: 1250, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
       source: "Owner email",
     };
@@ -782,6 +793,7 @@ describe("S113 actual manual route and durable cycle state", () => {
             action: {
               kind: "owner_response",
               outcome: "approved_terms",
+              approval: SYNTHETIC_APPROVAL,
               source: "Email",
             },
           }),
@@ -1434,6 +1446,7 @@ async function preparedMessage() {
     await recordManual(state, {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       terms: { rent: 1100, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
       source: "Emulator exact owner approval",
     })
@@ -1597,6 +1610,7 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
         await recordManual(state, {
           kind: "owner_response",
           outcome: "approved_terms",
+          approval: SYNTHETIC_APPROVAL,
           terms: { rent: 1200, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
           source: "Emulator simultaneous owner revision",
         });
@@ -1692,6 +1706,7 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
     const next = await recordManual(state, {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       terms: { rent: 1200, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
       source: "Emulator revised owner approval",
     });
@@ -1786,6 +1801,7 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
     await recordManual(state, {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       terms: { rent: 1300, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
       source: "Emulator subsequent owner terms",
     });
@@ -1824,6 +1840,7 @@ describe("S113 normal S66 packet resolver and S106/S34 handoff", () => {
       await recordManual(state, {
         kind: "owner_response",
         outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
         terms: { rent: 1100, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
         source: "Emulator exact owner terms",
       })
@@ -1913,6 +1930,7 @@ describe("S113 normal S66 packet resolver and S106/S34 handoff", () => {
       await recordManual(approved, {
         kind: "owner_response",
         outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
         terms: { rent: 1200, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
         source: "Emulator revised terms",
       })
@@ -2072,6 +2090,7 @@ describe("S66 ordinary packet inputs reach the evaluator (AC-S66-1, AC-S66-4, AC
     await recordManual(await startManual(), {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       source: "Emulator owner call",
     });
     const evaluate = async (expectedCurrentSnapshotId: string | null) => {
@@ -2212,6 +2231,7 @@ describe("S113 normal packet route through the actual S20 ledger and Dotloop HTT
       await recordManual(await startManual(), {
         kind: "owner_response",
         outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
         terms: { rent: 1100, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
         source: "Fixture owner approval",
       })
@@ -3283,6 +3303,8 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             null,
             h(RenewalDeskReturnLink, { deskView: "v=2&scope=all&month=2026-12" }),
             h(RenewalWorkspace, {
+              // S234 R-S234-1: the synthetic lease's readable owner roster for the approval form.
+              ownerApprovalChoices: SYNTHETIC_APPROVAL_CHOICES,
               workspace: loaded.workspace,
               role: journeyRole,
               correctionPanel: h(RenewalCorrections, {
@@ -3569,6 +3591,43 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         const control = root.getByLabelText(
           audience === "owner" ? "Owner response" : "Tenant response",
         ) as HTMLSelectElement;
+        // S234 R-S234-1: an owner approval follows any Working terms it covers and is recorded
+        // through who approved, how and when; the conversation names this response's source.
+        if (audience === "owner" && outcome === "approved_terms") {
+          if (terms) {
+            if (terms.effectiveDate)
+              change(root.getByLabelText("Working effective date"), terms.effectiveDate);
+            if (terms.endDate)
+              change(root.getByLabelText("Working term end date"), terms.endDate);
+            enter(root.getByLabelText("Working monthly rent"), terms.rent);
+            await waitFor(
+              async () =>
+                expect(
+                  workingEntry(
+                    await getRenewalWorkingRecord(actor, "701", db),
+                    "terms_rent",
+                  )?.value,
+                ).toBe(Number(terms.rent)),
+              { timeout: 10_000 },
+            );
+          }
+          if (control.value !== outcome) change(control, outcome);
+          const again = root.queryByRole("button", { name: "Record a new approval" });
+          if (again) fireEvent.click(again);
+          recordApprovalThroughForm(root, { participants: source });
+          await savedAfter(revision);
+          await waitFor(
+            async () =>
+              expect(
+                (await getRenewalWorkspace(actor, "701", db))!.ownerResponse,
+              ).toMatchObject({
+                outcome,
+                approval: { channel: { kind: "conversation", participants: source } },
+              }),
+            { timeout: 10_000 },
+          );
+          return;
+        }
         if (control.value !== outcome) {
           change(control, outcome);
           revision = await savedAfter(revision);

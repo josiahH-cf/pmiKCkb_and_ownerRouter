@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { SYNTHETIC_APPROVAL, SYNTHETIC_OWNER_ROSTER } from "../helpers/owner-approval";
 import { deleteApp, initializeApp, type App } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import {
@@ -301,10 +302,13 @@ async function saveTermsAndOwnerApproval() {
       action: {
         kind: "owner_response",
         outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
         source: "Synthetic external human approval in an isolated fixture; no real owner",
       },
     },
     db,
+    undefined,
+    SYNTHETIC_OWNER_ROSTER,
   );
 }
 

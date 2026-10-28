@@ -26,6 +26,12 @@ import {
 } from "@/lib/gmail-hub/sequence-model";
 import type { GmailMessageView, GmailThreadView } from "@/lib/gmail-runtime/types";
 import { gmailMailboxKey } from "@/lib/gmail-hub/state-store";
+import {
+  attemptOccurrenceIdOf,
+  communicationEvidenceHeading,
+  correlateBounceAttempt,
+  describeCommunicationEvidence,
+} from "@/lib/gmail-hub/communication-evidence";
 import { encodeWorkflowMime } from "@/lib/gmail-runtime/workflow-mime";
 
 const actor: AuthenticatedUser = {
@@ -980,5 +986,210 @@ describe("S233 R-S233-8 deterministic incoming-message variants", () => {
     expect(afterReply.version).toBeGreaterThan(paused.version);
     await expect(resume(f, paused, paused.version)).rejects.toThrow();
     expect(f.send).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("S233 R-S233-1/R-S233-2 per-message evidence and attempt-correlated bounces", () => {
+  // Deterministic adapter only: scripted thread reads stand in for Gmail. They prove the evidence
+  // vocabulary and the correlation, not real delivery, receipt or mailbox observation.
+  const thread = (messages: GmailMessageView[]): GmailThreadView => ({
+    id: "thread-1",
+    truncated: false,
+    historyId: "120",
+    messages,
+  });
+  const at = (ms: number) => new Date(ms).toISOString();
+  async function twoSends() {
+    const f = setup();
+    const s = await f.approve("schedule");
+    f.setNow(Date.parse("2026-10-10T14:00Z"));
+    await f.service.dispatch(s.id);
+    f.setNow(Date.parse("2026-10-11T14:00Z"));
+    const second = await f.service.dispatch(s.id);
+    expect(f.send).toHaveBeenCalledTimes(2);
+    expect(second.sequence.threads).toHaveLength(2);
+    return { f, s, threads: second.sequence.threads };
+  }
+  const evidence = async (f: ReturnType<typeof setup>, id: string) => {
+    const sequence = (await f.store.get(id))!;
+    const { occurrences } = await f.store.listOccurrences(id);
+    return describeCommunicationEvidence({
+      sequence,
+      occurrences,
+      formatTimestamp: at,
+    }).map((entry) => entry.label);
+  };
+
+  it("ties a delivery report to the second of two sends by its RFC Message-ID and pauses", async () => {
+    const { f, s, threads } = await twoSends();
+    f.setThread(
+      thread([
+        incoming({
+          id: "dsn-2",
+          from: "Mail Delivery Subsystem <mailer-daemon@googlemail.com>",
+          returnPath: "<>",
+          inReplyTo: threads[1].rfcMessageId,
+          references: [threads[0].rfcMessageId, threads[1].rfcMessageId],
+          internalDate: String(Date.parse("2026-10-11T16:00Z")),
+        }),
+      ]),
+    );
+    f.setNow(Date.parse("2026-10-12T14:00Z"));
+    const result = await f.service.dispatch(s.id);
+    expect(result.sequence.pause?.cause).toBe("bounce");
+    expect(f.send).toHaveBeenCalledTimes(2);
+    expect(result.sequence.inbound).toEqual([
+      expect.objectContaining({
+        kind: "bounce",
+        threadId: "thread-1",
+        messageId: "dsn-2",
+        attemptOccurrenceId: attemptOccurrenceIdOf(threads[1].rfcMessageId),
+      }),
+    ]);
+    expect(await evidence(f, s.id)).toEqual([
+      `Initial message: Accepted by Gmail ${at(threads[0].sentAtMs)}`,
+      `Follow-up 1: Failed delivery ${at(Date.parse("2026-10-11T16:00Z"))}`,
+    ]);
+  });
+
+  it("reads an unidentifiable report as attempt not identified, and a reply as a reply", async () => {
+    const { f, s } = await twoSends();
+    f.setThread(
+      thread([
+        incoming({
+          id: "dsn-unknown",
+          from: "postmaster@example.invalid",
+          returnPath: "<>",
+          internalDate: String(Date.parse("2026-10-11T16:00Z")),
+        }),
+        incoming({
+          id: "reply-9",
+          internalDate: String(Date.parse("2026-10-11T17:00Z")),
+        }),
+        incoming({
+          id: "ooo-1",
+          autoSubmitted: "auto-replied",
+          internalDate: String(Date.parse("2026-10-11T18:00Z")),
+        }),
+      ]),
+    );
+    f.setNow(Date.parse("2026-10-12T14:00Z"));
+    await f.service.dispatch(s.id);
+    const labels = await evidence(f, s.id);
+    // Both sends share thread-1, so the thread alone cannot name the attempt.
+    expect(labels).toEqual([
+      expect.stringMatching(/^Initial message: Accepted by Gmail /),
+      expect.stringMatching(/^Follow-up 1: Accepted by Gmail /),
+      `Failed delivery — attempt not identified ${at(Date.parse("2026-10-11T16:00Z"))}`,
+      `Reply received ${at(Date.parse("2026-10-11T17:00Z"))}`,
+      `Automatic response ${at(Date.parse("2026-10-11T18:00Z"))}`,
+    ]);
+    for (const label of labels) expect(label).not.toMatch(/\bdelivered\b|\bread\b/i);
+  });
+
+  it("names refused and unconfirmed attempts, never delivery or reading", () => {
+    const base = {
+      sequenceId: "s",
+      authorizationRevision: 1,
+      senderEmail: actor.email,
+      payloadHash: "p",
+      claimedAtMs: Date.parse("2026-10-10T14:00Z"),
+    };
+    const labels = describeCommunicationEvidence({
+      sequence: { inbound: [] },
+      occurrences: [
+        {
+          ...base,
+          id: "a".repeat(64),
+          index: 0,
+          state: "refused",
+          rfcMessageId: "<pmi-a@pmikcmetro.com>",
+          reason: "provider_refusal",
+        },
+        {
+          ...base,
+          id: "b".repeat(64),
+          index: 0,
+          state: "refused",
+          rfcMessageId: "<pmi-b@pmikcmetro.com>",
+          reason: "paused_before_dispatch",
+        },
+        {
+          ...base,
+          id: "c".repeat(64),
+          index: 0,
+          state: "ambiguous",
+          rfcMessageId: "<pmi-c@pmikcmetro.com>",
+        },
+        {
+          ...base,
+          id: "d".repeat(64),
+          index: 0,
+          state: "claimed",
+          rfcMessageId: "<pmi-d@pmikcmetro.com>",
+        },
+      ],
+      formatTimestamp: at,
+    }).map((entry) => entry.label);
+    expect(labels).toEqual([
+      "Initial message: Not sent: Gmail refused it",
+      "Initial message: Not sent: it was paused before it went out",
+      "Initial message: Not confirmed — checking",
+      "Initial message: Not confirmed — checking",
+    ]);
+    for (const label of labels) expect(label).not.toMatch(/\bdelivered\b|\bread\b/i);
+  });
+
+  it("correlates by In-Reply-To, a quoted id, one reference or the only attempt in the thread", () => {
+    const one = {
+      threadId: "t1",
+      rfcMessageId: `<pmi-${"1".repeat(64)}@pmikcmetro.com>`,
+    };
+    const two = {
+      threadId: "t1",
+      rfcMessageId: `<pmi-${"2".repeat(64)}@pmikcmetro.com>`,
+    };
+    const three = {
+      threadId: "t2",
+      rfcMessageId: `<pmi-${"3".repeat(64)}@pmikcmetro.com>`,
+    };
+    const report = (overrides: Partial<GmailMessageView>) => ({
+      threadId: "t1",
+      references: [] as string[],
+      bodyText: "",
+      ...overrides,
+    });
+    expect(
+      correlateBounceAttempt(report({ inReplyTo: two.rfcMessageId }), [one, two]),
+    ).toBe("2".repeat(64));
+    expect(
+      correlateBounceAttempt(report({ bodyText: `Message-ID: ${one.rfcMessageId}` }), [
+        one,
+        two,
+      ]),
+    ).toBe("1".repeat(64));
+    expect(
+      correlateBounceAttempt(
+        report({ references: [one.rfcMessageId, two.rfcMessageId] }),
+        [one, two],
+      ),
+    ).toBeNull();
+    expect(correlateBounceAttempt(report({}), [one, two])).toBeNull();
+    expect(correlateBounceAttempt(report({ threadId: "t2" }), [one, two, three])).toBe(
+      "3".repeat(64),
+    );
+    expect(attemptOccurrenceIdOf("<someone@example.invalid>")).toBeNull();
+  });
+
+  it("names the lease, the notice cycle and the audience once for the communication", () => {
+    expect(
+      communicationEvidenceHeading({
+        context,
+        noticeCycleId: "11111111-1111-4111-8111-111111111111",
+      }),
+    ).toBe("Owner message · Lease 115 · renewal cycle 11111111");
+    expect(communicationEvidenceHeading({ context })).toBe(
+      "Owner message · Lease 115 · renewal cycle not recorded",
+    );
   });
 });

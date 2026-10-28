@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { SYNTHETIC_APPROVAL_CHOICES } from "./owner-approval-form";
 import type { ComponentProps } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { expect, vi } from "vitest";
@@ -227,6 +228,8 @@ export function workspaceElement(options: WorkspaceRenderOptions = {}) {
     getRenewalLeaseWorkspace(options.leaseId ?? "lease-318-cedar-7")!;
   return (
     <RenewalWorkspace
+      // S234 R-S234-1: a readable synthetic owner roster for the approval form.
+      ownerApprovalChoices={SYNTHETIC_APPROVAL_CHOICES}
       {...options.extra}
       workspace={workspace}
       role={options.role ?? "Editor"}

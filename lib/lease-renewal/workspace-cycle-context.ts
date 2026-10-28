@@ -7,6 +7,8 @@ import { requireCurrentLeaseViews } from "@/lib/lease-renewal/live-lease-cache";
 import { getLeaseTermReview } from "@/lib/firestore/lease-renewal-term-reviews";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import { projectLeaseTerm } from "@/lib/lease-renewal/lease-term";
+import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
+import type { OwnerRosterEntry } from "@/lib/firestore/renewal-workspace";
 import {
   CycleBasisSchema,
   type RenewalCycleBasis,
@@ -75,4 +77,27 @@ export async function resolveRenewalCycleBasis(
     "Select the reviewed periodic-review date and its source for this lease.",
     409,
   );
+}
+
+/**
+ * S234 R-S234-1: the lease's owners of record from the current source read, each with its source
+ * reference. Null when the source is not connected, cannot be read or does not resolve the lease
+ * exactly once; an approval is then not recorded.
+ */
+export async function resolveLeaseOwnerRoster(
+  actor: AuthenticatedUser,
+  id: string,
+): Promise<readonly OwnerRosterEntry[] | null> {
+  const config = buildLiveRentVineConfig();
+  if (!config.ok) return null;
+  const views = await requireCurrentLeaseViews(
+    withRenewalNoticeAdmission(actor, config.rentvineClient),
+    Date.now(),
+  );
+  const matches = views.filter((view) => leaseViewId(view) === id);
+  if (matches.length !== 1) return null;
+  return projectRenewalDeskIdentity(matches[0]).owners.map((owner) => ({
+    label: owner.label,
+    sourceRef: owner.sourceRef,
+  }));
 }

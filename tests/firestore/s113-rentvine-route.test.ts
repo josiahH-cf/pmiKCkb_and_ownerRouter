@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { SYNTHETIC_APPROVAL, SYNTHETIC_OWNER_ROSTER } from "../helpers/owner-approval";
 import { initializeApp, deleteApp, type App } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import {
@@ -97,12 +98,14 @@ beforeEach(async () => {
         action: {
           kind: "owner_response",
           outcome: "approved_terms",
+          approval: SYNTHETIC_APPROVAL,
           terms,
           source: "Emulator owner approval",
         },
       },
       db,
       async () => basis,
+      SYNTHETIC_OWNER_ROSTER,
     )
   ).state!;
   charge = {
@@ -264,6 +267,8 @@ describe("S113 actual future-rent route and persisted business intent", () => {
         },
       },
       db,
+      undefined,
+      SYNTHETIC_OWNER_ROSTER,
     );
     const refused = await post({
       operation: "execute",

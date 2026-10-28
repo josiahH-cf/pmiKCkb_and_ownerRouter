@@ -1,4 +1,5 @@
 import { deleteApp, initializeApp, type App } from "firebase-admin/app";
+import { SYNTHETIC_APPROVAL, SYNTHETIC_OWNER_ROSTER } from "../helpers/owner-approval";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import {
   initializeTestEnvironment,
@@ -151,10 +152,13 @@ async function recordOwner(terms?: typeof TERMS) {
       action: {
         kind: "owner_response",
         outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
         ...(terms ? { terms } : {}),
       },
     },
     db,
+    undefined,
+    SYNTHETIC_OWNER_ROSTER,
   );
 }
 

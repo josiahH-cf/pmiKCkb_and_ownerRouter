@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
+import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
+import {
+  FORM_APPROVAL,
+  SYNTHETIC_APPROVAL_CHOICES,
+  recordApprovalThroughForm,
+} from "../helpers/owner-approval-form";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import {
@@ -32,6 +38,7 @@ describe("S113 mounted manual and comp controls", () => {
       {
         kind: "owner_response",
         outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
         terms: { rent: 1250, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
         source: "Fixture owner call",
       },
@@ -55,6 +62,7 @@ describe("S113 mounted manual and comp controls", () => {
         writebackPaused={writebackPaused}
       >
         <RenewalManualSection section="owner" />
+        <RenewalManualSection section="tenant" />
         <RenewalManualSection section="documents" />
       </RenewalManualProvider>
     );
@@ -64,7 +72,9 @@ describe("S113 mounted manual and comp controls", () => {
         name: /Prepare the Sheet update for owner pricing confirmed/,
       });
     expect(prepare()).toBeEnabled();
-    // Typing without leaving the control saves nothing; the entry is kept across a reload.
+    // Typing without leaving the control saves nothing; the entry is kept across a reload. The
+    // approved owner response records its channel with the approval (S234), so the tenant
+    // response's source field carries the unsaved entry here.
     fireEvent.change(screen.getByLabelText("Response source or channel (optional)"), {
       target: { value: "Unsaved review note" },
     });
@@ -106,6 +116,7 @@ describe("S113 mounted manual and comp controls", () => {
       {
         kind: "owner_response",
         outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
         terms: { rent: 1250, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
         source: "Fixture owner call",
       },
@@ -155,7 +166,7 @@ describe("S113 mounted manual and comp controls", () => {
     expect(screen.getByText("No staff activity recorded yet.")).toBeInTheDocument();
     expect(fetch).toHaveBeenCalledTimes(1);
   });
-  it("S155 BEH-S155-1 / S156 BEH-S156-4/7: an owner response saves when chosen, carries no terms and keeps Sheet confirmation separate", async () => {
+  it("S155 BEH-S155-1 / S156 BEH-S156-4/7 / S234 BEH-S234-1: an approval records who, how and when, carries no terms and keeps Sheet confirmation separate", async () => {
     let state = initial();
     const request = vi.fn(async (_url: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body));
@@ -167,7 +178,11 @@ describe("S113 mounted manual and comp controls", () => {
     });
     vi.stubGlobal("fetch", request);
     render(
-      <RenewalManualProvider leaseId="701" initialState={state}>
+      <RenewalManualProvider
+        leaseId="701"
+        initialState={state}
+        ownerApproval={SYNTHETIC_APPROVAL_CHOICES}
+      >
         <RenewalManualSection section="owner" />
         <RenewalManualSection section="documents" />
       </RenewalManualProvider>,
@@ -181,6 +196,11 @@ describe("S113 mounted manual and comp controls", () => {
     fireEvent.change(screen.getByLabelText("Owner response"), {
       target: { value: "approved_terms" },
     });
+    // S234: choosing Approved alone records nothing; who, how and when come first.
+    expect(request).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Who approved")).toHaveValue("");
+    expect(screen.queryByLabelText("Response source or channel (optional)")).toBeNull();
+    recordApprovalThroughForm();
     await screen.findByText(
       "Saved. Any listed Sheet update still needs its own confirmation.",
     );
@@ -191,7 +211,11 @@ describe("S113 mounted manual and comp controls", () => {
       leaseId: "701",
       cycleId: CYCLE,
       expectedRevision: 0,
-      action: { kind: "owner_response", outcome: "approved_terms" },
+      action: {
+        kind: "owner_response",
+        outcome: "approved_terms",
+        approval: FORM_APPROVAL,
+      },
     });
     expect(body.action).not.toHaveProperty("terms");
     expect(body.action).not.toHaveProperty("source");
@@ -199,22 +223,12 @@ describe("S113 mounted manual and comp controls", () => {
     // The response is a recorded fact; working terms live on the lease, separately saved.
     expect(state.ownerResponse?.outcome).toBe("approved_terms");
     expect(state.ownerResponse).not.toHaveProperty("terms");
-    expect(state.ownerResponse?.source).toBe("Staff record");
-    // The source channel saves on its own when the control is left.
-    fireEvent.change(screen.getByLabelText("Response source or channel (optional)"), {
-      target: { value: "Owner phone call" },
-    });
-    fireEvent.blur(screen.getByLabelText("Response source or channel (optional)"));
-    await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
-    expect(JSON.parse(String(request.mock.calls[1][1]?.body))).toMatchObject({
-      expectedRevision: 1,
-      action: {
-        kind: "owner_response",
-        outcome: "approved_terms",
-        source: "Owner phone call",
-      },
-    });
-    await waitFor(() => expect(state.ownerResponse?.source).toBe("Owner phone call"));
+    expect(state.ownerResponse?.approval).toEqual(FORM_APPROVAL);
+    expect(
+      await screen.findByText(
+        /Approved by Example Representative \(authorized representative, Synthetic owner's agent\) through a conversation with Example Owner LLC and renewal staff/,
+      ),
+    ).toBeInTheDocument();
     // The Sheet changes only through its own confirmed update; the app record is not a write.
     expect(screen.getByText(/Owner pricing confirmed: true/)).toHaveTextContent(
       "Saved in the app. The Sheet changes only when you confirm its update",

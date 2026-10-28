@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 
 import type { Firestore } from "firebase-admin/firestore";
 import { describe, expect, it } from "vitest";
@@ -879,6 +880,7 @@ describe("S156 oracle: the independent rules equal the rules the application ren
         act(ownerOutreachDone(dated("701", "0f6f6d4e-52d5-4d0b-9a5e-0c8b1c1f7011")), {
           kind: "owner_response",
           outcome: "approved_terms",
+          approval: SYNTHETIC_APPROVAL,
           terms: { rent: 1300, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
         }),
         { kind: "activity", activity: "tenant_offer", outcome: "done" },
@@ -893,7 +895,11 @@ describe("S156 oracle: the independent rules equal the rules the application ren
     STATE_703,
     STATE_705,
     STATE_706,
-    act(STATE_703, { kind: "owner_response", outcome: "approved_terms" }),
+    act(STATE_703, {
+      kind: "owner_response",
+      outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
+    }),
     act(STATE_703, { kind: "owner_response", outcome: "declined_non_renewal" }),
     accepted,
     act(accepted, { kind: "activity", activity: "information_form", outcome: "waiting" }),

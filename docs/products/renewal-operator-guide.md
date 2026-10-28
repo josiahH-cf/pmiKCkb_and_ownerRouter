@@ -166,6 +166,10 @@ behavior.
   reviewed sequence", the screen states when the next message goes and the remaining send limit.
 - A pause names its cause in plain words: a reply, failed delivery, Gmail refusal, an unconfirmed
   send, sending not authorized, or a message from an address not on the conversation.
+- An opened communication lists what happened to each message, naming its lease, renewal cycle and
+  audience: "Accepted by Gmail", "Failed delivery" (a delivery report tied to that attempt), "Not
+  confirmed — checking", "Not sent: …", "Reply received", "Automatic response", or "Failed
+  delivery — attempt not identified". It never says delivered or read; Gmail shows neither.
 
 - Under **Document preparation**, the form families table now ends with the saved **Dotloop
   selection** (profile, template, transaction type, initial status and version) and the time of
@@ -175,6 +179,13 @@ behavior.
   everyone; nobody is dropped. The packet **State** follows what was actually recorded for the
   current packet: Previewed, Approved, Provider pending, Partially executed, Executed (provider
   operations only, not signatures), Failed or Cancelled.
+- **Owner approval.** Choosing **Approved** opens who approved (an owner of record from the
+  lease's current RentVine read, or an authorized representative with name and capacity), how
+  (a reply received in this lease's own owner renewal thread, another written channel with its
+  reference, or a conversation with its participants) and when; **Record approval** saves it.
+  Nothing is pre-selected, and while the owner list cannot be read no approval is recorded. A
+  recorded approval reads "Approved by … through …, on …"; **Record a new approval** supersedes it
+  and keeps the earlier one in history. Other owner responses still save when chosen.
 - **Returned documents and signatures** lists each packet document at the version that went out,
   its state (Prepared, Uploaded, Sent for signature, Partially signed, Fully executed) and who
   still must sign, by name and capacity, with the next step. Record **Sent for signature** (when

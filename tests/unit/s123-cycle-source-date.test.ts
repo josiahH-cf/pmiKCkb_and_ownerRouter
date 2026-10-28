@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 
 import type { DateWindow } from "@/lib/lease-renewal/cohort";
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
@@ -137,6 +138,7 @@ function acceptedButUnsigned(): RenewalWorkspaceState {
     {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       terms: { rent: 1250, effectiveDate: "2026-09-01", endDate: "2027-08-31" },
       source: "Owner call",
     },
