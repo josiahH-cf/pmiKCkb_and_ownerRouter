@@ -37,8 +37,7 @@ export function RenewalFutureRent({
     [pending, setPending] = useState(false),
     [notice, setNotice] = useState(""),
     [previewHash, setPreviewHash] = useState(initialPreviewHash);
-  const state = context?.state ?? null,
-    current = effectiveRenewalTerms(working?.record ?? null, state),
+  const current = effectiveRenewalTerms(working?.record ?? null),
     terms = current.complete,
     charge = inventory?.charges.find(
       (entry) => entry.id === selected && entry.classification === "rent",

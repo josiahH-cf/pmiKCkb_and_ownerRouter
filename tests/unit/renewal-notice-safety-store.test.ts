@@ -26,6 +26,7 @@ import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
   workspaceMessageBasisFingerprint,
   messageResourceFingerprint,
+  workingTermsFingerprint,
 } from "@/lib/lease-renewal/message-claim-basis";
 import { suppliedRenewalPublication } from "@/lib/firestore/renewal-message-publication";
 import type { ActionExecutionRecord } from "@/lib/execution/types";
@@ -129,6 +130,8 @@ function seedClaim(
     preparationRevision: 1,
     resourceFingerprint: messageResourceFingerprint({ version: 0, entries: {} }),
     noticeSafety: basisNotice,
+    // S234: composed with no Working record, which the claim re-reads as still absent.
+    workingTermsFingerprint: workingTermsFingerprint(null),
   };
   const execution = {
     id: "synthetic-attempt",

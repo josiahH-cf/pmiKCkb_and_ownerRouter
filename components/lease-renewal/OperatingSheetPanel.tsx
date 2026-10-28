@@ -1,5 +1,9 @@
 "use client";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import {
+  useLiveTermsBasis,
+  type SourceUpdateTermsBasisInputs,
+} from "@/components/lease-renewal/useLiveSourceUpdateBasis";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 
 import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSectionHeading";
@@ -143,6 +147,7 @@ export function OperatingSheetPanel({
   association,
   audienceEmails = null,
   identity = null,
+  termsBasisInputs = null,
   workspaceContext,
   initialProposal,
   initialEffects = null,
@@ -163,6 +168,9 @@ export function OperatingSheetPanel({
   audienceEmails?: Readonly<Record<"owner" | "tenant", AudienceEmailRosterView>> | null;
   /** S117: the lease named in every preview; null keeps the lease id only. */
   identity?: SourceUpdateIdentity | null;
+  /** S237 R-S237-1: the Working terms, approval coverage and executed documents, shown only. */
+  /** S237 R-S237-1: what the terms basis is read from; recomputed live (PR #163 review). */
+  termsBasisInputs?: SourceUpdateTermsBasisInputs | null;
   workspaceContext: string | null;
   initialProposal: SheetWritebackClientProposal | null;
   initialEffects?: SheetWritebackEffectStatus[] | null;
@@ -173,6 +181,7 @@ export function OperatingSheetPanel({
    */
   writebackPaused?: boolean;
 }>) {
+  const termsBasis = useLiveTermsBasis(termsBasisInputs);
   const router = useRouter();
   const workingRecord = useRenewalWorkingRecord();
   const workingRent = workingCurrentRent(workingRecord?.record);
@@ -478,6 +487,7 @@ export function OperatingSheetPanel({
                   </div>
                   {effect.kind === "field_update" ? (
                     <SourceUpdatePreview
+                      basis={termsBasis}
                       facts={sheetPreviewFacts(effect, {
                         proposal,
                         identity,

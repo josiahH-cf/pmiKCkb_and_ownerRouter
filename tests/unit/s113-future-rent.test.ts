@@ -7,7 +7,6 @@ import {
 } from "@/lib/lease-renewal/writeback/future-rent-intent";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
 import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
-import { emptyRenewalWorkspace } from "@/lib/lease-renewal/workspace-state";
 import {
   buildRenewalWritebackProposal,
   projectRecurringCharge,
@@ -137,51 +136,30 @@ describe("S113 future rent schedule", () => {
         terms_end_date: entry(terms.endDate, 3),
       },
     };
-    const noResponse = emptyRenewalWorkspace("81", h.binding.cycleId, {
-      kind: "lease_end",
-      dateIso: "2026-12-31",
-      source: "RentVine lease end",
-    });
-    expect(noResponse.ownerResponse).toBeNull();
-    expect(noResponse.tenantResponse).toBeNull();
-    expect(
-      futureRentTermsCurrent(effectiveRenewalTerms(working, noResponse), h.binding),
-    ).toBe(true);
-    expect(futureRentTermsCurrent(effectiveRenewalTerms(working, null), h.binding)).toBe(
-      true,
-    );
+    // S234 R-S234-2: the effective terms are the Working terms alone. No owner or tenant record
+    // is an input, and terms recorded on an earlier owner response never fill a field staff have
+    // not entered, so a future-rent update cannot be bound to them.
+    expect(futureRentTermsCurrent(effectiveRenewalTerms(working), h.binding)).toBe(true);
     const rentChanged: RenewalWorkingRecord = {
       ...working,
       fields: { ...working.fields, terms_rent: entry(1550, 4) },
     };
-    expect(
-      futureRentTermsCurrent(effectiveRenewalTerms(rentChanged, noResponse), h.binding),
-    ).toBe(false);
+    expect(futureRentTermsCurrent(effectiveRenewalTerms(rentChanged), h.binding)).toBe(
+      false,
+    );
     const incomplete: RenewalWorkingRecord = {
       ...working,
       fields: { terms_rent: entry(terms.rent, 1) },
     };
-    expect(
-      futureRentTermsCurrent(effectiveRenewalTerms(incomplete, noResponse), h.binding),
-    ).toBe(false);
-    // Owner-approved terms already recorded on the work record still fill a field staff have
-    // not entered; the owner response is a recorded fact, not a permission.
-    const approved = {
-      ...noResponse,
-      termsRevision: 1,
-      ownerResponse: {
-        eventId: "owner",
-        actorUid: "staff",
-        recordedAt: "2026-09-10T12:00:00.000Z",
-        source: "phone",
-        termsRevision: 1,
-        outcome: "approved_terms" as const,
-        terms,
-      },
-    };
-    expect(futureRentTermsCurrent(effectiveRenewalTerms(null, approved), h.binding)).toBe(
-      true,
+    expect(futureRentTermsCurrent(effectiveRenewalTerms(incomplete), h.binding)).toBe(
+      false,
     );
+    expect(futureRentTermsCurrent(effectiveRenewalTerms(null), h.binding)).toBe(false);
+    expect(effectiveRenewalTerms(null).missing).toEqual([
+      "the renewal rent",
+      "the effective date",
+      "the end date",
+    ]);
   });
   it("preserves the existing open-end transition refusal and requires a fresh preview after the effective date", async () => {
     const h = await setup([

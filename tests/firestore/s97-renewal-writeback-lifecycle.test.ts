@@ -1,10 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { SYNTHETIC_APPROVAL, SYNTHETIC_OWNER_ROSTER } from "../helpers/owner-approval";
-import {
-  RENEWAL_WORKSPACE_COLLECTIONS,
-  renewalWorkspaceDocId,
-  saveRenewalWorkspace,
-} from "@/lib/firestore/renewal-workspace";
+import { saveRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
 import { readEffectiveRenewalTerms } from "@/lib/firestore/renewal-effective-terms";
 import {
   getRenewalWorkingRecord,
@@ -331,8 +327,23 @@ describe("S97 active proposal generation and lifecycle", () => {
   it("binds future terms to the current effective terms at claim and receipts the existing future-charge update", async () => {
     vi.stubEnv("ENVIRONMENT_KIND", "production");
     vi.stubEnv("DATA_CONTEXT", "live");
-    // S154: the first save establishes the work record; S156: the recorded approval supplies the
-    // effective terms only because no working term was entered on the lease.
+    // S154: the first save establishes the work record. S234 R-S234-2: the terms are the saved
+    // Working terms; terms recorded on an owner response are history and never stand in for them.
+    const saveTerm = async (field: string, value: number | string) => {
+      const record = await getRenewalWorkingRecord(actor, "115", db);
+      await saveRenewalWorkingField(
+        actor,
+        {
+          leaseId: "115",
+          field,
+          value,
+          expectedRevision: record?.fields[field]?.revision ?? 0,
+          operationId: randomUUID(),
+        },
+        db,
+      );
+    };
+    const terms = { rent: 1275, effectiveDate: "2027-01-01", endDate: "2027-12-31" };
     const saved = await saveRenewalWorkspace(
       actor,
       {
@@ -345,7 +356,8 @@ describe("S97 active proposal generation and lifecycle", () => {
           outcome: "approved_terms",
           approval: SYNTHETIC_APPROVAL,
           source: "Emulator owner call",
-          terms: { rent: 1275, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
+          // Legacy owner-response terms, kept as history: they do not make the terms current.
+          terms,
         },
       },
       db,
@@ -357,6 +369,11 @@ describe("S97 active proposal generation and lifecycle", () => {
       SYNTHETIC_OWNER_ROSTER,
     );
     const cycleId = saved.state!.cycleId;
+    expect((await readEffectiveRenewalTerms("115", db)).complete).toBeNull();
+    await saveTerm("terms_rent", terms.rent);
+    await saveTerm("terms_effective_date", terms.effectiveDate);
+    await saveTerm("terms_end_date", terms.endDate);
+    expect((await readEffectiveRenewalTerms("115", db)).complete).toEqual(terms);
     vi.unstubAllEnvs();
     const now = Date.parse("2026-09-10T12:00:00.000Z");
     let charge = {
@@ -387,7 +404,7 @@ describe("S97 active proposal generation and lifecycle", () => {
     const binding = {
       cycleId,
       termsRevision: saved.state!.termsRevision,
-      terms: saved.state!.ownerResponse!.terms!,
+      terms,
       inventoryHash: futureRentInventoryHash(inventory),
       scheduleReview: "Reviewed future billing schedule",
     };
@@ -410,12 +427,9 @@ describe("S97 active proposal generation and lifecycle", () => {
     const persisted = (await getRenewalWritebackProposal(actor, "115", db))!;
     expect(persisted.businessIntent).toBe("future_rent");
     expect(persisted.renewalTerms).toEqual(binding);
-    const headRef = db
-      .collection(RENEWAL_WORKSPACE_COLLECTIONS.head)
-      .doc(renewalWorkspaceDocId("115"));
     // S156/S160: the claim re-reads the effective terms inside its transaction; a different rent
     // than the one the preview was prepared from blocks the attempt before any record exists.
-    await headRef.update({ "ownerResponse.terms.rent": 1300 });
+    await saveTerm("terms_rent", 1300);
     expect(
       await claimActiveS97RenewalEffect(db, {
         proposal: persisted,
@@ -431,7 +445,7 @@ describe("S97 active proposal generation and lifecycle", () => {
           .get()
       ).exists,
     ).toBe(false);
-    await headRef.set(saved.state!);
+    await saveTerm("terms_rent", terms.rent);
     const unbound = { ...persisted, businessIntent: undefined };
     expect(
       await claimActiveS97RenewalEffect(db, {

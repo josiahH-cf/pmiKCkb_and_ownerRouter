@@ -9,6 +9,7 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 import { actionFixture, manualFixture } from "@/tests/helpers/renewal-action-fixtures";
+import { fixtureWorkingRecord } from "@/tests/helpers/rent-charge-fixtures";
 import {
   focusPane,
   renderWorkspace,
@@ -92,7 +93,18 @@ it("keeps the source difference visible independently of equal rent amounts and 
     guidance: { ...original.guidance, currentBaseRent: 1250 },
   };
   stubRenewalRoutes(manual);
-  await renderWorkspace({ manual, workspace });
+  // S234 R-S234-2: the renewal terms shown are the saved Working terms.
+  await renderWorkspace({
+    manual,
+    workspace,
+    extra: {
+      workingRecord: fixtureWorkingRecord({
+        terms_rent: { value: 1450, revision: 1 },
+        terms_effective_date: { value: "2027-01-01", revision: 1 },
+        terms_end_date: { value: "2027-12-31", revision: 1 },
+      }),
+    },
+  });
   const pane = focusPane();
   const context = within(pane).getByText("Rent and lease context").closest("details")!;
   expect(context.open).toBe(false);

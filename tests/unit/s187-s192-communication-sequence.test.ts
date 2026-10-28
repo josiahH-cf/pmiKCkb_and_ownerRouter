@@ -1080,7 +1080,7 @@ describe("S233 R-S233-1/R-S233-2 per-message evidence and attempt-correlated bou
     expect(labels).toEqual([
       expect.stringMatching(/^Initial message: Accepted by Gmail /),
       expect.stringMatching(/^Follow-up 1: Accepted by Gmail /),
-      `Failed delivery — attempt not identified ${at(Date.parse("2026-10-11T16:00Z"))}`,
+      `Failed delivery, attempt not identified ${at(Date.parse("2026-10-11T16:00Z"))}`,
       `Reply received ${at(Date.parse("2026-10-11T17:00Z"))}`,
       `Automatic response ${at(Date.parse("2026-10-11T18:00Z"))}`,
     ]);
@@ -1134,8 +1134,8 @@ describe("S233 R-S233-1/R-S233-2 per-message evidence and attempt-correlated bou
     expect(labels).toEqual([
       "Initial message: Not sent: Gmail refused it",
       "Initial message: Not sent: it was paused before it went out",
-      "Initial message: Not confirmed — checking",
-      "Initial message: Not confirmed — checking",
+      "Initial message: Not confirmed, checking",
+      "Initial message: Not confirmed, checking",
     ]);
     for (const label of labels) expect(label).not.toMatch(/\bdelivered\b|\bread\b/i);
   });

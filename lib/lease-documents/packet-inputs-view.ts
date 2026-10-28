@@ -68,6 +68,8 @@ export interface ResolvedPacketForView {
   sourceParties: SourceParty[];
   replacedSourceFacts: PacketFact[];
   ownerApproval: OwnerApprovalState;
+  /** S234 R-S234-3: the approval notice naming exactly what changed, when not current. */
+  ownerApprovalNotice?: string | null;
   notices: string[];
 }
 
@@ -165,7 +167,8 @@ export function buildPacketInputsView(input: {
           notice:
             resolved.ownerApproval === "current"
               ? null
-              : OWNER_APPROVAL_NOTICES[resolved.ownerApproval],
+              : (resolved.ownerApprovalNotice ??
+                OWNER_APPROVAL_NOTICES[resolved.ownerApproval]),
         }
       : { state: "unavailable", notice: input.unavailableReason ?? null },
     questions: [...questions.values()],

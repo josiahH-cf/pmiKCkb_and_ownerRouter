@@ -1,5 +1,12 @@
 "use client";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import { RemainingDifferences } from "@/components/lease-renewal/RemainingDifferences";
+import {
+  useLiveRemainingDifferences,
+  useLiveTermsBasis,
+  type RemainingDifferencesInputs,
+  type SourceUpdateTermsBasisInputs,
+} from "@/components/lease-renewal/useLiveSourceUpdateBasis";
 import {
   formatCalendarDate,
   formatSourceCalendarDate,
@@ -125,6 +132,8 @@ export function RentvineUpdatesPanel({
   initialHistory = null,
   initialInventory = null,
   identity = null,
+  termsBasisInputs = null,
+  remainingDifferencesInputs = null,
   futureRentExecutionReady = null,
   currentBaseReadback = null,
 }: Readonly<{
@@ -137,6 +146,13 @@ export function RentvineUpdatesPanel({
   /** S117: the lease named in every preview; null keeps the lease id only. */
   identity?: SourceUpdateIdentity | null;
   /**
+   * S237 R-S237-1: what the Working terms, approval coverage and executed documents are read from;
+   * the basis is recomputed from the live records on every render (PR #163 review). Shown only.
+   */
+  termsBasisInputs?: SourceUpdateTermsBasisInputs | null;
+  /** S237 R-S237-5: this page's source reads; the Working values come from the live record. */
+  remainingDifferencesInputs?: RemainingDifferencesInputs | null;
+  /**
    * S156/S160: whether a future-rent preview still matches the working renewal terms it was
    * prepared from. False asks for a fresh preview; null means the page did not derive it and the
    * server remains the only check.
@@ -145,6 +161,8 @@ export function RentvineUpdatesPanel({
   /** S117: the refreshed base-rent comparison after a succeeded current-base charge update. */
   currentBaseReadback?: CurrentBaseReadback | null;
 }>) {
+  const termsBasis = useLiveTermsBasis(termsBasisInputs);
+  const remainingDifferences = useLiveRemainingDifferences(remainingDifferencesInputs);
   const router = useRouter();
   const [inventory, setInventory] = useState(initialInventory);
   const [billingIntent, setBillingIntent] = useState("recurring");
@@ -486,6 +504,7 @@ export function RentvineUpdatesPanel({
 
   return (
     <article aria-labelledby="rentvine-updates-title" className="panel ui-stack">
+      {remainingDifferences ? <RemainingDifferences rows={remainingDifferences} /> : null}
       {proposal ? (
         <div className="ui-stack">
           <div>
@@ -520,6 +539,7 @@ export function RentvineUpdatesPanel({
                     <p className="muted">{stateLabel(state)}</p>
                   </div>
                   <SourceUpdatePreview
+                    basis={termsBasis}
                     facts={rentvinePreviewFacts(effect, {
                       proposal,
                       inventory,

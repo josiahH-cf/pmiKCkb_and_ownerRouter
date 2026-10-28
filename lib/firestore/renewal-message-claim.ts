@@ -5,11 +5,17 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
   messageResourceFingerprint,
+  workingTermsFingerprint,
   workspaceMessageBasisFingerprint,
 } from "@/lib/lease-renewal/message-claim-basis";
+import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
 import { suppliedRenewalPublication } from "./renewal-message-publication";
 import { EditableLayerError } from "./errors";
 import { noticeSafetyMarkerRef } from "./renewal-notice-safety";
+import {
+  parseRenewalWorkingRecord,
+  renewalWorkingRecordRef,
+} from "./renewal-working-record";
 import {
   NoticeSafetyMarkerSchema,
   noticeSafetyBasis,
@@ -21,8 +27,8 @@ import { LEASE_EXPORT_MAX_AGE_MS } from "@/lib/lease-renewal/live-lease-cache";
  *
  * S162: the one attempt is bound to exactly what the person confirmed. The guard re-reads, inside
  * the claim transaction, the exact snapshot (content hash and envelope), the saved message
- * revision, the work record, the resource links, the approved publication and the notice-safety
- * marker. It no longer asks for a review record or for the signature to have been saved by the
+ * revision, the work record, the Working renewal terms (S234), the resource links, the approved
+ * publication and the notice-safety marker. It no longer asks for a review record or for the signature to have been saved by the
  * same sender: neither is a prerequisite for an unsent draft of the displayed message. Notice
  * safety, the staff non-renewal decision, the sender identity of the snapshot and the publication
  * keep their full strength.
@@ -71,17 +77,35 @@ export async function assertCurrentRenewalMessageClaim(
   const channel = snapshot!.channel as "owner" | "tenant",
     identity = hashExecutionPreview({ leaseId, cycleId, channel });
   const workspaceId = createHash("sha256").update(leaseId).digest("hex");
-  const [workspace, leaseBound, preparation, active, resources, templates, noticeMarker] =
-    await Promise.all([
-      tx.get(db.collection("lease_renewal_workspaces").doc(workspaceId)),
-      // S154: a work record saved while the source reported no date lives beside the dated heads.
-      tx.get(db.collection("lease_renewal_lease_bound_workspaces").doc(workspaceId)),
-      tx.get(db.collection("renewal_message_preparations").doc(identity)),
-      tx.get(db.collection("renewal_message_draft_heads").doc(identity)),
-      tx.get(db.collection("renewal_resource_locations").doc("current")),
-      tx.get(db.collection("templates").where("space_id", "==", "lease-renewals")),
-      tx.get(noticeSafetyMarkerRef(db, leaseId)),
-    ]);
+  const [
+    workspace,
+    leaseBound,
+    preparation,
+    active,
+    resources,
+    templates,
+    noticeMarker,
+    workingSnapshot,
+  ] = await Promise.all([
+    tx.get(db.collection("lease_renewal_workspaces").doc(workspaceId)),
+    // S154: a work record saved while the source reported no date lives beside the dated heads.
+    tx.get(db.collection("lease_renewal_lease_bound_workspaces").doc(workspaceId)),
+    tx.get(db.collection("renewal_message_preparations").doc(identity)),
+    tx.get(db.collection("renewal_message_draft_heads").doc(identity)),
+    tx.get(db.collection("renewal_resource_locations").doc("current")),
+    tx.get(db.collection("templates").where("space_id", "==", "lease-renewals")),
+    tx.get(noticeSafetyMarkerRef(db, leaseId)),
+    tx.get(renewalWorkingRecordRef(db, leaseId)),
+  ]);
+  // S234 R-S234-2: the Working terms are the renewal terms; an unreadable record refuses.
+  let working: RenewalWorkingRecord | null = null;
+  try {
+    working = workingSnapshot.exists
+      ? parseRenewalWorkingRecord(workingSnapshot.data(), leaseId)
+      : null;
+  } catch {
+    fail();
+  }
   const message = preparation.data(),
     head = workspace.exists ? workspace.data() : leaseBound.data();
   const marker = NoticeSafetyMarkerSchema.safeParse(noticeMarker.data());
@@ -96,6 +120,8 @@ export async function assertCurrentRenewalMessageClaim(
       hashExecutionPreview(basis.noticeSafety) ||
     head.cycleId !== cycleId ||
     workspaceMessageBasisFingerprint(head) !== basis.workspaceFingerprint ||
+    !basis.workingTermsFingerprint ||
+    workingTermsFingerprint(working) !== basis.workingTermsFingerprint ||
     !message ||
     message.revision !== basis.preparationRevision ||
     active.get("executionId") !== execution.id ||

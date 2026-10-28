@@ -203,7 +203,7 @@ function action(input: DeskGuidanceInput, status: RenewalOverallStatus): DeskLea
           : key in MANUAL_ACTIVITIES
             ? MANUAL_ACTIVITIES[key as keyof typeof MANUAL_ACTIVITIES].section
             : "documents";
-    const label = manualActionLabel(key);
+    const label = manualActionLabel(key, manual);
     return {
       kind: manual.complete ? "complete" : status === "waiting" ? "waiting" : "act",
       label: manual.complete ? "Review completion recorded by staff." : label,

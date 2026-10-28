@@ -215,7 +215,6 @@ describe("S113 mounted future-rent preparation", () => {
         kind: "owner_response",
         outcome: "approved_terms",
         approval: SYNTHETIC_APPROVAL,
-        terms: { rent: 1500, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
         source: "Owner call",
       },
       {
@@ -261,10 +260,21 @@ describe("S113 mounted future-rent preparation", () => {
         },
       ],
     };
+    // S234 R-S234-2: the future amount comes from the saved Working terms only.
     render(
-      <RenewalManualProvider leaseId="81" initialState={state}>
-        <RenewalFutureRent initialInventory={inventory} initialPreviewHash={null} />
-      </RenewalManualProvider>,
+      <RenewalWorkingRecordProvider
+        canEdit
+        initialRecord={fixtureWorkingRecord({
+          terms_rent: { value: 1500, revision: 1 },
+          terms_effective_date: { value: "2027-01-01", revision: 1 },
+          terms_end_date: { value: "2027-12-31", revision: 1 },
+        })}
+        leaseId="81"
+      >
+        <RenewalManualProvider leaseId="81" initialState={state}>
+          <RenewalFutureRent initialInventory={inventory} initialPreviewHash={null} />
+        </RenewalManualProvider>
+      </RenewalWorkingRecordProvider>,
     );
     expect(requests).toEqual([]);
     fireEvent.click(screen.getByText("Prepare future renewal rent in RentVine"));

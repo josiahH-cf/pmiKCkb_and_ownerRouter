@@ -106,6 +106,7 @@ function claimBasisOf(current: Current) {
     sourceFingerprint: current.basis.sourceFingerprint,
     resourceFingerprint: current.basis.resourceFingerprint,
     preparationRevision: current.saved!.revision,
+    workingTermsFingerprint: current.basis.workingTermsFingerprint,
   };
 }
 /** A refusal that happened before any Gmail call, in the shape the message card reports. */

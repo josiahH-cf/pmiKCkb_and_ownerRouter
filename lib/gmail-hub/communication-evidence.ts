@@ -1,7 +1,7 @@
 // S233 R-S233-1/R-S233-2: what actually happened to each renewal message, in one vocabulary.
-// Each outgoing attempt reads "Accepted by Gmail", "Failed delivery", "Not confirmed — checking" or
+// Each outgoing attempt reads "Accepted by Gmail", "Failed delivery", "Not confirmed, checking" or
 // "Not sent: …"; each incoming message reads "Reply received", "Automatic response" or, for a
-// delivery report no single attempt can be tied to, "Failed delivery — attempt not identified".
+// delivery report no single attempt can be tied to, "Failed delivery, attempt not identified".
 // Nothing here says delivered or read: Gmail can show neither. Pure and client-safe.
 
 import type {
@@ -99,7 +99,7 @@ export function describeCommunicationEvidence(input: {
         ? `Accepted by Gmail ${at(sentAtMs)}`
         : occurrence.state === "refused"
           ? `Not sent: ${occurrence.reason ? NOT_SENT_REASONS[occurrence.reason] : "the send was refused"}`
-          : "Not confirmed — checking";
+          : "Not confirmed, checking";
     return {
       key: `attempt:${occurrence.id}`,
       direction: "outgoing",
@@ -123,7 +123,7 @@ export function describeCommunicationEvidence(input: {
           : entry.kind === "auto_reply"
             ? `Automatic response ${at(entry.receivedAtMs)}`
             : entry.kind === "bounce"
-              ? `Failed delivery — attempt not identified ${at(entry.receivedAtMs)}`
+              ? `Failed delivery, attempt not identified ${at(entry.receivedAtMs)}`
               : `Message from an address not on this conversation ${at(entry.receivedAtMs)}`,
       atMs: entry.receivedAtMs,
     });

@@ -43,6 +43,10 @@ import {
   saveRenewalWorkspace,
 } from "@/lib/firestore/renewal-workspace";
 import { readEffectiveRenewalTerms } from "@/lib/firestore/renewal-effective-terms";
+import {
+  getRenewalWorkingRecord,
+  saveRenewalWorkingField,
+} from "@/lib/firestore/renewal-working-record";
 import { getRenewalWritebackProposal } from "@/lib/lease-renewal/writeback/proposal-store";
 import { futureRentTermsCurrent } from "@/lib/lease-renewal/writeback/future-rent-intent";
 import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
@@ -60,6 +64,21 @@ const actor = {
 };
 const projectId = "pmi-kc-s113-rentvine-route-test";
 const terms = { rent: 1275, effectiveDate: "2098-01-01", endDate: "2098-12-31" };
+/** S234 R-S234-2: the effective terms are the saved Working terms. */
+async function saveTerm(field: string, value: number | string) {
+  const record = await getRenewalWorkingRecord(actor, "81", db);
+  await saveRenewalWorkingField(
+    actor,
+    {
+      leaseId: "81",
+      field,
+      value,
+      expectedRevision: record?.fields[field]?.revision ?? 0,
+      operationId: randomUUID(),
+    },
+    db,
+  );
+}
 beforeAll(async () => {
   environment = await initializeTestEnvironment({
     projectId,
@@ -85,8 +104,11 @@ beforeEach(async () => {
     dateIso: "2097-12-31",
     source: "Emulator lease",
   };
-  // S154: the first save establishes the lease's work record; no cycle step precedes it. The
-  // recorded owner approval supplies the fallback effective terms for these future-rent tests.
+  // S234 R-S234-2: the Working terms are the terms; the owner approval that follows covers them.
+  await saveTerm("terms_rent", terms.rent);
+  await saveTerm("terms_effective_date", terms.effectiveDate);
+  await saveTerm("terms_end_date", terms.endDate);
+  // S154: the first save establishes the lease's work record; no cycle step precedes it.
   workspace = (
     await saveRenewalWorkspace(
       actor,
@@ -99,7 +121,6 @@ beforeEach(async () => {
           kind: "owner_response",
           outcome: "approved_terms",
           approval: SYNTHETIC_APPROVAL,
-          terms,
           source: "Emulator owner approval",
         },
       },
@@ -251,25 +272,8 @@ describe("S113 actual future-rent route and persisted business intent", () => {
   });
   it("refuses changed effective terms before consuming the attempt (renewal_terms_changed)", async () => {
     const proposal = await prepared();
-    // The recorded approval was the only source of the terms; replacing it with a revision
-    // request leaves no complete terms, so the bound value is no longer current.
-    await saveRenewalWorkspace(
-      actor,
-      {
-        leaseId: "81",
-        cycleId: workspace.cycleId,
-        expectedRevision: workspace.revision,
-        operationId: randomUUID(),
-        action: {
-          kind: "owner_response",
-          outcome: "revision_requested",
-          source: "Owner follow-up",
-        },
-      },
-      db,
-      undefined,
-      SYNTHETIC_OWNER_ROSTER,
-    );
+    // Staff change the Working rent after the preview, so the bound value is no longer current.
+    await saveTerm("terms_rent", 1300);
     const refused = await post({
       operation: "execute",
       leaseId: "81",

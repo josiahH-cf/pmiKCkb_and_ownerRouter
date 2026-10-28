@@ -519,7 +519,7 @@ function manualDrafts(
   const ownerDone = (approved && !counterReopen) || ownerDeclined;
   staff(
     "owner_response",
-    manualActionLabel("owner_response"),
+    manualActionLabel("owner_response", summary ?? {}),
     "The owner's explicit approval of exact terms, recorded by staff. A current tenant counter reopens it.",
     ["renewal-manual-owner_response", ...followUp],
     {

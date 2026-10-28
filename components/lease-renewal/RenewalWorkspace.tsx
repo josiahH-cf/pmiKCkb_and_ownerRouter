@@ -1,4 +1,6 @@
 import { formatCalendarDate } from "@/lib/date-display";
+import { earlierOwnerRecordDiffers } from "@/lib/lease-renewal/renewal-progress";
+import type { RenewalOwnerOutcomeState } from "@/lib/lease-renewal/renewal-process";
 import { RenewalFocusHashTarget } from "@/components/lease-renewal/RenewalFocusHashTarget";
 import { RenewalSaveFocus } from "@/components/lease-renewal/RenewalSaveFocus";
 import { RenewalPolicyContentPanel } from "@/components/lease-renewal/RenewalPolicyContentPanel";
@@ -40,9 +42,10 @@ import {
   type RenewalFocusFacts,
 } from "@/components/lease-renewal/RenewalFocusViewPane";
 import { buildRenewalActionSnapshot } from "@/lib/lease-renewal/renewal-action-snapshot";
-import type {
-  RenewalWorkspaceState,
-  RenewalCycleBasis,
+import {
+  staffOwnerOutcome,
+  type RenewalWorkspaceState,
+  type RenewalCycleBasis,
 } from "@/lib/lease-renewal/workspace-state";
 // S113 mounts the full lease dashboard. Historical process evidence remains distinct from
 // staff-recorded work; navigating or expanding a section never advances either lane.
@@ -589,6 +592,10 @@ export function RenewalWorkspace({
                               key={stepId}
                             >
                               <PhaseContent
+                                staffOwnerOutcome={staffOwnerOutcome(
+                                  manualState,
+                                  summary.endDateIso,
+                                )}
                                 chargeInventory={chargeInventory}
                                 consolidated={consolidated}
                                 compScreenshotExecutable={compScreenshotExecutable}
@@ -846,6 +853,7 @@ function DoThisNext({
 }
 
 function PhaseContent({
+  staffOwnerOutcome = null,
   consolidated = false,
   stepId,
   workspace,
@@ -871,6 +879,8 @@ function PhaseContent({
   resolutionDestinations,
   termReviewPanel,
 }: Readonly<{
+  /** S234 R-S234-2: the staff record's owner outcome, which this lease uses. */
+  staffOwnerOutcome?: RenewalOwnerOutcomeState | null;
   consolidated?: boolean;
   stepId: RenewalProcessStepId;
   workspace: RenewalLeaseWorkspace;
@@ -1103,34 +1113,52 @@ function PhaseContent({
           {discrepancyHistoryPanel}
         </>
       );
-    case "owner-decision":
+    case "owner-decision": {
+      // S234 R-S234-2: an earlier progress-route owner record that disagrees with the staff record
+      // is named wherever this step shows, never used silently.
+      const ownerConflict =
+        workspace.live && !dataExpired && progressStateAvailable
+          ? earlierOwnerRecordDiffers(
+              workspace.live.ownerOutcome?.state,
+              staffOwnerOutcome,
+            )
+          : null;
+      const ownerConflictNote = ownerConflict ? (
+        <p data-renewal-field="owner-outcome-conflict" role="status">
+          {ownerConflict}
+        </p>
+      ) : null;
       if (consolidated)
         return (
-          <Disclosure summary="Prior owner decision and provider evidence">
-            <ul className="ui-rows">
-              {ownerDraft.facts.map((fact) => (
-                <li key={fact.key}>
-                  {fact.label}: <strong>{fact.value}</strong>{" "}
-                  <SourceTag confidence={fact.confidence} source={fact.source} />
-                </li>
-              ))}
-            </ul>
-            <p>{ownerDraft.subject}</p>
-            <div className="draft-box">{ownerDraft.body}</div>
-            {workspace.live && rentSuggestionAvailable ? (
-              !consolidated ? (
-                <RentSuggestionApproval leaseId={workspace.live.leaseId} />
-              ) : (
-                <p className="muted">
-                  Historical number decisions are retained. Select current proposals under
-                  Recommendation and working offer.
-                </p>
-              )
-            ) : null}
-          </Disclosure>
+          <>
+            {ownerConflictNote}
+            <Disclosure summary="Prior owner decision and provider evidence">
+              <ul className="ui-rows">
+                {ownerDraft.facts.map((fact) => (
+                  <li key={fact.key}>
+                    {fact.label}: <strong>{fact.value}</strong>{" "}
+                    <SourceTag confidence={fact.confidence} source={fact.source} />
+                  </li>
+                ))}
+              </ul>
+              <p>{ownerDraft.subject}</p>
+              <div className="draft-box">{ownerDraft.body}</div>
+              {workspace.live && rentSuggestionAvailable ? (
+                !consolidated ? (
+                  <RentSuggestionApproval leaseId={workspace.live.leaseId} />
+                ) : (
+                  <p className="muted">
+                    Historical number decisions are retained. Select current proposals
+                    under Recommendation and working offer.
+                  </p>
+                )
+              ) : null}
+            </Disclosure>
+          </>
         );
       return (
         <Card title={renewalCardTitle("owner-decision", "Owner decision")}>
+          {ownerConflictNote}
           {workspace.live &&
           workspace.live.ownerResponseRecordable &&
           !dataExpired &&
@@ -1204,6 +1232,7 @@ function PhaseContent({
           </Disclosure>
         </Card>
       );
+    }
     case "tenant-decision":
       return (
         <>

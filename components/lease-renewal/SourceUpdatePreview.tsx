@@ -2,10 +2,16 @@
 // Pure presentation; the facts come from `lib/lease-renewal/source-update-preview`.
 
 import type { SourceUpdatePreviewFacts } from "@/lib/lease-renewal/source-update-preview";
+import type { SourceUpdateTermsBasis } from "@/lib/lease-renewal/source-update-terms-basis";
 
 export function SourceUpdatePreview({
   facts,
-}: Readonly<{ facts: SourceUpdatePreviewFacts }>) {
+  basis,
+}: Readonly<{
+  facts: SourceUpdatePreviewFacts;
+  /** S237 R-S237-1: informational only; it never changes the effect or its confirmation. */
+  basis?: SourceUpdateTermsBasis | null;
+}>) {
   return (
     <dl aria-label="Exact update preview" className="renewal-update-preview">
       <div>
@@ -36,6 +42,15 @@ export function SourceUpdatePreview({
         <dt>What this changes</dt>
         <dd>{facts.consequence}</dd>
       </div>
+      {basis ? (
+        <div data-renewal-field="terms-basis">
+          <dt>Terms basis</dt>
+          <dd>
+            {basis.terms}. {basis.approval}. {basis.documents}. Shown for review only; it
+            does not change this update.
+          </dd>
+        </div>
+      ) : null}
     </dl>
   );
 }

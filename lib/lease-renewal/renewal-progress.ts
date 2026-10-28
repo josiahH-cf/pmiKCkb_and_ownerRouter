@@ -617,11 +617,13 @@ export function planRecordOwnerDecision(
 export function planRecordTenantOfferDraft(
   current: RenewalProgress | null,
   draftId: string,
+  /** S234 R-S234-2: the staff record's owner outcome, which governs when present. */
+  staffOwnerOutcome?: RenewalOwnerOutcomeState | null,
 ): RenewalProgressPlan {
   const active = assertCurrentProcess(current);
   // A recorded revision request, decline, or silence is the exact reason the draft is refused, so it
   // is named before the generic decision check (a reopening also removes the decision evidence).
-  const downstreamBlock = ownerOutcomeBlocksDownstream(active);
+  const downstreamBlock = ownerOutcomeBlocksDownstream(active, staffOwnerOutcome);
   if (downstreamBlock) throw new EditableLayerError(downstreamBlock, 409);
   if (!evidenceHasCurrentOwnerDecision(active)) {
     throw new EditableLayerError(
@@ -688,10 +690,35 @@ const OWNER_OUTCOME_DOWNSTREAM_BLOCK: Record<
  */
 export function ownerOutcomeBlocksDownstream(
   current: RenewalProgress | null,
+  /**
+   * S234 R-S234-2: the staff record's owner outcome for this cycle. When present it is the one
+   * owner outcome; the earlier progress record is read only when no staff record exists.
+   */
+  staffOutcome?: RenewalOwnerOutcomeState | null,
 ): string | null {
-  const state = current?.ownerOutcome?.state;
+  const state = staffOutcome ?? current?.ownerOutcome?.state;
   if (!state || state === "approved_terms") return null;
   return OWNER_OUTCOME_DOWNSTREAM_BLOCK[state];
+}
+
+const OWNER_OUTCOME_WORDS: Record<RenewalOwnerOutcomeState, string> = {
+  approved_terms: "approved",
+  revision_requested: "revision requested",
+  declined_non_renewal: "declined / non-renewal",
+  no_response: "no response",
+};
+
+/**
+ * S234 R-S234-2: when the earlier progress-route owner record disagrees with the staff record,
+ * the screen names both and says which one the lease uses; it is never used silently.
+ */
+export function earlierOwnerRecordDiffers(
+  progressState: RenewalOwnerOutcomeState | null | undefined,
+  staffState: RenewalOwnerOutcomeState | null | undefined,
+): string | null {
+  return progressState && staffState && progressState !== staffState
+    ? `Earlier owner record differs. Review: the earlier owner decision record says ${OWNER_OUTCOME_WORDS[progressState]}; the staff record says ${OWNER_OUTCOME_WORDS[staffState]}. This lease uses the staff record.`
+    : null;
 }
 
 /**

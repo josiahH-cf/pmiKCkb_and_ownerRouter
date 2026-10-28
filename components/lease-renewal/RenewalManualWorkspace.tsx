@@ -29,6 +29,7 @@ import {
   useStandingOwnerAuthority,
 } from "./RenewalPricingPolicy";
 import { WorkingDateField, WorkingMoneyField } from "./RenewalWorkingRecord";
+import { OwnerApprovalCoverageLine } from "./OwnerApprovalCoverageLine";
 import { Button, Card, Field } from "@/components/ui";
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
 import {
@@ -440,7 +441,7 @@ function ActiveManualProvider({
           {state ? (
             <p>
               <a href={`#renewal-manual-${summary.nextActivity}`}>
-                Suggested next: {manualActionLabel(summary.nextActivity)}
+                Suggested next: {manualActionLabel(summary.nextActivity, summary)}
               </a>
             </p>
           ) : null}
@@ -553,7 +554,7 @@ export function RenewalManualSection({
               <p>
                 {summary.complete
                   ? "This renewal is recorded complete by staff. That record is separate from verified completion in RentVine, Gmail or Dotloop."
-                  : `Suggested next: ${manualActionLabel(summary.nextActivity)}.`}
+                  : `Suggested next: ${manualActionLabel(summary.nextActivity, summary)}.`}
               </p>
             ) : null}
             <Button
@@ -790,6 +791,13 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
     [outcome, setOutcome] = useState<string>(current?.outcome ?? initialOutcome),
     [source, setSource] = useState(savedSource(current?.source));
   const [dirty, setDirty] = useState(false);
+  // S234 R-S234-4: the owner's requested change, saved with "Revision requested".
+  const savedNote =
+    audience === "owner" && current?.outcome === "revision_requested"
+      ? (current.reason ?? "")
+      : "";
+  const [revisionNote, setRevisionNote] = useState(savedNote);
+  const [noteEdited, setNoteEdited] = useState(false);
   const savedEvent = current?.eventId ?? null;
   const [seenEvent, setSeenEvent] = useState(savedEvent);
   if (savedEvent !== seenEvent) {
@@ -798,6 +806,7 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
       setOutcome(current?.outcome ?? initialOutcome);
       setSource(savedSource(current?.source));
     }
+    if (!noteEdited) setRevisionNote(savedNote);
   }
   const key = audience === "owner" ? "owner_response" : "tenant_response";
   const saveState = withEdited(
@@ -822,7 +831,15 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
   function save(nextOutcome: string = outcome) {
     // S234 R-S234-1: an approval is recorded only with who approved, how and when.
     if (audience === "owner" && nextOutcome === "approved_terms") return;
-    const common = source.trim() ? { source: source.trim() } : {};
+    const common = {
+      ...(source.trim() ? { source: source.trim() } : {}),
+      // S234 R-S234-4: the owner's requested change travels with "Revision requested".
+      ...(audience === "owner" &&
+      nextOutcome === "revision_requested" &&
+      revisionNote.trim()
+        ? { reason: revisionNote.trim() }
+        : {}),
+    };
     const action: RenewalWorkspaceAction =
       audience === "owner"
         ? {
@@ -846,7 +863,10 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
           };
     void context
       .record(action)
-      .then(() => setDirty(false))
+      .then(() => {
+        setDirty(false);
+        setNoteEdited(false);
+      })
       .catch(() => undefined);
   }
   function recordApproval(approval: OwnerApprovalInput) {
@@ -914,12 +934,39 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
           />
         </Field>
       )}
+      {audience === "owner" && outcome === "revision_requested" ? (
+        <Field
+          htmlFor={`${id}-revision`}
+          label="What the owner asked to change"
+          hint="Saved with Revision requested. The Working terms stay the one terms record; update them, then ask the owner again."
+        >
+          <textarea
+            disabled={context.pending}
+            id={`${id}-revision`}
+            maxLength={1000}
+            value={revisionNote}
+            onBlur={() => {
+              if (revisionNote.trim() !== savedNote) save("revision_requested");
+            }}
+            onChange={(event) => {
+              setRevisionNote(event.target.value);
+              setNoteEdited(true);
+            }}
+          />
+        </Field>
+      ) : null}
       {audience === "owner" && ownerApproval?.outcome === "approved_terms" ? (
-        <p data-renewal-field="owner-approval-recorded">
-          {ownerApproval.approval
-            ? describeOwnerApproval(ownerApproval.approval, formatBusinessTimestamp)
-            : "Approved (recorded before who approved and how were required)."}
-        </p>
+        <>
+          <p data-renewal-field="owner-approval-recorded">
+            {ownerApproval.approval
+              ? describeOwnerApproval(ownerApproval.approval, formatBusinessTimestamp)
+              : "Approved (recorded before who approved and how were required)."}
+          </p>
+          <OwnerApprovalCoverageLine
+            economicsHash={context.ownerApproval?.economicsHash ?? null}
+            state={state}
+          />
+        </>
       ) : null}
       {audience === "owner" &&
       outcome === "approved_terms" &&
@@ -950,7 +997,9 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
         <p>
           Recorded {formatBusinessTimestamp(current.recordedAt)} by {current.actorUid}.{" "}
           {state && current.termsRevision !== state.termsRevision
-            ? "Recorded before the owner response changed."
+            ? audience === "tenant"
+              ? "Recorded before the terms changed; it does not answer the current terms."
+              : "Recorded before the owner response changed."
             : ""}
         </p>
       ) : null}

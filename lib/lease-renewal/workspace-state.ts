@@ -445,6 +445,20 @@ export function currentStaffActivity(state: RenewalWorkspaceState, key: ManualAc
     ? record
     : null;
 }
+/**
+ * S234 R-S234-2 (ARCH-S234-2): the staff record's owner outcome, the cycle's one owner outcome.
+ * With `endDateIso` it is read only when the record belongs to that lease term. Null when staff
+ * have recorded no owner response for it; only then is an earlier progress-route record read.
+ */
+export function staffOwnerOutcome(
+  state: RenewalWorkspaceState | null | undefined,
+  endDateIso?: string | null,
+): NonNullable<RenewalWorkspaceState["ownerResponse"]>["outcome"] | null {
+  if (!state?.ownerResponse) return null;
+  const basis = workBasisDateIso(state.basis);
+  if (endDateIso !== undefined && basis !== null && basis !== endDateIso) return null;
+  return state.ownerResponse.outcome;
+}
 export function currentManualOwnerTerms(state: RenewalWorkspaceState) {
   return state.ownerResponse?.outcome === "approved_terms"
     ? (state.ownerResponse.terms ?? null)
@@ -500,7 +514,11 @@ export function manualActivitySatisfied(
 /** The shared next-action wording for one staff-recorded activity, response or completion. */
 export function manualActionLabel(
   key: ManualActivity | "owner_response" | "tenant_response" | "complete",
+  /** S234 R-S234-4: after "Revision requested" the owner step is to revise and ask again. */
+  options: { ownerRevisionRequested?: boolean } = {},
 ): string {
+  if (key === "owner_response" && options.ownerRevisionRequested)
+    return "Update the working terms and ask the owner again";
   return key in MANUAL_ACTIVITIES
     ? MANUAL_ACTIVITIES[key as ManualActivity].label
     : key === "owner_response"
@@ -577,6 +595,12 @@ export function manualRenewalSummary(
     waitingParty,
     nonRenewal: Boolean(nonRenewal),
     pendingSourceUpdates,
+    // S234 R-S234-4: present only while the owner's recorded answer asks for a revision.
+    ...(!complete &&
+    nextActivity === "owner_response" &&
+    state?.ownerResponse?.outcome === "revision_requested"
+      ? { ownerRevisionRequested: true as const }
+      : {}),
     label: complete
       ? "Completed: recorded by staff"
       : !state

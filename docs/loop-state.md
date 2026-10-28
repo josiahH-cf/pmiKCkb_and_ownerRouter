@@ -17,10 +17,13 @@ passed on `8c84ed04`). PR #161 added, each with tests:
 - S235: the places refusal, the packet state from recorded events and selection freshness;
 - S238: the isolated browser journey, 14 of 14 steps on `a6f99b6e` and 15 of 15 on `743bac8f`.
 
-The branch claude/renewal-novdec-rows2-20261028 adds S233 R-S233-1/2 (per-message evidence and
-attempt-correlated bounces) and S234 R-S234-1 (who approved, how and when). Each suite's status
-line names what remains (S232 R-S232-3 to R-S232-5, S233 R-S233-4/5/9, S234 R-S234-2/4/5, S237
-R-S237-1/5 and the journey's uncovered phases). Nothing was served;
+PR #162 merged S233 R-S233-1/2 (per-message evidence and attempt-correlated bounces) and S234
+R-S234-1 (who approved, how and when) at `f1f06bfb` after its CI fix (`cbf41be1`: a form test
+assumed US Central time); exact-main CI `40732855488` passed. The branch
+claude/renewal-novdec-rows3-20261028 adds S237 R-S237-1/5 and S234 R-S234-2/4/5 with the
+Working-terms-bound draft claim. Each suite's status line names what remains (S232 R-S232-3 to
+R-S232-5, S233 R-S233-4/5/9, S234's per-field desk and approval-section reason and the tenant
+answer's Working binding, and the journey's uncovered phases). Nothing was served;
 production remains `6fbd6225` (S231). The staff walkthrough is NOT RUN. Client inputs C00–C13 stay
 in `docs/open-blockers.md`. The read-only release preflight reads `not_ready`: the Awaiting release
 queue is empty and no permit or fresh GO exists. NEXT: the remaining ready rows, independent of
