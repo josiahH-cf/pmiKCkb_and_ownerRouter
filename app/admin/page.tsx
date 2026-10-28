@@ -238,10 +238,14 @@ export default async function AdminPage() {
       }),
     // S130: the intake manifest for every form family (this read never throws). S236 R-S236-7:
     // the returned-state checkpoint follows recorded returns for an approved family.
-    readArtifactIntakeManifest().then(async (manifest) => {
-      artifactIntake = manifest;
-      returnedStateInspected = await readReturnedStateInspected(manifest);
-    }),
+    readArtifactIntakeManifest()
+      .then((manifest) => {
+        artifactIntake = manifest;
+        return readReturnedStateInspected(manifest);
+      })
+      .then((inspected) => {
+        returnedStateInspected = inspected;
+      }),
     Promise.all([readFamilyUseRecord(), readChargePolicy()]).then(
       ([familyUse, policy]) => {
         renewalPacketPolicy = {
