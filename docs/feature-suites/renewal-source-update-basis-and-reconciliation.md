@@ -3,7 +3,7 @@
 
 # S237 — RentVine and Sheet updates with a visible terms basis and reconciled outcomes
 
-> Status: IN PROGRESS (branch claude/renewal-novdec-readiness-20261028, not served) — R-S237-3 (plain RentVine outcome text) and R-S237-4 (the Sheet still-before result) are implemented with tests; R-S237-2 needs the staff-operations decision on the panel's direct current-base correction; R-S237-1, R-S237-5, R-S237-6 and R-S237-7 remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 104). Live RentVine/Sheet effects on a real lease stay ordinary staff work under the existing open exact keys; this file authorizes none. The ambiguous-attempt archive change stays an explicitly deferred owner decision.
+> Status: IN PROGRESS (merged to main at bf0c03f9 by PR #158, not served) — R-S237-3 (plain RentVine outcome text) and R-S237-4 (the Sheet still-before result) are implemented with tests; R-S237-2 is amended to bind only the Working-value path, keeping the panel's direct correction; R-S237-1, R-S237-5, R-S237-6 and R-S237-7 remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 104). Live RentVine/Sheet effects on a real lease stay ordinary staff work under the existing open exact keys; this file authorizes none. The ambiguous-attempt archive change stays an explicitly deferred owner decision.
 
 **Goal.**
 
@@ -76,11 +76,13 @@ exact effect whose source read, target, value, runtime switch or key fails its e
   lease cycle from S236 (or "Not recorded"). The basis is informational: it never becomes a
   prerequisite, never changes the effect, its hash or admission, and is recomputed whenever the
   preview is shown.
-- **R-S237-2 — Server-bound current-base amount.** A `current_base` RentVine amount is accepted only
-  when it equals the saved Working current rent revision read on the server at preparation, and the
-  claim re-checks that revision inside its transaction, mirroring the Sheet claim. A change after
-  preview refuses with a plain "the working value changed; prepare a fresh preview" outcome and
-  sends nothing.
+- **R-S237-2 — Server-bound current-base amount.** A `current_base` RentVine amount prepared from the
+  Working value (an empty source note, stored as "Staff working value") is accepted only when it
+  equals the saved Working current rent read on the server at preparation, and the claim re-checks
+  it inside its transaction, mirroring the Sheet claim. A change after preview refuses with a plain
+  "the working value changed; prepare a fresh preview" outcome and sends nothing new. The RentVine
+  panel's direct "Correct current base-rent billing" entry, which carries its own staff evidence
+  note, stays a deliberate staff path (amended 2026-10-28).
 - **R-S237-3 — Plain outcome text for every RentVine code.** Every RentVine service refusal,
   decline, ambiguity and reconciliation result has one plain message naming what happened, what was
   not sent again and the next safe step, at parity with the Sheet route's message catalog. No raw

@@ -13,9 +13,7 @@ describe("S237 RentVine outcome messages", () => {
     for (const [code, message] of Object.entries(RENEWAL_WRITEBACK_SERVICE_MESSAGES)) {
       expect(message, code).toMatch(/RentVine/);
       expect(message, code).not.toMatch(/S97|_|\(\w+\)/);
-      expect(message, code).toMatch(
-        /not sent|Nothing was sent|changed nothing|not be sent|no reversal was sent/,
-      );
+      expect(message, code).toMatch(/sent nothing new|changed nothing|not be sent again/);
     }
   });
 

@@ -3,7 +3,7 @@
 Updated: 2026-10-28 (UTC).
 
 October 28: S232–S238 (November/December renewal readiness) were authored and the owner's
-execution instruction started them. Implemented and tested on the branch, not served: the desk's
+execution instruction started them. Merged to main at `bf0c03f9` (PR #158) and not served: the desk's
 window and month context, an ended-without-outcome scope with a default-view count, a visible
 reason on every row, fail-closed staff-record reads, retained skipped work, notice timing from the
 recorded tenant-offer send and response, and Central policy dates (S232);

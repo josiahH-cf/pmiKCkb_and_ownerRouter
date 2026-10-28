@@ -136,7 +136,7 @@ the owner; this file creates no email, draft, invitation or task.
   October 8 notes, unconfirmed); an Admin publishes. Proof: a published policy version and boundary
   checks. Holds: economics on affected packets (S235).
 - **C11 — B-HUMAN, genuine case and live scope.** A genuine renewal, the exact allowed actions and
-  recipients, or an actual isolated provider sandbox (none exists today). Ask: "When ready, name the
+  recipients, or an authorized isolated provider sandbox (none has been selected or verified). Ask: "When ready, name the
   genuine renewal and exactly which actions and recipients are allowed for the staff walkthrough."
   Owner: the project owner. Proof: written scope. Holds: provider-functional and human rows (S238).
 - **C12 — runtime evidence, sender and receipt.** The intended responsible sender per case (their
@@ -232,6 +232,13 @@ Earlier decisions stand: RentVine's per-property maintenance limits are the S108
 Vendoroo's agent writing into RentVine and no direct connector under that older contract. The October 15 direction supersedes custom maintenance and Vendoroo integration; S227 retains their historical evidence without an integration request.
 
 ## Owner steps
+
+**R1. Queue the November/December slices for release (2026-10-28).** PR #158 merged S232–S237's
+implemented slices and the `qs` patch at `bf0c03f9`; they are not served. The read-only release
+preflight reads `not_ready` because the Awaiting release queue in `docs/loop-state.md` is empty, and
+no existing direction queues these suites. The step is the owner's direction to queue them; the
+runner then prepares the run under the pipeline's own gates (fresh GO, permit, exact-main CI, the
+checkout pair, native runner and Admin browser readiness). Holds: serving these changes only.
 
 **A1. Dotloop renewal template and resources (B-DL2) — resolved 2026-10-27.** Readback at
 10:35:30.949Z lists LEASE RENEWAL 228954 on the integrations INDIVIDUAL profile 20701283, and the
@@ -385,14 +392,17 @@ separately authorized exact keys, previews, confirmations, receipts and readback
 
 These are engineering tasks with no owner step; none blocks a release.
 
-- **November/December run follow-ups (2026-10-28).** Three items need a staff-operations decision
-  before code changes: (0) R-S232-7's same-date `start_cycle` refusal conflicts with the S113/S144
-  contracts, which deliberately let staff restart a cycle on the same date and keep the earlier
-  cycle as history, so it was withdrawn; (1) R-S237-2 would bind every `current_base` RentVine amount to the saved
-  Working current rent, which removes the RentVine panel's direct "Correct current base-rent
-  billing" entry; RentVine writes stay closed, so nothing is exposed meanwhile. (2) R-S234-2 retires
-  the legacy owner-outcome control, which renders only after an app-sent owner message, which
-  production refuses. Locally, `tests/unit/unit-firestore-isolation-process.test.mjs` fails
+- **November/December run follow-ups (2026-10-28).** Three authored restrictions were reconciled
+  with existing staff operations instead of forced. (0) R-S232-7's same-date `start_cycle` refusal
+  was withdrawn: the S113/S144 contracts deliberately let staff restart a cycle on the same date with
+  a reason, keep the earlier cycle as history, replay the same request idempotently and refuse a
+  stale expected revision; the suite row now states that contract. (1) R-S237-2 binds only the
+  Working-value path (an empty source note, stored as "Staff working value"); the RentVine panel's
+  direct "Correct current base-rent billing" entry with its own evidence note stays. The three narrow
+  S97 RentVine keys are open for staff-confirmed exact operations (F-S97); only the broad
+  `rentvine.lease.renewal_writeback` compatibility key is closed. (2) R-S234-2 keeps the legacy
+  owner-outcome control on its existing conditional path (after an app-sent owner message).
+  Locally, `tests/unit/unit-firestore-isolation-process.test.mjs` fails
   identically at base `4c18f87f` when spawned under the unit runner in this WSL host; the direct
   child run behaves correctly, so it is environmental and unrelated to this branch.
 

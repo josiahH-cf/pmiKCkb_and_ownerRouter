@@ -5,17 +5,20 @@ Last updated: 2026-10-28 (UTC). Read AGENTS.md and docs/facts.md first.
 ## November/December renewal readiness execution (October 28)
 
 S232–S238 (intake 099–105) were authored against main `a1c0fe8c`; the owner's execution
-instruction then started them in the same owner session. The branch implements, with focused
-tests: S232 R-S232-1/2/6/7/8 (window and month context, the ended-without-outcome scope, notice
-timing from recorded sends, fail-closed staff-record reads, retained skipped work, Central policy dates); S233 R-S233-3/5/6/7 and part of R-S233-4 (distinct pause causes,
-open-only worker paging, Central schedule default with the Nov 1 repeated-hour statement, zoned
-instants and past-due lag, Resume timing, incoming-check age); S234's approval-bound terms display;
-and S237 R-S237-3/4 (plain RentVine outcomes, the Sheet still-before result). S235 and S236 were not
-executed. Nothing was served; production remains `6fbd6225` (S231). The staff walkthrough is NOT
-RUN. Client inputs C00–C13 stay in `docs/open-blockers.md`; two staff-operations decisions are under
-its runner follow-ups. NEXT: merge the reviewed branch through CI, then delivery only through the
-release pipeline with an explicitly queued item and its fresh prerequisites; S238 owns the
-November 4, 2026 (Central) blocker review.
+instruction then started them in the same owner session. PR #158 merged them to main at `bf0c03f9`
+after all five CI jobs passed, with focused tests: S232 R-S232-1/2/6/8 and the fail-closed and
+retained-skip parts of R-S232-7 (window and month context, the ended-without-outcome scope, notice
+timing from recorded sends, fail-closed staff-record reads, retained skipped work, Central policy
+dates); S233 R-S233-3/6/7 and parts of R-S233-4/5 (distinct pause causes, open-only worker paging,
+Central schedule default with the Nov 1 repeated-hour statement, zoned instants and past-due lag,
+Resume timing, incoming-check age); S234's approval-bound terms display; S237 R-S237-3/4 (plain
+RentVine outcomes, the Sheet still-before result); and `qs` 6.16.1 for GHSA-6pq8-jhm2-2vcw. S235 and
+S236 were not executed. Nothing was served; production remains `6fbd6225` (S231). The staff
+walkthrough is NOT RUN. Client inputs C00–C13 stay in `docs/open-blockers.md`; three reconciled
+staff-operations notes are under its runner follow-ups. The read-only release preflight reads
+`not_ready`: the Awaiting release queue is empty and no permit or fresh GO exists. NEXT: the remaining ready S232–S238 rows, independent of delivery. Delivery needs the owner's
+direction to queue the merged slices, then the release pipeline's own prerequisites. S238 owns
+the November 4, 2026 (Central) blocker review.
 
 ## Dotloop A1 resolved and selected (October 27)
 
