@@ -99,6 +99,11 @@ import {
 } from "@/lib/lease-renewal/auxiliary-read";
 import { DEFAULT_NOTICE_RULE_SET } from "@/lib/lease-renewal/notice-rules";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
+import { readArtifactIntakeManifest } from "@/lib/firestore/lease-artifact-intake";
+import { readFamilyUseRecord } from "@/lib/firestore/lease-artifact-family-use";
+import { resolveFamilyUse } from "@/lib/lease-documents/family-use";
+import { projectLeasePacketReadiness } from "@/lib/lease-documents/lease-packet-readiness";
+import { LeasePacketReadiness } from "@/components/lease-renewal/LeasePacketReadiness";
 import { buildLiveRenewalReviewItemHref } from "@/lib/lease-renewal/live-review-destination";
 import {
   RENEWAL_SOURCE_REFRESH_COOKIE,
@@ -280,6 +285,19 @@ export default async function LiveRenewalLeaseWorkspacePage({
   ] = await supportingReads;
   const progress = renewalAuxiliaryValue(progressRead, null);
   const packetSnapshot = packetRead.status === "available" ? packetRead.value : undefined;
+  // S235 R-S235-1: read-only per-family readiness; both reads report unreadable instead of throwing.
+  const [artifactManifest, familyUseRead] = await Promise.all([
+    readArtifactIntakeManifest(),
+    readFamilyUseRecord(),
+  ]);
+  const packetFamilyRows = projectLeasePacketReadiness({
+    manifest: artifactManifest,
+    evaluation: packetSnapshot ?? null,
+    familyUse: {
+      readable: familyUseRead.readable,
+      families: resolveFamilyUse(familyUseRead.record, readTimestamp),
+    },
+  });
   const policy = renewalAuxiliaryValue(policyRead, {
     state: "unreadable" as const,
     ruleSet: DEFAULT_NOTICE_RULE_SET,
@@ -588,6 +606,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
                 settings={renewalAuxiliaryValue(resourceLocationsRead, null)}
               />
             }
+            packetReadinessPanel={<LeasePacketReadiness rows={packetFamilyRows} />}
             rentvineUpdatesPanel={
               writebackProposalRead.status === "available" ? (
                 <RentvineUpdatesPanel

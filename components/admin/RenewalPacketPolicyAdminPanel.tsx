@@ -108,7 +108,7 @@ function FamilyUseEditor({
               htmlFor={`family-use-${family.kind}`}
               hint={
                 family.source.system === "engineering_default"
-                  ? "Engineering default until an Admin records a use."
+                  ? "Engineering default — not yet approved by the client. An Admin records the client's decision."
                   : `Recorded in configuration version ${family.source.version}.`
               }
             >
