@@ -1061,6 +1061,238 @@ try {
     },
   );
 
+  // S234 (R-S238-2 owner approval phase): the December lease's Working terms, the owner's approval
+  // with who, how and when, and its coverage after a later Working save. App records only.
+  const OWNER_LEASE = "5001";
+  const openOwnerDecision = async () => {
+    activePage = page;
+    await page.goto(
+      `${origin}/lease-renewal/live/desk/lease/${OWNER_LEASE}?step=owner-decision`,
+      { waitUntil: "domcontentloaded" },
+    );
+    const full = page.getByRole("group", { name: "Lease view" }).getByRole("button", {
+      name: "Full view",
+      exact: true,
+    });
+    // A click before hydration does nothing, so retry until the switch reports Full view.
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      await full.click();
+      if ((await full.getAttribute("aria-pressed")) === "true") break;
+      await page.waitForTimeout(1000);
+    }
+    assert.equal(
+      await full.getAttribute("aria-pressed"),
+      "true",
+      "Full view did not open",
+    );
+    await page.locator("#renewal-working-terms").waitFor();
+  };
+  const workingSave = () =>
+    page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/lease-renewal/working-record") &&
+        response.request().method() === "POST",
+    );
+  const ownerWorkspace = () =>
+    page.evaluate(async (lease) => {
+      const response = await fetch(`/api/lease-renewal/workspace?leaseId=${lease}`);
+      return { status: response.status, body: await response.json() };
+    }, OWNER_LEASE);
+  const workingTerms = async () => {
+    const docs = (
+      await db
+        .collection("lease_renewal_working_records")
+        .where("leaseId", "==", OWNER_LEASE)
+        .get()
+    ).docs;
+    const fields = docs[0]?.get("fields") ?? {};
+    return Object.fromEntries(
+      ["terms_rent", "terms_effective_date", "terms_end_date"].map((key) => [
+        key,
+        fields[key] ? { value: fields[key].value, revision: fields[key].revision } : null,
+      ]),
+    );
+  };
+  const coverageLine = () =>
+    page.locator('[data-renewal-field="owner-approval-coverage"]').first();
+
+  await step(
+    "S234-working-terms",
+    "R-S234-4 (Working-only terms), R-S238-2 owner approval phase",
+    "The December lease's Working rent, effective date and end date save through the lease page's own fields",
+    async () => {
+      await openOwnerDecision();
+      const rent = page.getByLabel("Working monthly rent", { exact: true });
+      await rent.scrollIntoViewIfNeeded();
+      await rent.fill("1450");
+      const rentSaved = workingSave();
+      await rent.press("Tab");
+      assert.equal((await rentSaved).status(), 200, "the Working rent was not saved");
+      // A complete date saves on change.
+      for (const [label, value] of [
+        ["Working effective date", "2027-01-01"],
+        ["Working term end date", "2027-12-31"],
+      ]) {
+        const saved = workingSave();
+        await page.getByLabel(label, { exact: true }).fill(value);
+        assert.equal((await saved).status(), 200, `${label} was not saved`);
+      }
+      const terms = await workingTerms();
+      assert.equal(terms.terms_rent?.value, 1450);
+      assert.equal(terms.terms_effective_date?.value, "2027-01-01");
+      assert.equal(terms.terms_end_date?.value, "2027-12-31");
+      return { working: terms };
+    },
+  );
+
+  await step(
+    "S234-approval-recorded",
+    "R-S234-1 (who, how and when), R-S234-3 (coverage)",
+    "Approved records the owner of record, a written channel with its reference and the time; coverage names the Working terms and revisions",
+    async () => {
+      const response = page.getByLabel("Owner response", { exact: true });
+      await response.scrollIntoViewIfNeeded();
+      await response.selectOption("approved_terms");
+      const form = page.locator('[data-renewal-field="owner-approval-evidence"]');
+      await form.waitFor();
+      await form
+        .getByLabel("Who approved")
+        .selectOption({ label: "Jordan Owner (owner of record)" });
+      await form.getByLabel("How they approved").selectOption("written");
+      await form.getByLabel("Channel").fill("Text message");
+      await form.getByLabel("Reference").fill("Synthetic journey approval 1");
+      // An approval time cannot be in the future.
+      await form.getByLabel("When they approved").fill("2026-10-27T10:00");
+      const recorded = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/lease-renewal/workspace") &&
+          r.request().method() === "POST",
+      );
+      await form.getByRole("button", { name: "Record approval" }).click();
+      assert.equal((await recorded).status(), 200, "Record approval was refused");
+      const line = page.locator('[data-renewal-field="owner-approval-recorded"]');
+      await line.waitFor();
+      const shown = await line.innerText();
+      assert.equal(
+        shown,
+        "Approved by Jordan Owner through Text message (reference Synthetic journey approval 1), on 10/27/2026, 10:00 AM CDT.",
+      );
+      await page.waitForFunction(
+        () =>
+          document
+            .querySelector('[data-renewal-field="owner-approval-coverage"]')
+            ?.getAttribute("data-coverage") === "current",
+      );
+      const coverage = await coverageLine().innerText();
+      assert.match(
+        coverage,
+        /^Owner approval covers the Working terms, \$1,450\.00 per month from .+ \(Working revisions: rent \d+, effective date \d+, end date \d+\)/,
+      );
+      const workspace = await ownerWorkspace();
+      assert.equal(workspace.status, 200);
+      const owner = workspace.body.state?.ownerResponse;
+      assert.equal(owner?.outcome, "approved_terms");
+      assert.equal(owner?.approval?.party?.kind, "owner");
+      assert.equal(owner?.approval?.channel?.kind, "written");
+      assert.equal(owner?.approval?.channel?.reference, "Synthetic journey approval 1");
+      const file = await capture(page, "s234-approval-recorded", line);
+      return {
+        shown,
+        coverage,
+        backend: {
+          outcome: owner.outcome,
+          party: owner.approval.party.kind,
+          channel: owner.approval.channel.kind,
+          occurredAt: owner.approval.occurredAt,
+          approvedTerms: owner.approvedWorkingTerms ?? owner.terms ?? null,
+        },
+        screenshot: file,
+      };
+    },
+  );
+
+  await step(
+    "S234-approval-stale",
+    "R-S234-3 (per-field coverage), R-S234-5",
+    "Saving a new Working rent after the approval keeps the approval as recorded and names the rent as no longer covered",
+    async () => {
+      const before = await ownerWorkspace();
+      const rent = page.getByLabel("Working monthly rent", { exact: true });
+      await rent.scrollIntoViewIfNeeded();
+      await rent.fill("1475");
+      const saved = workingSave();
+      await rent.press("Tab");
+      assert.equal((await saved).status(), 200, "the new Working rent was not saved");
+      await page.waitForFunction(
+        () =>
+          document
+            .querySelector('[data-renewal-field="owner-approval-coverage"]')
+            ?.getAttribute("data-coverage") === "terms_changed",
+      );
+      const coverage = await coverageLine().innerText();
+      assert.match(coverage, /^Owner approval no longer covers: .*rent.* changed\./);
+      const after = await ownerWorkspace();
+      assert.deepEqual(
+        after.body.state?.ownerResponse?.approval,
+        before.body.state?.ownerResponse?.approval,
+        "the recorded approval changed",
+      );
+      const terms = await workingTerms();
+      assert.equal(terms.terms_rent?.value, 1475);
+      const file = await capture(page, "s234-approval-stale", coverageLine());
+      // The desk row states the same coverage in its short form.
+      await page.goto(`${origin}/lease-renewal/live/desk?month=2026-12`, {
+        waitUntil: "domcontentloaded",
+      });
+      const row = page.locator("table.renewal-table tr").filter({ hasText: "Sample Pl" });
+      await row.first().waitFor();
+      const desk = await row
+        .first()
+        .locator('[data-renewal-field="owner-approval-coverage"]')
+        .innerText();
+      assert.equal(desk, "Owner approval no longer covers: rent changed.");
+      assert.ok(coverage.startsWith(desk), "the desk and the lease page disagree");
+      return {
+        coverage,
+        desk,
+        working: terms,
+        approvalUnchanged: true,
+        screenshot: file,
+      };
+    },
+  );
+
+  await step(
+    "S238-role-refusal",
+    "R-S238-2 role refusal, R-S232-5 (resolved by an Admin)",
+    "An Editor following the Admin timing-basis destination is refused and returned to the Dashboard, and the Admin write is refused with nothing recorded",
+    async () => {
+      activePage = page;
+      await page.goto(`${origin}/admin#admin-move-out-timing-basis`, {
+        waitUntil: "domcontentloaded",
+      });
+      // The page guard sends a refused staff account through sign-in (forbidden) to the Dashboard.
+      await page.waitForURL((url) => url.pathname === "/");
+      assert.equal(await page.locator("#admin-move-out-timing-basis").count(), 0);
+      const refused = await page.evaluate(async () => {
+        const response = await fetch("/api/admin/move-out-timing-basis", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: "{}",
+        });
+        return response.status;
+      });
+      assert.equal(refused, 403);
+      const saved = await db.collection("lease_renewal_move_out_timing_basis").get();
+      assert.equal(saved.size, 0, "a timing basis was recorded");
+      return {
+        landedOn: new URL(page.url()).pathname + new URL(page.url()).search,
+        adminWrite: refused,
+        timingBasisRecords: saved.size,
+      };
+    },
+  );
+
   await step(
     "network-boundary",
     "R-S238-2 effect-refused descriptor",
