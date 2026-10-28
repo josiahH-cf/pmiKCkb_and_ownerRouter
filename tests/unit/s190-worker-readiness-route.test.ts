@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   create: vi.fn(),
   run: vi.fn(),
   policy: vi.fn(),
+  health: vi.fn(),
 }));
 vi.mock("@/lib/gmail-hub/sequence-worker", () => ({
   verifyCommunicationWorkerRequest: mocks.verify,
@@ -20,10 +21,28 @@ vi.mock("@/lib/operations/runtime-suspension-gate", async (original) => ({
 vi.mock("@/lib/operations/application-effect-policy", () => ({
   applicationEffectBlockReason: mocks.policy,
 }));
+vi.mock("@/lib/gmail-hub/worker-health", () => ({
+  readCommunicationWorkerHealth: mocks.health,
+}));
 import { GET } from "@/app/api/gmail-hub/sequence-worker/route";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { GmailPushAuthError } from "@/lib/gmail-hub/pubsub";
 const probeId = "3785c149-59a4-45fa-85de-a33a71f757d8";
+// S233 R-S233-5: times and counts only.
+const HEALTH = {
+  asOfMs: 1_793_000_000_000,
+  lastRun: {
+    startedAtMs: 1_792_999_940_000,
+    finishedAtMs: 1_792_999_950_000,
+    running: false,
+    counts: { inspected: 2, observed: 2, sent: 1, held: 0, failures: 0, notChecked: 0 },
+  },
+  openRead: 2,
+  complete: true,
+  oldestPastDue: { dueAtMs: 1_792_999_000_000, lagMs: 1_000_000 },
+  oldestObservation: { checkedAtMs: 1_792_999_950_000, ageMs: 50_000 },
+  neverChecked: 0,
+};
 const request = (query = "", id: string | null = probeId) =>
   new Request("https://app.test/api/gmail-hub/sequence-worker" + query, {
     headers: id ? { "X-PMI-Worker-Readiness": id } : {},
@@ -33,6 +52,7 @@ beforeEach(() => {
   mocks.policy.mockImplementation((key: string) =>
     key.startsWith("gmail.maintenance_") ? "Retired" : null,
   );
+  mocks.health.mockResolvedValue(HEALTH);
   vi.spyOn(console, "log").mockImplementation(() => {});
 });
 afterEach(() => vi.restoreAllMocks());
@@ -41,6 +61,7 @@ it("rejects an unverified service before reading gates, logging readiness or con
   expect((await GET(request())).status).toBe(401);
   expect(mocks.gate).not.toHaveBeenCalled();
   expect(console.log).not.toHaveBeenCalled();
+  expect(mocks.health).not.toHaveBeenCalled();
   expect(mocks.create).not.toHaveBeenCalled();
   expect(mocks.run).not.toHaveBeenCalled();
 });
@@ -52,6 +73,7 @@ it("proves confirmed renewal readiness without constructing or claiming a custom
     dispatchEnabled: true,
     legacyDispatchEnabled: false,
     deliveryPolicyVersion: "renewal-confirmed-delivery/2026-10-20",
+    health: HEALTH,
   });
   expect(mocks.policy.mock.calls).toEqual([
     ["gmail.renewal_notice.send"],
@@ -65,9 +87,21 @@ it("proves confirmed renewal readiness without constructing or claiming a custom
     dispatchEnabled: true,
     legacyDispatchEnabled: false,
     deliveryPolicyVersion: "renewal-confirmed-delivery/2026-10-20",
+    health: HEALTH,
   });
+  expect(mocks.health).toHaveBeenCalledTimes(1);
   expect(mocks.create).not.toHaveBeenCalled();
   expect(mocks.run).not.toHaveBeenCalled();
+});
+it("S233 R-S233-5: a failed health read leaves readiness standing and says so", async () => {
+  mocks.health.mockRejectedValue(new Error("Firestore unavailable"));
+  const response = await GET(request());
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({ status: "ready", health: "unavailable" });
+  expect(JSON.parse(vi.mocked(console.log).mock.calls[0][0])).toMatchObject({
+    ready: true,
+    health: "unavailable",
+  });
 });
 it.each([
   { query: "?target=customer", id: probeId, status: 409 },
@@ -79,6 +113,7 @@ it.each([
     expect((await GET(request(query, id))).status).toBe(status);
     expect(mocks.gate).not.toHaveBeenCalled();
     expect(console.log).not.toHaveBeenCalled();
+    expect(mocks.health).not.toHaveBeenCalled();
     expect(mocks.create).not.toHaveBeenCalled();
   },
 );
@@ -93,6 +128,7 @@ it("a closed current runtime gate cannot log readiness or construct a sequence s
   mocks.gate.mockRejectedValue(new EditableLayerError("Current gate unavailable", 409));
   expect((await GET(request())).status).toBe(409);
   expect(console.log).not.toHaveBeenCalled();
+  expect(mocks.health).not.toHaveBeenCalled();
   expect(mocks.create).not.toHaveBeenCalled();
   expect(mocks.run).not.toHaveBeenCalled();
 });

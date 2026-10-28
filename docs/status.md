@@ -40,14 +40,22 @@ earlier-terms wording, Working-only terms and the per-field approval coverage (R
 Gmail draft claim now re-reads the Working terms inside its transaction, so a terms save after the
 preview refuses the draft.
 
-The branch claude/renewal-novdec-rows4-20261028 adds the S232 per-reason counts under All leases
-(R-S232-3) and one status, waiting-on and evidence line per lease on the desk row and in Focus,
+PR #164 (merged at `c689d627`; exact-main CI `40760251764` passed) added the S232 per-reason counts
+under All leases (R-S232-3) and one status, waiting-on and evidence line per lease on the desk row and in Focus,
 reading "Needs a check" when the staff record and the linked Gmail thread disagree (R-S232-4). A
 response step is Waiting only while the owner or tenant has the move, so the desk guidance contract
 becomes `s232-one-status`; the production oracle and the release observer follow it. Every issue
 on the lease page and in Focus names what it needs, who resolves it and links to where (the Admin
 timing panel, a control on the lease or the page's refresh), or says it is resolved outside the app
 (R-S232-5). It also binds a tenant answer to the Working term revisions it answered (R-S234-5).
+
+The branch claude/renewal-novdec-rows5-20261028 completes S233's engineering rows. An incoming
+check that cannot read cleanly names why, since when and that sends are held, and a failed mailbox
+sync marks its sequences "not checked this run" (R-S233-4). The hub and the read-only assurance
+read the worker's last run, its counts, the oldest past-due lag and the oldest incoming check
+(R-S233-5). The stale maintenance browser check is replaced by an S233 phase of the served S238
+journey (`npm run smoke:renewal-novdec-journey`); that run also found and fixed a composer load
+that, run twice in development, installed a second new draft (R-S233-9).
 
 Production still serves `6fbd6225` (S231); the staff walkthrough is NOT RUN.
 

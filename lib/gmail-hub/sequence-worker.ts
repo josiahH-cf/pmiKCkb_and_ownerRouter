@@ -46,16 +46,46 @@ export class CommunicationWorkerStore {
     return this.db.runTransaction(async (tx) => {
       const doc = await tx.get(this.ref());
       if (doc.data()?.runId !== claim.runId) return false;
+      const startedAtMs = doc.data()?.startedAtMs;
       tx.set(this.ref(), {
         runId: claim.runId,
         cursor,
         expiresAtMs: 0,
+        // S233 R-S233-5: the finished run keeps when it started, for the health summary.
+        ...(typeof startedAtMs === "number" ? { startedAtMs } : {}),
         finishedAtMs: nowMs,
         counts,
       });
       return true;
     });
   }
+  /** S233 R-S233-5: the latest run's times and counts, or null before the first run. */
+  async readLastRun(nowMs: number): Promise<CommunicationWorkerLastRun | null> {
+    const state = (await this.ref().get()).data();
+    if (!state) return null;
+    const number = (value: unknown) =>
+      typeof value === "number" && Number.isFinite(value) ? value : null;
+    const counts: Record<string, number> = {};
+    if (state.counts && typeof state.counts === "object")
+      for (const [key, value] of Object.entries(state.counts as Record<string, unknown>))
+        if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0)
+          counts[key] = value;
+    const expiresAtMs = number(state.expiresAtMs);
+    return {
+      startedAtMs: number(state.startedAtMs),
+      finishedAtMs: number(state.finishedAtMs),
+      running: expiresAtMs !== null && expiresAtMs > nowMs,
+      counts,
+    };
+  }
+}
+
+/** S233 R-S233-5: what the latest worker run reports; counts only, never a record or address. */
+export interface CommunicationWorkerLastRun {
+  readonly startedAtMs: number | null;
+  readonly finishedAtMs: number | null;
+  readonly running: boolean;
+  readonly counts: Readonly<Record<string, number>>;
 }
 /** One bounded rotating page; the durable occurrence claim owns every send even across expired worker leases. */
 export async function runCommunicationWorker(input: {
@@ -80,10 +110,13 @@ export async function runCommunicationWorker(input: {
     sent: 0,
     held: 0,
     failures: 0,
+    notChecked: 0,
   };
   let cursor = claim.cursor,
     completedPage = true;
   const syncedMailboxes = new Set<string>();
+  // S233 R-S233-4: a mailbox whose sync failed is not retried this run; its sequences are marked.
+  const failedMailboxes = new Set<string>();
   for (const original of page.sequences) {
     if (now() - started >= Math.min(120_000, input.maxDurationMs ?? 55_000)) {
       completedPage = false;
@@ -103,12 +136,25 @@ export async function runCommunicationWorker(input: {
       assertCommunicationStaff(actor, "read");
       if (!hasSpaceAccess(actor, original.context.lane))
         throw new Error("Workflow Space unavailable.");
-      if (
-        input.service.deps.syncMailbox &&
-        !syncedMailboxes.has(actor.email.toLowerCase())
-      ) {
-        await input.service.deps.syncMailbox(actor);
-        syncedMailboxes.add(actor.email.toLowerCase());
+      const mailbox = actor.email.toLowerCase();
+      if (input.service.deps.syncMailbox && !syncedMailboxes.has(mailbox)) {
+        let synced = !failedMailboxes.has(mailbox);
+        if (synced)
+          try {
+            await input.service.deps.syncMailbox(actor);
+            syncedMailboxes.add(mailbox);
+          } catch {
+            failedMailboxes.add(mailbox);
+            counts.failures += 1;
+            synced = false;
+          }
+        if (!synced) {
+          // Not checked this run: the record says so, and nothing is sent from it.
+          await input.service.markNotChecked(original);
+          counts.notChecked += 1;
+          counts.held += 1;
+          continue;
+        }
       }
       const observed = await input.service.observe(original);
       counts.observed += 1;

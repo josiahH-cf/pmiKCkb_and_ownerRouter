@@ -33,6 +33,7 @@ import {
   describeCommunicationEvidence,
 } from "@/lib/gmail-hub/communication-evidence";
 import { encodeWorkflowMime } from "@/lib/gmail-runtime/workflow-mime";
+import { describeSequenceObservation } from "@/lib/gmail-hub/communication-state";
 
 const actor: AuthenticatedUser = {
   uid: "staff-one",
@@ -443,6 +444,11 @@ describe("S187–S192 durable workflow communications (isolated Gmail adapters)"
     f.deps.resolveTarget.mockRejectedValueOnce(new Error("source offline"));
     expect((await f.service.dispatch(s.id)).status).toBe("awaiting_source");
     expect(f.send).not.toHaveBeenCalled();
+    // S233 R-S233-4: the held check names the unreadable source.
+    expect((await f.store.get(s.id))?.observation).toMatchObject({
+      state: "unavailable",
+      reason: "source_unavailable",
+    });
     expect((await f.service.dispatch(s.id)).status).toBe("sent");
     const g = setup();
     const t = await g.approve();
@@ -844,6 +850,91 @@ it("the worker holds legacy and retired-lane authorizations before actor, mailbo
   expect(f.send).not.toHaveBeenCalled();
   // S233 R-S233-5: the worker pages only open records, so its budget never shrinks with history.
   expect(f.store.list).toHaveBeenCalledWith(null, 20, { openOnly: true });
+});
+
+it("S233 R-S233-4: a failed mailbox sync marks the sequence not checked this run, keeps since when and sends nothing", async () => {
+  const f = setup();
+  const scheduled = await f.approve("schedule");
+  const syncMailbox = vi.fn(async (): Promise<void> => {
+    throw new Error("Synthetic mailbox history sync failure.");
+  });
+  Object.assign(f.deps, { syncMailbox });
+  // The fake store cannot run the open-only query; each run pages the current record.
+  vi.spyOn(f.store, "list").mockImplementation(async () => ({
+    sequences: [(await f.store.get(scheduled.id))!],
+    cursor: null,
+  }));
+  const run = () =>
+    runCommunicationWorker({
+      service: f.service,
+      store: new CommunicationWorkerStore(f.db as unknown as Firestore),
+      now: f.now,
+    });
+  const firstFailure = Date.parse("2026-10-10T14:00Z");
+  f.setNow(firstFailure);
+  expect(await run()).toMatchObject({
+    status: "processed",
+    inspected: 1,
+    observed: 0,
+    sent: 0,
+    held: 1,
+    failures: 1,
+    notChecked: 1,
+  });
+  expect(f.send).not.toHaveBeenCalled();
+  expect((await f.store.get(scheduled.id))?.observation).toMatchObject({
+    state: "unavailable",
+    reason: "mailbox_sync_failed",
+    unavailableSinceMs: firstFailure,
+  });
+
+  // A second failed run keeps when the trouble began and still sends nothing.
+  f.setNow(firstFailure + 30 * 60_000);
+  await run();
+  const stillFailing = await f.store.get(scheduled.id);
+  expect(stillFailing?.observation).toMatchObject({
+    state: "unavailable",
+    checkedAtMs: firstFailure + 30 * 60_000,
+    unavailableSinceMs: firstFailure,
+  });
+  expect(describeSequenceObservation(stillFailing!.observation, f.now())).toBe(
+    "Incoming not checked this run: the staff mailbox sync failed, so it was not checked this run. Unavailable for 30 min (last attempt less than a minute ago); scheduled sends are held until it reads cleanly",
+  );
+  expect(f.send).not.toHaveBeenCalled();
+
+  // Once the sync works the check reads cleanly again and the due message goes.
+  syncMailbox.mockResolvedValue(undefined);
+  f.setNow(firstFailure + 60 * 60_000);
+  expect(await run()).toMatchObject({ observed: 1, sent: 1, notChecked: 0 });
+  const recovered = (await f.store.get(scheduled.id))?.observation;
+  expect(recovered).toMatchObject({ state: "current" });
+  expect(recovered).not.toHaveProperty("reason");
+  expect(recovered).not.toHaveProperty("unavailableSinceMs");
+});
+
+it("S233 R-S233-4: names an over-bound thread and a read failure on the observation", async () => {
+  const f = setup();
+  const s = await f.approve("schedule");
+  // The first send links the thread the check reads.
+  f.setNow(Date.parse("2026-10-10T14:00Z"));
+  await f.service.dispatch(s.id);
+  expect(f.send).toHaveBeenCalledTimes(1);
+  f.setThread({ id: "thread-1", truncated: true, historyId: "101", messages: [] });
+  expect((await f.service.observe((await f.store.get(s.id))!)).observation).toMatchObject(
+    {
+      state: "unavailable",
+      reason: "thread_too_large",
+    },
+  );
+  f.setThread({ id: "another-thread", truncated: true, historyId: "102", messages: [] });
+  f.setNow(f.now() + 60_000);
+  expect((await f.service.observe((await f.store.get(s.id))!)).observation).toMatchObject(
+    {
+      state: "unavailable",
+      // A read failure outranks the over-bound thread in the same check.
+      reason: "read_failed",
+    },
+  );
 });
 
 describe("S233 R-S233-8 deterministic incoming-message variants", () => {

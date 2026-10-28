@@ -2,7 +2,10 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
-import { verifyCommunicationWorkerAssurance } from "../../scripts/communication-worker-assurance.mjs";
+import {
+  receiptWorkerHealth,
+  verifyCommunicationWorkerAssurance,
+} from "../../scripts/communication-worker-assurance.mjs";
 const cp = {
   sha: "a".repeat(40),
   revision: "pmi-kc-app-fixture-1",
@@ -61,6 +64,7 @@ function fixture(options = {}) {
                       dispatchEnabled: true,
                       legacyDispatchEnabled: options.legacyDispatchEnabled === true,
                       deliveryPolicyVersion: "renewal-confirmed-delivery/2026-10-20",
+                      ...(options.health === undefined ? {} : { health: options.health }),
                     },
                   },
                 ],
@@ -141,12 +145,77 @@ it("one durably claimed managed GET proves exact candidate readiness and restore
       revision: cp.revision,
       outcome: "passed",
       restored: true,
+      // A revision that predates R-S233-5 logs no health; readiness alone decides the outcome.
+      workerHealth: "absent",
     });
     expect((await verifyCommunicationWorkerAssurance(cp, f.config)).verified).toBe(true);
     expect(f.runs).toBe(1);
   } finally {
     f.close();
   }
+});
+it("S233 R-S233-5: the receipt keeps the readiness entry's worker health as times and counts only", async () => {
+  const health = {
+    asOfMs: 1_793_000_000_000,
+    lastRun: {
+      startedAtMs: 1_792_999_940_000,
+      finishedAtMs: 1_792_999_950_000,
+      running: false,
+      counts: {
+        sent: 1,
+        held: 2,
+        notChecked: 1,
+        "sender@pmikcmetro.com": 3,
+        failures: -1,
+      },
+      runId: "not-kept",
+    },
+    openRead: 3,
+    complete: false,
+    oldestPastDue: {
+      dueAtMs: 1_792_999_000_000,
+      lagMs: 1_000_000,
+      sequenceId: "not-kept",
+    },
+    oldestObservation: { checkedAtMs: 1_792_999_950_000, ageMs: 50_000 },
+    neverChecked: 1,
+    subject: "not kept",
+  };
+  const f = fixture({ health });
+  try {
+    expect((await verifyCommunicationWorkerAssurance(cp, f.config)).verified).toBe(true);
+    expect(f.read().workerHealth).toEqual({
+      asOfMs: 1_793_000_000_000,
+      lastRun: {
+        startedAtMs: 1_792_999_940_000,
+        finishedAtMs: 1_792_999_950_000,
+        running: false,
+        counts: { sent: 1, held: 2, notChecked: 1 },
+      },
+      openRead: 3,
+      complete: false,
+      oldestPastDue: { dueAtMs: 1_792_999_000_000, lagMs: 1_000_000 },
+      oldestObservation: { checkedAtMs: 1_792_999_950_000, ageMs: 50_000 },
+      neverChecked: 1,
+    });
+  } finally {
+    f.close();
+  }
+  const unavailable = fixture({ health: "unavailable" });
+  try {
+    expect(
+      (await verifyCommunicationWorkerAssurance(cp, unavailable.config)).verified,
+    ).toBe(true);
+    expect(unavailable.read().workerHealth).toBe("unavailable");
+  } finally {
+    unavailable.close();
+  }
+  expect(receiptWorkerHealth(["not", "health"])).toBe("absent");
+  expect(receiptWorkerHealth({ lastRun: null, openRead: "2" })).toMatchObject({
+    lastRun: null,
+    openRead: null,
+    oldestPastDue: null,
+  });
 });
 it("a wrong managed identity fails before patch or invocation", async () => {
   const f = fixture({ badIdentity: true });

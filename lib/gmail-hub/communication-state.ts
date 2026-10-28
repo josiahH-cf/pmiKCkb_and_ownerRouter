@@ -7,7 +7,10 @@ import type {
   WorkflowCommunicationStatus,
   WorkflowCommunicationWaitingOn,
 } from "@/lib/gmail-hub/workflow-context";
-import type { CommunicationSequence } from "@/lib/gmail-hub/sequence-model";
+import type {
+  CommunicationSequence,
+  SequenceObservationFailure,
+} from "@/lib/gmail-hub/sequence-model";
 
 type SequencePauseCause = NonNullable<CommunicationSequence["pause"]>["cause"];
 
@@ -174,14 +177,106 @@ function describeAge(ms: number): string {
   return hours < 48 ? `${hours} h` : `${Math.floor(hours / 24)} days`;
 }
 
-/** S233 R-S233-4: how fresh the incoming check is; an unreadable check names the held sends. */
+const OBSERVATION_FAILURE_TEXT: Record<SequenceObservationFailure, string> = {
+  read_failed: "a linked Gmail thread could not be read",
+  thread_too_large:
+    "a linked Gmail thread is over the 50-message or 100,000-character read limit",
+  mailbox_sync_failed: "the staff mailbox sync failed, so it was not checked this run",
+  source_unavailable: "the lease source or recipient facts could not be read",
+};
+
+/**
+ * S233 R-S233-4: how fresh the incoming check is. An unclean check says since when and why, and
+ * that dependent sends are held; a mailbox sync failure reads "not checked this run".
+ */
 export function describeSequenceObservation(
   observation: CommunicationSequence["observation"],
   nowMs: number,
 ): string {
   if (!observation) return "Incoming not checked yet";
   const age = describeAge(nowMs - observation.checkedAtMs);
-  return observation.state === "current"
-    ? `Incoming checked ${age} ago`
-    : `Incoming could not be fully read (last attempt ${age} ago); scheduled sends are held until it reads cleanly`;
+  if (observation.state === "current") return `Incoming checked ${age} ago`;
+  // A record from before the reason was kept says only what it knows.
+  if (!observation.reason)
+    return `Incoming could not be fully read (last attempt ${age} ago); scheduled sends are held until it reads cleanly`;
+  const since = describeAge(
+    nowMs - (observation.unavailableSinceMs ?? observation.checkedAtMs),
+  );
+  const lead =
+    observation.reason === "mailbox_sync_failed"
+      ? "Incoming not checked this run"
+      : "Incoming could not be read cleanly";
+  return `${lead}: ${OBSERVATION_FAILURE_TEXT[observation.reason]}. Unavailable for ${since} (last attempt ${age} ago); scheduled sends are held until it reads cleanly`;
+}
+
+/** S233 R-S233-5: the worker health the hub reads (a serialized `CommunicationWorkerHealth`). */
+export interface CommunicationWorkerHealthView {
+  readonly lastRun: {
+    readonly startedAtMs: number | null;
+    readonly finishedAtMs: number | null;
+    readonly running: boolean;
+    readonly counts: Readonly<Record<string, number>>;
+  } | null;
+  readonly complete: boolean;
+  readonly oldestPastDue: { readonly dueAtMs: number; readonly lagMs: number } | null;
+  readonly oldestObservation: {
+    readonly checkedAtMs: number;
+    readonly ageMs: number;
+  } | null;
+  readonly neverChecked: number;
+}
+
+/**
+ * S233 R-S233-5: the hub's worker health line: the last run and its counts, the oldest past-due
+ * unsent message with its lag, and the oldest incoming check. `dueLabel` formats the due time in
+ * the sequence time zone the hub already uses.
+ */
+export function describeWorkerHealth(
+  health: CommunicationWorkerHealthView,
+  nowMs: number,
+  dueLabel: (ms: number) => string,
+): readonly string[] {
+  const lines: string[] = [];
+  const run = health.lastRun;
+  if (!run || (run.startedAtMs === null && run.finishedAtMs === null))
+    lines.push("Worker: no run recorded yet.");
+  else if (run.running)
+    lines.push(
+      `Worker: a run is in progress${run.startedAtMs !== null ? ` (started ${describeAge(nowMs - run.startedAtMs)} ago)` : ""}.`,
+    );
+  else if (run.finishedAtMs === null)
+    // A run claims the record as it starts; a lease that ran out before it finished is a stopped run.
+    lines.push(
+      `Worker: the last run started ${describeAge(nowMs - run.startedAtMs!)} ago and did not finish.`,
+    );
+  else {
+    const c = run.counts;
+    const parts = [
+      `${c.inspected ?? 0} checked`,
+      `${c.sent ?? 0} sent`,
+      `${c.held ?? 0} held`,
+      `${c.failures ?? 0} failures`,
+      ...(c.notChecked ? [`${c.notChecked} not checked this run`] : []),
+    ];
+    lines.push(
+      `Worker: last run finished ${describeAge(nowMs - run.finishedAtMs!)} ago (${parts.join(", ")}).`,
+    );
+  }
+  // Ages follow the hub's minute clock, as the last run's does; the read's own lag and age are for
+  // the assurance receipt, which has no clock of its own.
+  lines.push(
+    health.oldestPastDue
+      ? `Oldest past-due message: due ${dueLabel(health.oldestPastDue.dueAtMs)}; not yet sent (${describeAge(nowMs - health.oldestPastDue.dueAtMs)} late).`
+      : "No scheduled message is past due.",
+  );
+  lines.push(
+    health.oldestObservation
+      ? `Oldest incoming check: ${describeAge(nowMs - health.oldestObservation.checkedAtMs)} ago${health.neverChecked ? `; ${health.neverChecked} not checked yet` : ""}.`
+      : health.neverChecked
+        ? `Incoming not checked yet for ${health.neverChecked} communication${health.neverChecked === 1 ? "" : "s"}.`
+        : "No open communication needs an incoming check.",
+  );
+  if (!health.complete)
+    lines.push("Counts cover the first open communications read; more are open.");
+  return lines;
 }

@@ -656,11 +656,18 @@ export class WorkflowCommunicationSequenceService {
     const messages: CommunicationInboundEvidence[] = [];
     let cause: "reply" | "bounce" | "unexpected_sender" | null = null;
     let complete = true;
+    // S233 R-S233-4: a read failure outranks an over-bound thread when both occur.
+    let reason: "read_failed" | "thread_too_large" | null = null;
+    const fail = (why: "read_failed" | "thread_too_large") => {
+      complete = false;
+      if (reason !== "read_failed") reason = why;
+    };
     const mailboxHistoryIds: Record<string, string> = {};
     try {
       for (const t of unique.values()) {
         const thread = await this.client(t.senderEmail).getThread(t.threadId);
-        if (thread.truncated || thread.id !== t.threadId) complete = false;
+        if (thread.id !== t.threadId) fail("read_failed");
+        if (thread.truncated) fail("thread_too_large");
         const mailboxKey = gmailMailboxKey(t.senderEmail);
         if (
           thread.historyId &&
@@ -670,12 +677,12 @@ export class WorkflowCommunicationSequenceService {
         )
           mailboxHistoryIds[mailboxKey] = thread.historyId;
         for (const m of thread.messages) {
-          if (m.bodyTruncated) complete = false;
+          if (m.bodyTruncated) fail("thread_too_large");
           if (senders.has(emailFrom(m.from) ?? "") || m.labelIds.includes("SENT"))
             continue;
           const receivedAtMs = Number(m.internalDate);
           if (!Number.isFinite(receivedAtMs) || receivedAtMs <= 0) {
-            complete = false;
+            fail("read_failed");
             continue;
           }
           if (
@@ -715,7 +722,7 @@ export class WorkflowCommunicationSequenceService {
         }
       }
     } catch {
-      complete = false;
+      fail("read_failed");
     }
     return this.deps.store.observe(s.id, {
       authorizationRevision: s.authorization.revision,
@@ -729,6 +736,24 @@ export class WorkflowCommunicationSequenceService {
           : null,
       mailboxHistoryIds,
       complete,
+      ...(reason ? { reason } : {}),
+    });
+  }
+
+  /**
+   * S233 R-S233-4: record that this run could not check the sequence's incoming mail because the
+   * staff mailbox sync failed. Its scheduled sends stay held until a check reads cleanly.
+   */
+  async markNotChecked(s: CommunicationSequence): Promise<CommunicationSequence> {
+    if (!s.authorization) return s;
+    return this.deps.store.observe(s.id, {
+      authorizationRevision: s.authorization.revision,
+      checkedAtMs: this.now(),
+      messageIds: [],
+      pause: null,
+      historyId: null,
+      complete: false,
+      reason: "mailbox_sync_failed",
     });
   }
   async dispatch(id: string): Promise<{
@@ -816,6 +841,7 @@ export class WorkflowCommunicationSequenceService {
         pause: null,
         historyId: null,
         complete: false,
+        reason: "source_unavailable",
       });
       return {
         status: "awaiting_source",

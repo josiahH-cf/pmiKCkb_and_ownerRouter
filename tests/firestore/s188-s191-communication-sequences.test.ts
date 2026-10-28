@@ -31,7 +31,11 @@ import {
   sequenceHash,
 } from "@/lib/gmail-hub/sequence-store";
 import { CommunicationAttachmentStore } from "@/lib/gmail-hub/sequence-attachments";
-import { CommunicationWorkerStore } from "@/lib/gmail-hub/sequence-worker";
+import {
+  CommunicationWorkerStore,
+  runCommunicationWorker,
+} from "@/lib/gmail-hub/sequence-worker";
+import { readCommunicationWorkerHealth } from "@/lib/gmail-hub/worker-health";
 import { WorkflowCommunicationSequenceService } from "@/lib/gmail-hub/sequence-service";
 import {
   plainCommunicationMessage,
@@ -416,6 +420,150 @@ describe("S188–S191 real Firestore transaction ordering with isolated Gmail", 
     // The hub's unfiltered listing still shows every record.
     expect((await f.store.list(null, 10)).sequences).toHaveLength(5);
   });
+  it("S233 R-S233-5 sends a due sequence past 4,000 terminal records exactly once under concurrent workers and reports health", async () => {
+    const f = fixture();
+    const due = await f.approve();
+    // 4,000 completed and cancelled records whose ids sort before every open one.
+    const sequences = db.collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences);
+    for (let start = 0; start < 4000; start += 500) {
+      const batch = db.batch();
+      for (let index = start; index < start + 500; index += 1)
+        batch.set(
+          sequences.doc(`00000000-0000-4000-8000-${String(index).padStart(12, "0")}`),
+          {
+            schemaVersion: "workflow-communication-sequence/v1",
+            version: 1,
+            state: index % 2 ? "completed" : "cancelled",
+          },
+        );
+      await batch.commit();
+    }
+    const workers = new CommunicationWorkerStore(db);
+    const runs = await Promise.all(
+      Array.from({ length: 3 }, () =>
+        runCommunicationWorker({ service: f.service, store: workers }),
+      ),
+    );
+    // The lease serializes runs: whichever visits the open record sends it, and a run that starts
+    // after it finished finds nothing open. Across every run the message goes exactly once.
+    const processed = runs.filter(
+      (run) => run.status === "processed",
+    ) as unknown as Record<string, number>[];
+    expect(processed.length).toBeGreaterThanOrEqual(1);
+    expect(processed.reduce((sum, run) => sum + (run.sent ?? 0), 0)).toBe(1);
+    expect(processed.filter((run) => run.inspected === 1)).toEqual([
+      expect.objectContaining({ observed: 1, sent: 1, failures: 0 }),
+    ]);
+    expect(processed.every((run) => run.inspected <= 1)).toBe(true);
+    expect(f.send).toHaveBeenCalledTimes(1);
+    expect((await f.store.get(due.id))?.state).toBe("completed");
+
+    // Health reads the run record and open records only.
+    const later = await f.service.save(
+      actor,
+      { ...f.draft, id: randomUUID() },
+      0,
+      randomUUID(),
+    );
+    const scheduledAt = Date.now() - 25 * 60_000;
+    await sequences.doc(later.id).update({
+      state: "active",
+      nextDueAtMs: scheduledAt,
+      authorization: due.authorization,
+      observation: {
+        checkedAtMs: scheduledAt - 5 * 60_000,
+        state: "current",
+        historyId: null,
+      },
+    });
+    // A record held for a fresh review under an earlier delivery policy is never due work, so its
+    // older due time and missing check are not worker lag.
+    const held = await f.service.save(
+      actor,
+      { ...f.draft, id: randomUUID() },
+      0,
+      randomUUID(),
+    );
+    await sequences.doc(held.id).update({
+      state: "active",
+      nextDueAtMs: scheduledAt - 60 * 60_000,
+      authorization: {
+        ...due.authorization,
+        deliveryPolicyVersion: "renewal-confirmed-delivery/2026-01-01",
+      },
+    });
+    // Paused and unresolved records are not due work even with older due times; a record the
+    // worker has not checked yet is counted as such.
+    const other = async (fields: Record<string, unknown>) => {
+      const saved = await f.service.save(
+        actor,
+        { ...f.draft, id: randomUUID() },
+        0,
+        randomUUID(),
+      );
+      await sequences.doc(saved.id).update({
+        authorization: due.authorization,
+        observation: { checkedAtMs: scheduledAt, state: "current", historyId: null },
+        ...fields,
+      });
+    };
+    await other({ state: "paused", nextDueAtMs: scheduledAt - 30 * 60_000 });
+    await other({
+      state: "active",
+      nextDueAtMs: scheduledAt - 40 * 60_000,
+      unresolvedOccurrenceId: randomUUID(),
+    });
+    await other({
+      state: "active",
+      nextDueAtMs: Date.now() + 60 * 60_000,
+      observation: null,
+    });
+    const nowMs = Date.now();
+    const health = await readCommunicationWorkerHealth({ db, nowMs });
+    // The record keeps the latest run, which may be the one that found nothing left to send.
+    expect(health.lastRun).toMatchObject({ running: false, counts: { failures: 0 } });
+    expect(health.lastRun?.startedAtMs).toBeLessThanOrEqual(
+      health.lastRun!.finishedAtMs!,
+    );
+    expect(health).toMatchObject({
+      openRead: 5,
+      complete: true,
+      oldestPastDue: { dueAtMs: scheduledAt, lagMs: nowMs - scheduledAt },
+      oldestObservation: { checkedAtMs: scheduledAt - 5 * 60_000 },
+      neverChecked: 1,
+    });
+    // A claimed run reads as in progress until it finishes.
+    const claim = await workers.claim(Date.now());
+    expect(claim).not.toBeNull();
+    expect(
+      (await readCommunicationWorkerHealth({ db, nowMs: Date.now() })).lastRun,
+    ).toMatchObject({ running: true, finishedAtMs: null, counts: {} });
+    await workers.finish(claim!, null, Date.now(), { inspected: 0, failures: 0 });
+    // The hub counts only the communications its reader's Spaces show.
+    expect(
+      await readCommunicationWorkerHealth({ db, nowMs, include: () => false }),
+    ).toMatchObject({
+      openRead: 5,
+      oldestPastDue: null,
+      oldestObservation: null,
+      neverChecked: 0,
+    });
+    // A cap below the open count says the read stopped early; a cap that reads the last open
+    // record exactly does not.
+    await f.service.save(actor, { ...f.draft, id: randomUUID() }, 0, randomUUID());
+    expect(await readCommunicationWorkerHealth({ db, nowMs, cap: 1 })).toMatchObject({
+      openRead: 1,
+      complete: false,
+    });
+    expect(await readCommunicationWorkerHealth({ db, nowMs, cap: 5 })).toMatchObject({
+      openRead: 5,
+      complete: false,
+    });
+    expect(await readCommunicationWorkerHealth({ db, nowMs, cap: 6 })).toMatchObject({
+      openRead: 6,
+      complete: true,
+    });
+  }, 120_000);
   it("S233 R-S233-8 ignores a stale observation write that arrives after a newer one", async () => {
     const f = fixture();
     const approved = await f.approve();

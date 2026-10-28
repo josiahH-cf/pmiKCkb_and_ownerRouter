@@ -23,8 +23,9 @@ cleanup() {
 trap cleanup EXIT
 git -C "$repo" worktree add --detach "$root/worktree" "$sha" >/dev/null
 # Turbopack compiles only inside the workspace root, so node_modules is a hard-linked copy (same
-# filesystem, no extra bytes). A marker lets the run prove nothing wrote into the shared files.
-cp -al "$repo/node_modules" "$root/worktree/node_modules"
+# filesystem, no extra bytes). A marker lets the run prove nothing wrote into the shared files. A
+# checkout whose node_modules is itself a link copies the directory it resolves to, not the link.
+cp -al "$(readlink -f "$repo/node_modules")" "$root/worktree/node_modules"
 touch "$root/node-modules-marker"
 if $overlay; then
   (cd "$repo" && { git diff --name-only HEAD; git ls-files --others --exclude-standard; } | sort -u) |
