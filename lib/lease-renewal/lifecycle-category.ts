@@ -200,6 +200,14 @@ export function projectLifecycleCategory(input: LifecycleInput): LifecycleProjec
     );
   if (retention.state === "outside")
     return projection("later", null, null, `${retention.label}.${previousCycleNote}`);
+  // S232: an ended lease with no recorded outcome needs a person to confirm what happened.
+  if (retention.state === "ended_without_outcome")
+    return projection(
+      "unknown",
+      null,
+      null,
+      `${retention.label}; record the outcome or confirm the lease status in RentVine.`,
+    );
   return projection(
     "unknown",
     null,

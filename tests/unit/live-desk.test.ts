@@ -44,6 +44,7 @@ import {
   applyRenewalDeskQuery,
   buildRenewalDeskWindow,
 } from "@/lib/lease-renewal/desk-query";
+import { renewalDeskItemInScope } from "@/lib/lease-renewal/desk-query-v2";
 import { SAMPLE_RENEWAL_TABLES } from "@/lib/lease-renewal/sample-sheet";
 import { DEFAULT_NOTICE_RULE_VALUES } from "@/lib/lease-renewal/notice-rules";
 import type { WorkflowCommunicationLink } from "@/lib/gmail-hub/workflow-context";
@@ -333,10 +334,228 @@ describe("loadLiveRenewalDesk", () => {
     expect(result.view.items.find((item) => item.id === "8004")?.retention.state).toBe(
       "tracked_incomplete",
     );
+    // S232 R-S232-7: changed intentionally; a source-skipped lease with unfinished recorded work
+    // stays visible as tracked and shows both reasons instead of silently leaving the worklist.
     const skipped = result.view.items.find((item) => item.id === "9007");
-    expect(skipped?.retention.state).toBe("outside");
-    expect(skipped?.manualProgress).toBeUndefined();
+    expect(skipped?.retention).toEqual({
+      state: "tracked_incomplete",
+      label:
+        "Recorded renewal work retained; the source marks this lease outside the renewal worklist",
+    });
+    expect(skipped?.manualProgress).toBeDefined();
+    expect(skipped?.inclusionReason).toContain(
+      "Recorded renewal work retained; the source marks this lease outside the renewal worklist · ",
+    );
     expect(manual.get("9007")).toBeDefined();
+  });
+
+  describe("S232 ended leases, fail-closed retention and visible reasons", () => {
+    // READ_TS is 00:00Z on Jul 19, which is still Jul 18 in America/Chicago.
+    const ENDED_ROWS = [
+      ...EXPORT_ROWS,
+      {
+        lease: {
+          leaseID: 9101,
+          endDate: "2026-06-30",
+          leaseType: "Fixed Term",
+          leaseStatusID: "2",
+          tenants: [{ name: "Ended Tenant" }],
+        },
+        unit: { rent: "1000.00" },
+      },
+      {
+        lease: {
+          leaseID: 9102,
+          endDate: "2026-07-18",
+          leaseType: "Fixed Term",
+          leaseStatusID: "2",
+          tenants: [{ name: "Ends Today Tenant" }],
+        },
+        unit: { rent: "1000.00" },
+      },
+      {
+        lease: {
+          leaseID: 9103,
+          endDate: "2026-06-30",
+          leaseType: "Fixed Term",
+          leaseStatusID: "31",
+          tenants: [{ name: "Notice Tenant" }],
+        },
+        unit: { rent: "1000.00" },
+      },
+      {
+        lease: {
+          leaseID: 9104,
+          endDate: "2026-06-30",
+          leaseType: "Fixed Term",
+          leaseStatusID: "40",
+          tenants: [{ name: "Closed Tenant" }],
+        },
+        unit: { rent: "1000.00" },
+      },
+      {
+        lease: {
+          leaseID: 9105,
+          endDate: "2026-06-30",
+          leaseType: "Month to Month",
+          isMonthToMonth: "1",
+          monthToMonthStartDate: "2026-07-01",
+          leaseStatusID: "2",
+          tenants: [{ name: "Rolled Tenant" }],
+        },
+        unit: { rent: "1000.00" },
+      },
+    ];
+    const STATUS_TABLE = {
+      status: "available" as const,
+      statuses: [
+        ["2", "Active", "2", false, false],
+        ["31", "Active - Notice Given", "2", true, false],
+        ["40", "Closed", "3", false, false],
+      ].map(([leaseStatusID, name, primaryLeaseStatusID, pending, completed]) => ({
+        leaseStatusID: leaseStatusID as string,
+        name: name as string,
+        primaryLeaseStatusID: primaryLeaseStatusID as string,
+        isPendingMoveOutStatus: pending as boolean,
+        isCompletedMoveOutStatus: completed as boolean,
+        isPendingMoveInStatus: false,
+        isSystemStatus: false,
+      })),
+    };
+    const endedBasis = (dateIso: string) => ({
+      kind: "lease_end" as const,
+      dateIso,
+      source: "Reviewed lease",
+    });
+    async function endedDesk(
+      manual?: Map<string, ReturnType<typeof emptyRenewalWorkspace>>,
+      workStatusRead?: Parameters<typeof loadLiveRenewalDesk>[11],
+    ) {
+      const result = await loadLiveRenewalDesk(
+        WINDOWS,
+        READ_TS,
+        okConfig() as unknown as DeskConfigArg,
+        undefined,
+        undefined,
+        [],
+        undefined,
+        true,
+        snapshotResult(ENDED_ROWS),
+        undefined,
+        manual,
+        workStatusRead,
+        undefined,
+        undefined,
+        undefined,
+        STATUS_TABLE,
+      );
+      if (result.status !== "ok") throw new Error(result.status);
+      return result.view;
+    }
+
+    it("discloses an ended lease with no recorded outcome in its own scope, never silently outside", async () => {
+      const view = await endedDesk();
+      const ended = view.items.find((item) => item.id === "9101");
+      expect(ended?.retention).toEqual({
+        state: "ended_without_outcome",
+        label: "Ended 06/30/2026 without a recorded renewal outcome",
+      });
+      expect(ended?.endedWithoutOutcome).toBe(true);
+      expect(ended?.inclusionReason).toContain("Ended 06/30/2026 without a recorded");
+      // Disclosure only: it never offers outreach, a draft or a schedule.
+      expect(ended?.manualProgress).toBeUndefined();
+      // The Central business date is Jul 18, so a lease ending that day has not ended yet.
+      expect(
+        view.items.find((item) => item.id === "9102")?.endedWithoutOutcome,
+      ).toBeUndefined();
+      // A move-out notice, a closed lease or a month-to-month rollover has no renewal to record.
+      for (const id of ["9103", "9104", "9105"]) {
+        const item = view.items.find((summary) => summary.id === id);
+        expect(item?.endedWithoutOutcome, id).toBeUndefined();
+        expect(item?.retention.state, id).not.toBe("ended_without_outcome");
+      }
+
+      const active = applyRenewalDeskQuery(view.items, DEFAULT_RENEWAL_DESK_QUERY);
+      expect(active.items.map((item) => item.id)).not.toContain("9101");
+      expect(
+        view.items
+          .filter((item) => renewalDeskItemInScope(item, "ended_without_outcome"))
+          .map((item) => item.id),
+      ).toEqual(["9101"]);
+      expect(
+        view.items.filter((item) => renewalDeskItemInScope(item)).map((item) => item.id),
+      ).not.toContain("9101");
+    });
+
+    it("clears the disclosure only for an outcome recorded on the cycle for that end date", async () => {
+      const withOutcome = (
+        mutate: (state: ReturnType<typeof emptyRenewalWorkspace>) => void,
+        dateIso = "2026-06-30",
+      ) => {
+        const state = emptyRenewalWorkspace("9101", "cycle-9101", endedBasis(dateIso));
+        mutate(state);
+        return new Map([["9101", state]]);
+      };
+      const staff = {
+        eventId: "fixture-event",
+        actorUid: "fixture-staff",
+        recordedAt: "2026-07-01T15:00:00.000Z",
+        source: "Staff record",
+        termsRevision: 0,
+      };
+      const completed = withOutcome((state) => {
+        state.completion = staff;
+      });
+      const declined = withOutcome((state) => {
+        state.tenantResponse = { ...staff, outcome: "declined_nonrenewing" };
+      });
+      const awaiting = withOutcome((state) => {
+        state.tenantResponse = { ...staff, outcome: "awaiting_response" };
+        state.completion = staff;
+      }, "2025-06-30");
+
+      for (const manual of [completed, declined]) {
+        const item = (await endedDesk(manual)).items.find(
+          (summary) => summary.id === "9101",
+        );
+        expect(item?.endedWithoutOutcome).toBeUndefined();
+        expect(item?.retention.state).not.toBe("ended_without_outcome");
+      }
+      // Last year's completed cycle is not this term's outcome.
+      const priorYear = (await endedDesk(awaiting)).items.find(
+        (summary) => summary.id === "9101",
+      );
+      expect(priorYear?.endedWithoutOutcome).toBe(true);
+    });
+
+    it("fails closed instead of reading outside when the staff-record read failed", async () => {
+      const view = await endedDesk(undefined, {
+        available: false,
+        byLease: new Map(),
+        cyclesAvailable: false,
+      });
+      const future = view.items.find((item) => item.id === "8004");
+      expect(future?.retention).toEqual({
+        state: "needs_verification",
+        label:
+          "Saved progress unavailable; retained until tracking state can be verified",
+      });
+      expect(
+        applyRenewalDeskQuery(view.items, DEFAULT_RENEWAL_DESK_QUERY).items.map(
+          (item) => item.id,
+        ),
+      ).toContain("8004");
+    });
+
+    it("gives every row a visible inclusion or retention reason", async () => {
+      const view = await endedDesk();
+      for (const item of view.items) {
+        expect(item.inclusionReason, item.id).toBeTruthy();
+      }
+      expect(view.items.find((item) => item.id === "4821")?.inclusionReason).toBe(
+        view.items.find((item) => item.id === "4821")?.retention.label,
+      );
+    });
   });
   it("reuses one injected lease generation instead of rereading the provider", async () => {
     let providerCalls = 0;
@@ -1055,6 +1274,95 @@ describe("loadLiveRenewalLeaseWorkspace", () => {
       });
       expect(review.workspace.guidance.blockers).toEqual([]);
     }
+  });
+
+  it("S232 R-S232-6: computes notice timing from the recorded tenant-offer send, never hard-coded nulls", async () => {
+    const confirmedPolicy = {
+      communicationState: "current" as const,
+      links: [],
+      policy: {
+        state: "saved" as const,
+        version: 5,
+        updatedAtIso: "2026-07-09T00:00:00.000Z",
+        ruleSet: {
+          rules: [
+            {
+              scope: "global" as const,
+              values: { ...DEFAULT_NOTICE_RULE_VALUES },
+              verified: true,
+            },
+          ],
+        },
+      },
+    };
+    const staff = {
+      eventId: "fixture-event",
+      actorUid: "fixture-staff",
+      recordedAt: "2026-07-10T16:00:00.000Z",
+      source: "Staff record",
+      termsRevision: 0,
+    };
+    const offer = {
+      ...staff,
+      occurredAt: "2026-07-10T15:00:00.000Z",
+      outcome: "done" as const,
+    };
+    const cycle = (dateIso: string) =>
+      emptyRenewalWorkspace("4821", "cycle-4821", {
+        kind: "lease_end",
+        dateIso,
+        source: "Reviewed lease",
+      });
+    const notice = async (manual: ReturnType<typeof emptyRenewalWorkspace> | null) => {
+      clearLiveLeaseCache();
+      const result = await loadLiveRenewalLeaseWorkspace(
+        "4821",
+        READ_TS,
+        okConfig() as unknown as WorkspaceConfigArg,
+        null,
+        null,
+        [],
+        null,
+        confirmedPolicy,
+        null,
+        undefined,
+        null,
+        manual,
+      );
+      if (result.status !== "ok") throw new Error(result.status);
+      return result.workspace.notice;
+    };
+
+    // Lease end 08/31/2026 puts the default deadline at 07/15; the Central read date is 07/18.
+    const none = await notice(null);
+    expect(none?.statusLabel).toBe("Notice overdue");
+    expect(none?.lines).toContainEqual({
+      label: "Tenant offer sent",
+      value: "No recorded send",
+      provenance: "App send receipts and staff records",
+      needsVerification: false,
+    });
+
+    const sent = cycle("2026-08-31");
+    sent.activities.tenant_offer = offer;
+    const awaiting = await notice(sent);
+    expect(awaiting?.statusLabel).toBe("Awaiting tenant response");
+    expect(awaiting?.lines).toContainEqual({
+      label: "Tenant offer sent",
+      value: "07/10/2026",
+      provenance: "Staff record",
+      needsVerification: false,
+    });
+
+    const responded = cycle("2026-08-31");
+    responded.activities.tenant_offer = offer;
+    responded.tenantResponse = { ...staff, outcome: "accepted" };
+    expect((await notice(responded))?.statusLabel).toBe("Tenant responded");
+
+    // A send recorded on another term's cycle is not this cycle's notice evidence.
+    const priorCycle = cycle("2025-08-31");
+    priorCycle.activities.tenant_offer = offer;
+    expect((await notice(priorCycle))?.statusLabel).toBe("Notice overdue");
   });
 
   it("keeps an out-of-window lease out of window after opening its workspace", async () => {

@@ -66,6 +66,54 @@ export type RenewalWritebackServiceErrorCode =
   | "reversal_target_drift"
   | "confirmation_invalid";
 
+/**
+ * S237 R-S237-3: one plain message per code, naming what happened, what was not sent again and the
+ * next safe step. Routes return these instead of the internal code text.
+ */
+export const RENEWAL_WRITEBACK_SERVICE_MESSAGES: Record<
+  RenewalWritebackServiceErrorCode,
+  string
+> = {
+  environment_refused:
+    "RentVine updates are not available in this environment. Nothing was sent to RentVine.",
+  action_closed:
+    "RentVine updates are turned off right now. Nothing was sent to RentVine; an Admin decides when they are enabled.",
+  effect_missing:
+    "This RentVine update was not found. Nothing was sent; reload the lease and review the update again.",
+  execution_missing:
+    "This RentVine update attempt was not found. Nothing was sent; reload the lease.",
+  execution_state:
+    "This RentVine update can no longer run from its current state. Nothing was sent again; reload the lease to see where it stands.",
+  execution_in_progress:
+    "This RentVine update is already running. Nothing was sent again; wait a moment, then reload the lease.",
+  claim_refused:
+    "Another attempt already holds this RentVine update. Nothing was sent again; reload the lease.",
+  provider_read_failed:
+    "RentVine could not be read to check this update. Nothing was sent; try again when RentVine is available.",
+  provider_shape:
+    "RentVine returned information this app cannot check. Nothing was sent; review the lease in RentVine.",
+  provider_state_drift:
+    "RentVine changed after this update was reviewed. Nothing was sent; reload the lease and review the update again.",
+  provider_readback_mismatch:
+    "RentVine answered, but the value read back does not match the reviewed update. It will not be sent again automatically; check the lease in RentVine and record what it shows.",
+  provider_refused:
+    "RentVine refused the update, so this attempt changed nothing. It will not be sent again automatically; review the lease in RentVine before preparing another update.",
+  provider_ambiguous:
+    "RentVine did not confirm whether the update was applied. It will not be sent again automatically; check the lease in RentVine, then reconcile.",
+  reconcile_not_proven:
+    "This check could not prove whether RentVine shows the update. Nothing was sent again; check the lease in RentVine.",
+  reconcile_drift:
+    "RentVine now shows a different value than the reviewed update. Nothing was sent again; review the lease in RentVine.",
+  reversal_unsupported:
+    "This RentVine update cannot be reversed from the app. Nothing was sent; make any correction in RentVine.",
+  reversal_forward_unproven:
+    "The original RentVine update is not proven, so no reversal was sent. Check the lease in RentVine.",
+  reversal_target_drift:
+    "RentVine changed after the update, so the reversal was not sent. Check the lease in RentVine.",
+  confirmation_invalid:
+    "The confirmation did not match the reviewed RentVine update. Nothing was sent; review the update and confirm again.",
+};
+
 /** Value-free refusal safe for routes and UI copy. */
 export class RenewalWritebackServiceError extends Error {
   constructor(public readonly code: RenewalWritebackServiceErrorCode) {

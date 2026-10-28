@@ -184,6 +184,8 @@ const SERVICE_MESSAGES: Record<SheetWritebackServiceErrorCode, string> = {
     "The Sheet did not confirm this update. It is not sent again; reconcile it from the current Sheet state.",
   reconcile_not_proven:
     "The Sheet now shows the proposed value, but this attempt cannot prove it wrote it. The attempt stays recorded as uncertain; no further Sheet change is made.",
+  reconcile_still_before:
+    "The Sheet still shows what it held before this attempt, so the attempt is not proven to have changed it. It stays recorded as uncertain and is not sent again; review the row in the Sheet before preparing another update.",
   reconcile_drift:
     "The Sheet changed in a way this attempt did not produce. Review the row in the Sheet; nothing was sent again.",
   reversal_unsupported: "A reversal is not available for this Sheet update.",

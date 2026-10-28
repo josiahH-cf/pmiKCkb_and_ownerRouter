@@ -77,6 +77,7 @@ import {
 } from "@/lib/lease-renewal/policy-content";
 import { usableRenewalResourceUrl } from "@/lib/lease-renewal/resource-locations";
 import { ownerDraftMarketFromBasis } from "@/lib/lease-renewal/owner-draft";
+import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import { resolveSeparatedRenewalDraftRecipient } from "@/lib/lease-renewal/execution/renewal-draft-preview";
 
 /**
@@ -282,7 +283,7 @@ export async function currentRenewalMessage(
       material: policyMaterial,
       facts: [],
       sheetLegacyValue: null,
-      todayIso: new Date(nowMs).toISOString().slice(0, 10),
+      todayIso: businessDateIso(nowMs),
     }),
     channel,
     policyMaterial,

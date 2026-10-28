@@ -1,6 +1,21 @@
 # Loop state
 
-Last updated: 2026-10-27 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-10-28 (UTC). Read AGENTS.md and docs/facts.md first.
+
+## November/December renewal readiness execution (October 28)
+
+S232–S238 (intake 099–105) were authored against main `a1c0fe8c`; the owner's execution
+instruction then started them in the same owner session. The branch implements, with focused
+tests: S232 R-S232-1/2/6/7/8 (window and month context, the ended-without-outcome scope, notice
+timing from recorded sends, fail-closed staff-record reads, retained skipped work, Central policy dates); S233 R-S233-3/5/6/7 and part of R-S233-4 (distinct pause causes,
+open-only worker paging, Central schedule default with the Nov 1 repeated-hour statement, zoned
+instants and past-due lag, Resume timing, incoming-check age); S234's approval-bound terms display;
+and S237 R-S237-3/4 (plain RentVine outcomes, the Sheet still-before result). S235 and S236 were not
+executed. Nothing was served; production remains `6fbd6225` (S231). The staff walkthrough is NOT
+RUN. Client inputs C00–C13 stay in `docs/open-blockers.md`; two staff-operations decisions are under
+its runner follow-ups. NEXT: merge the reviewed branch through CI, then delivery only through the
+release pipeline with an explicitly queued item and its fresh prerequisites; S238 owns the
+November 4, 2026 (Central) blocker review.
 
 ## Dotloop A1 resolved and selected (October 27)
 
@@ -13,8 +28,8 @@ integrations INDIVIDUAL profile 20701283. The owner's Admin session refreshed re
 profile 20701283, template 228954 and initial status `PRE_OFFER` (owner choice) at 10:39:59Z; the
 selection and the readiness page read back. Both write keys stay closed; no loop, upload or other
 provider business write occurred. S231 patched new audit advisories and released (run 030761c0).
-NEXT: the client content holds in `docs/open-blockers.md` (B-DL3 originals, maps and signers;
-fees and Rhino; A5). The first real loop is ordinary staff-confirmed work after B-DL3 approval,
+The client content holds (B-DL3 originals, maps and signers; fees and Rhino; A5) are itemized in
+C01–C10, and the human and live-evidence holds in C11–C13, in `docs/open-blockers.md`. The first real loop is ordinary staff-confirmed work after B-DL3 approval,
 under its own exact owner authorization.
 Windows-hosted Claude Code and Codex report the WSL credential store through `auth:ensure`
 (protected `scripts/auth`, merged on owner direction). Private receipts:
@@ -93,5 +108,6 @@ least-privilege `drive.file` 404 for a browser-visible file is expected and hold
 
 Documentation-only closure records the verified delivery; it requires no runtime deployment.
 The deployed source is 6fbd6225 (S231, run 030761c0). Preserve private receipts and failed attempts outside Git.
-Actual template visibility/selection, applicable approved originals/maps, required timing inputs
-and human real-case acceptance remain open for the requested Thursday journey; no customer effect was proof.
+Template visibility and selection are resolved (October 27). Applicable approved originals/maps,
+policies, the A5 timing record and human real-case acceptance remain open (C01–C13); no customer
+effect was proof.

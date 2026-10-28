@@ -141,7 +141,7 @@ export interface RenewalDeskQueryV2State {
   lease: string;
   sort: RenewalDeskV2Sort;
   direction: "asc" | "desc";
-  scope: "active" | "tracked" | "all" | "periodic_review";
+  scope: "active" | "tracked" | "all" | "periodic_review" | "ended_without_outcome";
   endDate: "" | "missing" | string;
   month: "" | string;
   due: RenewalDeskDueFilter;
@@ -379,7 +379,7 @@ export function parseRenewalDeskQueryV2(
     direction: oneOf(firstValue(input, "direction"), ["asc", "desc"] as const, "asc"),
     scope: oneOf(
       firstValue(input, "scope"),
-      ["active", "tracked", "all", "periodic_review"] as const,
+      ["active", "tracked", "all", "periodic_review", "ended_without_outcome"] as const,
       "active",
     ),
     endDate: rangeValid ? "" : endDate,
@@ -517,6 +517,8 @@ export interface RenewalDeskV2Item {
     readonly property: { readonly label: string } | null;
   };
   readonly retention: { readonly state: string };
+  /** S232: the end date passed with no recorded renewal outcome. */
+  readonly endedWithoutOutcome?: boolean;
   readonly guidance: {
     readonly currentBaseRent: number | null;
     readonly rentVerification: { readonly state: RenewalRentVerificationState };
@@ -561,7 +563,16 @@ function inScope(item: RenewalDeskV2Item, scope: RenewalDeskQueryV2State["scope"
   // inside the current window. They also remain in the default active worklist, so an operator
   // sees the review without switching scopes; they are never in the monthly actionable cohort.
   if (scope === "periodic_review") return item.retention.state === "periodic_review";
-  return item.retention.state !== "outside";
+  // S232: every lease whose end date passed with no recorded outcome, in or before the window.
+  // Rows that ended before the window stay out of the default worklist; its count links here.
+  if (scope === "ended_without_outcome")
+    return (
+      item.retention.state === "ended_without_outcome" ||
+      item.endedWithoutOutcome === true
+    );
+  return (
+    item.retention.state !== "outside" && item.retention.state !== "ended_without_outcome"
+  );
 }
 
 function compactNormalized(value: string): string {
@@ -860,7 +871,9 @@ const CHIP_LABELS: Partial<Record<keyof RenewalDeskQueryV2State, (v: string) => 
         ? "Scope: tracked incomplete"
         : value === "periodic_review"
           ? "Scope: periodic review"
-          : "Scope: all loaded leases",
+          : value === "ended_without_outcome"
+            ? "Scope: ended without a recorded renewal outcome"
+            : "Scope: all loaded leases",
     endDate: (value) =>
       value === "missing" ? "Renewal date: missing" : `Renewal date: ${value}`,
     month: (value) => `Renewal month: ${value}`,

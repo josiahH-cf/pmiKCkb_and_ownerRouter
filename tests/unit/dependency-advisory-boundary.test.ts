@@ -45,7 +45,9 @@ describe("I11 patched transitive dependency boundaries", () => {
     // October 23: GHSA-rxp7-6hxx-x8q5 affects ip-address through 10.7.3.
     expect(installedVersion("ip-address")).toBe("10.7.4");
     expect(installedVersion("nanoid")).toBe("3.3.18");
-    expect(installedVersion("qs")).toBe("6.16.0");
+    // October 28: GHSA-6pq8-jhm2-2vcw affects qs 6.7.0 through 6.16.0 (express and the MCP SDK's
+    // express/body-parser); the override selects the first patched release.
+    expect(installedVersion("qs")).toBe("6.16.1");
     // October 6 audit: the MCP SDK (an optional GenAI peer), its express proxy-addr and postcss's
     // source-map-js are pinned to their first patched releases or later.
     expect(installedVersion("proxy-addr")).toBe("2.0.8");

@@ -137,9 +137,11 @@ function PacketFacts({
   facts: DocumentHandoffFacts | null;
   state: RenewalWorkspaceState | null;
 }) {
+  // S234: the packet reads the Working terms the recorded owner approval covers, never the
+  // legacy terms typed into the owner response, so this shows that same binding.
   const terms =
     state?.ownerResponse?.outcome === "approved_terms"
-      ? (state.ownerResponse.terms ?? null)
+      ? (state.ownerResponse.approvedWorkingTerms ?? null)
       : null;
   const pendingUpdates = Object.values(state?.sourceUpdates ?? {}).filter(
     (update) => update.state !== "verified",
@@ -171,15 +173,17 @@ function PacketFacts({
             <>
               {money(terms.rent)} per month, effective{" "}
               {formatCalendarDate(terms.effectiveDate)} through{" "}
-              {formatCalendarDate(terms.endDate)} (recorded owner response) ·{" "}
+              {formatCalendarDate(terms.endDate)} (Working terms the recorded owner
+              approval covers; the packet re-checks that they are unchanged) ·{" "}
               <a className="text-link" href="#renewal-manual-owner_response">
                 Open the owner response
               </a>
             </>
           ) : (
             <>
-              Not available for the packet yet. The packet reads terms recorded with the
-              owner response and does not read the working renewal terms ·{" "}
+              Not available for the packet yet. The packet reads the Working terms a
+              recorded owner approval covers; record the owner&apos;s approval of the
+              current Working terms ·{" "}
               <a className="text-link" href="#renewal-manual-owner_response">
                 Record the owner response
               </a>

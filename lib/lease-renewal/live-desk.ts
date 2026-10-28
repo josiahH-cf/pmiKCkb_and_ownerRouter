@@ -16,6 +16,7 @@ import {
 } from "@/lib/lease-renewal/working-record";
 import {
   manualRenewalSummary,
+  workBasisDateIso,
   type RenewalWorkspaceState,
 } from "@/lib/lease-renewal/workspace-state";
 import {
@@ -534,20 +535,29 @@ function retentionFor(
   progress: RenewalProgress | null,
   progressStateAvailable = true,
   manual?: RenewalWorkspaceState | null,
+  /** S232: false when the bulk staff-record read failed; unfinished work then fails closed. */
+  manualStateAvailable = true,
 ): RenewalDeskRetentionState {
-  // A definitive source-backed skip stays outside the renewal worklist, even if obsolete progress
-  // survived from a prior classification. S154: it is still a real lease that opens and can be worked.
-  if (classification.disposition === "skip") {
-    return {
-      state: "outside",
-      label: "Outside the renewal worklist by its source marker",
-    };
-  }
   const manualPending = Boolean(
     manual &&
     (!manualRenewalSummary(manual).complete ||
       manualRenewalSummary(manual).pendingSourceUpdates > 0),
   );
+  // A definitive source-backed skip stays outside the renewal worklist, even if obsolete progress
+  // survived from a prior classification. S154: it is still a real lease that opens and can be worked.
+  // S232: recorded unfinished staff work stays visible, so a reclassification never hides it.
+  if (classification.disposition === "skip") {
+    if (manualPending)
+      return {
+        state: "tracked_incomplete",
+        label:
+          "Recorded renewal work retained; the source marks this lease outside the renewal worklist",
+      };
+    return {
+      state: "outside",
+      label: "Outside the renewal worklist by its source marker",
+    };
+  }
   // S103: a month-to-month lease follows the annual review rhythm instead of the monthly cohort.
   // Without an anchor its review date is unknown, so it stays visible for the operator to record.
   if (classification.disposition === "periodic_review") {
@@ -570,6 +580,7 @@ function retentionFor(
         label:
           "Recorded renewal work or source updates retained outside the active window",
       };
+    if (!manualStateAvailable) return SAVED_PROGRESS_UNAVAILABLE;
     return {
       state: "outside",
       label: `Periodic review scheduled ${formatCalendarDate(nextReviewIso)}, outside the active window`,
@@ -599,13 +610,90 @@ function retentionFor(
       label: "Tracked incomplete renewal retained outside the active window",
     };
   }
-  if (!progressStateAvailable) {
-    return {
-      state: "needs_verification",
-      label: "Saved progress unavailable; retained until tracking state can be verified",
-    };
-  }
+  if (!progressStateAvailable || !manualStateAvailable) return SAVED_PROGRESS_UNAVAILABLE;
   return { state: "outside", label: "Outside the active renewal window" };
+}
+
+const SAVED_PROGRESS_UNAVAILABLE: RenewalDeskRetentionState = {
+  state: "needs_verification",
+  label: "Saved progress unavailable; retained until tracking state can be verified",
+};
+
+/**
+ * S232: whether the staff record carries a renewal outcome for the cycle of this end date. A cycle
+ * dated to another term (for example last year's completed renewal) does not count.
+ */
+function hasRecordedRenewalOutcome(
+  manual: RenewalWorkspaceState | null,
+  endDateIso: string,
+): boolean {
+  if (!manual) return false;
+  const basisDateIso = workBasisDateIso(manual.basis);
+  if (basisDateIso !== null && basisDateIso !== endDateIso) return false;
+  if (manual.completion) return true;
+  if (manual.ownerResponse && manual.ownerResponse.outcome !== "no_response") return true;
+  if (
+    manual.tenantResponse &&
+    manual.tenantResponse.outcome !== "awaiting_response" &&
+    manual.tenantResponse.outcome !== "needs_verification"
+  )
+    return true;
+  return manual.activities.non_renewal_handoff?.outcome === "done";
+}
+
+/**
+ * S232: a fixed-term or needs-review lease whose end date is before today's Central business date,
+ * still active in RentVine as far as the read shows, with no move-out initiated, no app progress and
+ * no recorded renewal outcome. It is disclosed in its own scope; it never derives outreach, a draft,
+ * a schedule or a timer.
+ */
+function endedWithoutRecordedOutcome(
+  classification: CohortLease,
+  todayIso: string | null,
+  manual: RenewalWorkspaceState | null,
+  progress: RenewalProgress | null,
+  moveOut: MoveOutDisposition | undefined,
+): boolean {
+  const endDateIso = classification.endDateIso;
+  if (!todayIso || !endDateIso || endDateIso >= todayIso) return false;
+  if (
+    classification.disposition === "skip" ||
+    classification.disposition === "periodic_review" ||
+    classification.termProjection.term === "month_to_month"
+  )
+    return false;
+  // A move-out notice or a lease RentVine no longer reports active has no renewal to record.
+  if (moveOut?.state === "initiated" || moveOut?.reason === "lease_not_active")
+    return false;
+  if (progress) return false;
+  return !hasRecordedRenewalOutcome(manual, endDateIso);
+}
+
+/** S232: one visible reason per row; the cohort reason is added when it explains more. */
+function inclusionReasonFor(
+  classification: CohortLease,
+  retention: RenewalDeskRetentionState,
+  endedWithoutOutcome: boolean,
+): string {
+  const primary =
+    endedWithoutOutcome &&
+    retention.state !== "ended_without_outcome" &&
+    classification.endDateIso
+      ? `Ended ${formatCalendarDate(classification.endDateIso)} without a recorded renewal outcome`
+      : retention.label;
+  const explains =
+    classification.disposition !== "actionable" &&
+    classification.disposition !== "out_of_window";
+  return explains
+    ? `${primary} · ${humanizeCohortReason(classification.reason)}`
+    : primary;
+}
+
+/** S232: per-render inputs every summary shares. */
+interface LiveSummaryContext {
+  readonly manualStateAvailable?: boolean;
+  /** Today's America/Chicago business date for the read; absent disables ended-lease disclosure. */
+  readonly todayIso?: string | null;
 }
 
 /** S124: what one disposition needs beyond the lease view itself. */
@@ -668,6 +756,7 @@ function toLiveSummary(
   /** S157: the lease-bound working record, when the caller read it. */
   working?: RenewalWorkingRecord | null,
   pricing?: RenewalPricingRead,
+  context: LiveSummaryContext = {},
 ): DeskLeaseSummaryBase {
   const leaseId = classification.leaseId ?? "";
   const identity = projectRenewalDeskIdentity(view);
@@ -700,13 +789,35 @@ function toLiveSummary(
       reason:
         "Current complete source membership must be read before using standing owner authority.",
     };
-  const retention = retentionFor(
+  const baseRetention = retentionFor(
     classification,
     windows,
     progress ?? null,
     progressStateAvailable,
     manual,
+    context.manualStateAvailable ?? true,
   );
+  // S124/S125: the move-out disposition and timing ride on every non-skipped row; read-only.
+  const moveOutFields =
+    moveOutInputs && classification.disposition !== "skip"
+      ? projectMoveOutFields(view, classification.endDateIso, moveOutInputs)
+      : undefined;
+  // S232: an ended lease with no recorded outcome is disclosed in its own scope instead of
+  // silently leaving the worklist; in-window rows keep their state and carry the flag.
+  const endedWithoutOutcome = endedWithoutRecordedOutcome(
+    classification,
+    context.todayIso ?? null,
+    manual ?? null,
+    progress ?? null,
+    moveOutFields?.moveOut,
+  );
+  const retention: RenewalDeskRetentionState =
+    endedWithoutOutcome && baseRetention.state === "outside" && classification.endDateIso
+      ? {
+          state: "ended_without_outcome",
+          label: `Ended ${formatCalendarDate(classification.endDateIso)} without a recorded renewal outcome`,
+        }
+      : baseRetention;
   const isActionable = classification.disposition === "actionable";
   const processVisible =
     progressStateAvailable && (isActionable || retention.state === "tracked_incomplete");
@@ -727,7 +838,7 @@ function toLiveSummary(
     id: leaseId,
     ...(renewalPricing ? { renewalPricing } : {}),
     ...((manual || renewalPricing?.authority.covered) &&
-    classification.disposition !== "skip"
+    (classification.disposition !== "skip" || retention.state === "tracked_incomplete")
       ? {
           manualProgress: manualRenewalSummary(manual ?? null, {
             standingOwnerAuthority: renewalPricing?.authority.covered,
@@ -747,9 +858,7 @@ function toLiveSummary(
     // S124: the provider move-out disposition rides on every non-skipped row; it reads only.
     // S125: the notice timing comparison rides beside it over the same disposition and the
     // reviewed basis; an unreviewed basis yields Cannot determine, never a guessed yes or no.
-    ...(moveOutInputs && classification.disposition !== "skip"
-      ? projectMoveOutFields(view, classification.endDateIso, moveOutInputs)
-      : {}),
+    ...(moveOutFields ?? {}),
     ...(workStatus ? { workStatus } : {}),
     ...(working !== undefined ? { workingCurrentRent: workingCurrentRent(working) } : {}),
     addressLabel: identity.address?.label ?? `Lease ${leaseId || "Needs Verification"}`,
@@ -767,6 +876,8 @@ function toLiveSummary(
     unitListedRent: leaseUnitListedRent(view) ?? null,
     leaseTotalRent: leaseTotalRentAmount(view) ?? null,
     retention,
+    ...(endedWithoutOutcome ? { endedWithoutOutcome: true } : {}),
+    inclusionReason: inclusionReasonFor(classification, retention, endedWithoutOutcome),
     processVersion: processVisible
       ? (progress?.processVersion ?? RENEWAL_PROCESS_VERSION)
       : null,
@@ -803,26 +914,101 @@ function withCurrentLifecycle(
   };
 }
 
+/** S232: the recorded tenant-offer send and tenant response the notice status is computed from. */
+interface LiveNoticeEvidence {
+  readonly sentIso: string | null;
+  readonly sentSource: string | null;
+  readonly respondedSource: string | null;
+}
+
+const TENANT_RESPONSE_OUTCOMES = new Set([
+  "accepted",
+  "counter_change_requested",
+  "declined_nonrenewing",
+]);
+
+/**
+ * S232 R-S232-6: the notice status reads the confirmed tenant-offer send (an app send receipt, else a
+ * staff-recorded delivery on this end date's cycle) and any recorded tenant response, never nulls.
+ */
+function liveNoticeEvidence(input: {
+  endDateIso: string;
+  evidence: RenewalEvidenceMap;
+  tenantOutcome: unknown;
+  manual: RenewalWorkspaceState | null;
+}): LiveNoticeEvidence {
+  const sent = input.evidence["tenant-message-sent"];
+  const manualBasis = input.manual ? workBasisDateIso(input.manual.basis) : null;
+  const manual =
+    input.manual && (manualBasis === null || manualBasis === input.endDateIso)
+      ? input.manual
+      : null;
+  const offer = manual?.activities.tenant_offer;
+  const sentAt =
+    sent?.disposition === "verified" && sent.observedAt
+      ? { atIso: sent.observedAt, source: "App send receipt" }
+      : offer?.outcome === "done"
+        ? { atIso: offer.occurredAt ?? offer.recordedAt, source: "Staff record" }
+        : null;
+  const respondedSource =
+    input.tenantOutcome != null
+      ? "App renewal record"
+      : manual?.tenantResponse &&
+          TENANT_RESPONSE_OUTCOMES.has(manual.tenantResponse.outcome)
+        ? "Staff record"
+        : null;
+  return {
+    sentIso: sentAt ? businessDateIso(sentAt.atIso) : null,
+    sentSource: sentAt?.source ?? null,
+    respondedSource,
+  };
+}
+
 function buildLiveNotice(
   endDateIso: string | null,
   referenceDateIso: string,
   policy: NoticeRuleSnapshot,
   context: { leaseId: string; propertyKey?: string | null },
+  recorded: Omit<Parameters<typeof liveNoticeEvidence>[0], "endDateIso">,
 ): EffectiveRuleView | null {
   if (!endDateIso) return null;
   const rule = resolveNoticeRule(policy.ruleSet, context);
-  return buildEffectiveRuleView(
+  const facts = liveNoticeEvidence({ ...recorded, endDateIso });
+  const status = detectNoticeStatus(
     rule,
-    detectNoticeStatus(
-      rule,
-      {
-        leaseEndDateIso: endDateIso,
-        renewalLetterSentIso: null,
-        tenantResponded: false,
-      },
-      referenceDateIso,
-    ),
+    {
+      leaseEndDateIso: endDateIso,
+      renewalLetterSentIso: facts.sentIso,
+      tenantResponded: facts.respondedSource !== null,
+    },
+    referenceDateIso,
   );
+  const view = buildEffectiveRuleView(rule, status);
+  if (!status.schedule) return view;
+  // A computed status always names the evidence it was read from, so "Notice overdue" is never
+  // shown without the send record it found (or the absence of one) beside the rule provenance.
+  return {
+    ...view,
+    lines: [
+      ...view.lines,
+      {
+        label: "Tenant offer sent",
+        value: facts.sentIso ? formatCalendarDate(facts.sentIso) : "No recorded send",
+        provenance: facts.sentSource ?? "App send receipts and staff records",
+        needsVerification: false,
+      },
+      ...(facts.respondedSource
+        ? [
+            {
+              label: "Tenant response",
+              value: "Recorded",
+              provenance: facts.respondedSource,
+              needsVerification: false,
+            },
+          ]
+        : []),
+    ],
+  };
 }
 
 /** Exact property key from the measured live view; an absent key stays absent. */
@@ -1442,6 +1628,10 @@ export async function loadLiveRenewalDesk(
         classification.leaseId,
         manual,
       );
+      const summaryContext: LiveSummaryContext = {
+        manualStateAvailable: workStatusRead?.cyclesAvailable ?? true,
+        todayIso: businessDateIso(readTimestamp),
+      };
       const initialSummary = toLiveSummary(
         view,
         classification,
@@ -1454,6 +1644,7 @@ export async function loadLiveRenewalDesk(
         moveOutInputs,
         working,
         pricing,
+        summaryContext,
       );
       const leaseId = classification.leaseId ?? leaseIdOf(view);
       // Source navigation is independent from workflow eligibility and (S116) from whether a Sheet
@@ -1494,6 +1685,7 @@ export async function loadLiveRenewalDesk(
             moveOutInputs,
             working,
             pricing,
+            summaryContext,
           )
         : initialSummary;
       if (
@@ -1769,6 +1961,10 @@ export async function loadLiveRenewalLeaseWorkspace(
       moveOutInputs,
       working,
       pricing,
+      {
+        manualStateAvailable: workStatusRead?.cyclesAvailable ?? true,
+        todayIso: businessDateIso(readTimestamp),
+      },
     );
     // S154: classification and window are context, never an edit grant. Every resolved real
     // lease carries the full working surface.
@@ -1917,6 +2113,11 @@ export async function loadLiveRenewalLeaseWorkspace(
         {
           leaseId,
           propertyKey: propertyKeyOf(view),
+        },
+        {
+          evidence,
+          tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
+          manual,
         },
       ),
       followUp,

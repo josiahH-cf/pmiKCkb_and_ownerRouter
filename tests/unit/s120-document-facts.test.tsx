@@ -41,9 +41,17 @@ describe("S120 document facts propagation", () => {
     manual.state = {
       cycleId: "cycle",
       termsRevision: 2,
+      // S234: the handoff shows the Working terms the approval covers, as the packet reads them.
       ownerResponse: {
         outcome: "approved_terms",
-        terms: { rent: 1250, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
+        approvedWorkingTerms: {
+          rent: 1250,
+          effectiveDate: "2027-01-01",
+          endDate: "2027-12-31",
+          fieldRevisions: { rent: 1, effectiveDate: 1, endDate: 1 },
+          economicsHash: "a".repeat(64),
+          chargePolicyVersion: null,
+        },
         source: "Owner call",
       },
       sourceUpdates: {
@@ -73,7 +81,7 @@ describe("S120 document facts propagation", () => {
     expect(region).toHaveTextContent("$1,250.00");
     expect(region).toHaveTextContent("01/01/2027");
     expect(region).toHaveTextContent("12/31/2027");
-    expect(region).toHaveTextContent(/recorded owner response/i);
+    expect(region).toHaveTextContent(/Working terms the recorded owner approval covers/);
     expect(within(region).getByRole("link", { name: /owner response/i })).toHaveAttribute(
       "href",
       "#renewal-manual-owner_response",
@@ -103,6 +111,28 @@ describe("S120 document facts propagation", () => {
     ).toHaveAttribute("href", "#renewal-manual-documents");
   });
 
+  it("S234 R-S234-3: legacy owner-response terms alone are never shown as the packet's approved terms", async () => {
+    manual.state = {
+      cycleId: "cycle",
+      termsRevision: 2,
+      ownerResponse: {
+        outcome: "approved_terms",
+        terms: { rent: 1999, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
+        source: "Owner call",
+      },
+      sourceUpdates: {},
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => Response.json(handoff)),
+    );
+    render(<RenewalDocumentHandoff facts={facts} />);
+    await screen.findByText(/Approved forms and mappings are pending/);
+    const region = screen.getByRole("region", { name: "Current facts for this packet" });
+    expect(region).toHaveTextContent(/Not available for the packet yet/);
+    expect(region.textContent).not.toContain("$1,999.00");
+  });
+
   it("AC-S120-7: a fact that is not recorded says where it is recorded instead of reading as unknown", async () => {
     manual.state = { cycleId: "cycle", termsRevision: 1, sourceUpdates: {} };
     vi.stubGlobal(
@@ -114,10 +144,12 @@ describe("S120 document facts propagation", () => {
     );
     await screen.findByText(/Approved forms and mappings are pending/);
     const region = screen.getByRole("region", { name: "Current facts for this packet" });
-    // S156: the owner response records the answer only; the packet does not read the working
-    // renewal terms yet, and the card says so instead of sending staff in a circle.
+    // S234: changed intentionally. The packet reads the Working terms a recorded owner approval
+    // covers (owner-approval-binding), so the card names that instead of the retired S156 wording.
     expect(region).toHaveTextContent(/Not available for the packet yet/);
-    expect(region).toHaveTextContent(/does not read the working renewal terms/);
+    expect(region).toHaveTextContent(
+      /reads the Working terms a recorded owner approval covers/,
+    );
     expect(
       within(region).getByRole("link", { name: /Record the owner response/ }),
     ).toHaveAttribute("href", "#renewal-manual-owner_response");

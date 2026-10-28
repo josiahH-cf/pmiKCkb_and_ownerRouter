@@ -3,7 +3,10 @@ import { hasCurrentRenewalAuthorization } from "@/lib/gmail-hub/delivery-policy"
 import { buildManagedGmailThreadDestination } from "@/lib/lease-renewal/desk-destinations";
 import { applyBusinessSignature } from "@/lib/gmail-hub/business-signature";
 import type { StaffBusinessProfile } from "@/lib/staff/business-profile";
-import { describeSequenceState } from "@/lib/gmail-hub/communication-state";
+import {
+  SEQUENCE_PAUSE_CAUSE_LABELS,
+  describeSequenceState,
+} from "@/lib/gmail-hub/communication-state";
 import { classifyIncomingMessage } from "@/lib/gmail-hub/inbound-classification";
 import type { GmailThreadView } from "@/lib/gmail-runtime/types";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -19,7 +22,15 @@ import {
   type SequenceDraft,
 } from "@/lib/gmail-hub/sequence-model";
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
-import type { CommunicationSchedule } from "@/lib/gmail-hub/schedule-calendar";
+import {
+  describeResumeTiming,
+  describeWallTimeAdjustment,
+  formatZonedInstant,
+  resolveWallTime,
+  type CommunicationSchedule,
+} from "@/lib/gmail-hub/schedule-calendar";
+import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
+import { useMinuteClock } from "@/components/hooks/useMinuteClock";
 import { workflowEntityHref } from "@/lib/gmail-hub/workflow-context";
 
 interface SequencePayload {
@@ -121,10 +132,12 @@ export function CommunicationComposer({
       {},
     ),
     [attachmentNotice, setAttachmentNotice] = useState<string | null>(null);
+  const nowMs = useMinuteClock();
   const [scheduleOpen, setScheduleOpen] = useState(false),
     [date, setDate] = useState(""),
     [time, setTime] = useState(""),
-    [zone, setZone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone),
+    // S233: PMI KC schedules on Central time; the browser's own zone is never assumed.
+    [zone, setZone] = useState<string>(BUSINESS_TIME_ZONE),
     [every, setEvery] = useState(""),
     [end, setEnd] = useState(""),
     [limit, setLimit] = useState("");
@@ -651,8 +664,8 @@ export function CommunicationComposer({
       ) : null}
       {sequence?.pause ? (
         <p>
-          Paused: {sequence.pause.cause.replaceAll("_", " ")}. Review the linked history
-          before resuming.
+          Paused: {SEQUENCE_PAUSE_CAUSE_LABELS[sequence.pause.cause] ?? "Needs review"}.
+          Review the linked history before resuming.
         </p>
       ) : null}
       {sequence?.observation?.state === "unavailable" ? (
@@ -920,8 +933,26 @@ export function CommunicationComposer({
           <p>
             Follow-ups use this separate reviewed message. Human replies and failed
             delivery pause the sequence. Delayed work sends at most once; it does not
-            catch up in a burst.
+            catch up in a burst. A repeated hour uses its first occurrence; a skipped hour
+            moves to the next valid minute.
           </p>
+          {(() => {
+            // S233: state the resolved first send in its zone, and any clock-change adjustment,
+            // before "Schedule messages". An incomplete or invalid entry shows nothing here.
+            if (!date || !time) return null;
+            try {
+              const first = resolveWallTime(date, time, zone);
+              const note = describeWallTimeAdjustment(date, time, zone);
+              return (
+                <p data-communication-field="first-send">
+                  First send: {formatZonedInstant(first.instantMs, zone)} ({zone}).
+                  {note ? ` ${note}` : null}
+                </p>
+              );
+            } catch {
+              return null;
+            }
+          })()}
           <button
             type="button"
             disabled={
@@ -956,6 +987,11 @@ export function CommunicationComposer({
         >
           Check recorded status
         </button>
+      ) : null}
+      {sequence && !terminal && sequence.state === "paused" && nowMs !== null ? (
+        <p data-communication-field="resume-timing">
+          {describeResumeTiming(sequence, nowMs)}
+        </p>
       ) : null}
       {sequence && !terminal ? (
         <div className="ui-row">
@@ -1089,7 +1125,7 @@ export function CommunicationComposer({
               <li key={`${t.senderEmail}:${t.messageId}`}>
                 {t.sentAtMs === null
                   ? "Earlier linked thread"
-                  : `Confirmed send ${new Date(t.sentAtMs).toLocaleString()}`}{" "}
+                  : `Confirmed send ${formatZonedInstant(t.sentAtMs, sequence.authorization?.schedule?.timeZone ?? BUSINESS_TIME_ZONE)}`}{" "}
                 · {t.senderEmail}{" "}
                 <button
                   disabled={busy}

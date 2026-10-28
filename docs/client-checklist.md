@@ -1,5 +1,10 @@
 # Client, owner, and provider execution inputs
 
+October 28 update: Dotloop A1 is resolved (profile 20701283, template 228954, `LEASE_OFFER`,
+`PRE_OFFER`); the older template-access notes below are historical. The November/December client
+inputs are C00–C13 in `docs/open-blockers.md`, each with its owner, proof and the one effect it
+holds. They are unsent drafts for the project owner; nothing here sends a request.
+
 October 20 update: the owner requests end-to-end lease renewal on October 22 with exact confirmed
 Send/Schedule/Resume. The complete maintenance component is retired. Use integrations@pmikcmetro.com
 for provider connections. Both Dotloop write keys stay closed; signing remains a human handoff.

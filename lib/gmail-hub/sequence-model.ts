@@ -153,7 +153,10 @@ export interface CommunicationSequence
       | "transfer"
       | "edited"
       | "source_unavailable"
-      | "authorization_unavailable";
+      | "authorization_unavailable"
+      | "provider_refused"
+      | "send_unconfirmed"
+      | "unexpected_sender";
     byUid: string;
     atMs: number;
     evidenceIds: string[];

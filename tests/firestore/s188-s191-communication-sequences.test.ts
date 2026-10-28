@@ -382,6 +382,40 @@ describe("S188–S191 real Firestore transaction ordering with isolated Gmail", 
     ).rejects.toThrow(/conflicts/);
     expect((await f.store.get(s.id))?.confirmedCount).toBe(1);
   });
+  it("S233 R-S233-5 pages only open sequences so terminal records never use the worker's budget", async () => {
+    const f = fixture();
+    const ids: string[] = [];
+    for (let index = 0; index < 5; index += 1) {
+      const saved = await f.service.save(
+        actor,
+        { ...f.draft, id: randomUUID() },
+        0,
+        randomUUID(),
+      );
+      ids.push(saved.id);
+    }
+    const sorted = [...ids].sort();
+    const terminal = new Map([
+      [sorted[0], "completed"],
+      [sorted[2], "cancelled"],
+      [sorted[3], "completed"],
+    ]);
+    for (const [id, state] of terminal)
+      await db
+        .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences)
+        .doc(id)
+        .update({ state });
+    const open = sorted.filter((id) => !terminal.has(id));
+    const first = await f.store.list(null, 1, { openOnly: true });
+    expect(first.sequences.map((s) => s.id)).toEqual([open[0]]);
+    const second = await f.store.list(first.cursor, 1, { openOnly: true });
+    expect(second.sequences.map((s) => s.id)).toEqual([open[1]]);
+    expect((await f.store.list(second.cursor, 1, { openOnly: true })).sequences).toEqual(
+      [],
+    );
+    // The hub's unfiltered listing still shows every record.
+    expect((await f.store.list(null, 10)).sequences).toHaveLength(5);
+  });
   it("serializes a worker lease and fences a stale run's completion after restart", async () => {
     const store = new CommunicationWorkerStore(db);
     const claims = await Promise.all(Array.from({ length: 4 }, () => store.claim(1000)));

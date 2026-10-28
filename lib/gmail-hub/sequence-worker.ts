@@ -71,7 +71,9 @@ export async function runCommunicationWorker(input: {
   const claim = await store.claim(started);
   if (!claim) return { status: "already_running" as const };
   const limit = Math.min(50, Math.max(1, input.maxSequences ?? 20));
-  const page = await input.service.deps.store.list(claim.cursor, limit);
+  const page = await input.service.deps.store.list(claim.cursor, limit, {
+    openOnly: true,
+  });
   const counts: Record<string, number> = {
     inspected: 0,
     observed: 0,

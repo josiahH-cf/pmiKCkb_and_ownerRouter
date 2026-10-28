@@ -1,6 +1,18 @@
 # Current status
 
-Updated: 2026-10-27 (UTC).
+Updated: 2026-10-28 (UTC).
+
+October 28: S232–S238 (November/December renewal readiness) were authored and the owner's
+execution instruction started them. Implemented and tested on the branch, not served: the desk's
+window and month context, an ended-without-outcome scope with a default-view count, a visible
+reason on every row, fail-closed staff-record reads, retained skipped work, notice timing from the
+recorded tenant-offer send and response, and Central policy dates (S232);
+open-only worker paging, a Central schedule default that states the Nov 1, 2026 repeated hour,
+zoned instants with past-due lag, a Resume timing statement, distinct pause causes and the
+incoming-check age (S233); approval-bound terms on the packet handoff (S234); plain RentVine outcome
+text and an accurate Sheet still-before result (S237). S235/S236 and the remaining requirements
+are listed in each suite's status line. Production still serves `6fbd6225` (S231); the staff
+walkthrough is NOT RUN.
 
 October 27: Dotloop A1 is resolved. Dan had made integrations a company admin, not an office
 agent, and the company was at Dotloop's eight-user limit. The owner swapped josiah@'s slot,

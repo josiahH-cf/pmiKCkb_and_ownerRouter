@@ -40,8 +40,11 @@ const BASELINE_PATH = join(
   __dirname,
   "..",
   "fixtures",
-  "s229-reviewed-draft-full-view-presentation.json",
+  "s234-approval-bound-terms-full-view-presentation.json",
 );
+// S234 R-S234-3 changes only the documents section's copy: the packet handoff names the
+// approval-bound Working terms the packet reads instead of legacy owner-response terms. That
+// authorized presentation is recorded separately; the S229 and earlier fixtures stay immutable.
 // The bounded S229 repair restores deliberate unsent-draft controls and current manual-Gmail
 // instructions. Record that authorized presentation separately; S193 and all prior fixtures stay
 // immutable. The capability comparison below still requires every earlier unsent-preview button.

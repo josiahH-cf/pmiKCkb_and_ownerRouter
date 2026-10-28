@@ -338,3 +338,71 @@ describe("S122 desk container counts (AC-S122-3)", () => {
     expect(within(filtered.nav).getByText(/partial source read/)).toBeInTheDocument();
   });
 });
+
+describe("S232 campaign window, ended-lease count and row reasons (R-S232-1/2/3)", () => {
+  it("states the window, links the ended-without-outcome scope and the month's periodic reviews", () => {
+    const state: RenewalDeskQueryV2State = {
+      ...DEFAULT_RENEWAL_DESK_QUERY_V2,
+      month: "2026-11",
+    };
+    render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[row("L1", { inclusionReason: "Inside the current-month renewal window" })]}
+        shortcuts={shortcuts}
+        sourceReadOk
+        state={state}
+        totalInScope={1}
+        totalLoaded={4}
+        campaign={{
+          window: { startIso: "2026-10-01", endIso: "2027-02-25" },
+          endedWithoutOutcomeCount: 2,
+          monthPeriodicReviewCount: 3,
+        }}
+      />,
+    );
+    const campaign = document.querySelector('[data-renewal-campaign="true"]');
+    expect(campaign).toHaveTextContent(
+      "Renewal window: 10/01/2026 – 02/25/2027, Central",
+    );
+    const ended = screen.getByRole("link", {
+      name: "2 leases ended without a recorded renewal outcome",
+    });
+    expect(ended.getAttribute("href")).toContain("scope=ended_without_outcome");
+    expect(ended.getAttribute("href")).not.toContain("month=");
+    const reviews = screen.getByRole("link", {
+      name: "3 month-to-month reviews fall in November 2026",
+    });
+    expect(reviews.getAttribute("href")).toContain("scope=periodic_review");
+    expect(
+      document.querySelector('[data-renewal-field="inclusion-reason"]'),
+    ).toHaveTextContent("Inside the current-month renewal window");
+  });
+
+  it("does not repeat the ended count inside its own scope", () => {
+    render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[]}
+        shortcuts={shortcuts}
+        sourceReadOk
+        state={{ ...DEFAULT_RENEWAL_DESK_QUERY_V2, scope: "ended_without_outcome" }}
+        totalInScope={2}
+        totalLoaded={4}
+        campaign={{
+          window: null,
+          endedWithoutOutcomeCount: 2,
+          monthPeriodicReviewCount: null,
+        }}
+      />,
+    );
+    expect(
+      screen.queryByRole("link", {
+        name: /^\d+ leases? ended without a recorded renewal outcome$/,
+      }),
+    ).toBeNull();
+    expect(screen.getByText(/Worklist scope:/).closest("p, div, span")).toHaveTextContent(
+      /Ended without a recorded renewal outcome/,
+    );
+  });
+});

@@ -9,7 +9,11 @@ import {
 import { GMAIL_STATE_COLLECTIONS, gmailMailboxKey } from "./state-store";
 import { RichCommunicationMessageSchema, communicationSendKey } from "./sequence-model";
 import { localDateAt, nextOccurrence } from "./schedule-calendar";
-import type { CommunicationOccurrence, CommunicationSequence } from "./sequence-model";
+import type {
+  CommunicationOccurrence,
+  CommunicationSequence,
+  SequenceState,
+} from "./sequence-model";
 import type { GmailSendResult } from "@/lib/gmail-runtime/types";
 
 export const COMMUNICATION_SEQUENCE_COLLECTIONS = {
@@ -20,6 +24,13 @@ export const COMMUNICATION_SEQUENCE_COLLECTIONS = {
   attachments: "gmail_communication_attachments",
   worker: "gmail_communication_worker_state",
 } as const;
+/** S233: every state the worker can still observe or send for; terminal states are excluded. */
+export const OPEN_SEQUENCE_STATES = [
+  "draft",
+  "active",
+  "paused",
+  "needs_reconciliation",
+] as const satisfies readonly SequenceState[];
 export function sequenceHash(value: unknown): string {
   const canonical = (v: unknown): unknown =>
     Array.isArray(v)
@@ -48,6 +59,8 @@ export interface SequenceStore {
   list(
     after?: string | null,
     limit?: number,
+    /** S233: the worker pages only open records, so completed or cancelled work never uses its budget. */
+    filter?: { openOnly?: boolean },
   ): Promise<{ sequences: CommunicationSequence[]; cursor: string | null }>;
   write(input: {
     id: string;
@@ -85,7 +98,7 @@ export interface SequenceStore {
       authorizationRevision: number;
       checkedAtMs: number;
       messageIds: string[];
-      pause: "reply" | "bounce" | "source_unavailable" | null;
+      pause: "reply" | "bounce" | "unexpected_sender" | null;
       historyId: string | null;
       mailboxHistoryIds?: Record<string, string>;
       complete: boolean;
@@ -157,10 +170,18 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
     const s = await this.ref(id).get();
     return s.exists && !s.get("purged") ? assertRecord(s.data()) : null;
   }
-  async list(after: string | null = null, limit = 50) {
-    const base = this.db
-      .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences)
-      .orderBy(FieldPath.documentId());
+  async list(
+    after: string | null = null,
+    limit = 50,
+    filter: { openOnly?: boolean } = {},
+  ) {
+    const collection = this.db.collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences);
+    // An equality filter ordered by document id is served by the automatic single-field index.
+    const base = (
+      filter.openOnly
+        ? collection.where("state", "in", [...OPEN_SEQUENCE_STATES])
+        : collection
+    ).orderBy(FieldPath.documentId());
     const page = await (after ? base.startAfter(after) : base)
       .limit(Math.min(100, Math.max(1, limit)))
       .get();
@@ -473,8 +494,14 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
         unresolvedOccurrenceId: outcome === "ambiguous" ? o.id : null,
         nextDueAtMs: null,
         updatedAtMs: i.nowMs,
+        // S233: the attempt's own reason names the pause; it never reads as an unreadable source.
         pause: s.pause ?? {
-          cause: "source_unavailable",
+          cause:
+            i.reason === "provider_refusal"
+              ? "provider_refused"
+              : i.reason === "paused_before_dispatch"
+                ? "authorization_unavailable"
+                : "send_unconfirmed",
           byUid: "communication-worker",
           atMs: i.nowMs,
           evidenceIds: [o.id],
@@ -507,7 +534,7 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
         !!pause &&
         (s.state === "active" ||
           s.state === "needs_reconciliation" ||
-          (s.state === "paused" && pause !== "source_unavailable"));
+          (s.state === "paused" && pause !== "unexpected_sender"));
       const next: CommunicationSequence = {
         ...s,
         version: s.version + (shouldPause ? 1 : 0),
@@ -515,7 +542,7 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
         nextDueAtMs: shouldPause ? null : s.nextDueAtMs,
         pause: shouldPause
           ? {
-              cause: pause as "reply" | "bounce" | "source_unavailable",
+              cause: pause as "reply" | "bounce" | "unexpected_sender",
               byUid: "communication-observer",
               atMs: i.checkedAtMs,
               evidenceIds: fresh,

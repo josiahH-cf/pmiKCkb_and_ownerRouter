@@ -583,9 +583,11 @@ describe("S98 one-attempt sheet execution", () => {
     await expectCode(h.service.executeEffect(confirmed(proposal)), "provider_ambiguous");
     expect(h.state.rows).toHaveLength(0);
     h.state.failure = undefined;
+    // S237 R-S237-4: changed intentionally. The Sheet still lacks the row, so the result says so
+    // instead of the "now shows the proposed value" wording reserved for a matching field.
     await expectCode(
       h.service.reconcileEffect({ proposal, effectHash: proposal.effects[0].effectHash }),
-      "reconcile_not_proven",
+      "reconcile_still_before",
     );
     expect(h.calls.filter((call) => call.method === "appendRowWithNote")).toHaveLength(1);
   });
