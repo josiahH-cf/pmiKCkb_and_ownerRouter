@@ -1,8 +1,12 @@
 "use client";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { RemainingDifferences } from "@/components/lease-renewal/RemainingDifferences";
-import type { RemainingDifferenceRow } from "@/lib/lease-renewal/remaining-differences";
-import type { SourceUpdateTermsBasis } from "@/lib/lease-renewal/source-update-terms-basis";
+import {
+  useLiveRemainingDifferences,
+  useLiveTermsBasis,
+  type RemainingDifferencesInputs,
+  type SourceUpdateTermsBasisInputs,
+} from "@/components/lease-renewal/useLiveSourceUpdateBasis";
 import {
   formatCalendarDate,
   formatSourceCalendarDate,
@@ -128,8 +132,8 @@ export function RentvineUpdatesPanel({
   initialHistory = null,
   initialInventory = null,
   identity = null,
-  termsBasis = null,
-  remainingDifferences = null,
+  termsBasisInputs = null,
+  remainingDifferencesInputs = null,
   futureRentExecutionReady = null,
   currentBaseReadback = null,
 }: Readonly<{
@@ -141,10 +145,13 @@ export function RentvineUpdatesPanel({
   initialInventory?: RenewalChargeInventory | null;
   /** S117: the lease named in every preview; null keeps the lease id only. */
   identity?: SourceUpdateIdentity | null;
-  /** S237 R-S237-1: the Working terms, approval coverage and executed documents, shown only. */
-  termsBasis?: SourceUpdateTermsBasis | null;
-  /** S237 R-S237-5: what still differs after the confirmed updates, from this page's reads. */
-  remainingDifferences?: readonly RemainingDifferenceRow[] | null;
+  /**
+   * S237 R-S237-1: what the Working terms, approval coverage and executed documents are read from;
+   * the basis is recomputed from the live records on every render (PR #163 review). Shown only.
+   */
+  termsBasisInputs?: SourceUpdateTermsBasisInputs | null;
+  /** S237 R-S237-5: this page's source reads; the Working values come from the live record. */
+  remainingDifferencesInputs?: RemainingDifferencesInputs | null;
   /**
    * S156/S160: whether a future-rent preview still matches the working renewal terms it was
    * prepared from. False asks for a fresh preview; null means the page did not derive it and the
@@ -154,6 +161,8 @@ export function RentvineUpdatesPanel({
   /** S117: the refreshed base-rent comparison after a succeeded current-base charge update. */
   currentBaseReadback?: CurrentBaseReadback | null;
 }>) {
+  const termsBasis = useLiveTermsBasis(termsBasisInputs);
+  const remainingDifferences = useLiveRemainingDifferences(remainingDifferencesInputs);
   const router = useRouter();
   const [inventory, setInventory] = useState(initialInventory);
   const [billingIntent, setBillingIntent] = useState("recurring");
