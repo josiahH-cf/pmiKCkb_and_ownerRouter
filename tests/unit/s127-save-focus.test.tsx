@@ -2,6 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 import {
+  FORM_APPROVAL,
   SYNTHETIC_APPROVAL_CHOICES,
   recordApprovalThroughForm,
 } from "../helpers/owner-approval-form";
@@ -180,10 +181,11 @@ describe("S155 autosaved staff records keep focus and input", () => {
     const fetch = vi.fn(async (_url: string, options?: RequestInit) => {
       const body = JSON.parse(String(options?.body));
       expect(body.expectedRevision).toBe(before.revision);
+      // The form posts the local time it was given, converted in this process's time zone.
       expect(body.action).toEqual({
         kind: "owner_response",
         outcome: "approved_terms",
-        approval: SYNTHETIC_APPROVAL,
+        approval: FORM_APPROVAL,
       });
       after = planRenewalWorkspaceAction(before, body.action, {
         ...metadata,
