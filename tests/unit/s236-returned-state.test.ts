@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { PacketPersonInput } from "@/lib/lease-documents/packet-inputs";
+import type { LeaseArtifactKind } from "@/lib/lease-documents/packet-types";
 import {
   SIGNER_MAP_PENDING_LABEL,
   STAFF_ATTESTATION_LABEL,
@@ -56,7 +57,7 @@ const SIGNERS = [
   },
 ];
 const extension: ReturnedDocumentInput = {
-  documentKey: "extension",
+  kind: "renewal_extension",
   label: "the renewal extension",
   contentHash: "a".repeat(64),
   prepared: true,
@@ -82,6 +83,7 @@ const record = (
   signers: ReturnedStateRecord["signers"],
   overrides: Partial<ReturnedStateRecord> = {},
 ): ReturnedStateRecord => ({
+  kind: "renewal_extension",
   ...CASE,
   documentContentHash: extension.contentHash,
   sentForSignature: { at: "2026-11-01T15:00:00.000Z", how: "Dotloop" },
@@ -174,7 +176,12 @@ describe("S236 returned-state projection", () => {
       ],
       [
         extension,
-        { ...extension, documentKey: "addendum", label: "the addendum", prepared: false },
+        {
+          ...extension,
+          kind: "lead_disclosure",
+          label: "the lead disclosure",
+          prepared: false,
+        },
       ],
     );
     expect(result.documents[0].notes).toContain("Avery Owner declined or voided");
@@ -198,5 +205,186 @@ describe("S236 ARCH-S236-3 provider metadata never sets a signed state", () => {
       expect(readFileSync(join(dotloopDir, file), "utf8"), file).not.toMatch(
         /returned-state/,
       );
+  });
+});
+
+describe("PR160 review: latest observation per signer and per-document version binding", () => {
+  const T1 = "2026-11-02T15:00:00.000Z";
+  const T2 = "2026-11-02T18:00:00.000Z";
+  const tenantsSigned = [
+    signed(PEOPLE[0].personId, "tenant"),
+    signed(PEOPLE[1].personId, "tenant"),
+  ];
+  const ownerAt = (status: "signed" | "declined_voided", observedAt: string) => ({
+    ...signed(PEOPLE[2].personId, "owner", observedAt),
+    status,
+  });
+  const ext = extension;
+  const addendum: ReturnedDocumentInput = {
+    ...extension,
+    kind: "lead_disclosure",
+    label: "the lead disclosure",
+    contentHash: "c".repeat(64),
+  };
+  const bound = (
+    kind: LeaseArtifactKind,
+    signers: ReturnedStateRecord["signers"],
+    overrides: Partial<ReturnedStateRecord> = {},
+  ): ReturnedStateRecord => ({ ...record(signers, overrides), kind });
+
+  it("a later declined or voided observation is not signed, whatever the input order", () => {
+    for (const owner of [
+      [ownerAt("signed", T1), ownerAt("declined_voided", T2)],
+      [ownerAt("declined_voided", T2), ownerAt("signed", T1)],
+    ]) {
+      const result = project(
+        [bound("renewal_extension", [...tenantsSigned, ...owner])],
+        [ext],
+      );
+      expect(result.documents[0].state).toBe("Partially signed");
+      expect(result.signaturesComplete).toBe(false);
+      expect(result.documents[0].stillMustSign.map((entry) => entry.name)).toEqual([
+        "Avery Owner",
+      ]);
+    }
+  });
+
+  it("a later signed observation counts, whatever the input order (positive control)", () => {
+    for (const owner of [
+      [ownerAt("declined_voided", T1), ownerAt("signed", T2)],
+      [ownerAt("signed", T2), ownerAt("declined_voided", T1)],
+    ]) {
+      const result = project(
+        [bound("renewal_extension", [...tenantsSigned, ...owner])],
+        [ext],
+      );
+      expect(result.documents[0].state).toBe("Fully executed");
+      expect(result.signaturesComplete).toBe(true);
+    }
+  });
+
+  it("the latest observation also wins across two records for the same version, in either order", () => {
+    // The later-recorded record carries the earlier observation, so neither array position nor
+    // recording time decides; the observed time does.
+    const declinedRecord = bound(
+      "renewal_extension",
+      [...tenantsSigned, ownerAt("declined_voided", T2)],
+      { recordedAt: "2026-11-02T19:00:00.000Z" },
+    );
+    const signedRecord = bound("renewal_extension", [ownerAt("signed", T1)], {
+      recordedAt: "2026-11-02T20:00:00.000Z",
+    });
+    for (const records of [
+      [declinedRecord, signedRecord],
+      [signedRecord, declinedRecord],
+    ]) {
+      const result = project(records, [ext]);
+      expect(result.signaturesComplete).toBe(false);
+      expect(result.documents[0].stillMustSign.map((entry) => entry.name)).toEqual([
+        "Avery Owner",
+      ]);
+    }
+  });
+
+  it("equal-time conflicting or invalid observations never establish a signature", () => {
+    for (const owner of [
+      [ownerAt("signed", T2), ownerAt("declined_voided", T2)],
+      [ownerAt("declined_voided", T2), ownerAt("signed", T2)],
+      [ownerAt("signed", "not-a-date")],
+    ]) {
+      const result = project(
+        [bound("renewal_extension", [...tenantsSigned, ...owner])],
+        [ext],
+      );
+      expect(result.documents[0].state).toBe("Partially signed");
+      expect(result.signaturesComplete).toBe(false);
+    }
+  });
+
+  it("keeps the terms-change safeguard on the latest signed observation", () => {
+    const result = project(
+      [bound("renewal_extension", [...tenantsSigned, ownerAt("signed", T2)])],
+      [ext],
+      "2026-11-03T00:00:00.000Z",
+    );
+    expect(result.signaturesComplete).toBe(false);
+    expect(result.documents[0].notes).toContain("Signed before the terms changed");
+  });
+
+  it("binds the earlier-version note to the same document's actually signed superseded version", () => {
+    const allSigned = [...tenantsSigned, ownerAt("signed", T2)];
+    // A current-version record for the extension says nothing about the lead disclosure.
+    const other = project([bound("renewal_extension", allSigned)], [ext, addendum]);
+    expect(other.documents[0].state).toBe("Fully executed");
+    expect(other.documents[1].notes).not.toContain(
+      "Signed an earlier version, not current",
+    );
+    // A superseded version with no signed observation produces no warning.
+    for (const signers of [[], [ownerAt("declined_voided", T2)]]) {
+      const unsigned = project(
+        [bound("lead_disclosure", signers, { documentContentHash: "d".repeat(64) })],
+        [ext, addendum],
+      );
+      expect(unsigned.documents[1].notes).not.toContain(
+        "Signed an earlier version, not current",
+      );
+    }
+    // Only that document's signed superseded version warns, and it never counts.
+    const superseded = project(
+      [bound("lead_disclosure", allSigned, { documentContentHash: "d".repeat(64) })],
+      [ext, addendum],
+    );
+    expect(superseded.documents[1].notes).toContain(
+      "Signed an earlier version, not current",
+    );
+    expect(superseded.documents[1].state).not.toBe("Fully executed");
+    expect(superseded.documents[0].notes).not.toContain(
+      "Signed an earlier version, not current",
+    );
+    // Each superseded version is judged on its own: a later decline on another old version does
+    // not hide a signed one, and neither counts toward the current version.
+    const twoOld = project(
+      [
+        bound("lead_disclosure", [ownerAt("signed", T1)], {
+          documentContentHash: "d".repeat(64),
+        }),
+        bound("lead_disclosure", [ownerAt("declined_voided", T2)], {
+          documentContentHash: "e".repeat(64),
+        }),
+      ],
+      [ext, addendum],
+    );
+    expect(twoOld.documents[1].notes).toContain("Signed an earlier version, not current");
+    expect(twoOld.documents[1].state).toBe("Uploaded");
+  });
+
+  it("names the record that needs verification and fails closed on an unreadable terms-change time", () => {
+    const conflict = project(
+      [
+        bound("renewal_extension", [
+          ...tenantsSigned,
+          ownerAt("signed", T2),
+          ownerAt("declined_voided", T2),
+        ]),
+      ],
+      [ext],
+    );
+    expect(conflict.documents[0].notes).toContain(
+      "Needs verification: records for Avery Owner disagree at the same time",
+    );
+    const invalid = project(
+      [bound("renewal_extension", [...tenantsSigned, ownerAt("signed", "not-a-date")])],
+      [ext],
+    );
+    expect(invalid.documents[0].notes).toContain(
+      "Needs verification: a record for Avery Owner has no valid date",
+    );
+    const all = [...tenantsSigned, ownerAt("signed", T2)];
+    expect(project([bound("renewal_extension", all)], [ext]).signaturesComplete).toBe(
+      true,
+    );
+    expect(
+      project([bound("renewal_extension", all)], [ext], "not-a-date").signaturesComplete,
+    ).toBe(false);
   });
 });

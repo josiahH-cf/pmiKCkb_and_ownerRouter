@@ -1,6 +1,6 @@
 // S236 ARCH-S236-2: per-document and overall business states for returned renewal documents, and
 // who still must sign, joined from the reviewed map's signers, the packet's people and roles, and
-// staff-attested returned-state records. Staff attestations read "Recorded by staff — not
+// staff-attested returned-state records. Staff attestations read "Recorded by staff, not
 // provider-verified". ARCH-S236-3: Dotloop loop/document readback is not an input here, so provider
 // metadata can never set a signed state. Pure and deterministic; it writes nothing.
 
@@ -9,6 +9,7 @@ import type {
   SignerRole,
 } from "@/lib/lease-documents/artifact-intake-contract";
 import type { PacketPersonInput } from "@/lib/lease-documents/packet-inputs";
+import type { LeaseArtifactKind } from "@/lib/lease-documents/packet-types";
 
 export const STAFF_ATTESTATION_LABEL = "Recorded by staff, not provider-verified";
 export const SIGNER_MAP_PENDING_LABEL = "Signer requirements pending the reviewed map";
@@ -23,7 +24,8 @@ export type ReturnedDocumentState =
   | typeof SIGNER_MAP_PENDING_LABEL;
 
 export interface ReturnedDocumentInput {
-  readonly documentKey: string;
+  /** The packet manifest's stable identity for this included document (its artifact kind). */
+  readonly kind: LeaseArtifactKind;
   readonly label: string;
   /** The current document version's content hash. */
   readonly contentHash: string;
@@ -51,6 +53,8 @@ export interface ReturnedSignerEntry {
 
 /** ARCH-S236-1's record shape: one document version's staff-attested returned state. */
 export interface ReturnedStateRecord {
+  /** The same stable document identity as the manifest's included artifact. */
+  readonly kind: LeaseArtifactKind;
   readonly leaseId: string;
   readonly cycleId: string;
   readonly snapshotId: string;
@@ -68,7 +72,7 @@ export interface StillMustSign {
 }
 
 export interface ReturnedDocumentProjection {
-  readonly documentKey: string;
+  readonly kind: LeaseArtifactKind;
   readonly label: string;
   readonly state: ReturnedDocumentState;
   readonly stillMustSign: readonly StillMustSign[];
@@ -109,19 +113,36 @@ export function projectReturnedState(input: {
   /** The "Required signatures complete" activity, derived; never recordable while one is missing. */
   readonly signaturesComplete: boolean;
 } {
+  const termsChangedAt = input.termsChangedAt ? Date.parse(input.termsChangedAt) : null;
   const documents = input.documents.map((document): ReturnedDocumentProjection => {
     const notes: string[] = [];
-    // A record attaches only to this lease, cycle and snapshot; an earlier version never counts.
-    const sameCase = input.records.filter(
+    // A record attaches only to this lease, cycle, snapshot and document identity (PR #160).
+    const sameDocument = input.records.filter(
       (record) =>
         record.leaseId === input.leaseId &&
         record.cycleId === input.cycleId &&
-        record.snapshotId === input.snapshotId,
+        record.snapshotId === input.snapshotId &&
+        record.kind === document.kind,
     );
-    const current = sameCase.filter(
+    const current = sameDocument.filter(
       (record) => record.documentContentHash === document.contentHash,
     );
-    if (sameCase.some((record) => record.documentContentHash !== document.contentHash))
+    // Only this document's actually signed superseded version warns, and it never counts.
+    const supersededHashes = new Set(
+      sameDocument
+        .map((record) => record.documentContentHash)
+        .filter((hash) => hash !== document.contentHash),
+    );
+    if (
+      [...supersededHashes].some((hash) => {
+        const version = sameDocument.filter(
+          (record) => record.documentContentHash === hash,
+        );
+        return signerKeys(version).some(
+          (key) => latestObservation(version, key).kind === "signed",
+        );
+      })
+    )
       notes.push("Signed an earlier version, not current");
     if (!document.prepared)
       return { ...base(document), state: "Not prepared", notes, attestation: null };
@@ -132,17 +153,6 @@ export function projectReturnedState(input: {
         notes,
         attestation: null,
       };
-    const entries = current.flatMap((record) => record.signers);
-    const counts = (entry: ReturnedSignerEntry) =>
-      entry.status === "signed" &&
-      !(input.termsChangedAt && entry.observedAt < input.termsChangedAt);
-    if (
-      input.termsChangedAt &&
-      entries.some(
-        (entry) => entry.status === "signed" && entry.observedAt < input.termsChangedAt!,
-      )
-    )
-      notes.push("Signed before the terms changed");
     const stillMustSign: StillMustSign[] = [];
     let requiredCount = 0;
     let signedCount = 0;
@@ -165,17 +175,29 @@ export function projectReturnedState(input: {
       }
       for (const { person } of holders) {
         requiredCount += 1;
-        const entry = entries.find(
-          (value) =>
-            value.personId === person.personId &&
-            value.signerRole === requirement.signerRole,
-        );
-        if (entry && counts(entry)) {
+        const latest = latestObservation(current, {
+          personId: person.personId,
+          signerRole: requirement.signerRole,
+        });
+        // An unreadable terms-change time fails closed: no signature counts against it.
+        if (
+          latest.kind === "signed" &&
+          (termsChangedAt === null || latest.observedAt >= termsChangedAt)
+        ) {
           signedCount += 1;
           continue;
         }
-        if (entry?.status === "declined_voided")
+        if (latest.kind === "signed") notes.push("Signed before the terms changed");
+        else if (latest.kind === "declined_voided")
           notes.push(`${person.fullName} declined or voided`);
+        else if (latest.kind === "conflict")
+          notes.push(
+            `Needs verification: records for ${person.fullName} disagree at the same time`,
+          );
+        else if (latest.kind === "invalid")
+          notes.push(
+            `Needs verification: a record for ${person.fullName} has no valid date`,
+          );
         stillMustSign.push({
           name: person.fullName,
           capacity: CAPACITY[requirement.signerRole],
@@ -198,7 +220,7 @@ export function projectReturnedState(input: {
       ...base(document),
       state,
       stillMustSign,
-      notes,
+      notes: [...new Set(notes)],
       attestation: current.length ? STAFF_ATTESTATION_LABEL : null,
     };
   });
@@ -213,5 +235,48 @@ export function projectReturnedState(input: {
 }
 
 function base(document: ReturnedDocumentInput) {
-  return { documentKey: document.documentKey, label: document.label, stillMustSign: [] };
+  return { kind: document.kind, label: document.label, stillMustSign: [] };
+}
+
+interface SignerKey {
+  readonly personId: string;
+  readonly signerRole: SignerRole;
+}
+
+function signerKeys(records: readonly ReturnedStateRecord[]): SignerKey[] {
+  const keys = new Map<string, SignerKey>();
+  for (const entry of records.flatMap((record) => record.signers))
+    keys.set(`${entry.personId}\u0000${entry.signerRole}`, {
+      personId: entry.personId,
+      signerRole: entry.signerRole,
+    });
+  return [...keys.values()];
+}
+
+/**
+ * PR #160 review: one signer's state for one document version is their latest observation by its
+ * recorded time, independent of input order. An invalid time, or different statuses at the same
+ * latest time, is never a signature.
+ */
+function latestObservation(
+  records: readonly ReturnedStateRecord[],
+  key: SignerKey,
+):
+  | { kind: "none" | "conflict" | "invalid" }
+  | { kind: ReturnedSignerEntry["status"]; observedAt: number } {
+  const entries = records
+    .flatMap((record) => record.signers)
+    .filter(
+      (entry) => entry.personId === key.personId && entry.signerRole === key.signerRole,
+    );
+  if (!entries.length) return { kind: "none" };
+  const times = entries.map((entry) => Date.parse(entry.observedAt));
+  if (times.some((time) => !Number.isFinite(time))) return { kind: "invalid" };
+  const latest = Math.max(...times);
+  const statuses = new Set(
+    entries.filter((_, index) => times[index] === latest).map((entry) => entry.status),
+  );
+  if (statuses.size !== 1) return { kind: "conflict" };
+  const [status] = statuses;
+  return { kind: status, observedAt: latest };
 }
