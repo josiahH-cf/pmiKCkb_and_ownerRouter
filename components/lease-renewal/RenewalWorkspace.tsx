@@ -945,6 +945,7 @@ function PhaseContent({
                 {correctionPanel}
               </div>
             ) : null}
+            {rentvineUpdatesPanel || sheetProposalPanel ? <SourceUpdateScope /> : null}
             {rentvineUpdatesPanel}
             {sheetProposalPanel}
           </div>
@@ -1505,6 +1506,19 @@ function MoveOutDispositionNotice({
       role="status"
     >
       {disposition.label}
+    </p>
+  );
+}
+
+/** S237 R-S237-6: one statement, beside the updates, of what confirmed source updates change. */
+export function SourceUpdateScope() {
+  return (
+    <p className="muted" data-renewal-field="source-update-scope">
+      Confirmed updates change lease dates and recurring charges in RentVine and the
+      recognized renewal fields on the Sheet. One-time fees, deposits, ledger history,
+      party changes, insurance enrollment and Sheet reversals stay manual. There is no
+      general RentVine base-rent setter, no combined RentVine-and-Sheet update and no
+      Sheet row deletion.
     </p>
   );
 }

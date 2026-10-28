@@ -225,6 +225,14 @@ describe("S97 RentVine updates panel", () => {
     expect(screen.getByText("Reconcile from provider state")).toBeInTheDocument();
     expect(screen.queryByText(/Retry/i)).not.toBeInTheDocument();
     expect(screen.queryByText("Apply RentVine update")).not.toBeInTheDocument();
+    // S237 R-S237-7: the locked state, no retry and the named recovery route, with no archive control.
+    const locked = document.querySelector(
+      '[data-renewal-field="ambiguous-locked-state"]',
+    );
+    expect(locked).toHaveTextContent(/Nothing is retried automatically/);
+    expect(locked).toHaveTextContent(/stay locked while this attempt is uncertain/);
+    expect(locked).toHaveTextContent(/engineering readback and a manual clear/);
+    expect(screen.queryByRole("button", { name: /archive/i })).toBeNull();
   });
 
   it("refreshes visible lease facts after forward reconciliation", async () => {
