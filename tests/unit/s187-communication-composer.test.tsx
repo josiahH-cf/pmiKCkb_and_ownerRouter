@@ -249,3 +249,62 @@ it("opens the schedule controls and authorizes exactly the reviewed local date, 
   });
   expect(commands.some((c) => c.action === "send")).toBe(false);
 });
+
+it("S233 R-S233-1: lists each attempt and incoming message once, with lease, cycle and audience", async () => {
+  const sentAtMs = Date.parse("2026-11-02T15:00:00Z");
+  const occurrence = (index: number, state: "sent" | "refused" | "ambiguous") => ({
+    id: String(index + 1).repeat(64),
+    sequenceId: id,
+    authorizationRevision: 1,
+    index,
+    state,
+    senderEmail: email,
+    rfcMessageId: `<pmi-${String(index + 1).repeat(64)}@pmikcmetro.com>`,
+    payloadHash: "p".repeat(64),
+    claimedAtMs: sentAtMs + index * 86_400_000,
+    ...(state === "sent" ? { sentAtMs: sentAtMs + index * 86_400_000 } : {}),
+    ...(state === "refused" ? { reason: "provider_refusal" as const } : {}),
+  });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) =>
+      url.includes("composition")
+        ? reply(composition)
+        : reply({
+            sequence: {
+              ...base,
+              state: "paused",
+              noticeCycleId: "11111111-1111-4111-8111-111111111111",
+              inbound: [
+                {
+                  id: "mailbox:reply-1",
+                  senderEmail: email,
+                  threadId: "thread-1",
+                  messageId: "reply-1",
+                  kind: "human",
+                  receivedAtMs: sentAtMs + 3_600_000,
+                },
+              ],
+            },
+            reviewedDraftHash: "a".repeat(64),
+            attempts: [
+              occurrence(0, "sent"),
+              occurrence(1, "refused"),
+              occurrence(2, "ambiguous"),
+            ],
+            attemptsTruncated: false,
+          }),
+    ),
+  );
+  mount();
+  const section = await screen.findByRole("region", { name: "Message evidence" });
+  expect(section).toHaveTextContent("Owner message · Lease 115 · renewal cycle 11111111");
+  const items = [...section.querySelectorAll("li")].map((item) => item.textContent);
+  expect(items).toEqual([
+    expect.stringMatching(/^Initial message: Accepted by Gmail /),
+    expect.stringMatching(/^Reply received /),
+    "Follow-up 1: Not sent: Gmail refused it",
+    "Follow-up 2: Not confirmed — checking",
+  ]);
+  expect(section.textContent).not.toMatch(/\bdelivered\b|\bread\b/i);
+});

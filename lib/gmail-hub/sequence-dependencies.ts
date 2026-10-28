@@ -102,6 +102,7 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
     cc,
     label: f.address ?? `Lease ${c.entityId}`,
     sourceRefs: [`rentvine:lease:${c.entityId}`],
+    noticeCycleId: current.noticeCycleId ?? null,
     blockers,
     // Material values, not an admission generation, read timestamp, signature or unrelated field.
     materialSourceHash: sequenceHash({

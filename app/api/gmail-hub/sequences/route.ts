@@ -15,10 +15,12 @@ export async function GET(request: Request) {
     const actor = await requireCapability("read");
     const q = readAllowedQuery(request, ["id", "after"]);
     const service = createCommunicationSequenceService();
-    if (q.has("id"))
-      return sequenceResponse(
-        await service.get(actor, z.string().uuid().parse(q.get("id"))),
-      );
+    if (q.has("id")) {
+      const id = z.string().uuid().parse(q.get("id"));
+      const sequence = await service.get(actor, id);
+      // S233 R-S233-1: refused and unconfirmed attempts stay visible after a refresh.
+      return sequenceResponse(sequence, await service.attempts(actor, id));
+    }
     const after = q.has("after") ? z.string().uuid().parse(q.get("after")) : null;
     return NextResponse.json(await service.list(actor, after), {
       headers: { "Cache-Control": "private, no-store" },

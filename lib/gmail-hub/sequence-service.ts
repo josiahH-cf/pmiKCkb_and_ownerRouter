@@ -45,11 +45,13 @@ import {
   type StaffBusinessSignatureSnapshot,
   type CommunicationAttachment,
   type CommunicationAuthorization,
+  type CommunicationInboundEvidence,
   type CommunicationSequence,
   type SequenceDraft,
   type VerifiedCommunicationTarget,
 } from "./sequence-model";
 import { gmailMailboxKey } from "./state-store";
+import { correlateBounceAttempt } from "./communication-evidence";
 import { sequenceHash, type SequenceStore } from "./sequence-store";
 import type { WorkflowCommunicationContext } from "./workflow-context";
 
@@ -224,6 +226,11 @@ export class WorkflowCommunicationSequenceService {
       assertWorkflowAccess(actor, s.context),
     ); // The stored workflow was admitted from its real owner; no mailbox read is needed for history.
     return s;
+  }
+  /** S233 R-S233-1: the communication's attempts for its evidence list, after the same access checks. */
+  async attempts(actor: AuthenticatedUser, id: string) {
+    const s = await this.get(actor, id);
+    return this.deps.store.listOccurrences(s.id);
   }
   async save(
     actor: AuthenticatedUser,
@@ -540,6 +547,9 @@ export class WorkflowCommunicationSequenceService {
           state: "active",
           workflowLabel: target.label,
           authorization,
+          ...(target.noticeCycleId !== undefined
+            ? { noticeCycleId: target.noticeCycleId }
+            : {}),
           linkedThreads: [
             ...new Map(
               [...c.linkedThreads, ...linkedThreads].map((t) => [
@@ -643,6 +653,7 @@ export class WorkflowCommunicationSequenceService {
     const senders = new Set(s.threads.map((t) => t.senderEmail.toLowerCase()));
     senders.add(s.senderEmail.toLowerCase());
     const ids: string[] = [];
+    const messages: CommunicationInboundEvidence[] = [];
     let cause: "reply" | "bounce" | "unexpected_sender" | null = null;
     let complete = true;
     const mailboxHistoryIds: Record<string, string> = {};
@@ -678,6 +689,26 @@ export class WorkflowCommunicationSequenceService {
             ...s.authorization.to,
             ...s.authorization.cc,
           ]);
+          // S233 R-S233-1/R-S233-2: evidence only; a report names its attempt when one is clear.
+          messages.push({
+            id: `${mailboxKey}:${m.id}`,
+            senderEmail: t.senderEmail,
+            threadId: t.threadId,
+            messageId: m.id,
+            kind: classification,
+            receivedAtMs,
+            ...(classification === "bounce"
+              ? {
+                  attemptOccurrenceId: correlateBounceAttempt(
+                    m,
+                    s.threads.filter(
+                      (attempt) =>
+                        attempt.senderEmail.toLowerCase() === t.senderEmail.toLowerCase(),
+                    ),
+                  ),
+                }
+              : {}),
+          });
           if (classification === "bounce") cause = "bounce";
           else if (classification === "human" && cause !== "bounce") cause = "reply";
           else if (classification === "uncertain" && !cause) cause = "unexpected_sender";
@@ -690,6 +721,7 @@ export class WorkflowCommunicationSequenceService {
       authorizationRevision: s.authorization.revision,
       checkedAtMs: this.now(),
       messageIds: ids,
+      messages,
       pause: cause,
       historyId:
         Object.keys(mailboxHistoryIds).length === 1

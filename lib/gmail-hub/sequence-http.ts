@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { SequenceDraftSchema, type CommunicationSequence } from "./sequence-model";
+import {
+  SequenceDraftSchema,
+  type CommunicationOccurrence,
+  type CommunicationSequence,
+} from "./sequence-model";
 import { CommunicationScheduleSchema } from "./schedule-calendar";
 import { sequenceHash } from "./sequence-store";
 import { EditableLayerError } from "@/lib/firestore/errors";
@@ -43,7 +47,10 @@ export const SequenceCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("reconcile"), id: identity.id }).strict(),
   z.object({ action: z.literal("refresh"), id: identity.id }).strict(),
 ]);
-export function sequenceResponse(sequence: CommunicationSequence) {
+export function sequenceResponse(
+  sequence: CommunicationSequence,
+  attempts?: { occurrences: CommunicationOccurrence[]; truncated: boolean },
+) {
   return NextResponse.json(
     {
       sequence,
@@ -51,6 +58,9 @@ export function sequenceResponse(sequence: CommunicationSequence) {
         initial: sequence.initial,
         followUp: sequence.followUp,
       }),
+      ...(attempts
+        ? { attempts: attempts.occurrences, attemptsTruncated: attempts.truncated }
+        : {}),
     },
     { headers: { "Cache-Control": "private, no-store" } },
   );

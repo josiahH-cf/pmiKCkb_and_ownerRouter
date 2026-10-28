@@ -7,9 +7,14 @@ import {
   sequenceRetentionFields,
 } from "./retention-policy";
 import { GMAIL_STATE_COLLECTIONS, gmailMailboxKey } from "./state-store";
-import { RichCommunicationMessageSchema, communicationSendKey } from "./sequence-model";
+import {
+  INBOUND_EVIDENCE_LIMIT,
+  RichCommunicationMessageSchema,
+  communicationSendKey,
+} from "./sequence-model";
 import { localDateAt, nextOccurrence } from "./schedule-calendar";
 import type {
+  CommunicationInboundEvidence,
   CommunicationOccurrence,
   CommunicationSequence,
   SequenceState,
@@ -102,9 +107,16 @@ export interface SequenceStore {
       historyId: string | null;
       mailboxHistoryIds?: Record<string, string>;
       complete: boolean;
+      /** S233 R-S233-1: the classified evidence for each id in `messageIds`. */
+      messages?: CommunicationInboundEvidence[];
     },
   ): Promise<CommunicationSequence>;
   getOccurrence(id: string): Promise<CommunicationOccurrence | null>;
+  /** S233 R-S233-1: this communication's attempts, oldest first, at most `limit`. */
+  listOccurrences(
+    sequenceId: string,
+    limit?: number,
+  ): Promise<{ occurrences: CommunicationOccurrence[]; truncated: boolean }>;
 }
 function missing(): never {
   throw new EditableLayerError("This communication no longer exists.", 404);
@@ -191,6 +203,18 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
         .map((doc) => assertRecord(doc.data())),
       cursor: page.size === limit ? page.docs.at(-1)!.id : null,
     };
+  }
+  async listOccurrences(sequenceId: string, limit = 200) {
+    const snapshot = await this.db
+      .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.occurrences)
+      .where("sequenceId", "==", sequenceId)
+      .limit(limit + 1)
+      .get();
+    const occurrences = snapshot.docs
+      .map((doc) => doc.data() as CommunicationOccurrence)
+      .sort((left, right) => left.claimedAtMs - right.claimedAtMs)
+      .slice(0, limit);
+    return { occurrences, truncated: snapshot.docs.length > limit };
   }
   async getOccurrence(id: string) {
     const s = await this.db
@@ -551,6 +575,14 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
         observedMessageIds: [
           ...new Set([...s.observedMessageIds, ...i.messageIds]),
         ].slice(-2000),
+        ...(s.inbound || i.messages?.length
+          ? {
+              inbound: [
+                ...(s.inbound ?? []),
+                ...(i.messages ?? []).filter((m) => fresh.includes(m.id)),
+              ].slice(-INBOUND_EVIDENCE_LIMIT),
+            }
+          : {}),
         observation: {
           checkedAtMs: i.checkedAtMs,
           state: i.complete ? "current" : "unavailable",

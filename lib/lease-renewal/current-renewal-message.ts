@@ -540,6 +540,8 @@ export async function currentRenewalMessage(
     saved.signatureEmail?.toLowerCase() === actor.email.toLowerCase();
   return {
     noticeBlock,
+    /** S233 R-S233-1: the renewal cycle the notice scope names, so each message can say it. */
+    noticeCycleId: noticeSafety.cycleId,
     attachment,
     availableCompScreenshot: availableCompScreenshot
       ? compScreenshotDraftAttachmentIdentity(availableCompScreenshot)
