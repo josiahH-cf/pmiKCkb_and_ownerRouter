@@ -153,6 +153,8 @@ const EXPECTED_LIVE_CONFIG_CALLS = [
   "lib/lease-renewal/workspace-cycle-context.ts:resolveRenewalCycleBasis:buildLiveRentVineConfig",
   // S154: the work-basis read when a first save establishes a lease's work record (read-only).
   "lib/lease-renewal/workspace-cycle-context.ts:resolveRenewalWorkBasis:buildLiveRentVineConfig",
+  // S234 R-S234-1: the current owner roster read when an approval is recorded (read-only).
+  "lib/lease-renewal/workspace-cycle-context.ts:resolveLeaseOwnerRoster:buildLiveRentVineConfig",
   "app/api/ask/live-target/route.ts:POST:buildLiveRentVineConfig",
   // S58: the demand-driven refresh route (read-only; forces/revalidates the shared lease read).
   "app/api/lease-renewal/notice-review/route.ts:source:buildLiveRentVineConfig",
