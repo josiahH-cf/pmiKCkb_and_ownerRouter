@@ -1,4 +1,5 @@
 import { leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
+import { projectRemainingDifferences } from "@/lib/lease-renewal/remaining-differences";
 import { projectSourceUpdateTermsBasis } from "@/lib/lease-renewal/source-update-terms-basis";
 import { getPacketInputs } from "@/lib/firestore/lease-packet-inputs";
 import { readChargePolicy } from "@/lib/firestore/lease-charge-policy";
@@ -499,6 +500,24 @@ export default async function LiveRenewalLeaseWorkspacePage({
       ? preparedSheetFieldsRead
       : unavailableRenewalAuxiliary("sheet_fields");
   const sheetFields = renewalAuxiliaryValue(sheetFieldsRead, null);
+  // S237 R-S237-5: what still differs, from this render's own RentVine and Sheet reads.
+  const datesIntent = writebackProposal?.effects
+    .flatMap((entry) =>
+      entry.effect.kind === "renewal_dates_update" ? [entry.effect.after] : [],
+    )
+    .map((after) => after.increaseEligibilityDate)
+    .find((value) => value !== undefined);
+  const remainingDifferences = projectRemainingDifferences({
+    working: renewalAuxiliaryValue(workingRecordRead, null),
+    workspace: manualState,
+    ...(datesIntent !== undefined ? { increaseEligibilityIntent: datesIntent } : {}),
+    rentvine: chargeInventory
+      ? { inventory: chargeInventory, readAt: readTimestamp }
+      : null,
+    sheet: sheetFields?.row
+      ? { values: sheetFields.row.fieldValues ?? {}, readAt: readTimestamp }
+      : null,
+  });
   const sheetDestination = buildOperatingSheetCellDestination({
     spreadsheetId: process.env.RENEWAL_SHEET_ID,
     tabId: sheetFields?.tabId,
@@ -685,6 +704,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
                 <RentvineUpdatesPanel
                   key={writebackProposal?.previewHash ?? "no-rentvine-preview"}
                   termsBasis={sourceUpdateTermsBasis}
+                  remainingDifferences={remainingDifferences}
                   currentBaseReadback={currentBaseReadback}
                   futureRentExecutionReady={futureReady}
                   identity={sourceUpdateIdentity}
