@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
+import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 
@@ -46,6 +47,7 @@ const withTerms = () =>
     {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       terms: { rent: 1250, effectiveDate: "2026-09-01", endDate: "2027-08-31" },
       source: "Owner call",
     },

@@ -51,6 +51,7 @@ import type {
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { ShownPacketState } from "@/lib/lease-documents/packet-shown-state";
+import type { OwnerApprovalChoices } from "@/lib/lease-renewal/owner-approval-evidence";
 import {
   RenewalLeaseInformation,
   type OperatingSheetLookupInput,
@@ -164,6 +165,7 @@ export function RenewalWorkspace({
   packetReadinessPanel = null,
   returnedDocumentsPanel = null,
   packetShownState = null,
+  ownerApprovalChoices,
   termReviewPanel = null,
   sheetDestination = null,
   sheetFieldDestinations = {},
@@ -220,6 +222,8 @@ export function RenewalWorkspace({
   returnedDocumentsPanel?: ReactNode;
   /** S235 R-S235-4: the packet state from the current snapshot's recorded events. */
   packetShownState?: ShownPacketState | null;
+  /** S234 R-S234-1: the owners of record and owner-thread replies an approval can name. */
+  ownerApprovalChoices?: OwnerApprovalChoices;
   /**
    * S103: the page-supplied lease term review control, shown in verification for every openable
    * lease: including an inspection-only month-to-month row, where recording the anchor is the
@@ -473,6 +477,7 @@ export function RenewalWorkspace({
                   }
                 >
                   <RenewalManualProvider
+                    ownerApproval={ownerApprovalChoices}
                     writebackPaused={sheetWritebackPaused}
                     unavailable={manualReadUnavailable}
                     leaseId={summary.id}

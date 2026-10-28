@@ -17,6 +17,7 @@ import {
   StartRenewalCycleSchema,
 } from "@/lib/firestore/renewal-workspace";
 import {
+  resolveLeaseOwnerRoster,
   resolveRenewalCycleBasis,
   resolveRenewalWorkBasis,
 } from "@/lib/lease-renewal/workspace-cycle-context";
@@ -97,8 +98,13 @@ export async function POST(request: Request) {
     // S154/S155: the first actual save establishes the work record from the lease's real basis.
     // Saving is application persistence only: it reads and writes no Sheet. A pending Sheet value
     // is prepared when staff deliberately ask for it (prepare_source), and confirmed separately.
-    const result = await saveRenewalWorkspace(actor, value, undefined, () =>
-      resolveRenewalWorkBasis(actor, value.leaseId),
+    const result = await saveRenewalWorkspace(
+      actor,
+      value,
+      undefined,
+      () => resolveRenewalWorkBasis(actor, value.leaseId),
+      // S234 R-S234-1: an approval's party is checked against a fresh owner roster.
+      { ownerRoster: () => resolveLeaseOwnerRoster(actor, value.leaseId) },
     );
     return NextResponse.json({
       ...result,

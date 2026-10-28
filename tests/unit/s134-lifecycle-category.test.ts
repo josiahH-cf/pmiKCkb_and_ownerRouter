@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -155,6 +156,7 @@ function completedCycle(nonRenewal = false): RenewalWorkspaceState {
       {
         kind: "owner_response",
         outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
         terms: { rent: 1250, effectiveDate: "2026-09-01", endDate: "2027-08-31" },
         source: "Owner call",
       },
@@ -284,6 +286,7 @@ describe("S134 lifecycle projection (AC-S134-1, AC-S134-2, AC-S134-8)", () => {
       {
         kind: "owner_response",
         outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
         terms: { rent: 1250, effectiveDate: "2026-09-01", endDate: "2027-08-31" },
         source: "Owner call",
       },

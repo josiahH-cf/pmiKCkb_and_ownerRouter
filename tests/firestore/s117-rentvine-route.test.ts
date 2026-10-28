@@ -2,6 +2,7 @@
 // deterministic provider adapters. Forged targets, unsupported setters and a future-rent effect
 // without the tenant's recorded acceptance are refused before any attempt is claimed.
 import { randomUUID } from "node:crypto";
+import { SYNTHETIC_APPROVAL, SYNTHETIC_OWNER_ROSTER } from "../helpers/owner-approval";
 import { initializeApp, deleteApp, type App } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import {
@@ -148,12 +149,14 @@ beforeEach(async () => {
         action: {
           kind: "owner_response",
           outcome: "approved_terms",
+          approval: SYNTHETIC_APPROVAL,
           terms,
           source: "Emulator owner approval",
         },
       },
       db,
       async () => basis,
+      SYNTHETIC_OWNER_ROSTER,
     )
   ).state!;
   local.deps = {
@@ -264,6 +267,8 @@ async function recordOwnerResponse(
       action: { kind: "owner_response", outcome, source: "Owner call" },
     },
     db,
+    undefined,
+    SYNTHETIC_OWNER_ROSTER,
   );
 }
 /** S156: the lease-bound working terms, one independently saved field at a time. */

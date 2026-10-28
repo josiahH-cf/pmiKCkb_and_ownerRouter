@@ -596,3 +596,37 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
     });
   }
 }
+
+/**
+ * S234 R-S234-1: the replies people sent on this lease's owner renewal threads, newest first, as
+ * the approval form's only reply choices. Evidence ids and times only; no message content.
+ */
+export async function listLeaseOwnerReplies(
+  leaseId: string,
+  db: Firestore = getAdminFirestore(),
+): Promise<import("@/lib/lease-renewal/owner-approval-evidence").OwnerReplyChoice[]> {
+  const snapshot = await db
+    .collection(COMMUNICATION_SEQUENCE_COLLECTIONS.sequences)
+    .where("context.entityId", "==", leaseId)
+    .limit(50)
+    .get();
+  return snapshot.docs
+    .flatMap((doc) => {
+      const context = doc.get("context") as
+        | { entityType?: string; purpose?: string }
+        | undefined;
+      if (context?.entityType !== "renewal_lease" || context.purpose !== "renewal_owner")
+        return [];
+      const inbound =
+        (doc.get("inbound") as CommunicationInboundEvidence[] | undefined) ?? [];
+      return inbound
+        .filter((entry) => entry.kind === "human")
+        .map((entry) => ({
+          sequenceId: doc.id,
+          evidenceId: entry.id,
+          senderEmail: entry.senderEmail,
+          receivedAt: new Date(entry.receivedAtMs).toISOString(),
+        }));
+    })
+    .sort((left, right) => right.receivedAt.localeCompare(left.receivedAt));
+}

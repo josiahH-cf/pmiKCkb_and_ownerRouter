@@ -136,6 +136,114 @@ const activityKeys = Object.keys(MANUAL_ACTIVITIES) as [
   ManualActivity,
   ...ManualActivity[],
 ];
+/**
+ * S234 R-S234-1: who approved for the owner, how and when, as staff choose them. Nothing is
+ * pre-selected from an incoming message; the store verifies the party against the lease's current
+ * owner roster and a linked reply against this lease's own owner renewal thread.
+ */
+export const OwnerApprovalInputSchema = z
+  .object({
+    party: z
+      .discriminatedUnion("kind", [
+        z
+          .object({
+            kind: z.literal("owner"),
+            sourceRef: z.string().trim().min(1).max(300),
+          })
+          .strict(),
+        z
+          .object({
+            kind: z.literal("representative"),
+            name: z.string().trim().min(1).max(200),
+            capacity: z.string().trim().min(1).max(200),
+          })
+          .strict(),
+      ])
+      .optional(),
+    channel: z
+      .discriminatedUnion("kind", [
+        z
+          .object({
+            kind: z.literal("linked_reply"),
+            sequenceId: z.string().uuid(),
+            evidenceId: z.string().trim().min(1).max(300),
+          })
+          .strict(),
+        z
+          .object({
+            kind: z.literal("written"),
+            medium: z.string().trim().min(1).max(120),
+            reference: z.string().trim().min(1).max(240),
+          })
+          .strict(),
+        z
+          .object({
+            kind: z.literal("conversation"),
+            participants: z.string().trim().min(1).max(240),
+          })
+          .strict(),
+      ])
+      .optional(),
+    occurredAt: z.string().datetime({ offset: true }).optional(),
+  })
+  .strict();
+export type OwnerApprovalInput = z.infer<typeof OwnerApprovalInputSchema>;
+/** S234 R-S234-1: the approval evidence the store verified and the record keeps. */
+export const OwnerApprovalEvidenceSchema = z
+  .object({
+    party: z.discriminatedUnion("kind", [
+      z
+        .object({
+          kind: z.literal("owner"),
+          label: z.string().min(1),
+          sourceRef: z.string().min(1),
+        })
+        .strict(),
+      z
+        .object({
+          kind: z.literal("representative"),
+          name: z.string().min(1),
+          capacity: z.string().min(1),
+        })
+        .strict(),
+    ]),
+    channel: z.discriminatedUnion("kind", [
+      z
+        .object({
+          kind: z.literal("linked_reply"),
+          sequenceId: z.string().uuid(),
+          senderEmail: z.string().min(1),
+          threadId: z.string().min(1),
+          messageId: z.string().min(1),
+          receivedAt: z.string().datetime(),
+        })
+        .strict(),
+      z
+        .object({
+          kind: z.literal("written"),
+          medium: z.string().min(1),
+          reference: z.string().min(1),
+        })
+        .strict(),
+      z
+        .object({ kind: z.literal("conversation"), participants: z.string().min(1) })
+        .strict(),
+    ]),
+    occurredAt: z.string().datetime({ offset: true }),
+  })
+  .strict();
+export type OwnerApprovalEvidence = z.infer<typeof OwnerApprovalEvidenceSchema>;
+/** S234 BEH-S234-1: the approval items still missing, named for the refusal; null when none. */
+export function missingOwnerApprovalItems(input: OwnerApprovalInput | undefined) {
+  const missing = [
+    !input?.party &&
+      "who approved (an owner of record, or an authorized representative with name and capacity)",
+    !input?.channel &&
+      "how they approved (a reply in this lease's renewal thread, another written channel with its reference, or a conversation with its participants)",
+    !input?.occurredAt && "when they approved",
+  ].filter((item): item is string => Boolean(item));
+  return missing.length ? `Before recording Approved, add ${missing.join("; ")}.` : null;
+}
 const common = {
   // S156: staff knowledge from a call or outside work needs no narrative; the store labels an
   // unnamed source as a plain staff record.
@@ -163,6 +271,7 @@ export const RenewalWorkspaceActionSchema = z.discriminatedUnion("kind", [
         "no_response",
       ]),
       terms: RenewalTermsSchema.optional(),
+      approval: OwnerApprovalInputSchema.optional(),
       ...common,
     })
     .strict(),
@@ -260,6 +369,8 @@ export interface RenewalWorkspaceState {
           | "no_response";
         terms?: z.infer<typeof RenewalTermsSchema>;
         approvedWorkingTerms?: ApprovedWorkingTerms;
+        /** S234 R-S234-1: who approved, how and when; absent on records made before S234. */
+        approval?: OwnerApprovalEvidence;
       })
     | null;
   tenantResponse:
@@ -547,6 +658,8 @@ export function planRenewalWorkspaceAction(
     eventId: string;
     /** S66: the server-captured Working terms an approval covers; null when incomplete. */
     approvedWorkingTerms?: ApprovedWorkingTerms | null;
+    /** S234 R-S234-1: the approval evidence the store verified for this exact approval. */
+    approvalEvidence?: OwnerApprovalEvidence | null;
   },
 ): RenewalWorkspaceState {
   const action = RenewalWorkspaceActionSchema.parse(raw);
@@ -559,7 +672,7 @@ export function planRenewalWorkspaceAction(
     sourceUpdates: { ...current.sourceUpdates },
   };
   const source = action.source ?? STAFF_RECORD_SOURCE;
-  const { approvedWorkingTerms: capturedTerms, ...recordMeta } = meta;
+  const { approvedWorkingTerms: capturedTerms, approvalEvidence, ...recordMeta } = meta;
   let record: StaffRecord = {
     ...recordMeta,
     source,
@@ -591,6 +704,36 @@ export function planRenewalWorkspaceAction(
         "Only explicit owner approval can carry approved terms.",
         400,
       );
+    // S234 R-S234-1: an approval names who approved, how and when; nothing else carries them.
+    if (action.outcome !== "approved_terms" && action.approval)
+      throw new EditableLayerError("Only an approval records who approved and how.", 400);
+    let approval: OwnerApprovalEvidence | null = null;
+    if (action.outcome === "approved_terms") {
+      const missing = missingOwnerApprovalItems(action.approval);
+      if (missing) throw new EditableLayerError(missing, 400);
+      if (Date.parse(action.approval!.occurredAt!) > Date.parse(meta.recordedAt))
+        throw new EditableLayerError("The approval time cannot be in the future.", 400);
+      const input = action.approval!;
+      // A named representative and a written channel or conversation are the staff's own typed
+      // facts. An owner of record and a linked reply need the store's verified readback.
+      const typed =
+        input.party!.kind === "representative" && input.channel!.kind !== "linked_reply"
+          ? {
+              party: input.party!,
+              channel: input.channel! as Exclude<
+                OwnerApprovalEvidence["channel"],
+                { kind: "linked_reply" }
+              >,
+              occurredAt: input.occurredAt!,
+            }
+          : null;
+      if (!approvalEvidence && !typed)
+        throw new EditableLayerError(
+          "The approval's party and channel could not be verified. Reload and record it again.",
+          409,
+        );
+      approval = OwnerApprovalEvidenceSchema.parse(approvalEvidence ?? typed);
+    }
     // An approval recorded without terms keeps the terms already on record (S156 BEH-4).
     const terms =
       action.terms ??
@@ -624,9 +767,11 @@ export function planRenewalWorkspaceAction(
     record = { ...record, termsRevision: next.termsRevision };
     next.ownerResponse = {
       ...record,
+      ...(approval ? { occurredAt: approval.occurredAt } : {}),
       outcome: action.outcome,
       ...(terms ? { terms } : {}),
       ...(binding ? { approvedWorkingTerms: binding } : {}),
+      ...(approval ? { approval } : {}),
     };
   } else if (action.kind === "tenant_response") {
     next.tenantResponse = { ...record, outcome: action.outcome };

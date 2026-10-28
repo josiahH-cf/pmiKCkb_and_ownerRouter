@@ -1,5 +1,10 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
+import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
+import {
+  SYNTHETIC_APPROVAL_CHOICES,
+  recordApprovalThroughForm,
+} from "../helpers/owner-approval-form";
 import {
   act,
   cleanup,
@@ -120,7 +125,12 @@ function manualTree(
         Unrelated draft note
         <input aria-label="Unrelated draft note" defaultValue="" />
       </label>
-      <RenewalManualProvider leaseId="701" initialState={state} writebackPaused>
+      <RenewalManualProvider
+        leaseId="701"
+        initialState={state}
+        writebackPaused
+        ownerApproval={SYNTHETIC_APPROVAL_CHOICES}
+      >
         <section aria-label="Owner fixture">
           <RenewalManualSection section="owner" />
         </section>
@@ -141,6 +151,8 @@ function chooseApproval() {
   const select = owner.getByLabelText("Owner response");
   select.focus();
   fireEvent.change(select, { target: { value: "approved_terms" } });
+  // S234 R-S234-1: choosing Approved opens who, how and when, recorded with "Record approval".
+  recordApprovalThroughForm(owner);
   return select;
 }
 
@@ -168,7 +180,11 @@ describe("S155 autosaved staff records keep focus and input", () => {
     const fetch = vi.fn(async (_url: string, options?: RequestInit) => {
       const body = JSON.parse(String(options?.body));
       expect(body.expectedRevision).toBe(before.revision);
-      expect(body.action).toEqual({ kind: "owner_response", outcome: "approved_terms" });
+      expect(body.action).toEqual({
+        kind: "owner_response",
+        outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
+      });
       after = planRenewalWorkspaceAction(before, body.action, {
         ...metadata,
         eventId: body.operationId,
@@ -211,7 +227,7 @@ describe("S155 autosaved staff records keep focus and input", () => {
     // independently), so the guidance must advance on the recorded approval itself.
     const after = planRenewalWorkspaceAction(
       initial(),
-      { kind: "owner_response", outcome: "approved_terms" },
+      { kind: "owner_response", outcome: "approved_terms", approval: SYNTHETIC_APPROVAL },
       metadata,
     );
     expect(after.ownerResponse?.terms).toBeUndefined();
@@ -277,6 +293,7 @@ describe("S127 successful app-save focus and authoritative refreshed issues", ()
       {
         kind: "owner_response",
         outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
         terms: { rent: 1250, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
       },
       metadata,
@@ -299,7 +316,12 @@ describe("S127 successful app-save focus and authoritative refreshed issues", ()
           Current next-action readback
         </div>
         <SaveTrigger readback={{ cycleId: after.cycleId, revision: after.revision }} />
-        <RenewalManualProvider leaseId="701" initialState={state} writebackPaused>
+        <RenewalManualProvider
+          leaseId="701"
+          initialState={state}
+          writebackPaused
+          ownerApproval={SYNTHETIC_APPROVAL_CHOICES}
+        >
           <section aria-label="Tenant fixture">
             <RenewalManualSection section="tenant" />
           </section>
@@ -328,7 +350,11 @@ describe("S127 successful app-save focus and authoritative refreshed issues", ()
       const before = initial();
       const after = planRenewalWorkspaceAction(
         before,
-        { kind: "owner_response", outcome: "approved_terms" },
+        {
+          kind: "owner_response",
+          outcome: "approved_terms",
+          approval: SYNTHETIC_APPROVAL,
+        },
         metadata,
       );
       const tree = (
@@ -353,7 +379,12 @@ describe("S127 successful app-save focus and authoritative refreshed issues", ()
             <input aria-label="Unrelated draft note" defaultValue="" />
           </label>
           <SaveTrigger readback={{ cycleId: after.cycleId, revision: after.revision }} />
-          <RenewalManualProvider leaseId="701" initialState={state} writebackPaused>
+          <RenewalManualProvider
+            leaseId="701"
+            initialState={state}
+            writebackPaused
+            ownerApproval={SYNTHETIC_APPROVAL_CHOICES}
+          >
             <section aria-label="Tenant fixture">
               <RenewalManualSection section="tenant" />
             </section>
@@ -388,7 +419,7 @@ describe("S127 successful app-save focus and authoritative refreshed issues", ()
     const before = initial();
     const after = planRenewalWorkspaceAction(
       before,
-      { kind: "owner_response", outcome: "approved_terms" },
+      { kind: "owner_response", outcome: "approved_terms", approval: SYNTHETIC_APPROVAL },
       metadata,
     );
     const tree = (state: RenewalWorkspaceState) => (
@@ -408,7 +439,12 @@ describe("S127 successful app-save focus and authoritative refreshed issues", ()
           <input aria-label="Unrelated draft note" defaultValue="" />
         </label>
         <SaveTrigger />
-        <RenewalManualProvider leaseId="701" initialState={state} writebackPaused>
+        <RenewalManualProvider
+          leaseId="701"
+          initialState={state}
+          writebackPaused
+          ownerApproval={SYNTHETIC_APPROVAL_CHOICES}
+        >
           <section aria-label="Tenant fixture">
             <RenewalManualSection section="tenant" />
           </section>

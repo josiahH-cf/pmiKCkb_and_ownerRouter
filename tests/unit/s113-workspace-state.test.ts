@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 import {
   STAFF_RECORD_SOURCE,
   currentManualOwnerTerms,
@@ -32,6 +33,7 @@ describe("S113 separate manual cycle", () => {
     state = act(state, {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       source: "phone",
       terms: { rent: 1250, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
     });
@@ -47,6 +49,7 @@ describe("S113 separate manual cycle", () => {
     const approvedWithoutTerms = act(initial(), {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       source: "phone",
     });
     expect(approvedWithoutTerms.ownerResponse).toMatchObject({
@@ -80,6 +83,7 @@ describe("S113 separate manual cycle", () => {
     let state = act(initial(), {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       source: "email",
       terms: { rent: 1250, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
     });
@@ -93,6 +97,7 @@ describe("S113 separate manual cycle", () => {
     const next = act(state, {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       source: "email",
       terms: { rent: 1300, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
     });
@@ -228,6 +233,7 @@ describe("S113 manual applicability and counter handoffs", () => {
     state = act(state, {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       terms: { rent: 1250, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
       source: "Owner call",
     });

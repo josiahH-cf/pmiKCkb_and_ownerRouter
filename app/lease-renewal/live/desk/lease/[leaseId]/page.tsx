@@ -1,4 +1,7 @@
 import { leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
+import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
+import { listLeaseOwnerReplies } from "@/lib/gmail-hub/sequence-store";
+import type { OwnerApprovalChoices } from "@/lib/lease-renewal/owner-approval-evidence";
 import { readRenewalPricingForViews } from "@/lib/lease-renewal/pricing-policy-read";
 import { RenewalDeskReturnLink } from "@/components/lease-renewal/RenewalDeskReturnLink";
 import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
@@ -308,6 +311,27 @@ export default async function LiveRenewalLeaseWorkspacePage({
     .catch(() => null);
   // S235 R-S235-6: the saved Dotloop selection and its last observation (this read never throws).
   const selectionFreshness = await readSelectionFreshness(user, readTimestamp);
+  // S234 R-S234-1: an approval names an owner of record from this source read, or a named
+  // representative, and may cite a reply from this lease's own owner thread. The server checks
+  // both again when the approval is recorded; an unreadable roster records nothing.
+  const ownerViews =
+    leaseSnapshotAttempt?.status === "available"
+      ? leaseSnapshotAttempt.value.snapshot.views.filter(
+          (v) => leaseViewId(v) === leaseId,
+        )
+      : [];
+  const ownerApprovalChoices: OwnerApprovalChoices = {
+    roster:
+      ownerViews.length === 1
+        ? projectRenewalDeskIdentity(ownerViews[0]).owners.map(
+            ({ label, sourceRef }) => ({
+              label,
+              sourceRef,
+            }),
+          )
+        : null,
+    replies: await listLeaseOwnerReplies(leaseId).catch(() => []),
+  };
   const policy = renewalAuxiliaryValue(policyRead, {
     state: "unreadable" as const,
     ruleSet: DEFAULT_NOTICE_RULE_SET,
@@ -623,6 +647,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
               />
             }
             packetShownState={returnedStateView?.packetState ?? null}
+            ownerApprovalChoices={ownerApprovalChoices}
             returnedDocumentsPanel={
               <ReturnedDocumentsPanel
                 canRecord={hasRenewalRoleAuthority("record_returned_state", user.role)}

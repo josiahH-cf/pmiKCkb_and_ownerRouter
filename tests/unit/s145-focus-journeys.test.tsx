@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
+import { recordApprovalThroughForm } from "../helpers/owner-approval-form";
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -109,6 +110,13 @@ async function recordOwnerResponse(
     within(form).queryByLabelText(/Exact owner-approved monthly base rent/),
   ).toBeNull();
   await user.selectOptions(within(form).getByLabelText("Owner response"), outcome);
+  // S234 R-S234-1: an approval names who approved, how and when before it is recorded.
+  if (outcome === "approved_terms") {
+    // A later approval supersedes the recorded one through its own "Record a new approval".
+    const again = within(form).queryByRole("button", { name: "Record a new approval" });
+    if (again) await user.click(again);
+    recordApprovalThroughForm(within(form));
+  }
   await settle();
 }
 

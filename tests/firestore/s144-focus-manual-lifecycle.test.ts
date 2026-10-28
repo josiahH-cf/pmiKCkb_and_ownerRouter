@@ -1,4 +1,5 @@
 import { deleteApp, initializeApp, type App } from "firebase-admin/app";
+import { SYNTHETIC_APPROVAL, SYNTHETIC_OWNER_ROSTER } from "../helpers/owner-approval";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import {
   initializeTestEnvironment,
@@ -123,6 +124,7 @@ async function record(
     },
     db,
     async () => basis,
+    SYNTHETIC_OWNER_ROSTER,
   );
   expect(saved.duplicate).toBe(false);
   return (await readBack())!;
@@ -165,6 +167,7 @@ describe("S144 Focus path through the staff-record store", () => {
     state = await record(state, {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       terms: { rent: 1450, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
       source: "Owner email",
     });
@@ -264,6 +267,8 @@ describe("S144 Focus path through the staff-record store", () => {
           },
         },
         db,
+        undefined,
+        SYNTHETIC_OWNER_ROSTER,
       ),
     );
     expect(stale.status).toBe(409);
@@ -287,6 +292,7 @@ describe("S144 Focus path through the staff-record store", () => {
       },
       db,
       async () => basis,
+      SYNTHETIC_OWNER_ROSTER,
     );
     expect(replay.duplicate).toBe(true);
     expect(replay.state?.cycleId).toBe(state.cycleId);
@@ -311,6 +317,8 @@ describe("S144 Focus path through the staff-record store", () => {
           },
         },
         db,
+        undefined,
+        SYNTHETIC_OWNER_ROSTER,
       ),
     );
     expect(wrongCycle.status).toBe(409);

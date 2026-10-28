@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 
 import { can } from "@/lib/auth/roles";
 import { ROLES } from "@/lib/constants";
@@ -125,6 +126,7 @@ function candidates(state: RenewalWorkspaceState): RenewalWorkspaceAction[] {
     {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       terms: terms(state.termsRevision % 2 ? 1425 : 1450),
       source: "Owner email",
     },
@@ -160,6 +162,7 @@ function recordFor(
     return {
       kind: "owner_response",
       outcome: "approved_terms",
+      approval: SYNTHETIC_APPROVAL,
       terms: terms(state.ownerResponse?.terms?.rent === 1450 ? 1475 : 1450),
       source: "Owner email",
     };
@@ -393,6 +396,7 @@ describe(
         {
           kind: "owner_response",
           outcome: "approved_terms",
+          approval: SYNTHETIC_APPROVAL,
           terms: terms(1450),
           source: "Owner",
         },
@@ -447,6 +451,7 @@ describe(
       const approve = {
         kind: "owner_response",
         outcome: "approved_terms",
+        approval: SYNTHETIC_APPROVAL,
         terms: terms(1450),
         source: "Owner email",
       } as const;

@@ -1,4 +1,5 @@
 import { deleteApp, initializeApp, type App } from "firebase-admin/app";
+import { SYNTHETIC_APPROVAL, SYNTHETIC_OWNER_ROSTER } from "../helpers/owner-approval";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import {
   initializeTestEnvironment,
@@ -111,6 +112,7 @@ describe("S154 first-save work record", () => {
       outreach(1, null, 0),
       db,
       basis(leaseEnd),
+      SYNTHETIC_OWNER_ROSTER,
     );
 
     expect(saved.duplicate).toBe(false);
@@ -152,6 +154,7 @@ describe("S154 first-save work record", () => {
       },
       db,
       basis(laterLeaseEnd),
+      SYNTHETIC_OWNER_ROSTER,
     );
     expect(next.state?.cycleId).toBe(saved.state?.cycleId);
     expect(next.state?.basis).toEqual(leaseEnd);
@@ -164,6 +167,7 @@ describe("S154 first-save work record", () => {
       outreach(1, null, 0),
       db,
       basis(null),
+      SYNTHETIC_OWNER_ROSTER,
     );
     expect(noDate.state?.basis).toEqual(LEASE_BOUND_WORK_BASIS);
     expect(noDate.state?.basis).not.toHaveProperty("dateIso");
@@ -175,6 +179,7 @@ describe("S154 first-save work record", () => {
       async () => {
         throw new Error("source unavailable");
       },
+      SYNTHETIC_OWNER_ROSTER,
     );
     expect(unreadable.state?.basis.kind).toBe("lease_bound");
 
@@ -194,10 +199,15 @@ describe("S154 first-save work record", () => {
         cycleId: noDate.state!.cycleId,
         expectedRevision: 1,
         operationId: OP(3),
-        action: { kind: "owner_response", outcome: "approved_terms" },
+        action: {
+          kind: "owner_response",
+          outcome: "approved_terms",
+          approval: SYNTHETIC_APPROVAL,
+        },
       },
       db,
       basis(leaseEnd),
+      SYNTHETIC_OWNER_ROSTER,
     );
     expect(more.state?.basis.kind).toBe("lease_bound");
     expect(more.state?.ownerResponse).toMatchObject({ outcome: "approved_terms" });
@@ -210,6 +220,7 @@ describe("S154 first-save work record", () => {
       outreach(1, null, 0),
       db,
       basis(leaseEnd),
+      SYNTHETIC_OWNER_ROSTER,
     );
     const completed = await saveRenewalWorkspace(
       editor,
@@ -222,6 +233,7 @@ describe("S154 first-save work record", () => {
       },
       db,
       basis(leaseEnd),
+      SYNTHETIC_OWNER_ROSTER,
     );
     // S156: completion is the staff record; an unfinished checklist is guidance only.
     expect(manualRenewalSummary(completed.state!).complete).toBe(true);
@@ -248,6 +260,7 @@ describe("S154 first-save work record", () => {
       },
       db,
       basis(leaseEnd),
+      SYNTHETIC_OWNER_ROSTER,
     );
     expect(sameBasis.state?.cycleId).toBe(oldCycleId);
     expect(sameBasis.state?.completion).not.toBeNull();
@@ -262,6 +275,7 @@ describe("S154 first-save work record", () => {
       outreach(4, oldCycleId, 3),
       db,
       basis(laterLeaseEnd),
+      SYNTHETIC_OWNER_ROSTER,
     );
     expect(renewed.state?.cycleId).not.toBe(oldCycleId);
     expect(renewed.state).toMatchObject({
@@ -288,14 +302,32 @@ describe("S154 first-save work record", () => {
 
   it("BEH-S155-5/6: a stale or replayed first save never duplicates the record or its activity", async () => {
     const request = outreach(1, null, 0);
-    const first = await saveRenewalWorkspace(editor, request, db, basis(leaseEnd));
-    const replay = await saveRenewalWorkspace(editor, request, db, basis(leaseEnd));
+    const first = await saveRenewalWorkspace(
+      editor,
+      request,
+      db,
+      basis(leaseEnd),
+      SYNTHETIC_OWNER_ROSTER,
+    );
+    const replay = await saveRenewalWorkspace(
+      editor,
+      request,
+      db,
+      basis(leaseEnd),
+      SYNTHETIC_OWNER_ROSTER,
+    );
     expect(replay.duplicate).toBe(true);
     expect(replay.state?.cycleId).toBe(first.state?.cycleId);
 
     // A second editor who still sees no record cannot establish another one.
     await expect(
-      saveRenewalWorkspace(secondEditor, outreach(2, null, 0), db, basis(leaseEnd)),
+      saveRenewalWorkspace(
+        secondEditor,
+        outreach(2, null, 0),
+        db,
+        basis(leaseEnd),
+        SYNTHETIC_OWNER_ROSTER,
+      ),
     ).rejects.toMatchObject({ status: 409 });
     expect(await countDocs(RENEWAL_WORKSPACE_COLLECTIONS.head)).toBe(1);
     expect(await countDocs(RENEWAL_WORKSPACE_COLLECTIONS.cycles)).toBe(1);
@@ -309,6 +341,7 @@ describe("S154 first-save work record", () => {
           { ...outreach(n, null, 0), leaseId: "803" },
           db,
           basis(leaseEnd),
+          SYNTHETIC_OWNER_ROSTER,
         ),
       ),
     );
@@ -372,6 +405,7 @@ describe("S154 first-save work record", () => {
       },
       db,
       basis(leaseEnd),
+      SYNTHETIC_OWNER_ROSTER,
     );
     expect(saved.state?.activities.pet).toMatchObject({ outcome: "not_applicable" });
     await expect(
@@ -386,6 +420,7 @@ describe("S154 first-save work record", () => {
         },
         db,
         basis(leaseEnd),
+        SYNTHETIC_OWNER_ROSTER,
       ),
     ).rejects.toMatchObject({ status: 400 });
   });
