@@ -133,7 +133,7 @@ async function seedPacket(snapshotId: string, artifactHash = ORIGINAL) {
       blockers: [],
       catalogVersion: "synthetic-catalog",
       ruleVersion: "synthetic-rules",
-      sourceVersions: {},
+      sourceVersions: [],
       payloadHash: "f".repeat(64),
       snapshot_id: snapshotId,
       snapshot_version: 1,

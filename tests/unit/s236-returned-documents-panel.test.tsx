@@ -33,6 +33,7 @@ const view = (overrides: Partial<ReturnedStateView> = {}): ReturnedStateView => 
     {
       kind: "renewal_extension",
       label: "the renewal extension",
+      title: "Renewal extension",
       contentHash: HASH,
       versionLabel: "Approved filled copy",
       revision: 1,
@@ -69,6 +70,9 @@ describe("S236 returned documents screen", () => {
   it("shows version, state, who still must sign and the staff label, with the Dotloop line apart", () => {
     render(<ReturnedDocumentsPanel canRecord={false} initialView={view()} />);
     const document = screen.getByRole("article");
+    expect(within(document).getByRole("heading", { level: 4 })).toHaveTextContent(
+      "Renewal extension",
+    );
     expect(
       within(document).getByText(/Approved filled copy · bbbbbbbbbbbb/),
     ).toBeVisible();

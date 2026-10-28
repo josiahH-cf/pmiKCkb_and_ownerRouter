@@ -149,7 +149,7 @@ completion** when necessary. Closing and reopening the page retains the work rec
 
 ## November/December additions (after the next release)
 
-These arrive with the release that carries S232 and S233; until then production shows the earlier
+These arrive with the release that carries S232 to S236; until then production shows the earlier
 behavior.
 
 - The desk states the renewal window ("Renewal window: … , Central"). A lease that ended without a
@@ -166,6 +166,27 @@ behavior.
   reviewed sequence", the screen states when the next message goes and the remaining send limit.
 - A pause names its cause in plain words: a reply, failed delivery, Gmail refusal, an unconfirmed
   send, sending not authorized, or a message from an address not on the conversation.
+
+- Under **Document preparation**, the form families table now ends with the saved **Dotloop
+  selection** (profile, template, transaction type, initial status and version) and the time of
+  the last resource observation; a stale, failed or changed observation is named, and an Admin
+  refreshes it in Connections. A form with fewer places than recorded parties or animals reads
+  "This form has places for 2 animals; 3 are recorded." and needs an approved form with room for
+  everyone; nobody is dropped. The packet **State** follows what was actually recorded for the
+  current packet: Previewed, Approved, Provider pending, Partially executed, Executed (provider
+  operations only, not signatures), Failed or Cancelled.
+- **Returned documents and signatures** lists each packet document at the version that went out,
+  its state (Prepared, Uploaded, Sent for signature, Partially signed, Fully executed) and who
+  still must sign, by name and capacity, with the next step. Record **Sent for signature** (when
+  and how) and each signer's **Signed** or **Declined or voided** result with when you observed it
+  and what it rests on: seen in Dotloop (the document name and when you viewed it) or a signed copy
+  received (where the copy is kept). Every entry reads "Recorded by staff, not provider-verified".
+  A signature on an earlier version reads "Signed an earlier version, not current" and does not
+  count. "Dotloop shows …" is the last refresh and never sets a signed state.
+- When every document of the current packet has a filled copy and a reviewed signer map,
+  "Required signatures complete" follows those records and cannot be recorded Done while someone
+  still must sign. Otherwise staff record it as before, and it reads "Recorded by staff without
+  signer detail".
 
 ## Resource links and document handoff
 

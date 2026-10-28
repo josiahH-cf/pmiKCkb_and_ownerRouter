@@ -52,6 +52,8 @@ export interface ReturnedStateView {
   /** Why nothing can be recorded yet, in operator words; null when recording is possible. */
   readonly unavailable: string | null;
   readonly documents: readonly (ReturnedDocumentProjection & {
+    /** The manifest label for display; `label` is the in-sentence form ("the renewal extension"). */
+    readonly title: string;
     readonly contentHash: string;
     readonly versionLabel: string;
     /** The record revision staff must have read before adding to it. */
@@ -215,6 +217,7 @@ export async function resolveReturnedState(
       );
       return {
         ...document,
+        title: version.label,
         contentHash: version.contentHash,
         versionLabel: version.versionLabel,
         revision: record?.revision ?? 0,

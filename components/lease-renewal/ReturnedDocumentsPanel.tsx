@@ -85,7 +85,7 @@ function ReturnedDocument({
       data-document-kind={document.kind}
       data-renewal-field="returned-document"
     >
-      <h4>{document.label}</h4>
+      <h4>{document.title}</h4>
       <p className="muted">
         Version: {document.versionLabel} · {document.contentHash.slice(0, 12)}
       </p>
