@@ -7,18 +7,20 @@ Last updated: 2026-10-28 (UTC). Read AGENTS.md and docs/facts.md first.
 S232–S238 (intake 099–105) were authored against main `a1c0fe8c`; the owner's execution
 instruction then started them in the same owner session. PR #158 merged the first increment at
 `bf0c03f9`, PR #159 its two review fixes and the fact and contract reconciliation at `a786fa16`, and
-PR #160 the remainder slices with the two returned-state review fixes at `be8c0bf4`, each after all
-five CI jobs passed on the exact head. The branch claude/renewal-novdec-rows-20261028 adds, each
-with tests:
+PR #160 the remainder slices with the two returned-state review fixes at `be8c0bf4`, and PR #161
+at `8c84ed04`, each after all five CI jobs passed on the exact head (exact-main CI `40720550221`
+passed on `8c84ed04`). PR #161 added, each with tests:
 
 - S236: the persisted returned-document record, its route and screen, derived Required signatures
-  complete and the Admin checkpoint from records; the PR #161 review fix (`743bac8f`) judges
-  signatures by the Working term revisions the packet's approval facts name;
+  complete and the Admin checkpoint from records; its review fix (`743bac8f`) judges signatures by
+  the Working term revisions the packet's approval facts name;
 - S235: the places refusal, the packet state from recorded events and selection freshness;
 - S238: the isolated browser journey, 14 of 14 steps on `a6f99b6e` and 15 of 15 on `743bac8f`.
 
-Each suite's status line names what remains (S232 R-S232-3 to R-S232-5, S233 R-S233-1/2/4/5/9,
-S234 R-S234-1/2/4/5, S237 R-S237-1/5 and the journey's uncovered phases). Nothing was served;
+The branch claude/renewal-novdec-rows2-20261028 adds S233 R-S233-1/2 (per-message evidence and
+attempt-correlated bounces) and S234 R-S234-1 (who approved, how and when). Each suite's status
+line names what remains (S232 R-S232-3 to R-S232-5, S233 R-S233-4/5/9, S234 R-S234-2/4/5, S237
+R-S237-1/5 and the journey's uncovered phases). Nothing was served;
 production remains `6fbd6225` (S231). The staff walkthrough is NOT RUN. Client inputs C00–C13 stay
 in `docs/open-blockers.md`. The read-only release preflight reads `not_ready`: the Awaiting release
 queue is empty and no permit or fresh GO exists. NEXT: the remaining ready rows, independent of
