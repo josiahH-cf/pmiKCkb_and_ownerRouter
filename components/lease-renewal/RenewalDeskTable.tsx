@@ -62,6 +62,7 @@ import {
   currentRenewalDeskWorklistView,
   withRenewalDeskWorklistView,
   type RenewalDeskWorklistViewCounts,
+  type RenewalDeskReasonCount,
 } from "@/lib/lease-renewal/desk-worklist-views";
 import {
   NON_RENEWAL_HANDOFF_TARGET_ID,
@@ -956,6 +957,7 @@ export function RenewalDeskTable({
   sourceReadComplete = sourceReadOk,
   dependentStateComplete = true,
   viewCounts,
+  reasonCounts,
   sheetWritebackPaused = false,
   viewMemory = NO_VIEW_MEMORY,
   campaign,
@@ -979,6 +981,8 @@ export function RenewalDeskTable({
   dependentStateComplete?: boolean;
   /** S122: how many leases each worklist view would show under the current filters. */
   viewCounts?: RenewalDeskWorklistViewCounts;
+  /** S232 R-S232-3: under All leases, each cohort reason's count with the query of its rows. */
+  reasonCounts?: readonly RenewalDeskReasonCount[];
   /** S127/S128: operating-Sheet writes paused by owner policy; shown as a policy pause, never a failure. */
   sheetWritebackPaused?: boolean;
   /** S166: the account's remembered view; omitted, the table neither shows nor saves one. */
@@ -1071,6 +1075,25 @@ export function RenewalDeskTable({
             <span className="muted">View counts reflect a partial source read.</span>
           )}
         </nav>
+        {reasonCounts?.length ? (
+          <p className="renewal-reason-counts" data-renewal-field="reason-counts">
+            By reason:{" "}
+            {reasonCounts.map((entry, index) => (
+              <span key={entry.reason}>
+                {index ? " · " : ""}
+                <Link
+                  prefetch={false}
+                  className="text-link"
+                  aria-current={state.reason === entry.reason ? "page" : undefined}
+                  data-reason={entry.reason}
+                  href={href(entry.query)}
+                >
+                  {entry.label} {entry.count}
+                </Link>
+              </span>
+            ))}
+          </p>
+        ) : null}
         <span className="renewal-table-count" role="status">
           Matching: {rows.length} · Selected scope: {scopeCount} · Total loaded:{" "}
           {loadedCount}

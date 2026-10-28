@@ -34,7 +34,11 @@ import {
   type PartyTokenMatcher,
   type RenewalDeskQueryV2State,
 } from "@/lib/lease-renewal/desk-query-v2";
-import { countRenewalDeskWorklistViews } from "@/lib/lease-renewal/desk-worklist-views";
+import {
+  countRenewalDeskReasons,
+  countRenewalDeskWorklistViews,
+  currentRenewalDeskWorklistView,
+} from "@/lib/lease-renewal/desk-worklist-views";
 
 export interface DeskPartyFilterAccess extends DeskPartyShortcuts {
   matches: PartyTokenMatcher;
@@ -127,6 +131,11 @@ export function RenewalDesk({
     query,
     partyFilters.matches,
   );
+  // S232 R-S232-3: under All leases, why each loaded lease is listed, each count opening its rows.
+  const reasonCounts =
+    currentRenewalDeskWorklistView(query) === "all"
+      ? countRenewalDeskReasons(view.items, query, partyFilters.matches)
+      : undefined;
   const supportingReadsComplete = auxiliaryFailures.length === 0;
 
   return (
@@ -223,6 +232,7 @@ export function RenewalDesk({
           totalInScope={result.totalInScope}
           totalLoaded={result.totalLoaded}
           viewCounts={viewCounts}
+          {...(reasonCounts ? { reasonCounts } : {})}
           sheetWritebackPaused={sheetWritebackPaused}
           viewMemory={viewMemory}
         />

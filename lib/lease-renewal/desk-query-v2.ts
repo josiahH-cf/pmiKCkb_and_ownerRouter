@@ -36,6 +36,8 @@ import {
   type MoveOutTimingDeskFilter,
   type MoveOutTimingState,
 } from "@/lib/lease-renewal/move-out-timing";
+import type { CohortReason } from "@/lib/lease-renewal/cohort";
+import { humanizeCohortReason } from "@/lib/lease-renewal/desk-model";
 import {
   LIFECYCLE_DESK_FILTERS,
   lifecycleFilterLabel,
@@ -45,6 +47,20 @@ import {
   type LifecycleDeskFilter,
 } from "@/lib/lease-renewal/lifecycle-category";
 export const RENEWAL_DESK_QUERY_V2_VERSION = "2";
+
+/** S232 R-S232-3: the cohort reason a lease is listed for; "all" applies no reason filter. */
+export const RENEWAL_DESK_REASON_FILTERS = [
+  "all",
+  "actionable",
+  "month_to_month",
+  "owner_authorized",
+  "program",
+  "no_end_date",
+  "off_cycle_date",
+  "out_of_window",
+  "term_needs_review",
+] as const satisfies readonly ("all" | CohortReason)[];
+export type RenewalDeskReasonFilter = (typeof RENEWAL_DESK_REASON_FILTERS)[number];
 
 /** Opaque `renewal-party-filter-key/v1` URL token shape (the derivation lives server-side). */
 export const PARTY_FILTER_TOKEN_PATTERN = /^p[12]_[A-Za-z0-9_-]{43}$/;
@@ -168,6 +184,8 @@ export interface RenewalDeskQueryV2State {
   moveOutTiming: MoveOutTimingDeskFilter;
   /** S134: filter by the projected lifecycle category; Unknown stays reachable. */
   lifecycle: LifecycleDeskFilter;
+  /** S232 R-S232-3: filter by the cohort reason a lease is listed for. */
+  reason: RenewalDeskReasonFilter;
   /** Noncanonical render-only feedback; never serialized into a desk URL. */
   readonly dateDiagnostics?: readonly RenewalDeskDateDiagnostic[];
 }
@@ -196,6 +214,7 @@ export const DEFAULT_RENEWAL_DESK_QUERY_V2: Readonly<RenewalDeskQueryV2State> = 
   moveOut: "all",
   moveOutTiming: "all",
   lifecycle: "all",
+  reason: "all",
 };
 
 /** Fixed canonical key order; serialization emits nondefault values in exactly this order. */
@@ -223,6 +242,7 @@ const V2_KEY_ORDER = [
   "moveOut",
   "moveOutTiming",
   "lifecycle",
+  "reason",
 ] as const satisfies readonly (keyof RenewalDeskQueryV2State)[];
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
@@ -432,6 +452,7 @@ export function parseRenewalDeskQueryV2(
       "all",
     ),
     lifecycle: oneOf(firstValue(input, "lifecycle"), LIFECYCLE_DESK_FILTERS, "all"),
+    reason: oneOf(firstValue(input, "reason"), RENEWAL_DESK_REASON_FILTERS, "all"),
     ...(dateDiagnostics.length > 0 ? { dateDiagnostics } : {}),
   };
   return state;
@@ -517,6 +538,8 @@ export interface RenewalDeskV2Item {
     readonly property: { readonly label: string } | null;
   };
   readonly retention: { readonly state: string };
+  /** S232 R-S232-3: the cohort reason the lease is listed for. */
+  readonly reason?: CohortReason;
   /** S232: the end date passed with no recorded renewal outcome. */
   readonly endedWithoutOutcome?: boolean;
   readonly guidance: {
@@ -718,6 +741,7 @@ function matchesQuery(
     return false;
   }
   if (!matchesLifecycleFilter(query.lifecycle, item.queryKeys.lifecycle)) return false;
+  if (query.reason !== "all" && item.reason !== query.reason) return false;
   return true;
 }
 
@@ -894,6 +918,7 @@ const CHIP_LABELS: Partial<Record<keyof RenewalDeskQueryV2State, (v: string) => 
       `Notice timing: ${moveOutTimingFilterLabel(value as MoveOutTimingDeskFilter)}`,
     lifecycle: (value) =>
       `Lifecycle: ${lifecycleFilterLabel(value as LifecycleDeskFilter)}`,
+    reason: (value) => `Reason: ${humanizeCohortReason(value as CohortReason)}`,
   };
 
 /** Sort and direction are view state, not filters; a range renders as one removable chip. */
