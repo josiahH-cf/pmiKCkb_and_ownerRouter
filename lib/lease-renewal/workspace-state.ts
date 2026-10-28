@@ -149,6 +149,9 @@ export const OwnerApprovalInputSchema = z
           .object({
             kind: z.literal("owner"),
             sourceRef: z.string().trim().min(1).max(300),
+            // PR #162 review: the owner as staff saw them, and the roster they chose from.
+            label: z.string().trim().min(1).max(200),
+            rosterFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
           })
           .strict(),
         z

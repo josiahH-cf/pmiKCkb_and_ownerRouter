@@ -42,6 +42,7 @@ export function OwnerApprovalEvidenceForm({
       </p>
     );
   function submit() {
+    const owner = roster?.find((entry) => entry.sourceRef === party) ?? null;
     const occurred = Date.parse(when);
     const approval: OwnerApprovalInput = {
       ...(party === "representative"
@@ -54,8 +55,15 @@ export function OwnerApprovalEvidenceForm({
               },
             }
           : {}
-        : party
-          ? { party: { kind: "owner", sourceRef: party } }
+        : party && owner && choices?.rosterFingerprint
+          ? {
+              party: {
+                kind: "owner",
+                sourceRef: owner.sourceRef,
+                label: owner.label,
+                rosterFingerprint: choices.rosterFingerprint,
+              },
+            }
           : {}),
       ...(channel === "linked_reply" && reply
         ? {

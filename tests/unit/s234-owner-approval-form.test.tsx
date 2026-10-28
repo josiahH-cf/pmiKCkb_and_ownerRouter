@@ -23,6 +23,7 @@ const CHOICES = {
       receivedAt: "2026-10-20T15:00:00.000Z",
     },
   ],
+  rosterFingerprint: "f".repeat(64),
 };
 
 describe("S234 owner approval form", () => {
@@ -60,7 +61,12 @@ describe("S234 owner approval form", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Record approval" }));
     expect(onRecord).toHaveBeenCalledWith({
-      party: { kind: "owner", sourceRef: "rentvine:export:portfolio.owners[0].name" },
+      party: {
+        kind: "owner",
+        sourceRef: "rentvine:export:portfolio.owners[0].name",
+        label: "Example Owner LLC",
+        rosterFingerprint: "f".repeat(64),
+      },
       channel: {
         kind: "linked_reply",
         sequenceId: "6d0f4a51-8e7c-4f90-b1c2-000000000001",
@@ -73,7 +79,7 @@ describe("S234 owner approval form", () => {
   it("offers no reply channel without an owner-thread reply and records nothing unreadable", () => {
     const view = render(
       <OwnerApprovalEvidenceForm
-        choices={{ roster: CHOICES.roster, replies: [] }}
+        choices={{ ...CHOICES, replies: [] }}
         disabled={false}
         onRecord={vi.fn()}
       />,
@@ -86,7 +92,7 @@ describe("S234 owner approval form", () => {
     view.unmount();
     render(
       <OwnerApprovalEvidenceForm
-        choices={{ roster: null, replies: [] }}
+        choices={{ roster: null, replies: [], rosterFingerprint: null }}
         disabled={false}
         onRecord={vi.fn()}
       />,
