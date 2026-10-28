@@ -183,9 +183,27 @@ export interface CommunicationSequence
     state: "current" | "unavailable";
     historyId: string | null;
     mailboxHistoryIds?: Record<string, string>;
+    /** S233 R-S233-4: why the last check did not read cleanly; absent when current or on older records. */
+    reason?: SequenceObservationFailure;
+    /** S233 R-S233-4: when the check stopped reading cleanly; kept across consecutive failed checks. */
+    unavailableSinceMs?: number;
   } | null;
   lastOperation: { id: string; hash: string };
 }
+/**
+ * S233 R-S233-4: why an incoming check did not read cleanly. A linked thread could not be read; a
+ * thread is over the 50-message or 100,000-character read bound (or one message over its body
+ * bound); the staff mailbox sync failed, so the sequence was not checked this run; or the lease
+ * source or recipient facts could not be read before a send.
+ */
+export const SEQUENCE_OBSERVATION_FAILURES = [
+  "read_failed",
+  "thread_too_large",
+  "mailbox_sync_failed",
+  "source_unavailable",
+] as const;
+export type SequenceObservationFailure = (typeof SEQUENCE_OBSERVATION_FAILURES)[number];
+
 /**
  * S233 R-S233-1/R-S233-2: one incoming message on a linked thread, as classified when it was first
  * seen. It records evidence only: no body, subject or address is kept.

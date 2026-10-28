@@ -131,4 +131,38 @@ describe("S233 incoming-check freshness (R-S233-4)", () => {
       "Incoming could not be fully read (last attempt 5 h ago); scheduled sends are held until it reads cleanly",
     );
   });
+
+  it("names why a check failed, since when, and a mailbox sync failure as not checked this run", () => {
+    const failed = (
+      reason:
+        | "read_failed"
+        | "thread_too_large"
+        | "mailbox_sync_failed"
+        | "source_unavailable",
+    ) =>
+      describeSequenceObservation(
+        {
+          checkedAtMs: now - 10 * 60_000,
+          state: "unavailable",
+          historyId: null,
+          reason,
+          unavailableSinceMs: now - 3 * 3_600_000,
+        },
+        now,
+      );
+    const held =
+      "Unavailable for 3 h (last attempt 10 min ago); scheduled sends are held until it reads cleanly";
+    expect(failed("read_failed")).toBe(
+      `Incoming could not be read cleanly: a linked Gmail thread could not be read. ${held}`,
+    );
+    expect(failed("thread_too_large")).toBe(
+      `Incoming could not be read cleanly: a linked Gmail thread is over the 50-message or 100,000-character read limit. ${held}`,
+    );
+    expect(failed("source_unavailable")).toBe(
+      `Incoming could not be read cleanly: the lease source or recipient facts could not be read. ${held}`,
+    );
+    expect(failed("mailbox_sync_failed")).toBe(
+      `Incoming not checked this run: the staff mailbox sync failed, so it was not checked this run. ${held}`,
+    );
+  });
 });

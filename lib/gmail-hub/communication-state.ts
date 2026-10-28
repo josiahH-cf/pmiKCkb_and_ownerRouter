@@ -7,7 +7,10 @@ import type {
   WorkflowCommunicationStatus,
   WorkflowCommunicationWaitingOn,
 } from "@/lib/gmail-hub/workflow-context";
-import type { CommunicationSequence } from "@/lib/gmail-hub/sequence-model";
+import type {
+  CommunicationSequence,
+  SequenceObservationFailure,
+} from "@/lib/gmail-hub/sequence-model";
 
 type SequencePauseCause = NonNullable<CommunicationSequence["pause"]>["cause"];
 
@@ -174,14 +177,34 @@ function describeAge(ms: number): string {
   return hours < 48 ? `${hours} h` : `${Math.floor(hours / 24)} days`;
 }
 
-/** S233 R-S233-4: how fresh the incoming check is; an unreadable check names the held sends. */
+const OBSERVATION_FAILURE_TEXT: Record<SequenceObservationFailure, string> = {
+  read_failed: "a linked Gmail thread could not be read",
+  thread_too_large:
+    "a linked Gmail thread is over the 50-message or 100,000-character read limit",
+  mailbox_sync_failed: "the staff mailbox sync failed, so it was not checked this run",
+  source_unavailable: "the lease source or recipient facts could not be read",
+};
+
+/**
+ * S233 R-S233-4: how fresh the incoming check is. An unclean check says since when and why, and
+ * that dependent sends are held; a mailbox sync failure reads "not checked this run".
+ */
 export function describeSequenceObservation(
   observation: CommunicationSequence["observation"],
   nowMs: number,
 ): string {
   if (!observation) return "Incoming not checked yet";
   const age = describeAge(nowMs - observation.checkedAtMs);
-  return observation.state === "current"
-    ? `Incoming checked ${age} ago`
-    : `Incoming could not be fully read (last attempt ${age} ago); scheduled sends are held until it reads cleanly`;
+  if (observation.state === "current") return `Incoming checked ${age} ago`;
+  // A record from before the reason was kept says only what it knows.
+  if (!observation.reason)
+    return `Incoming could not be fully read (last attempt ${age} ago); scheduled sends are held until it reads cleanly`;
+  const since = describeAge(
+    nowMs - (observation.unavailableSinceMs ?? observation.checkedAtMs),
+  );
+  const lead =
+    observation.reason === "mailbox_sync_failed"
+      ? "Incoming not checked this run"
+      : "Incoming could not be read cleanly";
+  return `${lead}: ${OBSERVATION_FAILURE_TEXT[observation.reason]}. Unavailable for ${since} (last attempt ${age} ago); scheduled sends are held until it reads cleanly`;
 }

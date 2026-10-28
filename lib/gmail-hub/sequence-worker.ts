@@ -80,10 +80,13 @@ export async function runCommunicationWorker(input: {
     sent: 0,
     held: 0,
     failures: 0,
+    notChecked: 0,
   };
   let cursor = claim.cursor,
     completedPage = true;
   const syncedMailboxes = new Set<string>();
+  // S233 R-S233-4: a mailbox whose sync failed is not retried this run; its sequences are marked.
+  const failedMailboxes = new Set<string>();
   for (const original of page.sequences) {
     if (now() - started >= Math.min(120_000, input.maxDurationMs ?? 55_000)) {
       completedPage = false;
@@ -103,12 +106,25 @@ export async function runCommunicationWorker(input: {
       assertCommunicationStaff(actor, "read");
       if (!hasSpaceAccess(actor, original.context.lane))
         throw new Error("Workflow Space unavailable.");
-      if (
-        input.service.deps.syncMailbox &&
-        !syncedMailboxes.has(actor.email.toLowerCase())
-      ) {
-        await input.service.deps.syncMailbox(actor);
-        syncedMailboxes.add(actor.email.toLowerCase());
+      const mailbox = actor.email.toLowerCase();
+      if (input.service.deps.syncMailbox && !syncedMailboxes.has(mailbox)) {
+        let synced = !failedMailboxes.has(mailbox);
+        if (synced)
+          try {
+            await input.service.deps.syncMailbox(actor);
+            syncedMailboxes.add(mailbox);
+          } catch {
+            failedMailboxes.add(mailbox);
+            counts.failures += 1;
+            synced = false;
+          }
+        if (!synced) {
+          // Not checked this run: the record says so, and nothing is sent from it.
+          await input.service.markNotChecked(original);
+          counts.notChecked += 1;
+          counts.held += 1;
+          continue;
+        }
       }
       const observed = await input.service.observe(original);
       counts.observed += 1;

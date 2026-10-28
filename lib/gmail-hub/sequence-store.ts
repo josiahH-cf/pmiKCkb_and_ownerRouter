@@ -17,6 +17,7 @@ import type {
   CommunicationInboundEvidence,
   CommunicationOccurrence,
   CommunicationSequence,
+  SequenceObservationFailure,
   SequenceState,
 } from "./sequence-model";
 import type { GmailSendResult } from "@/lib/gmail-runtime/types";
@@ -107,6 +108,8 @@ export interface SequenceStore {
       historyId: string | null;
       mailboxHistoryIds?: Record<string, string>;
       complete: boolean;
+      /** S233 R-S233-4: why an incomplete check did not read cleanly; default a read failure. */
+      reason?: SequenceObservationFailure;
       /** S233 R-S233-1: the classified evidence for each id in `messageIds`. */
       messages?: CommunicationInboundEvidence[];
     },
@@ -588,6 +591,16 @@ export class FirestoreCommunicationSequenceStore implements SequenceStore {
           state: i.complete ? "current" : "unavailable",
           historyId: i.historyId,
           mailboxHistoryIds: i.mailboxHistoryIds ?? {},
+          // S233 R-S233-4: an unclean check names why and keeps when the trouble began.
+          ...(i.complete
+            ? {}
+            : {
+                reason: i.reason ?? "read_failed",
+                unavailableSinceMs:
+                  s.observation?.state === "unavailable"
+                    ? (s.observation.unavailableSinceMs ?? s.observation.checkedAtMs)
+                    : i.checkedAtMs,
+              }),
         },
         updatedAtMs: i.checkedAtMs,
       };
