@@ -1,6 +1,16 @@
 # Loop state
 
-Last updated: 2026-10-27 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-10-28 (UTC). Read AGENTS.md and docs/facts.md first.
+
+## November/December renewal specifications authored (October 28)
+
+S232–S238 (intake 099–105, handoff `renewal-novdec-2026-10-28`) are READY in
+`docs/feature-suites/README.md`, authored from the owner's saved Clarify Features initialization
+against main `a1c0fe8c`. No implementation, deployment, provider effect, message or task was
+started; production remains `6fbd6225` (S231). Client inputs C00–C13 are recorded in
+`docs/open-blockers.md` and hold only their named effects. NEXT: the owner's execution instruction
+for the selected suites; S238 owns the preflight, isolated journey, staff walkthrough, document
+reconciliation and the November 4, 2026 (Central) blocker review.
 
 ## Dotloop A1 resolved and selected (October 27)
 
@@ -13,8 +23,8 @@ integrations INDIVIDUAL profile 20701283. The owner's Admin session refreshed re
 profile 20701283, template 228954 and initial status `PRE_OFFER` (owner choice) at 10:39:59Z; the
 selection and the readiness page read back. Both write keys stay closed; no loop, upload or other
 provider business write occurred. S231 patched new audit advisories and released (run 030761c0).
-NEXT: the client content holds in `docs/open-blockers.md` (B-DL3 originals, maps and signers;
-fees and Rhino; A5). The first real loop is ordinary staff-confirmed work after B-DL3 approval,
+The client content holds (B-DL3 originals, maps and signers; fees and Rhino; A5) are itemized in
+C01–C10, and the human and live-evidence holds in C11–C13, in `docs/open-blockers.md`. The first real loop is ordinary staff-confirmed work after B-DL3 approval,
 under its own exact owner authorization.
 Windows-hosted Claude Code and Codex report the WSL credential store through `auth:ensure`
 (protected `scripts/auth`, merged on owner direction). Private receipts:
@@ -93,5 +103,6 @@ least-privilege `drive.file` 404 for a browser-visible file is expected and hold
 
 Documentation-only closure records the verified delivery; it requires no runtime deployment.
 The deployed source is 6fbd6225 (S231, run 030761c0). Preserve private receipts and failed attempts outside Git.
-Actual template visibility/selection, applicable approved originals/maps, required timing inputs
-and human real-case acceptance remain open for the requested Thursday journey; no customer effect was proof.
+Template visibility and selection are resolved (October 27). Applicable approved originals/maps,
+policies, the A5 timing record and human real-case acceptance remain open (C01–C13); no customer
+effect was proof.

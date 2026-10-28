@@ -1,6 +1,7 @@
 # Unblock packet
 
-Last reconciled: 2026-10-27 (Dotloop A1 resolved and selected; S231 delivered by run 030761c0).
+Last reconciled: 2026-10-28 (November/December renewal client inputs C00–C13 recorded for
+S232–S238; Dotloop A1 resolved and selected 2026-10-27; S231 delivered by run 030761c0).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only its named effect or dependent release phase; independent
@@ -48,6 +49,108 @@ Normal deployed-app credential/resource refresh and real Admin source-reference 
 | B-TIMING | Approved 30-day notice classifications (they read Cannot determine)  | A5: record the decided basis in Admin                                                                                                                                                                                         | Reads back the saved basis version                                                                                                                                                       |
 | B-DL3    | Approved form content/maps and rules for the selected lease packet   | Client supplies approved originals, field and signer maps for the ten form families (city addendum and HOA sources too), the fee policy and the Rhino policy material; an Admin configures them through the S66/S130 controls | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output; the first real loop then needs its own exact owner authorization |
 | B-HUMAN  | Human verdicts and real-case accuracy claims only                    | E2: observed sessions and real material                                                                                                                                                                                       | Records each verdict with its evidence; nothing is inferred from tests                                                                                                                   |
+
+## November/December renewal client inputs (C00–C13)
+
+Recorded 2026-10-28 for S232–S238 (`docs/feature-suites/README.md`, intake 099–105). These items
+refine B-DL3, B-TIMING and B-HUMAN for the November/December campaign. The information/connection
+target is Wednesday, November 4, 2026 (Central): a target, not a promised third-party response. Each
+item holds only its named effect; every code slice proceeds. Engineering prepares technical detail
+and samples; the client supplies meaning, policy, originals, access decisions and approvals.
+Examples in the suites are synthetic illustrations, never live values. Asks are unsent drafts for
+the owner; this file creates no email, draft, invitation or task.
+
+- **C00 — closed (A1/B-DL2).** Saved Dotloop selection: profile 20701283, template 228954,
+  `LEASE_OFFER`, `PRE_OFFER`, version 1 (2026-10-27). No ask; later runs recheck freshness read-only.
+- **C01 — B-DL3, approved originals and use.** Per family: approved original (publication
+  reference, content hash, effective version), use (Required / When it applies / Not used),
+  allowed packet contexts and extension compatibility, recorded through the S66/S130 Admin intake
+  and family-use controls (all ten read the `family-use-default-v1` engineering default today).
+  Ask: "For the first renewal extension, mark the exact approved form and version and which
+  attachments apply, and name who approves forms; mark unused or conditional forms; send city or HOA
+  material only where it applies." Approver: client document custodian (not yet named). Proof: an
+  approved intake entry with content hash and a client family-use version. Holds: that family's
+  output (S235).
+- **C02 — B-DL3, field maps.** `artifact-field-map/v1` per approved original: `fields[]`
+  (`fieldId`, `factKey`, `meaning`, `required`, `multiplicity`, `allowedSourceSystems`) with actual
+  `pdfFieldNames` or static page regions, plus `mapVersion`/`templateVersion`. Actual PDF field names
+  and coordinates are unknown until the files arrive; engineering inventories them and prepares the
+  map. Ask: "On this original, confirm what each highlighted blank means and its source; correct our
+  prepared map." Proof: a synthetic filled copy reviewed for that map version with signature,
+  initial and signing-date regions untouched. Holds: that form's filling (S235).
+- **C03 — authority and operators.** Who prepares, sends, records owner consent, approves forms and
+  fees, sends for signature and authorizes RentVine changes, with any delegation; Bailey Whiting's
+  and Chasity Velazquez's current app role, Spaces and mailbox (titles grant no authority). Ask:
+  "Confirm who does and who approves each step, and any delegation." Owner: the project owner for
+  operations, the client for landlord/legal/policy authority; an Admin reads roles. Proof:
+  read-only role/Space/profile readback and a written designation. Holds: real approval records and
+  live steps (S234, S238).
+- **C04 — per case, owner approval evidence.** For a selected lease: the approved Working
+  `terms_rent`, `terms_effective_date` and `terms_end_date` (YYYY-MM-DD), charges, and who approved,
+  through which channel and when. Ask: "For the selected renewal, which exact rent, start, end and
+  charges did the owner approve, and where is that approval?" Owner: the landlord or representative;
+  staff record it. Proof: an S234 record with evidence and approval state current. Holds: that
+  lease's packet (S235).
+- **C05 — B-TIMING (A5) and notice rule.** A5 as decided (contractual lease end; calendar days,
+  target minus notice; threshold 30, exactly 30 meets) with who confirmed it and where; the seeded,
+  unverified notice rule (code defaults: deadline day 15, month offset -1, warning lead 3 days,
+  follow-up 10 days) confirmed or corrected; the current November/December outreach and catch-up
+  dates and which messages already went out. Reported practice from October 8 (owner offers in the first days of the
+  month, tenant offers on the 15th) is context, not policy. Ask: "Please record the decided 30-day
+  basis in Admin with its confirmation source, confirm or correct the notice-rule values, and tell us
+  the current outreach and catch-up dates and what was already sent." Proof: saved basis version and
+  verified rule readback. Holds: 30-day and notice labels (S232).
+- **C06 — source semantics, per discrepancy.** Lease-detail `baseRentAmount` is the contractual
+  current rent; `rentAmount` is the total and the export `unit.rent` a listing reference; future
+  rent carries its own effective date; charge amounts are `0.00` strings. Ask: "Where a source
+  differs, point to the signed or current amount and effective date, and confirm any approved
+  exception." Owner: staff and the financial approver. Proof: dated lease-detail read and the S237
+  basis. Holds: the affected update (S237).
+- **C07 — B-DL3 when applicable, extension or full lease.** `transaction.type`, `management.origin`
+  (`pmi_managed`/`inherited`), `active_lease.executed`, `active_lease.form_family`,
+  `lease.original_date`, `landlord.legal_entity`, `renewal.return_by_date`, `renewal.fallback_term`
+  (`month_to_month`/`termination`). Ask: "For this lease, confirm the signed original and its form
+  family, inherited status, landlord entity, whether an extension or a full lease applies, and the
+  return-by and fallback wording." Owner: document/policy approver; staff record facts. Proof: the
+  evaluator's context and fact provenance. Holds: that lease's packet context (S235).
+- **C08 — B-DL3/B-HUMAN, parties and signers.** `people.entries[]` (`personId`, `kind`
+  person/organization, `fullName`, `email` with `emailBasis`, `roles[]` with `signerRole`, `order`,
+  `dotloopRole`) and map `signers[]` (`signerRole`, `participantKind`, `required`, `location`). Ask:
+  "Confirm each required signer and capacity, signing order, verified contact and signature
+  location, including co-tenants, an organization's representative and any guarantor." Owner:
+  document owner; staff verify contacts. Proof: a reviewed signer map and the S236 roster. Holds:
+  signer roster and returned-state records (S236).
+- **C09 — B-DL3 when conditional, property and addenda.** `property.street_line`, `property.city`,
+  `property.state`, `property.zip`, `property.year_built`, `property.city_addendum_required`,
+  `property.hoa_governed`. Ask: "Confirm the structured address, year built and whether a city
+  addendum or HOA rule applies for the first case, with the material where it applies." Owner:
+  property/source custodian and policy approver. Proof: source references and evaluator variants.
+  Holds: lead-disclosure, city and HOA output (S235).
+- **C10 — B-DL3 when applicable, fees, animals, insurance and Rhino.** A published
+  `renewal-charge-policy/v1` (resident benefit package and insurance program monthly cents, animal
+  basis `weight_lb` or `fido_score` with tiers and treatments, effective date), the
+  `insurance.coverage_method` election, `charges.resident_benefit_package.enrolled`, animal facts and
+  the Rhino policy material (none recorded today). Ask: "Provide the approved fee, resident-benefit,
+  insurance and animal schedule and the Rhino material, with exemptions and how elections are
+  verified, and name the approver." Owner: client policy approver; data custodian (Shane per the
+  October 8 notes, unconfirmed); an Admin publishes. Proof: a published policy version and boundary
+  checks. Holds: economics on affected packets (S235).
+- **C11 — B-HUMAN, genuine case and live scope.** A genuine renewal, the exact allowed actions and
+  recipients, or an actual isolated provider sandbox (none exists today). Ask: "When ready, name the
+  genuine renewal and exactly which actions and recipients are allowed for the staff walkthrough."
+  Owner: the project owner. Proof: written scope. Holds: provider-functional and human rows (S238).
+- **C12 — runtime evidence, sender and receipt.** The intended responsible sender per case (their
+  own mailbox profile through the approved delegation; only the integrations profile is verified),
+  the existing linked conversation, and permission for a controlled-recipient receipt check. Ask:
+  "Confirm who sends for each case and allow the exact controlled receipt check when live proof is
+  selected." Owner: the project owner and staff; engineering verifies the profile. Proof: profile
+  match and receipt or reply evidence. Holds: real sends and receipt proof (S233).
+- **C13 — live effects, final reconciliation.** The signed terms and intended RentVine changes
+  (`endDate`, `increaseEligibilityDate`; recurring charge `accountID`, `amount`, `description`,
+  `dayDue`, `frequency`, `startDate`, `endDate`) and Sheet fields for the case. Ask: "Confirm the
+  signed terms and the intended effective changes, including charge account treatment and Sheet
+  fields; approve only the previewed supported actions." Owner: the financial approver; staff
+  confirm. Proof: per-effect receipt and readback. Holds: live RentVine/Sheet effects (S237).
 
 ## Current hold and historical program dependencies
 
@@ -222,11 +325,10 @@ Until then phones use the pop-up, which the S152–S167 release already repairs.
 4. Done 2026-10-07: run 5b5c850e released the non-secret client id and registered callback, the
    client-secret Secret Manager reference (version 1) and the connector vault project; the
    independent revision readback matched.
-5. Consent is done (item 1). Template availability and resource selection follow A1. The template was reported active;
-   fresh successful individual reads are empty and company reads failed. Verify the actual supported
-   owning visibility before requesting an exact remaining eligibility or selection action. The owner's
-   2026-10-08 screenshots show the company on Business+. Do not require an office-only profile
-   selection.
+5. Consent is done (item 1). Template availability and resource selection are done (A1,
+   2026-10-27): LEASE RENEWAL 228954 lists on the integrations INDIVIDUAL profile 20701283 and the
+   saved selection reads back version 1 with `PRE_OFFER`. Later runs recheck freshness read-only and
+   request nothing unless a fresh read regresses.
 6. Feature scope is finalized in intake 050–054. The S66/S130 configuration path will accept the
    actual approved legal versions, applicability, field/signer mappings and versioned fee policy.
    Confirm those production inputs before their affected customer-ready output; do not invent
@@ -236,9 +338,9 @@ Until then phones use the pop-up, which the S152–S167 release already repairs.
    Stable Drive access is deferred and does not hold this specification cycle or local filling.
 
 **Runner continuation:** the stored bindings, connection navigation and bounded OAuth check are
-already released; do not rerun them or request another secret. Read back actual office-agent/template
-eligibility and the saved supported profile/template/status selection after the existing owners
-complete A1. A company-roster screenshot does not establish these prerequisites. Preserve S182's
+already released; do not rerun them or request another secret. The October 27 readback established
+office-agent eligibility and the saved supported profile/template/status selection; later runs
+recheck its freshness read-only and never recreate the template. Preserve S182's
 API-origin exclusions and actual prior receipts. Both Dotloop keys remain closed. The current S227-S229 instruction grants diagnostics,
 not provider execution or activation; older program authority cannot reopen effects.
 No live customer/provider business effect may be created merely as a test, and document presence
@@ -268,9 +370,8 @@ held only as Dotloop vault references.
 
 Remaining, within the authorized flows:
 
-1. The renewal template was reported active. Fresh October 17 supported-individual templates
-   are empty; company-template discovery failed as unavailable. No saved supported selection exists.
-   Check exact owning visibility/eligibility before requesting any remaining action (A1, B-DL2).
+1. Resolved 2026-10-27 (A1, B-DL2): the template lists on the integrations INDIVIDUAL profile
+   and the supported selection is saved and read back. Later reads verify freshness only.
 2. Normal managed resource refresh succeeded October 17. Revocation/reconnect testing remains
    separate; no lifecycle or business mutation was diagnostic proof.
    That flow must preserve S96's preview/confirmation/credential-removal/readback contract;
