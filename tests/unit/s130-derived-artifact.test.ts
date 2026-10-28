@@ -646,7 +646,7 @@ describe("S130 static route through the persisted filled output (AC-S130-11/12/1
   it("refuses more parties than reviewed slots and a missing required value, never dropping anyone", async () => {
     const t = await staticSetup(1);
     await expect(prepareDerivedArtifact(admin, t.prepare, t.db, t.deps)).rejects.toThrow(
-      /TenantName: 2 are recorded but the reviewed form has capacity for 1/,
+      /This form has places for 1 party; 2 are recorded\. An approved form or attachment with room for everyone is required\./,
     );
     const u = await staticSetup(2, ["renewal.synthetic_rent_cents"]);
     await expect(prepareDerivedArtifact(admin, u.prepare, u.db, u.deps)).rejects.toThrow(

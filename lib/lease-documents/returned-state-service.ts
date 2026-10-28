@@ -30,6 +30,10 @@ import {
   type ReturnedDocumentState,
 } from "@/lib/lease-documents/returned-state";
 import {
+  projectShownPacketState,
+  type ShownPacketState,
+} from "@/lib/lease-documents/packet-shown-state";
+import {
   currentReturnedDocuments,
   dotloopShowsLine,
   type ReturnedDocumentVersion,
@@ -57,6 +61,8 @@ export interface ReturnedStateView {
   readonly signaturesComplete: boolean;
   readonly signers: readonly ReturnedSignerChoice[];
   readonly dotloopShows: string | null;
+  /** S235 R-S235-4: the packet state from its recorded events, for the current snapshot. */
+  readonly packetState: ShownPacketState | null;
   /**
    * R-S236-6: true when every included document of the current packet is prepared and has a
    * reviewed signer map, so "Required signatures complete" follows the signer records.
@@ -76,12 +82,13 @@ const CAPACITY_WORDS: Record<string, string> = {
   guarantor: "guarantor",
 };
 
-async function approvedOutputs(
+/** Each artifact's filled copy for this snapshot: present when prepared, with its approved hash. */
+async function derivedOutputs(
   snapshotId: string,
   artifactIds: readonly string[],
   db: Firestore,
-): Promise<Map<string, string>> {
-  const result = new Map<string, string>();
+): Promise<Map<string, { approvedHash: string | null }>> {
+  const result = new Map<string, { approvedHash: string | null }>();
   await Promise.all(
     artifactIds.map(async (artifactId) => {
       const head = await db
@@ -94,14 +101,19 @@ async function approvedOutputs(
         .collection(DERIVED_ARTIFACT_COLLECTIONS.records)
         .doc(id)
         .get();
-      const approval = record.get("approval") as { outputHash?: unknown } | undefined;
       if (
-        record.get("snapshotId") === snapshotId &&
-        record.get("artifactId") === artifactId &&
-        typeof approval?.outputHash === "string" &&
-        approval.outputHash === record.get("outputHash")
+        record.get("snapshotId") !== snapshotId ||
+        record.get("artifactId") !== artifactId
       )
-        result.set(artifactId, approval.outputHash);
+        return;
+      const approval = record.get("approval") as { outputHash?: unknown } | undefined;
+      result.set(artifactId, {
+        approvedHash:
+          typeof approval?.outputHash === "string" &&
+          approval.outputHash === record.get("outputHash")
+            ? approval.outputHash
+            : null,
+      });
     }),
   );
   return result;
@@ -122,15 +134,20 @@ export async function resolveReturnedState(
   const current = snapshot?.current && snapshot.manifest ? snapshot : null;
   const association = current ? await readLoopAssociation(leaseId, db) : null;
   const included = current?.manifest?.includedArtifacts ?? [];
-  const approved = current
-    ? await approvedOutputs(
+  const derived = current
+    ? await derivedOutputs(
         current.snapshotId,
         included.flatMap((artifact) =>
           artifact.artifactId ? [artifact.artifactId] : [],
         ),
         db,
       )
-    : new Map<string, string>();
+    : new Map<string, { approvedHash: string | null }>();
+  const approved = new Map(
+    [...derived].flatMap(([artifactId, output]) =>
+      output.approvedHash ? [[artifactId, output.approvedHash] as const] : [],
+    ),
+  );
   const { documents, versions } = current
     ? currentReturnedDocuments({
         snapshot: current,
@@ -213,6 +230,44 @@ export async function resolveReturnedState(
       })),
     ),
     dotloopShows: current ? dotloopShowsLine(current) : null,
+    packetState: current
+      ? projectShownPacketState({
+          snapshot: current,
+          documents: included.flatMap((artifact) => {
+            if (!artifact.artifactId) return [];
+            const entry = manifest.entries[artifact.kind];
+            const map =
+              entry?.state === "approved" &&
+              entry.publication?.contentHash === artifact.contentHash
+                ? (entry.fieldMap ?? null)
+                : null;
+            const documentRef = entry?.providerBindings?.dotloopDocumentRef ?? null;
+            const live = association?.state === "current" ? association : null;
+            return [
+              {
+                artifactId: artifact.artifactId,
+                fillable: Boolean(map && !map.unchangedAttachment),
+                unchanged: Boolean(map?.unchangedAttachment),
+                prepared: derived.has(artifact.artifactId),
+                approved: approved.has(artifact.artifactId),
+                uploaded: Boolean(
+                  live?.documents.some(
+                    (document) =>
+                      document.snapshotId === current.snapshotId &&
+                      document.artifactId === artifact.artifactId,
+                  ),
+                ),
+                uploadPending: Boolean(
+                  documentRef &&
+                  live?.pendingUploads?.some(
+                    (pending) => pending.documentRef === documentRef,
+                  ),
+                ),
+              },
+            ];
+          }),
+        })
+      : null,
     tracksSignerDetail,
     manualCompletion,
   };

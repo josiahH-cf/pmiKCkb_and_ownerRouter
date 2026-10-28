@@ -50,6 +50,7 @@ import type {
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import type { ShownPacketState } from "@/lib/lease-documents/packet-shown-state";
 import {
   RenewalLeaseInformation,
   type OperatingSheetLookupInput,
@@ -162,6 +163,7 @@ export function RenewalWorkspace({
   operatingSheetPanel = null,
   packetReadinessPanel = null,
   returnedDocumentsPanel = null,
+  packetShownState = null,
   termReviewPanel = null,
   sheetDestination = null,
   sheetFieldDestinations = {},
@@ -216,6 +218,8 @@ export function RenewalWorkspace({
   packetReadinessPanel?: ReactNode;
   /** S236: returned documents, who still must sign and the staff records behind each state. */
   returnedDocumentsPanel?: ReactNode;
+  /** S235 R-S235-4: the packet state from the current snapshot's recorded events. */
+  packetShownState?: ShownPacketState | null;
   /**
    * S103: the page-supplied lease term review control, shown in verification for every openable
    * lease: including an inspection-only month-to-month row, where recording the anchor is the
@@ -608,6 +612,7 @@ export function RenewalWorkspace({
                                 rentvineUpdatesPanel={rentvineUpdatesPanel}
                                 packetReadinessPanel={packetReadinessPanel}
                                 returnedDocumentsPanel={returnedDocumentsPanel}
+                                packetShownState={packetShownState}
                                 resolutionDestinations={resolutionDestinations}
                                 role={role}
                                 sheetProposalPanel={operatingSheetPanel}
@@ -856,6 +861,7 @@ function PhaseContent({
   rentvineUpdatesPanel,
   packetReadinessPanel,
   returnedDocumentsPanel,
+  packetShownState,
   sheetProposalPanel,
   resolutionDestinations,
   termReviewPanel,
@@ -882,6 +888,7 @@ function PhaseContent({
   rentvineUpdatesPanel: ReactNode;
   packetReadinessPanel?: ReactNode;
   returnedDocumentsPanel?: ReactNode;
+  packetShownState?: ShownPacketState | null;
   sheetProposalPanel: ReactNode;
   resolutionDestinations: readonly { fieldKey: string; href: string }[];
   termReviewPanel: ReactNode;
@@ -1323,6 +1330,7 @@ function PhaseContent({
                 leaseId={summary.id}
                 transactionId={summary.id}
                 canEditInputs={hasRenewalRoleAuthority("save_packet_inputs", role)}
+                shownState={packetShownState}
               />
               {packetReadinessPanel}
               <RenewalDocumentHandoff

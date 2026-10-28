@@ -57,6 +57,7 @@ const view = (overrides: Partial<ReturnedStateView> = {}): ReturnedStateView => 
       label: "Riley Example (tenant)",
     },
   ],
+  packetState: null,
   tracksSignerDetail: true,
   manualCompletion: null,
   dotloopShows:
