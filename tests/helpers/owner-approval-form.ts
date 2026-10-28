@@ -8,6 +8,7 @@ export const SYNTHETIC_APPROVAL_CHOICES: OwnerApprovalChoices = {
     { label: "Example Owner LLC", sourceRef: "rentvine:export:portfolio.owners[0].name" },
   ],
   replies: [],
+  rosterFingerprint: "f".repeat(64),
 };
 export const SYNTHETIC_APPROVAL_LOCAL_TIME = "2024-01-02T09:00";
 

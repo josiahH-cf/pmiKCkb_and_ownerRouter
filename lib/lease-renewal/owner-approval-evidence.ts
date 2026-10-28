@@ -18,6 +18,8 @@ export interface OwnerApprovalChoices {
     | null;
   /** Replies received on this lease's owner renewal threads, newest first. */
   readonly replies: readonly OwnerReplyChoice[];
+  /** PR #162 review: the fingerprint of `roster`, sent back with an owner choice. */
+  readonly rosterFingerprint: string | null;
 }
 
 /** One line naming who approved, how and when, for the lease page and the handoff. */

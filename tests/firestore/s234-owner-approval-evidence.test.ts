@@ -15,6 +15,7 @@ import { saveRenewalWorkingField } from "@/lib/firestore/renewal-working-record"
 import {
   getRenewalWorkspace,
   listRenewalWorkspaceActivity,
+  ownerRosterFingerprint,
   saveRenewalWorkspace,
   startRenewalCycle,
 } from "@/lib/firestore/renewal-workspace";
@@ -42,6 +43,14 @@ const basis = {
   source: "RentVine lease end",
 };
 const REPLY = "mailbox-key:reply-1";
+const ROSTER = [{ label: "Example Owner LLC", sourceRef: OWNER_REF }];
+// The owner as the form showed them, with the roster they were chosen from (PR #162 review).
+const OWNER = {
+  kind: "owner" as const,
+  sourceRef: OWNER_REF,
+  label: "Example Owner LLC",
+  rosterFingerprint: ownerRosterFingerprint(ROSTER),
+};
 const OWNER_SEQUENCE = "6d0f4a51-8e7c-4f90-b1c2-000000000001";
 const OTHER_SEQUENCE = "6d0f4a51-8e7c-4f90-b1c2-000000000002";
 
@@ -161,9 +170,7 @@ describe("S234 owner approval evidence on the emulator", () => {
     expect(missing.message).toContain("who approved");
     expect(missing.message).toContain("how they approved");
     expect(missing.message).toContain("when they approved");
-    const noChannel = await refusal(
-      approve({ party: { kind: "owner", sourceRef: OWNER_REF }, occurredAt: WHEN }),
-    );
+    const noChannel = await refusal(approve({ party: OWNER, occurredAt: WHEN }));
     expect(noChannel.message).not.toContain("who approved");
     expect(noChannel.message).toContain("how they approved");
     expect((await getRenewalWorkspace(editor, LEASE, db))!.ownerResponse).toBeNull();
@@ -188,7 +195,7 @@ describe("S234 owner approval evidence on the emulator", () => {
   it("refuses a party not on the roster and records an owner of record by its source label", async () => {
     const stranger = await refusal(
       approve({
-        party: { kind: "owner", sourceRef: "rentvine:export:portfolio.owners[9].name" },
+        party: { ...OWNER, sourceRef: "rentvine:export:portfolio.owners[9].name" },
         channel: {
           kind: "written",
           medium: "Signed letter",
@@ -199,7 +206,7 @@ describe("S234 owner approval evidence on the emulator", () => {
     );
     expect(stranger).toMatchObject({ status: 409 });
     const { state } = await approve({
-      party: { kind: "owner", sourceRef: OWNER_REF },
+      party: OWNER,
       channel: { kind: "written", medium: "Signed letter", reference: "drive:letter-1" },
       occurredAt: WHEN,
     });
@@ -222,8 +229,47 @@ describe("S234 owner approval evidence on the emulator", () => {
     });
   });
 
+  it("refuses an owner choice made from a roster that has since changed (PR #162 review)", async () => {
+    const written = {
+      kind: "written" as const,
+      medium: "Signed letter",
+      reference: "drive:letter-1",
+    };
+    // The same path now holds a different owner, or another owner was added: never substituted.
+    for (const roster of [
+      [{ label: "Replacement Owner LLC", sourceRef: OWNER_REF }],
+      [
+        ...ROSTER,
+        {
+          label: "Second Owner LLC",
+          sourceRef: "rentvine:export:portfolio.owners[1].name",
+        },
+      ],
+    ]) {
+      const changed = await refusal(
+        approve(
+          { party: OWNER, channel: written, occurredAt: WHEN },
+          { ownerRoster: async () => roster },
+        ),
+      );
+      expect(changed).toMatchObject({ status: 409 });
+      expect(changed.message).toContain("owner list changed since this page was opened");
+    }
+    // A label that is not the one at that path is refused even with the right fingerprint.
+    expect(
+      await refusal(
+        approve({
+          party: { ...OWNER, label: "Someone Else" },
+          channel: written,
+          occurredAt: WHEN,
+        }),
+      ),
+    ).toMatchObject({ status: 409 });
+    expect((await getRenewalWorkspace(editor, LEASE, db))!.ownerResponse).toBeNull();
+  });
+
   it("binds a reply from this lease's owner thread and refuses any other reply", async () => {
-    const party = { kind: "owner" as const, sourceRef: OWNER_REF };
+    const party = OWNER;
     for (const channel of [
       {
         kind: "linked_reply" as const,
@@ -270,7 +316,7 @@ describe("S234 owner approval evidence on the emulator", () => {
 
   it("keeps the earlier approval in history when a new approval supersedes it", async () => {
     const first = {
-      party: { kind: "owner" as const, sourceRef: OWNER_REF },
+      party: OWNER,
       channel: {
         kind: "conversation" as const,
         participants: "Example Owner LLC and staff",

@@ -5,6 +5,7 @@ import { getPacketInputs } from "@/lib/firestore/lease-packet-inputs";
 import { readChargePolicy } from "@/lib/firestore/lease-charge-policy";
 import { packetEconomics } from "@/lib/lease-documents/owner-approval-binding";
 import { formatBusinessTimestamp } from "@/lib/date-display";
+import { ownerRosterFingerprint } from "@/lib/firestore/renewal-workspace";
 import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
 import { listLeaseOwnerReplies } from "@/lib/gmail-hub/sequence-store";
 import type { OwnerApprovalChoices } from "@/lib/lease-renewal/owner-approval-evidence";
@@ -326,17 +327,18 @@ export default async function LiveRenewalLeaseWorkspacePage({
           (v) => leaseViewId(v) === leaseId,
         )
       : [];
+  const ownerRoster =
+    ownerViews.length === 1
+      ? projectRenewalDeskIdentity(ownerViews[0]).owners.map(({ label, sourceRef }) => ({
+          label,
+          sourceRef,
+        }))
+      : null;
   const ownerApprovalChoices: OwnerApprovalChoices = {
-    roster:
-      ownerViews.length === 1
-        ? projectRenewalDeskIdentity(ownerViews[0]).owners.map(
-            ({ label, sourceRef }) => ({
-              label,
-              sourceRef,
-            }),
-          )
-        : null,
+    roster: ownerRoster,
     replies: await listLeaseOwnerReplies(leaseId).catch(() => []),
+    // PR #162 review: an owner choice is sent back with the roster it was made from.
+    rosterFingerprint: ownerRoster ? ownerRosterFingerprint(ownerRoster) : null,
   };
   const policy = renewalAuxiliaryValue(policyRead, {
     state: "unreadable" as const,

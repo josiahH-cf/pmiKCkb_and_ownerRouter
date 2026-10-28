@@ -352,6 +352,18 @@ export interface OwnerApprovalVerification {
   /** The current source read's owners; null when the roster cannot be read. */
   readonly ownerRoster: () => Promise<readonly OwnerRosterEntry[] | null>;
 }
+/**
+ * PR #162 review: one fingerprint for the roster an approval form showed. Source references are
+ * field paths, so a replaced or reordered owner keeps a path; the fingerprint and the label bind the
+ * choice to the people staff actually saw.
+ */
+export function ownerRosterFingerprint(roster: readonly OwnerRosterEntry[]): string {
+  return createHash("sha256")
+    .update(JSON.stringify(roster.map((entry) => [entry.sourceRef, entry.label])))
+    .digest("hex");
+}
+const ROSTER_CHANGED =
+  "The lease's owner list changed since this page was opened, so the approval was not recorded. Reload the lease and choose who approved again.";
 const ROSTER_UNREADABLE =
   "The lease's current owner list could not be read, so the approval was not recorded. Refresh the lease data and record it again.";
 
@@ -383,12 +395,15 @@ export async function saveRenewalWorkspace(
     if (!roster) throw new EditableLayerError(ROSTER_UNREADABLE, 409);
     const party = approvalInput.party!;
     if (party.kind === "owner") {
+      if (ownerRosterFingerprint(roster) !== party.rosterFingerprint)
+        throw new EditableLayerError(ROSTER_CHANGED, 409);
       const owner = roster.find((entry) => entry.sourceRef === party.sourceRef);
       if (!owner)
         throw new EditableLayerError(
           "Choose an owner from this lease's current owner list, or Authorized representative with a name and capacity.",
           409,
         );
+      if (owner.label !== party.label) throw new EditableLayerError(ROSTER_CHANGED, 409);
       verifiedParty = { kind: "owner", label: owner.label, sourceRef: owner.sourceRef };
     } else verifiedParty = party;
   }
