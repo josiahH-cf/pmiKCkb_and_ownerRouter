@@ -3,7 +3,7 @@
 
 # S234 — Evidenced owner approval of exact terms and one owner outcome per cycle
 
-> Status: IN PROGRESS (merged to main at bf0c03f9 by PR #158, not served) — the R-S234-3 handoff display now reads the approval-bound Working terms; R-S234-1, R-S234-2 (amended to keep the legacy control on its conditional path), R-S234-4 and R-S234-5 remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 101). Who may approve for each landlord and each real approval's evidence are client facts (C03/C04) that hold only real records, not this code slice.
+> Status: IN PROGRESS (merged to main at bf0c03f9 by PR #158, not served) — the R-S234-3 handoff display now reads the approval-bound Working terms; R-S234-1 (who approved, how and when, with the party checked against a fresh owner roster and a linked reply bound to this lease's own owner thread inside the capture) is implemented with emulator, form and planner tests on branch claude/renewal-novdec-rows2-20261028; R-S234-2 (amended to keep the legacy control on its conditional path), R-S234-4 and R-S234-5 remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 101). Who may approve for each landlord and each real approval's evidence are client facts (C03/C04) that hold only real records, not this code slice.
 
 **Goal.**
 
