@@ -13,13 +13,19 @@ incoming-check age (S233); approval-bound terms on the packet handoff (S234); pl
 text and an accurate Sheet still-before result (S237). S235/S236 and the remaining requirements
 are listed in each suite's status line. PR #159 fixed the two PR #158 review findings with
 counterfactual tests: a pending tenant outcome is no longer a response, and RentVine refusals no
-longer claim nothing was sent. The remainder branch then adds:
+longer claim nothing was sent. PR #160 (merged at `be8c0bf4`) added the S237 Working-value
+current-base binding, the locked ambiguous-state statement and one source-update scope statement,
+the S233 incoming-message variants, S235's lease-wide duplicate-loop prevention and read-only
+per-family readiness, and the S236 returned-state projection with its two review fixes (latest
+observation per signer; version notes bound to the document kind). The branch
+claude/renewal-novdec-rows-20261028 adds:
 
-- S237: the Working-value current-base binding, the locked ambiguous-state statement and one
-  source-update scope statement;
-- S233: the incoming-message variants;
-- S235: lease-wide duplicate-loop prevention and the read-only per-family readiness;
-- S236: the returned-state projection.
+- S236: the persisted returned-document record, its route and the Returned documents and
+  signatures screen, derived Required signatures complete and the Admin checkpoint from records;
+- S235: the places refusal for parties and animals, the packet state from recorded events and the
+  saved Dotloop selection with its last observation;
+- S238: an isolated browser journey through the mounted pages, routes and emulator (14 of 14 steps
+  on `a6f99b6e`, `docs/evidence/s238-isolated-journey-2026-10-28.md`).
 
 Production still serves `6fbd6225` (S231); the staff walkthrough is NOT RUN.
 

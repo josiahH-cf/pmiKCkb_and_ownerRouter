@@ -7,10 +7,13 @@ Updated: 2026-10-28 (UTC).
 The owner's October 28 execution instruction covers bounded audit, repair and verification of
 S232–S238 for reliable November/December 2026 renewals, with known information and connections
 targeted for Wednesday, November 4, 2026 (Central). It grants no customer email or draft, signing,
-production RentVine/Dotloop record effect, credential, grant or purchase. PR #158 merged the first increment
-at `bf0c03f9`. The remaining ready rows proceed independently of delivery: continue the remaining S232–S237 requirements named in
-each suite's status line, S238's isolated journey, and the November 4 blocker review against
-C00–C13 in `docs/open-blockers.md`. Served changes are delivered only after the owner queues
+production RentVine/Dotloop record effect, credential, grant or purchase. PRs #158, #159 and #160
+merged the first increments (`bf0c03f9`, `a786fa16`, `be8c0bf4`); the rows branch adds S236's
+persisted record and screen, S235's slots, state and freshness and S238's isolated browser
+journey. The remaining ready rows proceed independently of delivery: S232 R-S232-3 to R-S232-5,
+S233 R-S233-1/2/4/5/9, S234 R-S234-1/2/4/5 and S237 R-S237-1/5 as named in each suite's status
+line, the journey's uncovered phases, and the November 4 blocker review against C00–C13 in
+`docs/open-blockers.md`. Served changes are delivered only after the owner queues
 them, through the release pipeline and its fresh prerequisites. The staff walkthrough stays NOT RUN
 until a staff observer runs it.
 

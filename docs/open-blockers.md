@@ -77,7 +77,8 @@ the owner; this file creates no email, draft, invitation or task.
   and coordinates are unknown until the files arrive; engineering inventories them and prepares the
   map. Ask: "On this original, confirm what each highlighted blank means and its source; correct our
   prepared map." Proof: a synthetic filled copy reviewed for that map version with signature,
-  initial and signing-date regions untouched. Holds: that form's filling (S235).
+  initial and signing-date regions untouched (procedure: `docs/engineering.md`, Synthetic map
+  verification). Holds: that form's filling (S235).
 - **C03 — authority and operators.** Who prepares, sends, records owner consent, approves forms and
   fees, sends for signature and authorizes RentVine changes, with any delegation; Bailey Whiting's
   and Chasity Velazquez's current app role, Spaces and mailbox (titles grant no authority). Ask:
@@ -118,8 +119,9 @@ the owner; this file creates no email, draft, invitation or task.
   `dotloopRole`) and map `signers[]` (`signerRole`, `participantKind`, `required`, `location`). Ask:
   "Confirm each required signer and capacity, signing order, verified contact and signature
   location, including co-tenants, an organization's representative and any guarantor." Owner:
-  document owner; staff verify contacts. Proof: a reviewed signer map and the S236 roster. Holds:
-  signer roster and returned-state records (S236).
+  document owner; staff verify contacts. Proof: a reviewed signer map and the S236 roster on the
+  lease's Returned documents and signatures screen. Holds: signer roster and returned-state
+  records (S236).
 - **C09 — B-DL3 when conditional, property and addenda.** `property.street_line`, `property.city`,
   `property.state`, `property.zip`, `property.year_built`, `property.city_addendum_required`,
   `property.hoa_governed`. Ask: "Confirm the structured address, year built and whether a city

@@ -6,22 +6,21 @@ Last updated: 2026-10-28 (UTC). Read AGENTS.md and docs/facts.md first.
 
 S232–S238 (intake 099–105) were authored against main `a1c0fe8c`; the owner's execution
 instruction then started them in the same owner session. PR #158 merged the first increment at
-`bf0c03f9`, and PR #159 merged the two PR #158 review fixes and the fact and contract
-reconciliation at `a786fa16`, each after all five CI jobs passed. The branch
-claude/renewal-novdec-remainder-20261028 adds the following, each with tests:
+`bf0c03f9`, PR #159 its two review fixes and the fact and contract reconciliation at `a786fa16`, and
+PR #160 the remainder slices with the two returned-state review fixes at `be8c0bf4`, each after all
+five CI jobs passed on the exact head. The branch claude/renewal-novdec-rows-20261028 adds, each
+with tests:
 
-- S237: the Working-value current-base binding, the ambiguous locked-state statement and one
-  source-update scope statement;
-- S233: the incoming-message variants;
-- S235: lease-wide duplicate-loop prevention, the read-only per-family readiness and default labels;
-- S236: the returned-state projection and its separation guard.
+- S236: the persisted returned-document record, its route and screen, derived Required signatures
+  complete and the Admin checkpoint from records;
+- S235: the places refusal, the packet state from recorded events and selection freshness;
+- S238: the isolated browser journey, 14 of 14 steps on `a6f99b6e`.
 
-Each suite's status line names what remains, including S235's slot binding and state projection,
-S236's persisted staff record and screen, and S238's isolated journey. Nothing was served;
+Each suite's status line names what remains (S232 R-S232-3 to R-S232-5, S233 R-S233-1/2/4/5/9,
+S234 R-S234-1/2/4/5, S237 R-S237-1/5 and the journey's uncovered phases). Nothing was served;
 production remains `6fbd6225` (S231). The staff walkthrough is NOT RUN. Client inputs C00–C13 stay
-in `docs/open-blockers.md`, with three reconciled staff-operations notes under its runner
-follow-ups. The read-only release preflight reads `not_ready`: the Awaiting release queue is empty
-and no permit or fresh GO exists. NEXT: the remaining ready S232–S238 rows, independent of
+in `docs/open-blockers.md`. The read-only release preflight reads `not_ready`: the Awaiting release
+queue is empty and no permit or fresh GO exists. NEXT: the remaining ready rows, independent of
 delivery. Delivery needs the owner's direction to queue the merged slices (owner step R1), then the
 release pipeline's own prerequisites. S238 owns the November 4, 2026 (Central) blocker review.
 

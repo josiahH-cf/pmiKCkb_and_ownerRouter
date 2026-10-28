@@ -3,7 +3,7 @@
 
 # S238 — November/December renewal staff acceptance, evidence and blocker closure
 
-> Status: IN PROGRESS (merged to main at bf0c03f9 by PR #158, not served) — the October 28 document reconciliation is recorded; the staff walkthrough is NOT RUN. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 105). Human verdicts, genuine-case provider evidence and live effects stay BLOCKED on B-HUMAN, C11–C13 and the owner's exact scope; nothing here creates a production record for proof.
+> Status: IN PROGRESS (merged to main at bf0c03f9 by PR #158; later slices on branch claude/renewal-novdec-rows-20261028; not served) — the October 28 document reconciliation is recorded. R-S238-2's isolated browser journey (`scripts/run-renewal-novdec-journey.sh`) drives the real pages, routes and Firestore emulator in the Demo descriptor with synthetic RentVine and Sheet transports and every other outbound connection refused; on `a6f99b6e` it passed 14 of 14 steps across the November/December desk, returned documents from Prepared to Fully executed with record and activity readback, the signatures refusal, a stale-form refusal and the S235 state and freshness lines (`docs/evidence/s238-isolated-journey-2026-10-28.md`). Messages, approvals, RentVine/Sheet claims and receipts and role/mailbox refusals are not yet in the browser run. The staff walkthrough is NOT RUN. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 105). Human verdicts, genuine-case provider evidence and live effects stay BLOCKED on B-HUMAN, C11–C13 and the owner's exact scope; nothing here creates a production record for proof.
 
 **Goal.**
 
