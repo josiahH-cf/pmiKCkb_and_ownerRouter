@@ -20,12 +20,12 @@ export function RemainingDifferences({
         {rows.map((row) => (
           <li key={row.key} data-renewal-difference={row.key}>
             {row.label}: {row.intended}; source {row.readback}
-            {row.readAt ? ` (read ${formatBusinessTimestamp(row.readAt)})` : ""} —{" "}
+            {row.readAt ? ` (read ${formatBusinessTimestamp(row.readAt)})` : ""}.{" "}
             {row.matches === true
-              ? "Matches"
+              ? "Matches."
               : row.matches === false
-                ? "Differs"
-                : "Not compared"}
+                ? "Differs."
+                : "Not compared."}
           </li>
         ))}
       </ul>

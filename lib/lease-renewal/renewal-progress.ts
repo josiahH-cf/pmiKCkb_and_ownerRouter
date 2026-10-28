@@ -717,7 +717,7 @@ export function earlierOwnerRecordDiffers(
   staffState: RenewalOwnerOutcomeState | null | undefined,
 ): string | null {
   return progressState && staffState && progressState !== staffState
-    ? `Earlier owner record differs — review: the earlier owner decision record says ${OWNER_OUTCOME_WORDS[progressState]}; the staff record says ${OWNER_OUTCOME_WORDS[staffState]}. This lease uses the staff record.`
+    ? `Earlier owner record differs. Review: the earlier owner decision record says ${OWNER_OUTCOME_WORDS[progressState]}; the staff record says ${OWNER_OUTCOME_WORDS[staffState]}. This lease uses the staff record.`
     : null;
 }
 

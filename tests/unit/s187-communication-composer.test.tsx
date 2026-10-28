@@ -304,7 +304,7 @@ it("S233 R-S233-1: lists each attempt and incoming message once, with lease, cyc
     expect.stringMatching(/^Initial message: Accepted by Gmail /),
     expect.stringMatching(/^Reply received /),
     "Follow-up 1: Not sent: Gmail refused it",
-    "Follow-up 2: Not confirmed — checking",
+    "Follow-up 2: Not confirmed, checking",
   ]);
   expect(section.textContent).not.toMatch(/\bdelivered\b|\bread\b/i);
 });

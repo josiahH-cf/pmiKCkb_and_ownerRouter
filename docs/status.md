@@ -29,9 +29,15 @@ observation per signer; version notes bound to the document kind). PR #161 (merg
 - S238: an isolated browser journey through the mounted pages, routes and emulator (14 of 14 steps
   on `a6f99b6e`, 15 of 15 on `743bac8f`, `docs/evidence/s238-isolated-journey-2026-10-28.md`).
 
-The branch claude/renewal-novdec-rows2-20261028 adds S233 per-message evidence with
-attempt-correlated bounces (R-S233-1/2) and S234 approval evidence: who approved, how and when,
-checked against the current owner roster and this lease's own owner thread (R-S234-1).
+PR #162 (merged at `f1f06bfb`; exact-main CI `40732855488` passed) added S233 per-message
+evidence with attempt-correlated bounces (R-S233-1/2) and S234 approval evidence: who approved, how
+and when, checked against the current owner roster and this lease's own owner thread (R-S234-1).
+
+The branch claude/renewal-novdec-rows3-20261028 adds the S237 terms basis beside each preview and
+the "What still differs" list (R-S237-1/5), and S234's one owner outcome per cycle, the revision
+note, the tenant earlier-terms wording and Working-only terms (R-S234-2/4/5). The Gmail draft claim
+now re-reads the Working terms inside its transaction, so a terms save after the preview refuses
+the draft.
 
 Production still serves `6fbd6225` (S231); the staff walkthrough is NOT RUN.
 

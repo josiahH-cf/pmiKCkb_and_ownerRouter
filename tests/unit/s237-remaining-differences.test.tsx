@@ -172,10 +172,10 @@ describe("S237 R-S237-5 remaining differences", () => {
     );
     const section = screen.getByRole("region", { name: "What still differs" });
     expect(section).toHaveTextContent(
-      /Lease end date: 2027-11-30; source 2026-11-30 \(read .+\) — Differs/,
+      /Lease end date: 2027-11-30; source 2026-11-30 \(read .+\)\. Differs\./,
     );
     expect(section).toHaveTextContent(
-      /Rent charge from 2026-12-01: \$1800.00; source \$1800.00 \(read .+\) — Matches/,
+      /Rent charge from 2026-12-01: \$1800.00; source \$1800.00 \(read .+\)\. Matches\./,
     );
     expect(section).toHaveTextContent(
       "A match is not a claim that RentVine and the Sheet are synchronized.",

@@ -136,7 +136,7 @@ describe("S234 one owner outcome per cycle (R-S234-2)", () => {
 
   it("names a disagreeing earlier owner record and which record the lease uses", () => {
     expect(earlierOwnerRecordDiffers("revision_requested", "approved_terms")).toBe(
-      "Earlier owner record differs — review: the earlier owner decision record says revision requested; the staff record says approved. This lease uses the staff record.",
+      "Earlier owner record differs. Review: the earlier owner decision record says revision requested; the staff record says approved. This lease uses the staff record.",
     );
     expect(earlierOwnerRecordDiffers("approved_terms", "approved_terms")).toBeNull();
     expect(earlierOwnerRecordDiffers(null, "approved_terms")).toBeNull();

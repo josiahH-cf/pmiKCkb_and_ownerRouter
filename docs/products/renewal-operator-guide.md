@@ -149,7 +149,7 @@ completion** when necessary. Closing and reopening the page retains the work rec
 
 ## November/December additions (after the next release)
 
-These arrive with the release that carries S232 to S236; until then production shows the earlier
+These arrive with the release that carries S232 to S237; until then production shows the earlier
 behavior.
 
 - The desk states the renewal window ("Renewal window: … , Central"). A lease that ended without a
@@ -168,8 +168,8 @@ behavior.
   send, sending not authorized, or a message from an address not on the conversation.
 - An opened communication lists what happened to each message, naming its lease, renewal cycle and
   audience: "Accepted by Gmail", "Failed delivery" (a delivery report tied to that attempt), "Not
-  confirmed — checking", "Not sent: …", "Reply received", "Automatic response", or "Failed
-  delivery — attempt not identified". It never says delivered or read; Gmail shows neither.
+  confirmed, checking", "Not sent: …", "Reply received", "Automatic response", or "Failed
+  delivery, attempt not identified". It never says delivered or read; Gmail shows neither.
 
 - Under **Document preparation**, the form families table now ends with the saved **Dotloop
   selection** (profile, template, transaction type, initial status and version) and the time of
@@ -186,6 +186,22 @@ behavior.
   Nothing is pre-selected, and while the owner list cannot be read no approval is recorded. A
   recorded approval reads "Approved by … through …, on …"; **Record a new approval** supersedes it
   and keeps the earlier one in history. Other owner responses still save when chosen.
+- **Revision requested** opens "What the owner asked to change"; the note saves with the response
+  and the next step reads "Update the working terms and ask the owner again". Change the Working
+  terms, then record the owner's new answer. If an earlier owner decision record from the
+  app-guided path says something different, the Owner decision step reads "Earlier owner record
+  differs. Review: …" and the lease follows the staff record.
+- **The Working terms are the terms.** Terms written on an earlier owner response stay visible as
+  history under the Working fields but no longer fill an empty Working field, so save the Working
+  rent, effective date and end date. A tenant answer recorded before the terms changed reads
+  "Recorded before the terms changed; it does not answer the current terms." Saving the Working
+  terms after a message preview refuses that draft; preview the message again.
+- Beside each RentVine and Sheet preview, **Terms basis** names the Working terms revision and when
+  it was saved, whether the owner's recorded approval covers exactly those terms, and the
+  executed-document status. It is for review only and does not change the update. **What still
+  differs** lists the lease end date, increase-eligibility date, rent charge and each Sheet field
+  this renewal touched, with the Working or approved value beside the latest RentVine or Sheet read
+  and its time. A match is not a claim that the systems are synchronized.
 - **Returned documents and signatures** lists each packet document at the version that went out,
   its state (Prepared, Uploaded, Sent for signature, Partially signed, Fully executed) and who
   still must sign, by name and capacity, with the next step. Record **Sent for signature** (when

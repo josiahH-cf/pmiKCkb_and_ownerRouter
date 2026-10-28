@@ -194,7 +194,7 @@ describe("S234 owner outcome screens", () => {
       '[data-renewal-field="owner-outcome-conflict"]',
     );
     expect(conflict).toHaveTextContent(
-      "Earlier owner record differs — review: the earlier owner decision record says revision requested; the staff record says approved. This lease uses the staff record.",
+      "Earlier owner record differs. Review: the earlier owner decision record says revision requested; the staff record says approved. This lease uses the staff record.",
     );
     view.unmount();
     // The same records in agreement show no conflict.
