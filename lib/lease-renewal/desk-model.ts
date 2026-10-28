@@ -215,6 +215,11 @@ export interface DeskLeaseSummaryBase {
    * amount stays in `currentRent`; this never replaces it.
    */
   workingCurrentRent?: number | null;
+  /**
+   * S234 R-S234-3: whether the staff record's owner approval for this term still covers the
+   * lease's Working terms, naming what changed; absent without an approval or a Working read.
+   */
+  ownerApprovalCoverage?: string;
   id: string;
   addressLabel: string;
   propertyNameLabel: string | null;

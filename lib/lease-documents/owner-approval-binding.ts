@@ -25,6 +25,11 @@ import {
   workingRenewalTerms,
   type RenewalWorkingRecord,
 } from "@/lib/lease-renewal/working-record";
+import {
+  describeApprovalChanges,
+  ownerApprovalCoverage,
+  type OwnerApprovalCoverage,
+} from "@/lib/lease-renewal/owner-approval-coverage";
 import type {
   ApprovedWorkingTerms,
   RenewalWorkspaceState,
@@ -171,6 +176,16 @@ export const OWNER_APPROVAL_NOTICES: Readonly<
 };
 
 /**
+ * S234 R-S234-3: the packet notice for a coverage that is not current, naming exactly which
+ * Working terms changed.
+ */
+export function ownerApprovalNotice(coverage: OwnerApprovalCoverage): string | null {
+  if (coverage.state === "current") return null;
+  if (coverage.state !== "terms_changed") return OWNER_APPROVAL_NOTICES[coverage.state];
+  return `The Working renewal ${describeApprovalChanges(coverage.changed)} changed after the owner's approval was recorded. Record the owner's approval of the current terms.`;
+}
+
+/**
  * Shown while the approval is current but the packet's charges come from the lease's Admin-approved
  * original-lease mapping: that mapping's own approval, bound to the approved terms revision, covers
  * them, not the owner's approval of the calculated charges.
@@ -188,32 +203,28 @@ export function currentOwnerApproval(input: {
   economicsHash: string;
   /** The hash of the charges the packet actually carries (`packetChargeBasis`), when known. */
   packetChargesHash?: string;
-}): { state: OwnerApprovalState; facts: PacketFact[]; notice?: string } {
-  const response = input.workspace?.ownerResponse;
-  if (!input.workspace || response?.outcome !== "approved_terms")
-    return { state: "not_recorded", facts: [] };
-  const binding = response.approvedWorkingTerms;
-  if (!binding) return { state: "no_working_terms", facts: [] };
-  const terms = completeWorkingTerms(workingRenewalTerms(input.working));
-  const revision = (field: string) => workingEntry(input.working, field)?.revision ?? 0;
-  if (
-    !terms ||
-    terms.rent !== binding.rent ||
-    terms.effectiveDate !== binding.effectiveDate ||
-    terms.endDate !== binding.endDate ||
-    revision("terms_rent") !== binding.fieldRevisions.rent ||
-    revision("terms_effective_date") !== binding.fieldRevisions.effectiveDate ||
-    revision("terms_end_date") !== binding.fieldRevisions.endDate
-  )
-    return { state: "terms_changed", facts: [] };
-  if (binding.economicsHash !== input.economicsHash)
-    return { state: "charges_changed", facts: [] };
+}): {
+  state: OwnerApprovalState;
+  facts: PacketFact[];
+  notice?: string;
+  /** S234 R-S234-3: the same coverage, naming exactly what changed, for the notice and screens. */
+  coverage: OwnerApprovalCoverage;
+} {
+  const coverage = ownerApprovalCoverage(input);
+  const workspace = input.workspace;
+  const response = workspace?.ownerResponse;
+  if (coverage.state !== "current" || !workspace || !response)
+    return {
+      state: coverage.state === "current" ? "not_recorded" : coverage.state,
+      facts: [],
+      coverage,
+    };
+  const binding = coverage.binding;
   // The approval covers the calculated charges. Charges a current mapping supplies instead are
   // covered by that mapping's own Admin approval; the packet says so rather than implying otherwise.
   const mappingCharges =
     input.packetChargesHash !== undefined &&
     input.packetChargesHash !== input.economicsHash;
-  const workspace = input.workspace;
   const source = {
     system: APPROVED_TERMS_SOURCE_SYSTEM,
     reference: approvedTermsReference(workspace.cycleId, binding.fieldRevisions),
@@ -236,6 +247,7 @@ export function currentOwnerApproval(input: {
   });
   return {
     state: "current",
+    coverage,
     ...(mappingCharges ? { notice: MAPPING_CHARGES_NOTICE } : {}),
     facts: [
       // Display text stays the stored value; a reviewed map field formats it for its document.

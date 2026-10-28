@@ -8,6 +8,7 @@ import {
   currentOwnerApproval,
   type OwnerApprovalState,
 } from "@/lib/lease-documents/owner-approval-binding";
+import { describeApprovalChanges } from "@/lib/lease-renewal/owner-approval-coverage";
 import {
   workingEntry,
   workingRenewalTerms,
@@ -51,16 +52,20 @@ export function projectSourceUpdateTermsBasis(input: {
     .filter((at): at is string => at !== null && Number.isFinite(Date.parse(at)))
     .sort()
     .at(-1);
-  const approval =
+  const coverage =
     input.economicsHash === null
-      ? "Owner approval coverage could not be checked: the calculated charges could not be read"
-      : APPROVAL_COVERAGE[
-          currentOwnerApproval({
-            workspace: input.workspace,
-            working: input.working,
-            economicsHash: input.economicsHash,
-          }).state
-        ];
+      ? null
+      : currentOwnerApproval({
+          workspace: input.workspace,
+          working: input.working,
+          economicsHash: input.economicsHash,
+        }).coverage;
+  // S234 R-S234-3: a stale approval names exactly which Working terms changed.
+  const approval = !coverage
+    ? "Owner approval coverage could not be checked: the calculated charges could not be read"
+    : coverage.state === "terms_changed"
+      ? `Owner approval no longer covers these terms: the Working ${describeApprovalChanges(coverage.changed)} changed after it was recorded`
+      : APPROVAL_COVERAGE[coverage.state];
   const returned = input.returned;
   const documents =
     !returned || returned.unavailable

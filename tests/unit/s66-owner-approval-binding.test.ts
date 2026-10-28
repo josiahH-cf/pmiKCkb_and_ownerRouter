@@ -172,7 +172,11 @@ describe("S66 owner approval bound to the exact Working terms (AC-S66-8, BEH-S66
         working: working(TERMS),
         economicsHash: hash(),
       }),
-    ).toEqual({ state: "no_working_terms", facts: [] });
+    ).toEqual({
+      state: "no_working_terms",
+      facts: [],
+      coverage: { state: "no_working_terms" },
+    });
     const reviewed = planRenewalWorkspaceAction(
       base(),
       { kind: "preparation", rangeLow: 1200, rangeHigh: 1300, pmiNumber: 1250 },
@@ -193,21 +197,22 @@ describe("S66 owner approval bound to the exact Working terms (AC-S66-8, BEH-S66
 
   it("makes the approval stale when a covered term changes, even back to the same value", () => {
     const state = approve(base(), working(TERMS));
-    expect(
-      currentOwnerApproval({
-        workspace: state,
-        working: working({ ...TERMS, rent: 1300 }, { rent: 2 }),
-        economicsHash: hash(),
-      }).state,
-    ).toBe("terms_changed");
+    const rentChanged = currentOwnerApproval({
+      workspace: state,
+      working: working({ ...TERMS, rent: 1300 }, { rent: 2 }),
+      economicsHash: hash(),
+    });
+    expect(rentChanged.state).toBe("terms_changed");
+    // S234 R-S234-3: the coverage names exactly the term that changed.
+    expect(rentChanged.coverage).toMatchObject({ changed: ["rent"] });
     // A save that restores the same value still names a new revision of that term.
-    expect(
-      currentOwnerApproval({
-        workspace: state,
-        working: working(TERMS, { effectiveDate: 3 }),
-        economicsHash: hash(),
-      }).state,
-    ).toBe("terms_changed");
+    const effectiveResaved = currentOwnerApproval({
+      workspace: state,
+      working: working(TERMS, { effectiveDate: 3 }),
+      economicsHash: hash(),
+    });
+    expect(effectiveResaved.state).toBe("terms_changed");
+    expect(effectiveResaved.coverage).toMatchObject({ changed: ["effective_date"] });
   });
 
   it("makes the approval stale when the calculated charges change, and a renewed approval is a terms change", () => {
@@ -220,7 +225,14 @@ describe("S66 owner approval bound to the exact Working terms (AC-S66-8, BEH-S66
         working: record,
         economicsHash: hash(republished),
       }),
-    ).toEqual({ state: "charges_changed", facts: [] });
+    ).toEqual({
+      state: "charges_changed",
+      facts: [],
+      coverage: {
+        state: "charges_changed",
+        binding: state.ownerResponse!.approvedWorkingTerms,
+      },
+    });
     const renewed = approve(state, record, null, republished);
     expect(renewed.termsRevision).toBe(state.termsRevision + 1);
     expect(

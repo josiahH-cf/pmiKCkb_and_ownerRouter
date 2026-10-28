@@ -457,13 +457,14 @@ export default async function LiveRenewalLeaseWorkspacePage({
     ),
     readChargePolicy(),
   ]);
+  const currentEconomicsHash =
+    basisInputs.readable && basisPolicy.readable
+      ? packetEconomics(leaseId, basisInputs.record, basisPolicy.record).hash
+      : null;
   const sourceUpdateTermsBasis = projectSourceUpdateTermsBasis({
     working: renewalAuxiliaryValue(workingRecordRead, null),
     workspace: manualState,
-    economicsHash:
-      basisInputs.readable && basisPolicy.readable
-        ? packetEconomics(leaseId, basisInputs.record, basisPolicy.record).hash
-        : null,
+    economicsHash: currentEconomicsHash,
     returned: returnedStateView,
     formatTime: formatBusinessTimestamp,
   });
@@ -691,7 +692,11 @@ export default async function LiveRenewalLeaseWorkspacePage({
               />
             }
             packetShownState={returnedStateView?.packetState ?? null}
-            ownerApprovalChoices={ownerApprovalChoices}
+            ownerApprovalChoices={{
+              ...ownerApprovalChoices,
+              // S234 R-S234-3: the coverage line also checks the charges the approval covers.
+              economicsHash: currentEconomicsHash,
+            }}
             returnedDocumentsPanel={
               <ReturnedDocumentsPanel
                 canRecord={hasRenewalRoleAuthority("record_returned_state", user.role)}
