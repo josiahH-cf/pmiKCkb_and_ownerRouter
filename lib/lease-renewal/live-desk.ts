@@ -775,7 +775,7 @@ function toLiveSummary(
                 ? manual.basis.dateIso
                 : null),
           },
-          effectiveRenewalTerms(working, manual).complete,
+          effectiveRenewalTerms(working).complete,
           pricing.today,
         )
       : undefined;

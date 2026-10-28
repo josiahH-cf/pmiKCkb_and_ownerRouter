@@ -4,7 +4,10 @@ import {
   buildRentvineRecordDestination,
   expectedRentvineHost,
 } from "@/lib/lease-renewal/desk-destinations";
-import { messageResourceFingerprint } from "./message-claim-basis";
+import {
+  messageResourceFingerprint,
+  workingTermsFingerprint,
+} from "./message-claim-basis";
 import { observeRenewalNotice } from "@/lib/firestore/renewal-notice-safety";
 import {
   readAdmittedRenewalNoticeLease,
@@ -377,18 +380,12 @@ export async function currentRenewalMessage(
           : `${rent.attention} The current rent in this message is the ${rent.label}.`,
       );
   }
-  // S156 (R-S161-2): the terms staff are working with, field by field, with terms already recorded
-  // on an owner response as the fallback. An owner response is a recorded fact, not a prerequisite.
-  const terms = effectiveRenewalTerms(workingRecord, workspace);
+  // S156 (R-S161-2): the terms staff are working with, field by field. S234 R-S234-2: terms recorded
+  // on an earlier owner response are never used in their place.
+  const terms = effectiveRenewalTerms(workingRecord);
   const termsKnown =
     terms.rent !== null || terms.effectiveDate !== null || terms.endDate !== null;
-  const termsSource = !termsKnown
-    ? null
-    : Object.values(terms.sources).every(
-          (source) => source === null || source === "owner_response",
-        ) && workspace?.ownerResponse
-      ? workspace.ownerResponse.source
-      : WORKING_TERMS_MESSAGE_SOURCE;
+  const termsSource = termsKnown ? WORKING_TERMS_MESSAGE_SOURCE : null;
   const market = workspace?.preparation?.market;
   const ownerMarket = market ? ownerDraftMarketFromBasis(market) : {};
   const marketEvidence = projectMessageMarketEvidence({
@@ -498,6 +495,7 @@ export async function currentRenewalMessage(
     workspaceFingerprint: workspace
       ? workspaceMessageBasisFingerprint({ ...workspace })
       : null,
+    workingTermsFingerprint: workingTermsFingerprint(workingRecord),
   };
   const composed = composeRenewalMessage(facts, inputs.edits);
   if (marketEvidence.rangeRequirement) {

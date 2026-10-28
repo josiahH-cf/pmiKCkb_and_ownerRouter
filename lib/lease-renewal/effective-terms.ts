@@ -1,16 +1,16 @@
 // S156 (ARCH-S156): the renewal terms staff are working with. They are the lease-bound working
-// terms, one independently saved field at a time; a field staff have not entered falls back to
-// the same field of owner-approved terms already recorded on the work record. Owner approval and
-// tenant acceptance are recorded facts only: neither is a prerequisite for using these terms.
+// terms, one independently saved field at a time. S234 R-S234-2 / ARCH-S234-3: terms recorded on
+// an earlier owner response are history and never fill a field staff have not entered. Owner
+// approval and tenant acceptance are recorded facts only: neither is a prerequisite for using
+// these terms.
 
 import {
   workingRenewalTerms,
   type CompleteRenewalTerms,
   type RenewalWorkingRecord,
 } from "./working-record";
-import { currentManualOwnerTerms, type RenewalWorkspaceState } from "./workspace-state";
 
-export type EffectiveTermSource = "working" | "owner_response";
+export type EffectiveTermSource = "working";
 
 export interface EffectiveRenewalTerms {
   rent: number | null;
@@ -32,22 +32,15 @@ export interface EffectiveRenewalTerms {
 
 export function effectiveRenewalTerms(
   working: RenewalWorkingRecord | null | undefined,
-  state: RenewalWorkspaceState | null | undefined,
 ): EffectiveRenewalTerms {
   const own = workingRenewalTerms(working);
-  const recorded = state ? currentManualOwnerTerms(state) : null;
-  const pick = <T>(mine: T | null, theirs: T | undefined) =>
+  const pick = <T>(mine: T | null) =>
     mine !== null
       ? { value: mine, source: "working" as const }
-      : theirs !== undefined
-        ? { value: theirs, source: "owner_response" as const }
-        : { value: null, source: null };
-  const rent = pick(own.rent, recorded?.rent);
-  const effectiveDate = pick(own.effectiveDate, recorded?.effectiveDate);
-  const endDate = pick(own.endDate, recorded?.endDate);
-  const usesRecorded = [rent, effectiveDate, endDate].some(
-    (field) => field.source === "owner_response",
-  );
+      : { value: null, source: null };
+  const rent = pick(own.rent);
+  const effectiveDate = pick(own.effectiveDate);
+  const endDate = pick(own.endDate);
   const missing: string[] = [];
   if (rent.value === null) missing.push("the renewal rent");
   if (effectiveDate.value === null) missing.push("the effective date");
@@ -67,7 +60,7 @@ export function effectiveRenewalTerms(
       effectiveDate: effectiveDate.source,
       endDate: endDate.source,
     },
-    revision: Math.max(1, own.revision, usesRecorded ? (state?.termsRevision ?? 0) : 0),
+    revision: Math.max(1, own.revision),
     complete:
       rent.value !== null &&
       effectiveDate.value !== null &&

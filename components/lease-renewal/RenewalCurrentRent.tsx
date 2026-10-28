@@ -41,7 +41,6 @@ import type {
   RenewalChargeInventory,
   RenewalChargeOption,
 } from "@/lib/lease-renewal/writeback/charge-inventory-model";
-import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import { useRenewalWorkingRecord, WorkingMoneyField } from "./RenewalWorkingRecord";
 
 const RENTVINE_UPDATES_ANCHOR = "#rentvine-updates-title";
@@ -436,12 +435,9 @@ export function RentChargeUpdateStatus({
   rows,
 }: Readonly<{ rows: readonly RentChargeOutcomeRow[] }>) {
   const context = useRenewalWorkingRecord();
-  const manual = useRenewalManualWorkspace();
   const record = context?.record ?? null;
   const working = workingCurrentRent(record);
-  const termsText = describeRenewalTerms(
-    effectiveRenewalTerms(record, manual?.state ?? null),
-  );
+  const termsText = describeRenewalTerms(effectiveRenewalTerms(record));
   const sourceRows = rows.filter((row) => row.destination !== "app");
   const empty = working === null && termsText === null && sourceRows.length === 0;
   return (

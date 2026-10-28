@@ -1442,12 +1442,17 @@ async function readMessage() {
 }
 async function preparedMessage() {
   let state = await startManual();
+  // S234 R-S234-2: the message reads the saved Working terms; the approval covers them.
+  await saveWorkingTerms({
+    rent: 1100,
+    effectiveDate: "2027-01-01",
+    endDate: "2027-12-31",
+  });
   state = (
     await recordManual(state, {
       kind: "owner_response",
       outcome: "approved_terms",
       approval: SYNTHETIC_APPROVAL,
-      terms: { rent: 1100, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
       source: "Emulator exact owner approval",
     })
   ).state;
@@ -1594,7 +1599,7 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
   it.each(["terms", "links", "publication"])(
     "refuses a %s race at the actual unstarted S20 claim",
     async (changed) => {
-      const { state } = await preparedMessage();
+      await preparedMessage();
       const preview = await (
         await postLegacyMessageFixture(
           messageRequest({ kind: "draft", leaseId: "701", channel: "tenant" }),
@@ -1607,12 +1612,10 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
         .get();
       // Simulate the change after route preflight, directly before the real transactional claim.
       if (changed === "terms")
-        await recordManual(state, {
-          kind: "owner_response",
-          outcome: "approved_terms",
-          approval: SYNTHETIC_APPROVAL,
-          terms: { rent: 1200, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
-          source: "Emulator simultaneous owner revision",
+        await saveWorkingTerms({
+          rent: 1200,
+          effectiveDate: "2027-01-01",
+          endDate: "2027-12-31",
         });
       if (changed === "links")
         await db.collection("renewal_resource_locations").doc("current").update({
@@ -1696,19 +1699,17 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
       (await db.collection(MESSAGE_PREPARATION_COLLECTIONS.activity).get()).size,
     ).toBe(1);
   });
-  it("preserves prose after changed owner terms, refuses the stale confirmation exactly and keeps copy after Gmail failure", async () => {
+  it("preserves prose after changed working terms, refuses the stale confirmation exactly and keeps copy after Gmail failure", async () => {
     const { state, save, result } = await preparedMessage();
     const preview = await (
       await postLegacyMessageFixture(
         messageRequest({ kind: "draft", leaseId: "701", channel: "tenant" }),
       )
     ).json();
-    const next = await recordManual(state, {
-      kind: "owner_response",
-      outcome: "approved_terms",
-      approval: SYNTHETIC_APPROVAL,
-      terms: { rent: 1200, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
-      source: "Emulator revised owner approval",
+    await saveWorkingTerms({
+      rent: 1200,
+      effectiveDate: "2027-01-01",
+      endDate: "2027-12-31",
     });
     const reread = await readMessage();
     expect(reread.inputs).toEqual(result.inputs);
@@ -1717,7 +1718,7 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
     const resaved = await postLegacyMessageFixture(
       messageRequest({
         ...save,
-        cycleId: next.state.cycleId,
+        cycleId: state.cycleId,
         operationId: randomUUID(),
         expectedRevision: 1,
       }),
@@ -1773,8 +1774,8 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
     expect(retried.status).toBe("created");
     expect(messageTransport.creates).toBe(1);
   });
-  it("recovers the immutable rich attempt after a lost response, reload and changed owner terms without creating twice", async () => {
-    const { state } = await preparedMessage();
+  it("recovers the immutable rich attempt after a lost response, reload and changed working terms without creating twice", async () => {
+    await preparedMessage();
     const preview = await (
       await postLegacyMessageFixture(
         messageRequest({ kind: "draft", leaseId: "701", channel: "tenant" }),
@@ -1798,12 +1799,10 @@ describe("S113 message HTTP paths, persisted preparation and existing governed G
       executionId: preview.executionId,
       state: "Needs reconciliation",
     });
-    await recordManual(state, {
-      kind: "owner_response",
-      outcome: "approved_terms",
-      approval: SYNTHETIC_APPROVAL,
-      terms: { rent: 1300, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
-      source: "Emulator subsequent owner terms",
+    await saveWorkingTerms({
+      rent: 1300,
+      effectiveDate: "2027-01-01",
+      endDate: "2027-12-31",
     });
     expect((await readMessage()).content.plainText).toContain("$1,300.00");
     const recovered = await (

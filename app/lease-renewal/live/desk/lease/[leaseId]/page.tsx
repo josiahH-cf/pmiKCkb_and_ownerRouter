@@ -486,10 +486,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const futureReady =
     writebackProposal?.businessIntent === "future_rent" && writebackProposal.renewalTerms
       ? futureRentTermsCurrent(
-          effectiveRenewalTerms(
-            renewalAuxiliaryValue(workingRecordRead, null),
-            manualState,
-          ),
+          effectiveRenewalTerms(renewalAuxiliaryValue(workingRecordRead, null)),
           writebackProposal.renewalTerms,
         )
       : null;

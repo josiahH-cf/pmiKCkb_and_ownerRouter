@@ -438,9 +438,8 @@ function FocusPane({
       : null;
   // S153/S156: the same working-value precedence and renewal terms the Rent and charges card uses.
   const workingRecord = working?.record ?? null;
-  const terms = describeRenewalTerms(
-    effectiveRenewalTerms(workingRecord, manualState),
-    (value) => USD.format(value),
+  const terms = describeRenewalTerms(effectiveRenewalTerms(workingRecord), (value) =>
+    USD.format(value),
   );
   const rent = operationalCurrentRent({
     working: workingRecord,

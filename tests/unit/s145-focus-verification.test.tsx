@@ -17,6 +17,7 @@ import {
 } from "@/components/lease-renewal/RentvineUpdatesPanel";
 import type { RentChargeOutcomeRow } from "@/lib/lease-renewal/rent-charge-outcomes";
 import { emptyMessagePreparationInputs } from "@/lib/lease-renewal/renewal-message-preparation";
+import { fixtureWorkingRecord } from "../helpers/rent-charge-fixtures";
 import type { RentvineWritebackClientProposal } from "@/lib/lease-renewal/writeback/client-projection";
 import {
   MANUAL_ACTIVITIES,
@@ -484,7 +485,17 @@ describe(
       });
       stubRenewalRoutes(accepted);
       const user = userEvent.setup();
-      await renderWorkspace({ manual: accepted });
+      // S234 R-S234-2: the terms shown are the saved Working terms, never an owner response's.
+      await renderWorkspace({
+        manual: accepted,
+        extra: {
+          workingRecord: fixtureWorkingRecord({
+            terms_rent: { value: 1450, revision: 1 },
+            terms_effective_date: { value: "2027-01-01", revision: 1 },
+            terms_end_date: { value: "2027-12-31", revision: 1 },
+          }),
+        },
+      });
       await openFocus(user);
       const title = screen.getByRole("heading", { level: 1 });
       await user.click(within(focusPane()).getByText("Rent and lease context"));

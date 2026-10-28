@@ -137,7 +137,8 @@ beforeEach(async () => {
     source: "Emulator lease",
   };
   // S154: a lease with recorded work. The first save establishes the record; here it records an
-  // owner approval whose terms serve as the fallback effective terms for the future-rent tests.
+  // owner approval. S234 R-S234-2: an approval supplies no terms; each future-rent test saves the
+  // Working terms it prepares from.
   workspace = (
     await saveRenewalWorkspace(
       actor,
@@ -150,7 +151,6 @@ beforeEach(async () => {
           kind: "owner_response",
           outcome: "approved_terms",
           approval: SYNTHETIC_APPROVAL,
-          terms,
           source: "Emulator owner approval",
         },
       },
@@ -460,6 +460,7 @@ describe("S117 exact RentVine operations through the owning route", () => {
 
   it("S156 BEH-S156-5 (AC-S156-1, was AC-S117-3): an Editor prepares and confirms a future-rent effect once with no tenant acceptance recorded", async () => {
     charges = [FUTURE_RENT()];
+    await saveWorkingTerms(terms);
     const response = await post(futureBody());
     expect(response.status, JSON.stringify(await response.json())).toBe(200);
     const proposal = (await getRenewalWritebackProposal(actor, "81", db))!;

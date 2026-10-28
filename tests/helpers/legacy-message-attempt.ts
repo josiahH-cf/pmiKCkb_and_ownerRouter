@@ -39,6 +39,7 @@ export async function legacyMessageAttemptFixture(
       sourceFingerprint: current.basis.sourceFingerprint,
       resourceFingerprint: current.basis.resourceFingerprint,
       preparationRevision: current.saved.revision,
+      workingTermsFingerprint: current.basis.workingTermsFingerprint,
     };
     if (input.confirm) {
       const saved = await getMessageDraftSnapshot(
