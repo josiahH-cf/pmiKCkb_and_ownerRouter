@@ -279,6 +279,31 @@ export async function listCurrentRenewalPacketSnapshots(
   return result;
 }
 
+/** S235 ARCH-S235-4: the bound on packet history a new-loop check reads for one lease. */
+export const LEASE_PACKET_HISTORY_LIMIT = 200;
+
+/**
+ * S235 ARCH-S235-4: every packet snapshot id recorded for one lease, for the new-loop check. More
+ * history than the bound refuses rather than risking a second loop for the lease.
+ */
+export async function listLeasePacketSnapshotIds(
+  leaseId: string,
+  db: Firestore = getAdminFirestore(),
+): Promise<string[]> {
+  const page = await db
+    .collection(LEASE_DOCUMENT_PACKET_COLLECTIONS.snapshots)
+    .where("leaseId", "==", leaseId)
+    .select("snapshot_id")
+    .limit(LEASE_PACKET_HISTORY_LIMIT + 1)
+    .get();
+  if (page.size > LEASE_PACKET_HISTORY_LIMIT)
+    throw new EditableLayerError(
+      "This lease has more packet history than the app can check, so no loop was created. Reconcile its Dotloop loops before confirming again.",
+      409,
+    );
+  return page.docs.map((doc) => String(doc.get("snapshot_id") ?? doc.id));
+}
+
 export async function getPacketHead(
   actor: AuthenticatedUser,
   leaseId: string,

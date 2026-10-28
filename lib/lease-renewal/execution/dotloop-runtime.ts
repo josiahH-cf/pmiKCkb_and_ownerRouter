@@ -13,7 +13,10 @@ import {
 } from "@/lib/external-execution/s20-bridge";
 import { externalActionIdempotencyKey } from "@/lib/external-execution/identity";
 import { getDotloopRenewalSettings } from "@/lib/firestore/dotloop-renewal-settings";
-import { recordPacketExecutionProjection } from "@/lib/firestore/lease-document-packet-snapshots";
+import {
+  listLeasePacketSnapshotIds,
+  recordPacketExecutionProjection,
+} from "@/lib/firestore/lease-document-packet-snapshots";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   LiveDotloopProvider,
@@ -204,6 +207,10 @@ export async function executeDotloopPacketWithS20(
     participants: input.participants,
     propertyAddress: input.propertyAddress ?? null,
     packetSnapshotId: binding.packetSnapshotId,
+    // S235 ARCH-S235-4: a loop the app created for an earlier packet of this lease refuses a new one.
+    ...(key === "dotloop.loop.create_from_template"
+      ? { readLeasePacketSnapshotIds: () => listLeasePacketSnapshotIds(leaseId) }
+      : {}),
     // S34 (AC-S34-6): the lease's durable packet folder; the first created folder is recorded and
     // every later document, worker or restart reuses it.
     ...(key === "dotloop.document.upload"
