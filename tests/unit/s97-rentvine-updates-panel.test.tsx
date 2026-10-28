@@ -561,3 +561,60 @@ describe("S97 RentVine updates panel", () => {
     ]);
   });
 });
+
+describe("S237 R-S237-1 terms basis beside the preview", () => {
+  beforeEach(() => {
+    fetchMock.mockReset();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+  it("shows the Working terms, approval coverage and executed documents and posts the same exact body", async () => {
+    const proposal = datesProposal();
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: "executed",
+          duplicate: false,
+          receipt: { provider_ref: "lease:4821", result_hash: "e".repeat(64) },
+          projection: "projected",
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: "ok",
+          proposal,
+          effects: statusFor(proposal, "succeeded"),
+          expired: false,
+        }),
+      });
+    render(
+      <RentvineUpdatesPanel
+        initialEffects={statusFor(proposal, "not_started")}
+        initialProposal={proposal}
+        leaseId="4821"
+        role="Admin"
+        termsBasis={{
+          terms: "Working renewal terms revision 2, saved Oct 20, 2026, 10:00 AM",
+          approval:
+            "Owner approval no longer covers these terms: the Working terms changed after it was recorded",
+          documents: "Executed documents: Not recorded",
+        }}
+      />,
+    );
+    const basis = document.querySelector('[data-renewal-field="terms-basis"]');
+    expect(basis).toHaveTextContent(
+      "Working renewal terms revision 2, saved Oct 20, 2026, 10:00 AM. Owner approval no longer covers these terms: the Working terms changed after it was recorded. Executed documents: Not recorded. Shown for review only; it does not change this update.",
+    );
+    // The basis is never a prerequisite: Apply stays available and posts only the exact hashes.
+    fireEvent.click(screen.getByText("Apply RentVine update"));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(JSON.parse((fetchMock.mock.calls[0][1] as { body: string }).body)).toEqual({
+      operation: "execute",
+      leaseId: "4821",
+      previewHash: proposal.preview_hash,
+      effectHash: proposal.effects[0].effect_hash,
+      confirm: true,
+    });
+  });
+});

@@ -1,5 +1,6 @@
 "use client";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
+import type { SourceUpdateTermsBasis } from "@/lib/lease-renewal/source-update-terms-basis";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 
 import { RenewalSectionHeading } from "@/components/lease-renewal/RenewalSectionHeading";
@@ -143,6 +144,7 @@ export function OperatingSheetPanel({
   association,
   audienceEmails = null,
   identity = null,
+  termsBasis = null,
   workspaceContext,
   initialProposal,
   initialEffects = null,
@@ -163,6 +165,8 @@ export function OperatingSheetPanel({
   audienceEmails?: Readonly<Record<"owner" | "tenant", AudienceEmailRosterView>> | null;
   /** S117: the lease named in every preview; null keeps the lease id only. */
   identity?: SourceUpdateIdentity | null;
+  /** S237 R-S237-1: the Working terms, approval coverage and executed documents, shown only. */
+  termsBasis?: SourceUpdateTermsBasis | null;
   workspaceContext: string | null;
   initialProposal: SheetWritebackClientProposal | null;
   initialEffects?: SheetWritebackEffectStatus[] | null;
@@ -478,6 +482,7 @@ export function OperatingSheetPanel({
                   </div>
                   {effect.kind === "field_update" ? (
                     <SourceUpdatePreview
+                      basis={termsBasis}
                       facts={sheetPreviewFacts(effect, {
                         proposal,
                         identity,

@@ -1,4 +1,9 @@
 import { leaseViewId } from "@/lib/integrations/rentvine/lease-mapper";
+import { projectSourceUpdateTermsBasis } from "@/lib/lease-renewal/source-update-terms-basis";
+import { getPacketInputs } from "@/lib/firestore/lease-packet-inputs";
+import { readChargePolicy } from "@/lib/firestore/lease-charge-policy";
+import { packetEconomics } from "@/lib/lease-documents/owner-approval-binding";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 import { projectRenewalDeskIdentity } from "@/lib/lease-renewal/desk-identity";
 import { listLeaseOwnerReplies } from "@/lib/gmail-hub/sequence-store";
 import type { OwnerApprovalChoices } from "@/lib/lease-renewal/owner-approval-evidence";
@@ -439,6 +444,26 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const attempts = attemptState?.attempts ?? [];
   const manualState = renewalAuxiliaryValue(manualRead, null);
   const chargeInventory = renewalAuxiliaryValue(chargeInventoryRead, null);
+  // S237 R-S237-1: the terms basis beside every RentVine and Sheet preview, recomputed on each
+  // render: Working terms, the recorded approval's coverage and the executed documents. It is shown
+  // only; no effect, hash or admission reads it.
+  const [basisInputs, basisPolicy] = await Promise.all([
+    getPacketInputs(user, leaseId).then(
+      (record) => ({ readable: true as const, record }),
+      () => ({ readable: false as const, record: null }),
+    ),
+    readChargePolicy(),
+  ]);
+  const sourceUpdateTermsBasis = projectSourceUpdateTermsBasis({
+    working: renewalAuxiliaryValue(workingRecordRead, null),
+    workspace: manualState,
+    economicsHash:
+      basisInputs.readable && basisPolicy.readable
+        ? packetEconomics(leaseId, basisInputs.record, basisPolicy.record).hash
+        : null,
+    returned: returnedStateView,
+    formatTime: formatBusinessTimestamp,
+  });
   // S117 (R117.4): the refreshed base rent is compared with a succeeded current-base charge
   // update; the charge amount and lease total are never substituted for it.
   const currentBaseReadback = projectCurrentBaseReadback({
@@ -596,6 +621,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
               sheetFieldsRead.status === "available" ? (
                 <OperatingSheetPanel
                   key={sheetProposal?.previewHash ?? "no-sheet-preview"}
+                  termsBasis={sourceUpdateTermsBasis}
                   association={
                     sheetFields?.association ?? {
                       kind: "ambiguous",
@@ -658,6 +684,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
               writebackProposalRead.status === "available" ? (
                 <RentvineUpdatesPanel
                   key={writebackProposal?.previewHash ?? "no-rentvine-preview"}
+                  termsBasis={sourceUpdateTermsBasis}
                   currentBaseReadback={currentBaseReadback}
                   futureRentExecutionReady={futureReady}
                   identity={sourceUpdateIdentity}
