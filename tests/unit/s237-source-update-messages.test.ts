@@ -33,3 +33,28 @@ describe("S237 RentVine outcome messages", () => {
     expect(route).toMatch(/error: RENEWAL_WRITEBACK_SERVICE_MESSAGES\[error\.code\]/);
   });
 });
+
+describe("S237 R-S237-6 one scope statement beside the updates", () => {
+  it("names what confirmed updates change, what stays manual and what is unsupported, once", () => {
+    const workspace = readFileSync(
+      join(process.cwd(), "components", "lease-renewal", "RenewalWorkspace.tsx"),
+      "utf8",
+    );
+    expect(workspace.match(/<SourceUpdateScope \/>/g)).toHaveLength(1);
+    expect(workspace).toMatch(
+      /\{rentvineUpdatesPanel \|\| sheetProposalPanel \? <SourceUpdateScope \/> : null\}\s*\{rentvineUpdatesPanel\}\s*\{sheetProposalPanel\}/,
+    );
+    const statement = workspace
+      .slice(workspace.indexOf("export function SourceUpdateScope"))
+      .replace(/\s+/g, " ");
+    for (const phrase of [
+      "lease dates and recurring charges in RentVine",
+      "recognized renewal fields on the Sheet",
+      "One-time fees, deposits, ledger history, party changes",
+      "Sheet reversals stay manual",
+      "no general RentVine base-rent",
+      "no combined RentVine-and-Sheet update and no Sheet row deletion",
+    ])
+      expect(statement).toContain(phrase);
+  });
+});

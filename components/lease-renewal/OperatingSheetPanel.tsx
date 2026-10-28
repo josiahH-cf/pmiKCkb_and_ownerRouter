@@ -497,10 +497,19 @@ export function OperatingSheetPanel({
                       : "Historical reversal terms remain recorded for recovery review. In-app reversal is unavailable until Google Sheets provides an atomic stable-row delete or restore protocol."}
                   </p>
                   {state === "ambiguous" ? (
-                    <p className="muted" role="status">
+                    <p
+                      className="muted"
+                      role="status"
+                      data-renewal-field="ambiguous-locked-state"
+                    >
                       The Sheet outcome is unproven. Reconciliation reads fresh state by
                       the row&apos;s system note or the exact cell and may report before,
-                      after, or drift without claiming causality.
+                      after, or drift without claiming causality. Nothing is retried
+                      automatically, and new Sheet previews for this lease stay locked
+                      while this attempt is uncertain. If reconciliation still cannot
+                      prove the outcome, the lease needs an engineering readback and a
+                      manual clear from this attempt&apos;s record; archiving an uncertain
+                      attempt is a deferred owner decision.
                     </p>
                   ) : null}
                   {status?.receipt ? (

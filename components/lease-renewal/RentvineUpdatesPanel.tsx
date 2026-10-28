@@ -532,11 +532,20 @@ export function RentvineUpdatesPanel({
                       : REVERSAL_LABELS[effect.reversal_kind]}
                   </p>
                   {state === "ambiguous" ? (
-                    <p className="muted" role="status">
+                    <p
+                      className="muted"
+                      role="status"
+                      data-renewal-field="ambiguous-locked-state"
+                    >
                       The provider outcome is unproven. The exact before and intended
                       after values above are the last known observations; reconciliation
                       reads fresh provider state and may report before, after, or drift
-                      without claiming causality.
+                      without claiming causality. Nothing is retried automatically, and
+                      new RentVine previews for this lease stay locked while this attempt
+                      is uncertain. If reconciliation still cannot prove the outcome, the
+                      lease needs an engineering readback and a manual clear from this
+                      attempt&apos;s record; archiving an uncertain attempt is a deferred
+                      owner decision.
                     </p>
                   ) : null}
                   {status?.receipt ? (

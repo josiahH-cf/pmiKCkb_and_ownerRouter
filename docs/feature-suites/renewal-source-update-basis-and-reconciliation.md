@@ -3,7 +3,7 @@
 
 # S237 — RentVine and Sheet updates with a visible terms basis and reconciled outcomes
 
-> Status: IN PROGRESS (merged to main at bf0c03f9 by PR #158, not served) — R-S237-3 (plain RentVine outcome text) and R-S237-4 (the Sheet still-before result) are implemented with tests; R-S237-2 is amended to bind only the Working-value path, keeping the panel's direct correction; R-S237-1, R-S237-5, R-S237-6 and R-S237-7 remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 104). Live RentVine/Sheet effects on a real lease stay ordinary staff work under the existing open exact keys; this file authorizes none. The ambiguous-attempt archive change stays an explicitly deferred owner decision.
+> Status: IN PROGRESS (merged to main at bf0c03f9 and a786fa16, later slices on branch claude/renewal-novdec-remainder-20261028; not served) — R-S237-2 (amended: the Working-value path is bound at preparation, confirmation and claim; the panel's direct correction stays), R-S237-3, R-S237-4, R-S237-6 and R-S237-7 are implemented with tests; R-S237-1 terms basis and R-S237-5 remaining differences remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 104). Live RentVine/Sheet effects on a real lease stay ordinary staff work under the existing open exact keys; this file authorizes none. The ambiguous-attempt archive change stays an explicitly deferred owner decision.
 
 **Goal.**
 

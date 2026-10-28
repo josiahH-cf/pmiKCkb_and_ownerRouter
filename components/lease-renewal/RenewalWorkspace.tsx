@@ -160,6 +160,7 @@ export function RenewalWorkspace({
   correctionPanel = null,
   rentvineUpdatesPanel = null,
   operatingSheetPanel = null,
+  packetReadinessPanel = null,
   termReviewPanel = null,
   sheetDestination = null,
   sheetFieldDestinations = {},
@@ -210,6 +211,8 @@ export function RenewalWorkspace({
   rentvineUpdatesPanel?: ReactNode;
   /** S98: the page-supplied operating-Sheet proposal/review panel, shown only in verification. */
   operatingSheetPanel?: ReactNode;
+  /** S235 R-S235-1: the read-only per-family readiness for this lease, when the page read it. */
+  packetReadinessPanel?: ReactNode;
   /**
    * S103: the page-supplied lease term review control, shown in verification for every openable
    * lease: including an inspection-only month-to-month row, where recording the anchor is the
@@ -600,6 +603,7 @@ export function RenewalWorkspace({
                                   !unavailableKeys.has("rent_suggestion")
                                 }
                                 rentvineUpdatesPanel={rentvineUpdatesPanel}
+                                packetReadinessPanel={packetReadinessPanel}
                                 resolutionDestinations={resolutionDestinations}
                                 role={role}
                                 sheetProposalPanel={operatingSheetPanel}
@@ -846,6 +850,7 @@ function PhaseContent({
   followUpControlsAvailable,
   rentSuggestionAvailable,
   rentvineUpdatesPanel,
+  packetReadinessPanel,
   sheetProposalPanel,
   resolutionDestinations,
   termReviewPanel,
@@ -870,6 +875,7 @@ function PhaseContent({
   followUpControlsAvailable: boolean;
   rentSuggestionAvailable: boolean;
   rentvineUpdatesPanel: ReactNode;
+  packetReadinessPanel?: ReactNode;
   sheetProposalPanel: ReactNode;
   resolutionDestinations: readonly { fieldKey: string; href: string }[];
   termReviewPanel: ReactNode;
@@ -945,6 +951,7 @@ function PhaseContent({
                 {correctionPanel}
               </div>
             ) : null}
+            {rentvineUpdatesPanel || sheetProposalPanel ? <SourceUpdateScope /> : null}
             {rentvineUpdatesPanel}
             {sheetProposalPanel}
           </div>
@@ -1311,6 +1318,7 @@ function PhaseContent({
                 transactionId={summary.id}
                 canEditInputs={hasRenewalRoleAuthority("save_packet_inputs", role)}
               />
+              {packetReadinessPanel}
               <RenewalDocumentHandoff
                 canApprove={hasRenewalRoleAuthority("execute_document_packet", role)}
                 canLinkLoop={hasRenewalRoleAuthority("link_dotloop_loop", role)}
@@ -1505,6 +1513,19 @@ function MoveOutDispositionNotice({
       role="status"
     >
       {disposition.label}
+    </p>
+  );
+}
+
+/** S237 R-S237-6: one statement, beside the updates, of what confirmed source updates change. */
+export function SourceUpdateScope() {
+  return (
+    <p className="muted" data-renewal-field="source-update-scope">
+      Confirmed updates change lease dates and recurring charges in RentVine and the
+      recognized renewal fields on the Sheet. One-time fees, deposits, ledger history,
+      party changes, insurance enrollment and Sheet reversals stay manual. There is no
+      general RentVine base-rent setter, no combined RentVine-and-Sheet update and no
+      Sheet row deletion.
     </p>
   );
 }

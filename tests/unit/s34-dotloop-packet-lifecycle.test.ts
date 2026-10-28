@@ -428,3 +428,47 @@ describe("S34 signature handoff is explicit, never inferred (AC-S34-3)", () => {
     }
   });
 });
+
+describe("S235 ARCH-S235-4 lease-wide duplicate loop prevention", () => {
+  // Deterministic provider fake only; no Dotloop account is read or written.
+  const create = (provider: LiveDotloopProvider) =>
+    provider.createLoop({
+      templateRef: SELECTION.templateId,
+      participantRefs: PARTICIPANTS.map((participant) => participant.email),
+      idempotencyKey: "idem-earlier",
+    });
+
+  it("refuses a new loop when the app already created one for an earlier packet of the lease", async () => {
+    // An earlier packet of this lease created its loop; the link record was later lost.
+    await create(providerFor({ packetSnapshotId: "snapshot-0" }));
+    expect(fake.createCount).toBe(1);
+    const changedPacket = providerFor({
+      packetSnapshotId: "snapshot-1",
+      readLeasePacketSnapshotIds: async () => ["snapshot-0", "snapshot-1"],
+    });
+    await expect(create(changedPacket)).rejects.toThrow(
+      /already has a loop the app created for an earlier packet of this lease/,
+    );
+    expect(fake.createCount).toBe(1);
+  });
+
+  it("creates normally when the lease's history holds only the current packet", async () => {
+    const provider = providerFor({
+      packetSnapshotId: "snapshot-1",
+      readLeasePacketSnapshotIds: async () => ["snapshot-1"],
+    });
+    await expect(create(provider)).resolves.toMatchObject({ loopRef: "loop-1" });
+    expect(fake.createCount).toBe(1);
+  });
+
+  it("refuses before any provider call when the lease's packet history cannot be read", async () => {
+    const provider = providerFor({
+      packetSnapshotId: "snapshot-1",
+      readLeasePacketSnapshotIds: async () => {
+        throw new Error("history unavailable");
+      },
+    });
+    await expect(create(provider)).rejects.toThrow(/history unavailable/);
+    expect(fake.createCount).toBe(0);
+  });
+});

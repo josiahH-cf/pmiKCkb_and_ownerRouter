@@ -77,6 +77,12 @@ export interface LiveDotloopProviderDeps {
   /** The packet snapshot id when the caller has it; otherwise the idempotency key names the loop. */
   readonly packetSnapshotId?: string;
   /**
+   * S235 ARCH-S235-4: reads the same lease's packet snapshot ids at create time, before any loop is
+   * listed or created. A loop the app created under an earlier one's name refuses a new loop, so a
+   * changed packet never opens a second loop for one lease; a failed read refuses creation.
+   */
+  readonly readLeasePacketSnapshotIds?: () => Promise<readonly string[]>;
+  /**
    * Reads one approved S66 artifact's exact bytes. Absent, `uploadDocument` refuses with that exact
    * reason rather than pretending: this provider transports approved content, it never invents it.
    */
@@ -138,8 +144,18 @@ export class LiveDotloopProvider implements DotloopProvider {
     }
 
     const name = this.loopName(input.idempotencyKey);
-    // A lost response is reconciled by name, so check before creating a second loop.
-    const existing = await this.#findByName(name);
+    const earlierNames = new Set(
+      ((await this.#deps.readLeasePacketSnapshotIds?.()) ?? [])
+        .filter((id) => id.trim() !== "" && id !== this.#deps.packetSnapshotId)
+        .map((id) => dotloopLoopNameFor(id)),
+    );
+    // A lost response is reconciled by name, so check before creating a second loop. The same
+    // listing pass also finds a loop the app created for an earlier packet of this lease.
+    const { current: existing, earlier } = await this.#findLoops(name, earlierNames);
+    if (earlier)
+      throw new Error(
+        "Dotloop already has a loop the app created for an earlier packet of this lease, so no loop was created. Review that loop and link it to this lease instead of creating another.",
+      );
     if (existing) {
       if (participants.some((participant) => participant.participantRef))
         throw new Error(
@@ -316,7 +332,20 @@ export class LiveDotloopProvider implements DotloopProvider {
    * profile larger than the bound refuses rather than risking a second loop.
    */
   async #findByName(name: string): Promise<string | null> {
+    return (await this.#findLoops(name, new Set())).current;
+  }
+
+  /**
+   * One bounded pass over the profile's loops: the loop carrying this packet's exact name, and
+   * whether any loop carries an earlier packet's name for the same lease. Loop ids and the app's own
+   * names are compared, never addresses.
+   */
+  async #findLoops(
+    name: string,
+    earlierNames: ReadonlySet<string>,
+  ): Promise<{ current: string | null; earlier: string | null }> {
     const { client, selection } = this.#deps;
+    let current: string | null = null;
     for (
       let batchNumber = 1;
       batchNumber <= DOTLOOP_RECONCILE_MAX_BATCHES;
@@ -326,12 +355,15 @@ export class LiveDotloopProvider implements DotloopProvider {
         batchSize: DOTLOOP_MAX_BATCH_SIZE,
         batchNumber,
       });
+      const earlier = loops.find((loop) => earlierNames.has(loop.name));
+      if (earlier) return { current, earlier: earlier.id };
       const match = loops.find((loop) => loop.name === name);
       if (match) {
         this.#loopNames.set(match.id, name);
-        return match.id;
+        current = match.id;
+        if (earlierNames.size === 0) return { current, earlier: null };
       }
-      if (loops.length < DOTLOOP_MAX_BATCH_SIZE) return null;
+      if (loops.length < DOTLOOP_MAX_BATCH_SIZE) return { current, earlier: null };
     }
     throw new Error(
       "Dotloop loop reconciliation did not finish within the bounded page count, so no loop was created; reconcile this profile before confirming again.",

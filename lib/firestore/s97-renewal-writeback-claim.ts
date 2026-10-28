@@ -1,5 +1,13 @@
 import { futureRentTermsCurrent } from "@/lib/lease-renewal/writeback/future-rent-intent";
 import { readEffectiveRenewalTerms } from "@/lib/firestore/renewal-effective-terms";
+import {
+  parseRenewalWorkingRecord,
+  renewalWorkingRecordRef,
+} from "@/lib/firestore/renewal-working-record";
+import {
+  currentBaseMatchesWorking,
+  isWorkingBoundCurrentBase,
+} from "@/lib/lease-renewal/writeback/current-base-working";
 // S97's one-attempt transition and active proposal generation share one Firestore transaction.
 // This is the final server-side boundary after the route loads a proposal: if an Editor replaces or
 // discards that generation concurrently, the transaction retries against the new active document
@@ -107,6 +115,22 @@ export async function claimActiveS97RenewalEffect(
         )
       )
         return "blocked";
+    }
+    // S237 R-S237-2: a preview prepared from the Working value runs only while the saved Working
+    // current rent is still that amount; a changed or cleared value leaves the attempt unused.
+    if (isWorkingBoundCurrentBase(proposal)) {
+      const working = await transaction.get(
+        renewalWorkingRecordRef(db, proposal.leaseId),
+      );
+      let record;
+      try {
+        record = working.exists
+          ? parseRenewalWorkingRecord(working.data(), proposal.leaseId)
+          : null;
+      } catch {
+        return "blocked";
+      }
+      if (!currentBaseMatchesWorking(effect.effect, record)) return "blocked";
     }
 
     const now = new Date().toISOString();

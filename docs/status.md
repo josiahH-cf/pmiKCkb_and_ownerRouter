@@ -11,8 +11,17 @@ open-only worker paging, a Central schedule default that states the Nov 1, 2026 
 zoned instants with past-due lag, a Resume timing statement, distinct pause causes and the
 incoming-check age (S233); approval-bound terms on the packet handoff (S234); plain RentVine outcome
 text and an accurate Sheet still-before result (S237). S235/S236 and the remaining requirements
-are listed in each suite's status line. Production still serves `6fbd6225` (S231); the staff
-walkthrough is NOT RUN.
+are listed in each suite's status line. PR #159 fixed the two PR #158 review findings with
+counterfactual tests: a pending tenant outcome is no longer a response, and RentVine refusals no
+longer claim nothing was sent. The remainder branch then adds:
+
+- S237: the Working-value current-base binding, the locked ambiguous-state statement and one
+  source-update scope statement;
+- S233: the incoming-message variants;
+- S235: lease-wide duplicate-loop prevention and the read-only per-family readiness;
+- S236: the returned-state projection.
+
+Production still serves `6fbd6225` (S231); the staff walkthrough is NOT RUN.
 
 October 27: Dotloop A1 is resolved. Dan had made integrations a company admin, not an office
 agent, and the company was at Dotloop's eight-user limit. The owner swapped josiah@'s slot,

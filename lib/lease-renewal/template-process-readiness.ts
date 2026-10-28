@@ -39,7 +39,7 @@ export function projectTemplateProcessReadiness(input: {
       applicabilitySource: !input.familyUse.readable
         ? "Unknown"
         : use?.source.system === "engineering_default"
-          ? "Engineering default; Admin review is separate"
+          ? "Engineering default, not yet approved by the client"
           : "Recorded configuration",
       sourceUrl: usableRenewalResourceUrl(source),
       sourceState:

@@ -1,6 +1,13 @@
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { ensureRenewalWorkRecord } from "@/lib/firestore/renewal-workspace";
 import { readEffectiveRenewalTerms } from "@/lib/firestore/renewal-effective-terms";
+import { getRenewalWorkingRecord } from "@/lib/firestore/renewal-working-record";
+import {
+  STAFF_WORKING_VALUE_EVIDENCE,
+  WORKING_VALUE_CHANGED_MESSAGE,
+  currentBaseMatchesWorking,
+  isWorkingBoundCurrentBase,
+} from "@/lib/lease-renewal/writeback/current-base-working";
 import { resolveRenewalWorkBasis } from "@/lib/lease-renewal/workspace-cycle-context";
 import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
@@ -156,7 +163,7 @@ const ProposedChargeCreateSchema = z
   .strict();
 
 /** Stored where an earlier revision expects a nonempty source note; describes, never attests. */
-const STAFF_SOURCE_UPDATE_LABEL = "Staff working value";
+const STAFF_SOURCE_UPDATE_LABEL = STAFF_WORKING_VALUE_EVIDENCE;
 const FUTURE_RENT_DEFAULT_REVIEW_LABEL = "Prepared from the working renewal terms";
 
 const BodySchema = z.discriminatedUnion("operation", [
@@ -313,6 +320,15 @@ async function assembleProposal(
     ) {
       throw new RenewalWritebackServiceError("provider_shape");
     }
+    // S237 R-S237-2: with no separate staff source note, the amount is the saved Working value.
+    if (
+      !body.evidenceRef &&
+      !currentBaseMatchesWorking(
+        effect,
+        await getRenewalWorkingRecord(user, body.leaseId),
+      )
+    )
+      throw new EditableLayerError(WORKING_VALUE_CHANGED_MESSAGE, 409);
   }
   const leaseState = leaseDateStateOf(await deps.reads.getLease(body.leaseId));
   const needsCreateBaseline = body.effects.some(
@@ -697,6 +713,19 @@ async function handleRequest(request: Request, statusOnly: boolean) {
     if (body.operation === "execute") {
       if (body.previewHash !== proposal.previewHash) {
         throw new RenewalWritebackServiceError("confirmation_invalid");
+      }
+      // S237 R-S237-2: checked again here and inside the one-attempt claim.
+      if (
+        isWorkingBoundCurrentBase(proposal) &&
+        !currentBaseMatchesWorking(
+          effect.effect,
+          await getRenewalWorkingRecord(user, proposal.leaseId),
+        )
+      ) {
+        return NextResponse.json(
+          { error: WORKING_VALUE_CHANGED_MESSAGE, error_type: "working_value_changed" },
+          { status: 409 },
+        );
       }
       // S156/S160: a future-rent effect stays confirmable while the working renewal terms are
       // still the exact amount and dates it was prepared from. That is value integrity, checked
