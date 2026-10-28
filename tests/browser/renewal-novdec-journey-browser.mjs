@@ -788,6 +788,279 @@ try {
     },
   );
 
+  // S233 (R-S233-9): the renewal composer and hub for the December lease's owner, in a second
+  // browser set to another zone. Saves are app records in the emulator; Schedule is refused by the
+  // local Demo descriptor before any mailbox or provider is constructed.
+  const west = await browser.newContext({
+    viewport: { width: 1360, height: 900 },
+    timezoneId: "America/Los_Angeles",
+  });
+  await west.route("**/*", (route) =>
+    new URL(route.request().url()).origin === origin
+      ? route.continue()
+      : route.abort("blockedbyclient"),
+  );
+  const hub = await west.newPage();
+  hub.setDefaultTimeout(60_000);
+  hub.setDefaultNavigationTimeout(180_000);
+  // Every non-read request the hub page sends: its path and communication action.
+  const hubWrites = [];
+  hub.on("request", (request) => {
+    if (["GET", "HEAD", "OPTIONS"].includes(request.method())) return;
+    let action = null;
+    try {
+      action = JSON.parse(request.postData() ?? "{}").action ?? null;
+    } catch {
+      // not a JSON body
+    }
+    hubWrites.push({
+      method: request.method(),
+      path: new URL(request.url()).pathname,
+      action,
+    });
+  });
+  const sequencePost = (action) =>
+    hub.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/api/gmail-hub/sequences" &&
+        response.request().method() === "POST" &&
+        JSON.parse(response.request().postData() ?? "{}").action === action,
+    );
+  const ownerSequences = async () =>
+    (
+      await db
+        .collection("gmail_communication_sequences")
+        .where("context.entityId", "==", "5001")
+        .get()
+    ).docs;
+  let communicationId = null;
+
+  await step(
+    "S233-composer-save",
+    "R-S233-9 (save), AC-S233-7",
+    "The owner composer opens addressed to the source owner and Save draft records one app draft",
+    async () => {
+      activePage = hub;
+      await hub.goto(`${origin}/sign-in`, { waitUntil: "domcontentloaded" });
+      const ok = await hub.evaluate(async () => {
+        const response = await fetch("/api/auth/demo", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ role: "Editor" }),
+        });
+        return response.ok;
+      });
+      assert.ok(ok, "demo sign-in failed");
+      const first = sequencePost("save");
+      await hub.goto(`${origin}/gmail-hub?compose=renewal_owner&lease=5001`, {
+        waitUntil: "domcontentloaded",
+      });
+      assert.equal((await first).status(), 200, "the composer's first save was refused");
+      const composer = hub.getByRole("region", {
+        name: "Workflow communication composer",
+      });
+      await composer.getByText("To: jordan.owner@example.invalid").waitFor();
+      const subject = composer.getByLabel("Initial message subject");
+      await subject.fill("Renewal for Sample Place: owner review");
+      const saved = sequencePost("save");
+      await composer.getByRole("button", { name: "Save draft" }).click();
+      assert.equal((await saved).status(), 200, "Save draft was refused");
+      const docs = await ownerSequences();
+      assert.equal(docs.length, 1, `expected one communication, found ${docs.length}`);
+      const record = docs[0];
+      communicationId = record.id;
+      assert.equal(record.get("state"), "draft");
+      assert.equal(record.get("context.purpose"), "renewal_owner");
+      assert.equal(
+        record.get("initial.subject"),
+        "Renewal for Sample Place: owner review",
+      );
+      assert.equal(record.get("authorization") ?? null, null);
+      const file = await capture(hub, "s233-composer-saved");
+      return {
+        state: record.get("state"),
+        version: record.get("version"),
+        recipientShown: "jordan.owner@example.invalid (synthetic, reserved domain)",
+        screenshot: file,
+      };
+    },
+  );
+
+  await step(
+    "S233-schedule-panel",
+    "R-S233-9 (Schedule panel), R-S233-6, AC-S233-6, BEH-S233-5",
+    "In a browser set to Los Angeles the Timezone defaults to America/Chicago, and November 1, 2026 1:30 AM states the first 1:30, CDT",
+    async () => {
+      const browserZone = await hub.evaluate(
+        () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+      );
+      assert.equal(browserZone, "America/Los_Angeles");
+      const composer = hub.getByRole("region", {
+        name: "Workflow communication composer",
+      });
+      // Schedule stays disabled while the target names a blocker; say which one instead of waiting.
+      const blockers = await composer
+        .locator("p[role='status']")
+        .filter({ hasText: /Notice|Recipient|before drafting|source read/ })
+        .allInnerTexts();
+      assert.deepEqual(
+        blockers,
+        [],
+        `the composer shows a blocker: ${blockers.join(" | ")}`,
+      );
+      await composer.getByRole("button", { name: "Schedule", exact: true }).click();
+      const zone = await composer.getByLabel("Timezone").inputValue();
+      assert.equal(zone, "America/Chicago");
+      await composer.getByLabel("First date").fill("2026-11-01");
+      await composer.getByLabel("Local time").fill("01:30");
+      const note = (
+        await composer.locator('[data-communication-field="first-send"]').innerText()
+      ).replace(/\s+/g, " ");
+      assert.equal(
+        note,
+        "First send: Nov 1, 2026, 1:30 AM CDT (America/Chicago). Nov 1, 2026, 1:30 AM happens twice in America/Chicago when clocks fall back; this schedule uses the first one, Nov 1, 2026, 1:30 AM CDT.",
+      );
+      const file = await capture(hub, "s233-schedule-panel");
+      return { browserZone, defaultZone: zone, note, screenshot: file };
+    },
+  );
+
+  await step(
+    "S233-schedule-refused",
+    "R-S233-9 (refusal under the local effect-refused descriptor), AC-S233-7",
+    "Schedule messages is refused by the Demo descriptor; the record stays an unauthorized draft with no occurrence",
+    async () => {
+      const composer = hub.getByRole("region", {
+        name: "Workflow communication composer",
+      });
+      const before = (await ownerSequences())[0];
+      const refused = sequencePost("schedule");
+      await composer.getByRole("button", { name: "Schedule messages" }).click();
+      const response = await refused;
+      const body = await response.json();
+      assert.equal(response.status(), 409);
+      assert.equal(body.code, "environment_context_not_allowed");
+      const alert = await composer.getByRole("alert").innerText();
+      assert.match(alert, /A Live provider action requires the Production environment/);
+      const after = (await ownerSequences())[0];
+      assert.equal(after.get("state"), "draft");
+      assert.equal(after.get("version"), before.get("version"));
+      assert.equal(after.get("authorization") ?? null, null);
+      assert.equal(after.get("nextDueAtMs") ?? null, null);
+      const occurrences = await db
+        .collection("gmail_communication_occurrences")
+        .where("sequenceId", "==", communicationId)
+        .get();
+      assert.equal(occurrences.size, 0, "an occurrence was claimed");
+      // The composer re-reads the recorded state after a refusal, then is editable again.
+      await hub.waitForFunction(() => {
+        const save = [...document.querySelectorAll("button")].find(
+          (button) => button.textContent?.trim() === "Save draft",
+        );
+        return save !== undefined && !save.disabled;
+      });
+      await composer.getByRole("alert").scrollIntoViewIfNeeded();
+      const file = await capture(hub, "s233-schedule-refused");
+      return {
+        status: response.status(),
+        code: body.code,
+        shown: alert.replace(/\s+/g, " "),
+        state: after.get("state"),
+        version: after.get("version"),
+        occurrences: occurrences.size,
+        screenshot: file,
+      };
+    },
+  );
+
+  await step(
+    "S233-labels-after-refresh",
+    "R-S233-9 (labels after refresh), R-S233-5 (hub worker health)",
+    "After a reload the hub lists the draft with its labels and the worker health; the communication reopens as a draft with nothing sent",
+    async () => {
+      await hub.goto(`${origin}/gmail-hub`, { waitUntil: "domcontentloaded" });
+      const health = hub.locator('[data-communication-field="worker-health"]');
+      await health.waitFor();
+      const healthText = (await health.innerText()).split("\n").filter(Boolean);
+      assert.deepEqual(healthText, [
+        "Worker: no run recorded yet.",
+        "No scheduled message is past due.",
+        "No open communication needs an incoming check.",
+      ]);
+      await hub.getByRole("tab", { name: "Drafts" }).click();
+      const row = hub
+        .locator("article.ui-card")
+        .filter({ hasText: "Open communication" });
+      await row.first().waitFor();
+      assert.equal(await row.count(), 1);
+      const rowText = (await row.innerText()).replace(/\s+/g, " ");
+      assert.match(rowText, /Draft in app · 0 confirmed messages · local-demo-editor@/);
+      await row.getByRole("button", { name: "Open communication" }).click();
+      const composer = hub.getByRole("region", {
+        name: "Workflow communication composer",
+      });
+      const state = composer.locator("[data-communication-state]");
+      await state.waitFor();
+      assert.equal(await state.getAttribute("data-communication-state"), "draft");
+      assert.equal(await state.innerText(), "Draft in app");
+      const status = await composer
+        .getByRole("status")
+        .filter({ hasText: "confirmed" })
+        .first()
+        .innerText();
+      assert.match(status, /0 confirmed messages/);
+      const composerText = await composer.innerText();
+      assert.doesNotMatch(composerText, /Accepted by Gmail|Confirmed send/);
+      const file = await capture(hub, "s233-after-refresh");
+      return {
+        health: healthText,
+        row: rowText.slice(0, 160),
+        state: await state.innerText(),
+        status: status.replace(/\s+/g, " "),
+        screenshot: file,
+      };
+    },
+  );
+
+  await step(
+    "S233-no-provider-call",
+    "AC-S233-7 (zero mutation attempts, no provider call)",
+    "The S233 phase made app saves and one refused Schedule only; no Gmail request was attempted",
+    async () => {
+      const log = existsSync(join(output, "network.jsonl"))
+        ? readFileSync(join(output, "network.jsonl"), "utf8")
+            .trim()
+            .split("\n")
+            .filter(Boolean)
+            .map((line) => JSON.parse(line))
+        : [];
+      const gmail = log.filter((entry) =>
+        /gmail|^www\.googleapis\.com$/.test(String(entry.host ?? "")),
+      );
+      assert.equal(gmail.length, 0, "a Gmail request was attempted");
+      const actions = hubWrites
+        .filter((entry) => entry.path === "/api/gmail-hub/sequences")
+        .map((entry) => entry.action);
+      assert.ok(actions.length >= 2, "expected the saves and the refused Schedule");
+      assert.deepEqual(
+        [...new Set(actions)].sort(),
+        ["save", "schedule"],
+        `unexpected communication actions: ${actions.join(", ")}`,
+      );
+      assert.equal(actions.filter((action) => action === "schedule").length, 1);
+      const other = hubWrites.filter(
+        (entry) =>
+          entry.path !== "/api/gmail-hub/sequences" && entry.path !== "/api/auth/demo",
+      );
+      assert.deepEqual(other, [], "an unexpected write request left the page");
+      return {
+        gmailRequests: gmail.length,
+        communicationActions: actions,
+        otherWrites: other.length,
+      };
+    },
+  );
+
   await step(
     "network-boundary",
     "R-S238-2 effect-refused descriptor",

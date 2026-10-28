@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { CommunicationComposer } from "@/components/gmail-hub/CommunicationComposer";
@@ -307,4 +308,46 @@ it("S233 R-S233-1: lists each attempt and incoming message once, with lease, cyc
     "Follow-up 2: Not confirmed, checking",
   ]);
   expect(section.textContent).not.toMatch(/\bdelivered\b|\bread\b/i);
+});
+
+it("S233 R-S233-9: a new composer whose load runs twice (development) installs and saves one draft", async () => {
+  const saves: { id: string; expectedVersion: number }[] = [];
+  const loads: (() => void)[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, options?: RequestInit) => {
+      if (url.includes("composition")) {
+        // Each load answers only when the test releases it, in order.
+        await new Promise<void>((resolve) => loads.push(resolve));
+        return reply(composition);
+      }
+      const command = JSON.parse(String(options?.body ?? "{}"));
+      saves.push({ id: command.draft.id, expectedVersion: command.expectedVersion });
+      return reply({
+        sequence: { ...base, ...command.draft, version: command.expectedVersion + 1 },
+        reviewedDraftHash: "c".repeat(64),
+      });
+    }),
+  );
+  render(
+    <StrictMode>
+      <CommunicationComposer
+        entry={{ lease: "115", purpose: "renewal_owner" }}
+        authenticatedEmail={email}
+        onClose={vi.fn()}
+        onChanged={vi.fn()}
+      />
+    </StrictMode>,
+  );
+  await waitFor(() => expect(loads).toHaveLength(2));
+  // The superseded first load answers first and must install nothing, past the autosave delay.
+  loads[0]!();
+  await new Promise((resolve) => setTimeout(resolve, 900));
+  expect(saves).toEqual([]);
+  loads[1]!();
+  await waitFor(() => expect(saves).toHaveLength(1));
+  await new Promise((resolve) => setTimeout(resolve, 900));
+  expect(saves).toHaveLength(1);
+  expect(saves[0]).toMatchObject({ expectedVersion: 0 });
+  expect(screen.queryByText(/This communication changed/)).toBeNull();
 });

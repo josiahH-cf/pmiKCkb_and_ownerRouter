@@ -187,6 +187,15 @@ behavior.
   audience: "Accepted by Gmail", "Failed delivery" (a delivery report tied to that attempt), "Not
   confirmed, checking", "Not sent: …", "Reply received", "Automatic response", or "Failed
   delivery, attempt not identified". It never says delivered or read; Gmail shows neither.
+- Each communication shows when its incoming check last ran ("Incoming checked 3 min ago"). When a
+  check cannot read cleanly it says why (a linked Gmail thread could not be read, a thread is over
+  the 50-message or 100,000-character read limit, or the staff mailbox sync failed, so it was not
+  checked this run), for how long, and that scheduled sends are held until it reads cleanly.
+- The communications hub opens with the worker's health: when its last run finished and how many it
+  checked, sent, held and failed; the oldest scheduled message that is due and not yet sent, with
+  how late it is; and the oldest incoming check. "The last run started … ago and did not finish"
+  means a run stopped early. "Worker health could not be read" means refresh the worklist and try
+  again.
 
 - Under **Document preparation**, the form families table now ends with the saved **Dotloop
   selection** (profile, template, transaction type, initial status and version) and the time of

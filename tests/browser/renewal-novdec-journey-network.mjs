@@ -49,11 +49,17 @@ const LEASES = [
       startDate: "2026-01-01",
       endDate: "2026-12-31",
       leaseType: "Fixed Term",
-      tenants: [{ name: "Casey Example" }],
+      // S233 R-S233-9: a verified tenancy (unit and tenant contact ids), so notice safety can read
+      // ready and the owner composer's Schedule reaches the server.
+      tenants: [{ name: "Casey Example", contactID: 7001 }],
     },
     property: { name: "Sample Place", streetNumber: "5001", streetName: "Sample Pl" },
-    portfolio: { portfolioID: 92, owners: [{ name: "Jordan Owner" }] },
-    unit: { rent: "1400.00", beds: 3, fullBaths: 2, postalCode: "64116" },
+    // S233 R-S233-9: a reserved, undeliverable owner address, so the owner composer can address it.
+    portfolio: {
+      portfolioID: 92,
+      owners: [{ name: "Jordan Owner", email: "jordan.owner@example.invalid" }],
+    },
+    unit: { unitID: 5002, rent: "1400.00", beds: 3, fullBaths: 2, postalCode: "64116" },
   },
 ];
 

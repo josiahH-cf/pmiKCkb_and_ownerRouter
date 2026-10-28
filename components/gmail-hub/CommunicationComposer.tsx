@@ -166,7 +166,8 @@ export function CommunicationComposer({
   const lastResponse = useRef<SequencePayload | null>(null),
     saveFlight = useRef<Promise<SequencePayload> | null>(null),
     locked = useRef(false),
-    active = useRef(true);
+    active = useRef(true),
+    loadRun = useRef(0);
   const entryKey = JSON.stringify(entry);
   const accept = useCallback((p: SequencePayload) => {
     lastResponse.current = p;
@@ -189,6 +190,10 @@ export function CommunicationComposer({
   }, []);
   useEffect(() => {
     active.current = true;
+    // A re-run (React runs a new effect twice in development) starts a fresh load; only the latest
+    // run may apply its result, so a superseded load never installs a second new draft.
+    const run = ++loadRun.current;
+    const current = () => active.current && loadRun.current === run;
     void (async () => {
       try {
         let next: SequenceDraft;
@@ -196,7 +201,7 @@ export function CommunicationComposer({
           const p = await jsonRequest<SequencePayload>(
             `/api/gmail-hub/sequences?id=${encodeURIComponent(entry.id)}`,
           );
-          if (!active.current) return;
+          if (!current()) return;
           accept(p);
           next = {
             id: p.sequence.id,
@@ -225,11 +230,10 @@ export function CommunicationComposer({
               const r: { attachment: CommunicationAttachment } = await jsonRequest(
                 `/api/gmail-hub/sequence-attachments?id=${p.sequence.id}&attachment=${id}&mode=metadata`,
               );
-              if (active.current)
-                setAttachments((old) => ({ ...old, [id]: r.attachment }));
+              if (current()) setAttachments((old) => ({ ...old, [id]: r.attachment }));
             }),
           ).catch(() => {
-            if (active.current)
+            if (current())
               setAttachmentNotice(
                 "Some attached files could not be verified. Keep them for recovery or remove them deliberately.",
               );
@@ -252,14 +256,14 @@ export function CommunicationComposer({
           );
           void jsonRequest<Composition>(`/api/gmail-hub/composition?${q}`)
             .then((r) => {
-              if (active.current) {
+              if (current()) {
                 setTarget(r.target);
                 setReviewedTargetHash(r.reviewedTargetHash);
                 setAttachmentNotice(r.attachmentNotice);
               }
             })
             .catch(() => {
-              if (active.current)
+              if (current())
                 setAttachmentNotice(
                   "Current recipients are unavailable. Drafting and history stay available; verify recipients before using the Gmail draft control in the linked lease.",
                 );
@@ -267,7 +271,7 @@ export function CommunicationComposer({
         } else {
           const q = new URLSearchParams(entry as Record<string, string>);
           const p = await jsonRequest<Composition>(`/api/gmail-hub/composition?${q}`);
-          if (!active.current) return;
+          if (!current()) return;
           next = {
             id: crypto.randomUUID(),
             context: p.context,
@@ -282,7 +286,7 @@ export function CommunicationComposer({
         currentDraft.current = next;
         setDraft(next);
       } catch (e) {
-        if (active.current) {
+        if (current()) {
           setError(
             e instanceof Error ? e.message : "The workflow message is unavailable.",
           );
