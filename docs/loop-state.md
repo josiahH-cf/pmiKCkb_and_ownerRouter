@@ -27,8 +27,10 @@ R-S232-3/4/5 (with the `s232-one-status` guidance contract, its independent orac
 release observer's expectation) and the S234 tenant answer's Working binding at `c689d627`;
 exact-main CI `40760251764` passed. The branch claude/renewal-novdec-rows5-20261028 adds S233
 R-S233-4/5/9 (failure reasons, worker health on the hub and in the assurance receipt, and the S233
-phase of the served journey with its composer fix). Each suite's status line names what remains
-(the journey's S234 and S237 phases and the role and mailbox refusals). Nothing was
+phase of the served journey with its composer fix), and claude/renewal-novdec-rows6-20261028 the
+journey's S234 phase and an Admin role refusal (24 of 24 steps on `e2188bd3`). Each suite's status
+line names what remains (S237 previews, claims and receipts, which the Demo descriptor refuses,
+charge changes, and Space and mailbox refusals). Nothing was
 served;
 production remains `6fbd6225` (S231). The staff walkthrough is NOT RUN. Client inputs C00–C13 stay
 in `docs/open-blockers.md`. The read-only release preflight reads `not_ready`: the Awaiting release

@@ -57,6 +57,11 @@ read the worker's last run, its counts, the oldest past-due lag and the oldest i
 journey (`npm run smoke:renewal-novdec-journey`); that run also found and fixed a composer load
 that, run twice in development, installed a second new draft (R-S233-9).
 
+The branch claude/renewal-novdec-rows6-20261028 adds the journey's S234 phase (Working terms, an
+approval with who, how and when, and its coverage naming the rent as no longer covered after a
+Working rent save, on the lease page and the desk row alike) and an Admin role refusal: 24 of 24
+steps on `e2188bd3`.
+
 Production still serves `6fbd6225` (S231); the staff walkthrough is NOT RUN.
 
 October 27: Dotloop A1 is resolved. Dan had made integrations a company admin, not an office
