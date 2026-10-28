@@ -346,6 +346,62 @@ describe("S117 exact RentVine operations through the owning route", () => {
     expect(writes).toBe(1);
   });
 
+  it("S237 R-S237-2: a Working-value current-base preview is bound to the saved Working rent; the panel's own-evidence path is not", async () => {
+    const saveWorkingRent = async (value: number) => {
+      const record = await getRenewalWorkingRecord(actor, "81", db);
+      await saveRenewalWorkingField(
+        actor,
+        {
+          leaseId: "81",
+          field: "current_rent",
+          value,
+          expectedRevision: record?.fields["current_rent"]?.revision ?? 0,
+          operationId: randomUUID(),
+        },
+        db,
+      );
+    };
+    const workingBody = (amount: string) => ({
+      ...currentBaseBody("301", { amount }),
+      evidenceRef: "",
+    });
+    // No saved Working value, or a different one: refused before any preview or attempt exists.
+    const unsaved = await post(workingBody("1300.00"));
+    expect(unsaved.status).toBe(409);
+    expect((await unsaved.json()).error).toMatch(/saved working current rent/);
+    await saveWorkingRent(1300);
+    const different = await post(workingBody("1350.00"));
+    expect(different.status).toBe(409);
+    expect(await getRenewalWritebackProposal(actor, "81", db)).toBeNull();
+
+    // A matching amount prepares; changing the Working value afterwards refuses the confirmation.
+    const prepared = await post(workingBody("1300.00"));
+    expect(prepared.status, JSON.stringify(await prepared.clone().json())).toBe(200);
+    const proposal = (await getRenewalWritebackProposal(actor, "81", db))!;
+    expect(proposal.evidenceRef).toBe("Staff working value");
+    const confirm = {
+      operation: "execute",
+      leaseId: "81",
+      previewHash: proposal.previewHash,
+      effectHash: proposal.effects[0].effectHash,
+      confirm: true,
+    };
+    await saveWorkingRent(1325);
+    const changed = await post(confirm);
+    expect(changed.status).toBe(409);
+    expect((await changed.json()).error_type).toBe("working_value_changed");
+    expect(writes).toBe(0);
+    expect(await records()).toEqual([]);
+
+    // Restoring the reviewed amount lets the same preview confirm exactly once.
+    await saveWorkingRent(1300);
+    const applied = await post(confirm);
+    expect(applied.status, JSON.stringify(await applied.clone().json())).toBe(200);
+    expect(writes).toBe(1);
+    expect((await (await post(confirm)).json()).duplicate).toBe(true);
+    expect(writes).toBe(1);
+  });
+
   it("AC-S117-2: forged targets and unsupported setters are refused before any proposal or attempt exists", async () => {
     // A non-rent account described "Rent", a future schedule, a second field, and an absent charge.
     for (const body of [

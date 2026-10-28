@@ -5,6 +5,10 @@ import {
   saveRenewalWorkspace,
 } from "@/lib/firestore/renewal-workspace";
 import { readEffectiveRenewalTerms } from "@/lib/firestore/renewal-effective-terms";
+import {
+  getRenewalWorkingRecord,
+  saveRenewalWorkingField,
+} from "@/lib/firestore/renewal-working-record";
 import { loadRenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory";
 import {
   futureRentInventoryHash,
@@ -253,6 +257,76 @@ describe("S97 active proposal generation and lifecycle", () => {
     expect(writes).toBe(1);
     expect(charge.amount).toBe("1275.00");
   });
+  it("S237 R-S237-2: blocks a Working-value current-base claim when the saved Working rent changed", async () => {
+    const now = Date.parse("2026-09-10T12:00:00.000Z");
+    const charge = {
+      leaseRecurringChargeID: "701",
+      leaseID: "115",
+      accountID: "9",
+      amount: "1250.00",
+      description: "Emulator recurring rent",
+      dayDue: "1",
+      frequency: "1",
+      startDate: "01/01/2026",
+      endDate: null,
+      isMoveInCharge: "0",
+      isFromImport: "0",
+      nextChargeDate: null,
+      rentIncreaseID: null,
+      importSourceKey: null,
+      recurringStatusID: 1,
+      account: { accountID: "9", isRent: "1" },
+    };
+    const saveWorkingRent = async (value: number) => {
+      const record = await getRenewalWorkingRecord(actor, "115", db);
+      await saveRenewalWorkingField(
+        actor,
+        {
+          leaseId: "115",
+          field: "current_rent",
+          value,
+          expectedRevision: record?.fields["current_rent"]?.revision ?? 0,
+          operationId: randomUUID(),
+        },
+        db,
+      );
+    };
+    const base = proposal(0);
+    const proposed = buildRenewalWritebackProposal({
+      ...base,
+      businessIntent: "current_base",
+      evidenceRef: "Staff working value",
+      nowMs: now,
+      sourceReadAtIso: new Date(now).toISOString(),
+      effects: [
+        {
+          kind: "recurring_charge_update",
+          chargeId: "701",
+          before: projectRecurringCharge(charge),
+          changes: { amount: "1275.00" },
+        },
+      ],
+    });
+    await saveRenewalWritebackProposal(actor, proposed, null, db);
+    const persisted = (await getRenewalWritebackProposal(actor, "115", db))!;
+    const claim = () =>
+      claimActiveS97RenewalEffect(db, {
+        proposal: persisted,
+        effect: persisted.effects[0],
+        record: readyRecord(persisted),
+      });
+    // Not saved, then a different saved value: the attempt stays unused.
+    expect(await claim()).toBe("blocked");
+    await saveWorkingRent(1280);
+    expect(await claim()).toBe("blocked");
+    expect((await db.collection(EXTERNAL_EXECUTION_COLLECTIONS.records).get()).size).toBe(
+      0,
+    );
+    // The reviewed amount claims exactly once.
+    await saveWorkingRent(1275);
+    expect(await claim()).toBe("claimed");
+  });
+
   it("binds future terms to the current effective terms at claim and receipts the existing future-charge update", async () => {
     vi.stubEnv("ENVIRONMENT_KIND", "production");
     vi.stubEnv("DATA_CONTEXT", "live");
