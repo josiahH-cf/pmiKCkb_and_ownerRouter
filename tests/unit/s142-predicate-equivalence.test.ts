@@ -32,6 +32,9 @@ import {
 // the guidance's status, no Blocked status or blocker list, advisory rent differences). The
 // fixture was re-recorded once on those authorized rules; it again pins every output against
 // accidental drift from here on.
+// S234 re-baseline (R-S234-4): after "Revision requested" the owner step reads "Update the working
+// terms and ask the owner again". Re-recorded once; the diff was exactly the 18 revision-requested
+// entries (16 manual summaries, 2 guidance outputs) and nothing else.
 
 const FIXTURE_PATH = join(__dirname, "..", "fixtures", "s142-predicate-equivalence.json");
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";

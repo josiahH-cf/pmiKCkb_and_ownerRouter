@@ -766,6 +766,11 @@ export interface RenewalProcessProjectionInput {
   externalDependencies?: RenewalExternalDependencies;
   /** S105: the typed owner response; absent means no owner outcome has been recorded yet. */
   ownerOutcome?: RenewalOwnerOutcome | null;
+  /**
+   * S234 R-S234-2: the staff record's owner outcome for this term. When present it is the cycle's
+   * one owner outcome; the earlier progress-route `ownerOutcome` is read only without it.
+   */
+  staffOwnerOutcome?: RenewalOwnerOutcomeState | null;
   tenantOutcome?: RenewalTenantOutcome | null;
   complete?: boolean;
 }
@@ -960,7 +965,7 @@ function branchApplicable(
  */
 function ownerOutcomeStateForSubstep(
   substepDefinition: RenewalSubstepDefinition,
-  outcome: RenewalOwnerOutcome | null | undefined,
+  outcome: Pick<RenewalOwnerOutcome, "state"> | null | undefined,
 ): { state?: RenewalSubstepState; blocker?: string } {
   if (!outcome) return {};
   if (substepDefinition.id === "record-owner-response") {
@@ -1055,7 +1060,11 @@ export function projectRenewalProcess(
   const migration = assessRenewalProcessMigration(input.processVersion);
   const migrationRequired = migration.status !== "current";
 
-  const ownerDeclined = input.ownerOutcome?.state === "declined_non_renewal";
+  // S234 R-S234-2: one owner outcome per cycle; the staff record governs when it has one.
+  const ownerOutcome = input.staffOwnerOutcome
+    ? { state: input.staffOwnerOutcome }
+    : (input.ownerOutcome ?? null);
+  const ownerDeclined = ownerOutcome?.state === "declined_non_renewal";
   const steps: RenewalStepProjection[] = RENEWAL_PROCESS_DEFINITION.steps.map(
     (stepDefinition) => {
       const substeps = stepDefinition.substeps.map((substepDefinition) => {
@@ -1091,7 +1100,7 @@ export function projectRenewalProcess(
         );
         const ownerOverride = ownerOutcomeStateForSubstep(
           substepDefinition,
-          input.ownerOutcome,
+          ownerOutcome,
         );
         const outcomeOverride = ownerOverride.state ? ownerOverride : tenantOverride;
         if (tenantOverride.blocker) blockers.push(tenantOverride.blocker);
@@ -1164,9 +1173,9 @@ export function projectRenewalProcess(
   if (migrationRequired) status = "migration_required";
   // S105: an unresolved owner response precedes every tenant state; the lease cannot be waiting on
   // a tenant answer that was never sent.
-  else if (input.ownerOutcome?.state === "revision_requested") {
+  else if (ownerOutcome?.state === "revision_requested") {
     status = "owner_revision_reopened";
-  } else if (input.ownerOutcome?.state === "no_response") {
+  } else if (ownerOutcome?.state === "no_response") {
     status = "waiting_on_owner";
   } else if (ownerDeclined) {
     status = hasEvidence(evidence, "non-renewal-handoff", false)

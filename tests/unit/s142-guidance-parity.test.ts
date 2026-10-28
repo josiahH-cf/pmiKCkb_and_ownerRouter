@@ -129,7 +129,10 @@ describe("S142 guidance parity", () => {
           state
         )
           expect(headline.label).toBe(
-            manualActionLabel(manualRenewalSummary(state).nextActivity),
+            manualActionLabel(
+              manualRenewalSummary(state).nextActivity,
+              manualRenewalSummary(state),
+            ),
           );
         // Only the recorded owner-decline-with-acceptance conflict produces a diagnostic.
         for (const diagnostic of projection.diagnostics)

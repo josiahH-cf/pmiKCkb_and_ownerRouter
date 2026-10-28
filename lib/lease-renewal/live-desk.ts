@@ -16,6 +16,7 @@ import {
 } from "@/lib/lease-renewal/working-record";
 import {
   manualRenewalSummary,
+  staffOwnerOutcome,
   workBasisDateIso,
   type RenewalWorkspaceState,
 } from "@/lib/lease-renewal/workspace-state";
@@ -1757,6 +1758,7 @@ export async function loadLiveRenewalDesk(
           evidence,
           evidenceBlockers: processEvidence.blockers,
           ownerOutcome: effectiveProgress?.ownerOutcome ?? null,
+          staffOwnerOutcome: staffOwnerOutcome(manual, classification.endDateIso),
           tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
           complete: effectiveProgress?.complete ?? false,
         });
@@ -2035,6 +2037,7 @@ export async function loadLiveRenewalLeaseWorkspace(
       evidence,
       evidenceBlockers: processEvidence.blockers,
       ownerOutcome: effectiveProgress?.ownerOutcome ?? null,
+      staffOwnerOutcome: staffOwnerOutcome(manual, classification.endDateIso),
       tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
       complete: effectiveProgress?.complete ?? false,
     });

@@ -58,6 +58,7 @@ import {
   type RenewalOwnerOutcomeState,
   type RenewalTenantOutcomeState,
 } from "@/lib/lease-renewal/renewal-process";
+import { staffOwnerOutcome } from "@/lib/lease-renewal/workspace-state";
 import { stampProductRecordRetention } from "@/lib/operations/product-record-retention";
 
 export {
@@ -142,11 +143,15 @@ export async function recordTenantOfferDraft(
   draftId: string,
   db: Firestore = getAdminFirestore(),
 ): Promise<RenewalProgress> {
+  // S234 R-S234-2: the staff record's owner outcome is the cycle's one owner outcome. Loaded
+  // lazily: the staff-record store already imports this module.
+  const { getRenewalWorkspace } = await import("@/lib/firestore/renewal-workspace");
+  const staff = await getRenewalWorkspace(actor, leaseId, db).catch(() => null);
   return applyTransition(
     actor,
     leaseId,
     (current, _transaction, currentAttachment) => ({
-      plan: planRecordTenantOfferDraft(current, draftId),
+      plan: planRecordTenantOfferDraft(current, draftId, staffOwnerOutcome(staff)),
       ...(currentAttachment ? { attachment: currentAttachment } : {}),
     }),
     "tenant_offer_drafted",
