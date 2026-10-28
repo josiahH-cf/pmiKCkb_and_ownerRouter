@@ -20,6 +20,8 @@ import {
 } from "@/lib/firestore/lease-document-returned-states";
 import { getPacketInputs } from "@/lib/firestore/lease-packet-inputs";
 import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
+import { getRenewalWorkingRecord } from "@/lib/firestore/renewal-working-record";
+import { packetWorkingTermsFreshness } from "@/lib/lease-documents/owner-approval-binding";
 import {
   DERIVED_ARTIFACT_COLLECTIONS,
   derivedHeadId,
@@ -72,6 +74,11 @@ export interface ReturnedStateView {
   readonly tracksSignerDetail: boolean;
   /** R-S236-6: how a staff-recorded "Required signatures complete" reads beside these records. */
   readonly manualCompletion: string | null;
+  /**
+   * PR #161 review: false when the current packet's documents carry earlier Working renewal terms
+   * than the saved ones, so no signature recorded on it completes the renewal.
+   */
+  readonly packetTermsCurrent: boolean;
 }
 
 export const WITHOUT_SIGNER_DETAIL_LABEL = "Recorded by staff without signer detail";
@@ -127,11 +134,12 @@ export async function resolveReturnedState(
   leaseId: string,
   db: Firestore = getAdminFirestore(),
 ): Promise<{ context: ReturnedStateContext; view: ReturnedStateView }> {
-  const [workspace, snapshot, inputs, manifest] = await Promise.all([
+  const [workspace, snapshot, inputs, manifest, working] = await Promise.all([
     getRenewalWorkspace(actor, leaseId, db),
     getCurrentPacketSnapshot(actor, leaseId, leaseId, db),
     getPacketInputs(actor, leaseId, db),
     readArtifactIntakeManifest(db),
+    getRenewalWorkingRecord(actor, leaseId, db),
   ]);
   const current = snapshot?.current && snapshot.manifest ? snapshot : null;
   const association = current ? await readLoopAssociation(leaseId, db) : null;
@@ -162,11 +170,18 @@ export async function resolveReturnedState(
   const people = inputs?.people.entries ?? [];
   const records =
     cycleId && current ? await listReturnedStateRecords(actor, leaseId, cycleId, db) : [];
-  // A signature observed before the current Working terms were recorded does not count.
-  const termsChangedAt =
-    workspace?.ownerResponse?.terms && workspace.termsRevision > 0
-      ? workspace.ownerResponse.recordedAt
-      : null;
+  // PR #161 review: the Working renewal terms are saved on their own record, field by field. The
+  // packet's documents count as current only while they carry those exact term revisions, and a
+  // signature observed before the current terms were saved never counts. Owner-response age,
+  // other Working fields and same-value saves do not move either answer.
+  const terms = current
+    ? packetWorkingTermsFreshness({
+        cycleId,
+        sourceVersions: current.sourceVersions ?? [],
+        createdAt: current.createdAt,
+        working,
+      })
+    : { current: true, changedAt: null };
   const projection = projectReturnedState({
     leaseId,
     cycleId: cycleId ?? "",
@@ -174,7 +189,8 @@ export async function resolveReturnedState(
     documents,
     people,
     records,
-    termsChangedAt,
+    termsChangedAt: terms.changedAt,
+    packetTermsCurrent: terms.current,
   });
   const unavailable = !cycleId
     ? "Start or record this lease's renewal work first; returned documents belong to a renewal cycle."
@@ -193,7 +209,9 @@ export async function resolveReturnedState(
       : tracksSignerDetail
         ? projection.signaturesComplete
           ? null
-          : "Required signatures complete was recorded by staff before these signer records; the records show who still must sign."
+          : !terms.current
+            ? "Required signatures complete was recorded for earlier Working renewal terms; the current packet's signatures do not complete this renewal."
+            : "Required signatures complete was recorded by staff before these signer records; the records show who still must sign."
         : `Required signatures complete: ${WITHOUT_SIGNER_DETAIL_LABEL} (${manual.source}).`;
   const context: ReturnedStateContext = {
     leaseId,
@@ -273,6 +291,7 @@ export async function resolveReturnedState(
       : null,
     tracksSignerDetail,
     manualCompletion,
+    packetTermsCurrent: terms.current,
   };
   return { context, view };
 }
@@ -298,6 +317,11 @@ export async function assertSignaturesCompletable(
     );
   }
   if (!view.tracksSignerDetail || view.signaturesComplete) return;
+  if (!view.packetTermsCurrent)
+    throw new EditableLayerError(
+      "The Working renewal terms changed after the current packet was prepared, so its recorded signatures do not complete this renewal. Prepare the packet again for the current terms and record each signer's result on it.",
+      409,
+    );
   const missing = view.documents.flatMap((document) =>
     document.stillMustSign.map((entry) => `${entry.name} (${document.label})`),
   );

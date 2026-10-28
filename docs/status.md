@@ -22,10 +22,12 @@ claude/renewal-novdec-rows-20261028 adds:
 
 - S236: the persisted returned-document record, its route and the Returned documents and
   signatures screen, derived Required signatures complete and the Admin checkpoint from records;
+  the PR #161 review fix (`743bac8f`) stops counting signatures once a Working renewal rent or date
+  is saved after the packet was prepared, keeping them as earlier-terms history;
 - S235: the places refusal for parties and animals, the packet state from recorded events and the
   saved Dotloop selection with its last observation;
 - S238: an isolated browser journey through the mounted pages, routes and emulator (14 of 14 steps
-  on `a6f99b6e`, `docs/evidence/s238-isolated-journey-2026-10-28.md`).
+  on `a6f99b6e`, 15 of 15 on `743bac8f`, `docs/evidence/s238-isolated-journey-2026-10-28.md`).
 
 Production still serves `6fbd6225` (S231); the staff walkthrough is NOT RUN.
 

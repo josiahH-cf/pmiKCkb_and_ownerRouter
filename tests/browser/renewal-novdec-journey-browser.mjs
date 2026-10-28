@@ -651,6 +651,93 @@ try {
   );
 
   await step(
+    "S236-working-terms-changed",
+    "R-S236-3/R-S236-6, PR #161 review (discussion_r4402147961)",
+    "Saving the Working renewal rent after every signature keeps the packet but ends Fully executed and refuses Done",
+    async () => {
+      // The actual Working field on the lease page, saved on its own; the packet is not re-evaluated.
+      const rent = page.getByLabel("Working monthly rent", { exact: true });
+      await rent.scrollIntoViewIfNeeded();
+      await rent.fill("1800");
+      const saved = page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/lease-renewal/working-record") &&
+          response.request().method() === "POST",
+      );
+      await rent.press("Tab");
+      assert.equal((await saved).status(), 200);
+      await openDocuments();
+      await page.waitForFunction(
+        () =>
+          document.querySelector('[data-renewal-field="returned-state"]')?.textContent ===
+          "Sent for signature",
+      );
+      const notes = await panel()
+        .locator('[data-renewal-field="returned-notes"]')
+        .first()
+        .innerText();
+      assert.match(
+        notes,
+        /The Working renewal terms changed after this packet was prepared/,
+      );
+      assert.match(notes, /Signed before the terms changed/);
+      const overall = await panel()
+        .locator('[data-renewal-field="returned-overall"]')
+        .innerText();
+      assert.doesNotMatch(overall, /Fully executed/);
+      const response = await page.evaluate(async (lease) => {
+        const state = await (
+          await fetch(`/api/lease-renewal/workspace?leaseId=${lease}`)
+        ).json();
+        const result = await fetch("/api/lease-renewal/workspace", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            operation: "record",
+            leaseId: lease,
+            cycleId: state.state.cycleId,
+            expectedRevision: state.state.revision,
+            operationId: crypto.randomUUID(),
+            action: {
+              kind: "activity",
+              activity: "signatures",
+              outcome: "done",
+              source: "Journey check",
+            },
+          }),
+        });
+        return { status: result.status, body: await result.json() };
+      }, LEASE);
+      assert.equal(response.status, 409);
+      assert.match(
+        response.body.error,
+        /The Working renewal terms changed after the current packet was prepared/,
+      );
+      // The packet and its version are unchanged and the earlier attestations stay as history.
+      const backend = await returnedRecords();
+      assert.equal(backend.records.length, 1);
+      assert.equal(backend.records[0].snapshot_id, "packet_journey_a");
+      assert.equal(backend.records[0].revision, 4);
+      assert.equal(backend.activity.length, 4);
+      const working = await db
+        .collection("lease_renewal_working_records")
+        .where("leaseId", "==", LEASE)
+        .get();
+      const termsRent = working.docs[0]?.get("fields")?.terms_rent;
+      assert.equal(termsRent?.value, 1800);
+      return {
+        ui: { state: "Sent for signature", notes, overall },
+        refusal: response.body.error,
+        backend: {
+          ...backend,
+          workingTermsRent: { value: termsRent.value, revision: termsRent.revision },
+        },
+        screenshot: await capture(page, "returned-older-terms", panel()),
+      };
+    },
+  );
+
+  await step(
     "S236-stale-version-refused",
     "R-S236-4 (AC-S236-3), R-S238-2 stale concurrent save",
     "A form read before a re-evaluated packet is refused, and the earlier signatures never count",

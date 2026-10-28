@@ -182,7 +182,11 @@ behavior.
   and what it rests on: seen in Dotloop (the document name and when you viewed it) or a signed copy
   received (where the copy is kept). Every entry reads "Recorded by staff, not provider-verified".
   A signature on an earlier version reads "Signed an earlier version, not current" and does not
-  count. "Dotloop shows …" is the last refresh and never sets a signed state.
+  count. Saving the Working renewal rent, effective date or end date after the packet was prepared
+  makes the packet's documents carry earlier terms: its signatures stay listed for those terms but
+  no longer count, and the page asks you to prepare the packet again. The current base rent, the
+  Sheet fields and notes do not do this. "Dotloop shows …" is the last refresh and never sets a
+  signed state.
 - When every document of the current packet has a filled copy and a reviewed signer map,
   "Required signatures complete" follows those records and cannot be recorded Done while someone
   still must sign. Otherwise staff record it as before, and it reads "Recorded by staff without
