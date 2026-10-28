@@ -11,7 +11,11 @@ import { SYNTHETIC_OWNER_ROSTER } from "../helpers/owner-approval";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { COMMUNICATION_SEQUENCE_COLLECTIONS } from "@/lib/gmail-hub/sequence-store";
 import { listLeaseOwnerReplies } from "@/lib/gmail-hub/sequence-store";
-import { saveRenewalWorkingField } from "@/lib/firestore/renewal-working-record";
+import {
+  getRenewalWorkingRecord,
+  saveRenewalWorkingField,
+} from "@/lib/firestore/renewal-working-record";
+import { tenantAnswerCoversCurrentTerms } from "@/lib/lease-renewal/tenant-answer-terms";
 import {
   getRenewalWorkspace,
   listRenewalWorkspaceActivity,
@@ -334,5 +338,49 @@ describe("S234 owner approval evidence on the emulator", () => {
     expect(
       (await getRenewalWorkspace(editor, LEASE, db))!.ownerResponse?.approval?.occurredAt,
     ).toBe("2026-10-21T16:00:00.000Z");
+  });
+
+  it("R-S234-5: keeps the Working term revisions a tenant answer was recorded against", async () => {
+    const state = (await getRenewalWorkspace(editor, LEASE, db))!;
+    const { state: answered } = await saveRenewalWorkspace(
+      editor,
+      {
+        leaseId: LEASE,
+        cycleId: state.cycleId,
+        expectedRevision: state.revision,
+        operationId: op(),
+        action: { kind: "tenant_response", outcome: "accepted", source: "Tenant call" },
+      },
+      db,
+    );
+    // Read inside the capture transaction, never from the page.
+    expect(answered!.tenantResponse?.workingTermRevisions).toEqual({
+      rent: 1,
+      effectiveDate: 1,
+      endDate: 1,
+    });
+    expect(
+      tenantAnswerCoversCurrentTerms(
+        answered!,
+        await getRenewalWorkingRecord(editor, LEASE, db),
+      ),
+    ).toBe(true);
+    await saveRenewalWorkingField(
+      editor,
+      {
+        leaseId: LEASE,
+        field: "terms_rent",
+        value: 1800,
+        expectedRevision: 1,
+        operationId: op(),
+      },
+      db,
+    );
+    expect(
+      tenantAnswerCoversCurrentTerms(
+        (await getRenewalWorkspace(editor, LEASE, db))!,
+        await getRenewalWorkingRecord(editor, LEASE, db),
+      ),
+    ).toBe(false);
   });
 });

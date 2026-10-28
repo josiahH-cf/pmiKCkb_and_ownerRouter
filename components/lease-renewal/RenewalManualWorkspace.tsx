@@ -28,7 +28,12 @@ import {
   useRenewalPricingPolicy,
   useStandingOwnerAuthority,
 } from "./RenewalPricingPolicy";
-import { WorkingDateField, WorkingMoneyField } from "./RenewalWorkingRecord";
+import {
+  WorkingDateField,
+  WorkingMoneyField,
+  useRenewalWorkingRecord,
+} from "./RenewalWorkingRecord";
+import { tenantAnswerCoversCurrentTerms } from "@/lib/lease-renewal/tenant-answer-terms";
 import { OwnerApprovalCoverageLine } from "./OwnerApprovalCoverageLine";
 import { Button, Card, Field } from "@/components/ui";
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
@@ -786,6 +791,15 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
   const context = useRenewalManualWorkspace()!,
     state = context.state,
     current = audience === "owner" ? state?.ownerResponse : state?.tenantResponse;
+  const workingContext = useRenewalWorkingRecord();
+  // S234 R-S234-5: a tenant answer answers the terms it was recorded against. With a readable
+  // Working record that includes each Working term's revision; otherwise the staff terms revision.
+  const earlierTerms =
+    !!state &&
+    !!current &&
+    (audience === "tenant" && workingContext && !workingContext.readUnavailable
+      ? !tenantAnswerCoversCurrentTerms(state, workingContext.record)
+      : current.termsRevision !== state.termsRevision);
   const initialOutcome = audience === "owner" ? "no_response" : "awaiting_response";
   const id = useId(),
     [outcome, setOutcome] = useState<string>(current?.outcome ?? initialOutcome),
@@ -996,7 +1010,7 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
       {current ? (
         <p>
           Recorded {formatBusinessTimestamp(current.recordedAt)} by {current.actorUid}.{" "}
-          {state && current.termsRevision !== state.termsRevision
+          {earlierTerms
             ? audience === "tenant"
               ? "Recorded before the terms changed; it does not answer the current terms."
               : "Recorded before the owner response changed."
