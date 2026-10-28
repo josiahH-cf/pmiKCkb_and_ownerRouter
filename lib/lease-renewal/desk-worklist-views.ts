@@ -1,9 +1,12 @@
 import {
   applyRenewalDeskQueryV2,
+  RENEWAL_DESK_REASON_FILTERS,
   type PartyTokenMatcher,
   type RenewalDeskQueryV2State,
+  type RenewalDeskReasonFilter,
   type RenewalDeskV2Item,
 } from "@/lib/lease-renewal/desk-query-v2";
+import { humanizeCohortReason } from "@/lib/lease-renewal/desk-model";
 
 /**
  * S122 (F01): the three obvious worklist views are derived from the one canonical desk query and
@@ -71,4 +74,39 @@ export function countRenewalDeskWorklistViews(
     ).totalMatching;
   }
   return counts;
+}
+
+/** S232 R-S232-3: one reason a loaded lease is listed for, with its count and the view of its rows. */
+export interface RenewalDeskReasonCount {
+  readonly reason: Exclude<RenewalDeskReasonFilter, "all">;
+  readonly label: string;
+  readonly count: number;
+  readonly query: RenewalDeskQueryV2State;
+}
+
+/**
+ * S232 R-S232-3 (AC-S232-2): under All leases, how many loaded leases each cohort reason lists.
+ * "Ready to work" are the included leases and every other reason is an exclusion. The counts sum to
+ * the leases All leases shows under the current filters, and each count's query opens exactly its
+ * rows. Reasons with no lease are omitted.
+ */
+export function countRenewalDeskReasons(
+  items: readonly RenewalDeskV2Item[],
+  state: RenewalDeskQueryV2State,
+  matchParty: PartyTokenMatcher,
+): readonly RenewalDeskReasonCount[] {
+  const all = withRenewalDeskWorklistView(state, "all");
+  return RENEWAL_DESK_REASON_FILTERS.filter(
+    (reason): reason is Exclude<RenewalDeskReasonFilter, "all"> => reason !== "all",
+  )
+    .map((reason) => {
+      const query = { ...all, reason };
+      return {
+        reason,
+        label: humanizeCohortReason(reason),
+        count: applyRenewalDeskQueryV2(items, query, matchParty).totalMatching,
+        query,
+      };
+    })
+    .filter((entry) => entry.count > 0);
 }

@@ -384,6 +384,8 @@ export interface RenewalWorkspaceState {
           | "counter_change_requested"
           | "declined_nonrenewing"
           | "needs_verification";
+        /** S234 R-S234-5: the Working term revisions current when the answer was recorded. */
+        workingTermRevisions?: WorkingTermRevisions;
       })
     | null;
   activities: Partial<Record<ManualActivity, StaffActivityRecord>>;
@@ -676,6 +678,12 @@ export function manualActionSheetIntent(
         }[outcome] ?? outcome);
   return { field, value, source };
 }
+/** S234 R-S234-5: each Working term's revision (0 when the term was never saved). */
+export interface WorkingTermRevisions {
+  rent: number;
+  effectiveDate: number;
+  endDate: number;
+}
 export function planRenewalWorkspaceAction(
   current: RenewalWorkspaceState,
   raw: RenewalWorkspaceAction,
@@ -683,6 +691,8 @@ export function planRenewalWorkspaceAction(
     actorUid: string;
     recordedAt: string;
     eventId: string;
+    /** S234 R-S234-5: the Working term revisions the store read with a tenant answer. */
+    workingTermRevisions?: WorkingTermRevisions | null;
     /** S66: the server-captured Working terms an approval covers; null when incomplete. */
     approvedWorkingTerms?: ApprovedWorkingTerms | null;
     /** S234 R-S234-1: the approval evidence the store verified for this exact approval. */
@@ -699,7 +709,12 @@ export function planRenewalWorkspaceAction(
     sourceUpdates: { ...current.sourceUpdates },
   };
   const source = action.source ?? STAFF_RECORD_SOURCE;
-  const { approvedWorkingTerms: capturedTerms, approvalEvidence, ...recordMeta } = meta;
+  const {
+    approvedWorkingTerms: capturedTerms,
+    approvalEvidence,
+    workingTermRevisions,
+    ...recordMeta
+  } = meta;
   let record: StaffRecord = {
     ...recordMeta,
     source,
@@ -801,7 +816,11 @@ export function planRenewalWorkspaceAction(
       ...(approval ? { approval } : {}),
     };
   } else if (action.kind === "tenant_response") {
-    next.tenantResponse = { ...record, outcome: action.outcome };
+    next.tenantResponse = {
+      ...record,
+      outcome: action.outcome,
+      ...(workingTermRevisions ? { workingTermRevisions } : {}),
+    };
   } else if (action.kind === "complete") {
     // S156: staff record completion when their actual work is complete; the checklist is guidance.
     next.completion = record;

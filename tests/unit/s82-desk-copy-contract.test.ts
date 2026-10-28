@@ -80,8 +80,14 @@ describe("S82 preserved copy roles remain", () => {
       /\.renewal-workspace-link\s*\{[^}]*min-height:\s*44px;[^}]*min-width:\s*44px;/s,
     );
     // S125 added the notice-timing RentVine review link and S127 the issue-disclosure and
-    // non-renewal handoff links, all on the same 44-pixel contract.
-    expect(workspace.match(/renewal-workspace-link/g)?.length).toBe(8);
+    // non-renewal handoff links, all on the same 44-pixel contract. S232 R-S232-5 moved the
+    // issue-disclosure link into the shared resolution, whose every link keeps the contract.
+    expect(workspace.match(/renewal-workspace-link/g)?.length).toBe(7);
+    const resolution = source("components/lease-renewal/RenewalIssueResolution.tsx");
+    expect(resolution.match(/<a\b/g)?.length).toBe(2);
+    expect(
+      resolution.match(/className="text-link renewal-workspace-link"/g)?.length,
+    ).toBe(2);
     expect(workspacePage).toContain("<RenewalDeskReturnLink");
     expect(source("components/lease-renewal/RenewalDeskReturnLink.tsx")).toContain(
       'className="back-link renewal-workspace-link"',

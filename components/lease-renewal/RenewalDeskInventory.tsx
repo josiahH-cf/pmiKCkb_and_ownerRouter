@@ -23,7 +23,11 @@ import {
   serializeRenewalDeskQueryV2,
   type RenewalDeskQueryV2State,
 } from "@/lib/lease-renewal/desk-query-v2";
-import { countRenewalDeskWorklistViews } from "@/lib/lease-renewal/desk-worklist-views";
+import {
+  countRenewalDeskReasons,
+  countRenewalDeskWorklistViews,
+  currentRenewalDeskWorklistView,
+} from "@/lib/lease-renewal/desk-worklist-views";
 import type { RenewalDeskView } from "@/lib/lease-renewal/desk-model";
 import { RENEWAL_DESK_ROUTE } from "@/lib/lease-renewal/desk-view-continuation";
 import type { Role } from "@/lib/auth/roles";
@@ -119,6 +123,14 @@ function OwnedRenewalDeskInventory({
   );
   const counts = useMemo(
     () => countRenewalDeskWorklistViews(view.items, state, match),
+    [view.items, state, match],
+  );
+  // S232 R-S232-3: under All leases, why each loaded lease is listed, each count opening its rows.
+  const reasonCounts = useMemo(
+    () =>
+      currentRenewalDeskWorklistView(state) === "all"
+        ? countRenewalDeskReasons(view.items, state, match)
+        : undefined,
     [view.items, state, match],
   );
   async function choose(search: string, fromHistory = false) {
@@ -274,8 +286,10 @@ function OwnedRenewalDeskInventory({
         sourceReadComplete={view.readComplete}
         dependentStateComplete={dependentStateComplete}
         viewCounts={counts}
+        {...(reasonCounts ? { reasonCounts } : {})}
         campaign={campaign}
         sheetWritebackPaused={sheetWritebackPaused}
+        sourceReadAtIso={view.dataCurrency.readAtIso}
         viewMemory={
           viewMemory
             ? {

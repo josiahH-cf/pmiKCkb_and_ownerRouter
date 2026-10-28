@@ -379,6 +379,84 @@ describe("S232 campaign window, ended-lease count and row reasons (R-S232-1/2/3)
     ).toHaveTextContent("Inside the current-month renewal window");
   });
 
+  it("shows each reason's count under All leases, each opening exactly its rows (R-S232-3)", () => {
+    const sample = getRenewalDeskView();
+    const items = [
+      row("W1", { lifecycle: lifecycle("upcoming") }),
+      row("W2", { lifecycle: lifecycle("in_progress") }),
+      row("P1", {
+        disposition: "skip",
+        reason: "program",
+        reasonLabel: "Program lease",
+        retention: {
+          state: "outside",
+          label: "Outside the renewal worklist by its source marker",
+        },
+      }),
+      row("F1", {
+        endDateIso: "2029-03-31",
+        disposition: "out_of_window",
+        reason: "out_of_window",
+        reasonLabel: "Outside this window",
+        retention: { state: "outside", label: "Outside the active renewal window" },
+        lifecycle: lifecycle("later"),
+      }),
+    ];
+    const allQuery = withRenewalDeskWorklistView(DEFAULT_RENEWAL_DESK_QUERY_V2, "all");
+    const mount = (query: RenewalDeskQueryV2State) =>
+      render(
+        <RenewalDesk
+          query={query}
+          role="Editor"
+          view={{ ...sample, items, readComplete: true }}
+        />,
+      );
+    const reasonLine = () =>
+      document.querySelector<HTMLElement>('[data-renewal-field="reason-counts"]');
+
+    mount(allQuery);
+    const line = reasonLine();
+    if (!line) throw new Error("Expected the reason counts under All leases.");
+    expect(line).toHaveTextContent(
+      "By reason: Ready to work 2 · Program lease 1 · Outside this window 1",
+    );
+    const links = within(line).getAllByRole("link");
+    expect(links.map((link) => link.textContent)).toEqual([
+      "Ready to work 2",
+      "Program lease 1",
+      "Outside this window 1",
+    ]);
+    // Ready to work plus every excluded reason accounts for every loaded lease.
+    expect(screen.getByText(/Total loaded:/)).toHaveTextContent("Total loaded: 4");
+    const program = within(line).getByRole("link", { name: "Program lease 1" });
+    expect(program.getAttribute("href")).toContain("scope=all");
+    expect(program.getAttribute("href")).toContain("reason=program");
+    expect(program).not.toHaveAttribute("aria-current");
+    cleanup();
+
+    // Opening a reason shows exactly its rows, keeps every count and marks the open one.
+    mount({ ...allQuery, reason: "program" });
+    expect(document.querySelectorAll("tbody tr")).toHaveLength(1);
+    expect(document.querySelector("tbody tr")).toHaveTextContent("Lease P1");
+    const opened = reasonLine();
+    if (!opened) throw new Error("Expected the reason counts with a reason open.");
+    expect(within(opened).getAllByRole("link")).toHaveLength(3);
+    expect(within(opened).getByRole("link", { name: "Program lease 1" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(
+      within(screen.getByRole("list", { name: "Active filters" })).getByText(
+        "Reason: Program lease",
+      ),
+    ).toBeInTheDocument();
+    cleanup();
+
+    // The active view keeps its own counts and shows no reason line.
+    mount({ ...DEFAULT_RENEWAL_DESK_QUERY_V2 });
+    expect(reasonLine()).toBeNull();
+  });
+
   it("does not repeat the ended count inside its own scope", () => {
     render(
       <RenewalDeskTable

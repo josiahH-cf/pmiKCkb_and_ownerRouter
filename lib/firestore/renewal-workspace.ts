@@ -40,7 +40,9 @@ import {
   type RenewalCycleBasis,
   type RenewalWorkBasis,
   type RenewalWorkspaceState,
+  type WorkingTermRevisions,
 } from "@/lib/lease-renewal/workspace-state";
+import { currentWorkingTermRevisions } from "@/lib/lease-renewal/tenant-answer-terms";
 
 export const RENEWAL_WORKSPACE_COLLECTIONS = {
   head: "lease_renewal_workspaces",
@@ -93,6 +95,14 @@ const stateSchema = z
           "declined_nonrenewing",
           "needs_verification",
         ]),
+        workingTermRevisions: z
+          .object({
+            rent: z.number().int().nonnegative(),
+            effectiveDate: z.number().int().nonnegative(),
+            endDate: z.number().int().nonnegative(),
+          })
+          .strict()
+          .optional(),
       })
       .nullable(),
     activities: z
@@ -480,6 +490,17 @@ export async function saveRenewalWorkspace(
         policy: chargePolicy,
       });
     }
+    // S234 R-S234-5: a tenant answer keeps the Working term revisions it answered, read here in
+    // the same transaction, so a later terms save shows it answers earlier terms.
+    let workingTermRevisions: WorkingTermRevisions | null = null;
+    if (input.action.kind === "tenant_response") {
+      const workingSnapshot = await tx.get(renewalWorkingRecordRef(db, input.leaseId));
+      workingTermRevisions = currentWorkingTermRevisions(
+        workingSnapshot.exists
+          ? parseRenewalWorkingRecord(workingSnapshot.data(), input.leaseId)
+          : null,
+      );
+    }
     let approvalEvidence: OwnerApprovalEvidence | null = null;
     if (approvalInput && verifiedParty) {
       const channel = approvalInput.channel!;
@@ -529,6 +550,7 @@ export async function saveRenewalWorkspace(
       recordedAt: now,
       approvedWorkingTerms,
       approvalEvidence,
+      workingTermRevisions,
     });
     if (
       input.action.kind === "preparation" &&

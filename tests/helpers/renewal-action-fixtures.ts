@@ -13,6 +13,7 @@ import type { MoveOutDisposition } from "@/lib/lease-renewal/move-out-dispositio
 import type { RentChargeOutcomeRow } from "@/lib/lease-renewal/rent-charge-outcomes";
 import { buildRenewalActionSnapshot } from "@/lib/lease-renewal/renewal-action-snapshot";
 import type { RenewalActionSnapshot } from "@/lib/lease-renewal/renewal-actions";
+import { staffRecordLatestAtIso } from "@/lib/lease-renewal/lease-work-status";
 import { projectRenewalIssues } from "@/lib/lease-renewal/renewal-issues";
 import {
   emptyRenewalWorkspace,
@@ -64,7 +65,14 @@ export function actionFixture(options: ActionFixtureOptions = {}): {
     : base.dataCheck;
   const summary = {
     ...base.summary,
-    ...(state ? { manualProgress: manualRenewalSummary(state) } : {}),
+    ...(state
+      ? {
+          manualProgress: manualRenewalSummary(state),
+          staffRecordedAtIso: staffRecordLatestAtIso(state),
+        }
+      : {}),
+    // S232 R-S232-4: as on the live page, a failed staff-record read is marked on the summary.
+    ...(manual === "unreadable" ? { staffRecordUnavailable: true as const } : {}),
     ...(options.dispositionReview
       ? { disposition: "review" as const, reasonLabel: "Lease end date is missing" }
       : {}),

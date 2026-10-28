@@ -183,6 +183,10 @@ export interface RenewalDeskQueryKeys {
 
 export interface DeskLeaseSummaryBase {
   manualProgress?: ReturnType<typeof manualRenewalSummary>;
+  /** S232 R-S232-4: the newest time on the staff record behind `manualProgress`, when one exists. */
+  staffRecordedAtIso?: string | null;
+  /** S232 R-S232-4: the staff-record read failed for this render. */
+  staffRecordUnavailable?: true;
   renewalPricing?: RenewalPricingProjection;
   /**
    * S123: the recorded cycle basis compared with the lease end the provider reports now. Present

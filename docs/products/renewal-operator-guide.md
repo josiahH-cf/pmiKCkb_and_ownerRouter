@@ -159,6 +159,23 @@ behavior.
 - Every row states why it appears. A lease the source marks outside the worklist stays visible
   while recorded work is unfinished. If saved progress cannot be read, the row says so instead of
   disappearing.
+- Under **All leases**, "By reason:" counts the loaded leases by why each is listed: Ready to work,
+  Month-to-month, Owner-authorized hold, Program lease, No end date on file, Off-cycle end date,
+  Outside this window and Lease term needs review. Each count opens exactly those leases; remove the
+  "Reason: …" filter to see them all again.
+- Each row's status names who the lease waits on ("Waiting on: the owner", "Waiting on: the tenant"
+  or "Waiting on: the PMI KC team") and the record it comes from ("From the staff record, saved …"
+  or "From the RentVine read at …; nothing recorded by staff yet"). Focus shows the same lines. After
+  the owner asks for a revision, the tenant counters, or a tenant answer needs verification, the
+  lease is Ready for staff, not Waiting. When the staff record and the linked Gmail thread disagree
+  about who has the move, the row reads **Needs a check** with both facts; update whichever is out
+  of date. The step filter is now **Recorded progress step**; saved links that use it still work.
+- Each item under **Other current issues**, and the same note in Focus, says what it needs and who
+  resolves it, then links to where: for example "Needs: The reviewed move-out timing basis.
+  Resolved by: an Admin" with **Record the timing basis in Admin**, a control on the lease, or
+  **Refresh this lease to read the sources again**. When nothing in the app resolves it, the note
+  says so, for example "Outside the app: The owner changes this policy; nothing in the app lifts the
+  pause." A waiting item names the owner or tenant the RentVine read records.
 - Notice timing uses the recorded tenant-offer send and response, and names that evidence beside
   the status. It stays "Timing policy not confirmed" until the client confirms the rule.
 - Scheduling defaults to Central time. A time that repeats or does not exist on a clock-change day
@@ -197,8 +214,9 @@ behavior.
   differs. Review: …" and the lease follows the staff record.
 - **The Working terms are the terms.** Terms written on an earlier owner response stay visible as
   history under the Working fields but no longer fill an empty Working field, so save the Working
-  rent, effective date and end date. A tenant answer recorded before the terms changed reads
-  "Recorded before the terms changed; it does not answer the current terms." Saving the Working
+  rent, effective date and end date. A tenant answer answers the Working terms saved when it was
+  recorded; saving the rent, effective date or end date afterwards, even to the same value, makes it
+  read "Recorded before the terms changed; it does not answer the current terms." Saving the Working
   terms after a message preview refuses that draft; preview the message again.
 - Beside each RentVine and Sheet preview, **Terms basis** names the Working terms revision and when
   it was saved, whether the owner's recorded approval covers exactly those terms, and the

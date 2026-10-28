@@ -2,6 +2,7 @@ import { formatCalendarDate } from "@/lib/date-display";
 import { earlierOwnerRecordDiffers } from "@/lib/lease-renewal/renewal-progress";
 import type { RenewalOwnerOutcomeState } from "@/lib/lease-renewal/renewal-process";
 import { RenewalFocusHashTarget } from "@/components/lease-renewal/RenewalFocusHashTarget";
+import { RenewalIssueResolution } from "@/components/lease-renewal/RenewalIssueResolution";
 import { RenewalSaveFocus } from "@/components/lease-renewal/RenewalSaveFocus";
 import { RenewalPolicyContentPanel } from "@/components/lease-renewal/RenewalPolicyContentPanel";
 import { RenewalPolicyProvider } from "@/components/lease-renewal/RenewalPolicyContext";
@@ -308,10 +309,12 @@ export function RenewalWorkspace({
           issue.kind === "policy_pause" ||
           issue.kind === "source_unavailable",
       )
-      .map((issue) => ({
+      .map((issue): RenewalFocusFacts["advisories"][number] => ({
         id: issue.id,
         kindLabel: issue.kindLabel,
         reason: issue.reason,
+        // S232 R-S232-5: Focus states the same input, resolver and link as the issue list.
+        issue,
       }))
       // S157 (BEH-6) / S152 (AC-2): a current-rent difference between sources stays visible in
       // Focus as advice; it holds nothing.
@@ -669,35 +672,19 @@ function RenewalIssueDisclosure({
     <details className="renewal-issues" data-renewal-issues={String(issues.length)}>
       <summary>Other current issues ({issues.length})</summary>
       <ul className="renewal-issue-list">
-        {issues.map((issue) => {
-          const href =
-            issue.destination.kind === "workspace_phase"
-              ? `${buildWorkspaceHref({ leaseId, step: issue.destination.stepId, deskView })}#${issue.destination.controlId ?? renewalDashboardTarget(issue.destination.stepId)}`
-              : issue.destination.kind === "workspace_anchor"
-                ? `#${issue.destination.targetId}`
-                : null;
-          return (
-            <li
-              key={issue.id}
-              data-renewal-issue-id={issue.id}
-              data-renewal-issue-kind={issue.kind}
-            >
-              <span className="renewal-issue-kind">{issue.kindLabel}:</span>{" "}
-              <span>{issue.reason}</span>{" "}
-              <span className="muted">
-                Affects: {issue.affectedAction}. Resolved by: {issue.responsible}.
-              </span>
-              {href ? (
-                <>
-                  {" "}
-                  <a className="text-link renewal-workspace-link" href={href}>
-                    Go to the control
-                  </a>
-                </>
-              ) : null}
-            </li>
-          );
-        })}
+        {issues.map((issue) => (
+          <li
+            key={issue.id}
+            data-renewal-issue-id={issue.id}
+            data-renewal-issue-kind={issue.kind}
+          >
+            <span className="renewal-issue-kind">{issue.kindLabel}:</span>{" "}
+            <span>{issue.reason}</span>{" "}
+            <span className="muted">Affects: {issue.affectedAction}.</span>{" "}
+            {/* S232 R-S232-5: the missing input, who resolves it, and where. */}
+            <RenewalIssueResolution deskView={deskView} issue={issue} leaseId={leaseId} />
+          </li>
+        ))}
       </ul>
     </details>
   );

@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import type { CohortReason } from "@/lib/lease-renewal/cohort";
 import {
   DEFAULT_RENEWAL_DESK_QUERY_V2,
+  RENEWAL_DESK_REASON_FILTERS,
   applyRenewalDeskQueryV2,
+  buildActiveFilterChips,
   parseRenewalDeskQueryV2,
   serializeRenewalDeskQueryV2,
   type PartyTokenMatcher,
@@ -17,6 +20,7 @@ import {
 import {
   RENEWAL_DESK_WORKLIST_VIEWS,
   RENEWAL_DESK_WORKLIST_VIEW_LABELS,
+  countRenewalDeskReasons,
   countRenewalDeskWorklistViews,
   currentRenewalDeskWorklistView,
   withRenewalDeskWorklistView,
@@ -37,6 +41,7 @@ function item(
     workStatus?: "complete_staff_status";
     address?: string;
     owners?: readonly string[];
+    reason?: CohortReason;
   } = {},
 ): RenewalDeskV2Item {
   const endDateIso =
@@ -64,6 +69,7 @@ function item(
     },
     identity: { address: { label: address }, property: null },
     retention: { state: overrides.retention ?? "window" },
+    ...(overrides.reason ? { reason: overrides.reason } : {}),
     guidance: {
       currentBaseRent: 1500,
       rentVerification: { state: "verified" },
@@ -291,5 +297,161 @@ describe("S122 navigation and chronological behavior (AC-S122-5)", () => {
       matchOwner,
     );
     expect(sorted.items.map((row) => row.id)).toEqual(["far", "near", "unknown-date"]);
+  });
+});
+
+describe("S232 per-reason counts under All leases (R-S232-3, AC-S232-2)", () => {
+  const rows = [
+    item("ready-1", { reason: "actionable", lifecycle: "upcoming" }),
+    item("ready-2", {
+      reason: "actionable",
+      lifecycle: "in_progress",
+      address: "4 Horizon Way",
+    }),
+    item("mtm", { reason: "month_to_month", retention: "periodic_review" }),
+    item("hold", { reason: "owner_authorized", retention: "outside" }),
+    item("program", { reason: "program", retention: "outside" }),
+    item("no-date", {
+      reason: "no_end_date",
+      endDateIso: null,
+      retention: "needs_verification",
+    }),
+    item("off-cycle", { reason: "off_cycle_date" }),
+    item("outside-1", {
+      reason: "out_of_window",
+      endDateIso: "2029-03-31",
+      retention: "outside",
+      address: "8 Horizon Way",
+    }),
+    item("outside-2", {
+      reason: "out_of_window",
+      endDateIso: "2029-04-30",
+      retention: "outside",
+    }),
+    item("term", { reason: "term_needs_review", owners: ["owner beta"] }),
+  ];
+  const idsWith = (reason: CohortReason) =>
+    rows
+      .filter((row) => row.reason === reason)
+      .map((row) => row.id)
+      .sort();
+
+  it("counts every loaded lease once by its reason, and each count opens exactly its rows", () => {
+    const counts = countRenewalDeskReasons(
+      rows,
+      DEFAULT_RENEWAL_DESK_QUERY_V2,
+      matchOwner,
+    );
+    expect(counts.map(({ reason, label, count }) => [reason, label, count])).toEqual([
+      ["actionable", "Ready to work", 2],
+      ["month_to_month", "Month-to-month", 1],
+      ["owner_authorized", "Owner-authorized hold", 1],
+      ["program", "Program lease", 1],
+      ["no_end_date", "No end date on file", 1],
+      ["off_cycle_date", "Off-cycle end date", 1],
+      ["out_of_window", "Outside this window", 2],
+      ["term_needs_review", "Lease term needs review", 1],
+    ]);
+    // Every cohort reason has a filter value; "all" is the no-filter default.
+    expect(RENEWAL_DESK_REASON_FILTERS.filter((value) => value !== "all")).toEqual(
+      counts.map(({ reason }) => reason),
+    );
+
+    // The included leases ("Ready to work") plus each excluded reason equal the total loaded.
+    const all = applyRenewalDeskQueryV2(
+      rows,
+      withRenewalDeskWorklistView(DEFAULT_RENEWAL_DESK_QUERY_V2, "all"),
+      matchOwner,
+    );
+    expect(all.totalLoaded).toBe(rows.length);
+    expect(counts.reduce((sum, { count }) => sum + count, 0)).toBe(all.totalLoaded);
+
+    for (const entry of counts) {
+      expect(currentRenewalDeskWorklistView(entry.query)).toBe("all");
+      const opened = applyRenewalDeskQueryV2(rows, entry.query, matchOwner);
+      expect(opened.items.map((row) => row.id).sort()).toEqual(idsWith(entry.reason));
+      expect(opened.totalMatching).toBe(entry.count);
+    }
+
+    // A reason with no loaded lease is left out rather than shown as zero.
+    const withoutHold = rows.filter((row) => row.reason !== "owner_authorized");
+    expect(
+      countRenewalDeskReasons(withoutHold, DEFAULT_RENEWAL_DESK_QUERY_V2, matchOwner).map(
+        ({ reason }) => reason,
+      ),
+    ).not.toContain("owner_authorized");
+  });
+
+  it("keeps the other filters and the party matcher, and lists every reason while one is open", () => {
+    const filtered: RenewalDeskQueryV2State = {
+      ...DEFAULT_RENEWAL_DESK_QUERY_V2,
+      lease: "Horizon",
+      ownerKey: OWNER_TOKEN,
+    };
+    const counts = countRenewalDeskReasons(rows, filtered, matchOwner);
+    expect(counts.map(({ reason, count }) => [reason, count])).toEqual([
+      ["actionable", 1],
+      ["out_of_window", 1],
+    ]);
+    const allFiltered = applyRenewalDeskQueryV2(
+      rows,
+      withRenewalDeskWorklistView(filtered, "all"),
+      matchOwner,
+    );
+    expect(counts.reduce((sum, { count }) => sum + count, 0)).toBe(
+      allFiltered.totalMatching,
+    );
+    for (const entry of counts) {
+      expect(entry.query).toMatchObject({
+        scope: "all",
+        lifecycle: "all",
+        lease: "Horizon",
+        ownerKey: OWNER_TOKEN,
+        reason: entry.reason,
+      });
+    }
+    // The owner filter is checked with the same actor-scoped matcher as the rows.
+    expect(countRenewalDeskReasons(rows, filtered, () => false)).toEqual([]);
+
+    // With a reason open, the line still counts every reason from the same filters.
+    const opened = { ...counts[1]!.query };
+    expect(countRenewalDeskReasons(rows, opened, matchOwner)).toEqual(counts);
+    expect(
+      applyRenewalDeskQueryV2(rows, opened, matchOwner).items.map((row) => row.id),
+    ).toEqual(["outside-1"]);
+  });
+
+  it("round-trips the reason in the desk URL and names it in a removable filter chip", () => {
+    const [outside] = countRenewalDeskReasons(
+      rows,
+      DEFAULT_RENEWAL_DESK_QUERY_V2,
+      matchOwner,
+    ).filter(({ reason }) => reason === "out_of_window");
+    if (!outside) throw new Error("Expected an Outside this window count.");
+    const serialized = serializeRenewalDeskQueryV2(outside.query);
+    expect(new URLSearchParams(serialized).get("reason")).toBe("out_of_window");
+    const restored = parseRenewalDeskQueryV2(new URLSearchParams(serialized));
+    expect(restored).toMatchObject({ scope: "all", reason: "out_of_window" });
+    expect(serializeRenewalDeskQueryV2(restored)).toBe(serialized);
+    const deskView = encodeDeskView(outside.query);
+    if (!deskView) throw new Error("Expected a nondefault deskView.");
+    expect(validateDeskView(deskView)).toBe(deskView);
+    expect(parseDeskViewState(deskView).reason).toBe("out_of_window");
+
+    // The default emits no reason; an unknown value falls back to no reason filter.
+    expect(serializeRenewalDeskQueryV2(DEFAULT_RENEWAL_DESK_QUERY_V2)).not.toContain(
+      "reason",
+    );
+    expect(
+      parseRenewalDeskQueryV2(new URLSearchParams("v=2&scope=all&reason=closed")).reason,
+    ).toBe("all");
+
+    const chip = buildActiveFilterChips(outside.query).find(
+      ({ key }) => key === "reason",
+    );
+    expect(chip).toMatchObject({
+      label: "Reason: Outside this window",
+      withoutFilter: { scope: "all", reason: "all" },
+    });
   });
 });

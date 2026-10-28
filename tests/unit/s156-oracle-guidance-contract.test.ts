@@ -25,9 +25,11 @@ import {
   projectIndependentStaffLaneManualRenewal,
 } from "@/lib/production-assurance/manual-renewal-projection";
 import {
+  INDEPENDENT_ONE_STATUS_CONTRACT_MARKER,
   INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
   PRODUCTION_RECONCILIATION_DESK_VIEW,
   countIndependentContractMarkerMismatches,
+  independentStaffLaneWaitingRule,
   projectIndependentRentVineRows,
   resolveIndependentGuidanceContract,
   type IndependentGuidanceContract,
@@ -483,7 +485,18 @@ const rowMismatches = (
 describe("S156 oracle: the contract marker selects exactly one rule set", () => {
   it("names the same marker the application renders, without importing it into the oracle", () => {
     expect(MARKER).toBe("s156-staff-lane");
-    expect(MARKER).toBe(DESK_GUIDANCE_CONTRACT);
+    // S232 R-S232-4: this checkout renders the one-status marker; S156's stays recognised for an
+    // earlier serving revision.
+    expect(INDEPENDENT_ONE_STATUS_CONTRACT_MARKER).toBe("s232-one-status");
+    expect(INDEPENDENT_ONE_STATUS_CONTRACT_MARKER).toBe(DESK_GUIDANCE_CONTRACT);
+    expect(
+      resolveIndependentGuidanceContract(INDEPENDENT_ONE_STATUS_CONTRACT_MARKER),
+    ).toBe("staff_lane");
+    expect(independentStaffLaneWaitingRule(INDEPENDENT_ONE_STATUS_CONTRACT_MARKER)).toBe(
+      "awaited_party",
+    );
+    expect(independentStaffLaneWaitingRule(MARKER)).toBe("response_step");
+    expect(independentStaffLaneWaitingRule(null)).toBe("response_step");
   });
 
   it("selects per row by the rendered marker when the caller names no contract", () => {
@@ -514,6 +527,13 @@ describe("S156 oracle: the contract marker selects exactly one rule set", () => 
     expect(countIndependentContractMarkerMismatches([null, null], MARKER)).toBe(2);
     expect(countIndependentContractMarkerMismatches([null, null], "none")).toBe(0);
     expect(countIndependentContractMarkerMismatches([MARKER, null], "none")).toBe(1);
+    // S232: two staff-lane markers on one page are two revisions; the smaller group counts.
+    const ONE = INDEPENDENT_ONE_STATUS_CONTRACT_MARKER;
+    expect(countIndependentContractMarkerMismatches([ONE, ONE])).toBe(0);
+    expect(countIndependentContractMarkerMismatches([ONE, MARKER, ONE])).toBe(1);
+    expect(countIndependentContractMarkerMismatches([ONE, MARKER, null])).toBe(2);
+    expect(countIndependentContractMarkerMismatches([ONE, ONE], ONE)).toBe(0);
+    expect(countIndependentContractMarkerMismatches([ONE, MARKER], ONE)).toBe(1);
   });
 
   it("reads the expected contract from the command line and refuses any other value", () => {
@@ -521,6 +541,9 @@ describe("S156 oracle: the contract marker selects exactly one rule set", () => 
     expect(
       resolveExpectedGuidanceContract(["--expected-guidance-contract=s156-staff-lane"]),
     ).toEqual({ expectedGuidanceContract: MARKER });
+    expect(
+      resolveExpectedGuidanceContract(["--expected-guidance-contract=s232-one-status"]),
+    ).toEqual({ expectedGuidanceContract: INDEPENDENT_ONE_STATUS_CONTRACT_MARKER });
     expect(
       resolveExpectedGuidanceContract(["--expected-guidance-contract=none"]),
     ).toEqual({ expectedGuidanceContract: "none" });
@@ -913,6 +936,14 @@ describe("S156 oracle: the independent rules equal the rules the application ren
       kind: "tenant_response",
       outcome: "counter_change_requested",
     }),
+    // S232: the team's move on a response step.
+    act(STATE_703, {
+      kind: "owner_response",
+      outcome: "revision_requested",
+      reason: "Synthetic revision request",
+    }),
+    act(accepted, { kind: "tenant_response", outcome: "counter_change_requested" }),
+    act(accepted, { kind: "tenant_response", outcome: "needs_verification" }),
   ];
 
   it("projects every staff record exactly as the application summary does", () => {
@@ -923,6 +954,14 @@ describe("S156 oracle: the independent rules equal the rules the application ren
         complete: summary.complete,
         nextActivity: summary.nextActivity,
         pendingSourceUpdates: summary.pendingSourceUpdates,
+        // S232: the owner or tenant has the move exactly when the application waits on them.
+        awaitedParty:
+          !summary.complete &&
+          (summary.nextActivity === "owner_response" ||
+            summary.nextActivity === "tenant_response") &&
+          summary.waitingParty !== "staff"
+            ? summary.waitingParty
+            : null,
       });
     }
     const unrecorded = manualRenewalSummary(null);
@@ -948,6 +987,7 @@ describe("S156 oracle: the independent rules equal the rules the application ren
         const rendered = guidance({ disposition, state, inWorklist });
         const expected = projectIndependentExpectedGuidanceState({
           contract: "staff_lane",
+          waitingRule: independentStaffLaneWaitingRule(rendered.contract ?? null),
           dispositionExpected: disposition,
           retentionExpected: "window",
           processExpected: inWorklist,
@@ -970,7 +1010,7 @@ describe("S156 oracle: the independent rules equal the rules the application ren
         });
         const destination =
           "destination" in rendered.action ? rendered.action.destination : null;
-        expect(rendered.contract).toBe(MARKER);
+        expect(rendered.contract).toBe(INDEPENDENT_ONE_STATUS_CONTRACT_MARKER);
         expect(rendered.blockers).toEqual([]);
         expect(expected.markerMismatches).toBe(0);
         expect(expected.overallStatus).toBe(rendered.overallStatus);

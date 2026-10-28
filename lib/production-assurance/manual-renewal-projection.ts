@@ -9,6 +9,12 @@ export interface IndependentManualRenewal {
   readonly nextActivity: string;
   readonly actionStepId: string;
   readonly sourceDigest: string;
+  /**
+   * S232: who has the move on a response step, or null when the team does (a requested revision,
+   * a tenant counter or an answer that needs verification) or no response is awaited. Set by the
+   * staff-lane copy only; the predecessor copy predates the rule.
+   */
+  readonly awaitedParty?: "owner" | "tenant" | null;
 }
 
 /**
@@ -16,11 +22,15 @@ export interface IndependentManualRenewal {
  * shows no staff record for it; only its status and suggested action come from this lane.
  */
 export const INDEPENDENT_UNRECORDED_STAFF_LANE: Readonly<
-  Pick<IndependentManualRenewal, "complete" | "nextActivity" | "actionStepId">
+  Pick<
+    IndependentManualRenewal,
+    "complete" | "nextActivity" | "actionStepId" | "awaitedParty"
+  >
 > = Object.freeze({
   complete: false,
   nextActivity: "owner_outreach",
   actionStepId: "owner-decision",
+  awaitedParty: null,
 });
 
 const STAFF_LANE_ORDER = [
@@ -107,10 +117,25 @@ export function projectIndependentStaffLaneManualRenewal(
   else nextActivity = STAFF_LANE_ORDER.find((key) => !done(key)) ?? "complete";
   // S156: once completion is recorded, nothing is suggested next.
   if (state.completion) nextActivity = "complete";
+  // S232: the owner or tenant has the move only while their answer is awaited; a requested
+  // revision, a tenant counter (which reopens the owner response) or an answer that needs
+  // verification is the team's move.
+  const awaitedParty =
+    nextActivity === "owner_response"
+      ? state.ownerResponse?.outcome === "approved_terms" ||
+        state.ownerResponse?.outcome === "revision_requested"
+        ? null
+        : "owner"
+      : nextActivity === "tenant_response"
+        ? tenant?.outcome === "needs_verification"
+          ? null
+          : "tenant"
+        : null;
   return {
     cycleId: state.cycleId,
     revision: state.revision,
     complete: !!state.completion,
+    awaitedParty,
     pendingSourceUpdates: Object.values(state.sourceUpdates).filter(
       (entry) => entry.state !== "verified",
     ).length,

@@ -57,6 +57,7 @@ import { LEASE_RENEWAL_PROGRESS_COLLECTIONS } from "../lib/firestore/lease-renew
 import { LEASE_RENEWAL_COLLECTIONS } from "../lib/firestore/lease-renewal-resolutions";
 import { buildLiveRentVineConfig } from "../lib/lease-renewal/live-config";
 import {
+  INDEPENDENT_ONE_STATUS_CONTRACT_MARKER,
   INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
   countIndependentActionDestinationMismatches,
   countIndependentContractMarkerMismatches,
@@ -66,6 +67,7 @@ import {
   countIndependentWorkspaceDestinationMismatches,
   independentSourceDigest,
   independentRentVineCurrentRent,
+  independentStaffLaneWaitingRule,
   independentWorkspaceExpected,
   projectIndependentRentExpectation,
   projectIndependentRentVineRows,
@@ -76,6 +78,7 @@ import {
   type IndependentExpectedContractMarker,
   type IndependentGuidanceContract,
   type IndependentRenderedStatus,
+  type IndependentStaffLaneWaitingRule,
   type IndependentRentExpectation,
   type IndependentRenewalSourceRow,
   type IndependentSheetProjection,
@@ -230,10 +233,14 @@ export interface LiveReconciliationOptions extends ProductionTarget {
 
 const EXPECTED_GUIDANCE_CONTRACTS: ReadonlySet<string> = new Set([
   INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
+  INDEPENDENT_ONE_STATUS_CONTRACT_MARKER,
   "none",
 ]);
 
-/** `--expected-guidance-contract=s156-staff-lane|none`; absent means select by the rendered marker. */
+/**
+ * `--expected-guidance-contract=s232-one-status|s156-staff-lane|none`; absent means select by the
+ * rendered marker.
+ */
 export function resolveExpectedGuidanceContract(argv: readonly string[]): {
   readonly expectedGuidanceContract?: IndependentExpectedContractMarker;
 } {
@@ -1188,6 +1195,7 @@ function projectIndependentStaffLaneGuidanceState(input: {
   readonly processExpected: boolean;
   readonly processState: IndependentRenderedProcessState;
   readonly manual?: IndependentManualRenewal | null;
+  readonly waitingRule?: IndependentStaffLaneWaitingRule;
 }): Required<IndependentExpectedGuidanceState> {
   const markerMismatches = countProcessMarkerVocabularyMismatches(
     input.processExpected,
@@ -1211,12 +1219,13 @@ function projectIndependentStaffLaneGuidanceState(input: {
       markerMismatches,
     };
   }
+  // S156: a response step is Waiting. S232: only while the owner or tenant has the move.
+  const waiting =
+    input.waitingRule === "awaited_party"
+      ? lane.awaitedParty === "owner" || lane.awaitedParty === "tenant"
+      : ["owner_response", "tenant_response"].includes(lane.nextActivity);
   return {
-    overallStatus: lane.complete
-      ? "complete"
-      : ["owner_response", "tenant_response"].includes(lane.nextActivity)
-        ? "waiting"
-        : "ready",
+    overallStatus: lane.complete ? "complete" : waiting ? "waiting" : "ready",
     actionStepId: lane.actionStepId,
     actionFragment: `#renewal-manual-${lane.nextActivity}`,
     markerMismatches,
@@ -1233,6 +1242,8 @@ function projectIndependentStaffLaneGuidanceState(input: {
  */
 export function projectIndependentExpectedGuidanceState(input: {
   readonly contract?: IndependentGuidanceContract;
+  /** Staff lane only: the waiting rule the row's marker names; default S156's. */
+  readonly waitingRule?: IndependentStaffLaneWaitingRule;
   readonly dispositionExpected: ExpectedProjectionRow["dispositionExpected"];
   readonly retentionExpected: IndependentRenewalRetentionState;
   readonly processExpected: boolean;
@@ -2272,6 +2283,8 @@ export function countIndependentRowGuidanceMismatches(input: {
   if (input.contract === "staff_lane") {
     const expectedGuidance = projectIndependentExpectedGuidanceState({
       contract: "staff_lane",
+      // A marker that contradicts the page is counted separately; the rule follows the row's own.
+      waitingRule: independentStaffLaneWaitingRule(observedRow.guidanceContract),
       dispositionExpected: expectedRow.dispositionExpected,
       retentionExpected: expectedRow.retentionExpected,
       processExpected: expectedRow.processExpected,

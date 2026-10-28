@@ -41,8 +41,10 @@ export type {
 /**
  * The guidance rules this build renders, exposed on each desk row so the independent production
  * reconciliation can tell which rules a serving revision follows (an earlier revision has none).
+ * S232 R-S232-4: the S156 staff-lane rules, except that a response step is Waiting only while the
+ * owner or tenant has the move; a revision before this rendered "s156-staff-lane".
  */
-export const DESK_GUIDANCE_CONTRACT = "s156-staff-lane";
+export const DESK_GUIDANCE_CONTRACT = "s232-one-status";
 
 /** Grounded control gates only; every other blocker link is plain phase navigation. */
 export const DESK_EVIDENCE_CAPABILITY: Readonly<Partial<Record<string, Capability>>> = {
@@ -60,6 +62,7 @@ export interface DeskGuidanceInput {
     | "retention"
     | "followUp"
     | "manualProgress"
+    | "staffRecordUnavailable"
   >;
   readonly process: RenewalProcessProjection | null;
   readonly dataCheck: readonly DeskReconItem[] | null;
@@ -75,13 +78,6 @@ export interface DeskGuidanceInput {
   /** False means saved workflow state could not be read; dependent status/action must fail closed. */
   readonly progressStateAvailable?: boolean;
 }
-
-const WAITING_PARTY_LABEL: Record<string, string> = {
-  owner: "the owner",
-  tenant: "the tenant",
-  team: "the PMI KC team",
-  document_coordinator: "the document coordinator",
-};
 
 function rentVerification(input: DeskGuidanceInput): DeskRentVerification {
   const destination: DeskGuidanceDestination = {
@@ -137,18 +133,23 @@ export type DeskVerificationCause =
  * S156/S157: the staff-recorded lane guides every lease in the worklist. A lease with nothing
  * recorded yet is guided to the first staff activity; the earlier evidence-graph stages no longer
  * order, hold or block work, and a rent or source difference is shown as advisory evidence
- * (`rentVerification`), never as a status.
+ * (`rentVerification`), never as a status. S232 R-S232-4: the desk row's status line reads the
+ * same lane.
  */
-function staffLane(input: DeskGuidanceInput) {
+function staffLane(input: Pick<DeskGuidanceInput, "summary" | "process">) {
   return (
     input.summary.manualProgress ?? (input.process ? manualRenewalSummary(null) : null)
   );
 }
 
-/** True when the lease's guidance is Needs verification; shared with the S142 action projection. */
+/**
+ * True when the lease's guidance is Needs verification; shared with the S142 action projection.
+ * S232 R-S232-4: a failed staff-record read is unreadable saved progress, never "nothing recorded".
+ */
 export function deskNeedsVerification(input: DeskGuidanceInput): boolean {
   return (
     (input.progressStateAvailable === false && !input.summary.manualProgress) ||
+    input.summary.staffRecordUnavailable === true ||
     !input.readComplete ||
     input.currencyState === "expired" ||
     input.summary.disposition === "review"
@@ -160,7 +161,11 @@ export function deskNeedsVerification(input: DeskGuidanceInput): boolean {
  * `deskNeedsVerification` is true; the S142 projection maps it to the same recovery action.
  */
 export function deskVerificationCause(input: DeskGuidanceInput): DeskVerificationCause {
-  if (input.progressStateAvailable === false) return "progress_unreadable";
+  if (
+    input.progressStateAvailable === false ||
+    input.summary.staffRecordUnavailable === true
+  )
+    return "progress_unreadable";
   if (!input.readComplete) return "read_incomplete";
   if (input.currencyState === "expired") return "data_expired";
   return "disposition_review";
@@ -173,40 +178,43 @@ export function deskGuidanceVerificationCause(
   return deskNeedsVerification(input) ? deskVerificationCause(input) : null;
 }
 
-/** The party wording the waiting guidance uses; shared with the S142 projection. */
-export function deskWaitingPartyLabel(party: string | null | undefined): string | null {
-  return party ? (WAITING_PARTY_LABEL[party] ?? null) : null;
-}
-
-function overallStatus(input: DeskGuidanceInput): RenewalOverallStatus {
-  if (deskNeedsVerification(input)) return "needs_verification";
-  const manual = staffLane(input);
-  if (!manual) return "needs_review";
-  if (manual.complete) return "complete";
-  if (
-    manual.nextActivity === "owner_response" ||
-    manual.nextActivity === "tenant_response"
-  )
-    return "waiting";
-  return "ready";
-}
-
-function action(input: DeskGuidanceInput, status: RenewalOverallStatus): DeskLeaseAction {
-  const manual = staffLane(input);
-  if (manual && status !== "needs_verification") {
-    const key = manual.nextActivity;
-    const section =
-      key === "owner_response"
-        ? "owner"
-        : key === "tenant_response"
-          ? "tenant"
-          : key in MANUAL_ACTIVITIES
-            ? MANUAL_ACTIVITIES[key as keyof typeof MANUAL_ACTIVITIES].section
-            : "documents";
-    const label = manualActionLabel(key, manual);
-    return {
+/**
+ * S232 R-S232-4: the staff lane's status and next action, shared by the desk row and Focus. A
+ * response step is Waiting only while the owner or tenant has the move; when the recorded answer
+ * hands the move back to staff (a requested revision, a tenant counter, an answer that needs
+ * verification) the lease is Ready, so the status and its waiting-on party never disagree.
+ */
+export function staffLaneGuidance(
+  manual: Pick<
+    ReturnType<typeof manualRenewalSummary>,
+    "complete" | "nextActivity" | "waitingParty" | "ownerRevisionRequested"
+  >,
+): {
+  readonly status: "complete" | "waiting" | "ready";
+  readonly action: DeskLeaseAction;
+} {
+  const key = manual.nextActivity;
+  const status = manual.complete
+    ? "complete"
+    : (key === "owner_response" || key === "tenant_response") &&
+        manual.waitingParty !== "staff"
+      ? "waiting"
+      : "ready";
+  const section =
+    key === "owner_response"
+      ? "owner"
+      : key === "tenant_response"
+        ? "tenant"
+        : key in MANUAL_ACTIVITIES
+          ? MANUAL_ACTIVITIES[key as keyof typeof MANUAL_ACTIVITIES].section
+          : "documents";
+  return {
+    status,
+    action: {
       kind: manual.complete ? "complete" : status === "waiting" ? "waiting" : "act",
-      label: manual.complete ? "Review completion recorded by staff." : label,
+      label: manual.complete
+        ? "Review completion recorded by staff."
+        : manualActionLabel(key, manual),
       destination: {
         kind: "workspace_phase",
         stepId:
@@ -217,8 +225,20 @@ function action(input: DeskGuidanceInput, status: RenewalOverallStatus): DeskLea
               : "compliance-close",
         controlId: `renewal-manual-${manual.complete ? "complete" : key}`,
       },
-    };
-  }
+    },
+  };
+}
+
+function overallStatus(input: DeskGuidanceInput): RenewalOverallStatus {
+  if (deskNeedsVerification(input)) return "needs_verification";
+  const manual = staffLane(input);
+  if (!manual) return "needs_review";
+  return staffLaneGuidance(manual).status;
+}
+
+function action(input: DeskGuidanceInput, status: RenewalOverallStatus): DeskLeaseAction {
+  const manual = staffLane(input);
+  if (manual && status !== "needs_verification") return staffLaneGuidance(manual).action;
   switch (status) {
     // The staff lane above answers Ready, Waiting and Complete; Blocked is no longer produced.
     case "blocked":
