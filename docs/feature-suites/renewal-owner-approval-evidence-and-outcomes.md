@@ -3,7 +3,7 @@
 
 # S234 — Evidenced owner approval of exact terms and one owner outcome per cycle
 
-> Status: IN PROGRESS (branch claude/renewal-novdec-readiness-20261028, not served) — the R-S234-3 handoff display now reads the approval-bound Working terms; R-S234-1, R-S234-2, R-S234-4 and R-S234-5 remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 101). Who may approve for each landlord and each real approval's evidence are client facts (C03/C04) that hold only real records, not this code slice.
+> Status: IN PROGRESS (merged to main at bf0c03f9 by PR #158, not served) — the R-S234-3 handoff display now reads the approval-bound Working terms; R-S234-1, R-S234-2 (amended to keep the legacy control on its conditional path), R-S234-4 and R-S234-5 remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 101). Who may approve for each landlord and each real approval's evidence are client facts (C03/C04) that hold only real records, not this code slice.
 
 **Goal.**
 
@@ -71,12 +71,13 @@ unreadable the approval control states that and records nothing.
   reference, or a conversation with its participants; and (c) when it happened. The record stores
   these with the existing actor, time, terms revision and `ApprovedWorkingTerms`. Nothing is
   pre-selected from an incoming message.
-- **R-S234-2 — One owner outcome per cycle.** The staff-record owner outcome is the only owner outcome
-  for a cycle. Desk and Focus guidance, the packet gate, `ownerOutcomeBlocksDownstream`, the
-  assurance projection and the handoff screen all read it. The "Owner decision" card stops writing a
-  second record; an earlier progress-route record that disagrees is shown as "Earlier owner record
-  differs — review" and never used silently. Legacy `ownerResponse.terms` are not read as current
-  terms anywhere.
+- **R-S234-2 — One owner outcome per cycle.** The staff-record owner outcome is the owner outcome
+  that desk and Focus guidance, the packet gate, `ownerOutcomeBlocksDownstream`, the assurance
+  projection and the handoff screen read. The legacy "Owner decision" control stays on its existing
+  conditional path (after an app-sent owner message) pending a material change (amended 2026-10-28);
+  when its earlier progress-route record disagrees with the staff record, the screen shows "Earlier
+  owner record differs — review" and never uses it silently. Legacy `ownerResponse.terms` are not
+  read as current terms anywhere.
 - **R-S234-3 — Truthful terms and approval display.** The handoff screen, the Owner approval section
   and the desk row state which Working terms (rent, effective date, end date with their revisions)
   and charges the approval covers, and its state: covered; no longer covers because the rent, dates

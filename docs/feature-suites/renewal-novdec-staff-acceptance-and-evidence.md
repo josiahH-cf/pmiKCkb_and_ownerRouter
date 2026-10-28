@@ -3,7 +3,7 @@
 
 # S238 — November/December renewal staff acceptance, evidence and blocker closure
 
-> Status: IN PROGRESS (branch claude/renewal-novdec-readiness-20261028, not served) — the October 28 document reconciliation is recorded; the staff walkthrough is NOT RUN. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 105). Human verdicts, genuine-case provider evidence and live effects stay BLOCKED on B-HUMAN, C11–C13 and the owner's exact scope; nothing here creates a production record for proof.
+> Status: IN PROGRESS (merged to main at bf0c03f9 by PR #158, not served) — the October 28 document reconciliation is recorded; the staff walkthrough is NOT RUN. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 105). Human verdicts, genuine-case provider evidence and live effects stay BLOCKED on B-HUMAN, C11–C13 and the owner's exact scope; nothing here creates a production record for proof.
 
 **Goal.**
 
@@ -192,7 +192,8 @@ work (including Article Flow), and resuming the paused release chat.
 **Open questions & assumptions.**
 
 - Jo selects the genuine case(s), permitted actions and recipients, or an actual isolated provider
-  sandbox (C11); none exists today, so provider-functional rows stay UNVERIFIED until then.
+  sandbox (C11); none has been selected or verified, so provider-functional rows stay UNVERIFIED
+  until then.
 - Operators' availability and current app roles are runtime facts read in R-S238-1.
 - Assumption (labeled): the walkthrough can be observed remotely; recording needs the team's consent
   and stays private.

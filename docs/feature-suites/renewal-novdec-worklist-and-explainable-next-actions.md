@@ -3,7 +3,7 @@
 
 # S232 — November/December worklist reasons, ended-without-outcome visibility and explainable next actions
 
-> Status: IN PROGRESS (branch claude/renewal-novdec-readiness-20261028, not served) — R-S232-1, R-S232-2, R-S232-6 and R-S232-8 and the fail-closed and retained-skip parts of R-S232-7 are implemented with focused tests. The same-date start_cycle refusal was withdrawn because the S113/S144 contracts deliberately allow an explicit restart that keeps the earlier cycle as history; it is a staff-operations decision. R-S232-3 per-reason excluded counts and R-S232-4/R-S232-5 resolver links remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 099). No client input blocks this code slice; the A5 timing basis and the unconfirmed notice rule hold only the timing labels named below.
+> Status: IN PROGRESS (merged to main at bf0c03f9 by PR #158, not served) — R-S232-1, R-S232-2, R-S232-6 and R-S232-8 are implemented with focused tests; R-S232-7 is implemented under its amended contract (fail-closed staff-record reads and retained skipped work; `start_cycle` keeps the existing S123/S144 restart, replay and stale-revision contract). R-S232-3 per-reason excluded counts and R-S232-4/R-S232-5 resolver links remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 099). No client input blocks this code slice; the A5 timing basis and the unconfirmed notice rule hold only the timing labels named below.
 
 **Goal.**
 
@@ -103,9 +103,12 @@ gates viewing.
 - **R-S232-7 — Fail-closed retention and no duplicate cycle.** A failed staff-record read marks the
   affected rows "Saved progress unavailable; retained until tracking state can be verified". A lease
   reclassified `skip` with unfinished recorded work stays visible as tracked, showing both reasons
-  (the current assertion is changed intentionally). `start_cycle` refuses a new cycle on the same
-  basis date while the current cycle has unfinished recorded work; a changed source date keeps the
-  history-preserving new cycle (AC-S123-5 unchanged).
+  (the current assertion is changed intentionally). `start_cycle` keeps its existing contract: an
+  explicit staff start with a reason keeps the earlier cycle, including unfinished work, as history
+  (S144), the same request replays idempotently, a stale expected cycle or revision is refused
+  (AC-S123-3), and a changed source date starts the history-preserving next cycle (AC-S123-5). The
+  originally authored same-date refusal was withdrawn on 2026-10-28 because it broke those
+  deliberate restarts.
 - **R-S232-8 — Central business date everywhere.** Policy-material and notice evaluation on the lease
   page use the Central business date from `lib/lease-renewal/business-calendar.ts`.
 
