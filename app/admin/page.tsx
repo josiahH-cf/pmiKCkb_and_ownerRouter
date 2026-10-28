@@ -17,6 +17,7 @@ import { readFamilyUseRecord } from "@/lib/firestore/lease-artifact-family-use";
 import { readChargePolicy } from "@/lib/firestore/lease-charge-policy";
 import { resolveFamilyUse } from "@/lib/lease-documents/family-use";
 import { readArtifactIntakeManifest } from "@/lib/firestore/lease-artifact-intake";
+import { readReturnedStateInspected } from "@/lib/firestore/lease-document-returned-states";
 import { projectIntakeCheckpoints } from "@/lib/lease-documents/artifact-intake";
 import {
   emptyArtifactIntakeManifest,
@@ -120,6 +121,7 @@ export default async function AdminPage() {
   let policyMaterial: PolicyMaterialVersionRecord[] = [];
   let policyMaterialNote: string | undefined;
   let artifactIntake: ArtifactIntakeManifest = emptyArtifactIntakeManifest("unreadable");
+  let returnedStateInspected = false;
   // S66: family use and the charge policy; both reads report unreadable instead of throwing.
   let renewalPacketPolicy: RenewalPacketPolicyInitial = {
     familyUse: { readable: false, version: 0, families: [] },
@@ -234,9 +236,11 @@ export default async function AdminPage() {
         policyMaterialNote =
           "Policy material versions are unavailable right now. Reload before submitting or deciding.";
       }),
-    // S130: the intake manifest for every form family (this read never throws).
-    readArtifactIntakeManifest().then((manifest) => {
+    // S130: the intake manifest for every form family (this read never throws). S236 R-S236-7:
+    // the returned-state checkpoint follows recorded returns for an approved family.
+    readArtifactIntakeManifest().then(async (manifest) => {
       artifactIntake = manifest;
+      returnedStateInspected = await readReturnedStateInspected(manifest);
     }),
     Promise.all([readFamilyUseRecord(), readChargePolicy()]).then(
       ([familyUse, policy]) => {
@@ -556,7 +560,7 @@ export default async function AdminPage() {
                   filledValuesVerified: false,
                   packetState: null,
                   providerReceiptId: null,
-                  returnedStateInspected: false,
+                  returnedStateInspected,
                 }),
               }}
             />

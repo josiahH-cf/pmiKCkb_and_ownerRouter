@@ -889,7 +889,7 @@ export function projectIntakeCheckpoints(
     "inspect_returned_state",
     evidence.returnedStateInspected ? "done" : "pending",
     evidence.returnedStateInspected
-      ? "The returned provider state was read back and inspected."
+      ? "Staff recorded a returned document for a packet that uses an approved family. Staff records are not provider-verified."
       : "Pending meeting. Document presence is not content equality or a signature.",
   );
   return statuses;

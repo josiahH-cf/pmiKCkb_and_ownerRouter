@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
+import { readReturnedStateInspected } from "@/lib/firestore/lease-document-returned-states";
 import {
   decideArtifactFamily,
   readArtifactIntakeManifest,
@@ -32,7 +33,7 @@ export async function GET() {
           filledValuesVerified: false,
           packetState: null,
           providerReceiptId: null,
-          returnedStateInspected: false,
+          returnedStateInspected: await readReturnedStateInspected(manifest),
         }),
       },
     });

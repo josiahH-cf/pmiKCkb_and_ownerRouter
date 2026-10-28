@@ -3,6 +3,7 @@ import { isOperatingSheetWritebackPaused } from "@/lib/lease-renewal/sheet-write
 import { prepareWorkspaceSheetUpdate } from "@/lib/lease-renewal/workspace-sheet-sync";
 import { SHEET_FIELD_LABELS } from "@/lib/lease-renewal/sheet-writeback/field-intent";
 import { listMarketObservations } from "@/lib/firestore/renewal-market-observations";
+import { assertSignaturesCompletable } from "@/lib/lease-documents/returned-state-service";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
@@ -86,6 +87,13 @@ export async function POST(request: Request) {
       );
     }
     const { operation: _, ...value } = input;
+    // S236 R-S236-6: a fully tracked current packet derives Required signatures complete.
+    if (
+      value.action.kind === "activity" &&
+      value.action.activity === "signatures" &&
+      value.action.outcome === "done"
+    )
+      await assertSignaturesCompletable(actor, value.leaseId);
     // S154/S155: the first actual save establishes the work record from the lease's real basis.
     // Saving is application persistence only: it reads and writes no Sheet. A pending Sheet value
     // is prepared when staff deliberately ask for it (prepare_source), and confirmed separately.

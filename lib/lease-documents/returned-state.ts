@@ -116,30 +116,28 @@ export function projectReturnedState(input: {
   const termsChangedAt = input.termsChangedAt ? Date.parse(input.termsChangedAt) : null;
   const documents = input.documents.map((document): ReturnedDocumentProjection => {
     const notes: string[] = [];
-    // A record attaches only to this lease, cycle, snapshot and document identity (PR #160).
+    // A record attaches only to this lease, cycle and document identity (PR #160); it counts only
+    // for the current snapshot's current version of that document.
     const sameDocument = input.records.filter(
       (record) =>
         record.leaseId === input.leaseId &&
         record.cycleId === input.cycleId &&
-        record.snapshotId === input.snapshotId &&
         record.kind === document.kind,
     );
-    const current = sameDocument.filter(
-      (record) => record.documentContentHash === document.contentHash,
-    );
-    // Only this document's actually signed superseded version warns, and it never counts.
-    const supersededHashes = new Set(
-      sameDocument
-        .map((record) => record.documentContentHash)
-        .filter((hash) => hash !== document.contentHash),
+    const versionOf = (record: ReturnedStateRecord) =>
+      `${record.snapshotId}\u0000${record.documentContentHash}`;
+    const currentVersion = `${input.snapshotId}\u0000${document.contentHash}`;
+    const current = sameDocument.filter((record) => versionOf(record) === currentVersion);
+    // Only this document's actually signed superseded version warns, and it never counts. An
+    // earlier snapshot's record of the same document is a superseded version too.
+    const supersededVersions = new Set(
+      sameDocument.map(versionOf).filter((version) => version !== currentVersion),
     );
     if (
-      [...supersededHashes].some((hash) => {
-        const version = sameDocument.filter(
-          (record) => record.documentContentHash === hash,
-        );
-        return signerKeys(version).some(
-          (key) => latestObservation(version, key).kind === "signed",
+      [...supersededVersions].some((version) => {
+        const records = sameDocument.filter((record) => versionOf(record) === version);
+        return signerKeys(records).some(
+          (key) => latestObservation(records, key).kind === "signed",
         );
       })
     )

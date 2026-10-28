@@ -364,6 +364,20 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     safeNextAction:
       "Read the retained evidence or ask a staff member to refresh the provider record.",
   },
+  record_returned_state: {
+    // S236: staff record what they observed of a returned document (sent for signature, a
+    // signer's signed or declined result and its evidence) against the exact packet version. The
+    // app's own record changes; no provider is read or written and nothing infers a signature.
+    label: "Record a returned document's signing status for the current packet version",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to record a returned document.",
+    safeNextAction: "Continue read-only or ask an Admin to review your role.",
+  },
   save_work_status: {
     label: "Save the staff work status annotation or a Status log note for one lease",
     roleCapability: "edit",
@@ -747,6 +761,12 @@ export const RENEWAL_CONTROL_INVENTORY = [
     enforcementSources: ["app/api/lease-renewal/document-handoff/route.ts"],
   },
   {
+    control: "Record sent for signature or a signer's result for a returned document",
+    source: "components/lease-renewal/ReturnedDocumentsPanel.tsx",
+    capability: "record_returned_state",
+    enforcementSources: ["app/api/lease-renewal/returned-state/route.ts"],
+  },
+  {
     control: "Save the staff work status",
     source: "components/lease-renewal/RenewalWorkStatusControl.tsx",
     capability: "save_work_status",
@@ -1033,6 +1053,18 @@ export const RENEWAL_ROUTE_INVENTORY = [
     source: "app/api/lease-renewal/document-handoff/route.ts",
     method: "POST",
     capability: "execute_document_packet",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/returned-state/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/returned-state/route.ts",
+    method: "POST",
+    capability: "record_returned_state",
   },
   {
     kind: "api",

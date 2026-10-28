@@ -161,6 +161,7 @@ export function RenewalWorkspace({
   rentvineUpdatesPanel = null,
   operatingSheetPanel = null,
   packetReadinessPanel = null,
+  returnedDocumentsPanel = null,
   termReviewPanel = null,
   sheetDestination = null,
   sheetFieldDestinations = {},
@@ -213,6 +214,8 @@ export function RenewalWorkspace({
   operatingSheetPanel?: ReactNode;
   /** S235 R-S235-1: the read-only per-family readiness for this lease, when the page read it. */
   packetReadinessPanel?: ReactNode;
+  /** S236: returned documents, who still must sign and the staff records behind each state. */
+  returnedDocumentsPanel?: ReactNode;
   /**
    * S103: the page-supplied lease term review control, shown in verification for every openable
    * lease: including an inspection-only month-to-month row, where recording the anchor is the
@@ -604,6 +607,7 @@ export function RenewalWorkspace({
                                 }
                                 rentvineUpdatesPanel={rentvineUpdatesPanel}
                                 packetReadinessPanel={packetReadinessPanel}
+                                returnedDocumentsPanel={returnedDocumentsPanel}
                                 resolutionDestinations={resolutionDestinations}
                                 role={role}
                                 sheetProposalPanel={operatingSheetPanel}
@@ -851,6 +855,7 @@ function PhaseContent({
   rentSuggestionAvailable,
   rentvineUpdatesPanel,
   packetReadinessPanel,
+  returnedDocumentsPanel,
   sheetProposalPanel,
   resolutionDestinations,
   termReviewPanel,
@@ -876,6 +881,7 @@ function PhaseContent({
   rentSuggestionAvailable: boolean;
   rentvineUpdatesPanel: ReactNode;
   packetReadinessPanel?: ReactNode;
+  returnedDocumentsPanel?: ReactNode;
   sheetProposalPanel: ReactNode;
   resolutionDestinations: readonly { fieldKey: string; href: string }[];
   termReviewPanel: ReactNode;
@@ -1333,6 +1339,7 @@ function PhaseContent({
                   leaseEndDate: term.endDateIso ?? null,
                 }}
               />
+              {returnedDocumentsPanel}
             </>
           ) : (
             <RenewalAuxiliaryNotice

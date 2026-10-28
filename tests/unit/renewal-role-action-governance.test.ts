@@ -88,6 +88,8 @@ const API_EXPECTATIONS = [
   ["app/api/lease-renewal/document-artifact/route.ts", "GET", "read_workspace"],
   ["app/api/lease-renewal/document-handoff/route.ts", "GET", "read_workspace"],
   ["app/api/lease-renewal/document-handoff/route.ts", "POST", "execute_document_packet"],
+  ["app/api/lease-renewal/returned-state/route.ts", "GET", "read_workspace"],
+  ["app/api/lease-renewal/returned-state/route.ts", "POST", "record_returned_state"],
   ["app/api/lease-renewal/message-attachment/route.ts", "GET", "screenshot_store"],
   ["app/api/lease-renewal/message-preparation/route.ts", "GET", "read_workspace"],
   [

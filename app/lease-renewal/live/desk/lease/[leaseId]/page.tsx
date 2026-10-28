@@ -104,6 +104,8 @@ import { readFamilyUseRecord } from "@/lib/firestore/lease-artifact-family-use";
 import { resolveFamilyUse } from "@/lib/lease-documents/family-use";
 import { projectLeasePacketReadiness } from "@/lib/lease-documents/lease-packet-readiness";
 import { LeasePacketReadiness } from "@/components/lease-renewal/LeasePacketReadiness";
+import { ReturnedDocumentsPanel } from "@/components/lease-renewal/ReturnedDocumentsPanel";
+import { resolveReturnedState } from "@/lib/lease-documents/returned-state-service";
 import { buildLiveRenewalReviewItemHref } from "@/lib/lease-renewal/live-review-destination";
 import {
   RENEWAL_SOURCE_REFRESH_COOKIE,
@@ -298,6 +300,11 @@ export default async function LiveRenewalLeaseWorkspacePage({
       families: resolveFamilyUse(familyUseRead.record, readTimestamp),
     },
   });
+  // S236: returned documents and who still must sign, from staff records. A failed read shows as
+  // unreadable, never as nothing recorded.
+  const returnedStateView = await resolveReturnedState(user, leaseId)
+    .then(({ view }) => view)
+    .catch(() => null);
   const policy = renewalAuxiliaryValue(policyRead, {
     state: "unreadable" as const,
     ruleSet: DEFAULT_NOTICE_RULE_SET,
@@ -607,6 +614,12 @@ export default async function LiveRenewalLeaseWorkspacePage({
               />
             }
             packetReadinessPanel={<LeasePacketReadiness rows={packetFamilyRows} />}
+            returnedDocumentsPanel={
+              <ReturnedDocumentsPanel
+                canRecord={hasRenewalRoleAuthority("record_returned_state", user.role)}
+                initialView={returnedStateView}
+              />
+            }
             rentvineUpdatesPanel={
               writebackProposalRead.status === "available" ? (
                 <RentvineUpdatesPanel
