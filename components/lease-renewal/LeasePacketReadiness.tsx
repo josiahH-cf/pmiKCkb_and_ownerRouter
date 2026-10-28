@@ -18,36 +18,38 @@ export function LeasePacketReadiness({
         Read-only. Evaluate packet records a snapshot; nothing here writes one or sends
         anything.
       </p>
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">Form family</th>
-            <th scope="col">Use</th>
-            <th scope="col">Applies</th>
-            <th scope="col">Original and map</th>
-            <th scope="col">Missing</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.kind} data-family={row.kind}>
-              <th scope="row">{row.label}</th>
-              <td>
-                {row.use}
-                <br />
-                <span className="muted">{row.useSource}</span>
-              </td>
-              <td>{row.applicability}</td>
-              <td>
-                {row.original}
-                <br />
-                <span className="muted">{row.map}</span>
-              </td>
-              <td>{row.missing.length ? row.missing.join("; ") : "Nothing missing"}</td>
+      <div className="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Form family</th>
+              <th scope="col">Use</th>
+              <th scope="col">Applies</th>
+              <th scope="col">Original and map</th>
+              <th scope="col">Missing</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.kind} data-family={row.kind}>
+                <th scope="row">{row.label}</th>
+                <td>
+                  {row.use}
+                  <br />
+                  <span className="muted">{row.useSource}</span>
+                </td>
+                <td>{row.applicability}</td>
+                <td>
+                  {row.original}
+                  <br />
+                  <span className="muted">{row.map}</span>
+                </td>
+                <td>{row.missing.length ? row.missing.join("; ") : "Nothing missing"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
