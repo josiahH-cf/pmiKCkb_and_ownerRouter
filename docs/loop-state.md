@@ -19,11 +19,14 @@ passed on `8c84ed04`). PR #161 added, each with tests:
 
 PR #162 merged S233 R-S233-1/2 (per-message evidence and attempt-correlated bounces) and S234
 R-S234-1 (who approved, how and when) at `f1f06bfb` after its CI fix (`cbf41be1`: a form test
-assumed US Central time); exact-main CI `40732855488` passed. The branch
-claude/renewal-novdec-rows3-20261028 adds S237 R-S237-1/5 and S234 R-S234-2/4/5 with the
-Working-terms-bound draft claim. Each suite's status line names what remains (S232 R-S232-3 to
-R-S232-5, S233 R-S233-4/5/9, S234's per-field desk and approval-section reason and the tenant
-answer's Working binding, and the journey's uncovered phases). Nothing was served;
+assumed US Central time); exact-main CI `40732855488` passed. PR #163 merged
+S237 R-S237-1/5 and S234 R-S234-2/3/4/5 with the Working-terms-bound draft claim at `06c73561`
+after its review fix (`dad8d0f8`: the terms basis and what still differs are recomputed from the
+live records); exact-main CI `40748712201` passed. The branch claude/renewal-novdec-rows4-20261028
+adds S232 R-S232-3/4/5 (with the `s232-one-status` guidance contract, its independent oracle rule
+and the release observer's expectation) and the S234 tenant answer's Working binding. Each suite's
+status line names what remains (S233 R-S233-4/5/9 and the journey's uncovered phases). Nothing was
+served;
 production remains `6fbd6225` (S231). The staff walkthrough is NOT RUN. Client inputs C00–C13 stay
 in `docs/open-blockers.md`. The read-only release preflight reads `not_ready`: the Awaiting release
 queue is empty and no permit or fresh GO exists. NEXT: the remaining ready rows, independent of
