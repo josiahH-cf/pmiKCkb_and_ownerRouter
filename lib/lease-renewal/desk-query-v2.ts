@@ -904,7 +904,8 @@ const CHIP_LABELS: Partial<Record<keyof RenewalDeskQueryV2State, (v: string) => 
     due: (value) => `Due state: ${value.replaceAll("_", " ")}`,
     ownerKey: () => "Owner: selected",
     tenantKey: () => "Tenant: selected",
-    step: (value) => `Phase: ${value.replaceAll("-", " ").replaceAll("_", " ")}`,
+    step: (value) =>
+      `Recorded progress: ${value.replaceAll("-", " ").replaceAll("_", " ")}`,
     waiting: (value) => `Waiting on: ${value.replaceAll("_", " ")}`,
     conflicts: (value) =>
       value === "with" ? "Has source conflicts" : "No verified source conflicts",

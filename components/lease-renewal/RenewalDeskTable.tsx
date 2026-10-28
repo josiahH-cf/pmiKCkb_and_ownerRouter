@@ -55,6 +55,11 @@ import {
   encodeDeskView,
   isStableLeaseId,
 } from "@/lib/lease-renewal/desk-view-continuation";
+import { LeaseWorkStatusLines } from "@/components/lease-renewal/LeaseWorkStatusLines";
+import {
+  deskLeaseWorkStatusInput,
+  projectLeaseWorkStatus,
+} from "@/lib/lease-renewal/lease-work-status";
 import {
   RENEWAL_DESK_WORKLIST_VIEWS,
   RENEWAL_DESK_WORKLIST_VIEW_CONTROL_LABEL,
@@ -959,6 +964,7 @@ export function RenewalDeskTable({
   viewCounts,
   reasonCounts,
   sheetWritebackPaused = false,
+  sourceReadAtIso = null,
   viewMemory = NO_VIEW_MEMORY,
   campaign,
 }: Readonly<{
@@ -985,6 +991,8 @@ export function RenewalDeskTable({
   reasonCounts?: readonly RenewalDeskReasonCount[];
   /** S127/S128: operating-Sheet writes paused by owner policy; shown as a policy pause, never a failure. */
   sheetWritebackPaused?: boolean;
+  /** S232 R-S232-4: when the RentVine read behind these rows was taken. */
+  sourceReadAtIso?: string | null;
   /** S166: the account's remembered view; omitted, the table neither shows nor saves one. */
   viewMemory?: RenewalDeskViewMemoryInput;
   /** S232: window, ended-without-outcome and month review counts over every loaded lease. */
@@ -1297,10 +1305,10 @@ export function RenewalDeskTable({
                     value={state.lifecycle}
                   />
                   <SelectFilter
-                    label="Renewal step"
+                    label="Recorded progress step"
                     name="step"
                     options={[
-                      { value: "", label: "All renewal steps" },
+                      { value: "", label: "All recorded progress steps" },
                       ...RENEWAL_DESK_V2_STEPS.map((value) => ({
                         value,
                         label: STEP_FILTER_LABELS[value],
@@ -1458,6 +1466,7 @@ export function RenewalDeskTable({
                   shortcuts={shortcuts}
                   state={state}
                   sheetWritebackPaused={sheetWritebackPaused}
+                  sourceReadAtIso={sourceReadAtIso}
                 />
               ))
             )}
@@ -1527,6 +1536,7 @@ function DeskRow({
   shortcuts,
   deskView,
   sheetWritebackPaused = false,
+  sourceReadAtIso,
 }: Readonly<{
   row: DeskLeaseRow;
   state: RenewalDeskQueryV2State;
@@ -1534,6 +1544,7 @@ function DeskRow({
   role: Role;
   shortcuts: DeskPartyShortcuts;
   deskView: string | null;
+  sourceReadAtIso: string | null;
 }>) {
   const { guidance } = row;
   // S154: every resolved real lease has the normal workspace link, including a lease the cohort
@@ -1549,6 +1560,10 @@ function DeskRow({
     ? currentDestinationHref(guidance.rentVerification.destination, row.id, deskView)
     : null;
   const status = guidance.overallStatus;
+  // S232 R-S232-4: the one status, waiting-on and evidence projection Focus also reads.
+  const leaseStatus = projectLeaseWorkStatus(
+    deskLeaseWorkStatusInput(row, sourceReadAtIso),
+  );
   const actionDestination =
     "destination" in guidance.action
       ? guidance.action.destination
@@ -1780,7 +1795,12 @@ function DeskRow({
           <span className="renewal-td-secondary">RentVine</span>
         )}
       </td>
-      <td colSpan={2} data-renewal-field="overall-status" data-status={status}>
+      <td
+        colSpan={2}
+        data-renewal-field="overall-status"
+        data-status={status}
+        data-lease-status={leaseStatus.status}
+      >
         {/* S134: the lifecycle dot and label sit beside, never inside, the readiness badge. */}
         {row.lifecycle ? (
           <LifecycleIndicator
@@ -1788,24 +1808,27 @@ function DeskRow({
             lifecycle={row.lifecycle}
           />
         ) : null}
-        <Link
-          prefetch={false}
-          className="renewal-status-link"
-          href={href({ ...state, overallStatus: status })}
-          title="Show only this status"
-        >
-          <StatusBadge
-            tone={
-              status === "complete" && row.manualProgress?.complete
-                ? "neutral"
-                : OVERALL_STATUS_TONE[status]
-            }
+        {leaseStatus.status === "needs_check" ? (
+          // Two waiting facts disagree; there is no single status to filter by.
+          <StatusBadge tone="caution">{leaseStatus.label}</StatusBadge>
+        ) : (
+          <Link
+            prefetch={false}
+            className="renewal-status-link"
+            href={href({ ...state, overallStatus: status })}
+            title="Show only this status"
           >
-            {status === "complete" && row.manualProgress?.complete
-              ? "Completed: recorded by staff"
-              : OVERALL_STATUS_LABEL[status]}
-          </StatusBadge>
-        </Link>
+            <StatusBadge
+              tone={
+                status === "complete" && row.manualProgress?.complete
+                  ? "neutral"
+                  : OVERALL_STATUS_TONE[status]
+              }
+            >
+              {leaseStatus.label}
+            </StatusBadge>
+          </Link>
+        )}
         {row.manualProgress ? (
           <span className="renewal-td-secondary">
             {row.manualProgress.label}
@@ -1814,11 +1837,9 @@ function DeskRow({
               : ""}
           </span>
         ) : null}
-        {row.manualProgress?.step.label || row.stageLabel ? (
-          <span className="renewal-td-secondary">
-            {row.manualProgress?.step.label ?? row.stageLabel}
-          </span>
-        ) : null}
+        {/* S232 R-S232-4: who the lease waits on and the record behind the status; the next action
+            is in the action cell, never a phase short label here. */}
+        <LeaseWorkStatusLines status={leaseStatus} />
         {/* S123: the provider now reports a different lease end than the recorded cycle. */}
         {row.cycleSourceDate?.state === "changed" ? (
           <span

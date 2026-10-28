@@ -471,7 +471,7 @@ describe("S82 guidance and the suggested next action", () => {
     const guidance = buildDeskLeaseGuidance(input({ process: blockedProcess() }));
     expect(guidance.blockers).toEqual([]);
     expect(guidance.isBlocked).toBe(false);
-    expect(guidance.contract).toBe("s156-staff-lane");
+    expect(guidance.contract).toBe("s232-one-status");
     expect(guidance.action).toEqual({
       kind: "act",
       label: "Owner outreach",
@@ -489,7 +489,7 @@ describe("S82 guidance and the suggested next action", () => {
       buildDeskLeaseGuidance(input({ currencyState: "expired" })),
       buildDeskLeaseGuidance(input({ process: null })),
     ]) {
-      expect(guidance.contract).toBe("s156-staff-lane");
+      expect(guidance.contract).toBe("s232-one-status");
       expect(guidance.blockers).toEqual([]);
     }
   });
@@ -579,5 +579,85 @@ describe("S82 guidance and the suggested next action", () => {
         controlId: "renewal-manual-complete",
       },
     });
+  });
+});
+
+describe("S232 one status and waiting-on per row (R-S232-4)", () => {
+  const outreach: RenewalWorkspaceAction = {
+    kind: "activity",
+    activity: "owner_outreach",
+    outcome: "done",
+    source: "Owner call",
+  };
+  const approved: RenewalWorkspaceAction = {
+    kind: "owner_response",
+    outcome: "approved_terms",
+    approval: SYNTHETIC_APPROVAL,
+    terms: { rent: 1550, effectiveDate: "2027-01-01", endDate: "2027-12-31" },
+    source: "Owner email",
+  };
+  const offer: RenewalWorkspaceAction = {
+    kind: "activity",
+    activity: "tenant_offer",
+    outcome: "done",
+    source: "Offer email",
+  };
+  const withLane = (...actions: RenewalWorkspaceAction[]) =>
+    buildDeskLeaseGuidance(
+      input({ summary: { ...input().summary, manualProgress: staffLane(...actions) } }),
+    );
+
+  it("reads Waiting only while the owner or tenant has the move", () => {
+    expect(withLane(outreach)).toMatchObject({
+      overallStatus: "waiting",
+      action: { kind: "waiting" },
+    });
+    expect(withLane(outreach, approved, offer)).toMatchObject({
+      overallStatus: "waiting",
+      action: { kind: "waiting" },
+    });
+    // The recorded answer hands the move back to the PMI KC team: Ready, with the staff action.
+    expect(
+      withLane(outreach, {
+        kind: "owner_response",
+        outcome: "revision_requested",
+        reason: "Owner asked for a lower increase",
+        source: "Owner call",
+      }),
+    ).toMatchObject({
+      overallStatus: "ready",
+      action: { kind: "act", label: "Update the working terms and ask the owner again" },
+    });
+    for (const outcome of ["counter_change_requested", "needs_verification"] as const)
+      expect(
+        withLane(outreach, approved, offer, {
+          kind: "tenant_response",
+          outcome,
+          source: "Tenant email",
+        }),
+      ).toMatchObject({ overallStatus: "ready", action: { kind: "act" } });
+  });
+
+  it("fails closed when the staff record could not be read, even beside standing authority", () => {
+    for (const manualProgress of [
+      undefined,
+      manualRenewalSummary(null, { standingOwnerAuthority: true }),
+    ]) {
+      const guidance = buildDeskLeaseGuidance(
+        input({
+          summary: {
+            ...input().summary,
+            ...(manualProgress ? { manualProgress } : {}),
+            staffRecordUnavailable: true,
+          },
+        }),
+      );
+      expect(guidance.overallStatus).toBe("needs_verification");
+      expect(guidance.action).toEqual({
+        kind: "needs_verification",
+        label: "Saved renewal progress could not be read. Refresh to see it.",
+        destination: { kind: "none" },
+      });
+    }
   });
 });

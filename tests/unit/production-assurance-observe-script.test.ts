@@ -15,7 +15,9 @@ import {
   writeReceipt,
 } from "../../scripts/production-assurance-receipts.mjs";
 
+import { DESK_GUIDANCE_CONTRACT } from "../../lib/lease-renewal/desk-guidance";
 import {
+  OBSERVED_GUIDANCE_CONTRACT,
   assertRecoveredPredecessorBaseline,
   assertAttentionMarker,
   buildObservationDeadlineRollbackReport,
@@ -71,6 +73,10 @@ function promotionReceipt(nowMs = Date.now()): { path: string; cleanup: () => vo
 }
 
 describe("production observation command contract", () => {
+  it("requires the guidance contract this checkout renders (S232 R-S232-4)", () => {
+    expect(OBSERVED_GUIDANCE_CONTRACT).toBe(DESK_GUIDANCE_CONTRACT);
+  });
+
   it("turns a late start or serial-check deadline into a bodyless exact-predecessor rollback", () => {
     const predecessorRevision = "pmi-kc-app-predecessor-122";
     const report = buildObservationDeadlineRollbackReport({

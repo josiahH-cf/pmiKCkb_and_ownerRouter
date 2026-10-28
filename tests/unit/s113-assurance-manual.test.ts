@@ -209,6 +209,8 @@ describe("S156 staff-lane manual projection beside the predecessor projection", 
       complete: false,
       nextActivity: "owner_outreach",
       actionStepId: "owner-decision",
+      // S232: nothing recorded is the team's move.
+      awaitedParty: null,
     });
     expect(projectIndependentStaffLaneManualRenewal(initial())).toMatchObject({
       complete: false,

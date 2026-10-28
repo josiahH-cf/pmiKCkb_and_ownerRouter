@@ -1,9 +1,10 @@
 import type { Role } from "@/lib/auth/roles";
-import {
-  DESK_EVIDENCE_CAPABILITY,
-  deskWaitingPartyLabel,
-} from "@/lib/lease-renewal/desk-guidance";
+import { DESK_EVIDENCE_CAPABILITY } from "@/lib/lease-renewal/desk-guidance";
 import type { RenewalLeaseWorkspace } from "@/lib/lease-renewal/desk-model";
+import {
+  deskLeaseWorkStatusInput,
+  projectLeaseWorkStatus,
+} from "@/lib/lease-renewal/lease-work-status";
 import type { RentChargeOutcomeRow } from "@/lib/lease-renewal/rent-charge-outcomes";
 import type { RenewalActionSnapshot } from "@/lib/lease-renewal/renewal-actions";
 import type { RenewalIssueProjection } from "@/lib/lease-renewal/renewal-issues";
@@ -64,6 +65,14 @@ export function buildRenewalActionSnapshot(
   const rentvineReadable =
     !input.unavailableSources.has("writeback_proposal") &&
     !input.unavailableSources.has("attempt_summary");
+  // S232 R-S232-4: the desk row's one status projection; its waiting-on party is the only one.
+  const sourceReadAtIso = workspace.dataCurrency?.readAtIso ?? null;
+  const followUp = summary.followUp
+    ? { waiting: summary.followUp.waiting, lastContact: summary.followUp.lastContact }
+    : null;
+  const leaseStatus = projectLeaseWorkStatus(
+    deskLeaseWorkStatusInput({ ...summary, guidance, followUp }, sourceReadAtIso),
+  );
   return {
     leaseId: summary.id,
     role: input.role,
@@ -90,12 +99,10 @@ export function buildRenewalActionSnapshot(
           : null,
       substepId,
       redirectLabel: issues.primary.redirected ? issues.primary.label : null,
-      waitingOn:
-        guidance.overallStatus === "waiting"
-          ? deskWaitingPartyLabel(summary.followUp?.waiting.party)
-          : null,
+      waitingOn: guidance.overallStatus === "waiting" ? leaseStatus.waitingOn : null,
     },
     progressStateAvailable: !input.unavailableSources.has("progress"),
+    leaseStatus: { followUp, sourceReadAtIso },
     process: process
       ? {
           status: process.status,

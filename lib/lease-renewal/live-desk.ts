@@ -67,6 +67,7 @@ import {
 } from "@/lib/lease-renewal/cohort";
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
 import { readLeaseStatusTable } from "@/lib/lease-renewal/lease-status-table";
+import { staffRecordLatestAtIso } from "@/lib/lease-renewal/lease-work-status";
 import { projectLifecycleCategory } from "@/lib/lease-renewal/lifecycle-category";
 import {
   projectMoveOutDisposition,
@@ -851,6 +852,7 @@ function toLiveSummary(
           manualProgress: manualRenewalSummary(manual ?? null, {
             standingOwnerAuthority: renewalPricing?.authority.covered,
           }),
+          staffRecordedAtIso: staffRecordLatestAtIso(manual),
           // S123: the recorded basis is history; only the comparison with the current provider
           // lease end travels with the row, so a source change is visible and never rewritten.
           ...(manual
@@ -901,6 +903,8 @@ function toLiveSummary(
     leaseTotalRent: leaseTotalRentAmount(view) ?? null,
     retention,
     ...(endedWithoutOutcome ? { endedWithoutOutcome: true } : {}),
+    // S232 R-S232-4: the staff-record read failed, so the row never claims nothing is recorded.
+    ...(context.manualStateAvailable === false ? { staffRecordUnavailable: true } : {}),
     inclusionReason: inclusionReasonFor(classification, retention, endedWithoutOutcome),
     processVersion: processVisible
       ? (progress?.processVersion ?? RENEWAL_PROCESS_VERSION)

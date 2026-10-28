@@ -16,12 +16,28 @@ export const PRODUCTION_RECONCILIATION_DESK_VIEW = "v=2&scope=all";
  * own constant. A predecessor revision renders no such attribute.
  */
 export const INDEPENDENT_STAFF_LANE_CONTRACT_MARKER = "s156-staff-lane";
+/**
+ * S232: the staff-lane rules with one change: a response step is Waiting only while the owner or
+ * tenant has the move. Read under the staff-lane rule set with that waiting rule.
+ */
+export const INDEPENDENT_ONE_STATUS_CONTRACT_MARKER = "s232-one-status";
 /** The rule set one desk row is verified under. */
 export type IndependentGuidanceContract = "predecessor" | "staff_lane";
-/** What a caller may require of every row: the staff-lane marker, or no marker at all. */
+/** What a caller may require of every row: a staff-lane marker, or no marker at all. */
 export type IndependentExpectedContractMarker =
   | typeof INDEPENDENT_STAFF_LANE_CONTRACT_MARKER
+  | typeof INDEPENDENT_ONE_STATUS_CONTRACT_MARKER
   | "none";
+
+/** The staff-lane waiting rule a marker names: S156's response step or S232's awaited party. */
+export type IndependentStaffLaneWaitingRule = "response_step" | "awaited_party";
+export function independentStaffLaneWaitingRule(
+  marker: string | null,
+): IndependentStaffLaneWaitingRule {
+  return marker === INDEPENDENT_ONE_STATUS_CONTRACT_MARKER
+    ? "awaited_party"
+    : "response_step";
+}
 const MAX_HEADER_SCAN_ROWS = 6;
 const CURRENT_RENT_HEADER = "current rent";
 const CURRENT_RENT_FIELD = "current_rent";
@@ -630,8 +646,8 @@ export function resolveIndependentGuidanceContract(
 /**
  * Count rows whose marker contradicts the page. With a caller-named contract every row must
  * render exactly that marker (or none). Without one, every row must render the same recognised
- * marker state: an unrecognised value counts, and a page that mixes marked and unmarked rows
- * counts its smaller group, so a mixed page can never reconcile.
+ * marker state: an unrecognised value counts, and a page that mixes recognised marker states
+ * counts every row outside its largest group, so a mixed page can never reconcile.
  */
 export function countIndependentContractMarkerMismatches(
   markers: readonly (string | null)[],
@@ -641,11 +657,13 @@ export function countIndependentContractMarkerMismatches(
     const required = expected === "none" ? null : expected;
     return markers.filter((marker) => marker !== required).length;
   }
-  const unmarked = markers.filter((marker) => marker === null).length;
-  const staffLane = markers.filter(
-    (marker) => marker === INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
-  ).length;
-  return markers.length - unmarked - staffLane + Math.min(unmarked, staffLane);
+  const groups = [
+    null,
+    INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
+    INDEPENDENT_ONE_STATUS_CONTRACT_MARKER,
+  ].map((value) => markers.filter((marker) => marker === value).length);
+  const recognised = groups.reduce((sum, count) => sum + count, 0);
+  return markers.length - recognised + (recognised - Math.max(...groups));
 }
 
 /**

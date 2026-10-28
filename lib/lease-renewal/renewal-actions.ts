@@ -11,6 +11,7 @@ import {
 import type { DeskVerificationCause } from "@/lib/lease-renewal/desk-guidance";
 import type { DeskLeaseAction } from "@/lib/lease-renewal/desk-model";
 import type { RenewalOverallStatus } from "@/lib/lease-renewal/desk-query-v2";
+import type { LeaseWorkStatusFollowUp } from "@/lib/lease-renewal/lease-work-status";
 import type {
   RenewalProcessStatus,
   RenewalProcessStepId,
@@ -124,6 +125,14 @@ export interface RenewalActionSnapshot {
   };
   /** False when saved S72 progress could not be read; the Full view then leads with a refresh. */
   readonly progressStateAvailable: boolean;
+  /**
+   * S232 R-S232-4: the server facts the lease status line reads beside the live staff record, so
+   * Focus shows the same status, waiting-on and evidence as the desk row.
+   */
+  readonly leaseStatus?: {
+    readonly followUp: LeaseWorkStatusFollowUp | null;
+    readonly sourceReadAtIso: string | null;
+  };
   readonly process: {
     readonly status: RenewalProcessStatus;
     readonly migrationReason: string | null;

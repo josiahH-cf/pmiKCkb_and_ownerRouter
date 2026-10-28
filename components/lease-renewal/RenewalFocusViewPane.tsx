@@ -17,6 +17,11 @@ import type { ActionGraphDiagnostic } from "@/lib/lease-renewal/action-graph";
 import { operationalCurrentRent } from "@/lib/lease-renewal/current-rent";
 import { describeRenewalTerms } from "@/lib/lease-renewal/current-rent-display";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
+import {
+  focusLeaseWorkStatusInput,
+  projectLeaseWorkStatus,
+  type LeaseWorkStatus,
+} from "@/lib/lease-renewal/lease-work-status";
 import type { MoveOutDispositionState } from "@/lib/lease-renewal/move-out-disposition";
 import {
   projectRenewalActions,
@@ -34,6 +39,7 @@ import {
   focusRenewalDashboardControl,
   RENEWAL_FOCUS_REQUEST_EVENT,
 } from "./RenewalDashboardNavigation";
+import { LeaseWorkStatusLines } from "./LeaseWorkStatusLines";
 import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
@@ -196,6 +202,34 @@ export function RenewalFocusViewPane({
         }
       : snapshot;
     return projectRenewalActions(bound, input);
+  }, [snapshot, contextual, readUnavailable, contextState, pricing]);
+  // S232 R-S232-4: the desk row's status, waiting-on and evidence, recomputed from the live staff
+  // record after each save with the same rule and the server's follow-up facts.
+  const leaseStatus = useMemo(() => {
+    if (!snapshot.leaseStatus) return null;
+    const staffRecord = !contextual
+      ? snapshot.manual
+      : readUnavailable
+        ? ({ readable: false } as const)
+        : ({ readable: true, state: contextState } as const);
+    const authority = pricing
+      ? {
+          covered: pricing.view?.authority.covered === true,
+          manualRevision: pricing.view?.manualRevision ?? -1,
+        }
+      : snapshot.standingOwnerAuthority;
+    const state = staffRecord.readable ? staffRecord.state : null;
+    return projectLeaseWorkStatus(
+      focusLeaseWorkStatusInput({
+        serverStatus: snapshot.guidance.status,
+        staffRecord,
+        standingOwnerAuthority:
+          authority?.covered === true &&
+          authority.manualRevision === (state?.revision ?? 0),
+        followUp: snapshot.leaseStatus.followUp,
+        sourceReadAtIso: snapshot.leaseStatus.sourceReadAtIso,
+      }),
+    );
   }, [snapshot, contextual, readUnavailable, contextState, pricing]);
   const manualState: RenewalWorkspaceState | null =
     !contextual && snapshot.manual.readable
@@ -379,6 +413,7 @@ export function RenewalFocusViewPane({
       complete={complete}
       facts={facts}
       heading={heading}
+      leaseStatus={leaseStatus}
       manualMessage={manual?.message ?? ""}
       manualState={manualState}
       projection={projection}
@@ -396,6 +431,7 @@ function FocusPane({
   complete,
   facts,
   heading,
+  leaseStatus,
   manualMessage,
   manualState,
   projection,
@@ -408,6 +444,7 @@ function FocusPane({
   complete: boolean;
   facts: RenewalFocusFacts;
   heading: RefObject<HTMLHeadingElement | null>;
+  leaseStatus: LeaseWorkStatus | null;
   manualMessage: string;
   manualState: RenewalWorkspaceState | null;
   projection: RenewalActionProjection;
@@ -470,6 +507,19 @@ function FocusPane({
       data-renewal-focus-status={selected?.status ?? "none"}
       data-renewal-presentation-control
     >
+      {leaseStatus ? (
+        <p
+          className="renewal-focus-lease-status"
+          data-renewal-field="lease-status"
+          data-lease-status={leaseStatus.status}
+        >
+          <span>
+            Lease status:{" "}
+            <strong data-renewal-field="status-label">{leaseStatus.label}</strong>
+          </span>
+          <LeaseWorkStatusLines status={leaseStatus} />
+        </p>
+      ) : null}
       {complete ? (
         <p className="renewal-focus-outcome" role="status">
           <strong>{projection.outcome.label}.</strong>

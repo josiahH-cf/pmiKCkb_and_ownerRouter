@@ -234,6 +234,7 @@ export function RenewalDesk({
           viewCounts={viewCounts}
           {...(reasonCounts ? { reasonCounts } : {})}
           sheetWritebackPaused={sheetWritebackPaused}
+          sourceReadAtIso={view.dataCurrency.readAtIso}
           viewMemory={viewMemory}
         />
       )}
