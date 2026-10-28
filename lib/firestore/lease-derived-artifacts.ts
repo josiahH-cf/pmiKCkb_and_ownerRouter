@@ -31,7 +31,11 @@ import {
   readHistoricalApprovedArtifact,
   resolveApprovedDotloopArtifact,
 } from "@/lib/lease-documents/approved-artifact-content";
-import { buildFillWorksheet, mapHashOf } from "@/lib/lease-documents/artifact-intake";
+import {
+  buildFillWorksheet,
+  mapHashOf,
+  slotOverflowMessage,
+} from "@/lib/lease-documents/artifact-intake";
 import {
   fillAcroformPdf,
   readAcroformValues,
@@ -480,9 +484,14 @@ export async function prepareDerivedArtifact(
   const map = artifact.fillMapping!.map;
   const worksheet = buildFillWorksheet(map, context.input);
   if (!worksheet.complete) fail("Required mapped values are missing or unverified.");
-  const capacityFail = (field: string, slots: number, rows: number): never =>
+  // S235 R-S235-3: the same places message the readiness view shows.
+  const capacityFail = (
+    field: (typeof map.fields)[number],
+    slots: number,
+    rows: number,
+  ): never =>
     fail(
-      `${field}: ${rows} are recorded but the reviewed form has capacity for ${slots}. An approved form or attachment with room for everyone is required.`,
+      `${slotOverflowMessage(field.multiplicity === "per_animal" ? "per_animal" : "per_party", slots, rows)} An approved form or attachment with room for everyone is required.`,
     );
   let filled:
     | Awaited<ReturnType<typeof fillAcroformPdf>>
@@ -500,7 +509,7 @@ export async function prepareDerivedArtifact(
             .filter((region) => region.fieldId === field.fieldId)
             .map((region) => region.slot),
         ) + 1;
-      if (rows.length > slots) capacityFail(field.fieldId, slots, rows.length);
+      if (rows.length > slots) capacityFail(field, slots, rows.length);
       if (field.required && !rows.length) fail("A required mapped value is unavailable.");
       for (const region of geometry.regions.filter(
         (entry) => entry.fieldId === field.fieldId,
@@ -528,8 +537,7 @@ export async function prepareDerivedArtifact(
       const targets =
         field.pdfFieldNames ?? (field.multiplicity === "single" ? [field.fieldId] : []);
       reviewed.push(...targets);
-      if (rows.length > targets.length)
-        capacityFail(field.fieldId, targets.length, rows.length);
+      if (rows.length > targets.length) capacityFail(field, targets.length, rows.length);
       if (field.required && !rows.length) fail("A required mapped value is unavailable.");
       targets.forEach((target, index) => {
         const row = rows[index];

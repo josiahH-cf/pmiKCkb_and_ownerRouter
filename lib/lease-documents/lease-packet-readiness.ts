@@ -5,7 +5,10 @@
 
 import { ARTIFACT_INTAKE_STATE_LABELS } from "@/lib/lease-documents/artifact-intake-contract";
 import type { ArtifactIntakeManifest } from "@/lib/lease-documents/artifact-intake-contract";
-import { projectFamilyReadiness } from "@/lib/lease-documents/artifact-intake";
+import {
+  projectFamilyReadiness,
+  slotCapacityIssues,
+} from "@/lib/lease-documents/artifact-intake";
 import { FAMILY_USE_LABELS } from "@/lib/lease-documents/family-use";
 import type { FormFamilyUse, PacketEvaluation } from "@/lib/lease-documents/packet-types";
 
@@ -71,6 +74,18 @@ export function projectLeasePacketReadiness(input: {
         missing.push("A reviewed field and signer map (client document approver)");
       if (family.applicability === "unknown")
         missing.push("The packet facts that decide whether it applies (staff)");
+      // R-S235-3: more recorded parties or animals than the reviewed map has places for.
+      const manifest = input.evaluation?.manifest;
+      if (entry?.fieldMap && manifest)
+        for (const issue of slotCapacityIssues(entry.fieldMap, {
+          parties: manifest.participants.filter(
+            (participant) => participant.kind === entry.fieldMap!.audience,
+          ).length,
+          animals: manifest.animals.length,
+        }))
+          missing.push(
+            `${issue} An approved form or attachment with room for everyone (client document approver)`,
+          );
     }
     return {
       kind: family.kind,

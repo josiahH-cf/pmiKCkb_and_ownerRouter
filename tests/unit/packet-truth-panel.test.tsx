@@ -10,6 +10,7 @@ import type {
   RenewalPacketSnapshot,
 } from "@/lib/lease-documents/packet-types";
 import { readyS66Input } from "@/tests/fixtures/s66-packet";
+import { EXECUTED_NOTE } from "@/lib/lease-documents/packet-shown-state";
 
 // S66: the Packet inputs editor has its own tests; these cover the evaluation presentation.
 vi.mock("@/components/lease-renewal/PacketInputsEditor", () => ({
@@ -144,5 +145,43 @@ describe("S43 packet truth presentation", () => {
     );
     expect(screen.getByRole("button", { name: "Retry evaluation" }).tabIndex).toBe(0);
     expect(screen.getByText(/Payload hash:/)).toBeTruthy();
+  });
+});
+
+describe("S235 R-S235-4 shown packet state", () => {
+  it("shows the recorded-event state for its own snapshot only, with the not-signatures note", () => {
+    const { unmount } = render(
+      <PacketTruthPanel
+        initialSnapshot={snapshot("Ready for preview")}
+        leaseId="fixture-lease"
+        shownState={{
+          snapshotId: "packet-fixture",
+          state: "Executed",
+          note: EXECUTED_NOTE,
+        }}
+        transactionId="fixture-transaction"
+      />,
+    );
+    expect(
+      document.querySelector('[data-renewal-field="packet-shown-state"]')?.textContent,
+    ).toBe("Executed");
+    expect(screen.getByText(EXECUTED_NOTE)).toBeTruthy();
+    unmount();
+    render(
+      <PacketTruthPanel
+        initialSnapshot={snapshot("Ready for preview")}
+        leaseId="fixture-lease"
+        shownState={{
+          snapshotId: "packet-earlier",
+          state: "Executed",
+          note: EXECUTED_NOTE,
+        }}
+        transactionId="fixture-transaction"
+      />,
+    );
+    expect(
+      document.querySelector('[data-renewal-field="packet-shown-state"]')?.textContent,
+    ).toBe("Ready for preview");
+    expect(screen.queryByText(EXECUTED_NOTE)).toBeNull();
   });
 });

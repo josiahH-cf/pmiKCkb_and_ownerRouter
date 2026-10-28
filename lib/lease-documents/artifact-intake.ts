@@ -320,6 +320,57 @@ function row(
   };
 }
 
+/** S235 R-S235-3: the refusal when a repeated field has fewer places than recorded entries. */
+export function slotOverflowMessage(
+  multiplicity: "per_party" | "per_animal",
+  places: number,
+  recorded: number,
+): string {
+  const noun =
+    multiplicity === "per_party"
+      ? places === 1
+        ? "party"
+        : "parties"
+      : places === 1
+        ? "animal"
+        : "animals";
+  return `This form has places for ${places} ${noun}; ${recorded} ${recorded === 1 ? "is" : "are"} recorded.`;
+}
+
+/** The places a reviewed map gives one repeated field: its PDF slots or static regions. */
+export function repeatedFieldPlaces(
+  map: ArtifactFieldMap,
+  field: ArtifactFieldMap["fields"][number],
+): number {
+  return map.static
+    ? Math.max(
+        -1,
+        ...map.static.regions
+          .filter((region) => region.fieldId === field.fieldId)
+          .map((region) => region.slot),
+      ) + 1
+    : (field.pdfFieldNames?.length ?? 0);
+}
+
+/**
+ * S235 R-S235-3: every repeated field of a reviewed map that has fewer places than the recorded
+ * parties (on the map's side) or animals. More than the map provides is refused, never dropped.
+ */
+export function slotCapacityIssues(
+  map: ArtifactFieldMap,
+  counts: { readonly parties: number; readonly animals: number },
+): string[] {
+  const issues = new Set<string>();
+  for (const field of map.fields) {
+    if (field.multiplicity === "single") continue;
+    const places = repeatedFieldPlaces(map, field);
+    const recorded = field.multiplicity === "per_party" ? counts.parties : counts.animals;
+    if (recorded > places)
+      issues.add(slotOverflowMessage(field.multiplicity, places, recorded));
+  }
+  return [...issues];
+}
+
 /**
  * Expand every mapped location and fill it from verified facts only. A per-party field repeats
  * once per tenant participant (`party.<participantId>.<attr>`), a per-animal field once per animal
@@ -889,7 +940,7 @@ export function projectIntakeCheckpoints(
     "inspect_returned_state",
     evidence.returnedStateInspected ? "done" : "pending",
     evidence.returnedStateInspected
-      ? "The returned provider state was read back and inspected."
+      ? "Staff recorded a returned document for a packet that uses an approved family. Staff records are not provider-verified."
       : "Pending meeting. Document presence is not content equality or a signature.",
   );
   return statuses;

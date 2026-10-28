@@ -125,6 +125,24 @@ Raw attempts, fixture outputs and detailed provenance stay outside Git. Syntheti
 are not legal forms, modeled outside work is not signing, and isolated date correction preserves
 the original lease start date and recurring charges. Human acceptance remains NOT RUN.
 
+## Synthetic map verification (S235 R-S235-7)
+
+The Admin "verify filled values" checkpoint is satisfied only by a recorded review of a filled copy
+for the exact original and map versions; until then it stays blocked. The procedure, once a client
+original and its reviewed map exist (C01, C02, C07 to C10):
+
+1. Engineering fills that exact original with the existing filler (`lib/firestore/lease-derived-artifacts.ts`
+   path, or its tests' local harness) using synthetic values only, with every repeated slot used and
+   one more party or animal than the map's places to confirm the places refusal.
+2. Inspect every page, every repeated slot and every protected region (signature, initials, signing
+   date); confirm a `replace` region clears only its mapped area, and run
+   `node scripts/verify-filled-pdf.mjs --python <isolated Python with pypdf> --dir <private output>`.
+3. Keep the filled copy and the inspection notes in private evidence storage, never in Git; record
+   the reviewer, time, original publication hash and map hash beside the checkpoint.
+
+No lease value is used, nothing is uploaded, and no field name, coordinate, signer capacity or legal
+text is invented. Until a reviewed original and map exist this procedure is NOT RUN.
+
 ## Documentation
 
 Current truth is a release requirement. Update or delete a document when its claim becomes false.

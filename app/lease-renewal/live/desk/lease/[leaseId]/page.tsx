@@ -104,6 +104,9 @@ import { readFamilyUseRecord } from "@/lib/firestore/lease-artifact-family-use";
 import { resolveFamilyUse } from "@/lib/lease-documents/family-use";
 import { projectLeasePacketReadiness } from "@/lib/lease-documents/lease-packet-readiness";
 import { LeasePacketReadiness } from "@/components/lease-renewal/LeasePacketReadiness";
+import { ReturnedDocumentsPanel } from "@/components/lease-renewal/ReturnedDocumentsPanel";
+import { resolveReturnedState } from "@/lib/lease-documents/returned-state-service";
+import { readSelectionFreshness } from "@/lib/lease-documents/packet-selection-freshness-read";
 import { buildLiveRenewalReviewItemHref } from "@/lib/lease-renewal/live-review-destination";
 import {
   RENEWAL_SOURCE_REFRESH_COOKIE,
@@ -298,6 +301,13 @@ export default async function LiveRenewalLeaseWorkspacePage({
       families: resolveFamilyUse(familyUseRead.record, readTimestamp),
     },
   });
+  // S236: returned documents and who still must sign, from staff records. A failed read shows as
+  // unreadable, never as nothing recorded.
+  const returnedStateView = await resolveReturnedState(user, leaseId)
+    .then(({ view }) => view)
+    .catch(() => null);
+  // S235 R-S235-6: the saved Dotloop selection and its last observation (this read never throws).
+  const selectionFreshness = await readSelectionFreshness(user, readTimestamp);
   const policy = renewalAuxiliaryValue(policyRead, {
     state: "unreadable" as const,
     ruleSet: DEFAULT_NOTICE_RULE_SET,
@@ -606,7 +616,19 @@ export default async function LiveRenewalLeaseWorkspacePage({
                 settings={renewalAuxiliaryValue(resourceLocationsRead, null)}
               />
             }
-            packetReadinessPanel={<LeasePacketReadiness rows={packetFamilyRows} />}
+            packetReadinessPanel={
+              <LeasePacketReadiness
+                rows={packetFamilyRows}
+                selection={selectionFreshness}
+              />
+            }
+            packetShownState={returnedStateView?.packetState ?? null}
+            returnedDocumentsPanel={
+              <ReturnedDocumentsPanel
+                canRecord={hasRenewalRoleAuthority("record_returned_state", user.role)}
+                initialView={returnedStateView}
+              />
+            }
             rentvineUpdatesPanel={
               writebackProposalRead.status === "available" ? (
                 <RentvineUpdatesPanel

@@ -388,3 +388,18 @@ describe("PR160 review: latest observation per signer and per-document version b
     ).toBe(false);
   });
 });
+
+describe("S236 ARCH-S236-1 an earlier packet snapshot is an earlier version", () => {
+  it("shows an earlier snapshot's signed record as an earlier version and never counts it", () => {
+    const all = PEOPLE.map((p) =>
+      signed(p.personId, p.roles[0].signerRole as "tenant" | "owner"),
+    );
+    const result = project([record(all, { snapshotId: "packet_earlier" })]);
+    expect(result.documents[0].state).toBe("Uploaded");
+    expect(result.documents[0].notes).toContain("Signed an earlier version, not current");
+    expect(result.signaturesComplete).toBe(false);
+    // Another cycle of the same lease is never shown or counted.
+    const otherCycle = project([record(all, { cycleId: "cycle-0" })]);
+    expect(otherCycle.documents[0].notes).toEqual([]);
+  });
+});

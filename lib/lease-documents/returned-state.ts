@@ -13,6 +13,12 @@ import type { LeaseArtifactKind } from "@/lib/lease-documents/packet-types";
 
 export const STAFF_ATTESTATION_LABEL = "Recorded by staff, not provider-verified";
 export const SIGNER_MAP_PENDING_LABEL = "Signer requirements pending the reviewed map";
+/**
+ * PR #161 review: the current packet was prepared from earlier Working renewal terms. Its recorded
+ * signatures stay as history for those terms; none completes the current renewal.
+ */
+export const OLDER_TERMS_NOTE =
+  "The Working renewal terms changed after this packet was prepared. Signatures recorded on it are kept for the earlier terms and do not complete this renewal; prepare the packet again for the current terms.";
 
 export type ReturnedDocumentState =
   | "Not prepared"
@@ -107,6 +113,11 @@ export function projectReturnedState(input: {
   readonly records: readonly ReturnedStateRecord[];
   /** When the Working terms last changed; a signature observed before it does not count. */
   readonly termsChangedAt?: string | null;
+  /**
+   * False when the packet's documents carry earlier Working terms than the current ones
+   * (`packetWorkingTermsFreshness`); then no signature on it counts, whenever it was observed.
+   */
+  readonly packetTermsCurrent?: boolean;
 }): {
   readonly documents: readonly ReturnedDocumentProjection[];
   readonly overall: ReturnedDocumentState;
@@ -114,32 +125,31 @@ export function projectReturnedState(input: {
   readonly signaturesComplete: boolean;
 } {
   const termsChangedAt = input.termsChangedAt ? Date.parse(input.termsChangedAt) : null;
+  const termsCurrent = input.packetTermsCurrent !== false;
   const documents = input.documents.map((document): ReturnedDocumentProjection => {
-    const notes: string[] = [];
-    // A record attaches only to this lease, cycle, snapshot and document identity (PR #160).
+    const notes: string[] = termsCurrent ? [] : [OLDER_TERMS_NOTE];
+    // A record attaches only to this lease, cycle and document identity (PR #160); it counts only
+    // for the current snapshot's current version of that document.
     const sameDocument = input.records.filter(
       (record) =>
         record.leaseId === input.leaseId &&
         record.cycleId === input.cycleId &&
-        record.snapshotId === input.snapshotId &&
         record.kind === document.kind,
     );
-    const current = sameDocument.filter(
-      (record) => record.documentContentHash === document.contentHash,
-    );
-    // Only this document's actually signed superseded version warns, and it never counts.
-    const supersededHashes = new Set(
-      sameDocument
-        .map((record) => record.documentContentHash)
-        .filter((hash) => hash !== document.contentHash),
+    const versionOf = (record: ReturnedStateRecord) =>
+      `${record.snapshotId}\u0000${record.documentContentHash}`;
+    const currentVersion = `${input.snapshotId}\u0000${document.contentHash}`;
+    const current = sameDocument.filter((record) => versionOf(record) === currentVersion);
+    // Only this document's actually signed superseded version warns, and it never counts. An
+    // earlier snapshot's record of the same document is a superseded version too.
+    const supersededVersions = new Set(
+      sameDocument.map(versionOf).filter((version) => version !== currentVersion),
     );
     if (
-      [...supersededHashes].some((hash) => {
-        const version = sameDocument.filter(
-          (record) => record.documentContentHash === hash,
-        );
-        return signerKeys(version).some(
-          (key) => latestObservation(version, key).kind === "signed",
+      [...supersededVersions].some((version) => {
+        const records = sameDocument.filter((record) => versionOf(record) === version);
+        return signerKeys(records).some(
+          (key) => latestObservation(records, key).kind === "signed",
         );
       })
     )
@@ -182,6 +192,7 @@ export function projectReturnedState(input: {
         // An unreadable terms-change time fails closed: no signature counts against it.
         if (
           latest.kind === "signed" &&
+          termsCurrent &&
           (termsChangedAt === null || latest.observedAt >= termsChangedAt)
         ) {
           signedCount += 1;
@@ -201,7 +212,9 @@ export function projectReturnedState(input: {
         stillMustSign.push({
           name: person.fullName,
           capacity: CAPACITY[requirement.signerRole],
-          nextAction: `Ask ${person.fullName} to sign ${document.label} in Dotloop`,
+          nextAction: termsCurrent
+            ? `Ask ${person.fullName} to sign ${document.label} in Dotloop`
+            : `Prepare the packet again for the current Working terms, then ask ${person.fullName} to sign ${document.label}`,
         });
       }
     }

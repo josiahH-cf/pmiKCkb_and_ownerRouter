@@ -13,6 +13,7 @@ import type {
   PacketVisibleState,
   RenewalPacketSnapshot,
 } from "@/lib/lease-documents/packet-types";
+import type { ShownPacketState } from "@/lib/lease-documents/packet-shown-state";
 
 const NEXT_ACTION: Record<PacketVisibleState, string> = {
   "Not evaluated": "Evaluate packet truth from approved sources.",
@@ -37,12 +38,15 @@ export function PacketTruthPanel({
   leaseId,
   transactionId,
   canEditInputs = false,
+  shownState = null,
 }: Readonly<{
   initialSnapshot: RenewalPacketSnapshot | null;
   leaseId: string;
   transactionId: string;
   /** S66: renewal staff save packet inputs; the Evaluate control re-reads them. */
   canEditInputs?: boolean;
+  /** S235 R-S235-4: the state from this snapshot's recorded events, read with the page. */
+  shownState?: ShownPacketState | null;
 }>) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [loading, setLoading] = useState(false);
@@ -95,7 +99,13 @@ export function PacketTruthPanel({
     }
   }
 
-  const state = snapshot?.visibleState ?? "Not evaluated";
+  // S235 R-S235-4: the recorded-event state applies only to the snapshot it was read for; a newly
+  // evaluated snapshot shows its own state until the page is read again.
+  const shown =
+    shownState && snapshot && shownState.snapshotId === snapshot.snapshotId
+      ? shownState
+      : null;
+  const state = shown?.state ?? snapshot?.visibleState ?? "Not evaluated";
   return (
     <section
       aria-busy={loading}
@@ -112,9 +122,10 @@ export function PacketTruthPanel({
             Document packet truth
           </RenewalSectionHeading>
           <p className="muted">
-            State: <strong>{state}</strong>
+            State: <strong data-renewal-field="packet-shown-state">{state}</strong>
             {snapshot ? ` · snapshot ${snapshot.snapshotVersion}` : ""}
           </p>
+          {shown?.note ? <p className="muted">{shown.note}</p> : null}
         </div>
         <button
           className="secondary-button"

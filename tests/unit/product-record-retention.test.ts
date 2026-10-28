@@ -68,6 +68,7 @@ const DIRECT_PRODUCT_RECORD_REFERENCE_INVENTORY = {
     "lib/firestore/lease-document-action-claim.ts",
     "lib/firestore/lease-document-loop-association.ts",
     "lib/firestore/lease-document-packet-snapshots.ts",
+    "lib/firestore/lease-document-returned-states.ts",
     "lib/firestore/lease-renewal-progress-schema.ts",
     "lib/firestore/lease-renewal-progress.ts",
   ],
@@ -167,6 +168,8 @@ const PRODUCT_RECORD_WRITER_INVENTORY = {
     // S34: the lease's Dotloop loop association, owner index and activity.
     "lib/firestore/lease-document-loop-association.ts",
     "lib/firestore/lease-document-packet-snapshots.ts",
+    // S236: staff-attested returned-document records and their activity.
+    "lib/firestore/lease-document-returned-states.ts",
     "lib/firestore/lease-renewal-progress.ts",
   ],
   lease_renewal_resolutions: ["lib/firestore/lease-renewal-resolutions.ts"],

@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
+import { readIntakeManifestWithReturnedState } from "@/lib/firestore/lease-document-returned-states";
 import {
   decideArtifactFamily,
-  readArtifactIntakeManifest,
   receiveArtifactFamily,
   recordArtifactFieldMap,
 } from "@/lib/firestore/lease-artifact-intake";
@@ -23,7 +23,8 @@ import { projectIntakeCheckpoints } from "@/lib/lease-documents/artifact-intake"
 export async function GET() {
   try {
     await requireCapability("manageAdmin");
-    const manifest = await readArtifactIntakeManifest();
+    const { manifest, returnedStateInspected } =
+      await readIntakeManifestWithReturnedState();
     return NextResponse.json({
       artifactIntake: {
         manifest,
@@ -32,7 +33,7 @@ export async function GET() {
           filledValuesVerified: false,
           packetState: null,
           providerReceiptId: null,
-          returnedStateInspected: false,
+          returnedStateInspected,
         }),
       },
     });
