@@ -12,9 +12,10 @@ five CI jobs passed on the exact head. The branch claude/renewal-novdec-rows-202
 with tests:
 
 - S236: the persisted returned-document record, its route and screen, derived Required signatures
-  complete and the Admin checkpoint from records;
+  complete and the Admin checkpoint from records; the PR #161 review fix (`743bac8f`) judges
+  signatures by the Working term revisions the packet's approval facts name;
 - S235: the places refusal, the packet state from recorded events and selection freshness;
-- S238: the isolated browser journey, 14 of 14 steps on `a6f99b6e`.
+- S238: the isolated browser journey, 14 of 14 steps on `a6f99b6e` and 15 of 15 on `743bac8f`.
 
 Each suite's status line names what remains (S232 R-S232-3 to R-S232-5, S233 R-S233-1/2/4/5/9,
 S234 R-S234-1/2/4/5, S237 R-S237-1/5 and the journey's uncovered phases). Nothing was served;
