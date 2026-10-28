@@ -10,6 +10,10 @@ import { gmailHubErrorResponse, readAllowedQuery } from "@/lib/gmail-hub/http";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { assertProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 import { applicationEffectBlockReason } from "@/lib/operations/application-effect-policy";
+import {
+  readCommunicationWorkerHealth,
+  type CommunicationWorkerHealth,
+} from "@/lib/gmail-hub/worker-health";
 export const maxDuration = 180;
 export async function POST(request: Request) {
   try {
@@ -47,6 +51,14 @@ export async function GET(request: Request) {
       );
     await assertProductionRuntimeActionExecutable("gmail.renewal_notice.send");
     await assertProductionRuntimeActionExecutable("gmail.mailbox.read");
+    // S233 R-S233-5: the read-only assurance reads the worker's health from this same entry. Times
+    // and counts only; a failed health read leaves readiness standing and says so.
+    let health: CommunicationWorkerHealth | "unavailable";
+    try {
+      health = await readCommunicationWorkerHealth();
+    } catch {
+      health = "unavailable";
+    }
     console.log(
       JSON.stringify({
         event: "communication_worker_readiness",
@@ -56,6 +68,7 @@ export async function GET(request: Request) {
         dispatchEnabled: true,
         legacyDispatchEnabled: false,
         deliveryPolicyVersion: RENEWAL_DELIVERY_POLICY_VERSION,
+        health,
       }),
     );
     return NextResponse.json({
@@ -63,6 +76,7 @@ export async function GET(request: Request) {
       dispatchEnabled: true,
       legacyDispatchEnabled: false,
       deliveryPolicyVersion: RENEWAL_DELIVERY_POLICY_VERSION,
+      health,
     });
   } catch (error) {
     return gmailHubErrorResponse(error);

@@ -208,3 +208,75 @@ export function describeSequenceObservation(
       : "Incoming could not be read cleanly";
   return `${lead}: ${OBSERVATION_FAILURE_TEXT[observation.reason]}. Unavailable for ${since} (last attempt ${age} ago); scheduled sends are held until it reads cleanly`;
 }
+
+/** S233 R-S233-5: the worker health the hub reads (a serialized `CommunicationWorkerHealth`). */
+export interface CommunicationWorkerHealthView {
+  readonly lastRun: {
+    readonly startedAtMs: number | null;
+    readonly finishedAtMs: number | null;
+    readonly running: boolean;
+    readonly counts: Readonly<Record<string, number>>;
+  } | null;
+  readonly complete: boolean;
+  readonly oldestPastDue: { readonly dueAtMs: number; readonly lagMs: number } | null;
+  readonly oldestObservation: {
+    readonly checkedAtMs: number;
+    readonly ageMs: number;
+  } | null;
+  readonly neverChecked: number;
+}
+
+/**
+ * S233 R-S233-5: the hub's worker health line: the last run and its counts, the oldest past-due
+ * unsent message with its lag, and the oldest incoming check. `dueLabel` formats the due time in
+ * the sequence time zone the hub already uses.
+ */
+export function describeWorkerHealth(
+  health: CommunicationWorkerHealthView,
+  nowMs: number,
+  dueLabel: (ms: number) => string,
+): readonly string[] {
+  const lines: string[] = [];
+  const run = health.lastRun;
+  if (!run || (run.startedAtMs === null && run.finishedAtMs === null))
+    lines.push("Worker: no run recorded yet.");
+  else if (run.running)
+    lines.push(
+      `Worker: a run is in progress${run.startedAtMs !== null ? ` (started ${describeAge(nowMs - run.startedAtMs)} ago)` : ""}.`,
+    );
+  else if (run.finishedAtMs === null)
+    // A run claims the record as it starts; a lease that ran out before it finished is a stopped run.
+    lines.push(
+      `Worker: the last run started ${describeAge(nowMs - run.startedAtMs!)} ago and did not finish.`,
+    );
+  else {
+    const c = run.counts;
+    const parts = [
+      `${c.inspected ?? 0} checked`,
+      `${c.sent ?? 0} sent`,
+      `${c.held ?? 0} held`,
+      `${c.failures ?? 0} failures`,
+      ...(c.notChecked ? [`${c.notChecked} not checked this run`] : []),
+    ];
+    lines.push(
+      `Worker: last run finished ${describeAge(nowMs - run.finishedAtMs!)} ago (${parts.join(", ")}).`,
+    );
+  }
+  // Ages follow the hub's minute clock, as the last run's does; the read's own lag and age are for
+  // the assurance receipt, which has no clock of its own.
+  lines.push(
+    health.oldestPastDue
+      ? `Oldest past-due message: due ${dueLabel(health.oldestPastDue.dueAtMs)}; not yet sent (${describeAge(nowMs - health.oldestPastDue.dueAtMs)} late).`
+      : "No scheduled message is past due.",
+  );
+  lines.push(
+    health.oldestObservation
+      ? `Oldest incoming check: ${describeAge(nowMs - health.oldestObservation.checkedAtMs)} ago${health.neverChecked ? `; ${health.neverChecked} not checked yet` : ""}.`
+      : health.neverChecked
+        ? `Incoming not checked yet for ${health.neverChecked} communication${health.neverChecked === 1 ? "" : "s"}.`
+        : "No open communication needs an incoming check.",
+  );
+  if (!health.complete)
+    lines.push("Counts cover the first open communications read; more are open.");
+  return lines;
+}

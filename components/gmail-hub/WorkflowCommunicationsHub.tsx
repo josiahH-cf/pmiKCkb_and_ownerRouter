@@ -7,6 +7,8 @@ import {
   SEQUENCE_PAUSE_CAUSE_LABELS,
   describeSequenceObservation,
   describeSequenceState,
+  describeWorkerHealth,
+  type CommunicationWorkerHealthView,
 } from "@/lib/gmail-hub/communication-state";
 import {
   WorkflowCommunicationContextSchema,
@@ -19,6 +21,7 @@ import type { CommunicationSequence } from "@/lib/gmail-hub/sequence-model";
 import { describeNextDue } from "@/lib/gmail-hub/schedule-calendar";
 import { useMinuteClock } from "@/components/hooks/useMinuteClock";
 import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
+import { formatBusinessTimestamp } from "@/lib/date-display";
 type Summary = Pick<
   CommunicationSequence,
   | "id"
@@ -59,7 +62,18 @@ export function WorkflowCommunicationsHub({
     [error, setError] = useState(""),
     [loading, setLoading] = useState(true),
     [filter, setFilter] = useState("");
+  // S233 R-S233-5: the worker's health, read beside every full worklist refresh.
+  const [health, setHealth] = useState<
+    CommunicationWorkerHealthView | "unavailable" | null
+  >(null);
   const load = useCallback(async (after: string | null = null) => {
+    if (!after)
+      void fetch("/api/gmail-hub/communications/health")
+        .then(async (r) => {
+          if (!r.ok) throw new Error("Worker health unavailable.");
+          setHealth((await r.json()) as CommunicationWorkerHealthView);
+        })
+        .catch(() => setHealth("unavailable"));
     try {
       const r = await fetch(
         `/api/gmail-hub/sequences${after ? `?after=${encodeURIComponent(after)}` : ""}`,
@@ -296,6 +310,17 @@ export function WorkflowCommunicationsHub({
       </div>
       {error ? <p role="alert">{error}</p> : null}
       {loading ? <p role="status">Loading worklist…</p> : null}
+      {health && nowMs !== null ? (
+        <div className="ui-stack" data-communication-field="worker-health">
+          {health === "unavailable" ? (
+            <p>Worker health could not be read; refresh the worklist to try again.</p>
+          ) : (
+            describeWorkerHealth(health, nowMs, (ms) =>
+              formatBusinessTimestamp(new Date(ms).toISOString()),
+            ).map((line) => <p key={line}>{line}</p>)
+          )}
+        </div>
+      ) : null}
       <div role="tabpanel" aria-label={tab}>
         <div className="ui-stack">
           {visible.map((s) => (

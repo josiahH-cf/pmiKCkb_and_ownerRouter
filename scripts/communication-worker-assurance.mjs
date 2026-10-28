@@ -81,6 +81,37 @@ function assertProbeCalendar(nowMs, deadlineMs, nextTime) {
   if (!Number.isFinite(providerNext) || providerNext <= nowMs + deadlineMs + 180_000)
     throw new Error("communication_worker_probe_calendar_overlap");
 }
+// S233 R-S233-5: the readiness entry's worker health, kept in the receipt as times and counts
+// only. A revision that predates it logs none; health is evidence and never the pass condition.
+export function receiptWorkerHealth(value) {
+  if (value === "unavailable") return "unavailable";
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "absent";
+  const count = (v) => (Number.isSafeInteger(v) && v >= 0 ? v : null);
+  const time = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const pair = (v, a, b) =>
+    v && typeof v === "object" ? { [a]: time(v[a]), [b]: time(v[b]) } : null;
+  const run = value.lastRun && typeof value.lastRun === "object" ? value.lastRun : null;
+  const counts = {};
+  if (run?.counts && typeof run.counts === "object")
+    for (const [key, v] of Object.entries(run.counts))
+      if (/^[A-Za-z]{1,32}$/.test(key) && count(v) !== null) counts[key] = v;
+  return {
+    asOfMs: time(value.asOfMs),
+    lastRun: run
+      ? {
+          startedAtMs: time(run.startedAtMs),
+          finishedAtMs: time(run.finishedAtMs),
+          running: run.running === true,
+          counts,
+        }
+      : null,
+    openRead: count(value.openRead),
+    complete: value.complete === true,
+    oldestPastDue: pair(value.oldestPastDue, "dueAtMs", "lagMs"),
+    oldestObservation: pair(value.oldestObservation, "checkedAtMs", "ageMs"),
+    neverChecked: count(value.neverChecked),
+  };
+}
 function sameProbeConfiguration(job, original) {
   return ["name", "schedule", "timeZone", "attemptDeadline", "retryConfig"].every((key) =>
     equal(job[key], original[key]),
@@ -215,20 +246,20 @@ export async function verifyCommunicationWorkerAssurance(
           filter: `resource.type="cloud_run_revision" AND resource.labels.service_name="pmi-kc-app" AND resource.labels.revision_name="${cp.revision}" AND jsonPayload.event="communication_worker_readiness" AND jsonPayload.probeId="${state.probeId}" AND timestamp>="${state.startedAt}"`,
         },
       );
-      if (
-        (entries.entries ?? []).some(
-          (e) =>
-            e.jsonPayload?.ready === true &&
-            e.jsonPayload?.probeId === state.probeId &&
-            e.jsonPayload?.mode === "confirmed_renewal" &&
-            e.jsonPayload?.dispatchEnabled === true &&
-            e.jsonPayload?.legacyDispatchEnabled === false &&
-            e.jsonPayload?.deliveryPolicyVersion ===
-              "renewal-confirmed-delivery/2026-10-20",
-        )
-      ) {
+      const ready = (entries.entries ?? []).find(
+        (e) =>
+          e.jsonPayload?.ready === true &&
+          e.jsonPayload?.probeId === state.probeId &&
+          e.jsonPayload?.mode === "confirmed_renewal" &&
+          e.jsonPayload?.dispatchEnabled === true &&
+          e.jsonPayload?.legacyDispatchEnabled === false &&
+          e.jsonPayload?.deliveryPolicyVersion ===
+            "renewal-confirmed-delivery/2026-10-20",
+      );
+      if (ready) {
         state.outcome = "passed";
         state.observedAt = new Date(now()).toISOString();
+        state.workerHealth = receiptWorkerHealth(ready.jsonPayload.health);
         save(file, state);
         break;
       }

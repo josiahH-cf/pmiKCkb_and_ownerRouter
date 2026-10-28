@@ -9,6 +9,7 @@ import {
 import {
   SEQUENCE_PAUSE_CAUSE_LABELS,
   describeSequenceObservation,
+  describeWorkerHealth,
 } from "@/lib/gmail-hub/communication-state";
 
 // S233 (R-S233-3/5/6/7): Central scheduling with the zone always shown, the Nov 1, 2026 clock
@@ -164,5 +165,93 @@ describe("S233 incoming-check freshness (R-S233-4)", () => {
     expect(failed("mailbox_sync_failed")).toBe(
       `Incoming not checked this run: the staff mailbox sync failed, so it was not checked this run. ${held}`,
     );
+  });
+});
+
+describe("S233 worker health on the hub (R-S233-5)", () => {
+  const now = Date.parse("2026-11-02T15:42:00.000Z");
+  const due = (ms: number) => new Date(ms).toISOString().slice(11, 16);
+  it("states the last run with its counts, the oldest past-due message and the oldest check", () => {
+    expect(
+      describeWorkerHealth(
+        {
+          lastRun: {
+            startedAtMs: now - 4 * 60_000,
+            finishedAtMs: now - 3 * 60_000,
+            running: false,
+            counts: { inspected: 12, sent: 1, held: 2, failures: 1, notChecked: 1 },
+          },
+          complete: true,
+          oldestPastDue: { dueAtMs: now - 25 * 60_000, lagMs: 25 * 60_000 },
+          oldestObservation: { checkedAtMs: now - 8 * 60_000, ageMs: 8 * 60_000 },
+          neverChecked: 2,
+        },
+        now,
+        due,
+      ),
+    ).toEqual([
+      "Worker: last run finished 3 min ago (12 checked, 1 sent, 2 held, 1 failures, 1 not checked this run).",
+      "Oldest past-due message: due 15:17; not yet sent (25 min late).",
+      "Oldest incoming check: 8 min ago; 2 not checked yet.",
+    ]);
+    expect(
+      describeWorkerHealth(
+        {
+          lastRun: null,
+          complete: false,
+          oldestPastDue: null,
+          oldestObservation: null,
+          neverChecked: 0,
+        },
+        now,
+        due,
+      ),
+    ).toEqual([
+      "Worker: no run recorded yet.",
+      "No scheduled message is past due.",
+      "No open communication needs an incoming check.",
+      "Counts cover the first open communications read; more are open.",
+    ]);
+    expect(
+      describeWorkerHealth(
+        {
+          lastRun: {
+            startedAtMs: now - 60_000,
+            finishedAtMs: null,
+            running: true,
+            counts: {},
+          },
+          complete: true,
+          oldestPastDue: null,
+          oldestObservation: null,
+          neverChecked: 1,
+        },
+        now,
+        due,
+      ),
+    ).toEqual([
+      "Worker: a run is in progress (started 1 min ago).",
+      "No scheduled message is past due.",
+      "Incoming not checked yet for 1 communication.",
+    ]);
+    // A run whose lease ran out before it finished is a stopped run, never "no run recorded".
+    expect(
+      describeWorkerHealth(
+        {
+          lastRun: {
+            startedAtMs: now - 3 * 60 * 60_000,
+            finishedAtMs: null,
+            running: false,
+            counts: {},
+          },
+          complete: true,
+          oldestPastDue: null,
+          oldestObservation: null,
+          neverChecked: 0,
+        },
+        now,
+        due,
+      )[0],
+    ).toBe("Worker: the last run started 3 h ago and did not finish.");
   });
 });

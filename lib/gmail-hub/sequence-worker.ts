@@ -46,16 +46,46 @@ export class CommunicationWorkerStore {
     return this.db.runTransaction(async (tx) => {
       const doc = await tx.get(this.ref());
       if (doc.data()?.runId !== claim.runId) return false;
+      const startedAtMs = doc.data()?.startedAtMs;
       tx.set(this.ref(), {
         runId: claim.runId,
         cursor,
         expiresAtMs: 0,
+        // S233 R-S233-5: the finished run keeps when it started, for the health summary.
+        ...(typeof startedAtMs === "number" ? { startedAtMs } : {}),
         finishedAtMs: nowMs,
         counts,
       });
       return true;
     });
   }
+  /** S233 R-S233-5: the latest run's times and counts, or null before the first run. */
+  async readLastRun(nowMs: number): Promise<CommunicationWorkerLastRun | null> {
+    const state = (await this.ref().get()).data();
+    if (!state) return null;
+    const number = (value: unknown) =>
+      typeof value === "number" && Number.isFinite(value) ? value : null;
+    const counts: Record<string, number> = {};
+    if (state.counts && typeof state.counts === "object")
+      for (const [key, value] of Object.entries(state.counts as Record<string, unknown>))
+        if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0)
+          counts[key] = value;
+    const expiresAtMs = number(state.expiresAtMs);
+    return {
+      startedAtMs: number(state.startedAtMs),
+      finishedAtMs: number(state.finishedAtMs),
+      running: expiresAtMs !== null && expiresAtMs > nowMs,
+      counts,
+    };
+  }
+}
+
+/** S233 R-S233-5: what the latest worker run reports; counts only, never a record or address. */
+export interface CommunicationWorkerLastRun {
+  readonly startedAtMs: number | null;
+  readonly finishedAtMs: number | null;
+  readonly running: boolean;
+  readonly counts: Readonly<Record<string, number>>;
 }
 /** One bounded rotating page; the durable occurrence claim owns every send even across expired worker leases. */
 export async function runCommunicationWorker(input: {
