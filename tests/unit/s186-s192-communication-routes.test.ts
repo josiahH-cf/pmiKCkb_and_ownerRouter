@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   dispatch: vi.fn(),
   control: vi.fn(),
   get: vi.fn(),
+  reconcile: vi.fn(),
+  attempts: vi.fn(),
   verifyWorker: vi.fn(),
   runWorker: vi.fn(),
 }));
@@ -64,6 +66,8 @@ beforeEach(() => {
     dispatch: mocks.dispatch,
     control: mocks.control,
     get: mocks.get,
+    reconcile: mocks.reconcile,
+    attempts: mocks.attempts,
   });
   mocks.save.mockResolvedValue(sequence);
   mocks.get.mockResolvedValue(sequence);
@@ -142,6 +146,34 @@ describe("S186–S192 private sequence HTTP boundaries", () => {
     expect(r.status).toBe(200);
     expect(mocks.authorize).toHaveBeenCalledTimes(1);
     expect(mocks.dispatch).toHaveBeenCalledExactlyOnceWith(id);
+  });
+  it("S233 R-S233-1 (PR #162 review): an action's response carries the refreshed attempts", async () => {
+    const attempt = {
+      id: "a".repeat(64),
+      sequenceId: id,
+      authorizationRevision: 1,
+      index: 0,
+      state: "sent",
+      senderEmail: actor.email,
+      rfcMessageId: `<pmi-${"a".repeat(64)}@pmikcmetro.com>`,
+      payloadHash: "p".repeat(64),
+      claimedAtMs: 1,
+      sentAtMs: 2,
+    };
+    mocks.reconcile.mockResolvedValue({ ...sequence, version: 3 });
+    mocks.attempts.mockResolvedValue({ occurrences: [attempt], truncated: false });
+    const r = await POST(request({ action: "reconcile", id }));
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({
+      sequence: { version: 3 },
+      attempts: [attempt],
+      attemptsTruncated: false,
+    });
+    // A failed attempt read leaves the action's own result standing.
+    mocks.attempts.mockRejectedValue(new Error("read failed"));
+    const kept = await POST(request({ action: "reconcile", id }));
+    expect(kept.status).toBe(200);
+    expect(await kept.json()).not.toHaveProperty("attempts");
   });
   it("recovers the recorded authorization after an uncertain immediate dispatch without redispatching", async () => {
     mocks.authorize.mockResolvedValue({ ...sequence, version: 2, state: "active" });

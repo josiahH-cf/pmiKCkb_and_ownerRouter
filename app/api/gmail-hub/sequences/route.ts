@@ -1,4 +1,5 @@
 import { EditableLayerError } from "@/lib/firestore/errors";
+import type { CommunicationSequence } from "@/lib/gmail-hub/sequence-model";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireCapability } from "@/lib/auth/session";
@@ -37,8 +38,20 @@ export async function POST(request: Request) {
       JSON.parse((await boundedCommunicationBody(request)).toString("utf8")),
     );
     const service = createCommunicationSequenceService();
+    // S233 R-S233-1 (PR #162 review): every action's response carries the refreshed attempts, so
+    // the evidence list follows a send, reconcile or refresh without a reload. A failed attempt
+    // read leaves the action's own result standing.
+    const respond = async (sequence: CommunicationSequence) => {
+      let attempts: Awaited<ReturnType<typeof service.attempts>> | undefined;
+      try {
+        attempts = await service.attempts(actor, sequence.id);
+      } catch {
+        attempts = undefined;
+      }
+      return sequenceResponse(sequence, attempts);
+    };
     if (input.action === "save")
-      return sequenceResponse(
+      return respond(
         await service.save(actor, input.draft, input.expectedVersion, input.operationId),
       );
     if (
@@ -50,25 +63,23 @@ export async function POST(request: Request) {
       // Send now is this one user-authorized operation, using the same durable occurrence as the worker.
       if (input.action === "send") {
         try {
-          return sequenceResponse((await service.dispatch(sequence.id)).sequence);
+          return respond((await service.dispatch(sequence.id)).sequence);
         } catch {
-          return sequenceResponse(await service.get(actor, sequence.id));
+          return respond(await service.get(actor, sequence.id));
         } // accepted authority remains visible and owned; no blind second dispatch
       }
-      return sequenceResponse(sequence);
+      return respond(sequence);
     }
     if (input.action === "reconcile")
-      return sequenceResponse(await service.reconcile(actor, input.id));
+      return respond(await service.reconcile(actor, input.id));
     if (input.action === "refresh")
-      return sequenceResponse(await service.refresh(actor, input.id));
+      return respond(await service.refresh(actor, input.id));
     if (
       input.action === "pause" ||
       input.action === "cancel" ||
       input.action === "transfer"
     )
-      return sequenceResponse(
-        await service.control(actor, { ...input, action: input.action }),
-      );
+      return respond(await service.control(actor, { ...input, action: input.action }));
     throw new EditableLayerError("Choose a supported communication action.", 400);
   } catch (error) {
     return gmailHubErrorResponse(error);
