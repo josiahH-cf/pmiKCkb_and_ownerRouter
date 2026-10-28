@@ -62,6 +62,7 @@ const view = (overrides: Partial<ReturnedStateView> = {}): ReturnedStateView => 
   tracksSignerDetail: true,
   manualCompletion: null,
   packetTermsCurrent: true,
+  packetTermsBasis: null,
   dotloopShows:
     "Dotloop shows loop status Active, 2 documents present as of Nov 2, 2026, 10:00 AM Central",
   ...overrides,

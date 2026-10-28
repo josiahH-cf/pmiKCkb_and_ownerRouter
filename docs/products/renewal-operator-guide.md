@@ -186,6 +186,10 @@ behavior.
   Nothing is pre-selected, and while the owner list cannot be read no approval is recorded. A
   recorded approval reads "Approved by … through …, on …"; **Record a new approval** supersedes it
   and keeps the earlier one in history. Other owner responses still save when chosen.
+- Under a recorded approval, the Owner response section and the document handoff state the Working
+  terms it covers, with their revisions, and whether it still covers them and the charges. A change
+  names exactly what changed, for example "Owner approval no longer covers: rent changed." The desk
+  row states the same for the Working terms; it never claims the charges are covered.
 - **Revision requested** opens "What the owner asked to change"; the note saves with the response
   and the next step reads "Update the working terms and ask the owner again". Change the Working
   terms, then record the owner's new answer. If an earlier owner decision record from the

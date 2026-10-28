@@ -21,7 +21,11 @@ import {
 import { getPacketInputs } from "@/lib/firestore/lease-packet-inputs";
 import { getRenewalWorkspace } from "@/lib/firestore/renewal-workspace";
 import { getRenewalWorkingRecord } from "@/lib/firestore/renewal-working-record";
-import { packetWorkingTermsFreshness } from "@/lib/lease-documents/owner-approval-binding";
+import {
+  APPROVED_TERMS_SOURCE_SYSTEM,
+  packetWorkingTermsFreshness,
+} from "@/lib/lease-documents/packet-terms-freshness";
+import type { PacketSourceReference } from "@/lib/lease-documents/packet-types";
 import {
   DERIVED_ARTIFACT_COLLECTIONS,
   derivedHeadId,
@@ -79,6 +83,15 @@ export interface ReturnedStateView {
    * than the saved ones, so no signature recorded on it completes the renewal.
    */
   readonly packetTermsCurrent: boolean;
+  /**
+   * PR #163 review: what the current packet's terms freshness is judged from (its approved-terms
+   * references and creation time), so the page recomputes it from the live Working record.
+   */
+  readonly packetTermsBasis: {
+    readonly cycleId: string | null;
+    readonly sourceVersions: readonly PacketSourceReference[];
+    readonly createdAt: string;
+  } | null;
 }
 
 export const WITHOUT_SIGNER_DETAIL_LABEL = "Recorded by staff without signer detail";
@@ -292,6 +305,15 @@ export async function resolveReturnedState(
     tracksSignerDetail,
     manualCompletion,
     packetTermsCurrent: terms.current,
+    packetTermsBasis: current
+      ? {
+          cycleId,
+          sourceVersions: (current.sourceVersions ?? []).filter(
+            (source) => source.system === APPROVED_TERMS_SOURCE_SYSTEM,
+          ),
+          createdAt: current.createdAt,
+        }
+      : null,
   };
   return { context, view };
 }

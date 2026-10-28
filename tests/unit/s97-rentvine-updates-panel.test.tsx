@@ -14,6 +14,10 @@ import {
   type RentvineWritebackEffectStatus,
 } from "@/components/lease-renewal/RentvineUpdatesPanel";
 import type { RentvineWritebackClientProposal } from "@/lib/lease-renewal/writeback/client-projection";
+import { formatBusinessTimestamp } from "@/lib/date-display";
+import { RenewalManualProvider } from "@/components/lease-renewal/RenewalManualWorkspace";
+import { RenewalWorkingRecordProvider } from "@/components/lease-renewal/RenewalWorkingRecord";
+import { emptyRenewalWorkspace } from "@/lib/lease-renewal/workspace-state";
 
 const fetchMock = vi.fn();
 
@@ -562,6 +566,61 @@ describe("S97 RentVine updates panel", () => {
   });
 });
 
+/** A Working rent saved again (revision 2) after the owner approved revision 1. */
+const S237_BASIS_INPUTS = {
+  working: {
+    schemaVersion: "renewal-working-record/v1" as const,
+    leaseId: "4821",
+    revision: 4,
+    fields: Object.fromEntries(
+      (
+        [
+          ["terms_rent", 1750, 2, "2026-10-20T15:00:00.000Z"],
+          ["terms_effective_date", "2026-12-01", 1, "2026-10-20T15:01:00.000Z"],
+          ["terms_end_date", "2027-11-30", 1, "2026-10-20T15:02:00.000Z"],
+        ] as const
+      ).map(([field, value, revision, recordedAt]) => [
+        field,
+        {
+          value,
+          revision,
+          eventId: `${field}-${revision}`,
+          recordedAt,
+          recordedByUid: "editor-1",
+          recordedByLabel: "editor1@pmikcmetro.com",
+          origin: "staff_entry" as const,
+        },
+      ]),
+    ),
+  },
+  workspace: {
+    ...emptyRenewalWorkspace("4821", "1c0a4d7e-7d3b-4a6e-9f4c-2a5f9e6b8d10", {
+      kind: "lease_end",
+      dateIso: "2026-11-30",
+      source: "RentVine lease end",
+    }),
+    termsRevision: 1,
+    ownerResponse: {
+      eventId: "approval",
+      actorUid: "editor-1",
+      recordedAt: "2026-10-21T15:00:00.000Z",
+      source: "Staff record",
+      termsRevision: 1,
+      outcome: "approved_terms" as const,
+      approvedWorkingTerms: {
+        rent: 1750,
+        effectiveDate: "2026-12-01",
+        endDate: "2027-11-30",
+        fieldRevisions: { rent: 1, effectiveDate: 1, endDate: 1 },
+        economicsHash: "e".repeat(64),
+        chargePolicyVersion: null,
+      },
+    },
+  },
+  economicsHash: "e".repeat(64),
+  returned: null,
+};
+
 describe("S237 R-S237-1 terms basis beside the preview", () => {
   beforeEach(() => {
     fetchMock.mockReset();
@@ -594,17 +653,12 @@ describe("S237 R-S237-1 terms basis beside the preview", () => {
         initialProposal={proposal}
         leaseId="4821"
         role="Admin"
-        termsBasis={{
-          terms: "Working renewal terms revision 2, saved Oct 20, 2026, 10:00 AM",
-          approval:
-            "Owner approval no longer covers these terms: the Working terms changed after it was recorded",
-          documents: "Executed documents: Not recorded",
-        }}
+        termsBasisInputs={S237_BASIS_INPUTS}
       />,
     );
     const basis = document.querySelector('[data-renewal-field="terms-basis"]');
     expect(basis).toHaveTextContent(
-      "Working renewal terms revision 2, saved Oct 20, 2026, 10:00 AM. Owner approval no longer covers these terms: the Working terms changed after it was recorded. Executed documents: Not recorded. Shown for review only; it does not change this update.",
+      `Working renewal terms revision 2, saved ${formatBusinessTimestamp("2026-10-20T15:02:00.000Z")}. Owner approval no longer covers these terms: the Working rent changed after it was recorded. Executed documents: Not recorded. Shown for review only; it does not change this update.`,
     );
     // The basis is never a prerequisite: Apply stays available and posts only the exact hashes.
     fireEvent.click(screen.getByText("Apply RentVine update"));
@@ -616,5 +670,109 @@ describe("S237 R-S237-1 terms basis beside the preview", () => {
       effectHash: proposal.effects[0].effect_hash,
       confirm: true,
     });
+  });
+
+  it("PR #163 review: recomputes the basis and what still differs from a Working terms save without a page refresh", () => {
+    const CYCLE = S237_BASIS_INPUTS.workspace.cycleId;
+    const record = (
+      revision: number,
+      rentRevision: number,
+      endDate: string,
+      endRevision: number,
+    ) => ({
+      ...S237_BASIS_INPUTS.working,
+      revision,
+      fields: {
+        ...S237_BASIS_INPUTS.working.fields,
+        terms_rent: {
+          ...S237_BASIS_INPUTS.working.fields.terms_rent,
+          revision: rentRevision,
+        },
+        terms_end_date: {
+          ...S237_BASIS_INPUTS.working.fields.terms_end_date,
+          value: endDate,
+          revision: endRevision,
+        },
+      },
+    });
+    const approvedTerms = record(3, 1, "2027-11-30", 1);
+    // The page's server reads: the approval covers these terms and the packet names them.
+    const basisInputs = {
+      ...S237_BASIS_INPUTS,
+      working: approvedTerms,
+      returned: {
+        unavailable: null,
+        signaturesComplete: true,
+        overall: "Fully executed",
+        packetTermsCurrent: true,
+        packetTermsBasis: {
+          cycleId: CYCLE,
+          sourceVersions: [
+            {
+              system: "staff_recorded_owner_approval",
+              reference: `renewal-cycle:${CYCLE}:working-terms:1.1.1`,
+              retrievedAt: "2026-10-21T15:00:00.000Z",
+              version: "1",
+            },
+          ],
+          createdAt: "2026-10-22T15:00:00.000Z",
+        },
+      },
+    };
+    const differencesInputs = {
+      working: approvedTerms,
+      workspace: S237_BASIS_INPUTS.workspace,
+      rentvine: {
+        inventory: {
+          leaseId: "4821",
+          leaseDates: {
+            startDate: "2025-12-01",
+            endDate: "2027-11-30",
+            increaseEligibilityDate: null,
+          },
+          asOfDate: "2026-10-22",
+          charges: [],
+        },
+        readAt: "2026-10-22T16:00:00.000Z",
+      },
+      sheet: null,
+    };
+    const panel = (
+      <RentvineUpdatesPanel
+        initialEffects={statusFor(datesProposal(), "not_started")}
+        initialProposal={datesProposal()}
+        leaseId="4821"
+        role="Admin"
+        termsBasisInputs={basisInputs}
+        remainingDifferencesInputs={differencesInputs}
+      />
+    );
+    const tree = (working: ReturnType<typeof record>) => (
+      <RenewalWorkingRecordProvider canEdit initialRecord={working} leaseId="4821">
+        <RenewalManualProvider initialState={S237_BASIS_INPUTS.workspace} leaseId="4821">
+          {panel}
+        </RenewalManualProvider>
+      </RenewalWorkingRecordProvider>
+    );
+    const view = render(tree(approvedTerms));
+    const basis = () =>
+      document.querySelector('[data-renewal-field="terms-basis"]')?.textContent ?? "";
+    const endRow = () =>
+      document.querySelector('[data-renewal-difference="lease_end_date"]')?.textContent ??
+      "";
+    expect(basis()).toContain("Owner approval covers these terms and charges");
+    expect(basis()).toContain(
+      "Executed documents: Fully executed by staff record, not provider-verified",
+    );
+    expect(endRow()).toMatch(/Lease end date: 2027-11-30; source 2027-11-30 .*Matches\./);
+    // Staff save the Working rent again and a new end date; the page's server reads are unchanged.
+    view.rerender(tree(record(5, 2, "2027-12-31", 2)));
+    expect(basis()).toContain(
+      "Owner approval no longer covers these terms: the Working rent and end date changed after it was recorded",
+    );
+    expect(basis()).toContain(
+      "Executed documents: signatures are for earlier Working terms",
+    );
+    expect(endRow()).toMatch(/Lease end date: 2027-12-31; source 2027-11-30 .*Differs\./);
   });
 });
