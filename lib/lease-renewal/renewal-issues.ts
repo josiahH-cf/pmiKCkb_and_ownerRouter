@@ -5,6 +5,11 @@ import type {
   DeskLeaseGuidance,
   DeskLeaseSummaryBase,
 } from "@/lib/lease-renewal/desk-model";
+import {
+  deskLeaseWorkStatusInput,
+  leaseWorkStatusLines,
+  projectLeaseWorkStatus,
+} from "@/lib/lease-renewal/lease-work-status";
 
 /**
  * S127 (F07): one action-specific issue model projected from the existing guidance, the shared
@@ -37,6 +42,24 @@ export type RenewalIssueDestination =
   | DeskGuidanceDestination
   | { readonly kind: "workspace_anchor"; readonly targetId: string };
 
+/**
+ * S232 R-S232-5: where an issue is resolved. A control on this lease's page, a control on another
+ * page of the app, reading the sources again, or an explicit statement that nothing in the app
+ * resolves it; a disabled control is never the explanation.
+ */
+export type RenewalIssueResolveAt =
+  | {
+      readonly kind: "control";
+      readonly label: string;
+      readonly destination: Exclude<RenewalIssueDestination, { kind: "none" }>;
+    }
+  | { readonly kind: "page"; readonly label: string; readonly href: string }
+  | { readonly kind: "refresh"; readonly label: string }
+  | { readonly kind: "outside_app"; readonly statement: string };
+
+/** S232 R-S232-5: the Admin panel that records the reviewed move-out timing basis. */
+export const ADMIN_TIMING_BASIS_HREF = "/admin#admin-move-out-timing-basis";
+
 export interface RenewalIssue {
   readonly id: string;
   readonly kind: RenewalIssueKind;
@@ -44,9 +67,13 @@ export interface RenewalIssue {
   /** The action this issue affects, in plain words; never a global lease block for an optional input. */
   readonly affectedAction: string;
   readonly reason: string;
-  /** Who or what resolves it: a role, a person, a source or a policy owner. */
+  /** S232 R-S232-5: the missing input by its visible label: a field, setting, decision or evidence. */
+  readonly needs: string;
+  /** Who or what resolves it: the person the app records, otherwise a role, a source or a policy owner. */
   readonly responsible: string;
   readonly destination: RenewalIssueDestination;
+  /** S232 R-S232-5: where it is resolved. */
+  readonly resolveAt: RenewalIssueResolveAt;
   readonly requiredCapability?: Capability;
 }
 
@@ -64,7 +91,16 @@ export interface RenewalIssueInput {
   readonly summary: Pick<
     DeskLeaseSummaryBase,
     "moveOut" | "moveOutTiming" | "cycleSourceDate" | "followUp" | "manualProgress"
-  >;
+  > &
+    Partial<
+      Pick<
+        DeskLeaseSummaryBase,
+        | "ownerNameLabels"
+        | "tenantNameLabels"
+        | "staffRecordedAtIso"
+        | "staffRecordUnavailable"
+      >
+    >;
   readonly readComplete: boolean;
   readonly currencyState: "fresh" | "stale" | "expired" | string;
   readonly progressStateAvailable: boolean;
@@ -117,12 +153,19 @@ const STEP_ACTION: Record<string, string> = {
 
 const OUTREACH_STEPS = new Set(["owner-decision", "tenant-decision"]);
 
-const WAITING_PARTY: Record<string, string> = {
-  owner: "the owner",
-  tenant: "the tenant",
-  team: "the PMI KC team",
-  document_coordinator: "the document coordinator",
-};
+/** The person the source records for a party, else the party in words. */
+function partyNamed(party: string, labels: readonly string[] | undefined): string {
+  const names = (labels ?? []).filter((label) => label && label !== "Needs Verification");
+  return names.length ? `${party} (${names.join(", ")})` : party;
+}
+
+/** The control a phase destination opens, named for the action it serves. */
+function controlAt(
+  destination: RenewalIssueDestination,
+  label: string,
+): RenewalIssueResolveAt | null {
+  return destination.kind === "none" ? null : { kind: "control", label, destination };
+}
 
 function responsibleFor(capability: Capability | undefined): string {
   if (capability === "approve") return "an Approver or Admin";
@@ -148,30 +191,69 @@ export function projectRenewalIssues(input: RenewalIssueInput): RenewalIssueProj
       kindLabel: RENEWAL_ISSUE_KIND_LABELS.blocking,
       affectedAction: affectedActionFor(blocker.destination),
       reason: blocker.label,
+      needs: blocker.label,
       responsible: responsibleFor(blocker.requiredCapability),
       destination: blocker.destination,
+      resolveAt: controlAt(
+        blocker.destination,
+        `Go to ${affectedActionFor(blocker.destination).toLowerCase()}`,
+      ) ?? {
+        kind: "outside_app",
+        statement: "The fix belongs in the source record; refresh after updating it.",
+      },
       ...(blocker.requiredCapability
         ? { requiredCapability: blocker.requiredCapability }
         : {}),
     });
   }
 
-  // Waiting on a person is not something staff can clear; it names the party.
-  if (guidance.overallStatus === "waiting") {
-    const party = summary.followUp?.waiting.party ?? null;
-    const partyLabel = party ? (WAITING_PARTY[party] ?? party) : "an external party";
+  // S232 R-S232-4: who the lease waits on comes from the one lease status the desk row and Focus
+  // read; when the staff record and the linked thread disagree, that is an issue of its own.
+  const leaseStatus = projectLeaseWorkStatus(
+    deskLeaseWorkStatusInput({ ...summary, guidance }, null),
+  );
+  const actionDestination: RenewalIssueDestination =
+    "destination" in guidance.action ? guidance.action.destination : { kind: "none" };
+  if (leaseStatus.check) {
+    issues.push({
+      id: "advisory:waiting_check",
+      kind: "advisory",
+      kindLabel: RENEWAL_ISSUE_KIND_LABELS.advisory,
+      affectedAction: affectedActionFor(actionDestination),
+      reason: `Needs a check. ${leaseWorkStatusLines(leaseStatus).check}`,
+      needs: "Who has the move on this renewal",
+      responsible: "Staff review",
+      destination: actionDestination,
+      resolveAt: controlAt(actionDestination, "Review the staff record") ?? {
+        kind: "outside_app",
+        statement: "Correct the waiting marker on the linked Gmail thread.",
+      },
+    });
+  } else if (guidance.overallStatus === "waiting" && leaseStatus.waitingOn) {
+    // Waiting on a person is not something staff can clear; it names the party.
+    const owner = leaseStatus.waitingOn === "the owner";
+    const party = partyNamed(
+      leaseStatus.waitingOn,
+      owner ? summary.ownerNameLabels : summary.tenantNameLabels,
+    );
     issues.push({
       id: "waiting:external",
       kind: "waiting",
       kindLabel: RENEWAL_ISSUE_KIND_LABELS.waiting,
-      affectedAction:
-        "destination" in guidance.action
-          ? affectedActionFor(guidance.action.destination)
-          : "The current phase",
-      reason: `Waiting on ${partyLabel}; no staff step is due until they respond.`,
-      responsible: partyLabel,
-      destination:
-        "destination" in guidance.action ? guidance.action.destination : { kind: "none" },
+      affectedAction: affectedActionFor(actionDestination),
+      reason: `Waiting on ${leaseStatus.waitingOn}; no staff step is due until they respond.`,
+      needs: owner ? "The owner's answer" : "The tenant's answer",
+      responsible: party,
+      destination: actionDestination,
+      resolveAt: controlAt(
+        actionDestination,
+        owner
+          ? "Record the owner's answer when it arrives"
+          : "Record the tenant's answer when it arrives",
+      ) ?? {
+        kind: "outside_app",
+        statement: `${party} answers outside the app; record the answer here when it arrives.`,
+      },
     });
   }
 
@@ -184,8 +266,13 @@ export function projectRenewalIssues(input: RenewalIssueInput): RenewalIssueProj
       affectedAction: "Every action that depends on the lease data",
       reason:
         "The portfolio read did not complete, so this lease's facts may be incomplete.",
+      needs: "A complete RentVine read",
       responsible: "RentVine read (refresh)",
       destination: { kind: "none" },
+      resolveAt: {
+        kind: "refresh",
+        label: "Refresh this lease to read the sources again",
+      },
     });
   if (input.currencyState === "expired")
     issues.push({
@@ -194,8 +281,13 @@ export function projectRenewalIssues(input: RenewalIssueInput): RenewalIssueProj
       kindLabel: RENEWAL_ISSUE_KIND_LABELS.source_unavailable,
       affectedAction: "Composing and recording",
       reason: "Lease data is past the freshness limit; refresh before acting.",
+      needs: "Current RentVine lease data",
       responsible: "RentVine read (refresh)",
       destination: { kind: "none" },
+      resolveAt: {
+        kind: "refresh",
+        label: "Refresh this lease to read the sources again",
+      },
     });
   if (!input.progressStateAvailable)
     issues.push({
@@ -205,8 +297,13 @@ export function projectRenewalIssues(input: RenewalIssueInput): RenewalIssueProj
       affectedAction: "Every progress-dependent action",
       reason:
         "Saved renewal progress could not be read; refresh before relying on the phase.",
+      needs: "Saved renewal progress",
       responsible: "App records (refresh)",
       destination: { kind: "none" },
+      resolveAt: {
+        kind: "refresh",
+        label: "Refresh this lease to read the sources again",
+      },
     });
   if (guidance.rentVerification.state === "unavailable" && input.readComplete)
     issues.push({
@@ -215,8 +312,13 @@ export function projectRenewalIssues(input: RenewalIssueInput): RenewalIssueProj
       kindLabel: RENEWAL_ISSUE_KIND_LABELS.source_unavailable,
       affectedAction: "Verifying the current rent",
       reason: "The current rent could not be verified from the sources read.",
+      needs: "The current rent",
       responsible: "RentVine and the operating Sheet",
       destination: guidance.rentVerification.destination,
+      resolveAt: controlAt(
+        guidance.rentVerification.destination,
+        "Check the current rent",
+      ) ?? { kind: "refresh", label: "Refresh this lease to read the rent again" },
     });
   const moveOut = summary.moveOut;
   if (moveOut?.state === "unknown" && moveOut.reason !== "lease_not_active") {
@@ -232,10 +334,21 @@ export function projectRenewalIssues(input: RenewalIssueInput): RenewalIssueProj
         : RENEWAL_ISSUE_KIND_LABELS.advisory,
       affectedAction: "Ordinary renewal outreach",
       reason: moveOut.label,
+      needs: "The lease's move-out status",
       responsible: optionalSource
         ? "RentVine status read (refresh)"
         : "Staff review of the RentVine record",
       destination: { kind: "none" },
+      resolveAt: optionalSource
+        ? {
+            kind: "refresh",
+            label: "Refresh this lease to read the RentVine status again",
+          }
+        : {
+            kind: "outside_app",
+            statement:
+              "Check the lease's notice and move-out status in RentVine; the app reads it on the next refresh.",
+          },
     });
   }
 
@@ -248,23 +361,59 @@ export function projectRenewalIssues(input: RenewalIssueInput): RenewalIssueProj
       kindLabel: RENEWAL_ISSUE_KIND_LABELS.advisory,
       affectedAction: "Offers, prepared documents and messages from the recorded terms",
       reason: cycle.label,
+      needs: "A review of the recorded cycle against the current lease end",
       responsible: "Staff review",
       destination: { kind: "workspace_anchor", targetId: NON_RENEWAL_HANDOFF_TARGET_ID },
+      resolveAt: {
+        kind: "control",
+        label: "Open the staff record",
+        destination: {
+          kind: "workspace_anchor",
+          targetId: NON_RENEWAL_HANDOFF_TARGET_ID,
+        },
+      },
     });
   const timing = summary.moveOutTiming;
-  if (timing && (timing.state === "below" || timing.state === "cannot_determine"))
+  if (timing && (timing.state === "below" || timing.state === "cannot_determine")) {
+    const basis =
+      timing.reason === "basis_not_reviewed" || timing.reason === "basis_unreadable";
     issues.push({
       id: `advisory:notice_timing:${timing.state}`,
       kind: "advisory",
       kindLabel: RENEWAL_ISSUE_KIND_LABELS.advisory,
       affectedAction: "The non-renewal review",
       reason: `Notice timing: ${timing.label}.`,
-      responsible:
-        timing.reason === "basis_not_reviewed" || timing.reason === "basis_unreadable"
-          ? "an Admin (record the reviewed timing basis)"
-          : "Staff review",
+      needs: basis
+        ? "The reviewed move-out timing basis"
+        : timing.state === "below"
+          ? "A review of a notice given inside the timing threshold"
+          : "The move-out notice date and the lease end date",
+      responsible: basis ? "an Admin (record the reviewed timing basis)" : "Staff review",
       destination: { kind: "none" },
+      resolveAt: basis
+        ? {
+            kind: "page",
+            label: "Record the timing basis in Admin",
+            href: ADMIN_TIMING_BASIS_HREF,
+          }
+        : timing.reason === "source_stale"
+          ? { kind: "refresh", label: "Refresh this lease to read the dates again" }
+          : timing.state === "below"
+            ? {
+                kind: "control",
+                label: "Open the non-renewal handoff",
+                destination: {
+                  kind: "workspace_anchor",
+                  targetId: NON_RENEWAL_HANDOFF_TARGET_ID,
+                },
+              }
+            : {
+                kind: "outside_app",
+                statement:
+                  "Check the notice date and the lease end in RentVine; the app reads them on the next refresh.",
+              },
     });
+  }
 
   // An intentional policy pause is stated as policy, never as a failed write or a broken connection.
   if (input.sheetWritebackPaused)
@@ -275,8 +424,13 @@ export function projectRenewalIssues(input: RenewalIssueInput): RenewalIssueProj
       affectedAction: "Writing to the operating Sheet",
       reason:
         "Operating-Sheet writes and new Sheet proposals are paused by owner policy. App records can still be saved; historical proposals remain available to read.",
+      needs: "The owner's decision to resume operating-Sheet writes",
       responsible: "Owner policy",
       destination: { kind: "none" },
+      resolveAt: {
+        kind: "outside_app",
+        statement: "The owner changes this policy; nothing in the app lifts the pause.",
+      },
     });
 
   // The primary action stays the shared guidance action; a confirmed move-out redirects outreach.

@@ -708,4 +708,73 @@ describe("S142 renewal action projection", () => {
       "manual.owner_outreach",
     );
   });
+
+  it("S232 R-S232-5: names the input, who resolves it and where for every action not ready for you", () => {
+    const projections = [
+      project({ manual: null }),
+      project({ manual: manualFixture() }),
+      project({ manual: "unreadable" }),
+      project({
+        manual: manualFixture({ owner: "no_response", done: ["owner_outreach"] }),
+      }),
+      project({
+        manual: manualFixture({
+          owner: "approved_terms",
+          tenant: "awaiting_response",
+          done: ["owner_outreach", "tenant_offer"],
+        }),
+      }),
+      project({ manual: undefined }),
+      project({ manual: undefined, progressUnavailable: true }),
+      project({ manual: manualFixture(), currency: "expired" }),
+      project({ manual: manualFixture(), role: "Approver" }),
+      // A provider effect in flight and one whose outcome is unknown.
+      project({
+        manual: manualFixture(),
+        rentChargeStatus: (["running", "ambiguous"] as const).map((state) => ({
+          id: `rentvine:${state}`,
+          destination: "rentvine" as const,
+          intent: "current" as const,
+          label: "RentVine recurring charge update",
+          state,
+          stateLabel:
+            state === "running" ? "Awaiting a durable outcome" : "Needs reconciliation",
+          detail: "Synthetic outcome.",
+          anchor: "#rentvine-updates-title",
+          attention: true,
+        })),
+      }),
+    ];
+    const seen = new Set<string>();
+    for (const projection of projections)
+      for (const entry of projection.actions) {
+        if (
+          entry.status === "ready_for_actor" ||
+          entry.status === "complete" ||
+          entry.status === "not_applicable"
+        )
+          continue;
+        seen.add(entry.status);
+        // (a) the input by its visible label and (b) the person or role who resolves it.
+        expect(entry.label, entry.id).toMatch(/\S/);
+        expect(entry.waitingOn ?? entry.responsible, entry.id).toMatch(/\S/);
+        // (c) a control to use, a prerequisite to work on, a recovery that clears an unreadable
+        // record, or (unresolved) an explicit pointer to the full record; never a bare state.
+        const recovery = projection.actions.some(
+          (other) => other.group === "recovery" && other.status !== "complete",
+        );
+        expect(
+          (entry.control?.targets.length ?? 0) > 0 ||
+            entry.resolvableVia.length > 0 ||
+            (entry.status === "unknown" && recovery) ||
+            entry.status === "unresolved",
+          `${entry.id} (${entry.status})`,
+        ).toBe(true);
+      }
+    // The fixtures reach waiting (on a person and on a provider outcome), an unreadable record or
+    // unknown outcome, and a step recorded outside this dashboard.
+    expect([...seen]).toEqual(
+      expect.arrayContaining(["waiting", "unknown", "unresolved"]),
+    );
+  });
 });

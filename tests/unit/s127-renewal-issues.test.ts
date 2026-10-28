@@ -13,6 +13,8 @@ import {
   projectRenewalIssues,
   type RenewalIssueInput,
 } from "@/lib/lease-renewal/renewal-issues";
+import { manualRenewalSummary } from "@/lib/lease-renewal/workspace-state";
+import { manualFixture } from "@/tests/helpers/renewal-action-fixtures";
 
 // S127 (F07): the issue model is a pure projection over the existing guidance and summary. Values
 // are synthetic; nothing here reads a provider, stores a status or sends anything.
@@ -166,6 +168,11 @@ describe("S127 issue kinds and scope (AC-S127-1)", () => {
           }),
         },
         {
+          // S232 R-S232-4: the staff record names who has the move; the guidance waits on the owner
+          // only because the staff record does.
+          manualProgress: manualRenewalSummary(
+            manualFixture({ owner: "no_response", done: ["owner_outreach"] }),
+          ),
           followUp: {
             waiting: { state: "waiting", party: "owner" },
           } as unknown as DeskLeaseSummaryBase["followUp"],

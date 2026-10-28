@@ -32,6 +32,7 @@ import {
   type RenewalActionSnapshot,
   type RenewalActionStatus,
 } from "@/lib/lease-renewal/renewal-actions";
+import type { RenewalIssue } from "@/lib/lease-renewal/renewal-issues";
 import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
 import type { RenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory-model";
 import {
@@ -40,6 +41,7 @@ import {
   RENEWAL_FOCUS_REQUEST_EVENT,
 } from "./RenewalDashboardNavigation";
 import { LeaseWorkStatusLines } from "./LeaseWorkStatusLines";
+import { RenewalIssueResolution } from "./RenewalIssueResolution";
 import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
@@ -71,6 +73,8 @@ export interface RenewalFocusFacts {
     readonly id: string;
     readonly kindLabel: string;
     readonly reason: string;
+    /** S232 R-S232-5: the projected issue, whose input, resolver and link Focus states too. */
+    readonly issue?: RenewalIssue;
   }[];
   /** Supporting reads that failed on this page, in the Full view notice's own words. */
   readonly unavailableReads?: readonly string[];
@@ -129,6 +133,7 @@ function stateText(
   action: RenewalAction,
   labels: (id: string) => string,
   diagnostics: readonly ActionGraphDiagnostic[] = [],
+  responsible?: (id: string) => string | undefined,
 ): string {
   switch (action.status) {
     case "ready_for_actor":
@@ -138,8 +143,14 @@ function stateText(
     case "waiting":
       return `Waiting on ${action.waitingOn ?? "another person"}.`;
     case "dependency_blocked":
+      // S232 R-S232-5: each prerequisite with who records it; "Work on" links follow.
       return action.blockedBy.length > 0
-        ? `Starts after: ${action.blockedBy.map(labels).join(", ")}.`
+        ? `Starts after: ${action.blockedBy
+            .map((id) => {
+              const who = responsible?.(id);
+              return who ? `${labels(id)} (${who})` : labels(id);
+            })
+            .join(", ")}.`
         : `Starts once this is recorded: ${action.unmetConditions.join(", ")}.`;
     case "unknown":
       return action.reason === "source_unavailable"
@@ -165,6 +176,9 @@ function stateText(
       return "Not part of this lease's path.";
   }
 }
+
+/** S232 R-S232-5: the state line Focus shows for an action, for tests of each blocked kind. */
+export { stateText as renewalFocusStateText };
 
 // Only staff work is recorded by staff; a refreshed source or a provider confirms the rest.
 function completedText(action: RenewalAction): string {
@@ -331,11 +345,13 @@ export function RenewalFocusViewPane({
     if (!focusView) return;
     const labels = (id: string) =>
       projection.actions.find((action) => action.id === id)?.label ?? id;
+    const responsible = (id: string) =>
+      projection.actions.find((action) => action.id === id)?.responsible;
     if (before.id === selectedId) {
       // The same task, changed by a save elsewhere or a refreshed source.
       if (selected && before.status !== null && before.status !== selected.status)
         setAnnouncement(
-          `${selected.label}: ${stateText(selected, labels, projection.diagnostics)}`,
+          `${selected.label}: ${stateText(selected, labels, projection.diagnostics, responsible)}`,
         );
       return;
     }
@@ -346,7 +362,7 @@ export function RenewalFocusViewPane({
       prior !== undefined &&
       (prior.status === "complete" || prior.status === "not_applicable");
     const next = selected
-      ? `Next: ${selected.label}. ${stateText(selected, labels, projection.diagnostics)}`
+      ? `Next: ${selected.label}. ${stateText(selected, labels, projection.diagnostics, responsible)}`
       : complete
         ? `${projection.outcome.label}. Every required step is recorded.`
         : "Nothing else is ready for you on this lease.";
@@ -356,7 +372,7 @@ export function RenewalFocusViewPane({
           ? `${completedText(prior)} Next: ${selected.label}.`
           : `${completedText(prior)} ${complete ? `${projection.outcome.label}.` : "Nothing else is ready for you on this lease."}`
         : byPerson && selected
-          ? `${selected.label}: ${stateText(selected, labels, projection.diagnostics)}`
+          ? `${selected.label}: ${stateText(selected, labels, projection.diagnostics, responsible)}`
           : next,
     );
     if (byPerson) return;
@@ -466,7 +482,14 @@ function FocusPane({
         .map((action) => [action.id, action]),
     ).values(),
   ];
-  const state = selected ? stateText(selected, labels, projection.diagnostics) : "";
+  const state = selected
+    ? stateText(
+        selected,
+        labels,
+        projection.diagnostics,
+        (id) => projection.actions.find((action) => action.id === id)?.responsible,
+      )
+    : "";
   const distinctDetail =
     selected?.detail &&
     selected.detail.replace(/[.\s]+$/g, "") !== state.replace(/[.\s]+$/g, "") &&
@@ -703,9 +726,19 @@ function FocusPane({
       {facts.advisories.length > 0 ? (
         <ul className="renewal-focus-advisories" aria-label="Lease notes">
           {facts.advisories.map((advisory) => (
-            <li key={advisory.id}>
+            <li key={advisory.id} data-renewal-issue-id={advisory.id}>
               <span className="renewal-issue-kind">{advisory.kindLabel}:</span>{" "}
               {advisory.reason}
+              {advisory.issue ? (
+                <>
+                  {" "}
+                  <RenewalIssueResolution
+                    deskView={null}
+                    issue={advisory.issue}
+                    leaseId={projection.leaseId}
+                  />
+                </>
+              ) : null}
             </li>
           ))}
         </ul>
