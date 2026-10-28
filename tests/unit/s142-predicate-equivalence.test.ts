@@ -37,8 +37,10 @@ import {
 // entries (16 manual summaries, 2 guidance outputs) and nothing else.
 // S232 re-baseline (R-S232-4): a response step reads Waiting only while the owner or tenant has the
 // move, so a requested revision and a tenant counter (the PMI KC team's move) read Ready with an
-// act action. Re-recorded once; the diff was exactly the 16 guidance outputs of the "revision" and
-// "counter" cases and no manual summary.
+// act action, and the guidance contract marker becomes "s232-one-status". Re-recorded once: with
+// the marker held at its S156 value the diff was exactly the 16 guidance outputs of the "revision"
+// and "counter" cases; the marker then changes every one of the 72 guidance outputs; no manual
+// summary changed.
 
 const FIXTURE_PATH = join(__dirname, "..", "fixtures", "s142-predicate-equivalence.json");
 const CYCLE_ID = "b4bc3b81-c402-4f62-a2e2-c605c67867fb";
