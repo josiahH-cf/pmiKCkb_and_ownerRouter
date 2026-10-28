@@ -836,4 +836,6 @@ it("the worker holds legacy and retired-lane authorizations before actor, mailbo
   expect(f.createClient).not.toHaveBeenCalled();
   expect(f.deps.resolveTarget).not.toHaveBeenCalled();
   expect(f.send).not.toHaveBeenCalled();
+  // S233 R-S233-5: the worker pages only open records, so its budget never shrinks with history.
+  expect(f.store.list).toHaveBeenCalledWith(null, 20, { openOnly: true });
 });

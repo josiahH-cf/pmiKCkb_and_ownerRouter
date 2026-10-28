@@ -98,6 +98,7 @@ import {
   unavailableRenewalAuxiliary,
 } from "@/lib/lease-renewal/auxiliary-read";
 import { DEFAULT_NOTICE_RULE_SET } from "@/lib/lease-renewal/notice-rules";
+import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import { buildLiveRenewalReviewItemHref } from "@/lib/lease-renewal/live-review-destination";
 import {
   RENEWAL_SOURCE_REFRESH_COOKIE,
@@ -461,7 +462,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
             sheetWritebackPaused={isOperatingSheetWritebackPaused()}
             policyMaterial={policyMaterial}
             policySheetValue={sheetFields?.row?.fieldValues?.rhino_renewed ?? null}
-            policyTodayIso={readTimestamp.slice(0, 10)}
+            policyTodayIso={businessDateIso(readTimestamp)}
             chargeInventory={chargeInventory}
             rentChargeStatus={rentChargeStatus}
             marketSubject={marketSubject}

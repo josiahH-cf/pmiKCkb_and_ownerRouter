@@ -3,7 +3,7 @@
 
 # S237 — RentVine and Sheet updates with a visible terms basis and reconciled outcomes
 
-> Status: READY — finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 104). Execution needs the owner's separate execution instruction. Live RentVine/Sheet effects on a real lease stay ordinary staff work under the existing open exact keys; this file authorizes none. The ambiguous-attempt archive change stays an explicitly deferred owner decision.
+> Status: IN PROGRESS (branch claude/renewal-novdec-readiness-20261028, not served) — R-S237-3 (plain RentVine outcome text) and R-S237-4 (the Sheet still-before result) are implemented with tests; R-S237-2 needs the staff-operations decision on the panel's direct current-base correction; R-S237-1, R-S237-5, R-S237-6 and R-S237-7 remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 104). Live RentVine/Sheet effects on a real lease stay ordinary staff work under the existing open exact keys; this file authorizes none. The ambiguous-attempt archive change stays an explicitly deferred owner decision.
 
 **Goal.**
 

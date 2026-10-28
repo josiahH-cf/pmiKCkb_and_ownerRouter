@@ -10,6 +10,7 @@ import {
 import { useOperation } from "@/components/hooks/useOperation";
 import {
   RenewalDeskTable,
+  type RenewalDeskCampaignContext,
   buildDeskPartyFilterOptions,
   type RenewalDeskViewMemoryInput,
 } from "@/components/lease-renewal/RenewalDeskTable";
@@ -96,6 +97,25 @@ function OwnedRenewalDeskInventory({
   const partyOptions = useMemo(
     () => buildDeskPartyFilterOptions(view.items, shortcuts),
     [view.items, shortcuts],
+  );
+  // S232: the window and the counts leading to rows outside the current view.
+  const campaign = useMemo<RenewalDeskCampaignContext>(
+    () => ({
+      window: view.windows[0] ?? null,
+      endedWithoutOutcomeCount: view.items.filter(
+        (item) =>
+          item.retention.state === "ended_without_outcome" ||
+          item.endedWithoutOutcome === true,
+      ).length,
+      monthPeriodicReviewCount: state.month
+        ? view.items.filter(
+            (item) =>
+              item.retention.state === "periodic_review" &&
+              (item.leaseTerm?.nextReviewIso ?? "").startsWith(`${state.month}-`),
+          ).length
+        : null,
+    }),
+    [view.windows, view.items, state.month],
   );
   const counts = useMemo(
     () => countRenewalDeskWorklistViews(view.items, state, match),
@@ -254,6 +274,7 @@ function OwnedRenewalDeskInventory({
         sourceReadComplete={view.readComplete}
         dependentStateComplete={dependentStateComplete}
         viewCounts={counts}
+        campaign={campaign}
         sheetWritebackPaused={sheetWritebackPaused}
         viewMemory={
           viewMemory

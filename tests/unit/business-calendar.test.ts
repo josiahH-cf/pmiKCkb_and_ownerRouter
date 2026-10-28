@@ -73,3 +73,31 @@ describe("the live desk derives every calendar date through the business calenda
     expect(businessDateIso("2026-10-01T05:30:00.000Z")).toBe("2026-10-01");
   });
 });
+
+describe("S232 R-S232-8: lease-page policy evaluation uses the business date", () => {
+  const read = (...parts: string[]) =>
+    readFileSync(join(process.cwd(), ...parts), "utf8");
+
+  it("keeps 23:30 Central on Oct 31 on Oct 31 across the Nov 1 time change", () => {
+    expect(businessDateIso("2026-11-01T04:30:00.000Z")).toBe("2026-10-31");
+    // 23:30 Central on Nov 1 is after the change back to standard time (UTC-6).
+    expect(businessDateIso("2026-11-02T05:30:00.000Z")).toBe("2026-11-01");
+  });
+
+  it("passes the business date to policy material on the lease page and in the message", () => {
+    const page = read(
+      "app",
+      "lease-renewal",
+      "live",
+      "desk",
+      "lease",
+      "[leaseId]",
+      "page.tsx",
+    );
+    expect(page).not.toMatch(/readTimestamp\.slice\(0,\s*10\)/);
+    expect(page).toMatch(/policyTodayIso=\{businessDateIso\(readTimestamp\)\}/);
+    const message = read("lib", "lease-renewal", "current-renewal-message.ts");
+    expect(message).toMatch(/todayIso: businessDateIso\(nowMs\)/);
+    expect(message).not.toMatch(/todayIso: new Date\(nowMs\)\.toISOString\(\)/);
+  });
+});

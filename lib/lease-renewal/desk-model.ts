@@ -137,6 +137,8 @@ export type RenewalDeskRetentionState =
   | { state: "tracked_incomplete"; label: string }
   /** S103: a month-to-month lease whose annual review falls inside the current window. */
   | { state: "periodic_review"; label: string }
+  /** S232: a fixed-term lease whose end date passed with no recorded renewal outcome. */
+  | { state: "ended_without_outcome"; label: string }
   | { state: "outside"; label: string };
 
 export type RenewalDeskWaitingKey =
@@ -236,6 +238,10 @@ export interface DeskLeaseSummaryBase {
   /** Provider lease total, kept separate from contractual base rent and unit reference. */
   leaseTotalRent?: number | null;
   retention: RenewalDeskRetentionState;
+  /** S232: the end date passed with no recorded outcome; disclosed, never derived into outreach. */
+  endedWithoutOutcome?: boolean;
+  /** S232: the visible reason this row appears in, or is retained outside, the worklist. */
+  inclusionReason?: string;
   processVersion: string | null;
   workflowStepId: string | null;
   stageIndex: number;

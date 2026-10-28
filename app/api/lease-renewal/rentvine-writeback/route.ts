@@ -34,6 +34,7 @@ import { buildLiveRentVineConfig } from "@/lib/lease-renewal/live-config";
 import { postWriteResponse } from "@/lib/lease-renewal/post-write-response";
 import {
   RenewalWritebackService,
+  RENEWAL_WRITEBACK_SERVICE_MESSAGES,
   RenewalWritebackServiceError,
   leaseDateStateOf,
   type RenewalWritebackDependencies,
@@ -786,7 +787,7 @@ async function handleRequest(request: Request, statusOnly: boolean) {
     }
     if (error instanceof RenewalWritebackServiceError) {
       return NextResponse.json(
-        { error: error.message, error_type: error.code },
+        { error: RENEWAL_WRITEBACK_SERVICE_MESSAGES[error.code], error_type: error.code },
         { status: error.code === "effect_missing" ? 404 : 409 },
       );
     }

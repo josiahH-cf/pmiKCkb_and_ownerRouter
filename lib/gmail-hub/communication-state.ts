@@ -7,6 +7,25 @@ import type {
   WorkflowCommunicationStatus,
   WorkflowCommunicationWaitingOn,
 } from "@/lib/gmail-hub/workflow-context";
+import type { CommunicationSequence } from "@/lib/gmail-hub/sequence-model";
+
+type SequencePauseCause = NonNullable<CommunicationSequence["pause"]>["cause"];
+
+/** S233: one plain label per pause cause; every cause still needs a fresh review before Resume. */
+export const SEQUENCE_PAUSE_CAUSE_LABELS: Record<SequencePauseCause, string> = {
+  staff: "Paused by staff",
+  reply: "A reply was received",
+  bounce: "Failed delivery reported",
+  changed_source: "The lease or recipient facts changed",
+  transfer: "Handed to another staff member",
+  edited: "The message was edited after review",
+  source_unavailable: "The lease or recipient facts could not be read",
+  authorization_unavailable: "Sending is not authorized right now",
+  provider_refused: "Gmail refused the send",
+  send_unconfirmed: "The send could not be confirmed; checking",
+  unexpected_sender:
+    "A message arrived from an address not on this conversation, or from an automated sender",
+};
 
 export const COMMUNICATION_STATUS_LABELS: Record<WorkflowCommunicationStatus, string> = {
   linked: "linked",
@@ -145,4 +164,24 @@ export function describeSequenceState(input: {
     confirmed: `${input.confirmedCount} confirmed message${input.confirmedCount === 1 ? "" : "s"}`,
     needsVerification,
   };
+}
+
+function describeAge(ms: number): string {
+  const minutes = Math.max(0, Math.floor(ms / 60_000));
+  if (minutes < 1) return "less than a minute";
+  if (minutes < 120) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 48 ? `${hours} h` : `${Math.floor(hours / 24)} days`;
+}
+
+/** S233 R-S233-4: how fresh the incoming check is; an unreadable check names the held sends. */
+export function describeSequenceObservation(
+  observation: CommunicationSequence["observation"],
+  nowMs: number,
+): string {
+  if (!observation) return "Incoming not checked yet";
+  const age = describeAge(nowMs - observation.checkedAtMs);
+  return observation.state === "current"
+    ? `Incoming checked ${age} ago`
+    : `Incoming could not be fully read (last attempt ${age} ago); scheduled sends are held until it reads cleanly`;
 }

@@ -183,8 +183,74 @@ const SCOPE_LABELS: Record<RenewalDeskQueryV2State["scope"], string> = {
   active: "Current window and tracked incomplete",
   tracked: "Tracked incomplete outside the window",
   periodic_review: "Month-to-month periodic review due",
+  ended_without_outcome: "Ended without a recorded renewal outcome",
   all: "All loaded leases",
 };
+
+/** S232: the desk's campaign context, computed over every loaded lease. */
+export interface RenewalDeskCampaignContext {
+  readonly window: { readonly startIso: string; readonly endIso: string } | null;
+  readonly endedWithoutOutcomeCount: number;
+  /** Month-to-month reviews falling in the selected month; null without a month filter. */
+  readonly monthPeriodicReviewCount: number | null;
+}
+
+function monthLabel(month: string): string {
+  return new Date(`${month}-01T00:00:00.000Z`).toLocaleString("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** S232: the visible campaign window and the counts that lead to rows outside this view. */
+function RenewalCampaignContext({
+  campaign,
+  state,
+}: Readonly<{ campaign: RenewalDeskCampaignContext; state: RenewalDeskQueryV2State }>) {
+  const undated = { endDate: "", month: "", from: "", through: "" } as const;
+  return (
+    <span className="renewal-scope-indicator" data-renewal-campaign="true">
+      {campaign.window ? (
+        <span data-renewal-field="renewal-window">
+          <strong>Renewal window:</strong> {formatCalendarDate(campaign.window.startIso)}{" "}
+          – {formatCalendarDate(campaign.window.endIso)}, Central
+        </span>
+      ) : null}
+      {campaign.endedWithoutOutcomeCount > 0 &&
+      state.scope !== "ended_without_outcome" ? (
+        <>
+          {" "}
+          <Link
+            prefetch={false}
+            className="text-link"
+            data-renewal-field="ended-without-outcome"
+            href={href({ ...state, ...undated, scope: "ended_without_outcome" })}
+          >
+            {campaign.endedWithoutOutcomeCount === 1
+              ? "1 lease ended without a recorded renewal outcome"
+              : `${campaign.endedWithoutOutcomeCount} leases ended without a recorded renewal outcome`}
+          </Link>
+        </>
+      ) : null}
+      {campaign.monthPeriodicReviewCount && state.month ? (
+        <>
+          {" "}
+          <Link
+            prefetch={false}
+            className="text-link"
+            data-renewal-field="month-periodic-reviews"
+            href={href({ ...state, ...undated, scope: "periodic_review" })}
+          >
+            {campaign.monthPeriodicReviewCount === 1
+              ? `1 month-to-month review falls in ${monthLabel(state.month)}`
+              : `${campaign.monthPeriodicReviewCount} month-to-month reviews fall in ${monthLabel(state.month)}`}
+          </Link>
+        </>
+      ) : null}
+    </span>
+  );
+}
 
 /** S103: attention-first term ordering for the header filter. */
 const TERM_FILTER_ORDER: readonly LeaseTerm[] = [
@@ -892,6 +958,7 @@ export function RenewalDeskTable({
   viewCounts,
   sheetWritebackPaused = false,
   viewMemory = NO_VIEW_MEMORY,
+  campaign,
 }: Readonly<{
   rows: readonly DeskLeaseRow[];
   /** Preferred truthful count contract. */
@@ -916,6 +983,8 @@ export function RenewalDeskTable({
   sheetWritebackPaused?: boolean;
   /** S166: the account's remembered view; omitted, the table neither shows nor saves one. */
   viewMemory?: RenewalDeskViewMemoryInput;
+  /** S232: window, ended-without-outcome and month review counts over every loaded lease. */
+  campaign?: RenewalDeskCampaignContext;
 }>) {
   const canonicalView = serializeRenewalDeskQueryV2(state);
   // S166: the default view normally omits its continuation. While another view is remembered and
@@ -1019,6 +1088,7 @@ export function RenewalDeskTable({
         <span className="renewal-scope-indicator">
           <strong>Worklist scope:</strong> {SCOPE_LABELS[state.scope]}
         </span>
+        {campaign ? <RenewalCampaignContext campaign={campaign} state={state} /> : null}
         {chips.length > 0 ? (
           <ul aria-label="Active filters" className="renewal-filter-chips">
             {chips.map((chip) => (
@@ -1271,6 +1341,10 @@ export function RenewalDeskTable({
                         value: "periodic_review",
                         label: "Month-to-month periodic review due",
                       },
+                      {
+                        value: "ended_without_outcome",
+                        label: "Ended without a recorded renewal outcome",
+                      },
                       { value: "all", label: "All loaded leases" },
                     ]}
                     state={state}
@@ -1515,6 +1589,19 @@ function DeskRow({
           {row.propertyNameLabel ? `${row.propertyNameLabel} · ` : ""}
           Lease {row.id || "Needs Verification"}
         </span>
+        {/* S232: every row states why it appears; skipped rows keep their S154 context below and
+            add the retained-work reason when unfinished staff work keeps them visible. */}
+        {row.disposition === "skip" ? (
+          row.retention.state === "tracked_incomplete" ? (
+            <span className="renewal-td-secondary" data-renewal-field="inclusion-reason">
+              {row.retention.label}
+            </span>
+          ) : null
+        ) : row.inclusionReason ? (
+          <span className="renewal-td-secondary" data-renewal-field="inclusion-reason">
+            {row.inclusionReason}
+          </span>
+        ) : null}
         {/* S154: a skipped classification is shown as context beside the working link. */}
         {row.disposition === "skip" && row.reasonLabel ? (
           <span

@@ -63,6 +63,8 @@ export type SheetWritebackServiceErrorCode =
   | "provider_readback_mismatch"
   | "provider_ambiguous"
   | "reconcile_not_proven"
+  /** S237: the Sheet still shows the state from before this attempt (or before its reversal). */
+  | "reconcile_still_before"
   | "reconcile_drift"
   | "reversal_unsupported"
   | "reversal_forward_unproven"
@@ -470,7 +472,11 @@ export class SheetWritebackService {
     // into provider causality, nor permit another attempt through a new proposal generation.
     if (effect.effect.kind === "field_update") {
       throw new SheetWritebackServiceError(
-        observation.state === "drift" ? "reconcile_drift" : "reconcile_not_proven",
+        observation.state === "drift"
+          ? "reconcile_drift"
+          : observation.state === "before"
+            ? "reconcile_still_before"
+            : "reconcile_not_proven",
       );
     }
     if (observation.state === "after") {
@@ -488,7 +494,7 @@ export class SheetWritebackService {
       return receipt;
     }
     if (observation.state === "before") {
-      throw new SheetWritebackServiceError("reconcile_not_proven");
+      throw new SheetWritebackServiceError("reconcile_still_before");
     }
     throw new SheetWritebackServiceError("reconcile_drift");
   }
@@ -642,7 +648,7 @@ export class SheetWritebackService {
       }
       const rowHash = await this.hashRowContent(input.proposal, located, writer);
       if (rowHash === forward.receipt.resultHash) {
-        throw new SheetWritebackServiceError("reconcile_not_proven");
+        throw new SheetWritebackServiceError("reconcile_still_before");
       }
       throw new SheetWritebackServiceError("reconcile_drift");
     }
@@ -670,7 +676,7 @@ export class SheetWritebackService {
       return receipt;
     }
     if (sheetCellValueMatches(fieldEffect.afterValue, cell)) {
-      throw new SheetWritebackServiceError("reconcile_not_proven");
+      throw new SheetWritebackServiceError("reconcile_still_before");
     }
     throw new SheetWritebackServiceError("reconcile_drift");
   }

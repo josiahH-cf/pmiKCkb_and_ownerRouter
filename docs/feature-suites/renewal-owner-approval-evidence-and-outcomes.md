@@ -3,7 +3,7 @@
 
 # S234 — Evidenced owner approval of exact terms and one owner outcome per cycle
 
-> Status: READY — finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 101). Execution needs the owner's separate execution instruction. Who may approve for each landlord and each real approval's evidence are client facts (C03/C04) that hold only real records, not this code slice.
+> Status: IN PROGRESS (branch claude/renewal-novdec-readiness-20261028, not served) — the R-S234-3 handoff display now reads the approval-bound Working terms; R-S234-1, R-S234-2, R-S234-4 and R-S234-5 remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 101). Who may approve for each landlord and each real approval's evidence are client facts (C03/C04) that hold only real records, not this code slice.
 
 **Goal.**
 

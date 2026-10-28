@@ -254,7 +254,9 @@ function sameNormalizedLabel(values: readonly string[], selected: string): boole
 function inScope(item: DeskLeaseSummary, scope: RenewalDeskQueryState["scope"]): boolean {
   if (scope === "all") return true;
   if (scope === "tracked") return item.retention.state === "tracked_incomplete";
-  return item.retention.state !== "outside";
+  return (
+    item.retention.state !== "outside" && item.retention.state !== "ended_without_outcome"
+  );
 }
 
 function matchesQuery(item: DeskLeaseSummary, query: RenewalDeskQueryState): boolean {

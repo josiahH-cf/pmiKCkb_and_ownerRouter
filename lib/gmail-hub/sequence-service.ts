@@ -148,6 +148,7 @@ export class WorkflowCommunicationSequenceService {
           confirmedCount: s.confirmedCount,
           lastSentAtMs: s.lastSentAtMs,
           scheduled: !!s.authorization?.schedule,
+          scheduleTimeZone: s.authorization?.schedule?.timeZone ?? null,
           requiresReview:
             !!s.authorization &&
             !["completed", "cancelled"].includes(s.state) &&
@@ -642,7 +643,7 @@ export class WorkflowCommunicationSequenceService {
     const senders = new Set(s.threads.map((t) => t.senderEmail.toLowerCase()));
     senders.add(s.senderEmail.toLowerCase());
     const ids: string[] = [];
-    let cause: "reply" | "bounce" | "source_unavailable" | null = null;
+    let cause: "reply" | "bounce" | "unexpected_sender" | null = null;
     let complete = true;
     const mailboxHistoryIds: Record<string, string> = {};
     try {
@@ -679,7 +680,7 @@ export class WorkflowCommunicationSequenceService {
           ]);
           if (classification === "bounce") cause = "bounce";
           else if (classification === "human" && cause !== "bounce") cause = "reply";
-          else if (classification === "uncertain" && !cause) cause = "source_unavailable";
+          else if (classification === "uncertain" && !cause) cause = "unexpected_sender";
         }
       }
     } catch {

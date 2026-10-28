@@ -147,6 +147,26 @@ and does not withhold it. The result explicitly means completion recorded by sta
 receipts, document presence and verified completion remain separate evidence. **Reopen recorded
 completion** when necessary. Closing and reopening the page retains the work record.
 
+## November/December additions (after the next release)
+
+These arrive with the release that carries S232 and S233; until then production shows the earlier
+behavior.
+
+- The desk states the renewal window ("Renewal window: … , Central"). A lease that ended without a
+  recorded renewal outcome appears under the "Ended without a recorded renewal outcome" scope, and
+  its count links there from the default view. Record the outcome, or confirm the lease status in
+  RentVine; nothing is sent from that scope.
+- Every row states why it appears. A lease the source marks outside the worklist stays visible
+  while recorded work is unfinished. If saved progress cannot be read, the row says so instead of
+  disappearing.
+- Notice timing uses the recorded tenant-offer send and response, and names that evidence beside
+  the status. It stays "Timing policy not confirmed" until the client confirms the rule.
+- Scheduling defaults to Central time. A time that repeats or does not exist on a clock-change day
+  (November 1, 2026, 1:00–2:00 AM repeats) is stated before "Schedule messages". Before "Resume
+  reviewed sequence", the screen states when the next message goes and the remaining send limit.
+- A pause names its cause in plain words: a reply, failed delivery, Gmail refusal, an unconfirmed
+  send, sending not authorized, or a message from an address not on the conversation.
+
 ## Resource links and document handoff
 
 The persistent labeled boxes include **Insurance flyer**, **Renewal information form**, the resident

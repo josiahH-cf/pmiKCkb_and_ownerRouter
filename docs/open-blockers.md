@@ -385,6 +385,17 @@ separately authorized exact keys, previews, confirmations, receipts and readback
 
 These are engineering tasks with no owner step; none blocks a release.
 
+- **November/December run follow-ups (2026-10-28).** Three items need a staff-operations decision
+  before code changes: (0) R-S232-7's same-date `start_cycle` refusal conflicts with the S113/S144
+  contracts, which deliberately let staff restart a cycle on the same date and keep the earlier
+  cycle as history, so it was withdrawn; (1) R-S237-2 would bind every `current_base` RentVine amount to the saved
+  Working current rent, which removes the RentVine panel's direct "Correct current base-rent
+  billing" entry; RentVine writes stay closed, so nothing is exposed meanwhile. (2) R-S234-2 retires
+  the legacy owner-outcome control, which renders only after an app-sent owner message, which
+  production refuses. Locally, `tests/unit/unit-firestore-isolation-process.test.mjs` fails
+  identically at base `4c18f87f` when spawned under the unit runner in this WSL host; the direct
+  child run behaves correctly, so it is environmental and unrelated to this branch.
+
 - **Message review window (owner decision candidate).** S124 binds a saved message review to the
   admitted lease generation, and the draft preview admits a new generation once the 60 s soft TTL
   has passed. So a preview more than 60 s after the last source read asks staff to save the review

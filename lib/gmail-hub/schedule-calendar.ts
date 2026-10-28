@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+import { formatCalendarDate } from "@/lib/date-display";
+import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
+
 const calendarDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -145,4 +148,76 @@ export function nextOccurrence(
   if (s.endDate && date > s.endDate) return null;
   const next = resolveWallTime(date, s.time, s.timeZone);
   return s.endDate && next.resolvedDate > s.endDate ? null : next.instantMs;
+}
+/** S233: an instant in its named zone with the zone always shown, e.g. "Nov 1, 2026, 1:30 AM CDT". */
+export function formatZonedInstant(ms: number, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  }).format(ms);
+}
+/** S233: the plain statement shown before scheduling when the wall time is repeated or skipped. */
+export function describeWallTimeAdjustment(
+  date: string,
+  time: string,
+  timeZone: string,
+): string | null {
+  const resolved = resolveWallTime(date, time, timeZone);
+  if (resolved.adjustment === "none") return null;
+  const wall = new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(Date.parse(`${date}T${time}:00Z`));
+  const at = formatZonedInstant(resolved.instantMs, timeZone);
+  return resolved.adjustment === "earlier_overlap"
+    ? `${wall} happens twice in ${timeZone} when clocks fall back; this schedule uses the first one, ${at}.`
+    : `${wall} does not occur in ${timeZone} when clocks spring forward; the message is scheduled for ${at}.`;
+}
+function describeLag(ms: number): string {
+  const minutes = Math.floor(ms / 60_000);
+  if (minutes < 1) return "less than a minute";
+  if (minutes < 120) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 48 ? `${hours} h` : `${Math.floor(hours / 24)} days`;
+}
+/** S233: the next due instant in its zone; a past-due unsent message states its actual lag. */
+export function describeNextDue(dueMs: number, timeZone: string, nowMs: number): string {
+  const at = formatZonedInstant(dueMs, timeZone);
+  return dueMs > nowMs
+    ? `Next: ${at}`
+    : `Due ${at}; not yet sent (${describeLag(nowMs - dueMs)} late)`;
+}
+/** S233 R-S233-7: what Resume will do, stated before staff choose it; replay protection is unchanged. */
+export function describeResumeTiming(
+  sequence: {
+    nextDueAtMs: number | null;
+    confirmedCount: number;
+    authorization?: { schedule: CommunicationSchedule | null } | null;
+  },
+  nowMs: number,
+): string {
+  const schedule = sequence.authorization?.schedule ?? null;
+  const zone = schedule?.timeZone ?? BUSINESS_TIME_ZONE;
+  const due =
+    sequence.nextDueAtMs !== null && sequence.nextDueAtMs > nowMs
+      ? `the next message is due ${formatZonedInstant(sequence.nextDueAtMs, zone)}`
+      : "the next message is due at once and goes on the communication worker's next run";
+  const limit = !schedule
+    ? "this is a single reviewed message"
+    : schedule.sendLimit === null
+      ? "no send limit is set"
+      : `${Math.max(0, schedule.sendLimit - sequence.confirmedCount)} of ${schedule.sendLimit} sends remain`;
+  const end = schedule?.endDate
+    ? `; the schedule ends ${formatCalendarDate(schedule.endDate)}`
+    : "";
+  return `If resumed, ${due}; ${limit}${end}. To send at a different time, edit the message and use Schedule instead.`;
 }

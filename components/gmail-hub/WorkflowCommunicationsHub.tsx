@@ -3,7 +3,11 @@ import { useCallback, useEffect, useState } from "react";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { CommunicationComposer } from "./CommunicationComposer";
 import { WorkflowCommunicationPanel } from "./WorkflowCommunicationPanel";
-import { describeSequenceState } from "@/lib/gmail-hub/communication-state";
+import {
+  SEQUENCE_PAUSE_CAUSE_LABELS,
+  describeSequenceObservation,
+  describeSequenceState,
+} from "@/lib/gmail-hub/communication-state";
 import {
   WorkflowCommunicationContextSchema,
   type WorkflowCommunicationContext,
@@ -12,6 +16,9 @@ import { workflowComposerHref } from "@/lib/gmail-hub/composer-navigation";
 import { LiveGmailWorkspace } from "./LiveGmailWorkspace";
 import { workflowEntityHref } from "@/lib/gmail-hub/workflow-context";
 import type { CommunicationSequence } from "@/lib/gmail-hub/sequence-model";
+import { describeNextDue } from "@/lib/gmail-hub/schedule-calendar";
+import { useMinuteClock } from "@/components/hooks/useMinuteClock";
+import { BUSINESS_TIME_ZONE } from "@/lib/lease-renewal/business-calendar";
 type Summary = Pick<
   CommunicationSequence,
   | "id"
@@ -29,7 +36,7 @@ type Summary = Pick<
   | "pause"
   | "observation"
   | "unresolvedOccurrenceId"
-> & { scheduled: boolean; requiresReview?: boolean };
+> & { scheduled: boolean; scheduleTimeZone?: string | null; requiresReview?: boolean };
 type Entry = Parameters<typeof CommunicationComposer>[0]["entry"];
 const TABS = ["Incoming", "Outgoing", "Drafts", "Scheduled"] as const;
 export function WorkflowCommunicationsHub({
@@ -37,6 +44,7 @@ export function WorkflowCommunicationsHub({
 }: {
   authenticatedEmail: string;
 }) {
+  const nowMs = useMinuteClock();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Incoming"),
     [entry, setEntry] = useState<Entry | null>(null);
   const [legacy, setLegacy] = useState<WorkflowCommunicationContext | null>(null);
@@ -303,12 +311,24 @@ export function WorkflowCommunicationsHub({
                   : describeSequenceState(s).label}{" "}
                 · {describeSequenceState(s).confirmed} · {s.senderEmail}
               </p>
-              {s.nextDueAtMs && !s.requiresReview ? (
-                <p>Next: {new Date(s.nextDueAtMs).toLocaleString()}</p>
+              {s.nextDueAtMs && !s.requiresReview && nowMs !== null ? (
+                <p data-communication-field="next-due">
+                  {describeNextDue(
+                    s.nextDueAtMs,
+                    s.scheduleTimeZone ?? BUSINESS_TIME_ZONE,
+                    nowMs,
+                  )}
+                </p>
               ) : null}
-              {s.pause ? <p>Pause: {s.pause.cause.replaceAll("_", " ")}</p> : null}
-              {s.observation?.state === "unavailable" ? (
-                <p>Incoming evidence needs verification</p>
+              {s.pause ? (
+                <p data-communication-field="pause-cause">
+                  Paused: {SEQUENCE_PAUSE_CAUSE_LABELS[s.pause.cause] ?? "Needs review"}
+                </p>
+              ) : null}
+              {nowMs !== null && (s.state !== "draft" || s.observation) ? (
+                <p data-communication-field="incoming-checked">
+                  {describeSequenceObservation(s.observation, nowMs)}
+                </p>
               ) : null}
               <div className="ui-row">
                 <button

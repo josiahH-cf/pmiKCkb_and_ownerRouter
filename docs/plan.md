@@ -1,6 +1,17 @@
 # Current plan
 
-Updated: 2026-10-20 (UTC).
+Updated: 2026-10-28 (UTC).
+
+## November/December renewal readiness (October 28)
+
+The owner's October 28 execution instruction covers bounded audit, repair and verification of
+S232–S238 for reliable November/December 2026 renewals, with known information and connections
+targeted for Wednesday, November 4, 2026 (Central). It grants no customer email or draft, signing,
+production RentVine/Dotloop record effect, credential, grant or purchase. Order: merge the reviewed
+branch through CI; deliver served changes only through the release pipeline with an explicitly
+queued item and fresh prerequisites; then continue the remaining S232–S237 requirements named in
+each suite's status line, S238's isolated journey, and the November 4 blocker review against
+C00–C13 in `docs/open-blockers.md`. The staff walkthrough stays NOT RUN until a staff observer runs it.
 
 ## Authorized outcome
 

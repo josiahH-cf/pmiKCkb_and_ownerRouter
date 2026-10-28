@@ -3,7 +3,7 @@
 
 # S232 — November/December worklist reasons, ended-without-outcome visibility and explainable next actions
 
-> Status: READY — finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 099). Execution needs the owner's separate execution instruction. No client input blocks this code slice; the A5 timing basis and the unconfirmed notice rule hold only the timing labels named below.
+> Status: IN PROGRESS (branch claude/renewal-novdec-readiness-20261028, not served) — R-S232-1, R-S232-2, R-S232-6 and R-S232-8 and the fail-closed and retained-skip parts of R-S232-7 are implemented with focused tests. The same-date start_cycle refusal was withdrawn because the S113/S144 contracts deliberately allow an explicit restart that keeps the earlier cycle as history; it is a staff-operations decision. R-S232-3 per-reason excluded counts and R-S232-4/R-S232-5 resolver links remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 099). No client input blocks this code slice; the A5 timing basis and the unconfirmed notice rule hold only the timing labels named below.
 
 **Goal.**
 

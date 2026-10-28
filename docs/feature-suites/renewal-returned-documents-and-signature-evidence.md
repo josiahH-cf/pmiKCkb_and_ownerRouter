@@ -3,7 +3,7 @@
 
 # S236 — Returned documents, who still must sign and evidence-qualified completion
 
-> Status: READY — finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 103). Execution needs the owner's separate execution instruction. Signing stays a person-controlled Dotloop handoff; real returns for real leases and reviewed signer maps (C08) hold only their records.
+> Status: READY, not executed in the October 28 run. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 103). Signing stays a person-controlled Dotloop handoff; real returns for real leases and reviewed signer maps (C08) hold only their records.
 
 **Goal.**
 

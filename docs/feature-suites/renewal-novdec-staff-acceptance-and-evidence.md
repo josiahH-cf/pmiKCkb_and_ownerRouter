@@ -3,7 +3,7 @@
 
 # S238 — November/December renewal staff acceptance, evidence and blocker closure
 
-> Status: READY — finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 105). Execution needs the owner's separate execution instruction. Human verdicts, genuine-case provider evidence and live effects stay BLOCKED on B-HUMAN, C11–C13 and the owner's exact scope; nothing here creates a production record for proof.
+> Status: IN PROGRESS (branch claude/renewal-novdec-readiness-20261028, not served) — the October 28 document reconciliation is recorded; the staff walkthrough is NOT RUN. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 105). Human verdicts, genuine-case provider evidence and live effects stay BLOCKED on B-HUMAN, C11–C13 and the owner's exact scope; nothing here creates a production record for proof.
 
 **Goal.**
 
