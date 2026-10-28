@@ -29,6 +29,7 @@ import {
   useStandingOwnerAuthority,
 } from "./RenewalPricingPolicy";
 import { WorkingDateField, WorkingMoneyField } from "./RenewalWorkingRecord";
+import { OwnerApprovalCoverageLine } from "./OwnerApprovalCoverageLine";
 import { Button, Card, Field } from "@/components/ui";
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
 import {
@@ -955,11 +956,17 @@ function ResponseForm({ audience }: { audience: "owner" | "tenant" }) {
         </Field>
       ) : null}
       {audience === "owner" && ownerApproval?.outcome === "approved_terms" ? (
-        <p data-renewal-field="owner-approval-recorded">
-          {ownerApproval.approval
-            ? describeOwnerApproval(ownerApproval.approval, formatBusinessTimestamp)
-            : "Approved (recorded before who approved and how were required)."}
-        </p>
+        <>
+          <p data-renewal-field="owner-approval-recorded">
+            {ownerApproval.approval
+              ? describeOwnerApproval(ownerApproval.approval, formatBusinessTimestamp)
+              : "Approved (recorded before who approved and how were required)."}
+          </p>
+          <OwnerApprovalCoverageLine
+            economicsHash={context.ownerApproval?.economicsHash ?? null}
+            state={state}
+          />
+        </>
       ) : null}
       {audience === "owner" &&
       outcome === "approved_terms" &&

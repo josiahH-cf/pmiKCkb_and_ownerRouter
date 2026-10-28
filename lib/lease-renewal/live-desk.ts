@@ -4,6 +4,12 @@ import {
 } from "@/lib/lease-renewal/renewal-pricing-policy";
 import { effectiveRenewalTerms } from "@/lib/lease-renewal/effective-terms";
 import { formatCalendarDate } from "@/lib/date-display";
+import {
+  describeOwnerApprovalCoverageShort,
+  ownerApprovalCoverage,
+} from "@/lib/lease-renewal/owner-approval-coverage";
+
+const DESK_USD = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 import { currentRentCorrectionKey } from "./current-rent-correction";
 import type { MoveOutDisposition } from "./move-out-disposition";
 import type { RenewalNoticeObserver } from "./notice-read";
@@ -863,6 +869,22 @@ function toLiveSummary(
     ...(moveOutFields ?? {}),
     ...(workStatus ? { workStatus } : {}),
     ...(working !== undefined ? { workingCurrentRent: workingCurrentRent(working) } : {}),
+    ...(() => {
+      // S234 R-S234-3: the desk row's approval coverage, for the staff record of this term only.
+      if (
+        working === undefined ||
+        staffOwnerOutcome(manual, classification.endDateIso) !== "approved_terms"
+      )
+        return {};
+      const text = describeOwnerApprovalCoverageShort(
+        ownerApprovalCoverage({ workspace: manual, working, economicsHash: null }),
+        {
+          money: (value) => DESK_USD.format(value),
+          date: (iso) => formatCalendarDate(iso),
+        },
+      );
+      return text ? { ownerApprovalCoverage: text } : {};
+    })(),
     addressLabel: identity.address?.label ?? `Lease ${leaseId || "Needs Verification"}`,
     propertyNameLabel: identity.property?.label ?? null,
     tenantNameLabel: tenantLabels[0] ?? "Needs Verification",

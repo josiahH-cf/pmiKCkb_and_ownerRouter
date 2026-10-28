@@ -20,6 +20,11 @@ export interface OwnerApprovalChoices {
   readonly replies: readonly OwnerReplyChoice[];
   /** PR #162 review: the fingerprint of `roster`, sent back with an owner choice. */
   readonly rosterFingerprint: string | null;
+  /**
+   * S234 R-S234-3: the current calculated charges' hash, so the coverage line can say whether the
+   * approval still covers them; null or absent when the page could not compute them.
+   */
+  readonly economicsHash?: string | null;
 }
 
 /** One line naming who approved, how and when, for the lease page and the handoff. */

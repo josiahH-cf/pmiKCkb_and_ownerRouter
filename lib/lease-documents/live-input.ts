@@ -38,7 +38,7 @@ import {
 import { ChargePolicyRecordSchema } from "./charge-policy";
 import {
   currentOwnerApproval,
-  OWNER_APPROVAL_NOTICES,
+  ownerApprovalNotice,
   packetEconomics,
 } from "./owner-approval-binding";
 import {
@@ -189,7 +189,9 @@ export async function resolveLivePacketInput(
     packetChargesHash: packetChargeBasis({ leaseId, mapping: sources, inputs, policy })
       .hash,
   });
-  if (approval.state !== "current") notices.push(OWNER_APPROVAL_NOTICES[approval.state]);
+  // S234 R-S234-3: the notice names exactly which Working terms changed.
+  const approvalNotice = ownerApprovalNotice(approval.coverage);
+  if (approvalNotice) notices.push(approvalNotice);
   if (approval.notice) notices.push(approval.notice);
 
   const source = rentVinePacketSource(lease, observedAt);
@@ -280,6 +282,7 @@ export async function resolveLivePacketInput(
     sourceParties: source.parties,
     replacedSourceFacts: assembled.replacedSourceFacts,
     ownerApproval: approval.state,
+    ownerApprovalNotice: approvalNotice,
     notices,
     catalogRecordHash: recordHash(catalogDoc),
     mappingRecordHash: recordHash(sourceDoc),

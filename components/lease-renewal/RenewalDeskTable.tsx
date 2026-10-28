@@ -1869,6 +1869,14 @@ function DeskRow({
         data-renewal-field="action"
       >
         <ActionCell deskView={deskView} role={role} row={row} state={state} />
+        {row.ownerApprovalCoverage ? (
+          <span
+            className="renewal-td-secondary"
+            data-renewal-field="owner-approval-coverage"
+          >
+            {row.ownerApprovalCoverage}
+          </span>
+        ) : null}
         <RowIssueSummary
           deskView={deskView}
           row={row}

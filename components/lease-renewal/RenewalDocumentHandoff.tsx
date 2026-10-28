@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card, Field } from "@/components/ui";
 import { DownloadLink } from "@/components/ui/DownloadLink";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
+import { OwnerApprovalCoverageLine } from "./OwnerApprovalCoverageLine";
 import type { RenewalPacketSnapshot } from "@/lib/lease-documents/packet-types";
 import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
 import type {
@@ -121,6 +122,7 @@ export function RenewalDocumentHandoff({
       canLinkLoop={canLinkLoop}
       facts={facts}
       state={ctx.state}
+      economicsHash={ctx.ownerApproval?.economicsHash ?? null}
     />
   ) : null;
 }
@@ -133,9 +135,11 @@ const money = (value: number) =>
 function PacketFacts({
   facts,
   state,
+  economicsHash,
 }: {
   facts: DocumentHandoffFacts | null;
   state: RenewalWorkspaceState | null;
+  economicsHash: string | null;
 }) {
   // S234: the packet reads the Working terms the recorded owner approval covers, never the
   // legacy terms typed into the owner response, so this shows that same binding.
@@ -178,6 +182,8 @@ function PacketFacts({
               <a className="text-link" href="#renewal-manual-owner_response">
                 Open the owner response
               </a>
+              {/* S234 R-S234-3: whether that approval still covers the current terms. */}
+              <OwnerApprovalCoverageLine economicsHash={economicsHash} state={state} />
             </>
           ) : (
             <>
@@ -215,6 +221,7 @@ function DocumentHandoffEditor({
   canLinkLoop,
   facts,
   state,
+  economicsHash,
 }: {
   leaseId: string;
   canApprove: boolean;
@@ -222,6 +229,7 @@ function DocumentHandoffEditor({
   canLinkLoop: boolean;
   facts: DocumentHandoffFacts | null;
   state: RenewalWorkspaceState | null;
+  economicsHash: string | null;
 }) {
   const [current, setCurrent] = useState<Handoff | null>(null),
     [preview, setPreview] = useState<Preview | null>(null),
@@ -318,7 +326,7 @@ function DocumentHandoffEditor({
       ariaLabel="Document preparation and signature handoff"
     >
       <p>A person sends for signature from Dotloop.</p>
-      <PacketFacts facts={facts} state={state} />
+      <PacketFacts economicsHash={economicsHash} facts={facts} state={state} />
       <Button
         variant="secondary"
         disabled={pending}

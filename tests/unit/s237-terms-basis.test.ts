@@ -93,8 +93,9 @@ describe("S237 R-S237-1 terms basis", () => {
         formatTime: time,
         ...over,
       }).approval;
+    // S234 R-S234-3: the stale reason names exactly the Working term that changed.
     expect(basis({ working: working(2) })).toBe(
-      "Owner approval no longer covers these terms: the Working terms changed after it was recorded",
+      "Owner approval no longer covers these terms: the Working rent changed after it was recorded",
     );
     expect(basis({ economicsHash: "f".repeat(64) })).toBe(
       "Owner approval no longer covers these terms: the calculated charges changed after it was recorded",
