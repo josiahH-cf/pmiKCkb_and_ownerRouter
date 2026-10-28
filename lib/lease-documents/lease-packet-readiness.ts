@@ -10,7 +10,7 @@ import { FAMILY_USE_LABELS } from "@/lib/lease-documents/family-use";
 import type { FormFamilyUse, PacketEvaluation } from "@/lib/lease-documents/packet-types";
 
 export const ENGINEERING_DEFAULT_LABEL =
-  "Engineering default — not yet approved by the client";
+  "Engineering default, not yet approved by the client";
 
 export interface LeasePacketFamilyRow {
   readonly kind: string;

@@ -3,7 +3,7 @@
 
 # S235 — Per-family packet readiness, party/animal field binding and duplicate-safe Dotloop handoff
 
-> Status: READY, not executed in the October 28 run — both Dotloop write keys stay closed. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 102). Real packet output waits on B-DL3 client content (C01, C02, C07–C10); the first real loop needs its own exact owner authorization; both Dotloop write keys stay closed.
+> Status: IN PROGRESS (merged to main at bf0c03f9 and a786fa16, later slices on branch claude/renewal-novdec-remainder-20261028; not served) — R-S235-1/ARCH-S235-1 (read-only per-family readiness on the lease page), R-S235-2 (engineering defaults labeled as not client-approved) and R-S235-5/ARCH-S235-4 (lease-wide duplicate loop prevention, provider fake and emulator) are implemented with tests; R-S235-3 slot binding, R-S235-4 state projection, R-S235-6 selection freshness and R-S235-7 synthetic map verification remain. Both Dotloop write keys stay closed. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 102). Real packet output waits on B-DL3 client content (C01, C02, C07–C10); the first real loop needs its own exact owner authorization; both Dotloop write keys stay closed.
 
 **Goal.**
 

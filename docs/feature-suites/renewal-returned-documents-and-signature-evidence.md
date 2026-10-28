@@ -3,7 +3,7 @@
 
 # S236 — Returned documents, who still must sign and evidence-qualified completion
 
-> Status: READY, not executed in the October 28 run. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 103). Signing stays a person-controlled Dotloop handoff; real returns for real leases and reviewed signer maps (C08) hold only their records.
+> Status: IN PROGRESS (merged to main at bf0c03f9 and a786fa16, later slices on branch claude/renewal-novdec-remainder-20261028; not served) — ARCH-S236-2 (the R-S236-1/3/4 rules as a pure projection with synthetic contracts) and ARCH-S236-3 (no Dotloop readback path to a signed state) are implemented; ARCH-S236-1's persisted staff record, route and screen (R-S236-2, R-S236-5, R-S236-6, R-S236-7) remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 103). Signing stays a person-controlled Dotloop handoff; real returns for real leases and reviewed signer maps (C08) hold only their records.
 
 **Goal.**
 

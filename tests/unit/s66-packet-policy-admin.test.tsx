@@ -83,7 +83,7 @@ describe("S66 Admin renewal packet configuration (AC-S66-6, AC-S66-7)", () => {
       '[data-family-use-kind="kcrar_additional_disclosures"]',
     ) as HTMLElement;
     expect(
-      within(kcrar).getByText(/Engineering default — not yet approved by the client/),
+      within(kcrar).getByText(/Engineering default, not yet approved by the client/),
     ).toBeTruthy();
     fireEvent.change(within(kcrar).getByRole("combobox"), {
       target: { value: "mandatory" },

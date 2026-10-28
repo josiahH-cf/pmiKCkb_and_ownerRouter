@@ -3,7 +3,7 @@
 
 # S233 — Renewal message delivery evidence, reply correlation and observation health
 
-> Status: IN PROGRESS (merged to main at bf0c03f9 by PR #158, not served) — R-S233-3, R-S233-6 and R-S233-7 are implemented with tests; R-S233-5 has open-only worker paging and past-due lag but no worker-health summary yet; R-S233-4 shows the incoming-check age without itemized failure reasons; R-S233-1, R-S233-2, R-S233-8 and R-S233-9 remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 100). It reuses delivered S187–S192/S229 sending unchanged; real customer sends, controlled-recipient receipt and staff-mailbox verification stay BLOCKED on C11/C12.
+> Status: IN PROGRESS (merged to main at bf0c03f9 and a786fa16, later slices on branch claude/renewal-novdec-remainder-20261028; not served) — R-S233-3, R-S233-6, R-S233-7 and R-S233-8 (deterministic adapter variants and an emulator stale-write case) are implemented with tests; R-S233-5 has open-only worker paging and past-due lag but no worker-health summary yet; R-S233-4 shows the incoming-check age without itemized failure reasons; R-S233-1, R-S233-2 and R-S233-9 remain. Originally finalized 2026-10-28 from the November/December renewal Clarify Features initialization (intake 100). It reuses delivered S187–S192/S229 sending unchanged; real customer sends, controlled-recipient receipt and staff-mailbox verification stay BLOCKED on C11/C12.
 
 **Goal.**
 

@@ -10,7 +10,7 @@ import type {
 } from "@/lib/lease-documents/artifact-intake-contract";
 import type { PacketPersonInput } from "@/lib/lease-documents/packet-inputs";
 
-export const STAFF_ATTESTATION_LABEL = "Recorded by staff — not provider-verified";
+export const STAFF_ATTESTATION_LABEL = "Recorded by staff, not provider-verified";
 export const SIGNER_MAP_PENDING_LABEL = "Signer requirements pending the reviewed map";
 
 export type ReturnedDocumentState =
@@ -122,7 +122,7 @@ export function projectReturnedState(input: {
       (record) => record.documentContentHash === document.contentHash,
     );
     if (sameCase.some((record) => record.documentContentHash !== document.contentHash))
-      notes.push("Signed an earlier version — not current");
+      notes.push("Signed an earlier version, not current");
     if (!document.prepared)
       return { ...base(document), state: "Not prepared", notes, attestation: null };
     if (!document.signers)

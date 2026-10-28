@@ -150,7 +150,7 @@ describe("S236 returned-state projection", () => {
     // Sent status is per document version, so the current version was never sent either.
     expect(earlier.documents[0].state).toBe("Uploaded");
     expect(earlier.documents[0].notes).toContain(
-      "Signed an earlier version — not current",
+      "Signed an earlier version, not current",
     );
     const otherLease = project([record(all, { leaseId: "another-lease" })]);
     expect(otherLease.documents[0].state).toBe("Uploaded");
