@@ -839,3 +839,146 @@ it("the worker holds legacy and retired-lane authorizations before actor, mailbo
   // S233 R-S233-5: the worker pages only open records, so its budget never shrinks with history.
   expect(f.store.list).toHaveBeenCalledWith(null, 20, { openOnly: true });
 });
+
+describe("S233 R-S233-8 deterministic incoming-message variants", () => {
+  // Deterministic adapter only: a scripted thread read stands in for Gmail. These prove the
+  // classification and pause rules, not real mailbox observation or delivery.
+  async function scheduledAfterFirstSend() {
+    const f = setup();
+    const s = await f.approve("schedule");
+    f.setNow(Date.parse("2026-10-10T14:00Z"));
+    await f.service.dispatch(s.id);
+    expect(f.send).toHaveBeenCalledTimes(1);
+    return { f, s };
+  }
+  const threadOf = (
+    messages: GmailMessageView[],
+    historyId = "110",
+  ): GmailThreadView => ({
+    id: "thread-1",
+    truncated: false,
+    historyId,
+    messages,
+  });
+  const resume = (
+    f: ReturnType<typeof setup>,
+    s: { id: string; initial: unknown; followUp: unknown },
+    expectedVersion: number,
+  ) =>
+    f.service.authorize(actor, {
+      id: s.id,
+      expectedVersion,
+      operationId: randomUUID(),
+      action: "resume",
+      schedule: null,
+      reviewedTargetHash: sequenceHash({
+        to: f.target.to,
+        cc: f.target.cc,
+        materialSourceHash: f.target.materialSourceHash,
+      }),
+      reviewedDraftHash: sequenceHash({ initial: s.initial, followUp: s.followUp }),
+    });
+
+  it("pauses on a mailer-daemon bounce with an empty Return-Path", async () => {
+    const { f, s } = await scheduledAfterFirstSend();
+    f.setThread(
+      threadOf([
+        incoming({
+          id: "bounce-1",
+          from: "Mail Delivery Subsystem <mailer-daemon@googlemail.com>",
+          returnPath: "<>",
+        }),
+      ]),
+    );
+    f.setNow(Date.parse("2026-10-11T14:00Z"));
+    const result = await f.service.dispatch(s.id);
+    expect(result.sequence.pause?.cause).toBe("bounce");
+    expect(f.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("pauses with its own cause on a message from an address not on the conversation", async () => {
+    const { f, s } = await scheduledAfterFirstSend();
+    f.setThread(
+      threadOf([
+        incoming({ id: "stranger-1", from: "Someone <someone@elsewhere.invalid>" }),
+      ]),
+    );
+    f.setNow(Date.parse("2026-10-11T14:00Z"));
+    const result = await f.service.dispatch(s.id);
+    expect(result.sequence.state).toBe("paused");
+    expect(result.sequence.pause?.cause).toBe("unexpected_sender");
+    expect(f.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a reply dated before the authorization and keeps sending", async () => {
+    const { f, s } = await scheduledAfterFirstSend();
+    f.setThread(
+      threadOf([
+        incoming({
+          id: "old-reply",
+          internalDate: String(Date.parse("2026-10-01T15:00Z")),
+        }),
+      ]),
+    );
+    f.setNow(Date.parse("2026-10-11T14:00Z"));
+    const result = await f.service.dispatch(s.id);
+    expect(result.sequence.pause).toBeNull();
+    expect(f.send).toHaveBeenCalledTimes(2);
+  });
+
+  it("counts one message id once across repeated observations", async () => {
+    const { f, s } = await scheduledAfterFirstSend();
+    f.setThread(threadOf([incoming({ id: "reply-dup" })]));
+    f.setNow(Date.parse("2026-10-11T14:00Z"));
+    const first = await f.service.dispatch(s.id);
+    expect(first.sequence.pause?.cause).toBe("reply");
+    // The same id again, in a later read, changes nothing and never sends.
+    f.setThread(threadOf([incoming({ id: "reply-dup" })], "111"));
+    f.setNow(Date.parse("2026-10-12T14:00Z"));
+    const again = await f.service.dispatch(s.id);
+    expect(again.sequence.version).toBe(first.sequence.version);
+    expect(again.sequence.pause).toEqual(first.sequence.pause);
+    expect(f.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("classifies the same messages the same way whatever their internal-date order", async () => {
+    const human = incoming({
+      id: "human-1",
+      internalDate: String(Date.parse("2026-10-10T16:00Z")),
+    });
+    const bounce = incoming({
+      id: "bounce-2",
+      internalDate: String(Date.parse("2026-10-10T15:30Z")),
+      contentType: "multipart/report; report-type=delivery-status",
+    });
+    for (const messages of [
+      [human, bounce],
+      [bounce, human],
+    ]) {
+      const { f, s } = await scheduledAfterFirstSend();
+      f.setThread(threadOf(messages));
+      f.setNow(Date.parse("2026-10-11T14:00Z"));
+      expect((await f.service.dispatch(s.id)).sequence.pause?.cause).toBe("bounce");
+    }
+  });
+
+  it("refuses a Resume reviewed before a reply arrived (version conflict), with no send", async () => {
+    const { f, s } = await scheduledAfterFirstSend();
+    const paused = await f.service.control(actor, {
+      id: s.id,
+      expectedVersion: (await f.store.get(s.id))!.version,
+      operationId: randomUUID(),
+      action: "pause",
+    });
+    // A reply is observed after staff reviewed the paused sequence for Resume.
+    f.setThread(threadOf([incoming({ id: "reply-during-resume" })]));
+    f.setNow(Date.parse("2026-10-11T14:00Z"));
+    // The worker observes every open sequence, paused ones included, before any dispatch.
+    await f.service.observe((await f.store.get(s.id))!);
+    const afterReply = (await f.store.get(s.id))!;
+    expect(afterReply.pause?.cause).toBe("reply");
+    expect(afterReply.version).toBeGreaterThan(paused.version);
+    await expect(resume(f, paused, paused.version)).rejects.toThrow();
+    expect(f.send).toHaveBeenCalledTimes(1);
+  });
+});

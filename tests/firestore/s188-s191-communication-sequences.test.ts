@@ -416,6 +416,27 @@ describe("S188–S191 real Firestore transaction ordering with isolated Gmail", 
     // The hub's unfiltered listing still shows every record.
     expect((await f.store.list(null, 10)).sequences).toHaveLength(5);
   });
+  it("S233 R-S233-8 ignores a stale observation write that arrives after a newer one", async () => {
+    const f = fixture();
+    const approved = await f.approve();
+    const observe = (checkedAtMs: number, messageIds: string[], pause: "reply" | null) =>
+      f.store.observe(approved.id, {
+        authorizationRevision: approved.authorization!.revision,
+        checkedAtMs,
+        messageIds,
+        pause,
+        historyId: null,
+        mailboxHistoryIds: {},
+        complete: true,
+      });
+    const newer = await observe(Date.now() + 60_000, [], null);
+    // An older read that finished late cannot pause, add evidence or move the check time back.
+    const stale = await observe(Date.now(), ["late-reply"], "reply");
+    expect(stale.version).toBe(newer.version);
+    expect(stale.pause).toBeNull();
+    expect(stale.observedMessageIds).not.toContain("late-reply");
+    expect(stale.observation?.checkedAtMs).toBe(newer.observation?.checkedAtMs);
+  });
   it("serializes a worker lease and fences a stale run's completion after restart", async () => {
     const store = new CommunicationWorkerStore(db);
     const claims = await Promise.all(Array.from({ length: 4 }, () => store.claim(1000)));
