@@ -18,12 +18,15 @@ Further merges wait for each PR's own review outcome.
 
 The branch claude/renewal-novdec-rows6-20261028 adds the journey's S234 phase and an Admin role
 refusal (24 of 24 steps on `e2188bd3`), the S233 attempt-read follow-through (25 of 25 on
-`94d95d97`) and the S142 test comment's corrected historical count. Each suite's status line names
-what remains. Nothing was served; production remains `6fbd6225` (S231). The staff walkthrough is
+`94d95d97`) and the S142 test comment's corrected historical count. PR #166 (`06f4a61f`, review
+completed without findings) failed CI on a new dependency advisory, now patched by the
+`@hono/node-server` 2.1.3 override, and on one emulator wait under load; the patched head continues
+as a new pull request. Each suite's status line names what remains. Nothing was served; production remains `6fbd6225` (S231). The staff walkthrough is
 NOT RUN. Client inputs C00–C13 stay in `docs/open-blockers.md`. The read-only release preflight
 reads `not_ready`: the Awaiting release queue is empty and no permit or fresh GO exists. NEXT: the
-remaining ready rows, independent of delivery. Delivery needs the owner's direction to queue the
-merged slices (owner step R1), then the release pipeline's own prerequisites. S238 owns the
+remaining ready rows, independent of delivery. The owner directed merge and deployment once the
+work is done (owner step R1, October 28, 22:01:58Z); delivery still needs the release pipeline's own
+prerequisites. S238 owns the
 November 4, 2026 (Central) blocker review.
 
 ## Dotloop A1 resolved and selected (October 27)

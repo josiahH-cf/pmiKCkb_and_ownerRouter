@@ -70,6 +70,17 @@ loads them again; nothing is resent. The journey passed 25 of 25 steps on `94d95
 failed read in the browser. A test comment's historical count (S142 predicate equivalence: 10 manual
 summaries and 8 guidance outputs changed, 18 in all) is corrected; no baseline changed.
 
+October 29: PR #166 opened that branch at `06f4a61f`. Its automated review completed on that head
+with no findings, and the clean unit run there passed 1,047 files (1 skipped) and 9,855 tests (4
+skipped). Its CI failed two jobs. The production dependency audit found GHSA-rmxm-3fg6-px4f
+(published October 28, 21:05 UTC) in `@hono/node-server` 2.0.12, which the optional MCP SDK peer of
+`@google/genai` brings in; an exact override now selects the first patched release, 2.1.3, and the
+dependency boundary test pins it. Production (`6fbd6225`) carries 2.0.12 until the next release. One
+emulator test (`tests/firestore/s113-sheet-route.test.ts`, the tenant preview after a Working terms
+save) timed out under CI load with its latest preparation reads still pending after 23 seconds; it
+passed 28 of 28 locally on the same head. A new commit leaves a review bound to its earlier head, so
+the patched branch is opened as a new pull request and PR #166 is closed unmerged with its receipts.
+
 Production still serves `6fbd6225` (S231); the staff walkthrough is NOT RUN.
 
 October 27: Dotloop A1 is resolved. Dan had made integrations a company admin, not an office
