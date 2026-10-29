@@ -45,6 +45,8 @@ interface SequencePayload {
   /** S233 R-S233-1: present on a communication read; actions keep the last read list. */
   attempts?: CommunicationOccurrence[];
   attemptsTruncated?: boolean;
+  /** S233 R-S233-1: the attempts could not be read with this response; the last list is kept. */
+  attemptsUnavailable?: boolean;
 }
 type Entry =
   | { id: string }
@@ -162,7 +164,12 @@ export function CommunicationComposer({
     operationId: string;
   } | null>(null);
   const [attempts, setAttempts] = useState<CommunicationOccurrence[]>([]),
-    [attemptsTruncated, setAttemptsTruncated] = useState(false);
+    [attemptsTruncated, setAttemptsTruncated] = useState(false),
+    // When the latest response could not load the attempts: the time of the list still shown.
+    [attemptsUnavailable, setAttemptsUnavailable] = useState<{
+      lastReadAtMs: number | null;
+    } | null>(null);
+  const attemptsReadAt = useRef<number | null>(null);
   const lastResponse = useRef<SequencePayload | null>(null),
     saveFlight = useRef<Promise<SequencePayload> | null>(null),
     locked = useRef(false),
@@ -177,6 +184,11 @@ export function CommunicationComposer({
     if (p.attempts) {
       setAttempts(p.attempts);
       setAttemptsTruncated(p.attemptsTruncated === true);
+      attemptsReadAt.current = Date.now();
+      setAttemptsUnavailable(null);
+    } else if (p.attemptsUnavailable) {
+      // The action's own result stands; the list shown is the last one loaded, and says so.
+      setAttemptsUnavailable({ lastReadAtMs: attemptsReadAt.current });
     }
     for (const m of [
       p.sequence.authorization?.initial,
@@ -1124,13 +1136,29 @@ export function CommunicationComposer({
           ))}
         </section>
       ) : null}
-      {sequence && (attempts.length || sequence.inbound?.length) ? (
+      {sequence &&
+      (attempts.length || sequence.inbound?.length || attemptsUnavailable) ? (
         <section
           aria-label="Message evidence"
           data-communication-field="message-evidence"
         >
           <h3>What happened to each message</h3>
           <p>{communicationEvidenceHeading(sequence)}</p>
+          {attemptsUnavailable ? (
+            <p role="status" data-communication-field="attempts-unavailable">
+              {attemptsUnavailable.lastReadAtMs === null
+                ? "Message attempts could not be loaded just now, so none are listed. The recorded state above is current. Use Check recorded status to load them again."
+                : `Message attempts could not be loaded just now. ${
+                    attempts.length
+                      ? "The attempts below are from the last successful check"
+                      : "None were recorded at the last successful check"
+                  }, ${formatZonedInstant(attemptsUnavailable.lastReadAtMs, sequence.authorization?.schedule?.timeZone ?? BUSINESS_TIME_ZONE)}, and ${
+                    attempts.length
+                      ? "they may not include the latest one"
+                      : "a newer one may not be listed"
+                  }. The recorded state above is current. Use Check recorded status to load them again.`}
+            </p>
+          ) : null}
           <ol>
             {describeCommunicationEvidence({
               sequence,

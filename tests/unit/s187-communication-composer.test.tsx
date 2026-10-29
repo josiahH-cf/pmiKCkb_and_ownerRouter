@@ -351,3 +351,132 @@ it("S233 R-S233-9: a new composer whose load runs twice (development) installs a
   expect(saves[0]).toMatchObject({ expectedVersion: 0 });
   expect(screen.queryByText(/This communication changed/)).toBeNull();
 });
+
+it("S233 R-S233-1: an action whose attempts cannot be loaded keeps its result, labels the last list and recovers on the next check", async () => {
+  const claimedAtMs = Date.parse("2026-11-02T15:00:00Z");
+  const occurrence = (index: number, state: "sent" | "refused") => ({
+    id: String(index + 1).repeat(64),
+    sequenceId: id,
+    authorizationRevision: 1,
+    index,
+    state,
+    senderEmail: email,
+    rfcMessageId: `<pmi-${String(index + 1).repeat(64)}@pmikcmetro.com>`,
+    payloadHash: "p".repeat(64),
+    claimedAtMs: claimedAtMs + index * 86_400_000,
+    ...(state === "sent" ? { sentAtMs: claimedAtMs + index * 86_400_000 } : {}),
+    ...(state === "refused" ? { reason: "provider_refusal" as const } : {}),
+  });
+  const active = { ...base, state: "active" as const, confirmedCount: 1 };
+  const actions: string[] = [];
+  let statusReads = 0;
+  let attemptsNow = [occurrence(0, "sent")];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, options?: RequestInit) => {
+      if (url.includes("composition")) return reply(composition);
+      if (options?.body) {
+        const command = JSON.parse(String(options.body));
+        actions.push(command.action);
+        // The refresh is applied (a new version), but its attempt read fails.
+        return reply({
+          sequence: { ...active, version: 2 },
+          reviewedDraftHash: "a".repeat(64),
+          attemptsUnavailable: true,
+        });
+      }
+      if (url.includes(`sequences?id=${id}`)) statusReads += 1;
+      return reply({
+        sequence: { ...active, version: actions.includes("refresh") ? 2 : 1 },
+        reviewedDraftHash: "a".repeat(64),
+        attempts: attemptsNow,
+        attemptsTruncated: false,
+      });
+    }),
+  );
+  mount();
+  const section = await screen.findByRole("region", { name: "Message evidence" });
+  await waitFor(() =>
+    expect([...section.querySelectorAll("li")].map((item) => item.textContent)).toEqual([
+      expect.stringMatching(/^Initial message: Accepted by Gmail /),
+    ]),
+  );
+  expect(
+    section.querySelector('[data-communication-field="attempts-unavailable"]'),
+  ).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Refresh linked incoming" }));
+  const note = await screen.findByText(/^Message attempts could not be loaded just now/);
+  // The last list stays, labeled with when it was loaded; the applied refresh's state is shown.
+  expect(note).toHaveTextContent(
+    /The attempts below are from the last successful check, .+, and they may not include the latest one\. The recorded state above is current\. Use Check recorded status to load them again\.$/,
+  );
+  expect([...section.querySelectorAll("li")]).toHaveLength(1);
+  expect(
+    document
+      .querySelector("[data-communication-version]")
+      ?.getAttribute("data-communication-version"),
+  ).toBe("2");
+  expect(actions).toEqual(["refresh"]);
+  // A fresh check loads the attempts again and the note goes away; nothing is resent.
+  attemptsNow = [occurrence(0, "sent"), occurrence(1, "refused")];
+  const readsBefore = statusReads;
+  fireEvent.click(screen.getByRole("button", { name: "Check recorded status" }));
+  await waitFor(() =>
+    expect(
+      screen.queryByText(/^Message attempts could not be loaded just now/),
+    ).toBeNull(),
+  );
+  expect([...section.querySelectorAll("li")].map((item) => item.textContent)).toEqual([
+    expect.stringMatching(/^Initial message: Accepted by Gmail /),
+    "Follow-up 1: Not sent: Gmail refused it",
+  ]);
+  expect(statusReads).toBeGreaterThan(readsBefore);
+  expect(actions).toEqual(["refresh"]);
+  expect(section.textContent).not.toMatch(/\bdelivered\b|\bread\b/i);
+});
+
+it("S233 R-S233-1: a first load whose attempts cannot be loaded says none are listed", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) =>
+      url.includes("composition")
+        ? reply(composition)
+        : reply({
+            sequence: { ...base, state: "active", confirmedCount: 1 },
+            reviewedDraftHash: "a".repeat(64),
+            attemptsUnavailable: true,
+          }),
+    ),
+  );
+  mount();
+  const section = await screen.findByRole("region", { name: "Message evidence" });
+  expect(section).toHaveTextContent(
+    "Message attempts could not be loaded just now, so none are listed. The recorded state above is current. Use Check recorded status to load them again.",
+  );
+  expect(section.querySelectorAll("li")).toHaveLength(0);
+});
+
+it("S233 R-S233-1: after a check that found no attempts, an unavailable load says none were recorded then", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, options?: RequestInit) =>
+      url.includes("composition")
+        ? reply(composition)
+        : reply({
+            sequence: { ...base, state: "active", confirmedCount: 0 },
+            reviewedDraftHash: "a".repeat(64),
+            ...(options?.body
+              ? { attemptsUnavailable: true }
+              : { attempts: [], attemptsTruncated: false }),
+          }),
+    ),
+  );
+  mount();
+  await screen.findByRole("button", { name: "Refresh linked incoming" });
+  expect(screen.queryByRole("region", { name: "Message evidence" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Refresh linked incoming" }));
+  const section = await screen.findByRole("region", { name: "Message evidence" });
+  expect(section).toHaveTextContent(
+    /Message attempts could not be loaded just now\. None were recorded at the last successful check, .+, and a newer one may not be listed\. The recorded state above is current\./,
+  );
+});

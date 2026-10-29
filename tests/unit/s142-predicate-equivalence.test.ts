@@ -34,7 +34,7 @@ import {
 // accidental drift from here on.
 // S234 re-baseline (R-S234-4): after "Revision requested" the owner step reads "Update the working
 // terms and ask the owner again". Re-recorded once; the diff was exactly the 18 revision-requested
-// entries (16 manual summaries, 2 guidance outputs) and nothing else.
+// entries (10 manual summaries, 8 guidance outputs) and nothing else.
 // S232 re-baseline (R-S232-4): a response step reads Waiting only while the owner or tenant has the
 // move, so a requested revision and a tenant counter (the PMI KC team's move) read Ready with an
 // act action, and the guidance contract marker becomes "s232-one-status". Re-recorded once: with

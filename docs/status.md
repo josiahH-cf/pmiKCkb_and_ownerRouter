@@ -1,24 +1,24 @@
 # Current status
 
-Updated: 2026-10-28 (UTC).
+Updated: 2026-10-29 (UTC).
 
-October 28: S232–S238 (November/December renewal readiness) were authored and the owner's
-execution instruction started them. Merged to main at `bf0c03f9` (PR #158) and not served: the desk's
-window and month context, an ended-without-outcome scope with a default-view count, a visible
-reason on every row, fail-closed staff-record reads, retained skipped work, notice timing from the
-recorded tenant-offer send and response, and Central policy dates (S232);
-open-only worker paging, a Central schedule default that states the Nov 1, 2026 repeated hour,
-zoned instants with past-due lag, a Resume timing statement, distinct pause causes and the
-incoming-check age (S233); approval-bound terms on the packet handoff (S234); plain RentVine outcome
-text and an accurate Sheet still-before result (S237). S235/S236 and the remaining requirements
-are listed in each suite's status line. PR #159 fixed the two PR #158 review findings with
-counterfactual tests: a pending tenant outcome is no longer a response, and RentVine refusals no
-longer claim nothing was sent. PR #160 (merged at `be8c0bf4`) added the S237 Working-value
-current-base binding, the locked ambiguous-state statement and one source-update scope statement,
-the S233 incoming-message variants, S235's lease-wide duplicate-loop prevention and read-only
-per-family readiness, and the S236 returned-state projection with its two review fixes (latest
-observation per signer; version notes bound to the document kind). PR #161 (merged at
-`8c84ed04`; exact-main CI `40720550221` passed) added:
+October 28: S232–S238 (November/December renewal readiness) were authored and the owner's execution
+instruction started them. Merged to main at `bf0c03f9` (PR #158) and not served: the desk's window
+and month context, an ended-without-outcome scope with a default-view count, a visible reason on
+every row, fail-closed staff-record reads, retained skipped work, notice timing from the recorded
+tenant-offer send and response, and Central policy dates (S232); open-only worker paging, a Central
+schedule default that states the Nov 1, 2026 repeated hour, zoned instants with past-due lag, a
+Resume timing statement, distinct pause causes and the incoming-check age (S233); approval-bound
+terms on the packet handoff (S234); plain RentVine outcome text and an accurate Sheet still-before
+result (S237). S235/S236 and the remaining requirements are listed in each suite's status line.
+PR #159 (merged at `a786fa16`) fixed the two PR #158 review findings with counterfactual tests: a
+pending tenant outcome is no longer a response, and RentVine refusals no longer claim nothing was
+sent. PR #160 (merged at `be8c0bf4`) added the S237 Working-value current-base binding, the locked
+ambiguous-state statement and one source-update scope statement, the S233 incoming-message variants,
+S235's lease-wide duplicate-loop prevention and read-only per-family readiness, and the S236
+returned-state projection with its two review fixes (latest observation per signer; version notes
+bound to the document kind). PR #161 (merged at `8c84ed04`; exact-main CI `40720550221` passed)
+added:
 
 - S236: the persisted returned-document record, its route and the Returned documents and
   signatures screen, derived Required signatures complete and the Admin checkpoint from records;
@@ -29,16 +29,17 @@ observation per signer; version notes bound to the document kind). PR #161 (merg
 - S238: an isolated browser journey through the mounted pages, routes and emulator (14 of 14 steps
   on `a6f99b6e`, 15 of 15 on `743bac8f`, `docs/evidence/s238-isolated-journey-2026-10-28.md`).
 
-PR #162 (merged at `f1f06bfb`; exact-main CI `40732855488` passed) added S233 per-message
+PR #162 (merged at `f1f06bfb` after its CI fix `cbf41be1`, a form test that assumed US Central
+time; exact-main CI `40732855488` passed) added S233 per-message
 evidence with attempt-correlated bounces (R-S233-1/2) and S234 approval evidence: who approved, how
 and when, checked against the current owner roster and this lease's own owner thread (R-S234-1).
 
 PR #163 (merged at `06c73561`; exact-main CI `40748712201` passed) added the S237 terms basis beside
-each preview and the "What still differs" list, both recomputed in the browser from the live
-records (R-S237-1/5), and S234's one owner outcome per cycle, the revision note, the tenant
-earlier-terms wording, Working-only terms and the per-field approval coverage (R-S234-2/3/4/5). The
-Gmail draft claim now re-reads the Working terms inside its transaction, so a terms save after the
-preview refuses the draft.
+each preview and the "What still differs" list, both recomputed in the browser from the live records
+by its review fix `dad8d0f8` (R-S237-1/5), and S234's one owner outcome per cycle, the revision
+note, the tenant earlier-terms wording, Working-only terms and the per-field approval coverage
+(R-S234-2/3/4/5). The Gmail draft claim now re-reads the Working terms inside its transaction, so a
+terms save after the preview refuses the draft.
 
 PR #164 (merged at `c689d627`; exact-main CI `40760251764` passed) added the S232 per-reason counts
 under All leases (R-S232-3) and one status, waiting-on and evidence line per lease on the desk row and in Focus,
@@ -49,13 +50,36 @@ on the lease page and in Focus names what it needs, who resolves it and links to
 timing panel, a control on the lease or the page's refresh), or says it is resolved outside the app
 (R-S232-5). It also binds a tenant answer to the Working term revisions it answered (R-S234-5).
 
-The branch claude/renewal-novdec-rows5-20261028 completes S233's engineering rows. An incoming
-check that cannot read cleanly names why, since when and that sends are held, and a failed mailbox
-sync marks its sequences "not checked this run" (R-S233-4). The hub and the read-only assurance
-read the worker's last run, its counts, the oldest past-due lag and the oldest incoming check
-(R-S233-5). The stale maintenance browser check is replaced by an S233 phase of the served S238
-journey (`npm run smoke:renewal-novdec-journey`); that run also found and fixed a composer load
-that, run twice in development, installed a second new draft (R-S233-9).
+PR #165 (merged at `db038857`; exact-main CI `40774457242` passed) completed S233's engineering
+rows. It was merged on all five exact-head checks while its automated Codex review of `04cd9b12`
+still read Running; a later manual review request reviewed the merge commit and found no major
+issues. An incoming check that cannot read cleanly names why, since when and that sends are held,
+and a failed mailbox sync marks its sequences "not checked this run" (R-S233-4). The hub and the
+read-only assurance read the worker's last run, its counts, the oldest past-due lag and the oldest
+incoming check (R-S233-5). The stale maintenance browser check is replaced by an S233 phase of the
+served S238 journey (`npm run smoke:renewal-novdec-journey`); that run also found and fixed a
+composer load that, run twice in development, installed a second new draft (R-S233-9).
+
+The branch claude/renewal-novdec-rows6-20261028 adds the journey's S234 phase (Working terms, an
+approval with who, how and when, and its coverage naming the rent as no longer covered after a
+Working rent save, on the lease page and the desk row alike) and an Admin role refusal: 24 of 24
+steps on `e2188bd3`. It also follows through on R-S233-1 (`94d95d97`): a communication action or
+status read whose message attempts cannot be loaded keeps its recorded result and says so, the
+composer labels the list it still shows with its last successful check, and Check recorded status
+loads them again; nothing is resent. The journey passed 25 of 25 steps on `94d95d97`, modeling that
+failed read in the browser. A test comment's historical count (S142 predicate equivalence: 10 manual
+summaries and 8 guidance outputs changed, 18 in all) is corrected; no baseline changed.
+
+October 29: PR #166 opened that branch at `06f4a61f`. Its automated review completed on that head
+with no findings, and the clean unit run there passed 1,047 files (1 skipped) and 9,855 tests (4
+skipped). Its CI failed two jobs. The production dependency audit found GHSA-rmxm-3fg6-px4f
+(published October 28, 21:05 UTC) in `@hono/node-server` 2.0.12, which the optional MCP SDK peer of
+`@google/genai` brings in; an exact override now selects the first patched release, 2.1.3, and the
+dependency boundary test pins it. Production (`6fbd6225`) carries 2.0.12 until the next release. One
+emulator test (`tests/firestore/s113-sheet-route.test.ts`, the tenant preview after a Working terms
+save) timed out under CI load with its latest preparation reads still pending after 23 seconds; it
+passed 28 of 28 locally on the same head. A new commit leaves a review bound to its earlier head, so
+the patched branch is opened as a new pull request and PR #166 is closed unmerged with its receipts.
 
 Production still serves `6fbd6225` (S231); the staff walkthrough is NOT RUN.
 

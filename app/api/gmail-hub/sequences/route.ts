@@ -8,9 +8,22 @@ import {
   SequenceCommandSchema,
   sequenceResponse,
   boundedCommunicationBody,
+  type SequenceAttemptsRead,
 } from "@/lib/gmail-hub/sequence-http";
 import { gmailHubErrorResponse, readAllowedQuery } from "@/lib/gmail-hub/http";
 
+/** S233 R-S233-1: a failed attempt read never hides the recorded state or undoes an action. */
+async function readAttempts(
+  service: ReturnType<typeof createCommunicationSequenceService>,
+  actor: Awaited<ReturnType<typeof requireCapability>>,
+  id: string,
+): Promise<SequenceAttemptsRead> {
+  try {
+    return await service.attempts(actor, id);
+  } catch {
+    return "unavailable";
+  }
+}
 export async function GET(request: Request) {
   try {
     const actor = await requireCapability("read");
@@ -19,8 +32,9 @@ export async function GET(request: Request) {
     if (q.has("id")) {
       const id = z.string().uuid().parse(q.get("id"));
       const sequence = await service.get(actor, id);
-      // S233 R-S233-1: refused and unconfirmed attempts stay visible after a refresh.
-      return sequenceResponse(sequence, await service.attempts(actor, id));
+      // S233 R-S233-1: refused and unconfirmed attempts stay visible after a refresh; when they
+      // cannot be read, the recorded state still returns and the response says so.
+      return sequenceResponse(sequence, await readAttempts(service, actor, id));
     }
     const after = q.has("after") ? z.string().uuid().parse(q.get("after")) : null;
     return NextResponse.json(await service.list(actor, after), {
@@ -40,16 +54,9 @@ export async function POST(request: Request) {
     const service = createCommunicationSequenceService();
     // S233 R-S233-1 (PR #162 review): every action's response carries the refreshed attempts, so
     // the evidence list follows a send, reconcile or refresh without a reload. A failed attempt
-    // read leaves the action's own result standing.
-    const respond = async (sequence: CommunicationSequence) => {
-      let attempts: Awaited<ReturnType<typeof service.attempts>> | undefined;
-      try {
-        attempts = await service.attempts(actor, sequence.id);
-      } catch {
-        attempts = undefined;
-      }
-      return sequenceResponse(sequence, attempts);
-    };
+    // read leaves the action's own result standing and says the attempts are unavailable.
+    const respond = async (sequence: CommunicationSequence) =>
+      sequenceResponse(sequence, await readAttempts(service, actor, sequence.id));
     if (input.action === "save")
       return respond(
         await service.save(actor, input.draft, input.expectedVersion, input.operationId),

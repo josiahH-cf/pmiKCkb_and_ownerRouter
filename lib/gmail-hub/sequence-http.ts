@@ -47,9 +47,13 @@ export const SequenceCommandSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("reconcile"), id: identity.id }).strict(),
   z.object({ action: z.literal("refresh"), id: identity.id }).strict(),
 ]);
+/** S233 R-S233-1: an attempt read, or the explicit statement that it could not be read now. */
+export type SequenceAttemptsRead =
+  | { occurrences: CommunicationOccurrence[]; truncated: boolean }
+  | "unavailable";
 export function sequenceResponse(
   sequence: CommunicationSequence,
-  attempts?: { occurrences: CommunicationOccurrence[]; truncated: boolean },
+  attempts?: SequenceAttemptsRead,
 ) {
   return NextResponse.json(
     {
@@ -58,9 +62,12 @@ export function sequenceResponse(
         initial: sequence.initial,
         followUp: sequence.followUp,
       }),
-      ...(attempts
-        ? { attempts: attempts.occurrences, attemptsTruncated: attempts.truncated }
-        : {}),
+      // A failed attempt read is stated, so a client never presents its last list as current.
+      ...(attempts === "unavailable"
+        ? { attemptsUnavailable: true }
+        : attempts
+          ? { attempts: attempts.occurrences, attemptsTruncated: attempts.truncated }
+          : {}),
     },
     { headers: { "Cache-Control": "private, no-store" } },
   );

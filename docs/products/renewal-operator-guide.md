@@ -186,7 +186,10 @@ behavior.
 - An opened communication lists what happened to each message, naming its lease, renewal cycle and
   audience: "Accepted by Gmail", "Failed delivery" (a delivery report tied to that attempt), "Not
   confirmed, checking", "Not sent: …", "Reply received", "Automatic response", or "Failed
-  delivery, attempt not identified". It never says delivered or read; Gmail shows neither.
+  delivery, attempt not identified". It never says delivered or read; Gmail shows neither. If the
+  attempts can't be loaded just then, the list says so and shows when it was last loaded; the
+  communication's state above it is still current, and **Check recorded status** loads the attempts
+  again. Nothing is resent.
 - Each communication shows when its incoming check last ran ("Incoming checked 3 min ago"). When a
   check cannot read cleanly it says why (a linked Gmail thread could not be read, a thread is over
   the 50-message or 100,000-character read limit, or the staff mailbox sync failed, so it was not
