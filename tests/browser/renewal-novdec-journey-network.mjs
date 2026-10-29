@@ -3,12 +3,18 @@
 // pmikcmetro account are answered from synthetic rows below; every other non-loopback connection is
 // refused and logged, so no live provider, Google API or metadata server can be reached. Nothing
 // here writes anywhere except the refusal log.
-import { appendFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import http from "node:http";
 import https from "node:https";
 import net from "node:net";
 
 const LOG = process.env.NOVDEC_JOURNEY_NETWORK_LOG;
+// S232 R-S232-5: while this file exists, the RentVine read of the path it names (for example
+// `leases/statuses`) fails as an outage would. The browser script writes and removes it; this
+// module only reads it.
+const OUTAGE = process.env.NOVDEC_JOURNEY_OUTAGE_FLAG;
+const outagePath = () =>
+  OUTAGE && existsSync(OUTAGE) ? readFileSync(OUTAGE, "utf8").trim() : null;
 const RENTVINE_HOST = "pmikcmetro.rentvine.com";
 const record = (entry) => {
   if (LOG)
@@ -24,7 +30,8 @@ const loopback = (host) =>
   host.startsWith("127.") ||
   host === "0.0.0.0";
 
-// Synthetic leases only: one ending in November 2026 and one in December 2026 (America/Chicago).
+// Synthetic leases only: one ending in November 2026 and one in December 2026 (America/Chicago),
+// and a November lease with a move-out notice for the S232 issue resolvers.
 const LEASES = [
   {
     lease: {
@@ -61,6 +68,23 @@ const LEASES = [
     },
     unit: { unitID: 5002, rent: "1400.00", beds: 3, fullBaths: 2, postalCode: "64116" },
   },
+  {
+    lease: {
+      leaseID: 6001,
+      startDate: "2025-11-21",
+      endDate: "2026-11-20",
+      leaseType: "Fixed Term",
+      // S232 R-S232-5: notice given 26 days before the lease end, so the notice timing names the
+      // Admin basis while none is recorded and the non-renewal handoff once one is.
+      leaseStatusID: 2,
+      noticeDate: "2026-10-25",
+      expectedMoveOutDate: "2026-11-20",
+      tenants: [{ name: "Morgan Example", contactID: 7101 }],
+    },
+    property: { name: "Notice Row", streetNumber: "6001", streetName: "Notice Row" },
+    portfolio: { portfolioID: 93, owners: [{ name: "Quinn Owner" }] },
+    unit: { unitID: 6002, rent: "1300.00", beds: 2, fullBaths: 1, postalCode: "64119" },
+  },
 ];
 
 function detail(row) {
@@ -75,9 +99,9 @@ function detail(row) {
     isMonthToMonth: "0",
     monthToMonthStartDate: null,
     hasPendingMonthToMonthConversion: false,
-    leaseStatusID: 1,
-    noticeDate: null,
-    expectedMoveOutDate: null,
+    leaseStatusID: lease.leaseStatusID ?? 1,
+    noticeDate: lease.noticeDate ?? null,
+    expectedMoveOutDate: lease.expectedMoveOutDate ?? null,
     moveOutDate: null,
   };
 }
@@ -95,6 +119,14 @@ function rentvine(url) {
           leaseStatusID: 1,
           name: "Active",
           isPendingMoveOutStatus: 0,
+          isCompletedMoveOutStatus: 0,
+        },
+      },
+      {
+        leaseStatus: {
+          leaseStatusID: 2,
+          name: "Notice Given",
+          isPendingMoveOutStatus: 1,
           isCompletedMoveOutStatus: 0,
         },
       },
@@ -225,6 +257,14 @@ globalThis.fetch = async function guardedFetch(input, init) {
     if ((init?.method ?? "GET").toUpperCase() !== "GET") {
       record({ refused: "rentvine_write", path: url.pathname });
       throw new TypeError("The isolated journey refuses every RentVine write.");
+    }
+    const path = url.pathname.replace(/^\/api\/manager\//, "").replace(/\/$/, "");
+    if (path === outagePath()) {
+      record({ served: "rentvine", path: url.pathname, outage: true });
+      return new Response(JSON.stringify({ error: "synthetic outage" }), {
+        status: 503,
+        headers: { "content-type": "application/json" },
+      });
     }
     const body = rentvine(url);
     record({ served: "rentvine", path: url.pathname, found: body !== undefined });

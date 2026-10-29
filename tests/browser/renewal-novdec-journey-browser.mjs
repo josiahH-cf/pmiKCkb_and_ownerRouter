@@ -11,6 +11,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { createServer } from "node:net";
@@ -87,6 +88,8 @@ const origin = `http://localhost:${port}`;
 const serverLog = createWriteStream(join(output, "server.log"));
 const preload = join(process.cwd(), "tests/browser/renewal-novdec-journey-network.mjs");
 const serverHome = join(output, "server-home");
+// S232 R-S232-5: naming a RentVine path here makes its read fail until the file is removed.
+const outageFlag = join(output, "synthetic-rentvine-outage");
 mkdirSync(serverHome, { recursive: true });
 writeFileSync(
   join(serverHome, "synthetic-adc.json"),
@@ -115,6 +118,7 @@ const server = spawn(
       TZ: "America/Chicago",
       NODE_OPTIONS: `--import ${preload}`,
       NOVDEC_JOURNEY_NETWORK_LOG: join(output, "network.jsonl"),
+      NOVDEC_JOURNEY_OUTAGE_FLAG: outageFlag,
       NEXT_E2E_ISOLATED_BUILD: "true",
       NEXT_TELEMETRY_DISABLED: "1",
       ENVIRONMENT_KIND: "demo",
@@ -1340,6 +1344,141 @@ try {
     },
   );
 
+  // S237: the December lease's source panels after the S234 phase's Working terms. The Demo
+  // descriptor refuses every source update before it reads a request, so no preview exists here;
+  // previews, claims, receipts and readback are covered by the emulator tests.
+  const differences = () => page.locator('[data-renewal-field="remaining-differences"]');
+  const differenceRow = (label) =>
+    differences().locator("[data-renewal-difference]").filter({ hasText: label }).first();
+  await step(
+    "S237-differences-live",
+    "R-S237-5 (what still differs), PR #163 review (recomputed from the live Working record)",
+    "A Working rent save changes What still differs to the new Working rent beside the RentVine read, without a reload",
+    async () => {
+      await openOwnerDecision();
+      const rentRow = differenceRow("Rent charge");
+      await rentRow.waitFor();
+      const before = (await rentRow.innerText()).replace(/\s+/g, " ");
+      assert.match(before, /\$1475\.00; source /);
+      // The marker survives only if the page is not reloaded.
+      await page.evaluate(() => {
+        window.__novdecNoReload = true;
+      });
+      const rent = page.getByLabel("Working monthly rent", { exact: true });
+      await rent.scrollIntoViewIfNeeded();
+      await rent.fill("1500");
+      const saved = workingSave();
+      await rent.press("Tab");
+      assert.equal((await saved).status(), 200, "the Working rent was not saved");
+      await page.waitForFunction(() =>
+        [
+          ...document.querySelectorAll(
+            '[data-renewal-field="remaining-differences"] [data-renewal-difference]',
+          ),
+        ].some(
+          (row) =>
+            row.textContent?.includes("Rent charge") &&
+            row.textContent.includes("$1500.00"),
+        ),
+      );
+      assert.equal(
+        await page.evaluate(() => window.__novdecNoReload === true),
+        true,
+        "the page reloaded",
+      );
+      const after = (await rentRow.innerText()).replace(/\s+/g, " ");
+      assert.match(after, /\$1500\.00; source .+\. Differs\.$/);
+      const endDate = (await differenceRow("Lease end date").innerText()).replace(
+        /\s+/g,
+        " ",
+      );
+      const terms = await workingTerms();
+      assert.equal(terms.terms_rent?.value, 1500);
+      const file = await capture(page, "s237-differences-live", differences());
+      return { before, after, endDate, working: terms.terms_rent, screenshot: file };
+    },
+  );
+
+  await step(
+    "S237-scope-statement",
+    "R-S237-6 (one scope statement)",
+    "The lease page states once what confirmed source updates change, what stays manual and what is unsupported",
+    async () => {
+      const scope = page.locator('[data-renewal-field="source-update-scope"]');
+      assert.equal(
+        await scope.count(),
+        1,
+        "the scope statement is not shown exactly once",
+      );
+      const text = (await scope.innerText()).replace(/\s+/g, " ");
+      assert.match(
+        text,
+        /^Confirmed updates change lease dates and recurring charges in RentVine and the recognized renewal fields on the Sheet\. .+ stay manual\. .+no Sheet row deletion\.$/,
+      );
+      return text;
+    },
+  );
+
+  await step(
+    "S237-preview-refused",
+    "R-S237 scoped refusal under the effect-refused descriptor, R-S238-2",
+    "Saving a RentVine update proposal is refused before any read, with its reason shown; no proposal is stored and nothing reaches RentVine",
+    async () => {
+      const panel = page.locator('[aria-labelledby="rentvine-updates-title"]');
+      await panel
+        .getByText("Prepare a RentVine update proposal", { exact: true })
+        .click();
+      await panel.getByLabel("New end date (YYYY-MM-DD)").fill("2027-12-31");
+      // The panel's own status read is refused the same way before anything is prepared.
+      const statusRefusal = (await panel.getByRole("alert").innerText()).replace(
+        /\s+/g,
+        " ",
+      );
+      assert.match(
+        statusRefusal,
+        /A Live provider action requires the Production environment/,
+      );
+      await page.waitForFunction(
+        () =>
+          !document.querySelector(
+            '[aria-labelledby="rentvine-updates-title"] [aria-busy="true"]',
+          ),
+      );
+      const [response] = await Promise.all([
+        page.waitForResponse(
+          (reply) =>
+            new URL(reply.url()).pathname === "/api/lease-renewal/rentvine-writeback" &&
+            reply.request().method() === "POST",
+        ),
+        panel
+          .getByRole("button", { name: "Save proposal from fresh RentVine state" })
+          .click(),
+      ]);
+      assert.equal(response.status(), 409);
+      const body = await response.json();
+      assert.equal(body.error_type, "environment_context_not_allowed");
+      const notice = panel.getByText(
+        /A Live provider action requires the Production environment/,
+      );
+      await notice.first().waitFor();
+      const shown = (await notice.first().innerText()).replace(/\s+/g, " ");
+      const stored = await db
+        .collection("renewal_writeback_proposals")
+        .doc(OWNER_LEASE)
+        .get();
+      assert.equal(stored.exists, false, "a proposal was stored");
+      const file = await capture(page, "s237-preview-refused", panel);
+      return {
+        statusRefusal,
+        status: response.status(),
+        code: body.error_type,
+        shown,
+        proposalStored: stored.exists,
+        screenshot: file,
+      };
+    },
+  );
+
   await step(
     "S238-role-refusal",
     "R-S238-2 role refusal, R-S232-5 (resolved by an Admin)",
@@ -1367,6 +1506,293 @@ try {
         landedOn: new URL(page.url()).pathname + new URL(page.url()).search,
         adminWrite: refused,
         timingBasisRecords: saved.size,
+      };
+    },
+  );
+
+  // S232 R-S232-5: each issue names what it needs and who resolves it, and its link reaches what
+  // resolves it. An Admin in a second browser follows the move-out lease's issues in turn.
+  const office = await browser.newContext({
+    viewport: { width: 1360, height: 900 },
+    timezoneId: "America/Chicago",
+  });
+  const admin = await office.newPage();
+  const NOTICE_LEASE = "6001";
+  const leaseView = (target, name) =>
+    target.getByRole("group", { name: "Lease view" }).getByRole("button", {
+      name,
+      exact: true,
+    });
+  const openLease = async (target, leaseId, view = "Full view") => {
+    await target.goto(`${origin}/lease-renewal/live/desk/lease/${leaseId}`, {
+      waitUntil: "domcontentloaded",
+    });
+    const button = leaseView(target, view);
+    // A click before hydration does nothing, so retry until the switch reports the view.
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      await button.click();
+      if ((await button.getAttribute("aria-pressed")) === "true") break;
+      await target.waitForTimeout(1000);
+    }
+    assert.equal(
+      await button.getAttribute("aria-pressed"),
+      "true",
+      `${view} did not open`,
+    );
+  };
+  // Full view lists the issues under "Other current issues"; Focus lists them as lease notes.
+  const ISSUE_LISTS = {
+    full: "details.renewal-issues",
+    focus: 'ul.renewal-focus-advisories[aria-label="Lease notes"]',
+  };
+  const issueAt = (target, kind, linkName, list = "full") =>
+    target
+      .locator(`${ISSUE_LISTS[list]} [data-renewal-issue-resolve-at="${kind}"]`)
+      .filter({ hasText: linkName })
+      .first();
+  const expandIssues = async (target) => {
+    const disclosure = target.locator(ISSUE_LISTS.full).first();
+    await disclosure.waitFor({ state: "attached" });
+    if (!(await disclosure.evaluate((element) => element.open)))
+      await disclosure.locator("summary").click();
+  };
+  const issueRow = async (issue) =>
+    (await issue.locator("xpath=..").innerText()).replace(/\s+/g, " ");
+  const inView = (target, id) =>
+    target.waitForFunction((elementId) => {
+      const box = document.getElementById(elementId)?.getBoundingClientRect();
+      return Boolean(box && box.height > 0 && box.top < innerHeight && box.bottom > 0);
+    }, id);
+
+  await step(
+    "S232-resolver-sign-in",
+    "R-S232-5, R-S238-2 local identity",
+    "A local demo Admin session in a second browser",
+    async () => {
+      activePage = admin;
+      await admin.goto(`${origin}/sign-in`, { waitUntil: "domcontentloaded" });
+      const ok = await admin.evaluate(async () => {
+        const response = await fetch("/api/auth/demo", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ role: "Admin" }),
+        });
+        return response.ok;
+      });
+      assert.ok(ok, "demo Admin sign-in failed");
+      return "Signed in as the local demo Admin";
+    },
+  );
+
+  await step(
+    "S232-resolver-page",
+    "R-S232-5 (resolved on another page, by an Admin)",
+    "With no timing basis recorded, the move-out lease's notice timing names the reviewed basis and an Admin, and its link opens the Admin timing panel",
+    async () => {
+      activePage = admin;
+      await openLease(admin, NOTICE_LEASE);
+      await expandIssues(admin);
+      const issue = issueAt(admin, "page", "Record the timing basis in Admin");
+      await issue.waitFor();
+      const row = await issueRow(issue);
+      assert.match(row, /Notice timing: Cannot determine\./);
+      assert.match(
+        row,
+        /Needs: The reviewed move-out timing basis\. Resolved by: an Admin \(record the reviewed timing basis\)\./,
+      );
+      const link = issue.getByRole("link", { name: "Record the timing basis in Admin" });
+      assert.equal(await link.getAttribute("href"), "/admin#admin-move-out-timing-basis");
+      await link.click();
+      await admin.waitForURL(
+        (url) => url.pathname === "/admin" && url.hash === "#admin-move-out-timing-basis",
+      );
+      const panel = admin.locator("#admin-move-out-timing-basis");
+      await panel.getByText("Notice timing basis is not reviewed.").waitFor();
+      await inView(admin, "admin-move-out-timing-basis");
+      const file = await capture(admin, "s232-resolver-admin-panel", panel);
+      const landed = new URL(admin.url());
+      return { row, landedOn: landed.pathname + landed.hash, screenshot: file };
+    },
+  );
+
+  await step(
+    "S232-resolver-basis-recorded",
+    "R-S232-5 (the Admin resolves it); a synthetic record in the isolated emulator, not the production C05 recording",
+    "The Admin records the decided basis (lease end, calendar days, 30) on that panel and the panel confirms version 1",
+    async () => {
+      activePage = admin;
+      const panel = admin.locator("#admin-move-out-timing-basis");
+      await panel.getByLabel("Compare the notice against").selectOption("lease_end");
+      await panel
+        .getByLabel("Counting rule")
+        .selectOption("calendar_days_target_minus_notice_v1");
+      await panel.getByLabel("Threshold in calendar days").fill("30");
+      await panel
+        .getByLabel("Who confirmed this basis, and where")
+        .fill(
+          "Synthetic journey basis in the isolated emulator; not the production record",
+        );
+      const [saved] = await Promise.all([
+        admin.waitForResponse(
+          (response) =>
+            new URL(response.url()).pathname === "/api/admin/move-out-timing-basis" &&
+            response.request().method() === "PATCH",
+        ),
+        panel.getByRole("button", { name: "Record reviewed basis" }).click(),
+      ]);
+      assert.equal(saved.status(), 200, "the basis was refused");
+      await panel.getByText("Recorded. Every desk read now uses version 1.").waitFor();
+      const records = await db.collection("lease_renewal_move_out_timing_basis").get();
+      assert.equal(records.size, 1);
+      const record = records.docs[0].data();
+      assert.equal(record.target_kind, "lease_end");
+      assert.equal(record.counting_rule, "calendar_days_target_minus_notice_v1");
+      assert.equal(record.threshold_days, 30);
+      return {
+        version: record.version,
+        target: record.target_kind,
+        rule: record.counting_rule,
+        thresholdDays: record.threshold_days,
+      };
+    },
+  );
+
+  await step(
+    "S232-resolver-control",
+    "R-S232-5 (resolved by a control on this lease)",
+    "With the basis recorded, the notice reads below the 30-day basis and its link moves to the non-renewal handoff on the same page",
+    async () => {
+      activePage = admin;
+      await openLease(admin, NOTICE_LEASE);
+      await expandIssues(admin);
+      const issue = issueAt(admin, "control", "Open the non-renewal handoff");
+      await issue.waitFor();
+      const row = await issueRow(issue);
+      assert.match(row, /Notice timing: .*30-day/);
+      assert.match(
+        row,
+        /Needs: A review of a notice given inside the timing threshold\. Resolved by: Staff review\./,
+      );
+      const link = issue.getByRole("link", { name: "Open the non-renewal handoff" });
+      assert.equal(
+        await link.getAttribute("href"),
+        "#renewal-manual-non_renewal_handoff",
+      );
+      await link.click();
+      await admin.waitForFunction(
+        () => location.hash === "#renewal-manual-non_renewal_handoff",
+      );
+      await inView(admin, "renewal-manual-non_renewal_handoff");
+      const file = await capture(
+        admin,
+        "s232-resolver-handoff",
+        admin.locator("#renewal-manual-non_renewal_handoff"),
+      );
+      return { row, hash: new URL(admin.url()).hash, screenshot: file };
+    },
+  );
+
+  await step(
+    "S232-resolver-focus",
+    "R-S232-5 (Focus states the same input, resolver and link)",
+    "Focus view states the same need, resolver and link for the notice timing as the issue list",
+    async () => {
+      activePage = admin;
+      await openLease(admin, NOTICE_LEASE);
+      await expandIssues(admin);
+      const full = await issueRow(
+        issueAt(admin, "control", "Open the non-renewal handoff"),
+      );
+      await openLease(admin, NOTICE_LEASE, "Focus view");
+      const issue = issueAt(admin, "control", "Open the non-renewal handoff", "focus");
+      await issue.waitFor();
+      const focus = (await issue.innerText()).replace(/\s+/g, " ");
+      assert.ok(full.includes(focus), `Focus differs from the issue list: ${focus}`);
+      assert.equal(
+        await issue
+          .getByRole("link", { name: "Open the non-renewal handoff" })
+          .getAttribute("href"),
+        "#renewal-manual-non_renewal_handoff",
+      );
+      return { focus };
+    },
+  );
+
+  await step(
+    "S232-resolver-refresh",
+    "R-S232-5 (an issue the next source read resolves)",
+    "During a synthetic RentVine status-table outage the notice safety issue says the app reads it on the next refresh; once RentVine answers, the page's own refresh reads it and the issue clears",
+    async () => {
+      activePage = admin;
+      const STATUSES = "leases/statuses";
+      const ISSUE = "move_out:approval_safety_unavailable";
+      const statusReads = () =>
+        readFileSync(join(output, "network.jsonl"), "utf8")
+          .trim()
+          .split("\n")
+          .filter(Boolean)
+          .map((line) => JSON.parse(line))
+          .filter(
+            (entry) =>
+              entry.served === "rentvine" &&
+              entry.path.replace(/\/$/, "").endsWith(STATUSES),
+          );
+      const issue = () =>
+        admin.locator(`${ISSUE_LISTS.full} [data-renewal-issue-id="${ISSUE}"]`).first();
+      await openLease(admin, NOTICE_LEASE);
+      let row;
+      writeFileSync(outageFlag, STATUSES);
+      try {
+        // The page's own refresh forces a source read, which meets the outage.
+        await admin.locator("#renewal-refresh").click();
+        await issue().waitFor({ state: "attached", timeout: 90_000 });
+        await expandIssues(admin);
+        row = (await issue().innerText()).replace(/\s+/g, " ");
+      } finally {
+        rmSync(outageFlag, { force: true });
+      }
+      assert.match(row, /Needs: The lease's move-out status\./);
+      assert.match(
+        row,
+        /Outside the app: Check the lease's notice and move-out status in RentVine; the app reads it on the next refresh\./,
+      );
+      const outageReads = statusReads().filter((entry) => entry.outage).length;
+      assert.ok(outageReads > 0, "no status-table read met the outage");
+      const file = await capture(admin, "s232-resolver-refresh", issue());
+      // The control stays busy until a new snapshot time arrives or its 60-second bound passes;
+      // during the outage the read time does not change, so it may end with its own retry note.
+      const refresh = admin.locator("#renewal-refresh");
+      await admin.waitForFunction(
+        () =>
+          document.getElementById("renewal-refresh")?.hasAttribute("disabled") === false,
+        null,
+        { timeout: 90_000 },
+      );
+      const refreshNote = await refresh
+        .locator("xpath=..")
+        .getByRole("alert")
+        .allInnerTexts();
+      // The refresh route also allows one forced read per operator every 10 seconds.
+      await admin.waitForTimeout(11_000);
+      const answered = statusReads().filter((entry) => !entry.outage).length;
+      await refresh.click();
+      await admin.waitForFunction(
+        (selector) => !document.querySelector(selector),
+        `${ISSUE_LISTS.full} [data-renewal-issue-id="${ISSUE}"]`,
+        { timeout: 90_000 },
+      );
+      await admin
+        .getByText(/Move-out initiated in RentVine: Notice Given/)
+        .first()
+        .waitFor();
+      const after = statusReads().filter((entry) => !entry.outage).length;
+      assert.ok(after > answered, "the refresh read nothing");
+      return {
+        row,
+        outageReads,
+        refreshNote,
+        statusReadsAfterRefresh: after - answered,
+        screenshot: file,
       };
     },
   );
