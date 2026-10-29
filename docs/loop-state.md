@@ -16,18 +16,15 @@ session) reviewed the merge commit `db038857` and found no major issues at 06:45
 marker now reads completed with no findings for `db038857`. Exact-main CI `40774457242` passed.
 Further merges wait for each PR's own review outcome.
 
-The branch claude/renewal-novdec-rows6-20261028 adds the journey's S234 phase and an Admin role
-refusal (24 of 24 steps on `e2188bd3`), the S233 attempt-read follow-through (25 of 25 on
-`94d95d97`) and the S142 test comment's corrected historical count. PR #166 (`06f4a61f`, review
-completed without findings) failed CI on a new dependency advisory, now patched by the
-`@hono/node-server` 2.1.3 override, and on one emulator wait under load; the patched head continues
-as a new pull request. Each suite's status line names what remains. Nothing was served; production remains `6fbd6225` (S231). The staff walkthrough is
-NOT RUN. Client inputs C00–C13 stay in `docs/open-blockers.md`. The read-only release preflight
-reads `not_ready`: the Awaiting release queue is empty and no permit or fresh GO exists. NEXT: the
-remaining ready rows, independent of delivery. The owner directed merge and deployment once the
-work is done (owner step R1, October 28, 22:01:58Z); delivery still needs the release pipeline's own
-prerequisites. S238 owns the
-November 4, 2026 (Central) blocker review.
+PR #167 merged the rows6 branch (the journey's S234 phase, the S233 attempt-read follow-through and
+S239, the `@hono/node-server` 2.1.3 patch) at `bb8e7a00` on its exact head, after its own review
+completed without findings and the publication guard passed; exact-main CI `40861616011` passed.
+PR #166 stays closed unmerged with its receipts. The branch claude/renewal-novdec-rows7-20261029 adds
+the journey's S237 and S232 resolver phases (34 of 34 on `40fbc251`) and the two product fixes they
+found (`8b52edf9`, `64e0bf57`). Each suite's status line names what remains. Nothing is served yet;
+production remains `6fbd6225` (S231). The staff walkthrough is NOT RUN. Client inputs C00–C13 stay
+in `docs/open-blockers.md`. NEXT: the guarded release of the queue below, through the release
+pipeline's own prerequisites. S238 owns the November 4, 2026 (Central) blocker review.
 
 ## Dotloop A1 resolved and selected (October 27)
 
@@ -68,9 +65,24 @@ October 16 source. Original and admitted checkouts remain preserved.
 
 ## Awaiting release
 
-Empty. S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and fast-uri 3.1.9, owner direction in the
-2026-10-27 Dotloop resume prompt) was independently verified delivered by run 030761c0; S230 by
-run eee80164; S227, S228 and S229 by run 57e4a1b5.
+1. S232 `bf0c03f9` `a786fa16` `c689d627` `64e0bf57`: the November/December desk and each issue's
+   need, resolver and link, including the non-renewal handoff for a RentVine move-out.
+2. S233 `bf0c03f9` `be8c0bf4` `f1f06bfb` `db038857` `bb8e7a00`: message evidence, failure reasons,
+   worker health and attempt-read freshness.
+3. S234 `bf0c03f9` `f1f06bfb` `06c73561` `c689d627`: evidenced owner approval and coverage.
+4. S235 `bf0c03f9` `be8c0bf4` `8c84ed04`: per-family readiness, packet state and selection freshness.
+5. S236 `bf0c03f9` `a786fa16` `be8c0bf4` `8c84ed04`: returned documents and signer records.
+6. S237 `bf0c03f9` `a786fa16` `be8c0bf4` `06c73561` `8b52edf9`: the terms basis, what still
+   differs, plain outcomes and the RentVine panel's status read.
+7. S238 `8c84ed04` `db038857` `bb8e7a00` `40fbc251`: the isolated journey and its evidence.
+8. S239 `fdc76c7b`: `@hono/node-server` 2.1.3 patches GHSA-rmxm-3fg6-px4f, which failed the
+   unchanged production audit on 2026-10-29.
+
+OWNER DIRECTION, 2026-10-28T22:01:58Z, replying to the PMI update: "Once done merge and deploy".
+Release only through docs/release-batch-runbook.md: admit only after exact main CI on the release
+head, fresh prerequisites and a new run-bound permit. Both Dotloop write keys stay closed, assurance
+stays read-only and no provider record is written to prove the release. S231 was independently
+verified delivered by run 030761c0; S230 by run eee80164; S227, S228 and S229 by run 57e4a1b5.
 
 ## Verified production
 

@@ -81,6 +81,18 @@ save) timed out under CI load with its latest preparation reads still pending af
 passed 28 of 28 locally on the same head. A new commit leaves a review bound to its earlier head, so
 the patched branch is opened as a new pull request and PR #166 is closed unmerged with its receipts.
 
+PR #167 (merged at `bb8e7a00`; exact-main CI `40861616011` passed) carried that branch with S239,
+the `@hono/node-server` 2.1.3 patch. It merged on its exact head after its automated review completed
+without findings and the coordinator's read-only publication guard passed.
+
+The branch claude/renewal-novdec-rows7-20261029 adds the journey's S237 and S232 resolver phases: 34
+of 34 steps on `40fbc251`, after a first committed run on `ca5d86c1` failed one Focus step (kept).
+Their development found two product bugs, each fixed with tests that fail without the fix. The
+RentVine panel stayed busy when React ran its effects twice (`8b52edf9`). A move-out that RentVine
+already shows had no non-renewal handoff, so its notice-timing issue's link had no target
+(`64e0bf57`). The Admin records a synthetic timing basis only in the isolated emulator; the
+production recording stays C05.
+
 Production still serves `6fbd6225` (S231); the staff walkthrough is NOT RUN.
 
 October 27: Dotloop A1 is resolved. Dan had made integrations a company admin, not an office

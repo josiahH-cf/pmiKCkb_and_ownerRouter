@@ -73,6 +73,13 @@ in-range body-parser 1.20.9 and nested 2.4.0; the lockfile changes only those pa
 iconv-lite 0.7.3 and a nested content-type 2.1.0. The production audit then reports zero findings
 and the dependency boundary test pins the new versions. Run `030761c0` released S231 on 2026-10-27.
 
+S239, 2026-10-29: PR #166's production dependency audit failed on GHSA-rmxm-3fg6-px4f (moderate,
+published 2026-10-28T21:05Z) in `@hono/node-server` 2.0.12, which the optional MCP SDK peer of
+`@google/genai` brings in. `fdc76c7b` overrides it to the first patched release, 2.1.3; the lockfile
+changes only that entry, the production audit reports zero findings and the dependency boundary test
+pins the version. PR #167 merged it at `bb8e7a00`. Production serves 6fbd6225 until the next guarded
+run verifies.
+
 Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
 read back at resource version 8, all unverified. The deployed readiness page displays ten form
 families across renewal extension, full lease and owner acknowledgment. Actual originals and
