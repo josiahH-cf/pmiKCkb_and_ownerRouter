@@ -135,7 +135,9 @@ tool, in any order. Choose an outcome and it saves at once; add the source/chann
 when you leave the box. Record **Owner response** separately from **Tenant response**. The owner's
 approval is the recorded answer; the exact rent and dates live in **Rent and charges** as working
 renewal terms. A counteroffer is guidance for the next conversation; a decline uses the
-non-renewal handoff. Do not record an answer merely to enable a later control.
+non-renewal handoff. When RentVine shows a move-out notice, the non-renewal handoff is already
+there, so you don't need to record an answer first. Do not record an answer merely to enable a
+later control.
 
 Record applicable documents, signatures, accounting/compliance and follow-ups. **Not applicable**
 takes its source or reason when you have one. A recorded activity whose value the Sheet carries
