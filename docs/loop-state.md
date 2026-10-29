@@ -1,42 +1,29 @@
 # Loop state
 
-Last updated: 2026-10-28 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-10-29 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## November/December renewal readiness execution (October 28)
 
 S232–S238 (intake 099–105) were authored against main `a1c0fe8c`; the owner's execution
-instruction then started them in the same owner session. PR #158 merged the first increment at
-`bf0c03f9`, PR #159 its two review fixes and the fact and contract reconciliation at `a786fa16`, and
-PR #160 the remainder slices with the two returned-state review fixes at `be8c0bf4`, and PR #161
-at `8c84ed04`, each after all five CI jobs passed on the exact head (exact-main CI `40720550221`
-passed on `8c84ed04`). PR #161 added, each with tests:
+instruction then started them in the same owner session. PRs #158 to #164 merged their slices, each
+on all five exact-head CI jobs; the last, PR #164 at `c689d627`, passed exact-main CI
+`40760251764`. `docs/status.md` lists what each added, its review fixes and its exact-main CI.
+PR #165 merged S233 R-S233-4/5/9 at `db038857` on all five exact-head checks while its automated
+Codex review of the PR head `04cd9b12` still read Running (summary last updated
+2026-10-28T20:49:48Z, findings unknown). That bypassed the pending review gate and is recorded as
+such: a later manual review request (2026-10-29T06:44:14Z, from the josiahH-cf account, not this
+session) reviewed the merge commit `db038857` and found no major issues at 06:45:59Z. Exact-main CI
+`40774457242` passed. Further merges wait for each PR's own review outcome.
 
-- S236: the persisted returned-document record, its route and screen, derived Required signatures
-  complete and the Admin checkpoint from records; its review fix (`743bac8f`) judges signatures by
-  the Working term revisions the packet's approval facts name;
-- S235: the places refusal, the packet state from recorded events and selection freshness;
-- S238: the isolated browser journey, 14 of 14 steps on `a6f99b6e` and 15 of 15 on `743bac8f`.
-
-PR #162 merged S233 R-S233-1/2 (per-message evidence and attempt-correlated bounces) and S234
-R-S234-1 (who approved, how and when) at `f1f06bfb` after its CI fix (`cbf41be1`: a form test
-assumed US Central time); exact-main CI `40732855488` passed. PR #163 merged
-S237 R-S237-1/5 and S234 R-S234-2/3/4/5 with the Working-terms-bound draft claim at `06c73561`
-after its review fix (`dad8d0f8`: the terms basis and what still differs are recomputed from the
-live records); exact-main CI `40748712201` passed. PR #164 merged S232
-R-S232-3/4/5 (with the `s232-one-status` guidance contract, its independent oracle rule and the
-release observer's expectation) and the S234 tenant answer's Working binding at `c689d627`;
-exact-main CI `40760251764` passed. The branch claude/renewal-novdec-rows5-20261028 adds S233
-R-S233-4/5/9 (failure reasons, worker health on the hub and in the assurance receipt, and the S233
-phase of the served journey with its composer fix), and claude/renewal-novdec-rows6-20261028 the
-journey's S234 phase and an Admin role refusal (24 of 24 steps on `e2188bd3`). Each suite's status
-line names what remains (S237 previews, claims and receipts, which the Demo descriptor refuses,
-charge changes, and Space and mailbox refusals). Nothing was
-served;
-production remains `6fbd6225` (S231). The staff walkthrough is NOT RUN. Client inputs C00–C13 stay
-in `docs/open-blockers.md`. The read-only release preflight reads `not_ready`: the Awaiting release
-queue is empty and no permit or fresh GO exists. NEXT: the remaining ready rows, independent of
-delivery. Delivery needs the owner's direction to queue the merged slices (owner step R1), then the
-release pipeline's own prerequisites. S238 owns the November 4, 2026 (Central) blocker review.
+The branch claude/renewal-novdec-rows6-20261028 adds the journey's S234 phase and an Admin role
+refusal (24 of 24 steps on `e2188bd3`), the S233 attempt-read follow-through (25 of 25 on
+`94d95d97`) and the S142 test comment's corrected historical count. Each suite's status line names
+what remains. Nothing was served; production remains `6fbd6225` (S231). The staff walkthrough is
+NOT RUN. Client inputs C00–C13 stay in `docs/open-blockers.md`. The read-only release preflight
+reads `not_ready`: the Awaiting release queue is empty and no permit or fresh GO exists. NEXT: the
+remaining ready rows, independent of delivery. Delivery needs the owner's direction to queue the
+merged slices (owner step R1), then the release pipeline's own prerequisites. S238 owns the
+November 4, 2026 (Central) blocker review.
 
 ## Dotloop A1 resolved and selected (October 27)
 
