@@ -93,6 +93,17 @@ already shows had no non-renewal handoff, so its notice-timing issue's link had 
 (`64e0bf57`). The Admin records a synthetic timing basis only in the isolated emulator; the
 production recording stays C05.
 
+PR #168 merged that branch at `bdab63a2` (exact-main CI `40872021846`). Release run `ab09e960`
+admitted S232–S239 at `bdab63a2` on October 29 and stopped at candidate assurance, before
+promotion. Two earlier pauses were transient and resumed through the supported path: a read of the
+not-yet-created recovery target and the first candidate smoke during cold start. Reconciliation then
+found one field mismatch in 374 records. The candidate showed S232's ended-without-outcome state
+for one ended lease, and the release checker had no model of that state. `ee420393` makes the
+checker accept the state on the one-status revision only where the lease ended before the Central
+reference date, is not a source skip or periodic review, and has no progress record. The fixed
+checker reconciles the live candidate as matched, 374 of 374. The candidate stayed at zero traffic.
+Next, the run will be retired as superseded and replaced by a new run.
+
 Production still serves `6fbd6225` (S231); the staff walkthrough is NOT RUN.
 
 October 27: Dotloop A1 is resolved. Dan had made integrations a company admin, not an office
