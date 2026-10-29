@@ -19,6 +19,7 @@ import type { RenewalAction } from "@/lib/lease-renewal/renewal-actions";
 import type { DeskLeaseSummaryBase } from "@/lib/lease-renewal/desk-model";
 import {
   ADMIN_TIMING_BASIS_HREF,
+  NON_RENEWAL_HANDOFF_TARGET_ID,
   RENEWAL_ISSUE_KINDS,
   projectRenewalIssues,
   type RenewalIssue,
@@ -71,6 +72,27 @@ const moveOut = (reason: string) =>
     reason,
     label: "Move-out status could not be confirmed.",
   }) as unknown as DeskLeaseSummaryBase["moveOut"];
+// A move-out notice as RentVine reports it (synthetic), with no staff non-renewal recorded.
+const initiatedMoveOut = {
+  state: "initiated",
+  reason: "notice_status",
+  label:
+    "Move-out initiated in RentVine: Notice Given (notice 10/25/2026, expected move-out 11/20/2026). Ordinary renewal outreach is unavailable; use the non-renewal handoff.",
+  evidence: {
+    origin: "rentvine_lease_status",
+    leaseId: LEASE,
+    statusId: "2",
+    statusName: "Notice Given",
+    primaryStatusId: "2",
+    pendingMoveOut: true,
+    completedMoveOut: false,
+    noticeDateIso: "2026-10-25",
+    expectedMoveOutIso: "2026-11-20",
+    moveOutIso: null,
+  },
+  freshness: "fresh",
+  observedAtIso: "2026-10-29T12:00:00.000Z",
+} as unknown as DeskLeaseSummaryBase["moveOut"];
 const SOURCE = {
   kind: "gmail_thread" as const,
   linkId: "link-1",
@@ -310,6 +332,35 @@ describe("S232 actionable issues (R-S232-5)", () => {
     ).toBe(
       "Starts after: Verify the lease identity (an Editor), Verify the end date (an Approver or Admin).",
     );
+  });
+
+  it("S238 journey: a RentVine move-out shows the non-renewal handoff its notice-timing link opens", async () => {
+    stubRenewalRoutes(null);
+    const { workspace } = actionFixture({ manual: null });
+    await renderWorkspace({
+      workspace: {
+        ...workspace,
+        summary: {
+          ...workspace.summary,
+          moveOut: initiatedMoveOut,
+          moveOutTiming: timing("below", "below_threshold"),
+        },
+      },
+      manual: null,
+    });
+    const link = document.querySelector<HTMLAnchorElement>(
+      '.renewal-issue-list [data-renewal-issue-id="advisory:notice_timing:below"] .renewal-issue-resolution a',
+    );
+    expect(link).toHaveTextContent("Open the non-renewal handoff");
+    expect(link).toHaveAttribute("href", `#${NON_RENEWAL_HANDOFF_TARGET_ID}`);
+    expect(document.getElementById(NON_RENEWAL_HANDOFF_TARGET_ID)).not.toBeNull();
+  });
+
+  it("keeps the non-renewal handoff off an ordinary lease until a non-renewal is recorded", async () => {
+    stubRenewalRoutes(null);
+    const { workspace } = actionFixture({ manual: null });
+    await renderWorkspace({ workspace, manual: null });
+    expect(document.getElementById(NON_RENEWAL_HANDOFF_TARGET_ID)).toBeNull();
   });
 
   it("states the same resolution in the issue list and in Focus for the same lease", async () => {

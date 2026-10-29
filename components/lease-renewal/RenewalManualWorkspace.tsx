@@ -516,8 +516,14 @@ const ACTIVITIES_BEFORE_RESPONSE: readonly ManualActivity[] = [
 ];
 export function RenewalManualSection({
   section,
+  moveOutInitiated = false,
 }: {
   section: "owner" | "tenant" | "documents";
+  /**
+   * S232 R-S232-5: RentVine shows a move-out notice. The page and its notice-timing issue direct
+   * staff to the non-renewal handoff, so it is shown before any staff non-renewal is recorded.
+   */
+  moveOutInitiated?: boolean;
 }) {
   const context = useRenewalManualWorkspace();
   const covered = useStandingOwnerAuthority(context?.state?.revision ?? 0);
@@ -530,7 +536,7 @@ export function RenewalManualSection({
     .filter(
       ([key, value]) =>
         value.section === section &&
-        (key !== "non_renewal_handoff" || summary.nonRenewal),
+        (key !== "non_renewal_handoff" || summary.nonRenewal || moveOutInitiated),
     )
     .map(([key]) => key as ManualActivity);
   // S120 (R120.1): the outreach or delivery record comes before the response it precedes in
