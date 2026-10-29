@@ -1558,6 +1558,25 @@ try {
   };
   const issueRow = async (issue) =>
     (await issue.locator("xpath=..").innerText()).replace(/\s+/g, " ");
+  // Notice evidence shows only from an admitted source read inside the lease export's 60-second
+  // freshness window; past it the page asks for its own refresh, which this uses as staff would.
+  const STALE_NOTICE = "Notice evidence needs a fresh admitted source read";
+  const admittedNotice = async (target) => {
+    if (!(await target.getByText(STALE_NOTICE).count())) return false;
+    await target.waitForFunction(
+      () =>
+        document.getElementById("renewal-refresh")?.hasAttribute("disabled") === false,
+      null,
+      { timeout: 90_000 },
+    );
+    await target.locator("#renewal-refresh").click();
+    await target.waitForFunction(
+      (text) => !document.body.innerText.includes(text),
+      STALE_NOTICE,
+      { timeout: 90_000 },
+    );
+    return true;
+  };
   const inView = (target, id) =>
     target.waitForFunction((elementId) => {
       const box = document.getElementById(elementId)?.getBoundingClientRect();
@@ -1591,6 +1610,7 @@ try {
     async () => {
       activePage = admin;
       await openLease(admin, NOTICE_LEASE);
+      const refreshedForNotice = await admittedNotice(admin);
       await expandIssues(admin);
       const issue = issueAt(admin, "page", "Record the timing basis in Admin");
       await issue.waitFor();
@@ -1611,7 +1631,12 @@ try {
       await inView(admin, "admin-move-out-timing-basis");
       const file = await capture(admin, "s232-resolver-admin-panel", panel);
       const landed = new URL(admin.url());
-      return { row, landedOn: landed.pathname + landed.hash, screenshot: file };
+      return {
+        row,
+        refreshedForNotice,
+        landedOn: landed.pathname + landed.hash,
+        screenshot: file,
+      };
     },
   );
 
@@ -1664,6 +1689,7 @@ try {
     async () => {
       activePage = admin;
       await openLease(admin, NOTICE_LEASE);
+      const refreshedForNotice = await admittedNotice(admin);
       await expandIssues(admin);
       const issue = issueAt(admin, "control", "Open the non-renewal handoff");
       await issue.waitFor();
@@ -1688,7 +1714,12 @@ try {
         "s232-resolver-handoff",
         admin.locator("#renewal-manual-non_renewal_handoff"),
       );
-      return { row, hash: new URL(admin.url()).hash, screenshot: file };
+      return {
+        row,
+        refreshedForNotice,
+        hash: new URL(admin.url()).hash,
+        screenshot: file,
+      };
     },
   );
 
@@ -1699,11 +1730,23 @@ try {
     async () => {
       activePage = admin;
       await openLease(admin, NOTICE_LEASE);
+      const refreshedForNotice = await admittedNotice(admin);
       await expandIssues(admin);
       const full = await issueRow(
         issueAt(admin, "control", "Open the non-renewal handoff"),
       );
-      await openLease(admin, NOTICE_LEASE, "Focus view");
+      // The same page load, switched to Focus view, so both views read one render.
+      const focusView = leaseView(admin, "Focus view");
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        await focusView.click();
+        if ((await focusView.getAttribute("aria-pressed")) === "true") break;
+        await admin.waitForTimeout(1000);
+      }
+      assert.equal(
+        await focusView.getAttribute("aria-pressed"),
+        "true",
+        "Focus view did not open",
+      );
       const issue = issueAt(admin, "control", "Open the non-renewal handoff", "focus");
       await issue.waitFor();
       const focus = (await issue.innerText()).replace(/\s+/g, " ");
@@ -1714,7 +1757,7 @@ try {
           .getAttribute("href"),
         "#renewal-manual-non_renewal_handoff",
       );
-      return { focus };
+      return { focus, refreshedForNotice };
     },
   );
 
