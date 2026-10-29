@@ -80,6 +80,15 @@ changes only that entry, the production audit reports zero findings and the depe
 pins the version. PR #167 merged it at `bb8e7a00`. Production serves 6fbd6225 until the next guarded
 run verifies.
 
+S232 release checker, 2026-10-29: run `ab09e960` (S232–S239 at `bdab63a2`) stopped at candidate
+assurance. Reconciliation found one field mismatch in 374 records: the retention of one ended
+fixed-term lease with no recorded outcome. The candidate showed it as `ended_without_outcome`
+(ARCH-S232-1); the checker had no model of that state and expected `outside`. `ee420393` accepts
+the state on the one-status revision only where the lease ended before the Central reference date,
+is not a source skip or periodic review, and has no progress record. The checker reads no move-out
+status, so it bounds the state rather than deriving it. The fixed checker reconciled the live
+zero-traffic candidate as matched, 374 of 374. The candidate never received traffic.
+
 Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
 read back at resource version 8, all unverified. The deployed readiness page displays ten form
 families across renewal extension, full lease and owner acknowledgment. Actual originals and

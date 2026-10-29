@@ -162,6 +162,13 @@ export interface ExpectedProjectionRow extends IndependentRenewalSourceRow {
     | "out_of_window"
     | "periodic_review";
   readonly retentionExpected: IndependentRenewalRetentionState;
+  /**
+   * S232: the lease ended before the reference date, is not month to month, periodic review or a
+   * source skip, and has no app progress record, so the one-status revision may disclose it as
+   * ended without a recorded outcome instead of `outside`. The oracle reads no move-out status or
+   * recorded outcome, so this only bounds where that state may appear. Absent on older fixtures.
+   */
+  readonly endedWithoutOutcomeEligible?: boolean;
   readonly processExpected: boolean;
   readonly rentReconciliationExpected: boolean;
   readonly rentExpectation: IndependentRentExpectation;
@@ -353,6 +360,8 @@ export interface IndependentDecisionFacts {
   readonly staffLaneManualByLease?: ReadonlyMap<string, IndependentManualRenewal> | null;
   readonly resolutions: readonly Readonly<Record<string, unknown>>[];
   readonly trackedIncompleteLeaseIds: ReadonlySet<string>;
+  /** S232: every lease with a progress record, complete or not. Absent means unknown. */
+  readonly progressLeaseIds?: ReadonlySet<string>;
 }
 
 /** The lease-bound head shape: the shared persisted schema with the dateless basis. */
@@ -431,6 +440,7 @@ export async function readIndependentDecisionFacts(
   return {
     resolutions,
     trackedIncompleteLeaseIds,
+    progressLeaseIds: seenLeaseIds,
     manualByLease,
     staffLaneManualByLease,
   };
@@ -995,6 +1005,15 @@ export function buildExpectedProjectionRows(
       worklistEligible,
       manualPending,
     );
+    // S232: the disposition already carries source skips and month-to-month leases (periodic
+    // review), and an `outside` retention needs a readable end date. An unknown progress read
+    // keeps the exact expectation.
+    const endedWithoutOutcomeEligible =
+      retentionExpected === "outside" &&
+      row.endDate < referenceDateIso &&
+      dispositionExpected !== "skip" &&
+      dispositionExpected !== "periodic_review" &&
+      decisions.progressLeaseIds?.has(row.leaseId) === false;
     const rentReconciliationExpected =
       dispositionExpected === "actionable" || retentionExpected === "tracked_incomplete";
     const processExpected = rentReconciliationExpected;
@@ -1023,6 +1042,7 @@ export function buildExpectedProjectionRows(
       workspaceExpected,
       dispositionExpected,
       retentionExpected,
+      endedWithoutOutcomeEligible,
       processExpected,
       rentReconciliationExpected,
       rentExpectation,
@@ -1358,8 +1378,15 @@ export function countIndependentExpectedRowStateMismatches(input: {
   readonly expectedOverallStatus: IndependentExpectedOverallStatus;
   readonly observedRetention: string | null;
   readonly observedOverallStatus: string | null;
+  /** S232: the one-status revision may disclose an eligible `outside` lease as ended. */
+  readonly allowEndedWithoutOutcome?: boolean;
 }): number {
-  let mismatches = input.observedRetention === input.expectedRetention ? 0 : 1;
+  const retentionMatches =
+    input.observedRetention === input.expectedRetention ||
+    (input.allowEndedWithoutOutcome === true &&
+      input.expectedRetention === "outside" &&
+      input.observedRetention === "ended_without_outcome");
+  let mismatches = retentionMatches ? 0 : 1;
   if (input.observedOverallStatus !== input.expectedOverallStatus) {
     mismatches += 1;
   }
@@ -2228,6 +2255,7 @@ export function compareProjectionRows(
         observedRow,
         role,
         origin,
+        expectedGuidanceContract,
       });
       counts.fieldMismatches += rowCounts.fieldMismatches;
       counts.invalidDestinations += rowCounts.invalidDestinations;
@@ -2278,8 +2306,13 @@ export function countIndependentRowGuidanceMismatches(input: {
   readonly observedRow: RenderedProjectionRow;
   readonly role: AssuranceRole;
   readonly origin: string;
+  /** The independent expected marker; only the S232 one-status contract renders the ended state. */
+  readonly expectedGuidanceContract?: IndependentExpectedContractMarker;
 }): { readonly fieldMismatches: number; readonly invalidDestinations: number } {
   const { expectedRow, observedRow, role, origin } = input;
+  const allowEndedWithoutOutcome =
+    input.expectedGuidanceContract === INDEPENDENT_ONE_STATUS_CONTRACT_MARKER &&
+    expectedRow.endedWithoutOutcomeEligible === true;
   if (input.contract === "staff_lane") {
     const expectedGuidance = projectIndependentExpectedGuidanceState({
       contract: "staff_lane",
@@ -2299,6 +2332,7 @@ export function countIndependentRowGuidanceMismatches(input: {
       expectedOverallStatus: expectedGuidance.overallStatus,
       observedRetention: observedRow.retentionState,
       observedOverallStatus: observedRow.status.overallStatus,
+      allowEndedWithoutOutcome,
     });
     fieldMismatches += expectedGuidance.markerMismatches;
     fieldMismatches += countIndependentStaffLaneStatusMismatches(
@@ -2352,6 +2386,7 @@ export function countIndependentRowGuidanceMismatches(input: {
     expectedOverallStatus: expectedGuidance.overallStatus,
     observedRetention: observedRow.retentionState,
     observedOverallStatus: observedRow.status.overallStatus,
+    allowEndedWithoutOutcome,
   });
   fieldMismatches += expectedGuidance.markerMismatches;
   fieldMismatches +=

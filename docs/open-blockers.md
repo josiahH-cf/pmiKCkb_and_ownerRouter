@@ -52,107 +52,177 @@ Normal deployed-app credential/resource refresh and real Admin source-reference 
 
 ## November/December renewal client inputs (C00–C13)
 
-Recorded 2026-10-28 for S232–S238 (`docs/feature-suites/README.md`, intake 099–105). These items
+Recorded 2026-10-28 for S232–S238 (`docs/feature-suites/README.md`, intake 099–105) and completed
+2026-10-29 from the saved roadmap and client-unblock draft (SHA-256 `e2296645…c45171`). These items
 refine B-DL3, B-TIMING and B-HUMAN for the November/December campaign. The information/connection
 target is Wednesday, November 4, 2026 (Central): a target, not a promised third-party response. Each
 item holds only its named effect; every code slice proceeds. Engineering prepares technical detail
 and samples; the client supplies meaning, policy, originals, access decisions and approvals.
 Examples in the suites are synthetic illustrations, never live values. Asks are unsent drafts for
-the owner; this file creates no email, draft, invitation or task.
+the owner; this file creates no email, draft, invitation or task. Each item names the exact input
+and type, its source and destination, who decides and who verifies, the proof, what it holds and
+the smallest ask. A managerial title is not approval or signing authority.
 
 - **C00 — closed (A1/B-DL2).** Saved Dotloop selection: profile 20701283, template 228954,
-  `LEASE_OFFER`, `PRE_OFFER`, version 1 (2026-10-27). No ask; later runs recheck freshness read-only.
-- **C01 — B-DL3, approved originals and use.** Per family: approved original (publication
-  reference, content hash, effective version), use (Required / When it applies / Not used),
-  allowed packet contexts and extension compatibility, recorded through the S66/S130 Admin intake
-  and family-use controls (all ten read the `family-use-default-v1` engineering default today).
-  Ask: "For the first renewal extension, mark the exact approved form and version and which
-  attachments apply, and name who approves forms; mark unused or conditional forms; send city or HOA
-  material only where it applies." Approver: client document custodian (not yet named). Proof: an
-  approved intake entry with content hash and a client family-use version. Holds: that family's
-  output (S235).
+  `LEASE_OFFER`, `PRE_OFFER`, version 1 (2026-10-27), from the October 27 API read and in-app
+  selection into the existing S106/S34 resource selection. It selects a loop resource, not approved
+  form content or signature setup. No ask unless a later read-only freshness check regresses; both
+  write keys stay closed.
+- **C01 — B-DL3, approved originals and use.** Per family (ten kinds): approved original
+  (publication reference or `templateVersion`, content hash, effective version), use (Required /
+  When it applies / Not used), allowed packet contexts and extension compatibility. Source →
+  destination: the client-approved original and policy → the S21/S66/S130 catalog through the Admin
+  intake and family-use controls (all ten read the `family-use-default-v1` engineering default
+  today; the eight saved source references are unverified and city/HOA sources are absent).
+  Decides: the client-designated legal/document custodian (not yet named; the project owner
+  confirms the name); an Admin records it. Ask: "For the first renewal extension, mark the exact
+  approved form and version and which attachments apply, and name who approves forms; mark unused
+  or conditional forms; send city or HOA material only where it applies." Proof: an approved intake entry with
+  content hash and a client family-use version; source-link verification is separate. Holds: that
+  family's output (S235).
 - **C02 — B-DL3, field maps.** `artifact-field-map/v1` per approved original: `fields[]`
-  (`fieldId`, `factKey`, `meaning`, `required`, `multiplicity`, `allowedSourceSystems`) with actual
-  `pdfFieldNames` or static page regions, plus `mapVersion`/`templateVersion`. Actual PDF field names
-  and coordinates are unknown until the files arrive; engineering inventories them and prepares the
-  map. Ask: "On this original, confirm what each highlighted blank means and its source; correct our
-  prepared map." Proof: a synthetic filled copy reviewed for that map version with signature,
-  initial and signing-date regions untouched (procedure: `docs/engineering.md`, Synthetic map
-  verification). Holds: that form's filling (S235).
-- **C03 — authority and operators.** Who prepares, sends, records owner consent, approves forms and
-  fees, sends for signature and authorizes RentVine changes, with any delegation; Bailey Whiting's
-  and Chasity Velazquez's current app role, Spaces and mailbox (titles grant no authority). Ask:
-  "Confirm who does and who approves each step, and any delegation." Owner: the project owner for
-  operations, the client for landlord/legal/policy authority; an Admin reads roles. Proof:
-  read-only role/Space/profile readback and a written designation. Holds: real approval records and
-  live steps (S234, S238).
+  (`fieldId`, `factKey`, `meaning` strings, `required` boolean, `multiplicity` enum,
+  `allowedSourceSystems[]`) with actual `pdfFieldNames[]` or static page regions (`fieldId`, `slot`,
+  `format`, `rect`, `crop`, `rotation`), plus `mapVersion`/`templateVersion`. Source → destination:
+  the original's actual field inventory and reviewed facts → exact PDF destinations. App keys are
+  known; PDF field names and coordinates are unknown until the files arrive, and no field ID is
+  invented. Decides: engineering inventories the fields and proposes the map; the document approver
+  verifies meaning, party order and formats; an Admin records the reviewed map. Ask: "On this
+  original, confirm what each highlighted blank means and its source; correct our prepared map."
+  Proof: a synthetic filled copy reviewed beside the original for that map version, every page and
+  repeated slot inspected, signature, initial and signing-date regions untouched and source/map
+  hashes verified (procedure: `docs/engineering.md`, Synthetic map verification). Holds: that
+  form's filling (S235).
+- **C03 — authority and operators.** Current app UID, role, Spaces and mailbox; `responsibleUid`
+  and `senderEmail`; the permitted reviewer, landlord or representative and signer identities, with
+  delegation evidence where needed: who prepares, sends, records owner consent, approves forms and
+  fees, sends for signature and authorizes RentVine changes. Bailey Whiting's and Chasity
+  Velazquez's walkthrough participation is settled; their current app access and approval limits
+  are not. Source → destination: current accounts and the client's real authority → existing action
+  checks and the approval record. Decides: the project owner names operational owners; the client
+  designates the landlord/legal/policy approver and owner representative; an Admin reads roles. No
+  person-level privilege change or self-grant. Ask: "Confirm who does and who approves each step,
+  and any delegation." Proof: read-only role/Space/profile readback, permitted and refused actions
+  in isolated cases, and a written designation. Holds: real approval records and live steps (S234,
+  S238).
 - **C04 — per case, owner approval evidence.** For a selected lease: the approved Working
-  `terms_rent`, `terms_effective_date` and `terms_end_date` (YYYY-MM-DD), charges, and who approved,
-  through which channel and when. Ask: "For the selected renewal, which exact rent, start, end and
-  charges did the owner approve, and where is that approval?" Owner: the landlord or representative;
-  staff record it. Proof: an S234 record with evidence and approval state current. Holds: that
-  lease's packet (S235).
+  `terms_rent` (number), `terms_effective_date` and `terms_end_date` (YYYY-MM-DD), charges, and
+  who approved, through which channel and when; recorded as `ownerResponse.outcome`
+  `approved_terms` with `approvedWorkingTerms` (`fieldRevisions`, `economicsHash`,
+  `chargePolicyVersion`). Source → destination: the staff Working record and exact owner evidence →
+  `renewal.approved_rent`, `renewal.effective_date` and `renewal.end_date`. A recorded reply alone
+  approves nothing, and a changed fee or date makes the coverage stale. Decides: the landlord or
+  representative; staff record it; engineering verifies the binding. Ask: "For the selected renewal,
+  which exact rent, start, end and charges did the owner approve, and where is that approval?"
+  Proof: an S234 record with evidence and approval state current, and a changed term reading
+  `terms_changed`/`charges_changed`. Holds: that lease's packet (S235).
 - **C05 — B-TIMING (A5) and notice rule.** A5 as decided (contractual lease end; calendar days,
   target minus notice; threshold 30, exactly 30 meets) with who confirmed it and where; the seeded,
   unverified notice rule (code defaults: deadline day 15, month offset -1, warning lead 3 days,
   follow-up 10 days) confirmed or corrected; the current November/December outreach and catch-up
-  dates and which messages already went out. Reported practice from October 8 (owner offers in the first days of the
-  month, tenant offers on the 15th) is context, not policy. Ask: "Please record the decided 30-day
-  basis in Admin with its confirmation source, confirm or correct the notice-rule values, and tell us
-  the current outreach and catch-up dates and what was already sent." Proof: saved basis version and
-  verified rule readback. Holds: 30-day and notice labels (S232).
-- **C06 — source semantics, per discrepancy.** Lease-detail `baseRentAmount` is the contractual
-  current rent; `rentAmount` is the total and the export `unit.rent` a listing reference; future
-  rent carries its own effective date; charge amounts are `0.00` strings. Ask: "Where a source
-  differs, point to the signed or current amount and effective date, and confirm any approved
-  exception." Owner: staff and the financial approver. Proof: dated lease-detail read and the S237
-  basis. Holds: the affected update (S237).
-- **C07 — B-DL3 when applicable, extension or full lease.** `transaction.type`, `management.origin`
-  (`pmi_managed`/`inherited`), `active_lease.executed`, `active_lease.form_family`,
-  `lease.original_date`, `landlord.legal_entity`, `renewal.return_by_date`, `renewal.fallback_term`
-  (`month_to_month`/`termination`). Ask: "For this lease, confirm the signed original and its form
-  family, inherited status, landlord entity, whether an extension or a full lease applies, and the
-  return-by and fallback wording." Owner: document/policy approver; staff record facts. Proof: the
-  evaluator's context and fact provenance. Holds: that lease's packet context (S235).
-- **C08 — B-DL3/B-HUMAN, parties and signers.** `people.entries[]` (`personId`, `kind`
-  person/organization, `fullName`, `email` with `emailBasis`, `roles[]` with `signerRole`, `order`,
-  `dotloopRole`) and map `signers[]` (`signerRole`, `participantKind`, `required`, `location`). Ask:
-  "Confirm each required signer and capacity, signing order, verified contact and signature
-  location, including co-tenants, an organization's representative and any guarantor." Owner:
-  document owner; staff verify contacts. Proof: a reviewed signer map and the S236 roster on the
-  lease's Returned documents and signatures screen. Holds: signer roster and returned-state
-  records (S236).
+  dates (`firstDate` YYYY-MM-DD, `time` HH:mm, `timeZone` IANA such as America/Chicago, nullable
+  `everyDays`/`endDate`/`sendLimit`) and which messages already went out. Reported practice from
+  October 8 (owner offers in the first days of the month, tenant offers on the 15th) is context, not
+  policy. Source → destination: the settled decision and current client schedule → the Admin
+  timing basis (`/admin#admin-move-out-timing-basis`), notice timing and sequence due instants.
+  Decides: an authorized Admin records A5 with its source; Bailey or Chasity and the client policy
+  owner confirm the dates and how already-contacted or late cases are handled; engineering does not
+  set legal notice requirements. Ask: "Please record the decided 30-day basis in Admin with its
+  confirmation source, confirm or correct the notice-rule values, and tell us the current outreach
+  and catch-up dates and what was already sent." Proof: saved basis version and verified rule
+  readback, with cases just below, at and above the threshold and a DST/date boundary. Holds: 30-day and notice labels
+  (S232).
+- **C06 — source semantics, per discrepancy.** Lease-detail `baseRentAmount` (number) is the
+  contractual current rent (→ `currentRent`); `rentAmount` is the total and the export `unit.rent`
+  a listing reference; future rent carries its own effective date (→ the `current_base`/`future_rent`
+  intent); charge amounts are `0.00` strings with cents. Source → destination: the dated
+  lease-detail and charge inventory → the S237 basis and update preview. Decides: staff supply
+  source-backed exceptions; the financial approver approves economics; engineering resolves provider
+  shape from code. Ask: "Where a source differs, point to the signed or current amount and effective
+  date, and confirm any approved exception." No bulk export is requested. Proof: the dated
+  lease-detail read (reference, time, hash), visible old/new/effective values and the S237 basis.
+  Holds: the affected update (S237).
+- **C07 — B-DL3 when applicable, extension or full lease.** `transaction.type` (`existing_renewal`),
+  `management.origin` (`pmi_managed`/`inherited`), `active_lease.executed` (boolean),
+  `active_lease.form_family` (text), `lease.original_date` (date), `landlord.legal_entity` (text),
+  `renewal.return_by_date` (date), `renewal.fallback_term` (`month_to_month`/`termination`).
+  Source → destination: the executed lease, approved policy and staff provenance → packet facts,
+  family compatibility and reviewed blanks. An unknown fallback or return date is not a default
+  legal term. Decides: the document/policy approver confirms compatibility and fallback; the lease
+  custodian supplies facts; staff record them. Ask: "For this lease, confirm the signed original
+  and its form family, inherited status, landlord entity, whether an extension or a full lease
+  applies, and the return-by and fallback wording." Proof: the evaluator's context and fact
+  provenance, with signed-status evidence. Holds: that lease's packet context (S235).
+- **C08 — B-DL3/B-HUMAN, parties and signers.** `people.entries[]` (`personId` UUID, `kind`
+  person/organization, `fullName`, nullable `email` with `emailBasis`
+  `verified_contact`/`staff_reviewed`, `contactRef`, `roles[]` with `signerRole`, `order`,
+  `dotloopRole`) and map `signers[]` (`signerRole`, `participantKind`, `required`, `location`).
+  Source → destination: the current party roster, executed agreement and reviewed delegation →
+  exact PDF slots and Dotloop participants. Default roles (tenant TENANT, owner LANDLORD, manager
+  PROPERTY_MANAGER, broker MANAGING_BROKER, guarantor OTHER) need a reviewed fit; parties are never
+  merged by name or email. Decides: the document owner verifies parties, order and locations; staff
+  verify contacts; the authorized signer sends and signs by hand in Dotloop. Ask: "Confirm each
+  required signer and capacity, signing order, verified contact and signature location, including
+  co-tenants, an organization's representative and any guarantor." Proof: a reviewed signer map and
+  the S236 roster on the lease's Returned documents and signatures screen. Holds: signer roster and
+  returned-state records (S236).
 - **C09 — B-DL3 when conditional, property and addenda.** `property.street_line`, `property.city`,
-  `property.state`, `property.zip`, `property.year_built`, `property.city_addendum_required`,
-  `property.hoa_governed`. Ask: "Confirm the structured address, year built and whether a city
-  addendum or HOA rule applies for the first case, with the material where it applies." Owner:
-  property/source custodian and policy approver. Proof: source references and evaluator variants.
-  Holds: lead-disclosure, city and HOA output (S235).
+  `property.state` (two letters), `property.zip` (valid ZIP) strings, `property.year_built`
+  (integer), `property.city_addendum_required` and `property.hoa_governed` (booleans). Source →
+  destination: the authoritative property, lease and client policy → reviewed form fields and
+  applicability. Structured fields are not parsed from a one-line address, a missing HOA is not
+  assumed, and the pre-1978 lead default stays labeled until reviewed. Decides: the property/source
+  custodian supplies facts; the policy approver confirms city, HOA and lead rules and material. Ask:
+  "Confirm the structured address, year built and whether a city addendum or HOA rule applies for
+  the first case, with the material where it applies." Proof: source references and applicable,
+  not-applicable and unknown evaluator variants. Holds: lead-disclosure, city and HOA output (S235).
 - **C10 — B-DL3 when applicable, fees, animals, insurance and Rhino.** A published
-  `renewal-charge-policy/v1` (resident benefit package and insurance program monthly cents, animal
-  basis `weight_lb` or `fido_score` with tiers and treatments, effective date), the
-  `insurance.coverage_method` election, `charges.resident_benefit_package.enrolled`, animal facts and
-  the Rhino policy material (none recorded today). Ask: "Provide the approved fee, resident-benefit,
-  insurance and animal schedule and the Rhino material, with exemptions and how elections are
-  verified, and name the approver." Owner: client policy approver; data custodian (Shane per the
-  October 8 notes, unconfirmed); an Admin publishes. Proof: a published policy version and boundary
-  checks. Holds: economics on affected packets (S235).
-- **C11 — B-HUMAN, genuine case and live scope.** A genuine renewal, the exact allowed actions and
-  recipients, or an authorized isolated provider sandbox (none has been selected or verified). Ask: "When ready, name the
-  genuine renewal and exactly which actions and recipients are allowed for the staff walkthrough."
-  Owner: the project owner. Proof: written scope. Holds: provider-functional and human rows (S238).
-- **C12 — runtime evidence, sender and receipt.** The intended responsible sender per case (their
-  own mailbox profile through the approved delegation; only the integrations profile is verified),
-  the existing linked conversation, and permission for a controlled-recipient receipt check. Ask:
-  "Confirm who sends for each case and allow the exact controlled receipt check when live proof is
-  selected." Owner: the project owner and staff; engineering verifies the profile. Proof: profile
-  match and receipt or reply evidence. Holds: real sends and receipt proof (S233).
+  `renewal-charge-policy/v1` (resident benefit package and insurance program `monthlyCents`
+  integers, animal basis `weight_lb` or `fido_score` with tiers, treatments, `agreementFor` and
+  `juvenileWeightBasis`, effective date), the
+  `insurance.coverage_method` election (`pmi_program`/`verified_external_coverage`/
+  `not_applicable_under_policy`), `charges.resident_benefit_package.enrolled` (boolean), animal
+  facts (`weight`, `weightUnit`, `weightBasis`, `maturity`, `fidoScore`, `treatment`), overrides
+  (`amountCents` with `reason`) and the Rhino policy material (none recorded today; no integration is
+  assumed). Integer cents differ from packet dollar values, and fee amounts stay unset until
+  approved. Source → destination: the approved policy and verified elections → the calculator,
+  packet economics and reviewed money fields. Decides: the client policy approver; the data
+  custodian (Shane per the October 8 notes, unconfirmed) supplies data; an Admin publishes with an
+  effective date. Ask: "Provide the approved fee, resident-benefit, insurance and animal schedule
+  and the Rhino material, with exemptions and how elections are verified, and name the approver."
+  Proof: a published policy version and boundary, unknown and election checks. Holds: economics on
+  affected packets (S235).
+- **C11 — B-HUMAN, genuine case and live scope.** A genuine renewal (lease and cycle), the exact
+  allowed actions and recipients and the evidence custodian, or an authorized isolated provider
+  sandbox (none has been selected or verified). Synthetic records are not allowed in production, so
+  a genuine first renewal is ordinary staff work, not a proof loop. Decides: the project owner selects the
+  scope and authorizes consequential actions; Bailey or Chasity give the use verdict; owners and
+  tenants control their own consent and signatures. Ask: "When ready, name the genuine renewal and
+  exactly which actions and recipients are allowed for the staff walkthrough." Proof: written
+  scope, current facts and permitted recipient or provider receipts with staff observation. Holds:
+  provider-functional and human rows (S238).
+- **C12 — runtime evidence, sender and receipt.** The intended responsible sender per case
+  (`responsibleUid`, `senderEmail` through their own mailbox profile and the approved delegation;
+  only the integrations profile is verified), the authorized recipients, the existing linked
+  conversation (`senderEmail`, `threadId`) and permission for a controlled-recipient receipt check.
+  Sent or accepted is not inbox receipt. Source → destination: the source roster and the correct
+  staff mailbox → the existing Gmail sequence and worker. Decides: staff identify the message and
+  thread; engineering verifies the sender profile (the client supplies no technical IDs); the
+  project owner authorizes any real send or reply. No new mailbox grant is assumed. Ask: "Confirm who
+  sends for each case and allow the exact controlled receipt check when live proof is selected."
+  Proof: profile match and receipt or reply evidence. Holds: real sends and receipt proof (S233).
 - **C13 — live effects, final reconciliation.** The signed terms and intended RentVine changes
-  (`endDate`, `increaseEligibilityDate`; recurring charge `accountID`, `amount`, `description`,
-  `dayDue`, `frequency`, `startDate`, `endDate`) and Sheet fields for the case. Ask: "Confirm the
-  signed terms and the intended effective changes, including charge account treatment and Sheet
-  fields; approve only the previewed supported actions." Owner: the financial approver; staff
-  confirm. Proof: per-effect receipt and readback. Holds: live RentVine/Sheet effects (S237).
+  (`endDate`, `increaseEligibilityDate`; recurring charge `accountID`, `amount` string such as
+  `1750.00`, `description`, `dayDue`, `frequency`, `startDate`, `endDate`) and the Sheet row (S98
+  lease id with its stable row association and the recognized business fields) for the case.
+  Source → destination: executed facts, current inventory and owner intent → separately previewed
+  exact RentVine and Sheet effects. One system can succeed while another fails, and a matching
+  charge after a timeout neither proves causality nor authorizes another create or a reversal.
+  Decides: the financial approver confirms old, new and effective values; staff confirm;
+  engineering derives targets and recovery from receipts. Ask: "Confirm the signed terms and the
+  intended effective changes, including charge account treatment and Sheet fields; approve only the
+  previewed supported actions." Proof: per-effect claim, receipt and readback. Holds: live
+  RentVine/Sheet effects (S237).
 
 ## Current hold and historical program dependencies
 

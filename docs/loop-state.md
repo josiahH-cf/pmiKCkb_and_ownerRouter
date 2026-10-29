@@ -19,12 +19,13 @@ Further merges wait for each PR's own review outcome.
 PR #167 merged the rows6 branch (the journey's S234 phase, the S233 attempt-read follow-through and
 S239, the `@hono/node-server` 2.1.3 patch) at `bb8e7a00` on its exact head, after its own review
 completed without findings and the publication guard passed; exact-main CI `40861616011` passed.
-PR #166 stays closed unmerged with its receipts. The branch claude/renewal-novdec-rows7-20261029 adds
-the journey's S237 and S232 resolver phases (34 of 34 on `40fbc251`) and the two product fixes they
-found (`8b52edf9`, `64e0bf57`). Each suite's status line names what remains. Nothing is served yet;
-production remains `6fbd6225` (S231). The staff walkthrough is NOT RUN. Client inputs C00–C13 stay
-in `docs/open-blockers.md`. NEXT: the guarded release of the queue below, through the release
-pipeline's own prerequisites. S238 owns the November 4, 2026 (Central) blocker review.
+PR #166 stays closed unmerged with its receipts. PR #168 merged the rows7 branch at `bdab63a2`: the
+journey's S237 and S232 resolver phases (34 of 34 on `40fbc251`) and fixes `8b52edf9`, `64e0bf57`.
+Run `ab09e960` stopped at candidate assurance before promotion: the release checker had no model of
+S232's ended-without-outcome state, and `ee420393` fixes it (`docs/status.md`). Production remains
+`6fbd6225` (S231). The staff walkthrough is NOT RUN. Client inputs C00–C13 stay in
+`docs/open-blockers.md`. NEXT: retire `ab09e960` as superseded, then run the replacement release of
+the queue below. S238 owns the November 4, 2026 (Central) blocker review.
 
 ## Dotloop A1 resolved and selected (October 27)
 
@@ -65,8 +66,8 @@ October 16 source. Original and admitted checkouts remain preserved.
 
 ## Awaiting release
 
-1. S232 `bf0c03f9` `a786fa16` `c689d627` `64e0bf57`: the November/December desk and each issue's
-   need, resolver and link, including the non-renewal handoff for a RentVine move-out.
+1. S232 `bf0c03f9` `a786fa16` `c689d627` `64e0bf57` `ee420393`: the November/December desk, each
+   issue's need, resolver and link, the RentVine move-out non-renewal handoff and its checker fix.
 2. S233 `bf0c03f9` `be8c0bf4` `f1f06bfb` `db038857` `bb8e7a00`: message evidence, failure reasons,
    worker health and attempt-read freshness.
 3. S234 `bf0c03f9` `f1f06bfb` `06c73561` `c689d627`: evidenced owner approval and coverage.
