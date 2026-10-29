@@ -1023,6 +1023,84 @@ try {
   );
 
   await step(
+    "S233-attempts-unavailable",
+    "R-S233-1 attempt-read freshness (coordinator follow-through, 2026-10-29)",
+    "When a save applies but its attempt read is unavailable, the composer keeps the save, says the attempts could not be loaded, and recovers on Check recorded status",
+    async () => {
+      activePage = hub;
+      const composer = hub.getByRole("region", {
+        name: "Workflow communication composer",
+      });
+      const before = (await ownerSequences())[0];
+      // Models the route's failed attempt read on one save response. The save itself runs on the
+      // server unchanged; only the response's attempts are replaced by the unavailable statement
+      // the route now sends, since nothing in the served app can fault that read on its own.
+      let modeled = 0;
+      await hub.route("**/api/gmail-hub/sequences", async (route) => {
+        if (route.request().method() !== "POST" || modeled > 0) return route.continue();
+        modeled += 1;
+        const response = await route.fetch();
+        const body = await response.json();
+        delete body.attempts;
+        delete body.attemptsTruncated;
+        body.attemptsUnavailable = true;
+        await route.fulfill({ response, json: body });
+      });
+      const subject = composer.getByLabel("Initial message subject");
+      await subject.fill("Renewal for Sample Place: owner review, second pass");
+      const saved = sequencePost("save");
+      await composer.getByRole("button", { name: "Save draft" }).click();
+      assert.equal((await saved).status(), 200, "the save was refused");
+      const note = composer.locator('[data-communication-field="attempts-unavailable"]');
+      await note.waitFor();
+      const shown = (await note.innerText()).replace(/\s+/g, " ");
+      assert.match(
+        shown,
+        /^Message attempts could not be loaded just now\. None were recorded at the last successful check, .+, and a newer one may not be listed\. The recorded state above is current\. Use Check recorded status to load them again\.$/,
+      );
+      const after = (await ownerSequences())[0];
+      assert.equal(
+        after.get("version"),
+        before.get("version") + 1,
+        "the save did not apply",
+      );
+      assert.equal(
+        after.get("initial.subject"),
+        "Renewal for Sample Place: owner review, second pass",
+      );
+      const file = await capture(
+        hub,
+        "s233-attempts-unavailable",
+        composer.locator('[data-communication-field="message-evidence"]'),
+      );
+      await hub.unroute("**/api/gmail-hub/sequences");
+      // An ordinary status read loads the attempts again and the note goes away; nothing resends.
+      const status = hub.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === "/api/gmail-hub/sequences" &&
+          response.request().method() === "GET" &&
+          new URL(response.url()).searchParams.get("id") === communicationId,
+      );
+      await composer.getByRole("button", { name: "Check recorded status" }).click();
+      const fresh = await (await status).json();
+      assert.ok(Array.isArray(fresh.attempts), "the status read returned no attempts");
+      await hub.waitForFunction(
+        () =>
+          !document.querySelector('[data-communication-field="attempts-unavailable"]'),
+      );
+      const final = (await ownerSequences())[0];
+      assert.equal(final.get("version"), after.get("version"), "the status read wrote");
+      return {
+        shown,
+        version: { before: before.get("version"), after: after.get("version") },
+        modeledResponses: modeled,
+        recoveredAttempts: fresh.attempts.length,
+        screenshot: file,
+      };
+    },
+  );
+
+  await step(
     "S233-no-provider-call",
     "AC-S233-7 (zero mutation attempts, no provider call)",
     "The S233 phase made app saves and one refused Schedule only; no Gmail request was attempted",

@@ -169,11 +169,57 @@ describe("S186–S192 private sequence HTTP boundaries", () => {
       attempts: [attempt],
       attemptsTruncated: false,
     });
-    // A failed attempt read leaves the action's own result standing.
+    // A failed attempt read leaves the action's own result standing and says so.
     mocks.attempts.mockRejectedValue(new Error("read failed"));
     const kept = await POST(request({ action: "reconcile", id }));
     expect(kept.status).toBe(200);
-    expect(await kept.json()).not.toHaveProperty("attempts");
+    const body = await kept.json();
+    expect(body).toMatchObject({ sequence: { version: 3 }, attemptsUnavailable: true });
+    expect(body).not.toHaveProperty("attempts");
+  });
+  it("S233 R-S233-1: a status read whose attempts cannot be loaded returns the recorded state and says so", async () => {
+    mocks.get.mockResolvedValue({ ...sequence, version: 4, state: "active" });
+    mocks.attempts.mockRejectedValue(new Error("read failed"));
+    const r = await GET(new Request(`https://app.test/api/gmail-hub/sequences?id=${id}`));
+    expect(r.status).toBe(200);
+    expect(r.headers.get("Cache-Control")).toBe("private, no-store");
+    const body = await r.json();
+    expect(body).toMatchObject({
+      sequence: { version: 4, state: "active" },
+      attemptsUnavailable: true,
+    });
+    expect(body).not.toHaveProperty("attempts");
+  });
+  it("S233 R-S233-1: an uncertain send whose attempts cannot be loaded keeps its recorded result, says so and never redispatches", async () => {
+    mocks.authorize.mockResolvedValue({ ...sequence, version: 2, state: "active" });
+    mocks.dispatch.mockRejectedValue(new Error("unavailable"));
+    mocks.get.mockResolvedValue({
+      ...sequence,
+      version: 3,
+      state: "active",
+      unresolvedOccurrenceId: "c".repeat(64),
+    });
+    mocks.attempts.mockRejectedValue(new Error("read failed"));
+    const r = await POST(
+      request({
+        action: "send",
+        id,
+        expectedVersion: 1,
+        operationId: op,
+        reviewedDraftHash: "a".repeat(64),
+        reviewedTargetHash: "b".repeat(64),
+        schedule: null,
+      }),
+    );
+    expect(r.status).toBe(200);
+    const body = await r.json();
+    expect(body).toMatchObject({
+      sequence: { version: 3, unresolvedOccurrenceId: "c".repeat(64) },
+      attemptsUnavailable: true,
+    });
+    expect(body).not.toHaveProperty("attempts");
+    expect(mocks.authorize).toHaveBeenCalledTimes(1);
+    expect(mocks.dispatch).toHaveBeenCalledExactlyOnceWith(id);
   });
   it("recovers the recorded authorization after an uncertain immediate dispatch without redispatching", async () => {
     mocks.authorize.mockResolvedValue({ ...sequence, version: 2, state: "active" });
