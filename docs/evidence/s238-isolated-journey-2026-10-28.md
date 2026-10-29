@@ -83,9 +83,6 @@ Each run's evidence covers only its own commit.
 - A failed attempt read on the server: the served app has no way to fault it, so the attempt-read
   step models that one response in the browser. The route's handling after an applied reconcile, a
   status read and an uncertain send (one dispatch, no replay) is covered by the mounted route tests.
-- Observed, not examined: the Dashboard the refused Editor lands on logged "Attention queue
-  renewal review read failed (EditableLayerError)" in this synthetic environment. The page returned
-  200 and the queue reports that feed as unavailable; nothing in this run depends on it.
 - Genuine cases, provider-functional rows and the staff walkthrough: BLOCKED on C11–C13 and B-HUMAN.
 
 ## Development runs
@@ -113,3 +110,12 @@ it failed too. The role-refusal step waited for the sign-in page, but an Editor 
 Dashboard. The approval time became October 27, 2026, 10:00 AM Central and the step now expects the
 Dashboard; the second run passed all 24 steps. The attempt-read step passed on its first run, the
 committed `94d95d97`.
+
+The first `04cd9b12` overlay's Dashboard load also logged "Attention queue renewal review read
+failed (EditableLayerError)". It came about 64 seconds after the last lease export read, after the
+failed 60-second wait, so the export was past its 60-second freshness window. The renewal review
+refuses a stale source by design, because it cannot then establish that nothing needs attention: the
+queue reported that feed as unavailable, and its background refresh read the export again about a
+second later (`tests/unit/s147-attention-queue.test.ts`, `tests/unit/renewal-review-board.test.ts`).
+The second overlay and both committed runs reached the Dashboard within the window and logged no
+such failure.

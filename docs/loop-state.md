@@ -12,8 +12,9 @@ PR #165 merged S233 R-S233-4/5/9 at `db038857` on all five exact-head checks whi
 Codex review of the PR head `04cd9b12` still read Running (summary last updated
 2026-10-28T20:49:48Z, findings unknown). That bypassed the pending review gate and is recorded as
 such: a later manual review request (2026-10-29T06:44:14Z, from the josiahH-cf account, not this
-session) reviewed the merge commit `db038857` and found no major issues at 06:45:59Z. Exact-main CI
-`40774457242` passed. Further merges wait for each PR's own review outcome.
+session) reviewed the merge commit `db038857` and found no major issues at 06:45:58Z; the summary
+marker now reads completed with no findings for `db038857`. Exact-main CI `40774457242` passed.
+Further merges wait for each PR's own review outcome.
 
 The branch claude/renewal-novdec-rows6-20261028 adds the journey's S234 phase and an Admin role
 refusal (24 of 24 steps on `e2188bd3`), the S233 attempt-read follow-through (25 of 25 on
