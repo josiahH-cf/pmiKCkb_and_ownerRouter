@@ -2,6 +2,7 @@
 
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { routerRefresh } = vi.hoisted(() => ({ routerRefresh: vi.fn() }));
@@ -137,6 +138,48 @@ describe("S97 RentVine updates panel", () => {
       "/api/lease-renewal/rentvine-writeback?leaseId=4821",
       { method: "GET", cache: "no-store", signal: expect.any(AbortSignal) },
     );
+  });
+
+  it("finishes its durable status read when React runs the effect twice", async () => {
+    fetchMock.mockImplementation(async () => ({
+      ok: true,
+      json: async () => ({ status: "ok", proposal: null, effects: [], history: [] }),
+    }));
+    render(
+      <StrictMode>
+        <RentvineUpdatesPanel initialProposal={null} leaseId="4821" role="Admin" />
+      </StrictMode>,
+    );
+    await waitFor(() => expect(screen.queryByText("Working…")).not.toBeInTheDocument());
+    expect(
+      screen.getByRole("button", {
+        name: "Save proposal from fresh RentVine state",
+        hidden: true,
+      }),
+    ).toBeEnabled();
+    expect(
+      fetchMock.mock.calls.every(([, init]) => (init as RequestInit).method === "GET"),
+    ).toBe(true);
+  });
+
+  it("states a refused durable status read and stops waiting when React runs the effect twice", async () => {
+    fetchMock.mockImplementation(async () => ({
+      ok: false,
+      json: async () => ({
+        error:
+          "A Live provider action requires the Production environment with Live data.",
+        error_type: "environment_context_not_allowed",
+      }),
+    }));
+    render(
+      <StrictMode>
+        <RentvineUpdatesPanel initialProposal={null} leaseId="4821" role="Admin" />
+      </StrictMode>,
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "A Live provider action requires the Production environment with Live data.",
+    );
+    await waitFor(() => expect(screen.queryByText("Working…")).not.toBeInTheDocument());
   });
 
   it("S160 BEH-S160-1/4 (S156 BEH-S156-7): an Editor reaches the one-action exact update with no access handoff, approval or attestation", () => {

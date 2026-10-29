@@ -276,6 +276,7 @@ export function RentvineUpdatesPanel({
     if (statusLoadedPreviewRef.current === statusKey) return;
     statusLoadedPreviewRef.current = statusKey;
     let active = true;
+    let settled = false;
     setPending(true);
     void readWritebackStatus(leaseId)
       .then((payload) => {
@@ -301,10 +302,14 @@ export function RentvineUpdatesPanel({
         queueMicrotask(() => errorRef.current?.focus());
       })
       .finally(() => {
+        settled = true;
         if (active) setPending(false);
       });
     return () => {
       active = false;
+      // S238 journey: a read cut off before it settled applied nothing, so the next mount reads
+      // again. React runs effects twice in development; without this the panel stayed busy.
+      if (!settled) statusLoadedPreviewRef.current = null;
     };
   }, [effects, historyLoaded, leaseId, proposal]);
 
