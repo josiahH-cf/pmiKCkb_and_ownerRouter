@@ -5,7 +5,7 @@ Updated: 2026-11-02 (UTC).
 ## Finalize the current build
 
 The owner renewed authorization on November 2 to finish the existing PMI build after CLI/ADC
-authentication was restored. S232–S239 are already on main; deliver them cumulatively with the
+authentication was restored. S232–S239 are already on main; deliver them cumulatively with the scoped Admin sign-in date repair and the
 scoped production dependency repair, preserving newer accepted work and every independent Stop.
 The current Codex coordinator does not resume the old native Claude session.
 
@@ -14,8 +14,8 @@ exact-head automated review and all five checks; merge without self approval and
 CI. Under the existing release lock, reconcile and preserve the held run before preparing one new
 exact-SHA run. Require fresh prerequisites/GO, captured recovery/configuration, one application
 build, guarded candidate checks/reconciliation, receipt-bound promotion, full observation and
-independent production readbacks. The owner completes the managed release browser's Google
-challenge; CLI enrollment and the Windows browser do not substitute for that profile.
+independent production readbacks. The owner completed the managed release browser challenge;
+the supported check verifies the persisted Admin session. Refresh readiness before dependent phases.
 
 Provider business effects, new grants, live proof records and signing are outside verification.
 Dotloop write keys stay closed. C00/A1 and the A5 decision remain settled; client content and real

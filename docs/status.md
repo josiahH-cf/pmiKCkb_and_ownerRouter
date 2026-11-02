@@ -7,8 +7,11 @@ Current delivery: S232–S239 remain queued; main `4b2eb72b` is ahead of canonic
 `ed3b4cc4` (zero production findings; five compatibility tests pass). Fresh authenticated app
 reads complete for the sampled recurring charges and Sheet workspace, with an ambiguous Sheet
 association correctly retained. Full gates and reviewed publication are in progress. The separate
-WSL release browser needs the owner's Google challenge before guarded deployment; CLI/ADC work.
-The previous native Claude owner remains stopped. No release or staff acceptance is claimed.
+WSL release browser is enrolled and freshly verified as Admin; CLI/ADC work. The initial full
+gate passed all 495 backend tests, 9,865 unit tests, policy checks and build. The final candidate
+also fixes Admin sign-in date display at `b5b06f95` (34 affected tests pass); combined-tree
+qualification and exact-head review/CI follow. The previous native Claude owner remains stopped.
+No release or staff acceptance is claimed.
 
 October 28: S232–S238 (November/December renewal readiness) were authored and the owner's execution
 instruction started them. Merged to main at `bf0c03f9` (PR #158) and not served: the desk's window

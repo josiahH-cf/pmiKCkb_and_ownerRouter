@@ -44,7 +44,7 @@ Production serves `6fbd62250ccd9df1b9861a59b5de21c2143a68c0` /
 `030761c0-1e70-4cd2-95a6-77480107657d` delivered S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and
 fast-uri 3.1.9) with candidate assurance, receipt-bound promotion, two observation checkpoints in
 406,404 ms and all eleven independent readback sections. That S231 run's queue was delivered and its permit consumed;
-the current S232–S239 queue remains pending in docs/loop-state.md. S231 passed the complete gate, served E2E (65 passed, four existing skips,
+the current S232–S239 and Admin date-repair queue remains pending in docs/loop-state.md. S231 passed the complete gate, served E2E (65 passed, four existing skips,
 fourteen files) and exact-main CI `40487479956` on `6fbd6225`. The October 20 S227–S229 delivery
 evidence remains `docs/evidence/application-delivery-2026-10-20.md`.
 

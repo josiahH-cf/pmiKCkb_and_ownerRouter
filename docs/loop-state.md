@@ -12,9 +12,9 @@ No protected-path, identity, grant, budget or provider-effect boundary changes a
 
 Fresh November 2 CLI/ADC probes verify `josiah@pmikcmetro.com` in the approved WSL store.
 Java 21 is already installed; its original missing-command report was a PATH issue.
-The separate managed browser profile `/home/josiah/pmi-assurance/owner-admin` reaches Google's
-password/challenge screen. The owner must complete the supported `auth:enroll-canary` command.
-Windows browser access is working and cannot substitute for this release-profile prerequisite.
+The owner completed the separate managed browser enrollment at 15:24:49Z for
+`/home/josiah/pmi-assurance/owner-admin`. A fresh supported check verifies Admin using the
+persisted `existing_session`. No credential or grant was changed by the coordinator.
 
 Production still serves `6fbd6225` / `pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% traffic.
 Its Cloud Build `5dd3d8c9-ff0c-48a7-bc08-7fb59729feac` succeeded and its image digest matches
@@ -28,7 +28,11 @@ recovery on those checks, not a proven root cause or a permanent outage repair.
 `ed3b4cc4` scopes glob 14.0.3 to rimraf 5 (Google GAX's cleanup consumer), selecting minimatch
 11.0.4 without replacing legacy minimatch APIs elsewhere. The unchanged production audit reports
 zero findings; five dependency compatibility tests pass, including real async/sync glob cleanup
-of disposable synthetic files. Final full gates, exact-head review/CI and deployment remain pending.
+of disposable synthetic files. The initial full gate on `7561b3a4` passed 9,865 unit tests (four existing configuration skips),
+all 495 backend tests, every policy check and the production build. `b5b06f95` also corrects
+Firebase's UTC sign-in metadata at the Admin response adapter; 34 affected tests and an offline
+SDK metadata check pass. Final combined-tree qualification, exact-head review/CI and deployment
+remain pending.
 Private diagnostic evidence is under `~/.local/state/pmi-finalization-20261102/`, outside Git.
 
 ## Release interlock
@@ -57,6 +61,8 @@ checks, receipt-bound promotion, 300,000 ms observation and all eleven final rea
 7. S238 `8c84ed04` `db038857` `bb8e7a00` `40fbc251`: the isolated journey and its evidence.
 8. S239 `fdc76c7b` `ed3b4cc4`: patched Hono adapter and Google GAX glob/minimatch production
    dependencies; the unchanged audit and consumer compatibility checks remain mandatory.
+9. S126 `b5b06f95`: normalize Firebase Admin UTC sign-in metadata to the app's ISO timestamp
+   contract so People displays dates; malformed metadata stays explicit and authority is unchanged.
 
 OWNER DIRECTION, October 28: "Once done merge and deploy"; renewed November 2: finalize the PMI
 build now that auth is back. Release only through docs/release-batch-runbook.md. PRs must wait for
@@ -81,5 +87,5 @@ or booking is not authorized. The parent coordinator owns that draft and recipie
 ## Next
 
 Finish corrected-tree full verification and the isolated journey, publish a reviewed PR, verify
-exact-main CI, then perform the guarded replacement release once the managed browser is enrolled.
+exact-main CI, then perform the guarded replacement release with fresh prerequisites and the enrolled browser.
 Keep production and pending code capabilities distinct until independent delivery evidence exists.

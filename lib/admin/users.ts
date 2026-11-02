@@ -123,8 +123,11 @@ function scopeStateFromClaims(
 function appSignInTimestamp(value: string | null | undefined): string | null {
   if (!value) return null;
   const timestamp = Date.parse(value);
-  // Keep malformed provider data explicit in the display instead of claiming no sign-in exists.
-  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : value;
+  // Convert only the SDK's canonical UTC serialization. Keep ISO or malformed source data
+  // unchanged so the strict display still rejects impossible dates and unknown date formats.
+  if (!Number.isFinite(timestamp)) return value;
+  const date = new Date(timestamp);
+  return date.toUTCString() === value ? date.toISOString() : value;
 }
 
 function toAppUser(record: AdminUserRecordLike): AppUser | null {
