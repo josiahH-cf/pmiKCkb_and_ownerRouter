@@ -19,8 +19,9 @@ persisted `existing_session`. No credential or grant was changed by the coordina
 Production still serves `6fbd6225` / `pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% traffic.
 Its Cloud Build `5dd3d8c9-ff0c-48a7-bc08-7fb59729feac` succeeded and its image digest matches
 the serving revision. No active regional Cloud Build was present at 15:14Z.
-The recovered alert window contains one 500 on the genuine GET renewal-status path at 12:21Z.
-Fresh authenticated browser checks return status `ok`, show recurring charges and no auxiliary
+The recovered alert window contains one 500 on a renewal-endpoint POST at 12:21Z.
+The inventory refresh uses the read-only `options` branch there; cloud logs retain no request body.
+Fresh authenticated GET status checks return `ok`, show recurring charges and no auxiliary
 read failure. Current application helpers also read charges and the operating Sheet successfully;
 the sampled Sheet association is ambiguous and correctly refuses a write target. This establishes
 recovery on those checks, not a proven root cause or a permanent outage repair.
@@ -28,11 +29,12 @@ recovery on those checks, not a proven root cause or a permanent outage repair.
 `ed3b4cc4` scopes glob 14.0.3 to rimraf 5 (Google GAX's cleanup consumer), selecting minimatch
 11.0.4 without replacing legacy minimatch APIs elsewhere. The unchanged production audit reports
 zero findings; five dependency compatibility tests pass, including real async/sync glob cleanup
-of disposable synthetic files. The initial full gate on `7561b3a4` passed 9,865 unit tests (four existing configuration skips),
-all 495 backend tests, every policy check and the production build. `b5b06f95` also corrects
-Firebase's UTC sign-in metadata at the Admin response adapter; 34 affected tests and an offline
-SDK metadata check pass. Final combined-tree qualification, exact-head review/CI and deployment
-remain pending.
+of disposable synthetic files. `b5b06f95` / `deb3f417` correct Firebase's UTC sign-in metadata at the Admin response adapter;
+34 affected tests and an offline actual-SDK check pass. The complete combined-code gate on
+`deb3f417` passed 9,865 unit tests (four existing configuration skips), all 495 backend tests,
+every policy check and the production build. Exact-head review/CI and deployment remain pending.
+This documentation-only follow-up corrects the logged HTTP method; runtime/package/test bytes
+are identical to that qualified candidate. Exact-head CI also verifies the final publication tree.
 Private diagnostic evidence is under `~/.local/state/pmi-finalization-20261102/`, outside Git.
 
 ## Release interlock
@@ -86,6 +88,6 @@ or booking is not authorized. The parent coordinator owns that draft and recipie
 
 ## Next
 
-Finish corrected-tree full verification and the isolated journey, publish a reviewed PR, verify
+Finish the isolated journey, publish the fully qualified code through a reviewed PR, verify
 exact-main CI, then perform the guarded replacement release with fresh prerequisites and the enrolled browser.
 Keep production and pending code capabilities distinct until independent delivery evidence exists.

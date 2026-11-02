@@ -15,7 +15,8 @@ browser challenge at 15:24:49Z; a fresh supported check verifies Admin using `ex
 Held run `eab1d318` remains immutable at recovery pending authorized locked supersession.
 
 At 15:14Z the serving image matches successful regional Cloud Build `5dd3d8c9`; no active regional
-build was listed. The alert window has one 500 on the read-only renewal-status GET at 12:21Z.
+build was listed. The alert window has one 500 on a renewal-endpoint POST at 12:21Z. The inventory refresh uses
+its read-only `options` branch; cloud logs retain no request body.
 Fresh authenticated browser status is `ok`; recurring charges and the supporting Sheet read now
 complete. The sampled Sheet association is ambiguous and remains a correctly refused write target.
 The exact app reader helpers also complete. This is recovered behavior on bounded checks, not a
@@ -23,11 +24,12 @@ proven root cause or a claim that every lease/action is verified.
 
 `ed3b4cc4` repairs the new production audit chain with glob 14.0.3 scoped to rimraf 5 and minimatch
 11.0.4. The unchanged production audit reports zero findings and all five dependency boundary tests
-pass, including the actual consumer's async/sync cleanup. The initial full gate on `7561b3a4`
-passed 9,865 unit tests (four existing configuration skips), all 495 backend tests, policy checks
-and build. `b5b06f95` normalizes Firebase's documented UTC sign-in metadata at the Admin response
-adapter so its ISO timestamp display renders dates; malformed metadata remains explicit. Its 34
-affected tests and an offline actual-SDK metadata check pass. Final combined-tree gates, review/CI
+pass, including the actual consumer's async/sync cleanup. `b5b06f95` / `deb3f417` normalize only
+Firebase's canonical UTC sign-in metadata at the Admin response adapter; ISO, missing and malformed
+source values keep their existing meaning. Its 34 affected tests and four offline actual-SDK cases
+pass. The complete final-code gate on `deb3f417` passed 9,865 unit tests (four existing configuration
+skips), all 495 backend tests, policy checks and build. The follow-up documentation correction
+changes no runtime/package/test byte; exact-head CI verifies the final publication tree. Review/CI
 and deployment are pending. Dotloop metadata's access-token expiry elapsed; both write keys remain closed. C00/A1 and
 the A5 decision remain settled; their input/record and client-content boundaries are unchanged.
 Private diagnostics: `~/.local/state/pmi-finalization-20261102/`. No customer/provider business

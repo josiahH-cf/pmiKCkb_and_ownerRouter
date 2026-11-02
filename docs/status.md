@@ -6,11 +6,11 @@ Current delivery: S232–S239 remain queued; main `4b2eb72b` is ahead of canonic
 `6fbd6225`. The November 2 coordinator has repaired the new glob/minimatch audit chain at
 `ed3b4cc4` (zero production findings; five compatibility tests pass). Fresh authenticated app
 reads complete for the sampled recurring charges and Sheet workspace, with an ambiguous Sheet
-association correctly retained. Full gates and reviewed publication are in progress. The separate
-WSL release browser is enrolled and freshly verified as Admin; CLI/ADC work. The initial full
-gate passed all 495 backend tests, 9,865 unit tests, policy checks and build. The final candidate
-also fixes Admin sign-in date display at `b5b06f95` (34 affected tests pass); combined-tree
-qualification and exact-head review/CI follow. The previous native Claude owner remains stopped.
+association correctly retained. The final-code full gate passes; reviewed publication is next. The separate
+WSL release browser is enrolled and freshly verified as Admin; CLI/ADC work. The complete gate
+on final code `deb3f417` passed all 495 backend tests, 9,865 unit tests, policy checks and build.
+The candidate also fixes Admin sign-in date display (34 affected tests and four offline SDK cases
+pass). A documentation-only follow-up corrects the logged POST method; exact-head review/CI follow. The previous native Claude owner remains stopped.
 No release or staff acceptance is claimed.
 
 October 28: S232–S238 (November/December renewal readiness) were authored and the owner's execution
