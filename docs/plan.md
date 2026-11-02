@@ -15,8 +15,11 @@ profile ownership, reboot recovery and actual attended display. The operator res
 headed/native-window/viewport checks and a fresh combined auth run passed. Preserve the actual
 surface-capture and earlier Gmail failures; they are not rewritten as passes.
 
-The corrected auth candidate passed the complete credential-free final gate. Obtain this PR's
-own exact-head automated review and all five checks, merge without self approval and verify exact-main CI. Under the existing lock,
+The initial auth candidate passed the complete credential-free final gate. PR #171's review found
+a rejecting-close lease leak; the scoped recovery repair passes three fail-first actual-lock
+regressions. Its fresh required verification steps and independent source/output readbacks passed;
+the outer controller's completion remains unrecorded. Obtain the new head's own automated review
+and all five checks, merge without self approval and verify exact-main CI. Under the existing lock,
 reconcile and preserve the held run before one new exact-SHA run. Require fresh prerequisites/GO,
 captured recovery/configuration, one application build, guarded candidate checks/reconciliation,
 receipt-bound promotion, full observation and independent readbacks. Refresh readiness before

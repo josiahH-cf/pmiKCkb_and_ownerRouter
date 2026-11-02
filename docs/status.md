@@ -7,8 +7,11 @@ all five exact-main CI jobs passed. Production remains `6fbd6225` at 100% traffi
 qualifies the explicit owner-requested WSL auth repair on `codex/pmi-auth-command-20261102`.
 After the actual WSL restart, headed/native-window/visible-viewport checks and a full auth run
 passed without a fresh enrollment or Weston fatal. Default surface capture remains a failed
-diagnostic; documented CDP view capture passed. The corrected auth candidate passed its full
-credential-free gate; exact-head review/CI and the cumulative guarded release are pending. The original native Claude owner remains stopped. Espansr is separate.
+diagnostic; documented CDP view capture passed. The initial auth candidate passed its full
+credential-free gate. PR #171's review found a rejecting-close lease leak; three fail-first
+actual-lock regressions pass after repair. All required fresh verification steps and independent source/output readbacks passed.
+The outer controller's completion is unrecorded. New-head review/CI and the cumulative guarded
+release remain pending. The original native Claude owner remains stopped. Espansr is separate.
 
 The merged repairs passed 9,865 unit tests (four existing skips), all 495 backend tests, policies and
 build. Fresh app charge/Sheet reads complete; the sampled Sheet association stays ambiguous and

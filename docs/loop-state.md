@@ -20,8 +20,11 @@ failed and remains recorded; the documented CDP view capture passed. A post-boot
 returned exit 0 using `existing_session` as Admin, without enrollment, and safe provider reads passed.
 Final coverage also checks the ignored local API keys. Do not infer a forced-MFA or 24-hour proof.
 
-The merged application repairs and corrected auth candidate passed their own full gates. The auth
-candidate still requires exact-head automated review and all five PR/main checks. Then perform
+The initial auth candidate passed its full gate, then PR #171's own review found a rejecting-close
+lease leak. The scoped recovery repair passed three fail-first actual-kernel-lock regressions;
+it retains ownership/recovery after failure and releases only after confirmed closure. its required commands and source/output readbacks passed. The outer controller's completion
+was not recorded; keep that gap explicit. Exact-head automated review and all five PR/main checks
+remain required. Then perform
 the cumulative guarded release and independent production readbacks. Espansr is separately deferred.
 Production remains `6fbd6225` / `pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% traffic.
 Current charge/Sheet reads complete; the ambiguous sample correctly refuses a write target.

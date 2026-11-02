@@ -20,11 +20,19 @@ RentVine keys by a safe read, and reuses the existing owner Admin browser profil
 provider reads. Normal refresh uses existing grants/stores; no identity, role, claim or business gate
 is expanded.
 
-The corrected auth candidate passed its own complete credential-free `bash scripts/verify.sh`
-gate on November 2, including unit/backend suites, policies, production audit and build. The earlier
-missing test import failure is preserved. Final publication documentation differs only in Markdown;
-runtime, package and test bytes retain that gate's scope. Exact-head PR review/CI and exact-main CI
-remain required before the cumulative guarded release; no production delivery is claimed.
+The initial auth candidate passed its complete credential-free `bash scripts/verify.sh` gate:
+9,939 unit tests with four existing skips, all 495 backend tests, policies, production audit and
+build. PR #171's own review then found that rejecting browser cleanup could strand the profile
+lease. Three actual-kernel-lock reproductions failed on the reviewed code and passed after repair.
+Cleanup now retains its recovery handle after failure, retries only the owned browser and releases
+ownership only after closure is confirmed; the original close failure remains explicit.
+The review repair completed all required verification commands: 9,942 unit tests with four
+existing skips, all 495 backend tests, policies, production audit and build. Nineteen retained
+steps, fourteen isolation control sets, emitted build/font bytes and both unchanged source copies
+passed independent readback. The outer controller disappeared before its completion record;
+its exit remains unrecorded. No original report was rewritten. New-head review/CI remains required
+before merge; earlier failures and the original review finding stay recorded.
+The cumulative guarded release and independent readbacks remain pending; no delivery is claimed.
 
 Auth and guarded release/AI-history browsers share kernel profile ownership with bounded waits.
 Live/unknown native owners are refused. Chromium owns stale-marker recovery; no live lock is
