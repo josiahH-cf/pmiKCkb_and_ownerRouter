@@ -1,21 +1,27 @@
 # Current plan
 
-Updated: 2026-10-28 (UTC).
+Updated: 2026-11-02 (UTC).
 
-## November/December renewal readiness (October 28)
+## Finalize the current build
 
-The owner's October 28 execution instruction covers bounded audit, repair and verification of
-S232–S238 for reliable November/December 2026 renewals, with known information and connections
-targeted for Wednesday, November 4, 2026 (Central). It grants no customer email or draft, signing,
-production RentVine/Dotloop record effect, credential, grant or purchase. PRs #158, #159 and #160
-merged the first increments (`bf0c03f9`, `a786fa16`, `be8c0bf4`); the rows branch adds S236's
-persisted record and screen, S235's slots, state and freshness and S238's isolated browser
-journey. The remaining ready rows proceed independently of delivery: S232 R-S232-3 to R-S232-5,
-S233 R-S233-1/2/4/5/9, S234 R-S234-1/2/4/5 and S237 R-S237-1/5 as named in each suite's status
-line, the journey's uncovered phases, and the November 4 blocker review against C00–C13 in
-`docs/open-blockers.md`. Served changes are delivered only after the owner queues
-them, through the release pipeline and its fresh prerequisites. The staff walkthrough stays NOT RUN
-until a staff observer runs it.
+The owner renewed authorization on November 2 to finish the existing PMI build after CLI/ADC
+authentication was restored. S232–S239 are already on main; deliver them cumulatively with the
+scoped production dependency repair, preserving newer accepted work and every independent Stop.
+The current Codex coordinator does not resume the old native Claude session.
+
+Complete final credential-free full gates and the isolated mounted journey; obtain this PR's own
+exact-head automated review and all five checks; merge without self approval and verify exact-main
+CI. Under the existing release lock, reconcile and preserve the held run before preparing one new
+exact-SHA run. Require fresh prerequisites/GO, captured recovery/configuration, one application
+build, guarded candidate checks/reconciliation, receipt-bound promotion, full observation and
+independent production readbacks. The owner completes the managed release browser's Google
+challenge; CLI enrollment and the Windows browser do not substitute for that profile.
+
+Provider business effects, new grants, live proof records and signing are outside verification.
+Dotloop write keys stay closed. C00/A1 and the A5 decision remain settled; client content and real
+staff acceptance retain only their named holds in docs/open-blockers.md. Prepare factual beginner
+capabilities and a training/video proposal for the parent communication draft, without sending or
+booking. Keep pending mainline improvements distinct from capabilities actually served.
 
 ## Authorized outcome
 

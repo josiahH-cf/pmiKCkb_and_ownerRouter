@@ -25,13 +25,12 @@ before actor/mailbox/source reads. Current role/Space, runtime suspension, exact
 claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
 unapproved background sends remain unavailable. No protected activation metadata changes.
 
-The bounded Dotloop read at 2026-10-22T12:58:20Z verified `integrations@pmikcmetro.com` with a
-connected, unexpired credential. Its standalone INDIVIDUAL "Default Profile" lists zero templates;
-its default COMPANY profile "PMI KC Metro" returns 403, which Dotloop's public API documents for
-every non-INDIVIDUAL profile. An office template reaches only its office members' individual
-profiles, and the integrations individual profile carries no office affiliation. A full Dotloop
-admin must add the integrations login to the office that holds the template (A1). No supported
-selection exists. Both Dotloop write keys remain closed; no template was recreated.
+Dotloop C00/A1 is settled: the October 27 API read and in-app selection verified profile
+20701283, template 228954 (`LEASE_OFFER`), initial status `PRE_OFFER`, version 1. No template
+recreation or new membership is needed. November 2 credential metadata shows that the access-token
+expiry has elapsed; the diagnostic pass did not refresh it or change any grant. Both Dotloop write
+keys remain closed, and signing remains a human handoff. Source selection does not approve legal
+content, signer maps or external effects.
 
 Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
 read back at resource version 8, all unverified. The deployed readiness page displays ten form
@@ -44,8 +43,8 @@ Production serves `6fbd62250ccd9df1b9861a59b5de21c2143a68c0` /
 `pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% canonical traffic. Run
 `030761c0-1e70-4cd2-95a6-77480107657d` delivered S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and
 fast-uri 3.1.9) with candidate assurance, receipt-bound promotion, two observation checkpoints in
-406,404 ms and all eleven independent readback sections. The one-item queue is delivered and empty;
-its permit is consumed. S231 passed the complete gate, served E2E (65 passed, four existing skips,
+406,404 ms and all eleven independent readback sections. That S231 run's queue was delivered and its permit consumed;
+the current S232–S239 queue remains pending in docs/loop-state.md. S231 passed the complete gate, served E2E (65 passed, four existing skips,
 fourteen files) and exact-main CI `40487479956` on `6fbd6225`. The October 20 S227–S229 delivery
 evidence remains `docs/evidence/application-delivery-2026-10-20.md`.
 

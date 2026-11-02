@@ -1,68 +1,47 @@
 # Loop state
 
-Last updated: 2026-10-29 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-11-02 (UTC). Read AGENTS.md and docs/facts.md first.
 
-## November/December renewal readiness execution (October 28)
+## Current execution
 
-S232–S238 (intake 099–105) were authored against main `a1c0fe8c`; the owner's execution
-instruction then started them in the same owner session. PRs #158 to #164 merged their slices, each
-on all five exact-head CI jobs; the last, PR #164 at `c689d627`, passed exact-main CI
-`40760251764`. `docs/status.md` lists what each added, its review fixes and its exact-main CI.
-PR #165 merged S233 R-S233-4/5/9 at `db038857` on all five exact-head checks while its automated
-Codex review of the PR head `04cd9b12` still read Running (summary last updated
-2026-10-28T20:49:48Z, findings unknown). That bypassed the pending review gate and is recorded as
-such: a later manual review request (2026-10-29T06:44:14Z, from the josiahH-cf account, not this
-session) reviewed the merge commit `db038857` and found no major issues at 06:45:58Z; the summary
-marker now reads completed with no findings for `db038857`. Exact-main CI `40774457242` passed.
-Further merges wait for each PR's own review outcome.
+The owner authorized finalizing the PMI build after local authentication was restored, including
+scoped repairs, full gates, reviewed merge, guarded deployment and independent production checks.
+The current Codex coordinator works in `codex/pmi-finalization-20261102`, based on main `4b2eb72b`.
+The original native Claude session remains stopped; this direction does not resume it.
+No protected-path, identity, grant, budget or provider-effect boundary changes are authorized.
 
-PR #167 merged the rows6 branch (the journey's S234 phase, the S233 attempt-read follow-through and
-S239, the `@hono/node-server` 2.1.3 patch) at `bb8e7a00` on its exact head, after its own review
-completed without findings and the publication guard passed; exact-main CI `40861616011` passed.
-PR #166 stays closed unmerged with its receipts. PR #168 merged the rows7 branch at `bdab63a2`: the
-journey's S237 and S232 resolver phases (34 of 34 on `40fbc251`) and fixes `8b52edf9`, `64e0bf57`.
-Run `ab09e960` stopped at candidate assurance before promotion: the release checker had no model of
-S232's ended-without-outcome state, and `ee420393` fixes it (`docs/status.md`). Production remains
-`6fbd6225` (S231). The staff walkthrough is NOT RUN. Client inputs C00–C13 stay in
-`docs/open-blockers.md`. NEXT: retire `ab09e960` as superseded, then run the replacement release of
-the queue below. S238 owns the November 4, 2026 (Central) blocker review.
+Fresh November 2 CLI/ADC probes verify `josiah@pmikcmetro.com` in the approved WSL store.
+Java 21 is already installed; its original missing-command report was a PATH issue.
+The separate managed browser profile `/home/josiah/pmi-assurance/owner-admin` reaches Google's
+password/challenge screen. The owner must complete the supported `auth:enroll-canary` command.
+Windows browser access is working and cannot substitute for this release-profile prerequisite.
 
-## Dotloop A1 resolved and selected (October 27)
+Production still serves `6fbd6225` / `pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% traffic.
+Its Cloud Build `5dd3d8c9-ff0c-48a7-bc08-7fb59729feac` succeeded and its image digest matches
+the serving revision. No active regional Cloud Build was present at 15:14Z.
+The recovered alert window contains one 500 on the genuine GET renewal-status path at 12:21Z.
+Fresh authenticated browser checks return status `ok`, show recurring charges and no auxiliary
+read failure. Current application helpers also read charges and the operating Sheet successfully;
+the sampled Sheet association is ambiguous and correctly refuses a write target. This establishes
+recovery on those checks, not a proven root cause or a permanent outage repair.
 
-Every connection seam is ready. On October 27 each seam, the read-only Admin canary and
-`auth:ensure --unattended` read back ready (facts). Dotloop caps the company at eight users and
-refuses a second membership for an existing member, so the owner freed josiah@'s slot, re-added
-josiah@ as admin, and, signed in as josiah@, removed Integrations API and re-added it as an agent.
-At 10:35:30Z the bounded API read listed LEASE RENEWAL (228954, `LEASE_OFFER`) on the new
-integrations INDIVIDUAL profile 20701283. The owner's Admin session refreshed resources and saved
-profile 20701283, template 228954 and initial status `PRE_OFFER` (owner choice) at 10:39:59Z; the
-selection and the readiness page read back. Both write keys stay closed; no loop, upload or other
-provider business write occurred. S231 patched new audit advisories and released (run 030761c0).
-The client content holds (B-DL3 originals, maps and signers; fees and Rhino; A5) are itemized in
-C01–C10, and the human and live-evidence holds in C11–C13, in `docs/open-blockers.md`. The first real loop is ordinary staff-confirmed work after B-DL3 approval,
-under its own exact owner authorization.
-Windows-hosted Claude Code and Codex report the WSL credential store through `auth:ensure`
-(protected `scripts/auth`, merged on owner direction). Private receipts:
-`Codex/2026-10-16/pmi-delivery-01a1461d/connections-readiness-20261022/`, outside Git.
+`ed3b4cc4` scopes glob 14.0.3 to rimraf 5 (Google GAX's cleanup consumer), selecting minimatch
+11.0.4 without replacing legacy minimatch APIs elsewhere. The unchanged production audit reports
+zero findings; five dependency compatibility tests pass, including real async/sync glob cleanup
+of disposable synthetic files. Final full gates, exact-head review/CI and deployment remain pending.
+Private diagnostic evidence is under `~/.local/state/pmi-finalization-20261102/`, outside Git.
 
-## Current resume point
+## Release interlock
 
-The owner amended S227–S229 on October 20: completely retire the maintenance component,
-including history/reports and obsolete wiring; diagnose the existing Dotloop template through
-`integrations@pmikcmetro.com`; map form sources to their existing processes; and finalize the
-existing staff-confirmed renewal Send, Schedule and Resume journey for October 22.
-Both Dotloop write keys remain closed. Signing is a human Dotloop handoff. No customer send,
-draft, provider business write or production test record is verification proof.
-
-New renewal authorizations bind current content, recipients, source values, sender and a new
-delivery-policy version. The worker skips old authorizations and every retired maintenance lane
-before actor/mailbox/source reads. Current role/Space, runtime suspension, exact-key, at-most-once
-claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
-unapproved background sends remain unavailable. No protected activation metadata changes.
-
-Implementation e5c1c9e6 and the parser-qualified queue were normally fast-forward published to main
-at `157b6992279467e73dcf91aa43eb3c247f96ff2f`. No merge was manufactured for already-ancestral
-October 16 source. Original and admitted checkouts remain preserved.
+Run `eab1d318-abe1-40cc-b898-18c7300fb021` pins main `4b2eb72b` at recovery,
+blocked `managed_browser_enrollment_required`, with operator resume required. Its checkpoint hash
+is `332dd0e6680a37d54504b678cf007283a75552f185f09bfb858568ac83fced1a`.
+This is durable state, not a running owner. Preserve its source, permit, claims and receipts.
+After the corrected-tree gate and exact-main CI, use the reviewed locked supersession procedure
+for the new exact SHA; prove no unresolved local/cloud effects before replacement. Never relabel
+the held run, edit its frozen checkout or reuse its receipts. The new run must independently pass
+fresh authentication/prerequisites/GO, recovery, one build, full guarded route/reconciliation
+checks, receipt-bound promotion, 300,000 ms observation and all eleven final readbacks.
 
 ## Awaiting release
 
@@ -76,63 +55,31 @@ October 16 source. Original and admitted checkouts remain preserved.
 6. S237 `bf0c03f9` `a786fa16` `be8c0bf4` `06c73561` `8b52edf9`: the terms basis, what still
    differs, plain outcomes and the RentVine panel's status read.
 7. S238 `8c84ed04` `db038857` `bb8e7a00` `40fbc251`: the isolated journey and its evidence.
-8. S239 `fdc76c7b`: `@hono/node-server` 2.1.3 patches GHSA-rmxm-3fg6-px4f, which failed the
-   unchanged production audit on 2026-10-29.
+8. S239 `fdc76c7b` `ed3b4cc4`: patched Hono adapter and Google GAX glob/minimatch production
+   dependencies; the unchanged audit and consumer compatibility checks remain mandatory.
 
-OWNER DIRECTION, 2026-10-28T22:01:58Z, replying to the PMI update: "Once done merge and deploy".
-Release only through docs/release-batch-runbook.md: admit only after exact main CI on the release
-head, fresh prerequisites and a new run-bound permit. Both Dotloop write keys stay closed, assurance
-stays read-only and no provider record is written to prove the release. S231 was independently
-verified delivered by run 030761c0; S230 by run eee80164; S227, S228 and S229 by run 57e4a1b5.
+OWNER DIRECTION, October 28: "Once done merge and deploy"; renewed November 2: finalize the PMI
+build now that auth is back. Release only through docs/release-batch-runbook.md. PRs must wait for
+their own exact-head review result and all five CI checks; no self approval or pending-review bypass.
+PR #165's earlier pending-review bypass remains recorded in Git history and is not precedent.
 
-## Verified production
+## Client and provider boundaries
 
-Production serves `6fbd62250ccd9df1b9861a59b5de21c2143a68c0` /
-`pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% canonical traffic. Run
-`030761c0-1e70-4cd2-95a6-77480107657d` delivered S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and
-fast-uri 3.1.9) with candidate assurance, receipt-bound promotion, two observation checkpoints in
-406,404 ms and all eleven independent readback sections. The one-item queue is delivered and empty;
-its permit is consumed. S231 passed the complete gate, served E2E (65 passed, four existing skips,
-fourteen files) and exact-main CI `40487479956` on `6fbd6225`. The October 20 S227–S229 delivery
-evidence remains `docs/evidence/application-delivery-2026-10-20.md`.
+Dotloop C00/A1 is settled: profile 20701283, template 228954, `LEASE_OFFER`, `PRE_OFFER`, version 1.
+November 2 metadata shows its access-token expiry elapsed; no token refresh or grant was changed
+in the diagnostic pass. Both Dotloop write keys remain closed. Signing remains a human handoff.
+Eight saved source references are unverified; approved originals and reviewed field/signer maps
+remain missing across ten form families. The A5 policy decision is settled; the reviewed in-app
+record still needs reconciliation. Do not reopen the policy question or overwrite accepted input.
+Client-specific C01–C13 holds remain in docs/open-blockers.md; they hold only their named effects.
+The staff walkthrough is NOT RUN. Synthetic journeys do not establish real-case acceptance.
 
-Implementation `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3` passed the actual complete
-`bash scripts/verify.sh`: 9,659 unit tests with four existing configuration skips, all 465 backend
-tests with no skips, required checks, production build and zero production audit findings.
-Served E2E passed 65 tests with four existing configuration skips across all fourteen files.
-Exact-main CI `39464866553` passed all five jobs on `157b6992`, deployed October 20. Canonical v11 covers
-all final code/tests; policy-build v3 and served E2E v2 cover identical runtime/package bytes,
-with two later test-only assertion/synchronization changes covered by canonical v11.
+No live lease mutation, email, draft, payment, signature or production proof record is a test.
+Dan Hilgedick/Jon Eddy onboarding communication and training/video plans are drafts only; sending
+or booking is not authorized. The parent coordinator owns that draft and recipient evidence.
 
-The owner-approved one-file Editor grant was applied with notification off and read back.
-Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
-reader freshly verified all 29 tabs after promotion without reading/changing cell values.
-On October 20 only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differed among the 54 environment
-keys versus that run's captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
-Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
-Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
+## Next
 
-## Provider checkpoint
-
-The bounded Dotloop read at 2026-10-27T10:35:30Z verified `integrations@pmikcmetro.com` with a
-connected credential and two INDIVIDUAL profiles: the standalone "Default Profile" (zero templates)
-and the office agent profile 20701283 "Integrations API", which lists nine shared company
-templates including LEASE RENEWAL 228954 (`LEASE_OFFER`). Integrations is now an agent only, with
-no company admin profile. The saved selection is profile 20701283, template 228954 and initial
-status `PRE_OFFER` (version 1, 10:39:59Z). Both Dotloop write keys remain closed; no template was
-recreated.
-
-Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
-read back at resource version 8, all unverified. The deployed readiness page displays ten form
-families across renewal extension, full lease and owner acknowledgment. Actual originals and
-reviewed field/signer maps remain unapproved for all ten families. Source presence is not legal,
-customer-link or signing approval. Source verification is a staff attestation in Admin; the
-least-privilege `drive.file` 404 for a browser-visible file is expected and holds nothing.
-
-## Continuation
-
-Documentation-only closure records the verified delivery; it requires no runtime deployment.
-The deployed source is 6fbd6225 (S231, run 030761c0). Preserve private receipts and failed attempts outside Git.
-Template visibility and selection are resolved (October 27). Applicable approved originals/maps,
-policies, the A5 timing record and human real-case acceptance remain open (C01–C13); no customer
-effect was proof.
+Finish corrected-tree full verification and the isolated journey, publish a reviewed PR, verify
+exact-main CI, then perform the guarded replacement release once the managed browser is enrolled.
+Keep production and pending code capabilities distinct until independent delivery evidence exists.
