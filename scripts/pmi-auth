@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# One entry point; independent of the caller's current directory and shell initialization.
+set -euo pipefail
+PMI_AUTH_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+PMI_AUTH_NODE="${HOME}/.local/opt/node-v22.23.2-linux-x64/bin/node"
+if [[ ! -x "$PMI_AUTH_NODE" ]]; then
+  PMI_AUTH_NODE="$(command -v node || true)"
+fi
+if [[ -z "$PMI_AUTH_NODE" || "$PMI_AUTH_NODE" == /mnt/* || "$PMI_AUTH_NODE" == *.exe ]]; then
+  echo 'NOT READY: a native WSL Node runtime is required.' >&2
+  exit 2
+fi
+cd -- "$PMI_AUTH_ROOT"
+exec "$PMI_AUTH_NODE" --import tsx scripts/auth/pmi-auth.mjs "$@"

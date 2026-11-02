@@ -291,6 +291,7 @@ export function runCanarySessions(requests, env, root = ROOT) {
       `--profile=${request.profile}`,
       `--origin=${request.origin}`,
       `--email=${request.email}`,
+      `--expected-role=${request.label === "editor" ? "Editor" : "Admin"}`,
     ];
     const child = spawnSync(command, args, {
       cwd: root,

@@ -75,6 +75,7 @@
     "delete:agent-search-data-store": "node scripts/delete-agent-search-data-store.mjs",
     "deploy": "node scripts/deploy-demo-cloud-run.mjs",
     "deploy:demo": "node scripts/deploy-demo-cloud-run.mjs",
+    "auth:pmi": "bash scripts/pmi-auth",
     "auth:ensure": "node scripts/auth/ensure.mjs",
     "auth:enroll": "bash scripts/auth/enroll.sh",
     "auth:enroll:wsl": "bash scripts/auth/enroll.sh",

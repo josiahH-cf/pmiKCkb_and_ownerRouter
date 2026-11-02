@@ -9,13 +9,21 @@ authentication was restored. S232–S239 are already on main; deliver them cumul
 scoped production dependency repair, preserving newer accepted work and every independent Stop.
 The current Codex coordinator does not resume the old native Claude session.
 
-Complete final credential-free full gates and the isolated mounted journey; obtain this PR's own
-exact-head automated review and all five checks; merge without self approval and verify exact-main
-CI. Under the existing release lock, reconcile and preserve the held run before preparing one new
-exact-SHA run. Require fresh prerequisites/GO, captured recovery/configuration, one application
-build, guarded candidate checks/reconciliation, receipt-bound promotion, full observation and
-independent production readbacks. The owner completed the managed release browser challenge;
-the supported check verifies the persisted Admin session. Refresh readiness before dependent phases.
+PR #170 merged at `5ddb6ec1` with all five exact-main CI jobs passing. Finish the scoped
+one-command WSL auth candidate: existing identities/stores, real safe provider reads, shared
+profile ownership, reboot recovery and actual attended display. The operator restarted WSL;
+headed/native-window/viewport checks and a fresh combined auth run passed. Preserve the actual
+surface-capture and earlier Gmail failures; they are not rewritten as passes.
+
+The initial auth candidate passed the complete credential-free final gate. PR #171's review found
+a rejecting-close lease leak; the scoped recovery repair passes three fail-first actual-lock
+regressions. Its fresh required verification steps and independent source/output readbacks passed;
+the outer controller's completion remains unrecorded. Obtain the new head's own automated review
+and all five checks, merge without self approval and verify exact-main CI. Under the existing lock,
+reconcile and preserve the held run before one new exact-SHA run. Require fresh prerequisites/GO,
+captured recovery/configuration, one application build, guarded candidate checks/reconciliation,
+receipt-bound promotion, full observation and independent readbacks. Refresh readiness before
+dependent phases. Espansr replacement, merge and reinstall remain separate after exact-command verification.
 
 Provider business effects, new grants, live proof records and signing are outside verification.
 Dotloop write keys stay closed. C00/A1 and the A5 decision remain settled; client content and real
@@ -74,13 +82,11 @@ its permit is consumed. S231 passed the complete gate, served E2E (65 passed, fo
 fourteen files) and exact-main CI `40487479956` on `6fbd6225`. The October 20 S227–S229 delivery
 evidence remains `docs/evidence/application-delivery-2026-10-20.md`.
 
-The bounded Dotloop read at 2026-10-22T12:58:20Z verified `integrations@pmikcmetro.com` with a
-connected, unexpired credential. Its standalone INDIVIDUAL "Default Profile" lists zero templates;
-its default COMPANY profile "PMI KC Metro" returns 403, which Dotloop's public API documents for
-every non-INDIVIDUAL profile. An office template reaches only its office members' individual
-profiles, and the integrations individual profile carries no office affiliation. A full Dotloop
-admin must add the integrations login to the office that holds the template (A1). No supported
-selection exists. Both Dotloop write keys remain closed; no template was recreated.
+Dotloop C00/A1 is settled: the saved supported selection is profile 20701283, template 228954
+(`LEASE_OFFER`), initial status `PRE_OFFER`, version 1. The owner-requested November 2 auth flow
+refreshed only the existing OAuth grant through generation-owned secure persistence and verified
+`integrations@pmikcmetro.com`. No membership, identity or scope was added. Both Dotloop write keys remain closed;
+source selection does not approve legal content, signer maps or business effects. Signing stays human.
 
 Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
 read back at resource version 8, all unverified. The deployed readiness page displays ten form

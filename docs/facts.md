@@ -7,33 +7,58 @@ evidence; an earlier receipt never authorizes a new attempt.
 
 ## Current finalization — November 2
 
-The owner renewed authority to finalize the existing PMI build through scoped repairs, full gates,
-reviewed merge and guarded release. The old native Claude owner remains stopped. Main is
-`4b2eb72bae9fea329b619cd5332cf9755af1c02e`; production remains `6fbd6225` at 100% traffic.
-Fresh CLI/ADC probes verify the approved WSL account. Java 21 is installed. The owner completed the separate release
-browser challenge at 15:24:49Z; a fresh supported check verifies Admin using `existing_session`.
-Held run `eab1d318` remains immutable at recovery pending authorized locked supersession.
+The owner explicitly requested the one-command WSL auth repair while finalizing PMI.
+PR #170 merged at `5ddb6ec1d22df000acae617c79594bac6fcf21f2`; all five exact-main CI jobs in
+run `41486594632` passed. Production remains `6fbd62250ccd9df1b9861a59b5de21c2143a68c0` /
+`pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% traffic. The original native Claude owner stays stopped.
+Held run `eab1d318` is immutable at recovery pending locked supersession; no replacement release is claimed.
 
-At 15:14Z the serving image matches successful regional Cloud Build `5dd3d8c9`; no active regional
-build was listed. The alert window has one 500 on a renewal-endpoint POST at 12:21Z. The inventory refresh uses
-its read-only `options` branch; cloud logs retain no request body.
-Fresh authenticated browser status is `ok`; recurring charges and the supporting Sheet read now
-complete. The sampled Sheet association is ambiguous and remains a correctly refused write target.
-The exact app reader helpers also complete. This is recovered behavior on bounded checks, not a
-proven root cause or a claim that every lease/action is verified.
+The coordinator authors `codex/pmi-auth-command-20261102` on that merged base. The entry point is
+`bash scripts/pmi-auth`, or its absolute path from any WSL directory. It resolves the approved
+registered ignored configuration, validates the exact CLI/ADC/GitHub identities, verifies the local
+RentVine keys by a safe read, and reuses the existing owner Admin browser profile before configured
+provider reads. Normal refresh uses existing grants/stores; no identity, role, claim or business gate
+is expanded.
 
-`ed3b4cc4` repairs the new production audit chain with glob 14.0.3 scoped to rimraf 5 and minimatch
-11.0.4. The unchanged production audit reports zero findings and all five dependency boundary tests
-pass, including the actual consumer's async/sync cleanup. `b5b06f95` / `deb3f417` normalize only
-Firebase's canonical UTC sign-in metadata at the Admin response adapter; ISO, missing and malformed
-source values keep their existing meaning. Its 34 affected tests and four offline actual-SDK cases
-pass. The complete final-code gate on `deb3f417` passed 9,865 unit tests (four existing configuration
-skips), all 495 backend tests, policy checks and build. The follow-up documentation correction
-changes no runtime/package/test byte; exact-head CI verifies the final publication tree. Review/CI
-and deployment are pending. Dotloop metadata's access-token expiry elapsed; both write keys remain closed. C00/A1 and
-the A5 decision remain settled; their input/record and client-content boundaries are unchanged.
-Private diagnostics: `~/.local/state/pmi-finalization-20261102/`. No customer/provider business
-effect was used as evidence.
+The initial auth candidate passed its complete credential-free `bash scripts/verify.sh` gate:
+9,939 unit tests with four existing skips, all 495 backend tests, policies, production audit and
+build. PR #171's own review then found that rejecting browser cleanup could strand the profile
+lease. Three actual-kernel-lock reproductions failed on the reviewed code and passed after repair.
+Cleanup now retains its recovery handle after failure, retries only the owned browser and releases
+ownership only after closure is confirmed; the original close failure remains explicit.
+The review repair completed all required verification commands: 9,942 unit tests with four
+existing skips, all 495 backend tests, policies, production audit and build. Nineteen retained
+steps, fourteen isolation control sets, emitted build/font bytes and both unchanged source copies
+passed independent readback. The outer controller disappeared before its completion record;
+its exit remains unrecorded. No original report was rewritten. New-head review/CI remains required
+before merge; earlier failures and the original review finding stay recorded.
+The cumulative guarded release and independent readbacks remain pending; no delivery is claimed.
+
+Auth and guarded release/AI-history browsers share kernel profile ownership with bounded waits.
+Live/unknown native owners are refused. Chromium owns stale-marker recovery; no live lock is
+deleted, credential profile copied or unrelated browser killed. Reboot releases the kernel lock.
+The attended path checks the observed display and recent WSLg compositor faults. Google passwords,
+codes, passkeys and CAPTCHA remain human steps; a valid session is never deliberately revoked as proof.
+
+After the operator's actual WSL restart with GUI enabled and a 12GB cap, isolated headed startup,
+the matching native Windows window and its visible offline viewport passed, with no Weston fatal.
+Default surface capture failed; documented CDP view capture passed. All original failed receipts
+remain failed. The post-boot combined command returned exit 0 with the existing Admin session and
+safe provider reads; Gmail passed first attempt. This is not a forced-MFA or 24-hour longevity claim.
+
+The merged dependency/Admin-date repairs passed 9,865 unit tests (four existing configuration
+skips), all 495 backend tests, policies and build, plus exact-main CI. Fresh app charge/Sheet reads
+complete; the sampled ambiguous Sheet association remains a correctly refused write target.
+The recovered renewal-endpoint POST 500 has no retained request body and no proven permanent cause.
+
+The existing Dotloop grant refreshed normally during the owner-requested auth repair. Secure
+persistence and exact managed-account read passed; twenty superseded versions were destroyed with
+no active-reference overlap. Both business-write keys keep their closed policy. C00/A1 and A5
+remain settled; client content/maps and staff acceptance retain their named holds. RentCast paid
+lookups, AI generation and business writes are not auth tests. Private auth/release evidence stays
+outside Git under `~/.local/state/pmi-auth-command-20261102/` and
+`~/.local/state/pmi-finalization-20261102/`. Espansr replacement/reinstall is a separate deferred task
+after exact-command verification. No client message or training invitation is sent.
 
 ## Existing renewal policy boundaries
 

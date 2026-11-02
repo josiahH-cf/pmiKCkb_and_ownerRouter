@@ -1,3 +1,7 @@
+import {
+  acquireManagedProfileLease,
+  type ManagedProfileLease,
+} from "./profile-lease.mjs";
 import { isCanaryRequestAllowed } from "./browser-policy";
 import { allowsVerificationRequest } from "../auth/canary-policy";
 
@@ -75,6 +79,7 @@ export interface LaunchGuardedManagedBrowserInput<
 }
 
 interface GuardedBrowserCloseState {
+  readonly lease: ManagedProfileLease;
   readonly signal?: AbortSignal;
   readonly onAbort: () => void;
   closePromise: Promise<void> | null;
@@ -87,12 +92,18 @@ function beginGuardedBrowserForceClose(
 ): Promise<void> {
   state.signal?.removeEventListener("abort", state.onAbort);
   if (!state.forceClosePromise) {
-    const browser = context.browser();
-    state.forceClosePromise = browser
-      ? Promise.resolve(
-          browser.close({ reason: "production assurance deadline exceeded" }),
-        ).then(() => undefined)
-      : Promise.reject(new Error("managed_browser_force_close_unavailable"));
+    state.forceClosePromise = Promise.resolve()
+      .then(async () => {
+        const browser = context.browser();
+        if (!browser) throw new Error("managed_browser_force_close_unavailable");
+        await browser.close({ reason: "production assurance browser cleanup" });
+        await state.lease.release();
+      })
+      .catch((error: unknown) => {
+        // A failed close cannot discard the only recovery handle or permanently cache a rejection.
+        state.forceClosePromise = null;
+        throw error;
+      });
   }
   return state.forceClosePromise;
 }
@@ -105,7 +116,24 @@ function beginGuardedBrowserClose(
 ): Promise<void> {
   state.signal?.removeEventListener("abort", state.onAbort);
   if (!state.closePromise) {
-    state.closePromise = Promise.resolve(context.close()).then(() => undefined);
+    state.closePromise = Promise.resolve()
+      .then(() => context.close())
+      .then(() => state.lease.release())
+      .catch(async (error: unknown) => {
+        try {
+          // Retain ownership until the existing owned browser confirms that it is closed.
+          await beginGuardedBrowserForceClose(context, state);
+          closeStates.delete(context);
+        } catch (forceError: unknown) {
+          throw new AggregateError([error, forceError], "managed_browser_cleanup_failed");
+        }
+        // Cleanup recovery does not rewrite the original rejecting close as a pass.
+        throw error;
+      })
+      .catch((error: unknown) => {
+        state.closePromise = null;
+        throw error;
+      });
   }
   return state.closePromise;
 }
@@ -119,11 +147,8 @@ export async function closeGuardedManagedBrowser(
     await context.close();
     return;
   }
-  try {
-    await beginGuardedBrowserClose(context, state);
-  } finally {
-    closeStates.delete(context);
-  }
+  await beginGuardedBrowserClose(context, state);
+  closeStates.delete(context);
 }
 
 /** Force-quit the owning browser process without waiting on a stalled graceful context close. */
@@ -137,11 +162,8 @@ export async function forceCloseGuardedManagedBrowser(
     await browser.close({ reason: "production assurance deadline exceeded" });
     return;
   }
-  try {
-    await beginGuardedBrowserForceClose(context, state);
-  } finally {
-    closeStates.delete(context);
-  }
+  await beginGuardedBrowserForceClose(context, state);
+  closeStates.delete(context);
 }
 
 /**
@@ -156,6 +178,8 @@ export async function launchGuardedManagedBrowser<
     throw new Error("assurance_deadline_exceeded");
   }
 
+  const startedAt = Date.now();
+  let lease: ManagedProfileLease | null = null;
   let context: Context | null = null;
   let closeState: GuardedBrowserCloseState | null = null;
   let aborted = input.abortSignal?.aborted ?? false;
@@ -172,16 +196,24 @@ export async function launchGuardedManagedBrowser<
 
   try {
     if (aborted) throw new Error("assurance_deadline_exceeded");
+    lease = await acquireManagedProfileLease(input.profile, {
+      label: "production-assurance",
+      waitMs: Math.min(15_000, input.launchTimeoutMs),
+      signal: input.abortSignal,
+    });
+    const remainingLaunchMs = input.launchTimeoutMs - (Date.now() - startedAt);
+    if (aborted || remainingLaunchMs <= 0) throw new Error("assurance_deadline_exceeded");
     context = await input.launchPersistentContext(input.profile, {
       executablePath: input.executablePath,
       headless: input.headless,
       viewport: input.viewport,
-      timeout: input.launchTimeoutMs,
+      timeout: remainingLaunchMs,
       offline: true,
       serviceWorkers: "block",
       args: [...GUARDED_BROWSER_BACKGROUND_ARGS],
     });
     closeState = {
+      lease,
       signal: input.abortSignal,
       onAbort,
       closePromise: null,
@@ -239,7 +271,10 @@ export async function launchGuardedManagedBrowser<
         ? forceCloseGuardedManagedBrowser(context)
         : closeGuardedManagedBrowser(context);
       await close.catch(() => undefined);
-    } else input.abortSignal?.removeEventListener("abort", onAbort);
+    } else {
+      input.abortSignal?.removeEventListener("abort", onAbort);
+      await lease?.release();
+    }
     if (aborted) throw new Error("assurance_deadline_exceeded");
     throw error;
   }

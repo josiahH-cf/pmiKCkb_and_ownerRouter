@@ -4,8 +4,8 @@
 // (lib/google-drive/drive-dwd.ts): the SA's client id must be authorized for the requested Gmail scope in
 // Admin console → Security → API controls → Domain-wide delegation.
 //
-// Live-only (signJwt + token exchange) and not unit-tested; the client that consumes it takes an injected
-// getToken so the client is unit-tested offline without ever minting a real token.
+// Live signJwt/token exchange uses the existing grant. Optional transports let health checks bound
+// those reads and exercise identity/scope guards offline without minting a real token.
 
 import { GoogleAuth } from "google-auth-library";
 
@@ -42,6 +42,11 @@ export async function mintGmailDwdToken(options: {
   subject: string;
   scope: string;
   serviceAccount?: string;
+  /** Optional runner-owned transport for bounded health checks; default app behavior is unchanged. */
+  signJwt?: (input: { serviceAccount: string; payload: string }) => Promise<string>;
+  fetchImpl?: typeof fetch;
+  signal?: AbortSignal;
+  onStage?: (stage: "sign_jwt" | "token_exchange") => void;
 }): Promise<string> {
   const saEmail =
     options.serviceAccount ??
@@ -62,9 +67,6 @@ export async function mintGmailDwdToken(options: {
     );
   }
 
-  const sourceClient = await new GoogleAuth({
-    scopes: [CLOUD_PLATFORM_SCOPE],
-  }).getClient();
   const now = Math.floor(Date.now() / 1000);
   const payload = JSON.stringify({
     iss: saEmail,
@@ -74,19 +76,37 @@ export async function mintGmailDwdToken(options: {
     iat: now,
     exp: now + 3600,
   });
-  const signResponse = await sourceClient.request<{ signedJwt: string }>({
-    url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${encodeURIComponent(saEmail)}:signJwt`,
-    method: "POST",
-    data: { payload },
-  });
-  const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: signResponse.data.signedJwt,
-    }),
-  });
+  options.onStage?.("sign_jwt");
+  let signedJwt: string;
+  if (options.signJwt) {
+    signedJwt = await options.signJwt({ serviceAccount: saEmail, payload });
+  } else {
+    const sourceClient = await new GoogleAuth({
+      scopes: [CLOUD_PLATFORM_SCOPE],
+    }).getClient();
+    const signResponse = await sourceClient.request<{ signedJwt: string }>({
+      url: `https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${encodeURIComponent(saEmail)}:signJwt`,
+      method: "POST",
+      data: { payload },
+      ...(options.signal ? { signal: options.signal } : {}),
+    });
+    signedJwt = signResponse.data.signedJwt;
+  }
+  if (typeof signedJwt !== "string" || !signedJwt)
+    throw new GmailDwdSetupError("Gmail DWD signing did not produce an assertion.");
+  options.onStage?.("token_exchange");
+  const tokenResponse = await (options.fetchImpl ?? fetch)(
+    "https://oauth2.googleapis.com/token",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion: signedJwt,
+      }),
+      ...(options.signal ? { signal: options.signal } : {}),
+    },
+  );
   const tokenData = (await tokenResponse.json()) as { access_token?: string };
   if (!tokenResponse.ok || !tokenData.access_token) {
     throw new GmailDwdSetupError(
