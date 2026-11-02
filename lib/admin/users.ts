@@ -119,6 +119,17 @@ function scopeStateFromClaims(
   };
 }
 
+/** Firebase Admin emits UTC date strings; the app's timestamp display accepts ISO instants. */
+function appSignInTimestamp(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  // Convert only the SDK's canonical UTC serialization. Keep ISO or malformed source data
+  // unchanged so the strict display still rejects impossible dates and unknown date formats.
+  if (!Number.isFinite(timestamp)) return value;
+  const date = new Date(timestamp);
+  return date.toUTCString() === value ? date.toISOString() : value;
+}
+
 function toAppUser(record: AdminUserRecordLike): AppUser | null {
   if (!record.email) return null;
   const scopeState = scopeStateFromClaims(record.customClaims);
@@ -129,7 +140,7 @@ function toAppUser(record: AdminUserRecordLike): AppUser | null {
     scopes: scopeState.scopes,
     scopeClaimInvalid: scopeState.invalid,
     disabled: Boolean(record.disabled),
-    lastSignInAt: record.metadata?.lastSignInTime ?? null,
+    lastSignInAt: appSignInTimestamp(record.metadata?.lastSignInTime),
   };
 }
 
@@ -248,7 +259,7 @@ export async function setAppUserRole(
     scopes: scopeState.scopes,
     scopeClaimInvalid: scopeState.invalid,
     disabled: Boolean(target.disabled),
-    lastSignInAt: target.metadata?.lastSignInTime ?? null,
+    lastSignInAt: appSignInTimestamp(target.metadata?.lastSignInTime),
   };
 }
 
@@ -357,6 +368,6 @@ export async function setAppUserScopes(
     scopes,
     scopeClaimInvalid: false,
     disabled: Boolean(target.disabled),
-    lastSignInAt: target.metadata?.lastSignInTime ?? null,
+    lastSignInAt: appSignInTimestamp(target.metadata?.lastSignInTime),
   };
 }

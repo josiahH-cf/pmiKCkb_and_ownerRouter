@@ -1,5 +1,7 @@
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 import { GoogleGenAI } from "@google/genai";
@@ -58,6 +60,41 @@ describe("I11 patched transitive dependency boundaries", () => {
     expect(manifestVersion("@modelcontextprotocol/sdk")).toBe("1.32.1");
     expect(typeof GoogleGenAI).toBe("function");
     expect(nanoid(12)).toMatch(/^[A-Za-z0-9_-]{12}$/);
+  });
+
+  it("keeps Google GAX cleanup compatible with the patched glob traversal", async () => {
+    // GHSA-3g3m-2fjr-6pw4 has no glob 10 backport. Scope the override to rimraf 5,
+    // its Google GAX consumer, rather than replacing unrelated legacy minimatch APIs.
+    const gaxRequire = createRequire(require.resolve("@google-cloud/discoveryengine"));
+    const rimrafPath = gaxRequire.resolve("rimraf");
+    const rimrafRequire = createRequire(rimrafPath);
+    expect(versionAbove(dirname(rimrafRequire.resolve("glob")), "glob")).toBe("14.0.3");
+    const globRequire = createRequire(rimrafRequire.resolve("glob"));
+    expect(versionAbove(dirname(globRequire.resolve("minimatch")), "minimatch")).toBe(
+      "11.0.4",
+    );
+    const { rimraf, rimrafSync } = gaxRequire("rimraf") as {
+      rimraf: (path: string, options: { glob: { cwd: string } }) => Promise<boolean>;
+      rimrafSync: (path: string, options: { glob: { cwd: string } }) => boolean;
+    };
+    const directory = await mkdtemp(join(tmpdir(), "pmi-gax-glob-"));
+    try {
+      await mkdir(join(directory, "nested"));
+      await writeFile(join(directory, "nested", "async.tmp"), "synthetic");
+      await writeFile(join(directory, "nested", "sync.tmp"), "synthetic");
+      await writeFile(join(directory, "keep.txt"), "keep");
+      expect(await rimraf("**/async.tmp", { glob: { cwd: directory } })).toBe(true);
+      expect(rimrafSync("**/sync.tmp", { glob: { cwd: directory } })).toBe(true);
+      await expect(
+        readFile(join(directory, "nested", "async.tmp")),
+      ).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(readFile(join(directory, "nested", "sync.tmp"))).rejects.toMatchObject(
+        { code: "ENOENT" },
+      );
+      await expect(readFile(join(directory, "keep.txt"), "utf8")).resolves.toBe("keep");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   });
 
   it("round-trips a bounded synthetic AVIF through the patched native image stack", async () => {

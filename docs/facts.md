@@ -1,11 +1,41 @@
 # PMI KC facts
 
-Last reconciled: 2026-10-27 (Dotloop A1 resolved and selected; S231 guarded delivery verified).
+Last reconciled: 2026-11-02 (fresh source, cloud, auth and application-read verification; release pending).
 
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
 
-## Current work — October 20 renewal run amendment
+## Current finalization — November 2
+
+The owner renewed authority to finalize the existing PMI build through scoped repairs, full gates,
+reviewed merge and guarded release. The old native Claude owner remains stopped. Main is
+`4b2eb72bae9fea329b619cd5332cf9755af1c02e`; production remains `6fbd6225` at 100% traffic.
+Fresh CLI/ADC probes verify the approved WSL account. Java 21 is installed. The owner completed the separate release
+browser challenge at 15:24:49Z; a fresh supported check verifies Admin using `existing_session`.
+Held run `eab1d318` remains immutable at recovery pending authorized locked supersession.
+
+At 15:14Z the serving image matches successful regional Cloud Build `5dd3d8c9`; no active regional
+build was listed. The alert window has one 500 on a renewal-endpoint POST at 12:21Z. The inventory refresh uses
+its read-only `options` branch; cloud logs retain no request body.
+Fresh authenticated browser status is `ok`; recurring charges and the supporting Sheet read now
+complete. The sampled Sheet association is ambiguous and remains a correctly refused write target.
+The exact app reader helpers also complete. This is recovered behavior on bounded checks, not a
+proven root cause or a claim that every lease/action is verified.
+
+`ed3b4cc4` repairs the new production audit chain with glob 14.0.3 scoped to rimraf 5 and minimatch
+11.0.4. The unchanged production audit reports zero findings and all five dependency boundary tests
+pass, including the actual consumer's async/sync cleanup. `b5b06f95` / `deb3f417` normalize only
+Firebase's canonical UTC sign-in metadata at the Admin response adapter; ISO, missing and malformed
+source values keep their existing meaning. Its 34 affected tests and four offline actual-SDK cases
+pass. The complete final-code gate on `deb3f417` passed 9,865 unit tests (four existing configuration
+skips), all 495 backend tests, policy checks and build. The follow-up documentation correction
+changes no runtime/package/test byte; exact-head CI verifies the final publication tree. Review/CI
+and deployment are pending. Dotloop metadata's access-token expiry elapsed; both write keys remain closed. C00/A1 and
+the A5 decision remain settled; their input/record and client-content boundaries are unchanged.
+Private diagnostics: `~/.local/state/pmi-finalization-20261102/`. No customer/provider business
+effect was used as evidence.
+
+## Existing renewal policy boundaries
 
 The owner amended S227–S229 on October 20: completely retire the maintenance component,
 including history/reports and obsolete wiring; diagnose the existing Dotloop template through
@@ -108,8 +138,8 @@ Production serves `6fbd62250ccd9df1b9861a59b5de21c2143a68c0` /
 `pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% canonical traffic. Run
 `030761c0-1e70-4cd2-95a6-77480107657d` delivered S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and
 fast-uri 3.1.9) with candidate assurance, receipt-bound promotion, two observation checkpoints in
-406,404 ms and all eleven independent readback sections. The one-item queue is delivered and empty;
-its permit is consumed. S231 passed the complete gate, served E2E (65 passed, four existing skips,
+406,404 ms and all eleven independent readback sections. That S231 run's one-item queue was delivered and its permit consumed;
+the current S232–S239 and Admin date-repair queue remains pending in docs/loop-state.md. S231 passed the complete gate, served E2E (65 passed, four existing skips,
 fourteen files) and exact-main CI `40487479956` on `6fbd6225`. The October 20 S227–S229 delivery
 evidence remains `docs/evidence/application-delivery-2026-10-20.md`.
 
