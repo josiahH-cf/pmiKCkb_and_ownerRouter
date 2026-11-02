@@ -1,8 +1,11 @@
+vi.mock("../../lib/production-assurance/profile-lease.mjs", () => ({
+  acquireManagedProfileLease: async () => ({ release: async () => {} }),
+}));
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { readFileSync } from "node:fs";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 
 import {
   LIVE_CHECK_WRITES,
@@ -272,7 +275,7 @@ describe("S151 live-check log counting and output", () => {
     const between = source.slice(questions, reopen);
     expect(questions).toBeGreaterThan(0);
     expect(reopen).toBeGreaterThan(questions);
-    expect(between).toMatch(/await context\.close\(\);/);
+    expect(between).toMatch(/await closeOwnerBrowser\(context\);/);
     expect(between).toMatch(
       /context = await launchGuardedOwnerBrowser\(options, tracker\);\s+const fresh = await context\.newPage\(\);/,
     );

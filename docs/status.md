@@ -2,16 +2,18 @@
 
 Updated: 2026-11-02 (UTC).
 
-Current delivery: S232–S239 remain queued; main `4b2eb72b` is ahead of canonical production
-`6fbd6225`. The November 2 coordinator has repaired the new glob/minimatch audit chain at
-`ed3b4cc4` (zero production findings; five compatibility tests pass). Fresh authenticated app
-reads complete for the sampled recurring charges and Sheet workspace, with an ambiguous Sheet
-association correctly retained. The final-code full gate passes; reviewed publication is next. The separate
-WSL release browser is enrolled and freshly verified as Admin; CLI/ADC work. The complete gate
-on final code `deb3f417` passed all 495 backend tests, 9,865 unit tests, policy checks and build.
-The candidate also fixes Admin sign-in date display (34 affected tests and four offline SDK cases
-pass). A documentation-only follow-up corrects the logged POST method; exact-head review/CI follow. The previous native Claude owner remains stopped.
-No release or staff acceptance is claimed.
+Current delivery: main `5ddb6ec1` contains S232–S239 and PR #170's dependency/Admin-date repairs;
+all five exact-main CI jobs passed. Production remains `6fbd6225` at 100% traffic. The coordinator
+qualifies the explicit owner-requested WSL auth repair on `codex/pmi-auth-command-20261102`.
+After the actual WSL restart, headed/native-window/visible-viewport checks and a full auth run
+passed without a fresh enrollment or Weston fatal. Default surface capture remains a failed
+diagnostic; documented CDP view capture passed. The corrected auth candidate passed its full
+credential-free gate; exact-head review/CI and the cumulative guarded release are pending. The original native Claude owner remains stopped. Espansr is separate.
+
+The merged repairs passed 9,865 unit tests (four existing skips), all 495 backend tests, policies and
+build. Fresh app charge/Sheet reads complete; the sampled Sheet association stays ambiguous and
+correctly refuses a write target. The existing Dotloop grant refreshed and its account read passed;
+both business-write keys retain closed policy. No provider business effect or staff acceptance is claimed.
 
 October 28: S232–S238 (November/December renewal readiness) were authored and the owner's execution
 instruction started them. Merged to main at `bf0c03f9` (PR #158) and not served: the desk's window
@@ -155,13 +157,11 @@ before actor/mailbox/source reads. Current role/Space, runtime suspension, exact
 claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
 unapproved background sends remain unavailable. No protected activation metadata changes.
 
-The bounded Dotloop read at 2026-10-22T12:58:20Z verified `integrations@pmikcmetro.com` with a
-connected, unexpired credential. Its standalone INDIVIDUAL "Default Profile" lists zero templates;
-its default COMPANY profile "PMI KC Metro" returns 403, which Dotloop's public API documents for
-every non-INDIVIDUAL profile. An office template reaches only its office members' individual
-profiles, and the integrations individual profile carries no office affiliation. A full Dotloop
-admin must add the integrations login to the office that holds the template (A1). No supported
-selection exists. Both Dotloop write keys remain closed; no template was recreated.
+Dotloop C00/A1 is settled: the saved supported selection is profile 20701283, template 228954
+(`LEASE_OFFER`), initial status `PRE_OFFER`, version 1. The owner-requested November 2 auth flow
+refreshed only the existing OAuth grant through generation-owned secure persistence and verified
+`integrations@pmikcmetro.com`. No membership, identity or scope was added. Both Dotloop write keys remain closed;
+source selection does not approve legal content, signer maps or business effects. Signing stays human.
 
 Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
 read back at resource version 8, all unverified. The deployed readiness page displays ten form

@@ -334,8 +334,10 @@ export function assessCredentials(probe, { identities, need, unattended = false 
         items.push(
           blocked(
             "canary",
-            session.result === "error" ? "canary_error" : "canary_not_run",
-            `fix the named condition, then re-run npm run auth:ensure -- --need=canary; if Google asked for a person: ${canaryEnrollCommand(session)}`,
+            session.result === "error"
+              ? (session.code ?? "canary_error")
+              : "canary_not_run",
+            `fix the named condition, then re-run npm run auth:ensure -- --need=canary; enrollment is required only for an actual Google human challenge`,
             {
               label: session.label,
               identity: session.email,

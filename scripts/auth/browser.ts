@@ -9,6 +9,12 @@ import { isAbsolute, relative, resolve } from "node:path";
 import { chromium, type BrowserContext, type Locator, type Page } from "playwright-core";
 
 import { classifyLocation, decideGoogleStep } from "./google-step";
+import {
+  acquireManagedProfileLease,
+  ManagedProfileError,
+  type ManagedProfileLease,
+} from "../../lib/production-assurance/profile-lease.mjs";
+import { resolveAttendedDisplay } from "./display.mjs";
 
 export type SessionMethod =
   | "existing_session"
@@ -28,7 +34,12 @@ export type SessionResult =
       readonly url: string;
       readonly reason: string;
     }
-  | { readonly result: "error"; readonly origin: string; readonly error: string };
+  | {
+      readonly result: "error";
+      readonly origin: string;
+      readonly error: string;
+      readonly code?: string;
+    };
 
 export interface SessionEvent {
   readonly stage: string;
@@ -44,6 +55,8 @@ export interface SessionOptions {
   /** 0 = unattended: the first human prompt ends the attempt. > 0 = wait this long for a person. */
   readonly humanWaitMs: number;
   readonly stepTimeoutMs?: number;
+  readonly expectedRole?: string;
+  readonly profileWaitMs?: number;
   readonly onEvent?: (event: SessionEvent) => void;
   readonly platform?: NodeJS.Platform;
 }
@@ -104,10 +117,33 @@ export async function establishAppSession(
   assertBrowserProfilePairing(options.executablePath, options.profile, options.platform);
 
   let context: BrowserContext | undefined;
+  let lease: ManagedProfileLease | undefined;
   try {
+    let launchEnv: NodeJS.ProcessEnv | undefined;
+    if (!options.headless) {
+      const display = await resolveAttendedDisplay();
+      if (!display.ready)
+        return { result: "error", origin, code: display.code, error: display.detail };
+      launchEnv = display.env;
+      emit("display", display.source);
+    }
+    lease = await acquireManagedProfileLease(options.profile, {
+      label: options.headless ? "auth-session" : "auth-enrollment",
+      waitMs: options.profileWaitMs ?? 15_000,
+      onWait: (owner) =>
+        emit(
+          "profile_wait",
+          owner?.label
+            ? `owned by ${owner.label} (PID ${owner.caller_pid ?? owner.pid ?? "unknown"})`
+            : "another PMI browser owner is active",
+        ),
+    });
+    emit("launch", options.headless ? "headless" : "visible_wslg");
     context = await chromium.launchPersistentContext(options.profile, {
       executablePath: options.executablePath,
       headless: options.headless,
+      timeout: Math.min(stepTimeoutMs, 30_000),
+      ...(launchEnv ? { env: launchEnv } : {}),
       viewport: { width: 1280, height: 900 },
       args: ["--no-first-run", "--no-default-browser-check"],
     });
@@ -121,7 +157,13 @@ export async function establishAppSession(
     // A persisted Firebase user completes the session on its own; a live cookie redirects to `/`.
     await mainPage.waitForTimeout(2_000);
     if (classifyLocation(mainPage.url(), origin) === "app") {
-      return await verifySession(mainPage, origin, "existing_session");
+      return await verifySession(
+        mainPage,
+        origin,
+        "existing_session",
+        email,
+        options.expectedRole,
+      );
     }
 
     emit("click", "Sign in with Google");
@@ -141,6 +183,8 @@ export async function establishAppSession(
           mainPage,
           origin,
           humanDeadline ? "human_completed" : "google_session_reuse",
+          email,
+          options.expectedRole,
         );
       }
       const authPage = pickAuthPage(context, mainPage, origin);
@@ -162,6 +206,8 @@ export async function establishAppSession(
           authPage,
           origin,
           humanDeadline ? "human_completed" : "google_session_reuse",
+          email,
+          options.expectedRole,
         );
       }
       if (decision.action === "click-account" && tile) {
@@ -200,10 +246,89 @@ export async function establishAppSession(
     return {
       result: "error",
       origin,
-      error: error instanceof Error ? error.message : String(error),
+      ...classifyBrowserFailure(error),
     };
   } finally {
-    await context?.close().catch(() => undefined);
+    try {
+      if (context) await closeAuthBrowser(context);
+    } finally {
+      await lease?.release();
+    }
+  }
+}
+
+export function classifyBrowserFailure(error: unknown): { code: string; error: string } {
+  if (error instanceof ManagedProfileError)
+    return { code: error.code, error: error.message };
+  const message = error instanceof Error ? error.message : "";
+  if (/ProcessSingleton|SingletonLock/.test(message))
+    return {
+      code: "profile_in_use",
+      error:
+        "The managed browser profile is already in use; no credential enrollment was attempted.",
+    };
+  if (
+    /Missing X server|\$DISPLAY|failed to connect.*[Ww]ayland|[Xx]11.*display|[Xx] server|ozone_platform_x11/.test(
+      message,
+    )
+  )
+    return {
+      code: "display_unavailable",
+      error:
+        "Chromium could not use the observed WSLg display. Restore the local WSLg desktop before attended sign-in; this does not establish expired credentials.",
+    };
+  if (/Timeout .*exceeded|timed out/i.test(message))
+    return {
+      code: "browser_timeout",
+      error:
+        "The browser exceeded its bounded launch or session check. No credential expiry or successful login is inferred.",
+    };
+  if (
+    /error while loading shared libraries|Host system is missing dependencies/.test(
+      message,
+    )
+  )
+    return {
+      code: "browser_runtime_unavailable",
+      error:
+        "The installed browser runtime is missing a required library; credentials were not replaced.",
+    };
+  return {
+    code: "browser_session_error",
+    error:
+      "The browser session could not be verified. Check its display/profile status; this does not establish expired credentials.",
+  };
+}
+
+async function closeAuthBrowser(context: BrowserContext): Promise<void> {
+  const bounded = async (work: Promise<unknown>): Promise<void> => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        work,
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error("browser_close_timeout")), 15_000);
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  };
+  try {
+    await bounded(context.close());
+  } catch {
+    const browser = context.browser();
+    if (!browser)
+      throw new ManagedProfileError(
+        "browser_cleanup_incomplete",
+        "The owned browser did not finish closing; wait for it before retrying.",
+      );
+    await bounded(browser.close()).catch(() => {
+      throw new ManagedProfileError(
+        "browser_cleanup_incomplete",
+        "The owned browser did not finish closing; no unrelated browser was terminated.",
+      );
+    });
   }
 }
 
@@ -251,8 +376,24 @@ async function verifySession(
   page: Page,
   origin: string,
   method: SessionMethod,
+  expectedEmail: string,
+  expectedRole?: string,
 ): Promise<SessionResult> {
-  await page.goto(`${origin}/`, { waitUntil: "domcontentloaded", timeout: 60_000 });
+  const response = await page.request.get(`${origin}/api/auth/session`, {
+    timeout: 30_000,
+    maxRedirects: 0,
+  });
+  if (response.status() !== 204)
+    return {
+      result: "error",
+      origin,
+      code: "app_session_rejected",
+      error: "The app did not accept this browser session.",
+    };
+  await page.goto(`${origin}/profile`, {
+    waitUntil: "domcontentloaded",
+    timeout: 60_000,
+  });
   if (classifyLocation(page.url(), origin) !== "app") {
     return {
       result: "error",
@@ -265,6 +406,27 @@ async function verifySession(
     .first()
     .textContent({ timeout: 10_000 })
     .catch(() => null);
+  const email = await page
+    .locator("main > p")
+    .first()
+    .textContent({ timeout: 10_000 })
+    .catch(() => null);
+  if (email?.trim().toLowerCase() !== expectedEmail.toLowerCase())
+    return {
+      result: "error",
+      origin,
+      code: "wrong_identity",
+      error:
+        "The app session belongs to a different account; no account or credential was changed.",
+    };
+  if (expectedRole && role?.trim() !== expectedRole)
+    return {
+      result: "error",
+      origin,
+      code: "wrong_role",
+      error:
+        "The app session does not have its expected existing role; no role or claim was changed.",
+    };
   return { result: "signed_in", origin, role: role?.trim() || null, method };
 }
 

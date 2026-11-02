@@ -1,3 +1,6 @@
+vi.mock("../../lib/production-assurance/profile-lease.mjs", () => ({
+  acquireManagedProfileLease: async () => ({ release: async () => {} }),
+}));
 import { readFileSync } from "node:fs";
 
 import { describe, expect, it, vi } from "vitest";

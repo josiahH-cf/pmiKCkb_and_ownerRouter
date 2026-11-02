@@ -295,6 +295,11 @@ account, change IAM or claims, add federation, a private control repository, or 
 The owner applies an account-scoped Cloud session-policy exception and completes fresh enrollment;
 the runner never changes that policy or enters a password, code, passkey, or CAPTCHA.
 
+- On November 2 the owner explicitly requested the combined WSL auth repair, including scoped
+  `scripts/auth/**` edits. `bash scripts/pmi-auth` reuses these existing approved identities/stores
+  and provider grants, verifies real safe reads and reports paid/generation exceptions. Actual
+  expiry/challenges are distinct from profile ownership, display, identity and permission failures.
+  This request grants no broader scope, new identity, business effect or security-setting change.
 - `npm run auth:status` inspects without token refresh, repairs, or browser activity. Unprobed
   freshness is unverified, never READY.
 - `npm run auth:ensure` verifies the exact local identity and store before ordinary token probes,

@@ -1,3 +1,6 @@
+vi.mock("../../lib/production-assurance/profile-lease.mjs", () => ({
+  acquireManagedProfileLease: async () => ({ release: async () => {} }),
+}));
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -159,9 +162,11 @@ describe("offline-first managed assurance browser", () => {
       headless: true,
       offline: true,
       serviceWorkers: "block",
-      timeout: 12_345,
+      timeout: expect.any(Number),
       viewport: { width: 1440, height: 1000 },
     });
+    expect(captured.options?.timeout).toBeGreaterThan(0);
+    expect(captured.options?.timeout).toBeLessThanOrEqual(12_345);
     expect(captured.options?.args).toEqual([...GUARDED_BROWSER_BACKGROUND_ARGS]);
   });
 
@@ -255,6 +260,10 @@ describe("offline-first managed assurance browser", () => {
     const launched = new Promise<FakeContext>((resolve) => {
       finishLaunch = resolve;
     });
+    let markStarted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
     const result = launchGuardedManagedBrowser({
       profile: "/outside/managed-admin",
       executablePath: "/browser",
@@ -263,8 +272,12 @@ describe("offline-first managed assurance browser", () => {
       launchTimeoutMs: 12_345,
       abortSignal: controller.signal,
       onMutationAttempt: vi.fn(),
-      launchPersistentContext: async () => launched,
+      launchPersistentContext: async () => {
+        markStarted();
+        return launched;
+      },
     });
+    await started;
     controller.abort();
     finishLaunch(context);
 

@@ -3,7 +3,7 @@ import { readFileSync, writeFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 
 const FILE = "pmi-browser-enrollment.json";
-// Only the attended enrollment command writes this marker after verified sign-in. No cookies,
+// Only an attended enrollment/recovery path writes this marker after verified sign-in. No cookies,
 // identities or credentials are copied; the opaque revision merely wakes a paused local watcher.
 export function recordBrowserEnrollment(profile) {
   const path = join(profile, FILE);

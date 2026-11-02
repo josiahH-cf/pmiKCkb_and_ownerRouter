@@ -25,6 +25,7 @@ async function main(argv = process.argv.slice(2)): Promise<number> {
     profile,
     origin,
     email,
+    expectedRole: readArg(argv, "--expected-role"),
     executablePath,
     headless: !hasArg(argv, "--headed"),
     humanWaitMs: 0,

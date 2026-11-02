@@ -24,6 +24,10 @@ import { pathToFileURL } from "node:url";
 
 import { chromium, type BrowserContext, type Locator, type Page } from "playwright-core";
 
+import {
+  acquireManagedProfileLease,
+  type ManagedProfileLease,
+} from "../lib/production-assurance/profile-lease.mjs";
 import { allowsVerificationRequest } from "../lib/auth/canary-policy";
 import { GUARDED_BROWSER_BACKGROUND_ARGS } from "../lib/production-assurance/guarded-browser";
 import {
@@ -344,6 +348,16 @@ interface Tracker {
   answers: Record<string, unknown>[];
 }
 
+const ownerBrowserLeases = new WeakMap<BrowserContext, ManagedProfileLease>();
+async function closeOwnerBrowser(context: BrowserContext): Promise<void> {
+  try {
+    await context.close();
+  } finally {
+    await ownerBrowserLeases.get(context)?.release();
+    ownerBrowserLeases.delete(context);
+  }
+}
+
 /**
  * Bring the managed owner profile online only after this check's own guard is installed. The
  * launch starts offline with Service Workers blocked, closes every restored page, and refuses a
@@ -353,15 +367,25 @@ async function launchGuardedOwnerBrowser(
   options: AiHistoryCheckOptions,
   tracker: Tracker,
 ): Promise<BrowserContext> {
-  const context = await chromium.launchPersistentContext(options.profile, {
-    executablePath: findBrowserExecutable(),
-    headless: true,
-    viewport: DESKTOP,
-    timeout: 120_000,
-    offline: true,
-    serviceWorkers: "block",
-    args: [...GUARDED_BROWSER_BACKGROUND_ARGS],
+  const lease = await acquireManagedProfileLease(options.profile, {
+    label: "ai-history-assurance",
+    waitMs: 15_000,
   });
+  const context = await chromium
+    .launchPersistentContext(options.profile, {
+      executablePath: findBrowserExecutable(),
+      headless: true,
+      viewport: DESKTOP,
+      timeout: 120_000,
+      offline: true,
+      serviceWorkers: "block",
+      args: [...GUARDED_BROWSER_BACKGROUND_ARGS],
+    })
+    .catch(async (error) => {
+      await lease.release();
+      throw error;
+    });
+  ownerBrowserLeases.set(context, lease);
   try {
     await context.route("**/*", async (route) => {
       const request = route.request();
@@ -405,7 +429,7 @@ async function launchGuardedOwnerBrowser(
     await context.setOffline(false);
     return context;
   } catch (error) {
-    await context.close().catch(() => undefined);
+    await closeOwnerBrowser(context).catch(() => undefined);
     throw error;
   }
 }
@@ -538,7 +562,7 @@ export async function runAiHistoryCheck(
 
       // A fresh browser context on the same signed-in profile: nothing from the first one
       // survives in memory, so reopening, listing, saving and pinning read stored data only.
-      await context.close();
+      await closeOwnerBrowser(context);
       context = await launchGuardedOwnerBrowser(options, tracker);
       const fresh = await context.newPage();
       fresh.setDefaultNavigationTimeout(ROUTE_BUDGET_MS);
@@ -631,7 +655,7 @@ export async function runAiHistoryCheck(
       };
       await fresh.close();
     } finally {
-      await context.close().catch(() => undefined);
+      await closeOwnerBrowser(context).catch(() => undefined);
     }
     await verifyExactVersion(options);
     versionVerified.after = true;

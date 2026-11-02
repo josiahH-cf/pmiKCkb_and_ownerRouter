@@ -27,10 +27,10 @@ unapproved background sends remain unavailable. No protected activation metadata
 
 Dotloop C00/A1 is settled: the October 27 API read and in-app selection verified profile
 20701283, template 228954 (`LEASE_OFFER`), initial status `PRE_OFFER`, version 1. No template
-recreation or new membership is needed. November 2 credential metadata shows that the access-token
-expiry has elapsed; the diagnostic pass did not refresh it or change any grant. Both Dotloop write
-keys remain closed, and signing remains a human handoff. Source selection does not approve legal
-content, signer maps or external effects.
+recreation or new membership is needed. The owner-requested November 2 auth flow refreshed only
+the existing OAuth grant through generation-owned secure persistence and verified the exact managed
+account. Both Dotloop write keys remain closed, and signing remains a human handoff. Source
+selection does not approve legal content, signer maps or external effects.
 
 Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
 read back at resource version 8, all unverified. The deployed readiness page displays ten form
@@ -153,6 +153,26 @@ owner adds the canonical `/__/auth/handler` redirect URI (owner step A7), never 
   impersonation, key file, credential override or Windows store.
 - `npm run preflight:adc` delegates to the same approved identity/store assessment and emits no
   provider error body; it cannot probe an unverified ADC identity.
+- `bash scripts/pmi-auth` (also `npm run auth:pmi`) is the combined WSL operator entry point.
+  Its absolute script path works from any directory. It verifies the approved CLI/ADC/GitHub
+  identities, ignored local RentVine authentication, existing Admin app session and safe configured
+  provider reads. A configured key alone is not authentication. Exit 0 means the stated checks
+  passed with paid/generation exceptions; 1 is blocked/error, 2 is a check-only human requirement
+  or invalid CLI usage, and 3 means local auth passed but a provider needs attention. `--check`
+  prevents attended enrollment and Dotloop credential rotation; ordinary Google refresh is checked.
+  The default reuses/refreshes existing grants. Passwords, codes, passkeys and CAPTCHA stay human.
+- Auth and guarded release/AI-history launchers share private kernel profile ownership. Waits are
+  bounded and name an owner. Live/unknown native owners are refused; Chromium owns stale recovery.
+  No live Singleton lock is deleted, profile copied or unrelated browser killed. Reboot/crash
+  releases the kernel lock. Attended auth reuses observed WSLg/X11 and detects recent compositor
+  crash loops; it never creates Xvfb or changes desktop/security settings. Post-operator-restart
+  headed/native-window/visible-viewport checks passed. Default surface capture failed; documented
+  CDP view capture passed. A human challenge and 24-hour longevity are separate, unforced proofs.
+- Gmail health keeps the same readonly delegated subject/scope, reuses the verified Google client,
+  shares a signing/exchange/profile deadline and retries a transient read at most once. Wrong
+  identity, permission denial and grant refusal do not trigger re-enrollment. Dotloop uses its
+  existing generation-owned refresh and secure persistence; uncertain prior outcomes require
+  reconciliation. No business-write gate changes. Espansr replacement/reinstall remains separate.
 - `npm run auth:status` inspects only. Unprobed freshness is unverified. `npm run auth:ensure`
   verifies identity/store before ordinary Google-library refresh. Current approved CLI/ADC probes
   passed after fresh enrollment on 2026-09-29; headed Admin enrollment verified at 09:34:11.947Z.

@@ -4,38 +4,28 @@ Last updated: 2026-11-02 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current execution
 
-The owner authorized finalizing the PMI build after local authentication was restored, including
-scoped repairs, full gates, reviewed merge, guarded deployment and independent production checks.
-The current Codex coordinator works in `codex/pmi-finalization-20261102`, based on main `4b2eb72b`.
-The original native Claude session remains stopped; this direction does not resume it.
-No protected-path, identity, grant, budget or provider-effect boundary changes are authorized.
+PR #170 merged to main `5ddb6ec1`; all five CI jobs `41486594632` passed. The coordinator owns
+`codex/pmi-auth-command-20261102` on that base, with explicit owner direction for the scoped auth
+repair. The original native Claude owner remains stopped; preserve unrelated work and every Stop.
 
-Fresh November 2 CLI/ADC probes verify `josiah@pmikcmetro.com` in the approved WSL store.
-Java 21 is already installed; its original missing-command report was a PATH issue.
-The owner completed the separate managed browser enrollment at 15:24:49Z for
-`/home/josiah/pmi-assurance/owner-admin`. A fresh supported check verifies Admin using the
-persisted `existing_session`. No credential or grant was changed by the coordinator.
+`bash scripts/pmi-auth` resolves its own checkout and the approved registered configuration.
+It verifies exact local identities, real local API authentication, the existing Admin session and
+bounded safe provider reads. Shared kernel profile ownership handles concurrency/crash/reboot;
+no live lock is deleted or credential profile copied. Only actual expiry/challenges start attended
+recovery. Permission, account/role, display, provider and uncertain-effect failures stay distinct.
 
-Production still serves `6fbd6225` / `pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% traffic.
-Its Cloud Build `5dd3d8c9-ff0c-48a7-bc08-7fb59729feac` succeeded and its image digest matches
-the serving revision. No active regional Cloud Build was present at 15:14Z.
-The recovered alert window contains one 500 on a renewal-endpoint POST at 12:21Z.
-The inventory refresh uses the read-only `options` branch there; cloud logs retain no request body.
-Fresh authenticated GET status checks return `ok`, show recurring charges and no auxiliary
-read failure. Current application helpers also read charges and the operating Sheet successfully;
-the sampled Sheet association is ambiguous and correctly refuses a write target. This establishes
-recovery on those checks, not a proven root cause or a permanent outage repair.
+The owner actually restarted WSL with GUI enabled and a 12GB cap. Headed startup, the native window
+and the actual visible offline viewport passed without Weston fatalities. Default surface capture
+failed and remains recorded; the documented CDP view capture passed. A post-boot combined command
+returned exit 0 using `existing_session` as Admin, without enrollment, and safe provider reads passed.
+Final coverage also checks the ignored local API keys. Do not infer a forced-MFA or 24-hour proof.
 
-`ed3b4cc4` scopes glob 14.0.3 to rimraf 5 (Google GAX's cleanup consumer), selecting minimatch
-11.0.4 without replacing legacy minimatch APIs elsewhere. The unchanged production audit reports
-zero findings; five dependency compatibility tests pass, including real async/sync glob cleanup
-of disposable synthetic files. `b5b06f95` / `deb3f417` correct Firebase's UTC sign-in metadata at the Admin response adapter;
-34 affected tests and an offline actual-SDK check pass. The complete combined-code gate on
-`deb3f417` passed 9,865 unit tests (four existing configuration skips), all 495 backend tests,
-every policy check and the production build. Exact-head review/CI and deployment remain pending.
-This documentation-only follow-up corrects the logged HTTP method; runtime/package/test bytes
-are identical to that qualified candidate. Exact-head CI also verifies the final publication tree.
-Private diagnostic evidence is under `~/.local/state/pmi-finalization-20261102/`, outside Git.
+The merged application repairs and corrected auth candidate passed their own full gates. The auth
+candidate still requires exact-head automated review and all five PR/main checks. Then perform
+the cumulative guarded release and independent production readbacks. Espansr is separately deferred.
+Production remains `6fbd6225` / `pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% traffic.
+Current charge/Sheet reads complete; the ambiguous sample correctly refuses a write target.
+No new deployment, provider business effect or staff acceptance is claimed.
 
 ## Release interlock
 
@@ -74,8 +64,8 @@ PR #165's earlier pending-review bypass remains recorded in Git history and is n
 ## Client and provider boundaries
 
 Dotloop C00/A1 is settled: profile 20701283, template 228954, `LEASE_OFFER`, `PRE_OFFER`, version 1.
-November 2 metadata shows its access-token expiry elapsed; no token refresh or grant was changed
-in the diagnostic pass. Both Dotloop write keys remain closed. Signing remains a human handoff.
+The existing OAuth grant refreshed normally during the owner-requested auth repair and the exact
+managed account read passed; no scope or identity expanded. Both Dotloop write keys remain closed. Signing remains a human handoff.
 Eight saved source references are unverified; approved originals and reviewed field/signer maps
 remain missing across ten form families. The A5 policy decision is settled; the reviewed in-app
 record still needs reconciliation. Do not reopen the policy question or overwrite accepted input.
@@ -88,6 +78,6 @@ or booking is not authorized. The parent coordinator owns that draft and recipie
 
 ## Next
 
-Finish the isolated journey, publish the fully qualified code through a reviewed PR, verify
-exact-main CI, then perform the guarded replacement release with fresh prerequisites and the enrolled browser.
+Finish the auth candidate full gate and reviewed PR, verify exact-main CI, then perform the
+guarded replacement release with fresh prerequisites and the enrolled browser.
 Keep production and pending code capabilities distinct until independent delivery evidence exists.
