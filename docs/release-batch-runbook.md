@@ -1,6 +1,6 @@
 # Batched release runbook
 
-Updated 2026-10-20 (UTC). One candidate must ship every queued feature.
+Updated 2026-11-03 (UTC). One candidate must ship every queued feature.
 
 The named October program instruction and AGENTS.md feature-run continuity authorize delivery
 of approved independent slices and diagnosed/verified replacements without phase-only consent.
@@ -10,45 +10,35 @@ attempts and consumed permits are immutable and never reusable.
 
 ## Current verified delivery
 
-Run `030761c0-1e70-4cd2-95a6-77480107657d` delivered S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and fast-uri 3.1.9) at
-`6fbd62250ccd9df1b9861a59b5de21c2143a68c0` / `pmi-kc-app-rmvqk1okt-ecd4a985b1de` with 100% canonical traffic.
-One application build `5dd3d8c9-ff0c-48a7-bc08-7fb59729feac` succeeded at 10:50:32.039576Z.
-Candidate receipt `0e94cd63-8140-4898-b87d-3559c9c5491f` issued 10:56:11.150Z; receipt-bound
-promotion verified 10:56:33.045Z. Observation passed two checkpoints in 406,404 ms against the
-300,000 ms minimum and 480,000 ms deadline. All 374 source/projected/rendered records matched
-with zero discrepancies, candidate 5xx or unresolved effects. All eleven independent readback
-sections matched at 2026-10-27T11:03:32Z. The checkpoint is complete, watcher exited and permit consumed.
-Tag `cand-rmvqk1okt-ecd4a985b1de`; fingerprint
+Production serves `bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd` at 100% canonical traffic.
+Run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73` completed at 2026-11-03T00:10:44Z, with its permit consumed and watcher exited.
+One application build `fbe2d323-9a95-4d51-a398-618f8928cdc8` succeeded. Candidate receipt
+`da8eab6f-ee31-4642-9266-0c9ae3c1d641` issued at 00:03:44.084Z; receipt-bound promotion verified
+at 00:04:07.060Z. Observation passed two checkpoints in 401,533 ms against the 300,000 ms minimum
+and 480,000 ms deadline. All 375 source/projected/rendered records matched with zero discrepancies,
+candidate 5xx or unresolved effects. All thirteen guarded Admin routes rendered with zero
+mutation attempts and diagnostics; Editor browser remains `not_run` under the existing policy.
+All eleven independent readback sections matched at 00:15:13Z. Fingerprint:
+`sha256:db70cd63e1c17ebb706e5291422e68d8be06707ceebc5805a7408b5eda547fe0`.
+Only APP_COMMIT_SHA changed among 54 environment keys. The five secret bindings, runtime identity,
+eleven Space maps, Production + Live, Demo=false, Sheet=true and existing cost/action controls match.
+The annual GET readiness probe passed and restored its exact target/calendar in PAUSED state;
+the existing minute worker remains ENABLED. No customer dispatch was test proof.
+
+Captured predecessor: `pmi-kc-app-rmvqk1okt-ecd4a985b1de` from commit
+`6fbd62250ccd9df1b9861a59b5de21c2143a68c0`, Sheet=true.
+Run-bound recovery `pmi-kc-app-recovery-d4c109a06dce4c4d`, receipt
+`89d909b7-73bf-4ff8-b71c-98456c7b4c0f`, reference
+`sha256:429f4673a90eac1d8caeb3f70de3b98a9791188e1ebce92cea5e3e598aa5fb8f`, preserves
+the actual predecessor image/configuration. Original and target fingerprints are both
 `sha256:82fb1ad6c4e38c3ea1643128a1ed1d5667c7728af8bc87822bad5bea59583e74`.
-Only APP_COMMIT_SHA differs among the 54 environment keys versus the captured predecessor; the
-runtime identity, secret bindings, eleven Space maps, Demo=false and Sheet=true match.
+The separately captured prior tag binding was `pmi-kc-app-rmvtkwuvc-d57f612beb6c`; all unrelated
+bindings are preserved. No traffic rollback occurred in this run.
 
-Captured predecessor: `pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` / `79764b56011bd2571a56435aa7df21f2677d846a`, Sheet=true.
-Run-bound recovery `pmi-kc-app-recovery-030761c01e704cd2`, receipt
-`b5974bde-d3d6-4240-8c7f-a05e339928cb`, reference
-`sha256:31c1f8f3fb6af9467412b19611dbfc6b6379cd48f3540a7c5f9f8fdc05be75b8`, preserves
-that actual image/configuration, including its delegated subject and Sheet=true.
-Original and target fingerprints are
-`sha256:db4bcc4ee9ba447cb40b56c11c9a63b0ed56a73771d4f5a319777ca755312c67`.
-The actual prior tag binding was captured independently of canonical traffic and moved only under
-that receipt. All other bindings are preserved. No traffic rollback occurred in this run.
-The run completed without a pause; the watcher ran with `DISPLAY` and `WAYLAND_DISPLAY` unset.
-
-Run `eee80164-dea4-4601-8d69-965edabeeeb6` delivered S230 at `79764b56011bd2571a56435aa7df21f2677d846a` /
-`pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` on 2026-10-23 after one display-caused pause; run
-`57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` delivered the October 20 S227–S229 amendment at
-`157b6992279467e73dcf91aa43eb3c247f96ff2f` / `pmi-kc-app-rmvgyw7tj-a7aa7a96b63a`. Their records are in
-`docs/facts.md` and `docs/evidence/application-delivery-2026-10-20.md`.
-
-The owner-approved one-file Editor grant was applied with notification off and read back.
-Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
-reader freshly verified all 29 tabs after promotion without reading/changing cell values.
-On October 20 only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differed among the 54 environment
-keys versus that run's captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
-Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
-Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
-
-The actual three-entry parser-qualified queue is delivered and empty. One build and one watcher completed without retry or a gate relaxation. Prior failed runs, claims and consumed permits remain immutable outside Git; none authorizes another launch.
+The nine queued application items are delivered and the queue is empty. Local auth tooling is
+qualified at merged bc975353. The held owner/run and every failed attempt retain their actual
+scope; no receipt/permit was reused. Documentation-only closure must not deploy.
+Evidence: docs/evidence/application-delivery-2026-11-03.md.
 
 ## Previous October 17 delivery (historical)
 

@@ -1,42 +1,34 @@
 # PMI KC
 
-PMI KC is a production Next.js application for source-backed operations, lease renewals, workflow
-communications, approvals, staff work and retained maintenance history.
-
-Production follows the October 16 direction: custom maintenance/vendor operations are retired,
-Vendoroo stays standalone, and communications preserve linked reads and permitted unsent drafts.
-Records, knowledge, permissions and receipt meanings are preserved. Client sends, schedules,
-Resume and worker dispatch are refused.
+PMI KC is a production Next.js application for source-backed knowledge, lease renewals,
+workflow communications, approvals and staff work.
 
 Production: [pmi-kc-app](https://pmi-kc-app-kq6wuvpiva-uc.a.run.app)
 
-Run `d33c7174-23b1-4126-ac11-657738b1864f` released S227-S229 plus the scoped Notifications latency repair at
-`a7bce0981badc7523a6498949b6ea5f2effb198e` / `pmi-kc-app-rmvc9kmq6-1c2699db16f8` with 100% canonical traffic. One application build
-`0983c589-af35-4219-9f5f-1bc1018f4043` succeeded at 2026-10-17T10:50:56.561207Z. Candidate receipt
-`5b8ba2f6-8531-4936-86d6-5d01d85db110` issued 2026-10-17T10:58:13.931Z; promotion verified
-2026-10-17T10:58:38.332Z. Full observation passed two checkpoints in 434,351 ms
-against the 300,000 ms minimum and 480,000 ms deadline. All 318 source/projected/rendered
-records matched with zero discrepancies, candidate 5xx or unresolved effects. Eleven independent
-readback sections matched at 2026-10-17T11:06:16Z. The checkpoint is complete and permit consumed.
-Tag `cand-rmvc9kmq6-1c2699db16f8`; fingerprint `sha256:dcbcdd544dd0c6d4d9a294748997aa324aaf2a09008dc1baf0c2aa060dbb1095`.
+The cumulative S232–S239/S126 and scoped WSL authentication build is verified delivered at
+`bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd`, with 100%
+canonical traffic. Run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73` passed guarded candidate/promotion,
+two observation checkpoints in 401,533 ms, 375 matched source/projected/rendered records and all
+eleven independent readbacks. The queue is empty and permit consumed. Current source, recovery,
+auth and exact remaining exceptions: [delivery evidence](docs/evidence/application-delivery-2026-11-03.md).
 
-Captured predecessor: `pmi-kc-app-recovery-a97c579cf11b4d74` / `eb5d35991c3ec128a102e4483d3779af16106821`, Sheet=true.
-Run-bound recovery `pmi-kc-app-recovery-d33c717423b14126`, receipt `07b55751-a159-4b01-bb4c-068178f8815b`, reference
-`sha256:d376fa106048928a155fc69da5d8588071a1f9c0e45fb3c3ad83a834d418042c`, preserves that actual image/configuration. Its fingerprint
-is `sha256:6e57b2a65a60f8e6a218c0b4b0e4cb8db791bad0a8a45a2322457a030393da2c`. The previously authorized tag was separately captured
-as bound to `pmi-kc-app-rmvc7c5lz-ec2410dd001a`; canonical serving traffic was not substituted for it.
-No traffic rollback was used in this successful run.
-
-Normal managed Dotloop resource refresh succeeded on production. The supported individual
-template list is empty; the company-template read failed as unavailable, which does not prove an
-empty company list. No supported renewal selection is saved. The reported active template's owning
-visibility/root cause remains unestablished; no template recreation is requested. The live UI
-distinguishes failed and empty reads and excludes unsupported profiles from selection. Both Dotloop
-write keys remain closed. Gmail's provider profile read succeeded for the expected managed mailbox;
-sync health reports degraded. No customer draft/send, loop, upload, signature, paid comp request or
-production test record was verification proof. Normal connection refresh updates only its existing
-credential/observation metadata; it is separate from guarded read-only release assurance.
+Staff-confirmed renewal Send/Schedule/Resume retains its exact source/target, sender/content,
+role/Space, at-most-once, receipt/readback and ambiguity recovery gates. Retired maintenance,
+generic/model-triggered and unapproved background sends remain unavailable. Vendoroo stays standalone.
+Dotloop C00/A1 selection is settled and the existing managed account read passes; both business-write
+keys stay closed and signing remains human. Client originals/maps and real staff acceptance hold
+only their named effects. No customer/provider business effect was verification proof.
 Production is explicit Live-only. Local rehearsal refuses persistence and provider effects.
+
+The verified WSL operator command, from any directory, is:
+
+```bash
+bash /home/josiah/pmi-kc-work/auth-command-20261102/scripts/pmi-auth
+```
+
+It checks existing approved local identities/stores and bounded safe provider reads. The actual
+post-deployment run exited 0 with the existing Admin session. Paid RentCast/AI calls remain untested;
+Google challenges remain human. Espansr replacement/reinstall is a separate task.
 
 ## Start here
 

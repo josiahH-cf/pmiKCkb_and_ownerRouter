@@ -26,17 +26,17 @@ const CURRENT_PROVIDERS = [
 describe("current provider and environment documentation", () => {
   it("pins the exact serving environment instead of a historical cutover target", () => {
     expect(handoff).toContain(
-      "| Serving revision          | `pmi-kc-app-rmvqk1okt-ecd4a985b1de`",
+      "| Serving revision          | `pmi-kc-app-rmvzwt7ms-00754475effd`",
     );
     expect(handoff).toContain(
-      "| Serving commit            | `6fbd62250ccd9df1b9861a59b5de21c2143a68c0`",
+      "| Serving commit            | `bc97535379dd08deab578455b00a80fc93b8d209`",
     );
     expect(handoff).toContain(
-      "Captured predecessor: `pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` from commit",
+      "Captured predecessor: `pmi-kc-app-rmvqk1okt-ecd4a985b1de` from commit",
     );
-    expect(handoff).toContain("79764b56011bd2571a56435aa7df21f2677d846a");
-    expect(handoff).toContain("pmi-kc-app-recovery-030761c01e704cd2");
-    expect(handoff).toContain("b5974bde-d3d6-4240-8c7f-a05e339928cb");
+    expect(handoff).toContain("6fbd62250ccd9df1b9861a59b5de21c2143a68c0");
+    expect(handoff).toContain("pmi-kc-app-recovery-d4c109a06dce4c4d");
+    expect(handoff).toContain("89d909b7-73bf-4ff8-b71c-98456c7b4c0f");
     expect(handoff).toContain("Forward restoration");
     expect(handoff).toContain("Production + Live");
     expect(handoff).toContain("Sheet write-back");

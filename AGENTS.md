@@ -19,79 +19,44 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Current execution — October 20 renewal run amendment
+## Present production truth — November 3 delivery
 
-The owner amended S227–S229 on October 20: completely retire the maintenance component,
-including history/reports and obsolete wiring; diagnose the existing Dotloop template through
-`integrations@pmikcmetro.com`; map form sources to their existing processes; and finalize the
-existing staff-confirmed renewal Send, Schedule and Resume journey for October 22.
-Both Dotloop write keys remain closed. Signing is a human Dotloop handoff. No customer send,
-draft, provider business write or production test record is verification proof.
+Production serves `bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd` at 100% canonical traffic.
+Run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73` completed at 2026-11-03T00:10:44Z, with its permit consumed and watcher exited.
+One application build `fbe2d323-9a95-4d51-a398-618f8928cdc8` succeeded. Candidate receipt
+`da8eab6f-ee31-4642-9266-0c9ae3c1d641` issued at 00:03:44.084Z; receipt-bound promotion verified
+at 00:04:07.060Z. Observation passed two checkpoints in 401,533 ms against the 300,000 ms minimum
+and 480,000 ms deadline. All 375 source/projected/rendered records matched with zero discrepancies,
+candidate 5xx or unresolved effects. All thirteen guarded Admin routes rendered with zero
+mutation attempts and diagnostics; Editor browser remains `not_run` under the existing policy.
+All eleven independent readback sections matched at 00:15:13Z. Fingerprint:
+`sha256:db70cd63e1c17ebb706e5291422e68d8be06707ceebc5805a7408b5eda547fe0`.
+Only APP_COMMIT_SHA changed among 54 environment keys. The five secret bindings, runtime identity,
+eleven Space maps, Production + Live, Demo=false, Sheet=true and existing cost/action controls match.
+The annual GET readiness probe passed and restored its exact target/calendar in PAUSED state;
+the existing minute worker remains ENABLED. No customer dispatch was test proof.
 
-New renewal authorizations bind current content, recipients, source values, sender and a new
-delivery-policy version. The worker skips old authorizations and every retired maintenance lane
-before actor/mailbox/source reads. Current role/Space, runtime suspension, exact-key, at-most-once
-claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
-unapproved background sends remain unavailable. No protected activation metadata changes.
+S232–S239, S126 Admin date normalization and the scoped combined WSL auth repair are delivered.
+The queue is empty. The original native Claude owner remains stopped; held eab1d318 was archived
+byte-for-byte after exact no-effect reconciliation and was never resumed. Documentation-only closure
+does not deploy. Evidence: docs/evidence/application-delivery-2026-11-03.md.
 
-The owner-approved one-file Editor grant was applied with notification off and read back.
-Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
-reader freshly verified all 29 tabs after promotion without reading/changing cell values.
-On October 20 only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differed among the 54 environment
-keys versus that run's captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
-Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
-Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
+The one-command WSL operator entry point is
+`bash /home/josiah/pmi-kc-work/auth-command-20261102/scripts/pmi-auth`, from any WSL directory.
+Its retained author checkout `8f4f8ec6` has the same runtime tree as merged main `bc975353`.
+After deployment, the actual command returned process/reported exit 0 in 36.964 seconds with
+`auth_ready_with_exceptions`, existing Admin session and a free profile lease before/after.
+Approved CLI/ADC token refresh, GitHub API identity, local and production RentVine metadata,
+29 Sheet tabs, Drive folder, managed Gmail readonly profile, eleven search-store metadata reads
+and the exact existing Dotloop account passed. Paid RentCast and AI generation are untested.
+An actual Google challenge still needs the owner; no password, code, passkey or CAPTCHA is automated.
+Espansr replacement/merge/reinstall is a separate handoff and was not performed here.
 
-Production serves `6fbd62250ccd9df1b9861a59b5de21c2143a68c0` /
-`pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% canonical traffic. Run
-`030761c0-1e70-4cd2-95a6-77480107657d` delivered S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and
-fast-uri 3.1.9) with candidate assurance, receipt-bound promotion, two observation checkpoints in
-406,404 ms and all eleven independent readback sections. The one-item queue is delivered and empty;
-its permit is consumed. S231 passed the complete gate, served E2E (65 passed, four existing skips,
-fourteen files) and exact-main CI `40487479956` on `6fbd6225`. The October 20 S227–S229 delivery
-evidence remains `docs/evidence/application-delivery-2026-10-20.md`.
-
-## Present production truth — 2026-10-27
-
-Run `030761c0-1e70-4cd2-95a6-77480107657d` delivered S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and fast-uri 3.1.9) at
-`6fbd62250ccd9df1b9861a59b5de21c2143a68c0` / `pmi-kc-app-rmvqk1okt-ecd4a985b1de` with 100% canonical traffic.
-One application build `5dd3d8c9-ff0c-48a7-bc08-7fb59729feac` succeeded at 10:50:32.039576Z.
-Candidate receipt `0e94cd63-8140-4898-b87d-3559c9c5491f` issued 10:56:11.150Z; receipt-bound
-promotion verified 10:56:33.045Z. Observation passed two checkpoints in 406,404 ms against the
-300,000 ms minimum and 480,000 ms deadline. All 374 source/projected/rendered records matched
-with zero discrepancies, candidate 5xx or unresolved effects. All eleven independent readback
-sections matched at 2026-10-27T11:03:32Z. The checkpoint is complete, watcher exited and permit consumed.
-Tag `cand-rmvqk1okt-ecd4a985b1de`; fingerprint
-`sha256:82fb1ad6c4e38c3ea1643128a1ed1d5667c7728af8bc87822bad5bea59583e74`.
-Only APP_COMMIT_SHA differs among the 54 environment keys versus the captured predecessor; the
-runtime identity, secret bindings, eleven Space maps, Demo=false and Sheet=true match.
-
-Captured predecessor: `pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` / `79764b56011bd2571a56435aa7df21f2677d846a`, Sheet=true.
-Run-bound recovery `pmi-kc-app-recovery-030761c01e704cd2`, receipt
-`b5974bde-d3d6-4240-8c7f-a05e339928cb`, reference
-`sha256:31c1f8f3fb6af9467412b19611dbfc6b6379cd48f3540a7c5f9f8fdc05be75b8`, preserves
-that actual image/configuration, including its delegated subject and Sheet=true.
-Original and target fingerprints are
-`sha256:db4bcc4ee9ba447cb40b56c11c9a63b0ed56a73771d4f5a319777ca755312c67`.
-The actual prior tag binding was captured independently of canonical traffic and moved only under
-that receipt. All other bindings are preserved. No traffic rollback occurred in this run.
-The run completed without a pause; the watcher ran with `DISPLAY` and `WAYLAND_DISPLAY` unset.
-
-Run `eee80164-dea4-4601-8d69-965edabeeeb6` delivered S230 at `79764b56011bd2571a56435aa7df21f2677d846a` /
-`pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3` on 2026-10-23 after one display-caused pause; run
-`57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` delivered the October 20 S227–S229 amendment at
-`157b6992279467e73dcf91aa43eb3c247f96ff2f` / `pmi-kc-app-rmvgyw7tj-a7aa7a96b63a`. Their records are in
-`docs/facts.md` and `docs/evidence/application-delivery-2026-10-20.md`.
-
-The owner-approved one-file Editor grant was applied with notification off and read back.
-Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
-reader freshly verified all 29 tabs after promotion without reading/changing cell values.
-On October 20 only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differed among the 54 environment
-keys versus that run's captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
-Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
-Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
-
-Both Dotloop keys remain closed. The three-item queue is delivered and empty. Human and physical-phone verdicts remain NOT RUN. Evidence: docs/evidence/application-delivery-2026-10-20.md.
+Both Dotloop write keys remain closed; signing is a human handoff. The current staff-confirmed
+renewal contract retains role/Space, current source/target, sender/content, one-attempt, receipt,
+readback and ambiguity recovery gates. Retired maintenance and generic/model-triggered sends remain
+unavailable. Paid calls and live business effects were not release/auth proof. Client originals,
+reviewed maps and staff acceptance retain their exact separate holds.
 
 ## Previous production truth — 2026-10-17 (historical)
 
