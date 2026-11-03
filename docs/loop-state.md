@@ -57,16 +57,16 @@ and independent final readbacks. No consumed permit, old proof or stopped owner 
 
 ## Awaiting release
 
-1. S227 retired actionable work and generic history admission — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
-2. S238 current guidance, read coverage and integrated fixture evidence — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
-3. S168 bounded RentVine options failure and retained-list diagnostics — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
-4. S240 source-bound existing-Space re-index handoff — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
-5. S130 exact reviewed-original publication and complete PDF inspection — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
-6. S66 packet source/context provenance and preservation — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
-7. S125 single authorized staff notice-basis selection — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
-8. S235 current packet context and selection readiness — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
-9. S241 existing process revision/publication/history safety — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
-10. S34 independent loop/upload readiness and passive activation package — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
+1. S227 retired actionable work and generic history admission — `d1aa3c01f8fff56e54d4c55850a1ea8a6a13fa06`.
+2. S238 current guidance, read coverage and integrated fixture evidence — `d1aa3c01f8fff56e54d4c55850a1ea8a6a13fa06`.
+3. S168 bounded RentVine options failure and retained-list diagnostics — `d1aa3c01f8fff56e54d4c55850a1ea8a6a13fa06`.
+4. S240 source-bound existing-Space re-index handoff — `d1aa3c01f8fff56e54d4c55850a1ea8a6a13fa06`.
+5. S130 exact reviewed-original publication and complete PDF inspection — `d1aa3c01f8fff56e54d4c55850a1ea8a6a13fa06`.
+6. S66 packet source/context provenance and preservation — `d1aa3c01f8fff56e54d4c55850a1ea8a6a13fa06`.
+7. S125 single authorized staff notice-basis selection — `d1aa3c01f8fff56e54d4c55850a1ea8a6a13fa06`.
+8. S235 current packet context and selection readiness — `d1aa3c01f8fff56e54d4c55850a1ea8a6a13fa06`.
+9. S241 existing process revision/publication/history safety — `d1aa3c01f8fff56e54d4c55850a1ea8a6a13fa06`.
+10. S34 independent loop/upload readiness and passive activation package — `d1aa3c01f8fff56e54d4c55850a1ea8a6a13fa06`.
 
 ## Next
 
