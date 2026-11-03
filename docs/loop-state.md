@@ -46,8 +46,16 @@ and independent final readbacks. No consumed permit, old proof or stopped owner 
 
 ## Awaiting release
 
-None — the qualified slice is being committed; register its actual ancestor commit in the next
-queue documentation commit before preparing any new release permit.
+1. S227 retired actionable work and generic history admission — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
+2. S238 current guidance, read coverage and integrated fixture evidence — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
+3. S168 bounded RentVine options failure and retained-list diagnostics — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
+4. S240 source-bound existing-Space re-index handoff — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
+5. S130 exact reviewed-original publication and complete PDF inspection — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
+6. S66 packet source/context provenance and preservation — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
+7. S125 single authorized staff notice-basis selection — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
+8. S235 current packet context and selection readiness — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
+9. S241 existing process revision/publication/history safety — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
+10. S34 independent loop/upload readiness and passive activation package — `c274680a0ea3ac77dc8931d34f55363cabf39be9`.
 
 ## Next
 
