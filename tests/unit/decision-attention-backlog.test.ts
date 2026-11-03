@@ -3,6 +3,27 @@ import { describe, expect, it } from "vitest";
 import { buildDecisionAttentionBacklog } from "@/lib/attention/decision-backlog";
 
 describe("canonical decision attention projection", () => {
+  it("S238 A-06 preserves read completeness separately from the strict signal row shape", () => {
+    const projection = buildDecisionAttentionBacklog({
+      rows: [],
+      counts: { total: 0, renewalFlags: 0, writebacksAwaiting: 0, queueItems: 0 },
+      readState: "partial",
+      unavailableFeeds: ["renewal_reviews"],
+      renewalReviewIssue: {
+        code: "source_stale",
+        message: "The renewal source is stale.",
+        sourceReadAtIso: null,
+        overlayUnavailable: false,
+      },
+    });
+    expect(projection).toMatchObject({
+      readState: "partial",
+      unavailableFeeds: ["renewal_reviews"],
+      renewalReviewIssue: { code: "source_stale" },
+    });
+    expect(projection.count).toBe(0);
+    expect(projection.signals).toEqual([]);
+  });
   it("uses the inbox total and copies exactly the six value-free signal keys", () => {
     const inbox = {
       rows: [

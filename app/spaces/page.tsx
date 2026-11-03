@@ -5,6 +5,7 @@ import {
   gatherNeedsDecisionInbox,
   renewalWaitingCount,
 } from "@/lib/approval/needs-decision-gather";
+import { needsDecisionReadWarning } from "@/lib/approval/needs-decision-inbox";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { hasSpaceAccess } from "@/lib/auth/session";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
@@ -27,13 +28,13 @@ export default async function SpacesPage() {
   // Real card state (A-IA-V2): reflect whether each Space has its process and connections. Both reads
   // are read-only and degrade gracefully. FTU-4: if the definition read fails, mark it unavailable so
   // process-carrying cards read neutral "status unavailable" rather than a red "needs a process" wall.
-  let definitionIds = new Set<string>();
+  let definitionIds = new Map<string, { status: string; active_version_id?: string }>();
   let definitionsUnavailable = false;
   try {
     const definitions = await listProcessDefinitions(user);
-    definitionIds = new Set(definitions.map((definition) => definition.id));
+    definitionIds = new Map(definitions.map((definition) => [definition.id, definition]));
   } catch {
-    definitionIds = new Set();
+    definitionIds = new Map();
     definitionsUnavailable = true;
   }
   const presence = readConnectorPresence();
@@ -47,6 +48,7 @@ export default async function SpacesPage() {
   const waitingBySpace: Record<string, number> = {
     "lease-renewals": inbox ? renewalWaitingCount(inbox) : 0,
   };
+  const decisionReadWarning = inbox ? needsDecisionReadWarning(inbox) : null;
 
   return (
     <AppShell user={user}>
@@ -77,6 +79,11 @@ export default async function SpacesPage() {
                 {waiting > 0 ? (
                   <span className="review-pill space-card-waiting">
                     {waiting} waiting on you
+                  </span>
+                ) : null}
+                {space.id === "lease-renewals" && decisionReadWarning ? (
+                  <span className="muted" role="status">
+                    Decision check incomplete. {decisionReadWarning}
                   </span>
                 ) : null}
               </Link>

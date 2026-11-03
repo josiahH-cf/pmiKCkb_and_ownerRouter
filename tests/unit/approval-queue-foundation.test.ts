@@ -531,6 +531,28 @@ describe("transitionApprovalQueueItem", () => {
 });
 
 describe("bulkTransitionApprovalQueueItems", () => {
+  it("refuses retired historical actions without changing the item or activity through either entry", async () => {
+    const item = await createApprovalQueueItem(
+      editor,
+      baseInput({
+        source_trigger_key: "synthetic-retired-proof",
+        direct_link: "/maintenance?ticket_id=synthetic",
+      }),
+      db,
+    );
+    const activity = await listApprovalQueueActivity(admin, item.id, db);
+    await expect(
+      transitionApprovalQueueItem(admin, item.id, { action: "approve" }, db),
+    ).rejects.toMatchObject({ status: 410 });
+    const bulk = await bulkTransitionApprovalQueueItems(
+      admin,
+      { action: "approve", item_ids: [item.id] },
+      db,
+    );
+    expect(bulk.summary.updated).toBe(0);
+    expect(await getApprovalQueueItem(admin, item.id, db)).toEqual(item);
+    expect(await listApprovalQueueActivity(admin, item.id, db)).toEqual(activity);
+  });
   it("updates eligible items and skips visible ineligible items with Activity", async () => {
     const ready = await createApprovalQueueItem(
       editor,

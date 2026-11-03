@@ -4,6 +4,10 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { resolveStoredDataMode } from "@/lib/data-mode";
 import { canAccessSpaceId } from "@/lib/space-scope-resources";
 import {
+  publicationPolicyAllowsResource,
+  publicationPolicyAllowsContent,
+} from "./resource-scope";
+import {
   assertAuthorityFieldsAreInert,
   assertRegisteredProcessActions,
   PublicationAuthorityError,
@@ -51,6 +55,9 @@ export async function validatePublication(
     fail("content_size_mismatch");
   }
   if (content.byteLength > maxBytes) fail("oversize");
+  const contentHash = createHash("sha256").update(content).digest("hex");
+  if (!publicationPolicyAllowsContent(policy, contentHash))
+    fail("resource_not_allowed", 403);
 
   const detectedMimeType = detectContentMime(metadata, content);
   if (
@@ -78,7 +85,7 @@ export async function validatePublication(
   return {
     content,
     result: {
-      contentHash: createHash("sha256").update(content).digest("hex"),
+      contentHash,
       detectedMimeType,
       sensitivity: detectedSensitivity,
     },
@@ -102,6 +109,14 @@ function assertMetadata(
     fail("root_mismatch", 403);
   }
   if (!policy.allowedSpaces.includes(metadata.spaceId)) fail("space_not_allowed", 403);
+  if (!publicationPolicyAllowsResource(policy, metadata))
+    fail("resource_not_allowed", 403);
+  if (
+    policy.resourceScope?.resourceType === "file" &&
+    (metadata.declaredByteSize !== policy.resourceScope.byteSize ||
+      metadata.renewalArtifactKind !== policy.resourceScope.artifactKind)
+  )
+    fail("resource_not_allowed", 403);
   if (policy.scannerKey !== scanner.key) fail("scanner_mismatch", 409);
   if (!isSafeRelativePath(metadata.path)) fail("path_outside_root", 403);
   if (!Number.isSafeInteger(metadata.declaredByteSize) || metadata.declaredByteSize < 0) {

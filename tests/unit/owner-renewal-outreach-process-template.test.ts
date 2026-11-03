@@ -12,9 +12,11 @@ import {
 
 const EXPECTED_TITLES = [
   "Gather facts",
-  "Compose owner outreach draft",
-  "Dan approves",
-  "Human sends",
+  "Review market evidence and recommendation",
+  "Prepare and review owner outreach",
+  "Confirm delivery or manual handoff",
+  "Observe replies and record the owner outcome",
+  "Continue the linked renewal",
 ];
 
 describe("buildOwnerRenewalOutreachProcessTemplate", () => {
@@ -27,17 +29,18 @@ describe("buildOwnerRenewalOutreachProcessTemplate", () => {
     expect(() => CreateProcessDefinitionInputSchema.parse(template)).not.toThrow();
   });
 
-  it("encodes the four-step outreach sequence and carries no action references", () => {
+  it("encodes the current outreach journey and carries no action references", () => {
     expect(template.steps.map((step) => step.title)).toEqual(EXPECTED_TITLES);
     expect([...OWNER_RENEWAL_OUTREACH_STEP_TITLES]).toEqual(EXPECTED_TITLES);
     expect(template.action_references ?? []).toEqual([]);
   });
 
-  it("names the composer it wraps (surface, not execute)", () => {
+  it("names the staff preparation control without exposing an internal function", () => {
     const composeStep = template.steps.find(
-      (step) => step.title === "Compose owner outreach draft",
+      (step) => step.title === "Prepare and review owner outreach",
     );
-    expect(composeStep?.description).toContain("buildOwnerRenewalDraft");
+    expect(composeStep?.description).toContain("Owner message");
+    expect(composeStep?.description).not.toContain("buildOwnerRenewalDraft");
   });
 
   // Proves the outreach uses the EXISTING composer verbatim (no re-implementation): a known input

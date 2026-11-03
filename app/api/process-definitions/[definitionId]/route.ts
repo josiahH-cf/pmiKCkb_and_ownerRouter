@@ -7,6 +7,7 @@ import {
   updateProcessDefinition,
 } from "@/lib/firestore/workflows";
 import { UpdateProcessDefinitionInputSchema } from "@/lib/firestore/schemas";
+import { processDefinitionPublicationContent } from "@/lib/publication/process-definition-content";
 import {
   assertProcessDefinitionAccess,
   assertProcessDefinitionRecordAccess,
@@ -24,7 +25,19 @@ export async function GET(_request: Request, context: RouteContext) {
     assertProcessDefinitionRecordAccess(user, definition);
     const runs = await listWorkflowRuns(user, { definitionId });
 
-    return NextResponse.json({ definition, runs });
+    const reviewed = processDefinitionPublicationContent(definition);
+    return NextResponse.json(
+      {
+        definition,
+        runs,
+        publicationReview: {
+          revision: definition.revision,
+          contentHash: reviewed.contentHash,
+          byteSize: reviewed.content.byteLength,
+        },
+      },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
   } catch (error) {
     return apiErrorResponse(error);
   }

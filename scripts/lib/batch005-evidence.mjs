@@ -42,8 +42,15 @@ export function readBatch005Requirements(root) {
     );
     if (!contract) throw new Error(`Missing native contract S${suite}`);
     const owners = [...contract.text.matchAll(/^- `([^`]+)`/gm)].map((match) => match[1]);
+    // Batch 005 owns the original contiguous trace table. Later independently authored suite
+    // follow-ups do not amend that completed intake or become a new execution queue here.
+    let readingOriginalTable = false;
     for (const line of contract.text.split(/\r?\n/)) {
-      if (!line.startsWith(`| R-S${suite}-`)) continue;
+      if (!line.startsWith(`| R-S${suite}-`)) {
+        if (readingOriginalTable) break;
+        continue;
+      }
+      readingOriginalTable = true;
       const [requirement, architecture, behavior, humanLitmus, adversarial] = line
         .split("|")
         .slice(1, 6)

@@ -269,4 +269,31 @@ describe("S147 attention queue gather", () => {
     );
     expect(queue.rows.map((row) => row.itemId)).toEqual(["open"]);
   });
+
+  it("keeps a failed renewal feed partial even when retired records leave zero current decisions", async () => {
+    const records = [
+      item({
+        id: "old-proof",
+        direct_link: "/maintenance?ticket_id=synthetic",
+        process_run_ref: {
+          id: "maintenance:synthetic",
+          label: "Renamed historical action",
+        },
+      }),
+    ];
+    const before = JSON.stringify(records);
+    const queue = await gatherAttentionQueue(
+      admin,
+      deps({
+        listQueue: async () => records,
+        loadRunViews: async () => {
+          throw new Error("synthetic missing source");
+        },
+      }),
+    );
+    expect(queue.state).toBe("partial");
+    expect(queue.unavailableFeeds).toEqual(["renewal_reviews"]);
+    expect(queue.rows).toEqual([]);
+    expect(JSON.stringify(records)).toBe(before);
+  });
 });

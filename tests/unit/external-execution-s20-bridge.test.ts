@@ -291,20 +291,17 @@ describe("S25/S26 external execution to S20 preparation bridge", () => {
   );
 
   it("prepares executable High work as Awaiting Admin and approves the exact preview hash", async () => {
+    // Use a non-staff-confirmed High action for this generic ledger fixture. Retired Vendor
+    // approvals stay unavailable; Dotloop's staff-confirmation contract creates no Admin queue.
     const action = externalAction(
-      "vendor.assignment.change",
+      "google_sheets.renewal_checklist.row_append",
       {
-        vendor_ref: "synthetic-vendor",
-        vendor_uid: "synthetic-vendor-uid",
-        vendor_company: "Synthetic vendor",
-        vendor_email: "synthetic-vendor@example.test",
-        vendor_updated_at: "2026-10-09T00:00:00Z",
-        ticket_ref: "synthetic-ticket",
-        ticket_updated_at: "2026-10-09T00:00:00Z",
-        current_vendor_ref: "synthetic-current",
-        target_vendor_ref: "synthetic-vendor",
-        assignment_operation: "assign",
-        reason: "Exact fixture assignment",
+        tab: "synthetic:sheet-tab:renewal-checklist",
+        lease_ref: "synthetic:lease:high",
+        property_ref: "synthetic:property:high",
+        tenant_name: "Synthetic Tenant",
+        field_values: "renewal_date=2026-12-01; source=synthetic:source:verified",
+        row_note: "[TEST] Synthetic S20 bridge fixture.",
       },
       "high",
     );
@@ -313,14 +310,14 @@ describe("S25/S26 external execution to S20 preparation bridge", () => {
       {
         action,
         approvalQueue: {
-          directLink: "/maintenance/synthetic-ticket-1",
+          directLink: "/lease-renewal",
           processRunRef: {
             id: action.workflowId,
-            label: "Synthetic maintenance workflow",
+            label: "Synthetic renewal Sheet workflow",
           },
           requiredAdminUid: admin.uid,
         },
-        definition: maintenanceDefinition(action.actionKey),
+        definition: leaseDefinition(action.actionKey),
         trustedContext: trustedExternalContext(action, technicalContext),
         validate: () => null,
       },
@@ -372,7 +369,7 @@ describe("S25/S26 external execution to S20 preparation bridge", () => {
 
     const execute = vi.fn(async () => ({
       actionKey: action.actionKey,
-      providerRef: "provider:synthetic-work-order",
+      providerRef: "provider:synthetic-sheet-row",
       resultHash: "a".repeat(64),
       reconciled: false,
       createdAt: "2026-07-14T00:00:00.000Z",
@@ -382,7 +379,7 @@ describe("S25/S26 external execution to S20 preparation bridge", () => {
         admin,
         {
           action,
-          definition: maintenanceDefinition(action.actionKey),
+          definition: leaseDefinition(action.actionKey),
           executionId: execution.id,
           executor: { execute, reconcile: vi.fn(async () => null) },
           trustedContext: trustedExternalContext(action, technicalContext),
@@ -403,7 +400,7 @@ describe("S25/S26 external execution to S20 preparation bridge", () => {
         admin,
         {
           action,
-          definition: maintenanceDefinition(action.actionKey),
+          definition: leaseDefinition(action.actionKey),
           executionId: execution.id,
           executor: { execute, reconcile: vi.fn(async () => null) },
           trustedContext: trustedExternalContext(action, technicalContext),

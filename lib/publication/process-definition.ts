@@ -11,7 +11,12 @@ import { getProcessDefinition } from "@/lib/firestore/workflows";
 import { resolvePublicationPolicyForSpace } from "@/lib/publication/policy";
 import { resolvePublicationScanner } from "@/lib/publication/provider";
 import { publishTrustedContent } from "@/lib/publication/service";
+import { processDefinitionPublicationContent } from "./process-definition-content";
 import type { PublicationScanner } from "@/lib/publication/types";
+import {
+  assertProcessDefinitionRevision,
+  processDefinitionRevision,
+} from "./process-definition-revision";
 import {
   assertProcessDefinitionRecordAccess,
   assertSpaceIdAccess,
@@ -20,6 +25,10 @@ import {
 
 export const PublishProcessDefinitionSchema = z
   .object({
+    expected_revision: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
     note: z.string().trim().max(1000).optional(),
     policy_id: z.string().trim().min(1).optional(),
   })
@@ -41,6 +50,7 @@ export async function publishProcessDefinition(
   const db = options.db ?? getAdminFirestore();
   const parsed = PublishProcessDefinitionSchema.parse(input);
   const definition = await getProcessDefinition(actor, definitionId, db);
+  assertProcessDefinitionRevision(definition, parsed.expected_revision);
   assertProcessDefinitionRecordAccess(actor, definition);
   if (isRetiredMaintenanceWorkflow(definition.space_id, definition.id))
     throw new EditableLayerError(MAINTENANCE_RETIREMENT_MESSAGE, 410);
@@ -67,15 +77,14 @@ export async function publishProcessDefinition(
     spaceId,
     parsed.policy_id,
     db,
+    {
+      resourceType: "process_definition",
+      resourceId: `process-definition:${definition.id}`,
+    },
   );
-  const scanner = options.scanner ?? resolvePublicationScanner(policy.scannerKey);
-  const snapshot = {
-    ...definition,
-    active_version_id: undefined,
-    pending_queue_item_id: undefined,
-    status: "Active" as const,
-  };
-  const content = new TextEncoder().encode(JSON.stringify(snapshot));
+  const scanner =
+    options.scanner ?? resolvePublicationScanner(policy.scannerKey, { policy });
+  const { snapshot, content } = processDefinitionPublicationContent(definition);
   const actionKeys = definition.action_references.flatMap((reference) =>
     reference.action_registry_key ? [reference.action_registry_key] : [],
   );
@@ -108,6 +117,20 @@ export async function publishProcessDefinition(
     {
       db,
       registeredProcessActionKeys,
+      validateCommit: async (transaction) => {
+        const current = await transaction.get(
+          db.collection("process_definitions").doc(definition.id),
+        );
+        if (
+          !current.exists ||
+          processDefinitionRevision({ id: current.id, ...current.data() }) !==
+            processDefinitionRevision(definition)
+        )
+          throw new EditableLayerError(
+            "The process definition changed during publication. Reload and review the current content before retrying.",
+            409,
+          );
+      },
       extendCommit: ({ transaction, versionId, versionNumber }) => {
         transaction.set(db.collection("process_definition_versions").doc(versionId), {
           id: versionId,

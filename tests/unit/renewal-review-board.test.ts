@@ -34,6 +34,29 @@ const liveView = { runId: "live-review", label: "Live renewal review" };
 const liveRun = { runId: "live-review", flags: [] };
 
 describe("renewal review board gather", () => {
+  it("reports source staleness and its actual read time separately from overlay failure", async () => {
+    mocks.loadLiveRenewalReview.mockResolvedValue({
+      status: "ok",
+      view: liveView,
+      run: liveRun,
+      meta: { currencyState: "stale", readAtIso: "2026-11-03T08:29:00.000Z" },
+    });
+    await expect(loadRenewalRunViews(actor)).rejects.toMatchObject({
+      status: 409,
+      issue: { code: "source_stale", sourceReadAtIso: "2026-11-03T08:29:00.000Z" },
+    });
+  });
+
+  it("names an unavailable overlay without blaming successful source authentication", async () => {
+    mocks.listResolutionsForRun.mockRejectedValue(
+      new Error("synthetic unavailable overlay"),
+    );
+    await expect(loadRenewalRunViews(actor)).rejects.toMatchObject({
+      status: 409,
+      issue: { code: "overlay_unavailable" },
+    });
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.listResolutionsForRun.mockResolvedValue([{ id: "resolution-1" }]);

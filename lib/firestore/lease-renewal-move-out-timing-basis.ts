@@ -15,7 +15,15 @@ import type { Firestore } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 
 import { can } from "@/lib/auth/roles";
-import type { AuthenticatedUser } from "@/lib/auth/session";
+import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
+import { isVerificationAccount } from "@/lib/auth/canary-policy";
+import { assertRenewalRoleAuthority } from "@/lib/lease-renewal/role-action-governance";
+import {
+  DOCUMENTED_NOTICE_TIMING_DECISION,
+  SelectNoticeTimingBasisInputSchema,
+  isDocumentedNoticeTimingBasis,
+  type SelectNoticeTimingBasisInput,
+} from "@/lib/lease-renewal/notice-timing-decision";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
@@ -41,6 +49,10 @@ export const MoveOutTimingBasisRecordSchema = z
     created_at: z.string(),
     updated_at: z.string(),
     updated_by_uid: z.string().min(1),
+    /** Optional on legacy records; source decision and current selection intent are distinct. */
+    decision_id: z.string().optional(),
+    operation_id: z.string().uuid().optional(),
+    decision_source: z.string().optional(),
   })
   .strict();
 export type MoveOutTimingBasisRecord = z.infer<typeof MoveOutTimingBasisRecordSchema>;
@@ -119,9 +131,27 @@ export async function readMoveOutTimingBasisSnapshot(
   return read.state === "saved" ? toSnapshot(read.record) : fallback(read.state);
 }
 
-function assertTimingBasisAdmin(actor: AuthenticatedUser) {
+function assertTimingBasisAdmin(actor: AuthenticatedUser, writing = false) {
+  assertTimingBasisStaff(actor, writing);
   if (!can(actor.role, "manageAdmin")) {
     throw new EditableLayerError("Only Admins can record the notice timing basis.", 403);
+  }
+}
+
+/** Recheck the same managed identity/Space/role boundary even for direct service callers. */
+export function assertTimingBasisStaff(actor: AuthenticatedUser, writing: boolean) {
+  if (
+    actor.hd !== "pmikcmetro.com" ||
+    !actor.email.toLowerCase().endsWith("@pmikcmetro.com") ||
+    !hasSpaceAccess(actor, "renewals") ||
+    !["Editor", "Approver", "Admin"].includes(actor.role)
+  ) {
+    throw new EditableLayerError("Managed renewal staff access is required.", 403);
+  }
+  if (writing) assertRenewalRoleAuthority("select_notice_timing_basis", actor.role);
+  else assertRenewalRoleAuthority("read_workspace", actor.role);
+  if (writing && isVerificationAccount(actor)) {
+    throw new EditableLayerError("Verification accounts can only read.", 403);
   }
 }
 
@@ -146,7 +176,7 @@ export async function updateMoveOutTimingBasis(
   db: Firestore = getAdminFirestore(),
   now: string = new Date().toISOString(),
 ): Promise<MoveOutTimingBasisRecord> {
-  assertTimingBasisAdmin(actor);
+  assertTimingBasisAdmin(actor, true);
   const parsed = UpdateMoveOutTimingBasisInputSchema.parse(input);
   const ref = db
     .collection(MOVE_OUT_TIMING_BASIS_COLLECTION)
@@ -195,4 +225,200 @@ export async function updateMoveOutTimingBasis(
   });
 
   return MoveOutTimingBasisRecordSchema.parse(saved);
+}
+
+const SelectionIntentSchema = z
+  .object({
+    operation_id: z.string().uuid(),
+    decision_id: z.literal(DOCUMENTED_NOTICE_TIMING_DECISION.id),
+    actor_uid: z.string().min(1),
+    expected_version: z.number().int().nonnegative(),
+    canonical_payload: z.string(),
+    action: z.literal("notice_timing_basis_selected"),
+    record: MoveOutTimingBasisRecordSchema,
+  })
+  .passthrough();
+
+export type NoticeTimingSelectionIntentRead =
+  | { state: "missing" | "unreadable" }
+  | {
+      state: "recorded";
+      operationId: string;
+      decisionId: string;
+      expectedVersion: number;
+      record: MoveOutTimingBasisRecord;
+    };
+export interface NoticeTimingBasisSelectionRead {
+  timingBasis: MoveOutTimingBasisAdminRead;
+  canSelect: boolean;
+  intent: NoticeTimingSelectionIntentRead;
+}
+
+function selectionPayload(actorUid: string, input: SelectNoticeTimingBasisInput): string {
+  return JSON.stringify([
+    actorUid,
+    input.decisionId,
+    input.expectedVersion,
+    DOCUMENTED_NOTICE_TIMING_DECISION.targetKind,
+    DOCUMENTED_NOTICE_TIMING_DECISION.countingRule,
+    DOCUMENTED_NOTICE_TIMING_DECISION.thresholdDays,
+  ]);
+}
+
+function selectionRef(db: Firestore, operationId: string) {
+  return db
+    .collection(MOVE_OUT_TIMING_BASIS_ACTIVITY_COLLECTION)
+    .doc(`selection-${operationId}`);
+}
+
+function parseSelectionIntent(value: unknown) {
+  const intent = SelectionIntentSchema.parse(value);
+  const record = intent.record;
+  if (
+    record.operation_id !== intent.operation_id ||
+    record.decision_id !== intent.decision_id ||
+    record.updated_by_uid !== intent.actor_uid ||
+    record.version !== intent.expected_version + 1 ||
+    !isDocumentedNoticeTimingBasis(record) ||
+    record.reviewed_note !== DOCUMENTED_NOTICE_TIMING_DECISION.note ||
+    record.decision_source !== DOCUMENTED_NOTICE_TIMING_DECISION.source ||
+    intent.canonical_payload !==
+      selectionPayload(intent.actor_uid, {
+        operationId: intent.operation_id,
+        decisionId: intent.decision_id,
+        expectedVersion: intent.expected_version,
+      })
+  ) {
+    throw new EditableLayerError(
+      "The selection receipt cannot be verified. Keep the same operation for recovery.",
+      409,
+    );
+  }
+  return intent;
+}
+
+/** Pure reads, including only the requesting actor's exact operation receipt. No matching-state inference. */
+export async function readMoveOutTimingBasisSelection(
+  actor: AuthenticatedUser,
+  operationId?: string,
+  db: Firestore = getAdminFirestore(),
+): Promise<NoticeTimingBasisSelectionRead> {
+  assertTimingBasisStaff(actor, false);
+  const parsedId =
+    operationId === undefined ? undefined : z.string().uuid().parse(operationId);
+  const [timingBasis, intent]: [
+    MoveOutTimingBasisAdminRead,
+    NoticeTimingSelectionIntentRead,
+  ] = await Promise.all([
+    readRecord(db),
+    (async (): Promise<NoticeTimingSelectionIntentRead> => {
+      if (!parsedId) return { state: "missing" };
+      try {
+        const snapshot = await selectionRef(db, parsedId).get();
+        if (!snapshot.exists || snapshot.data()?.actor_uid !== actor.uid)
+          return { state: "missing" };
+        const saved = parseSelectionIntent(snapshot.data());
+        if (saved.operation_id !== parsedId) return { state: "unreadable" };
+        return {
+          state: "recorded",
+          operationId: saved.operation_id,
+          decisionId: saved.decision_id,
+          expectedVersion: saved.expected_version,
+          record: saved.record,
+        };
+      } catch {
+        return { state: "unreadable" };
+      }
+    })(),
+  ]);
+  return {
+    timingBasis,
+    canSelect: !isVerificationAccount(actor) && can(actor.role, "edit"),
+    intent,
+  };
+}
+
+/** One explicit staff selection, with transactionally bound intent and immutable historical result. */
+export async function selectMoveOutTimingBasis(
+  actor: AuthenticatedUser,
+  input: unknown,
+  db: Firestore = getAdminFirestore(),
+  now: string = new Date().toISOString(),
+): Promise<{ record: MoveOutTimingBasisRecord; duplicate: boolean }> {
+  assertTimingBasisStaff(actor, true);
+  const parsed = SelectNoticeTimingBasisInputSchema.parse(input);
+  const payload = selectionPayload(actor.uid, parsed);
+  const ref = db
+    .collection(MOVE_OUT_TIMING_BASIS_COLLECTION)
+    .doc(MOVE_OUT_TIMING_BASIS_DOC_ID);
+  const intentRef = selectionRef(db, parsed.operationId);
+  return db.runTransaction(async (transaction) => {
+    const prior = await transaction.get(intentRef);
+    if (prior.exists) {
+      const intent = parseSelectionIntent(prior.data());
+      if (intent.actor_uid !== actor.uid || intent.canonical_payload !== payload) {
+        throw new EditableLayerError(
+          "This operation belongs to a different selection. Reload without overwriting it.",
+          409,
+        );
+      }
+      return { record: intent.record, duplicate: true };
+    }
+    const snapshot = await transaction.get(ref);
+    const current = snapshot.exists
+      ? MoveOutTimingBasisRecordSchema.safeParse({ ...snapshot.data(), id: snapshot.id })
+      : null;
+    if (current && !current.success) {
+      throw new EditableLayerError(
+        "The saved notice basis is invalid. It must be investigated before a selection can replace it.",
+        409,
+      );
+    }
+    const existing = current?.success ? current.data : null;
+    if ((existing?.version ?? 0) !== parsed.expectedVersion) {
+      throw new EditableLayerError(
+        "The shared notice timing basis changed. Reload to review its current version before selecting again.",
+        409,
+      );
+    }
+    if (isDocumentedNoticeTimingBasis(existing)) {
+      throw new EditableLayerError(
+        "The documented basis is already current; no new selection was recorded.",
+        409,
+      );
+    }
+    const decision = DOCUMENTED_NOTICE_TIMING_DECISION;
+    const record = MoveOutTimingBasisRecordSchema.parse({
+      id: MOVE_OUT_TIMING_BASIS_DOC_ID,
+      target_kind: decision.targetKind,
+      counting_rule: decision.countingRule,
+      threshold_days: decision.thresholdDays,
+      reviewed_note: decision.note,
+      decision_id: decision.id,
+      decision_source: decision.source,
+      operation_id: parsed.operationId,
+      version: (existing?.version ?? 0) + 1,
+      created_at: existing?.created_at ?? now,
+      updated_at: now,
+      updated_by_uid: actor.uid,
+    });
+    transaction.set(ref, record);
+    transaction.create(intentRef, {
+      basis_id: MOVE_OUT_TIMING_BASIS_DOC_ID,
+      version: record.version,
+      target_kind: record.target_kind,
+      counting_rule: record.counting_rule,
+      threshold_days: record.threshold_days,
+      reviewed_note: record.reviewed_note,
+      actor_uid: actor.uid,
+      action: "notice_timing_basis_selected",
+      created_at: now,
+      operation_id: parsed.operationId,
+      decision_id: decision.id,
+      expected_version: parsed.expectedVersion,
+      canonical_payload: payload,
+      record,
+    });
+    return { record, duplicate: false };
+  });
 }

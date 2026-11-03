@@ -10,6 +10,9 @@ export type SpaceCardState =
   | "connections-needed"
   | "needs-a-process"
   | "has-a-process"
+  | "draft-process"
+  | "published-process"
+  | "retired-process"
   | "planned"
   | "status-unavailable"
   | "reference";
@@ -30,7 +33,10 @@ export const SPACE_CONNECTOR_IDS: Readonly<Record<string, readonly string[]>> = 
 export const SPACE_CARD_STATE_LABEL: Record<SpaceCardState, string> = {
   "connections-needed": "Connections needed",
   "needs-a-process": "Needs a process",
-  "has-a-process": "Process ready",
+  "has-a-process": "Process available",
+  "draft-process": "Draft process",
+  "published-process": "Published process",
+  "retired-process": "Retired process",
   planned: "Planned",
   "status-unavailable": "Status unavailable",
   reference: "Reference (read-only)",
@@ -46,6 +52,9 @@ export type SpaceCardTone = "ready" | "attention" | "blocked" | "planned" | "ref
 
 export const SPACE_CARD_STATE_TONE: Record<SpaceCardState, SpaceCardTone> = {
   "has-a-process": "ready",
+  "draft-process": "planned",
+  "published-process": "ready",
+  "retired-process": "reference",
   "connections-needed": "attention",
   "needs-a-process": "blocked",
   planned: "planned",
@@ -79,7 +88,9 @@ function hasMissingConnection(
  */
 export function computeSpaceCardState(
   space: LaunchSpace,
-  definitionIds: ReadonlySet<string>,
+  definitionIds:
+    | ReadonlySet<string>
+    | ReadonlyMap<string, { status: string; active_version_id?: string }>,
   presence: Record<string, boolean>,
   definitionsUnavailable = false,
 ): SpaceCardState {
@@ -94,6 +105,14 @@ export function computeSpaceCardState(
   }
   if (definitionsUnavailable) {
     return "status-unavailable";
+  }
+  if ("get" in definitionIds) {
+    const definition = definitionIds.get(space.processDefinitionId);
+    if (!definition) return "needs-a-process";
+    if (definition.status === "Retired") return "retired-process";
+    return definition.status === "Active" && definition.active_version_id
+      ? "published-process"
+      : "draft-process";
   }
   return definitionIds.has(space.processDefinitionId)
     ? "has-a-process"

@@ -13,3 +13,6 @@
 tools/client-updates/
 output/
 docs/specs/
+
+# The dedicated scanner has its own exact-file build context and service image.
+infra/publication-scanner/

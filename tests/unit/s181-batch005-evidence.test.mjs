@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   BATCH005_HANDOFF,
   readBatch005Requirements,
@@ -65,6 +67,19 @@ describe("S181 native batch evidence admission", () => {
     expect(rows).toHaveLength(116);
     expect(new Set(rows.map((row) => row.suite)).size).toBe(15);
     expect(validateBatch005Evidence(rows, initial())).toBe(true);
+  });
+  it("keeps current S168 follow-up requirements outside the original completed batch intake", () => {
+    const original = rows.filter((row) => row.suite === "S168");
+    expect(original.map((row) => row.id)).toEqual(
+      Array.from({ length: 7 }, (_, index) => `R-S168-${index + 1}`),
+    );
+    const currentContract = readFileSync(
+      join(process.cwd(), original[0].contract),
+      "utf8",
+    );
+    expect(currentContract).toContain("## November 3 assessment follow-up — A-05");
+    expect(currentContract).toContain("| R-S168-11 demonstrated repair");
+    expect(rows.some((row) => row.id === "R-S168-11")).toBe(false);
   });
   it("refuses missing, duplicate and altered independent trace rows", () => {
     const evidence = initial();

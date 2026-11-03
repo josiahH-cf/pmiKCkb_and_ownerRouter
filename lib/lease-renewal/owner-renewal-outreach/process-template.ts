@@ -1,13 +1,8 @@
 import type { CreateProcessDefinitionInput } from "@/lib/firestore/schemas";
 
 /**
- * Non-executable Owner Renewal Outreach process-definition template (S13 Wave 2 / space-teeth E4).
- * Mirrors the maintenance/lease-renewal templates: seeds as a Draft. The steps WRAP the already-built
- * pure `buildOwnerRenewalDraft` composer verbatim as a read/draft surface the desk renders — the steps
- * do NOT execute anything; Dan approves and a human sends.
- *
- * GOVERNANCE: `action_references: []` — owner outreach is a Gmail DRAFT only; no external write action
- * is proposed. Missing market inputs render as visible Needs-Verification markers, never invented.
+ * S241: current procedural guidance, still seeded as Draft with no executable action references.
+ * Publishing or checking a step never dispatches a message, starts work or approves lease terms.
  */
 
 const OWNER_RENEWAL_OUTREACH_STEPS: ReadonlyArray<{
@@ -17,22 +12,32 @@ const OWNER_RENEWAL_OUTREACH_STEPS: ReadonlyArray<{
   {
     title: "Gather facts",
     description:
-      "Read the outreach facts: address + current rent (RentVine, read-authoritative), a market comp range (provider-retrieved or operator-entered, labeled by where it came from), and the specific market number (PMI rental-analysis tool). Missing market inputs render as visible Needs-Verification markers, so the app uses only verified facts.",
+      "Open the linked lease and review source-tagged current rent, dates, parties, contacts and Working terms. Keep source differences and unknowns visible; a checklist tick does not verify a source or change RentVine or the operating Sheet.",
   },
   {
-    title: "Compose owner outreach draft",
+    title: "Review market evidence and recommendation",
     description:
-      "Surfaces the output of the existing `buildOwnerRenewalDraft` composer verbatim (address, current rent, comp range, suggested number, comps-screenshot placeholder), every fact source-tagged. Draft only.",
+      "Use available Comps and the recorded recommendation with its actual basis. Distinguish a provider result, staff input and unavailable research; never invent comparables or call a current-rent range market evidence. Missing evidence limits only the output that actually requires it.",
   },
   {
-    title: "Dan approves",
+    title: "Prepare and review owner outreach",
     description:
-      "Dan reviews the drafted outreach and the facts it rests on, and records the renewal decision (offer / hold / amount). No app action executes.",
+      "Review the Owner message, exact wording, recipient, sender and any resource or attachment. Copy the message or prepare an unsent Gmail draft when appropriate. Recover settled PMI decisions first; ask Dan only the precise unresolved business question. This is not a general Dan approval gate or landlord consent.",
   },
   {
-    title: "Human sends",
+    title: "Confirm delivery or manual handoff",
     description:
-      "A human sends the approved owner email. Sending and any system-of-record write stay with a person; the app only prepares the draft.",
+      "Use the linked Communications Send or Schedule control for current staff-confirmed renewal delivery, or choose the unsent Gmail/manual handoff. Resume requires a fresh review of the current message, sender, recipient, sources and timing. The operation's current confirmation, one-attempt claim, receipt and ambiguity checks still apply; old approvals cannot dispatch.",
+  },
+  {
+    title: "Observe replies and record the owner outcome",
+    description:
+      "Check per-message evidence and linked replies. Prepared, Gmail draft, accepted send, recipient receipt and reply are distinct; absence of a reply is not consent. Record the actual owner or authorized representative's exact terms/outcome and evidence; a changed rent, date or charge makes that coverage stale.",
+  },
+  {
+    title: "Continue the linked renewal",
+    description:
+      "Carry the actual owner outcome into the existing lease journey. Applicable approved legal forms, fees and signer delegation remain separate requirements. Both Dotloop write keys stay closed until separately authorized and activated; signing is a human handoff. Source updates retain their own exact preview, confirmation, receipt and correction controls. No step here starts or proves those effects.",
   },
 ];
 
@@ -52,16 +57,16 @@ export function buildOwnerRenewalOutreachProcessTemplate(
   return {
     name: "Owner Renewal Outreach + Comp Lookup",
     short_outcome:
-      "Draft the owner renewal outreach email from source-tagged facts (current rent + market comps); Dan approves and a human sends. Missing market inputs stay visible; no autonomous send, no system-of-record write.",
+      "Prepare source-backed owner outreach, use current staff-confirmed renewal delivery or an unsent handoff, and record the evidenced owner outcome. This process starts no automatic send, approval or source update.",
     trigger:
       "Manual start by a team member when a lease is entering its renewal window and the owner needs an outreach decision.",
     owner_uid: options.ownerUid,
     default_approver_uid: options.approverUid,
     source_links: options.sourceLinks ?? [],
     required_starting_inputs: [
-      "Property address (content-keyed)",
-      "Current rent (RentVine, read-authoritative)",
-      "Market comps (provider/manual range + PMI rental-analysis number)",
+      "The linked lease and current source-tagged facts/Working terms",
+      "The intended recipient and sender, verified through the existing message controls",
+      "Available market evidence with its actual basis; unknown inputs remain explicit",
     ],
     steps: OWNER_RENEWAL_OUTREACH_STEPS.map((step) => ({
       title: step.title,
@@ -69,10 +74,10 @@ export function buildOwnerRenewalOutreachProcessTemplate(
     })),
     action_references: [],
     success_condition:
-      "Dan approves the outreach draft and the facts it rests on; a human sends the email. No external write or send executes from the app.",
+      "The actual outreach state and owner outcome are recorded with their evidence. A copy, draft, send receipt, reply, owner approval and signature retain their separate meanings; no process tick invents completion.",
     stop_condition:
-      "A missing market input (comp range, specific number) surfaces as a Needs-Verification marker that blocks the owner send until a human supplies it.",
+      "Hold only an operation whose actual current source, recipient, sender, policy or exact confirmation is unavailable or changed. Reconcile an ambiguous prior attempt before any retry. Unknown business/legal facts are never guessed; independent preparation remains usable.",
     escalation_condition:
-      "Owner non-response or a pricing dispute routes to Dan/Josiah Admin triage.",
+      "Route a genuinely unresolved PMI business question to Dan with the existing evidence and smallest exact question. Landlord terms, legal/form use, financial policy and signer authority remain with their actual authorized approver; no job title grants that authority.",
   };
 }

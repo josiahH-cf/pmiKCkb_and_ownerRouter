@@ -2631,6 +2631,8 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         await import("@/app/api/lease-renewal/document-handoff/route");
       const { GET: screenshotGet } =
         await import("@/app/api/lease-renewal/comp-screenshot/route");
+      const { GET: getNoticeTimingBasis, PATCH: patchNoticeTimingBasis } =
+        await import("@/app/api/lease-renewal/notice-timing-basis/route");
       const { GET: getWorkingRecordRoute, POST: postWorkingRecordRoute } =
         await import("@/app/api/lease-renewal/working-record/route");
       const { getRenewalWorkingRecord } =
@@ -2789,6 +2791,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         "/api/lease-renewal/workspace": "workspace",
         "/api/lease-renewal/message-preparation": "message_preparation",
         "/api/lease-renewal/notice-review": "notice_review",
+        "/api/lease-renewal/notice-timing-basis": "notice_timing_basis",
         "/api/lease-renewal/pricing-policy": "pricing_policy",
         "/api/lease-renewal/operating-sheet": "operating_sheet",
         "/api/lease-renewal/market-comps": "market_comps",
@@ -2816,6 +2819,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       const owningGetRoutes = [
         "message_preparation",
         "notice_review",
+        "notice_timing_basis",
         "pricing_policy",
       ] as const;
       type OwningGetRoute = (typeof owningGetRoutes)[number];
@@ -2865,7 +2869,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       }
       type BridgeRead = {
         route: BridgeRoute;
-        method: "GET" | "POST" | "other";
+        method: "GET" | "POST" | "PATCH" | "other";
         phase: MessageReadPhase;
         startedAt: number;
         elapsedMs: number | null;
@@ -3081,6 +3085,23 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           return request.method === "GET"
             ? getWorkspaceRoute(request)
             : postWorkspaceRoute(request);
+        if (url.pathname === "/api/lease-renewal/notice-timing-basis") {
+          if (request.method === "PATCH") return patchNoticeTimingBasis(request);
+          if (request.method === "GET") {
+            const response = await getNoticeTimingBasis(request);
+            owningGetReturned("notice_timing_basis", response);
+            const body: unknown = await response
+              .clone()
+              .json()
+              .catch((error: unknown) => {
+                countOwningGet("notice_timing_basis", "parseFailed");
+                throw error;
+              });
+            owningGetParsed("notice_timing_basis", body);
+            expect(body).toHaveProperty("timingBasis.state");
+            return response;
+          }
+        }
         if (url.pathname.endsWith("/message-preparation")) {
           if (request.method !== "GET") return postMessageRoute(request);
           const channel = url.searchParams.get("channel");
@@ -3227,7 +3248,10 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             url.hostname === "api.rentcast.io"
               ? "rentcast"
               : (routePaths[url.pathname as keyof typeof routePaths] ?? "other"),
-          method: method === "GET" || method === "POST" ? method : "other",
+          method:
+            method === "GET" || method === "POST" || method === "PATCH"
+              ? method
+              : "other",
           phase: "route_started",
           startedAt: Date.now(),
           elapsedMs: null,

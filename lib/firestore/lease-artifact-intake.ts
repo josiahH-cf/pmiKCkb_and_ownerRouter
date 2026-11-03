@@ -108,7 +108,7 @@ async function requireBoundPublication(
     version.id !== versionId ||
     !version.validated ||
     resolveStoredDataMode(version) !== "live" ||
-    version.spaceId !== "renewals" ||
+    !["renewals", "lease-renewals"].includes(version.spaceId) ||
     version.contentHash !== binding.contentHash ||
     version.contentRef?.contentHash !== binding.contentHash ||
     (await deps.readActiveVersionId(version.resourceId)) !== versionId
@@ -237,6 +237,11 @@ export async function receiveArtifactFamily(
     throw new EditableLayerError("An Admin receives lease-artifact material.", 403);
   const input = ReceiveArtifactInputSchema.parse(raw);
   const version = await requireBoundPublication(input.publicationSource, deps);
+  if (version.renewalArtifactKind && version.renewalArtifactKind !== input.kind)
+    throw new EditableLayerError(
+      "This reviewed original was published for a different form family.",
+      409,
+    );
   const content = await deps.readContent(version.contentRef);
   let classification = classifyUploadedForm({
     content,

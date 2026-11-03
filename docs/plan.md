@@ -1,68 +1,117 @@
 # Current plan
 
-Updated: 2026-11-03 (UTC).
+Updated: 2026-11-03 (UTC), owner clarification of the application gap assessment.
 
 ## Authorized outcome
 
-Production serves `bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd` at 100% canonical traffic.
-Run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73` completed at 2026-11-03T00:10:44Z, with its permit consumed and watcher exited.
-One application build `fbe2d323-9a95-4d51-a398-618f8928cdc8` succeeded. Candidate receipt
-`da8eab6f-ee31-4642-9266-0c9ae3c1d641` issued at 00:03:44.084Z; receipt-bound promotion verified
-at 00:04:07.060Z. Observation passed two checkpoints in 401,533 ms against the 300,000 ms minimum
-and 480,000 ms deadline. All 375 source/projected/rendered records matched with zero discrepancies,
-candidate 5xx or unresolved effects. All thirteen guarded Admin routes rendered with zero
-mutation attempts and diagnostics; Editor browser remains `not_run` under the existing policy.
-All eleven independent readback sections matched at 00:15:13Z. Fingerprint:
-`sha256:db70cd63e1c17ebb706e5291422e68d8be06707ceebc5805a7408b5eda547fe0`.
-Only APP_COMMIT_SHA changed among 54 environment keys. The five secret bindings, runtime identity,
-eleven Space maps, Production + Live, Demo=false, Sheet=true and existing cost/action controls match.
-The annual GET readiness probe passed and restored its exact target/calendar in PAUSED state;
-the existing minute worker remains ENABLED. No customer dispatch was test proof.
+Implement and qualify the finalized work for the three active application lanes, the seven
+assessment gaps, newly diagnosed A-08 PDF publication dependency, and the configuration/approval/
+communication work needed to unblock real renewals.
+The owner finalized the scope below, then explicitly directed implementation to completion and
+maintenance of backend open questions. Source implementation is locally QUALIFIED through full
+gate 06 and the final isolated browser journey; exact-main CI, delivery and actual configuration
+remain separate. This launch carries the named scope through its existing gates without repeated
+phase consent. It authorizes no client communication, new exact-key activation, invented business
+decision or proof effect. Awaiting release remains empty until the cumulative slice is qualified.
 
-The cumulative S232–S239/S126 and scoped WSL auth outcome is delivered. The queue is empty.
-The original owner remains stopped; no consumed receipt or permit can start new work.
-Evidence: docs/evidence/application-delivery-2026-11-03.md.
+Baseline: main 39435919; deployed bc97535379dd08deab578455b00a80fc93b8d209 /
+pmi-kc-app-rmvzwt7ms-00754475effd, verified in the
+[November 3 assessment](evidence/current-application-gap-analysis-2026-11-03.md).
+[Delivery evidence](evidence/application-delivery-2026-11-03.md) retains the completed release,
+consumed permit and prior verification limits. A future run must re-establish source and deployment;
+it cannot resume the completed run or infer an execution grant from this plan.
+
+## Settled authoring decisions
+
+- Recover documented PMI decisions and accessible source facts before requesting input. Feed those
+  decisions into the existing process, content, configuration and readiness owners, with provenance
+  and version binding. Dan is the contact for genuinely unresolved business decisions; asking Dan
+  does not make the runner the legal/policy approver. The team prepares the technical proposal and
+  only the remaining exact questions. No new approval portal or approval framework is required.
+- Notice-basis selection is ordinary authorized renewal-staff intent. A separate Admin confirmation
+  is not required. S125 specifies one visible selection, current role/Space and version checks,
+  durable audit/readback and ambiguity recovery. The already-settled thirty-day basis is reused;
+  this direction grants no general policy/role change or authority to choose unknown values.
+- Include the existing new-loop and existing-loop/upload paths through technical readiness and
+  a separately gated exact-key activation stage. Both Dotloop keys remain closed now. No signature
+  API, new template, new identity or provider effect is inferred. Human signing remains separate.
+- Review/correct the actual owner-renewal-outreach definition during this authorized execution,
+  publish that reviewed correction through its canonical path with immutable-version readback,
+  rather than repairing only a readiness label. Preserve real business approvals and existing
+  definition/version/run ownership. Publication starts no process run or communication.
+- Use the established private, copy-only Dan/Jon communication workflow. Prepare an accurate
+  capability/decision package; no Gmail draft, send, invitation, meeting or external support request.
+
+## Implementation work packages
+
+These are planning packages, not a release queue. Reuse existing owners and acceptance identifiers;
+the [suite registry](feature-suites/README.md) identifies the finalized deltas.
+
+| Package                                          | Owning specifications               | Complete engineering outcome                                                                                                                                                                                                             | Depends on / may proceed independently                                                                                                                     |
+| ------------------------------------------------ | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P1 — Current guidance and actionable work        | S238 A-01; S227 A-07                | Current communications/operator/governance prose and matching validator assertions; retired/completed-proof records excluded consistently from actionable cards, counts and assistant context, with evidence retained                    | Start from current code/readback; no client input, deletion, activation or new authority required                                                          |
+| P2 — Read reliability and evidence               | S168 A-05; S238 A-06                | Bounded failure diagnosis, supported narrow repair where established, precise freshness/read/overlay errors and settled My Work/role/view checks; explicit limits when historical causal evidence is unavailable                         | Starts independently; fixture checks cover customer-effect branches; no login/configuration change on an unproven cause                                    |
+| P3 — Existing-Space knowledge handoff            | S240 A-02                           | Real importer-compatible source-bound command or precise non-runnable result; intent-only staging and no implicit import                                                                                                                 | Independent of forms and Dotloop; source absence/read failure remains qualified                                                                            |
+| P4 — Supplied sources and informed configuration | S130 A-04; S66                      | Eight-source private inventory, proposed maps, recovered decisions and case/policy facts with provenance; exact unresolved questions for Dan; version-bound configuration through existing controls when evidence actually authorizes it | Retrieval/proposals proceed under this launched scope; approval-dependent publication/output waits only on its named missing decision                      |
+| P5 — Notice-basis selection                      | S125                                | Authorized renewal staff record the selected basis without an Admin-only or second confirmation gate; exact current-version intent, audit/readback and safe recovery                                                                     | Independent code/fixture work; no new thirty-day decision, legal rule, campaign date or background schedule inferred                                       |
+| P6 — Current packet readiness                    | S235 A-03                           | Current context/basis without a snapshot save; excluded families cause no output-material ask; account/generation/time-qualified selection display                                                                                       | Code/fixtures independent; exact-original/map synthetic verification consumes approved P4 inputs                                                           |
+| P7 — Existing renewal process                    | S241                                | Publish the reviewed correction to the existing definition and verify its immutable active version; truthful readiness, conflict safety and preserved history, no duplicate process                                                      | Consumes current contract and compatible P1/P4/P6 evidence; unknown content is explicit, not silently approved                                             |
+| P8 — Dotloop operational readiness               | S34, consuming S106/S228/S130/S235  | New/existing-loop and upload readiness/refusal/recovery verified in isolation; separately prepared exact-key activation requirements and readbacks                                                                                       | Technical work independent; production creation/upload waits on exact authority, approved bytes/maps and ordinary current-case confirmation; signing human |
+| P9 — Integrated evidence and client handoff      | S238, consuming S233/S234/S236/S237 | Focused current-contract regression/journey evidence, copy-ready Dan/Jon update and minimal decision package; separate source/deployed/live/human statuses and exact remaining holds                                                     | Assemble as packages finish; do not hold engineering completion for genuine signatures, human verdicts or unsupported live proofs                          |
 
 ## Delivery sequence
 
-The carried S227–S229 contract preserves fresh confirmed renewal delivery. The worker skips old
-authorizations and retired maintenance before provider reads. No protected activation metadata changes
-are part of this closure. No older READY program or stopped owner resumes.
+1. Pin the current source/deployment and preserve unrelated work, original failures and consumed
+   release evidence. Verify approved authentication only as needed; reuse the approved stores.
+2. Run P1, P2, P3 and P4 independently where their boundaries do not conflict. Inventory and
+   proposed mapping do not wait for legal approval. P5 can proceed alongside them.
+3. Build P6 and P7 against the actual owners and compatible inputs; missing input has a truthful
+   unset state. Implement P8's technical slice without activating either key.
+4. Complete P9 and review every gap/hold against its observable acceptance checks. Recover a decision
+   from evidence or ask Dan the smallest remaining question; do not turn a discoverable technical
+   fact into a client task or claim silence as approval.
+5. For each implemented code slice, require its named failing-then-passing architecture/behavior
+   checks in fixtures/emulators, separate preservation gate, applicable bash scripts/verify.sh and
+   CI, and privacy/scope audit.
+   Read-only inventory and documentation work use their proportionate checks. Any later authorized
+   delivery uses the existing exact-main, lock, fresh GO, receipt, candidate, observation and readback
+   gates. A prepared interlock is not repeated client consent. Protected-path changes require their
+   exact existing authority; this plan creates none.
 
-Qualification used fixtures/emulators and `bash scripts/verify.sh`, followed by exact-head green CI
-and a receipt-bound candidate. The full 300,000 ms minimum observation and independent readbacks
-passed. Clear the queue only after delivery is proved; that proof now exists and the queue is empty.
+A package is engineering-complete only when its declared checks and artifacts exist. Root cause
+unknown, runtime input pending, key closed, live effect not run and human verdict NOT RUN are distinct
+states. A green engineering package does not establish legal approval, owner consent, signatures,
+provider creation causality, receipt by a customer or human acceptance. No blanket audit, live proof
+rerun, paid comp call or production synthetic record is required to manufacture completion.
 
-1. Publish reviewed documentation closure with focused checks and exact-head CI; do not deploy it.
-2. Hand the verified absolute auth command and its revision/evidence to the separate Espansr task.
-3. Give the parent the factual beginner capability matrix and training/video proposal. The parent
-   owns the Dan Hilgedick/Jon Eddy draft; sending and booking are not authorized.
-4. Retain each external hold only against its named effect in docs/open-blockers.md. Real staff
-   acceptance, source attestation and reviewed signer maps remain separate from deployed code.
-
-## Operator authentication
-
-The one-command WSL operator entry point is
-`bash /home/josiah/pmi-kc-work/auth-command-20261102/scripts/pmi-auth`, from any WSL directory.
-Its retained author checkout `8f4f8ec6` has the same runtime tree as merged main `bc975353`.
-After deployment, the actual command returned process/reported exit 0 in 36.964 seconds with
-`auth_ready_with_exceptions`, existing Admin session and a free profile lease before/after.
-Approved CLI/ADC token refresh, GitHub API identity, local and production RentVine metadata,
-29 Sheet tabs, Drive folder, managed Gmail readonly profile, eleven search-store metadata reads
-and the exact existing Dotloop account passed. Paid RentCast and AI generation are untested.
-An actual Google challenge still needs the owner; no password, code, passkey or CAPTCHA is automated.
-Espansr replacement/merge/reinstall is a separate handoff and was not performed here.
+P4's implementation diagnosis added A-08/Q-ENG-PUB2 under the existing S130/shared S21 owners:
+new originals cannot reach intake because production file scanning is unavailable and the intake
+accepts only the old `renewals` Space name while publication uses canonical `lease-renewals`.
+Implement the exact reviewed blank-original PDF path, safe complete extraction, genuine scanning,
+canonical/legacy Space compatibility and source-family binding; preserve process-only scope and
+all legal/map approvals. General arbitrary KB file/folder publication remains unavailable outside
+this bounded repair. No supplied original is published as test proof and no client technical
+permission is needed for the engineering. S130 AC-S130-20–24 are the falsifiable completion checks.
 
 ## Captured baseline and external seams
 
-Both Dotloop business-write keys remain closed; signing is a human handoff. C00/A1 selection
-and the A5 policy decision remain settled. Eight saved source references are unverified; approved
-originals and reviewed field/signer maps remain missing across ten form families. R-S235-7 map
-verification and real staff acceptance remain NOT RUN. Each client hold blocks only its named effect.
-No live lease mutation, email, draft, payment, signature, paid lookup or production test record was
-used as proof. Staff-account browser acceptance, forced MFA, unchanged 24-hour enrollment and a
-physical-phone verdict remain unverified. Training/video suggestions and the Dan/Jon communication
-remain drafts; nothing was sent or booked.
+The carried S227–S229 contract preserves fresh confirmed renewal delivery; the worker skips old
+authorizations and retired maintenance before provider reads. The delegated provider subject remains
+integrations@pmikcmetro.com. Both Dotloop write keys remain closed. No protected activation metadata changes
+are authorized by this plan; P8 prepares a separately gated later scope only.
+No customer send, draft, provider business write or production test record is verification proof.
 
-The existing delegated provider subject remains `integrations@pmikcmetro.com`.
-Both Dotloop write keys remain closed. No customer send, draft, provider business write or production test record is verification proof.
+The completed November 3 release retained exact-head green CI, a receipt-bound candidate, full
+300,000 ms minimum observation and independent readbacks. Those controls also govern any later
+authorized application delivery. Clear the queue only after delivery is proved; that earlier run
+is complete and no new queue is created here.
+
+[Open blockers](open-blockers.md) remains the only external/human hold register. S130/S66 prepare
+the form/policy/party decisions; S125 owns notice selection; S34 owns conditional Dotloop activation;
+S238 prepares the consolidated communication. Existing source-backed decisions do not require another
+generic approval round. Real terms, signer authority, legal use and human observations remain factual
+inputs and ordinary business acts, not engineering guesses. Each hold blocks only its named output.
+
+This plan is now explicitly launched for implementation. No older READY program,
+stopped owner, consumed permit or release watcher is restarted. New questions and actual closure
+evidence are maintained in docs/open-blockers.md and the concise facts/loop pointers.

@@ -85,6 +85,14 @@ function AttentionQueueBody({
           </span>
         ) : null}
       </div>
+      {queue.renewalReviewIssue ? (
+        <p className="muted" data-testid="renewal-review-issue">
+          {queue.renewalReviewIssue.message}
+          {queue.renewalReviewIssue.sourceReadAtIso
+            ? ` Source last read: ${queue.renewalReviewIssue.sourceReadAtIso}.`
+            : ""}
+        </p>
+      ) : null}
       {queue.state === "unavailable" ? (
         <p className="muted" data-queue-state="unavailable">
           What is waiting on you could not be loaded just now. You can still ask a

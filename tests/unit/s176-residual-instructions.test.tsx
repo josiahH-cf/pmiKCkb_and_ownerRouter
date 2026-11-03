@@ -150,12 +150,16 @@ describe("S176 the renewal workspace keeps no residual instructions", () => {
     );
     const message = read("components/lease-renewal/RenewalMessagePreparation.tsx");
     expect(message).toContain("Compose {channel} message in Communications");
-    // The current contract retains Communications and exact unsent drafting; the earlier
-    // instruction to choose app Send or Schedule is retired with those operations.
+    // S238 reconciles this copy with the current exact staff-confirmed contract. Optional
+    // unsent Gmail drafting remains available; an old blanket refusal cannot revoke delivery.
     expect(message).toContain(
-      "Review an unsent Gmail draft below. A person sends from Gmail; app sending and scheduling are unavailable.",
+      "review the exact message and use Send or Schedule when its current checks pass.",
     );
-    expect(message).not.toContain("then choose Send or Schedule");
+    expect(message).toContain("Resume requires a fresh review.");
+    expect(message).toContain(
+      "also create an unsent Gmail draft below and send it from Gmail.",
+    );
+    expect(message).not.toContain("app sending and scheduling are unavailable");
     // AC-S120-5: the response-request hint still names the exact paragraph it replaces.
     expect(message).toContain(
       "Replaces the paragraph after the terms, charges and insurance wording, before the request to complete the renewal information form.",

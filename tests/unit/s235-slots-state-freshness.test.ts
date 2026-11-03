@@ -202,8 +202,10 @@ describe("S235 R-S235-3 party and animal slots", () => {
         },
       },
       evaluation: {
+        packetContext: "renewal_extension",
+        blockers: [],
         manifest: {
-          includedArtifacts: [],
+          includedArtifacts: [{ kind: "renewal_extension" }],
           excludedArtifacts: [],
           participants: [1, 2].map((n) => ({ kind: "tenant", participantId: `p${n}` })),
           animals: ["a", "b", "c"].map((animalId) => animal(animalId, animalId)),
@@ -353,6 +355,7 @@ describe("S235 R-S235-6 selection freshness", () => {
       settingsReadable: true,
       observation: observation(),
       observationReadable: true,
+      connection: { readable: true, status: "connected", generationId: "g1" },
       nowIso: "2026-10-28T15:00:00.000Z",
       ...overrides,
     });

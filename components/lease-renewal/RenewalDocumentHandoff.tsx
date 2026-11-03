@@ -10,6 +10,7 @@ import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import { OwnerApprovalCoverageLine } from "./OwnerApprovalCoverageLine";
 import type { RenewalPacketSnapshot } from "@/lib/lease-documents/packet-types";
 import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
+import type { PacketOperationReadiness } from "@/lib/lease-renewal/execution/packet-operation-readiness";
 import type {
   LoopAssociationDocument,
   LoopAssociationView,
@@ -50,8 +51,16 @@ interface Handoff {
   attempts?: Array<{ executionId: string; state: string }>;
   /** S34: each operation's own exact key and its blockers. */
   operations?: {
-    create: { actionKey: string; blockers: string[] };
-    upload: { actionKey: string; blockers: string[] };
+    create: {
+      actionKey: string;
+      blockers: string[];
+      dimensions?: PacketOperationReadiness["dimensions"];
+    };
+    upload: {
+      actionKey: string;
+      blockers: string[];
+      dimensions?: PacketOperationReadiness["dimensions"];
+    };
   };
   association?: LoopAssociationView | null;
   propertyAddress?: LoopPropertyAddress | null;
@@ -128,6 +137,39 @@ export function RenewalDocumentHandoff({
 }
 const money = (value: number) =>
   value.toLocaleString("en-US", { style: "currency", currency: "USD" });
+function OperationReadiness({
+  label,
+  operation,
+}: {
+  label: string;
+  operation: NonNullable<Handoff["operations"]>["create"] | undefined;
+}) {
+  if (!operation?.dimensions) return null;
+  const labels = {
+    technical: "App capability",
+    content: "Content and approval",
+    connection: "Connection and selected resource",
+    target: "Target",
+    authority: "Exact action authority",
+  };
+  return (
+    <section aria-label={`${label} readiness`} className="ui-stack-tight">
+      <h4>{label} readiness</h4>
+      <dl className="ui-rows">
+        {Object.entries(operation.dimensions).map(([key, dimension]) => (
+          <div key={key}>
+            <dt>{labels[key as keyof typeof labels]}</dt>
+            <dd>{dimension.label}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="muted">
+        Readiness does not execute an operation or confirm a signature. Current sources
+        and every gate are checked again for an exact staff preview and confirmation.
+      </p>
+    </section>
+  );
+}
 /**
  * S120 (R120.7): the facts the packet work already has, each with its origin and the control that
  * records it. Display only: nothing here fills a file, a provider field or a signature.
@@ -348,12 +390,20 @@ function DocumentHandoffEditor({
             </ul>
           ) : null}
           <p>
-            <a href="/connections">Open Connections for Dotloop setup</a> ·{" "}
+            <a href="/connections">Review Dotloop connection and selection</a> ·{" "}
             <a href="#renewal-resource-locations">
               Review approved legal-form location inputs
             </a>
           </p>
           <h3>Dotloop loop for this lease</h3>
+          <OperationReadiness
+            label="Loop creation"
+            operation={current.operations?.create}
+          />
+          <OperationReadiness
+            label="Document upload"
+            operation={current.operations?.upload}
+          />
           <p className="muted">
             Create one loop from the company template, or link an existing loop you
             reviewed. A changed packet never creates another loop; reviewed new versions

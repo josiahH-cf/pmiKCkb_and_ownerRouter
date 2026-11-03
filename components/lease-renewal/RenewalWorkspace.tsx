@@ -112,6 +112,7 @@ import {
 } from "@/components/lease-renewal/RenewalAuxiliaryNotice";
 import type { MoveOutDisposition } from "@/lib/lease-renewal/move-out-disposition";
 import type { MoveOutTimingResult } from "@/lib/lease-renewal/move-out-timing";
+import { NoticeTimingBasisSelection } from "@/components/lease-renewal/NoticeTimingBasisSelection";
 import { OwnerDecisionForm } from "@/components/lease-renewal/RenewalProgressControls";
 import { RentSuggestionApproval } from "@/components/lease-renewal/RentSuggestionApproval";
 import { DRAFT_BANNER } from "@/lib/constants";
@@ -465,6 +466,16 @@ export function RenewalWorkspace({
                 <MoveOutTimingPanel
                   sourceHref={summary.sourceDestinations?.rentvine?.href ?? null}
                   timing={summary.moveOutTiming}
+                  selection={
+                    workspace.live ? (
+                      <NoticeTimingBasisSelection
+                        canEdit={hasRenewalRoleAuthority(
+                          "select_notice_timing_basis",
+                          role,
+                        )}
+                      />
+                    ) : null
+                  }
                 />
 
                 <RenewalPricingPolicyPanel />
@@ -1484,11 +1495,18 @@ function ChannelView({ message }: Readonly<{ message: ChannelMessage }>) {
 function MoveOutTimingPanel({
   timing,
   sourceHref,
+  selection = null,
 }: {
   timing: MoveOutTimingResult | undefined;
   sourceHref: string | null;
+  selection?: ReactNode;
 }) {
-  if (!timing || timing.state === "not_applicable") return null;
+  if (!timing || timing.state === "not_applicable")
+    return selection ? (
+      <section aria-label="Notice timing" className="renewal-move-out-timing">
+        {selection}
+      </section>
+    ) : null;
   const targetHeading = timing.targetLabel
     ? timing.targetLabel.charAt(0).toUpperCase() + timing.targetLabel.slice(1)
     : "Target date (basis not reviewed)";
@@ -1498,6 +1516,7 @@ function MoveOutTimingPanel({
       className="renewal-move-out-timing"
       data-renewal-move-out-timing={timing.state}
     >
+      {selection}
       <p className={timing.state === "below" ? "renewal-notice" : "muted"} role="status">
         <strong>Notice timing: {timing.label}.</strong> {timing.explanation}
       </p>

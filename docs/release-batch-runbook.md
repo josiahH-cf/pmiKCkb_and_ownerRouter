@@ -2,8 +2,9 @@
 
 Updated 2026-11-03 (UTC). One candidate must ship every queued feature.
 
-The named October program instruction and AGENTS.md feature-run continuity authorize delivery
-of approved independent slices and diagnosed/verified replacements without phase-only consent.
+The owner has launched the finalized November 3 P1–P9 gap plan to completion. That named scope
+and AGENTS.md feature-run continuity authorize its delivery and diagnosed/verified repairs without
+phase-only consent. Earlier completed programs and consumed permits do not start another run.
 Keep all pending outcomes in the overall program. Exact-main CI, fresh prerequisites/locked GO,
 one watcher/application build, receipts, full observation and recovery remain mandatory. Failed
 attempts and consumed permits are immutable and never reusable.
@@ -189,7 +190,7 @@ browser session. An expired rollback remains held until authentication and exact
 return. The separate 24-hour longevity proof remains open.
 
 **4. Prepare only an authorized current batch.** An empty queue must refuse admission. The
-scoped October 19 repair is already authorized; its new batch requires reviewed scope, green
+launched November 3 gap plan requires an actually qualified current queue, reviewed scope, green
 exact-main CI, fresh prerequisites, compatible
 checkpoint and actual lock ownership. Never reuse this consumed permit, one-build claim or receipt.
 The local interlock refuses missing, malformed, held, expired, consumed or wrong-head permission

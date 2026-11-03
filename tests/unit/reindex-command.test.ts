@@ -9,10 +9,23 @@ describe("buildReindexCommand", () => {
       dataStoreId: "data-store-1",
       gcpProjectId: "pmi-kc-kb-prod",
       vertexSearchLocation: "us",
+      sourcePrefix: "gs://fixture-source-bucket/lease-renewals/",
+      sources: [
+        {
+          space_id: "lease-renewals",
+          source_path: "lease-renewals/source.txt",
+          gcs_uri: "gs://fixture-source-bucket/lease-renewals/source.txt",
+          data_store_id: "data-store-1",
+          approval_status: "Approved",
+          sensitivity: "Low",
+          generation: "1",
+          dataSchema: "content",
+        },
+      ],
     });
     expect(plan.runnable).toBe(true);
     expect(plan.command).toBe(
-      "npm run import:agent-search -- --data-store=data-store-1 --project=pmi-kc-kb-prod --location=us",
+      "npm run import:agent-search -- --data-store=data-store-1 --project=pmi-kc-kb-prod --location=us --data-schema=content --source-id=gs://fixture-source-bucket/lease-renewals/source.txt --source-generation=1",
     );
     expect(plan.notes.join(" ")).toMatch(/cost-bearing/);
     expect(plan.notes.join(" ")).toMatch(/you run the command yourself/);
@@ -24,18 +37,19 @@ describe("buildReindexCommand", () => {
       vertexSearchLocation: "us",
     });
     expect(plan.runnable).toBe(false);
-    expect(plan.command).toMatch(/No Vertex data store is configured/);
+    expect(plan.notes.join(" ")).toMatch(/configured/);
     // Still cost-safe: it prints guidance, never a runnable ingestion command.
     expect(plan.command).not.toContain("import:agent-search");
   });
 
-  it("shows a project placeholder when GCP_PROJECT_ID is unset", () => {
+  it("does not prepare a runnable placeholder when GCP_PROJECT_ID is unset", () => {
     const plan = buildReindexCommand({
       spaceId: "lease-renewals",
       dataStoreId: "data-store-1",
       vertexSearchLocation: "us",
     });
-    expect(plan.command).toContain("<GCP_PROJECT_ID>");
-    expect(plan.notes.join(" ")).toMatch(/Set GCP_PROJECT_ID/);
+    expect(plan.runnable).toBe(false);
+    expect(plan.command).toBe("");
+    expect(plan.notes.join(" ")).toMatch(/project/);
   });
 });

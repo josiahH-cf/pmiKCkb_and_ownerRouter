@@ -61,6 +61,29 @@ async function renderQueue(initial: AttentionQueue, canApprove = true) {
 }
 
 describe("S147 compact attention queue", () => {
+  it("explains a stale renewal source with its actual read time without claiming an auth failure", async () => {
+    const initial = queue({
+      state: "partial",
+      rows: [],
+      unavailableFeeds: ["renewal_reviews"],
+      renewalReviewIssue: {
+        code: "source_stale",
+        message: "The renewal source is stale; current decisions are unknown.",
+        sourceReadAtIso: "2026-11-03T08:29:00.000Z",
+        overlayUnavailable: false,
+      },
+    });
+    const region = await renderQueue(initial);
+    expect(within(region).getByTestId("renewal-review-issue")).toHaveTextContent(
+      "2026-11-03T08:29:00.000Z",
+    );
+    expect(within(region).getByTestId("renewal-review-issue")).toHaveTextContent(
+      "source is stale",
+    );
+    expect(
+      within(region).queryByText(/sign in again|authentication has expired/i),
+    ).not.toBeInTheDocument();
+  });
   it("says nothing is waiting only after a complete read", async () => {
     const region = await renderQueue(queue({ rows: [] }));
     expect(

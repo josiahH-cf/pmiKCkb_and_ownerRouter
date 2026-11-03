@@ -2,6 +2,17 @@
 
 Updated: 2026-11-03 (UTC).
 
+The owner launched the finalized P1–P9 gap plan after the delivery recorded below. Its bounded
+source repairs passed native full gate 06 at 17:01:58Z: 10,128 unit tests (four existing parity
+skips), 497 backend tests, all policies and production build. All 14 app phases passed 17 isolation
+controls, all 12 emitted font hashes match, staged source is unchanged and actual outer exit is zero.
+This new slice is locally qualified and awaits exact-main CI and controlled application delivery.
+The 34-step credential-free browser journey passed separately from production/human acceptance.
+All eight unchanged supplied originals now pass complete parser compatibility and bounded local
+tripwires; legal/map approval and real-original publication remain separate. Current technical
+questions and residual human inputs are maintained in `docs/open-blockers.md`; see
+`docs/evidence/application-gap-implementation-2026-11-03.md`. Both Dotloop write keys remain closed.
+
 Production serves `bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd` at 100% canonical traffic.
 Run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73` completed at 2026-11-03T00:10:44Z, with its permit consumed and watcher exited.
 One application build `fbe2d323-9a95-4d51-a398-618f8928cdc8` succeeded. Candidate receipt

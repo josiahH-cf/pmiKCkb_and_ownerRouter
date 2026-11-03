@@ -36,12 +36,30 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 // Batch 005 deliberately changes Full presentation. Keep the prior fixture immutable and check
 // its capabilities separately; the current presentation has its own recorded fixture.
 const PRIOR_PATH = join(__dirname, "..", "fixtures", "s181-full-view-presentation.json");
-const BASELINE_PATH = join(
+const IMMEDIATE_PRIOR_PATH = join(
   __dirname,
   "..",
   "fixtures",
   "s234-approval-bound-terms-full-view-presentation.json",
 );
+const BASELINE_PATH = join(
+  __dirname,
+  "..",
+  "fixtures",
+  "s238-current-renewal-full-view-presentation.json",
+);
+// November3 S238 A-01 updates reviewed draft/Communications guidance; S235 A-03 names the
+// existing connection/selection review accurately. Only owner/tenant/documents copy and the
+// exact same-target Connections label change in these sample cases. S125's live-only selector
+// is covered separately; sample workspaces here do not acquire a new region or edit capability.
+// Record the new presentation only in the isolated fixture lane; every earlier fixture is immutable.
+const CONNECTION_LINK_BEFORE = "Open Connections for Dotloop setup -> /connections";
+const CONNECTION_LINK_AFTER = "Review Dotloop connection and selection -> /connections";
+const CURRENT_COPY_SECTIONS = [
+  "renewal-section-owner",
+  "renewal-section-tenant",
+  "renewal-section-documents",
+];
 // S234 R-S234-3 changes only the documents section's copy: the packet handoff names the
 // approval-bound Working terms the packet reads instead of legacy owner-response terms. That
 // authorized presentation is recorded separately; the S229 and earlier fixtures stay immutable.
@@ -61,6 +79,7 @@ function presentationDeltas(testCase: BaselineCase) {
       ? [
           `Compose owner message in Communications -> /gmail-hub?compose=renewal_owner&lease=${id}`,
           `Compose tenant message in Communications -> /gmail-hub?compose=renewal_tenant&lease=${id}`,
+          CONNECTION_LINK_AFTER,
         ]
       : [
           `Prepare owner message -> /gmail-hub?compose=renewal_owner&lease=${id}`,
@@ -76,6 +95,7 @@ function retiredLinks(testCase: BaselineCase) {
         "Open the control -> #renewal-message-tenant-readiness",
         "Open the control -> #renewal-message-tenant-signature-name",
         "Open the page -> /connections",
+        CONNECTION_LINK_BEFORE,
       ]
     : [
         `Prepare owner message -> /lease-renewal/live/desk/lease/${testCase.leaseId}#renewal-section-owner`,
@@ -300,19 +320,60 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("S145 preservation with authorized S187/S195/S197 presentation", () => {
+describe("S145 preservation with authorized current renewal guidance", () => {
   it("pins the current authorized presentation and preserves every unaffected prior input, source link and task section", async () => {
     const signatures: Record<string, ReturnType<typeof fullViewSignature>> = {};
     for (const testCase of CASES) {
       signatures[testCase.name] = await renderCase(testCase);
       cleanup();
     }
-    if (process.env.RECORD_OPERATIONS_PRESENTATION === "1") {
+    if (process.env.RECORD_CURRENT_RENEWAL_PRESENTATION === "1") {
+      if (existsSync(BASELINE_PATH))
+        throw new Error(
+          "The current presentation fixture already exists; do not overwrite a recorded baseline.",
+        );
       writeFileSync(BASELINE_PATH, `${JSON.stringify(signatures, null, 2)}\n`);
     }
     expect(existsSync(BASELINE_PATH)).toBe(true);
     const baseline = JSON.parse(readFileSync(BASELINE_PATH, "utf8"));
     expect(signatures).toEqual(baseline);
+    const immediatePrior = JSON.parse(
+      readFileSync(IMMEDIATE_PRIOR_PATH, "utf8"),
+    ) as typeof signatures;
+    for (const testCase of CASES) {
+      const signature = signatures[testCase.name]!;
+      const previous = immediatePrior[testCase.name]!;
+      for (const field of [
+        "regions",
+        "sectionIds",
+        "headings",
+        "controls",
+        "buttons",
+      ] as const) {
+        expect(
+          signature[field],
+          `${testCase.name}: unchanged ${field} since S234`,
+        ).toEqual(previous[field]);
+      }
+      expect(
+        signature.links,
+        `${testCase.name}: only named Connections label changes`,
+      ).toEqual(
+        previous.links.map((entry) =>
+          testCase.manual && entry === CONNECTION_LINK_BEFORE
+            ? CONNECTION_LINK_AFTER
+            : entry,
+        ),
+      );
+      const changedCopy = signature.copy
+        .filter((entry, index) => entry !== previous.copy[index])
+        .map((entry) => entry.split(":")[0]);
+      expect(
+        changedCopy,
+        `${testCase.name}: exact authorized section-copy changes`,
+      ).toEqual(testCase.manual ? CURRENT_COPY_SECTIONS : []);
+      expect(signature.copy).toHaveLength(previous.copy.length);
+    }
     const prior = JSON.parse(readFileSync(PRIOR_PATH, "utf8")) as typeof signatures;
     for (const [name, signature] of Object.entries(signatures)) {
       // Reordering and shortening prose cannot remove an input, source link or task section.

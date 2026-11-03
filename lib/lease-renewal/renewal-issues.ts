@@ -1,5 +1,6 @@
 import { can, type Capability, type Role } from "@/lib/auth/roles";
 import { renewalDashboardTarget } from "./dashboard-sections";
+import { NOTICE_TIMING_BASIS_TARGET_ID } from "./notice-timing-decision";
 import type {
   DeskGuidanceDestination,
   DeskLeaseGuidance,
@@ -388,13 +389,18 @@ export function projectRenewalIssues(input: RenewalIssueInput): RenewalIssueProj
         : timing.state === "below"
           ? "A review of a notice given inside the timing threshold"
           : "The move-out notice date and the lease end date",
-      responsible: basis ? "an Admin (record the reviewed timing basis)" : "Staff review",
+      responsible: basis
+        ? "Renewal staff (select the documented timing basis)"
+        : "Staff review",
       destination: { kind: "none" },
       resolveAt: basis
         ? {
-            kind: "page",
-            label: "Record the timing basis in Admin",
-            href: ADMIN_TIMING_BASIS_HREF,
+            kind: "control",
+            label: "Select the documented timing basis",
+            destination: {
+              kind: "workspace_anchor",
+              targetId: NOTICE_TIMING_BASIS_TARGET_ID,
+            },
           }
         : timing.reason === "source_stale"
           ? { kind: "refresh", label: "Refresh this lease to read the dates again" }

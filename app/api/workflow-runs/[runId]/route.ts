@@ -4,10 +4,12 @@ import { requireCapability } from "@/lib/auth/session";
 import { UpdateWorkflowRunInputSchema } from "@/lib/firestore/schemas";
 import {
   getWorkflowRun,
+  getWorkflowRunDefinition,
   listWorkflowRunTimeline,
   updateWorkflowRunOutcome,
 } from "@/lib/firestore/workflows";
 import { assertWorkflowRunAccess } from "@/lib/space-scope-resources";
+import { assertWorkflowRunHistoryAvailable } from "@/lib/firestore/workflow-run-definition";
 
 interface RouteContext {
   params: Promise<{ runId: string }>;
@@ -19,6 +21,9 @@ export async function GET(_request: Request, context: RouteContext) {
     const { runId } = await context.params;
     const run = await getWorkflowRun(user, runId);
     assertWorkflowRunAccess(user, run);
+    assertWorkflowRunHistoryAvailable(run);
+    if (run.definition_version_id !== undefined)
+      await getWorkflowRunDefinition(user, run);
     const timeline = await listWorkflowRunTimeline(user, runId);
 
     return NextResponse.json({ run, timeline });

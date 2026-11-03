@@ -54,6 +54,7 @@ export type LiveReviewStatus =
   | "not_configured"
   | "account_mismatch"
   | "auth_error"
+  | "permission_error"
   | "read_error";
 
 /**
@@ -81,12 +82,23 @@ export type LiveReviewOutcome =
 // Heuristic markers of an authentication/authorization failure (stale ADC, blocked scope, bad/expired
 // RentVine credentials). Anything else is treated as a transient read error.
 const AUTH_HINT_RE =
-  /credential|token|\bauth\b|ADC|default credentials|invalid_grant|invalid_rapt|\brapt\b|permission|unauthor|forbidden|401|403/i;
+  /credential|token|\bauth\b|ADC|default credentials|invalid_grant|invalid_rapt|\brapt\b|unauthor|401/i;
+const PERMISSION_HINT_RE = /permission|forbidden|access.denied|\b403\b/i;
 
 /** Map a thrown live-read error to a safe category. Pure; surfaces no message. */
-export function categorizeLiveReviewError(error: unknown): "auth_error" | "read_error" {
+export function categorizeLiveReviewError(
+  error: unknown,
+): "auth_error" | "permission_error" | "read_error" {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "status" in error &&
+    error.status === 403
+  )
+    return "permission_error";
   if (error instanceof RentVineAuthError) return "auth_error";
   const message = error instanceof Error ? error.message : String(error);
+  if (PERMISSION_HINT_RE.test(message)) return "permission_error";
   return AUTH_HINT_RE.test(message) ? "auth_error" : "read_error";
 }
 

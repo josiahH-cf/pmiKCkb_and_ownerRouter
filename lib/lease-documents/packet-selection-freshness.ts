@@ -10,6 +10,7 @@ import {
   type DotloopSelectionStatus,
 } from "@/lib/connections/dotloop-readiness";
 import type { DotloopRenewalSettings } from "@/lib/firestore/dotloop-renewal-settings";
+import { isApprovedIntegrationAccount } from "@/lib/connections/provider-identity";
 import { formatCentralTime } from "@/lib/lease-documents/returned-state-view";
 
 export interface SelectionFreshness {
@@ -17,6 +18,13 @@ export interface SelectionFreshness {
   readonly observation: string;
   /** Each reason the saved selection cannot be relied on now; empty when it is current. */
   readonly problems: readonly string[];
+}
+
+export interface SelectionConnectionRead {
+  readonly readable: boolean;
+  readonly status: string | null;
+  readonly generationId: string | null;
+  readonly oauthState?: string | null;
 }
 
 const STATUS_WORDS: Record<Exclude<DotloopSelectionStatus, "ok">, string> = {
@@ -34,6 +42,7 @@ export function projectSelectionFreshness(input: {
     | (DotloopObservedResources & { readonly failures: readonly string[] })
     | null;
   readonly observationReadable: boolean;
+  readonly connection: SelectionConnectionRead;
   readonly nowIso: string;
 }): SelectionFreshness {
   const { settings } = input;
@@ -51,6 +60,16 @@ export function projectSelectionFreshness(input: {
     };
   const selection = `Saved selection version ${settings.version}: profile ${settings.profileLabel}, template ${settings.templateLabel}, transaction type ${settings.transactionType ?? "not recorded"}, initial status ${settings.initialStatus ?? "not recorded"}, saved ${formatCentralTime(settings.recordedAtIso) ?? "at an unreadable time"}.`;
   const problems: string[] = [];
+  if (!input.connection.readable)
+    problems.push(
+      "The current Dotloop connection could not be read; reload to try again.",
+    );
+  else if (input.connection.status !== "connected")
+    problems.push(
+      "The current Dotloop connection is not connected; review it in Connections.",
+    );
+  else if (input.connection.oauthState === "refresh_needed")
+    problems.push("The current Dotloop credential needs recovery in Connections.");
   if (!input.observationReadable || !input.observation) {
     problems.push(
       input.observationReadable
@@ -65,12 +84,39 @@ export function projectSelectionFreshness(input: {
   }
   const observation = input.observation;
   const observedAt = formatCentralTime(observation.observedAt);
-  for (const failure of observation.failures) problems.push(failure);
   if (
-    !observedAt ||
-    Date.parse(input.nowIso) - Date.parse(observation.observedAt) >
-      DOTLOOP_OBSERVATION_MAX_AGE_MS
+    input.connection.readable &&
+    input.connection.status === "connected" &&
+    (!input.connection.generationId ||
+      observation.generationId !== input.connection.generationId)
   )
+    problems.push(
+      "The resource observation belongs to a different connection generation; an Admin refreshes resources in Connections.",
+    );
+  if (!observation.accountOk)
+    problems.push(
+      "The latest resource observation did not successfully read the Dotloop account.",
+    );
+  else if (!isApprovedIntegrationAccount(observation.accountEmail))
+    problems.push(
+      "The resource observation is not for integrations@pmikcmetro.com; review the connection in Connections.",
+    );
+  for (const failure of observation.failures) problems.push(failure);
+  const observedMs = Date.parse(observation.observedAt);
+  const nowMs = Date.parse(input.nowIso);
+  if (!observedAt || !Number.isFinite(observedMs))
+    problems.push(
+      "The resource observation time is unreadable; an Admin refreshes resources in Connections.",
+    );
+  else if (!Number.isFinite(nowMs))
+    problems.push(
+      "The current check time is unreadable; reload before relying on this observation.",
+    );
+  else if (observedMs > nowMs)
+    problems.push(
+      "The resource observation time is in the future; an Admin refreshes resources in Connections.",
+    );
+  else if (nowMs - observedMs > DOTLOOP_OBSERVATION_MAX_AGE_MS)
     problems.push(
       "The latest resource observation is older than one day; an Admin refreshes resources in Connections.",
     );
@@ -94,6 +140,6 @@ export function projectSelectionFreshness(input: {
     observation: observedAt
       ? `Last resource observation: ${observedAt}.`
       : "The latest resource observation has an unreadable time.",
-    problems,
+    problems: [...new Set(problems)],
   };
 }

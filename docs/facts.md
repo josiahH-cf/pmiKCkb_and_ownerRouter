@@ -5,6 +5,115 @@ Last reconciled: 2026-11-03 (guarded cumulative delivery, independent production
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
 
+## November 3 gap implementation — locally qualified, not deployed
+
+The owner subsequently launched the finalized plan to completion. Source repairs now cover narrow
+staff notice-basis selection, current packet/readiness projection, retired decision eligibility,
+partial-feed diagnostics, precise renewal read errors, bounded RentVine options-error handling,
+source-bound re-index handoff, and existing-process content/revision/history safety. Native full
+gate 06 passed at 17:01:58Z: 10,128 unit tests/four existing parity skips, 497 backend tests/no skips,
+all 16 npm commands, production audit, policies and build. Nineteen child records plus the canonical
+wrapper and actual outer exit are zero; all 14 app phases passed 17 controls/cleanup, all 12 emitted
+font hashes/sizes match, and all 3,041 staged source paths are unchanged. Manifest `fd29fcee`.
+The final 34-step fixture browser journey passed on identical application runtime bytes. Later
+documentation-only closure is separately checked; production delivery and actual process publication
+remain pending. Local results do not establish production behavior or staff acceptance.
+
+The production baseline remains `bc975353` / `pmi-kc-app-rmvzwt7ms-00754475effd`.
+Fresh guarded Admin reads returned no publication policies and the existing process still Draft.
+The native non-test publication provider was unavailable. This is engineering work under the
+current scope: the genuine managed scanner and exact-process/content trust boundary are qualified;
+actual application-runtime invocation/publication remains pending delivery. No new client approval
+hold is inferred from historical scanner comments.
+
+The November 2 writeback 500 was correlated to a RentVine single recurring-charge detail GET
+returning 500, rather than an established authentication failure. The original request body,
+actor and provider-internal cause remain unknown; no live replay was performed. Narrow options
+handling and retained-list error presentation passed focused regression/preservation checks.
+
+All eight supplied originals were recovered through the managed signed-in Drive browser download;
+the first four recovered originals match byte-for-byte. The private inventory covers 32 static pages,
+zero AcroForms, complete independent text/geometry and inspected renders. Application text-run
+truncation for the full lease/insurance remains explicit. Proposed mappings are unapproved;
+printed elections/fees, legal version/use and signer authority remain exact residual inputs.
+No proposed mapping has been published or called approved; no duplicate file request is needed.
+
+Dedicated scanner infrastructure build `66e3da9c-14f7-4b01-a19d-a6a768d7883c` succeeded from only
+five reviewed runtime files, image digest `4b03d4283a7201002d91ca649e66e123c05c97a5be6627dd9124c69ac74c56b5`.
+New managed service `pmi-kc-publication-scanner` was created with 1 CPU/4 GiB, concurrency one,
+min zero/max one, request CPU, 75-second timeout and bounded startup probe; readback matched.
+Service IAM readback has only the existing app runtime service account as explicit invoker, no
+public principal. No identity, main-app environment/secrets or budget changed. Ready readback and
+actual authenticated clean-JSON scan passed; anonymous access returned 403. Exact-image engine
+qualification `93264b99-977f-40a2-9a1b-25149ab6b1ac` passed real clean/EICAR detection with ClamAV
+1.4.6 and daily 28173 dated November 3 06:27:52Z. Escaped EICAR JSON returned clean; this explicitly
+does not prove encoded-payload detection. No customer data was used. These infrastructure checks
+are separate from an application release run; app-identity invocation/publication remains pending.
+Fresh exact native billing/cost-control checks passed before creation, with no control mutations.
+
+S130's upstream PDF publication dependency is now implemented in source with 166 focused checks
+across 22 files; canonical `lease-renewals` publication and valid historical `renewals` intake are
+compatible. Legal/map approval remains separate. Its new strict parser's first actual-source
+inspection accepted one of eight originals and refused seven. Private structural diagnosis found
+explicit font mappings and color/font stream classes that engineering can support without changing
+the originals. The repaired reader then accepted all eight unchanged originals at 15:45:53Z,
+with eight separate clean bounded local tripwire results, all 17 isolation controls and clean
+teardown. Q-ENG-PDF-COMPAT is closed. The original failing runs remain preserved. This is format
+and tripwire evidence, not general DLP, legal/map approval or real-original malware/publication.
+Current unperformed approval/filling claims stay unverified; no client replacement ask is justified.
+
+PDF-capable scanner candidate build `1a5c6369-2795-4541-a209-ff7497df0830` succeeded. Revision
+`pmi-kc-publication-scanner-src9b3ea5246c57` is Ready at zero traffic, with unchanged service/IAM
+bounds. Eight real synthetic-only HTTP checks passed: exact original PDF bytes, preserved JSON,
+current engine readiness, anonymous refusal and wrong-type/incomplete/generic endpoint refusals.
+Its image is `sha256:9b3ea5246c573f73b47d44ebbdf89beb63c1d0fa523f7a223488a58ce40fcb14`.
+The exact qualified scanner revision was promoted/read back at 16:07:14Z with template, bounds
+and service IAM unchanged; fresh exact billing/cost controls passed first. Four canonical
+synthetic checks passed. This utility service now receives 100% on that revision; the main
+application and its configuration/secrets/action keys remain unchanged and its delivery is pending.
+The approved owner CLI exercised the service; actual app-runtime invocation remains unverified.
+
+See [implementation evidence](evidence/application-gap-implementation-2026-11-03.md) and the
+canonical [open questions and external holds](open-blockers.md). Both Dotloop keys remain closed;
+no customer draft/send/schedule, provider business write, signature, fake production record or
+client message is verification proof. Legacy S72 Gmail-draft checkpoints retain their graph;
+current Communications evidence does not automatically complete them. S113 manual progress is
+separate. No new progress bridge was added.
+
+The finalized [plan](plan.md) and registered owners retain A-01–A-08, P1–P9 and the latest Q2:
+authorized renewal staff select the settled contractual-end/calendar-day/30-day basis without a
+separate Admin confirmation. Current production retains its old path until this slice is delivered.
+Dan receives only exact unresolved business questions after evidence recovery. There is no new
+legal approval, signer delegation, generic consent round or client-send authority. S34 technical
+readiness and later exact-key activation remain separate; S241 owns actual process publication.
+
+Authoring checks passed 648 shape/plan cases; traceability resolves 952 acceptance IDs across
+155 overhaul specs; active paths passed across 256 context files. Context freshness passed with
+existing ledger review-date warnings, not freshly verified operational facts. Authoring results
+do not substitute for application qualification, delivery or human acceptance.
+
+## November 3 assessment evidence — before the implementation launch
+
+The [gap analysis](evidence/current-application-gap-analysis-2026-11-03.md) freshly matched
+canonical `bc975353` / `pmi-kc-app-rmvzwt7ms-00754475effd`, 100% traffic, to main `39435919`'s
+identical reviewed application/package tree. Two guarded Admin walkthrough sessions ended with
+zero mutation attempts and a free profile lease. Desk read: 375 leases, 37 in the checked scope.
+Current Gmail actor profile and worker health succeeded; no delivery effect was proof.
+
+Fresh Dotloop resource read completed 2026-11-03T08:41:41Z: approved integrations identity, two
+INDIVIDUAL profiles, zero/nine templates and the selected Lease Renewal visible. Both write keys
+remain false. One account 401 recovered through one normal existing-grant refresh (200); its
+credential/vault lifecycle persisted and connection revision 23→25 was read back. No observation,
+selection or business write; the app's cached October 27 observation remains stale. Local CLI/ADC
+files were unchanged. A1/C00 remains resolved.
+
+All eight managed-browser Drive file IDs matched saved references v8, all unverified; intake was
+null for ten families, default family-use v0, no charge policy and no recorded timing basis.
+Subsequent private inspection recovered and qualified all eight unchanged originals as recorded
+above. Source availability and parser acceptance do not establish legal or map approval.
+The owner subsequently launched the authored plan; current engineering status is recorded above.
+External/human holds and plain-language steps remain only in `docs/open-blockers.md`.
+
 ## Current verified delivery — November 3
 
 Production serves `bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd` at 100% canonical traffic.

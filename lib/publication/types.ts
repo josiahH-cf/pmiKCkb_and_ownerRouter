@@ -1,5 +1,6 @@
 import type { SourceState } from "@/lib/source-state";
 import type { DataMode } from "@/lib/data-mode";
+import type { LeaseArtifactKind } from "@/lib/lease-documents/packet-types";
 
 export const MAX_PUBLICATION_CONTENT_BYTES = 25 * 1024 * 1024;
 
@@ -11,6 +12,24 @@ export const PUBLICATION_RESOURCE_TYPES = [
 
 export type PublicationResourceType = (typeof PUBLICATION_RESOURCE_TYPES)[number];
 export type PublicationSensitivity = "Low" | "Medium" | "High";
+
+export interface ProcessPublicationResourceScope {
+  resourceType: "process_definition";
+  resourceId: string;
+  contentHash: string;
+  reviewedNoClientData: true;
+}
+export interface RenewalOriginalPublicationScope {
+  resourceType: "file";
+  resourceId: string;
+  artifactKind: LeaseArtifactKind;
+  path: string;
+  fileName: string;
+  contentHash: string;
+  byteSize: number;
+  reviewedBlankOriginal: true;
+  reviewedNoClientData: true;
+}
 
 export interface PublicationAllowedType {
   extension: string;
@@ -30,6 +49,9 @@ export interface PublicationPolicyRecord {
   enabled: boolean;
   rootId: string;
   scannerKey: string;
+  /** An optional immutable narrowing; absent on existing general publication policies. */
+  resourceScope?: ProcessPublicationResourceScope | RenewalOriginalPublicationScope;
+  reviewedDefinitionRevision?: string;
   sensitivityCeiling: PublicationSensitivity;
   updatedAt: string;
   updatedByUid: string;
@@ -51,6 +73,7 @@ export interface PublicationMetadata {
   sourceState?: SourceState;
   spaceId: string;
   data_mode?: DataMode;
+  renewalArtifactKind?: RenewalOriginalPublicationScope["artifactKind"];
 }
 
 export interface PublicationEnvelope {
@@ -107,6 +130,7 @@ export type PublicationFailureCode =
   | "process_action_unknown"
   | "process_graph_invalid"
   | "root_mismatch"
+  | "resource_not_allowed"
   | "scanner_mismatch"
   | "scanner_unavailable"
   | "sensitivity_violation"
@@ -144,6 +168,8 @@ export interface PublicationVersionRecord {
   spaceId: string;
   validated: true;
   versionNumber: number;
+  /** Exact reviewed-original family; absent on legacy/general publications. Not legal approval. */
+  renewalArtifactKind?: RenewalOriginalPublicationScope["artifactKind"];
 }
 
 export interface PublicationResourceRecord {

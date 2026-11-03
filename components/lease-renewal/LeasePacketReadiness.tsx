@@ -1,5 +1,9 @@
-import type { LeasePacketFamilyRow } from "@/lib/lease-documents/lease-packet-readiness";
+import type {
+  LeasePacketFamilyRow,
+  PacketContextReadiness,
+} from "@/lib/lease-documents/lease-packet-readiness";
 import type { SelectionFreshness } from "@/lib/lease-documents/packet-selection-freshness";
+import { formatCentralTime } from "@/lib/lease-documents/returned-state-view";
 
 /**
  * S235 R-S235-1: the read-only per-family readiness for this lease. Viewing writes nothing and
@@ -8,10 +12,12 @@ import type { SelectionFreshness } from "@/lib/lease-documents/packet-selection-
 export function LeasePacketReadiness({
   rows,
   selection = null,
+  context = null,
 }: Readonly<{
   rows: readonly LeasePacketFamilyRow[];
   /** S235 R-S235-6: the saved Dotloop selection and its last resource observation. */
   selection?: SelectionFreshness | null;
+  context?: PacketContextReadiness | null;
 }>) {
   return (
     <section
@@ -24,6 +30,31 @@ export function LeasePacketReadiness({
         Read-only. Evaluate packet records a snapshot; nothing here writes one or sends
         anything.
       </p>
+      {context ? (
+        <div className="ui-stack-tight" data-renewal-field="current-packet-context">
+          <h4>{context.label}</h4>
+          <p className="muted">
+            {context.observedAt
+              ? `Current facts checked ${formatCentralTime(context.observedAt) ?? "at an unreadable time"}.`
+              : "Current facts unavailable."}
+          </p>
+          {context.basis.length ? (
+            <ul>
+              {context.basis.map((fact) => (
+                <li key={fact}>{fact}</li>
+              ))}
+            </ul>
+          ) : null}
+          {context.missing.length ? (
+            <ul>
+              {context.missing.map((question) => (
+                <li key={question}>{question}</li>
+              ))}
+            </ul>
+          ) : null}
+          <p className="muted">{context.saved}</p>
+        </div>
+      ) : null}
       <div className="table-scroll">
         <table>
           <thead>
@@ -43,6 +74,19 @@ export function LeasePacketReadiness({
                   {row.use}
                   <br />
                   <span className="muted">{row.useSource}</span>
+                  {row.catalogSetup.length ? (
+                    <details>
+                      <summary>Shared catalog setup</summary>
+                      <ul>
+                        {row.catalogSetup.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                      <p className="muted">
+                        This is separate from this lease&apos;s output requirements.
+                      </p>
+                    </details>
+                  ) : null}
                 </td>
                 <td>{row.applicability}</td>
                 <td>

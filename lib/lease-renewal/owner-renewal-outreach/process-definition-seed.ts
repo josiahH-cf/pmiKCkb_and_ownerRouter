@@ -1,7 +1,7 @@
-// Seed the Owner Renewal Outreach process definition (S13 Wave 2 / space-teeth E4a) as a
-// non-executable Draft at a FIXED id. Mirrors the maintenance seed: a pure builder reusing the
-// spine's normalizeDefinitionFields + the shared generic writer (seedProcessDefinition). No action
-// references (Gmail draft only).
+// Seed the current Owner Renewal Outreach guidance as a non-executable Draft at its fixed id.
+// The shared writer preserves existing staff-owned definitions unless explicitly forced by a
+// separately authorized caller; S241 correction/publication uses normal version-bound controls,
+// never forced seeding. Linked staff delivery retains its own current confirmation contract.
 
 import { CreateProcessDefinitionInputSchema } from "@/lib/firestore/schemas";
 import { normalizeDefinitionFields } from "@/lib/firestore/workflows";

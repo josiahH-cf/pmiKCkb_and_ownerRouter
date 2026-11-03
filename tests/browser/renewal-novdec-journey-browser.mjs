@@ -5,6 +5,7 @@
 // After each browser action the harness reads the emulator directly and records the backend state.
 // Synthetic people, leases, maps and records only. Run through scripts/run-renewal-novdec-journey.sh.
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import {
   createWriteStream,
@@ -20,13 +21,45 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { chromium } from "playwright-core";
 import { resolveBrowserExecutable } from "../../scripts/lib/browser-executable.mjs";
+import { stopProcessTree } from "../e2e/global-setup.mjs";
 
-assert.match(process.cwd(), /^\/tmp\/pmi-kc-novdec-journey-[^/]+\/worktree$/);
-assert.match(process.env.FIRESTORE_EMULATOR_HOST ?? "", /^127\.0\.0\.1:\d+$/);
 const output = process.env.NOVDEC_JOURNEY_OUTPUT;
-assert.ok(
-  output?.startsWith(`${process.env.HOME}/.local/state/pmi-kc-novdec-journey-20261028/`),
-);
+const kernelIsolated = process.env.NOVDEC_JOURNEY_ISOLATED === "kernel-v1";
+if (kernelIsolated) {
+  assert.equal(process.cwd(), "/app");
+  assert.equal(output, "/evidence/renewal-journey");
+  assert.match(process.env.PMI_SOURCE_MANIFEST_SHA256 ?? "", /^[a-f0-9]{64}$/);
+  const controls = JSON.parse(readFileSync("/evidence/controls.json", "utf8"));
+  assert.equal(controls.allPassed, true);
+  assert.equal(Object.keys(controls.checks).length, 17);
+  assert.ok(Object.values(controls.checks).every((value) => value === true));
+  assert.equal(
+    process.env.NEXT_FONT_GOOGLE_MOCKED_RESPONSES,
+    "/opt/public-font-runtime/responses.cjs",
+  );
+  for (const name of [
+    "CIRCLE_NODE_TOTAL",
+    "UV_THREADPOOL_SIZE",
+    "GOMAXPROCS",
+    "RAYON_NUM_THREADS",
+  ]) {
+    assert.equal(process.env[name], "2", `The isolated ${name} bound is required.`);
+  }
+  assert.equal(
+    createHash("sha256")
+      .update(readFileSync(process.env.PLAYWRIGHT_CHROME_PATH))
+      .digest("hex"),
+    process.env.PMI_ISOLATED_BROWSER_SHA256,
+  );
+} else {
+  assert.match(process.cwd(), /^\/tmp\/pmi-kc-novdec-journey-[^/]+\/worktree$/);
+  assert.ok(
+    output?.startsWith(
+      `${process.env.HOME}/.local/state/pmi-kc-novdec-journey-20261028/`,
+    ),
+  );
+}
+assert.match(process.env.FIRESTORE_EMULATOR_HOST ?? "", /^127\.0\.0\.1:\d+$/);
 const projectId = "pmi-kc-kb-novdec-journey-test";
 const LEASE = "4821";
 const PEOPLE = {
@@ -86,6 +119,14 @@ async function freePort() {
 const port = await freePort();
 const origin = `http://localhost:${port}`;
 const serverLog = createWriteStream(join(output, "server.log"));
+const serverLifetimes = [];
+const recordServerLifetime = (event) => {
+  serverLifetimes.push({ ...event, recordedAt: new Date().toISOString() });
+  writeFileSync(
+    join(output, "server-lifetimes.json"),
+    JSON.stringify(serverLifetimes, null, 2),
+  );
+};
 const preload = join(process.cwd(), "tests/browser/renewal-novdec-journey-network.mjs");
 const serverHome = join(output, "server-home");
 // S232 R-S232-5: naming a RentVine path here makes its read fail until the file is removed.
@@ -101,49 +142,83 @@ writeFileSync(
   }),
 );
 // Turbopack, as in production builds (webpack cannot bundle the desk's node: imports).
-const server = spawn(
-  process.execPath,
-  ["node_modules/next/dist/bin/next", "dev", "-p", String(port)],
-  {
-    detached: true,
-    stdio: ["ignore", "pipe", "pipe"],
-    // A minimal environment: no inherited credential, account or provider variable reaches it.
-    env: {
-      PATH: process.env.PATH,
-      // An empty home: no stored Google or provider credential can be read by the server.
-      HOME: serverHome,
-      GOOGLE_APPLICATION_CREDENTIALS: join(serverHome, "synthetic-adc.json"),
-      TMPDIR: process.env.TMPDIR ?? "/tmp",
-      LANG: "en_US.UTF-8",
-      TZ: "America/Chicago",
-      NODE_OPTIONS: `--import ${preload}`,
-      NOVDEC_JOURNEY_NETWORK_LOG: join(output, "network.jsonl"),
-      NOVDEC_JOURNEY_OUTAGE_FLAG: outageFlag,
-      NEXT_E2E_ISOLATED_BUILD: "true",
-      NEXT_TELEMETRY_DISABLED: "1",
-      ENVIRONMENT_KIND: "demo",
-      DATA_CONTEXT: "demo",
-      LOCAL_DEMO_AUTH: "true",
-      ASK_DEMO_MODE: "true",
-      FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST,
-      FIREBASE_PROJECT_ID: projectId,
-      GOOGLE_CLOUD_PROJECT: projectId,
-      CLOUDSDK_CONFIG: join(output, "no-gcloud-config"),
-      RENTVINE_API_BASE_URL: "https://pmikcmetro.rentvine.com/api/manager",
-      RENTVINE_API_KEY: "synthetic-journey-key",
-      RENTVINE_API_SECRET: "synthetic-journey-secret",
-      RENEWAL_SHEET_ID: "synthetic-journey-sheet",
-      SHEETS_IMPERSONATE_SA: "synthetic-journey@example.invalid",
-      SHEETS_DWD_SUBJECT: "synthetic-journey@pmikcmetro.com",
+function startServer(phase) {
+  const child = spawn(
+    process.execPath,
+    ["node_modules/next/dist/bin/next", "dev", "-p", String(port)],
+    {
+      detached: true,
+      stdio: ["ignore", "pipe", "pipe"],
+      // A minimal environment: no inherited credential, account or provider variable reaches it.
+      env: {
+        PATH: process.env.PATH,
+        // An empty home: no stored Google or provider credential can be read by the server.
+        HOME: serverHome,
+        GOOGLE_APPLICATION_CREDENTIALS: join(serverHome, "synthetic-adc.json"),
+        TMPDIR: process.env.TMPDIR ?? "/tmp",
+        LANG: "en_US.UTF-8",
+        TZ: "America/Chicago",
+        NODE_OPTIONS: `${kernelIsolated ? "--max-old-space-size=1536 " : ""}--import ${preload}`,
+        ...(kernelIsolated
+          ? {
+              NEXT_FONT_GOOGLE_MOCKED_RESPONSES:
+                process.env.NEXT_FONT_GOOGLE_MOCKED_RESPONSES,
+              CIRCLE_NODE_TOTAL: process.env.CIRCLE_NODE_TOTAL,
+              UV_THREADPOOL_SIZE: process.env.UV_THREADPOOL_SIZE,
+              GOMAXPROCS: process.env.GOMAXPROCS,
+              RAYON_NUM_THREADS: process.env.RAYON_NUM_THREADS,
+            }
+          : {}),
+        NOVDEC_JOURNEY_NETWORK_LOG: join(output, "network.jsonl"),
+        NOVDEC_JOURNEY_OUTAGE_FLAG: outageFlag,
+        NEXT_E2E_ISOLATED_BUILD: "true",
+        NEXT_TELEMETRY_DISABLED: "1",
+        ENVIRONMENT_KIND: "demo",
+        DATA_CONTEXT: "demo",
+        LOCAL_DEMO_AUTH: "true",
+        ASK_DEMO_MODE: "true",
+        FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST,
+        FIREBASE_PROJECT_ID: projectId,
+        GOOGLE_CLOUD_PROJECT: projectId,
+        CLOUDSDK_CONFIG: join(output, "no-gcloud-config"),
+        RENTVINE_API_BASE_URL: "https://pmikcmetro.rentvine.com/api/manager",
+        RENTVINE_API_KEY: "synthetic-journey-key",
+        RENTVINE_API_SECRET: "synthetic-journey-secret",
+        RENEWAL_SHEET_ID: "synthetic-journey-sheet",
+        SHEETS_IMPERSONATE_SA: "synthetic-journey@example.invalid",
+        SHEETS_DWD_SUBJECT: "synthetic-journey@pmikcmetro.com",
+      },
     },
-  },
-);
-server.stdout.pipe(serverLog);
-server.stderr.pipe(serverLog);
+  );
+  child.stdout.pipe(serverLog, { end: false });
+  child.stderr.pipe(serverLog, { end: false });
+  recordServerLifetime({ event: "started", phase, pid: child.pid });
+  return child;
+}
+
+let server = startServer("initial");
+
+async function stopServer(phase) {
+  if (!server) return;
+  const pid = server.pid;
+  await stopProcessTree(server, { serverPort: port });
+  recordServerLifetime({ event: "stopped", phase, pid, listenerClosed: true });
+  server = null;
+}
+
+async function restartServer(phase) {
+  await stopServer(phase);
+  server = startServer(phase);
+  await waitForServer();
+}
 
 async function waitForServer() {
   const deadline = Date.now() + 180_000;
   while (Date.now() < deadline) {
+    assert.ok(
+      server && server.exitCode === null && !server.signalCode,
+      "The local dev server exited before readiness.",
+    );
     try {
       const response = await fetch(`${origin}/sign-in`, { redirect: "manual" });
       if (response.status < 500) return;
@@ -319,6 +394,21 @@ try {
     executablePath: resolveBrowserExecutable(),
     headless: true,
   });
+  if (kernelIsolated) {
+    assert.equal(await browser.version(), process.env.PMI_ISOLATED_BROWSER_VERSION);
+    writeFileSync(
+      join(output, "browser-provenance.json"),
+      JSON.stringify(
+        {
+          version: await browser.version(),
+          executableSha256: process.env.PMI_ISOLATED_BROWSER_SHA256,
+          sourceManifestSha256: process.env.PMI_SOURCE_MANIFEST_SHA256,
+        },
+        null,
+        2,
+      ),
+    );
+  }
   const context = await browser.newContext({
     viewport: { width: 1360, height: 900 },
     timezoneId: "America/Chicago",
@@ -792,6 +882,11 @@ try {
     },
   );
 
+  // These assertions have finished using the lease document. Keep the same staff session for
+  // its later navigation, while releasing the completed document and this server lifetime.
+  await page.goto("about:blank");
+  await restartServer("communications");
+
   // S233 (R-S233-9): the renewal composer and hub for the December lease's owner, in a second
   // browser set to another zone. Saves are app records in the emulator; Schedule is refused by the
   // local Demo descriptor before any mailbox or provider is constructed.
@@ -1142,6 +1237,11 @@ try {
       };
     },
   );
+
+  // This timezone-specific session has completed every assertion; retain its evidence, not its
+  // otherwise idle renderer, during the remaining independent staff journeys.
+  await west.close();
+  await restartServer("owner-approval");
 
   // S234 (R-S238-2 owner approval phase): the December lease's Working terms, the owner's approval
   // with who, how and when, and its coverage after a later Working save. App records only.
@@ -1510,6 +1610,11 @@ try {
     },
   );
 
+  // The first staff session is finished. The resolver below signs in independently and reads the
+  // same persisted emulator state, so no completed page needs to stay alive beside it.
+  await context.close();
+  await restartServer("notice-resolver");
+
   // S232 R-S232-5: each issue names what it needs and who resolves it, and its link reaches what
   // resolves it. An Admin in a second browser follows the move-out lease's issues in turn.
   const office = await browser.newContext({
@@ -1586,7 +1691,7 @@ try {
   await step(
     "S232-resolver-sign-in",
     "R-S232-5, R-S238-2 local identity",
-    "A local demo Admin session in a second browser",
+    "A local demo Editor session in a second browser (ordinary renewal staff)",
     async () => {
       activePage = admin;
       await admin.goto(`${origin}/sign-in`, { waitUntil: "domcontentloaded" });
@@ -1594,42 +1699,42 @@ try {
         const response = await fetch("/api/auth/demo", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ role: "Admin" }),
+          body: JSON.stringify({ role: "Editor" }),
         });
         return response.ok;
       });
-      assert.ok(ok, "demo Admin sign-in failed");
-      return "Signed in as the local demo Admin";
+      assert.ok(ok, "demo Editor sign-in failed");
+      return "Signed in as ordinary local demo renewal staff (Editor)";
     },
   );
 
   await step(
     "S232-resolver-page",
-    "R-S232-5 (resolved on another page, by an Admin)",
-    "With no timing basis recorded, the move-out lease's notice timing names the reviewed basis and an Admin, and its link opens the Admin timing panel",
+    "R-S232-5, BEH-S125-7 (resolved on this lease by ordinary renewal staff)",
+    "With no timing basis recorded, the notice names its documented basis and renewal staff; the link reaches the same-page selector",
     async () => {
       activePage = admin;
       await openLease(admin, NOTICE_LEASE);
       const refreshedForNotice = await admittedNotice(admin);
       await expandIssues(admin);
-      const issue = issueAt(admin, "page", "Record the timing basis in Admin");
+      const issue = issueAt(admin, "control", "Select the documented timing basis");
       await issue.waitFor();
       const row = await issueRow(issue);
       assert.match(row, /Notice timing: Cannot determine\./);
       assert.match(
         row,
-        /Needs: The reviewed move-out timing basis\. Resolved by: an Admin \(record the reviewed timing basis\)\./,
+        /Needs: The reviewed move-out timing basis\. Resolved by: Renewal staff \(select the documented timing basis\)\./,
       );
-      const link = issue.getByRole("link", { name: "Record the timing basis in Admin" });
-      assert.equal(await link.getAttribute("href"), "/admin#admin-move-out-timing-basis");
+      const link = issue.getByRole("link", {
+        name: "Select the documented timing basis",
+      });
+      assert.equal(await link.getAttribute("href"), "#renewal-notice-timing-basis");
       await link.click();
-      await admin.waitForURL(
-        (url) => url.pathname === "/admin" && url.hash === "#admin-move-out-timing-basis",
-      );
-      const panel = admin.locator("#admin-move-out-timing-basis");
-      await panel.getByText("Notice timing basis is not reviewed.").waitFor();
-      await inView(admin, "admin-move-out-timing-basis");
-      const file = await capture(admin, "s232-resolver-admin-panel", panel);
+      await admin.waitForURL((url) => url.hash === "#renewal-notice-timing-basis");
+      const panel = admin.locator("#renewal-notice-timing-basis");
+      await panel.getByText(/No basis is saved/).waitFor();
+      await inView(admin, "renewal-notice-timing-basis");
+      const file = await capture(admin, "s232-resolver-staff-basis", panel);
       const landed = new URL(admin.url());
       return {
         row,
@@ -1642,34 +1747,34 @@ try {
 
   await step(
     "S232-resolver-basis-recorded",
-    "R-S232-5 (the Admin resolves it); a synthetic record in the isolated emulator, not the production C05 recording",
-    "The Admin records the decided basis (lease end, calendar days, 30) on that panel and the panel confirms version 1",
+    "R-S232-5, BEH-S125-7 (one Editor selection); synthetic record in the isolated emulator, no production save",
+    "An ordinary Editor chooses the documented basis once; independent owned readback confirms version 1 without another Save",
     async () => {
       activePage = admin;
-      const panel = admin.locator("#admin-move-out-timing-basis");
-      await panel.getByLabel("Compare the notice against").selectOption("lease_end");
-      await panel
-        .getByLabel("Counting rule")
-        .selectOption("calendar_days_target_minus_notice_v1");
-      await panel.getByLabel("Threshold in calendar days").fill("30");
-      await panel
-        .getByLabel("Who confirmed this basis, and where")
-        .fill(
-          "Synthetic journey basis in the isolated emulator; not the production record",
-        );
+      const panel = admin.locator("#renewal-notice-timing-basis");
+      assert.equal(
+        await panel
+          .getByRole("button", { name: /Save|Confirm|Record reviewed/i })
+          .count(),
+        0,
+      );
       const [saved] = await Promise.all([
         admin.waitForResponse(
           (response) =>
-            new URL(response.url()).pathname === "/api/admin/move-out-timing-basis" &&
+            new URL(response.url()).pathname ===
+              "/api/lease-renewal/notice-timing-basis" &&
             response.request().method() === "PATCH",
         ),
-        panel.getByRole("button", { name: "Record reviewed basis" }).click(),
+        panel
+          .getByLabel("Documented notice basis")
+          .selectOption("notice-basis/2026-10-02/q2"),
       ]);
       assert.equal(saved.status(), 200, "the basis was refused");
-      await panel.getByText("Recorded. Every desk read now uses version 1.").waitFor();
+      await panel.getByText(/^Saved · version 1/).waitFor();
       const records = await db.collection("lease_renewal_move_out_timing_basis").get();
       assert.equal(records.size, 1);
       const record = records.docs[0].data();
+      assert.equal(record.version, 1);
       assert.equal(record.target_kind, "lease_end");
       assert.equal(record.counting_rule, "calendar_days_target_minus_notice_v1");
       assert.equal(record.threshold_days, 30);
@@ -1870,9 +1975,9 @@ try {
   writeFileSync(join(output, "results.json"), JSON.stringify(results, null, 2));
   await browser?.close().catch(() => undefined);
   try {
-    process.kill(-server.pid, "SIGTERM");
-  } catch {
-    // already stopped
+    await stopServer("final-teardown");
+  } finally {
+    serverLog.end();
   }
 }
 const failed = results.filter((entry) => entry.result !== "PASS");

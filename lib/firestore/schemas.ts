@@ -692,6 +692,10 @@ export const CreateProcessDefinitionInputSchema = z.object({
 
 export const UpdateProcessDefinitionInputSchema = z
   .object({
+    expected_revision: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
     space_id: optionalTextSchema,
     name: requiredTextSchema.optional(),
     short_outcome: requiredTextSchema.optional(),
@@ -707,7 +711,7 @@ export const UpdateProcessDefinitionInputSchema = z
     escalation_condition: optionalTextSchema,
   })
   .refine(
-    (input) => Object.keys(input).length > 0,
+    (input) => Object.keys(input).some((key) => key !== "expected_revision"),
     "At least one process definition field is required.",
   );
 

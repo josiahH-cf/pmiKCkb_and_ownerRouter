@@ -2,7 +2,7 @@
 
 # Renewal operator guide
 
-Updated: 2026-10-02 for the S152–S167 program (queued for release). Consult
+Updated: 2026-11-03 for the current renewal implementation; this guide is not deployment proof. Consult
 [current status](../status.md) for the exact serving revision and backend evidence.
 Use the [staff walkthrough](renewal-client-walkthrough-2026-09-09.md) and
 [printable training guide](renewal-training-guide.pdf) for the meeting.
@@ -149,10 +149,11 @@ and does not withhold it. The result explicitly means completion recorded by sta
 receipts, document presence and verified completion remain separate evidence. **Reopen recorded
 completion** when necessary. Closing and reopening the page retains the work record.
 
-## November/December additions (after the next release)
+## November/December renewal guidance
 
-These arrive with the release that carries S232 to S237; until then production shows the earlier
-behavior.
+The November 3 delivery carries S232–S237. The guidance below describes that supported behavior;
+current follow-up qualification and delivery status is recorded in `docs/facts.md` and
+`docs/status.md`. A published guide does not establish a human verdict or a provider effect.
 
 - The desk states the renewal window ("Renewal window: … , Central"). A lease that ended without a
   recorded renewal outcome appears under the "Ended without a recorded renewal outcome" scope, and
@@ -173,8 +174,9 @@ behavior.
   about who has the move, the row reads **Needs a check** with both facts; update whichever is out
   of date. The step filter is now **Recorded progress step**; saved links that use it still work.
 - Each item under **Other current issues**, and the same note in Focus, says what it needs and who
-  resolves it, then links to where: for example "Needs: The reviewed move-out timing basis.
-  Resolved by: an Admin" with **Record the timing basis in Admin**, a control on the lease, or
+  resolves it, then links to where: for example the documented notice basis can be selected once
+  by authorized renewal staff in the lease's **Notice timing** section, without Admin or a second
+  confirmation. Other issues link to the appropriate control on the lease, or
   **Refresh this lease to read the sources again**. When nothing in the app resolves it, the note
   says so, for example "Outside the app: The owner changes this policy; nothing in the app lifts the
   pause." A waiting item names the owner or tenant the RentVine read records.
@@ -288,9 +290,10 @@ Every staff account has every internal Space. An Editor records ordinary work, w
 preparations and unsent drafts, resolves reconciliation differences, and prepares and confirms the
 supported Sheet and RentVine updates with their exact previews, receipts and readbacks; no
 business approval or hand-off to another role remains. Admin keeps user management, resource
-locations, connections, suspensions and gates. An Approver or Admin still publishes the reviewed
-renewal wording (needed for a Gmail draft), approves a filled document output and records packet
-provider readback. Vendor scope, verification-account refusals and private account records are
+locations, connections, suspensions and gates. Shared reviewed wording uses its existing publication
+controls. Authorized renewal staff may review filled output and record exact packet evidence under
+the current role/Space contract; legal approval, provider readback and actual signing remain distinct.
+Vendor scope, verification-account refusals and private account records are
 unchanged. A role alone does not enable a key.
 
 Local rehearsal is Demo + Live-read-only and refuses persistence/provider effects. Use it for

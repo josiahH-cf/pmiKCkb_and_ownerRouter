@@ -9,6 +9,7 @@ import {
 } from "@/lib/firestore/workflow-run-step-checks";
 import { getWorkflowRun } from "@/lib/firestore/workflows";
 import { assertWorkflowRunAccess } from "@/lib/space-scope-resources";
+import { assertWorkflowRunHistoryAvailable } from "@/lib/firestore/workflow-run-definition";
 
 interface RouteContext {
   params: Promise<{ runId: string }>;
@@ -34,7 +35,9 @@ export async function GET(_request: Request, context: RouteContext) {
   try {
     const user = await requireCapability("edit");
     const { runId } = await context.params;
-    assertWorkflowRunAccess(user, await getWorkflowRun(user, runId));
+    const run = await getWorkflowRun(user, runId);
+    assertWorkflowRunAccess(user, run);
+    assertWorkflowRunHistoryAvailable(run);
     const checks = await listStepChecksForRun(user, runId);
     return NextResponse.json({ checks });
   } catch (error) {

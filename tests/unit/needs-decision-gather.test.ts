@@ -18,6 +18,8 @@ import {
   renewalWaitingCount,
 } from "@/lib/approval/needs-decision-gather";
 import type { RenewalFlagView, RenewalRunView } from "@/lib/lease-renewal/run-view";
+import { RenewalReviewUnavailableError } from "@/lib/lease-renewal/review-readiness";
+import { resolveApprovalsState } from "@/lib/ask/app-state-context";
 
 const editor = {
   uid: "u1",
@@ -82,6 +84,85 @@ const runView: RenewalRunView = {
 };
 
 describe("gatherNeedsDecisionInbox", () => {
+  it("S238 A-06 keeps actual visible rows but marks a stale renewal feed incomplete", async () => {
+    listApprovalQueue.mockResolvedValue([
+      {
+        id: "current",
+        status: "Ready for Approval",
+        action_needed: "Review current package",
+        risk: "Low",
+        direct_link: "/approval-queue",
+        process_run_ref: { id: "current", label: "Current renewal" },
+        assignee_uid: "u1",
+      },
+      {
+        id: "retired",
+        status: "Ready for Approval",
+        action_needed: "Old proof",
+        risk: "Low",
+        direct_link: "/maintenance",
+        process_run_ref: { id: "maintenance:proof", label: "Old proof" },
+        assignee_uid: "u1",
+      },
+      {
+        id: "not-visible",
+        status: "Ready for Approval",
+        action_needed: "Another person's package",
+        risk: "Low",
+        direct_link: "/approval-queue",
+        process_run_ref: { id: "other", label: "Other" },
+        assignee_uid: "someone-else",
+      },
+    ]);
+    loadRenewalRunViews.mockRejectedValue(
+      new RenewalReviewUnavailableError({
+        sourceStatus: "stale",
+        overlayStatus: "available",
+        sourceReadAtIso: "2026-11-03T08:29:00.000Z",
+      }),
+    );
+    const inbox = await gatherNeedsDecisionInbox(editor as never);
+    expect(inbox).toMatchObject({
+      readState: "partial",
+      unavailableFeeds: ["renewal_reviews"],
+      renewalReviewIssue: {
+        code: "source_stale",
+        sourceReadAtIso: "2026-11-03T08:29:00.000Z",
+      },
+    });
+    expect(inbox.rows.map((row) => row.itemId)).toEqual(["current"]);
+    expect(inbox.counts.total).toBe(1);
+    expect(listApprovalQueue).toHaveBeenCalledTimes(1);
+    expect(loadRenewalRunViews).toHaveBeenCalledTimes(1);
+  });
+
+  it("S238 A-06 Console app-state never calls a failed renewal read an empty complete queue", async () => {
+    listApprovalQueue.mockResolvedValue([]);
+    loadRenewalRunViews.mockRejectedValue(
+      new RenewalReviewUnavailableError({
+        sourceStatus: "stale",
+        overlayStatus: "available",
+      }),
+    );
+    const result = await resolveApprovalsState(editor as never);
+    expect(result.items).toEqual([]);
+    expect(result.summary).toContain("stale");
+    expect(result.summary).not.toMatch(/Nothing needs your decision/);
+    expect(listApprovalQueue).toHaveBeenCalledTimes(1);
+    expect(loadRenewalRunViews).toHaveBeenCalledTimes(1);
+  });
+
+  it("S238 A-06 marks two failed sources unavailable without inventing rows", async () => {
+    listApprovalQueue.mockRejectedValue(new Error("private queue exception"));
+    loadRenewalRunViews.mockRejectedValue(new Error("private renewal exception"));
+    const inbox = await gatherNeedsDecisionInbox(editor as never);
+    expect(inbox).toMatchObject({
+      readState: "unavailable",
+      unavailableFeeds: ["approval_queue", "renewal_reviews"],
+      rows: [],
+    });
+    expect(JSON.stringify(inbox)).not.toContain("private");
+  });
   it("merges visible queue items with the renewal feeds from ONE run-views gather", async () => {
     listApprovalQueue.mockResolvedValue([
       {

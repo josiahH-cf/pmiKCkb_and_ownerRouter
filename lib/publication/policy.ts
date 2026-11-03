@@ -10,8 +10,24 @@ import type {
   PublicationAllowedType,
   PublicationPolicyRecord,
   PublicationSensitivity,
+  ProcessPublicationResourceScope,
 } from "@/lib/publication/types";
 import { launchSpaces } from "@/lib/spaces";
+import {
+  PublicationResourceScopeSchema,
+  publicationPolicyAllowsResource,
+  type PublicationResourceRequest,
+} from "./resource-scope";
+import {
+  MANAGED_PROCESS_SCANNER_KEY,
+  MANAGED_RENEWAL_ORIGINAL_SCANNER_KEY,
+} from "./managed-scanner-config";
+import { stablePublicationResourceId } from "./resource-id";
+import { getProcessDefinition } from "@/lib/firestore/workflows";
+import { spaceIdForProcessDefinition } from "@/lib/space-scope-resources";
+import { processDefinitionPublicationContent } from "./process-definition-content";
+import { processDefinitionRevision } from "./process-definition-revision";
+import { inspectProcessSensitivity } from "./process-sensitivity";
 
 export const PUBLICATION_POLICY_COLLECTION = "publication_policies";
 export const PUBLICATION_POLICY_AUDIT_COLLECTION = "publication_policy_audit";
@@ -67,12 +83,38 @@ export const CreatePublicationPolicySchema = z
     reason: z.string().trim().min(8),
     rootId: z.string().trim().min(1),
     scannerKey: z.string().trim().min(1),
+    resourceScope: PublicationResourceScopeSchema.optional(),
+    expectedDefinitionRevision: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
     sensitivityCeiling: z.enum(["Low", "Medium", "High"]).default("Medium"),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (
+      value.scannerKey === MANAGED_PROCESS_SCANNER_KEY &&
+      value.resourceScope?.resourceType !== "process_definition"
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["resourceScope"],
+        message:
+          "The managed process scanner requires an exact process-definition scope.",
+      });
+  });
 
 export const TightenPublicationPolicySchema = z
   .object({
+    resourceScope: PublicationResourceScopeSchema.optional(),
+    expectedContentHash: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
+    expectedDefinitionRevision: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
     allowedSpaces: z.array(z.string().trim().min(1)).min(1).optional(),
     allowedTypes: z.array(allowedTypeSchema).min(1).optional(),
     enabled: z.boolean().optional(),
@@ -95,11 +137,33 @@ export async function createPublicationPolicy(
   const parsed = CreatePublicationPolicySchema.parse(input);
   assertUniqueTypes(parsed.allowedTypes);
   assertKnownSpaces(parsed.allowedSpaces);
+  assertReviewedOriginalPolicy(parsed);
+  const review =
+    parsed.resourceScope?.resourceType === "process_definition"
+      ? await readProcessByteReview(
+          actor,
+          parsed.resourceScope,
+          parsed.expectedDefinitionRevision,
+          db,
+        )
+      : null;
+  if (review && !parsed.allowedSpaces.includes(review.spaceId)) rejectReview();
   const id = uuidv7();
   const ref = db.collection(PUBLICATION_POLICY_COLLECTION).doc(id);
   const auditRef = db.collection(PUBLICATION_POLICY_AUDIT_COLLECTION).doc(uuidv7());
 
   await db.runTransaction(async (transaction) => {
+    if (review) {
+      const current = await transaction.get(
+        db.collection("process_definitions").doc(review.definitionId),
+      );
+      if (
+        !current.exists ||
+        processDefinitionRevision({ id: current.id, ...current.data() }) !==
+          review.revision
+      )
+        rejectReview();
+    }
     transaction.set(ref, {
       id,
       data_mode: "live",
@@ -111,6 +175,8 @@ export async function createPublicationPolicy(
       enabled: parsed.enabled,
       rootId: parsed.rootId,
       scannerKey: parsed.scannerKey,
+      ...(parsed.resourceScope ? { resourceScope: parsed.resourceScope } : {}),
+      ...(review ? { reviewedDefinitionRevision: review.revision } : {}),
       sensitivityCeiling: parsed.sensitivityCeiling,
       updatedAt: FieldValue.serverTimestamp(),
       updatedByUid: actor.uid,
@@ -133,6 +199,15 @@ export async function tightenPublicationPolicy(
   assertAdmin(actor);
   const parsed = TightenPublicationPolicySchema.parse(input);
   const policyRef = db.collection(PUBLICATION_POLICY_COLLECTION).doc(policyId);
+  const review =
+    parsed.resourceScope?.resourceType === "process_definition"
+      ? await readProcessByteReview(
+          actor,
+          parsed.resourceScope,
+          parsed.expectedDefinitionRevision,
+          db,
+        )
+      : null;
 
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(policyRef);
@@ -143,9 +218,47 @@ export async function tightenPublicationPolicy(
     const nextTypes = parsed.allowedTypes ?? current.allowedTypes;
     const nextSensitivity = parsed.sensitivityCeiling ?? current.sensitivityCeiling;
     const nextEnabled = parsed.enabled ?? current.enabled;
+    const nextScope = parsed.resourceScope ?? current.resourceScope;
+    if (parsed.resourceScope && current.resourceScope) {
+      if (
+        parsed.resourceScope.resourceType !== current.resourceScope.resourceType ||
+        parsed.resourceScope.resourceId !== current.resourceScope.resourceId
+      )
+        rejectWidening();
+      if (parsed.expectedContentHash !== current.resourceScope.contentHash)
+        rejectReview();
+      if (
+        parsed.resourceScope.resourceType === "file" &&
+        current.resourceScope.resourceType === "file" &&
+        (parsed.resourceScope.artifactKind !== current.resourceScope.artifactKind ||
+          parsed.resourceScope.path !== current.resourceScope.path ||
+          parsed.resourceScope.fileName !== current.resourceScope.fileName)
+      )
+        rejectWidening();
+    } else if (parsed.expectedContentHash !== undefined) rejectReview();
+    if (review) {
+      const definition = await transaction.get(
+        db.collection("process_definitions").doc(review.definitionId),
+      );
+      if (
+        !definition.exists ||
+        processDefinitionRevision({ id: definition.id, ...definition.data() }) !==
+          review.revision ||
+        !nextSpaces.includes(review.spaceId)
+      )
+        rejectReview();
+    }
 
     assertUniqueTypes(nextTypes);
     assertKnownSpaces(nextSpaces);
+    assertReviewedOriginalPolicy({
+      ...current,
+      resourceScope: nextScope,
+      allowedSpaces: nextSpaces,
+      allowedTypes: nextTypes,
+      sensitivityCeiling: nextSensitivity,
+      expectedDefinitionRevision: parsed.expectedDefinitionRevision,
+    });
     assertPolicyOnlyTightens(current, {
       allowedSpaces: nextSpaces,
       allowedTypes: nextTypes,
@@ -154,6 +267,8 @@ export async function tightenPublicationPolicy(
     });
 
     transaction.update(policyRef, {
+      ...(nextScope ? { resourceScope: nextScope } : {}),
+      ...(review ? { reviewedDefinitionRevision: review.revision } : {}),
       allowedSpaces: nextSpaces,
       allowedTypes: nextTypes,
       enabled: nextEnabled,
@@ -161,10 +276,24 @@ export async function tightenPublicationPolicy(
       updatedAt: FieldValue.serverTimestamp(),
       updatedByUid: actor.uid,
     });
-    transaction.set(
-      db.collection(PUBLICATION_POLICY_AUDIT_COLLECTION).doc(uuidv7()),
-      bodylessPolicyAudit(policyId, actor.uid, "tightened", parsed.reason),
-    );
+    transaction.set(db.collection(PUBLICATION_POLICY_AUDIT_COLLECTION).doc(uuidv7()), {
+      ...bodylessPolicyAudit(
+        policyId,
+        actor.uid,
+        parsed.resourceScope ? "content_reviewed" : "tightened",
+        parsed.reason,
+      ),
+      ...(parsed.resourceScope
+        ? {
+            previousContentHash: current.resourceScope?.contentHash ?? null,
+            contentHash: parsed.resourceScope.contentHash,
+            ...(review ? { definitionRevision: review.revision } : {}),
+            ...(parsed.resourceScope.resourceType === "file"
+              ? { originalByteSize: parsed.resourceScope.byteSize }
+              : {}),
+          }
+        : {}),
+    });
   });
 
   return getPublicationPolicy(policyId, db);
@@ -192,6 +321,7 @@ export async function resolvePublicationPolicyForSpace(
   spaceId: string,
   policyId: string | undefined,
   db = getAdminFirestore(),
+  resource?: PublicationResourceRequest,
 ): Promise<PublicationPolicyRecord> {
   if (!can(actor.role, "edit")) {
     throw new EditableLayerError("This user cannot publish content.", 403);
@@ -209,6 +339,11 @@ export async function resolvePublicationPolicyForSpace(
         409,
       );
     }
+    if (!publicationPolicyAllowsResource(policy, resource))
+      throw new EditableLayerError(
+        "This publication policy does not cover the exact process/resource scope.",
+        409,
+      );
     return policy;
   }
 
@@ -220,7 +355,8 @@ export async function resolvePublicationPolicyForSpace(
         resolveStoredDataMode(policy) === "live" &&
         policy.enabled &&
         policy.allowedSpaces.includes(spaceId),
-    );
+    )
+    .filter((policy) => publicationPolicyAllowsResource(policy, resource));
 
   if (matches.length !== 1) {
     throw new EditableLayerError(
@@ -268,7 +404,7 @@ function readPolicy(
 function bodylessPolicyAudit(
   policyId: string,
   actorUid: string,
-  eventType: "created" | "tightened",
+  eventType: "created" | "tightened" | "content_reviewed",
   reason: string,
 ) {
   return {
@@ -309,6 +445,84 @@ function rejectWidening(): never {
     "An existing publication policy may only be tightened; create a separately audited policy to widen it.",
     409,
   );
+}
+
+function rejectReview(): never {
+  throw new EditableLayerError(
+    "The current process bytes, reviewed revision or prior policy hash do not match this fresh review. Reload and review the exact current process.",
+    409,
+  );
+}
+
+async function readProcessByteReview(
+  actor: AuthenticatedUser,
+  scope: ProcessPublicationResourceScope,
+  expectedRevision: string | undefined,
+  db: ReturnType<typeof getAdminFirestore>,
+) {
+  if (!expectedRevision) rejectReview();
+  const definitionId = scope.resourceId.slice("process-definition:".length);
+  let definition: Awaited<ReturnType<typeof getProcessDefinition>>;
+  try {
+    definition = await getProcessDefinition(actor, definitionId, db);
+  } catch {
+    rejectReview();
+  }
+  const revision = processDefinitionRevision(definition);
+  const reviewed = processDefinitionPublicationContent(definition);
+  const spaceId = spaceIdForProcessDefinition(definition);
+  if (
+    !spaceId ||
+    definition.status === "Retired" ||
+    revision !== expectedRevision ||
+    reviewed.contentHash !== scope.contentHash ||
+    inspectProcessSensitivity(reviewed.content).code !== "clean"
+  )
+    rejectReview();
+  return { definitionId, revision, contentHash: reviewed.contentHash, spaceId };
+}
+
+function assertReviewedOriginalPolicy(input: {
+  resourceScope?: PublicationPolicyRecord["resourceScope"];
+  scannerKey: string;
+  connectorId: string;
+  rootId: string;
+  allowedSpaces: readonly string[];
+  allowedTypes: readonly PublicationAllowedType[];
+  sensitivityCeiling: PublicationSensitivity;
+  expectedDefinitionRevision?: string;
+}) {
+  const scope = input.resourceScope;
+  if (scope?.resourceType !== "file") {
+    if (input.scannerKey === MANAGED_RENEWAL_ORIGINAL_SCANNER_KEY)
+      throw new EditableLayerError("Review one exact blank renewal-original PDF.", 400);
+    return;
+  }
+  const rule = input.allowedTypes[0];
+  if (
+    input.scannerKey !== MANAGED_RENEWAL_ORIGINAL_SCANNER_KEY ||
+    input.allowedSpaces.length !== 1 ||
+    input.allowedSpaces[0] !== "lease-renewals" ||
+    input.allowedTypes.length !== 1 ||
+    rule?.extension !== ".pdf" ||
+    rule.maxBytes > 2 * mib ||
+    rule.maxBytes < scope.byteSize ||
+    rule.mimeTypes.length !== 1 ||
+    rule.mimeTypes[0] !== "application/pdf" ||
+    input.sensitivityCeiling !== "Low" ||
+    input.expectedDefinitionRevision !== undefined ||
+    scope.resourceId !==
+      stablePublicationResourceId(
+        input.connectorId,
+        input.rootId,
+        "lease-renewals",
+        scope.path,
+      )
+  )
+    throw new EditableLayerError(
+      "Renewal-original publication requires its exact canonical file/family/hash/size, renewals Space, PDF-only limits and reviewed blank/no-client-record scope.",
+      400,
+    );
 }
 
 function sensitivityRank(value: PublicationSensitivity) {

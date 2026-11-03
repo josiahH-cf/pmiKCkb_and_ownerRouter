@@ -32,6 +32,10 @@ release acceptance passed; no live customer completion or human usability verdic
 
 ## Current core
 
+The launched November 3 gap work has separate
+[implementation evidence](evidence/application-gap-implementation-2026-11-03.md). The assessment
+and completed earlier release retain their dated scopes; implementation is not yet delivery.
+
 Manual client workflows: [presentation and weekly status commands](weekly-client-workflows.md),
 [reference source index](weekly-client-workflows-source-index.md) and
 [original implementation plan](weekly-client-workflows-plan.md).
@@ -137,6 +141,14 @@ Current code, tests, facts and the S113 evidence report own the verified result.
 completion is distinct from provider verification; no live customer completion was seeded.
 
 ## Current evidence and templates
+
+- [Finalized November 3 implementation plan](plan.md) — existing owners plus S241; notice selection,
+  informed source/configuration work, process publication and conditional Dotloop readiness are
+  specified only. Authoring READY is not implementation, activation or a release queue.
+- [November 3 application gap analysis](evidence/current-application-gap-analysis-2026-11-03.md) —
+  current deployed/source baseline, guarded workflow observations, seven independently owned
+  engineering gaps and the canonical external/human unblockers. Assessment/specification only;
+  no fixes or releases were initiated. Follow-up authoring states are registered in the suite index.
 
 - `docs/evidence/renewal-focus-batch-003-validation-2026-10-01.md` — S145 evidence map for the batch 003 renewal Focus suites, with tested environments, corrections and unverified seams.
 - `docs/evidence/connected-ai-batch-002-validation-2026-09-30.md` — S141 evidence map for the batch 002 Dashboard and email-refinement suites, with tested environments and unverified seams.

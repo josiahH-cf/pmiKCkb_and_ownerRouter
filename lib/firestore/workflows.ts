@@ -6,6 +6,10 @@ import { createApprovalQueueItem } from "@/lib/firestore/approval-queue";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
+  assertProcessDefinitionRevision,
+  processDefinitionRevision,
+} from "@/lib/publication/process-definition-revision";
+import {
   stepCheckDocId,
   WORKFLOW_RUN_STEP_CHECK_COLLECTIONS,
 } from "@/lib/firestore/workflow-run-step-check-keys";
@@ -35,6 +39,14 @@ import type {
   WorkflowRunTimelineRecord,
 } from "@/lib/firestore/types";
 import { productRecordRetentionFields } from "@/lib/operations/product-record-retention";
+import {
+  assertWorkflowRunHistoryAvailable,
+  readWorkflowRunDefinition,
+} from "./workflow-run-definition";
+import {
+  assertProcessDefinitionRecordAccess,
+  assertWorkflowRunAccess,
+} from "@/lib/space-scope-resources";
 import {
   isRetiredMaintenanceWorkflow,
   MAINTENANCE_RETIREMENT_MESSAGE,
@@ -114,6 +126,7 @@ export async function updateProcessDefinition(
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(definitionRef(db, definitionId));
     const current = readRequiredProcessDefinition(snapshot.id, snapshot.data());
+    assertProcessDefinitionRevision(current, parsed.expected_revision);
     if (
       isRetiredMaintenanceWorkflow(current.space_id, current.id) ||
       isRetiredMaintenanceWorkflow(parsed.space_id)
@@ -221,30 +234,54 @@ export async function startWorkflowRun(
   if (definition.status === "Retired") {
     throw new EditableLayerError("Retired process definitions cannot be started.", 409);
   }
+  assertProcessDefinitionRecordAccess(actor, definition);
 
   const runId = options.runId ? validateTrustedWorkflowRunId(options.runId) : uuidv7();
-  const run: Omit<WorkflowRunRecord, "created_at" | "updated_at"> & {
-    created_at: FieldValue;
-    updated_at: FieldValue;
-  } = {
-    id: runId,
-    data_mode: "live",
-    definition_id: definition.id,
-    space_id: definition.space_id,
-    definition_version_id: definition.active_version_id,
-    process_name: definition.name,
-    status: "In Progress",
-    owner_uid: definition.default_approver_uid,
-    next_action: definition.steps[0]?.title ?? "Review workflow run.",
-    due_date: parsed.due_date ?? today(),
-    started_by_uid: actor.uid,
-    ...productRecordRetentionFields("workflow_runs"),
-    created_at: FieldValue.serverTimestamp(),
-    updated_at: FieldValue.serverTimestamp(),
-  };
 
   await db.runTransaction(async (transaction) => {
     const existingSnapshot = await transaction.get(runRef(db, runId));
+    const currentSnapshot = await transaction.get(definitionRef(db, definition.id));
+    const current = readRequiredProcessDefinition(
+      currentSnapshot.id,
+      currentSnapshot.data(),
+    );
+    if (processDefinitionRevision(current) !== processDefinitionRevision(definition))
+      throw new EditableLayerError(
+        "The process definition changed before this run started. Reload the current process before starting again.",
+        409,
+      );
+    if (
+      current.status === "Active" &&
+      (typeof current.active_version_id !== "string" || !current.active_version_id.trim())
+    )
+      throw new EditableLayerError(
+        "This Active process has no valid immutable version reference. No workflow run was started.",
+        409,
+      );
+    const binding = {
+      definition_id: current.id,
+      space_id: current.space_id,
+      definition_version_id:
+        current.status === "Active" ? current.active_version_id : undefined,
+    };
+    const content = await readWorkflowRunDefinition(actor, binding, db, transaction);
+    const run: Omit<WorkflowRunRecord, "created_at" | "updated_at"> & {
+      created_at: FieldValue;
+      updated_at: FieldValue;
+    } = {
+      id: runId,
+      data_mode: "live",
+      ...binding,
+      process_name: content.name,
+      status: "In Progress",
+      owner_uid: content.default_approver_uid,
+      next_action: content.steps[0]?.title ?? "Review workflow run.",
+      due_date: parsed.due_date ?? today(),
+      started_by_uid: actor.uid,
+      ...productRecordRetentionFields("workflow_runs"),
+      created_at: FieldValue.serverTimestamp(),
+      updated_at: FieldValue.serverTimestamp(),
+    };
     if (existingSnapshot.exists) {
       const existing = readRequiredWorkflowRun(
         existingSnapshot.id,
@@ -260,7 +297,7 @@ export async function startWorkflowRun(
       eventType: "started",
       newStatus: "In Progress",
       runId,
-      summary: `${parsed.note ?? `Started workflow run for process definition "${definition.name}".`} Definition version: ${definition.active_version_id ?? "unpublished draft"}.`,
+      summary: `${parsed.note ?? `Started workflow run for process definition "${content.name}".`} Definition version: ${binding.definition_version_id ?? "unpublished draft"}.`,
     });
   });
 
@@ -288,7 +325,7 @@ function assertIdempotentWorkflowRun(
     existing.data_mode !== "live" ||
     existing.definition_id !== definition.id ||
     existing.space_id !== expected.space_id ||
-    existing.definition_version_id !== definition.active_version_id ||
+    existing.definition_version_id !== expected.definition_version_id ||
     existing.process_name !== expected.process_name ||
     existing.owner_uid !== expected.owner_uid ||
     existing.started_by_uid !== expected.started_by_uid
@@ -329,13 +366,23 @@ export async function getWorkflowRun(
   return readRequiredWorkflowRun(snapshot.id, snapshot.data());
 }
 
+export async function getWorkflowRunDefinition(
+  actor: AuthenticatedUser,
+  run: Pick<WorkflowRunRecord, "definition_id" | "definition_version_id" | "space_id">,
+  db = getAdminFirestore(),
+) {
+  return readWorkflowRunDefinition(actor, run, db);
+}
+
 export async function listWorkflowRunTimeline(
   actor: AuthenticatedUser,
   runId: string,
   db = getAdminFirestore(),
 ) {
   assertCan(actor, "read");
-  await getWorkflowRun(actor, runId, db);
+  const run = await getWorkflowRun(actor, runId, db);
+  assertWorkflowRunAccess(actor, run);
+  assertWorkflowRunHistoryAvailable(run);
   const snapshot = await db
     .collection(COLLECTIONS.workflowRunTimeline)
     .where("run_id", "==", runId)
@@ -366,13 +413,7 @@ export async function updateWorkflowRunOutcome(
     }
 
     if (parsed.action === "complete") {
-      const definitionSnapshot = await transaction.get(
-        definitionRef(db, current.definition_id),
-      );
-      const definition = readRequiredProcessDefinition(
-        definitionSnapshot.id,
-        definitionSnapshot.data(),
-      );
+      const definition = await readWorkflowRunDefinition(actor, current, db, transaction);
       const incomplete: string[] = [];
 
       for (const step of definition.steps) {
@@ -514,8 +555,10 @@ export function normalizeDefinitionFields(input: ParsedCreateProcessDefinitionIn
 }
 
 function normalizeDefinitionUpdateFields(input: ParsedUpdateProcessDefinitionInput) {
+  const content = { ...input };
+  delete content.expected_revision;
   return stripUndefined({
-    ...input,
+    ...content,
     action_references: input.action_references
       ? normalizeActionReferences(input.action_references)
       : undefined,
@@ -634,13 +677,17 @@ function readRequiredProcessDefinition(id: string, data: FirestoreValue | undefi
   return readProcessDefinition(id, data);
 }
 
-function readProcessDefinition(id: string, data: FirestoreValue) {
+function readProcessDefinition(
+  id: string,
+  data: FirestoreValue,
+): ProcessDefinitionRecord {
   // The S56 Production CAS migration moved every lane-only Testing status to Draft. Keep historical
   // reads usable for a restored backup while current schemas and UI no longer emit that status.
-  return readRecord<ProcessDefinitionRecord>(id, {
+  const record = readRecord<ProcessDefinitionRecord>(id, {
     ...data,
     ...(data.status === "Testing" ? { status: "Draft" } : {}),
   });
+  return { ...record, revision: processDefinitionRevision(record) };
 }
 
 function readRequiredWorkflowRun(id: string, data: FirestoreValue | undefined) {

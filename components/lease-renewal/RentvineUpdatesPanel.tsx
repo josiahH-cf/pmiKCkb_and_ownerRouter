@@ -254,8 +254,14 @@ export function RentvineUpdatesPanel({
     try {
       await loadInventory();
       setChargeRefresh("done");
-    } catch {
+    } catch (readError) {
       setChargeRefresh("failed");
+      setError(
+        readError instanceof Error
+          ? readError.message
+          : "The recurring charges could not be read.",
+      );
+      queueMicrotask(() => errorRef.current?.focus());
     }
   }
 

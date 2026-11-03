@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { apiErrorResponse } from "@/lib/api/editable";
 import { requireCapability } from "@/lib/auth/session";
@@ -6,13 +5,44 @@ import { EditableLayerError } from "@/lib/firestore/errors";
 import { readBoundedPublicationBody } from "@/lib/publication/content";
 import { resolvePublicationPolicyForSpace } from "@/lib/publication/policy";
 import { resolvePublicationScanner } from "@/lib/publication/provider";
-import { publishTrustedContent } from "@/lib/publication/service";
+import {
+  listActiveTrustedPublications,
+  publishTrustedContent,
+} from "@/lib/publication/service";
 import type { PublicationResourceType } from "@/lib/publication/types";
 import { assertSpaceIdAccess } from "@/lib/space-scope-resources";
 import { SOURCE_STATES } from "@/lib/constants";
+import { stablePublicationResourceId } from "@/lib/publication/resource-id";
 
 interface RouteContext {
   params: Promise<{ spaceId: string }>;
+}
+
+/** Current exact original metadata only; recovery never uploads or republishes a file. */
+export async function GET(_request: Request, context: RouteContext) {
+  try {
+    const actor = await requireCapability("read");
+    const { spaceId } = await context.params;
+    assertSpaceIdAccess(actor, spaceId);
+    const versions = await listActiveTrustedPublications(actor, spaceId);
+    return NextResponse.json(
+      {
+        originals: versions
+          .filter((version) => version.renewalArtifactKind)
+          .map((version) => ({
+            id: version.id,
+            fileName: version.fileName,
+            contentHash: version.contentHash,
+            byteSize: version.contentByteSize,
+            artifactKind: version.renewalArtifactKind,
+            policyId: version.policyId,
+          })),
+      },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+  } catch (error) {
+    return apiErrorResponse(error);
+  }
 }
 
 export async function POST(request: Request, context: RouteContext) {
@@ -34,8 +64,24 @@ export async function POST(request: Request, context: RouteContext) {
     );
     const byteSize = readByteSize(request);
     const policyId = request.headers.get("x-publication-policy-id")?.trim() || undefined;
-    const policy = await resolvePublicationPolicyForSpace(actor, spaceId, policyId);
-    const resourceId = stableResourceId(policy.connectorId, policy.rootId, spaceId, path);
+    const policy = await resolvePublicationPolicyForSpace(
+      actor,
+      spaceId,
+      policyId,
+      undefined,
+      {
+        resourceType,
+        path,
+        fileName,
+        spaceId,
+      },
+    );
+    const resourceId = stablePublicationResourceId(
+      policy.connectorId,
+      policy.rootId,
+      spaceId,
+      path,
+    );
 
     const version = await publishTrustedContent(
       actor,
@@ -55,9 +101,12 @@ export async function POST(request: Request, context: RouteContext) {
           rootId: policy.rootId,
           sourceState: sourceState as (typeof SOURCE_STATES)[number],
           spaceId,
+          ...(policy.resourceScope?.resourceType === "file"
+            ? { renewalArtifactKind: policy.resourceScope.artifactKind }
+            : {}),
         },
       },
-      resolvePublicationScanner(policy.scannerKey),
+      resolvePublicationScanner(policy.scannerKey, { policy }),
     );
 
     return NextResponse.json({ version }, { status: 201 });
@@ -95,16 +144,4 @@ function readResourceType(value: string | null): PublicationResourceType {
   if (!value || value === "file") return "file";
   if (value === "folder") return "folder";
   throw new EditableLayerError("Publication resource type is invalid.", 400);
-}
-
-function stableResourceId(
-  connectorId: string,
-  rootId: string,
-  spaceId: string,
-  path: string,
-) {
-  const digest = createHash("sha256")
-    .update(JSON.stringify({ connectorId, path, rootId, spaceId }))
-    .digest("hex");
-  return `source:${digest}`;
 }

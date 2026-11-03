@@ -21,6 +21,118 @@ afterEach(() => {
 });
 
 describe("workflow components", () => {
+  it("recovers a lost Save as an unpublished Draft while retaining its prior immutable version", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "PATCH") throw new Error("Lost Save response");
+      return jsonResponse({
+        definition: definition({
+          name: "Reviewed saved draft",
+          status: "Draft",
+          active_version_id: "prior-version",
+        }),
+        runs: [],
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <ProcessDefinitionDetailClient
+        canEdit
+        initialDefinition={definition({
+          status: "Active",
+          active_version_id: "prior-version",
+        })}
+        initialRuns={[]}
+      />,
+    );
+    await user.clear(screen.getByLabelText("Name"));
+    await user.type(screen.getByLabelText("Name"), "Reviewed saved draft");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(screen.getByText(/original response was not confirmed/)).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/this saved content is not published/)).toBeInTheDocument();
+    expect(screen.queryByText(/and has an active version/)).not.toBeInTheDocument();
+    expect(screen.getByText("Prior immutable version:")).toBeInTheDocument();
+    expect(screen.queryByText("Active immutable version:")).not.toBeInTheDocument();
+    expect(screen.getByText("prior-version")).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveValue("Reviewed saved draft");
+    expect(
+      fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH"),
+    ).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter(([, init]) => !init?.method)).toHaveLength(1);
+    expect(
+      fetchMock.mock.calls.filter(([, init]) => init?.method === "POST"),
+    ).toHaveLength(0);
+  });
+
+  it("reconciles a lost publication response by a read without publishing a second version", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith("/publish")) throw new Error("Lost response");
+      return jsonResponse({
+        definition: definition({
+          status: "Active",
+          active_version_id: "recovered-version",
+        }),
+        runs: [],
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <ProcessDefinitionDetailClient
+        canEdit
+        initialDefinition={definition()}
+        initialRuns={[]}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Publish" }));
+    await waitFor(() =>
+      expect(screen.getByText(/original response was not confirmed/)).toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole("button", { name: "Publish" }));
+    expect(
+      fetchMock.mock.calls.filter(([path]) => String(path).endsWith("/publish")),
+    ).toHaveLength(1);
+    expect(screen.getByText(/No duplicate publication/)).toBeInTheDocument();
+  });
+
+  it("keeps conflicting edits and requires an actual current read before reloading", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === "PATCH")
+        return new Response(
+          JSON.stringify({ error: "The process definition changed." }),
+          { status: 409 },
+        );
+      return jsonResponse({
+        definition: definition({ name: "Concurrent saved process" }),
+        runs: [],
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <ProcessDefinitionDetailClient
+        canEdit
+        initialDefinition={definition()}
+        initialRuns={[]}
+      />,
+    );
+    await user.clear(screen.getByLabelText("Name"));
+    await user.type(screen.getByLabelText("Name"), "My unsaved process");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save" })).toBeDisabled(),
+    );
+    expect(screen.getByLabelText("Name")).toHaveValue("My unsaved process");
+    await user.click(
+      screen.getByRole("button", { name: "Load current saved definition" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByLabelText("Name")).toHaveValue("Concurrent saved process"),
+    );
+    expect(fetchMock.mock.calls.filter(([, init]) => !init?.method)).toHaveLength(2);
+  });
   it("publishes validated process definitions without an approval detour", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {

@@ -113,7 +113,13 @@ import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import { readArtifactIntakeManifest } from "@/lib/firestore/lease-artifact-intake";
 import { readFamilyUseRecord } from "@/lib/firestore/lease-artifact-family-use";
 import { resolveFamilyUse } from "@/lib/lease-documents/family-use";
-import { projectLeasePacketReadiness } from "@/lib/lease-documents/lease-packet-readiness";
+import {
+  projectLeasePacketReadiness,
+  projectPacketContextReadiness,
+} from "@/lib/lease-documents/lease-packet-readiness";
+import { resolveDisplayedPacketInput } from "@/lib/lease-documents/live-input";
+import { evaluateRenewalPacket } from "@/lib/lease-documents/evaluate-packet";
+import { LEASE_ARTIFACT_FAMILIES } from "@/lib/lease-documents/artifact-catalog";
 import { LeasePacketReadiness } from "@/components/lease-renewal/LeasePacketReadiness";
 import { ReturnedDocumentsPanel } from "@/components/lease-renewal/ReturnedDocumentsPanel";
 import { resolveReturnedState } from "@/lib/lease-documents/returned-state-service";
@@ -300,17 +306,44 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const progress = renewalAuxiliaryValue(progressRead, null);
   const packetSnapshot = packetRead.status === "available" ? packetRead.value : undefined;
   // S235 R-S235-1: read-only per-family readiness; both reads report unreadable instead of throwing.
-  const [artifactManifest, familyUseRead] = await Promise.all([
+  const [artifactManifest, familyUseRead, currentPacketRead] = await Promise.all([
     readArtifactIntakeManifest(),
     readFamilyUseRecord(),
+    leaseSnapshotAttempt?.status === "available"
+      ? resolveDisplayedPacketInput(
+          user,
+          leaseId,
+          leaseId,
+          readTimestamp,
+          leaseSnapshotAttempt.value.snapshot.views,
+        ).catch(() => null)
+      : Promise.resolve(null),
   ]);
+  const currentFamilyUse = resolveFamilyUse(familyUseRead.record, readTimestamp);
+  // This display-only evaluation uses current private facts and this render's already-read source.
+  // It neither saves a packet nor weakens the independent fresh-source admission of an effect.
+  const currentPacketEvaluation = currentPacketRead
+    ? evaluateRenewalPacket({
+        ...currentPacketRead.input,
+        catalog: {
+          ...currentPacketRead.input.catalog,
+          requirements: [...LEASE_ARTIFACT_FAMILIES],
+          ...(familyUseRead.readable ? { familyUse: currentFamilyUse } : {}),
+        },
+      })
+    : null;
   const packetFamilyRows = projectLeasePacketReadiness({
     manifest: artifactManifest,
-    evaluation: packetSnapshot ?? null,
+    evaluation: currentPacketEvaluation,
     familyUse: {
       readable: familyUseRead.readable,
-      families: resolveFamilyUse(familyUseRead.record, readTimestamp),
+      families: currentFamilyUse,
     },
+  });
+  const packetContextReadiness = projectPacketContextReadiness({
+    evaluation: currentPacketEvaluation,
+    observedAt: currentPacketRead ? readTimestamp : null,
+    savedSnapshot: packetSnapshot ?? null,
   });
   // S236: returned documents and who still must sign, from staff records. A failed read shows as
   // unreadable, never as nothing recorded.
@@ -697,6 +730,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
             }
             packetReadinessPanel={
               <LeasePacketReadiness
+                context={packetContextReadiness}
                 rows={packetFamilyRows}
                 selection={selectionFreshness}
               />

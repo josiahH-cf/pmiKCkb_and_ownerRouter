@@ -1,4 +1,8 @@
 import type { Role } from "@/lib/auth/roles";
+import {
+  isCurrentDecisionItem,
+  type CurrentDecisionProvenance,
+} from "@/lib/approval/current-work-eligibility";
 import type {
   ApprovalQueueItemRecord,
   QueueAudienceGroup,
@@ -83,7 +87,8 @@ export function queueActionAvailability(
   item: Pick<
     ApprovalQueueItemRecord,
     "action_execution_id" | "assignee_uid" | "required_approver_uid" | "status"
-  >,
+  > &
+    CurrentDecisionProvenance,
 ): ApprovalQueueActionAvailability {
   const terminal = isQueueItemTerminal(item.status);
   const isAdmin = actor.role === "Admin";
@@ -93,13 +98,16 @@ export function queueActionAvailability(
   const isRequiredApprover = item.required_approver_uid === actor.uid;
   const isOwnAssignedItem = item.assignee_uid === actor.uid;
 
-  if (terminal) {
+  if (terminal || !isCurrentDecisionItem(item)) {
+    const reason = terminal
+      ? "This queue item is already closed."
+      : "This record is retained history; its operation is retired or its lifecycle is closed/superseded.";
     return {
       approve: false,
-      approveReason: "This queue item is already closed.",
+      approveReason: reason,
       assign: false,
       deny: false,
-      denyReason: "This queue item is already closed.",
+      denyReason: reason,
       disable: false,
       returnForRevision: false,
       snooze: false,

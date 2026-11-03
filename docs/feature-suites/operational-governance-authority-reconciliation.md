@@ -3,7 +3,7 @@
 
 # S183 — Operational governance and authority reconciliation
 
-> Status: READY — finalized authoring contract; not implemented, queued, activated or released by this specification. Execution requires explicit owner direction under the existing native loop.
+> Status: READY — historical authoring state. October program baseline is delivered within its recorded scope and amended by S227–S229. The current S238 follow-up reconciles residual guidance/validator defects; this row does not restart the historical program. Exact activation, runtime, provider and human evidence remain separate.
 
 **Goal.**
 
@@ -11,11 +11,16 @@ Make the requested ordinary staff work and reviewed workflow communications poss
 
 **Current state / intended end state.**
 
-Current: The current router permanently forbids scheduled/client-facing sends and ends renewal/maintenance initiation at an unsent Gmail draft. Exact send and several vendor/provider keys are closed. Existing renewal controls still carry categorical and repeated approval barriers. These are current rules, not the desired product outcome. The October owner directions explicitly request in-app sending, a schedule approved once, and ordinary authorized edits with less toil.
+Current: The October 20 amendment supports exact staff-confirmed renewal Send/Schedule/Resume and
+linked replies, with fresh current-policy authorizations and the existing one-attempt/readback
+gates. Maintenance/intake/Vendor operational work is retired; Vendoroo remains standalone.
+Generic/model-triggered/bulk or unapproved background sends remain unavailable. Historical
+pre-activation or unsent-only prose is not current authority. S238 owns the remaining guidance,
+validator and evidence-state reconciliation in the newly launched implementation plan.
 
 Intended: One coherent operation-level contract distinguishes app-owned edits, human-requested provider updates, user-approved scheduled sends, model answers, and genuinely unavailable effects. Router, policy documentation, server controls and user controls agree about that contract.
 
-The current implementation baseline was inspected in the clean WSL main checkout at
+The original October 8 implementation baseline was inspected in the clean WSL main checkout at
 `43bad3adc7777ea035bc70eb8d2bee913427c810`; production readback identified the October 8
 serving revision `pmi-kc-app-rmuz9g28p-0a2909d490e1` at
 `337ac163c5709381e8db8d2c18810bec357d8a96`. The Windows authoring checkout is older and contains

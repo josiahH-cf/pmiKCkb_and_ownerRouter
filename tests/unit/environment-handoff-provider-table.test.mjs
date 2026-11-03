@@ -10,6 +10,7 @@ const handoff = read("docs/environment-handoff.md");
 const integrations = read("docs/integration-architecture.md");
 const checklist = read("docs/client-checklist.md");
 const normalizedIntegrations = integrations.replace(/\s+/g, " ");
+const normalizedChecklist = checklist.replace(/\s+/g, " ");
 
 const CURRENT_PROVIDERS = [
   "RentVine",
@@ -81,8 +82,12 @@ describe("current provider and environment documentation", () => {
     expect(checklist).toContain("S98's bounded operating-Sheet proof is complete");
     expect(checklist).toContain("designated proof lease must not be reused");
     expect(checklist).toContain("never create a fake person, lease, work");
-    expect(checklist).toContain("maintenance proof is retired");
-    expect(checklist).toContain("asking anyone to repeat setup");
+    expect(normalizedChecklist).toContain(
+      "Custom maintenance, resident intake, operational Vendor work and remaining maintenance proofs are retired",
+    );
+    expect(normalizedChecklist).toContain(
+      "No repeat membership, credential, template recreation or status-choice ask is needed",
+    );
     expect(checklist).not.toContain("active API plan");
     expect(checklist).not.toContain("Q-RENTCAST-ACCOUNT-403");
   });

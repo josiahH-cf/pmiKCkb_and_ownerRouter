@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { can } from "@/lib/auth/roles";
 import { primarySpaceHref, requirePageCapability } from "@/lib/auth/page-guards";
 import {
-  getProcessDefinition,
   getWorkflowRun,
+  getWorkflowRunDefinition,
   listWorkflowRunTimeline,
 } from "@/lib/firestore/workflows";
 import { listStepChecksForRun } from "@/lib/firestore/workflow-run-step-checks";
@@ -42,11 +42,24 @@ export default async function WorkflowRunPage({ params }: WorkflowRunPageProps) 
     redirect(primarySpaceHref());
   }
 
+  if (run && isRetiredMaintenanceWorkflow(run.space_id, run.definition_id)) {
+    return (
+      <AppShell user={user}>
+        <section className="content">
+          <h1 className="section-title">Workflow Run</h1>
+          <article className="panel">
+            <p>{MAINTENANCE_RETIREMENT_MESSAGE}</p>
+          </article>
+        </section>
+      </AppShell>
+    );
+  }
+
   if (run) {
     try {
       const [loadedTimeline, definition, loadedChecks] = await Promise.all([
         listWorkflowRunTimeline(user, runId),
-        getProcessDefinition(user, run.definition_id),
+        getWorkflowRunDefinition(user, run),
         listStepChecksForRun(user, runId),
       ]);
       timeline = loadedTimeline;
@@ -67,8 +80,9 @@ export default async function WorkflowRunPage({ params }: WorkflowRunPageProps) 
         {loadError || !run ? (
           <article className="panel">
             <p className="muted">
-              This workflow run is unavailable. Refresh Google credentials or check
-              Firestore setup.
+              This workflow run or its saved process version is unavailable. Reload or
+              check the saved run and version; a current definition is not substituted for
+              missing published content.
             </p>
           </article>
         ) : (

@@ -530,6 +530,8 @@ export interface ApprovalQueueNotificationHealth {
 
 export interface ProcessDefinitionRecord {
   id: string;
+  /** Server-computed read binding; never persisted as process content. */
+  revision?: string;
   space_id?: string;
   name: string;
   short_outcome: string;

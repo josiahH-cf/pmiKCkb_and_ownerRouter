@@ -19,6 +19,7 @@ import {
   createProcessDefinition,
   getProcessDefinition,
   getWorkflowRun,
+  getWorkflowRunDefinition,
   listProcessDefinitions,
   listWorkflowRunTimeline,
   listWorkflowRuns,
@@ -37,6 +38,7 @@ vi.mock("@/lib/firestore/workflows", () => ({
   createProcessDefinition: vi.fn(),
   getProcessDefinition: vi.fn(),
   getWorkflowRun: vi.fn(),
+  getWorkflowRunDefinition: vi.fn(),
   listProcessDefinitions: vi.fn(),
   listWorkflowRunTimeline: vi.fn(),
   listWorkflowRuns: vi.fn(),
@@ -51,6 +53,7 @@ afterEach(() => {
   vi.mocked(createProcessDefinition).mockReset();
   vi.mocked(getProcessDefinition).mockReset();
   vi.mocked(getWorkflowRun).mockReset();
+  vi.mocked(getWorkflowRunDefinition).mockReset();
   vi.mocked(listProcessDefinitions).mockReset();
   vi.mocked(listWorkflowRunTimeline).mockReset();
   vi.mocked(listWorkflowRuns).mockReset();
@@ -207,6 +210,46 @@ describe("workflow API routes", () => {
       "run-1",
       { action: "complete", notes: "Completed." },
     );
+  });
+
+  it("refuses a machine-retired run before reading its version or timeline bodies", async () => {
+    setEditor();
+    vi.mocked(getWorkflowRun).mockResolvedValue(
+      workflowRun({
+        definition_id: "maintenance-work-order-intake",
+        space_id: "maintenance",
+      }),
+    );
+    const response = await GET_RUN(
+      new Request("http://localhost/api/workflow-runs/run-1"),
+      runContext("run-1"),
+    );
+    expect(response.status).toBe(410);
+    expect(getWorkflowRunDefinition).not.toHaveBeenCalled();
+    expect(listWorkflowRunTimeline).not.toHaveBeenCalled();
+  });
+
+  it("reports an unavailable pinned process version without substituting mutable content", async () => {
+    setEditor();
+    vi.mocked(getWorkflowRun).mockResolvedValue(
+      workflowRun({ definition_version_id: "missing-version" }),
+    );
+    const { EditableLayerError } = await import("@/lib/firestore/errors");
+    vi.mocked(getWorkflowRunDefinition).mockRejectedValue(
+      new EditableLayerError(
+        "This run's immutable process version is unavailable or inconsistent. No current definition was substituted.",
+        409,
+      ),
+    );
+    const response = await GET_RUN(
+      new Request("http://localhost/api/workflow-runs/run-1"),
+      runContext("run-1"),
+    );
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toMatchObject({
+      error: expect.stringContaining("No current definition was substituted"),
+    });
+    expect(listWorkflowRunTimeline).not.toHaveBeenCalled();
   });
 
   it("rejects invalid workflow run outcome payloads", async () => {

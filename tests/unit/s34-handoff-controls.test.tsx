@@ -12,6 +12,7 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RenewalDocumentHandoff } from "@/components/lease-renewal/RenewalDocumentHandoff";
+import { projectPacketOperationReadiness } from "@/lib/lease-renewal/execution/packet-operation-readiness";
 
 // S34 (AC-S34-5, AC-S34-7, AC-S34-9, AC-S34-10): the mounted loop choice, version, refresh and
 // staff-report controls. Values are synthetic; every effect is a recorded request only.
@@ -92,6 +93,47 @@ const linked = {
 };
 
 describe("S34 loop choice and document versions", () => {
+  it("shows content, connection, target and authority separately while both keys stay closed", async () => {
+    const operation = (actionKey: string) =>
+      projectPacketOperationReadiness({
+        actionKey,
+        contentBlockers: ["Current approved original still needs review."],
+        connectionBlockers: [],
+        targetBlockers: [],
+        authority: {
+          state: "closed",
+          label: "Exact-key activation remains a separate authority hold",
+          reasons: [`${actionKey} remains closed.`],
+        },
+      });
+    const fetchRead = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      expect(init?.body).toBeUndefined();
+      return Response.json(
+        handoff({
+          operations: {
+            create: operation("dotloop.loop.create_from_template"),
+            upload: operation("dotloop.document.upload"),
+          },
+        }),
+      );
+    });
+    vi.stubGlobal("fetch", fetchRead);
+    render(<RenewalDocumentHandoff />);
+    const create = await screen.findByRole("region", { name: "Loop creation readiness" });
+    expect(
+      within(create).getByText("Managed connection and selected resource ready"),
+    ).toBeVisible();
+    expect(
+      within(create).getByText("Packet content or approval needs attention"),
+    ).toBeVisible();
+    expect(
+      within(create).getByText("Exact-key activation remains a separate authority hold"),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Preview exact Dotloop packet creation" }),
+    ).toBeDisabled();
+    expect(fetchRead).toHaveBeenCalled();
+  });
   it("reviews and links an existing loop, requiring confirmation to reuse it from an earlier cycle", async () => {
     const posts: Record<string, unknown>[] = [];
     vi.stubGlobal(

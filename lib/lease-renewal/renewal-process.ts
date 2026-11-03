@@ -321,23 +321,24 @@ const PROCESS_DEFINITION: RenewalProcessDefinition = {
         }),
         substep({
           id: "create-owner-draft",
-          label: "Exact-preview and create one unsent owner Gmail draft",
+          label: "Legacy Gmail draft checkpoint: create one reviewed owner draft",
           responsibleRole: "Renewal operator",
           completionRule: "The exact unsent-draft receipt matches the reviewed inputs.",
           requiredEvidence: ["owner-draft-receipt"],
           prerequisiteEvidence: ["owner-copy-version", "renewal-recipients"],
-          nextAction: "Review and exact-confirm one unsent owner Gmail draft.",
+          nextAction:
+            "For this legacy checkpoint, review and exact-confirm one unsent Gmail draft. Current Communications Send/Schedule keeps its own evidence and does not automatically complete this checkpoint.",
         }),
         substep({
           id: "observe-owner-send",
-          label: "Observe the human-sent owner message from Gmail",
+          label: "Legacy Gmail draft checkpoint: observe the sent owner message",
           responsibleRole: "Human sender / Renewal operator",
           completionRule:
-            "Linked Gmail evidence proves a person sent the reviewed message.",
+            "Linked Gmail evidence records the actual send of the reviewed draft; it does not prove recipient delivery or acceptance.",
           requiredEvidence: ["owner-message-sent"],
           prerequisiteEvidence: ["owner-draft-receipt"],
           nextAction:
-            "A person sends from Gmail; then deliberately refresh the linked thread.",
+            "If using this legacy checkpoint, send the reviewed draft from Gmail and deliberately refresh its linked thread. A Communications send has separate evidence; do not duplicate a sent message to complete this checkpoint.",
         }),
         substep({
           id: "record-owner-response",
@@ -405,24 +406,25 @@ const PROCESS_DEFINITION: RenewalProcessDefinition = {
         }),
         substep({
           id: "create-tenant-draft",
-          label: "Exact-preview and create one unsent tenant Gmail draft",
+          label: "Legacy Gmail draft checkpoint: create one reviewed tenant draft",
           responsibleRole: "Renewal operator",
           completionRule:
             "The exact unsent-draft receipt matches current recipients, facts, and copy.",
           requiredEvidence: ["tenant-draft-receipt"],
           prerequisiteEvidence: ["tenant-copy-version", "tenant-recipients"],
-          nextAction: "Review and exact-confirm one unsent tenant Gmail draft.",
+          nextAction:
+            "For this legacy checkpoint, review and exact-confirm one unsent Gmail draft. Current Communications Send/Schedule keeps its own evidence and does not automatically complete this checkpoint.",
         }),
         substep({
           id: "observe-tenant-send",
-          label: "Observe the human-sent tenant message from Gmail",
+          label: "Legacy Gmail draft checkpoint: observe the sent tenant message",
           responsibleRole: "Human sender / Renewal operator",
           completionRule:
-            "Linked Gmail evidence proves a person sent the reviewed message.",
+            "Linked Gmail evidence records the actual send of the reviewed draft; it does not prove recipient delivery or acceptance.",
           requiredEvidence: ["tenant-message-sent"],
           prerequisiteEvidence: ["tenant-draft-receipt"],
           nextAction:
-            "A person sends from Gmail; then deliberately refresh the linked thread.",
+            "If using this legacy checkpoint, send the reviewed draft from Gmail and deliberately refresh its linked thread. A Communications send has separate evidence; do not duplicate a sent message to complete this checkpoint.",
         }),
         substep({
           id: "refresh-contact-truth",

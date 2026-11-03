@@ -37,6 +37,8 @@ import {
   PDFRawStream,
   PDFRef,
   PDFStream,
+  PDFString,
+  PDFHexString,
   StandardFontEmbedder,
   StandardFonts,
   decodePDFRawStream,
@@ -47,6 +49,7 @@ import {
   compareFixedObjects,
   fixedObjects,
   parseSafePdf,
+  readAcroformValues,
   reachableObjects,
   saveReachable,
 } from "@/lib/lease-documents/acroform-pdf";
@@ -414,6 +417,67 @@ function standardWidths(standard: StandardFonts, glyphs: GlyphTable | null) {
   };
 }
 
+/** PDF Reference 5.9.1: declared simple-font encodings precede any font-name heuristic. */
+function declaredTrueTypeGlyphs(pdf: PDFDocument, font: PDFDict): GlyphTable | null {
+  const subtype = lookup(pdf, font.get(PDFName.of("Subtype")));
+  const descriptor = lookup(pdf, font.get(PDFName.of("FontDescriptor")));
+  const flags =
+    descriptor instanceof PDFDict
+      ? numberAt(pdf, descriptor.get(PDFName.of("Flags")))
+      : null;
+  if (
+    !(subtype instanceof PDFName) ||
+    subtype.decodeText() !== "TrueType" ||
+    flags === null ||
+    !Number.isInteger(flags) ||
+    !(flags & 32) ||
+    flags & 4
+  )
+    return null;
+  const encoding = lookup(pdf, font.get(PDFName.of("Encoding")));
+  if (encoding instanceof PDFName)
+    return encoding.decodeText() === "WinAnsiEncoding"
+      ? shippedTable(StandardFonts.Helvetica)
+      : null;
+  if (!(encoding instanceof PDFDict)) return null;
+  const base = lookup(pdf, encoding.get(PDFName.of("BaseEncoding")));
+  if (
+    base !== undefined &&
+    (!(base instanceof PDFName) || base.decodeText() !== "WinAnsiEncoding")
+  )
+    return null;
+  // Absence of BaseEncoding does not supply any codes. Only explicit Differences can do so.
+  const result = base
+    ? new Map(shippedTable(StandardFonts.Helvetica))
+    : new Map<number, { name: string; text: string }>();
+  const differences = lookup(pdf, encoding.get(PDFName.of("Differences")));
+  if (!(differences instanceof PDFArray)) return null;
+  const names = new Map<string, string>();
+  for (const item of [
+    ...shippedTable(StandardFonts.Helvetica).values(),
+    ...shippedTable(StandardFonts.Symbol).values(),
+  ])
+    if (!names.has(item.name)) names.set(item.name, item.text);
+  // Adobe Glyph List: nonbreakingspace;00A0. This is a named mapping, not an inferred base.
+  names.set("nonbreakingspace", "\u00a0");
+  let code = -1;
+  for (const item of differences.asArray()) {
+    const value = lookup(pdf, item);
+    if (
+      value instanceof PDFNumber &&
+      Number.isInteger(value.asNumber()) &&
+      value.asNumber() >= 0 &&
+      value.asNumber() < 256
+    )
+      code = value.asNumber();
+    else if (value instanceof PDFName && code >= 0 && code < 256) {
+      const name = value.decodeText();
+      result.set(code++, { name, text: names.get(name) ?? "?" });
+    } else return null;
+  }
+  return result;
+}
+
 /** The fill's own Helvetica, measured glyph by glyph as a shown string is drawn: never kerned. */
 let fillWidths: ((code: number) => number | null) | null = null;
 function fillWidth(encoded: Uint8Array, fontSize: number): number | null {
@@ -483,7 +547,7 @@ const STANDARD_FONTS: Readonly<Record<string, StandardFonts>> = {
   ZapfDingbats: StandardFonts.ZapfDingbats,
 };
 
-function fontMetrics(pdf: PDFDocument, font: PDFDict): FontMetrics {
+function fontMetrics(pdf: PDFDocument, font: PDFDict, strictText = false): FontMetrics {
   const subtype = (
     lookup(pdf, font.get(PDFName.of("Subtype"))) as PDFName | undefined
   )?.decodeText();
@@ -491,12 +555,33 @@ function fontMetrics(pdf: PDFDocument, font: PDFDict): FontMetrics {
   const toUnicode = toUnicodeStream
     ? parseToUnicode(streamBytes(toUnicodeStream, "a font's text map"))
     : null;
+  const baseName = (lookup(pdf, font.get(PDFName.of("BaseFont"))) as PDFName | undefined)
+    ?.decodeText()
+    .replace(/^[A-Z]{6}\+/, "");
+  const knownStandard = baseName ? STANDARD_FONTS[baseName] : undefined;
+  const strictGlyphs = strictText
+    ? knownStandard
+      ? standardGlyphs(pdf, font, knownStandard)
+      : declaredTrueTypeGlyphs(pdf, font)
+    : null;
+  const complete = (text: string | undefined, knownQuestion = false) => {
+    if (strictText && (text === undefined || (text === "?" && !knownQuestion)))
+      refuse("publication text includes a glyph without a complete decoded mapping.");
+    return text ?? "?";
+  };
   const decodeSimple = (codes: readonly number[]) =>
     codes
       .map(
         (code) =>
           toUnicode?.get(code) ??
-          (code >= 32 && code < 127 ? String.fromCharCode(code) : "?"),
+          (strictText
+            ? complete(
+                strictGlyphs?.get(code)?.text,
+                strictGlyphs?.get(code)?.name === "question",
+              )
+            : code >= 32 && code < 127
+              ? String.fromCharCode(code)
+              : "?"),
       )
       .join("");
   if (subtype === "Type0") {
@@ -538,7 +623,10 @@ function fontMetrics(pdf: PDFDocument, font: PDFDict): FontMetrics {
     return {
       twoByte: true,
       width: (code) => (widths.get(code) ?? defaultWidth) / 1000,
-      decode: (codes) => codes.map((code) => toUnicode?.get(code) ?? "?").join(""),
+      decode: (codes) =>
+        codes
+          .map((code) => complete(toUnicode?.get(code), toUnicode?.get(code) === "?"))
+          .join(""),
     };
   }
   const firstChar = numberAt(pdf, font.get(PDFName.of("FirstChar"))) ?? 0;
@@ -584,7 +672,12 @@ function fontMetrics(pdf: PDFDocument, font: PDFDict): FontMetrics {
     width: standardWidths(standard, glyphs),
     decode: (codes) =>
       codes
-        .map((code) => toUnicode?.get(code) ?? glyphs?.get(code)?.text ?? "?")
+        .map((code) =>
+          complete(
+            toUnicode?.get(code) ?? glyphs?.get(code)?.text,
+            toUnicode?.get(code) === "?" || glyphs?.get(code)?.name === "question",
+          ),
+        )
         .join(""),
   };
 }
@@ -786,7 +879,7 @@ function readStructureReplacement(pdf: PDFDocument): Map<string, Set<number>> | 
   return byPage;
 }
 
-function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
+function readPage(pdf: PDFDocument, page: PDFPage, strictText = false): PageReading {
   const resources = inheritedResources(pdf, page);
   const fontDict = resources ? lookup(pdf, resources.get(PDFName.of("Font"))) : null;
   const xobjects = resources ? lookup(pdf, resources.get(PDFName.of("XObject"))) : null;
@@ -827,7 +920,7 @@ function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
       const font =
         fontDict instanceof PDFDict ? lookup(pdf, fontDict.get(PDFName.of(key))) : null;
       if (!(font instanceof PDFDict)) refuse(`page text uses an undefined font ${key}.`);
-      fonts.set(key, fontMetrics(pdf, font));
+      fonts.set(key, fontMetrics(pdf, font, strictText));
     }
     return fonts.get(key)!;
   };
@@ -923,6 +1016,8 @@ function readPage(pdf: PDFDocument, page: PDFPage): PageReading {
       if (item.kind !== "string") refuse("a malformed text operator.");
       const bytes = item.bytes!;
       const step = font.twoByte ? 2 : 1;
+      if (strictText && bytes.length % step)
+        refuse("publication text contains an incomplete composite glyph.");
       for (let k = 0; k + step - 1 < bytes.length; k += step) {
         const code = font.twoByte ? bytes[k] * 256 + bytes[k + 1] : bytes[k];
         codes.push(code);
@@ -1283,6 +1378,244 @@ export interface StaticInspection {
 /** Page geometry and text positions of an approved static original, for reviewing a map. */
 export function inspectStaticPdf(original: Uint8Array): Promise<StaticInspection> {
   return bounded(() => inspect(original));
+}
+
+/** Classify only declared ICCBased RGB profiles and bounded nontext Type3 vector programs. */
+function publicationAuxiliaryStreams(pdf: PDFDocument): ReadonlyMap<PDFStream, string> {
+  const accepted = new Map<PDFStream, string>();
+  const icc = (stream: unknown) => {
+    if (!(stream instanceof PDFStream))
+      refuse("an ICCBased profile stream is unreadable.");
+    const bytes = streamBytes(stream, "an ICCBased profile");
+    const alternate = lookup(pdf, stream.dict.get(PDFName.of("Alternate")));
+    if (
+      numberAt(pdf, stream.dict.get(PDFName.of("N"))) !== 3 ||
+      bytes.length < 144 ||
+      bytes.length > 64 * 1024 ||
+      (alternate !== undefined &&
+        (!(alternate instanceof PDFName) || alternate.decodeText() !== "DeviceRGB"))
+    )
+      refuse("an ICCBased profile is outside the supported RGB bound.");
+    const data = Buffer.from(bytes);
+    if (
+      data.readUInt32BE(0) !== data.length ||
+      data.toString("ascii", 16, 20) !== "RGB " ||
+      data.toString("ascii", 20, 24) !== "XYZ " ||
+      data.toString("ascii", 36, 40) !== "acsp"
+    )
+      refuse("an ICCBased profile header does not match its declared RGB/XYZ bytes.");
+    const count = data.readUInt32BE(128),
+      tableEnd = 132 + count * 12;
+    if (count < 1 || count > 128 || tableEnd > data.length)
+      refuse("an ICCBased profile tag table is invalid.");
+    for (let index = 0; index < count; index++) {
+      const offset = data.readUInt32BE(136 + index * 12),
+        size = data.readUInt32BE(140 + index * 12);
+      if (
+        offset < tableEnd ||
+        offset % 4 !== 0 ||
+        size < 8 ||
+        offset + size > data.length
+      )
+        refuse("an ICCBased profile tag is outside its exact declared bytes.");
+    }
+    // Binary color data is not general DLP; readable ASCII markers still reach the tripwire.
+    accepted.set(stream, data.toString("latin1"));
+  };
+  let colorVisits = 0;
+  const colorSpace = (raw: unknown, depth = 0, ancestors = new Set<unknown>()) => {
+    const value = lookup(pdf, raw);
+    if (++colorVisits > 20_000 || depth > 16 || ancestors.has(value))
+      refuse("an ICCBased ColorSpace graph exceeds its bound.");
+    const next = new Set(ancestors);
+    next.add(value);
+    if (value instanceof PDFArray) {
+      const family = lookup(pdf, value.get(0));
+      if (family instanceof PDFName && family.decodeText() === "ICCBased") {
+        if (value.size() !== 2) refuse("an ICCBased ColorSpace declaration is invalid.");
+        icc(lookup(pdf, value.get(1)));
+      }
+    } else if (value instanceof PDFDict) {
+      for (const item of value.values()) colorSpace(item, depth + 1, next);
+    }
+  };
+  const vectorArities: Readonly<Record<string, number>> = {
+    d1: 6,
+    m: 2,
+    l: 2,
+    c: 6,
+    h: 0,
+    f: 0,
+    re: 4,
+  };
+  const inspectDictionary = (dict: PDFDict) => {
+    const declaredColor = dict.get(PDFName.of("ColorSpace"));
+    if (declaredColor !== undefined) colorSpace(declaredColor);
+    const subtype = lookup(pdf, dict.get(PDFName.of("Subtype")));
+    if (!(subtype instanceof PDFName) || subtype.decodeText() !== "Type3") return;
+    const resources = lookup(pdf, dict.get(PDFName.of("Resources")));
+    const unicode = lookup(pdf, dict.get(PDFName.of("ToUnicode")));
+    const programs = lookup(pdf, dict.get(PDFName.of("CharProcs")));
+    if (
+      !(programs instanceof PDFDict) ||
+      !(unicode instanceof PDFStream) ||
+      (resources !== undefined &&
+        (!(resources instanceof PDFDict) || resources.entries().length !== 0))
+    )
+      refuse("a Type3 glyph program requires a decoded font without external resources.");
+    if (programs.entries().length > 256)
+      refuse("Type3 glyph programs exceed the supported count.");
+    for (const raw of programs.values()) {
+      const stream = lookup(pdf, raw);
+      if (!(stream instanceof PDFStream)) refuse("a Type3 glyph stream is unreadable.");
+      const bytes = streamBytes(stream, "a Type3 glyph program");
+      if (bytes.length > 64 * 1024)
+        refuse("a Type3 glyph program exceeds its byte bound.");
+      const ops = tokenizeContent(bytes);
+      if (
+        !ops.length ||
+        ops.length > 4096 ||
+        ops[0].operator !== "d1" ||
+        ops.filter((op) => op.operator === "d1").length !== 1 ||
+        ops.some(
+          (op) =>
+            vectorArities[op.operator] === undefined ||
+            op.operands.length !== vectorArities[op.operator] ||
+            op.operands.some(
+              (operand) => operand.kind !== "number" || !Number.isFinite(operand.number),
+            ),
+        )
+      )
+        refuse(
+          "a Type3 glyph program contains unsupported text, resources or nonnumeric vector operations.",
+        );
+      accepted.set(stream, new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+    }
+  };
+  // Resources may be direct dictionaries, not only separately numbered objects.
+  const seen = new Set<unknown>();
+  const discover = (raw: unknown, depth = 0) => {
+    const value = lookup(pdf, raw);
+    if (!value || typeof value !== "object" || seen.has(value)) return;
+    if (depth > 100 || seen.size > 100_000)
+      refuse("publication stream ownership exceeds its bound.");
+    seen.add(value);
+    if (value instanceof PDFStream) discover(value.dict, depth + 1);
+    else if (value instanceof PDFDict) {
+      inspectDictionary(value);
+      for (const item of value.values()) discover(item, depth + 1);
+    } else if (value instanceof PDFArray)
+      for (const item of value.asArray()) discover(item, depth + 1);
+  };
+  for (const [, object] of pdf.context.enumerateIndirectObjects()) discover(object);
+  if (accepted.size > 256)
+    refuse("publication auxiliary streams exceed their supported count.");
+  return accepted;
+}
+
+/**
+ * Complete bounded text-layer review for exact reviewed blank-original publication. Unlike the
+ * Admin geometry preview, this never truncates. Images are not OCR'd; their blank/content review
+ * remains part of the exact-source attestation, never a general PII/DLP assertion.
+ */
+export function readPublicationPdfText(original: Uint8Array): Promise<string> {
+  return bounded(async () => {
+    const { pdf, fields } = await parseSafePdf(original, true);
+    if (
+      fields.length &&
+      Object.values(await readAcroformValues(original)).some(
+        (value) => value !== "" && value !== false && value !== null,
+      )
+    )
+      refuse("a blank original contains existing form field values.");
+    const values: string[] = [];
+    let size = 0,
+      runs = 0;
+    const add = (value: string) => {
+      if (value.includes("\ufffd"))
+        refuse("publication text cannot be completely decoded.");
+      size += Buffer.byteLength(value, "utf8");
+      if (size > 2 * 1024 * 1024)
+        refuse("publication text exceeds its complete-review bound.");
+      values.push(value);
+    };
+    const pageStreams = new Set<PDFStream>();
+    for (const page of pdf.getPages()) {
+      for (const { stream } of contentRefs(pdf, page)) {
+        if (!(stream instanceof PDFStream))
+          refuse("a publication page stream is unreadable.");
+        pageStreams.add(stream);
+      }
+      const reading = readPage(pdf, page, true);
+      if (reading.objects.some((object) => object.kind === "form"))
+        refuse(
+          "publication text inside a Form XObject requires complete supported extraction.",
+        );
+      for (const run of reading.runs) {
+        if (++runs > 40_000)
+          refuse("publication text exceeds its complete-review run bound.");
+        add(run.text);
+      }
+    }
+    const fontPrograms = new Set<unknown>(),
+      textMaps = new Set<unknown>();
+    const auxiliary = publicationAuxiliaryStreams(pdf);
+    const objects = pdf.context.enumerateIndirectObjects();
+    for (const [, object] of objects) {
+      const dict = object instanceof PDFStream ? object.dict : object;
+      if (!(dict instanceof PDFDict)) continue;
+      for (const key of ["FontFile", "FontFile2", "FontFile3"])
+        fontPrograms.add(lookup(pdf, dict.get(PDFName.of(key))));
+      textMaps.add(lookup(pdf, dict.get(PDFName.of("ToUnicode"))));
+    }
+    for (const [, object] of objects) {
+      if (!(object instanceof PDFStream) || pageStreams.has(object)) continue;
+      const type = lookup(pdf, object.dict.get(PDFName.of("Type")));
+      const subtype = lookup(pdf, object.dict.get(PDFName.of("Subtype")));
+      const typeName = type instanceof PDFName ? type.decodeText() : "";
+      const subtypeName = subtype instanceof PDFName ? subtype.decodeText() : "";
+      if (subtypeName === "Form")
+        refuse(
+          "publication text in a Form XObject requires supported complete extraction.",
+        );
+      if (auxiliary.has(object)) add(auxiliary.get(object)!);
+      else if (textMaps.has(object) || typeName === "Metadata") {
+        const bytes = streamBytes(object, "publication text metadata");
+        if (bytes.byteLength > 2 * 1024 * 1024)
+          refuse("publication metadata exceeds the complete-review bound.");
+        add(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+      } else if (
+        !(
+          fontPrograms.has(object) ||
+          (typeName === "XObject" && subtypeName === "Image") ||
+          ["ObjStm", "XRef"].includes(typeName)
+        )
+      )
+        refuse(
+          "an unclassified or unreferenced stream has no complete supported text inspection.",
+        );
+      // Fonts, image pixels and structural object/xref containers are not general DLP/OCR.
+      // Parsed object strings are inspected below; exact blank-source review remains required.
+    }
+    // Include metadata, hidden field values and replacement/alternative text in parsed objects.
+    const seen = new Set<unknown>();
+    const visit = (value: unknown, depth = 0) => {
+      if (depth > 100 || seen.size > 100_000)
+        refuse("publication text graph exceeds its bound.");
+      if (!value || typeof value !== "object" || seen.has(value)) return;
+      seen.add(value);
+      if (value instanceof PDFString || value instanceof PDFHexString)
+        add(value.decodeText());
+      else if (value instanceof PDFRef) visit(pdf.context.lookup(value), depth + 1);
+      else if (value instanceof PDFDict)
+        for (const item of value.values()) visit(item, depth + 1);
+      else if (value instanceof PDFArray)
+        for (const item of value.asArray()) visit(item, depth + 1);
+      else if (value instanceof PDFStream) visit(value.dict, depth + 1);
+    };
+    for (const [, object] of objects) visit(object);
+    return values.join("\n");
+  });
 }
 
 async function inspect(original: Uint8Array): Promise<StaticInspection> {

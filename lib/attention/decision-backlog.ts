@@ -8,8 +8,12 @@ import {
 import type { AuthenticatedUser } from "@/lib/auth/session";
 
 export interface DecisionAttentionBacklog {
+  /** The observed row count, complete only when readState is complete (or a pure caller omits it). */
   count: number;
   signals: AttentionSignal[];
+  readState?: NeedsDecisionInbox["readState"];
+  unavailableFeeds?: NeedsDecisionInbox["unavailableFeeds"];
+  renewalReviewIssue?: NeedsDecisionInbox["renewalReviewIssue"];
 }
 
 export interface GatheredDecisionAttention {
@@ -29,6 +33,9 @@ export function buildDecisionAttentionBacklog(
 ): DecisionAttentionBacklog {
   return {
     count: inbox.counts.total,
+    ...(inbox.readState ? { readState: inbox.readState } : {}),
+    ...(inbox.unavailableFeeds ? { unavailableFeeds: inbox.unavailableFeeds } : {}),
+    ...(inbox.renewalReviewIssue ? { renewalReviewIssue: inbox.renewalReviewIssue } : {}),
     signals: inbox.rows.map((row) =>
       toAttentionSignal({
         lane: "decision",

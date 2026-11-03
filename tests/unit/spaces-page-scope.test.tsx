@@ -32,6 +32,31 @@ afterEach(() => {
 });
 
 describe("Spaces directory for staff", () => {
+  it("S238 A-06 shows an incomplete decision check rather than hiding an unavailable renewal count", async () => {
+    vi.mocked(requirePageCapability).mockResolvedValue({
+      uid: "editor",
+      role: "Editor",
+      email: "editor@pmikcmetro.com",
+      hd: "pmikcmetro.com",
+    });
+    vi.mocked(gatherNeedsDecisionInbox).mockResolvedValueOnce({
+      rows: [],
+      counts: { total: 0, renewalFlags: 0, writebacksAwaiting: 0, queueItems: 0 },
+      readState: "partial",
+      unavailableFeeds: ["renewal_reviews"],
+      renewalReviewIssue: {
+        code: "source_stale",
+        message: "The renewal source is stale.",
+        sourceReadAtIso: null,
+        overlayUnavailable: false,
+      },
+    } as never);
+    render(await SpacesPage());
+    expect(screen.getByText(/Decision check incomplete/)).toBeVisible();
+    expect(screen.getByText(/renewal source is stale/)).toBeVisible();
+    expect(screen.queryByText("0 waiting on you")).not.toBeInTheDocument();
+    expect(gatherNeedsDecisionInbox).toHaveBeenCalledTimes(1);
+  });
   // S167: an account with a maintenance-only allowlist used to see one Maintenance card and no
   // renewal waiting count. Every staff account now sees every directory Space.
   it("renders every launch card for an Editor, mapped to a desk or not", async () => {

@@ -63,6 +63,13 @@ describe("ordinary trusted-publication route after fixture retirement", () => {
       expect.objectContaining({ uid: "editor-1" }),
       "lease-renewals",
       "policy-live-1",
+      undefined,
+      {
+        resourceType: "file",
+        path: "sources/live-source.md",
+        fileName: "live-source.md",
+        spaceId: "lease-renewals",
+      },
     );
     expect(publishTrustedContent).toHaveBeenCalledWith(
       expect.objectContaining({ uid: "editor-1" }),
@@ -106,6 +113,13 @@ describe("ordinary trusted-publication route after fixture retirement", () => {
       admitted,
       "lease-renewals",
       "policy-live-1",
+      undefined,
+      {
+        resourceType: "file",
+        path: "sources/live-source.md",
+        fileName: "live-source.md",
+        spaceId: "lease-renewals",
+      },
     );
     expect(publishTrustedContent).toHaveBeenCalledTimes(1);
     expect(vi.mocked(publishTrustedContent).mock.calls[0]?.[0]).toEqual(admitted);

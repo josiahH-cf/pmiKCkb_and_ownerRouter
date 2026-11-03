@@ -4,8 +4,8 @@
 // gather per request and projects from the result, so the same value-free, deduped picture appears
 // everywhere and no surface can answer "Nothing" while another shows work waiting.
 //
-// Read-only and non-fatal by construction: each feed degrades independently to empty on a Firestore
-// hiccup, and only value-free fields cross out of the gather (the values stay behind each row's href).
+// Read-only and non-fatal by construction: each feed degrades independently with explicit incomplete
+// coverage, and only value-free fields cross out of the gather (values stay behind each row's href).
 
 import { canViewApprovalQueueItem } from "@/lib/approval/queue";
 import {
@@ -14,10 +14,11 @@ import {
 } from "@/lib/approval/needs-decision-inbox";
 import { buildRenewalReviewBoard } from "@/lib/approval/renewal-review";
 import { buildWritebackApprovalQueue } from "@/lib/approval/writeback-approval-queue";
-import type { AuthenticatedUser } from "@/lib/auth/session";
+import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
 import { listApprovalQueue } from "@/lib/firestore/approval-queue";
 import type { ApprovalQueueItemRecord } from "@/lib/firestore/types";
 import { loadRenewalRunViews } from "@/lib/lease-renewal/renewal-review-board";
+import { RenewalReviewUnavailableError } from "@/lib/lease-renewal/review-readiness";
 
 /**
  * Build the merged, value-free "Needs your decision" inbox for surfaces outside the Approval Queue
@@ -31,30 +32,49 @@ export async function gatherNeedsDecisionInbox(
   // failure handling so an unavailable source cannot hide the other source's decisions.
   const [queueResult, viewsResult] = await Promise.allSettled([
     listApprovalQueue(user),
-    loadRenewalRunViews(user),
+    hasSpaceAccess(user, "renewals") ? loadRenewalRunViews(user) : Promise.resolve(null),
   ]);
+  const unavailableFeeds: NonNullable<NeedsDecisionInbox["unavailableFeeds"]> = [];
   let queueItems: ApprovalQueueItemRecord[] = [];
   try {
     if (queueResult.status === "fulfilled")
       queueItems = queueResult.value.filter((item) =>
         canViewApprovalQueueItem(user, item),
       );
+    else unavailableFeeds.push("approval_queue");
   } catch {
     queueItems = [];
+    unavailableFeeds.push("approval_queue");
   }
   let renewalBoard;
   let writebackQueue;
   try {
-    if (viewsResult.status === "fulfilled") {
+    if (viewsResult.status === "fulfilled" && viewsResult.value !== null) {
       renewalBoard = buildRenewalReviewBoard(viewsResult.value);
       writebackQueue = buildWritebackApprovalQueue(viewsResult.value);
-    }
+    } else if (viewsResult.status === "rejected")
+      unavailableFeeds.push("renewal_reviews");
   } catch {
     renewalBoard = undefined;
     writebackQueue = undefined;
+    unavailableFeeds.push("renewal_reviews");
   }
 
-  return buildNeedsDecisionInbox(queueItems, renewalBoard, writebackQueue, user);
+  const eligibleFeeds = hasSpaceAccess(user, "renewals") ? 2 : 1;
+  return {
+    ...buildNeedsDecisionInbox(queueItems, renewalBoard, writebackQueue, user),
+    readState:
+      unavailableFeeds.length === 0
+        ? "complete"
+        : unavailableFeeds.length >= eligibleFeeds
+          ? "unavailable"
+          : "partial",
+    unavailableFeeds,
+    ...(viewsResult.status === "rejected" &&
+    viewsResult.reason instanceof RenewalReviewUnavailableError
+      ? { renewalReviewIssue: viewsResult.reason.issue }
+      : {}),
+  };
 }
 
 /**

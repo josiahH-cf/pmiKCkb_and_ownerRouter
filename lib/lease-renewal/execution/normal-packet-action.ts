@@ -26,6 +26,10 @@ import {
   createDotloopRuntime,
   readDotloopRuntimeReadiness,
 } from "@/lib/connections/dotloop-runtime";
+import {
+  DOTLOOP_READINESS_REASON_TEXT,
+  type DotloopReadinessReason,
+} from "@/lib/connections/dotloop-readiness";
 import { getDotloopRenewalSettings } from "@/lib/firestore/dotloop-renewal-settings";
 import { resolveLivePacketInput } from "@/lib/lease-documents/live-input";
 import {
@@ -44,7 +48,15 @@ import {
 import { LEASE_EXECUTION_DEFINITION_MAP } from "@/lib/lease-renewal/execution/matrix";
 import { DotloopRenewalExecutor } from "@/lib/lease-renewal/execution/providers";
 import { executeDotloopPacketWithS20 } from "@/lib/lease-renewal/execution/dotloop-runtime";
-import { assertProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
+import {
+  assertProductionRuntimeActionExecutable,
+  ActionNotExecutableError,
+  ActionRuntimeSuspendedError,
+} from "@/lib/operations/runtime-suspension-gate";
+import {
+  projectPacketOperationReadiness,
+  type PacketReadinessDimension,
+} from "@/lib/lease-renewal/execution/packet-operation-readiness";
 import {
   describeLoopForLease,
   linkExistingLoop,
@@ -143,12 +155,14 @@ const validator = new DotloopRenewalExecutor(
   }),
 );
 export async function currentPacketHandoff(actor: AuthenticatedUser, leaseId: string) {
-  const [sourceRead, snapshot, connectionRead] = await Promise.all([
+  const [sourceRead, snapshot, head, settings, connectionRead] = await Promise.all([
     resolveLivePacketInput(actor, leaseId, leaseId, new Date().toISOString()).then(
       (value) => ({ value }),
       () => ({ value: null }),
     ),
     getCurrentPacketSnapshot(actor, leaseId, leaseId),
+    getPacketHead(actor, leaseId, leaseId),
+    getDotloopRenewalSettings(actor),
     readDotloopRuntimeReadiness().then(
       (value) => value,
       () => ({
@@ -159,32 +173,91 @@ export async function currentPacketHandoff(actor: AuthenticatedUser, leaseId: st
   ]);
   const resolved = sourceRead.value;
   const readiness = connectionRead;
-  const blockers = resolved
+  const contentBlockers = resolved
     ? [...resolved.notices]
     : [
         "Fresh packet sources could not be read. Saved packet evidence and exact attempts are retained.",
       ];
-  if (readiness.state !== "connected")
-    blockers.push(`Dotloop connection: ${readiness.reasons.join(", ")} (S106).`);
+  if (resolved) {
+    const evaluation = evaluateRenewalPacket(resolved.input);
+    contentBlockers.push(...evaluation.blockers.map((blocker) => blocker.label));
+    if (!snapshot || !head)
+      contentBlockers.push(
+        "Evaluate and review a complete current packet before provider preview.",
+      );
+    if (snapshot && evaluation.payloadHash !== snapshot.payloadHash)
+      contentBlockers.push(
+        "Packet sources or approved terms changed. Evaluate and review a current snapshot.",
+      );
+    if (
+      resolved.ownerApproval !== "current" ||
+      resolved.workspace?.ownerResponse?.outcome !== "approved_terms"
+    )
+      contentBlockers.push(
+        "Record the owner's approval of the current Working terms before provider preview.",
+      );
+  }
+  const connectionBlockers =
+    readiness.state !== "connected"
+      ? [
+          `Dotloop connection/resource readiness: ${readiness.reasons.map((reason) => DOTLOOP_READINESS_REASON_TEXT[reason as DotloopReadinessReason] ?? reason).join(" ")} (S106).`,
+        ]
+      : [];
+  if (
+    !settings?.profileId ||
+    !settings.templateId ||
+    !settings.transactionType ||
+    !settings.initialStatus
+  )
+    connectionBlockers.push(
+      "Verify the selected Dotloop profile, template and transaction status in Connections.",
+    );
   // S34 (AC-S34-8): each operation names only its own exact key. Creating a loop needs the create
   // key; uploading into the lease's linked loop needs the upload key; preparation needs neither.
-  const keyBlocker = async (key: string) => {
+  const keyReadiness = async (key: string): Promise<PacketReadinessDimension> => {
     try {
       await assertProductionRuntimeActionExecutable(key);
-      return null;
-    } catch {
-      return `The exact ${key} action is not currently executable; its S34 activation gate remains required.`;
+      return {
+        state: "executable",
+        label:
+          "Exact key currently executable; confirmation and all other gates still apply",
+        reasons: [],
+      };
+    } catch (error) {
+      if (error instanceof ActionNotExecutableError)
+        return {
+          state: "closed",
+          label: "Exact-key activation remains a separate authority hold",
+          reasons: [
+            `The exact ${key} action is not currently executable; its S34 activation gate remains required.`,
+          ],
+        };
+      if (error instanceof ActionRuntimeSuspendedError)
+        return {
+          state: "suspended",
+          label: "Runtime suspension holds this operation",
+          reasons: [
+            `The exact ${key} action is held by the runtime suspension gate; review that hold without redispatch.`,
+          ],
+        };
+      return {
+        state: "unavailable",
+        label: "Exact action readiness could not be verified",
+        reasons: [
+          `The exact ${key} action readiness is unavailable. Preserve existing attempts and diagnose its current gate; no activation or provider effect is inferred.`,
+        ],
+      };
     }
   };
-  const [createKeyBlocker, uploadKeyBlocker] = await Promise.all([
-    keyBlocker(CREATE_KEY),
-    keyBlocker(UPLOAD_KEY),
+  const [createAuthority, uploadAuthority] = await Promise.all([
+    keyReadiness(CREATE_KEY),
+    keyReadiness(UPLOAD_KEY),
   ]);
   let association: LoopAssociation | null = null;
   try {
     association = await readLoopAssociation(leaseId);
   } catch (error) {
-    blockers.push(
+    contentBlockers.push(
       error instanceof EditableLayerError
         ? error.message
         : "The lease's Dotloop loop record could not be read.",
@@ -192,6 +265,43 @@ export async function currentPacketHandoff(actor: AuthenticatedUser, leaseId: st
   }
   const cycleId = resolved?.workspace?.cycleId ?? null;
   const target = usableLoopTarget(association, cycleId) ? association : null;
+  const bindingBlockers = (operation: PacketOperation) => {
+    if (!resolved || !snapshot || !head) return [];
+    try {
+      const binding = bindCurrentPacketForDotloop({
+        snapshot,
+        currentHead: head,
+        catalog: resolved.input.catalog,
+        confirmedPayloadHash: snapshot.payloadHash,
+        operation,
+      });
+      const reasons =
+        binding.templateRef === settings?.templateId
+          ? []
+          : ["The approved form catalog and selected Dotloop template differ."];
+      for (const ref of binding.participantRefs) {
+        const matches = resolved.contacts.filter(
+          (contact) => contact.participantRef === ref,
+        );
+        if (
+          matches.length !== 1 ||
+          !matches[0].fullName.trim() ||
+          !matches[0].email.includes("@") ||
+          !(DOTLOOP_PARTICIPANT_ROLES as readonly string[]).includes(matches[0].role)
+        )
+          reasons.push(
+            "Each required signer needs one reviewed name, email and documented Dotloop role in Packet inputs.",
+          );
+      }
+      return reasons;
+    } catch (error) {
+      return [
+        error instanceof EditableLayerError
+          ? error.message
+          : "The exact packet-to-Dotloop content binding could not be verified.",
+      ];
+    }
+  };
   const included = (resolved?.input.catalog.artifacts ?? []).filter((a) =>
     snapshot?.manifest?.includedArtifacts.some((i) => i.artifactId === a.artifactId),
   );
@@ -240,7 +350,6 @@ export async function currentPacketHandoff(actor: AuthenticatedUser, leaseId: st
     };
   });
   const createBlockers = [
-    ...(createKeyBlocker ? [createKeyBlocker] : []),
     ...(association?.state === "current"
       ? [
           association.cycleId === cycleId
@@ -254,11 +363,31 @@ export async function currentPacketHandoff(actor: AuthenticatedUser, leaseId: st
         : []),
   ];
   const uploadBlockers = [
-    ...(uploadKeyBlocker ? [uploadKeyBlocker] : []),
     ...(target
       ? []
       : ["Create or link this lease's Dotloop loop before uploading documents."]),
+    ...(target && target.profileId !== settings?.profileId
+      ? [
+          "The linked loop belongs to a different Dotloop profile than the one selected in Connections.",
+        ]
+      : []),
   ];
+  const createContent = [
+    ...new Set([...contentBlockers, ...bindingBlockers("loop_create")]),
+  ];
+  const uploadContent = [
+    ...new Set([
+      ...contentBlockers,
+      ...bindingBlockers("document_upload"),
+      ...documentStatus
+        .filter((document) => document.status === "filled_output_needed")
+        .map(
+          (document) =>
+            `${document.label}: prepare, inspect and approve the filled PDF before upload.`,
+        ),
+    ]),
+  ];
+  const blockers = [...new Set([...contentBlockers, ...connectionBlockers])];
   const saved = await getAdminFirestore()
     .collection(PACKET_ACTION_SNAPSHOTS)
     .where("leaseId", "==", leaseId)
@@ -291,8 +420,20 @@ export async function currentPacketHandoff(actor: AuthenticatedUser, leaseId: st
     readiness,
     blockers,
     operations: {
-      create: { actionKey: CREATE_KEY, blockers: createBlockers },
-      upload: { actionKey: UPLOAD_KEY, blockers: uploadBlockers },
+      create: projectPacketOperationReadiness({
+        actionKey: CREATE_KEY,
+        contentBlockers: createContent,
+        connectionBlockers,
+        targetBlockers: createBlockers,
+        authority: createAuthority,
+      }),
+      upload: projectPacketOperationReadiness({
+        actionKey: UPLOAD_KEY,
+        contentBlockers: uploadContent,
+        connectionBlockers,
+        targetBlockers: uploadBlockers,
+        authority: uploadAuthority,
+      }),
     },
     association: associationView(association, cycleId),
     propertyAddress: loopPropertyAddress(resolved?.inputs),

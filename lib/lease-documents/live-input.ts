@@ -51,6 +51,7 @@ import { resolveStoredDataMode } from "@/lib/data-mode";
 import type { PacketEvaluationInput } from "./packet-types";
 import type { PacketInputsRecord } from "./packet-inputs";
 import type { RenewalWorkingRecord } from "@/lib/lease-renewal/working-record";
+import type { RawLease } from "@/lib/integrations/rentvine/client";
 export const PACKET_SOURCE_COLLECTIONS = {
   catalog: "lease_artifact_catalogs",
   sources: "lease_document_source_mappings",
@@ -90,12 +91,60 @@ export async function resolveLivePacketInput(
       "RentVine is unavailable; retained packet evidence remains visible.",
       409,
     );
+  return resolvePacketInputFromViews(
+    actor,
+    leaseId,
+    transactionId,
+    observedAt,
+    requireCurrentLeaseViews(
+      withRenewalNoticeAdmission(actor, config.rentvineClient, db),
+      Date.now(),
+    ),
+    db,
+  );
+}
+
+/**
+ * S235 A03: reuse the page's already-admitted current source. Unlike effect admission, this
+ * display entry does not construct/read a provider, observe notice metadata, or save a snapshot.
+ * It still resolves current private records and validates exact active publications below.
+ */
+export async function resolveDisplayedPacketInput(
+  actor: AuthenticatedUser,
+  leaseId: string,
+  transactionId: string,
+  observedAt: string,
+  views: readonly RawLease[],
+  db: Firestore = getAdminFirestore(),
+) {
+  if (transactionId !== leaseId)
+    throw new EditableLayerError(
+      "The normal packet must belong to this exact lease workspace.",
+      409,
+    );
+  if (views.filter((view) => leaseViewId(view) === leaseId).length !== 1)
+    throw new EditableLayerError("The packet lease is missing or ambiguous.", 409);
+  return resolvePacketInputFromViews(
+    actor,
+    leaseId,
+    transactionId,
+    observedAt,
+    Promise.resolve(views),
+    db,
+  );
+}
+
+async function resolvePacketInputFromViews(
+  actor: AuthenticatedUser,
+  leaseId: string,
+  transactionId: string,
+  observedAt: string,
+  viewsRead: Promise<readonly RawLease[]>,
+  db: Firestore,
+) {
   const [views, workspace, catalogDoc, sourceDoc, workingDoc, inputsDoc, policyDoc] =
     await Promise.all([
-      requireCurrentLeaseViews(
-        withRenewalNoticeAdmission(actor, config.rentvineClient, db),
-        Date.now(),
-      ),
+      viewsRead,
       getRenewalWorkspace(actor, leaseId, db),
       db.collection(PACKET_SOURCE_COLLECTIONS.catalog).doc("current").get(),
       db

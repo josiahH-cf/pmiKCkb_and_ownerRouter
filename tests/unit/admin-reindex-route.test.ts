@@ -6,6 +6,13 @@ const mocks = vi.hoisted(() => ({
   requireCapability: vi.fn(),
   createReindexRequest: vi.fn(),
   listReindexRequests: vi.fn(),
+  readReindexSources: vi.fn().mockResolvedValue({
+    sources: [],
+    sourceReadError: "Fixture source inventory unavailable.",
+  }),
+}));
+vi.mock("@/lib/admin/reindex-sources", () => ({
+  readReindexSources: mocks.readReindexSources,
 }));
 
 vi.mock("@/lib/auth/session", async (importActual) => {
@@ -44,6 +51,23 @@ function post(body: unknown) {
 afterEach(() => vi.clearAllMocks());
 
 describe("admin re-index route", () => {
+  it("rechecks a historical handoff read-only without staging another request", async () => {
+    mocks.requireCapability.mockResolvedValue(admin);
+    mocks.listReindexRequests.mockResolvedValue([]);
+    const response = await GET(
+      new Request("http://localhost/api/admin/reindex?spaceId=lease-renewals"),
+    );
+    expect(response.status).toBe(200);
+    expect(
+      ((await response.json()) as { plan: { runnable: boolean } }).plan.runnable,
+    ).toBe(false);
+    expect(mocks.createReindexRequest).not.toHaveBeenCalled();
+    expect(mocks.readReindexSources).toHaveBeenCalledWith(
+      admin,
+      "lease-renewals",
+      expect.any(Object),
+    );
+  });
   it("stages a confirmed request and returns the owner command (never ingests)", async () => {
     mocks.requireCapability.mockResolvedValue(admin);
     mocks.createReindexRequest.mockResolvedValue({
@@ -63,6 +87,7 @@ describe("admin re-index route", () => {
     };
     expect(json.request.spaceId).toBe("lease-renewals");
     expect(typeof json.plan.command).toBe("string");
+    expect(json.plan.runnable).toBe(false);
   });
 
   it("refuses without confirm:true (the cost gate) and never records", async () => {

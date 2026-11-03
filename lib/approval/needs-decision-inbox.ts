@@ -17,9 +17,11 @@ import {
 } from "@/lib/approval/queue";
 import type { RenewalReviewBoard } from "@/lib/approval/renewal-review";
 import type { WritebackApprovalQueue } from "@/lib/approval/writeback-approval-queue";
+import { isCurrentDecisionItem } from "@/lib/approval/current-work-eligibility";
 import type { ApprovalQueueItemRecord, QueueItemStatus } from "@/lib/firestore/types";
 import { SEVERITY_ORDER } from "@/lib/lease-renewal/pipeline";
 import type { Severity } from "@/lib/lease-renewal/severity";
+import type { RenewalReviewReadIssue } from "@/lib/lease-renewal/review-readiness";
 
 export type NeedsDecisionKind = "writeback" | "renewal_flag" | "queue_item";
 
@@ -56,7 +58,27 @@ export interface NeedsDecisionCounts {
 
 export interface NeedsDecisionInbox {
   rows: NeedsDecisionRow[];
+  /** Counts describe observed rows only. A failed feed cannot establish a complete zero. */
   counts: NeedsDecisionCounts;
+  /** Pure callers with complete supplied inputs retain the original shape; I/O gathers set this. */
+  readState?: "complete" | "partial" | "unavailable";
+  unavailableFeeds?: ("approval_queue" | "renewal_reviews")[];
+  renewalReviewIssue?: RenewalReviewReadIssue;
+}
+
+/** Container diagnostics never become a signal, row, extra count or execution authority. */
+export function needsDecisionReadWarning(
+  inbox: Pick<NeedsDecisionInbox, "readState" | "renewalReviewIssue">,
+): string | null {
+  if (!inbox.readState || inbox.readState === "complete") return null;
+  const warning =
+    inbox.readState === "unavailable"
+      ? "Current decisions could not be checked. No eligible decision source answered."
+      : "Some decision sources could not be read. The list may be incomplete.";
+  const issue = inbox.renewalReviewIssue;
+  return issue
+    ? `${warning} ${issue.message}${issue.sourceReadAtIso ? ` Source last read: ${issue.sourceReadAtIso}.` : ""}`
+    : warning;
 }
 
 // A queue item still needs an approver's decision when it is neither terminal (Approved/Completed/
@@ -145,7 +167,7 @@ export function buildNeedsDecisionInbox(
 
   // 3. Live approval-queue items that need a decision now (reconcile items dedupe by target — C4).
   for (const item of queueItems) {
-    if (!queueItemNeedsDecision(item.status)) continue;
+    if (!queueItemNeedsDecision(item.status) || !isCurrentDecisionItem(item)) continue;
     const safeRisk = item.risk === "Low" || item.risk === "Medium";
     const canApproveInline =
       safeRisk &&

@@ -4,6 +4,7 @@ import { MemoryExternalExecutionStore } from "@/lib/external-execution/memory-st
 import type { RenewalWritebackDependencies } from "@/lib/lease-renewal/writeback/execution-service";
 import type { RenewalWritebackProposal } from "@/lib/lease-renewal/writeback/proposal-contract";
 import { RENEWAL_SOURCE_REFRESH_COOKIE } from "@/lib/lease-renewal/post-write-freshness";
+import { RentVineClient } from "@/lib/integrations/rentvine/client";
 
 const mocks = vi.hoisted(() => ({
   user: {
@@ -236,6 +237,66 @@ describe("S97 rentvine-writeback route", () => {
     LEASE.endDate = "2026-08-31";
     LEASE.increaseEligibilityDate = null;
   });
+
+  it.each([500, 502, 503, 504])(
+    "S168 AC-S168-11: a charge-detail HTTP %s becomes a sanitized unavailable read without a retry or write",
+    async (providerStatus) => {
+      const requests: string[] = [];
+      const client = new RentVineClient(
+        {
+          baseUrl: "https://pmikcmetro.rentvine.com/api/manager",
+          apiKey: "fixture-key",
+          apiSecret: "fixture-secret",
+        },
+        {
+          async send(request) {
+            const path = new URL(request.url).pathname;
+            requests.push(path);
+            const detail = path.endsWith("/recurring-charges/301");
+            const body = detail
+              ? { error: "Private provider response must not reach the browser" }
+              : path.endsWith("/recurring-charges")
+                ? [{ leaseRecurringChargeID: "301" }]
+                : { lease: { leaseID: "4821", ...LEASE } };
+            return {
+              status: detail ? providerStatus : 200,
+              headers: {},
+              json: async () => body,
+              text: async () => JSON.stringify(body),
+            };
+          },
+        },
+      );
+      const deps = fakeDeps();
+      deps.reads = {
+        getLease: (id) => client.getLease(id),
+        listRecurringCharges: (id) => client.listRecurringCharges(id),
+        getRecurringCharge: (leaseId, chargeId) =>
+          client.getRecurringCharge(leaseId, chargeId),
+      };
+      mocks.deps = deps;
+
+      const response = await post({ operation: "options", leaseId: "4821" });
+      expect(response.status).toBe(503);
+      expect(response.headers.get("cache-control")).toBe("private, no-store");
+      const payload = await response.json();
+      expect(payload).toEqual({
+        error_type: "rentvine_read_unavailable",
+        read_phase: "charge_inventory",
+        provider_status: providerStatus,
+        error: `RentVine could not load the current charge inventory (provider HTTP ${providerStatus}). No source update was submitted.`,
+      });
+      expect(JSON.stringify(payload)).not.toMatch(
+        /4821|301|fixture-secret|Private provider|\/leases\//,
+      );
+      expect(requests).toHaveLength(3);
+      expect(requests.filter((path) => path.endsWith("/301"))).toHaveLength(1);
+      expect(mocks.writerCalls).toEqual([]);
+      expect(mocks.proposals.size).toBe(0);
+      expect((deps.store as MemoryExternalExecutionStore).records.size).toBe(0);
+      expect(mocks.projection).not.toHaveBeenCalled();
+    },
+  );
 
   it("passes a missing-Space denial through unchanged for the S83 handoff", async () => {
     const { requireCapabilityInSpace } = await import("@/lib/auth/session");

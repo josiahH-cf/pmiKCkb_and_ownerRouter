@@ -29,6 +29,12 @@ const PAGE_EXPECTATIONS = [
 ] as const satisfies readonly (readonly [string, RenewalCapabilityKey])[];
 
 const API_EXPECTATIONS = [
+  ["app/api/lease-renewal/notice-timing-basis/route.ts", "GET", "read_workspace"],
+  [
+    "app/api/lease-renewal/notice-timing-basis/route.ts",
+    "PATCH",
+    "select_notice_timing_basis",
+  ],
   ["app/api/lease-renewal/comp-screenshot/route.ts", "GET", "screenshot_store"],
   ["app/api/lease-renewal/comp-screenshot/route.ts", "POST", "screenshot_store"],
   [
@@ -127,7 +133,11 @@ const API_EXPECTATIONS = [
   ["app/api/lease-renewal/pricing-policy/route.ts", "POST", "save_pricing_policy"],
   ["app/api/lease-renewal/collections/route.ts", "GET", "read_workspace"],
   ["app/api/lease-renewal/collections/route.ts", "POST", "save_shared_collection"],
-] as const satisfies readonly (readonly [string, "GET" | "POST", RenewalCapabilityKey])[];
+] as const satisfies readonly (readonly [
+  string,
+  "GET" | "POST" | "PATCH",
+  RenewalCapabilityKey,
+])[];
 
 describe("S80 renewal role and action governance", () => {
   it("S182: ordinary staff prepare and approve exact filled output; approval stays exact and keyless", () => {

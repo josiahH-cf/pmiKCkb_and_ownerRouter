@@ -60,33 +60,16 @@ Updated: 2026-10-20.
 - E2E is bounded and must terminate on setup failure.
 - A release smoke must match the exact commit and revision.
 
-The scoped October 19 implementation `006798e4`, qualification follow-up `a9a63d7c`,
-CI repairs `5015efc1`/`6beddcf9` and bounded diagnostic follow-up `b8829897` are published and
-deployed. Run `91710ba5-db96-4982-8931-366661f3843c` serves `b8829897e407dafdad94da0fd560afbcc539e397` as
-`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% traffic. Full observation passed two checkpoints in
-408,672 ms; all 371 records matched and eleven independent readback sections passed.
-The two-item queue is delivered and empty; its exact permit is consumed.
-
-Typed source holds, exact message save/preview/confirmation and own-attempt recovery, truthful
-freshness and independent source reads, managed Gmail health, Dotloop access/selection refusals
-and exact packet binding are deployed. Maintenance retirement, standalone Vendoroo, supported
-renewal source updates, client-send/schedule/Resume refusals, the non-dispatching worker and both
-closed Dotloop write keys remain. Original October 16 commits were already on main; no merge was
-manufactured. See `docs/evidence/application-delivery-2026-10-20.md` for aggregate scope and exact evidence.
-
-The actual `bash scripts/verify.sh` passed on `a9a63d7c` (manifest `a504f8e6`):
-9,647 unit tests with four existing configuration skips, all 464 backend tests with no skips,
-format/lint/typecheck, eight policy/budget checks, zero production audit findings and the default
-Next 16.3.8 production build. All twelve original font hashes matched. Final exact-main CI
-`39410047957` passed all five jobs at `b8829897`; its unit/backend counts match the canonical gate.
-All 1,212 runtime files match the qualified canonical, HTTP and browser source snapshots byte-for-byte.
-Later changes are confined to CI, documentation and bounded test diagnostics.
-
-An initial assurance attempt paused with a preserved generic gate failure. Separate unchanged
-read-only checks passed, then supported same-run resume passed the full gate without another build
-or Scheduler invocation. The original cause remains unestablished; no failure was relabeled.
-Human/physical-phone acceptance remains NOT RUN; Editor browser remains not_run under the approved
-Admin-only policy. External resource-dependent outputs retain their actual input/activation holds.
+Current deployed source/revision, gate results and consumed-run evidence live in `docs/facts.md`,
+`docs/status.md` and `docs/evidence/application-delivery-2026-11-03.md`; do not use an older run as
+an execution queue. The November 3 P1–P9 follow-up is explicitly launched and is being qualified.
+The deployed contract already supports fresh exact staff-confirmed renewal Send, Schedule and
+Resume through its current policy/claim/receipt/recovery gates. Old authorizations, generic/model
+sends and every retired maintenance lane remain refused. Both Dotloop write keys remain closed;
+standalone Vendoroo, supported renewal source updates and the actual external holds are preserved.
+Human/physical-phone acceptance remains NOT RUN; Admin assurance does not establish Editor-browser
+restrictions. Engineering fixtures, production observations and human/provider completion retain
+their distinct evidence scopes. No customer effect is required as release proof.
 
 `scripts/isolated-verify.py` is the Linux engineering entry point. It stages only public Git
 objects and explicitly named source files into a fresh owned checkout with physical dependencies
@@ -112,6 +95,17 @@ missing shutdown fails the phase. Actual default production build emission must 
 original hashes. Browser qualification separately checks real response bytes and loaded Poppins
 300/400/600/700 faces. Next development-toolbar font bytes are separately qualified against the
 exact installed Next package. No fallback font, copied build or alternate bundler proves success.
+
+The focused S238 browser journey uses `scripts/isolated-verify.py --task renewal-journey` and the
+existing `smoke:renewal-novdec-journey` command. Inside the verified namespace it uses the staged
+`/app` directly and writes only private `/evidence` output; it does not create a second worktree,
+copy shared dependencies across the separate `/tmp` mount, or apply an original-tree overlay.
+The exact seventeen controls and monitored namespace must pass before that branch starts. Public
+Chromium is prepared anonymously by the staged lockfile-pinned Playwright package, recorded by
+version/hash and mounted read-only as a binary distribution; no host browser profile/cache/home is
+mounted. The Next child receives only the existing qualified font hook and synthetic fixture
+configuration. Source SHA plus staged manifest, browser provenance, ordinary command exit and
+owned-process/listener cleanup remain evidence gates. A transport fixture alone is not isolation.
 
 Served E2E discovers every original test file, runs them serially under one original total
 deadline and checks the complete JSON inventory and unchanged source hashes. All eleven original

@@ -32,6 +32,11 @@ readonly_tree /usr "$rootfs/usr"
 readonly_tree "$node_root" "$rootfs/opt/node"
 readonly_tree "$probe" "$rootfs/probe"
 readonly_tree "$cache" "$rootfs/opt/emulators"
+if [ -n "${PMI_PUBLIC_BROWSER_ROOT:-}" ]; then
+  mkdir -p "$rootfs/opt/browser"
+  readonly_tree "$PMI_PUBLIC_BROWSER_ROOT" "$rootfs/opt/browser"
+  unset PMI_PUBLIC_BROWSER_ROOT
+fi
 fonts_enabled=0
 if [ -n "${PMI_PUBLIC_FONT_CACHE:-}" ]; then
   mkdir -p "$rootfs/opt/public-fonts"

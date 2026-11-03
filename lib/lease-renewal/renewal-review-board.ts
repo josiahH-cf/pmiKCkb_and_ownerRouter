@@ -11,7 +11,7 @@ import {
 } from "@/lib/lease-renewal/live-review";
 import type { RenewalRunView } from "@/lib/lease-renewal/run-view";
 import type { RenewalRunResult } from "@/lib/lease-renewal/pipeline";
-import { EditableLayerError } from "@/lib/errors/editable-layer-error";
+import { RenewalReviewUnavailableError } from "@/lib/lease-renewal/review-readiness";
 
 export interface RenewalRunViewContext {
   views: RenewalRunView[];
@@ -19,6 +19,7 @@ export interface RenewalRunViewContext {
   runs: RenewalRunResult[];
   sourceStatus: "available" | "stale" | "expired" | Exclude<LiveReviewStatus, "ok">;
   overlayStatus: "available" | "unavailable";
+  sourceReadAtIso?: string;
 }
 
 /**
@@ -50,6 +51,7 @@ export async function loadRenewalRunViewContext(
             ? "available"
             : outcome.meta.currencyState,
         overlayStatus,
+        ...(outcome.meta.readAtIso ? { sourceReadAtIso: outcome.meta.readAtIso } : {}),
       }
     : {
         views: [],
@@ -64,9 +66,6 @@ export async function loadRenewalRunViews(
 ): Promise<RenewalRunView[]> {
   const context = await loadRenewalRunViewContext(user);
   if (context.sourceStatus !== "available" || context.overlayStatus !== "available")
-    throw new EditableLayerError(
-      "The current renewal comparison or saved decisions are unavailable. Retained rows cannot establish that nothing needs attention.",
-      409,
-    );
+    throw new RenewalReviewUnavailableError(context);
   return context.views;
 }

@@ -2,9 +2,10 @@
 // the operator's approvals, connector setup gaps, and Space process/connection coverage — as a
 // compact, deep-linked, ADVISORY result. It reports state + the next place to act; it NEVER executes
 // approvals, sends, or writes (those stay in their own gated surfaces). Every resolver is non-fatal:
-// a Firestore hiccup yields an empty result, never a thrown error.
+// decision-read failures preserve available rows and explain incomplete coverage, never a false clear.
 
 import { gatherNeedsDecisionInbox } from "@/lib/approval/needs-decision-gather";
+import { needsDecisionReadWarning } from "@/lib/approval/needs-decision-inbox";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { buildConnectionView } from "@/lib/connections/connection-status";
 import { readConnectorPresence } from "@/lib/connections/connector-presence";
@@ -61,12 +62,14 @@ export async function resolveApprovalsState(
     detail: row.detail,
     href: row.href,
   }));
+  const readWarning = needsDecisionReadWarning(inbox);
 
   return {
     query: "approvals",
     title: "Needs your decision",
-    summary:
-      items.length === 0
+    summary: readWarning
+      ? `${items.length ? `${plural(items.length, "observed decision")} waiting on you. ` : ""}${readWarning}`
+      : items.length === 0
         ? "Nothing needs your decision right now."
         : `${plural(items.length, "thing")} waiting on you.`,
     items,

@@ -1014,8 +1014,9 @@ function MessagePreparationEditor({
         Compose {channel} message in Communications
       </a>
       <p className="muted">
-        Edits save in the app. Review an unsent Gmail draft below. A person sends from
-        Gmail; app sending and scheduling are unavailable.
+        Edits save in the app. In Communications, review the exact message and use Send or
+        Schedule when its current checks pass. Resume requires a fresh review. You can
+        also create an unsent Gmail draft below and send it from Gmail.
       </p>
       {notice ? <p role="status">{notice}</p> : null}
       {[...new Set(current?.notices ?? [])].map((value) => (

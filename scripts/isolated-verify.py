@@ -27,7 +27,7 @@ TASKS = json.loads((HERE / 'isolation/lanes.json').read_text())
 FONT_SPEC = importlib.util.spec_from_file_location('pmi_public_fonts', HERE / 'isolation/public-fonts.py')
 PUBLIC_FONTS = importlib.util.module_from_spec(FONT_SPEC)
 FONT_SPEC.loader.exec_module(PUBLIC_FONTS)
-ALLOWED = TASKS['quality'] + TASKS['unit'] + TASKS['firestore'] + TASKS['policy-build'] + TASKS['e2e'] + TASKS['e2e-core'] + [['run', 'check:budget-guard', '--', '--allow-multiple-spaces']]
+ALLOWED = TASKS['quality'] + TASKS['unit'] + TASKS['firestore'] + TASKS['policy-build'] + TASKS['e2e'] + TASKS['e2e-core'] + TASKS['renewal-journey'] + [['run', 'check:budget-guard', '--', '--allow-multiple-spaces']]
 
 
 def now():
@@ -270,6 +270,41 @@ def public_dependencies(config):
     for entry in dependency_root.rglob('*'):
         if entry.is_symlink() and not entry.resolve().is_relative_to(dependency_root):
             raise RuntimeError('Dependency symlink escapes the owned physical installation')
+    if config.get('needsBrowser'):
+        # Public distribution only, installed anonymously by the exact lockfile-pinned Playwright
+        # package. Never read a host browser cache, profile, cookies, or credential-bearing home.
+        browser_cache = Path(config['output']) / 'browsers'
+        browser_env = {**env, 'PLAYWRIGHT_BROWSERS_PATH': str(browser_cache)}
+        if bounded(config, 'public-chromium-download', [config['nodeRoot'] + '/bin/node',
+                   'node_modules/playwright-core/cli.js', 'install', 'chromium', '--no-shell'],
+                   browser_env, app):
+            return 1
+        metadata_file = app / 'node_modules/playwright-core/browsers.json'
+        pinned = next(row for row in json.loads(metadata_file.read_text())['browsers']
+                      if row['name'] == 'chromium')
+        browser_root = browser_cache / ('chromium-' + pinned['revision'])
+        candidates = [browser_root / name / 'chrome' for name in ['chrome-linux64', 'chrome-linux']]
+        executable = next((path for path in candidates if path.is_file()), None)
+        if executable is None:
+            raise RuntimeError('The pinned public Chromium distribution was not prepared')
+        files = []
+        for entry in sorted(browser_root.rglob('*')):
+            if entry.is_symlink():
+                raise RuntimeError('Public Chromium distribution must contain only physical files')
+            if entry.is_file():
+                files.append({'path': str(entry.relative_to(browser_root)),
+                              'sha256': hashlib.sha256(entry.read_bytes()).hexdigest(),
+                              'bytes': entry.stat().st_size})
+        config['browserRoot'] = str(browser_root)
+        config['browserExecutable'] = '/opt/browser/' + str(executable.relative_to(browser_root))
+        config['browserVersion'] = pinned['browserVersion']
+        config['browserExecutableSha256'] = hashlib.sha256(executable.read_bytes()).hexdigest()
+        save(Path(config['output']) / 'public-browser.json', {
+            'sourceManifestSha256': config['sourceManifestSha256'],
+            'playwrightMetadataSha256': hashlib.sha256(metadata_file.read_bytes()).hexdigest(),
+            'revision': pinned['revision'], 'expectedVersion': pinned['browserVersion'],
+            'executable': config['browserExecutable'], 'files': files})
+        save(Path(config['controller']) / 'config.json', config)
     if config['needsFonts']:
         font_config = {**config, 'timeout': min(config['timeout'], 180)}
         request_path = Path(config['output']) / 'font-request.json'
@@ -355,6 +390,11 @@ def isolated(config, label, args):
         env['PMI_PUBLIC_FONT_CACHE'] = config['fontCache']
         env['PMI_SOURCE_MANIFEST_SHA256'] = config['sourceManifestSha256']
         env['NEXT_FONT_GOOGLE_MOCKED_RESPONSES'] = '/opt/public-fonts/responses.cjs'
+    if config.get('needsBrowser'):
+        env['PMI_PUBLIC_BROWSER_ROOT'] = config['browserRoot']
+        env['PLAYWRIGHT_CHROME_PATH'] = config['browserExecutable']
+        env['PMI_ISOLATED_BROWSER_VERSION'] = config['browserVersion']
+        env['PMI_ISOLATED_BROWSER_SHA256'] = config['browserExecutableSha256']
     unshare = ['/usr/bin/unshare', '--mount', '--net', '--pid', '--fork']
     if not config['ciSudo']:
         unshare[1:1] = ['--user', '--map-root-user']
@@ -415,8 +455,9 @@ def stage(args):
               'npmCache': str(output / 'npm-cache'), 'emulatorCache': str(output / 'emulators'),
               'fontCache': str(output / 'public-fonts'),
               'nodeRoot': str(Path(args.node_root).resolve(strict=True)), 'javaRoot': 'none',
-              'emulatorJar': args.emulator_jar, 'needsEmulator': args.task in ['verify', 'firestore', 'e2e'],
-              'needsFonts': args.task in ['verify', 'policy-build', 'e2e', 'e2e-core'],
+              'emulatorJar': args.emulator_jar, 'needsEmulator': args.task in ['verify', 'firestore', 'e2e', 'renewal-journey'],
+              'needsFonts': args.task in ['verify', 'policy-build', 'e2e', 'e2e-core', 'renewal-journey'],
+              'needsBrowser': args.task == 'renewal-journey',
               'timeout': args.timeout_seconds, 'memoryMiB': args.memory_mib,
               'typecheckHeapMiB': args.typecheck_heap_mib,
               'buildHeapMiB': getattr(args, 'build_heap_mib', 1536),

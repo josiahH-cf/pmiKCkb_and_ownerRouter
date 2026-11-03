@@ -147,6 +147,63 @@ const QUEUE_ROW_KEYS = [
 ];
 
 describe("buildNeedsDecisionInbox", () => {
+  it("excludes exact retired routes, workflow ids and action keys without changing retained records", () => {
+    const items = [
+      queueItem({
+        id: "legacy-create",
+        status: "Ready for Approval",
+        direct_link: "/maintenance?ticket_id=synthetic-proof",
+        process_run_ref: { id: "maintenance:synthetic-proof", label: "Renamed old task" },
+      }),
+      queueItem({
+        id: "legacy-cancel",
+        status: "Blocked",
+        direct_link: "/approval-queue?item_id=legacy-cancel",
+        affected_system_action: "rentvine.work_order.update_status",
+        process_run_ref: {
+          id: "rentvine-work-order:synthetic-proof",
+          label: "Renamed old task",
+        },
+      }),
+      queueItem({
+        id: "retired-space",
+        space_id: "vendor-assignment-handoff",
+        direct_link: "/approval-queue",
+      }),
+      queueItem({
+        id: "knowledge",
+        action_needed: "Review maintenance policy and completed proof notes",
+      }),
+      queueItem({ id: "renewal", direct_link: "/lease-renewal/live" }),
+    ];
+    const before = JSON.stringify(items);
+    const inbox = buildNeedsDecisionInbox(items, undefined, undefined, ACTOR);
+    expect(inbox.rows.map((row) => row.itemId).sort()).toEqual(["knowledge", "renewal"]);
+    expect(inbox.counts.total).toBe(2);
+    expect(JSON.stringify(items)).toBe(before);
+  });
+
+  it("never revives a closed or superseded execution prompt while retaining ordinary staff work", () => {
+    const items = [
+      queueItem({
+        id: "closed-proof",
+        status: "Ready for Approval",
+        closed_at: "2026-09-02T12:00:00Z",
+      }),
+      queueItem({
+        id: "superseded-proof",
+        status: "Blocked",
+        superseded_by_item_id: "replacement",
+      }),
+      queueItem({ id: "current" }),
+    ];
+    expect(
+      buildNeedsDecisionInbox(items, undefined, undefined, ACTOR).rows.map(
+        (row) => row.itemId,
+      ),
+    ).toEqual(["current"]);
+  });
+
   it("merges the three feeds into one attention-ordered, value-free list", () => {
     const views = [
       makeView("run-a", "Run A", [

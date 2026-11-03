@@ -13,7 +13,7 @@ import type {
  * The notice date and the candidate target dates come from the S124 move-out disposition (the
  * documented RentVine lease-detail fields) and the cohort classification's contractual lease end.
  * The basis (which target date, which counting rule, which threshold) is app-owned configuration
- * recorded by an Admin; until it is saved every initiated notice reads Cannot determine.
+ * selected by authorized renewal staff; until saved every initiated notice reads Cannot determine.
  */
 export const MOVE_OUT_TIMING_TARGET_KINDS = ["expected_move_out", "lease_end"] as const;
 export type MoveOutTimingTargetKind = (typeof MOVE_OUT_TIMING_TARGET_KINDS)[number];
@@ -212,7 +212,7 @@ export function evaluateMoveOutTiming(input: MoveOutTimingInput): MoveOutTimingR
   if (basis.state === "missing")
     return cannot(
       "basis_not_reviewed",
-      "The timing basis (which target date and which counting rule apply) has not been reviewed and saved, so this notice has no yes or no yet. An Admin records the reviewed basis on the Admin page.",
+      "The documented timing basis has not been saved, so this notice has no yes or no yet. Authorized renewal staff can select the documented basis in this lease's Notice timing area.",
     );
   if (basis.state !== "saved" || !basis.basis)
     return cannot(

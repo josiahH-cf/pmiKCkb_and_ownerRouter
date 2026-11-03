@@ -134,8 +134,8 @@ async function prepareHighExecution(suffix: string, targetDb: Firestore) {
     {
       actionKey: "quickbooks.bill.create_draft",
       approvalQueue: {
-        directLink: "/maintenance/fixture-ticket",
-        processRunRef: { id: `fixture-${suffix}`, label: "Fixture maintenance" },
+        directLink: "/approval-queue",
+        processRunRef: { id: `fixture-${suffix}`, label: "Fixture ledger review" },
         requiredAdminUid: admin.uid,
       },
       idempotencyKey: `fixture-high-${suffix}`,

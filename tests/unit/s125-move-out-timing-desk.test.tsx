@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
@@ -38,7 +38,10 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 // sanction, and the Admin panel names an unreviewed basis. Rendering issues no request and records
 // nothing. Values are synthetic.
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 const SAVED: MoveOutTimingBasisSnapshot = {
   state: "saved",
@@ -277,7 +280,11 @@ describe("S125 desk filter and row indicator (AC-S125-5, AC-S125-6)", () => {
 });
 
 describe("S125 workspace timing panel (AC-S125-1, AC-S125-3, AC-S125-5)", () => {
-  function renderWorkspace(fields: Partial<DeskLeaseSummaryBase>, withSource = true) {
+  function renderWorkspace(
+    fields: Partial<DeskLeaseSummaryBase>,
+    withSource = true,
+    live = false,
+  ) {
     const value = getRenewalLeaseWorkspace("lease-318-cedar-7");
     if (!value) throw new Error("sample workspace missing");
     render(
@@ -285,6 +292,21 @@ describe("S125 workspace timing panel (AC-S125-1, AC-S125-3, AC-S125-5)", () => 
         role="Editor"
         workspace={{
           ...value,
+          ...(live
+            ? {
+                live: {
+                  leaseId: value.summary.id,
+                  ownerDecision: null,
+                  ownerDecisionCurrent: false,
+                  ownerOutcome: null,
+                  ownerResponseRecordable: false,
+                  tenantOfferDraftId: null,
+                  tenantOutcome: null,
+                  processVersion: "fixture",
+                  complete: false,
+                },
+              }
+            : {}),
           summary: {
             ...value.summary,
             ...(withSource
@@ -305,6 +327,48 @@ describe("S125 workspace timing panel (AC-S125-1, AC-S125-3, AC-S125-5)", () => 
       />,
     );
   }
+
+  it("keeps the staff selector visible on a live lease with no notice, and opening performs only reads", async () => {
+    const fetcher = vi.fn(async (url: string, options?: RequestInit) => {
+      expect(options?.method ?? "GET").toBe("GET");
+      return Response.json(
+        String(url).includes("/notice-timing-basis")
+          ? {
+              timingBasis: { state: "missing", record: null },
+              canSelect: true,
+              intent: { state: "missing" },
+            }
+          : String(url).includes("/notice-review")
+            ? {
+                disposition: {
+                  state: "not_initiated",
+                  reason: "no_evidence",
+                  label: "No notice",
+                },
+                ready: false,
+                cycleId: null,
+              }
+            : {},
+      );
+    });
+    vi.stubGlobal("fetch", fetcher);
+    renderWorkspace(timing("not_initiated", null, null), true, true);
+    const panel = screen.getByRole("region", { name: "Notice timing" });
+    expect(
+      await within(panel).findByRole("combobox", { name: "Documented notice basis" }),
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        within(panel).getByRole("combobox", { name: "Documented notice basis" }),
+      ).toBeEnabled(),
+    );
+    expect(panel).toHaveTextContent("Shared basis for all renewal notice comparisons");
+    expect(
+      fetcher.mock.calls.every(
+        (call) => (call[1] as RequestInit | undefined)?.method !== "PATCH",
+      ),
+    ).toBe(true);
+  });
 
   it("names both dates, the days given and the basis version for a below-threshold notice, with a source review path", () => {
     renderWorkspace(timing("initiated", "2026-08-15", "2026-09-10"));
@@ -354,12 +418,12 @@ describe("S125 workspace timing panel (AC-S125-1, AC-S125-3, AC-S125-5)", () => 
 describe("S125 Admin basis surface (AC-S125-1)", () => {
   it("names an unreviewed basis and shows the saved version once recorded", () => {
     render(<MoveOutTimingBasisAdminPanel initial={{ state: "missing", record: null }} />);
-    expect(screen.getByRole("status")).toHaveTextContent("not reviewed");
-    expect(screen.getByLabelText("Compare the notice against")).toHaveValue(
-      "expected_move_out",
-    );
-    expect(screen.getByLabelText("Threshold in calendar days")).toHaveValue(30);
-    expect(screen.getByRole("button", { name: "Record reviewed basis" })).toBeEnabled();
+    expect(screen.getByText(/No basis is saved/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Documented notice basis")).toHaveValue("");
+    expect(
+      screen.getByRole("option", { name: /Lease end.*30 days/ }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Record reviewed basis" })).toBeNull();
     cleanup();
 
     render(
@@ -381,7 +445,9 @@ describe("S125 Admin basis surface (AC-S125-1)", () => {
       />,
     );
     expect(screen.queryByRole("status")).toBeNull();
-    expect(screen.getByText(/Current saved version: 2/)).toBeInTheDocument();
-    expect(screen.getByLabelText("Compare the notice against")).toHaveValue("lease_end");
+    expect(screen.getByText(/Current saved version 2/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Documented notice basis")).toHaveValue(
+      "notice-basis/2026-10-02/q2",
+    );
   });
 });

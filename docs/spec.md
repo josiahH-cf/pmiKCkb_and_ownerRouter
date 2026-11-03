@@ -1,6 +1,6 @@
 # PMI KC current product contract
 
-Updated: 2026-10-20.
+Updated: 2026-11-03.
 
 ## Application and current delivery
 
@@ -10,11 +10,13 @@ Admin, feedback and staff work. Custom maintenance, resident intake and operatio
 retired in current source; Vendoroo stays standalone. Navigation and record access use current server
 permissions. Business titles and display names grant no role or privilege.
 
-Production still serves `b8829897e407dafdad94da0fd560afbcc539e397` /
-`pmi-kc-app-rmvgkpxub-17a20f3efe73` at 100% canonical traffic. Run
-`91710ba5-db96-4982-8931-366661f3843c` is complete and its permit consumed. The October 20
-amendment is being qualified; it is not yet deployed. Prior delivery evidence remains in
-`docs/evidence/application-delivery-2026-10-20.md`.
+The verified baseline serves `bc97535379dd08deab578455b00a80fc93b8d209` /
+`pmi-kc-app-rmvzwt7ms-00754475effd` at 100% canonical traffic. Run
+`d4c109a0-6dce-4c4d-8928-ec77e9a58c73` is complete and its permit consumed. Its evidence is
+`docs/evidence/application-delivery-2026-11-03.md`. The owner has subsequently launched the
+P1–P9 assessment-gap plan; its implementation/qualification and delivery statuses are maintained
+in `docs/facts.md`, `docs/loop-state.md` and the linked implementation evidence. An implementation
+claim is separate from a deployed or freshly observed outcome.
 
 The historical S183-S226 program retains all 44 suites/238 requirements.35 independent suites
 are verified delivered;203 requirements have all mapped engineering scopes passed. S208/S217/S218/
@@ -33,10 +35,11 @@ are outside this application execution. Missing evidence is never guessed.
   collections. Reopening rechecks current permissions before displaying retained details.
 - An explicitly requested supported staff operation uses the ordinary application service and its
   authorization/recovery contract. Generated text and inferred intent cannot execute effects.
-- Global search uses current actor/Space admission and metadata snapshots from the existing bounded
-  RentVine read owner, retained maintenance records and registered vendor metadata. It reports partial,
-  unavailable and unauthorized sources; the meeting demonstration does not prove universal full-text
-  search. Retained maintenance results link to read-only history.
+- Global search uses current actor/Space admission and supported metadata snapshots from the
+  existing bounded read owners. It reports partial, unavailable and unauthorized sources; a
+  demonstration does not prove universal full-text search. Retired maintenance and operational
+  Vendor records are excluded from current search/history entry points; their underlying records
+  and receipts remain retained without exposing the retired component.
 
 ## Lease renewal
 

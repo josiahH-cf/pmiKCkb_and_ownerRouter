@@ -129,7 +129,8 @@ describe("S125 both dates and their meaning (AC-S125-1)", () => {
       basisVersion: null,
       noticeDateIso: "2026-08-01",
     });
-    expect(unreviewed.explanation).toMatch(/basis .* not been reviewed/);
+    expect(unreviewed.explanation).toMatch(/documented timing basis has not been saved/);
+    expect(unreviewed.explanation).toContain("Authorized renewal staff");
     expect(unreviewed.explanation).not.toMatch(/meets|below/i);
 
     // A blank target under the chosen basis is never replaced by the other date.

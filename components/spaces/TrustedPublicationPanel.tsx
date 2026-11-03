@@ -10,6 +10,14 @@ interface TrustedPublicationPanelProps {
   canEdit: boolean;
   spaceId: string;
 }
+interface OriginalReadback {
+  id: string;
+  fileName: string;
+  contentHash: string;
+  byteSize: number;
+  artifactKind: string;
+  policyId: string;
+}
 
 export function TrustedPublicationPanel({
   canEdit,
@@ -19,12 +27,14 @@ export function TrustedPublicationPanel({
   const [policyId, setPolicyId] = useState("");
   const [sourceState, setSourceState] = useState<SourceState>("Verified Source");
   const [busy, setBusy] = useState(false);
+  const [originals, setOriginals] = useState<OriginalReadback[]>([]);
+  const [needsReadback, setNeedsReadback] = useState(false);
   const [message, setMessage] = useState(
     "Add a file or folder below. An Admin enables source publishing for each space; once enabled, every file you add is checked, versioned, and made active.",
   );
 
   async function publishSelection(files: FileList | null) {
-    if (!files?.length || busy || !canEdit) return;
+    if (!files?.length || busy || needsReadback || !canEdit) return;
     if (!citationLabel.trim()) {
       setMessage("Add a citation label before publishing.");
       return;
@@ -52,9 +62,31 @@ export function TrustedPublicationPanel({
         });
         const payload = (await response.json().catch(() => ({}))) as {
           error?: string;
+          version?: {
+            id: string;
+            fileName: string;
+            contentHash: string;
+            contentByteSize: number;
+            renewalArtifactKind?: string;
+            policyId: string;
+          };
         };
         if (!response.ok) {
           throw new Error(payload.error || `Publication failed for ${file.name}.`);
+        }
+        if (payload.version?.renewalArtifactKind) {
+          const version = payload.version;
+          setOriginals((current) => [
+            ...current.filter((entry) => entry.fileName !== version.fileName),
+            {
+              id: version.id,
+              fileName: version.fileName,
+              contentHash: version.contentHash,
+              byteSize: version.contentByteSize,
+              artifactKind: version.renewalArtifactKind!,
+              policyId: version.policyId,
+            },
+          ]);
         }
         published += 1;
       }
@@ -62,7 +94,33 @@ export function TrustedPublicationPanel({
         `${published} validated source${published === 1 ? "" : "s"} published and Active.`,
       );
     } catch (error) {
+      setNeedsReadback(spaceId === "lease-renewals");
       setMessage(error instanceof Error ? error.message : "Publication failed safely.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function readCurrentOriginals() {
+    setBusy(true);
+    try {
+      const response = await fetch(`/api/spaces/${spaceId}/publications`);
+      const payload = (await response.json()) as {
+        originals?: OriginalReadback[];
+        error?: string;
+      };
+      if (!response.ok || !Array.isArray(payload.originals))
+        throw new Error(payload.error ?? "Current originals could not be read.");
+      setOriginals(payload.originals);
+      setNeedsReadback(false);
+      setMessage(
+        "Current original publications read back. Matching content does not establish an earlier request created it; review this state before any new upload.",
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Readback failed; no upload was retried.",
+      );
     } finally {
       setBusy(false);
     }
@@ -92,7 +150,7 @@ export function TrustedPublicationPanel({
         <label>
           Citation label
           <input
-            disabled={!canEdit || busy}
+            disabled={!canEdit || busy || needsReadback}
             onChange={(event) => setCitationLabel(event.target.value)}
             placeholder="A short name reviewers will recognize"
             value={citationLabel}
@@ -101,7 +159,7 @@ export function TrustedPublicationPanel({
         <label>
           Source state
           <select
-            disabled={!canEdit || busy}
+            disabled={!canEdit || busy || needsReadback}
             onChange={(event) => setSourceState(event.target.value as SourceState)}
             value={sourceState}
           >
@@ -124,7 +182,7 @@ export function TrustedPublicationPanel({
           Add files
           <input
             className="sr-only"
-            disabled={!canEdit || busy}
+            disabled={!canEdit || busy || needsReadback}
             multiple
             onChange={(event) => void publishSelection(event.target.files)}
             type="file"
@@ -135,13 +193,46 @@ export function TrustedPublicationPanel({
           <input
             {...({ directory: "", webkitdirectory: "" } as Record<string, string>)}
             className="sr-only"
-            disabled={!canEdit || busy}
+            disabled={!canEdit || busy || needsReadback}
             multiple
             onChange={(event) => void publishSelection(event.target.files)}
             type="file"
           />
         </label>
       </div>
+      {spaceId === "lease-renewals" ? (
+        <>
+          <p>
+            Blank renewal originals require an Admin-reviewed exact PDF/family/path/hash
+            policy, up to 2 MiB. That review is separate from legal content and
+            field/signer map approval. Other files and folders have no managed scanner
+            enabled by this original-only policy.
+          </p>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void readCurrentOriginals()}
+          >
+            Read current original publications
+          </button>
+          {originals.length ? (
+            <ul>
+              {originals.map((entry) => (
+                <li key={entry.id}>
+                  {entry.fileName} ({entry.artifactKind}) · {entry.byteSize} bytes.
+                  Publication: <code>publication:{entry.id}</code>. SHA-256:{" "}
+                  <code>{entry.contentHash}</code>. Policy: <code>{entry.policyId}</code>.
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <p>
+            An Admin receives the exact publication reference/hash through{" "}
+            <a href="/admin#admin-lease-artifact-intake">lease-artifact intake</a>;
+            publication alone approves no map or legal version.
+          </p>
+        </>
+      ) : null}
       <p className="muted">
         Accepted files: Markdown and text up to 2 MB, PDF and DOCX up to 25 MB, CSV up to
         10 MB, and common images up to 10 MB. The app publishes documents and images that

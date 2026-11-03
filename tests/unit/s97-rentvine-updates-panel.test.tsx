@@ -140,6 +140,54 @@ describe("S97 RentVine updates panel", () => {
     );
   });
 
+  it("S168 AC-S168-11: a failed charge refresh shows the precise read failure and retains the prior inventory", async () => {
+    const message =
+      "RentVine could not load the current charge inventory (provider HTTP 500). No source update was submitted.";
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+      json: async () => ({
+        error: message,
+        error_type: "rentvine_read_unavailable",
+        read_phase: "charge_inventory",
+        provider_status: 500,
+      }),
+    });
+    render(
+      <RentvineUpdatesPanel
+        initialHistory={[]}
+        initialProposal={null}
+        initialInventory={{
+          leaseId: "4821",
+          asOfDate: "2026-09-10",
+          leaseDates: {
+            startDate: "2025-09-01",
+            endDate: "2026-08-31",
+            increaseEligibilityDate: null,
+          },
+          charges: [],
+        }}
+        leaseId="4821"
+        role="Editor"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Refresh recurring charges" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(message);
+    expect(screen.getByRole("status")).toHaveTextContent("The list above is unchanged");
+    expect(
+      screen.getByText("No recurring charges returned for this lease."),
+    ).toBeVisible();
+    expect(
+      screen.queryByText("Recurring charges read from RentVine just now."),
+    ).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      operation: "options",
+      leaseId: "4821",
+    });
+    expect(routerRefresh).not.toHaveBeenCalled();
+  });
+
   it("finishes its durable status read when React runs the effect twice", async () => {
     fetchMock.mockImplementation(async () => ({
       ok: true,

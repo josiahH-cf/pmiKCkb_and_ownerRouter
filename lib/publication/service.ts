@@ -28,6 +28,10 @@ import {
   validatePublication,
 } from "@/lib/publication/validation";
 import { PUBLICATION_POLICY_COLLECTION } from "@/lib/publication/policy";
+import {
+  publicationPolicyAllowsResource,
+  publicationPolicyAllowsContent,
+} from "./resource-scope";
 import { canAccessSpaceId } from "@/lib/space-scope-resources";
 
 export const PUBLICATION_COLLECTIONS = {
@@ -53,6 +57,8 @@ export async function publishTrustedContent(
     db?: Firestore;
     contentStore?: PublicationContentStore;
     extendCommit?: (context: PublicationCommitContext) => void;
+    /** Additional source CAS reads, before the transaction's first write. */
+    validateCommit?: (transaction: Transaction) => Promise<void>;
     registeredProcessActionKeys?: ReadonlySet<string>;
   } = {},
 ): Promise<PublicationVersionRecord> {
@@ -104,6 +110,7 @@ export async function publishTrustedContent(
           )
         : undefined;
       if (resource) assertResourceIdentity(resource, metadata, policy.id);
+      await options.validateCommit?.(transaction);
       versionNumber =
         (resource ? await readLastVersionNumber(transaction, db, resource) : 0) + 1;
 
@@ -374,6 +381,7 @@ function versionRecord(input: {
     rootId: metadata.rootId,
     sensitivity: input.sensitivity,
     sourceState: metadata.sourceState,
+    renewalArtifactKind: metadata.renewalArtifactKind,
     spaceId: metadata.spaceId,
     validated: true,
     versionNumber: input.versionNumber,
@@ -497,6 +505,11 @@ function assertRollbackAllowedByCurrentPolicy(
     target.spaceId !== resource.spaceId ||
     target.resourceType !== resource.resourceType ||
     !policy.allowedSpaces.includes(target.spaceId) ||
+    !publicationPolicyAllowsResource(policy, target) ||
+    !publicationPolicyAllowsContent(policy, target.contentHash) ||
+    (policy.resourceScope?.resourceType === "file" &&
+      (target.contentByteSize !== policy.resourceScope.byteSize ||
+        target.renewalArtifactKind !== policy.resourceScope.artifactKind)) ||
     policy.connectorId !== target.connectorId ||
     policy.rootId !== target.rootId ||
     !isSafeRelativePath(target.path) ||

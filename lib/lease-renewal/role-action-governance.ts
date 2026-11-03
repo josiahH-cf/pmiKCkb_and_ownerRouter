@@ -59,6 +59,18 @@ export const RENEWAL_GOVERNANCE_MATRIX = {
     roleDeniedReason: "Editor access is required to save renewal progress.",
     safeNextAction: "Continue read-only or ask an Admin to review your role.",
   },
+  select_notice_timing_basis: {
+    label: "Select the documented shared renewal notice timing basis",
+    roleCapability: "edit",
+    effect: "app_owned_write",
+    externalRequirement: "none",
+    actionKeys: [],
+    // November 3 owner Q2: the explicit selection is the complete intent, with no extra Save.
+    exactConfirmation: false,
+    audit: "app_activity",
+    roleDeniedReason: "Editor access is required to select the documented notice basis.",
+    safeNextAction: "Continue read-only or ask an Admin to review your role.",
+  },
   record_discrepancy_disposition: {
     label: "Record an app-owned discrepancy disposition",
     roleCapability: "edit",
@@ -615,7 +627,7 @@ export function evaluateRenewalAuthority(
 export interface RenewalRouteInventoryEntry {
   kind: "page" | "api";
   source: string;
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PATCH";
   capability: RenewalCapabilityKey;
 }
 
@@ -628,6 +640,15 @@ export interface RenewalControlInventoryEntry {
 
 /** Controls are listed separately because several client components share one guarded API method. */
 export const RENEWAL_CONTROL_INVENTORY = [
+  {
+    control: "Select documented notice basis",
+    source: "components/lease-renewal/NoticeTimingBasisSelection.tsx",
+    capability: "select_notice_timing_basis",
+    enforcementSources: [
+      "app/api/lease-renewal/notice-timing-basis/route.ts",
+      "lib/firestore/lease-renewal-move-out-timing-basis.ts",
+    ],
+  },
   {
     control: "Refresh source facts",
     source: "components/lease-renewal/RenewalDeskRefresh.tsx",
@@ -808,6 +829,18 @@ export const RENEWAL_CONTROL_INVENTORY = [
 
 /** Ordered, source-addressable inventory used to make page/API drift mechanically visible. */
 export const RENEWAL_ROUTE_INVENTORY = [
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/notice-timing-basis/route.ts",
+    method: "GET",
+    capability: "read_workspace",
+  },
+  {
+    kind: "api",
+    source: "app/api/lease-renewal/notice-timing-basis/route.ts",
+    method: "PATCH",
+    capability: "select_notice_timing_basis",
+  },
   {
     kind: "page",
     source: "app/lease-renewal/collections/page.tsx",

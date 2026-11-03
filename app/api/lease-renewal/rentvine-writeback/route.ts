@@ -19,6 +19,7 @@ import {
 } from "@/lib/lease-renewal/writeback/future-rent-intent";
 import { NextResponse } from "next/server";
 import { loadRenewalChargeInventory } from "@/lib/lease-renewal/writeback/charge-inventory";
+import { RentVineError } from "@/lib/integrations/rentvine/client";
 import { z } from "zod";
 
 import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
@@ -573,10 +574,27 @@ async function handleRequest(request: Request, statusOnly: boolean) {
     }
 
     if (body.operation === "options") {
-      return NextResponse.json({
-        status: "ok",
-        inventory: await loadRenewalChargeInventory(deps.reads, body.leaseId),
-      });
+      try {
+        return NextResponse.json({
+          status: "ok",
+          inventory: await loadRenewalChargeInventory(deps.reads, body.leaseId),
+        });
+      } catch (error) {
+        // S168: a known upstream read failure is an unavailable inventory, never a successful
+        // empty list or a reason to retry/construct a writer. Keep provider paths and bodies private.
+        if (error instanceof RentVineError && error.status >= 500 && error.status < 600) {
+          return NextResponse.json(
+            {
+              error_type: "rentvine_read_unavailable",
+              read_phase: "charge_inventory",
+              provider_status: error.status,
+              error: `RentVine could not load the current charge inventory (provider HTTP ${error.status}). No source update was submitted.`,
+            },
+            { status: 503, headers: { "Cache-Control": "private, no-store" } },
+          );
+        }
+        throw error;
+      }
     }
 
     if (body.operation === "propose") {

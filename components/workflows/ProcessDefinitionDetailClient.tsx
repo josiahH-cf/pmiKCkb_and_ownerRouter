@@ -39,11 +39,17 @@ export function ProcessDefinitionDetailClient({
   const [runs, setRuns] = useState(initialRuns);
   const [message, setMessage] = useState("Process definition loaded.");
   const [isBusy, setIsBusy] = useState(false);
+  const [needsReload, setNeedsReload] = useState(false);
   const [form, setForm] = useState(() => definitionToForm(initialDefinition));
   const [publicationNote, setPublicationNote] = useState("");
   const [runForm, setRunForm] = useState({ due_date: "", note: "" });
+  const hasCurrentPublishedVersion =
+    definition.status === "Active" && Boolean(definition.active_version_id);
   const canMutate =
-    canEdit && !isBusy && !["Pending Approval", "Retired"].includes(definition.status);
+    canEdit &&
+    !isBusy &&
+    !needsReload &&
+    !["Pending Approval", "Retired"].includes(definition.status);
 
   async function saveDefinition() {
     if (!canMutate) {
@@ -51,40 +57,118 @@ export function ProcessDefinitionDetailClient({
     }
 
     await runMutation("Saving process definition.", async () => {
-      const { definition: updated, runs: updatedRuns } = await fetchWorkflow<{
-        definition: ProcessDefinitionRecord;
-        runs: WorkflowRunRecord[];
-      }>(`/api/process-definitions/${definition.id}`, {
-        body: JSON.stringify(formToDefinitionInput(form)),
-        method: "PATCH",
-      });
+      try {
+        const { definition: updated, runs: updatedRuns } = await fetchWorkflow<{
+          definition: ProcessDefinitionRecord;
+          runs: WorkflowRunRecord[];
+        }>(`/api/process-definitions/${definition.id}`, {
+          body: JSON.stringify({
+            ...formToDefinitionInput(form),
+            expected_revision: definition.revision,
+          }),
+          method: "PATCH",
+        });
 
-      setDefinition(updated);
-      setRuns(updatedRuns);
-      setForm(definitionToForm(updated));
-      setMessage("Process definition saved.");
+        setDefinition(updated);
+        setRuns(updatedRuns);
+        setForm(definitionToForm(updated));
+        setMessage("Process definition saved.");
+      } catch (error) {
+        await reconcileDefinition(error);
+      }
     });
   }
 
   async function publishDefinition() {
-    if (!canEdit || isBusy) {
+    if (!canEdit || isBusy || needsReload) {
       return;
     }
 
+    if (
+      JSON.stringify(formToDefinitionInput(form)) !==
+      JSON.stringify(formToDefinitionInput(definitionToForm(definition)))
+    ) {
+      setMessage(
+        "Save and read back your reviewed changes before publishing. Publication uses the saved definition.",
+      );
+      return;
+    }
+    if (definition.status === "Active" && definition.active_version_id) {
+      setMessage(
+        "This saved definition already has an active immutable version. No duplicate publication was attempted.",
+      );
+      return;
+    }
     await runMutation("Running publication validation.", async () => {
-      const { definition: updated, runs: updatedRuns } = await fetchWorkflow<{
+      try {
+        const { definition: updated, runs: updatedRuns } = await fetchWorkflow<{
+          definition: ProcessDefinitionRecord;
+          runs: WorkflowRunRecord[];
+        }>(`/api/process-definitions/${definition.id}/publish`, {
+          body: JSON.stringify({
+            note: publicationNote,
+            expected_revision: definition.revision,
+          }),
+          method: "POST",
+        });
+
+        setDefinition(updated);
+        setRuns(updatedRuns);
+        setForm(definitionToForm(updated));
+        setPublicationNote("");
+        setMessage("Validated process version published and active.");
+      } catch (error) {
+        await reconcileDefinition(error);
+      }
+    });
+  }
+
+  async function reconcileDefinition(error: unknown) {
+    try {
+      const current = await fetchWorkflow<{
         definition: ProcessDefinitionRecord;
         runs: WorkflowRunRecord[];
-      }>(`/api/process-definitions/${definition.id}/publish`, {
-        body: JSON.stringify({ note: publicationNote }),
-        method: "POST",
-      });
+      }>(`/api/process-definitions/${definition.id}`);
+      setDefinition(current.definition);
+      setRuns(current.runs);
+      const matches =
+        JSON.stringify(formToDefinitionInput(form)) ===
+        JSON.stringify(formToDefinitionInput(definitionToForm(current.definition)));
+      setNeedsReload(!matches);
+      const outcome =
+        error instanceof WorkflowRequestError && error.status < 500
+          ? "The request was refused."
+          : "The original response was not confirmed.";
+      const publication =
+        current.definition.status === "Active" && current.definition.active_version_id
+          ? " and has an active version"
+          : current.definition.active_version_id
+            ? "; its prior immutable version is retained, but this saved content is not published"
+            : "";
+      setMessage(
+        matches
+          ? `${readErrorMessage(error)} ${outcome} The desired saved content is current${publication}; that does not establish this request created it. No retry was sent.`
+          : `${readErrorMessage(error)} Your edits remain below. Compare the saved version, then load it before editing again; no retry was sent.`,
+      );
+    } catch {
+      setNeedsReload(true);
+      setMessage(
+        `${readErrorMessage(error)} Current state could not be read back. Your edits are retained; reload current content before retrying.`,
+      );
+    }
+  }
 
-      setDefinition(updated);
-      setRuns(updatedRuns);
-      setForm(definitionToForm(updated));
-      setPublicationNote("");
-      setMessage("Validated process version published and active.");
+  async function loadCurrentDefinition() {
+    await runMutation("Reading the current saved process.", async () => {
+      const current = await fetchWorkflow<{
+        definition: ProcessDefinitionRecord;
+        runs: WorkflowRunRecord[];
+      }>(`/api/process-definitions/${definition.id}`);
+      setDefinition(current.definition);
+      setRuns(current.runs);
+      setForm(definitionToForm(current.definition));
+      setNeedsReload(false);
+      setMessage("Current saved content loaded. Review your changes before saving.");
     });
   }
 
@@ -130,6 +214,44 @@ export function ProcessDefinitionDetailClient({
             {definition.status}
           </span>
         </div>
+        {needsReload ? (
+          <div className="ui-stack">
+            <p role="alert">
+              Your unsaved edits are preserved. Review and copy them before loading the
+              current saved definition.
+            </p>
+            <details>
+              <summary>Compare saved process</summary>
+              <p>Saved name: {definition.name}</p>
+              <p>{definition.short_outcome}</p>
+              <p>
+                Saved sources:{" "}
+                {definition.source_links.map((source) => source.label).join(", ") ||
+                  "None recorded"}
+              </p>
+              <p>Saved success: {definition.success_condition}</p>
+              <p>Saved stop: {definition.stop_condition || "None recorded"}</p>
+              <p>
+                Saved escalation: {definition.escalation_condition || "None recorded"}
+              </p>
+              <ol>
+                {definition.steps.map((step) => (
+                  <li key={step.id}>
+                    <strong>{step.title}</strong>
+                    <p>{step.description}</p>
+                  </li>
+                ))}
+              </ol>
+            </details>
+            <button
+              type="button"
+              disabled={isBusy}
+              onClick={() => void loadCurrentDefinition()}
+            >
+              Load current saved definition
+            </button>
+          </div>
+        ) : null}
 
         {!canEdit ? (
           <p className="muted">
@@ -268,7 +390,9 @@ export function ProcessDefinitionDetailClient({
           </button>
           <button
             className="secondary-button"
-            disabled={!canEdit || isBusy || definition.status === "Retired"}
+            disabled={
+              !canEdit || isBusy || needsReload || definition.status === "Retired"
+            }
             onClick={publishDefinition}
             type="button"
           >
@@ -294,10 +418,16 @@ export function ProcessDefinitionDetailClient({
             content="A version becomes Active immediately only after root, scope, type, size, malware, sensitivity, source, graph, and action-reference checks pass."
           />
           <p>
-            <strong>Active immutable version:</strong>{" "}
+            <strong>
+              {hasCurrentPublishedVersion
+                ? "Active immutable version:"
+                : definition.active_version_id
+                  ? "Prior immutable version:"
+                  : "Immutable version:"}
+            </strong>{" "}
             <code>{definition.active_version_id ?? "Not published"}</code>
           </p>
-          {!definition.active_version_id ? (
+          {!hasCurrentPublishedVersion ? (
             <p className="muted">
               Publishing pins an immutable version for future runs. A Draft definition can
               still start an app-plane run, recorded as Not pinned (draft).
@@ -520,10 +650,19 @@ async function fetchWorkflow<T>(path: string, init?: RequestInit): Promise<T> {
   const payload = (await response.json().catch(() => ({}))) as T | { error?: string };
 
   if (!response.ok) {
-    throw new Error(readApiError(payload));
+    throw new WorkflowRequestError(readApiError(payload), response.status);
   }
 
   return payload as T;
+}
+
+class WorkflowRequestError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
 }
 
 function readApiError(payload: unknown) {

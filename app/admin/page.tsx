@@ -7,6 +7,7 @@ import { KbCorrectionsPanel } from "@/components/admin/KbCorrectionsPanel";
 import { ModelConfigPanel } from "@/components/admin/ModelConfigPanel";
 import { CommunicationsRetentionAdminPanel } from "@/components/admin/CommunicationsRetentionAdminPanel";
 import { MoveOutTimingBasisAdminPanel } from "@/components/admin/MoveOutTimingBasisAdminPanel";
+import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { PolicyMaterialAdminPanel } from "@/components/admin/PolicyMaterialAdminPanel";
 import { LeaseArtifactIntakePanel } from "@/components/admin/LeaseArtifactIntakePanel";
 import {
@@ -539,7 +540,11 @@ export default async function AdminPage() {
             )}
           </div>
           <div className="task-anchor" id="admin-move-out-timing-basis" tabIndex={-1}>
-            <MoveOutTimingBasisAdminPanel initial={timingBasis} note={timingBasisNote} />
+            <MoveOutTimingBasisAdminPanel
+              initial={timingBasis}
+              note={timingBasisNote}
+              canEdit={!isVerificationAccount(user)}
+            />
           </div>
           <div className="task-anchor" id="admin-policy-material" tabIndex={-1}>
             <PolicyMaterialAdminPanel

@@ -4,205 +4,274 @@
 # S125 — Thirty-day notice timing review with an explicit date basis
 
 > **Approval reference:** F04 (original feature #4).
-> **Status:** IMPLEMENTED AND DEPLOYED in the verified cumulative corrective batch at `c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220`. Exact CI 36650984450, release gates, independent source/runtime readbacks and six guarded product checks passed. Current evidence: [adversary review](../evidence/adversary-review-2026-09-29.md); original per-reference scopes and human/provider boundaries: [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
-> **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
-> **Registration:** Registered as S125 in `docs/feature-suites/README.md`; the original F04 approval mapping and independent suite acceptance contract are retained.
-> **Classification:** New operational timing indicator; not a legal or fee determination.
+> **Delivered baseline:** the original evaluator/display was implemented and deployed at `c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220`; [the shared audit](../evidence/batch-litmus-audit-2026-09-28.md) and [adversarial review](../evidence/adversary-review-2026-09-29.md) retain their dated scopes.
+> **November 3 amendment:** Source and local gate QUALIFIED; application delivery PENDING. Staff selection/persistence and same-page recovery passed full06 and the final v8 fixture journey within the scopes in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). No live basis selection or human acceptance is claimed.
+> **Registration:** existing S125 / F04 owner in `docs/feature-suites/README.md`. Classification remains an operational timing indicator, not law, fees or legal compliance.
 
 **Goal.**
 
-Staff can see whether recorded notice meets a configured 30-day timing comparison, inspect both dates and the chosen basis, and identify late or undeterminable cases for human review.
-
-**Core outcome alignment.**
-
-C03 — Explain a reviewable timing result without inventing policy or money owed. See suite outcome contract (from the 2026-09-18 export-pack index). This file is a standalone feature specification; the index coordinates shared ownership and does not combine implementation scope.
+Authorized renewal staff select the documented notice-comparison basis once and see that selection
+saved and used by the desk/workspace, without an Admin handoff or another confirmation. Results
+still name their actual dates, provenance, freshness and basis version.
 
 **Current state / intended end state.**
 
-**Current evidence:** Versioned date-only notice comparison requires an explicitly reviewed target, threshold and counting convention. Unknown, missing, invalid, stale or unapproved inputs cannot produce an approved timing classification. The deployed workspace exposed its current basis and honest refusal state; actual policy approval remains open. Exact deployed and source-bound verification scopes are maintained in the [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
+Reviewed source is main `39435919`; the runtime baseline is `bc975353`, documented in the
+[November 3 assessment](../evidence/current-application-gap-analysis-2026-11-03.md). The basis is
+currently absent. Its evaluator honestly returns Cannot determine, separately from notice evidence.
+The October 2 Q2 decision already chose **contractual lease end; calendar days, target minus notice;
+threshold 30; exactly 30 meets**. No decision on that tuple remains to be collected.
 
-**Required end state:** A deterministic calculator and source-attributed display work once the target-date/counting basis is explicitly reviewed. Until then, the UI identifies the missing basis instead of issuing a misleading yes/no. No fees, balances, legal conclusions, or notices are generated.
+At the assessment baseline, `components/admin/MoveOutTimingBasisAdminPanel.tsx` was mounted only in Admin. With no record
+it defaults the target to `expected_move_out`; changing a select edits local state, and a required
+Who confirmed this basis, and where field plus Record reviewed basis submits the whole tuple.
+`app/api/admin/move-out-timing-basis/route.ts` requires `manageAdmin` on both GET and PATCH;
+`lib/firestore/lease-renewal-move-out-timing-basis.ts` repeats the Admin check. The store already
+uses an expected-version transaction and append-only activity. Current route/config tests explicitly
+expect Editor rejection. No extra modal exists today: the redundant step is the Admin/re-attestation
+handoff imposed on selecting an already documented business decision.
 
-Current statements are grounded in the source map below at the pinned revision; they are not a fresh production readback. All new data shapes, labels, and defaults introduced here are proposed requirements unless explicitly identified as existing code or an owner decision.
+The owner's November 3 clarification supersedes that assignment for this narrow operation:
+**an Admin is not needed for confirmation; making the selection may write**. Intended behavior is
+an ordinary authorized renewal-staff selection, server-resolved to the documented tuple and its
+real provenance, with one durable intent, audit/readback and honest response-loss recovery. It
+creates no general policy-editing, legal, fee, sending, role or provider authority.
 
 **Actors and entry conditions.**
 
-Renewals staff inspect results. Editors may record supported source facts through existing app-owned review controls. The existing authorized policy/configuration role records the approved timing basis; this specification adds no role or unilateral policy authority.
+- Managed Editor, Approver or Admin with current Renewals Space access and `edit` may select the
+  documented basis; the server resolves the actor, role and Space. Verification principals remain
+  read-only. Unauthenticated, wrong-domain, read-only or out-of-Space callers cannot write.
+- The selectable option must resolve to an actual documented business decision. The initial option
+  is the settled October 2 Q2 tuple above, using a stable decision reference and non-secret source
+  note. A genuinely new rule requires its actual business decision; Dan is the ask contact for only
+  an unresolved question. His contact role does not create a new technical approval role.
+- Missing/invalid/unreadable saved state remains explicit. Selecting an already approved option
+  supplies intent to record it; opening the page or showing an unselected option does not.
 
 **What it is / how it functions.**
 
-### R-F04-01 — Name both dates and their meaning
-
-The input MUST contain a validated notice-given calendar date, a separately identified target calendar date, exact lease association, source/provenance, freshness, and an approved policy version/basis. Label the target “scheduled move-out date” or “contractual lease-end date” only when that is the reviewed meaning. Never substitute one for the other because a field is blank.
-
-### R-F04-02 — Make counting explicit and testable
-
-The threshold is 30 days from the transcript. Proposed technical default, not a confirmed business/legal fact: compare calendar-date ordinals as target minus notice, with exactly 30 satisfying the threshold; no time-of-day, weekend, holiday, or inclusive extra-day adjustment. Activate this rule only after the authorized policy owner confirms that basis. Implement the evaluator with the counting rule as explicit versioned input, never an implicit library default.
-
-### R-F04-03 — Use truthful result states
-
-Render Meets configured 30-day timing, Below configured 30-day timing — staff review, Cannot determine, or Not applicable, with days provided, the two dates, and basis where available. Not applicable requires explicit absence/withdrawal or a reviewed applicability decision; an unreadable notice is Cannot determine. A malformed/impossible or contradictory source date is invalid evidence, not a financial violation.
-
-### R-F04-04 — Keep results tied to the evidence version
-
-Calculate on the current source/policy snapshot and display freshness. A later corrected notice, target date, or approved rule version recomputes the display; retain any previously staff-reviewed result as historical with its source version. Do not alter source dates to make the result pass. A stale policy or date invalidates final claims that depend on it.
-
-### R-F04-05 — Provide a review path, not an automated sanction
-
-Late/uncertain outcomes MUST link to the relevant source facts and existing staff review/handoff context. They MUST NOT calculate break-lease fees, rent owed, deposit deductions, collection actions, legal compliance, or send a demand. Keep the operational timing result independent of renewal completion and F14 lifecycle color.
-
-### R-F04-06 — Support consistent filtering and unavailable states
-
-Expose bounded timing filter values using the same result projection as the desk/workspace; unknown is explicitly filterable and never treated as compliant. F06 formats dates but does not change the underlying comparison. Loading, failed reads, or inaccessible evidence MUST not expose customer data or reset a prior reviewed fact.
-
-**Data, state, and integration contract.**
-
-The evaluator is pure over date-only facts and an explicit reviewed rule. Store only actual reviewed policy configuration and, where needed, staff review evidence in existing protected patterns; do not add a full legal-rules engine. Source fields remain nullable and attributed. Proposed names are implementation design, not alleged provider fields.
-
-**Failure, retry, cancellation, and concurrency.**
-
-Retry is a deliberate read/recalculation. A policy/configuration save follows current revision checks and readback; cancellation before saving changes nothing. A lost save response is reconciled before resubmission. Conflicting dates remain visible for review.
-
-**Agent and loop contract.**
-
-The entry trigger is an explicit authorized user interaction or a later authorized implementation run, not file receipt, elapsed time, a model inference, or a meeting date. Inputs are the actual current source snapshot, app-owned state, reviewed configuration, and actor scope. Reads produce typed evidence/readiness; ordinary saves use existing audited state services; an external effect uses only its owning exact confirmed-action service. State changes are re-read before success is displayed. Cancelled undispatched actions have no effect; dispatched/ambiguous effects are reconciled, not blindly retried. No new background agent, worker, polling loop, or scheduler is created by this feature.
-
-For F13, this contract applies to evidence gathering only: there is no application mutation loop. For F12, meeting preparation/observation does not execute the described customer actions. Future meetings, material receipt, and provider activation remain distinct from implementation termination.
+- **R-F04-01 — Named dates.** Keep validated notice-given and target calendar dates, exact lease
+  association, source/provenance, freshness and basis version distinct. Never substitute expected
+  move-out for contractual end because a value is blank.
+- **R-F04-02 — Settled counting.** Reuse the recorded Q2 decision: date-only target-minus-notice,
+  threshold 30, exactly 30 meets. No time-of-day, weekend, holiday or inclusive extra-day adjustment.
+  Staff select this documented rule; the team does not ask for it again or invent another rule.
+- **R-F04-03 — Truthful states.** Show Meets configured 30-day timing, Below configured 30-day
+  timing — staff review, Cannot determine or Not applicable, with dates/days/basis. Absence or
+  withdrawal/applicability must have evidence; unreadable/invalid/conflicting dates are unknown.
+- **R-F04-04 — Version binding.** Corrected dates or a genuinely reviewed new basis recompute only
+  current results. Retain earlier reviewed evidence/version; do not change source dates to pass.
+- **R-F04-05 — Review without sanction.** Link late/uncertain results to existing source review.
+  Compute no fee, balance, deduction, collection action, legal conclusion or notice send.
+- **R-F04-06 — Consistent filtering.** Desk/workspace filters consume the same projection; unknown
+  is explicitly filterable, never compliant. Loading/read failures preserve earlier evidence.
+- **R-F04-07 — One selection writes once.** Add the existing Notice timing area's staff-accessible
+  basis selector, visible even when the indicator is Not applicable or unconfigured. Label the scope:
+  the selection is the shared basis used by renewal notice comparisons, not a lease-specific legal
+  rule. The initial no-record value is Choose documented basis. Selecting the documented Q2 option
+  immediately submits that complete choice; no second Save, confirmation dialog, approver handoff
+  or retyped approval note is required. Show Saving, Saved with version/time, conflict or uncertain
+  outcome beside the control. Selecting the already-current option is a no-op. Preserve the existing
+  Admin entry as a compatible view of the same state, not a required route or a second writer.
+- **R-F04-08 — Scoped server admission.** The staff endpoint is
+  `/api/lease-renewal/notice-timing-basis` (GET/PATCH), delegating the existing store; the legacy
+  `/api/admin/move-out-timing-basis` adapter remains compatible with existing Admin clients.
+  Authenticate/authorize before private decoding or writes. PATCH carries the selected decision
+  reference, expected saved version and one operation UUID; the server resolves the allowed tuple
+  and provenance. A forged threshold, target, actor, source attribution or unapproved decision is
+  refused. No broad `manageAdmin` grant or change to other Admin policy/configuration APIs.
+- **R-F04-09 — Durable intent and ambiguity.** Bind the UUID to actor, exact selected decision,
+  canonical payload and expected version in the same existing store/activity transaction. A replay
+  of that same intent returns its original recorded result; reuse with different content conflicts.
+  Concurrent version changes refuse without overwrite. After response loss, read the current state
+  and the owned intent before displaying success or retrying; Retry same selection reuses the UUID,
+  never creates a fresh intent blindly. A merely matching tuple without its owned intent evidence
+  cannot establish this save's causality. Preserve immutable earlier activity.
+- **R-F04-10 — Real provenance without new consent.** Populate the note/reference from the actual
+  settled decision, and audit the current staff recorder separately. Do not claim the recorder made
+  the original business decision, performed a new legal review or received a missing human verdict.
+  Legacy valid records remain readable with their original attribution; none is silently migrated
+  into a new approval or overwritten when a page opens.
+- **R-F04-11 — Current readback.** Independently read back the saved decision/tuple/version and
+  owned intent before showing Saved; refresh the existing desk/workspace projection against that
+  version. Unknown dates or stale/unavailable sources can still return Cannot determine after a
+  successful selection. Saving the basis creates no schedule, provider effect or workflow progress.
 
 **In scope / out of scope.**
 
-In scope: logic, boundary tests, source-linked display, basis configuration, and staff review/filtering. Out of scope: determining applicable law, selecting contractual notice provisions, fee/penalty calculations, collection notices, and automatic legal enforcement.
+In scope: this basis selection, narrow staff route/store admission, UI relocation/reuse, intent
+recovery, provenance, current documentation and meaningful focused tests. Out of scope: arbitrary
+rule authoring by ordinary staff, another permission system, role/claim/IAM changes, general Admin
+access, changing the unrelated notice-rule cadence, legal determination, fees, source mutations,
+client sends, new workers and rerunning historical proofs.
 
 **Open questions & assumptions.**
 
-Live classification dependency: PMI must confirm the comparison anchor and counting convention. The spec is ready for the evaluator, explicit unconfigured state, review UI, and tests now; production yes/no results remain gated on that exact input. This preserves the requested feature without silently turning a proposed calendar rule into policy.
-
-Unverified business/provider facts cannot be replaced by a plausible default. An explicitly labeled presentation/engineering default may be implemented within the approved scope; source semantics, policy applicability, legal wording, and provider permissions require their actual evidence. Missing input blocks only the dependent outcome identified below.
+No product or actor decision blocks this slice: the owner resolved selection authority and the
+basis is settled. Actual notices/targets may remain absent or contradictory per lease. A genuinely
+new business-rule request is recorded with its exact source and directed to Dan only after available
+Dan/team evidence is checked. It does not block implementation of the documented choice.
 
 **Cross-product impacts.**
 
-These are verified paths or explicitly marked candidate owners, not authorization to replace them:
-
-- `lib/lease-renewal/business-calendar.ts` — existing date-only/business-date handling.
-
-- `lib/lease-renewal/live-desk.ts` and `lib/lease-renewal/desk-model.ts` — source evidence and result display.
-
-- `lib/lease-renewal/notice-rules.ts` — inspect for reusable primitives only; preserve existing renewal notice rules.
-
-- New bounded move-out timing evaluator and focused tests — proposed additions under the existing renewal domain, not verified existing symbols.
-
-Update only affected current contracts and facts after verification. Existing historical evidence remains historical. Original approval numbers remain stable; any later S-number remap must update all namespaced acceptance and outcome references consistently.
+Existing owners: `components/admin/MoveOutTimingBasisAdminPanel.tsx`, the Notice timing region in
+`components/lease-renewal/RenewalWorkspace.tsx`, `app/admin/page.tsx`, the two named API adapters,
+`lib/firestore/lease-renewal-move-out-timing-basis.ts`,
+`lib/lease-renewal/role-action-governance.ts`, `lib/lease-renewal/move-out-timing.ts`,
+`lib/lease-renewal/live-desk.ts` and `lib/lease-renewal/desk-model.ts`. Reuse one active record and
+activity owner; no duplicate authoritative basis or direct browser Firestore access. Other
+administrative policy permissions and both closed Dotloop keys are unaffected.
 
 **Authority and evidence map.**
 
-| Source          | Location                                                                                                                            | What it supports and what it does not                                                                                                                             |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| T04             | Transcript 00:37:30; parsed lines 1386–1404                                                                                         | Thirty-day check requested; staff subsequently investigate financial consequences themselves.                                                                     |
-| U04             | User approval on 2026-09-18                                                                                                         | Feature 4 approved, without adding a target-date or penalty rule.                                                                                                 |
-| R04             | `lib/lease-renewal/business-calendar.ts`; `lib/lease-renewal/notice-rules.ts`; `lib/lease-renewal/live-desk.ts`                     | Reuse date semantics and projections; existing notice rules are not proof of this requested policy.                                                               |
-| Shared baseline | `AGENTS.md`; `docs/facts.md`; `docs/loop-state.md`; `docs/feature-suites/TEMPLATE.md` at `d61eecf309fef75f5fe0a80f8f203c1d24c6804a` | Existing architecture/safety and document shape. The user’s latest approval controls new product scope; F08 expressly supersedes earlier enabled-Sheet execution. |
-
-Transcript references use the supplied **Cherry Bridge + PMI: App Training, September 17, 2026** file and its conversation-parsed line numbers/timestamps. See source and decision log (from the 2026-09-18 export-pack evidence log) for filenames, source limitations, and conflicts. No raw customer details or secret values are reproduced here.
+| Input                                                                | Classification                  | Use and limitation                                                                                                                                                   |
+| -------------------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| November 3 owner Q2 selection/write clarification                    | Current scoped authority        | Removes the Admin/second-confirmation requirement for this ordinary authorized selection; does not authorize arbitrary policy changes or execution during authoring. |
+| October 2 Q2 decision, carried in the prior canonical unblock packet | Recorded business decision      | Exact contractual-end/calendar-day/30 tuple; provenance to reuse, not another client question.                                                                       |
+| Current route/panel/store and S125 tests                             | Implementation evidence         | Establish existing Admin gate, default mismatch and version/audit behavior; source review is not a fresh save.                                                       |
+| Current assessment and original F04 audit                            | Dated evidence                  | Absent saved basis and already-delivered evaluator; no new live selection, human acceptance or legal conclusion.                                                     |
+| Dan/team correspondence and later exact decisions                    | Evidence / scoped missing input | Inspect first; Dan receives only a genuinely unresolved question. Presence of a title or correspondence is not a new runtime privilege.                              |
 
 **Architecture outcome (deterministic, fail-first).**
 
-- **ARCH-S125-1** — The owning boundaries listed above implement the data and state contract without a duplicate authoritative workflow, provider reader, or competing status model. A focused structural/service test or, for F13, a source-traceable assessment artifact demonstrates the named ownership and exact inputs/outputs.
-- **ARCH-S125-2** — Actor scope, provenance/version binding, no-effect reads, explicit unavailable states, and existing effect/receipt boundaries remain enforced. Tests inject denied, missing, stale, conflicting, or interrupted evidence and assert the exact refusal/recovery described by each requirement.
+- **ARCH-S125-1** — One existing evaluator and active versioned basis feed desk/workspace/filtering.
+- **ARCH-S125-2** — Date/source/provenance and unchanged effect boundaries remain explicit; reads
+  do not mutate a provider or manufacture notice evidence.
+- **ARCH-S125-3** — Staff entry, both route adapters and store share exact managed-role/Space and
+  verification-account admission. Fail-first: current Editor route/config tests reject the intended
+  selected-basis save. Revoked access is rechecked server-side, never inferred from a visible select.
+- **ARCH-S125-4** — One explicit selection resolves the trusted documented decision and owns one
+  transactional intent/result/activity. Fail-first: the current form requires Admin/retyped note,
+  has no staff entry/decision resolution and lacks same-intent replay evidence.
+- **ARCH-S125-5** — Version, operation payload and independent readback determine Saved/conflict/
+  uncertainty; matching state alone is not own-intent proof. Existing activity remains immutable.
 
 **Behavior outcome (deterministic, fail-first).**
 
-- **BEH-S125-1** — R-F04-01: Name both dates and their meaning. The observable result must satisfy AC-S125-1; a UI label alone is insufficient where a service/provider boundary is required.
-
-- **BEH-S125-2** — R-F04-02: Make counting explicit and testable. The observable result must satisfy AC-S125-2; a UI label alone is insufficient where a service/provider boundary is required.
-
-- **BEH-S125-3** — R-F04-03: Use truthful result states. The observable result must satisfy AC-S125-3; a UI label alone is insufficient where a service/provider boundary is required.
-
-- **BEH-S125-4** — R-F04-04: Keep results tied to the evidence version. The observable result must satisfy AC-S125-4; a UI label alone is insufficient where a service/provider boundary is required.
-
-- **BEH-S125-5** — R-F04-05: Provide a review path, not an automated sanction. The observable result must satisfy AC-S125-5; a UI label alone is insufficient where a service/provider boundary is required.
-
-- **BEH-S125-6** — R-F04-06: Support consistent filtering and unavailable states. The observable result must satisfy AC-S125-6; a UI label alone is insufficient where a service/provider boundary is required.
+- **BEH-S125-1** — Both actual dates and basis are named without substitution.
+- **BEH-S125-2** — 29/30/31-day and leap/year/DST date-only cases obey the settled comparison.
+- **BEH-S125-3** — Missing, stale, unreadable, future or contradictory notice/target facts produce
+  explained uncertainty or review, not fees or a compliant result.
+- **BEH-S125-4** — Current corrections recompute while historical versions remain attributable.
+- **BEH-S125-5** — A late/unknown result reaches source review without an automated sanction.
+- **BEH-S125-6** — Filters preserve unknown and use the same result as the workspace.
+- **BEH-S125-7** — An ordinary authorized Editor chooses the documented basis on the lease screen;
+  one selection writes once and shows read-back Saved without Admin, another Save or confirmation.
+- **BEH-S125-8** — Opening/cancelling without selection writes nothing; changing an incomplete or
+  forged choice is refused locally/server-side and preserves useful input. No silent default saves.
+- **BEH-S125-9** — Response loss, concurrent edits, retry and service restart preserve one intent,
+  expose the actual result and never append duplicate selection/activity or overwrite a newer basis.
+- **BEH-S125-10** — The UI names the current recorder separately from the recorded decision source;
+  selected basis success leaves genuinely missing notice/date evidence unknown.
 
 **Human litmus outcome.**
 
-### Thirty-day notice timing review with an explicit date basis
+### Select the documented notice basis and continue
 
-**If this was built correctly:** Staff can see the exact dates and the number of days given, understand why a case needs review, and never mistake an unknown date or unset policy for a yes/no answer.
+**If this was built correctly:** A renewal staff member sees the already-decided comparison,
+chooses it once, sees whether it saved and can continue. They do not find an Admin or ask Dan to
+confirm the same decision again. A missing notice date still says what fact is missing.
 
-- Model/engineering verdict: PASS for the implemented engineering and release scope at `843e222f436cee824ccb89cef23e8eea59d78d5d`. The final full gate passed 7,438 unit and 234 backend tests with four existing skips, exact CI 36624189352, production assurance/reconciliation/observation and independent readbacks. The shared audit preserves the exact per-check source/build scope and failed attempts. No human, customer accuracy, provider activation or external-input verdict is inferred.
-- Human verdict: NOT RUN — no human observer.
-- Any later human observation is recorded independently of implementation and provider verification.
+- Model verdict: NOT RUN — staff selection/persistence source and focused unit/emulator checks are implemented; cumulative qualification, this model litmus and delivery remain pending. No live basis save is claimed.
+- Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
 
-| Requirement | Owning boundary                              | Architecture             | Behavior   | Acceptance / test scenario                                     |
-| ----------- | -------------------------------------------- | ------------------------ | ---------- | -------------------------------------------------------------- |
-| R-F04-01    | timing evaluator / source projection         | ARCH-S125-1, ARCH-S125-2 | BEH-S125-1 | AC-S125-1: Name both dates and their meaning                   |
-| R-F04-02    | business-calendar / timing evaluator         | ARCH-S125-1, ARCH-S125-2 | BEH-S125-2 | AC-S125-2: Make counting explicit and testable                 |
-| R-F04-03    | timing projection / UI                       | ARCH-S125-1, ARCH-S125-2 | BEH-S125-3 | AC-S125-3: Use truthful result states                          |
-| R-F04-04    | projection / existing audited review storage | ARCH-S125-1, ARCH-S125-2 | BEH-S125-4 | AC-S125-4: Keep results tied to the evidence version           |
-| R-F04-05    | guidance / timing UI                         | ARCH-S125-1, ARCH-S125-2 | BEH-S125-5 | AC-S125-5: Provide a review path, not an automated sanction    |
-| R-F04-06    | desk query / F06 date display                | ARCH-S125-1, ARCH-S125-2 | BEH-S125-6 | AC-S125-6: Support consistent filtering and unavailable states |
-
-Every acceptance scenario below is a required test or evidence deliverable, not a reported pass. For unaffected already-implemented behavior, retain the existing test as preservation evidence rather than duplicating it.
+| Requirement            | Architecture outcome     | Behavior outcome        | Human litmus                                    | Deterministic evidence / falsification                                                                           |
+| ---------------------- | ------------------------ | ----------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| R-F04-01 dates         | ARCH-S125-1, ARCH-S125-2 | BEH-S125-1              | Select the documented notice basis and continue | Existing evaluator/desk fixtures distinguish lease end and move-out; missing stays unknown.                      |
+| R-F04-02 counting      | ARCH-S125-1              | BEH-S125-2              | Select the documented notice basis and continue | 29/30/31, leap/year and DST date-only boundaries; no extra day.                                                  |
+| R-F04-03 states        | ARCH-S125-2              | BEH-S125-3              | Select the documented notice basis and continue | Unavailable/invalid/stale/withdrawn/absent evidence fixtures; no legal/fee claim.                                |
+| R-F04-04 history       | ARCH-S125-1, ARCH-S125-5 | BEH-S125-4              | Select the documented notice basis and continue | Correction updates current projection; earlier activity/version unchanged.                                       |
+| R-F04-05 review        | ARCH-S125-2              | BEH-S125-5              | Select the documented notice basis and continue | Review destination and zero business-effect calls.                                                               |
+| R-F04-06 filters       | ARCH-S125-1              | BEH-S125-6              | Select the documented notice basis and continue | Desk/workspace/filter parity, including unknown.                                                                 |
+| R-F04-07 single choice | ARCH-S125-4              | BEH-S125-7, BEH-S125-8  | Select the documented notice basis and continue | Mounted Editor selection emits one complete intent; no modal/second-save/required approval-note; no mount write. |
+| R-F04-08 scoped route  | ARCH-S125-3              | BEH-S125-7, BEH-S125-8  | Select the documented notice basis and continue | Actual route/store Editor pass and wrong-domain/role/Space/verification/forged-choice refusal.                   |
+| R-F04-09 recovery      | ARCH-S125-5              | BEH-S125-9              | Select the documented notice basis and continue | Concurrent transaction, response loss/restart/replay and UUID-payload conflict; exactly one activity.            |
+| R-F04-10 provenance    | ARCH-S125-4, ARCH-S125-5 | BEH-S125-10             | Select the documented notice basis and continue | Stored real decision reference and current actor separated; old records preserved.                               |
+| R-F04-11 readback      | ARCH-S125-1, ARCH-S125-5 | BEH-S125-9, BEH-S125-10 | Select the documented notice basis and continue | Independent owned-intent/tuple/version readback; missing notice remains Cannot determine.                        |
 
 **Preservation set.**
 
-Existing renewal notice/follow-up policy, no automatic fee/source updates, timezone/date-only semantics, exact source provenance, and unaffected renewal completion.
-
-Keep preservation results separate from new-feature results. Passing one does not compensate for failing the other.
+Keep `tests/unit/s125-move-out-timing.test.ts` date/evidence semantics;
+`tests/unit/s125-move-out-timing-desk.test.tsx` source labels/filter parity;
+`tests/unit/s125-move-out-timing-route.test.ts` authentication/body rejection;
+`tests/unit/s125-move-out-timing-basis-config.test.ts` version/activity/history checks; and
+`tests/unit/renewal-role-action-governance.test.ts` unrelated role/effect contracts. Update only the
+old Admin-only and expected-move-out-default expectations deliberately superseded here. Add
+meaningful mounted selection and real emulator transaction/replay cases under the same owners;
+proposed new test paths are not claimed existing/passing. No global role, Firestore Rule, notice
+cadence, claim/receipt or provider key change is part of this preservation amendment.
 
 **Adversarial acceptance checks.**
 
-- **AC-S125-1** — R-F04-01 / BEH-S125-1, ARCH-S125-1 and ARCH-S125-2: When move-out and lease-end differ, selecting either reviewed basis produces its own result and label. Missing target-basis approval yields Cannot determine, not a guessed answer.
-
-- **AC-S125-2** — R-F04-02 / BEH-S125-2, ARCH-S125-1 and ARCH-S125-2: Under the reviewed calendar-day fixture rule, 29 fails, 30 passes, and 31 passes; same-date yields zero. A daylight-saving change does not change the day count. An unset counting basis produces no yes/no.
-
-- **AC-S125-3** — R-F04-03 / BEH-S125-3, ARCH-S125-1 and ARCH-S125-2: Missing notice, missing target, source failure, invalid leap date, future-recorded notice, and target-before-notice fixtures produce explained uncertainty/review, never an invented compliant status or amount owed.
-
-- **AC-S125-4** — R-F04-04 / BEH-S125-4, ARCH-S125-1 and ARCH-S125-2: Correcting a notice date changes the current timing result while retaining prior reviewed evidence; revisiting an old report identifies the old basis rather than rewriting it.
-
-- **AC-S125-5** — R-F04-05 / BEH-S125-5, ARCH-S125-1 and ARCH-S125-2: A below-threshold fixture shows a review action and no ledger calculation, draft demand, account update, completion change, or legal-compliance badge.
-
-- **AC-S125-6** — R-F04-06 / BEH-S125-6, ARCH-S125-1 and ARCH-S125-2: A timing-filtered table exactly matches current result keys, including unknown cases; formatting changes leave every calculation and sort key unchanged.
-
-- **AC-S125-7** — ARCH-S125-2, preservation gate: run the named existing checks and assert no unintended customer sends, source mutations, paid lookups, actor widening, historical-evidence rewrite, or new background work. F08 must remain paused where installed; missing optional dependencies do not disable unrelated work.
-- **AC-S125-8** — Evidence gate: the final result separately reports engineering tests, deployed readback if performed, missing external inputs, provider-specific verification, and human meeting observations. No unrun result is PASS, and no fake-provider success is described as a live customer outcome.
+- **AC-S125-1** — ARCH-S125-1/2, BEH-S125-1: chosen basis names its actual target; a blank target
+  cannot borrow another date. The settled choice is not represented as unapproved business intent.
+- **AC-S125-2** — ARCH-S125-1, BEH-S125-2: date-only 29/30/31/leap/DST boundaries pass exactly.
+- **AC-S125-3** — ARCH-S125-2, BEH-S125-3: missing/unreadable/conflicting dates remain unknown;
+  selection creates no notice, fee or legal claim.
+- **AC-S125-4** — ARCH-S125-5, BEH-S125-4: earlier actor/source/version survives correction.
+- **AC-S125-5** — ARCH-S125-2, BEH-S125-5: source review links make no write or send.
+- **AC-S125-6** — ARCH-S125-1, BEH-S125-6: unknown filtering/desk/workspace result agree.
+- **AC-S125-7** — ARCH-S125-3/4, BEH-S125-7/8: Editor one-selection success fails on current
+  Admin-only source, then passes; no mount write, Admin ceremony or second confirmation remains.
+- **AC-S125-8** — ARCH-S125-3, BEH-S125-8: denied role/Space/domain, verification principal,
+  forged actor/tuple/decision and stale version cause no store activity. Other Admin APIs stay gated.
+- **AC-S125-9** — ARCH-S125-5, BEH-S125-9: lost response plus same-intent retry/restart creates
+  one version/activity; competing edit and altered-UUID-payload fail without overwrite.
+- **AC-S125-10** — ARCH-S125-4/5, BEH-S125-10: correct decision provenance/readback is visible;
+  no model approval, source date, new policy choice or human verdict is fabricated.
 
 **Forbidden actions / hard gates.**
 
-No autonomous customer sends, synthetic production customers, browser-driven provider workarounds, new identities, expanded roles, new action keys, or unreviewed protected-path changes. Opening, filtering, sorting, copying, inspecting, and refreshing must not authorize a write or advance a renewal. Preserve exact human confirmation, durable attempts, receipts, readback, and explicit reconciliation for separately authorized effects. A saved status, draft, uploaded file, matching provider record, or passed test is not proof of a sent message, valid signature, or completed customer workflow.
-
-F08 is the only approved policy change in this pack: pause operating-Sheet mutations while preserving reads. It does not turn off supported RentVine operations or erase historical Sheet receipts. This export itself changes no runtime setting, repository file, account, calendar event, or provider record.
+The owner launched this scoped app-owned selection implementation under current protected-path
+and release gates; source and focused checks are complete, with cumulative qualification pending. It cannot
+open provider keys, grant general Admin/policy power, invent business/legal evidence, alter notice
+facts or use a production customer effect as test proof. Authentication challenges remain human;
+independent implementation continues. No runtime selection or policy record is written by this spec.
 
 **Dependencies / sequencing.**
 
-F03 supplies notice evidence or unknown. F06 owns date presentation; F07 owns review navigation. Existing renewal notice-policy behavior is preserved and is not merged into this rule.
+Consume the actual October 2 decision and November 3 selection-authority amendment. Implement
+staff admission and one-intent storage/UI together; then reconcile the current guide/unblock packet
+through S238. Source dates remain runtime inputs, not a blocker to implementing honest missing
+states. F03 supplies notice evidence, F06 date display and F07 source review; no duplicate owner.
 
 **Standalone delivery contract.**
 
-- **Deliverable now, in a later implementation task:** The parameterized timing evaluator, source/result UI, configuration/readback path, and exhaustive boundary/unknown tests. The unconfigured state is an accepted deliverable, not evidence of a completed live calculation.
-- **Consumes, but does not assume:** the exact source/configuration/cross-feature inputs above; missing or unverified values retain their explicit unavailable representation.
-- **Externally blocked or deferred outcome:** Confirmed target-date meaning and day-count convention, plus the source-field mapping from F03 for automatic reads.
-- **Produces for downstream work:** the stable evidence/state contract and acceptance record defined here. No inferred approval or provider receipt is produced by a technical test.
+- **Deliverable now:** implemented staff selector, route/store authority, replay/conflict/readback
+  recovery, tests and current guidance with passing focused checks; cumulative qualification and
+  delivery remain pending. No new client basis decision is required.
+- **Consumes, but does not assume:** current actor/Space, documented decision and source dates;
+  unavailable dates remain unknown after an otherwise successful selection.
+- **Externally blocked effect:** only a genuinely new business rule or human acceptance. Contact
+  Dan for an actually unresolved rule after checking evidence; no Admin confirmation hold remains
+  for the specified selection. A legal verdict/send/provider write is not this suite's outcome.
+- **Produces for downstream suites:** selected basis/version/provenance plus independently read
+  selection receipt and truthful desk/workspace classification for available facts.
 
 **Verification and delivery contract.**
 
-1. Re-read `AGENTS.md`, `docs/facts.md`, `docs/loop-state.md`, the current suite registry, and the implementation owners listed here. Compare the working revision with the pinned discovery baseline. Inspect only authorized read-only live evidence when needed. Do not treat repository deployment prose as a new live verification.
-2. Record the preservation baseline and materialize each architecture, behavior, and adversarial check. A genuinely missing behavior must fail for its intended reason before its fix. An already-correct behavior is a preservation check; do not manufacture a failure or rebuild it merely to claim new work.
-3. Run the focused checks, actual backend/service integration with controlled external adapters, and applicable served-browser checks. Keep source coverage, app-owned state, provider effects, and human observations separate in the result ledger. Use synthetic values only in local tests/emulators, never in Production.
-4. Before an authorized code delivery, run `bash scripts/verify.sh`, `npm run test:firestore`, and `npm run test:e2e:core` as applicable under the current repository contract. Run the relevant compiled renewal desk/guide browser checks, inspect accessibility and source parity, and audit the diff for secrets, customer data, protected paths, provider gates, and unintended scope. Never weaken checks to fit a new label or bypass a missing input.
-5. Implementation/release is a later task, not performed by this export. When authorized, use the existing serialized green-commit, exact-SHA CI, zero-traffic candidate, smoke/assurance, promotion, observation, readback, and captured-predecessor rollback path. Documentation-only changes do not trigger a production deploy unless they change a served asset. F08's pause must survive a rollback.
-6. Report the implementation terminal as `ALL_GATES_GREEN`, `BLOCKED`, or `BUDGET_EXHAUSTED` (the last only with an explicit user-supplied run budget). External inputs and future meeting acceptance are tracked separately. A green scaffold does not make live validation complete. Record `Human verdict: NOT RUN — no human observer` until an actual authorized observation occurs. Do not set any verdict to PASS merely because this specification was written.
+1. Freeze current source/readback and preservation evidence; materialize Editor/single-choice and
+   exact-intent replay checks before implementation. Record expected failures, not fabricated reds.
+2. Verify new route/store/component architecture and behavior, concurrent/emulator recovery, and the
+   separate unchanged date/effect-preservation gate. Fixtures are not production/human evidence.
+3. Before an authorized delivery, run `bash scripts/verify.sh` and affected browser checks, inspect
+   scope/PII/permissions and use the existing exact-main/lock/candidate/receipt/observation route.
+4. Report authoring, implemented engineering, deployed and operational/human results separately.
+   Existing authority carries approved phases; an unavailable human verdict is NOT RUN, not an
+   invented pass or a blanket blocker on independent engineering.
 
 **Ordered prompt sequence.**
 
-1. Inspect the current owning code and existing contracts; resolve only the bounded evidence questions identified here.
-2. Freeze the feature-specific checks and preservation baseline. Establish the smallest complete change and the explicit no-effect boundary.
-3. Build or reuse the owning implementation, including unavailable, stale, denied, interrupted, and recovery paths; do not introduce a parallel workflow engine.
-4. Run every acceptance row and the preservation gates, then the repository's authorized verification/release loop. Record exact evidence and remaining external inputs.
-5. Update current documentation only to what was demonstrated. Keep future meeting results, missing approved materials, and deferred provider activation pending rather than fabricating closure.
+1. Reverify the source, real UI/store contracts and recorded decisions without a production save.
+2. Under a later named launch, create fail-first single-choice/role/replay checks and preservation.
+3. Implement the exact scoped route/store/UI behavior, refuse forged choices and reconcile ambiguity.
+4. Verify/deliver through existing gates and update S238/current documents to actual evidence.
 
 **Deletion/merge recommendation.**
 
-Keep this specification independent of adjacent features until its own code/evidence and remaining dependencies are represented by current implementation contracts, tests, and facts. Preserve the original F04 approval mapping. Do not delete an external-input or meeting-validation gap merely because scaffolding passed. If existing behavior already meets part of the spec, link that evidence and merge only redundant explanatory prose—not acceptance coverage, history, or the user’s separate-feature boundary.
+Keep this amendment in S125 until code/tests/current facts own the one-selection contract and its
+remaining human limits. Do not retire the original evaluator/date invariants or revive its settled
+basis question from older F04 prose.

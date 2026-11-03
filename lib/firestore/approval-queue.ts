@@ -1,6 +1,7 @@
 import { FieldValue, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { v7 as uuidv7 } from "uuid";
 import { canViewApprovalQueueItem, isQueueItemTerminal } from "@/lib/approval/queue";
+import { isCurrentDecisionItem } from "@/lib/approval/current-work-eligibility";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import {
@@ -364,6 +365,12 @@ function planTransition(
   input: ParsedTransitionApprovalQueueItemInput,
   options: { requireHighRiskReason?: boolean } = {},
 ): TransitionPlan {
+  if (!isCurrentDecisionItem(current)) {
+    throw new EditableLayerError(
+      "This record is retained history; its operation is retired or its lifecycle is closed/superseded.",
+      410,
+    );
+  }
   switch (input.action) {
     case "approve": {
       assertCan(actor, "approve");
@@ -550,6 +557,9 @@ async function bulkTransitionApprovalQueueItem(
       if (current.data_mode === "test") {
         return unavailableBulkResult(itemId);
       }
+      // Do not even append skipped-action activity to retired/closed provenance. Retained evidence
+      // remains byte-for-byte; current projections and direct/bulk controls share the same rule.
+      if (!isCurrentDecisionItem(current)) return unavailableBulkResult(itemId);
 
       if (input.action === "execute") {
         return appendSkippedBulkResult(

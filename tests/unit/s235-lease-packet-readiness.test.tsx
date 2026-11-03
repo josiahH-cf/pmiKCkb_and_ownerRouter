@@ -28,16 +28,14 @@ describe("S235 lease packet readiness", () => {
     expect(rows).toHaveLength(LEASE_ARTIFACT_FAMILIES.length);
     for (const row of rows) {
       expect(row.useSource, row.kind).toBe(ENGINEERING_DEFAULT_LABEL);
-      expect(row.missing, row.kind).toContain(
+      expect(row.catalogSetup, row.kind).toContain(
         "The client's use decision, recorded by an Admin",
       );
       if (row.use !== "Not used") {
-        expect(row.applicability, row.kind).toBe(
-          "Not evaluated yet; Evaluate packet records it",
-        );
+        expect(row.applicability, row.kind).toBe("Current applicability unavailable");
         expect(row.original, row.kind).toBe("No approved original received");
-        expect(row.missing, row.kind).toContain(
-          "The approved original (client document approver)",
+        expect(row.missing.join(" "), row.kind).not.toMatch(
+          /approved original|field and signer map/,
         );
       }
     }

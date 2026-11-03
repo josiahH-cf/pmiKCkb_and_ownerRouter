@@ -277,3 +277,214 @@ duplicate safety for S236 and S238.
 
 Remove this suite when its checks are represented by code, tests and current facts; keep S66, S130,
 S34 and S228 history unchanged.
+
+## November 3 assessment follow-up — A-03
+
+> Authoring status: FINAL. A-03 current-readiness source and local gate QUALIFIED; application
+> delivery PENDING. Full06 and final v8 fixture runtime scope are in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md).
+> The delivered S235 baseline retains its original evidence. R-S235-7 approved-map verification
+> and human/provider outcomes retain their exact holds; no provider effect was test proof.
+
+**Goal.**
+
+Staff can identify the selected packet context, its current evidence and only the material actually
+needed for that output, without first saving an evaluation. The lease's selection display applies
+the same account, connection-generation and time qualifications as Connections.
+
+**Current state / intended end state.**
+
+Source inspected on 2026-11-03 at `3943591918bd9c5443bffef381db3d8b32e959d3`; deployed application
+source is `bc97535379dd08deab578455b00a80fc93b8d209`. The lease page passes only its saved
+`packetSnapshot` into the readiness projection
+(`app/lease-renewal/live/desk/lease/[leaseId]/page.tsx` (line 303)). With none, the table says "Not evaluated
+yet; Evaluate packet records it" (`lib/lease-documents/lease-packet-readiness.ts` (line 36)). The table
+does not display the packet-context decision or basis facts
+(`components/lease-renewal/LeasePacketReadiness.tsx` (line 28)). Missing-original/map requests are
+suppressed for `not_used`, but not for an evaluated `not_applicable` family
+(`lib/lease-documents/lease-packet-readiness.ts` (line 69)).
+
+Two private, synthetic-only reproductions called the actual exported functions on the identical
+runtime tree in `/home/josiah/pmi-kc-work/auth-command-20261102`. An excluded city-addendum row read
+"Does not apply to this lease" while requesting an approved original and map. A future resource
+observation with matching fixture ids returned no freshness problems. These are deterministic
+projection defects; no production customer case or unsafe provider admission was demonstrated.
+The freshness reader does not read the current connection generation/status
+(`lib/lease-documents/packet-selection-freshness-read.ts` (line 30)), and its age check does not reject a
+future observation (`lib/lease-documents/packet-selection-freshness.ts` (line 74)). The established
+Connections picker and execution admission already enforce stronger gates.
+
+Intended: compose a read-only, current readiness result with context and dated basis; distinguish
+an earlier saved snapshot from current facts; separate output blockers from optional catalog setup;
+qualify the saved-selection display against the current approved connection. An unavailable fact
+remains unknown with the exact missing field and supplier.
+
+**Actors and entry conditions.**
+
+Existing Renewal Space staff read their permitted lease. Engineering owns the projection and
+verification. Shared legal/content configuration retains its existing authorized controls; S125's
+notice-basis selection specifically requires no Admin confirmation under the new owner direction.
+Recover documented PMI decisions first. Dan is the contact for unresolved business questions;
+the actual document/policy authority supplies missing meaning, applicability or approved content
+under [B-DL3](../open-blockers.md). No new customer
+value, client decision, provider privilege or live effect is needed to implement this follow-up
+with isolated fixtures.
+
+**What it is / how it functions.**
+
+- **R-S235-8 — Current context without a save.** Read the existing permitted fact owners and
+  expose the context decision, basis versions/times and exact unknown facts without creating or
+  updating a packet snapshot. If current resolution is unavailable, say which read failed and label
+  retained evidence as saved evidence; never present it as a current determination.
+- **R-S235-9 — Output-specific missing material.** A family excluded by the current context or
+  reviewed applicability asks for no original/map for that output. Optional catalog setup may be
+  shown separately and must not be phrased as its blocker. For unknown applicability, request the
+  exact deciding fact first; an engineering default remains visibly unapproved.
+- **R-S235-10 — Qualified selection display.** Compare the cached observation with the current
+  connected generation, approved account and valid observation time. Failed, disconnected,
+  wrong-generation, future, stale and wrong-account observations receive explicit reasons. Reading
+  the table neither refreshes a provider nor changes the saved selection.
+
+**In scope / out of scope.**
+
+In scope: the existing readiness/freshness projections, lease-page composition, precise supplier
+copy and isolated route/component checks. Out of scope: new form requirements, policy decisions,
+changing execution gates, approving material, automatic refresh, provider calls, activation,
+customer output generation, signing, implementation or delivery during this assessment.
+
+**Open questions & assumptions.**
+
+The excluded-family and future-time defects are reproduced. The consequences of changed facts,
+reconnection or unavailable current reads are source-bounded uncertainties requiring the checks
+below; they are not claimed production incidents. Reuse current fact-read owners, including their
+documented narrow observation/invalidation behavior, rather than treating every GET as pure. A
+new read-only projection must add no write or provider request of its own.
+No feature-design question remains. Missing live facts, legal decisions and approved maps are
+typed runtime inputs, with the exact output held; they do not prevent this standalone implementation.
+The selected Dotloop template/profile/status remains settled. S34 separately plans the existing
+create/upload paths through technical readiness and later exact-key activation; neither this
+display nor Dan's response automatically activates a provider operation.
+
+**Cross-product impacts.**
+
+S66 current fact/applicability resolution, S130 material readiness, S106/S228 connection and
+selection observation, the S235 lease table, and S236/S238 consumers. Execution, snapshots, approved
+bytes, receipts and claims retain their existing owners and meanings.
+
+**Authority and evidence map.**
+
+| Input                                                                | Classification               | Use and limitation                                                                            |
+| -------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------- |
+| Current assessment instruction and `AGENTS.md`                       | Authority                    | Assess/specify only; preserve settled selection, closed keys and exact human execution gates. |
+| Named current source locations and two 2026-11-03 pure reproductions | Implementation evidence      | Establish projection defects, not a live provider failure or customer effect.                 |
+| November 3 delivery and 39 focused tests in four files               | Scoped preservation evidence | Delivered baseline and tested fixture behavior; does not cover these new missing cases.       |
+| B-DL3 approved content/applicability                                 | External dependency          | Required only for its real output; not for this engineering slice.                            |
+
+**Architecture outcome (deterministic, fail-first).**
+
+- **ARCH-S235-5** — The existing readiness boundary accepts current context/basis plus retained
+  snapshot identity explicitly and emits output blockers independently of general catalog setup.
+  Starting-state checks fail on missing context and the excluded-family original/map request.
+- **ARCH-S235-6** — Display freshness consumes current connection status/generation and approved
+  account evidence, with a bounded past-to-now observation interval. A future-time fixture fails
+  against the starting projection; no display code can grant execution authority.
+
+**Behavior outcome (deterministic, fail-first).**
+
+- **BEH-S235-6** — A known-context lease with no saved snapshot shows its context/basis with
+  zero new writes; changed or unreadable facts visibly qualify a retained result.
+- **BEH-S235-7** — Excluded city/HOA/other-context families request no output material, while an
+  unknown rule names its exact fact and supplier and a required applicable original stays held.
+- **BEH-S235-8** — Selection matching fixture ids is insufficient when account, generation,
+  connection state or observation time fails; staff see the precise reason and existing refresh
+  handoff without a new selection or template request.
+
+**Human litmus outcome.**
+
+### See what this renewal actually needs
+
+**If this was built correctly:** Staff open a lease and see why it needs an extension or full lease,
+which facts remain unknown, and which forms matter for that choice. They are not asked to obtain a
+city or HOA form that does not apply. An old or mismatched connection check says why it cannot yet
+be relied on, while the already-saved template remains visible.
+
+- Model verdict: NOT RUN — current-context, excluded-family and qualified-selection source repairs pass focused checks; cumulative qualification, this model litmus and delivery remain pending. Real-map verification retains its exact input hold.
+- Human verdict: NOT RUN — no human observer
+
+**Requirement-to-outcome traceability.**
+
+| Requirement                    | Architecture outcome | Behavior outcome | Human litmus                         | Deterministic evidence / falsification                                                                     |
+| ------------------------------ | -------------------- | ---------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| R-S235-8 current context/basis | ARCH-S235-5          | BEH-S235-6       | See what this renewal actually needs | No-snapshot and changed/unreadable fact fixtures through the actual page/projection; zero added writes.    |
+| R-S235-9 exact output blockers | ARCH-S235-5          | BEH-S235-7       | See what this renewal actually needs | Excluded-city reproduction, other-context and unknown-predicate fixtures in `s235-lease-packet-readiness`. |
+| R-S235-10 qualified selection  | ARCH-S235-6          | BEH-S235-8       | See what this renewal actually needs | Future-time reproduction; wrong-generation/account/disconnected cases in `s235-slots-state-freshness`.     |
+
+**Preservation set.**
+
+On 2026-11-03 the existing `s235-lease-packet-readiness` (4),
+`s235-slots-state-freshness` (7), `s106-dotloop-connection` (24) and
+`oct15-dotloop-discovery` (4) checks passed: four files, 39 tests, process exit 0, Node 24.18.0,
+Vitest 4.1.11, identical native runtime tree. Preserve those checks separately from new cases,
+current Space/role refusals, explicit Evaluate snapshot writes, owner-term/output approval,
+party/animal slots, closed exact keys, source lineage and human signing.
+
+**Adversarial acceptance checks.**
+
+- **AC-S235-7** — No-snapshot/current-known and saved-snapshot/changed-fact cases show dated
+  context/basis with no projection-owned write/provider call; a failed basis read cannot become a
+  fresh result (ARCH-S235-5, BEH-S235-6).
+- **AC-S235-8** — Excluded city, HOA and other packet-context material produces no output
+  original/map ask. Required applicable material remains named; unknown predicates name the exact
+  missing fact and supplier (ARCH-S235-5, BEH-S235-7).
+- **AC-S235-9** — Matching fixture ids with future/stale/unreadable time, wrong account,
+  wrong-generation or disconnected status never yields an unqualified selection match. A current
+  approved matching observation does (ARCH-S235-6, BEH-S235-8).
+- **AC-S235-10** — No table view or test saves a selection, opens a key, evaluates/saves a
+  production packet, calls Dotloop, approves content or sends/signs (preservation gate).
+
+**Forbidden actions / hard gates.**
+
+The original assessment made no production change. Launched source repairs pass focused checks;
+cumulative qualification and delivery are pending. Verification uses isolated fixtures and existing
+guarded reads. No production test record, draft/send, schedule, provider
+business write, template recreation, key change, source approval or signature is proof.
+
+**Dependencies / sequencing.**
+
+First reproduce the named projection cases, then extend their existing owners. No B-DL3 input is
+needed for fixture implementation; a real legal output still consumes approved content, reviewed
+maps, applicability and current case facts. Existing selection is settled, subject to fresh
+readback; do not reopen C00 merely because a cached observation ages.
+
+**Standalone delivery contract.**
+
+- **Deliverable now:** implemented bounded readiness display and passing focused checks, with
+  preserved starting evidence. Cumulative qualification and delivery remain pending independently
+  of client approvals or a provider effect.
+- **Consumes, but does not assume:** readable current facts and connection observation; missing
+  input is an explicit unknown/unavailable result with retained evidence clearly labeled.
+- **Externally blocked effect:** actual legal output and first real Dotloop effects remain under
+  B-DL3 and their exact authorization; they do not block these fixture checks.
+- **Produces for downstream suites:** a current, qualified context/readiness result and precise
+  output blocker list, without changing stored packet/claim/receipt contracts.
+
+**Verification and delivery contract.**
+
+Keep the two starting reproductions and the 39-test preservation result as dated evidence. A later
+authorized implementation must materialize every ARCH/BEH/AC case before edits, run focused
+projection/page checks and the separate preservation set, then the repository's required delivery
+gates under the owner's launch. Source/focused-check evidence does not establish cumulative
+qualification, model/human acceptance or delivery; no such PASS is claimed.
+
+**Ordered prompt sequence.**
+
+1. Re-establish current runtime/source and retain the existing snapshot/connection readbacks.
+2. Reproduce excluded material, absent/stale context and invalid observation cases in isolation.
+3. Under a later scoped instruction, repair existing projections and qualify their actual page use.
+4. Verify exact supplier/output copy, zero added effects and preservation; deliver only under the
+   existing authority and technical gates.
+
+**Deletion/merge recommendation.**
+
+Merge this follow-up into S235's current implementation contract once its new checks are verified.
+Do not create a second suite, relabel the original release as failed, or retire remaining content
+and human holds because fixture checks pass.

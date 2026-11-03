@@ -19,6 +19,10 @@ import { buildLiveRenewalConfig } from "@/lib/lease-renewal/live-config";
 import { revalidateStaleLiveLeaseSnapshot } from "@/lib/lease-renewal/live-lease-cache";
 import { loadRenewalRunViews } from "@/lib/lease-renewal/renewal-review-board";
 import type { Severity } from "@/lib/lease-renewal/severity";
+import {
+  RenewalReviewUnavailableError,
+  type RenewalReviewReadIssue,
+} from "@/lib/lease-renewal/review-readiness";
 
 export const ATTENTION_QUEUE_FEEDS = ["approval_queue", "renewal_reviews"] as const;
 export type AttentionQueueFeed = (typeof ATTENTION_QUEUE_FEEDS)[number];
@@ -58,6 +62,8 @@ export interface AttentionQueue {
   /** The full approval list this user can open. */
   readonly seeAllHref: string;
   readonly checkedAtIso: string;
+  /** Fixed reason for a renewal-feed hold; never a raw provider error. */
+  readonly renewalReviewIssue?: RenewalReviewReadIssue;
 }
 
 export interface AttentionQueueDependencies {
@@ -116,6 +122,7 @@ export async function gatherAttentionQueue(
 
   let renewalBoard;
   let writebackQueue;
+  let renewalReviewIssue: RenewalReviewReadIssue | undefined;
   if (canSeeRenewals) {
     try {
       if (viewsResult.status !== "fulfilled" || viewsResult.value === null)
@@ -123,6 +130,8 @@ export async function gatherAttentionQueue(
       renewalBoard = buildRenewalReviewBoard(viewsResult.value);
       writebackQueue = buildWritebackApprovalQueue(viewsResult.value);
     } catch (error) {
+      if (error instanceof RenewalReviewUnavailableError)
+        renewalReviewIssue = error.issue;
       unavailableFeeds.push("renewal_reviews");
       console.error(`Attention queue renewal review read failed (${errorClass(error)}).`);
     }
@@ -166,6 +175,7 @@ export async function gatherAttentionQueue(
     unavailableFeeds,
     seeAllHref: canSeeRenewals ? "/approval-queue" : "/notifications",
     checkedAtIso: dependencies.now().toISOString(),
+    ...(renewalReviewIssue ? { renewalReviewIssue } : {}),
   };
 }
 

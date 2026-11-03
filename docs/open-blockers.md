@@ -1,548 +1,299 @@
 # Unblock packet
 
-Last reconciled: 2026-11-03 (guarded delivery and local/provider auth refreshed; client-input rows
-retain their own observed dates and holds).
+Last reconciled: 2026-11-03, authorized implementation and focused engineering evidence.
+This is the canonical external/human hold register. The
+[assessment](evidence/current-application-gap-analysis-2026-11-03.md) and
+[implementation plan](plan.md) link to this same set. A hold blocks only its named output/effect;
+engineering preparation, fixtures and compatible independent delivery proceed separately.
+The owner launched the named plan after authoring. Current source/fixture work is distinct from
+deployed behavior, runtime content publication and human/provider completion. This register sends
+no message, invitation or support request and starts no activation or release. Dates in earlier
+meeting plans are not scheduled jobs or promises.
 
-This is the one record of what the application waits on outside the code, and exactly how to
-clear each item. Every hold blocks only its named effect or dependent release phase; independent
-development, tests and merges continue. Unattended runs read this file when their task exercises
-a listed effect or the owner reports a step done. When the owner reports a step, the run
-performs that row's follow-up, records the readback here and removes the row. Never invent a
-substitute value, identifier, credential or human verdict to clear a hold.
+## Settled direction and current state
 
-The owner-approved one-file Editor grant was applied with notification off and read back.
-Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
-reader freshly verified all 29 tabs after promotion without reading/changing cell values.
-On October 20 only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differed among the 54 environment
-keys versus that run's captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
-Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
-Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
+Production was freshly verified in the assessment at bc97535379dd08deab578455b00a80fc93b8d209 /
+pmi-kc-app-rmvzwt7ms-00754475effd, 100% traffic; source main 39435919 has the same runtime tree.
+[November 3 delivery evidence](evidence/application-delivery-2026-11-03.md) records the completed
+S232–S239/S126/auth release, empty queue and consumed permit. No new execution starts from READY.
 
-A1 (B-DL2) is resolved: readback 2026-10-27T10:35:30.949Z. The bounded Dotloop read listed the
-integrations INDIVIDUAL office agent profile 20701283 "Integrations API" with LEASE RENEWAL 228954
-(`LEASE_OFFER`, shared). The owner's signed-in Admin session saved profile 20701283, template
-228954 and initial status `PRE_OFFER` (owner choice); the selection reads back version 1 recorded
-10:39:59.117Z and the readiness page shows resource state connected. Both Dotloop write keys
-remain closed; no template was recreated and no loop, upload or signature occurred. The October
-27 re-read had found Dan made integrations a company admin, not an office agent, and the company
-at Dotloop's eight-user limit. With each step approved in chat, the owner freed josiah@'s slot and
-re-added josiah@ as admin; signed in as josiah@, Integrations API was removed and re-added as an
-agent ("Add as admin" unchecked). Integrations now holds no company admin profile or Templates and
-People rights; PMI KC Metro lists eight users.
-
-Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
-read back at resource version 8, all unverified. The deployed readiness page displays ten form
-families across renewal extension, full lease and owner acknowledgment. Actual originals and
-reviewed field/signer maps remain unapproved for all ten families. Source presence is not legal,
-customer-link or signing approval. Source verification is a staff attestation in Admin; the
-least-privilege `drive.file` 404 for a browser-visible file is expected and holds nothing.
-
-Normal deployed-app credential/resource refresh and real Admin source-reference saves completed through their owning routes. They create no customer/provider business effect. The current confirmed renewal delivery contract is deployed; no old authorization or retired maintenance lane can dispatch.
+- **Dan is the ask contact, not a replacement for investigation.** Recover documented Dan/team
+  decisions and accessible case facts first, then use them in the existing configuration/process
+  owners with exact provenance. The team prepares inventory, maps and proposals. Ask Dan only the
+  remaining specific business question; he confirms or routes it to the actual authorized person.
+  Do not assume a name/title, supplied file or lack of reply proves legal approval or delegation.
+- **Notice-basis recording is engineering work.** The owner's latest Q2 supersedes the earlier
+  human-Admin recording assignment: an authorized renewal staff selection can write without Admin
+  confirmation. S125 specifies that single-intent path. The settled basis is contractual lease end,
+  calendar-day target minus notice, threshold 30, exactly 30 meets it. Current deployed code still
+  has the old Admin enforcement; the staff-selection source change and focused fixtures are not
+  deployed policy state. No policy value was saved during planning. Only genuinely unknown
+  notice rules or campaign dates remain potential client decisions.
+- **Existing Dotloop paths are in the plan.** S34 carries new-loop/existing-loop upload through
+  technical readiness and a separately gated exact-key activation stage. Both write keys stay
+  closed now; human signing stays separate. A plan or Dan's content answer opens no key.
+- **Existing process content is in scope.** S241 reviews/corrects owner-renewal-outreach and uses
+  the existing publication path; it does not create another definition, approval portal or send.
+- **C00 / A1 / B-DL2 remains resolved.** October 27 office membership and saved selection v1
+  (supported office profile / Lease Renewal / LEASE_OFFER / PRE_OFFER) are settled. Exact IDs
+  remain in private readbacks. Fresh November 3
+  provider reads completed 08:41:41Z: approved integrations identity, two INDIVIDUAL profiles,
+  zero/nine templates, selected Lease Renewal visible. No admin restoration, template recreation,
+  new credentials or repeat status-choice ask. The app's October 27 cached observation was stale;
+  existing bounded refresh is team-owned, not an access hold.
+- **Authentication and sources have scoped evidence.** Approved WSL CLI/ADC refresh and managed
+  Admin walkthrough passed. One normal Dotloop OAuth refresh/readback persisted the existing
+  credential/vault lifecycle (connection revision 23→25); no selection/observation/business write.
+  Eight managed-browser PDF sources match saved references v8; all intake entries were null/unverified.
+  The managed Drive browser download subsequently completed: all eight originals are recovered,
+  32 static pages, zero AcroForms, hashes verified; the earlier four match byte-for-byte. Full
+  text/geometry and renders were inspected. Proposed maps remain unapproved/non-executable;
+  full-lease/insurance application-preview truncation is explicit. File access is resolved;
+  no duplicate file request is needed.
+- **Recovered client instructions are not missing inputs.** Bailey's October 1 managed-mail thread
+  supplied forms and explained extension for an existing PMI lease, full lease otherwise, and
+  Second Nature during transition. S66/S130 preserve attribution and resolve current case facts.
+  These statements do not by themselves approve every present legal version, map, amount or election.
+- **Operational/human claims remain separate.** Gmail actor profile and worker reads passed; no
+  customer dispatch, schedule, reply, label, new draft, receipt or signature was assessment proof.
+  Family use v0, no published charge policy/Rhino material and no saved timing basis were observed;
+  this is application state, not evidence that PMI has made no relevant business decisions.
 
 ## Holds at a glance
 
-| Id       | Blocks only                                                          | Owner step                                                                                                                                                                                                                    | Then the runner                                                                                                                                                                          |
-| -------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| B-AUTH2  | Separate historical 25-hour unchanged-enrollment longevity claim     | No longevity or policy-change step requested by this execution                                                                                                                                                                | Preserve the unverified longevity claim; use separate fresh authentication checks                                                                                                        |
-| B-MNT1   | No current effect; maintenance import retired                        | No owner import step requested                                                                                                                                                                                                | Preserve original preapproval/history records; S227 owns current retention                                                                                                               |
-| B-S100   | No current proof; remaining maintenance resident-draft proof retired | No ticket/link/sync step requested                                                                                                                                                                                            | Preserve completed receipts and closed resident-draft key; no proof rerun                                                                                                                |
-| B-TIMING | Approved 30-day notice classifications (they read Cannot determine)  | A5: record the decided basis in Admin                                                                                                                                                                                         | Reads back the saved basis version                                                                                                                                                       |
-| B-DL3    | Approved form content/maps and rules for the selected lease packet   | Client supplies approved originals, field and signer maps for the ten form families (city addendum and HOA sources too), the fee policy and the Rhino policy material; an Admin configures them through the S66/S130 controls | Eight reference types plus retained city/HOA support; only required/applicable missing inputs hold the affected output; the first real loop then needs its own exact owner authorization |
-| B-HUMAN  | Human verdicts and real-case accuracy claims only                    | E2: observed sessions and real material                                                                                                                                                                                       | Records each verdict with its evidence; nothing is inferred from tests                                                                                                                   |
+| Stable hold               | Blocks only                                                                                     | Exact dependency / responsibility                                                                          | Next action                                                                    |
+| ------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| B-DL3 / C01–C02           | Approved filling/publication for an applicable form whose source/use/meaning remains unapproved | Actual document authority; Dan confirms or routes only unresolved questions after S130 evidence recovery   | U1; existing eight files, team maps, exact version-bound decision              |
+| B-DL3 / C07–C10           | A case's genuinely unavailable context, parties, conditional material or approved economics     | Actual source custodian, financial/policy authority and signers; Dan is question contact                   | U2; team reads existing facts before requesting exceptions                     |
+| B-TIMING / C05            | Only genuinely unresolved rule values or campaign dates                                         | Dan/team policy/source authority, if evidence recovery does not resolve them                               | U3; settled thirty-day basis recording has moved to S125 engineering           |
+| B-HUMAN / C03–C04,C11–C13 | Genuine delegation/owner consent, human acceptance or provider-completion claims                | Actual landlord/representative, staff/signers/observer; Dan routes unresolved authority questions          | U4; ordinary staff confirmation contracts remain sufficient for supported work |
+| B-DL-AUTH                 | Actual app-mediated Dotloop creation/upload                                                     | Owner of exact action authority after content and technical gates; existing protected activation procedure | U5; technical readiness proceeds, keys remain closed pending exact authority   |
 
-## November/December renewal client inputs (C00–C13)
+Missing resource destinations hold only output using them. The insurance/RBP flyer and renewal
+information-form URL remain unverified; the insurance legal addendum and blank collection checklist
+do not establish the corresponding customer destination. S66/S130 investigate available evidence
+first; only a remaining exact destination/use question goes to Dan. Copyable preparation continues
+with visible missing-value markers.
 
-Recorded 2026-10-28 for S232–S238 (`docs/feature-suites/README.md`, intake 099–105) and completed
-2026-10-29 from the saved roadmap and client-unblock draft (SHA-256 `e2296645…c45171`). These items
-refine B-DL3, B-TIMING and B-HUMAN for the November/December campaign. The information/connection
-target is Wednesday, November 4, 2026 (Central): a target, not a promised third-party response. Each
-item holds only its named effect; every code slice proceeds. Engineering prepares technical detail
-and samples; the client supplies meaning, policy, originals, access decisions and approvals.
-Examples in the suites are synthetic illustrations, never live values. Asks are unsent drafts for
-the owner; this file creates no email, draft, invitation or task. Each item names the exact input
-and type, its source and destination, who decides and who verifies, the proof, what it holds and
-the smallest ask. A managerial title is not approval or signing authority.
+## Precise client unblockers
 
-- **C00 — closed (A1/B-DL2).** Saved Dotloop selection: profile 20701283, template 228954,
-  `LEASE_OFFER`, `PRE_OFFER`, version 1 (2026-10-27), from the October 27 API read and in-app
-  selection into the existing S106/S34 resource selection. It selects a loop resource, not approved
-  form content or signature setup. No ask unless a later read-only freshness check regresses; both
-  write keys stay closed.
-- **C01 — B-DL3, approved originals and use.** Per family (ten kinds): approved original
-  (publication reference or `templateVersion`, content hash, effective version), use (Required /
-  When it applies / Not used), allowed packet contexts and extension compatibility. Source →
-  destination: the client-approved original and policy → the S21/S66/S130 catalog through the Admin
-  intake and family-use controls (all ten read the `family-use-default-v1` engineering default
-  today; the eight saved source references are unverified and city/HOA sources are absent).
-  Decides: the client-designated legal/document custodian (not yet named; the project owner
-  confirms the name); an Admin records it. Ask: "For the first renewal extension, mark the exact
-  approved form and version and which attachments apply, and name who approves forms; mark unused
-  or conditional forms; send city or HOA material only where it applies." Proof: an approved intake entry with
-  content hash and a client family-use version; source-link verification is separate. Holds: that
-  family's output (S235).
-- **C02 — B-DL3, field maps.** `artifact-field-map/v1` per approved original: `fields[]`
-  (`fieldId`, `factKey`, `meaning` strings, `required` boolean, `multiplicity` enum,
-  `allowedSourceSystems[]`) with actual `pdfFieldNames[]` or static page regions (`fieldId`, `slot`,
-  `format`, `rect`, `crop`, `rotation`), plus `mapVersion`/`templateVersion`. Source → destination:
-  the original's actual field inventory and reviewed facts → exact PDF destinations. App keys are
-  known; PDF field names and coordinates are unknown until the files arrive, and no field ID is
-  invented. Decides: engineering inventories the fields and proposes the map; the document approver
-  verifies meaning, party order and formats; an Admin records the reviewed map. Ask: "On this
-  original, confirm what each highlighted blank means and its source; correct our prepared map."
-  Proof: a synthetic filled copy reviewed beside the original for that map version, every page and
-  repeated slot inspected, signature, initial and signing-date regions untouched and source/map
-  hashes verified (procedure: `docs/engineering.md`, Synthetic map verification). Holds: that
-  form's filling (S235).
-- **C03 — authority and operators.** Current app UID, role, Spaces and mailbox; `responsibleUid`
-  and `senderEmail`; the permitted reviewer, landlord or representative and signer identities, with
-  delegation evidence where needed: who prepares, sends, records owner consent, approves forms and
-  fees, sends for signature and authorizes RentVine changes. Bailey Whiting's and Chasity
-  Velazquez's walkthrough participation is settled; their current app access and approval limits
-  are not. Source → destination: current accounts and the client's real authority → existing action
-  checks and the approval record. Decides: the project owner names operational owners; the client
-  designates the landlord/legal/policy approver and owner representative; an Admin reads roles. No
-  person-level privilege change or self-grant. Ask: "Confirm who does and who approves each step,
-  and any delegation." Proof: read-only role/Space/profile readback, permitted and refused actions
-  in isolated cases, and a written designation. Holds: real approval records and live steps (S234,
-  S238).
-- **C04 — per case, owner approval evidence.** For a selected lease: the approved Working
-  `terms_rent` (number), `terms_effective_date` and `terms_end_date` (YYYY-MM-DD), charges, and
-  who approved, through which channel and when; recorded as `ownerResponse.outcome`
-  `approved_terms` with `approvedWorkingTerms` (`fieldRevisions`, `economicsHash`,
-  `chargePolicyVersion`). Source → destination: the staff Working record and exact owner evidence →
-  `renewal.approved_rent`, `renewal.effective_date` and `renewal.end_date`. A recorded reply alone
-  approves nothing, and a changed fee or date makes the coverage stale. Decides: the landlord or
-  representative; staff record it; engineering verifies the binding. Ask: "For the selected renewal,
-  which exact rent, start, end and charges did the owner approve, and where is that approval?"
-  Proof: an S234 record with evidence and approval state current, and a changed term reading
-  `terms_changed`/`charges_changed`. Holds: that lease's packet (S235).
-- **C05 — B-TIMING (A5) and notice rule.** A5 as decided (contractual lease end; calendar days,
-  target minus notice; threshold 30, exactly 30 meets) with who confirmed it and where; the seeded,
-  unverified notice rule (code defaults: deadline day 15, month offset -1, warning lead 3 days,
-  follow-up 10 days) confirmed or corrected; the current November/December outreach and catch-up
-  dates (`firstDate` YYYY-MM-DD, `time` HH:mm, `timeZone` IANA such as America/Chicago, nullable
-  `everyDays`/`endDate`/`sendLimit`) and which messages already went out. Reported practice from
-  October 8 (owner offers in the first days of the month, tenant offers on the 15th) is context, not
-  policy. Source → destination: the settled decision and current client schedule → the Admin
-  timing basis (`/admin#admin-move-out-timing-basis`), notice timing and sequence due instants.
-  Decides: an authorized Admin records A5 with its source; Bailey or Chasity and the client policy
-  owner confirm the dates and how already-contacted or late cases are handled; engineering does not
-  set legal notice requirements. Ask: "Please record the decided 30-day basis in Admin with its
-  confirmation source, confirm or correct the notice-rule values, and tell us the current outreach
-  and catch-up dates and what was already sent." Proof: saved basis version and verified rule
-  readback, with cases just below, at and above the threshold and a DST/date boundary. Holds: 30-day and notice labels
-  (S232).
-- **C06 — source semantics, per discrepancy.** Lease-detail `baseRentAmount` (number) is the
-  contractual current rent (→ `currentRent`); `rentAmount` is the total and the export `unit.rent`
-  a listing reference; future rent carries its own effective date (→ the `current_base`/`future_rent`
-  intent); charge amounts are `0.00` strings with cents. Source → destination: the dated
-  lease-detail and charge inventory → the S237 basis and update preview. Decides: staff supply
-  source-backed exceptions; the financial approver approves economics; engineering resolves provider
-  shape from code. Ask: "Where a source differs, point to the signed or current amount and effective
-  date, and confirm any approved exception." No bulk export is requested. Proof: the dated
-  lease-detail read (reference, time, hash), visible old/new/effective values and the S237 basis.
-  Holds: the affected update (S237).
-- **C07 — B-DL3 when applicable, extension or full lease.** `transaction.type` (`existing_renewal`),
-  `management.origin` (`pmi_managed`/`inherited`), `active_lease.executed` (boolean),
-  `active_lease.form_family` (text), `lease.original_date` (date), `landlord.legal_entity` (text),
-  `renewal.return_by_date` (date), `renewal.fallback_term` (`month_to_month`/`termination`).
-  Source → destination: the executed lease, approved policy and staff provenance → packet facts,
-  family compatibility and reviewed blanks. An unknown fallback or return date is not a default
-  legal term. Decides: the document/policy approver confirms compatibility and fallback; the lease
-  custodian supplies facts; staff record them. Ask: "For this lease, confirm the signed original
-  and its form family, inherited status, landlord entity, whether an extension or a full lease
-  applies, and the return-by and fallback wording." Proof: the evaluator's context and fact
-  provenance, with signed-status evidence. Holds: that lease's packet context (S235).
-- **C08 — B-DL3/B-HUMAN, parties and signers.** `people.entries[]` (`personId` UUID, `kind`
-  person/organization, `fullName`, nullable `email` with `emailBasis`
-  `verified_contact`/`staff_reviewed`, `contactRef`, `roles[]` with `signerRole`, `order`,
-  `dotloopRole`) and map `signers[]` (`signerRole`, `participantKind`, `required`, `location`).
-  Source → destination: the current party roster, executed agreement and reviewed delegation →
-  exact PDF slots and Dotloop participants. Default roles (tenant TENANT, owner LANDLORD, manager
-  PROPERTY_MANAGER, broker MANAGING_BROKER, guarantor OTHER) need a reviewed fit; parties are never
-  merged by name or email. Decides: the document owner verifies parties, order and locations; staff
-  verify contacts; the authorized signer sends and signs by hand in Dotloop. Ask: "Confirm each
-  required signer and capacity, signing order, verified contact and signature location, including
-  co-tenants, an organization's representative and any guarantor." Proof: a reviewed signer map and
-  the S236 roster on the lease's Returned documents and signatures screen. Holds: signer roster and
-  returned-state records (S236).
-- **C09 — B-DL3 when conditional, property and addenda.** `property.street_line`, `property.city`,
-  `property.state` (two letters), `property.zip` (valid ZIP) strings, `property.year_built`
-  (integer), `property.city_addendum_required` and `property.hoa_governed` (booleans). Source →
-  destination: the authoritative property, lease and client policy → reviewed form fields and
-  applicability. Structured fields are not parsed from a one-line address, a missing HOA is not
-  assumed, and the pre-1978 lead default stays labeled until reviewed. Decides: the property/source
-  custodian supplies facts; the policy approver confirms city, HOA and lead rules and material. Ask:
-  "Confirm the structured address, year built and whether a city addendum or HOA rule applies for
-  the first case, with the material where it applies." Proof: source references and applicable,
-  not-applicable and unknown evaluator variants. Holds: lead-disclosure, city and HOA output (S235).
-- **C10 — B-DL3 when applicable, fees, animals, insurance and Rhino.** A published
-  `renewal-charge-policy/v1` (resident benefit package and insurance program `monthlyCents`
-  integers, animal basis `weight_lb` or `fido_score` with tiers, treatments, `agreementFor` and
-  `juvenileWeightBasis`, effective date), the
-  `insurance.coverage_method` election (`pmi_program`/`verified_external_coverage`/
-  `not_applicable_under_policy`), `charges.resident_benefit_package.enrolled` (boolean), animal
-  facts (`weight`, `weightUnit`, `weightBasis`, `maturity`, `fidoScore`, `treatment`), overrides
-  (`amountCents` with `reason`) and the Rhino policy material (none recorded today; no integration is
-  assumed). Integer cents differ from packet dollar values, and fee amounts stay unset until
-  approved. Source → destination: the approved policy and verified elections → the calculator,
-  packet economics and reviewed money fields. Decides: the client policy approver; the data
-  custodian (Shane per the October 8 notes, unconfirmed) supplies data; an Admin publishes with an
-  effective date. Ask: "Provide the approved fee, resident-benefit, insurance and animal schedule
-  and the Rhino material, with exemptions and how elections are verified, and name the approver."
-  Proof: a published policy version and boundary, unknown and election checks. Holds: economics on
-  affected packets (S235).
-- **C11 — B-HUMAN, genuine case and live scope.** A genuine renewal (lease and cycle), the exact
-  allowed actions and recipients and the evidence custodian, or an authorized isolated provider
-  sandbox (none has been selected or verified). Synthetic records are not allowed in production, so
-  a genuine first renewal is ordinary staff work, not a proof loop. Decides: the project owner selects the
-  scope and authorizes consequential actions; Bailey or Chasity give the use verdict; owners and
-  tenants control their own consent and signatures. Ask: "When ready, name the genuine renewal and
-  exactly which actions and recipients are allowed for the staff walkthrough." Proof: written
-  scope, current facts and permitted recipient or provider receipts with staff observation. Holds:
-  provider-functional and human rows (S238).
-- **C12 — runtime evidence, sender and receipt.** The intended responsible sender per case
-  (`responsibleUid`, `senderEmail` through their own mailbox profile and the approved delegation;
-  only the integrations profile is verified), the authorized recipients, the existing linked
-  conversation (`senderEmail`, `threadId`) and permission for a controlled-recipient receipt check.
-  Sent or accepted is not inbox receipt. Source → destination: the source roster and the correct
-  staff mailbox → the existing Gmail sequence and worker. Decides: staff identify the message and
-  thread; engineering verifies the sender profile (the client supplies no technical IDs); the
-  project owner authorizes any real send or reply. No new mailbox grant is assumed. Ask: "Confirm who
-  sends for each case and allow the exact controlled receipt check when live proof is selected."
-  Proof: profile match and receipt or reply evidence. Holds: real sends and receipt proof (S233).
-- **C13 — live effects, final reconciliation.** The signed terms and intended RentVine changes
-  (`endDate`, `increaseEligibilityDate`; recurring charge `accountID`, `amount` string such as
-  `1750.00`, `description`, `dayDue`, `frequency`, `startDate`, `endDate`) and the Sheet row (S98
-  lease id with its stable row association and the recognized business fields) for the case.
-  Source → destination: executed facts, current inventory and owner intent → separately previewed
-  exact RentVine and Sheet effects. One system can succeed while another fails, and a matching
-  charge after a timeout neither proves causality nor authorizes another create or a reversal.
-  Decides: the financial approver confirms old, new and effective values; staff confirm;
-  engineering derives targets and recovery from receipts. Ask: "Confirm the signed terms and the
-  intended effective changes, including charge account treatment and Sheet fields; approve only the
-  previewed supported actions." Proof: per-effect claim, receipt and readback. Holds: live
-  RentVine/Sheet effects (S237).
+### U1 — Confirm only unresolved form/version/map decisions (B-DL3, C01–C02)
 
-## Current hold and historical program dependencies
+**Who acts:** engineering prepares; Dan answers or identifies the authorized document approver.
+Existing content/intake controls retain their authorization; the new notice-selection exception
+does not silently grant general legal-content publication rights.
 
-- **Application delivery — resolved October 20.** Run57e4a1b5 delivered 157b6992 at 100% traffic,
-  all five exact-head CI jobs green, two checkpoints/409,796 ms observation and eleven independent
-  readbacks. The three-item queue is delivered/empty and permit consumed. All earlier failures
-  retain immutable evidence. The approved integrations Sheet/Drive delegation is independently
-  verified; source access and migration are resolved. No owner delivery step remains.
-- **B-DL2/B-DL3 — October 22 checkpoint.** Integrations identity is connected; the individual
-  profile lists no templates and the company profile is outside the documented API boundary.
-  Selection is absent. Eight actual source references are saved unverified; all ten original/map
-  approvals remain absent. Only the exact dependent packet/form/signature capability waits.
-  The existing active template is to be shared, not recreated. Both write keys remain closed.
-- **B-DL2 — resolved October 27; B-DL3 — October 27 checkpoint.** The selection reads back
-  (profile 20701283, Lease Renewal 228954, `PRE_OFFER`). Read-only Admin readbacks at 09:21:21Z:
-  no fee/charge policy record, no policy material (Rhino), move-out timing basis missing (A5),
-  notice rules still the unverified seed, no owner policy rules, and no received original or
-  reviewed field/signer map for any of the ten families (city addendum and HOA sources not
-  recorded; eight await verification). No customer lease was chosen for a packet readback.
+1. The team completed all eight originals' byte inventory and prepares highlighted, hash-bound
+   proposed fields/signing exclusions from recovered version/use instructions.
+   Do not ask the client for technical field IDs, coordinates, JSON or unchanged files again.
+2. Dan receives only unresolved items: exact source version/use where evidence is insufficient,
+   printed terms or representative details that conflict with approved policy, ambiguous field
+   meaning or party/signing order. Required/conditional/not-used decisions are bound to a packet
+   context; engineering defaults are not silently promoted to policy.
+3. The actual approver confirms/corrects those items using the existing communication/intake
+   channels. The team records the source, actor, scope, version and exact accepted decision through
+   existing authorized controls during later scoped work. No duplicate generic approval ceremony.
 
-- **B-AUTH-CURRENT / B-BROWSER — resolved October 17.** The owner completed the approved WSL
-  Admin enrollment. Fresh CLI/ADC, GitHub, exact managed-account/Admin, candidate/canonical and
-  rollback verification passed. No runner-entered challenge, account/store/profile substitution,
-  IAM/claim/policy or display-controller change was used. Earlier failures remain failed evidence.
-- **B-DL2 — fresh normal managed refresh October 17.** Supported individual templates: zero from
-  a successful read. Company templates: read failed as unavailable, not a proven empty list.
-  No supported selection is saved. The reported active template's owning visibility/root cause
-  remains unestablished; do not recreate it. Both write keys remain closed. Normal refresh updates
-  credential/observation metadata without a provider business effect.
-- **B-COMMUNICATIONS-RUNTIME — resolved for the deployed contract.** The managed candidate GET
-  readiness and annual-probe restoration passed; its separate empty observation dispatched no
-  effect. The current worker admits only freshly staff-confirmed renewal authorizations and skips
-  old authorizations/maintenance before provider reads. Fresh integrations Gmail getProfile passed;
-  exact send/reply/draft metadata is open and runtime clear. No live delivery or customer draft
-  was verification proof, and future mailbox freshness is not inferred.
+**Engineering package complete:** every original/use/map decision needed by the proposed output
+has exact supporting evidence or a precise pending question, and the technical proposal is ready.
+**Client hold resolved / output available:** every approval needed by that exact applicable form
+has supporting authority/evidence bound to the actual original and map, and its dependent checks
+pass. A pending required answer keeps that output held; unrelated questions do not hold it.
+**Team verifies:** hashes, all pages/repeated slots, protected signatures/initials/signing dates,
+overflow refusal and isolated synthetic filling under S130/S235 R-S235-7.
+**Unlocks:** that form's approved preparation after its case inputs pass. No key opens or signature
+is inferred. A proposed review package is a complete engineering deliverable while a real decision waits.
 
-- **B-VENDOROO-CONTRACT — retired by October 15 direction.** Custom maintenance and Vendoroo
-  integration are outside the current application. Vendoroo stays standalone. No new Vendoroo
-  account/interface/access request or integration implementation is needed for S227–S229. Original
-  S207/S208 investigation evidence retains its historical scope and is not an execution trigger.
-- **B-ACQUISITION-CONTRACT (S217/S218).** No identified actual source sample/custodian, exact
-  object/document list, existing/new matching basis, financial opening/inclusion/cutover decision,
-  or confirmed destination import contract is available. A bounded repository filename inventory
-  does not establish a source schema or exact acquisition count. S216 records the readback.
-- **B-NATIVE-ANSWERING-CONTRACT (S220/S221).** Actual number/channel/provider account and
-  event contract, native/Vendoroo function coverage/holidays/languages/fallback, approved emergency
-  contacts/troubleshooting/consent/recording policy, and cost/cutover/rollback decisions are missing.
-  S219 records the readback. No phone provider, coverage or operating policy is guessed.
+The completed private proposal narrows the review to actual issues: prechecked lead/receipt and
+agency/compensation elections cannot be assumed for each case; printed representative/firm details
+and fee/benefit/insurance terms need their actual current authority; the owner acknowledgment's
+execution-date meaning and unlabeled box need a disposition; the pet source contains conflicting
+visible/extracted processing-fee text and conditional animal/assistance language. Dan routes only
+those unresolved meanings to the actual document/financial authority. Engineering already owns
+the field coordinates, rotated-page geometry, repeated slots and protected signing regions.
 
-The older program ledger retains its historical 35 delivered suites/203 verified requirements
-and five pending contracts. This execution does not restart that program. Current release
-authentication passes. Run d33c7174 delivered the scoped latency repair after full qualification,
-exact-main CI, guarded promotion/observation and independent readbacks; the first a97c579c failure
-and verified rollback remain preserved. External
-resources above hold only their dependent capability; they do not block delivery of S227-S229.
+### U2 — Resolve only missing case/policy facts (B-DL3, C07–C10)
 
-## Owner decisions
+**Who acts:** engineering recovers existing facts/decisions; Dan answers or routes the residual
+question to the actual source custodian, financial/document authority or signer.
 
-Recorded on 2026-10-02 (`accept all recommendations`):
+1. Use the actual executed-lease/provenance evidence and Bailey's documented workflow to identify
+   extension versus full lease. Ask only about missing/contradictory provenance or legal fallback,
+   not the already-explained general rule.
+2. Resolve exact parties/contacts, representatives, co-tenants/guarantors and delegation from
+   existing sources. Ask only for unavailable authority or ambiguous roster/order; never merge by name.
+3. Resolve property/year-built/city/HOA applicability from source evidence. Request city/HOA material
+   only for a demonstrated applicable requirement; Unknown remains distinct from No.
+4. Recover adopted effective fee/RBP/insurance/animal/Rhino decisions and actual elections. Dan
+   confirms only unresolved current transition status, applicability, effective version/amount or
+   missing approved material/destination. The settled MKD percentage is not asked again; actual
+   portfolio membership and standing direction still require evidence. Printed PDF amounts alone
+   are not a published calculator policy.
 
-- **Q1 = A (B-AUTH2).** Exempt only the Google Cloud CLI and ADC clients, for
-  `josiah@pmikcmetro.com` only: an account-scoped Google Cloud session-control exception, then a
-  fresh WSL enrollment (A4). Google's default Cloud session length is 16 hours and admins can set
-  1–24 hours, so only the trusted-app exemption lets the 25-hour proof pass.
-- **Q2 = A (B-TIMING, S125).** The 30-day notice counts to the contractual lease-end date, in
-  calendar days from the notice date (target minus notice), with a 30-day threshold that exactly 30
-  meets. An Admin records it (A5); the runner never records policy.
-- **Q3 = A (B-S100).** After A2, the runner verifies the synchronized resident mapping and email
-  read-only, releases the bounded proof window for `gmail.maintenance_resident_reply.draft_create`,
-  the owner confirms one unsent reply draft in the app, and the runner closes the window and reads
-  it back. Final activation waits until the owner approves that draft.
-- **Q4 = A (repository).** The S152–S167 intake that another session authored uncommitted in the
-  Windows checkout was parked unchanged as `ac2a12bc` (20 files) and, by owner direction later the
-  same day, merged with `main` as written. The owner's execution prompt of 2026-10-02 started it;
-  it is implemented and awaits one cumulative release.
+**Engineering package complete:** the case has source-attributed facts, proposed applicable rules
+and precise remaining questions; approved configuration records provenance/version through S66.
+**Client hold resolved / output available:** all facts/decisions required for that exact output
+have current source or approval evidence and pass its dependent checks. A required unknown keeps
+only that output held; a completed worksheet alone does not make the case ready.
+**Team verifies:** typed values, cents/dollars, current context/policy/elections, conditional
+exclusions, signer coverage and change invalidation.
+**Unlocks:** correct economics, packet choice and dependent customer-resource output for that case.
+No bulk customer export, generic all-ten-form request or invented legal rule.
 
-Earlier decisions stand: RentVine's per-property maintenance limits are the S108 source (B-MNT1,
-2026-10-01); RentVine work order 101756 (API id 1756) is the S100 target; B-MNT2 closed with
-Vendoroo's agent writing into RentVine and no direct connector under that older contract. The October 15 direction supersedes custom maintenance and Vendoroo integration; S227 retains their historical evidence without an integration request.
+### U3 — Confirm only unresolved notice rules or campaign dates (B-TIMING, C05)
 
-## Owner steps
+The old request for a human Admin to re-record the already-settled basis is superseded by the
+owner's November 3 Q2. It is not a client unblocker. S125 specifies the planned authorized renewal-staff
+selection of the settled tuple with automatic persistence, version conflict handling, audit and
+readback; no second confirmation, retyped attestation or Admin-only gate.
 
-**R1. Queue the November/December slices for release (2026-10-28).** PR #158 merged S232–S237's
-implemented slices and the `qs` patch at `bf0c03f9`; they are not served. The read-only release
-preflight reads `not_ready` because the Awaiting release queue in `docs/loop-state.md` is empty, and
-no existing direction queues these suites. The step is the owner's direction to queue them; the
-runner then prepares the run under the pipeline's own gates (fresh GO, permit, exact-main CI, the
-checkout pair, native runner and Admin browser readiness). Holds: serving these changes only.
+**Who acts if a question remains:** Dan/team policy or source authority, after engineering reads
+existing decisions and current configuration.
 
-**A1. Dotloop renewal template and resources (B-DL2) — resolved 2026-10-27.** Readback at
-10:35:30.949Z lists LEASE RENEWAL 228954 on the integrations INDIVIDUAL profile 20701283, and the
-selection (`PRE_OFFER`) reads back at 10:39:59.117Z. No owner step remains for A1; the history
-below is retained for provenance. October 15 3:01–8:22 reports that
-an active Lease Renewal loop template already exists. The older request to create it is superseded;
-do not ask the owner to repeat completed setup. An API defect is a hypothesis, not established cause.
+1. Confirm/correct only an actually unresolved notice-rule value or current outreach/catch-up date,
+   including source-backed already-contacted cases.
+2. Do not adopt engineering seeds (deadline day 15, month offset -1, warning 3 days, follow-up 10)
+   as current business policy without evidence. Historical practice does not schedule new messages.
 
-The October 22 read identifies the exact action. Dotloop's API serves templates and Loop-It only
-through INDIVIDUAL profiles and refuses company/office profiles by design. The integrations account
-has only a standalone "Default Profile" with no office affiliation, so an office template cannot
-reach it. A full Dotloop admin, signed in as themselves, adds `integrations@pmikcmetro.com` as a
-member of the office that holds the Lease Renewal template and confirms the template is shared to
-that office. The integrations browser login is not needed.
+**Done:** exact remaining rule/date decisions have supporting evidence and a current version.
+**Team verifies:** readback, below/at/above thirty-day and Central/DST cases separately.
+**Unlocks:** the dependent operational labels/planning. Neither basis selection nor a campaign
+date constitutes a send authorization, fee/legal determination or background schedule.
 
-October 22 owner check: the owner's separate full-admin Dotloop account no longer exists, and
-the integrations login then had no Templates access. That restoration question is settled: Dan holds
-full admin (October 23), so no account restoration or Dotloop Support call is needed.
+### U4 — Actual consent and human observations (B-HUMAN, C03–C04,C11–C13)
 
-October 23: Dan granted the integrations login Dotloop template rights. As integrations, the
-company Templates library now opens and lists the LEASE RENEWAL loop template; the top bar still
-has no People, so integrations is not yet an office agent. The bounded read at 07:28:55Z was
-unchanged: Default Profile 200 with zero templates, company profile 403, no office profile, normal
-token refresh 200, both write keys closed. Dan, a full admin, does the step above. Done when the runner's next read lists
-the template on that individual profile; an Admin then selects it in the app and the runner reads
-the selection back. No template recreation, loop, upload, signature or forced expiry. S182 remains.
-When the owner reports A1 done, the runner starts from the resume prompt in
-`docs/dotloop-unblock-runbook.md`.
+**Who acts:** actual landlord/authorized representative, participating staff and signers/observer;
+Dan is the contact for unclear business authority. Bailey/Chasity participation is settled.
+Engineering reads roles, Spaces, sender profiles and exact targets without ceremonial new logins.
 
-October 27: the owner reported A1 done; the re-read shows the admin role was added instead of the
-agent membership (see the checkpoint above). Exact remaining step for Dan, signed in as himself:
-People, PMI KC Metro, open Integrations API (`integrations@pmikcmetro.com`), and add the PMI KC
-Metro office (agent) membership while keeping the admin role, so the row matches his own row,
-"PMI KC Metro (admin) and PMI KC Metro". The template type needs no change. Done when the runner's next API read lists LEASE
-RENEWAL on an integrations INDIVIDUAL profile. Adding the membership then hit Dotloop's
-eight-user limit and the existing-member refusal; the owner's slot swap described at the top of
-this file completed it the same day.
+1. Recover actual delegation and existing current-term approval evidence. Ask only where scope or
+   evidence is missing; a title/name, pricing policy or general reply approves no particular terms.
+2. Staff perform ordinary supported work through its existing exact current preview/confirmation
+   contract when ready. Separate live acceptance/receipt exercises require their genuine case and
+   exact scope; no synthetic customer effect or send-for-proof.
+3. Record actual usability/accuracy, phone/accessibility and recipient observations only when
+   performed. Human Dotloop signing/returned evidence stays separate from upload and staff progress.
+   Signed terms govern changes derived from them, not every ordinary source correction.
 
-**A2. Remaining S100 maintenance proof — retired from this execution.** Do not create a ticket,
-link a work order or synchronize consequential manager chat reads to prove maintenance after
-retirement. Original completed receipts retain their meanings; the resident-draft key stays closed.
-No synthetic or live customer draft is proof. Shared Space-pilot work receives no new execution grant.
-**A3. Maintenance preapproval import — retired from this execution.** Existing preapprovals and
-financial evidence remain retained and readable under their original permissions. No import,
-provider read/write or policy activation is required for current maintenance retirement.
-**A4. Recovered host authentication and separate longevity claim.** The actual November 3
-post-deployment combined WSL command returned exit 0/auth_ready_with_exceptions using the existing
-approved CLI/ADC/GitHub identities and Admin session. Safe configured provider reads passed; the
-profile lease was free afterward. The operator's actual reboot and isolated headed/native-window/
-viewport checks are recorded separately. No current host recovery or new enrollment is requested.
-The runner changes no session policy, IAM, claim, identity or credential store and never enters a
-password, code, passkey or CAPTCHA. Paid/generation tests and unchanged 25-hour longevity remain
-unverified; the latter is not a release prerequisite. Evidence: `docs/evidence/application-delivery-2026-11-03.md`.
-**A5. Record the notice timing basis (B-TIMING, Q2 = A).** Admin → notice timing basis: target
-**contractual lease-end date**, counting rule calendar days (target minus notice, exactly the
-threshold satisfies it), threshold **30**, and a review note naming who confirmed it and where.
-Save. Until then every notice timing reads Cannot determine.
+**Done:** case-bound actual consent/authority and separate observed outcomes exist; unperformed
+claims remain NOT RUN. **Team verifies:** content/source/recipient/sender/policy binding,
+claims/receipts/readback and ambiguity without redispatch.
+**Unlocks:** only the named human/provider claim. No new general approver is inserted into
+ordinary staff renewal corrections or already-authorized staff-confirmed delivery.
 
-**A6. Conditional future auth recovery (B-BROWSER).** No current sign-in step is pending.
-From any WSL directory, run the verified combined command:
+### U5 — Separately gated Dotloop activation (B-DL-AUTH)
 
-```bash
-bash /home/josiah/pmi-kc-work/auth-command-20261102/scripts/pmi-auth
-```
+**Who acts:** owner of exact action authority, after S34's technical and content prerequisites pass.
 
-It reuses/refreshes the existing approved stores/session before safe provider reads. Only an actual
-human challenge opens attended recovery; the owner completes it. Profile ownership, display,
-wrong account, permissions and unknown provider failures are distinct and do not imply expiry.
-Never overlap enrollment, a manual browser and verification ownership or delete a live lock.
-Readback November 3: process/reported exit 0, exact approved Admin through `existing_session`,
-safe local/provider checks passed and lease free. The prior default surface-capture failure and
-unforced longevity/human-challenge boundaries remain explicit. Espansr is separately deferred.
+The plan includes existing new-loop and existing-loop/upload paths. Prepare the exact activation
+scope for dotloop.loop.create_from_template and/or dotloop.document.upload using the existing
+protected CAS/backup/readback process. An upload to an existing loop does not require opening the
+create key. Planning readiness, approving a form or selecting a template never opens either key.
 
-**A7. Phone same-tab sign-in redirect (optional, S165).** Only if staff report that the Google
-pop-up cannot open on a phone or in-app browser. In the Google Cloud console for
-`pmi-kc-kb-prod`: APIs & Services, Credentials, the OAuth 2.0 web client that Firebase Auth's
-Google provider uses, Authorized redirect URIs, add
-`https://pmi-kc-app-kq6wuvpiva-uc.a.run.app/__/auth/handler`. Then tell the runner, who sets
-`NEXT_PUBLIC_FIREBASE_SAME_ORIGIN_AUTH_HOST=pmi-kc-app-kq6wuvpiva-uc.a.run.app` in the reviewed
-production env and releases. Order matters: the key before the URI breaks sign-in on that host.
-Until then phones use the pop-up, which the S152–S167 release already repairs.
+**Done:** exact later authority and gated activation/readback exist for only the intended operation.
+**Team verifies:** current source/target/version, exact confirmation, one-attempt claim, receipt,
+provider readback and ambiguity recovery through the existing ordinary-work contract.
+**Unlocks:** only that operation. Signing remains human; local preparation/manual handoff continues
+independently. No activation or provider business write was performed in this authoring round.
 
-## External and waiting
+## C00–C13 continuity
 
-**E1. Dotloop stored client and remaining setup (B-DL2 → B-DL3).**
+| Item | Ownership / disposition                                                                                                      |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------- |
+| C00  | Resolved selection v1; team bounded freshness/readback, no repeated membership/status ask                                    |
+| C01  | S130 exact source/version/use; recover prior approval, Dan routes only unresolved decisions                                  |
+| C02  | Team inventory/proposed map; actual approver meaning/order; S235 exact-map synthetic check                                   |
+| C03  | Team technical role/Space/sender reads; genuine delegation only if missing goes through Dan                                  |
+| C04  | Actual landlord/representative exact-term approval; S234 binding and stale-term invalidation                                 |
+| C05  | S125 single staff basis selection is engineering; only unresolved business rule/date is U3                                   |
+| C06  | S237 team target/source-shape diagnosis; custodian only for unavailable source-backed exception                              |
+| C07  | Executed lease/provenance and reviewed fallback; S66 evidence-first context                                                  |
+| C08  | Actual parties/delegation; team technical binding, no name/email-only identity merge                                         |
+| C09  | Source property facts and conditional rules; city/HOA only when applicable                                                   |
+| C10  | Adopted fees/elections/Rhino/resources; exact evidence, authorized configuration, no printed-default inference               |
+| C11  | Genuine case and separate human/provider acceptance; ordinary staff authority unchanged                                      |
+| C12  | Actual sender/recipients/thread; team profiles/IDs, sent is not inbox receipt                                                |
+| C13  | Exact supported source-update intent; executed-term evidence only for changes derived from it, separate destination receipts |
 
-1. Done 2026-10-07: the registered callback completed the company authorization, and Dotloop
-   reported granted scopes `account:*`, `profile:*`, `loop:*`, `contact:*` and `template:*`.
-2. Confirm Dotloop API Support has verified the client; reply on its existing thread if still needed.
-   This is an owner step; no support message has been sent by the runner.
-3. Credential storage is complete, as recorded below. Additional test clients are outside this
-   cycle; live testing is deferred to a separate owner-directed flow.
-4. Done 2026-10-07: run 5b5c850e released the non-secret client id and registered callback, the
-   client-secret Secret Manager reference (version 1) and the connector vault project; the
-   independent revision readback matched.
-5. Consent is done (item 1). Template availability and resource selection are done (A1,
-   2026-10-27): LEASE RENEWAL 228954 lists on the integrations INDIVIDUAL profile 20701283 and the
-   saved selection reads back version 1 with `PRE_OFFER`. Later runs recheck freshness read-only and
-   request nothing unless a fresh read regresses.
-6. Feature scope is finalized in intake 050–054. The S66/S130 configuration path will accept the
-   actual approved legal versions, applicability, field/signer mappings and versioned fee policy.
-   Confirm those production inputs before their affected customer-ready output; do not invent
-   amounts, signer identities or legal approval from acceptance of the feature recommendations.
-   Eight static references are available in `docs/dotloop_template_references/`; they are not
-   published forms or complete maps. Approval/configuration can proceed independently of B-DL2.
-   Stable Drive access is deferred and does not hold this specification cycle or local filling.
+## Retired/resolved scope and independent engineering
 
-**Runner continuation:** the stored bindings, connection navigation and bounded OAuth check are
-already released; do not rerun them or request another secret. The October 27 readback established
-office-agent eligibility and the saved supported profile/template/status selection; later runs
-recheck its freshness read-only and never recreate the template. Preserve S182's
-API-origin exclusions and actual prior receipts. Both Dotloop keys remain closed. The current S227-S229 instruction grants diagnostics,
-not provider execution or activation; older program authority cannot reopen effects.
-No live customer/provider business effect may be created merely as a test, and document presence
-never establishes signature completion. The full current program is implementation work, not the
-prior specification-only cycle.
+### Backend questions under active implementation
 
-**E2. Human verdicts and real material (B-HUMAN).** These change verdicts, not code, and none blocks
-delivery: a human observer for screen-reader, desktop full-page zoom and batch 004 usability
-checks; a consented walkthrough with one or two real leases; the Rhino policy wording and
-applicability review with reviewed lease evidence; and a staff accuracy review of a real customer
-draft (recipients, sender, charges and terms). Live Gmail or provider effects from Focus and live
-staff-record saves stay unverified until a person performs them.
+The owner launched the finalized plan after authoring. These are engineering questions, not
+client tasks or additional approval ceremonies. A fix/diagnosis is not marked deployed until its
+release/readback evidence exists.
 
-## V-DL: credential delivery, connection and remaining verification
+**Q-ENG-PUB2 / A-08 — IN PROGRESS, engineering-owned.** New original PDFs cannot currently enter
+S130 through production trusted publication: the generic route/provider has no real PDF scanner,
+and intake accepts the legacy `renewals` Space while publication config uses `lease-renewals`.
+The real process-only scanner cannot stand in for PDF scanning. S130 AC-S130-20–24 own the exact
+reviewed blank-original PDF/family/hash path, genuine scanning, complete bounded inspection and
+canonical/legacy Space compatibility. Team completes and qualifies this independently; legal/map
+decisions remain U1/U2 and do not conceal the technical gap. General arbitrary KB file/folder
+publishing is outside that repair. No real form is published or approved as test proof.
 
-**Storage, binding and connection verified 2026-10-06 to 2026-10-07.** The owner-supplied Client
-ID and Secret are in Secret Manager in `pmi-kc-kb-prod` (`DOTLOOP_OAUTH_CLIENT_ID` and
-`DOTLOOP_OAUTH_CLIENT_SECRET`, version `1` each), read back against the source bytes on
-2026-10-06; values were never printed or committed. Run 5b5c850e released the reviewed client id,
-the registered callback, `DOTLOOP_OAUTH_CLIENT_SECRET` bound from Secret Manager version `1` and
-`CONNECTOR_SECRET_VAULT_PROJECT_ID=pmi-kc-kb-prod`; the independent revision readback matched. On
-2026-10-07 the owner completed the company authorization through that callback (one single-use
-state consumed). Dotloop reported granted scopes `account:*`, `profile:*`, `loop:*`, `contact:*` and `template:*`. The
-read-only observation of the same connection generation read the account, two profiles (one
-individual, one company) and the individual profile's template list, which is empty. Tokens are
-held only as Dotloop vault references.
+**Q-ENG-PDF-COMPAT / A-08 — CLOSED, verified 2026-11-03T15:45:53Z.** Fresh read-only inspection
+accepted all eight unchanged originals, and each separately passed the bounded local text
+tripwires. All 17 kernel controls, source/input immutability and clean teardown passed. The earlier
+one/seven and seven/one results remain preserved privately. Explicit encoding and owned color/font
+stream support fixed the technical refusals; unknown/unsafe/incomplete formats remain refused.
+The 166-check synthetic/preservation matrix also passed. This closes format compatibility only:
+no legal/map approval, general DLP, real-original malware scan or publication is inferred. No
+replacement file, legal decision or client permission was needed for the engineering repair.
 
-Remaining, within the authorized flows:
+**Q-ENG-PROCESS-HISTORY / S241 — IN PROGRESS.** Source review found existing workflow runs read
+mutable definition steps despite a published-version pointer; new Draft runs also inherit the
+prior publication pointer. S241 corrects the current/past-version distinction through the existing
+immutable store, with exact identity/Space validation and no fallback for an unavailable pinned
+snapshot. Existing runs are not rewritten; ordinary unpinned Draft starts remain supported.
+Independent UI recovery regression also caught a Draft labeled Active merely from its old
+pointer. Engineering owns the bounded fixes/qualification; no human/client input is missing.
 
-1. Resolved 2026-10-27 (A1, B-DL2): the template lists on the integrations INDIVIDUAL profile
-   and the supported selection is saved and read back. Later reads verify freshness only.
-2. Normal managed resource refresh succeeded October 17. Revocation/reconnect testing remains
-   separate; no lifecycle or business mutation was diagnostic proof.
-   That flow must preserve S96's preview/confirmation/credential-removal/readback contract;
-   denied storage or cleanup means recovery needed, not connected.
-3. Verify both Dotloop action keys remain closed and no signature completion is inferred.
+**Q-ENG-PDF-DETECTION / A-08 — investigation closed; broader detection claim unverified.** The exact
+engine passed real raw-file clean/EICAR checks, and the managed PDF endpoint passed original-byte
+clean scanning plus admission/refusal checks. A further synthetic EICAR-in-PDF-comment probe
+returned clean at 16:00:20Z; its expected-detection assertion failed and is preserved. This is
+not proof of PDF-contained payload detection or a client permission/input issue. Engineering
+checked the provider's actual harmless test contract: EICAR's specified file format is not a PDF
+comment. ClamAV's versioned positive PDF fixture uses a separate test database, which is not
+installed in this managed service. The failed probe is not an established application/engine
+defect. Broader PDF-contained/encoded payload detection remains unverified; no scanner, adapter
+or policy control is relaxed and no actual original is published or legally approved by these checks.
 
-V-DL creates no loop and uploads no document. Provider writes still require approved content and
-separately authorized exact keys, previews, confirmations, receipts and readbacks.
+**Q-ENG-RETIRED-HISTORY / A-07 — IN PROGRESS, engineering-owned.** Review of the touched generic
+workflow-run surface found it could still load and display retained maintenance timeline/step
+history despite the complete retirement requirement. S227 R1–3 / AC-S227-7 own notice-only/410
+admission before those body reads, preserving stored evidence and genuine staff/renewal work.
+Engineering supplies the bounded regression and repair; no client decision or new authority is needed.
 
-## Runner follow-ups (not holds)
+**Q-ENG-JOURNEY-ADAPTER / P9 — CLOSED, verified 2026-11-03T16:48:59Z.** Full gate 05 passed all
+10,128 unit checks, then 495 backend checks passed and two mounted S113 operator journeys failed
+their unchanged zero-unhandled-request assertions. The newly supported notice-basis GET is
+missing from the test dispatcher. Binding the real GET/PATCH handlers made all 28 tests in the
+affected Firestore file pass. The fresh/underway journeys respectively observed seven/two
+notice-basis GETs, all HTTP 200/parsed/completed; all 545/420 total requests fulfilled with zero
+rejected or pending, retaining the original strict assertions. All 17 controls and clean teardown
+passed. The original sanitized log did not contain the path; these positive readbacks establish
+the missing-adapter cause. Production code did not change for this repair. Cumulative qualification
+continues independently; no client input or production/customer effect is needed.
 
-These are engineering tasks with no owner step; none blocks a release.
+| Question                                                                 | Current evidence / status                                                                                                                                                                                                                                                                                                                                                                                                                    | Owning next action / completion check                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q-ENG-PUB1 — production process-publication scanner                      | ENGINEERING IN PROGRESS under S241 and existing standing authority. Guarded managed Admin GET returned `policies: []`; the inspected native production scanner resolves to unavailable. A real managed process-only scanner and least-scope exact process policy are under construction.                                                                                                                                                     | Engineering completes the real adapter/deployment/configuration and exact policy readback through the existing managed-resource and S21 gates, then publishes the reviewed existing definition through canonical validation/versioning. No new client approval or external hold is required; no fake scanner or database bypass is supplied. Runtime publication and delivery remain pending. |
+| Q-ENG-500 — recovered November 2 read failure                            | CAUSE ESTABLISHED / source handling repaired: a same-instance RentVine recurring-charge detail GET returned HTTP 500 at the exact request finish. Five starting regressions failed; 113 focused checks passed after a sanitized unavailable response/UI repair.                                                                                                                                                                              | Qualification and deployment readback remain pending. Original POST body/actor and RentVine's internal cause were not retained/established; these unknowns do not reopen the diagnosed application-boundary cause or require another login.                                                                                                                                                   |
+| Q-ENG-DECISION — retired shared decision prompts                         | SOURCE REPAIR / FOCUSED CHECKS PASSED: machine provenance and authoritative closed/superseded lifecycle fields exclude retired prompts while preserving genuine work. Shared gather/Console/Notifications/Spaces checks passed 49 tests after seven intended starting failures; rows/signals retain their strict value-free shape.                                                                                                           | S227/S238 complete cumulative qualification and actual deployed readback. Retain original records/receipts; retirement filtering is not a history closure, deletion or permission grant.                                                                                                                                                                                                      |
+| Q-ENG-READ — incomplete renewal decision coverage                        | SOURCE REPAIR / FOCUSED CHECKS PASSED: source currency/read time, permission refusal and overlay unavailability remain distinct. The shared gather carries complete/partial/unavailable coverage; Console, Notifications and Spaces preserve actual rows without a false zero/all-clear. The same 49-test run includes these consumers; counts are not added again.                                                                          | Complete cumulative qualification and deployed checks under the actual actor. Fresh Admin/read fixtures do not establish Editor-browser, phone, human acceptance, paid generation or customer effects. Unknown views remain unverified.                                                                                                                                                       |
+| Q-ENG-S72 — legacy Gmail checkpoints and current Communications evidence | KNOWN SUPPORT BOUNDARY: current Communications owns its attempt/receipt evidence; no active path automatically records it as legacy S72 sent evidence. S113 staff-recorded progress is deliberately separate. Copy now names the legacy Gmail checkpoints; functional prerequisites and conservative draft/source/copy/recipient/terms invalidation are preserved. One starting regression failed and 81 focused preservation checks passed. | Preserve this distinction in current guidance and the verification matrix; no duplicate send is needed to satisfy a legacy checkpoint. There is no new bridge/control/route or client hold. Current owner-renewal process guidance/publication remains S241; source copy delivery is pending.                                                                                                 |
 
-- **November/December run follow-ups (2026-10-28).** Three authored restrictions were reconciled
-  with existing staff operations instead of forced. (0) R-S232-7's same-date `start_cycle` refusal
-  was withdrawn: the S113/S144 contracts deliberately let staff restart a cycle on the same date with
-  a reason, keep the earlier cycle as history, replay the same request idempotently and refuse a
-  stale expected revision; the suite row now states that contract. (1) R-S237-2 binds only the
-  Working-value path (an empty source note, stored as "Staff working value"); the RentVine panel's
-  direct "Correct current base-rent billing" entry with its own evidence note stays. The three narrow
-  S97 RentVine keys are open for staff-confirmed exact operations (F-S97); only the broad
-  `rentvine.lease.renewal_writeback` compatibility key is closed. (2) R-S234-2 keeps the legacy
-  owner-outcome control on its existing conditional path (after an app-sent owner message).
-  Locally, `tests/unit/unit-firestore-isolation-process.test.mjs` fails
-  identically at base `4c18f87f` when spawned under the unit runner in this WSL host; the direct
-  child run behaves correctly, so it is environmental and unrelated to this branch.
+Maintenance/intake/Vendor operational modules, resident-draft proofs and Vendoroo connector work
+remain retired. Vendoroo stays standalone. S36 and completed live proofs do not restart.
+Authentication longevity is unverified, not an active setup hold; a real challenge needs a person
+only when encountered. Individual Editor/phone/human claims remain separate from Admin evidence.
+Acquisition/answering/LeadSimple/QuickBooks work is outside this batch.
 
-- **Message review window (owner decision candidate).** S124 binds a saved message review to the
-  admitted lease generation, and the draft preview admits a new generation once the 60 s soft TTL
-  has passed. So a preview more than 60 s after the last source read asks staff to save the review
-  again even when no source term changed. The S113 fix made that request accurate (it used to read
-  as a safety conflict). Binding reviews to the notice facts instead of the generation counter would
-  remove the extra save but relaxes the deliberate generation binding, so it stays as built unless
-  the owner decides otherwise. Draft claims keep their exact generation binding either way.
-- **Assurance session lifetime.** The app's session cookie lasts eight hours, and release
-  prerequisites only prove the Admin assurance profile is signed in when they run. Run 05c177b9's
-  session expired inside its final observation checkpoint, so it rolled back verified. Before
-  admitting a run, refresh it unattended (`npm run auth:ensure -- --need=canary --unattended`
-  with the Admin profile and canonical origin); it re-signs through the profile's Google session
-  without a person. Only a Google sign-out needs the owner (A6). `auth:ensure` keeps a session that
-  is still valid, so also confirm the canonical session has more than an hour left; run 01efe066
-  was admitted with under half an hour left and rolled back verified when it expired.
-- **Four emulator-only E2E suites.** `approval-queue`, `capture`, `process-definitions` and
-  `work-accountability` fail with 409 when run with the Firestore emulator because the harness
-  runs `demo` + `live_readonly`, which refuses writes by design. They run in no gate. The repair is
-  a second harness pass under the existing `demo` + `demo` descriptor, not a guard change.
-
-- **Uncertain Sheet field update (owner decision candidate).** A field update whose response is
-  lost stays `ambiguous`: the Sheet may hold the new value, the app cannot prove which attempt
-  wrote it, and that lease accepts no further Sheet proposal, replacement or discard until the
-  runner clears the record from its receipt. This is the S113 contract (fail-closed, at most one
-  attempt per target), live again with S159. Candidate change: let a staff member archive an
-  ambiguous field generation, since the per-target claim already refuses a second write to the
-  same cell. Until decided, a lease in this state needs a runner readback and a manual clear.
-- **Promotion routing skew.** Run 175fee1d's immediate observation checkpoint failed because, for up
-  to 46 s after promotion started, Cloud Run still routed some canonical requests to the
-  predecessor, which (with no traffic and no tag) answered them with instant 500s; the candidate
-  served zero 5xx. The run rolled back verified. Replacement run 0eb2cfeb passed with the
-  predecessor still tagged (a retry's new recovery clone takes the rolled-back candidate's tag) and
-  zero 5xx from any revision. If it recurs, the owner chooses between a longer immediate-checkpoint
-  grace with a routing-convergence wait and static-asset skew protection; the 60 s grace and canary
-  thresholds are owner decisions, so the runner does not change them.
-- **Cold first requests (fallback only).** The release checks now warm a possibly cold revision
-  first (see Closed). If a check still fails on a cold start, read the revision's request log, run
-  `~/pmi-kc-work/scripts/diag-recovery-canary.sh`, the candidate smoke or
-  `~/pmi-kc-work/scripts/diag-canary-phase.sh` by hand, then `release-control.mjs --resume`.
-
-## Closed
-
-- **Release warm-ups and the observation deadline (owner decision 2026-10-07).** Every fresh run
-  since 2026-10-01 paused once at recovery preparation (43.2, 33.0 and 48.1 s on 2026-10-05; 39.7,
-  39.1 and 56.5 s on 2026-10-07 for a new recovery instance's first Dashboard render against the
-  30-second bound), run 61659874 paused once at the candidate smoke (43.8 s), and a rollback
-  verification once read a cold version in 32.4 s. The candidate check passed only because the
-  sign-in check had already loaded its Dashboard. The owner approved read-only warm-ups: every
-  candidate, recovery preparation and rollback canary first sends one unmeasured version read and
-  loads the Dashboard once, unmeasured, under the same mutation firewall; the predecessor baseline
-  and the candidate smoke first send one unmeasured version read. The owner also moved the
-  observation's decision deadline from 420,000 to 480,000 ms: the final checkpoint had finished at
-  396,797, 411,502 and 404,092 ms that day. No route, read or probe bound changes (S51
-  AC-S51-10 and AC-S51-19). Run e372f7b5 released both on 2026-10-08 and passed every phase on its
-  first attempt, with no recovery or smoke pause; its observation decided at 389,677 ms.
-- **Release-check margin (2026-10-02).** Not a hold. Batch 004 made the canary's renewal desk wait
-  out an admitted lease refresh started by the Dashboard; PR #119 restored the Dashboard's plain
-  stale revalidation. Run 175fee1d's candidate rendered the desk in 4,524 ms (15.5 to 28.7 s in
-  batch 004's releases), and replacement run 0eb2cfeb's observation decided at 396,284 ms against
-  the 420,000 ms evidence deadline, with a 4,838 ms renewal desk check.
-- **B-MNT2 (2026-10-01).** Vendoroo's agent ("ROO") writes work-order updates into RentVine, which
-  the app already reads; no connector is built and nothing is requested from Vendoroo.
-- **B-FLOW1, B-GOLD1 and B-REH1.** The audited manual journey, the golden-label correction and the
-  local walkthrough acceptance are complete; Git history keeps their evidence.
-- **Tenant resource links (S113).** The owner deferred source collection. Labeled link boxes accept
-  real entries when supplied and never export placeholders or stand in for approved legal content.
+A-01–A-07, S125 notice selection, S241 process correction and S34 technical readiness are team
+work in the finalized plan. The S238 copy-only Dan/Jon package uses existing private recipients,
+states only supported outcomes and consolidates remaining exact questions. No new approval
+portal, mailbox draft/send, invitation or support message is part of authoring or implied delivery.
+Preserve Sheet ambiguity: matching state after a lost response proves no creation causality,
+redispatch authority or historical restoration.

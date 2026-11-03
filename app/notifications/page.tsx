@@ -6,6 +6,7 @@ import { notificationStateLabel } from "@/lib/notifications/families";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { can } from "@/lib/auth/roles";
 import { loadNotificationHub } from "@/lib/notifications/hub";
+import { needsDecisionReadWarning } from "@/lib/approval/needs-decision-inbox";
 
 // S17 B1 — the read-only /notifications hub. A SUPERSET of the Console: it renders the time-ordered event
 // LOG plus the standing setup signals (connections + coverage) and, for an Admin, the value-free review
@@ -23,6 +24,7 @@ export default async function NotificationsPage() {
   // S39: the Feedback section is Admin-scoped (feed.support is only gathered for an Admin viewer). Gate
   // the SECTION on the role so a non-Admin never sees it, and an Admin with no feedback sees the all-clear.
   const isAdmin = can(user.role, "manageAdmin");
+  const decisionReadWarning = needsDecisionReadWarning(feed.decisions);
 
   return (
     <AppShell user={user}>
@@ -75,10 +77,19 @@ export default async function NotificationsPage() {
         <section className="panel" aria-label="Needs your decision">
           <div className="notifications-lane-head">
             <h2>Needs your decision</h2>
-            <span className="console-deck-count">{feed.decisions.count}</span>
+            {!decisionReadWarning ? (
+              <span className="console-deck-count">{feed.decisions.count}</span>
+            ) : null}
           </div>
+          {decisionReadWarning ? (
+            <p className="muted" role="status">
+              {decisionReadWarning}
+            </p>
+          ) : null}
           {feed.decisions.count === 0 ? (
-            <p className="muted">{ATTENTION_LANE_META.decision.allClear}</p>
+            !decisionReadWarning ? (
+              <p className="muted">{ATTENTION_LANE_META.decision.allClear}</p>
+            ) : null
           ) : (
             <ul className="notifications-standing-list">
               {feed.decisions.signals.map((signal) => (

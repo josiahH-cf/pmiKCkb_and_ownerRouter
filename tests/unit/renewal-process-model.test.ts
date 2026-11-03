@@ -85,6 +85,55 @@ function acceptedOutcome(evidence: RenewalEvidenceMap): RenewalTenantOutcome {
 }
 
 describe("S72 versioned six-step renewal process", () => {
+  it("S238 preserves the legacy Gmail checkpoint prerequisites and draft-bound invalidation", () => {
+    const evidence = acceptedEvidence();
+    delete evidence["owner-draft-receipt"];
+    delete evidence["tenant-draft-receipt"];
+    const projected = projectRenewalProcess({
+      processVersion: RENEWAL_PROCESS_VERSION,
+      evidence,
+      tenantOutcome: acceptedOutcome(evidence),
+      complete: false,
+    });
+    for (const step of projected.steps.slice(1, 3)) {
+      expect(
+        step.substeps.find(
+          (substep) => substep.id.startsWith("observe-") && substep.id.endsWith("-send"),
+        )?.state,
+      ).not.toBe("complete");
+    }
+    for (const step of RENEWAL_PROCESS_DEFINITION.steps.slice(1, 3)) {
+      expect(
+        step.substeps.find(
+          (substep) => substep.id.startsWith("create-") && substep.id.endsWith("-draft"),
+        )?.requiredForStep,
+      ).not.toBe(false);
+    }
+    const ownerChanged = replaceRenewalEvidence(
+      evidence,
+      "owner-draft-receipt",
+      verified("new-owner-draft", "gmail_receipt"),
+    );
+    expect(ownerChanged.evidence["owner-message-sent"]).toBeUndefined();
+    const tenantChanged = planRecordTenantOfferDraft(
+      {
+        leaseId: "42",
+        processVersion: RENEWAL_PROCESS_VERSION,
+        stageIndex: RENEWAL_STAGE.documents,
+        ownerDecision: { decision: "increase", offeredRent: 1300 },
+        ownerDecisionRevision: 1,
+        tenantOfferDraftId: "old-draft",
+        tenantOutcome: acceptedOutcome(evidence),
+        evidence,
+        complete: false,
+      },
+      "new-draft",
+    );
+    expect(tenantChanged.evidence["tenant-message-sent"]).toBeUndefined();
+    expect(tenantChanged.evidence["tenant-contact-state"]).toBeUndefined();
+    expect(tenantChanged.evidence["tenant-outcome"]).toBeUndefined();
+    expect(tenantChanged.tenantOutcome).toBeNull();
+  });
   it("is deeply immutable and is the one exact six-step contract used by both projections", () => {
     expect(RENEWAL_PROCESS_DEFINITION.version).toBe(RENEWAL_PROCESS_VERSION);
     expect(RENEWAL_PROCESS_DEFINITION.steps.map((step) => step.id)).toEqual([

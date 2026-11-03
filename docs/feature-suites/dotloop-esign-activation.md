@@ -3,7 +3,12 @@
 
 # S34 — Versioned renewal PDFs in new or existing Dotloop loops
 
-> Intake: READY, revision 2026-10-06, intake 053. Existing packet controls, S20 claims/receipts and provider adapters are deployed with deterministic-provider evidence. The new/existing-loop, revision and transport repairs below are not implemented by this authoring run. Both Dotloop keys remain closed; live testing/demo/activation are deferred.
+> Baseline: IMPLEMENTED AND DEPLOYED — intake 053 new/existing-loop lifecycle, exact-byte transport,
+> durable association/recovery and human signing handoff. November 3 U5 technical source and local
+> gate QUALIFIED; application delivery PENDING. Readiness, isolated execution and recovery scope
+> is in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md); final v8 runtime qualification creates no provider effect.
+> Both Dotloop business-write keys remain closed.
+> The planned separately gated activation below is not authorized by this specification.
 
 **Goal.**
 
@@ -11,7 +16,15 @@ Staff preview and confirm their exact approved PDFs into a new or explicitly sel
 
 **Current state / intended end state.**
 
-Starting source: `60145e926a477a35990c48b1123489d98822fe8b`; inspected Dotloop source matches the serving `e8bc616d144c6600da8394313153e1a0c75659da` release. Existing normal controls, S20 queue/ledger, approved-byte resolver, loop links and receipt recovery exist. Missing input authoring/current-term resolution is S66. Runtime loop creation does not wire all available property/fact data; multipart upload builds a binary string that is subsequently UTF-8 encoded; upload-folder reuse is only local memory. Current approval ownership follows the last selection recorder, and loop replacement is tied to changed snapshot hash. Completion/refresh controls require wiring verification. Historical fake-provider PASS does not prove the live transport or new behavior.
+Serving source `bc97535379dd08deab578455b00a80fc93b8d209` contains the normal S20/S21 packet
+controls, reviewed current inputs, binary upload transport, persistent loop/folder associations,
+new/existing-loop choice, document successors and owned-attempt recovery. The original intake 053
+release and later S235 lease-wide duplicate checks are recorded in the registry and November 3
+delivery evidence. The historical transport/settings-recorder defects are not current gaps.
+Fresh November 3 reads verify the integrations account and selected supported renewal template;
+the cached observation remains separately dated. Both keys are closed, actual content/maps remain
+unapproved and no real create/upload/signature was assessment proof. U5 below plans the remaining
+technical readiness and separate exact-key activation pathway without executing either.
 
 End state: explicit loop choice bound to the lease/cycle, exact immutable document versions and durable folder/attempt identities; current app versions and prior uploaded versions remain distinguishable. The final app-filled PDF set is the source for transport; Dotloop-native Autofill is not its substitute.
 
@@ -34,7 +47,12 @@ Renewal staff use the company connection under their own app identity and S182 p
 
 **In scope / out of scope.**
 
-In scope: new/existing-loop choice/linking, create input repairs, exact conditional admission, binary upload and durable folder/attempt recovery, revised versions, status/handoff and staff completion wiring. Out of scope: new action activation, new provider mutation keys, modifying existing-loop people/details through an upload key, API deletion/reversal invention, actual signature assignment/sending, required webhooks, automatic loop LEASED status changes, Drive setup and live tests/demo in this cycle.
+In scope: the existing new/existing-loop lifecycle, exact conditional admission, binary upload,
+durable recovery, revised versions and human handoff, plus the November 3 plan for technical
+readiness and separately gated activation of its two existing keys. Out of scope: executing that
+activation now, new provider mutation keys, modifying existing-loop people/details through an
+upload key, API deletion/reversal invention, automatic signature assignment/sending, required
+webhooks, automatic loop LEASED changes, Drive setup and live business effects in this authoring run.
 
 **Open questions & assumptions.**
 
@@ -55,7 +73,7 @@ Verified owners: `lib/lease-renewal/execution/normal-packet-action.ts`, `lib/lea
 
 **Architecture outcome (deterministic, fail-first).**
 
-- **ARCH-S34-1** — Extend the existing provider/executor/link and completion owners; no duplicate workflow or provider executor. Typed exact target/byte transport exposes the current string corruption and missing wiring.
+- **ARCH-S34-1** — Preserve the existing provider/executor/link and completion owners without a duplicate workflow or executor. Exact target/byte transport checks fail if binary corruption or missing control wiring is reintroduced.
 - **ARCH-S34-2** — Lease/cycle loop association is separate from immutable packet/document versions and durable owned attempts/folders; duplicate and changed-version cases cannot create a second loop implicitly.
 - **ARCH-S34-3** — Readback, staff report and signed/provider evidence remain distinct state projections through failure, correction and reload.
 
@@ -130,3 +148,230 @@ An implementation runner establishes fail-first multipart, existing-loop, succes
 **Deletion/merge recommendation.**
 
 Keep until the revised lifecycle is represented by verified code/tests and separately recorded live acceptance. Historical S34 fake-provider and deployment evidence is retained with its original scope.
+
+## November 3 finalized follow-up — U5 technical readiness and separate activation
+
+> Authoring: FINAL. Follow-up implementation: IN PROGRESS after the owner's launch; delivery pending.
+> The owner selected
+> inclusion of the existing app-created loop and upload paths through technical readiness and a
+> separately gated activation plan. This specification grants no activation or provider business
+> write. Signing remains a human Dotloop handoff; both existing keys stay closed now.
+
+**Goal.**
+
+The project can finish technical qualification of both existing operations, prepare a concrete
+per-key activation decision and identify the exact remaining authority/content, then support normal
+staff-confirmed real work only after those separate gates actually pass.
+
+**Current state / intended end state.**
+
+The November 3 assessment verified `integrations@pmikcmetro.com` and selected office individual
+profile/template visibility. Selection version 1 is settled; no membership, template recreation,
+new credential or status-choice request remains. `normal-packet-action.ts` (lines 71–72,
+169–181,242–260) evaluates the create and upload keys independently. Its current assembly binds
+current snapshot/terms, selected resource, exact parties and the lease's association before
+admission (lines 310–403). No app-created loop, customer upload or provider receipt was newly
+created to verify that code.
+
+The missing operational evidence is not a broken OAuth connection: required real content/approval,
+provider consequence qualification, exact activation authority and ordinary real-work readback are
+separate. Intended: label those separately, complete isolated engineering qualification and deliver
+an exact per-key activation package. Only a later specific authority may change protected metadata
+or admit an actual operation; no signature API or generic Dotloop action is introduced.
+
+**Actors and entry conditions.**
+
+Engineering owns qualification and the exact readback/activation package. Existing authorized
+renewal staff own operation previews and confirmations; current app roles/Space and canary refusals
+remain. Dan is the ASK contact only for unresolved business choices or actual counterpart/signing
+meaning, after existing evidence is recovered. The owner of protected action authority decides
+later activation from a concrete package. An integration identity or technical readiness result
+cannot supply that authority.
+
+**What it is / how it functions.**
+
+- **R-S34-11 — Separate readiness dimensions.** For `dotloop.loop.create_from_template` and
+  `dotloop.document.upload`, identify technical qualification, actual content/map/owner-approval,
+  current connection/resource/target, exact-key state and execution authority separately. A closed
+  key remains an intentional authority hold rather than a failed provider connection. Local file
+  preparation and isolated checks remain available.
+- **R-S34-12 — Qualify each existing path and its consequences.** Reuse the typed client, normal
+  executor, S20 claims/receipts and S21 exact bytes. Exercise new-loop creation and existing-loop
+  upload independently with deterministic external adapters and real isolated stores/control paths.
+  Establish documented participant/contact/notification, copied-template-document and returned-byte
+  limitations using existing evidence and official provider contracts. Unsupported or unknown
+  consequences are named explicitly; do not create a customer effect to investigate them or assume
+  document presence proves byte equality/signature.
+- **R-S34-13 — Prepare exact separate activation.** Produce a reviewable package for each existing
+  key: operation/scope, code/config/actor prerequisites, consequence/correction limits, required
+  content/target evidence, current closed state, proposed narrow metadata change, backup,
+  concurrency/CAS/readback procedure, failure/ambiguity response and stop conditions. Keep create
+  and upload authority independent; an existing-loop upload never requires opening the create key.
+  Any actual protected patch/activation needs a later exact owner instruction and its established
+  technical gates; the plan, READY label or historical program is insufficient.
+- **R-S34-14 — Admit ordinary real work and hand off signing honestly.** After actual content and
+  exact authority exist, use the existing staff preview/confirmation with current source/recipient
+  or participant/target/version, one-attempt claim, receipt and readback. Duplicate confirmation
+  reuses the owned result; ambiguity recovers the same attempt without a new create/upload. Show
+  current app PDFs and copied/native/obsolete documents separately for human Dotloop review and
+  signature assignment/sending. Keep staff-reported returns, provider presence and signed evidence
+  distinct through S236; no production test record or send-for-proof is required.
+
+**In scope / out of scope.**
+
+In scope: readiness classification, focused isolated qualification, source/provider-contract
+diagnosis and exact per-key activation/correction plan for the two existing operations. Out of
+scope now: activation, registry/configuration/permission changes, live create/upload/participant
+effects, signatures/sends, synthetic production records, paid proof, undocumented endpoints and
+generic/bulk/model-driven execution. Existing human signing is intentional.
+
+**Open questions & assumptions.**
+
+No material product-design question remains: both existing paths and the human signing handoff are
+included in the plan. Actual originals/maps, current case approval and targets, specific provider
+consequence evidence and later exact activation authority remain bounded runtime gates. Complete
+accessible investigation before identifying an external provider fact as unavailable. Ask Dan only
+an unresolved business meaning, not to supply engineering evidence or decide an already-settled
+new/existing-loop feature. No indefinite credential or signature-state capability is assumed.
+
+**Cross-product impacts.**
+
+S106/S228 own managed connection/readiness and settled resource selection; S130 owns exact approved
+bytes/maps; S66/S234 own current facts/economics/owner-term evidence; S235 owns applicability,
+duplicate prevention and packet state; S236 owns returned/signature evidence; S238 owns integrated
+staff/client handoff. S20/S21 and existing normal executors remain the only effect/provenance owners.
+
+**Authority and evidence map.**
+
+| Input                                                            | Classification                      | Use and limitation                                                                                                       |
+| ---------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| November 3 owner scope answer and `AGENTS.md`                    | Authoring authority                 | Include both paths and separately gated activation in the plan; activate or execute neither now.                         |
+| Fresh provider read, saved selection and current normal executor | Implementation/resource evidence    | Current supported resource and exact conditional keys; not content approval or live creation/upload proof.               |
+| Accepted original S34 lifecycle and official Dotloop contract    | Existing design / provider evidence | New/existing loop choice, exact bytes, human signing and documented consequences; no invented API/correction capability. |
+| Actual content/decision/activation authority                     | Runtime dependencies                | Bind exact case/version/operation; no grant follows from test, role, connection or metadata alone.                       |
+
+**Architecture outcome (deterministic, fail-first).**
+
+- **ARCH-S34-4** — Existing readiness and normal-action owners distinguish technical, content,
+  resource and exact-authority states for each operation. A starting fixture fails if one closed
+  key is described as missing OAuth or if existing upload depends on create authority.
+- **ARCH-S34-5** — A per-key activation package references exact current artifacts, preserved
+  metadata/configuration and the reviewed backup/CAS/readback/correction boundary. An incomplete,
+  wrong-key or outdated package cannot be labeled activation-ready; preparing it performs no patch.
+- **ARCH-S34-6** — Existing effect owners enforce exact admitted identity/bytes/target and own-receipt
+  recovery across partial/lost responses. Human signature work and returned evidence never enter
+  an invented provider operation or replace the execution receipt.
+
+**Behavior outcome (deterministic, fail-first).**
+
+- **BEH-S34-4** — Staff see that technical preparation is qualified while a specific content or
+  exact-key authority hold remains; local output and unrelated work continue.
+- **BEH-S34-5** — New-loop and existing-loop upload fixtures exercise their actual conditional keys,
+  approved bytes and consequences without live effects; uncertainty remains explicitly unproven.
+- **BEH-S34-6** — The owner receives a concrete per-key activation package with exact proposed change,
+  limits and readback, not a broad request to approve Dotloop or repeat setup. Preparing or reviewing
+  the package opens no key.
+- **BEH-S34-7** — Under later actual authority, one exact confirmation yields the owned result or
+  an explicit unresolved attempt; unchanged files/duplicate confirmations never create a second
+  effect, and signing remains a person-operated handoff.
+
+**Human litmus outcome.**
+
+### Know what is ready and what a later activation would allow
+
+**If this was built correctly:** The team can explain which normal packet operations are technically
+ready, which actual form/approval is missing and which exact action remains closed. The owner can
+review a concrete upload-only or create-operation activation package. Once separately authorized,
+staff review the right files and target once, recover the same attempt if needed, and finish
+signature work in Dotloop without the app claiming that upload means signed.
+
+- Model verdict: NOT RUN — separate operation readiness, passive activation packages and normal-operation recovery pass focused isolated checks; cumulative qualification, this model litmus and delivery remain pending. Neither key was activated and no provider business effect is claimed.
+- Human verdict: NOT RUN — no human observer
+
+**Requirement-to-outcome traceability.**
+
+| Requirement                                      | Architecture outcome   | Behavior outcome | Human litmus                                               | Deterministic evidence / falsification                                                                    |
+| ------------------------------------------------ | ---------------------- | ---------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| R-S34-11 separate readiness                      | ARCH-S34-4             | BEH-S34-4        | Know what is ready and what a later activation would allow | Closed create/upload, unavailable content and good connection fixtures; independent local preparation.    |
+| R-S34-12 isolated path/consequence qualification | ARCH-S34-4, ARCH-S34-6 | BEH-S34-5        | Know what is ready and what a later activation would allow | Actual route/store/provider-adapter cases plus attributed provider-contract evidence; no customer effect. |
+| R-S34-13 exact activation package                | ARCH-S34-5             | BEH-S34-6        | Know what is ready and what a later activation would allow | Required-field/version/current-state/backup/CAS/readback checks; no patch or key opening.                 |
+| R-S34-14 exact effect/human handoff              | ARCH-S34-6             | BEH-S34-7        | Know what is ready and what a later activation would allow | One-attempt, duplicate, partial/timeout/restart fixtures; S236 signed/staff/provider evidence separation. |
+
+**Preservation set.**
+
+Preserve `dotloop-renewal-executor`, `s34-dotloop-packet-lifecycle`, current loop-association and S235
+history/duplicate checks, `s66-dotloop-packet-binding`, S130 exact bytes/approval, S106 generation
+and resource checks, S182 origin exclusion and existing S20 claims/receipts. Keep both registry keys
+closed, all configured identities and the human signing boundary. Existing successful fixture and
+release evidence retains its actual scope; this authoring performs no new provider qualification.
+
+**Adversarial acceptance checks.**
+
+- **AC-S34-11** — A connected selected resource with closed create/upload keys is labeled as the
+  appropriate authority hold. Upload into a verified existing loop depends only on upload
+  authority; preparation depends on neither (ARCH-S34-4, BEH-S34-4, BEH-S34-5).
+- **AC-S34-12** — Qualification uses actual normal-operation/claim/byte owners with isolated
+  adapters and records participant/notification/returned-content limits without manufacturing
+  provider proof. Unknown consequences hold only the dependent operation
+  (ARCH-S34-4, ARCH-S34-6, BEH-S34-5).
+- **AC-S34-13** — Missing exact key/scope/current state, stale source/version, absent consequence or
+  backup/CAS/readback/correction instructions prevents an activation-ready package. A complete
+  package still performs zero protected metadata writes (ARCH-S34-5, BEH-S34-6).
+- **AC-S34-14** — Duplicate, partial, timeout, changed document and restart cases retain the original
+  claim/known results and reconcile without another uncertain effect; matching provider names or
+  document presence cannot fabricate causality or signatures (ARCH-S34-6, BEH-S34-7).
+- **AC-S34-15** — Both keys remain closed throughout technical authoring/qualification. No test
+  customer record, loop/upload, signature, mail send, role/configuration change or historical proof
+  rerun is used to close this plan (all outcomes, preservation gate).
+
+**Forbidden actions / hard gates.**
+
+No execution, commit, deployment, protected activation, provider business effect or message sending
+is authorized by this specification. Later exact activation is planned, not granted. Current
+source/target/actor/Space/confirmation, at-most-once claim, receipt/readback and ambiguity gates
+remain mandatory. No receipt reuse, guessed rollback/delete, model authority or signature endpoint.
+
+**Dependencies / sequencing.**
+
+Finish accessible diagnosis and isolated technical checks while legal inputs and activation remain
+held. Recover existing decisions before any exact business question to Dan. S130/S66/S234 provide
+actual approved content/terms when available; S106/S228 recheck current observation without
+re-requesting settled membership/selection. Prepare the concrete per-key package next. Only a
+later exact owner authorization can initiate protected activation and ordinary real work; human
+signing follows through its actual Dotloop handoff, not a proof exercise.
+
+**Standalone delivery contract.**
+
+- **Deliverable now:** implemented separate readiness and passive per-key packages with passing
+  focused isolated lifecycle/recovery checks. Cumulative qualification and delivery remain pending;
+  both keys stay closed and real activation is separately gated.
+- **Consumes, but does not assume:** approved content/maps, current source/target/connection and
+  real authority; absent prerequisites are independent named holds, not false technical failure.
+- **Externally blocked effect:** live create/upload requires actual content, exact activation
+  authority/readback and staff confirmation; signing requires the real human process. Engineering
+  completion does not claim those effects operationally complete.
+- **Produces for downstream suites:** qualified per-operation readiness, reviewed consequence
+  limits, exact activation packages and stable normal-work/human-handoff evidence boundaries.
+
+**Verification and delivery contract.**
+
+For a later authorized task, record current source/readiness and reproduce the named dimensional or
+conditional-key failure before edits. Exercise all declared fixture and package checks, keeping the
+preservation gate separate. Code changes invoke the repository's canonical verification and
+authorized delivery process; a plan/inventory alone does not start a build/release. Record technical
+completion, client/content holds, activation state and real-work evidence independently. Never
+manufacture a live proof or treat a planned activation as executed.
+
+**Ordered prompt sequence.**
+
+1. Re-establish current source, two exact key states and generation-bound resource/selection reads.
+2. Qualify each actual existing operation in isolation and recover documented consequence evidence.
+3. Prepare exact independent activation packages and precise remaining business questions only.
+4. Under a later explicit activation/execution instruction, apply the existing gates and readbacks;
+   ordinary staff work and human signature handoff retain their distinct evidence.
+
+**Deletion/merge recommendation.**
+
+Merge this U5 plan into the current S34 lifecycle contract after verified delivery. Keep S106/S228
+resource ownership, S130/S235 content/readiness and S236 signing evidence distinct; create neither
+a new executor nor an approval portal. External holds remain in `docs/open-blockers.md`.

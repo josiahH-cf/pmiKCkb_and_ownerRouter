@@ -148,3 +148,207 @@ Measure first and feed evidence into S169-S171. Layout/AI/persistence changes mu
 **Deletion/merge recommendation.**
 
 Keep this suite active through verified program delivery and any remaining acceptance dependency. Retire or merge its narrative only after current code/tests/facts own every contract and the registry retains the exact disposition. Never remove the only unmet requirement, fabricate a human/provider result or restart a completed baseline from its row.
+
+## November 3 assessment follow-up — A-05
+
+> Authoring: FINAL. A-05 source and local gate QUALIFIED; application delivery PENDING. The
+> correlated upstream detail-GET 500 and bounded options-only handling passed focused preservation
+> and full06 checks; see [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). Original request purpose/actor and
+> provider-internal cause remain unknown. Earlier delivered S168 evidence keeps its actual scope;
+> no live replay or provider-internal repair is claimed.
+
+**Goal.**
+
+Establish the cause, or the precise remaining uncertainty, of the recorded November 2 renewal
+endpoint HTTP 500 so recovery is not mistaken for a proven repair. The finalized implementation
+plan includes a narrow repair only when diagnosis establishes a defect in this existing read path;
+it does not require a new phase-only permission request within a later explicitly launched scope.
+
+**Current state / intended end state.**
+
+`docs/evidence/application-delivery-2026-11-03.md` records successful current desk/workspace and
+strict read-only charge-options observations, but explicitly leaves the recovered November 2
+renewal endpoint 500's root cause unproven. Source `39435919` contains that evidence; serving runtime
+is `bc975353`. A successful later request establishes recovery under those checked conditions only.
+
+Intended: a sanitized request/phase diagnosis tied to retained private evidence, with the actual
+route, actor scope, source/revision, time and observed failure. If evidence cannot distinguish
+causes, retain that bounded uncertainty and name the smallest discriminating check. No invented
+authentication, provider or network cause is acceptable.
+
+**Actors and entry conditions.**
+
+Engineering uses existing approved private evidence and read-only Cloud Run/application logs
+through the approved local identity/store. Identify the actual failed request from retained
+evidence before selecting a route or repeating a read. A missing log or response is reported as
+missing evidence; it is not a reason to reauthenticate, change configuration or replay an effect.
+
+**What it is / how it functions.**
+
+- **R-S168-8 / A-05 — Recover the failure envelope.** Locate the retained failed request's timestamp,
+  method/route, status or missing response, actual revision and available privacy-safe correlation
+  identifier. Keep customer/source values, request bodies and raw logs outside Git. Distinguish
+  browser/harness failure from an observed server 500 and preserve every original failed outcome.
+- **R-S168-9 / A-05 — Correlate the owning read phase.** Read the narrow relevant time window and
+  existing request/phase diagnostics. Trace the actual handler into its configuration, source read,
+  permission/provider boundary or rendering step. Compare with later successful requests only when
+  their route/revision/actor conditions are compatible. Eliminate supported hypotheses explicitly;
+  absence of retained diagnostics is not evidence that a particular dependency failed.
+- **R-S168-10 / A-05 — Falsify or bound the conclusion.** If a cause is reproducible, identify the
+  smallest existing fixture/emulator check or proposed fail-first regression that discriminates it
+  without production effects. During later authorized implementation, materialize that regression
+  before a repair. If unreproduced, record surviving hypotheses and the minimum diagnostic signal
+  needed on recurrence. Do not rerun broad suites or production requests until one happens to pass.
+- **R-S168-11 / A-05 — Repair only the demonstrated boundary.** If diagnosis and an isolated
+  failing check establish a current defect in the implicated renewal read/service/render path,
+  implement the smallest complete correction and its refusal/recovery behavior under this owner.
+  Preserve response contracts, permissions, source freshness, deadlines, costs and write admission.
+  Unproven hypotheses do not authorize speculative changes or deadline increases. If cause remains
+  unknown, finish the bounded diagnosis with an exact recurrence signal and owner; do not claim
+  a repair or hold unrelated engineering work for a client to explain a technical failure.
+
+**In scope / out of scope.**
+
+In scope for later implementation: the single recorded renewal failure, its retained evidence/logs,
+owning request/read path, focused isolated discrimination and a demonstrated narrow repair under
+R-S168-11. Out of scope: speculative instrumentation/rewrites, changing deadlines/retries,
+permissions or runtime configuration, restarting services, blanket performance/audit runs and
+business-effect verification. This authoring round implements nothing and initiates no release.
+
+**Open questions & assumptions.**
+
+The exact failing route, timing and retained log detail must come from evidence; no endpoint is
+guessed from the phrase renewal endpoint. Logs may have expired or omit a correlation field. In
+that case the honest result is a bounded unresolved diagnosis, with the missing artifact and next
+check named. Root cause and repair cannot be claimed from recovery alone.
+
+**Cross-product impacts.**
+
+The discovered owning renewal route/read service and S238's integrated evidence/repair tracking
+consume the result. S239's dependency patch remains a separately delivered dependency-audit scope;
+this failure is not automatically attributed to it. KB, Communications and unrelated historical
+programs are outside the investigation unless the actual trace identifies a shared dependency.
+
+**Authority and evidence map.**
+
+| Input                                                     | Classification          | Use and limitation                                                                                      |
+| --------------------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------- |
+| Current assessment request and `AGENTS.md`                | Authority               | Read-only assessment and specification; no fix, release or business effect.                             |
+| `docs/evidence/application-delivery-2026-11-03.md`        | Dated evidence          | Establishes the recorded recovered 500 and successful later reads; explicitly does not establish cause. |
+| Retained private failed request and narrow read-only logs | Causal evidence         | Bind only actual observed fields; missing response/logs remain unknown.                                 |
+| Current owning route/service and isolated tests           | Implementation evidence | Explain candidate failure boundaries; fixture success/failure is not a production diagnosis by itself.  |
+
+**Architecture outcome (deterministic, fail-first).**
+
+- **ARCH-S168-4** — Every causal conclusion links the actual failure envelope to its owning read
+  phase and evidence. Falsification: removing the request/time/phase linkage makes a causal claim
+  unsupported; a later successful request alone cannot satisfy the check.
+- **ARCH-S168-5** — Any proposed reproduction uses deterministic adapters/emulators and the actual
+  implicated boundary. A reproduction depending on live business credentials/provider writes fails
+  this contract; no production retry mechanism is added.
+- **ARCH-S168-6** — A repair is bound to the demonstrated failing boundary and the existing
+  owner, with separately passing preservation checks. No causal evidence means no speculative
+  repair; that branch instead produces the bounded diagnosis and exact remaining evidence need.
+
+**Behavior outcome (deterministic, fail-first).**
+
+- **BEH-S168-8** — The final result distinguishes recovered, reproduced, cause established and
+  unresolved. A report saying fixed solely because the current screen opens fails.
+- **BEH-S168-9** — The next action names the smallest check or bounded R-S168-11 repair and its
+  engineering owner. Missing technical diagnosis is not relabeled a client dependency; genuine
+  missing external evidence is scoped only after accessible investigation is exhausted.
+- **BEH-S168-10** — A demonstrated defect fails on the original boundary and passes after the
+  correction under compatible conditions; the report separates that result from historical
+  recovery. An unresolved cause stays unknown without inventing a fixed outcome.
+
+**Human litmus outcome.**
+
+### Understand the recovered renewal error
+
+**If this was built correctly:** Staff can see whether the earlier problem's cause is known,
+what evidence supports that conclusion and what the project team will check next. A successful
+reload does not hide the original failure or imply that someone needs to sign in again.
+
+- Model verdict: NOT RUN — the correlated upstream detail-GET failure and bounded options-only repair are evidenced with passing focused/preservation checks; cumulative qualification, this model litmus and delivery remain pending. Original POST purpose and provider-internal cause remain unknown.
+- Human verdict: NOT RUN — no human observer
+
+**Requirement-to-outcome traceability.**
+
+| Requirement                     | Architecture outcome | Behavior outcome | Human litmus                           | Deterministic evidence / falsification                                                                                        |
+| ------------------------------- | -------------------- | ---------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| R-S168-8 failure envelope       | ARCH-S168-4          | BEH-S168-8       | Understand the recovered renewal error | Actual failed request/time/route/status/revision or explicit unavailable fields; fabricated identifiers fail.                 |
+| R-S168-9 phase correlation      | ARCH-S168-4          | BEH-S168-8       | Understand the recovered renewal error | Narrow log/source trace supports each eliminated/surviving cause; recovery alone fails causal proof.                          |
+| R-S168-10 bounded falsification | ARCH-S168-5          | BEH-S168-9       | Understand the recovered renewal error | Existing isolated discriminating result, or exact unperformed regression/diagnostic signal and owner; no blind retry.         |
+| R-S168-11 demonstrated repair   | ARCH-S168-6          | BEH-S168-10      | Understand the recovered renewal error | Failing-then-passing actual-boundary check and separate preservation gate, or explicit no-repair branch with bounded unknown. |
+
+**Preservation set.**
+
+Source/actor/Space isolation, current freshness/notice invalidation, immutable failures and receipts,
+read deadlines, at-most-once claims and ambiguity handling, both closed Dotloop keys, current
+production configuration and unrelated/untracked work. Existing successful read evidence remains
+valid only within its originally recorded scope.
+
+**Adversarial acceptance checks.**
+
+- **AC-S168-8** — ARCH-S168-4 / BEH-S168-8: a browser/harness exception without retained HTTP
+  response is not converted into a server 500; original server failure and later recovery differ.
+- **AC-S168-9** — ARCH-S168-4 / BEH-S168-8: permission, authentication, timeout and provider errors
+  require their actual trace; no login/configuration change is requested on an unproven hypothesis.
+- **AC-S168-10** — ARCH-S168-5 / BEH-S168-9: reproduction uses the implicated isolated boundary;
+  if evidence is insufficient, the report names the precise missing signal and keeps cause unknown.
+- **AC-S168-11** — ARCH-S168-6 / BEH-S168-10: a reproduced current defect receives the smallest
+  owning correction and a discriminating regression; an unreproduced failure produces no speculative
+  source/configuration change or fixed claim. Compatible current behavior and safety checks pass.
+
+**Forbidden actions / hard gates.**
+
+The launched R-S168-11 source repair and focused checks are complete; cumulative qualification
+and delivery remain pending. The repair permits no
+service restart, configuration/permission/policy/key change, customer draft/send/schedule, business
+write, paid request or production test record. Read
+contracts are inspected before any repeated request; a GET label alone proves no absence of effects.
+No raw customer/provider evidence or credentials enters tracked documentation.
+
+**Dependencies / sequencing.**
+
+Retained failure envelope precedes log selection; correlated phase precedes reproduction choice.
+Engineering can complete the bounded investigation independently of legal forms, signatures or
+staff acceptance. A demonstrated R-S168-11 repair belongs to this finalized work package in a later
+explicitly launched implementation scope; authoring does not start it or grant protected-path edits.
+
+**Standalone delivery contract.**
+
+- **Deliverable now:** a sanitized bounded diagnosis and implemented options-only correction with
+  passing focused/preservation checks. Original uncertainty remains explicit; cumulative
+  qualification and delivery are pending.
+- **Consumes, but does not assume:** Retained private request/log evidence and current source;
+  unavailable fields remain explicitly unavailable.
+- **Externally blocked effect:** None required to complete the bounded diagnostic report. Expired
+  logs can limit causal certainty without making unrelated client action necessary.
+- **Produces for downstream suites:** A supported cause and regression target, or an honest bounded
+  unknown with the minimum recurrence signal; S238 links the result without claiming repair.
+
+**Verification and delivery contract.**
+
+1. Re-read current source/serving baseline and preserve the original failed report.
+2. Read only the necessary private evidence/log window, then run an existing focused isolated check
+   only when it discriminates a surviving hypothesis. No broad audit or full release verification.
+3. Before an R-S168-11 correction, record the real failing check; afterwards run focused and
+   separate preservation checks, then the canonical verification/CI and existing delivery gates
+   applicable to any later authorized code release. A read-only diagnostic report requires only
+   proportionate evidence/privacy/document checks. Never manufacture fail-first evidence.
+4. Mark this investigation complete only with its bounded evidence-backed result. Cause may remain
+   unresolved; implementation/repair/delivery status remains separate from diagnostic completion.
+
+**Ordered prompt sequence.**
+
+1. Recover the exact failed request and compatible source/runtime envelope.
+2. Correlate the narrow read logs and owning handler; record supported exclusions and uncertainty.
+3. Run a discriminating existing isolated check if available; otherwise specify the minimum next one.
+4. Record the sanitized diagnosis; in an authorized implementation run, complete the demonstrated
+   narrow repair and its gates, or retain the exact unresolved evidence need without a fixed claim.
+
+**Deletion/merge recommendation.**
+
+Merge this follow-up into S168's current evidence once the bounded diagnosis is recorded. Preserve
+the original failure and uncertainty; a successful later page view never retires an unmet causal claim.

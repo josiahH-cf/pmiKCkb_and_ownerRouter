@@ -17,11 +17,16 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
+  assertWorkflowRunHistoryAvailable,
+  readWorkflowRunDefinition,
+} from "./workflow-run-definition";
+import { getWorkflowRun } from "./workflows";
+import { assertWorkflowRunAccess } from "@/lib/space-scope-resources";
+import {
   isRetiredMaintenanceWorkflow,
   MAINTENANCE_RETIREMENT_MESSAGE,
 } from "@/lib/maintenance/retirement";
 import type {
-  ProcessDefinitionRecord,
   WorkflowRunRecord,
   WorkflowRunStepCheckActivityRecord,
   WorkflowRunStepCheckRecord,
@@ -85,16 +90,7 @@ export async function setWorkflowRunStepCheck(
       );
     }
 
-    const definitionSnapshot = await transaction.get(
-      db.collection("process_definitions").doc(run.definition_id),
-    );
-    if (!definitionSnapshot.exists) {
-      throw new EditableLayerError("Process definition not found.", 404);
-    }
-    const definition = readRecord<ProcessDefinitionRecord>(
-      definitionSnapshot.id,
-      definitionSnapshot.data()!,
-    );
+    const definition = await readWorkflowRunDefinition(actor, run, db, transaction);
     const step = definition.steps.find((candidate) => candidate.id === parsed.step_id);
     if (!step) {
       throw new EditableLayerError(
@@ -159,6 +155,7 @@ export async function getWorkflowRunStepCheck(
   db: Firestore = getAdminFirestore(),
 ): Promise<WorkflowRunStepCheckRecord | null> {
   assertCan(actor, "read");
+  await assertRunHistoryReadable(actor, runId, db);
   const snapshot = await checkRef(db, stepCheckDocId(runId, stepId)).get();
   if (!snapshot.exists) return null;
   return readRecord<WorkflowRunStepCheckRecord>(snapshot.id, snapshot.data()!);
@@ -170,6 +167,7 @@ export async function listStepChecksForRun(
   db: Firestore = getAdminFirestore(),
 ): Promise<WorkflowRunStepCheckRecord[]> {
   assertCan(actor, "read");
+  await assertRunHistoryReadable(actor, runId, db);
   const snapshot = await db
     .collection(WORKFLOW_RUN_STEP_CHECK_COLLECTIONS.checks)
     .where("run_id", "==", runId)
@@ -185,6 +183,7 @@ export async function listWorkflowRunStepCheckActivity(
   db: Firestore = getAdminFirestore(),
 ): Promise<WorkflowRunStepCheckActivityRecord[]> {
   assertCan(actor, "read");
+  await assertRunHistoryReadable(actor, runId, db);
   const snapshot = await db
     .collection(WORKFLOW_RUN_STEP_CHECK_COLLECTIONS.activity)
     .where("run_id", "==", runId)
@@ -192,6 +191,16 @@ export async function listWorkflowRunStepCheckActivity(
   return snapshot.docs
     .map((doc) => readRecord<WorkflowRunStepCheckActivityRecord>(doc.id, doc.data()))
     .sort((left, right) => left.created_at.localeCompare(right.created_at));
+}
+
+async function assertRunHistoryReadable(
+  actor: AuthenticatedUser,
+  runId: string,
+  db: Firestore,
+) {
+  const run = await getWorkflowRun(actor, runId, db);
+  assertWorkflowRunAccess(actor, run);
+  assertWorkflowRunHistoryAvailable(run);
 }
 
 function checkRef(db: Firestore, docId: string) {

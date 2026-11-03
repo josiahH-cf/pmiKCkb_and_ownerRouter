@@ -81,7 +81,6 @@ describe("S169 an elapsed wait keeps its unknown-outcome wording", () => {
     const reviewed = [
       "components/admin/AccessCenter.tsx",
       "components/admin/KbCorrectionsPanel.tsx",
-      "components/admin/MoveOutTimingBasisAdminPanel.tsx",
       "components/admin/NoticeRulesAdminPanel.tsx",
       "components/admin/RenewalPricingPolicyAdmin.tsx",
       "components/admin/ReindexPanel.tsx",
@@ -146,6 +145,30 @@ describe("S169 an elapsed wait keeps its unknown-outcome wording", () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it("reviews the delegated S125 writer at its owned-intent recovery boundary, not the Admin wrapper", () => {
+    const wrapper = readFileSync(
+      join(process.cwd(), "components/admin/MoveOutTimingBasisAdminPanel.tsx"),
+      "utf8",
+    );
+    const writer = readFileSync(
+      join(process.cwd(), "components/lease-renewal/NoticeTimingBasisSelection.tsx"),
+      "utf8",
+    );
+    expect(wrapper).toContain("<NoticeTimingBasisSelection");
+    expect(wrapper).not.toMatch(/\bfetch\s*\(/);
+    expect(writer).toContain("fetchWithDeadline as fetch");
+    const submission = writer.slice(
+      writer.indexOf("async function submit("),
+      writer.indexOf("async function reload("),
+    );
+    expect(submission).toContain("await reconcile(intent, refused)");
+    // S125 always reconciles the owned operation after a lost response; it does not derive
+    // either failure or success from PATCH transport alone. The mounted deadline/retry check
+    // lives in s125-notice-basis-selection-control.test.tsx and exercises the real wait helper.
+    expect(submission).not.toMatch(/setState\("(?:error|saved)"\)/);
+    expect(writer).toContain("Selection outcome is uncertain");
   });
 });
 

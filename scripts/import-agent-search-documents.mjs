@@ -11,8 +11,11 @@ const NOT_FOUND = 5;
 const ALREADY_EXISTS = 6;
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
-export function parseImportArgs(argv = process.argv.slice(2), env = process.env) {
-  const localEnv = readLocalEnv();
+export function parseImportArgs(
+  argv = process.argv.slice(2),
+  env = process.env,
+  localEnv = {},
+) {
   const readArg = (name) => {
     const prefix = `${name}=`;
     const arg = argv.find((entry) => entry.startsWith(prefix));
@@ -33,6 +36,7 @@ export function parseImportArgs(argv = process.argv.slice(2), env = process.env)
     displayName: readArg("--display-name"),
     dryRun: argv.includes("--dry-run"),
     gcsUris: readRepeated("--source-id", "--gcs-uri"),
+    sourceGenerations: readRepeated("--source-generation"),
     location:
       readArg("--location") ?? readEnv("VERTEX_SEARCH_LOCATION") ?? DEFAULT_LOCATION,
     project: readArg("--project") ?? readEnv("GCP_PROJECT_ID"),
@@ -100,7 +104,7 @@ export function buildImportDocumentsRequest({
 }
 
 export async function main(argv = process.argv.slice(2), env = process.env) {
-  const args = parseImportArgs(argv, env);
+  const args = parseImportArgs(argv, env, readLocalEnv());
   assertRequired(args.project, "project");
   assertRequired(args.dataStore, "data store");
 
@@ -114,6 +118,8 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
     return;
   }
 
+  await verifyImportSourceGenerations(args);
+
   if (createRequest) {
     await ensureDataStore(createRequest, args);
   }
@@ -125,6 +131,32 @@ export async function main(argv = process.argv.slice(2), env = process.env) {
   console.log(`operation=${operation.name}`);
   const [response, metadata] = await operation.promise();
   console.log(JSON.stringify({ response, metadata }, null, 2));
+}
+
+/** Generated Admin handoffs fail before any cost-bearing dispatch if their inventory drifted.
+ * This metadata check does not claim provider-side isolation against later collaborator edits. */
+export async function verifyImportSourceGenerations(
+  args,
+  readGeneration = async (uri) => {
+    const { Storage } = await import("@google-cloud/storage");
+    const match = /^gs:\/\/([^/]+)\/(.+)$/.exec(uri);
+    if (!match) throw new Error("Invalid source snapshot URI.");
+    const [metadata] = await new Storage().bucket(match[1]).file(match[2]).getMetadata();
+    return String(metadata.generation ?? "");
+  },
+) {
+  const expected = args.sourceGenerations ?? [];
+  if (!expected.length) return;
+  if (
+    expected.length !== args.gcsUris.length ||
+    expected.some((value) => !/^\d+$/.test(value))
+  )
+    throw new Error("Every handoff source requires one exact observed generation.");
+  const actual = await Promise.all(args.gcsUris.map(readGeneration));
+  if (actual.some((value, index) => value !== expected[index]))
+    throw new Error(
+      "Source generations changed since this handoff. Rebuild and review the source inventory before importing; no import was attempted.",
+    );
 }
 
 async function ensureDataStore(createRequest, args) {

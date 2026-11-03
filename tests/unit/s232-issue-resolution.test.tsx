@@ -195,7 +195,7 @@ describe("S232 actionable issues (R-S232-5)", () => {
     expect(issues.size).toBe(14);
   });
 
-  it("names the owner the source records, the Admin timing panel and each refresh", () => {
+  it("names the owner the source records, the staff timing selector and each refresh", () => {
     const issues = ALL();
     expect(issues.get("waiting:external")).toMatchObject({
       needs: "The owner's answer",
@@ -218,11 +218,14 @@ describe("S232 actionable issues (R-S232-5)", () => {
     });
     expect(issues.get("advisory:notice_timing:cannot_determine#basis")).toMatchObject({
       needs: "The reviewed move-out timing basis",
-      responsible: "an Admin (record the reviewed timing basis)",
+      responsible: "Renewal staff (select the documented timing basis)",
       resolveAt: {
-        kind: "page",
-        label: "Record the timing basis in Admin",
-        href: ADMIN_TIMING_BASIS_HREF,
+        kind: "control",
+        label: "Select the documented timing basis",
+        destination: {
+          kind: "workspace_anchor",
+          targetId: "renewal-notice-timing-basis",
+        },
       },
     });
     for (const id of [
@@ -268,11 +271,11 @@ describe("S232 actionable issues (R-S232-5)", () => {
     // A control on another page of the app.
     mount("advisory:notice_timing:cannot_determine#basis");
     expect(screen.getByText(/^Needs: /)).toHaveTextContent(
-      "Needs: The reviewed move-out timing basis. Resolved by: an Admin (record the reviewed timing basis).",
+      "Needs: The reviewed move-out timing basis. Resolved by: Renewal staff (select the documented timing basis).",
     );
     expect(
-      screen.getByRole("link", { name: "Record the timing basis in Admin" }),
-    ).toHaveAttribute("href", "/admin#admin-move-out-timing-basis");
+      screen.getByRole("link", { name: "Select the documented timing basis" }),
+    ).toHaveAttribute("href", "#renewal-notice-timing-basis");
     cleanup();
     // A control on this lease's page.
     mount("waiting:external");
@@ -387,7 +390,7 @@ describe("S232 actionable issues (R-S232-5)", () => {
     expect(inList).not.toBeNull();
     expect(inFocus?.textContent).toBe(inList?.textContent);
     expect(
-      within(inFocus!).getByRole("link", { name: "Record the timing basis in Admin" }),
-    ).toHaveAttribute("href", ADMIN_TIMING_BASIS_HREF);
+      within(inFocus!).getByRole("link", { name: "Select the documented timing basis" }),
+    ).toHaveAttribute("href", "#renewal-notice-timing-basis");
   });
 });

@@ -75,6 +75,8 @@ export function safePublicationFailureMessage(code: PublicationFailureCode): str
     process_action_unknown: "The process references an unregistered action key.",
     process_graph_invalid: "The process graph is incomplete or contains duplicate steps.",
     root_mismatch: "The publication does not match the configured connector root.",
+    resource_not_allowed:
+      "The publication is outside this policy's exact resource scope.",
     scanner_mismatch: "The configured publication scanner is not available.",
     scanner_unavailable: "A required publication scanner is unavailable.",
     sensitivity_violation: "Publication was rejected by the sensitivity policy.",

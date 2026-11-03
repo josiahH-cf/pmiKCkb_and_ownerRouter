@@ -349,8 +349,14 @@ describe("categorizeLiveReviewError", () => {
     expect(categorizeLiveReviewError(new Error("invalid_grant: token expired"))).toBe(
       "auth_error",
     );
+  });
+
+  it("distinguishes permission refusal from an authentication challenge", () => {
     expect(categorizeLiveReviewError(new Error("403 permission denied"))).toBe(
-      "auth_error",
+      "permission_error",
+    );
+    expect(categorizeLiveReviewError(new RentVineAuthError(403))).toBe(
+      "permission_error",
     );
   });
 

@@ -38,8 +38,13 @@ const PANELS: Record<
   },
   auth_error: {
     title: "Live read couldn’t authenticate",
-    body: "Access to RentVine or Google has expired. An admin needs to refresh the connection, then reload this page.",
+    body: "A source could not authenticate. Inspect its actual connection result before requesting another sign-in; expiry has not been established by this category alone.",
     link: { href: "/connections", label: "Open Connection Center" },
+  },
+  permission_error: {
+    title: "A live resource read was refused",
+    body: "Check the exact source resource and its current access. A successful sign-in does not grant resource permission, and another login is not an established fix.",
+    link: { href: "/connections", label: "Inspect Connection Center" },
   },
   read_error: {
     title: "Live read didn’t complete",

@@ -146,6 +146,8 @@ function documentSnapshot(
 
   return {
     id,
+    /** The real snapshot keeps its document reference for subsequent transactions/readback. */
+    ref: new FakeDocument(db, path, id),
     exists: Boolean(data),
     data: () => (data ? structuredClone(data) : undefined),
     /** Mirrors DocumentSnapshot.get for one top-level field. */

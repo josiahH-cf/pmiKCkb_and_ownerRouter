@@ -26,6 +26,27 @@ const baseItem: ApprovalQueueItemRecord = {
 };
 
 describe("Approval Queue view helpers", () => {
+  it("keeps retired and closed-provenance items visible as history without current action controls", () => {
+    for (const record of [
+      { ...baseItem, direct_link: "/maintenance?ticket_id=synthetic" },
+      { ...baseItem, closed_at: "2026-09-02T00:00:00Z" },
+      { ...baseItem, affected_system_action: "rentvine.work_order.create" },
+    ]) {
+      expect(canViewApprovalQueueItem({ role: "Admin", uid: "admin-1" }, record)).toBe(
+        true,
+      );
+      expect(
+        queueActionAvailability({ role: "Admin", uid: "admin-1" }, record),
+      ).toMatchObject({
+        approve: false,
+        assign: false,
+        deny: false,
+        disable: false,
+        returnForRevision: false,
+        snooze: false,
+      });
+    }
+  });
   it("classifies known filter values and terminal statuses", () => {
     expect(isQueueStatus("Ready for Approval")).toBe(true);
     expect(isQueueStatus("In Review")).toBe(false);

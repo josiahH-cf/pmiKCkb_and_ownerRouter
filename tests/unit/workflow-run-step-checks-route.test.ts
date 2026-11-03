@@ -87,6 +87,22 @@ function runContext(runId: string) {
 }
 
 describe("workflow-run step-checks API route", () => {
+  it("refuses a retired run before returning checklist bodies", async () => {
+    setEditor();
+    vi.mocked(getWorkflowRun).mockResolvedValue(
+      workflowRun({
+        definition_id: "maintenance-work-order-intake",
+        space_id: "maintenance",
+      }),
+    );
+    const response = await GET_STEP_CHECKS(
+      new Request("http://localhost/api/workflow-runs/run-1/step-checks"),
+      runContext("run-1"),
+    );
+    expect(response.status).toBe(410);
+    expect(listStepChecksForRun).not.toHaveBeenCalled();
+  });
+
   it("returns 401 before any write when unauthenticated", async () => {
     setAuthResolverForTest(() => null);
 

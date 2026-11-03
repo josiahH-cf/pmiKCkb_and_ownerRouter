@@ -6,8 +6,45 @@
 # never contacted: the server runs in the Demo descriptor with a synthetic RentVine transport and
 # every other outbound connection refused. `--overlay` copies uncommitted changes for a dev run;
 # such a run is labeled and is not evidence for a committed source SHA.
+# Current engineering qualification wraps this command with isolated-verify.py --task renewal-journey;
+# the /app branch below runs only after that entry point's actual kernel controls pass.
 set -euo pipefail
 repo=$(git rev-parse --show-toplevel)
+# The engineering entry point already owns this physical source/dependency checkout. /tmp is a
+# separate bounded mount and .git is read-only, so neither a second worktree nor shared hardlinks
+# belong in this path. All original host-path behavior below remains separate and unchanged.
+if [[ "$repo" == /app ]]; then
+  [[ $# -eq 0 ]] || { echo "The isolated journey uses only its frozen staged source; no overlay argument is allowed." >&2; exit 2; }
+  node --input-type=module - <<'JS'
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const controls = JSON.parse(fs.readFileSync('/evidence/controls.json', 'utf8'));
+const monitor = JSON.parse(fs.readFileSync('/evidence/monitor-ready.json', 'utf8'));
+assert.equal(process.cwd(), '/app');
+assert.equal(controls.allPassed, true);
+assert.equal(Object.keys(controls.checks).length, 17);
+assert.ok(Object.values(controls.checks).every(value => value === true));
+assert.equal(fs.readlinkSync('/proc/self/ns/pid'), controls.pidNamespace);
+assert.equal(monitor.pidNamespace, controls.pidNamespace);
+assert.equal(monitor.ancestryAndRssObserved, true);
+assert.match(process.env.PMI_SOURCE_MANIFEST_SHA256 ?? '', /^[a-f0-9]{64}$/);
+assert.equal(process.env.NEXT_FONT_GOOGLE_MOCKED_RESPONSES, '/opt/public-font-runtime/responses.cjs');
+JS
+  output=/evidence/renewal-journey
+  mkdir "$output"
+  sha=$(git rev-parse HEAD)
+  overlay=false
+  git diff --quiet HEAD -- . || overlay=true
+  printf '{"source_sha":"%s","source_manifest_sha256":"%s","overlay":%s,"isolation":"kernel-v1"}\n' "$sha" "$PMI_SOURCE_MANIFEST_SHA256" "$overlay" >"$output/run.json"
+  port=$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')
+  config="$output/firebase.json"
+  node -e 'const fs=require("fs");const [cfg,port]=process.argv.slice(1);fs.writeFileSync(cfg,JSON.stringify({firestore:{rules:"/app/firestore.rules",indexes:"/app/firestore.indexes.json"},emulators:{singleProjectMode:true,firestore:{host:"127.0.0.1",port:Number(port)},ui:{enabled:false}}}))' "$config" "$port"
+  FIRESTORE_EMULATOR_HOST="127.0.0.1:$port" NOVDEC_JOURNEY_OUTPUT="$output" NOVDEC_JOURNEY_SOURCE_SHA="$sha" \
+    NOVDEC_JOURNEY_OVERLAY="$overlay" NOVDEC_JOURNEY_ISOLATED=kernel-v1 \
+    node node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --only firestore --project pmi-kc-kb-novdec-journey-test --config "$config" \
+    "node tests/browser/renewal-novdec-journey-browser.mjs" 2>&1 | tee "$output/journey.log"
+  exit "${PIPESTATUS[0]}"
+fi
 overlay=false
 [[ "${1:-}" == "--overlay" ]] && overlay=true
 sha=$(git -C "$repo" rev-parse HEAD)

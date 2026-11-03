@@ -53,6 +53,27 @@ export function ReindexPanel({
     }
   }
 
+  async function reviewCurrent(space: string) {
+    setPending(true);
+    setError("");
+    try {
+      const response = await fetch(
+        `/api/admin/reindex?spaceId=${encodeURIComponent(space)}`,
+      );
+      const payload = (await response.json()) as {
+        plan?: ReindexCommandPlan;
+        error?: string;
+      };
+      if (!response.ok || !payload.plan)
+        throw new Error(payload.error ?? "Current source readiness could not be read.");
+      setPlan(payload.plan);
+    } catch (error) {
+      setError(waitFailureMessage(error, "Could not review the current handoff."));
+    } finally {
+      setPending(false);
+    }
+  }
+
   return (
     <div className="ui-stack">
       <p className="muted">
@@ -94,8 +115,11 @@ export function ReindexPanel({
       {error ? <p className="muted">{error}</p> : null}
       {plan ? (
         <div className="ui-stack">
-          <h3>Owner command (run this yourself)</h3>
-          <pre className="draft-box">{plan.command}</pre>
+          <h3>
+            {plan.runnable ? "Reviewed command (run separately)" : "Re-index not ready"}
+          </h3>
+          <p className="muted">The request is saved. No import has run.</p>
+          {plan.runnable ? <pre className="draft-box">{plan.command}</pre> : null}
           <ul className="ui-rows">
             {plan.notes.map((note) => (
               <li key={note}>{note}</li>
@@ -110,6 +134,14 @@ export function ReindexPanel({
             {initialRequests.map((request) => (
               <li className="ui-spread" key={request.id}>
                 <strong>{request.spaceId}</strong>
+                <Button
+                  type="button"
+                  disabled={pending}
+                  variant="secondary"
+                  onClick={() => void reviewCurrent(request.spaceId)}
+                >
+                  Review current handoff
+                </Button>
                 <span className="muted">
                   {formatBusinessTimestamp(request.createdAt)}
                 </span>
