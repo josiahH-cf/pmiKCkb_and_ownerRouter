@@ -1,7 +1,7 @@
 # Unblock packet
 
-Last reconciled: 2026-10-28 (November/December renewal client inputs C00–C13 recorded for
-S232–S238; Dotloop A1 resolved and selected 2026-10-27; S231 delivered by run 030761c0).
+Last reconciled: 2026-11-03 (guarded delivery and local/provider auth refreshed; client-input rows
+retain their own observed dates and holds).
 
 This is the one record of what the application waits on outside the code, and exactly how to
 clear each item. Every hold blocks only its named effect or dependent release phase; independent
@@ -356,31 +356,33 @@ No synthetic or live customer draft is proof. Shared Space-pilot work receives n
 **A3. Maintenance preapproval import — retired from this execution.** Existing preapprovals and
 financial evidence remain retained and readable under their original permissions. No import,
 provider read/write or policy activation is required for current maintenance retirement.
-**A4. Recovered host authentication and separate longevity claim.** The October 16 approved
-WSL CLI/ADC refresh probes now pass for the existing managed account. No host recovery step is
-requested. The approved Admin browser also recovered October 17; A6 is conditional future recovery only. The runner changes no session
-policy, IAM, claim, identity or credential store and never enters a password, code, passkey or CAPTCHA.
-No provider success follows from enrollment alone. The separate 25-hour unchanged-enrollment
-longevity claim remains unverified and is not a release prerequisite. Earlier session-policy
-instructions remain historical rather than a required change or new grant.
+**A4. Recovered host authentication and separate longevity claim.** The actual November 3
+post-deployment combined WSL command returned exit 0/auth_ready_with_exceptions using the existing
+approved CLI/ADC/GitHub identities and Admin session. Safe configured provider reads passed; the
+profile lease was free afterward. The operator's actual reboot and isolated headed/native-window/
+viewport checks are recorded separately. No current host recovery or new enrollment is requested.
+The runner changes no session policy, IAM, claim, identity or credential store and never enters a
+password, code, passkey or CAPTCHA. Paid/generation tests and unchanged 25-hour longevity remain
+unverified; the latter is not a release prerequisite. Evidence: `docs/evidence/application-delivery-2026-11-03.md`.
 **A5. Record the notice timing basis (B-TIMING, Q2 = A).** Admin → notice timing basis: target
 **contractual lease-end date**, counting rule calendar days (target minus notice, exactly the
 threshold satisfies it), threshold **30**, and a review note naming who confirmed it and where.
 Save. Until then every notice timing reads Cannot determine.
 
-**A6. Sign the release Admin profile back in (B-BROWSER).** Needed only when a release
-prerequisite reports `admin_browser: blocked` because Google signed the profile out. In WSL:
+**A6. Conditional future auth recovery (B-BROWSER).** No current sign-in step is pending.
+From any WSL directory, run the verified combined command:
 
 ```bash
-cd ~/pmi-kc-work/main && npm run auth:ensure -- --need=canary --origins=https://pmi-kc-app-kq6wuvpiva-uc.a.run.app --admin-profile=/home/josiah/pmi-assurance/owner-admin --admin-email=josiah@pmikcmetro.com
+bash /home/josiah/pmi-kc-work/auth-command-20261102/scripts/pmi-auth
 ```
 
-A Chrome window opens for the sign-in. Done when the canary line reads ok for admin and the
-command ends READY. The runner never types a password, code or passkey.
-
-Readback October 17: owner-completed enrollment exited normally; fresh exact managed identity/Admin
-checks, candidate/canonical assurance and rollback verification passed. READY. The approved profile
-is used sequentially; do not overlap enrollment, manual browser and verifier ownership.
+It reuses/refreshes the existing approved stores/session before safe provider reads. Only an actual
+human challenge opens attended recovery; the owner completes it. Profile ownership, display,
+wrong account, permissions and unknown provider failures are distinct and do not imply expiry.
+Never overlap enrollment, a manual browser and verification ownership or delete a live lock.
+Readback November 3: process/reported exit 0, exact approved Admin through `existing_session`,
+safe local/provider checks passed and lease free. The prior default surface-capture failure and
+unforced longevity/human-challenge boundaries remain explicit. Espansr is separately deferred.
 
 **A7. Phone same-tab sign-in redirect (optional, S165).** Only if staff report that the Google
 pop-up cannot open on a phone or in-app browser. In the Google Cloud console for

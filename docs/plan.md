@@ -1,107 +1,68 @@
 # Current plan
 
-Updated: 2026-11-02 (UTC).
-
-## Finalize the current build
-
-The owner renewed authorization on November 2 to finish the existing PMI build after CLI/ADC
-authentication was restored. S232–S239 are already on main; deliver them cumulatively with the scoped Admin sign-in date repair and the
-scoped production dependency repair, preserving newer accepted work and every independent Stop.
-The current Codex coordinator does not resume the old native Claude session.
-
-PR #170 merged at `5ddb6ec1` with all five exact-main CI jobs passing. Finish the scoped
-one-command WSL auth candidate: existing identities/stores, real safe provider reads, shared
-profile ownership, reboot recovery and actual attended display. The operator restarted WSL;
-headed/native-window/viewport checks and a fresh combined auth run passed. Preserve the actual
-surface-capture and earlier Gmail failures; they are not rewritten as passes.
-
-The initial auth candidate passed the complete credential-free final gate. PR #171's review found
-a rejecting-close lease leak; the scoped recovery repair passes three fail-first actual-lock
-regressions. Its fresh required verification steps and independent source/output readbacks passed;
-the outer controller's completion remains unrecorded. Obtain the new head's own automated review
-and all five checks, merge without self approval and verify exact-main CI. Under the existing lock,
-reconcile and preserve the held run before one new exact-SHA run. Require fresh prerequisites/GO,
-captured recovery/configuration, one application build, guarded candidate checks/reconciliation,
-receipt-bound promotion, full observation and independent readbacks. Refresh readiness before
-dependent phases. Espansr replacement, merge and reinstall remain separate after exact-command verification.
-
-Provider business effects, new grants, live proof records and signing are outside verification.
-Dotloop write keys stay closed. C00/A1 and the A5 decision remain settled; client content and real
-staff acceptance retain only their named holds in docs/open-blockers.md. Prepare factual beginner
-capabilities and a training/video proposal for the parent communication draft, without sending or
-booking. Keep pending mainline improvements distinct from capabilities actually served.
+Updated: 2026-11-03 (UTC).
 
 ## Authorized outcome
 
-The owner amended S227–S229 on October 20: completely retire the maintenance component,
-including history/reports and obsolete wiring; diagnose the existing Dotloop template through
-`integrations@pmikcmetro.com`; map form sources to their existing processes; and finalize the
-existing staff-confirmed renewal Send, Schedule and Resume journey for October 22.
-Both Dotloop write keys remain closed. Signing is a human Dotloop handoff. No customer send,
-draft, provider business write or production test record is verification proof.
+Production serves `bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd` at 100% canonical traffic.
+Run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73` completed at 2026-11-03T00:10:44Z, with its permit consumed and watcher exited.
+One application build `fbe2d323-9a95-4d51-a398-618f8928cdc8` succeeded. Candidate receipt
+`da8eab6f-ee31-4642-9266-0c9ae3c1d641` issued at 00:03:44.084Z; receipt-bound promotion verified
+at 00:04:07.060Z. Observation passed two checkpoints in 401,533 ms against the 300,000 ms minimum
+and 480,000 ms deadline. All 375 source/projected/rendered records matched with zero discrepancies,
+candidate 5xx or unresolved effects. All thirteen guarded Admin routes rendered with zero
+mutation attempts and diagnostics; Editor browser remains `not_run` under the existing policy.
+All eleven independent readback sections matched at 00:15:13Z. Fingerprint:
+`sha256:db70cd63e1c17ebb706e5291422e68d8be06707ceebc5805a7408b5eda547fe0`.
+Only APP_COMMIT_SHA changed among 54 environment keys. The five secret bindings, runtime identity,
+eleven Space maps, Production + Live, Demo=false, Sheet=true and existing cost/action controls match.
+The annual GET readiness probe passed and restored its exact target/calendar in PAUSED state;
+the existing minute worker remains ENABLED. No customer dispatch was test proof.
 
-New renewal authorizations bind current content, recipients, source values, sender and a new
-delivery-policy version. The worker skips old authorizations and every retired maintenance lane
-before actor/mailbox/source reads. Current role/Space, runtime suspension, exact-key, at-most-once
-claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
-unapproved background sends remain unavailable. No protected activation metadata changes.
-
-Implementation `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3` passed the actual complete
-`bash scripts/verify.sh`: 9,659 unit tests with four existing configuration skips, all 465 backend
-tests with no skips, required checks, production build and zero production audit findings.
-Served E2E passed 65 tests with four existing configuration skips across all fourteen files.
-Exact-main CI `39464866553` passed all five jobs on `157b6992`, deployed October 20. Canonical v11 covers
-all final code/tests; policy-build v3 and served E2E v2 cover identical runtime/package bytes,
-with two later test-only assertion/synchronization changes covered by canonical v11.
+The cumulative S232–S239/S126 and scoped WSL auth outcome is delivered. The queue is empty.
+The original owner remains stopped; no consumed receipt or permit can start new work.
+Evidence: docs/evidence/application-delivery-2026-11-03.md.
 
 ## Delivery sequence
 
-Steps 1–6 are complete for run 030761c0 (S231) and earlier runs eee80164 and 57e4a1b5;
-documentation closure records the observed result.
+The carried S227–S229 contract preserves fresh confirmed renewal delivery. The worker skips old
+authorizations and retired maintenance before provider reads. No protected activation metadata changes
+are part of this closure. No older READY program or stopped owner resumes.
 
-1. Preserve original checkouts and prior admitted release roots; edit only the isolated owned source.
-2. Verify complete maintenance retirement, fresh confirmed renewal delivery and template/process readiness.
-3. Complete focused mutation scenarios with fixtures/emulators, then actual bash scripts/verify.sh,
-   served browser checks and exact-head green CI. Preserve failures and existing skips.
-4. Prepare a numbered release queue whose commits are ancestral to the admitted head; create a fresh
-   aligned registered native/Windows pair. Require fresh auth, prerequisite GO, cost readbacks and lock.
-5. Use the existing controller, one application build, zero-traffic candidate, exact identity/fingerprint
-   smoke and guarded assurance. Promote only its receipt-bound candidate, observe at least 300,000 ms
-   with required checkpoints, and independently read back production.
-6. Clear the queue only after delivery is proved; publish concise facts/status/plan/loop/environment
-   and suite closure. Keep private provider material and detailed receipts outside Git.
+Qualification used fixtures/emulators and `bash scripts/verify.sh`, followed by exact-head green CI
+and a receipt-bound candidate. The full 300,000 ms minimum observation and independent readbacks
+passed. Clear the queue only after delivery is proved; that proof now exists and the queue is empty.
+
+1. Publish reviewed documentation closure with focused checks and exact-head CI; do not deploy it.
+2. Hand the verified absolute auth command and its revision/evidence to the separate Espansr task.
+3. Give the parent the factual beginner capability matrix and training/video proposal. The parent
+   owns the Dan Hilgedick/Jon Eddy draft; sending and booking are not authorized.
+4. Retain each external hold only against its named effect in docs/open-blockers.md. Real staff
+   acceptance, source attestation and reviewed signer maps remain separate from deployed code.
+
+## Operator authentication
+
+The one-command WSL operator entry point is
+`bash /home/josiah/pmi-kc-work/auth-command-20261102/scripts/pmi-auth`, from any WSL directory.
+Its retained author checkout `8f4f8ec6` has the same runtime tree as merged main `bc975353`.
+After deployment, the actual command returned process/reported exit 0 in 36.964 seconds with
+`auth_ready_with_exceptions`, existing Admin session and a free profile lease before/after.
+Approved CLI/ADC token refresh, GitHub API identity, local and production RentVine metadata,
+29 Sheet tabs, Drive folder, managed Gmail readonly profile, eleven search-store metadata reads
+and the exact existing Dotloop account passed. Paid RentCast and AI generation are untested.
+An actual Google challenge still needs the owner; no password, code, passkey or CAPTCHA is automated.
+Espansr replacement/merge/reinstall is a separate handoff and was not performed here.
 
 ## Captured baseline and external seams
 
-Production serves `6fbd62250ccd9df1b9861a59b5de21c2143a68c0` /
-`pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% canonical traffic. Run
-`030761c0-1e70-4cd2-95a6-77480107657d` delivered S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and
-fast-uri 3.1.9) with candidate assurance, receipt-bound promotion, two observation checkpoints in
-406,404 ms and all eleven independent readback sections. The one-item queue is delivered and empty;
-its permit is consumed. S231 passed the complete gate, served E2E (65 passed, four existing skips,
-fourteen files) and exact-main CI `40487479956` on `6fbd6225`. The October 20 S227–S229 delivery
-evidence remains `docs/evidence/application-delivery-2026-10-20.md`.
+Both Dotloop business-write keys remain closed; signing is a human handoff. C00/A1 selection
+and the A5 policy decision remain settled. Eight saved source references are unverified; approved
+originals and reviewed field/signer maps remain missing across ten form families. R-S235-7 map
+verification and real staff acceptance remain NOT RUN. Each client hold blocks only its named effect.
+No live lease mutation, email, draft, payment, signature, paid lookup or production test record was
+used as proof. Staff-account browser acceptance, forced MFA, unchanged 24-hour enrollment and a
+physical-phone verdict remain unverified. Training/video suggestions and the Dan/Jon communication
+remain drafts; nothing was sent or booked.
 
-Dotloop C00/A1 is settled: the saved supported selection is profile 20701283, template 228954
-(`LEASE_OFFER`), initial status `PRE_OFFER`, version 1. The owner-requested November 2 auth flow
-refreshed only the existing OAuth grant through generation-owned secure persistence and verified
-`integrations@pmikcmetro.com`. No membership, identity or scope was added. Both Dotloop write keys remain closed;
-source selection does not approve legal content, signer maps or business effects. Signing stays human.
-
-Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
-read back at resource version 8, all unverified. The deployed readiness page displays ten form
-families across renewal extension, full lease and owner acknowledgment. Actual originals and
-reviewed field/signer maps remain unapproved for all ten families. Source presence is not legal,
-customer-link or signing approval. Source verification is a staff attestation in Admin; the
-least-privilege `drive.file` 404 for a browser-visible file is expected and holds nothing.
-
-The owner-approved one-file Editor grant was applied with notification off and read back.
-Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
-reader freshly verified all 29 tabs after promotion without reading/changing cell values.
-On October 20 only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differed among the 54 environment
-keys versus that run's captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
-Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
-Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
-
-External access or actual legal inputs hold only their dependent capability. No older READY program,
-new leasing, maintenance, Shockwave audit or standalone importer is admitted by this plan.
+The existing delegated provider subject remains `integrations@pmikcmetro.com`.
+Both Dotloop write keys remain closed. No customer send, draft, provider business write or production test record is verification proof.

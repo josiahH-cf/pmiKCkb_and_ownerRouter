@@ -1,193 +1,78 @@
 # Current status
 
-Updated: 2026-11-02 (UTC).
+Updated: 2026-11-03 (UTC).
 
-Current delivery: main `5ddb6ec1` contains S232–S239 and PR #170's dependency/Admin-date repairs;
-all five exact-main CI jobs passed. Production remains `6fbd6225` at 100% traffic. The coordinator
-qualifies the explicit owner-requested WSL auth repair on `codex/pmi-auth-command-20261102`.
-After the actual WSL restart, headed/native-window/visible-viewport checks and a full auth run
-passed without a fresh enrollment or Weston fatal. Default surface capture remains a failed
-diagnostic; documented CDP view capture passed. The initial auth candidate passed its full
-credential-free gate. PR #171's review found a rejecting-close lease leak; three fail-first
-actual-lock regressions pass after repair. All required fresh verification steps and independent source/output readbacks passed.
-The outer controller's completion is unrecorded. New-head review/CI and the cumulative guarded
-release remain pending. The original native Claude owner remains stopped. Espansr is separate.
+Production serves `bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd` at 100% canonical traffic.
+Run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73` completed at 2026-11-03T00:10:44Z, with its permit consumed and watcher exited.
+One application build `fbe2d323-9a95-4d51-a398-618f8928cdc8` succeeded. Candidate receipt
+`da8eab6f-ee31-4642-9266-0c9ae3c1d641` issued at 00:03:44.084Z; receipt-bound promotion verified
+at 00:04:07.060Z. Observation passed two checkpoints in 401,533 ms against the 300,000 ms minimum
+and 480,000 ms deadline. All 375 source/projected/rendered records matched with zero discrepancies,
+candidate 5xx or unresolved effects. All thirteen guarded Admin routes rendered with zero
+mutation attempts and diagnostics; Editor browser remains `not_run` under the existing policy.
+All eleven independent readback sections matched at 00:15:13Z. Fingerprint:
+`sha256:db70cd63e1c17ebb706e5291422e68d8be06707ceebc5805a7408b5eda547fe0`.
+Only APP_COMMIT_SHA changed among 54 environment keys. The five secret bindings, runtime identity,
+eleven Space maps, Production + Live, Demo=false, Sheet=true and existing cost/action controls match.
+The annual GET readiness probe passed and restored its exact target/calendar in PAUSED state;
+the existing minute worker remains ENABLED. No customer dispatch was test proof.
 
-The merged repairs passed 9,865 unit tests (four existing skips), all 495 backend tests, policies and
-build. Fresh app charge/Sheet reads complete; the sampled Sheet association stays ambiguous and
-correctly refuses a write target. The existing Dotloop grant refreshed and its account read passed;
-both business-write keys retain closed policy. No provider business effect or staff acceptance is claimed.
+The cumulative S232–S239, S126 date repair and scoped WSL authentication changes are delivered.
+Evidence: docs/evidence/application-delivery-2026-11-03.md.
 
-October 28: S232–S238 (November/December renewal readiness) were authored and the owner's execution
-instruction started them. Merged to main at `bf0c03f9` (PR #158) and not served: the desk's window
-and month context, an ended-without-outcome scope with a default-view count, a visible reason on
-every row, fail-closed staff-record reads, retained skipped work, notice timing from the recorded
-tenant-offer send and response, and Central policy dates (S232); open-only worker paging, a Central
-schedule default that states the Nov 1, 2026 repeated hour, zoned instants with past-due lag, a
-Resume timing statement, distinct pause causes and the incoming-check age (S233); approval-bound
-terms on the packet handoff (S234); plain RentVine outcome text and an accurate Sheet still-before
-result (S237). S235/S236 and the remaining requirements are listed in each suite's status line.
-PR #159 (merged at `a786fa16`) fixed the two PR #158 review findings with counterfactual tests: a
-pending tenant outcome is no longer a response, and RentVine refusals no longer claim nothing was
-sent. PR #160 (merged at `be8c0bf4`) added the S237 Working-value current-base binding, the locked
-ambiguous-state statement and one source-update scope statement, the S233 incoming-message variants,
-S235's lease-wide duplicate-loop prevention and read-only per-family readiness, and the S236
-returned-state projection with its two review fixes (latest observation per signer; version notes
-bound to the document kind). PR #161 (merged at `8c84ed04`; exact-main CI `40720550221` passed)
-added:
+## Verification
 
-- S236: the persisted returned-document record, its route and the Returned documents and
-  signatures screen, derived Required signatures complete and the Admin checkpoint from records;
-  the PR #161 review fix (`743bac8f`) stops counting signatures once a Working renewal rent or date
-  is saved after the packet was prepared, keeping them as earlier-terms history;
-- S235: the places refusal for parties and animals, the packet state from recorded events and the
-  saved Dotloop selection with its last observation;
-- S238: an isolated browser journey through the mounted pages, routes and emulator (14 of 14 steps
-  on `a6f99b6e`, 15 of 15 on `743bac8f`, `docs/evidence/s238-isolated-journey-2026-10-28.md`).
+PR #170 merged at `5ddb6ec1`; its five exact-main checks passed. PR #171's reviewed head
+`8f4f8ec68641f42bb787cf3e7cee0f01d74d78bc` passed its own completed automated review with no
+findings/unresolved findings and all five CI jobs in `41540700295`, then merged to `bc975353`.
+All five exact-main push jobs passed in `41542987797` before release.
 
-PR #162 (merged at `f1f06bfb` after its CI fix `cbf41be1`, a form test that assumed US Central
-time; exact-main CI `40732855488` passed) added S233 per-message
-evidence with attempt-correlated bounces (R-S233-1/2) and S234 approval evidence: who approved, how
-and when, checked against the current owner roster and this lease's own owner thread (R-S234-1).
+The corrected local gate retained all required command results: 9,942 unit tests with four
+existing configuration skips, 495 backend tests, policies, zero production audit findings and
+production build. Nineteen step records, fourteen isolation control sets, emitted build/font bytes
+and both unchanged source copies passed independent readback. Its original outer supervisor exit
+was not recorded; that gap remains explicit and no missing report was fabricated. Fresh PR and
+exact-main CI passed on the final source. Three fail-first actual-kernel-lock regressions cover
+the rejecting-close lease repair. The isolated 34-step journey passed on identical application
+runtime bytes before the local-auth changes; synthetic results do not establish staff acceptance.
 
-PR #163 (merged at `06c73561`; exact-main CI `40748712201` passed) added the S237 terms basis beside
-each preview and the "What still differs" list, both recomputed in the browser from the live records
-by its review fix `dad8d0f8` (R-S237-1/5), and S234's one owner outcome per cycle, the revision
-note, the tenant earlier-terms wording, Working-only terms and the per-field approval coverage
-(R-S234-2/3/4/5). The Gmail draft claim now re-reads the Working terms inside its transaction, so a
-terms save after the preview refuses the draft.
+Post-release checks rendered all seven People sign-in dates without Invalid timestamp.
+The live desk and an actual linked lease opened; Full view showed four recurring charges and no
+supporting-read failures. The Sheet read completed but that sample has an ambiguous association,
+so no row/write target was inferred. The authenticated strict read-only `options` operation returned
+200/ok with four charges; the UI refresh button was not clicked. All four Communications tabs,
+Connections and Readiness opened; this proves navigation/current views, not a real dispatch.
 
-PR #164 (merged at `c689d627`; exact-main CI `40760251764` passed) added the S232 per-reason counts
-under All leases (R-S232-3) and one status, waiting-on and evidence line per lease on the desk row and in Focus,
-reading "Needs a check" when the staff record and the linked Gmail thread disagree (R-S232-4). A
-response step is Waiting only while the owner or tenant has the move, so the desk guidance contract
-becomes `s232-one-status`; the production oracle and the release observer follow it. Every issue
-on the lease page and in Focus names what it needs, who resolves it and links to where (the Admin
-timing panel, a control on the lease or the page's refresh), or says it is resolved outside the app
-(R-S232-5). It also binds a tenant answer to the Working term revisions it answered (R-S234-5).
+The private diagnostic's first two attempts had harness timing/panel-selection failures. The final
+attempt completed those behavior checks but its last independent identity request raised TypeError
+without a retained HTTP response. Its failed outcome is preserved. A separate read at 00:22:52Z
+matched the exact canonical version and 100% traffic, with the profile lease free; no browser
+relaunch or behavior rerun was used to fill that identity gap. The recovered November 2 renewal
+endpoint 500 retains an unproven root cause; successful current reads are recovery evidence only.
 
-PR #165 (merged at `db038857`; exact-main CI `40774457242` passed) completed S233's engineering
-rows. It was merged on all five exact-head checks while its automated Codex review of `04cd9b12`
-still read Running; a later manual review request reviewed the merge commit and found no major
-issues. An incoming check that cannot read cleanly names why, since when and that sends are held,
-and a failed mailbox sync marks its sequences "not checked this run" (R-S233-4). The hub and the
-read-only assurance read the worker's last run, its counts, the oldest past-due lag and the oldest
-incoming check (R-S233-5). The stale maintenance browser check is replaced by an S233 phase of the
-served S238 journey (`npm run smoke:renewal-novdec-journey`); that run also found and fixed a
-composer load that, run twice in development, installed a second new draft (R-S233-9).
+## Operator readiness
 
-The branch claude/renewal-novdec-rows6-20261028 adds the journey's S234 phase (Working terms, an
-approval with who, how and when, and its coverage naming the rent as no longer covered after a
-Working rent save, on the lease page and the desk row alike) and an Admin role refusal: 24 of 24
-steps on `e2188bd3`. It also follows through on R-S233-1 (`94d95d97`): a communication action or
-status read whose message attempts cannot be loaded keeps its recorded result and says so, the
-composer labels the list it still shows with its last successful check, and Check recorded status
-loads them again; nothing is resent. The journey passed 25 of 25 steps on `94d95d97`, modeling that
-failed read in the browser. A test comment's historical count (S142 predicate equivalence: 10 manual
-summaries and 8 guidance outputs changed, 18 in all) is corrected; no baseline changed.
+The one-command WSL operator entry point is
+`bash /home/josiah/pmi-kc-work/auth-command-20261102/scripts/pmi-auth`, from any WSL directory.
+Its retained author checkout `8f4f8ec6` has the same runtime tree as merged main `bc975353`.
+After deployment, the actual command returned process/reported exit 0 in 36.964 seconds with
+`auth_ready_with_exceptions`, existing Admin session and a free profile lease before/after.
+Approved CLI/ADC token refresh, GitHub API identity, local and production RentVine metadata,
+29 Sheet tabs, Drive folder, managed Gmail readonly profile, eleven search-store metadata reads
+and the exact existing Dotloop account passed. Paid RentCast and AI generation are untested.
+An actual Google challenge still needs the owner; no password, code, passkey or CAPTCHA is automated.
+Espansr replacement/merge/reinstall is a separate handoff and was not performed here.
 
-October 29: PR #166 opened that branch at `06f4a61f`. Its automated review completed on that head
-with no findings, and the clean unit run there passed 1,047 files (1 skipped) and 9,855 tests (4
-skipped). Its CI failed two jobs. The production dependency audit found GHSA-rmxm-3fg6-px4f
-(published October 28, 21:05 UTC) in `@hono/node-server` 2.0.12, which the optional MCP SDK peer of
-`@google/genai` brings in; an exact override now selects the first patched release, 2.1.3, and the
-dependency boundary test pins it. Production (`6fbd6225`) carries 2.0.12 until the next release. One
-emulator test (`tests/firestore/s113-sheet-route.test.ts`, the tenant preview after a Working terms
-save) timed out under CI load with its latest preparation reads still pending after 23 seconds; it
-passed 28 of 28 locally on the same head. A new commit leaves a review bound to its earlier head, so
-the patched branch is opened as a new pull request and PR #166 is closed unmerged with its receipts.
+## Exact remaining boundaries
 
-PR #167 (merged at `bb8e7a00`; exact-main CI `40861616011` passed) carried that branch with S239,
-the `@hono/node-server` 2.1.3 patch. It merged on its exact head after its automated review completed
-without findings and the coordinator's read-only publication guard passed.
+Both Dotloop business-write keys remain closed; signing is a human handoff. C00/A1 selection
+and the A5 policy decision remain settled. Eight saved source references are unverified; approved
+originals and reviewed field/signer maps remain missing across ten form families. R-S235-7 map
+verification and real staff acceptance remain NOT RUN. Each client hold blocks only its named effect.
+No live lease mutation, email, draft, payment, signature, paid lookup or production test record was
+used as proof. Staff-account browser acceptance, forced MFA, unchanged 24-hour enrollment and a
+physical-phone verdict remain unverified. Training/video suggestions and the Dan/Jon communication
+remain drafts; nothing was sent or booked.
 
-The branch claude/renewal-novdec-rows7-20261029 adds the journey's S237 and S232 resolver phases: 34
-of 34 steps on `40fbc251`, after a first committed run on `ca5d86c1` failed one Focus step (kept).
-Their development found two product bugs, each fixed with tests that fail without the fix. The
-RentVine panel stayed busy when React ran its effects twice (`8b52edf9`). A move-out that RentVine
-already shows had no non-renewal handoff, so its notice-timing issue's link had no target
-(`64e0bf57`). The Admin records a synthetic timing basis only in the isolated emulator; the
-production recording stays C05.
-
-PR #168 merged that branch at `bdab63a2` (exact-main CI `40872021846`). Release run `ab09e960`
-admitted S232–S239 at `bdab63a2` on October 29 and stopped at candidate assurance, before
-promotion. Two earlier pauses were transient and resumed through the supported path: a read of the
-not-yet-created recovery target and the first candidate smoke during cold start. Reconciliation then
-found one field mismatch in 374 records. The candidate showed S232's ended-without-outcome state
-for one ended lease, and the release checker had no model of that state. `ee420393` makes the
-checker accept the state on the one-status revision only where the lease ended before the Central
-reference date, is not a source skip or periodic review, and has no progress record. The fixed
-checker reconciles the live candidate as matched, 374 of 374. The candidate stayed at zero traffic.
-Next, the run will be retired as superseded and replaced by a new run.
-
-Production still serves `6fbd6225` (S231); the staff walkthrough is NOT RUN.
-
-October 27: Dotloop A1 is resolved. Dan had made integrations a company admin, not an office
-agent, and the company was at Dotloop's eight-user limit. The owner swapped josiah@'s slot,
-re-added integrations as an agent, and the bounded API read at 10:35:30Z listed LEASE RENEWAL on
-the new integrations individual profile. The owner's Admin session saved the selection (Lease
-Renewal, initial status Pre-offer), which reads back in the app and on the readiness page. Every
-other seam, the read-only Admin canary and unattended authentication read back ready. The
-unchanged production audit failed on new advisories; S231 (`63fe588d`) patched zod to 4.6.7,
-body-parser to 1.20.9/2.4.0 and fast-uri to 3.1.9, and run `030761c0` released it. The remaining
-client content holds are in `docs/open-blockers.md`.
-
-S230 (`fc6868e9`) patches Next.js to 16.4.2 and ip-address to 10.7.4 after the unchanged
-production audit failed on 2026-10-23. The full gate passed: 9,666 unit tests with four existing
-configuration skips, all 465 backend tests, production build and zero production audit findings.
-Run `eee80164` released it on 2026-10-23; production serves `79764b56` / `pmi-kc-app-rmvkpw2ey-bfdf11ed1ed3`.
-
-Implementation `e5c1c9e6c0b769b815f42fc60dfba2a521e4dff3` passed the actual complete
-`bash scripts/verify.sh`: 9,659 unit tests with four existing configuration skips, all 465 backend
-tests with no skips, required checks, production build and zero production audit findings.
-Served E2E passed 65 tests with four existing configuration skips across all fourteen files.
-Exact-main CI `39464866553` passed all five jobs on `157b6992`, deployed October 20. Canonical v11 covers
-all final code/tests; policy-build v3 and served E2E v2 cover identical runtime/package bytes,
-with two later test-only assertion/synchronization changes covered by canonical v11.
-
-## Current work — October 20 renewal run amendment
-
-The owner amended S227–S229 on October 20: completely retire the maintenance component,
-including history/reports and obsolete wiring; diagnose the existing Dotloop template through
-`integrations@pmikcmetro.com`; map form sources to their existing processes; and finalize the
-existing staff-confirmed renewal Send, Schedule and Resume journey for October 22.
-Both Dotloop write keys remain closed. Signing is a human Dotloop handoff. No customer send,
-draft, provider business write or production test record is verification proof.
-
-New renewal authorizations bind current content, recipients, source values, sender and a new
-delivery-policy version. The worker skips old authorizations and every retired maintenance lane
-before actor/mailbox/source reads. Current role/Space, runtime suspension, exact-key, at-most-once
-claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
-unapproved background sends remain unavailable. No protected activation metadata changes.
-
-Dotloop C00/A1 is settled: the saved supported selection is profile 20701283, template 228954
-(`LEASE_OFFER`), initial status `PRE_OFFER`, version 1. The owner-requested November 2 auth flow
-refreshed only the existing OAuth grant through generation-owned secure persistence and verified
-`integrations@pmikcmetro.com`. No membership, identity or scope was added. Both Dotloop write keys remain closed;
-source selection does not approve legal content, signer maps or business effects. Signing stays human.
-
-Eight browser-observed Drive PDF references are saved through the normal Admin API and individually
-read back at resource version 8, all unverified. The deployed readiness page displays ten form
-families across renewal extension, full lease and owner acknowledgment. Actual originals and
-reviewed field/signer maps remain unapproved for all ten families. Source presence is not legal,
-customer-link or signing approval. Source verification is a staff attestation in Admin; the
-least-privilege `drive.file` 404 for a browser-visible file is expected and holds nothing.
-
-Production serves `6fbd62250ccd9df1b9861a59b5de21c2143a68c0` /
-`pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% canonical traffic. Run
-`030761c0-1e70-4cd2-95a6-77480107657d` delivered S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and
-fast-uri 3.1.9) with candidate assurance, receipt-bound promotion, two observation checkpoints in
-406,404 ms and all eleven independent readback sections. The one-item queue is delivered and empty;
-its permit is consumed. S231 passed the complete gate, served E2E (65 passed, four existing skips,
-fourteen files) and exact-main CI `40487479956` on `6fbd6225`. The October 20 S227–S229 delivery
-evidence remains `docs/evidence/application-delivery-2026-10-20.md`.
-
-Focused confirmation/worker/identity regressions, exact-main CI, guarded release, full observation
-and independent readbacks passed. The owner-approved one-file Editor grant was applied with notification off and read back.
-Production now delegates Sheet/Drive as `integrations@pmikcmetro.com`; the normal keyless Sheet
-reader freshly verified all 29 tabs after promotion without reading/changing cell values.
-On October 20 only APP_COMMIT_SHA and SHEETS_DWD_SUBJECT differed among the 54 environment
-keys versus that run's captured predecessor. Runtime identity, eleven Space maps, five secret bindings, Production/Live,
-Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
-Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
-Human acceptance, physical-phone acceptance and a real provider/signature journey are NOT RUN.
+The original native Claude owner remains stopped. Original failed attempts and the archived held
+run retain their actual outcomes. The release queue is empty; documentation closure does not deploy.

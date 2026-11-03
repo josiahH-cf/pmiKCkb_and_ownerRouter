@@ -1,6 +1,6 @@
 # Active feature suites
 
-## October 20 renewal run amendment — current execution
+## Current delivered renewal program — November 3
 
 The owner amended S227–S229 on October 20: completely retire the maintenance component,
 including history/reports and obsolete wiring; diagnose the existing Dotloop template through
@@ -15,14 +15,12 @@ before actor/mailbox/source reads. Current role/Space, runtime suspension, exact
 claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
 unapproved background sends remain unavailable. No protected activation metadata changes.
 
-Production serves `6fbd62250ccd9df1b9861a59b5de21c2143a68c0` /
-`pmi-kc-app-rmvqk1okt-ecd4a985b1de` at 100% canonical traffic. Run
-`030761c0-1e70-4cd2-95a6-77480107657d` delivered S231 (zod 4.6.7, body-parser 1.20.9/2.4.0 and
-fast-uri 3.1.9) with candidate assurance, receipt-bound promotion, two observation checkpoints in
-406,404 ms and all eleven independent readback sections. The one-item queue is delivered and empty;
-its permit is consumed. S231 passed the complete gate, served E2E (65 passed, four existing skips,
-fourteen files) and exact-main CI `40487479956` on `6fbd6225`. The October 20 S227–S229 delivery
-evidence remains `docs/evidence/application-delivery-2026-10-20.md`.
+Production serves `bc97535379dd08deab578455b00a80fc93b8d209` /
+`pmi-kc-app-rmvzwt7ms-00754475effd` at 100% traffic. Run `d4c109a0` delivered the cumulative
+S232–S239/S126 and scoped auth build after exact-head review/CI, guarded candidate/promotion,
+two-checkpoint 401,533 ms observation, 375 matched records and all eleven independent readbacks.
+The queue is empty and permit consumed. Staff acceptance and source/map verification retain
+their exact NOT RUN/input holds. Evidence: `docs/evidence/application-delivery-2026-11-03.md`.
 
 | Suite | Active contract                                                                  | State                                                                                        |
 | ----- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
@@ -267,7 +265,7 @@ Features initialization `inbox/2026-10-28-pmi-renewal/PMI Renewal - Clarify Feat
 (SHA-256 `7ec0c353a6978f47293840aa55feee2389b889026e17cf3b827ca3a573f81c4e`) and its roadmap and
 client-unblock draft (SHA-256 `e22966454241e9f742d0ee85de00159cabdbd1f0f1b0adb59026fecb0ac45171`) in
 the owner's Obsidian vault, read against main `a1c0fe8c` and production `6fbd6225` /
-`pmi-kc-app-rmvqk1okt-ecd4a985b1de`. Intake 099-105 is **ready** as S232-S238. Each closes a missing
+`pmi-kc-app-rmvqk1okt-ecd4a985b1de`. Intake 099-105 is **implemented and deployed** as S232-S238 by run `d4c109a0` on November 3 at `bc975353` / `pmi-kc-app-rmvzwt7ms-00754475effd`. Current evidence: `docs/evidence/application-delivery-2026-11-03.md`. Real staff acceptance and source/map holds retain their own status. Each closes a missing
 change found by inspecting the owning code; delivered S102-S113, S122-S125, S142/S156,
 S187-S192/S229, S66/S130/S34/S106/S182/S228 and S97/S98/S107 remain the machinery they extend, and
 their histories are not reopened.
@@ -280,17 +278,17 @@ ambiguous-attempt archive question remains a deferred owner decision (S237). Tar
 information and connections resolved or precisely owned by Wednesday, November 4, 2026 (Central);
 a target, not a promise of client response.
 
-| Suite | Path                                                                                    | Status                                                                                                                                                                     |
-| ----- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S232  | `docs/feature-suites/renewal-novdec-worklist-and-explainable-next-actions.md`           | READY — intake 099; visible window, ended-without-outcome scope, row reasons, one waiting-on, actionable blockers, truthful notice timing, fail-closed retention.          |
-| S233  | `docs/feature-suites/renewal-communication-delivery-evidence-and-observation-health.md` | READY — intake 100; per-message evidence, attempt-correlated bounces, distinct pause causes, observation age, bounded worker visits, Central scheduling, disclosed Resume. |
-| S234  | `docs/feature-suites/renewal-owner-approval-evidence-and-outcomes.md`                   | READY — intake 101; structured approval evidence, one owner outcome per cycle, truthful coverage, revision and re-approval.                                                |
-| S235  | `docs/feature-suites/renewal-packet-readiness-and-dotloop-handoff.md`                   | READY — intake 102; read-only family readiness, labeled defaults, party/animal slots, event-based packet state, lease-wide duplicate-loop check.                           |
-| S236  | `docs/feature-suites/renewal-returned-documents-and-signature-evidence.md`              | READY — intake 103; signer roster, staff-attested returns bound to document versions, who still must sign.                                                                 |
-| S237  | `docs/feature-suites/renewal-source-update-basis-and-reconciliation.md`                 | READY — intake 104; terms basis in previews, server-bound current base, plain outcomes, remaining differences.                                                             |
-| S238  | `docs/feature-suites/renewal-novdec-staff-acceptance-and-evidence.md`                   | READY — intake 105; effect-free preflight, isolated journey, staff walkthrough, evidence matrix, repair/retest, document reconciliation, November 4 review.                |
+| Suite | Path                                                                                    | Status                                                                                                                                                                                        |
+| ----- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S232  | `docs/feature-suites/renewal-novdec-worklist-and-explainable-next-actions.md`           | IMPLEMENTED AND DEPLOYED — intake 099; visible window, ended-without-outcome scope, row reasons, one waiting-on, actionable blockers, truthful notice timing, fail-closed retention.          |
+| S233  | `docs/feature-suites/renewal-communication-delivery-evidence-and-observation-health.md` | IMPLEMENTED AND DEPLOYED — intake 100; per-message evidence, attempt-correlated bounces, distinct pause causes, observation age, bounded worker visits, Central scheduling, disclosed Resume. |
+| S234  | `docs/feature-suites/renewal-owner-approval-evidence-and-outcomes.md`                   | IMPLEMENTED AND DEPLOYED — intake 101; structured approval evidence, one owner outcome per cycle, truthful coverage, revision and re-approval.                                                |
+| S235  | `docs/feature-suites/renewal-packet-readiness-and-dotloop-handoff.md`                   | IMPLEMENTED AND DEPLOYED — intake 102; read-only family readiness, labeled defaults, party/animal slots, event-based packet state, lease-wide duplicate-loop check.                           |
+| S236  | `docs/feature-suites/renewal-returned-documents-and-signature-evidence.md`              | IMPLEMENTED AND DEPLOYED — intake 103; signer roster, staff-attested returns bound to document versions, who still must sign.                                                                 |
+| S237  | `docs/feature-suites/renewal-source-update-basis-and-reconciliation.md`                 | IMPLEMENTED AND DEPLOYED — intake 104; terms basis in previews, server-bound current base, plain outcomes, remaining differences.                                                             |
+| S238  | `docs/feature-suites/renewal-novdec-staff-acceptance-and-evidence.md`                   | CODE DEPLOYED; STAFF ACCEPTANCE NOT RUN — intake 105; effect-free preflight, isolated journey, staff walkthrough, evidence matrix, repair/retest, document reconciliation, November 4 review. |
 
-Dependencies, not a queue: S232 and S233 build independently; S234 consumes S233 reply references;
+Delivered dependency structure, not a new queue: S232 and S233 build independently; S234 consumes S233 reply references;
 S235 consumes S234 approval coverage; S236 consumes S235 snapshots and signer maps; S237 consumes
 S234 coverage and S236 status; S238 consumes all of them and can start its preflight, isolated
 journey and documentation work at once.
