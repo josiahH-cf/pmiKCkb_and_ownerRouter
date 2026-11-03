@@ -17,6 +17,7 @@ import type { Firestore, Transaction } from "firebase-admin/firestore";
 import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { resolveStoredDataMode } from "@/lib/data-mode";
+import { isRenewalArtifactPublicationSpace } from "@/lib/lease-documents/publication-space";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
@@ -108,7 +109,7 @@ async function requireBoundPublication(
     version.id !== versionId ||
     !version.validated ||
     resolveStoredDataMode(version) !== "live" ||
-    !["renewals", "lease-renewals"].includes(version.spaceId) ||
+    !isRenewalArtifactPublicationSpace(version.spaceId) ||
     version.contentHash !== binding.contentHash ||
     version.contentRef?.contentHash !== binding.contentHash ||
     (await deps.readActiveVersionId(version.resourceId)) !== versionId

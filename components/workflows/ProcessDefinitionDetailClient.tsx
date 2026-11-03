@@ -6,6 +6,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { RequestAccessLink } from "@/components/admin/RequestAccessLink";
 import { InfoTip } from "@/components/ui/InfoTip";
+import type { ProcessDefinitionPublicationRead } from "@/lib/publication/process-definition-readback";
 import type {
   ExternalActionReadiness,
   ProcessDefinitionActionReference,
@@ -28,23 +29,27 @@ interface ProcessDefinitionDetailClientProps {
   canEdit: boolean;
   initialDefinition: ProcessDefinitionRecord;
   initialRuns: WorkflowRunRecord[];
+  initialPublication?: ProcessDefinitionPublicationRead;
 }
 
 export function ProcessDefinitionDetailClient({
   canEdit,
   initialDefinition,
   initialRuns,
+  initialPublication,
 }: Readonly<ProcessDefinitionDetailClientProps>) {
   const [definition, setDefinition] = useState(initialDefinition);
   const [runs, setRuns] = useState(initialRuns);
+  const [publication, setPublication] = useState(() =>
+    publicationFor(initialDefinition, initialPublication),
+  );
   const [message, setMessage] = useState("Process definition loaded.");
   const [isBusy, setIsBusy] = useState(false);
   const [needsReload, setNeedsReload] = useState(false);
   const [form, setForm] = useState(() => definitionToForm(initialDefinition));
   const [publicationNote, setPublicationNote] = useState("");
   const [runForm, setRunForm] = useState({ due_date: "", note: "" });
-  const hasCurrentPublishedVersion =
-    definition.status === "Active" && Boolean(definition.active_version_id);
+  const hasCurrentPublishedVersion = publication.state === "verified";
   const canMutate =
     canEdit &&
     !isBusy &&
@@ -58,9 +63,14 @@ export function ProcessDefinitionDetailClient({
 
     await runMutation("Saving process definition.", async () => {
       try {
-        const { definition: updated, runs: updatedRuns } = await fetchWorkflow<{
+        const {
+          definition: updated,
+          runs: updatedRuns,
+          publication: updatedPublication,
+        } = await fetchWorkflow<{
           definition: ProcessDefinitionRecord;
           runs: WorkflowRunRecord[];
+          publication?: ProcessDefinitionPublicationRead;
         }>(`/api/process-definitions/${definition.id}`, {
           body: JSON.stringify({
             ...formToDefinitionInput(form),
@@ -71,6 +81,7 @@ export function ProcessDefinitionDetailClient({
 
         setDefinition(updated);
         setRuns(updatedRuns);
+        setPublication(publicationFor(updated, updatedPublication));
         setForm(definitionToForm(updated));
         setMessage("Process definition saved.");
       } catch (error) {
@@ -101,9 +112,14 @@ export function ProcessDefinitionDetailClient({
     }
     await runMutation("Running publication validation.", async () => {
       try {
-        const { definition: updated, runs: updatedRuns } = await fetchWorkflow<{
+        const {
+          definition: updated,
+          runs: updatedRuns,
+          publication: updatedPublication,
+        } = await fetchWorkflow<{
           definition: ProcessDefinitionRecord;
           runs: WorkflowRunRecord[];
+          publication?: ProcessDefinitionPublicationRead;
         }>(`/api/process-definitions/${definition.id}/publish`, {
           body: JSON.stringify({
             note: publicationNote,
@@ -114,9 +130,15 @@ export function ProcessDefinitionDetailClient({
 
         setDefinition(updated);
         setRuns(updatedRuns);
+        const verified = publicationFor(updated, updatedPublication);
+        setPublication(verified);
         setForm(definitionToForm(updated));
         setPublicationNote("");
-        setMessage("Validated process version published and active.");
+        setMessage(
+          verified.state === "verified"
+            ? "Validated process version published and active."
+            : "The publication response was received, but the published version could not be verified. Read the current publication before any further attempt; no retry was sent.",
+        );
       } catch (error) {
         await reconcileDefinition(error);
       }
@@ -128,9 +150,12 @@ export function ProcessDefinitionDetailClient({
       const current = await fetchWorkflow<{
         definition: ProcessDefinitionRecord;
         runs: WorkflowRunRecord[];
+        publication?: ProcessDefinitionPublicationRead;
       }>(`/api/process-definitions/${definition.id}`);
       setDefinition(current.definition);
       setRuns(current.runs);
+      const verified = publicationFor(current.definition, current.publication);
+      setPublication(verified);
       const matches =
         JSON.stringify(formToDefinitionInput(form)) ===
         JSON.stringify(formToDefinitionInput(definitionToForm(current.definition)));
@@ -139,19 +164,26 @@ export function ProcessDefinitionDetailClient({
         error instanceof WorkflowRequestError && error.status < 500
           ? "The request was refused."
           : "The original response was not confirmed.";
-      const publication =
-        current.definition.status === "Active" && current.definition.active_version_id
-          ? " and has an active version"
-          : current.definition.active_version_id
-            ? "; its prior immutable version is retained, but this saved content is not published"
-            : "";
+      const publicationOutcome =
+        verified.state === "verified"
+          ? " and its matching immutable published version was verified"
+          : current.definition.status === "Active"
+            ? "; the published version could not be verified"
+            : current.definition.active_version_id
+              ? "; its prior immutable version is retained, but this saved content is not published"
+              : "";
       setMessage(
         matches
-          ? `${readErrorMessage(error)} ${outcome} The desired saved content is current${publication}; that does not establish this request created it. No retry was sent.`
+          ? `${readErrorMessage(error)} ${outcome} The desired saved content is current${publicationOutcome}; that does not establish this request created it. No retry was sent.`
           : `${readErrorMessage(error)} Your edits remain below. Compare the saved version, then load it before editing again; no retry was sent.`,
       );
     } catch {
       setNeedsReload(true);
+      setPublication({
+        state: "unavailable",
+        message:
+          "Current immutable publication could not be read back. The prior displayed reference is not verified current state.",
+      });
       setMessage(
         `${readErrorMessage(error)} Current state could not be read back. Your edits are retained; reload current content before retrying.`,
       );
@@ -163,12 +195,19 @@ export function ProcessDefinitionDetailClient({
       const current = await fetchWorkflow<{
         definition: ProcessDefinitionRecord;
         runs: WorkflowRunRecord[];
+        publication?: ProcessDefinitionPublicationRead;
       }>(`/api/process-definitions/${definition.id}`);
       setDefinition(current.definition);
       setRuns(current.runs);
+      const verified = publicationFor(current.definition, current.publication);
+      setPublication(verified);
       setForm(definitionToForm(current.definition));
       setNeedsReload(false);
-      setMessage("Current saved content loaded. Review your changes before saving.");
+      setMessage(
+        verified.state === "unavailable"
+          ? "Current saved content loaded; its published version could not be verified. Review the publication diagnostic before relying on it."
+          : "Current saved content loaded. Review your changes before saving.",
+      );
     });
   }
 
@@ -422,11 +461,18 @@ export function ProcessDefinitionDetailClient({
               {hasCurrentPublishedVersion
                 ? "Active immutable version:"
                 : definition.active_version_id
-                  ? "Prior immutable version:"
+                  ? definition.status === "Active"
+                    ? "Unverified version reference:"
+                    : "Prior immutable version:"
                   : "Immutable version:"}
             </strong>{" "}
             <code>{definition.active_version_id ?? "Not published"}</code>
           </p>
+          {publication.state === "unavailable" ? (
+            <p role="status" className="muted">
+              {publication.message}
+            </p>
+          ) : null}
           {!hasCurrentPublishedVersion ? (
             <p className="muted">
               Publishing pins an immutable version for future runs. A Draft definition can
@@ -516,6 +562,40 @@ interface DefinitionFormState {
   stop_condition: string;
   success_condition: string;
   trigger: string;
+}
+
+function publicationFor(
+  definition: ProcessDefinitionRecord,
+  evidence?: ProcessDefinitionPublicationRead,
+): ProcessDefinitionPublicationRead {
+  if (definition.status !== "Active")
+    return {
+      state: "not_published",
+      ...(definition.active_version_id
+        ? { priorVersionId: definition.active_version_id }
+        : {}),
+    };
+  if (
+    evidence?.state === "verified" &&
+    evidence.definitionId === definition.id &&
+    evidence.definitionRevision === definition.revision &&
+    evidence.versionId === definition.active_version_id &&
+    /^[a-f0-9]{64}$/.test(evidence.definitionRevision) &&
+    /^[a-f0-9]{64}$/.test(evidence.contentHash) &&
+    /^[a-f0-9]{64}$/.test(evidence.contentIdentityHash) &&
+    Number.isSafeInteger(evidence.versionNumber) &&
+    evidence.versionNumber > 0 &&
+    Number.isSafeInteger(evidence.byteSize) &&
+    evidence.byteSize > 0
+  )
+    return evidence;
+  return evidence?.state === "unavailable"
+    ? evidence
+    : {
+        state: "unavailable",
+        message:
+          "The immutable published version has not been verified against this saved content and revision.",
+      };
 }
 
 function definitionToForm(definition: ProcessDefinitionRecord): DefinitionFormState {

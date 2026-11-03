@@ -6,7 +6,7 @@
 > Baseline: IMPLEMENTED AND DEPLOYED — intake 053 new/existing-loop lifecycle, exact-byte transport,
 > durable association/recovery and human signing handoff. November 3 U5 technical source and local
 > gate QUALIFIED; application delivery PENDING. Readiness, isolated execution and recovery scope
-> is in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md); final v8 runtime qualification creates no provider effect.
+> is in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md); prior final v8 runtime qualification creates no provider effect.
 > Both Dotloop business-write keys remain closed.
 > The planned separately gated activation below is not authorized by this specification.
 

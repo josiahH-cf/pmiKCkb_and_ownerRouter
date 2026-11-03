@@ -6,7 +6,7 @@
 > Baseline: IMPLEMENTED AND DEPLOYED — intake 051, including durable staff inputs, current
 > Working-term approval, ten form families and configured charges. November 3 U2 engineering
 > source and local gate QUALIFIED; application delivery PENDING. Private source/economics
-> proposals remain unapproved and unpublished; full06/final v8 technical scopes are in
+> proposals remain unapproved and unpublished; corrected full07/prior final v8 technical scopes are in
 > [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). This does not verify approved maps, legal content or human acceptance.
 
 **Goal.**

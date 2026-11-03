@@ -21,6 +21,46 @@ afterEach(() => {
 });
 
 describe("workflow components", () => {
+  it.each(["missing", "corrupt", "mismatched"])(
+    "does not claim published content after lost Publish when immutable proof is %s",
+    async (reason) => {
+      const user = userEvent.setup();
+      const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+        if (String(input).endsWith("/publish")) throw new Error("Lost response");
+        return jsonResponse({
+          definition: definition({
+            status: "Active",
+            revision: "a".repeat(64),
+            active_version_id: "unverified-version",
+          }),
+          runs: [],
+          publication: {
+            state: "unavailable",
+            message: `The immutable published version is ${reason}.`,
+          },
+        });
+      });
+      vi.stubGlobal("fetch", fetchMock);
+      render(
+        <ProcessDefinitionDetailClient
+          canEdit
+          initialDefinition={definition()}
+          initialRuns={[]}
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: "Publish" }));
+      await waitFor(() =>
+        expect(
+          screen.getByText(/published version could not be verified/i),
+        ).toBeInTheDocument(),
+      );
+      expect(screen.queryByText(/and has an active version/)).not.toBeInTheDocument();
+      expect(screen.queryByText("Active immutable version:")).not.toBeInTheDocument();
+      expect(
+        fetchMock.mock.calls.filter(([path]) => String(path).endsWith("/publish")),
+      ).toHaveLength(1);
+    },
+  );
   it("recovers a lost Save as an unpublished Draft while retaining its prior immutable version", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
@@ -143,8 +183,19 @@ describe("workflow components", () => {
           definition: definition({
             active_version_id: "version-1",
             status: "Active",
+            revision: "a".repeat(64),
           }),
           publicationVersion: { id: "version-1", versionNumber: 1 },
+          publication: {
+            state: "verified",
+            definitionId: "def-1",
+            definitionRevision: "a".repeat(64),
+            versionId: "version-1",
+            versionNumber: 1,
+            contentHash: "b".repeat(64),
+            contentIdentityHash: "c".repeat(64),
+            byteSize: 100,
+          },
           runs: [],
         });
       }

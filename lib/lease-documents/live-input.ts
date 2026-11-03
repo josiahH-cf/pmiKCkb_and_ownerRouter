@@ -1,4 +1,5 @@
 import { evaluateRenewalPacket } from "./evaluate-packet";
+import { isRenewalArtifactPublicationSpace } from "./publication-space";
 import { withRenewalNoticeAdmission } from "@/lib/firestore/renewal-notice-safety";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import type { Firestore } from "firebase-admin/firestore";
@@ -304,7 +305,7 @@ async function resolvePacketInputFromViews(
         : null;
       available =
         !!record?.validated &&
-        record.spaceId === "renewals" &&
+        isRenewalArtifactPublicationSpace(record.spaceId) &&
         resolveStoredDataMode(record) === "live" &&
         record.contentHash === artifact.contentHash &&
         resource?.get("activeVersionId") === id;

@@ -502,7 +502,12 @@ policy checks and S130's independent map/catalog approval. No general upload gra
   Resolve exact scope before loading/scanning an inadmissible resource. Persist bound family
   provenance; normal S130 receipt also rejects a different family, wrong/non-Live/stale version
   or hash. Accept canonical `lease-renewals` while preserving valid historical `renewals` bindings;
-  unrelated Spaces remain refused. Publication does not approve legal use, fees, maps or signatures.
+  unrelated Spaces remain refused. After the independent exact map/use approval, that same
+  two-Space compatibility must continue through current packet availability, approved original-byte
+  reads, filling and normal transport. Retained original audit reads accept the same two Spaces,
+  preserve immutable byte/hash checks and confer no current execution eligibility after a successor.
+  Current reads still require the exact active version; no records are migrated or rewritten.
+  Publication does not approve legal use, fees, maps or signatures.
 - **R-S130-23 — Correctable successors and history.** Existing controls audit exact prior-hash
   review for a successor without broadening resource/Space/source scope. Preserve immutable
   versions, stable policy/resource ownership, stale-map refusal and ambiguity/recovery semantics.
@@ -511,7 +516,10 @@ policy checks and S130's independent map/catalog approval. No general upload gra
 **Affected owners / dependencies.**
 
 Existing S130/shared S21, `app/api/spaces/[spaceId]/publications/route.ts`, `lib/publication/`,
-the Space file control and `lib/firestore/lease-artifact-intake.ts`. The managed scanner stays in
+the Space file control and `lib/firestore/lease-artifact-intake.ts`. Downstream continuation owners
+are `lib/lease-documents/live-input.ts`, `approved-artifact-content.ts` and their exact shared
+`publication-space.ts` predicate; existing derived-artifact/fill and transport owners consume their
+verified results. The managed scanner stays in
 the existing project under current identities/cost limits; image/resource/IAM changes require real
 readback. Exact original/legal/map decisions remain U1/U2; source access is already resolved.
 General arbitrary KB publication across all advertised types is outside this bounded delta.
@@ -519,12 +527,16 @@ General arbitrary KB publication across all advertised types is outside this bou
 **Architecture outcome (deterministic, fail-first).**
 
 - **ARCH-S130-7** — Exact reviewed PDF/family trust flows through real scanning and canonical S21
-  immutable publication into S130 receipt, without file/process scope inheritance.
+  immutable publication into S130 receipt and, after separate map/use approval, current packet and
+  approved original/derived-byte resolution. One exact canonical/legacy Space predicate preserves
+  the same boundary throughout; no file/process scope inheritance or unrelated Space admission.
 
 **Behavior outcome (deterministic, fail-first).**
 
 - **BEH-S130-13** — One permitted original publishes/receives with exact bytes; wrong scope,
-  incomplete/unsafe content, failed scanning or policy drift creates no active version.
+  incomplete/unsafe content, failed scanning or policy drift creates no active version. A separately
+  mapped/approved canonical original remains eligible downstream; its Space name alone never turns
+  it inactive or refuses approved bytes, filling or normal transport.
 - **BEH-S130-14** — Successors retain history and stale-map refusal; source publication confers
   no legal, financial, applicability, map or signing approval.
 
@@ -541,7 +553,15 @@ NOT RUN — integrated qualification pending. Human verdict: NOT RUN — no huma
   a capped preview never counts as complete (R-S130-21, BEH-S130-13).
 - **AC-S130-22** — The real route/store owners publish exact synthetic bytes/hash and normal S130
   receipt binds only the intended family/current validated Live version, without approval or a
-  provider effect (R-S130-22, BEH-S130-13, BEH-S130-14).
+  provider effect. Continue the same synthetic original through normal map/approval/catalog owners,
+  the actual packet reader, current approved-byte reader, static filling, derived-byte approval and
+  normal binary transport over an isolated provider port. Do not replace the product packet or
+  approved-byte readers. Both `lease-renewals` and valid historical `renewals` pass; unrelated and
+  similarly named Spaces refuse before content load. After a successor, current packet/transport
+  refuses the old version while immutable historical audit bytes remain readable. Existing Live,
+  validation, content/hash/current-version, source-family, permission and history checks remain
+  required. Synthetic approval is no real-original approval or provider completion
+  (R-S130-22, ARCH-S130-7, BEH-S130-13, BEH-S130-14).
 - **AC-S130-23** — Policy/source races and successors preserve old versions, resource ownership
   and map invalidation; process-only preservation checks still pass (R-S130-23, BEH-S130-14).
 - **AC-S130-24** — No supplied original is published, no legal/map decision is invented, and no

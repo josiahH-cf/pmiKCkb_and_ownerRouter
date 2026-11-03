@@ -5,13 +5,14 @@
 The owner finalized the assessment/specifications, then explicitly launched the named November 3
 [implementation plan](../plan.md), P1–P9, to completion. Authoring remains **FINAL / READY**;
 source and local gate are **QUALIFIED**, while application delivery remains **PENDING**.
-[Implementation evidence](../evidence/application-gap-implementation-2026-11-03.md) records full06:
-10,128 unit passes/four existing parity skips, 497 backend passes/no skips, all 16 npm commands
-(19 child records plus the canonical wrapper), all 14 application phases' 17 controls and cleanup,
-and 12 physically matching emitted font hashes. Its immutable source manifest is
-`fd29fcee94b71ee4f9f2910a362b825dcbae7db62a63d82536175be670511aed`.
-The final v8 fixture journey passed 34/34 steps; all 1,267 runtime paths match full06, with the
-three-document/S113-fixture delta explicit. Later documentation closure is checked separately.
+[Implementation evidence](../evidence/application-gap-implementation-2026-11-03.md) records corrected
+full07: 10,162 unit passes/four existing parity skips, 497 backend passes/no skips, all 16 npm
+commands and production build. Its source manifest is
+`aceee3fe58b9684a9afb2e72c0aebb6a4bb6a71cae94921e5b85b6f7cd5f336a`.
+The required core lane passed 46 tests/23 explicit no-emulator skips on that same source.
+The four adversarial source repairs passed focused checks and independent re-review. The earlier
+v8 fixture journey passed 34/34 on pre-correction runtime bytes; its exact full06 comparison is
+retained without claiming identity to full07. Later documentation closure is checked separately.
 No local qualification establishes real human acceptance, legal/map approval or provider completion.
 [The gap analysis](../evidence/current-application-gap-analysis-2026-11-03.md)
 established production `bc975353` / `pmi-kc-app-rmvzwt7ms-00754475effd` and source main `39435919`.
@@ -39,7 +40,7 @@ program resumes from this table. External holds remain in [the canonical unblock
 
 | Suite | Active contract                                                       | State                                                                                                                                                                                                                                                                         |
 | ----- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S240  | `docs/feature-suites/admin-knowledge-reindex-handoff.md`              | AUTHORING FINAL / READY — intake 106; source-bound handoff/staging source and local gate QUALIFIED (full06); application delivery PENDING. No ingestion performed.                                                                                                            |
+| S240  | `docs/feature-suites/admin-knowledge-reindex-handoff.md`              | AUTHORING FINAL / READY — intake 106; source-bound handoff/staging/current-request recovery source and local gate QUALIFIED (full07); application delivery PENDING. No ingestion performed.                                                                                   |
 | S241  | `docs/feature-suites/owner-renewal-process-review-and-publication.md` | AUTHORING FINAL / READY — intake 107; content/version/conflict/readiness source and local gate QUALIFIED. Managed scanner utility 9b3 promoted/read back; application delivery PENDING, then actual app-runtime invocation/exact-process policy/publication remain to verify. |
 
 ## Current delivered renewal program — November 3

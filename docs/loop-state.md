@@ -5,8 +5,11 @@ Last updated: 2026-11-03 (UTC). Read AGENTS.md and docs/facts.md first.
 ## Current execution
 
 The owner explicitly launched the finalized P1–P9 plan to completion, including maintaining and
-closing backend questions. Source implementation is locally QUALIFIED; application delivery and
-normal runtime configuration/publication remain pending. No phase-only permission is needed.
+closing backend questions. Reviewed head a32d1a6b passed local gates and exact-main CI, then
+independent adversarial review found four source/spec misses. Corrections passed focused
+checks and independent source re-review; corrected full07 PASSED at 18:30:52Z;
+the release is NOT ADMITTED. Normal runtime configuration/publication remain pending.
+No phase-only permission is needed, and no old or incompletely reviewed head is released.
 
 Native full gate 06 passed at 17:01:58Z: 10,128 unit tests/four existing parity skips, 497 backend
 tests/no skips, all 16 npm commands, policies, production audit and build. All 14 app phases passed
@@ -14,6 +17,14 @@ tests/no skips, all 16 npm commands, policies, production audit and build. All 1
 All 3,041 staged paths are unchanged, manifest fd29fcee. The final isolated v8 browser journey
 passed 34/34 steps; all 1,267 runtime paths match full06. Later documentation closure is checked
 separately. Original failures/stopped attempts remain immutable. See implementation evidence.
+
+Canonical PDF continuation passed 53/53 focused checks. Immutable publication proof, retired
+process history admission and current request/Space-bound re-index plans passed 144/144 checks.
+Independent read-only re-review closed all four source findings. Required core E2E passed at
+18:18:53Z: 46 passes/23 explicit no-emulator skips/zero failures across all 14 expected files.
+Core/full07 captured the same 3,046-path manifest aceee3fe. Full07 passed 10,162 unit tests/four
+existing parity skips, all 497 backend tests/no skips, all 16 npm commands and production build.
+Require fresh exact-main CI before a new permit. These results do not prove production or human acceptance.
 
 The notice-basis fixture adapter question is CLOSED after 28 real Firestore checks: seven/two
 GETs succeeded in the two journeys, with 545/420 requests fulfilled and zero rejected/pending.
@@ -60,7 +71,8 @@ and independent final readbacks. No consumed permit, old proof or stopped owner 
 ## Next
 
 1. Commit only the qualified owned paths; preserve unrelated/untracked work. Register the ten
-   unique owning suites against the actual implementation commit, validate docs and push green main.
+   unique owning suites against the actual corrected commit after focused/full/core E2E checks,
+   independent re-review and documentation validation; push only the qualified corrected main.
 2. Use native Node22/snap gcloud and the existing controlled release entry point for that exact
    main head. Clear the queue only after verified delivery; documentation closure does not deploy.
 3. In a separate normal managed session after delivery, verify the eight factual source-location

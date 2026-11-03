@@ -3,6 +3,8 @@ import { expect, it, vi } from "vitest";
 import { FakeFirestore } from "@/tests/helpers/fake-firestore";
 import {
   getWorkflowRunDefinition,
+  listProcessDefinitions,
+  listWorkflowRuns,
   listWorkflowRunTimeline,
 } from "@/lib/firestore/workflows";
 import {
@@ -23,6 +25,54 @@ const cases = [
   { id: "retained-definition", space: "maintenance-work-order-intake" },
   { id: "retained-definition", space: "vendor-assignment-handoff" },
 ];
+
+it("filters retired definitions and runs before the current-work list limit, without rewriting retained records", async () => {
+  const { fake, db } = fixture("maintenance-work-order-intake", "maintenance");
+  fake.seed("process_definitions/maintenance-work-order-intake", {
+    ...fake.store.get("process_definitions/maintenance-work-order-intake"),
+    updated_at: "2026-12-31",
+  });
+  fake.seed("workflow_runs/retained-run", {
+    ...fake.store.get("workflow_runs/retained-run"),
+    created_at: "2026-12-30",
+  });
+  fake.seed("process_definitions/ordinary", {
+    id: "ordinary",
+    space_id: "owner-renewal-outreach",
+    name: "Maintenance knowledge is allowed",
+    updated_at: "2026-01-01",
+  });
+  fake.seed("workflow_runs/ordinary", {
+    definition_id: "ordinary",
+    space_id: "owner-renewal-outreach",
+    created_at: "2026-01-01",
+  });
+  fake.seed("workflow_runs/retired-newest", {
+    definition_id: "maintenance-work-order-intake",
+    space_id: "maintenance",
+    created_at: "2026-12-31",
+  });
+  const before = JSON.stringify([...fake.store]);
+  expect((await listProcessDefinitions(actor, db)).map((row) => row.id)).toEqual([
+    "ordinary",
+  ]);
+  expect((await listWorkflowRuns(actor, { limit: 1 }, db)).map((row) => row.id)).toEqual([
+    "ordinary",
+  ]);
+  expect(JSON.stringify([...fake.store])).toBe(before);
+});
+
+it.each(cases)(
+  "refuses process history from $space/$id before querying runs",
+  async ({ id, space }) => {
+    const { fake, db } = fixture(id, space);
+    const collections = vi.spyOn(fake, "collection");
+    await expect(listWorkflowRuns(actor, { definitionId: id }, db)).rejects.toMatchObject(
+      { status: 410 },
+    );
+    expect(collections.mock.calls.some(([name]) => name === "workflow_runs")).toBe(false);
+  },
+);
 
 function fixture(id: string, space: string) {
   const fake = new FakeFirestore();

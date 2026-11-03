@@ -4,7 +4,7 @@
 
 # S227 — Completely retire custom maintenance
 
-> Status: Original October 20 retirement DELIVERED and carried by November 3 production. A-07 source and local gate QUALIFIED; application delivery PENDING. Exact shared eligibility, action admission and notice-only/410 history refusal passed full06 and focused preservation checks; final v8 runtime scope is recorded in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). Stored evidence is preserved; no historical proof or retired action was rerun.
+> Status: Original October 20 retirement DELIVERED and carried by November 3 production. A-07 source and local gate QUALIFIED; application delivery PENDING. Exact shared eligibility, action admission and notice-only/410 history refusal passed corrected full07 and focused preservation checks; prior final v8 runtime scope is recorded in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). Stored evidence is preserved; no historical proof or retired action was rerun.
 
 **Goal.**
 
@@ -198,8 +198,12 @@ replacement for operation-level denial.
   If renewal reviews fail, `partial` and `unavailableFeeds` remain truthful even when filtered rows
   leave zero current decisions. Assert unchanged fixture records/receipts and zero writer/provider
   calls across success, retry, failed-read and current actor/scope changes.
-- **AC-S227-7** — Falsify `ARCH-S227-1` / `BEH-S227-1` through the generic workflow-run page,
-  run/checklist GET routes and owning history readers: exact retired machine provenance yields
+- **AC-S227-7** — Falsify `ARCH-S227-1` / `BEH-S227-1` through process-definition lists, process
+  detail/page/GET and generic workflow-run page, run/checklist GET routes and owning history readers.
+  Lists filter exact retired definition/run machine provenance before sorting and limits so retired
+  rows cannot displace current work. Process detail classifies authorized definition metadata before
+  querying runs/publication/history and renders only the notice; its GET returns 410 before history.
+  The same exact retired machine provenance on individual runs yields
   only the retirement notice or HTTP 410 before timeline, steps, immutable-version or checklist
   bodies are read/rendered. Both pinned and unpinned retained records stay unchanged. Genuine
   generic staff and renewal runs remain readable; prose mentioning maintenance is not classified

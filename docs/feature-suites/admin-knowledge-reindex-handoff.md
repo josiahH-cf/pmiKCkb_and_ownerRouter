@@ -3,7 +3,7 @@
 
 # S240 — Runnable Admin knowledge re-index handoff
 
-> Status: Authoring FINAL / READY; source and local gate QUALIFIED; application delivery PENDING. Source-bound handoff, truthful staging and refusal checks passed full06 within the scopes in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). No ingestion or production re-index request was executed.
+> Status: Authoring FINAL / READY; application delivery PENDING. Prior `a32d1a6b` source-bound handoff, truthful staging and refusal checks retain their corrected full07 qualification within [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). The subsequently identified mounted handoff-state/request-binding repair is implemented and awaits fresh focused qualification; the earlier gate does not cover this delta. No ingestion or production re-index request was executed.
 
 **Goal.**
 
@@ -186,7 +186,13 @@ request never starts an import, and a changed source set is visible before later
 - **AC-S240-4** — Falsify `ARCH-S240-3` / `BEH-S240-3`: extend the existing route/UI cases so
   staging, listing, a non-runnable response and changed-input regeneration call no upload,
   create-store or import operation. Do not run importer `main` as the test. Keep a request distinct
-  from index/result readback and preserve user-visible explanation after a failed read.
+  from index/result readback and preserve user-visible explanation after a failed read. Mounted
+  `tests/unit/s240-reindex-handoff-state.test.tsx` must show a ready command disappears immediately
+  on a replacement review, stays absent after its failure, and is invalidated with its confirmation
+  when the selected Space changes. Bind every response, error and pending-state update to its
+  current request and Space: an older A response arriving after a current B review must not replace
+  B's plan or restore A's runnable command under B. Reviewing a prior request names/selects its own
+  Space; no response or client state authorizes ingestion.
 
 **Forbidden actions / hard gates.**
 

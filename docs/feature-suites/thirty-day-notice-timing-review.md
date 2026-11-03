@@ -5,7 +5,7 @@
 
 > **Approval reference:** F04 (original feature #4).
 > **Delivered baseline:** the original evaluator/display was implemented and deployed at `c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220`; [the shared audit](../evidence/batch-litmus-audit-2026-09-28.md) and [adversarial review](../evidence/adversary-review-2026-09-29.md) retain their dated scopes.
-> **November 3 amendment:** Source and local gate QUALIFIED; application delivery PENDING. Staff selection/persistence and same-page recovery passed full06 and the final v8 fixture journey within the scopes in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). No live basis selection or human acceptance is claimed.
+> **November 3 amendment:** Source and local gate QUALIFIED; application delivery PENDING. Staff selection/persistence and same-page recovery passed corrected full07 and the prior final v8 fixture journey within the scopes in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). No live basis selection or human acceptance is claimed.
 > **Registration:** existing S125 / F04 owner in `docs/feature-suites/README.md`. Classification remains an operational timing indicator, not law, fees or legal compliance.
 
 **Goal.**

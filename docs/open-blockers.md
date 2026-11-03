@@ -223,12 +223,16 @@ The owner launched the finalized plan after authoring. These are engineering que
 client tasks or additional approval ceremonies. A fix/diagnosis is not marked deployed until its
 release/readback evidence exists.
 
-**Q-ENG-PUB2 / A-08 — IN PROGRESS, engineering-owned.** New original PDFs cannot currently enter
-S130 through production trusted publication: the generic route/provider has no real PDF scanner,
-and intake accepts the legacy `renewals` Space while publication config uses `lease-renewals`.
-The real process-only scanner cannot stand in for PDF scanning. S130 AC-S130-20–24 own the exact
-reviewed blank-original PDF/family/hash path, genuine scanning, complete bounded inspection and
-canonical/legacy Space compatibility. Team completes and qualifies this independently; legal/map
+**Q-ENG-PUB2 / A-08 — SOURCE QUALIFIED; DELIVERY PENDING.** The initial publication/intake repair
+passed its local gate, but independent review of `a32d1a6b` found downstream packet resolution and
+approved current/historical byte readers still accept only legacy `renewals`. Canonical
+`lease-renewals` originals can reach Received, then become inactive/refused even after approval.
+S130 AC-S130-20–24 own the exact reviewed PDF path and canonical/legacy compatibility through
+catalog approval, packet resolution, current/historical reads, filling and content transport—not
+only intake. The shared exact canonical/legacy predicate now passes 53/53 focused checks,
+including the real catalog, packet, filling, current/historical byte and typed transport owners.
+Independent re-review and cumulative qualification are separate; delivery is pending.
+Unrelated Spaces remain refused. Legal/map
 decisions remain U1/U2 and do not conceal the technical gap. General arbitrary KB file/folder
 publishing is outside that repair. No real form is published or approved as test proof.
 
@@ -260,11 +264,37 @@ installed in this managed service. The failed probe is not an established applic
 defect. Broader PDF-contained/encoded payload detection remains unverified; no scanner, adapter
 or policy control is relaxed and no actual original is published or legally approved by these checks.
 
-**Q-ENG-RETIRED-HISTORY / A-07 — IN PROGRESS, engineering-owned.** Review of the touched generic
-workflow-run surface found it could still load and display retained maintenance timeline/step
-history despite the complete retirement requirement. S227 R1–3 / AC-S227-7 own notice-only/410
-admission before those body reads, preserving stored evidence and genuine staff/renewal work.
-Engineering supplies the bounded regression and repair; no client decision or new authority is needed.
+**Q-ENG-RETIRED-HISTORY / A-07 — SOURCE QUALIFIED; DELIVERY PENDING.** The individual-run repair passed
+its focused and cumulative gates. Independent review then found process lists/detail pages and
+definition APIs still expose retained maintenance definitions or read their runs before retirement
+classification. S227 R1–3 / AC-S227-7 own machine filtering before list limits and notice-only/410
+admission before history reads/rendering, preserving records and genuine staff/renewal work.
+The correction passed the 144-check S227/S240/S241 batch and independent source re-review.
+Cumulative qualification and delivery remain pending; no client decision or authority is missing.
+
+**Q-ENG-PUBLICATION-READBACK / S241 — SOURCE QUALIFIED; DELIVERY PENDING.** Lost-Publish recovery
+currently reads only the mutable definition and infers an active immutable version from its
+pointer. S241 R5/AC3 require the actual immutable version and stored content/hash/identity read.
+Typed backend-owned verified/not-published/unavailable evidence now checks the real immutable
+snapshot, S21 records and actual stored bytes/hash/size/current content. Missing/corrupt/mismatched
+content recovery and preservation passed in the 144-check batch and independent source re-review.
+The existing duplicate-Publish guard is preserved. Delivery/runtime readback remain pending;
+no client consent or new approval layer is required.
+
+**Q-ENG-REINDEX-CURRENCY / A-02 — SOURCE QUALIFIED; DELIVERY PENDING.** A failed current review or
+Space change retains the prior runnable command; a late response can appear under another Space.
+S240 R3/BEH2/AC4 require invalidation/request binding and mounted failure/Space/race checks.
+Request/Space-bound invalidation and mounted race/failure checks passed in the 144-check batch
+and independent source re-review. Only a fresh current-source plan can be runnable; delivery is
+pending and no import was performed.
+
+**Q-ENG-CORE-E2E / P9 — CLOSED, verified 2026-11-03T18:18:53Z.** The existing credential-isolated
+`npm run test:e2e:core` lane passed all 14 expected files: 46 passes, zero failures and 23 explicit
+no-Firestore-emulator configuration skips. Actual inner/outer exits were zero; all 17 controls,
+font negative/terminal checks, cleanup and 3,046 unchanged source hashes passed. Manifest
+`aceee3fe58b9684a9afb2e72c0aebb6a4bb6a71cae94921e5b85b6f7cd5f336a`
+matches full07. The skipped mutable cases retain backend-emulator coverage as a separate link;
+this result does not claim production or human acceptance. Earlier full06/CI did not run this lane.
 
 **Q-ENG-JOURNEY-ADAPTER / P9 — CLOSED, verified 2026-11-03T16:48:59Z.** Full gate 05 passed all
 10,128 unit checks, then 495 backend checks passed and two mounted S113 operator journeys failed
@@ -279,7 +309,7 @@ continues independently; no client input or production/customer effect is needed
 
 | Question                                                                 | Current evidence / status                                                                                                                                                                                                                                                                                                                                                                                                                    | Owning next action / completion check                                                                                                                                                                                                                                                                                                                                                         |
 | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Q-ENG-PUB1 — production process-publication scanner                      | ENGINEERING IN PROGRESS under S241 and existing standing authority. Guarded managed Admin GET returned `policies: []`; the inspected native production scanner resolves to unavailable. A real managed process-only scanner and least-scope exact process policy are under construction.                                                                                                                                                     | Engineering completes the real adapter/deployment/configuration and exact policy readback through the existing managed-resource and S21 gates, then publishes the reviewed existing definition through canonical validation/versioning. No new client approval or external hold is required; no fake scanner or database bypass is supplied. Runtime publication and delivery remain pending. |
+| Q-ENG-PUB1 — production process-publication scanner                      | SOURCE/UTILITY QUALIFIED under S241 and existing standing authority. The genuine managed scanner utility is promoted/read back; exact process/content policy and authenticated adapter source pass focused checks. Current old production still returns `policies: []` and the process Draft. Application delivery, exact runtime policy and actual app-identity publication remain pending.                                                 | Engineering completes the real adapter/deployment/configuration and exact policy readback through the existing managed-resource and S21 gates, then publishes the reviewed existing definition through canonical validation/versioning. No new client approval or external hold is required; no fake scanner or database bypass is supplied. Runtime publication and delivery remain pending. |
 | Q-ENG-500 — recovered November 2 read failure                            | CAUSE ESTABLISHED / source handling repaired: a same-instance RentVine recurring-charge detail GET returned HTTP 500 at the exact request finish. Five starting regressions failed; 113 focused checks passed after a sanitized unavailable response/UI repair.                                                                                                                                                                              | Qualification and deployment readback remain pending. Original POST body/actor and RentVine's internal cause were not retained/established; these unknowns do not reopen the diagnosed application-boundary cause or require another login.                                                                                                                                                   |
 | Q-ENG-DECISION — retired shared decision prompts                         | SOURCE REPAIR / FOCUSED CHECKS PASSED: machine provenance and authoritative closed/superseded lifecycle fields exclude retired prompts while preserving genuine work. Shared gather/Console/Notifications/Spaces checks passed 49 tests after seven intended starting failures; rows/signals retain their strict value-free shape.                                                                                                           | S227/S238 complete cumulative qualification and actual deployed readback. Retain original records/receipts; retirement filtering is not a history closure, deletion or permission grant.                                                                                                                                                                                                      |
 | Q-ENG-READ — incomplete renewal decision coverage                        | SOURCE REPAIR / FOCUSED CHECKS PASSED: source currency/read time, permission refusal and overlay unavailability remain distinct. The shared gather carries complete/partial/unavailable coverage; Console, Notifications and Spaces preserve actual rows without a false zero/all-clear. The same 49-test run includes these consumers; counts are not added again.                                                                          | Complete cumulative qualification and deployed checks under the actual actor. Fresh Admin/read fixtures do not establish Editor-browser, phone, human acceptance, paid generation or customer effects. Unknown views remain unverified.                                                                                                                                                       |

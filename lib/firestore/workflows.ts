@@ -74,6 +74,9 @@ export async function listProcessDefinitions(
 
   return snapshot.docs
     .map((doc) => readProcessDefinition(doc.id, doc.data()))
+    .filter(
+      (definition) => !isRetiredMaintenanceWorkflow(definition.space_id, definition.id),
+    )
     .sort((left, right) => right.updated_at.localeCompare(left.updated_at));
 }
 
@@ -343,6 +346,12 @@ export async function listWorkflowRuns(
   db = getAdminFirestore(),
 ) {
   assertCan(actor, "read");
+  if (options.definitionId) {
+    const definition = await getProcessDefinition(actor, options.definitionId, db);
+    assertProcessDefinitionRecordAccess(actor, definition);
+    if (isRetiredMaintenanceWorkflow(definition.space_id, definition.id))
+      throw new EditableLayerError(MAINTENANCE_RETIREMENT_MESSAGE, 410);
+  }
   const snapshot = options.definitionId
     ? await db
         .collection(COLLECTIONS.workflowRuns)
@@ -352,6 +361,7 @@ export async function listWorkflowRuns(
 
   return snapshot.docs
     .map((doc) => readRecord<WorkflowRunRecord>(doc.id, doc.data()))
+    .filter((run) => !isRetiredMaintenanceWorkflow(run.space_id, run.definition_id))
     .sort((left, right) => right.created_at.localeCompare(left.created_at))
     .slice(0, options.limit);
 }

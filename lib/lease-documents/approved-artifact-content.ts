@@ -15,6 +15,7 @@ import type {
   PublicationVersionRecord,
 } from "@/lib/publication/types";
 import type { LeaseArtifactCatalog } from "@/lib/lease-documents/packet-types";
+import { isRenewalArtifactPublicationSpace } from "./publication-space";
 
 export interface ApprovedArtifactContentDeps {
   readPublication: (versionId: string) => Promise<PublicationVersionRecord>;
@@ -53,7 +54,7 @@ export async function readHistoricalApprovedArtifact(
     version.id !== versionId ||
     !version.validated ||
     resolveStoredDataMode(version) !== "live" ||
-    version.spaceId !== "renewals" ||
+    !isRenewalArtifactPublicationSpace(version.spaceId) ||
     version.contentHash !== input.originalHash ||
     version.contentRef?.contentHash !== input.originalHash
   )
@@ -114,7 +115,7 @@ export async function resolveApprovedDotloopArtifact(
     version.id !== versionId ||
     !version.validated ||
     resolveStoredDataMode(version) !== "live" ||
-    version.spaceId !== "renewals" ||
+    !isRenewalArtifactPublicationSpace(version.spaceId) ||
     version.contentHash !== input.expectedContentHash ||
     version.contentRef?.contentHash !== input.expectedContentHash ||
     (await deps.readActiveVersionId(version.resourceId)) !== versionId

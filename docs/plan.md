@@ -8,11 +8,17 @@ Implement and qualify the finalized work for the three active application lanes,
 assessment gaps, newly diagnosed A-08 PDF publication dependency, and the configuration/approval/
 communication work needed to unblock real renewals.
 The owner finalized the scope below, then explicitly directed implementation to completion and
-maintenance of backend open questions. Source implementation is locally QUALIFIED through full
-gate 06 and the final isolated browser journey; exact-main CI, delivery and actual configuration
-remain separate. This launch carries the named scope through its existing gates without repeated
+maintenance of backend open questions. Reviewed head `a32d1a6b` passed full gate 06, the final
+isolated browser journey and exact-main CI; independent review then found four source/spec misses
+and the unperformed required core E2E gate. The four repairs passed focused checks and independent
+re-review; core E2E passed 46 tests with 23 explicit configuration skips. Full07 passed at
+18:30:52Z: 10,162 unit tests/four existing parity skips, all 497 backend tests and all required
+commands/build. Fresh exact-main CI remains required;
+delivery remains unadmitted and actual configuration is pending. This launch carries the named
+scope through its existing gates without repeated
 phase consent. It authorizes no client communication, new exact-key activation, invented business
-decision or proof effect. Awaiting release remains empty until the cumulative slice is qualified.
+decision or proof effect. The ten owning-suite queue entries remain pending verified delivery;
+they cannot admit a release before corrected cumulative qualification and exact-main CI.
 
 Baseline: main 39435919; deployed bc97535379dd08deab578455b00a80fc93b8d209 /
 pmi-kc-app-rmvzwt7ms-00754475effd, verified in the

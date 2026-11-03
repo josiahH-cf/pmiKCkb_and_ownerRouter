@@ -8,6 +8,12 @@ import {
 } from "@/lib/firestore/workflows";
 import { UpdateProcessDefinitionInputSchema } from "@/lib/firestore/schemas";
 import { processDefinitionPublicationContent } from "@/lib/publication/process-definition-content";
+import { readProcessDefinitionPublication } from "@/lib/publication/process-definition-readback";
+import { EditableLayerError } from "@/lib/firestore/errors";
+import {
+  isRetiredMaintenanceWorkflow,
+  MAINTENANCE_RETIREMENT_MESSAGE,
+} from "@/lib/maintenance/retirement";
 import {
   assertProcessDefinitionAccess,
   assertProcessDefinitionRecordAccess,
@@ -23,6 +29,9 @@ export async function GET(_request: Request, context: RouteContext) {
     const { definitionId } = await context.params;
     const definition = await getProcessDefinition(user, definitionId);
     assertProcessDefinitionRecordAccess(user, definition);
+    if (isRetiredMaintenanceWorkflow(definition.space_id, definition.id))
+      throw new EditableLayerError(MAINTENANCE_RETIREMENT_MESSAGE, 410);
+    const publication = await readProcessDefinitionPublication(user, definition);
     const runs = await listWorkflowRuns(user, { definitionId });
 
     const reviewed = processDefinitionPublicationContent(definition);
@@ -30,6 +39,7 @@ export async function GET(_request: Request, context: RouteContext) {
       {
         definition,
         runs,
+        publication,
         publicationReview: {
           revision: definition.revision,
           contentHash: reviewed.contentHash,
@@ -50,9 +60,10 @@ export async function PATCH(request: Request, context: RouteContext) {
     assertProcessDefinitionAccess(user, definitionId);
     const input = await parseJsonBody(request, UpdateProcessDefinitionInputSchema);
     const definition = await updateProcessDefinition(user, definitionId, input);
+    const publication = await readProcessDefinitionPublication(user, definition);
     const runs = await listWorkflowRuns(user, { definitionId });
 
-    return NextResponse.json({ definition, runs });
+    return NextResponse.json({ definition, runs, publication });
   } catch (error) {
     return apiErrorResponse(error);
   }

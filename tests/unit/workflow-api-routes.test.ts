@@ -64,6 +64,19 @@ afterEach(() => {
 });
 
 describe("workflow API routes", () => {
+  it("refuses a retired process definition GET before querying retained runs", async () => {
+    setEditor();
+    vi.mocked(getProcessDefinition).mockResolvedValue(
+      definition({ space_id: "maintenance" }),
+    );
+    vi.mocked(listWorkflowRuns).mockResolvedValue([workflowRun()]);
+    const response = await GET_DEFINITION(
+      new Request("http://localhost/api/process-definitions/def-1"),
+      definitionContext("def-1"),
+    );
+    expect(response.status).toBe(410);
+    expect(listWorkflowRuns).not.toHaveBeenCalled();
+  });
   it("returns 401 before listing process definitions when unauthenticated", async () => {
     setAuthResolverForTest(() => null);
 

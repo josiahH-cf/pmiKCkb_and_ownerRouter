@@ -1,9 +1,55 @@
 # Application gap implementation — November 3, 2026
 
-Status: SOURCE LOCALLY QUALIFIED; APPLICATION DELIVERY PENDING. This records the owner's later implementation instruction for the finalized
+Status: CORRECTED SOURCE AND LOCAL GATES QUALIFIED; EXACT-MAIN CI/DELIVERY PENDING. Reviewed head `a32d1a6b`
+passed local gates and exact-main CI, then independent review identified four source/spec misses
+and unperformed required core E2E. This records the owner's implementation instruction for the finalized
 [plan](../plan.md), following the [assessment](current-application-gap-analysis-2026-11-03.md).
 Source implementation, isolated verification, deployment, live observation and human acceptance
-are separate evidence states. No cumulative qualification or delivery is claimed below.
+are separate evidence states. Earlier qualification is retained for its exact source; it does not
+accept the corrected working tree or establish delivery.
+
+## Independent correction qualification
+
+The four findings against `a32d1a6b` have source corrections and independent read-only re-review:
+
+- S130 accepts exactly canonical `lease-renewals` and historical `renewals` at intake, packet and
+  current/historical byte readers. Green03 passed 53/53 checks in seven files through the actual
+  publication/intake/catalog/packet/filling/byte owners and typed isolated multipart transport.
+  Three canonical failures reproduced before the repair; unrelated Spaces remain refused.
+  Manifest `91cef27d9f46af845b7f862917b4022030270033647419103a5a17c308889c04`;
+  all 3,043 physical paths matched independently. Inner/outer exits zero, all 14 unit-lane controls
+  passed and no owned processes remain. No original was approved or sent to a provider.
+- S241 recovery now reads actual immutable process/S21 versions and stored bytes/hash/size,
+  current definition identity and revision; the duplicate-Publish guard remains intact.
+- S227 filters retired provenance before process/run list limits and refuses detail history
+  reads before loading versions/runs. Stored records and supported staff work are preserved.
+- S240 clears prior plans/confirmation on a new request, failure or Space change; late responses
+  are bound to the current request and Space. No re-index/import ran.
+
+The latter three repairs passed 144/144 checks across 19 files at 18:01:50Z, inner/outer exits zero,
+all 17 controls, six font negatives and cleanup. Manifest `6c7d27f4` identifies that earlier focused
+capture; later S130 paths are separately qualified above. True pre-repair failures remain private.
+Independent re-review found no remaining concrete source finding within these four scopes.
+
+Required core E2E completed at **18:18:53.845716Z**: 46 passes, zero failures, 23 explicit
+no-Firestore-emulator configuration skips across all 14 expected files. The actual command was
+`npm run test:e2e:core` using its existing `--no-firestore` lane. Inner/outer exits zero, all 17
+controls, six font negatives, terminal/host cleanup and zero owned processes were observed.
+All 3,046 source paths matched manifest
+`aceee3fe58b9684a9afb2e72c0aebb6a4bb6a71cae94921e5b85b6f7cd5f336a`, also captured by
+cumulative full07. The skipped mutable scenarios retain a separate backend-emulator verification
+link; they are not claimed as passed core cases. Corrected cumulative verification, exact-main CI,
+application delivery and actual runtime configuration/publication are separate links.
+
+Corrected cumulative **full07** completed at **2026-11-03T18:30:52.345442Z**, actual outer exit zero.
+It passed 10,162 unit tests (four existing configuration-parity skips; 1,082 files passed/one
+skipped), all 497 backend tests across 86 files (no skips), production dependency audit,
+format/lint/typecheck, required policies/budget checks and production build. All 16 original npm
+commands ran. Its captured manifest is the same `aceee3fe` as the required core lane; only later
+documentation/status reconciliation differs in the authoring tree. Native output is
+`pmi-gap-verify-20261103-07`; outer receipts remain under `canonical-gate-07/`. This supersedes
+full06 for corrected-source qualification without rewriting any earlier result. Exact-main CI,
+delivery and actual runtime configuration/publication remain pending.
 
 ## Baseline and authority
 
@@ -17,6 +63,16 @@ Approved WSL CLI/ADC refresh passed as `josiah@pmikcmetro.com`. A guarded existi
 read the current publication policies and `owner-renewal-outreach`: both HTTP 200, policies empty,
 process Draft. The session recorded zero mutation attempts/blocked requests and a free profile
 lease before/after. No process edit, publication, policy write, selection or evaluation occurred.
+
+After independent review's guarded read returned 401, the existing approved `auth:ensure
+--need=canary` flow re-established the exact managed Admin session through `existing_session` at
+17:43Z, without a human challenge or identity/role change. Fresh guarded reads then returned 200
+for the same four-step Draft/zero-run process, zero publication policies, source references v8
+with all eight locations present/unverified, and saved Dotloop selection v1. The source-reviewed
+`/api/admin/move-out-timing-basis` read returned `missing`. One preliminary read used a nonexistent
+app route and returned 404; that is not an authentication or missing-configuration observation.
+Both corrected read sessions recorded zero mutation attempts and closed the profile free.
+These configuration tasks remain known engineering work after delivery, not client unknowns.
 
 Private evidence is in `Documents/Codex/2026-11-03/pmi-application-assessment/` and the existing
 private `.codex/tmp/pmi-kc-review-2026-11-03/` evidence directory, outside this repository.

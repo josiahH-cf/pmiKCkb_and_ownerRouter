@@ -6,7 +6,14 @@ The owner launched the finalized P1–P9 gap plan after the delivery recorded be
 source repairs passed native full gate 06 at 17:01:58Z: 10,128 unit tests (four existing parity
 skips), 497 backend tests, all policies and production build. All 14 app phases passed 17 isolation
 controls, all 12 emitted font hashes match, staged source is unchanged and actual outer exit is zero.
-This new slice is locally qualified and awaits exact-main CI and controlled application delivery.
+Exact-main CI passed for reviewed head `a32d1a6b` in run `41682825309`. Independent review then
+found canonical PDF continuation, immutable publication readback, retired process-surface history
+and re-index UI currency gaps, plus unperformed required core E2E. The four source repairs now
+pass focused checks and independent re-review. Core E2E passed 46 tests with 23 explicit
+configuration skips. Corrected full07 passed at 18:30:52Z: 10,162 unit tests/four existing parity
+skips, all 497 backend tests, all policies/audit and production build. Fresh exact-main CI and
+delivery remain pending; the slice is not admitted for release.
+See `docs/open-blockers.md`.
 The 34-step credential-free browser journey passed separately from production/human acceptance.
 All eight unchanged supplied originals now pass complete parser compatibility and bounded local
 tripwires; legal/map approval and real-original publication remain separate. Current technical

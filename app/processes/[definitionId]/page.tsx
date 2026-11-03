@@ -7,6 +7,10 @@ import { primarySpaceHref, requirePageCapability } from "@/lib/auth/page-guards"
 import { getProcessDefinition, listWorkflowRuns } from "@/lib/firestore/workflows";
 import { canAccessProcessDefinition } from "@/lib/space-scope-resources";
 import {
+  readProcessDefinitionPublication,
+  type ProcessDefinitionPublicationRead,
+} from "@/lib/publication/process-definition-readback";
+import {
   isRetiredMaintenanceWorkflow,
   MAINTENANCE_RETIREMENT_MESSAGE,
 } from "@/lib/maintenance/retirement";
@@ -23,17 +27,37 @@ export default async function ProcessDefinitionPage({
   let loadError = false;
   let definition: Awaited<ReturnType<typeof getProcessDefinition>> | undefined;
   let runs: Awaited<ReturnType<typeof listWorkflowRuns>> = [];
+  let publication: ProcessDefinitionPublicationRead | undefined;
 
   try {
-    [definition, runs] = await Promise.all([
-      getProcessDefinition(user, definitionId),
-      listWorkflowRuns(user, { definitionId }),
-    ]);
-    if (!canAccessProcessDefinition(user, definition)) {
-      redirect(primarySpaceHref());
-    }
+    definition = await getProcessDefinition(user, definitionId);
   } catch {
     loadError = true;
+  }
+
+  if (definition && !canAccessProcessDefinition(user, definition))
+    redirect(primarySpaceHref());
+  if (definition && isRetiredMaintenanceWorkflow(definition.space_id, definition.id)) {
+    return (
+      <AppShell user={user}>
+        <section className="content">
+          <h1 className="section-title">Process Definition</h1>
+          <article className="panel">
+            <p>{MAINTENANCE_RETIREMENT_MESSAGE}</p>
+          </article>
+        </section>
+      </AppShell>
+    );
+  }
+  if (definition) {
+    try {
+      [runs, publication] = await Promise.all([
+        listWorkflowRuns(user, { definitionId }),
+        readProcessDefinitionPublication(user, definition),
+      ]);
+    } catch {
+      loadError = true;
+    }
   }
 
   return (
@@ -62,6 +86,7 @@ export default async function ProcessDefinitionPage({
             }
             initialDefinition={definition}
             initialRuns={runs}
+            initialPublication={publication}
           />
         )}
       </section>

@@ -8,12 +8,17 @@ const mocks = vi.hoisted(() => ({
   timeline: vi.fn(),
   definition: vi.fn(),
   checks: vi.fn(),
+  processDefinition: vi.fn(),
+  processRuns: vi.fn(),
 }));
 vi.mock("@/components/layout/AppShell", () => ({
   AppShell: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 vi.mock("@/components/workflows/WorkflowRunClient", () => ({
   WorkflowRunClient: () => <div>History body must not render</div>,
+}));
+vi.mock("@/components/workflows/ProcessDefinitionDetailClient", () => ({
+  ProcessDefinitionDetailClient: () => <div>Retained process history body</div>,
 }));
 vi.mock("@/lib/auth/page-guards", () => ({
   requirePageCapability: async () => ({
@@ -33,14 +38,55 @@ vi.mock("@/lib/firestore/workflows", () => ({
   getWorkflowRun: mocks.run,
   getWorkflowRunDefinition: mocks.definition,
   listWorkflowRunTimeline: mocks.timeline,
+  getProcessDefinition: mocks.processDefinition,
+  listWorkflowRuns: mocks.processRuns,
 }));
 vi.mock("@/lib/firestore/workflow-run-step-checks", () => ({
   listStepChecksForRun: mocks.checks,
 }));
 import WorkflowRunPage from "@/app/workflow-runs/[runId]/page";
+import ProcessDefinitionPage from "@/app/processes/[definitionId]/page";
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+});
+
+it("renders only a retirement notice for process detail before reading retained runs", async () => {
+  mocks.processDefinition.mockResolvedValue({
+    id: "maintenance-work-order-intake",
+    space_id: "maintenance",
+    status: "Draft",
+  });
+  mocks.processRuns.mockResolvedValue([]);
+  render(
+    await ProcessDefinitionPage({
+      params: Promise.resolve({ definitionId: "maintenance-work-order-intake" }),
+    }),
+  );
+  expect(
+    screen.getByText(
+      "Custom maintenance is retired. Manage maintenance in standalone Vendoroo.",
+    ),
+  ).toBeInTheDocument();
+  expect(screen.queryByText("Retained process history body")).not.toBeInTheDocument();
+  expect(mocks.processRuns).not.toHaveBeenCalled();
+});
+
+it("preserves ordinary staff process detail whose name mentions maintenance", async () => {
+  mocks.processDefinition.mockResolvedValue({
+    id: "ordinary",
+    space_id: "owner-renewal-outreach",
+    name: "Maintenance knowledge",
+    status: "Draft",
+  });
+  mocks.processRuns.mockResolvedValue([]);
+  render(
+    await ProcessDefinitionPage({
+      params: Promise.resolve({ definitionId: "ordinary" }),
+    }),
+  );
+  expect(screen.getByText("Retained process history body")).toBeInTheDocument();
+  expect(mocks.processRuns).toHaveBeenCalledTimes(1);
 });
 
 it("renders only the retirement notice after run metadata and never requests retained bodies", async () => {

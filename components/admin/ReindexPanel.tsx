@@ -1,7 +1,7 @@
 "use client";
 import { fetchWithDeadline as fetch, waitFailureMessage } from "@/lib/ui/fetch-lifetime";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button, Field } from "@/components/ui";
@@ -25,37 +25,68 @@ export function ReindexPanel({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [plan, setPlan] = useState<ReindexCommandPlan | null>(null);
+  const requestId = useRef(0);
+  const selectedSpace = useRef(spaceId);
   const id = { space: useId(), confirm: useId() };
 
-  async function submit() {
-    if (!confirm) return;
+  function changeSpace(space: string) {
+    requestId.current++;
+    selectedSpace.current = space;
+    setSpaceId(space);
+    setConfirm(false);
+    setPlan(null);
+    setError("");
+    setPending(false);
+  }
+
+  function beginRequest(space: string) {
+    const request = ++requestId.current;
+    if (selectedSpace.current !== space) setConfirm(false);
+    selectedSpace.current = space;
+    setSpaceId(space);
     setPending(true);
     setError("");
     setPlan(null);
+    return request;
+  }
+
+  function isCurrent(request: number, space: string) {
+    return requestId.current === request && selectedSpace.current === space;
+  }
+
+  async function submit() {
+    if (!confirm) return;
+    const space = spaceId;
+    const request = beginRequest(space);
     try {
       const response = await fetch("/api/admin/reindex", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ spaceId, confirm: true }),
+        body: JSON.stringify({ spaceId: space, confirm: true }),
       });
       if (response.ok) {
         const payload = (await response.json()) as { plan: ReindexCommandPlan };
-        setPlan(payload.plan);
-        router.refresh();
+        if (isCurrent(request, space)) {
+          setPlan(payload.plan);
+          router.refresh();
+        }
       } else {
         const payload = (await response.json().catch(() => ({}))) as { error?: string };
-        setError(payload.error ?? "Could not stage the re-index request.");
+        if (isCurrent(request, space))
+          setError(payload.error ?? "Could not stage the re-index request.");
       }
     } catch (error) {
-      setError(waitFailureMessage(error, "Could not reach the re-index service."));
+      if (isCurrent(request, space)) {
+        setPlan(null);
+        setError(waitFailureMessage(error, "Could not reach the re-index service."));
+      }
     } finally {
-      setPending(false);
+      if (isCurrent(request, space)) setPending(false);
     }
   }
 
   async function reviewCurrent(space: string) {
-    setPending(true);
-    setError("");
+    const request = beginRequest(space);
     try {
       const response = await fetch(
         `/api/admin/reindex?spaceId=${encodeURIComponent(space)}`,
@@ -66,11 +97,14 @@ export function ReindexPanel({
       };
       if (!response.ok || !payload.plan)
         throw new Error(payload.error ?? "Current source readiness could not be read.");
-      setPlan(payload.plan);
+      if (isCurrent(request, space)) setPlan(payload.plan);
     } catch (error) {
-      setError(waitFailureMessage(error, "Could not review the current handoff."));
+      if (isCurrent(request, space)) {
+        setPlan(null);
+        setError(waitFailureMessage(error, "Could not review the current handoff."));
+      }
     } finally {
-      setPending(false);
+      if (isCurrent(request, space)) setPending(false);
     }
   }
 
@@ -83,7 +117,7 @@ export function ReindexPanel({
       <Field htmlFor={id.space} label="Space to re-index" required>
         <select
           id={id.space}
-          onChange={(event) => setSpaceId(event.target.value)}
+          onChange={(event) => changeSpace(event.target.value)}
           value={spaceId}
         >
           {spaces.map((space) => (

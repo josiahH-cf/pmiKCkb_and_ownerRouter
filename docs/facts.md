@@ -5,9 +5,21 @@ Last reconciled: 2026-11-03 (guarded cumulative delivery, independent production
 This ledger contains present truth. Historical detail is recoverable in Git and immutable run
 evidence; an earlier receipt never authorizes a new attempt.
 
-## November 3 gap implementation — locally qualified, not deployed
+## November 3 gap implementation — corrected source/local gates qualified, delivery pending
 
-The owner subsequently launched the finalized plan to completion. Source repairs now cover narrow
+The owner subsequently launched the finalized plan to completion. The reviewed `a32d1a6b` head
+passed local full06 and all five exact-main push CI jobs in `41682825309`, but independent review
+found four source/spec misses: canonical PDF downstream consumption, immutable publication
+readback, retired process-surface history and stale re-index commands. Required core E2E was also
+unperformed. The four repairs now pass focused checks and independent source re-review; canonical
+continuation passed 53/53, the other three scopes 144/144. Required core E2E passed 46 tests with
+23 explicit no-emulator configuration skips at 18:18:53Z. Core and full07 captured the same
+3,046-path source manifest `aceee3fe`. These are engineering results, not client unknowns; the new
+release remains unadmitted. Full07 completed at 18:30:52Z: 10,162 unit passes/four existing parity
+skips, all 497 backend tests/no skips, all 16 npm commands, policies/audit and production build.
+Fresh exact-main CI/delivery/runtime outcomes remain pending. Backend questions: `docs/open-blockers.md`.
+
+The earlier source repairs cover narrow
 staff notice-basis selection, current packet/readiness projection, retired decision eligibility,
 partial-feed diagnostics, precise renewal read errors, bounded RentVine options-error handling,
 source-bound re-index handoff, and existing-process content/revision/history safety. Native full

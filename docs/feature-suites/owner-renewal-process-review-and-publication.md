@@ -3,7 +3,7 @@
 
 # S241 — Review and publish the existing owner-renewal process
 
-> Status: Authoring FINAL / READY; source and local gate QUALIFIED; application delivery PENDING. Current process guidance, exact revision/hash conflict safety and immutable run-version recovery passed full06 and focused checks; final v8 runtime scope is in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). The genuine managed scanner utility at image `9b3ea5246c57` is promoted/read back. Actual application-runtime invocation, exact existing-process policy and correction/publication remain pending after application delivery; no process was published or run as proof.
+> Status: Authoring FINAL / READY; source and local gate QUALIFIED; application delivery PENDING. Current process guidance, exact revision/hash conflict safety and immutable run-version recovery passed corrected full07 and focused checks; prior final v8 runtime scope is in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). The genuine managed scanner utility at image `9b3ea5246c57` is promoted/read back. Actual application-runtime invocation, exact existing-process policy and correction/publication remain pending after application delivery; no process was published or run as proof.
 
 **Goal.**
 
@@ -96,8 +96,13 @@ enable one or replace the operation's current source/actor/confirmation/recovery
   and publication audit. Retired submit/activate routes remain retired; no Approval Queue item or
   extra general Admin/Dan ceremony is added. If policy/source/scanner readiness is unavailable,
   keep corrected draft work and name the exact technical cause. After a lost response, read the
-  current definition and immutable version before another attempt. An exact current desired
-  version can be reported as current; matching bytes alone do not prove this request created it.
+  current definition and backend-validated immutable version/content evidence before another
+  attempt. Ordinary readback validates the version's definition/Space identity, existing S21
+  record and actual stored bytes/hash/size, then compares the exact editable content identity
+  with the current definition and binds that proof to its revision. A pointer or HTTP success
+  alone is not publication evidence. Missing/corrupt/mismatched evidence remains explicitly
+  unavailable. An exact current desired version can be reported as current; matching bytes alone
+  do not prove this request created it.
   Ambiguous origin/result stays explicit and is not blindly republished.
 - **R-S241-6 — Preserve history and show truthful state.** Retain all prior publication versions,
   contents, audit records and each run's original `definition_version_id` or Not pinned (draft)
@@ -227,8 +232,12 @@ versions/runs, exact action keys and original receipt meaning independently of t
   snapshot. Policy drift and unauthorized/retired definitions preserve existing refusals.
 - **AC-S241-3** — Falsify ARCH-S241-3 / BEH-S241-2 / BEH-S241-3: extend canonical publication
   fixtures with no-enabled-policy, multiple-policy, missing source, scanner unavailable and lost
-  response cases. Keep draft work, distinguish current matching content from causality, and assert
-  no blind duplicate publication, retired submit/activate use or new Approval Queue item.
+  response cases. Actual ordinary GET and mounted lost-Publish recovery must verify matching
+  immutable bytes and reject absent/corrupt/wrong-definition/wrong-Space/version/hash/content
+  evidence without claiming publication from the mutable pointer. Drafts with prior pointers stay
+  unpublished. Preserve the working manual duplicate-Publish guard and single POST count. Keep
+  draft work, distinguish current matching content from causality, and assert no blind duplicate
+  publication, retired submit/activate use or new Approval Queue item.
 - **AC-S241-4** — Falsify ARCH-S241-3 / BEH-S241-3: prior published content/versions, audit and run
   references remain identical after a successful new version. Draft/published cards agree with
   detail. An old pinned run continues displaying/validating/completing its old steps after the
