@@ -9,7 +9,54 @@ Keep all pending outcomes in the overall program. Exact-main CI, fresh prerequis
 one watcher/application build, receipts, full observation and recovery remain mandatory. Failed
 attempts and consumed permits are immutable and never reusable.
 
-## Current verified delivery
+## Current verified delivery — November 3 gap program
+
+Canonical production serves `b5ba780279be0eb5661e463d2e73b5add1064056` /
+`pmi-kc-app-rmw123csb-dc0ce89a8583` at 100% traffic. Run
+`ff1f44bf-9864-42e7-884f-1c2b8e2a545f` completed at 19:25:27Z with actual exit 0,
+consumed permit and no rollback. Its one regional application build
+`d0f2d859-cc2c-42e2-8c27-a81340c84930` succeeded; the resolved running image matches
+`sha256:d0e4c7846e74e92eacf20b90bd86fce25f51ffaef675ce6208faf850e326fc88`.
+Candidate receipt `3290b6c6-bf10-4c8d-8013-30c82dd9bf55` issued at 19:18:11.576Z;
+receipt-bound promotion verified at 19:18:33.509Z. Two observation checkpoints passed over
+417,609 ms within the 300,000/480,000 ms bounds: all 375 source/projected/rendered records
+matched, with zero discrepancies, candidate 5xx or unresolved effects. Thirteen guarded Admin
+routes had zero diagnostics/mutation attempts; Editor browser remains `not_run`. All eleven
+independent final readback sections matched at 19:27:02Z. Runtime fingerprint:
+`sha256:b6cf189e006e5711bdc6b6f2eab1cec889d2439598b9cefbee96ea777c5a9111`.
+The fresh 20:22Z revision comparison found only APP_COMMIT_SHA changed among 54 environment
+keys; the managed runtime identity, five secret bindings, eleven paired Space maps,
+Production/Live, Demo=false and Sheet=true are preserved.
+
+Captured predecessor: `pmi-kc-app-rmvzwt7ms-00754475effd` /
+`bc97535379dd08deab578455b00a80fc93b8d209`, Sheet=true. Run-bound recovery
+`pmi-kc-app-recovery-ff1f44bf986442e7`, receipt
+`130d25b9-152b-4708-9857-14635cf27ac6`, reference
+`sha256:7105f29712031c0bc2215b622703c1323fdecb8a48e00d40d219662c1b4818cf`, preserves
+that actual predecessor image/configuration. Original and target runtime fingerprints both equal
+`sha256:db70cd63e1c17ebb706e5291422e68d8be06707ceebc5805a7408b5eda547fe0`.
+No traffic rollback occurred in ff1; its consumed receipts grant no new dispatch.
+
+The P1–P9 source delta and four independently reviewed corrections are delivered; exact-main CI
+`41696162202` passed all five jobs. Thirteen subsequent normal configuration operations were
+read back: eight unchanged source destinations attested at settings v16, Dotloop observation
+refreshed with two supported profiles/zero and nine templates and saved selection v1 unchanged,
+settled notice basis v1 saved, and the same existing owner-renewal process corrected. Its exact
+process-only trust policy was created before normal publication produced Active v1 with six steps,
+three links, 4,637 verified immutable bytes and zero runs.
+No original was published or legally/map-approved; no customer dispatch, provider business write,
+signature or Dotloop key activation is inferred. Both Dotloop write keys remain closed.
+
+The live S240 inventory remains non-runnable. **U6/B-GCP-REINDEX** asks Josiah as project owner
+for one narrow scope-deviation decision from S240's explicit IAM exclusion; the permission
+proposal is prepared and unexecuted, with no new grant applied. **U4/B-PROCESS-OWNER** preserves
+the specific team responsibility input for the process's existing staffing placeholders; it is
+not a general Dan approval. Legal/map, case-data and human acceptance holds remain separately
+owned in [the canonical unblock packet](open-blockers.md). The application queue is delivered;
+consumed receipts do not authorize another run and documentation-only closure does not deploy.
+See [the exact delivery and configuration evidence](evidence/application-gap-delivery-2026-11-03.md).
+
+## Previous verified delivery — November 3 00:10 (historical)
 
 Production serves `bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd` at 100% canonical traffic.
 Run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73` completed at 2026-11-03T00:10:44Z, with its permit consumed and watcher exited.

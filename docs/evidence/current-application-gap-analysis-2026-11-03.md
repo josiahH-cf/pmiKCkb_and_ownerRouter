@@ -1,5 +1,30 @@
 # PMI KC application gap analysis — November 3, 2026
 
+## Current implementation outcome — later November 3
+
+The finalized P1–P9 source work is delivered at `b5ba7802` /
+`pmi-kc-app-rmw123csb-dc0ce89a8583`, 100% traffic. Exact-main CI, candidate/promotion, two full
+observation checkpoints and eleven final readbacks passed. Thirteen actual normal configuration
+operations subsequently passed readback, including source flags v16, unchanged Dotloop selection
+v1/fresh observation, settled notice basis v1 and the existing process Active v1 with verified
+immutable bytes. [Current delivery evidence](application-gap-delivery-2026-11-03.md) contains the
+dated source/test/deployed/UI/configuration coverage and limitations. This does not establish
+legal/maps, staff acceptance, signatures, paid generation or provider business completion.
+
+A-02's software/refusal path is delivered, but its live inventory cannot run without the absent
+runtime metadata-list permission. Existing owner reads validate one Approved/Low source and exact
+handoff. The narrow new grant is excluded by S240 and awaits the project owner's scope decision;
+the exact proposal is prepared. The preserved process assignment placeholders also need actual
+responsible staff before new checklist routing is claimed. These are precise
+[canonical holds U6 and U4](../open-blockers.md), alongside the existing U1–U5 legal/case/human/
+later-activation set. No client file, template recreation, membership or login is requested again.
+
+The original assessment/authoring tables below retain their dated evidence, not current pending
+implementation claims. The canonical blocker register owns the current Category B set; the
+ten linked owning specifications now record delivered software and their exact remaining gates.
+
+## Original assessment checkpoint
+
 The assessment below is a dated checkpoint. The owner subsequently launched its finalized plan;
 current implementation and qualification progress is recorded in
 [implementation evidence](application-gap-implementation-2026-11-03.md). Original observations

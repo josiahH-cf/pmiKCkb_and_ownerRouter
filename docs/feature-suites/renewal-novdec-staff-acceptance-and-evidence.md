@@ -3,7 +3,7 @@
 
 # S238 — November/December renewal staff acceptance, evidence and blocker closure
 
-> Status: IMPLEMENTED AND DEPLOYED — run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73`, `bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd`, November 3, 2026. S238 code and isolated verification are deployed/complete: the 34-step real-route/emulator journey passed on identical application bytes, and current guarded release/readbacks passed. The real staff walkthrough and physical-phone acceptance remain NOT RUN. Synthetic journeys cannot satisfy them. See `docs/evidence/application-delivery-2026-11-03.md`.
+> Status: IMPLEMENTED AND DEPLOYED. The stabilization baseline run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73` at `bc975353` retains [its delivery evidence](../evidence/application-delivery-2026-11-03.md). The November 3 gap follow-up is now delivered at current main `b5ba7802`; see [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). Full07/core are current-source qualification; prior v8 keeps its pre-correction scope. Real staff walkthrough and physical-phone acceptance remain NOT RUN; synthetic journeys cannot satisfy them.
 
 **Goal.**
 
@@ -335,11 +335,13 @@ represented in code, tests and current facts; keep the ledger as sanitized evide
 
 ## November 3 assessment follow-up — A-01 and A-06
 
-> Authoring: FINAL. Current code/UI/checker and precise read/completeness repairs: source and
-> local gate QUALIFIED; application delivery PENDING. Full06 and final v8's 34-step fixture journey
-> retain their exact scopes in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). The final copy-only client package,
-> actual client decisions, exact-key activation and human acceptance remain separately tracked;
-> no synthetic observation supplies a human or provider verdict.
+> Authoring: FINAL. Current code/UI/checker and precise read/completeness repairs are DELIVERED.
+> Corrected full07 passed 10,162 unit tests/four parity skips and 497 backend tests; current core
+> passed 46/23 explicit no-emulator skips on matching source. Prior v8 passed 34 steps on its
+> pre-correction source; it is not relabeled current-source proof. See [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md) and
+> [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). Normal configuration is verified within that evidence. Client-facing
+> copy belongs to its separate private workflow. Actual legal/map/client decisions, exact-key
+> activation and human acceptance retain their named boundaries.
 
 **Goal.**
 
@@ -539,7 +541,7 @@ explain a stale source, real missing input or uncertain attempt. The owner can c
 Dan/Jon update with a short list of genuinely unanswered questions; nobody repeats a settled
 business decision or mistakes engineering completion for signed leases or customer receipt.
 
-- Model verdict: NOT RUN — current guidance and read/completeness source repairs pass focused checks; cumulative qualification, the integrated model litmus, final private copy package and delivery remain pending. No human or provider completion is inferred.
+- Model verdict: PASS for current guidance, read/completeness repairs, full07/core qualification and application delivery within [delivery/configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). Client-facing copy belongs to its separate private workflow; no copy status, human acceptance or provider completion is inferred.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
@@ -597,7 +599,7 @@ Preservation remains a separate gate from new behavior, not an averaged score.
 **Forbidden actions / hard gates.**
 
 The owner launched scoped code/tests/documentation work and its existing mainline/release gates.
-Source repairs pass focused checks; cumulative qualification and delivery remain pending. Those
+Source repairs, corrected qualification and application delivery are verified. Those
 permitted steps are not forbidden merely because this document began as an assessment.
 It may not send/create provider drafts, schedule customer communication, create business/test
 records, sign documents, invent legal content, alter unrelated privileges/budgets/security or rerun
@@ -617,9 +619,10 @@ unrelated legal form, sender designation or human session. Never bypass the exac
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** implemented UI/docs/checker and precise read/readiness repairs with passing
-  focused checks. Cumulative qualification, integrated litmus, final private copy-ready package
-  and delivery remain pending; the evidence/hold ledger keeps their separate states.
+- **Deliverable now:** delivered UI/docs/checker and precise read/readiness repairs with full07/core
+  qualification and served readback. Client-facing copy remains owned by the existing private
+  workflow; its state does not become a new application-engineering blocker. Human/provider and
+  exact business/legal outcomes remain separately tracked.
 - **Consumes, but does not assume:** existing source/runtime/readers/fixtures and documented decisions;
   missing client facts and genuine human evidence remain exact not-run/held rows.
 - **Externally blocked effect:** only the named legal/content/human/activation outcome whose actual

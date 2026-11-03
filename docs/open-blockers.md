@@ -1,6 +1,6 @@
 # Unblock packet
 
-Last reconciled: 2026-11-03, authorized implementation and focused engineering evidence.
+Last reconciled: 2026-11-03, verified delivery, thirteen normal configuration readbacks and live source-access diagnosis.
 This is the canonical external/human hold register. The
 [assessment](evidence/current-application-gap-analysis-2026-11-03.md) and
 [implementation plan](plan.md) link to this same set. A hold blocks only its named output/effect;
@@ -12,10 +12,12 @@ meeting plans are not scheduled jobs or promises.
 
 ## Settled direction and current state
 
-Production was freshly verified in the assessment at bc97535379dd08deab578455b00a80fc93b8d209 /
-pmi-kc-app-rmvzwt7ms-00754475effd, 100% traffic; source main 39435919 has the same runtime tree.
-[November 3 delivery evidence](evidence/application-delivery-2026-11-03.md) records the completed
-S232–S239/S126/auth release, empty queue and consumed permit. No new execution starts from READY.
+Production now serves b5ba780279be0eb5661e463d2e73b5add1064056 /
+pmi-kc-app-rmw123csb-dc0ce89a8583, 100%. Run ff1f44bf completed, its permit consumed; full
+observation and eleven independent readbacks passed. The [current gap delivery](evidence/application-gap-delivery-2026-11-03.md)
+records the application, thirteen normal configuration operations and exact remaining limits.
+The earlier bc975353/39435919 assessment baseline and prior release retain their dated evidence.
+No old READY row or consumed permit starts new work.
 
 - **Dan is the ask contact, not a replacement for investigation.** Recover documented Dan/team
   decisions and accessible case facts first, then use them in the existing configuration/process
@@ -25,9 +27,10 @@ S232–S239/S126/auth release, empty queue and consumed permit. No new execution
 - **Notice-basis recording is engineering work.** The owner's latest Q2 supersedes the earlier
   human-Admin recording assignment: an authorized renewal staff selection can write without Admin
   confirmation. S125 specifies that single-intent path. The settled basis is contractual lease end,
-  calendar-day target minus notice, threshold 30, exactly 30 meets it. Current deployed code still
-  has the old Admin enforcement; the staff-selection source change and focused fixtures are not
-  deployed policy state. No policy value was saved during planning. Only genuinely unknown
+  calendar-day target minus notice, threshold 30, exactly 30 meets it. The former Admin-only enforcement
+  is superseded by the delivered authorized staff-selection path. The settled tuple was actually
+  saved as version 1 with its own UUID-bound receipt/readback; no second confirmation. The actual
+  actor was the approved Admin account, not an Editor-browser proof. Only genuinely unknown
   notice rules or campaign dates remain potential client decisions.
 - **Existing Dotloop paths are in the plan.** S34 carries new-loop/existing-loop upload through
   technical readiness and a separately gated exact-key activation stage. Both write keys stay
@@ -37,14 +40,18 @@ S232–S239/S126/auth release, empty queue and consumed permit. No new execution
 - **C00 / A1 / B-DL2 remains resolved.** October 27 office membership and saved selection v1
   (supported office profile / Lease Renewal / LEASE_OFFER / PRE_OFFER) are settled. Exact IDs
   remain in private readbacks. Fresh November 3
-  provider reads completed 08:41:41Z: approved integrations identity, two INDIVIDUAL profiles,
+  provider reads completed 08:41:41Z, then normal cached-observation refresh completed 19:36:04Z:
+  approved integrations identity, two supported profiles,
   zero/nine templates, selected Lease Renewal visible. No admin restoration, template recreation,
   new credentials or repeat status-choice ask. The app's October 27 cached observation was stale;
-  existing bounded refresh is team-owned, not an access hold.
+  bounded refresh is now verified with entire saved selection v1 unchanged, not an access hold.
 - **Authentication and sources have scoped evidence.** Approved WSL CLI/ADC refresh and managed
   Admin walkthrough passed. One normal Dotloop OAuth refresh/readback persisted the existing
   credential/vault lifecycle (connection revision 23→25); no selection/observation/business write.
-  Eight managed-browser PDF sources match saved references v8; all intake entries were null/unverified.
+  Eight managed-browser PDF sources match the unchanged saved destinations. Eight normal-route
+  factual location/use attestations advanced settings v8→v16; no URL/unrelated entry changed.
+  Actual catalog originals/maps remain unapproved; these flags do not grant legal approval or
+  prove the application integration identity can fetch the Drive files.
   The managed Drive browser download subsequently completed: all eight originals are recovered,
   32 static pages, zero AcroForms, hashes verified; the earlier four match byte-for-byte. Full
   text/geometry and renders were inspected. Proposed maps remain unapproved/non-executable;
@@ -56,8 +63,19 @@ S232–S239/S126/auth release, empty queue and consumed permit. No new execution
   These statements do not by themselves approve every present legal version, map, amount or election.
 - **Operational/human claims remain separate.** Gmail actor profile and worker reads passed; no
   customer dispatch, schedule, reply, label, new draft, receipt or signature was assessment proof.
-  Family use v0, no published charge policy/Rhino material and no saved timing basis were observed;
-  this is application state, not evidence that PMI has made no relevant business decisions.
+  Family use v0 and no published charge policy/Rhino material were observed; timing basis is now v1.
+  This is application state, not evidence that PMI has made no relevant business decisions.
+- **Process guidance is published; real staffing is a separate input.** The same existing
+  definition is Active v1, six steps/three links/4,637 verified immutable bytes, zero runs. Original
+  owner/default-approver placeholders were preserved. New run ownership currently reads the
+  default-approver field; Dan/team must identify the actual responsible managed staff before that
+  routing outcome is claimed. This is not a new general approval gate. See U4/B-PROCESS-OWNER.
+- **Runtime source access needs a narrow new scope decision, not files or login.** Existing owner
+  reads verify one Approved/Low source and a source-bound importer-compatible command. Effective
+  bucket/project/org/role inspection finds no runtime storage.objects.list grant. S240 explicitly
+  excludes IAM changes; the exact one-permission role/bucket proposal is prepared but unexecuted.
+  Josiah as project owner decides that scope extension. Engineering can apply/verify it afterward;
+  Dan has no GCP task. See U6/B-GCP-REINDEX.
 
 ## Holds at a glance
 
@@ -68,6 +86,8 @@ S232–S239/S126/auth release, empty queue and consumed permit. No new execution
 | B-TIMING / C05            | Only genuinely unresolved rule values or campaign dates                                         | Dan/team policy/source authority, if evidence recovery does not resolve them                               | U3; settled thirty-day basis recording has moved to S125 engineering           |
 | B-HUMAN / C03–C04,C11–C13 | Genuine delegation/owner consent, human acceptance or provider-completion claims                | Actual landlord/representative, staff/signers/observer; Dan routes unresolved authority questions          | U4; ordinary staff confirmation contracts remain sufficient for supported work |
 | B-DL-AUTH                 | Actual app-mediated Dotloop creation/upload                                                     | Owner of exact action authority after content and technical gates; existing protected activation procedure | U5; technical readiness proceeds, keys remain closed pending exact authority   |
+| B-PROCESS-OWNER           | Actual staff routing of a newly started internal owner-renewal checklist                        | Dan/team identifies responsible managed staff; engineering maps verified existing UIDs, no role grant      | U4; published guidance is usable, no run or assignment is invented             |
+| B-GCP-REINDEX             | App-runtime inventory and runnable re-index handoff for the existing approved source            | Project owner authorizes one narrow extension to S240's explicit IAM exclusion; team applies/reads back    | U6; exact private proposal and owner-side handoff ready, no ingestion          |
 
 Missing resource destinations hold only output using them. The insurance/RBP flyer and renewal
 information-form URL remain unverified; the insurance legal addendum and blank collection checklist
@@ -108,8 +128,9 @@ The completed private proposal narrows the review to actual issues: prechecked l
 agency/compensation elections cannot be assumed for each case; printed representative/firm details
 and fee/benefit/insurance terms need their actual current authority; the owner acknowledgment's
 execution-date meaning and unlabeled box need a disposition; the pet source contains conflicting
-visible/extracted processing-fee text and conditional animal/assistance language. Dan routes only
-those unresolved meanings to the actual document/financial authority. Engineering already owns
+visible/extracted processing-fee text and conditional animal/assistance language. The brokerage
+brochure's unlabeled footer/signing purpose also needs a disposition; its unapproved slots remain
+unfilled. Dan routes only those unresolved meanings to the actual document/financial authority. Engineering already owns
 the field coordinates, rotated-page geometry, repeated slots and protected signing regions.
 
 ### U2 — Resolve only missing case/policy facts (B-DL3, C07–C10)
@@ -143,7 +164,7 @@ No bulk customer export, generic all-ten-form request or invented legal rule.
 ### U3 — Confirm only unresolved notice rules or campaign dates (B-TIMING, C05)
 
 The old request for a human Admin to re-record the already-settled basis is superseded by the
-owner's November 3 Q2. It is not a client unblocker. S125 specifies the planned authorized renewal-staff
+owner's November 3 Q2. It is not a client unblocker. S125 delivers authorized renewal-staff
 selection of the settled tuple with automatic persistence, version conflict handling, audit and
 readback; no second confirmation, retyped attestation or Admin-only gate.
 
@@ -165,6 +186,29 @@ date constitutes a send authorization, fee/legal determination or background sch
 **Who acts:** actual landlord/authorized representative, participating staff and signers/observer;
 Dan is the contact for unclear business authority. Bailey/Chasity participation is settled.
 Engineering reads roles, Spaces, sender profiles and exact targets without ceremonial new logins.
+
+**Specific process-staffing input — B-PROCESS-OWNER.** The actual Active process still has the
+preserved owner/default-approver placeholders. Source `lib/firestore/workflows.ts` assigns a new
+run's owner from `content.default_approver_uid`; no real run was created or routing accepted.
+Current operator/plan/feature evidence does not identify those actual responsible people.
+Bounded managed-mailbox recovery verified the profile, four August–November searches, three
+relevant threads and the full earlier training attachment. Bailey/Chasity participation is clear;
+the August daily-check assignment was a two-to-four-week pilot, not November standing ownership.
+No checked correspondence supplies the current default. Uninspected recordings/sources remain a
+coverage limit, not a claim that no assignment exists anywhere.
+
+1. Dan/team identifies who owns this internal process and who should receive newly started
+   owner-outreach checklists. One person may fill both roles if that is the actual team decision.
+   This asks for the responsible people, not UIDs, passwords or a general Dan approval.
+2. Engineering binds the confirmed people to existing managed user records through the authorized Admin directory and exact
+   UIDs, reviews the current definition/version, and uses the existing authorized Save/publication
+   controls. No account, role/claim, signature authority or mandatory approval is invented.
+3. Done means the current published definition contains the confirmed assignments and isolated
+   routing verification uses the intended existing staff UID. Actual first staff use/acceptance
+   is recorded separately; no production checklist is created for proof.
+
+This unlocks accountable routing of genuine new internal checklists. It does not hold the already
+published guidance or authorize customer/provider work. The remaining U4 case/human steps are:
 
 1. Recover actual delegation and existing current-term approval evidence. Ask only where scope or
    evidence is missing; a title/name, pricing policy or general reply approves no particular terms.
@@ -196,6 +240,38 @@ provider readback and ambiguity recovery through the existing ordinary-work cont
 **Unlocks:** only that operation. Signing remains human; local preparation/manual handoff continues
 independently. No activation or provider business write was performed in this authoring round.
 
+### U6 — Authorize only the missing runtime metadata-read scope (B-GCP-REINDEX)
+
+**Who acts:** Josiah as project owner makes one scope-deviation decision; the project team performs
+the technical work. This is not a Dan/client-files/login request or a new identity requirement.
+
+**Exact cause and rule:** the unchanged app GET returns no runnable command because its runtime
+cannot complete source listing. Bucket/project/org policies, all five runtime-role definitions
+and managed-folder absence establish no effective `storage.objects.list` grant. The same exact
+SDK read works under approved owner ADC; the existing source is Approved/Low with valid format
+and generation. The raw production exception is not exposed, so it is not called an observed 403.
+Missing permission independently prevents this read. S240's hard gate explicitly says
+“Do not … change IAM/identity/cost controls”; the launch carries the same approved scope.
+
+1. Review the exact private `reindex-live-diagnosis-01/scope-deviation-proposal.private.json`.
+   Decide whether to extend S240 only for one `storage.objects.list` custom role and one binding
+   for the existing managed runtime on the existing configured corpus bucket. This is whole-bucket
+   metadata listing, not a prefix-restricted grant. It includes no object-content get, write,
+   new identity, API enablement, client-send/key activation or ingestion authority.
+2. After explicit authority, engineering takes a fresh policy backup/etag, checks the exact role
+   remains absent/compatible, applies only the reviewed role/binding with CAS, and reads back the
+   permission and every preserved binding. The private proposal includes rollback that preserves
+   concurrent unrelated grants. No old policy file is applied blindly.
+3. Done means the unchanged authenticated app GET resolves the actual existing approved source
+   and returns its importer-compatible, generation-bound runnable handoff. Check exact target,
+   format/approval/current generation and absence of import/staging effects. A remaining refusal
+   stays explicit and is diagnosed; an IAM command alone does not make this check pass.
+
+**Available independently:** the private owner-side handoff already passed the actual command
+builder, importer parser/request builder and fresh generation metadata check. It remains unexecuted.
+Choosing to retain the current permission boundary keeps that manual path and the app's honest
+non-runnable state. No source replacement, approval recollection or broad Storage role is needed.
+
 ## C00–C13 continuity
 
 | Item | Ownership / disposition                                                                                                      |
@@ -217,113 +293,30 @@ independently. No activation or provider business write was performed in this au
 
 ## Retired/resolved scope and independent engineering
 
-### Backend questions under active implementation
+### Backend question reconciliation
 
-The owner launched the finalized plan after authoring. These are engineering questions, not
-client tasks or additional approval ceremonies. A fix/diagnosis is not marked deployed until its
-release/readback evidence exists.
+The named engineering repairs, application delivery and thirteen normal configuration outcomes
+are verified. [Current delivery evidence](evidence/application-gap-delivery-2026-11-03.md) records
+actual checks and limits. Closed below means the named diagnosis/engineering outcome is resolved,
+not that a legal, human, customer or provider effect occurred. Earlier failures remain private.
 
-**Q-ENG-PUB2 / A-08 — SOURCE QUALIFIED; DELIVERY PENDING.** The initial publication/intake repair
-passed its local gate, but independent review of `a32d1a6b` found downstream packet resolution and
-approved current/historical byte readers still accept only legacy `renewals`. Canonical
-`lease-renewals` originals can reach Received, then become inactive/refused even after approval.
-S130 AC-S130-20–24 own the exact reviewed PDF path and canonical/legacy compatibility through
-catalog approval, packet resolution, current/historical reads, filling and content transport—not
-only intake. The shared exact canonical/legacy predicate now passes 53/53 focused checks,
-including the real catalog, packet, filling, current/historical byte and typed transport owners.
-Independent re-review and cumulative qualification are separate; delivery is pending.
-Unrelated Spaces remain refused. Legal/map
-decisions remain U1/U2 and do not conceal the technical gap. General arbitrary KB file/folder
-publishing is outside that repair. No real form is published or approved as test proof.
-
-**Q-ENG-PDF-COMPAT / A-08 — CLOSED, verified 2026-11-03T15:45:53Z.** Fresh read-only inspection
-accepted all eight unchanged originals, and each separately passed the bounded local text
-tripwires. All 17 kernel controls, source/input immutability and clean teardown passed. The earlier
-one/seven and seven/one results remain preserved privately. Explicit encoding and owned color/font
-stream support fixed the technical refusals; unknown/unsafe/incomplete formats remain refused.
-The 166-check synthetic/preservation matrix also passed. This closes format compatibility only:
-no legal/map approval, general DLP, real-original malware scan or publication is inferred. No
-replacement file, legal decision or client permission was needed for the engineering repair.
-
-**Q-ENG-PROCESS-HISTORY / S241 — IN PROGRESS.** Source review found existing workflow runs read
-mutable definition steps despite a published-version pointer; new Draft runs also inherit the
-prior publication pointer. S241 corrects the current/past-version distinction through the existing
-immutable store, with exact identity/Space validation and no fallback for an unavailable pinned
-snapshot. Existing runs are not rewritten; ordinary unpinned Draft starts remain supported.
-Independent UI recovery regression also caught a Draft labeled Active merely from its old
-pointer. Engineering owns the bounded fixes/qualification; no human/client input is missing.
-
-**Q-ENG-PDF-DETECTION / A-08 — investigation closed; broader detection claim unverified.** The exact
-engine passed real raw-file clean/EICAR checks, and the managed PDF endpoint passed original-byte
-clean scanning plus admission/refusal checks. A further synthetic EICAR-in-PDF-comment probe
-returned clean at 16:00:20Z; its expected-detection assertion failed and is preserved. This is
-not proof of PDF-contained payload detection or a client permission/input issue. Engineering
-checked the provider's actual harmless test contract: EICAR's specified file format is not a PDF
-comment. ClamAV's versioned positive PDF fixture uses a separate test database, which is not
-installed in this managed service. The failed probe is not an established application/engine
-defect. Broader PDF-contained/encoded payload detection remains unverified; no scanner, adapter
-or policy control is relaxed and no actual original is published or legally approved by these checks.
-
-**Q-ENG-RETIRED-HISTORY / A-07 — SOURCE QUALIFIED; DELIVERY PENDING.** The individual-run repair passed
-its focused and cumulative gates. Independent review then found process lists/detail pages and
-definition APIs still expose retained maintenance definitions or read their runs before retirement
-classification. S227 R1–3 / AC-S227-7 own machine filtering before list limits and notice-only/410
-admission before history reads/rendering, preserving records and genuine staff/renewal work.
-The correction passed the 144-check S227/S240/S241 batch and independent source re-review.
-Cumulative qualification and delivery remain pending; no client decision or authority is missing.
-
-**Q-ENG-PUBLICATION-READBACK / S241 — SOURCE QUALIFIED; DELIVERY PENDING.** Lost-Publish recovery
-currently reads only the mutable definition and infers an active immutable version from its
-pointer. S241 R5/AC3 require the actual immutable version and stored content/hash/identity read.
-Typed backend-owned verified/not-published/unavailable evidence now checks the real immutable
-snapshot, S21 records and actual stored bytes/hash/size/current content. Missing/corrupt/mismatched
-content recovery and preservation passed in the 144-check batch and independent source re-review.
-The existing duplicate-Publish guard is preserved. Delivery/runtime readback remain pending;
-no client consent or new approval layer is required.
-
-**Q-ENG-REINDEX-CURRENCY / A-02 — SOURCE QUALIFIED; DELIVERY PENDING.** A failed current review or
-Space change retains the prior runnable command; a late response can appear under another Space.
-S240 R3/BEH2/AC4 require invalidation/request binding and mounted failure/Space/race checks.
-Request/Space-bound invalidation and mounted race/failure checks passed in the 144-check batch
-and independent source re-review. Only a fresh current-source plan can be runnable; delivery is
-pending and no import was performed.
-
-**Q-ENG-CORE-E2E / P9 — CLOSED, verified 2026-11-03T18:18:53Z.** The existing credential-isolated
-`npm run test:e2e:core` lane passed all 14 expected files: 46 passes, zero failures and 23 explicit
-no-Firestore-emulator configuration skips. Actual inner/outer exits were zero; all 17 controls,
-font negative/terminal checks, cleanup and 3,046 unchanged source hashes passed. Manifest
-`aceee3fe58b9684a9afb2e72c0aebb6a4bb6a71cae94921e5b85b6f7cd5f336a`
-matches full07. The skipped mutable cases retain backend-emulator coverage as a separate link;
-this result does not claim production or human acceptance. Earlier full06/CI did not run this lane.
-
-**Q-ENG-JOURNEY-ADAPTER / P9 — CLOSED, verified 2026-11-03T16:48:59Z.** Full gate 05 passed all
-10,128 unit checks, then 495 backend checks passed and two mounted S113 operator journeys failed
-their unchanged zero-unhandled-request assertions. The newly supported notice-basis GET is
-missing from the test dispatcher. Binding the real GET/PATCH handlers made all 28 tests in the
-affected Firestore file pass. The fresh/underway journeys respectively observed seven/two
-notice-basis GETs, all HTTP 200/parsed/completed; all 545/420 total requests fulfilled with zero
-rejected or pending, retaining the original strict assertions. All 17 controls and clean teardown
-passed. The original sanitized log did not contain the path; these positive readbacks establish
-the missing-adapter cause. Production code did not change for this repair. Cumulative qualification
-continues independently; no client input or production/customer effect is needed.
-
-| Question                                                                 | Current evidence / status                                                                                                                                                                                                                                                                                                                                                                                                                    | Owning next action / completion check                                                                                                                                                                                                                                                                                                                                                         |
-| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Q-ENG-PUB1 — production process-publication scanner                      | SOURCE/UTILITY QUALIFIED under S241 and existing standing authority. The genuine managed scanner utility is promoted/read back; exact process/content policy and authenticated adapter source pass focused checks. Current old production still returns `policies: []` and the process Draft. Application delivery, exact runtime policy and actual app-identity publication remain pending.                                                 | Engineering completes the real adapter/deployment/configuration and exact policy readback through the existing managed-resource and S21 gates, then publishes the reviewed existing definition through canonical validation/versioning. No new client approval or external hold is required; no fake scanner or database bypass is supplied. Runtime publication and delivery remain pending. |
-| Q-ENG-500 — recovered November 2 read failure                            | CAUSE ESTABLISHED / source handling repaired: a same-instance RentVine recurring-charge detail GET returned HTTP 500 at the exact request finish. Five starting regressions failed; 113 focused checks passed after a sanitized unavailable response/UI repair.                                                                                                                                                                              | Qualification and deployment readback remain pending. Original POST body/actor and RentVine's internal cause were not retained/established; these unknowns do not reopen the diagnosed application-boundary cause or require another login.                                                                                                                                                   |
-| Q-ENG-DECISION — retired shared decision prompts                         | SOURCE REPAIR / FOCUSED CHECKS PASSED: machine provenance and authoritative closed/superseded lifecycle fields exclude retired prompts while preserving genuine work. Shared gather/Console/Notifications/Spaces checks passed 49 tests after seven intended starting failures; rows/signals retain their strict value-free shape.                                                                                                           | S227/S238 complete cumulative qualification and actual deployed readback. Retain original records/receipts; retirement filtering is not a history closure, deletion or permission grant.                                                                                                                                                                                                      |
-| Q-ENG-READ — incomplete renewal decision coverage                        | SOURCE REPAIR / FOCUSED CHECKS PASSED: source currency/read time, permission refusal and overlay unavailability remain distinct. The shared gather carries complete/partial/unavailable coverage; Console, Notifications and Spaces preserve actual rows without a false zero/all-clear. The same 49-test run includes these consumers; counts are not added again.                                                                          | Complete cumulative qualification and deployed checks under the actual actor. Fresh Admin/read fixtures do not establish Editor-browser, phone, human acceptance, paid generation or customer effects. Unknown views remain unverified.                                                                                                                                                       |
-| Q-ENG-S72 — legacy Gmail checkpoints and current Communications evidence | KNOWN SUPPORT BOUNDARY: current Communications owns its attempt/receipt evidence; no active path automatically records it as legacy S72 sent evidence. S113 staff-recorded progress is deliberately separate. Copy now names the legacy Gmail checkpoints; functional prerequisites and conservative draft/source/copy/recipient/terms invalidation are preserved. One starting regression failed and 81 focused preservation checks passed. | Preserve this distinction in current guidance and the verification matrix; no duplicate send is needed to satisfy a legacy checkpoint. There is no new bridge/control/route or client hold. Current owner-renewal process guidance/publication remains S241; source copy delivery is pending.                                                                                                 |
+| Question                                            | Current evidence / disposition                                                                                                                                                                                                                                                                                                                          | Exact remaining boundary or completion check                                                                                                                                                                                                                                                 |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Q-ENG-PUB1 — production process scanner             | CLOSED: genuine managed scanner and exact-process policy delivered; actual canonical Publish returned Active v1 with verified immutable content, 4,637 bytes/hash/current identity.                                                                                                                                                                     | No raw per-request engine/principal payload was separately observed. Generic publication, legal/map approval and human acceptance are not inferred.                                                                                                                                          |
+| Q-ENG-PUB2 / A-08 — canonical original continuation | CLOSED engineering: exact reviewed PDF path plus canonical lease-renewals/legacy renewals consumers passed 53 focused checks and full07, deployed b5. Catalog, packet, current/historical bytes, filling and typed transport covered.                                                                                                                   | No supplied original was approved/published as proof. Real legal/map-dependent output remains U1/U2; unrelated Spaces remain refused.                                                                                                                                                        |
+| Q-ENG-PDF-COMPAT / A-08                             | CLOSED at15:45:53Z: all eight unchanged originals pass complete safe parser inspection and bounded local tripwires, seventeen kernel controls/input immutability/cleanup; earlier failures retained.                                                                                                                                                    | Format compatibility does not establish legal/map approval, general DLP or actual-original provider malware scans.                                                                                                                                                                           |
+| Q-ENG-PROCESS-HISTORY / S241                        | CLOSED source/delivery: pinned runs read their immutable version, missing/mismatched pins refuse, Draft starts do not inherit old publication; actual process v1 proof verified.                                                                                                                                                                        | Existing runs/versions preserved. This definition still has zero real runs; no production run was created to prove history behavior.                                                                                                                                                         |
+| Q-ENG-PDF-DETECTION / A-08                          | Investigation CLOSED: raw-file engine clean/EICAR checks passed. Failed EICAR-in-PDF-comment expectation remains failed; official test-file contract and separate provider PDF-test database explain its limited inference.                                                                                                                             | Broader encoded/PDF-contained detection remains UNVERIFIED. No scanner/adapter/policy control was relaxed.                                                                                                                                                                                   |
+| Q-ENG-RETIRED-HISTORY / A-07                        | CLOSED: retired definitions/runs filtered before limits; detail/GET refuses before history reads. Fail-first/focused preservation and full07 passed; b5 delivered.                                                                                                                                                                                      | Retained evidence is not purged, restored or rerun. Genuine staff/renewal work and role/Space checks remain.                                                                                                                                                                                 |
+| Q-ENG-PUBLICATION-READBACK / S241                   | CLOSED: backend verifies real process/S21/resource/content-store bytes, hash/size and current editable identity, bound to current revision; actual v1 GET returns verified.                                                                                                                                                                             | Existing duplicate-Publish guard preserved; no receipt/creation causality, acceptance, signature or send is inferred from a pointer or shared state.                                                                                                                                         |
+| Q-ENG-REINDEX-CURRENCY / A-02                       | CLOSED: replacement request/failure invalidates the prior plan; Space change also clears confirmation, and late results remain request/Space-bound. Mounted regressions in144-check batch/full07 passed; deployed.                                                                                                                                      | Current live plan correctly contains no command. Resource permission and scope decision are separately B-GCP-REINDEX/U6.                                                                                                                                                                     |
+| Q-ENG-CORE-E2E / P9                                 | CLOSED at18:18:53Z: exact existing core lane,46passes/23explicit no-emulator skips/0failures across14files; same aceee3fe source asfull07. All17controls/cleanup passed.                                                                                                                                                                                | Skipped cases are not passed core tests; separate497-test backend gate and actual Admin delivery retain their scopes.                                                                                                                                                                        |
+| Q-ENG-JOURNEY-ADAPTER / P9                          | CLOSED at16:48:59Z: real notice-basis GET/PATCH fixture bindings,28Firestore tests passed; seven/two GETs and545/420 fulfilled requests,0rejected/pending. Full07 subsequently passed.                                                                                                                                                                  | No product gate was mocked away; no production/customer effect or new login was needed.                                                                                                                                                                                                      |
+| Q-ENG-500 — recovered November2 read failure        | CLOSED application-boundary diagnosis/handling: correlated RentVine detail GET500, five starting failures/113 focused preservation checks and full07; bounded options-only503/retained-list repair delivered.                                                                                                                                           | Original POST body/actor/provider-internal cause remain unverified, not invented. No live replay or unknown effect redispatch.                                                                                                                                                               |
+| Q-ENG-DECISION — retired shared prompts             | CLOSED: current lifecycle/machine provenance excludes retired/closed/superseded prompts without deleting records; fail-first49-check batch/full07 and delivery passed.                                                                                                                                                                                  | Existing authority/action gates and original evidence remain; no historical proof restarts.                                                                                                                                                                                                  |
+| Q-ENG-READ — incomplete renewal feeds               | CLOSED: source currency/read time, auth/permission/overlay failure and complete/partial/unavailable coverage remain distinct; no false all-clear; qualified/deployed.                                                                                                                                                                                   | Admin/fixture observations do not establish every Editor/phone/human/paid/provider outcome. New GCS source access is separately diagnosed below.                                                                                                                                             |
+| Q-ENG-S72 — legacy checkpoints                      | CLOSED guidance: legacy Gmail checkpoints remain distinct from current Communications attempt/receipt evidence;81 focused preservation checks/full07 and current process publication passed.                                                                                                                                                            | No automatic evidence bridge or duplicate send is invented. Ordinary source/recipient/terms invalidation remains.                                                                                                                                                                            |
+| Q-ENG-REINDEX-LIVE — runtime corpus inventory       | Diagnosis/preparation CLOSED: existing bucket/object and Approved/Low same-Space metadata/format/generation verified with owner ADC; actual owner-side builder/parser/request/generation check yields one-source runnable handoff, unexecuted. Effective bucket/project/org/role/managed-folder inspection shows no runtime storage.objects.list grant. | Raw runtime exception is not exposed, so no observed403 claim. Missing permission independently blocks the read. Explicit S240 IAM exclusion requires B-GCP-REINDEX/U6 owner scope decision; exact one-permission proposal/backup/CAS/readback/rollback ready. No permission or API changed. |
 
 Maintenance/intake/Vendor operational modules, resident-draft proofs and Vendoroo connector work
 remain retired. Vendoroo stays standalone. S36 and completed live proofs do not restart.
-Authentication longevity is unverified, not an active setup hold; a real challenge needs a person
-only when encountered. Individual Editor/phone/human claims remain separate from Admin evidence.
-Acquisition/answering/LeadSimple/QuickBooks work is outside this batch.
-
-A-01–A-07, S125 notice selection, S241 process correction and S34 technical readiness are team
-work in the finalized plan. The S238 copy-only Dan/Jon package uses existing private recipients,
-states only supported outcomes and consolidates remaining exact questions. No new approval
-portal, mailbox draft/send, invitation or support message is part of authoring or implied delivery.
-Preserve Sheet ambiguity: matching state after a lost response proves no creation causality,
-redispatch authority or historical restoration.

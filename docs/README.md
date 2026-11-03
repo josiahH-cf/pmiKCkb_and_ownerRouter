@@ -19,10 +19,12 @@ one of those effects or the owner reports a step done.
 Do not read removed Demo/V1 launchers, old audits, completed program prompts, or ignored
 `docs/temp/` scratch as current context.
 
-S227-S229 own the current October 16 application instruction: retire custom maintenance with
-authorized read-only history, keep Vendoroo standalone, diagnose Dotloop resource visibility and
-preserve renewal/unsent Gmail workflows. Older maintenance/integration contracts retain historical
-requirement evidence only. Run d33c7174 verified their delivery at a7bce098 after the first attempt failed observation and rolled back. Current evidence: `docs/evidence/application-delivery-2026-10-17.md`.
+Custom maintenance, resident intake and operational Vendor work are retired; Vendoroo remains
+standalone. S227's November 3 corrections also exclude retired workflow history from supported
+process surfaces. Renewal Communications preserves the current exact staff-confirmed Send,
+Schedule, Resume and linked-reply contract. Older maintenance/integration requirements and prior
+delivery receipts retain only their dated scopes; current evidence is
+`docs/evidence/application-gap-delivery-2026-11-03.md`.
 
 S113 is complete and deployed. Its five feature specifications and current review evidence define
 the consolidated renewal workflow and accepted resource-input limits. The Wednesday materials below
@@ -32,9 +34,12 @@ release acceptance passed; no live customer completion or human usability verdic
 
 ## Current core
 
-The launched November 3 gap work has separate
-[implementation evidence](evidence/application-gap-implementation-2026-11-03.md). The assessment
-and completed earlier release retain their dated scopes; implementation is not yet delivery.
+The launched November 3 gap work is delivered at b5ba7802 / pmi-kc-app-rmw123csb-dc0ce89a8583.
+Its [delivery and configuration evidence](evidence/application-gap-delivery-2026-11-03.md) records
+exact-main CI, actual release/readbacks, thirteen normal configuration outcomes and remaining
+boundaries. [Implementation evidence](evidence/application-gap-implementation-2026-11-03.md) and
+the assessment retain their distinct verification scopes. Current external/human holds remain
+only in [open-blockers](open-blockers.md).
 
 Manual client workflows: [presentation and weekly status commands](weekly-client-workflows.md),
 [reference source index](weekly-client-workflows-source-index.md) and
@@ -106,8 +111,11 @@ Manual client workflows: [presentation and weekly status commands](weekly-client
 The October operations program S183–S226 has 35 independent suites delivered at 780f48db /
 run 5b3dfb90. 203/238 requirements are verified; full closure remains open for five pending contracts,
 three bounded investigations and Dotloop prerequisites. Use native operations evidence, current facts
-and the unblock packet. That earlier program enabled two human notice Send/Schedule contracts; current S229 source refuses
-client sends/schedules/Resume and dispatch regardless of preserved activation metadata. Mobile navigation and normal managed Gmail connection passed
+and the unblock packet. The October 20 owner direction reopens only the existing exact
+staff-confirmed renewal Send, Schedule, Resume and linked replies, with fresh current-policy,
+source/target, sender, claim, receipt and ambiguity-recovery gates. Retired maintenance and generic
+or model-driven dispatch remain unavailable regardless of old activation metadata. Mobile
+navigation and normal managed Gmail connection passed
 guarded automated checks. Earlier unsent drafts retain historical receipt/recovery meanings.
 
 Use `docs/feature-suites/README.md` for the suite registry and Markdown feature intake. Its
@@ -120,9 +128,9 @@ recovery and audited manual progress. Blank labeled resource fields are accepted
 S82 conformance, S97 integrity, S98 normal append and owner-approved field updates, S102-S110/readiness
 corrections and normal S106/S34 packet handoffs are serving. Real forms/mappings, managed Dotloop
 connection/selection and exact closed-key activation still govern dependent document effects.
-S96, S83-S86 and S99 retain their deployed contracts. S100 chat sync is deployed; resident-draft
-still requires its exact eligible message/email and separate activation. S36 remains queued behind
-complete S100. S135–S151's connected assistant, linked-email and AI-first Dashboard/history work
+S96, S83-S86 and S99 retain their deployed contracts. S100's completed manual chat-sync proof
+is not rerun. Its old resident-draft activation program remains inert under maintenance retirement;
+S36 is not an execution queue or new proof authority. S135–S151's connected assistant, linked-email and AI-first Dashboard/history work
 is deployed; overlapping S88–S93/S101 and S95 plans are superseded. S94 remains a separate
 unexecuted proposal. Revised S87 belongs to the finalized batch 005 scope below. S112 release authentication passed;
 its separate 24-hour unchanged-enrollment longevity proof remains unverified.

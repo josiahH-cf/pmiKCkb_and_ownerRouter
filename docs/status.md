@@ -2,6 +2,28 @@
 
 Updated: 2026-11-03 (UTC).
 
+The P1–P9 application delta is DELIVERED at `b5ba7802` /
+`pmi-kc-app-rmw123csb-dc0ce89a8583`, 100% canonical traffic. Run `ff1f44bf` completed and its permit
+is consumed. Exact-main CI passed five jobs; full07 passed 10,162 unit/four parity skips and 497
+backend/no skips, with core 46 passes/23 explicit no-emulator skips. Observation passed two
+checkpoints/417,609 ms, 375 matched records, zero discrepancies/5xx/unresolved effects or mutation
+attempts; all eleven final readbacks matched at 19:27:02Z.
+
+All thirteen normal configuration operations have confirmed response/independent readback and
+clean profile release: source destinations v16, Dotloop observation with selection v1 preserved,
+settled basis v1, and the existing process Active v1 with six steps/three links/verified immutable
+bytes/zero runs. Independent reviews passed within those scopes. No original/legal/map approval,
+provider business effect, customer communication, signature or Dotloop key activation is inferred.
+
+The live source handoff remains deliberately non-runnable because the runtime lacks metadata-list
+permission. Actual approved source and an importer-compatible owner handoff are verified; the
+prepared one-permission/bucket proposal needs one project-owner scope decision under S240's
+explicit IAM exclusion. No client files/login or new permission was needed/applied. Process staffing placeholders need a real team
+responsibility choice before staff routing is claimed. Exact holds remain in `docs/open-blockers.md`;
+delivery/configuration evidence: `docs/evidence/application-gap-delivery-2026-11-03.md`.
+
+## Earlier November 3 qualification history
+
 The owner launched the finalized P1–P9 gap plan after the delivery recorded below. Its bounded
 source repairs passed native full gate 06 at 17:01:58Z: 10,128 unit tests (four existing parity
 skips), 497 backend tests, all policies and production build. All 14 app phases passed 17 isolation

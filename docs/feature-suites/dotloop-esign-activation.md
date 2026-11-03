@@ -3,12 +3,12 @@
 
 # S34 — Versioned renewal PDFs in new or existing Dotloop loops
 
-> Baseline: IMPLEMENTED AND DEPLOYED — intake 053 new/existing-loop lifecycle, exact-byte transport,
-> durable association/recovery and human signing handoff. November 3 U5 technical source and local
-> gate QUALIFIED; application delivery PENDING. Readiness, isolated execution and recovery scope
-> is in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md); prior final v8 runtime qualification creates no provider effect.
-> Both Dotloop business-write keys remain closed.
-> The planned separately gated activation below is not authorized by this specification.
+> Baseline: IMPLEMENTED AND DEPLOYED — intake 053 lifecycle, exact-byte transport, durable
+> association/recovery and human signing handoff retain their original evidence. November 3 U5
+> technical source and application are DELIVERED. Current managed Dotloop resource observation
+> is verified; both business-write keys remain closed. [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md) records the exact
+> scope. No loop/upload, signing or customer/provider business effect supplies verification;
+> separately gated activation is not authorized by this specification.
 
 **Goal.**
 
@@ -285,7 +285,7 @@ review a concrete upload-only or create-operation activation package. Once separ
 staff review the right files and target once, recover the same attempt if needed, and finish
 signature work in Dotloop without the app claiming that upload means signed.
 
-- Model verdict: NOT RUN — separate operation readiness, passive activation packages and normal-operation recovery pass focused isolated checks; cumulative qualification, this model litmus and delivery remain pending. Neither key was activated and no provider business effect is claimed.
+- Model verdict: PASS for separate readiness, passive-package/recovery implementation, technical qualification and application delivery in [delivery/configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). Neither key was activated; no provider business effect, legal/map approval or human signing is claimed.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
@@ -342,9 +342,10 @@ signing follows through its actual Dotloop handoff, not a proof exercise.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** implemented separate readiness and passive per-key packages with passing
-  focused isolated lifecycle/recovery checks. Cumulative qualification and delivery remain pending;
-  both keys stay closed and real activation is separately gated.
+- **Deliverable now:** separate readiness and passive per-key package/recovery implementation is
+  qualified and delivered; current managed Dotloop observation is verified. Both keys stay closed.
+  Actual activation readiness consumes its exact approved inputs/authority and remains separately
+  gated; this technical delivery does not execute a loop/upload.
 - **Consumes, but does not assume:** approved content/maps, current source/target/connection and
   real authority; absent prerequisites are independent named holds, not false technical failure.
 - **Externally blocked effect:** live create/upload requires actual content, exact activation

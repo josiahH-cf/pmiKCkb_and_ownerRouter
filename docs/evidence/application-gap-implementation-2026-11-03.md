@@ -1,5 +1,15 @@
 # Application gap implementation — November 3, 2026
 
+Current outcome: **application DELIVERED; thirteen normal configuration operations VERIFIED**.
+Run `ff1f44bf` delivered exact `b5ba7802` at 100% traffic with full observation and eleven final
+readbacks. The existing process is Active v1 with verified immutable content. See
+[current delivery evidence](application-gap-delivery-2026-11-03.md) for source/CI/build/running
+identity, actual configuration, rendered checks and precise remaining boundaries. The dated
+qualification entries below retain their original results; their pending-delivery language is
+historical, not an additional queue or active client ask.
+
+## Qualification history before verified delivery
+
 Status: CORRECTED SOURCE AND LOCAL GATES QUALIFIED; EXACT-MAIN CI/DELIVERY PENDING. Reviewed head `a32d1a6b`
 passed local gates and exact-main CI, then independent review identified four source/spec misses
 and unperformed required core E2E. This records the owner's implementation instruction for the finalized

@@ -4,12 +4,12 @@
 # S130 — Approved template intake and actual PDF filling for v1
 
 > Baseline: IMPLEMENTED AND DEPLOYED — intake 052, including reviewed static-PDF filling and
-> AcroForm/S21 provenance, as recorded in the suite registry and delivery evidence. November 3
-> November 3 A-04/A-08 engineering source and local gate QUALIFIED; application delivery PENDING.
-> All eight originals are privately recovered/inventoried, 32 static pages. Exact-source PDF
-> admission/parser and receipt/recovery scope is in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). Proposed
-> legal/applicability/field/signer maps remain unapproved; approved exact-map filling and human
-> acceptance are not established by this technical qualification.
+> AcroForm/S21 provenance, retains its original evidence. November 3 A-04/A-08 engineering source
+> and application are DELIVERED. All eight originals are privately inventoried, 32 static pages;
+> their unchanged saved source references are verified at resource version 16. See [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md).
+> No supplied original was published in this configuration sequence. Legal/version/use,
+> applicability, field/signer-map approval, exact-map filling and human acceptance remain separate
+> unapproved/unverified outcomes; source verification does not supply them.
 
 **Goal.**
 
@@ -188,11 +188,11 @@ Retain until actual filling and the preserved provenance/control behavior are ow
 
 ## November 3 assessment follow-up — A-04
 
-> Authoring status: FINAL. Implementation/execution is IN PROGRESS after the owner's launch;
-> cumulative qualification and delivery are pending. The static/AcroForm filling
-> baseline was delivered by the runs registered under intake 052; its earlier authoring narrative
-> above is provenance, not a new implementation queue. Source inventory/proposals import, publish,
-> approve and save no form, mapping or source selection.
+> Authoring status: FINAL. A-04 technical source/application delivery is VERIFIED; saved-source
+> verification flags are read back at resource version 16. The static/AcroForm baseline retains
+> its intake 052 delivery evidence; earlier authoring is provenance, not a new execution queue.
+> Source inventory/proposals and source verification do not approve legal use, publish originals
+> or approve field/signer mappings. See [delivery/configuration evidence](../evidence/application-gap-delivery-2026-11-03.md).
 
 **Goal.**
 
@@ -462,22 +462,25 @@ do not create a competing form-approval workflow or overlapping feature suite.
 
 ## November 3 implementation discovery — A-08 trusted original PDF publication
 
-> Authoring FINAL; S130/P4 source and local gate QUALIFIED; application delivery PENDING. The
-> genuine managed scanner utility at image `9b3ea5246c57` is promoted and read back; full06 and
-> final v8 runtime scope are in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). Application-runtime invocation,
-> exact reviewed PDF policy and actual original publication remain unverified. Legal/source/map
-> approval is separate; no supplied original was published or approved as verification proof.
-> Canonical question: Q-ENG-PUB2.
+> Authoring FINAL; S130/P4 source and application DELIVERED. The managed scanner utility and
+> bounded PDF publication/receipt/recovery implementation are qualified; canonical Space binding
+> passed focused and full07 verification. [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md) records verified source-reference
+> flags and real app-runtime process scanning/publication. Production original-PDF publication
+> was not performed; its exact legal/source/map gates remain. Canonical question: Q-ENG-PUB2.
 
 **Goal / current versus intended behavior.**
 
 An authorized Editor can publish one genuinely reviewed blank renewal-original PDF through the
 existing trusted-publication control and receive its exact immutable bytes into S130 intake.
-The existing file route supplies no exact resource context/policy to scanner resolution. General
-production scanning is unavailable; the new S241 provider supports exact process JSON only.
-S130 requires a current validated Live publication/hash but accepts only the legacy `renewals`
-Space name while the canonical publication Space is `lease-renewals`. These technical seams cannot
-be resolved by approvals/maps alone. No production upload was attempted to establish this finding.
+At discovery, the file route lacked exact resource context/policy and the S241 provider supported
+process JSON only. The bounded PDF publication path and canonical Space binding are now delivered;
+generic arbitrary publication remains outside that scope. Actual original publication was not
+performed, and legal/source/map approval still cannot be inferred from technical qualification.
+At discovery S130 required a current validated Live publication/hash but accepted only the legacy
+`renewals` Space, while canonical publication used `lease-renewals`. Delivered consumers now
+accept exactly both supported namespaces through intake, packet resolution, current/historical
+bytes, filling and transport. That technical gap was separate from approvals/maps; no production
+upload was attempted as proof.
 
 Implement a distinct narrow PDF scope/provider over existing routes. Keep arbitrary files/folders
 and other types unavailable. Preserve S241's process-only contract, S21 immutable bytes/current
@@ -542,7 +545,9 @@ General arbitrary KB publication across all advertised types is outside this bou
 
 **Human litmus.** Staff use the existing publication/intake controls when the exact original is
 ready, understand precise refusals, and distinguish source receipt from approval. Model verdict:
-NOT RUN — integrated qualification pending. Human verdict: NOT RUN — no human observer.
+PASS for technical PDF/Space-binding/receipt/recovery qualification and application delivery in
+[delivery/configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). Actual original publication, legal/map approval and exact-map filling remain
+unverified. Human verdict: NOT RUN — no human observer.
 
 **Traceability / adversarial acceptance checks.**
 

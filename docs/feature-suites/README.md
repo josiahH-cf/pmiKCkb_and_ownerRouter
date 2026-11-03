@@ -2,23 +2,38 @@
 
 ## November 3 application completion — finalized specifications and plan
 
-The owner finalized the assessment/specifications, then explicitly launched the named November 3
-[implementation plan](../plan.md), P1–P9, to completion. Authoring remains **FINAL / READY**;
-source and local gate are **QUALIFIED**, while application delivery remains **PENDING**.
-[Implementation evidence](../evidence/application-gap-implementation-2026-11-03.md) records corrected
-full07: 10,162 unit passes/four existing parity skips, 497 backend passes/no skips, all 16 npm
-commands and production build. Its source manifest is
-`aceee3fe58b9684a9afb2e72c0aebb6a4bb6a71cae94921e5b85b6f7cd5f336a`.
-The required core lane passed 46 tests/23 explicit no-emulator skips on that same source.
-The four adversarial source repairs passed focused checks and independent re-review. The earlier
-v8 fixture journey passed 34/34 on pre-correction runtime bytes; its exact full06 comparison is
-retained without claiming identity to full07. Later documentation closure is checked separately.
-No local qualification establishes real human acceptance, legal/map approval or provider completion.
-[The gap analysis](../evidence/current-application-gap-analysis-2026-11-03.md)
-established production `bc975353` / `pmi-kc-app-rmvzwt7ms-00754475effd` and source main `39435919`.
-Current edits and passing fixtures do not change that deployed baseline. Existing delivered
-baselines retain their original evidence; no old queue, consumed permit, activation or historical
-program resumes from this table. External holds remain in [the canonical unblock packet](../open-blockers.md).
+The owner finalized and launched P1–P9. Authoring remains **FINAL / READY**; source and
+application are **DELIVERED**, with scoped normal configuration **VERIFIED**. The delivered application commit
+`b5ba780279be0eb5661e463d2e73b5add1064056` serves at 100% canonical traffic. Promotion, two
+observation checkpoints in 417,609 ms, 375 matched records/zero errors and all eleven final
+readbacks are recorded in [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md).
+
+[Implementation evidence](../evidence/application-gap-implementation-2026-11-03.md) preserves corrected full07: 10,162 unit passes/four existing parity skips,
+497 backend passes/no skips, all 16 npm commands, 19 child records plus wrapper, 14 phases' 17
+controls/cleanup and all 12 physically matching font hashes. Manifest
+`aceee3fe58b9684a9afb2e72c0aebb6a4bb6a71cae94921e5b85b6f7cd5f336a` also qualified the required
+core lane: 46 passes/23 explicit no-emulator skips. Earlier v8's 34-step result remains tied to
+its pre-correction runtime; it is not a claim of identity to full07/current code.
+
+All thirteen normal app configuration operations completed once with readback/cleanup: eight
+unchanged source-URL flags advanced resource version 8 to 16; Dotloop refresh returned two
+profiles and template counts 0/9 with selection version 1 unchanged; the settled notice basis
+was recorded as version 1; the existing process was saved with six steps/three source links,
+received its exact process/hash policy and published Active version 1 with validated immutable
+proof and zero runs. Preserved owner/approver placeholders do not establish real staff routing or
+Start run acceptance; U4 holds that later checklist use, not the completed publication. These
+establish only those configuration outcomes. No original was
+published, legal/map approval inferred, provider business/customer effect executed or write key activated.
+Human acceptance and U1–U6 remain distinct. Client copy belongs to its separate private workflow.
+S240's runtime-access diagnosis/preparation is closed: no effective `storage.objects.list` grant
+exists. The exact private one-permission proposal and actual one-source manual handoff are ready,
+unexecuted. App inventory/runnable readiness is held only on Josiah's U6/B-GCP-REINDEX scope
+decision under S240's unchanged IAM exclusion. Dan has no GCP task; no files or login are requested.
+
+The initial assessment's `bc975353` production and `39435919` source checkpoint remain dated
+provenance. Earlier delivered baselines keep their evidence; no old queue, consumed permit,
+activation or historical program resumes. External holds remain in
+[the canonical unblock packet](../open-blockers.md).
 
 | Assessment gap | Owning specification                                                                                              | Smallest follow-up                                                                                                       |
 | -------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -38,12 +53,12 @@ program resumes from this table. External holds remain in [the canonical unblock
 | Existing Dotloop creation/upload paths reach technical readiness              | [S34](dotloop-esign-activation.md), consuming S106/S228/S130/S235                                                                                                          | Separately gated exact-key activation remains pending actual authority; both keys closed now, signing human                             |
 | Correct and publish the actual existing owner-renewal process                 | [S241](owner-renewal-process-review-and-publication.md)                                                                                                                    | Canonical Editor publication, current definition/version and genuine business gates; no duplicate process or automatic effects          |
 
-| Suite | Active contract                                                       | State                                                                                                                                                                                                                                                                         |
-| ----- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| S240  | `docs/feature-suites/admin-knowledge-reindex-handoff.md`              | AUTHORING FINAL / READY — intake 106; source-bound handoff/staging/current-request recovery source and local gate QUALIFIED (full07); application delivery PENDING. No ingestion performed.                                                                                   |
-| S241  | `docs/feature-suites/owner-renewal-process-review-and-publication.md` | AUTHORING FINAL / READY — intake 107; content/version/conflict/readiness source and local gate QUALIFIED. Managed scanner utility 9b3 promoted/read back; application delivery PENDING, then actual app-runtime invocation/exact-process policy/publication remain to verify. |
+| Suite | Active contract                                                       | State                                                                                                                                                                                                                                                                                               |
+| ----- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S240  | `docs/feature-suites/admin-knowledge-reindex-handoff.md`              | AUTHORING FINAL / READY — intake 106; source/application DELIVERED; effective runtime-permission diagnosis and owner-side runnable preparation CLOSED. App inventory waits only on Josiah U6/B-GCP-REINDEX scope decision; one-permission proposal/handoff unexecuted, IAM exclusion preserved.     |
+| S241  | `docs/feature-suites/owner-renewal-process-review-and-publication.md` | AUTHORING FINAL / READY — intake 107; source/application DELIVERED; existing-process configuration/publication VERIFIED: six steps/three links, exact policy, Active v1 immutable proof, zero runs. Owner placeholders preserved; U4 staff-routing, legal/map/human/provider holds remain distinct. |
 
-## Current delivered renewal program — November 3
+## Earlier November 3 stabilization delivery — carried baseline
 
 The owner amended S227–S229 on October 20: completely retire the maintenance component,
 including history/reports and obsolete wiring; diagnose the existing Dotloop template through
@@ -58,7 +73,7 @@ before actor/mailbox/source reads. Current role/Space, runtime suspension, exact
 claim, receipt, readback and ambiguity recovery gates remain. Generic, bulk, model-triggered and
 unapproved background sends remain unavailable. No protected activation metadata changes.
 
-Production serves `bc97535379dd08deab578455b00a80fc93b8d209` /
+The earlier stabilization release served `bc97535379dd08deab578455b00a80fc93b8d209` /
 `pmi-kc-app-rmvzwt7ms-00754475effd` at 100% traffic. Run `d4c109a0` delivered the cumulative
 S232–S239/S126 and scoped auth build after exact-head review/CI, guarded candidate/promotion,
 two-checkpoint 401,533 ms observation, 375 matched records and all eleven independent readbacks.

@@ -3,7 +3,7 @@
 
 # S168 — Measured application latency and reliability repairs
 
-> Status: READY — finalized owner-accepted F01 of batch 005 on 2026-10-04; implementation and delivery NOT RUN. Spec authoring alone does not start execution.
+> Original October 4 authoring checkpoint: READY — finalized owner-accepted F01 of batch 005. This historical label does not start work or describe the delivered November 3 A-05 follow-up below.
 
 **Goal.**
 
@@ -151,11 +151,11 @@ Keep this suite active through verified program delivery and any remaining accep
 
 ## November 3 assessment follow-up — A-05
 
-> Authoring: FINAL. A-05 source and local gate QUALIFIED; application delivery PENDING. The
-> correlated upstream detail-GET 500 and bounded options-only handling passed focused preservation
-> and full06 checks; see [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). Original request purpose/actor and
-> provider-internal cause remain unknown. Earlier delivered S168 evidence keeps its actual scope;
-> no live replay or provider-internal repair is claimed.
+> Authoring: FINAL. A-05 source and application DELIVERED. The correlated upstream detail-GET
+> 500 diagnosis and bounded options-only handling passed focused preservation/full07 checks and
+> current delivery/readbacks in [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). Original request purpose/actor and
+> provider-internal cause remain unknown. Earlier S168 evidence keeps its actual scope; no live
+> replay or provider-internal repair is claimed.
 
 **Goal.**
 
@@ -269,7 +269,7 @@ programs are outside the investigation unless the actual trace identifies a shar
 what evidence supports that conclusion and what the project team will check next. A successful
 reload does not hide the original failure or imply that someone needs to sign in again.
 
-- Model verdict: NOT RUN — the correlated upstream detail-GET failure and bounded options-only repair are evidenced with passing focused/preservation checks; cumulative qualification, this model litmus and delivery remain pending. Original POST purpose and provider-internal cause remain unknown.
+- Model verdict: PASS for the bounded diagnosis, options-only repair, preservation and application delivery in [delivery/configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). Original POST purpose and provider-internal cause remain unknown; no live replay or internal provider repair is inferred.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
@@ -302,8 +302,8 @@ valid only within its originally recorded scope.
 
 **Forbidden actions / hard gates.**
 
-The launched R-S168-11 source repair and focused checks are complete; cumulative qualification
-and delivery remain pending. The repair permits no
+The launched R-S168-11 repair, qualification and application delivery are verified. This bounded
+repair permits no
 service restart, configuration/permission/policy/key change, customer draft/send/schedule, business
 write, paid request or production test record. Read
 contracts are inspected before any repeated request; a GET label alone proves no absence of effects.
@@ -313,14 +313,13 @@ No raw customer/provider evidence or credentials enters tracked documentation.
 
 Retained failure envelope precedes log selection; correlated phase precedes reproduction choice.
 Engineering can complete the bounded investigation independently of legal forms, signatures or
-staff acceptance. A demonstrated R-S168-11 repair belongs to this finalized work package in a later
-explicitly launched implementation scope; authoring does not start it or grant protected-path edits.
+staff acceptance. The delivered R-S168-11 repair belongs to the owner-launched finalized work
+package; specification authoring alone never starts another scope or grants protected-path edits.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** a sanitized bounded diagnosis and implemented options-only correction with
-  passing focused/preservation checks. Original uncertainty remains explicit; cumulative
-  qualification and delivery are pending.
+- **Deliverable now:** the sanitized bounded diagnosis and options-only correction are qualified
+  and delivered, with the original request/provider-internal uncertainty kept explicit.
 - **Consumes, but does not assume:** Retained private request/log evidence and current source;
   unavailable fields remain explicitly unavailable.
 - **Externally blocked effect:** None required to complete the bounded diagnostic report. Expired

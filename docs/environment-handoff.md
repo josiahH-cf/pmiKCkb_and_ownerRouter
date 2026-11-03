@@ -10,7 +10,54 @@ keys versus that run's captured predecessor. Runtime identity, eleven Space maps
 Demo=false, Sheet=true, RentCast allowance 50 and other controls match. CLI/ADC and guarded
 Admin assurance retain the separately approved `josiah@pmikcmetro.com` identity/store/profile.
 
-## Current verified delivery — November 3
+## Current verified delivery — November 3 gap program
+
+Canonical production serves `b5ba780279be0eb5661e463d2e73b5add1064056` /
+`pmi-kc-app-rmw123csb-dc0ce89a8583` at 100% traffic. Run
+`ff1f44bf-9864-42e7-884f-1c2b8e2a545f` completed at 19:25:27Z with actual exit 0,
+consumed permit and no rollback. Its one regional application build
+`d0f2d859-cc2c-42e2-8c27-a81340c84930` succeeded; the resolved running image matches
+`sha256:d0e4c7846e74e92eacf20b90bd86fce25f51ffaef675ce6208faf850e326fc88`.
+Candidate receipt `3290b6c6-bf10-4c8d-8013-30c82dd9bf55` issued at 19:18:11.576Z;
+receipt-bound promotion verified at 19:18:33.509Z. Two observation checkpoints passed over
+417,609 ms within the 300,000/480,000 ms bounds: all 375 source/projected/rendered records
+matched, with zero discrepancies, candidate 5xx or unresolved effects. Thirteen guarded Admin
+routes had zero diagnostics/mutation attempts; Editor browser remains `not_run`. All eleven
+independent final readback sections matched at 19:27:02Z. Runtime fingerprint:
+`sha256:b6cf189e006e5711bdc6b6f2eab1cec889d2439598b9cefbee96ea777c5a9111`.
+The fresh 20:22Z revision comparison found only APP_COMMIT_SHA changed among 54 environment
+keys; the managed runtime identity, five secret bindings, eleven paired Space maps,
+Production/Live, Demo=false and Sheet=true are preserved.
+
+Captured predecessor: `pmi-kc-app-rmvzwt7ms-00754475effd` from commit
+`bc97535379dd08deab578455b00a80fc93b8d209`, Sheet=true. Run-bound recovery
+`pmi-kc-app-recovery-ff1f44bf986442e7`, receipt
+`130d25b9-152b-4708-9857-14635cf27ac6`, reference
+`sha256:7105f29712031c0bc2215b622703c1323fdecb8a48e00d40d219662c1b4818cf`, preserves
+that actual predecessor image/configuration. Original and target runtime fingerprints both equal
+`sha256:db70cd63e1c17ebb706e5291422e68d8be06707ceebc5805a7408b5eda547fe0`.
+No traffic rollback occurred in ff1; its consumed receipts grant no new dispatch.
+
+The P1–P9 source delta and four independently reviewed corrections are delivered; exact-main CI
+`41696162202` passed all five jobs. Thirteen subsequent normal configuration operations were
+read back: eight unchanged source destinations attested at settings v16, Dotloop observation
+refreshed with two supported profiles/zero and nine templates and saved selection v1 unchanged,
+settled notice basis v1 saved, and the same existing owner-renewal process corrected. Its exact
+process-only trust policy was created before normal publication produced Active v1 with six steps,
+three links, 4,637 verified immutable bytes and zero runs.
+No original was published or legally/map-approved; no customer dispatch, provider business write,
+signature or Dotloop key activation is inferred. Both Dotloop write keys remain closed.
+
+The live S240 inventory remains non-runnable. **U6/B-GCP-REINDEX** asks Josiah as project owner
+for one narrow scope-deviation decision from S240's explicit IAM exclusion; the permission
+proposal is prepared and unexecuted, with no new grant applied. **U4/B-PROCESS-OWNER** preserves
+the specific team responsibility input for the process's existing staffing placeholders; it is
+not a general Dan approval. Legal/map, case-data and human acceptance holds remain separately
+owned in [the canonical unblock packet](open-blockers.md). The application queue is delivered;
+consumed receipts do not authorize another run and documentation-only closure does not deploy.
+See [the exact delivery and configuration evidence](evidence/application-gap-delivery-2026-11-03.md).
+
+## Previous verified delivery — November 3 00:10 (historical)
 
 Production serves `bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd` at 100% canonical traffic.
 Run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73` completed at 2026-11-03T00:10:44Z, with its permit consumed and watcher exited.
@@ -110,24 +157,28 @@ Five confirmed adversarial findings are repaired and verified deployed: lifecycl
 
 ## Production
 
-| Item                      | Value                                                                              |
-| ------------------------- | ---------------------------------------------------------------------------------- |
-| Project                   | `pmi-kc-kb-prod`                                                                   |
-| Region                    | `us-central1`                                                                      |
-| Cloud Run service         | `pmi-kc-app`                                                                       |
-| URL                       | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`                                       |
-| Serving revision          | `pmi-kc-app-rmvzwt7ms-00754475effd`                                                |
-| Serving commit            | `bc97535379dd08deab578455b00a80fc93b8d209`                                         |
-| Traffic                   | 100%                                                                               |
-| Descriptor                | Production + Live                                                                  |
-| Runtime identity          | project-managed PMI KC runtime service account                                     |
-| Spaces                    | 11                                                                                 |
-| Sheet write-back          | true on the serving revision (reviewed S159 value); the recovery target keeps true |
-| Legacy copy-only Sheet id | not configured                                                                     |
-| RentCast                  | selected; allowance 50                                                             |
-| Action Registry           | 48 exact keys;18 open and 30 closed                                                |
-| Retired broad action ids  | non-executable; only exact proven keys are open                                    |
-| Demo flags                | false                                                                              |
+| Item                                    | Value                                                                                        |
+| --------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Project                                 | `pmi-kc-kb-prod`                                                                             |
+| Region                                  | `us-central1`                                                                                |
+| Cloud Run service                       | `pmi-kc-app`                                                                                 |
+| URL                                     | `https://pmi-kc-app-kq6wuvpiva-uc.a.run.app`                                                 |
+| Serving revision                        | `pmi-kc-app-rmw123csb-dc0ce89a8583`                                                          |
+| Serving commit                          | `b5ba780279be0eb5661e463d2e73b5add1064056`                                                   |
+| Traffic                                 | 100%                                                                                         |
+| Captured predecessor                    | `bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd`; Sheet=true |
+| Run-bound recovery                      | `pmi-kc-app-recovery-ff1f44bf986442e7`; receipt `130d25b9-152b-4708-9857-14635cf27ac6`       |
+| Recovery reference                      | `sha256:7105f29712031c0bc2215b622703c1323fdecb8a48e00d40d219662c1b4818cf`                    |
+| Equal predecessor/recovery fingerprints | `sha256:db70cd63e1c17ebb706e5291422e68d8be06707ceebc5805a7408b5eda547fe0`                    |
+| Descriptor                              | Production + Live                                                                            |
+| Runtime identity                        | project-managed PMI KC runtime service account                                               |
+| Spaces                                  | 11                                                                                           |
+| Sheet write-back                        | true on the serving revision (reviewed S159 value); the recovery target keeps true           |
+| Legacy copy-only Sheet id               | not configured                                                                               |
+| RentCast                                | selected; allowance 50                                                                       |
+| Action Registry                         | 48 exact keys;18 open and 30 closed                                                          |
+| Retired broad action ids                | non-executable; only exact proven keys are open                                              |
+| Demo flags                              | false                                                                                        |
 
 Secret names are bound through Secret Manager. Values never belong in this file.
 
@@ -225,9 +276,9 @@ it did not reverify product routes or every environment setting.
 
 ### Local release watcher
 
-Run `030761c0-1e70-4cd2-95a6-77480107657d` is complete with consumed permit. Its one watcher
+Historical run `030761c0-1e70-4cd2-95a6-77480107657d` is complete with consumed permit. Its one watcher
 exited after passed full observation; an independent separate-open kernel lock probe verified the
-lock free. The registered clean native/Windows pair remains pinned at
+lock free. That historical registered clean native/Windows pair is retained at
 `6fbd62250ccd9df1b9861a59b5de21c2143a68c0`, directory label
 `dep-patch-20261027-6fbd6225`. Earlier admitted pairs and original checkouts are preserved.
 Run the release from a WSL shell with `DISPLAY` and `WAYLAND_DISPLAY` unset when the WSLg display
@@ -268,7 +319,7 @@ The watcher checks the current green `main` SHA against that permit; it cannot a
 head under the same permission. An unfinished checkpoint still pins its exact SHA and must be
 reconciled through the runbook before a new run. Never replace a failed checkpoint or dispatch claim
 to obtain another build.
-The last successful serialized release is the cumulative Focus/maintenance follow-up run
+A historical successful serialized release was the cumulative Focus/maintenance follow-up run
 `859ff7f8-0106-48c1-acfa-823d4a592422`, exact `eb5d35991c3ec128a102e4483d3779af16106821` /
 `pmi-kc-app-rmv3yavsf-2cece39f7605`. Recovery preparation, the single application build, candidate
 smoke/configuration/domains, Admin assurance, reconciliation, promotion, full observation and eleven
@@ -501,15 +552,15 @@ activations; generic send, resident draft and Dotloop write keys remain closed.
 
 ## Current rollback
 
-Captured predecessor: `pmi-kc-app-rmvqk1okt-ecd4a985b1de` from commit
-`6fbd62250ccd9df1b9861a59b5de21c2143a68c0`, Sheet=true.
-Run-bound recovery `pmi-kc-app-recovery-d4c109a06dce4c4d`, receipt
-`89d909b7-73bf-4ff8-b71c-98456c7b4c0f`, reference
-`sha256:429f4673a90eac1d8caeb3f70de3b98a9791188e1ebce92cea5e3e598aa5fb8f`, preserves
-the actual predecessor image/configuration. Original and target fingerprints are both
-`sha256:82fb1ad6c4e38c3ea1643128a1ed1d5667c7728af8bc87822bad5bea59583e74`.
-The separately captured prior tag binding was `pmi-kc-app-rmvtkwuvc-d57f612beb6c`; all unrelated
-bindings are preserved. No traffic rollback occurred in this run.
+For completed run `ff1f44bf-9864-42e7-884f-1c2b8e2a545f`, the captured predecessor is
+`pmi-kc-app-rmvzwt7ms-00754475effd` / `bc97535379dd08deab578455b00a80fc93b8d209`,
+Sheet=true. Run-bound recovery `pmi-kc-app-recovery-ff1f44bf986442e7`, receipt
+`130d25b9-152b-4708-9857-14635cf27ac6`, reference
+`sha256:7105f29712031c0bc2215b622703c1323fdecb8a48e00d40d219662c1b4818cf`, preserves
+the actual predecessor image/configuration. Original and target runtime fingerprints both equal
+`sha256:db70cd63e1c17ebb706e5291422e68d8be06707ceebc5805a7408b5eda547fe0`.
+The actual prior candidate-tag binding was captured separately. No traffic rollback occurred;
+the older d4/6f recovery coordinates above belong only to the historical 00:10 delivery.
 
 Forward restoration and rollback require fresh actual state and exact receipt-bound reconciliation. Earlier failed attempts and recovery receipts retain their original scope outside Git.
 

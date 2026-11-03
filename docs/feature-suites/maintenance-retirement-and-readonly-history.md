@@ -4,7 +4,7 @@
 
 # S227 — Completely retire custom maintenance
 
-> Status: Original October 20 retirement DELIVERED and carried by November 3 production. A-07 source and local gate QUALIFIED; application delivery PENDING. Exact shared eligibility, action admission and notice-only/410 history refusal passed corrected full07 and focused preservation checks; prior final v8 runtime scope is recorded in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). Stored evidence is preserved; no historical proof or retired action was rerun.
+> Status: The original October 20 retirement and November 3 A-07 follow-up are DELIVERED. Shared eligibility, action admission and notice-only/410 process/run history refusal are qualified and serving. Stored evidence remains retained; no historical proof or retired action was rerun. Current release/readbacks: [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md); corrected full07/core and earlier v8 retain their distinct scopes in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md).
 
 **Goal.**
 
@@ -16,10 +16,11 @@ purged; unrelated renewal, knowledge, staff accountability and permissions remai
 **Current state / intended end state.**
 
 Delivered by run `57e4a1b5-dd25-4302-9cfe-c9962c87d4ae` at `157b6992` on October 20 (evidence:
-`docs/evidence/application-delivery-2026-10-20.md`). Production now serves
-`bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd` (November 3,
-run `d4c109a0`; `docs/evidence/application-delivery-2026-11-03.md`), which carries the original
-retirement. The newly assessed A-07 follow-up is not delivered by either receipt.
+`docs/evidence/application-delivery-2026-10-20.md`). The November 3 stabilization release
+`bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd` (run
+`d4c109a0`; `docs/evidence/application-delivery-2026-11-03.md`) carried the original retirement.
+A-07 is now delivered at `b5ba7802` under its [new delivery evidence](../evidence/application-gap-delivery-2026-11-03.md);
+neither original receipt is reused or relabeled as proof of that follow-up.
 
 The owner explicitly amended the earlier October 16 history/unsent-only boundary. This suite owns
 its corresponding revision; no older READY row or other program is newly executed.
@@ -76,8 +77,8 @@ non-destructive retention and focused regression evidence. It does not repair an
 renewal-feed outage, change the renewal desk's cohort policy, add a history UI, or initiate queue
 transitions. No production purge, customer/provider proof effect, generic send, maintenance revival,
 new leasing, protected activation, identity privilege change, budget change, guessed resource or
-signature API is granted. The owner launched the A-07 source/focused-check slice; cumulative
-qualification and delivery remain pending.
+signature API is granted. The owner launched and delivered the A-07 slice; corrected qualification
+and served release/readbacks retain their exact evidence scopes.
 
 **Open questions & assumptions.**
 
@@ -153,7 +154,7 @@ attention views. Old maintenance proofs do not ask them to approve, create or ca
 Their real renewal work remains visible, and a failed feed still says that some information is
 unavailable. No past evidence has been deleted or rewritten to achieve this.
 
-- Model verdict: NOT RUN — A-07 shared eligibility and immutable action-admission source pass focused checks; cumulative qualification, this model litmus and delivery remain pending. No historical proof was rerun.
+- Model verdict: PASS for shared eligibility, process/run history refusal, preservation and technical delivery; see [delivery/configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). No historical proof was rerun; real staff acceptance remains NOT RUN.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
@@ -230,11 +231,9 @@ its success is not assumed or fabricated by this projection change.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** The original delivered retirement remains evidence-backed. A-07 now
-  has implemented shared eligibility with passing focused checks; cumulative qualification and
-  delivery remain pending for the bounded slice's shared eligibility,
-  consumer consistency, refusal/preservation tests and documentation without deleting records or
-  waiting for a client, provider effect or actual proof execution.
+- **Deliverable now:** The original retirement and A-07 shared eligibility, consumer consistency,
+  process/run history refusal, preservation checks and documentation are delivered. Records remain
+  retained; no client dependency, provider effect or historical proof execution was required.
 - **Consumes, but does not assume:** Real supported resources, current provider access and approved content/maps.
 - **Externally blocked effect:** None for the A-07 projection slice. Separate template, legal-form,
   signature and human steps retain only their canonical named holds; they do not block this work.

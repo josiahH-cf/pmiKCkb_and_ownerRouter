@@ -3,7 +3,7 @@
 
 # S241 — Review and publish the existing owner-renewal process
 
-> Status: Authoring FINAL / READY; source and local gate QUALIFIED; application delivery PENDING. Current process guidance, exact revision/hash conflict safety and immutable run-version recovery passed corrected full07 and focused checks; prior final v8 runtime scope is in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). The genuine managed scanner utility at image `9b3ea5246c57` is promoted/read back. Actual application-runtime invocation, exact existing-process policy and correction/publication remain pending after application delivery; no process was published or run as proof.
+> Status: Authoring FINAL / READY; source and application DELIVERED; existing-process configuration/publication VERIFIED. The normal Save preserved the existing identity/history/action references, with six steps and three source links. Exact reviewed process/hash policy and real application-runtime scanning/publication produced Active version 1, with typed immutable readback of 4,637 bytes and content hash `d461320677aa92e3fa528a39488c10e650e517bd1c4dfa7ce0eed3bf49ef79a7`. Owner/approver placeholders remain preserved. Zero runs were started; real staff routing/Start run acceptance remains unverified, with the exact U4/B-PROCESS-OWNER responsibility input holding later staff-accountable checklist use, not this publication. See [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md); [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md) preserves full07/core and earlier v8 scopes. Legal/map approval and human/provider completion are separate.
 
 **Goal.**
 
@@ -127,9 +127,10 @@ existing-Space re-index planning. Neither process publication nor this spec runs
 
 **Open questions & assumptions.**
 
-Implementation discovery: live publication policies are empty and the native provider has no real
-scanner. Resolve this technical seam with a genuine managed malware engine and fail-closed,
-reviewed-content sensitivity contract, scoped to this exact process and content hash. Generic
+Initial discovery found empty publication policies and an unavailable native scanner. This
+engineering seam is now resolved: the genuine managed engine, exact reviewed process/hash policy
+and actual app-runtime publication/readback are verified. The fail-closed reviewed-content
+sensitivity contract remains scoped to that exact process and current content hash. Generic
 files/folders and unrelated processes cannot inherit the new scope. Preserve existing general
 policy semantics, canonical audit/CAS/immutable versions and all existing validation. Scanner
 outage, stale signatures, unreviewed content or policy drift refuse publication. No external
@@ -197,7 +198,7 @@ business or legal input is needed and who to ask. An Editor publishes the review
 another person's concurrent edit is protected, earlier work keeps its version, and nothing is sent
 or started merely because the procedure was published.
 
-- Model verdict: NOT RUN — current process guidance, revision/conflict safety and focused checks are implemented; cumulative qualification, this model litmus, actual publication and delivery remain pending. Scanner/policy evidence retains its separate scope.
+- Model verdict: PASS for process guidance, immutable/version/conflict recovery, qualification, application delivery and actual existing-process policy/scanning/publication/readback in [delivery/configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). Active v1 has six steps/three links and zero runs. No human/provider completion is inferred.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**
@@ -265,10 +266,13 @@ work proceeds. No new consent ceremony is a technical phase prerequisite.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** qualified current process/seed, binding/recovery/presentation source and
-  full06/focused preservation evidence. The managed scanner utility is qualified and promoted.
-  Application delivery, actual app-runtime invocation, exact existing-process policy and
-  correction/publication/readback remain separate pending work after that delivery.
+- **Deliverable now:** current process/seed and binding/recovery/presentation source are delivered,
+  with corrected full07/core and focused preservation evidence. Managed scanning, exact process/hash
+  policy and actual normal existing-process correction/publication/readback are verified. Active
+  version 1 contains six steps/three source links; identity/history and empty action references are
+  preserved, including the original owner/approver placeholders, with zero workflow runs. Actual
+  staff assignment is the exact U4/B-PROCESS-OWNER responsibility input before later accountable checklist use; it does
+  not reopen publication or create a blanket Dan-approval gate.
 - **Consumes, but does not assume:** Current definition, source links, enabled publication policy,
   scanner and recovered decisions. Unknown/unavailable inputs remain explicit rather than fabricated.
 - **Externally blocked effect:** Only a truly unavailable business/legal fact or content decision

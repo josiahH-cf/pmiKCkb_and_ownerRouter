@@ -5,7 +5,7 @@
 
 > **Approval reference:** F04 (original feature #4).
 > **Delivered baseline:** the original evaluator/display was implemented and deployed at `c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220`; [the shared audit](../evidence/batch-litmus-audit-2026-09-28.md) and [adversarial review](../evidence/adversary-review-2026-09-29.md) retain their dated scopes.
-> **November 3 amendment:** Source and local gate QUALIFIED; application delivery PENDING. Staff selection/persistence and same-page recovery passed corrected full07 and the prior final v8 fixture journey within the scopes in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). No live basis selection or human acceptance is claimed.
+> **November 3 amendment:** Source and application DELIVERED; the settled notice basis was saved/read back as version 1 through the normal authorized selector. Full07 and the final core lane retain their exact scopes in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md); the earlier v8 journey remains pre-correction evidence. See [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). No new business decision or separate Admin confirmation is required; human acceptance remains NOT RUN.
 > **Registration:** existing S125 / F04 owner in `docs/feature-suites/README.md`. Classification remains an operational timing indicator, not law, fees or legal compliance.
 
 **Goal.**
@@ -173,7 +173,7 @@ administrative policy permissions and both closed Dotloop keys are unaffected.
 chooses it once, sees whether it saved and can continue. They do not find an Admin or ask Dan to
 confirm the same decision again. A missing notice date still says what fact is missing.
 
-- Model verdict: NOT RUN — staff selection/persistence source and focused unit/emulator checks are implemented; cumulative qualification, this model litmus and delivery remain pending. No live basis save is claimed.
+- Model verdict: PASS for the technical selection/persistence/recovery and delivery scope; the settled live basis is saved/read back as version 1. See [delivery/configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). A real staff/phone walkthrough remains NOT RUN.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
@@ -226,7 +226,8 @@ cadence, claim/receipt or provider key change is part of this preservation amend
 **Forbidden actions / hard gates.**
 
 The owner launched this scoped app-owned selection implementation under current protected-path
-and release gates; source and focused checks are complete, with cumulative qualification pending. It cannot
+and release gates; source, qualification and application delivery are verified. The normal settled-basis
+selection/readback is separately evidenced. This scope cannot
 open provider keys, grant general Admin/policy power, invent business/legal evidence, alter notice
 facts or use a production customer effect as test proof. Authentication challenges remain human;
 independent implementation continues. No runtime selection or policy record is written by this spec.
@@ -240,9 +241,9 @@ states. F03 supplies notice evidence, F06 date display and F07 source review; no
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** implemented staff selector, route/store authority, replay/conflict/readback
-  recovery, tests and current guidance with passing focused checks; cumulative qualification and
-  delivery remain pending. No new client basis decision is required.
+- **Deliverable now:** delivered staff selector, route/store authority, replay/conflict/readback
+  recovery, tests and current guidance, with the settled basis configured/read back at version 1.
+  No new client basis decision or separate Admin confirmation is required.
 - **Consumes, but does not assume:** current actor/Space, documented decision and source dates;
   unavailable dates remain unknown after an otherwise successful selection.
 - **Externally blocked effect:** only a genuinely new business rule or human acceptance. Contact

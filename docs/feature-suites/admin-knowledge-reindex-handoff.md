@@ -3,7 +3,7 @@
 
 # S240 — Runnable Admin knowledge re-index handoff
 
-> Status: Authoring FINAL / READY; application delivery PENDING. Prior `a32d1a6b` source-bound handoff, truthful staging and refusal checks retain their corrected full07 qualification within [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). The subsequently identified mounted handoff-state/request-binding repair is implemented and awaits fresh focused qualification; the earlier gate does not cover this delta. No ingestion or production re-index request was executed.
+> Status: Authoring FINAL / READY; source and application DELIVERED; runtime-access diagnosis/preparation CLOSED. The app's observed non-runnable/no-command refusal remains honest. Effective bucket/project/org policies and five role definitions establish no runtime `storage.objects.list` grant; a managed-folder 404 does not replace that permission evidence, and no raw runtime 403 is claimed. Owner-credential reads verified one existing Approved/Low source and its actual builder/import-parser/request/object-generation guard produce a runnable, unexecuted manual handoff. S240's explicit IAM exclusion remains intact: Josiah's one scope-deviation decision is held under [U6/B-GCP-REINDEX](../open-blockers.md). The private one-permission role/bucket proposal is ready, not applied. App-runtime readiness remains held; no source replacement, new login or Dan GCP task is requested. See [delivery/configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). No ingestion or production re-index request was performed in this sequence.
 
 **Goal.**
 
@@ -147,7 +147,7 @@ command once. The app either shows a complete command for the approved sources o
 specific missing technical input. It clearly says that the index has not changed. Reopening the
 request never starts an import, and a changed source set is visible before later operational work.
 
-- Model verdict: NOT RUN — source-bound handoff and focused resolver/importer/refusal checks are implemented; cumulative qualification, this model litmus and delivery remain pending. No ingestion is claimed.
+- Model verdict: PASS for implementation, qualification/delivery, observed app refusal and completed effective-permission diagnosis. The actual owner-side builder/parser/request/generation guard confirms one-source runnable preparation, unexecuted. App-runtime inventory remains held on U6/B-GCP-REINDEX, not an open engineering-cause investigation. No ingestion is claimed.
 - Human verdict: NOT RUN — no human observer.
 
 **Requirement-to-outcome traceability.**
@@ -213,9 +213,17 @@ outside this delta and subject to its own current authority, source/cost and rea
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** implemented bounded source resolver, truthful plan/refusal UI, importer
-  contract checks and current documentation with passing focused verification. Cumulative
-  qualification and delivery remain pending; no ingestion was executed.
+- **Deliverable now:** delivered bounded source resolver, truthful plan/refusal UI, importer
+  contract and current-request recovery. Effective runtime-permission diagnosis is complete;
+  the private owner-side one-source handoff and exact one-permission proposal are prepared.
+  Neither the handoff nor proposal was executed. The app correctly supplies no command while
+  runtime listing lacks its grant; that outcome awaits the single U6 owner scope decision.
+- **Owner-decision-held outcome:** Josiah as project owner decides whether to extend this suite's
+  explicit IAM exclusion for `storage.objects.list` only on the existing bucket. Engineering can
+  apply the reviewed private custom-role/bucket-binding proposal only after that decision,
+  preserving backup/CAS/readback/rollback and verifying actual app inventory/plan afterward.
+  No object-get/write permission, identity/API change or ingestion is included. Keeping the
+  boundary retains the already prepared manual owner-side path and honest app refusal.
 - **Consumes, but does not assume:** Existing Space/datastore config and approved source-corpus
   evidence. Missing, stale, invalid or unreadable input remains an explicit non-runnable cause.
 - **Externally blocked effect:** Actual ingestion is not an acceptance prerequisite or an action

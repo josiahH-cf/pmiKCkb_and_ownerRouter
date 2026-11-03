@@ -3,11 +3,11 @@
 
 # S66 — Editable renewal packet facts, participants and charge policy
 
-> Baseline: IMPLEMENTED AND DEPLOYED — intake 051, including durable staff inputs, current
-> Working-term approval, ten form families and configured charges. November 3 U2 engineering
-> source and local gate QUALIFIED; application delivery PENDING. Private source/economics
-> proposals remain unapproved and unpublished; corrected full07/prior final v8 technical scopes are in
-> [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md). This does not verify approved maps, legal content or human acceptance.
+> Baseline: IMPLEMENTED AND DEPLOYED — intake 051 durable staff inputs, Working-term approval,
+> ten form families and configured charges retain their original scope. November 3 U2 engineering
+> source and application are DELIVERED; unchanged saved source references are verified at resource
+> version 16. [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md) does not approve legal content, economics, applicability or
+> field/signer maps. Private proposals remain unapproved/unpublished; human acceptance is NOT RUN.
 
 **Goal.**
 
@@ -144,7 +144,7 @@ Keep until the new authoring/resolution contracts and scoped readiness are repre
 
 ## November 3 finalized follow-up — U2 evidence, applicability and economics
 
-> Authoring: FINAL. Follow-up source and local gate QUALIFIED; application delivery PENDING.
+> Authoring: FINAL. Follow-up source and application DELIVERED; source-reference configuration VERIFIED. Genuine unresolved business/legal/map decisions retain their exact U1–U5 holds.
 > Dan is the ASK contact only for exact unresolved business decisions. Private proposals preserve
 > source and authority; no message, legal approval or provider effect is inferred.
 
@@ -276,7 +276,7 @@ and only the remaining business choices. Staff then see those informed decisions
 in the normal renewal screens. The same names, dates and charges flow into applicable documents;
 an unresolved policy choice holds its own output without stopping unrelated preparation.
 
-- Model verdict: NOT RUN — source inventory and private decision proposals are prepared; approved configuration, cumulative qualification and the complete litmus remain unverified.
+- Model verdict: NOT RUN for approved economics/applicability/maps and the complete human litmus. Technical source/application delivery and saved-source-reference verification are complete within [delivery/configuration evidence](../evidence/application-gap-delivery-2026-11-03.md); those do not approve the private proposals.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**

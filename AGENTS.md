@@ -19,7 +19,42 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — November 3 delivery
+## Present production truth — November 3 gap-program delivery
+
+Production serves `b5ba780279be0eb5661e463d2e73b5add1064056` /
+`pmi-kc-app-rmw123csb-dc0ce89a8583` at 100% canonical traffic. Run
+`ff1f44bf-9864-42e7-884f-1c2b8e2a545f` completed at 19:25:27Z; its permit is consumed and controller
+exited zero. One application build `d0f2d859-cc2c-42e2-8c27-a81340c84930` succeeded. Candidate receipt
+`3290b6c6-bf10-4c8d-8013-30c82dd9bf55` issued at 19:18:11.576Z; receipt-bound promotion verified
+at 19:18:33.509Z. Two observation checkpoints passed in 417,609 ms, within the 300,000/480,000 ms
+bounds. All 375 source/projected/rendered records matched, with zero discrepancies, candidate 5xx,
+unresolved effects or guarded Admin mutation attempts. Editor browser remains `not_run` under the
+existing policy. All eleven independent final readback sections matched at 19:27:02Z. Runtime
+fingerprint: `sha256:b6cf189e006e5711bdc6b6f2eab1cec889d2439598b9cefbee96ea777c5a9111`.
+The running digest matches the successful regional build. Managed runtime identity, eleven paired
+Space maps, five secret bindings, Production/Live, Demo=false and Sheet=true match reviewed state.
+
+The named P1–P9 source delta and four independently reviewed corrections are delivered. Full07
+passed 10,162 unit tests/four existing parity skips and all 497 backend tests; core E2E passed
+46 with 23 explicit no-emulator skips. Exact-main CI passed all five jobs in `41696162202`.
+Thirteen separately bounded normal configuration operations subsequently passed readback:
+eight unchanged source destinations attested (v8→v16), Dotloop observation refreshed with selection
+v1 unchanged, settled notice basis v1 saved, and the same existing owner-renewal process corrected
+and published Active v1 (six steps, three links, 4,637 verified immutable bytes, zero runs).
+No original/legal/map approval, customer dispatch, provider business write, signature or Dotloop
+key activation is inferred. Both Dotloop write keys remain closed. The preserved process staffing
+placeholders and real human acceptance retain their specific holds.
+
+S240's live inventory read remains non-runnable: effective-policy inspection establishes no runtime
+storage.objects.list grant, while owner access verifies the existing Approved/Low source and
+validates its exact handoff without importing. S240 explicitly excludes IAM changes; the prepared
+one-permission/bucket proposal needs one project-owner scope decision (B-GCP-REINDEX). No new
+permission has been applied. This is not a missing-client-file/login or Dan task.
+The application queue is delivered; documentation-only closure does not deploy. Raw evidence and
+778 byte-preserved prior state files remain private. The stopped original owner was never resumed.
+Evidence: `docs/evidence/application-gap-delivery-2026-11-03.md`; current holds: `docs/open-blockers.md`.
+
+## Previous production truth — November 3 00:10 delivery (historical)
 
 Production serves `bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd` at 100% canonical traffic.
 Run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73` completed at 2026-11-03T00:10:44Z, with its permit consumed and watcher exited.

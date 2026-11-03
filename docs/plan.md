@@ -7,18 +7,28 @@ Updated: 2026-11-03 (UTC), owner clarification of the application gap assessment
 Implement and qualify the finalized work for the three active application lanes, the seven
 assessment gaps, newly diagnosed A-08 PDF publication dependency, and the configuration/approval/
 communication work needed to unblock real renewals.
-The owner finalized the scope below, then explicitly directed implementation to completion and
-maintenance of backend open questions. Reviewed head `a32d1a6b` passed full gate 06, the final
-isolated browser journey and exact-main CI; independent review then found four source/spec misses
-and the unperformed required core E2E gate. The four repairs passed focused checks and independent
-re-review; core E2E passed 46 tests with 23 explicit configuration skips. Full07 passed at
-18:30:52Z: 10,162 unit tests/four existing parity skips, all 497 backend tests and all required
-commands/build. Fresh exact-main CI remains required;
-delivery remains unadmitted and actual configuration is pending. This launch carries the named
-scope through its existing gates without repeated
-phase consent. It authorizes no client communication, new exact-key activation, invented business
-decision or proof effect. The ten owning-suite queue entries remain pending verified delivery;
-they cannot admit a release before corrected cumulative qualification and exact-main CI.
+The owner finalized this scope, then launched implementation and backend-question maintenance.
+It is implemented and delivered at `b5ba7802` / `pmi-kc-app-rmw123csb-dc0ce89a8583`, 100% traffic.
+The four independent source findings are repaired and reviewed; full07 passed 10,162 unit tests
+with four parity skips and all 497 backend tests, core passed 46 with 23 explicit configuration
+skips, and exact-main CI passed all five jobs. Run `ff1f44bf` passed candidate/promotion, two
+observation checkpoints over 417,609 ms, 375 matched records and eleven final readbacks.
+The permit is consumed and the application queue is delivered.
+
+Thirteen normal configuration outcomes passed actual readback: source destinations v16,
+Dotloop observation/unchanged selection v1, settled notice basis v1, and the same existing process
+corrected/published Active v1 with six steps, three links, verified immutable bytes and zero runs.
+The [current delivery evidence](evidence/application-gap-delivery-2026-11-03.md) separates every
+qualification, delivery, configuration, UI and human/provider boundary. Communication remains the
+existing private copy-only workflow; this grants no mailbox draft/send or invitation.
+
+The live re-index handoff is safely non-runnable because its runtime lacks the necessary source
+metadata-list permission. Source/approval/schema/generation are present and an owner-side handoff
+is privately validated without import. S240 explicitly excludes IAM changes, so a prepared narrow
+scope-deviation decision belongs to the project owner, not Dan or the client source custodian.
+No new grant was applied. Preserved process staffing placeholders require a real responsibility
+decision before new staff-accountable checklists are claimed. Both precise holds are in
+[open-blockers](open-blockers.md), alongside genuine content/case/human/activation dependencies.
 
 Baseline: main 39435919; deployed bc97535379dd08deab578455b00a80fc93b8d209 /
 pmi-kc-app-rmvzwt7ms-00754475effd, verified in the
@@ -90,14 +100,12 @@ states. A green engineering package does not establish legal approval, owner con
 provider creation causality, receipt by a customer or human acceptance. No blanket audit, live proof
 rerun, paid comp call or production synthetic record is required to manufacture completion.
 
-P4's implementation diagnosis added A-08/Q-ENG-PUB2 under the existing S130/shared S21 owners:
-new originals cannot reach intake because production file scanning is unavailable and the intake
-accepts only the old `renewals` Space name while publication uses canonical `lease-renewals`.
-Implement the exact reviewed blank-original PDF path, safe complete extraction, genuine scanning,
-canonical/legacy Space compatibility and source-family binding; preserve process-only scope and
-all legal/map approvals. General arbitrary KB file/folder publication remains unavailable outside
-this bounded repair. No supplied original is published as test proof and no client technical
-permission is needed for the engineering. S130 AC-S130-20–24 are the falsifiable completion checks.
+P4's implementation diagnosis added A-08/Q-ENG-PUB2 under S130/shared S21. The exact reviewed
+blank-original PDF path, complete parser, genuine scanning, canonical/legacy Space compatibility
+through downstream readers/filling/transport and source-family binding are now qualified and
+delivered. Legal/map gates and process-only trust scope are preserved. General arbitrary KB
+file/folder publication remains unavailable outside that bounded repair. No supplied original
+was published as test proof; S130 AC-S130-20–24 retain their falsifiable acceptance contract.
 
 ## Captured baseline and external seams
 
@@ -118,6 +126,7 @@ S238 prepares the consolidated communication. Existing source-backed decisions d
 generic approval round. Real terms, signer authority, legal use and human observations remain factual
 inputs and ordinary business acts, not engineering guesses. Each hold blocks only its named output.
 
-This plan is now explicitly launched for implementation. No older READY program,
-stopped owner, consumed permit or release watcher is restarted. New questions and actual closure
-evidence are maintained in docs/open-blockers.md and the concise facts/loop pointers.
+The launched implementation and application delivery are complete within that scope. No older
+READY program, stopped owner or consumed permit restarts. Only the exact current external/human
+and new-authority holds in docs/open-blockers.md prevent their named outcomes. A new IAM grant
+cannot be inferred from this completed release or the existing source handoff command.

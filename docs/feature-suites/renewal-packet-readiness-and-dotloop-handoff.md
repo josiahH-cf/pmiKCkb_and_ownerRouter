@@ -3,7 +3,7 @@
 
 # S235 — Per-family packet readiness, party/animal field binding and duplicate-safe Dotloop handoff
 
-> Status: IMPLEMENTED AND DEPLOYED — run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73`, `bc97535379dd08deab578455b00a80fc93b8d209` / `pmi-kc-app-rmvzwt7ms-00754475effd`, November 3, 2026. S235 code is deployed. R-S235-7 synthetic map verification remains NOT RUN until an approved original/reviewed map exists. Client content holds only the dependent output; both Dotloop write keys remain closed and the first real loop needs exact authorization. See `docs/evidence/application-delivery-2026-11-03.md`.
+> Status: IMPLEMENTED AND DEPLOYED. The stabilization baseline run `d4c109a0-6dce-4c4d-8928-ec77e9a58c73` at `bc975353` retains [its delivery evidence](../evidence/application-delivery-2026-11-03.md); current A-03 source/application delivery and normal configuration are verified in [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). R-S235-7 still requires an approved original/reviewed map. Both Dotloop write keys remain closed; real legal output, first effects and human acceptance retain their exact gates.
 
 **Goal.**
 
@@ -29,7 +29,7 @@ Inspected at `a1c0fe8c` plus the October 27 Admin readback (`docs/facts.md`, pri
   On 2026-10-27 all ten read the engineering default `family-use-default-v1` (version 0), the
   intake manifest held ten empty entries, checkpoints read intake pending, review coverage /
   approve mappings / verify filled values / approve packet blocked, confirm provider effect and
-  inspect returned state pending; eight Drive references are saved unverified at resource version 8;
+  inspect returned state pending; eight Drive references were saved unverified at resource version 8;
   no city/HOA source, charge policy or policy material is recorded.
 - The map contract (`lib/lease-documents/artifact-intake-contract.ts`, `artifact-field-map/v1`)
   requires `templateVersion` (`publication:` reference), `mapVersion`, `fields[]` {`fieldId`,
@@ -280,10 +280,11 @@ S34 and S228 history unchanged.
 
 ## November 3 assessment follow-up — A-03
 
-> Authoring status: FINAL. A-03 current-readiness source and local gate QUALIFIED; application
-> delivery PENDING. Full06 and final v8 fixture runtime scope are in [implementation evidence](../evidence/application-gap-implementation-2026-11-03.md).
-> The delivered S235 baseline retains its original evidence. R-S235-7 approved-map verification
-> and human/provider outcomes retain their exact holds; no provider effect was test proof.
+> Authoring status: FINAL. A-03 source and application DELIVERED; current configuration/readback
+> VERIFIED. Source-reference flags are verified at resource version 16. Dotloop refresh at
+> 19:36:04Z returned two profiles, template counts 0/9 and unchanged saved selection version 1.
+> See [delivery and configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). R-S235-7 approved-map verification, actual legal/provider output
+> and human acceptance retain their exact holds. No provider business effect was test proof.
 
 **Goal.**
 
@@ -407,7 +408,7 @@ which facts remain unknown, and which forms matter for that choice. They are not
 city or HOA form that does not apply. An old or mismatched connection check says why it cannot yet
 be relied on, while the already-saved template remains visible.
 
-- Model verdict: NOT RUN — current-context, excluded-family and qualified-selection source repairs pass focused checks; cumulative qualification, this model litmus and delivery remain pending. Real-map verification retains its exact input hold.
+- Model verdict: PASS for current-context, excluded-family, qualified-selection and source/application delivery within [delivery/configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). Real-map verification, real provider output and human acceptance retain their exact holds.
 - Human verdict: NOT RUN — no human observer
 
 **Requirement-to-outcome traceability.**
@@ -443,8 +444,8 @@ party/animal slots, closed exact keys, source lineage and human signing.
 
 **Forbidden actions / hard gates.**
 
-The original assessment made no production change. Launched source repairs pass focused checks;
-cumulative qualification and delivery are pending. Verification uses isolated fixtures and existing
+The original assessment made no production change. The later launched source repairs are qualified
+and delivered, with current normal configuration/readback separately recorded. Verification uses isolated fixtures and existing
 guarded reads. No production test record, draft/send, schedule, provider
 business write, template recreation, key change, source approval or signature is proof.
 
@@ -457,9 +458,9 @@ readback; do not reopen C00 merely because a cached observation ages.
 
 **Standalone delivery contract.**
 
-- **Deliverable now:** implemented bounded readiness display and passing focused checks, with
-  preserved starting evidence. Cumulative qualification and delivery remain pending independently
-  of client approvals or a provider effect.
+- **Deliverable now:** delivered bounded readiness display and qualification, with current source
+  verification flags and fresh managed Dotloop observation read back. Approved maps/legal output
+  and actual provider effects retain their independent gates.
 - **Consumes, but does not assume:** readable current facts and connection observation; missing
   input is an explicit unknown/unavailable result with retained evidence clearly labeled.
 - **Externally blocked effect:** actual legal output and first real Dotloop effects remain under
@@ -472,8 +473,8 @@ readback; do not reopen C00 merely because a cached observation ages.
 Keep the two starting reproductions and the 39-test preservation result as dated evidence. A later
 authorized implementation must materialize every ARCH/BEH/AC case before edits, run focused
 projection/page checks and the separate preservation set, then the repository's required delivery
-gates under the owner's launch. Source/focused-check evidence does not establish cumulative
-qualification, model/human acceptance or delivery; no such PASS is claimed.
+gates under the owner's launch. Those technical qualification/delivery gates are now evidenced;
+they do not establish the complete approved-map litmus, human acceptance or provider completion.
 
 **Ordered prompt sequence.**
 
