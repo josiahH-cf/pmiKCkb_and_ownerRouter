@@ -132,10 +132,13 @@ function SceneFigure({ sceneId }: Readonly<{ sceneId: string }>) {
   if (!scene) return null;
   return (
     <figure className="help-figure">
+      {/* Eager, not lazy: a printed guide or the whole manual must carry every picture, and a
+          lazy image below the fold is never fetched by a print that does not scroll to it. */}
       <Image
         alt={scene.alt}
         className="help-figure-image"
         height={scene.viewport.height}
+        loading="eager"
         src={`${HELP_ASSET_ROOT}/${scene.id}.png`}
         unoptimized
         width={scene.viewport.width}
