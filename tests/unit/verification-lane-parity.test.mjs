@@ -56,6 +56,10 @@ const REQUIRED_IN_BOTH = [
   "verify:spec-traceability",
   "verify:copy-voice",
   "verify:redaction",
+  "verify:help-coverage",
+  "verify:help-controls",
+  "verify:help-screenshots",
+  "verify:help-content",
   "check:budget-guard",
   "build",
 ];
