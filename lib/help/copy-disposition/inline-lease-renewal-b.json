@@ -1,0 +1,471 @@
+[
+  {
+    "kind": "inline",
+    "location": "app/lease-renewal/property/[propertyKey]/page.tsx",
+    "text": "…resolution decisions and … write-back approvals recorded for this property.",
+    "describes": "Property history count of resolution and write-back approval decisions",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/lease-renewal/property/[propertyKey]/page.tsx",
+    "text": "No decisions have been recorded for this property yet.",
+    "describes": "Property decision history empty state",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalProgressControls.tsx",
+    "text": "…: …to …(…of …from …). A lookup fills only figures you have not edited; your own reviewed figures stay.",
+    "describes": "Starting rent range and which figures a comp lookup fills",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalProgressControls.tsx",
+    "text": "JPEG, PNG, WebP, or HEIC up to 5 MiB. Selection stays local until you review it.",
+    "describes": "Comps screenshot file types, size limit and local selection",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalProgressControls.tsx",
+    "text": "Confirm …· …· …· in-boundary Drive folder.",
+    "describes": "Comps screenshot store preview: file, type, size and Drive folder",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalProgressControls.tsx",
+    "text": "Confirm removal of …from …. Only this exact receipted file will move to Drive trash. Any attachment already embedded in an existing Gmail draft is unchanged.",
+    "describes": "Comps screenshot removal preview moving the exact receipted file to Drive trash",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalProgressControls.tsx",
+    "text": "Drive metadata changed after storage. This confirmation binds the current exact file version.",
+    "describes": "Screenshot removal after Drive metadata changed since storage",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalProgressControls.tsx",
+    "text": "This retained lookup used … miles; a new lookup uses the radius above (… miles).",
+    "describes": "Retained comp lookup radius versus the radius a new lookup uses",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalProgressControls.tsx",
+    "text": "Open this lookup&apos;s RentCast property report",
+    "describes": "Link to the RentCast property report for the retained lookup",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalProgressControls.tsx",
+    "text": "Reference only. Does not set the rent.",
+    "describes": "Market comp lookup result is reference only and sets no rent",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalProgressControls.tsx",
+    "text": "Enter money as 1500 or $1,500.00. A figure that is still being typed stays in its field and the other figures save.",
+    "describes": "Comparison figure money format and autosave of completed figures",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalProgressControls.tsx",
+    "text": "Decision recorded. The tenant offer is ready below.",
+    "describes": "Owner decision save confirmation pointing to the tenant offer below",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalResourceLinksSummary.tsx",
+    "text": "Shared resources · only staff-verified entries are usable.",
+    "describes": "Lease-side renewal resource links: only staff-verified entries are usable",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalResourceLocations.tsx",
+    "text": "Shared by every lease. Only staff-verified links reach a message or packet.",
+    "describes": "Connections renewal resource links shared by every lease, verified links only",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalTenantOutcomeControl.tsx",
+    "text": "Use a Gmail thread/message id or exact app receipt id. Never paste an email body, customer value, or note.",
+    "describes": "Tenant outcome evidence reference field and what it accepts",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalTenantOutcomeControl.tsx",
+    "text": "Waiting and Needs verification remain incomplete. A counter reopens the owner decision. A decline requires a separate non-renewal handoff.",
+    "describes": "Tenant outcome states: incomplete, counter reopens owner work, decline handoff",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkStatusControl.tsx",
+    "text": "Saving the status or a note needs Editor access. The saved status and the log stay visible.",
+    "describes": "Work status and note saving needs Editor; saved status stays visible",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkStatusControl.tsx",
+    "text": "A note saves by itself and leaves the status as it is.",
+    "describes": "Status note autosave, separate from the work status",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkStatusControl.tsx",
+    "text": "No status changes or notes recorded yet.",
+    "describes": "Status log empty state",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkingRecord.tsx",
+    "text": "Prefilled from policy v…. …This amount is saved when you leave or submit the field.",
+    "describes": "Working renewal rent prefilled from the pricing policy, saved on leave",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkspace.tsx",
+    "text": "Staff records. Source updates, messages and signatures retain their own evidence.",
+    "describes": "Status log note: staff records separate from provider and message evidence",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkspace.tsx",
+    "text": "The source values shown here were read a while ago. Refresh this lease to read them again. Your saved work stays available.",
+    "describes": "Out-of-date lease data notice; refresh reads sources, saved work stays",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkspace.tsx",
+    "text": "Saved renewal progress could not be read. Refresh this page to see it.",
+    "describes": "Saved renewal progress read failure in the next-action card",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkspace.tsx",
+    "text": "A recorded term review exists for a different version of these lease facts, so it is not applied. Record the term again against the current facts.",
+    "describes": "Stale recorded lease term review not applied to current facts",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkspace.tsx",
+    "text": "Recording is paused while the lease data is past the freshness limit. Refresh the desk data first.",
+    "describes": "Owner decision recording paused while lease data is expired",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkspace.tsx",
+    "text": "Updating renewal follow-up state requires Editor access in Renewals.",
+    "describes": "Tenant step follow-up attention and thread controls need Editor access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkspace.tsx",
+    "text": "Composing is paused while the lease data is past the freshness limit. Refresh the desk data first.",
+    "describes": "Renewal-notice draft composing paused while lease data is expired",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkspace.tsx",
+    "text": "Updating renewal follow-up state requires Editor access in Renewals.",
+    "describes": "Signatures step follow-up attention and thread controls need Editor access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkspace.tsx",
+    "text": "Confirmed updates change lease dates and recurring charges in RentVine and the recognized renewal fields on the Sheet. One-time fees, deposits, ledger history, party changes, insurance enrollment and Sheet reversals stay manual. There is no general RentVine base-rent setter, no combined RentVine-and-Sheet update and no Sheet row deletion.",
+    "describes": "Scope of confirmed source updates and what stays manual or unsupported",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentAndCharges.tsx",
+    "text": "The recurring charge list is unavailable right now.",
+    "describes": "Recurring charge list read failure in Rent and charges",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentAndCharges.tsx",
+    "text": "One-time fees, deposits, ledger history, party changes and insurance enrollment are outside these RentVine actions ….",
+    "describes": "Charges and lease changes outside the supported RentVine actions",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentAndCharges.tsx",
+    "text": "Uses the working renewal terms. Today&apos;s billing and the Sheet current rent stay unchanged until the confirmed RentVine change takes effect.",
+    "describes": "Renewal rent preview link: uses working terms, today's billing unchanged",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentSuggestionApproval.tsx",
+    "text": "For comparison, the comp median for this lease is …. The owner-policy number above is the proposal; both are shown so nothing is hidden.",
+    "describes": "Owner-policy rent suggestion shown beside the comp median",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentSuggestionApproval.tsx",
+    "text": "This number enters the owner email once you approve it here, and a person still reviews and sends the email.",
+    "describes": "Approved rent suggestion enters the owner email; staff review and send it",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentSuggestionApproval.tsx",
+    "text": "Editor access is required to approve this number.",
+    "describes": "Rent suggestion approval needs Editor access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentvineUpdatesPanel.tsx",
+    "text": "Exact source: RentVine account …, lease …, read ….",
+    "describes": "RentVine proposal exact source account, lease and read time",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentvineUpdatesPanel.tsx",
+    "text": "This proposal&apos;s confirmation window has expired. Save a fresh proposal to continue; the exact terms below stay visible for review.",
+    "describes": "Expired RentVine proposal confirmation window; save a fresh proposal",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentvineUpdatesPanel.tsx",
+    "text": "The provider outcome is unproven. The exact before and intended after values above are the last known observations; reconciliation reads fresh provider state and may report before, after, or drift without claiming causality. Nothing is retried automatically, and new RentVine previews for this lease stay locked while this attempt is uncertain. If reconciliation still cannot prove the outcome, the lease needs an engineering readback and a manual clear from this attempt&apos;s record; the app offers no archive for an uncertain attempt.",
+    "describes": "Ambiguous RentVine attempt: locked previews, reconciliation and manual recovery route",
+    "disposition": "correct",
+    "contradicts": ["S242"],
+    "corrections": [
+      {
+        "before": "The provider outcome is unproven. The exact before and intended after values above are the last known observations; reconciliation reads fresh provider state and may report before, after, or drift without claiming causality. Nothing is retried automatically, and new RentVine previews for this lease stay locked while this attempt is uncertain. If reconciliation still cannot prove the outcome, the lease needs an engineering readback and a manual clear from this attempt&apos;s record; archiving an uncertain attempt is a deferred owner decision.",
+        "after": "The provider outcome is unproven. The exact before and intended after values above are the last known observations; reconciliation reads fresh provider state and may report before, after, or drift without claiming causality. Nothing is retried automatically, and new RentVine previews for this lease stay locked while this attempt is uncertain. If reconciliation still cannot prove the outcome, the lease needs an engineering readback and a manual clear from this attempt&apos;s record; the app offers no archive for an uncertain attempt."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentvineUpdatesPanel.tsx",
+    "text": "Charge applied at …; the refreshed lease base rent could not be read, so agreement is unproven. Refresh this lease.",
+    "describes": "Current-base charge applied but refreshed base rent unreadable",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentvineUpdatesPanel.tsx",
+    "text": "The working renewal terms changed after this preview was prepared. Prepare a new renewal rent preview to confirm the current terms.",
+    "describes": "Renewal rent preview blocked after the working terms changed",
+    "disposition": "correct",
+    "contradicts": ["S242"],
+    "corrections": [
+      {
+        "before": "The working renewal terms changed after this preview was prepared. Prepare a fresh future-rent preview to confirm the current terms.",
+        "after": "The working renewal terms changed after this preview was prepared. Prepare a new renewal rent preview to confirm the current terms."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentvineUpdatesPanel.tsx",
+    "text": "Confirming a source update needs Editor access.",
+    "describes": "Apply RentVine update needs Editor access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentvineUpdatesPanel.tsx",
+    "text": "Replacement and discard stay unavailable while durable status is loading or an attempt needs reconciliation.",
+    "describes": "Proposal replacement and discard locked during status load or reconciliation",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentvineUpdatesPanel.tsx",
+    "text": "Completed generations remain immutable and available for receipt review or their separately confirmed reversal after the active proposal changes.",
+    "describes": "Completed RentVine update history: receipts and separately confirmed reversal",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentvineUpdatesPanel.tsx",
+    "text": "Source: RentVine, read for …. Individual charges do not redefine contractual base rent.",
+    "describes": "Current recurring charges read from RentVine; charges are not base rent",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentvineUpdatesPanel.tsx",
+    "text": "The current charge list has not been loaded.",
+    "describes": "Recurring charge list not loaded in RentVine updates",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentvineUpdatesPanel.tsx",
+    "text": "Preparing saves a proposal in the app. RentVine changes only after confirmation of each exact effect; an unresolved attempt blocks replacement.",
+    "describes": "Prepare a RentVine update proposal: saved in the app, each effect confirmed",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentvineUpdatesPanel.tsx",
+    "text": "Select one verified current rent-account charge. The app never divides an aggregate among charges. Charge readback and the displayed contractual base rent are checked separately.",
+    "describes": "Current base-rent billing correction using one verified rent-account charge",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RentvineUpdatesPanel.tsx",
+    "text": "Only accounts verified on this lease are available here. Review the full schedule above for overlaps or gaps; matching end/start dates need a boundary review.",
+    "describes": "New recurring charge account choice and schedule boundary review",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/ReturnedDocumentsPanel.tsx",
+    "text": "Returned documents could not be read; nothing was changed. Reload to try again.",
+    "describes": "Returned documents and signatures read failure",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/ReturnedDocumentsPanel.tsx",
+    "text": "Recording a returned document needs Editor access. The states above stay visible read-only.",
+    "describes": "Returned document recording needs Editor; states stay visible read-only",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "Editor access is required to record a resolution.",
+    "describes": "Flag resolution needs Editor access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "Resolve the flag below to queue this proposal; the Sheet write itself stays a separately confirmed update.",
+    "describes": "Write-back proposal queued by resolving the flag; Sheet write stays separate",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "Approving records authorization for this exact snapshot. It does not make an unavailable Sheet operation executable.",
+    "describes": "Write-back proposal approval records a decision and executes nothing",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "Editor access is required to record a decision on the queued write-back proposal.",
+    "describes": "Write-back proposal decision needs Editor access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "Sheet action status could not be verified. Reload before attempting a write.",
+    "describes": "Legacy Sheet write-back recovery: action status could not be verified",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "Exact correction preview …expires …. Any intervening cell change blocks the clear.",
+    "describes": "Legacy Sheet write-back recovery: exact correction preview expiry",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "Exact preview …expires …. Any approval, target, value, actor, or environment change invalidates it.",
+    "describes": "Legacy Sheet write-back recovery: exact write preview expiry and invalidation",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "The prior correction attempt was confirmed absent. A new exact correction requires a fresh preview and receives a new one-attempt identity.",
+    "describes": "Legacy Sheet write-back recovery: absent correction attempt needs a fresh preview",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "Exact correction is unavailable while writes are off.",
+    "describes": "Legacy Sheet write-back recovery: retrying a correction while writes are off",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "The prior write attempt was confirmed absent. This newer Approved proposal can start a fresh one-attempt lineage.",
+    "describes": "Legacy Sheet write-back recovery: absent write allows a fresh attempt",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "This one attempt is consumed. Revoke and re-approve the proposal before preparing another write.",
+    "describes": "Legacy Sheet write-back recovery: consumed attempt needs revoke and re-approve",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "✓ Wrote the approved value to the Sheet (…). Receipt …….",
+    "describes": "Legacy Sheet write-back recovery: completed write receipt",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "Exact correction is unavailable while writes are off.",
+    "describes": "Legacy Sheet write-back recovery: correcting a completed write while writes are off",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "New Sheet writes are turned off. Durable receipts and reconciliation remain available.",
+    "describes": "Legacy Sheet write-back recovery: new writes turned off",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/flag-actions.tsx",
+    "text": "A current Approved proposal is required for a new Sheet preview. Durable status, reconciliation, and correction remain available.",
+    "describes": "Legacy Sheet write-back recovery: new preview needs an Approved proposal",
+    "disposition": "keep"
+  }
+]

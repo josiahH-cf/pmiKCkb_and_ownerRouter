@@ -246,9 +246,8 @@ export default async function SpaceDetailPage({
             <h2>Workflow communication reference</h2>
             <p className="muted">
               Gmail authorization applies per user, and the app stays scoped to your
-              workflows. It reads only deliberately linked renewal threads and stores only
-              bodyless workflow/audit metadata. Gmail remains the message system of
-              record.
+              workflows. It reads only deliberately linked renewal threads and keeps no
+              copy of their message bodies. Gmail remains the message system of record.
             </p>
             <ul className="compact-list">
               {ownerEmailReadOnlySources.map((source) => (

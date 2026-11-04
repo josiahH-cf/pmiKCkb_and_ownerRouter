@@ -29,7 +29,7 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 
 const BASELINE = JSON.parse(
   readFileSync(
-    join(__dirname, "..", "fixtures", "s238-current-renewal-full-view-presentation.json"),
+    join(__dirname, "..", "fixtures", "s244-help-copy-full-view-presentation.json"),
     "utf8",
   ),
 ) as Record<string, ReturnType<typeof fullViewSignature>>;

@@ -1,0 +1,303 @@
+[
+  {
+    "kind": "infotip",
+    "location": "components/approval/ApprovalQueueDetailPanel.tsx",
+    "text": "Approve availability | …",
+    "describes": "Why Approve is unavailable for the selected Approval Queue item",
+    "disposition": "keep"
+  },
+  {
+    "kind": "infotip",
+    "location": "components/approval/ApprovalQueueDetailPanel.tsx",
+    "text": "Deny availability | …",
+    "describes": "Why Deny is unavailable for the selected Approval Queue item",
+    "disposition": "keep"
+  },
+  {
+    "kind": "infotip",
+    "location": "components/layout/EnvironmentBadge.tsx",
+    "text": "{label.text} | …",
+    "describes": "Environment badge outside ordinary live Production",
+    "disposition": "keep"
+  },
+  {
+    "kind": "infotip",
+    "location": "components/workflows/ProcessDefinitionDetailClient.tsx",
+    "text": "Publication checks | A version becomes Active immediately only after root, scope, type, size, malware, sensitivity, source, graph, and action-reference checks pass.",
+    "describes": "Checks a process definition version passes before it becomes Active",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "1. Verify the lease and renewal cycle | Start with the exact lease, unit, owners and tenants. Review source differences, contractual base rent and dates before preparing an offer. Recurring charges stay separate from base rent.",
+    "describes": "Process guide entry: 1. Verify the lease and renewal cycle",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Current source facts | Refresh stale or incomplete data here and review any difference between sources. Your working values are kept. A RentVine or Sheet change has its own exact confirmation and readback.",
+    "describes": "Process guide entry: Current source facts",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Recorded renewal work | Everything staff record for this lease. Each entry saves on its own, and the first one starts the work record.",
+    "describes": "Process guide entry: Recorded renewal work",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "2. Lease owner approval | Prepare the recommendation, contact the owner, then record the actual response. The working renewal terms supply the tenant offer; a market estimate does not approve rent.",
+    "describes": "Process guide entry: 2. Lease owner approval",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "RentCast automation | Optional provider lookup, started with Look up market comps (reference only). Review its evidence or enter your own sourced market numbers; the preparation saves by itself. Opening the section does not run a lookup. Saved preparation supplies the owner message.",
+    "describes": "Process guide entry: RentCast automation",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Subject attributes and contractual base rent | The lookup uses source-resolved address, beds, baths and size where available. The displayed query explains what was sent or omitted. Base rent remains the lease's contractual amount, separate from recurring charges.",
+    "describes": "Process guide entry: Subject attributes and contractual base rent",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Market range and PMI recommendation | Enter the reviewed low, high and PMI number as available; these are optional preparation fields. The source is optional. Saved numbers enter the owner draft; they do not become owner-approved terms.",
+    "describes": "Process guide entry: Market range and PMI recommendation",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Trend and analysis reference | Available trend evidence and an optional analysis reference support the saved recommendation. Review the displayed source and omissions; the preparation saves by itself.",
+    "describes": "Process guide entry: Trend and analysis reference",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Owner draft preparation | Review the approved wording, saved market evidence and message inputs; entries save by themselves and the preview marks missing values. Copy the reviewed content or open Communications, review the exact message, then choose Send or Schedule.",
+    "describes": "Process guide entry: Owner draft preparation",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Message inputs and signature | Message inputs are saved for this lease, cycle and audience. Signature details and factual sources feed the displayed subject and body. The response-request wording and verified website are optional.",
+    "describes": "Process guide entry: Message inputs and signature",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity owner_outreach | Record contact with the owner after the person sends or completes the outreach.",
+    "describes": "Process guide entry: activity owner_outreach",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Owner response and exact terms | Record the response. Approved asks who approved, how and when, and Record approval saves it; any other answer saves when chosen. The rent and dates live in Working renewal terms.",
+    "describes": "Process guide entry: Owner response and exact terms",
+    "disposition": "correct",
+    "contradicts": ["S234"],
+    "corrections": [
+      {
+        "before": "Owner response and exact terms | Record the response; it saves when chosen and its source is optional. The rent and dates live in Working renewal terms.",
+        "after": "Owner response and exact terms | Record the response. Approved asks who approved, how and when, and Record approval saves it; any other answer saves when chosen. The rent and dates live in Working renewal terms."
+      }
+    ]
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Approved rent and dates | Use the owner's actual approved values. Market preparation remains separate. A declined renewal leads to the non-renewal handoff; a revision request is guidance for the next owner conversation.",
+    "describes": "Process guide entry: Approved rent and dates",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "3. Tenant offer and response | Use the working renewal terms to prepare the tenant offer, then record delivery and the tenant's actual response, in any order.",
+    "describes": "Process guide entry: 3. Tenant offer and response",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Tenant message inputs | Entries save by themselves. Rent and dates come from the working renewal terms. Missing values stay visible as markers. Copying and saving prepared wording do not record delivery.",
+    "describes": "Process guide entry: Tenant message inputs",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Separate charges and policy sources | Record applicability, amounts, cadence, effective dates and comparison sources where called for. Lease origin, insurance applicability and remaining-charge comparison feed the tenant wording without being folded into base rent.",
+    "describes": "Process guide entry: Separate charges and policy sources",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Verified resource links | The insurance flyer and renewal information form come from the saved resource locations. Blank pending-team locations remain blank and hold only the output that needs them; they never become customer links.",
+    "describes": "Process guide entry: Verified resource links",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity tenant_offer | Record delivery of the offer built from the working renewal terms.",
+    "describes": "Process guide entry: activity tenant_offer",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Tenant response | Record the tenant's actual response; it saves when chosen and its source is optional. Waiting or Needs verification remains incomplete.",
+    "describes": "Process guide entry: Tenant response",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity information_form | Record sending the applicable renewal information form so its return can be tracked.",
+    "describes": "Process guide entry: activity information_form",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity form_returned | Record return of the applicable information form to support document preparation.",
+    "describes": "Process guide entry: activity form_returned",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "4. Documents and signatures | Use the working renewal terms and verified resource locations to prepare the required documents. The document handoff shows the available facts and missing resources. Staff-recorded progress stays distinct from provider-verified execution.",
+    "describes": "Process guide entry: 4. Documents and signatures",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Document facts and resource locations | Review exact parties, property and approved rent and dates in the handoff. Supply actual approved form locations where required. Source updates and any available document execution retain their separate review and confirmation controls.",
+    "describes": "Process guide entry: Document facts and resource locations",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Approved terms into documentation | The handoff uses the current saved owner-approved terms. Review changed terms before preparing, delivering or signing documents again. A prepared packet is not evidence of a signature.",
+    "describes": "Process guide entry: Approved terms into documentation",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity documents | Record preparation of the actual required documents.",
+    "describes": "Process guide entry: activity documents",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity document_delivery | Record delivery of the prepared documents to the required people.",
+    "describes": "Process guide entry: activity document_delivery",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity signatures | Record that the required people have signed; document presence alone does not establish this.",
+    "describes": "Process guide entry: activity signatures",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity non_renewal_handoff | When either party declines, record the documented handoff instead of completing renewal documents.",
+    "describes": "Process guide entry: activity non_renewal_handoff",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "5. Follow-up and completion | Complete each applicable follow-up or record Not applicable. Record staff completion when the renewal is actually complete. Pending source updates remain visible separately.",
+    "describes": "Process guide entry: 5. Follow-up and completion",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity insurance | Record the applicable insurance and additional-insured follow-up.",
+    "describes": "Process guide entry: activity insurance",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity rhino | Record applicable Rhino renewal follow-up.",
+    "describes": "Process guide entry: activity rhino",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity pet | Record applicable pet registration follow-up.",
+    "describes": "Process guide entry: activity pet",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity charges | Record follow-up for the applicable recurring charges, separately from base rent.",
+    "describes": "Process guide entry: activity charges",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity inspection | Record applicable inspection follow-up.",
+    "describes": "Process guide entry: activity inspection",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity filter | Record applicable air-filter delivery follow-up.",
+    "describes": "Process guide entry: activity filter",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity utilities | Record applicable utility proof follow-up.",
+    "describes": "Process guide entry: activity utilities",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "activity assisted_housing | Record the applicable assisted-housing form, owner signature and submission follow-up.",
+    "describes": "Process guide entry: activity assisted_housing",
+    "disposition": "keep"
+  },
+  {
+    "kind": "process-guide",
+    "location": "components/lease-renewal/RenewalDashboardNavigation.tsx",
+    "text": "Record staff completion | Record it when the renewal is actually complete; the checklist is guidance. This records a staff attestation, not verified completion in RentVine, Gmail or Dotloop.",
+    "describes": "Process guide entry: Record staff completion",
+    "disposition": "keep"
+  }
+]

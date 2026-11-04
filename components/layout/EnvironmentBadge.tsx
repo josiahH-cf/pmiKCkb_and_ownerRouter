@@ -1,3 +1,4 @@
+import { HelpGuideLink } from "@/components/help/HelpGuideLink";
 import type { EnvironmentDescriptorResult } from "@/lib/environment/descriptor";
 import { InfoTip } from "@/components/ui";
 
@@ -52,7 +53,18 @@ export function EnvironmentBadge({
       data-context={descriptor.ok ? descriptor.descriptor.dataContext : "unconfirmed"}
     >
       <span className="environment-badge-text">{label.text}</span>
-      <InfoTip content={label.detail} label={label.text} />
+      <InfoTip
+        content={
+          <>
+            <p>{label.detail}</p>
+            <p>
+              <HelpGuideLink id={{ infotip: "environment-badge" }} />
+            </p>
+          </>
+        }
+        interactive
+        label={label.text}
+      />
     </span>
   );
 }

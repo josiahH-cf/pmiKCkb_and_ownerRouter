@@ -63,8 +63,8 @@ export function RenewalReviewPanel({ board }: Readonly<{ board?: RenewalReviewBo
       <p className="muted">
         {board.totalOpenFlags} open reconciliation flag
         {board.totalOpenFlags === 1 ? "" : "s"} across {board.totalRuns} renewal run
-        {board.totalRuns === 1 ? "" : "s"}. Resolve each on its run page. The app writes
-        to the sheet only after you approve.
+        {board.totalRuns === 1 ? "" : "s"}. Resolve each on its run page. Each Sheet
+        update has its own exact confirmation.
       </p>
       {proposalsAwaitingApproval > 0 || proposalsApproved > 0 ? (
         <p className="muted">

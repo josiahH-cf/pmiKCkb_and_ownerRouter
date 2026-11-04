@@ -575,8 +575,8 @@ export function RentvineUpdatesPanel({
                       new RentVine previews for this lease stay locked while this attempt
                       is uncertain. If reconciliation still cannot prove the outcome, the
                       lease needs an engineering readback and a manual clear from this
-                      attempt&apos;s record; archiving an uncertain attempt is a deferred
-                      owner decision.
+                      attempt&apos;s record; the app offers no archive for an uncertain
+                      attempt.
                     </p>
                   ) : null}
                   {status?.receipt ? (
@@ -612,7 +612,7 @@ export function RentvineUpdatesPanel({
                   {state === "not_started" && !expired && futureBlocked ? (
                     <p className="muted" role="status">
                       The working renewal terms changed after this preview was prepared.
-                      Prepare a fresh future-rent preview to confirm the current terms.
+                      Prepare a new renewal rent preview to confirm the current terms.
                     </p>
                   ) : null}
                   {executor ? (

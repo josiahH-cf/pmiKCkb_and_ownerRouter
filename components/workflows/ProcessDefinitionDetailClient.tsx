@@ -1,4 +1,5 @@
 "use client";
+import { HelpGuideLink } from "@/components/help/HelpGuideLink";
 import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 import { formatCalendarDate } from "@/lib/date-display";
 
@@ -454,8 +455,19 @@ export function ProcessDefinitionDetailClient({
         <section className="panel">
           <h2>Publication</h2>
           <InfoTip
+            content={
+              <>
+                <p>
+                  A version becomes Active immediately only after root, scope, type, size,
+                  malware, sensitivity, source, graph, and action-reference checks pass.
+                </p>
+                <p>
+                  <HelpGuideLink id={{ infotip: "publication-checks" }} />
+                </p>
+              </>
+            }
+            interactive
             label="Publication checks"
-            content="A version becomes Active immediately only after root, scope, type, size, malware, sensitivity, source, graph, and action-reference checks pass."
           />
           <p>
             <strong>
@@ -476,8 +488,9 @@ export function ProcessDefinitionDetailClient({
           ) : null}
           {!hasCurrentPublishedVersion ? (
             <p className="muted">
-              Publishing pins an immutable version for future runs. A Draft definition can
-              still start an app-plane run, recorded as Not pinned (draft).
+              Publishing pins an immutable version for the runs that start after it. A
+              Draft definition can still start an app-plane run, recorded as Not pinned
+              (draft).
             </p>
           ) : null}
           <p className="muted">

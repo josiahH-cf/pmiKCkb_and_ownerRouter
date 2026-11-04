@@ -114,7 +114,7 @@ const PROCESS_GLOSSARY: readonly GlossaryItem[] = [
       {
         title: "Owner response and exact terms",
         explanation:
-          "Record the response; it saves when chosen and its source is optional. The rent and dates live in Working renewal terms.",
+          "Record the response. Approved asks who approved, how and when, and Record approval saves it; any other answer saves when chosen. The rent and dates live in Working renewal terms.",
         target: "renewal-manual-owner_response",
         children: [
           {

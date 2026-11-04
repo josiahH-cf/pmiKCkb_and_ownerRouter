@@ -587,7 +587,7 @@ export default async function AdminPage() {
           <article className="panel">
             <h2>Workflow Communications</h2>
             <p className="muted">
-              Workflow Gmail remains action-gated; rule examples are local only.
+              Workflow Gmail is action-gated; review its approved artifacts.
             </p>
             <Link href="/admin/gmail-inbox-zero">Open communication governance</Link>
           </article>

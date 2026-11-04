@@ -97,9 +97,9 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
     purpose:
       "Prepare the owner message, get the owner's actual answer outside the app, then record that answer. The rent and dates you are working with live in Working renewal terms.",
     steps: [
-      "Review the owner message, which saves as you edit, then copy it or create an unsent Gmail draft.",
-      "Send it yourself from your mailbox or channel and talk with the owner.",
-      "Record the owner response; enter the rent and dates in Working renewal terms.",
+      "Review the owner message, which saves as you edit, then copy it, create an unsent Gmail draft or open it in Communications.",
+      "Send it with Send or Schedule in Communications, or yourself in your own channel, and talk with the owner.",
+      "Record the owner response; Approved asks who approved, how and when. Enter the rent and dates in Working renewal terms.",
     ],
     saves:
       "Saved preparation and the recorded owner response are stored with this lease; the working renewal terms supply the tenant offer.",
@@ -116,13 +116,13 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
       "Use the working renewal terms to prepare the tenant message, deliver it yourself, then record the tenant's actual response.",
     steps: [
       "Review the tenant message built from the working terms, charges and links; your edits save as you go.",
-      "Copy the message or create an unsent Gmail draft, then send it yourself in the right channel.",
+      "Copy the message, create an unsent Gmail draft or open it in Communications, then send it with Send or Schedule there or yourself in the right channel.",
       "Record delivery and the tenant's actual response with its source.",
     ],
     saves:
       "Saved preparation, recorded delivery and the tenant response are stored with this lease's recorded work.",
     notDone:
-      "Nothing is sent by the app. Recording a response does not accept terms for the tenant or write to RentVine or the Sheet.",
+      "The app sends nothing on its own; only your explicit Send or Schedule in Communications sends. Recording a response does not accept terms for the tenant or write to RentVine or the Sheet.",
     next: {
       label: "Prepare documents and follow-ups.",
       targetId: "renewal-section-documents",
@@ -182,7 +182,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
     saves:
       "A working value is saved in the app first. Each Sheet or RentVine update is a separate prepared proposal that only your exact confirmation applies; the app reads the result back afterwards.",
     notDone:
-      "A saved working value is not a source update, and a matching source value does not mean this app changed the source. A future offer does not change today's rent or the Sheet current rent. A confirmed charge change does not prove the contractual lease rent changed; a remaining difference is shown as a mismatch, never hidden.",
+      "A saved working value is not a source update, and a matching source value does not mean this app changed the source. An offer that starts later does not change today's rent or the Sheet current rent. A confirmed charge change does not prove the contractual lease rent changed; a remaining difference is shown as a mismatch, never hidden.",
     next: {
       label: "Start with the working current rent.",
       targetId: "renewal-working-current-rent",
@@ -216,7 +216,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
       "Read the current and proposed values under Review RentVine updates, then choose Apply RentVine update.",
     ],
     saves:
-      "A saved future-schedule preview in the app. Only your exact confirmation changes RentVine, and the app reads the charge back afterwards.",
+      "A saved preview of the later billing schedule in the app. Only your exact confirmation changes RentVine, and the app reads the charge back afterwards.",
     notDone:
       "The current Sheet rent and today's charge are unchanged by a saved preview. No message or approval results from it.",
   },
@@ -297,7 +297,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
       "Review the listed facts and the preview of the owner email.",
     ],
     saves:
-      "The decision is stored with this lease and unlocks the tenant offer. Asking for changes reopens the owner copy and every preview built from it.",
+      "The decision is stored with this lease and cycle; the tenant offer never waits for it. Asking for changes reopens the owner copy and every preview built from it.",
     notDone:
       "The preview is a draft and is never sent by the app. A recorded decision is not a provider effect.",
   },
@@ -364,7 +364,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
   "owner-response": {
     label: "Owner response",
     purpose:
-      "Records what the owner actually answered. The answer saves when you choose it; the source or channel is optional.",
+      "Records what the owner actually answered. Choosing Approved asks who approved, how and when, and Record approval saves it; any other answer saves when you choose it.",
     saves:
       "The response is stored with this lease's recorded work. Working renewal terms are kept separately below and stay whatever the owner has answered.",
     notDone:
@@ -375,7 +375,7 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
     purpose:
       "The renewal rent and dates you are working with. Enter what you know, from a call, an email or your own review; each value saves on its own and stays until you change it.",
     saves:
-      "Each value is stored on this lease with who entered it and when. New tenant messages and the future RentVine rent preview use the saved values. The document packet does not read them yet.",
+      "Each value is stored on this lease with who entered it and when. Tenant messages and the RentVine renewal rent preview use the saved values, the Sheet and RentVine update previews and the owner approval coverage show them, and the document packet reads the Working terms the recorded owner approval covers.",
     notDone:
       "Saving records no owner approval or tenant acceptance and writes nothing to RentVine or the Sheet. A source update is its own confirmed action.",
   },
@@ -463,10 +463,10 @@ export const SECTION_HELP: Readonly<Record<SectionHelpId, SectionHelp>> = {
   "document-handoff": {
     label: "Document preparation and signature handoff",
     purpose:
-      "Prepares the approved packet for Dotloop and lets an Admin confirm each supported provider action; signatures are collected outside the app. The current property, parties, approved terms and pending source updates are shown from their recorded sources.",
+      "Prepares the approved packet for Dotloop. A renewal staff member with edit access confirms each supported packet action through its exact preview; the Dotloop loop creation and upload actions are closed, so the readiness rows say so and nothing is created. Signatures are collected in Dotloop by hand. The current property, parties, approved terms and pending source updates are shown from their recorded sources.",
     steps: [
       "Reload readiness and resolve the listed blockers.",
-      "Preview the exact packet action, enter the Admin approval reason and confirm it once.",
+      "When every readiness row passes, preview the exact packet action, enter a confirmation reason and confirm it once.",
       "Review and complete form fields in Dotloop, then a person sends for signature.",
     ],
     saves:

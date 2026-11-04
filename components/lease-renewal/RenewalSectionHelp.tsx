@@ -7,6 +7,7 @@
 
 import type { SyntheticEvent } from "react";
 
+import { HelpGuideLink } from "@/components/help/HelpGuideLink";
 import { InfoTip } from "@/components/ui";
 import { SECTION_HELP, type SectionHelpId } from "@/lib/lease-renewal/section-help";
 
@@ -57,6 +58,9 @@ function SectionHelpContent({ id }: Readonly<{ id: SectionHelpId }>) {
           )}
         </p>
       ) : null}
+      <p>
+        <HelpGuideLink id={{ about: id }} />
+      </p>
     </div>
   );
 }

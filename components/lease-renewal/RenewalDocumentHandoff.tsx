@@ -405,9 +405,9 @@ function DocumentHandoffEditor({
             operation={current.operations?.upload}
           />
           <p className="muted">
-            Create one loop from the company template, or link an existing loop you
-            reviewed. A changed packet never creates another loop; reviewed new versions
-            upload into the same loop.
+            Create one loop from the company template when its readiness row allows it, or
+            link an existing loop you reviewed. A changed packet never creates another
+            loop; reviewed new versions upload into the same loop.
           </p>
           <Button
             disabled={

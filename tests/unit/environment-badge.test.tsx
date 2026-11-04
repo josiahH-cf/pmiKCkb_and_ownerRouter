@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -110,8 +110,15 @@ describe("environment badge rendering", () => {
     expect(badge).not.toHaveAttribute("title");
     const help = screen.getByRole("button", { name: "About Live data, read only" });
     await user.click(help);
-    expect(screen.getByRole("tooltip")).toHaveTextContent(
+    // S244 R-S244-3: the detail is a disclosure region so its "Open the guide" link is reachable.
+    expect(help).toHaveAttribute("aria-expanded", "true");
+    const detail = screen.getByRole("region", { name: "About Live data, read only" });
+    expect(detail).toHaveTextContent(
       "You are seeing real records. Nothing you do here changes them.",
+    );
+    expect(within(detail).getByRole("link", { name: "Open the guide" })).toHaveAttribute(
+      "href",
+      "/help/home-and-ask/find-your-way#read-environment-badge",
     );
   });
 });

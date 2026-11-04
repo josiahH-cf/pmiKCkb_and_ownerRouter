@@ -256,9 +256,7 @@ function OwnedLiveGmailWorkspace({ authenticatedEmail }: { authenticatedEmail: s
           ) : (
             <>
               {needingAttention.length === 0 ? (
-                <p className="muted">
-                  No linked renewal or maintenance communication needs attention.
-                </p>
+                <p className="muted">No linked renewal communication needs attention.</p>
               ) : (
                 <CommunicationList entries={needingAttention} />
               )}

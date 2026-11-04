@@ -36,17 +36,20 @@ import { getRenewalLeaseWorkspace } from "@/tests/helpers/sample-desk";
 // Batch 005 deliberately changes Full presentation. Keep the prior fixture immutable and check
 // its capabilities separately; the current presentation has its own recorded fixture.
 const PRIOR_PATH = join(__dirname, "..", "fixtures", "s181-full-view-presentation.json");
+// S244 R-S244-2 corrects the document handoff's loop sentence (loop creation follows its
+// readiness row), so only the documents section's copy changes in the manual sample cases. The
+// S238 presentation becomes the immediate prior and stays immutable; S244 is recorded separately.
 const IMMEDIATE_PRIOR_PATH = join(
   __dirname,
   "..",
   "fixtures",
-  "s234-approval-bound-terms-full-view-presentation.json",
+  "s238-current-renewal-full-view-presentation.json",
 );
 const BASELINE_PATH = join(
   __dirname,
   "..",
   "fixtures",
-  "s238-current-renewal-full-view-presentation.json",
+  "s244-help-copy-full-view-presentation.json",
 );
 // November3 S238 A-01 updates reviewed draft/Communications guidance; S235 A-03 names the
 // existing connection/selection review accurately. Only owner/tenant/documents copy and the
@@ -55,11 +58,7 @@ const BASELINE_PATH = join(
 // Record the new presentation only in the isolated fixture lane; every earlier fixture is immutable.
 const CONNECTION_LINK_BEFORE = "Open Connections for Dotloop setup -> /connections";
 const CONNECTION_LINK_AFTER = "Review Dotloop connection and selection -> /connections";
-const CURRENT_COPY_SECTIONS = [
-  "renewal-section-owner",
-  "renewal-section-tenant",
-  "renewal-section-documents",
-];
+const CURRENT_COPY_SECTIONS = ["renewal-section-documents"];
 // S234 R-S234-3 changes only the documents section's copy: the packet handoff names the
 // approval-bound Working terms the packet reads instead of legacy owner-response terms. That
 // authorized presentation is recorded separately; the S229 and earlier fixtures stay immutable.
@@ -352,18 +351,11 @@ describe("S145 preservation with authorized current renewal guidance", () => {
       ] as const) {
         expect(
           signature[field],
-          `${testCase.name}: unchanged ${field} since S234`,
+          `${testCase.name}: unchanged ${field} since S238`,
         ).toEqual(previous[field]);
       }
-      expect(
-        signature.links,
-        `${testCase.name}: only named Connections label changes`,
-      ).toEqual(
-        previous.links.map((entry) =>
-          testCase.manual && entry === CONNECTION_LINK_BEFORE
-            ? CONNECTION_LINK_AFTER
-            : entry,
-        ),
+      expect(signature.links, `${testCase.name}: unchanged links since S238`).toEqual(
+        previous.links,
       );
       const changedCopy = signature.copy
         .filter((entry, index) => entry !== previous.copy[index])

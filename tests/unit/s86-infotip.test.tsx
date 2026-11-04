@@ -3,6 +3,7 @@
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import Link from "next/link";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { InfoTip } from "@/components/ui";
@@ -91,6 +92,42 @@ describe("S86 InfoTip", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(screen.queryByRole("tooltip")).toBeNull();
     expect(screen.getByRole("link", { name: "Review connections" })).toBeInTheDocument();
+  });
+
+  it("S244 R-S244-3: an InfoTip ending with Open the guide still opens on focus and closes with Escape", async () => {
+    const user = userEvent.setup();
+    render(
+      <InfoTip
+        content={
+          <>
+            <p>Approver or Admin role is required.</p>
+            <p>
+              <Link href="/help/approval-queue-and-notifications/approve-or-deny#approve">
+                Open the guide
+              </Link>
+            </p>
+          </>
+        }
+        interactive
+        label="Approve availability"
+      />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "About Approve availability" });
+    await user.tab();
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    const panel = screen.getByRole("region", { name: "About Approve availability" });
+    expect(panel).toHaveTextContent("Approver or Admin role is required.");
+    expect(screen.getByRole("link", { name: "Open the guide" })).toHaveAttribute(
+      "href",
+      "/help/approval-queue-and-notifications/approve-or-deny#approve",
+    );
+    await user.keyboard("{Escape}");
+    expect(
+      screen.queryByRole("region", { name: "About Approve availability" }),
+    ).toBeNull();
+    expect(trigger).toHaveFocus();
   });
 
   it("keeps help open across trigger-to-panel travel and closes at 150 ms", () => {

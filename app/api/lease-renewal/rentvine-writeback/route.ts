@@ -759,7 +759,7 @@ async function handleRequest(request: Request, statusOnly: boolean) {
         return NextResponse.json(
           {
             error:
-              "The working renewal terms changed after this preview was prepared. Prepare a fresh future-rent preview from the current terms.",
+              "The working renewal terms changed after this preview was prepared. Prepare a new renewal rent preview from the current terms.",
             error_type: "renewal_terms_changed",
           },
           { status: 409 },
