@@ -1,0 +1,370 @@
+[
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "section-lease-details",
+    "text": "Start here. This section shows the unit, people, dates and contractual base rent the app read from RentVine and the operating Sheet, and where those two sources differ.",
+    "describes": "Lease details section: facts, sources, term and recorded work",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "section-comps",
+    "text": "Preparation for the owner conversation. It starts from the labeled starting range around the current contractual base rent and a five-mile search; the actual comparison comes from one deliberate RentCast lookup or your own sourced figures, saved with this renewal cycle. It is not required for unrelated work, but the comparison-based owner message needs a sourced low and high and actual reviewed comps or a reviewed attachment.",
+    "describes": "Market rent comparison section and its RentCast lookup",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "section-owner",
+    "text": "Prepare the owner message, get the owner's actual answer outside the app, then record that answer. The rent and dates you are working with live in Working renewal terms.",
+    "describes": "Owner approval section: message, delivery and recorded answer",
+    "disposition": "correct",
+    "contradicts": ["S233", "S234"],
+    "corrections": [
+      {
+        "field": "steps",
+        "before": "Review the owner message, which saves as you edit, then copy it or create an unsent Gmail draft.",
+        "after": "Review the owner message, which saves as you edit, then copy it, create an unsent Gmail draft or open it in Communications.",
+        "rule": "Workflow-linked owner messages can be sent or scheduled from Communications with an explicit Send or Schedule."
+      },
+      {
+        "field": "steps",
+        "before": "Send it yourself from your mailbox or channel and talk with the owner.",
+        "after": "Send it with Send or Schedule in Communications, or yourself in your own channel, and talk with the owner.",
+        "rule": "Workflow-linked owner messages can be sent or scheduled from Communications with an explicit Send or Schedule."
+      },
+      {
+        "field": "steps",
+        "before": "Record the owner response; enter the rent and dates in Working renewal terms.",
+        "after": "Record the owner response; Approved asks who approved, how and when. Enter the rent and dates in Working renewal terms.",
+        "rule": "An approval is recorded as structured evidence with Record approval."
+      }
+    ]
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "section-tenant",
+    "text": "Use the working renewal terms to prepare the tenant message, deliver it yourself, then record the tenant's actual response.",
+    "describes": "Tenant offer and response section",
+    "disposition": "correct",
+    "contradicts": ["S233"],
+    "corrections": [
+      {
+        "field": "steps",
+        "before": "Copy the message or create an unsent Gmail draft, then send it yourself in the right channel.",
+        "after": "Copy the message, create an unsent Gmail draft or open it in Communications, then send it with Send or Schedule there or yourself in the right channel.",
+        "rule": "Workflow-linked tenant messages can be sent or scheduled from Communications with an explicit Send or Schedule."
+      },
+      {
+        "field": "notDone",
+        "before": "Nothing is sent by the app. Recording a response does not accept terms for the tenant or write to RentVine or the Sheet.",
+        "after": "The app sends nothing on its own; only your explicit Send or Schedule in Communications sends. Recording a response does not accept terms for the tenant or write to RentVine or the Sheet.",
+        "rule": "Communications sends a workflow-linked message only on the staff member's explicit Send or Schedule."
+      }
+    ]
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "section-documents",
+    "text": "Check the working terms and required forms, prepare the document packet, record delivery and signatures done outside the app, then finish the remaining checks.",
+    "describes": "Documents and completion section",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "lease-term",
+    "text": "Shows the term and dates read from RentVine and lets you record how the app treats this lease. Lease end is when the current lease ends; Month-to-month since is the anchor for the next annual review.",
+    "describes": "Lease term card and the term review choice",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "renewal-cycle",
+    "text": "Everything staff record for this lease: responses, activity, comparisons, message inputs and completion. Each entry saves on its own as soon as it is complete; the first one starts the work record.",
+    "describes": "Recorded renewal work card and its history",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "rent-and-charges",
+    "text": "The one working area for rent and charge facts. Current rent is what the tenant is billed: your working value if you entered one, otherwise the single current rent-account charge, otherwise the contractual lease rent, each labelled with where it came from. Contractual lease rent, Lease total (RentVine) and Unit listed rent keep their own meanings and are never added to the rent. Each recurring charge is listed with its account classification and billing period; charges outside the current schedule sit behind a disclosure.",
+    "describes": "Rent and charges working area and destination status",
+    "disposition": "correct",
+    "contradicts": ["S242"],
+    "corrections": [
+      {
+        "field": "notDone",
+        "before": "A future offer does not change today's rent or the Sheet current rent.",
+        "after": "An offer that starts later does not change today's rent or the Sheet current rent.",
+        "rule": "Help copy describes present behavior without roadmap wording."
+      }
+    ]
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "correct-a-fact",
+    "text": "Compares the working current rent with each observed source and lets you adopt a source value, and prepares a change to the operating Sheet, RentVine or both for another fact that is wrong today, such as the renewal date.",
+    "describes": "Correct a lease fact card and its destination previews",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "future-rent",
+    "text": "Prepares the working renewal rent as a RentVine recurring-charge change that starts on the working effective date, leaving today's billing in place until then.",
+    "describes": "RentVine renewal rent preview that starts on the effective date",
+    "disposition": "correct",
+    "contradicts": ["S242"],
+    "corrections": [
+      {
+        "field": "saves",
+        "before": "A saved future-schedule preview in the app.",
+        "after": "A saved preview of the later billing schedule in the app.",
+        "rule": "Help copy describes present behavior without roadmap wording."
+      }
+    ]
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "data-check",
+    "text": "Compares each lease fact across RentVine and the operating Sheet. Agrees means both sources match; One source means only one source has it; Needs your decision means they differ.",
+    "describes": "Data check comparison of RentVine and the operating Sheet",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "sheet-updates",
+    "text": "Shows the one Sheet change waiting for review, or none, and lets you apply it exactly once to the operating renewal tab.",
+    "describes": "Review Sheet updates panel and Apply Sheet update",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "rentvine-updates",
+    "text": "Shows the RentVine change waiting for review, or none, and lets you apply each supported effect exactly once: renewal dates or a recurring charge.",
+    "describes": "Review RentVine updates panel and Apply RentVine update",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "source-updates",
+    "text": "Lists the Sheet or RentVine updates this cycle's staff records offered, with their current state.",
+    "describes": "Source updates offered by staff records",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "market-evidence",
+    "text": "Holds the comparison for this cycle: the low and high start from the current contractual base rent (20% through $750, easing to 15% at $2,500) and are labeled as a starting range, not market evidence. One deliberate RentCast lookup for this unit, five miles unless you change it, fills only the figures you have not edited; your own sourced figures always win.",
+    "describes": "Market evidence card: starting range, lookup and own figures",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "owner-decision",
+    "text": "Records the owner's rent decision for this cycle and shows the owner email facts the app already knows.",
+    "describes": "Owner decision card: outcome, preparation and owner email facts",
+    "disposition": "correct",
+    "contradicts": ["S113"],
+    "corrections": [
+      {
+        "field": "saves",
+        "before": "The decision is stored with this lease and unlocks the tenant offer.",
+        "after": "The decision is stored with this lease and cycle; the tenant offer never waits for it.",
+        "rule": "Owner and tenant message preparation do not wait for a recorded answer or a cycle."
+      }
+    ]
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "tenant-offer",
+    "text": "Shows the tenant offer drafts for email, portal chat and text built from the working terms, and lets you record the tenant's actual response.",
+    "describes": "Tenant offer drafts and the recorded tenant response",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "waiting-follow-up",
+    "text": "Shows who the renewal is waiting on and lets you mark follow-up attention or link the thread you are watching.",
+    "describes": "Waiting and follow-up card",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "staff-work-owner",
+    "text": "Records the owner-side work you did in another channel or tool: outreach, the response and any approval conversation.",
+    "describes": "Owner-side Work recorded by staff",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "staff-work-tenant",
+    "text": "Records the tenant-side work you did outside the app: delivery of the offer, the response and any revised terms.",
+    "describes": "Tenant-side Work recorded by staff",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "staff-work-documents",
+    "text": "Records document preparation, delivery, returned signed artifacts and the applicable follow-ups done outside the app.",
+    "describes": "Document-side Work recorded by staff",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "owner-response",
+    "text": "Records what the owner actually answered. Choosing Approved asks who approved, how and when, and Record approval saves it; any other answer saves when you choose it.",
+    "describes": "Owner response choice and structured approval evidence",
+    "disposition": "correct",
+    "contradicts": ["S234"],
+    "corrections": [
+      {
+        "field": "purpose",
+        "before": "Records what the owner actually answered. The answer saves when you choose it; the source or channel is optional.",
+        "after": "Records what the owner actually answered. Choosing Approved asks who approved, how and when, and Record approval saves it; any other answer saves when you choose it.",
+        "rule": "An approval is recorded as structured evidence with Record approval; other answers save when chosen."
+      }
+    ]
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "working-terms",
+    "text": "The renewal rent and dates you are working with. Enter what you know, from a call, an email or your own review; each value saves on its own and stays until you change it.",
+    "describes": "Working renewal terms and the previews that read them",
+    "disposition": "correct",
+    "contradicts": ["S234", "S237"],
+    "corrections": [
+      {
+        "field": "saves",
+        "before": "New tenant messages and the future RentVine rent preview use the saved values. The document packet does not read them yet.",
+        "after": "Tenant messages and the RentVine renewal rent preview use the saved values, the Sheet and RentVine update previews and the owner approval coverage show them, and the document packet reads the Working terms the recorded owner approval covers.",
+        "rule": "Working terms feed previews and approval coverage, and the packet reads the approved Working terms."
+      }
+    ]
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "tenant-response",
+    "text": "Records what the tenant actually answered: accepted, asked for changes, declined or still needs verification.",
+    "describes": "Tenant response choice",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "message-preparation-owner",
+    "text": "Builds the owner email from the lease facts, the saved comparison and your signature. Edit the subject and body, which save by themselves, then copy the message or open Communications in a new tab.",
+    "describes": "Owner message preparation, copy and Communications",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "message-preparation-tenant",
+    "text": "Builds the tenant offer from the working terms, applicable charges, insurance wording and resource links. Edit the subject and body, which save by themselves, then copy the message or open Communications in a new tab.",
+    "describes": "Tenant message preparation, copy and Communications",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "renewal-notice-draft",
+    "text": "Opens the current workflow-linked Communications composer for new renewal messages and preserves inspection of an earlier unsent-draft attempt.",
+    "describes": "Renewal-notice draft card and earlier draft receipts",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "document-preparation",
+    "text": "Brings together the packet truth, the provider handoff and the existing build-out checks for this lease's documents.",
+    "describes": "Document preparation card: packet truth and handoff",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "packet-truth",
+    "text": "Evaluates which approved document families this lease needs and whether each has an approved publication and mapping.",
+    "describes": "Document packet truth evaluation",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "document-handoff",
+    "text": "Prepares the approved packet for Dotloop. A renewal staff member with edit access confirms each supported packet action through its exact preview; the Dotloop loop creation and upload actions are closed, so the readiness rows say so and nothing is created. Signatures are collected in Dotloop by hand. The current property, parties, approved terms and pending source updates are shown from their recorded sources.",
+    "describes": "Document preparation and signature handoff with Dotloop",
+    "disposition": "correct",
+    "contradicts": ["S182", "S235", "S34"],
+    "corrections": [
+      {
+        "field": "purpose",
+        "before": "Prepares the approved packet for Dotloop and lets an Admin confirm each supported provider action; signatures are collected outside the app.",
+        "after": "Prepares the approved packet for Dotloop. A renewal staff member with edit access confirms each supported packet action through its exact preview; the Dotloop loop creation and upload actions are closed, so the readiness rows say so and nothing is created. Signatures are collected in Dotloop by hand.",
+        "rule": "Ordinary renewal staff confirm their own packet operations; both Dotloop write actions are closed and signing is a human step."
+      },
+      {
+        "field": "steps",
+        "before": "Preview the exact packet action, enter the Admin approval reason and confirm it once.",
+        "after": "When every readiness row passes, preview the exact packet action, enter a confirmation reason and confirm it once.",
+        "rule": "The packet confirmation asks the renewal staff member for a Confirmation reason; no Admin approval is involved."
+      }
+    ]
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "resource-links",
+    "text": "Holds the shared informational and legal-form locations the tenant message and packet use: flyers, the information form and the approved form locations. An Admin maintains them once in Connections; each lease shows their current state.",
+    "describes": "Renewal resource links maintained in Connections",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "notice-timing",
+    "text": "Shows the notice dates the app derived from the lease and its sources, with the provenance of each line.",
+    "describes": "Read-only Notice timing lines with provenance",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "staff-completion",
+    "text": "Records that staff finished the applicable checklist for this cycle, or reopens a recorded completion when work resumes.",
+    "describes": "Staff completion record and reopening",
+    "disposition": "keep"
+  },
+  {
+    "kind": "about",
+    "location": "lib/lease-renewal/section-help.ts",
+    "aboutId": "completion-checks",
+    "text": "Shows whether provider-verified document completion exists for this lease, separately from staff-recorded completion.",
+    "describes": "Provider-verified completion check",
+    "disposition": "keep"
+  }
+]

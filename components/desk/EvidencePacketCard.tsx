@@ -16,8 +16,7 @@ export function EvidencePacketCard({ packet }: Readonly<{ packet: EvidencePacket
 
       {packet.lines.length === 0 ? (
         <p className="muted">
-          No evidence entered yet. Add inspection charges, vendor bids, RentVine ledger
-          refs, and the lock-change / 4265 charge to see a suggested deduction.
+          This read-only packet has no evidence lines, so its suggested deduction is zero.
         </p>
       ) : (
         <ul className="ui-rows">

@@ -28,20 +28,15 @@ import {
   type MeetingPreflightEvidence,
   type ObservationEntry,
 } from "@/lib/lease-renewal/meeting-walkthrough";
-import { parseGuideSteps } from "@/scripts/lib/renewal-guide-controls.mjs";
+import { loadGuideSteps } from "@/scripts/lib/renewal-guide-controls.mjs";
 
+// S243 R-S243-7: the September runbook is retired to a pointer; its record is the S132 fixture,
+// and the guide steps it cites live in the help hub's renewal control map.
 const RUNBOOK = readFileSync(
-  resolve(process.cwd(), "docs/products/renewal-meeting-walkthrough-runbook.md"),
+  resolve(process.cwd(), "tests/fixtures/s132/renewal-meeting-walkthrough-runbook.md"),
   "utf8",
 );
-const GUIDE_STEPS = new Set(
-  parseGuideSteps(
-    readFileSync(
-      resolve(process.cwd(), "docs/products/renewal-operator-guide.md"),
-      "utf8",
-    ),
-  ).map((step: { step: string }) => step.step),
-);
+const GUIDE_STEPS = new Set(loadGuideSteps().map((step: { step: string }) => step.step));
 const NOW = "2026-09-20T15:00:00Z";
 
 function evidence(

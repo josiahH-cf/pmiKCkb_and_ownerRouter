@@ -281,9 +281,10 @@ describe("ApprovalQueue bulk UI", () => {
     expect(approve).toBeDisabled();
     expect(approve).not.toHaveAttribute("title");
     await user.click(screen.getByRole("button", { name: "About Approve availability" }));
-    expect(screen.getByRole("tooltip")).toHaveTextContent(
-      "Approver or Admin role is required.",
-    );
+    // S244 R-S244-3: the reason is a disclosure region so its "Open the guide" link is reachable.
+    expect(
+      screen.getByRole("region", { name: "About Approve availability" }),
+    ).toHaveTextContent("Approver or Admin role is required.");
   });
 
   it("caps Select visible at the 50-item bulk limit and keeps execute visibly guarded", async () => {

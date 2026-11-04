@@ -90,8 +90,10 @@ const LEASES = [
 function detail(row) {
   const lease = row.lease;
   const base = Number(String(row.unit.rent).replace(/[$,\s]/g, ""));
+  const propertyID = SHEET_FIXTURE?.rentvinePropertyIds?.[String(lease.leaseID)];
   return {
     leaseID: lease.leaseID,
+    ...(propertyID === undefined ? {} : { propertyID }),
     startDate: lease.startDate,
     endDate: lease.endDate,
     baseRentAmount: base,
@@ -172,6 +174,40 @@ const HEADER = [
   "Did we set up their Air filter delivery",
   "did we get proof that utilities are set up if need be?",
 ];
+// S243 R-S243-6: the help rehearsal's opt-in synthetic Sheet. Only while this names a JSON file
+// (scripts/lib/help-rehearsal-sheet.json) does the Sheet serve that file's rows after the header
+// and does each lease detail above carry the file's synthetic property id, which the lease-to-row
+// resolution requires. Unset, every response is exactly the header-only one. Reads only, as ever.
+const SHEET_FIXTURE = process.env.HELP_REHEARSAL_SHEET_FIXTURE
+  ? readSheetFixture(process.env.HELP_REHEARSAL_SHEET_FIXTURE)
+  : null;
+function readSheetFixture(path) {
+  const fixture = JSON.parse(readFileSync(path, "utf8"));
+  for (const row of fixture.rows ?? [])
+    if (
+      !Array.isArray(row.cells) ||
+      row.cells.length !== HEADER.length ||
+      row.cells.some((cell) => typeof cell !== "string")
+    )
+      throw new Error(
+        `The help rehearsal Sheet row for ${row.leaseId} must fill the header.`,
+      );
+  return fixture;
+}
+// The grid layer of the opt-in Sheet: each row's RentVine link attached to its cell, no notes.
+function sheetRowData(rows) {
+  return [HEADER, ...rows.map((row) => row.cells)].map((cells, rowIndex) => ({
+    values: cells.map((_, column) => {
+      const link = rows[rowIndex - 1]?.link;
+      return link?.column === column
+        ? {
+            hyperlink: link.url,
+            textFormatRuns: [{ startIndex: 0, format: { link: { uri: link.url } } }],
+          }
+        : {};
+    }),
+  }));
+}
 function google(host, method, url) {
   if (host === "oauth2.googleapis.com" && url.pathname === "/token")
     return {
@@ -187,13 +223,19 @@ function google(host, method, url) {
         valueRanges: url.searchParams.getAll("ranges").map((range) => ({
           range,
           majorDimension: "ROWS",
-          values: [HEADER],
+          // Both value render options read the same text: no opt-in cell holds a formula.
+          values: [HEADER, ...(SHEET_FIXTURE?.rows ?? []).map((row) => row.cells)],
         })),
       };
     if (/^\/v4\/spreadsheets\/[^/]+$/.test(url.pathname))
       return {
         sheets: [
-          { properties: { sheetId: 0, title: "Lease Renewal" }, data: [{ rowData: [] }] },
+          {
+            properties: { sheetId: 0, title: "Lease Renewal" },
+            data: [
+              { rowData: SHEET_FIXTURE ? sheetRowData(SHEET_FIXTURE.rows ?? []) : [] },
+            ],
+          },
         ],
       };
   }

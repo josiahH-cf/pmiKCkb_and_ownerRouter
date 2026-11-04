@@ -518,8 +518,8 @@ export function OperatingSheetPanel({
                       automatically, and new Sheet previews for this lease stay locked
                       while this attempt is uncertain. If reconciliation still cannot
                       prove the outcome, the lease needs an engineering readback and a
-                      manual clear from this attempt&apos;s record; archiving an uncertain
-                      attempt is a deferred owner decision.
+                      manual clear from this attempt&apos;s record; the app offers no
+                      archive for an uncertain attempt.
                     </p>
                   ) : null}
                   {status?.receipt ? (

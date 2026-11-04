@@ -4246,6 +4246,385 @@ label.secondary-button:focus-within {
   color: var(--action-link) !important;
 }
 
+/* S242 R-S242-2/R-S242-6: the staff help hub. A contents sidebar beside the page on wide screens,
+   one disclosure above the page on narrow screens, and a print layout that keeps only the manual. */
+.help-layout {
+  display: grid;
+  gap: 32px;
+  grid-template-columns: minmax(220px, 290px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.help-toc {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  border-right: 1px solid var(--ui-border-subtle);
+  padding-right: 12px;
+}
+
+/* Phone and tablet browsers resize their own toolbars; the dynamic unit follows the visible area. */
+.help-toc {
+  max-height: calc(100dvh - 32px);
+}
+
+.help-toc-narrow-toggle {
+  display: none;
+}
+
+.help-toc-groups,
+.help-toc-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.help-toc-group {
+  margin: 0 0 4px;
+}
+
+.help-toc-group-toggle {
+  align-items: center;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ui-text);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-weight: 600;
+  gap: 8px;
+  padding: 6px 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.help-toc-group-toggle:hover,
+.help-toc-group-toggle:focus-visible {
+  background: var(--ui-surface-raised);
+}
+
+.help-toc-group-toggle[data-current="true"] {
+  color: var(--ui-selected-text);
+}
+
+.help-toc-chevron {
+  border-bottom: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  display: inline-block;
+  flex: none;
+  height: 7px;
+  transform: rotate(-45deg);
+  transition: transform 120ms ease;
+  width: 7px;
+}
+
+.help-toc-group-toggle[aria-expanded="true"] .help-toc-chevron {
+  transform: rotate(45deg);
+}
+
+.help-toc-links {
+  margin: 2px 0 8px 15px;
+}
+
+.help-toc-link {
+  border-left: 2px solid transparent;
+  color: var(--ui-text);
+  display: block;
+  padding: 4px 8px;
+  text-decoration: none;
+}
+
+.help-toc-single .help-toc-link {
+  font-weight: 600;
+}
+
+.help-toc-link:hover {
+  text-decoration: underline;
+}
+
+.help-toc-link[aria-current="page"] {
+  background: var(--ui-selected-surface);
+  border-left-color: var(--ui-border-interactive);
+  color: var(--ui-selected-text);
+  font-weight: 600;
+}
+
+.help-admin-label {
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 6px;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.help-body {
+  max-width: 82ch;
+  min-width: 0;
+}
+
+.help-kicker {
+  color: var(--ui-text-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.help-guide-header h1,
+.help-guide-header h2 {
+  margin: 0 0 6px;
+}
+
+.help-meta {
+  color: var(--ui-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  gap: 4px 16px;
+  margin: 0 0 12px;
+}
+
+.help-meta code,
+.help-route {
+  overflow-wrap: anywhere;
+}
+
+.help-purpose {
+  font-size: 1.05rem;
+}
+
+.help-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.help-moved {
+  border: 1px solid var(--ui-border-strong);
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 10px 12px;
+}
+
+.help-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.help-step {
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: 10px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  scroll-margin-top: 24px;
+}
+
+.help-step:target {
+  border-color: var(--ui-border-interactive);
+  box-shadow: 0 0 0 3px var(--ui-focus);
+}
+
+.help-step-title {
+  font-size: 1.05rem;
+  margin: 0 0 8px;
+}
+
+.help-step-facts {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.help-step-facts > div {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 9.5rem minmax(0, 1fr);
+}
+
+.help-step-facts dt {
+  color: var(--ui-text-muted);
+  font-weight: 600;
+}
+
+.help-step-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.help-step-note {
+  margin: 8px 0 0;
+}
+
+.help-figure {
+  margin: 12px 0 0;
+}
+
+.help-figure-image {
+  border: 1px solid var(--ui-border);
+  border-radius: 6px;
+  display: block;
+  height: auto;
+  max-width: 100%;
+}
+
+.help-figure figcaption {
+  color: var(--ui-text-muted);
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+.help-card-list {
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+}
+
+.help-card-list > li {
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.help-card-list p {
+  margin: 4px 0 0;
+}
+
+.help-controls {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.help-controls th,
+.help-controls td {
+  border-bottom: 1px solid var(--ui-border-subtle);
+  overflow-wrap: anywhere;
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.help-controls tr:target {
+  box-shadow: inset 3px 0 0 var(--ui-border-interactive);
+}
+
+.help-control-region {
+  color: var(--ui-text-muted);
+}
+
+.help-glossary-list > div {
+  border-bottom: 1px solid var(--ui-border-subtle);
+  padding: 10px 0;
+  scroll-margin-top: 24px;
+}
+
+.help-glossary-list dt {
+  font-weight: 600;
+}
+
+.help-glossary-list dd {
+  margin: 4px 0 0;
+}
+
+.help-changelog {
+  list-style: none;
+  padding: 0;
+}
+
+@media (max-width: 900px) {
+  .help-layout {
+    display: block;
+  }
+
+  .help-toc {
+    border-bottom: 1px solid var(--ui-border-subtle);
+    border-right: 0;
+    margin-bottom: 16px;
+    max-height: none;
+    padding: 0 0 12px;
+    position: static;
+  }
+
+  .help-toc-narrow-toggle {
+    display: block;
+    font: inherit;
+    font-weight: 600;
+    padding: 10px 12px;
+    width: 100%;
+  }
+
+  .help-toc[data-narrow-open="false"] .help-toc-panel {
+    display: none;
+  }
+
+  .help-step-facts > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
+
+@media print {
+  .help-toc,
+  .help-print-hide,
+  .help-page-actions,
+  .help-moved {
+    display: none !important;
+  }
+
+  .help-layout {
+    display: block;
+  }
+
+  .help-body {
+    max-width: none;
+  }
+
+  .help-step {
+    border-color: var(--ui-border-strong);
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .help-step-title,
+  .help-guide-header h1,
+  .help-guide-header h2,
+  .help-print-section-title {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .help-figure,
+  .help-figure-image {
+    break-inside: avoid;
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  .help-print-manual .help-guide,
+  .help-print-manual .help-screen,
+  .help-print-manual .help-glossary,
+  .help-print-section {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .help-print-section > .help-guide:first-of-type,
+  .help-print-section > .help-screen:first-of-type,
+  .help-print-section > .help-glossary:first-of-type {
+    break-before: avoid;
+    page-break-before: avoid;
+  }
+
+  .help-print-cover {
+    break-after: page;
+  }
+}
+
 /* ==========================================================================================
    S165 mobile: the existing application is completable from a phone browser (360 to 430 px
    wide, portrait, touch). Everything in this block is additive and sits last in the cascade.

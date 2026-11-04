@@ -51,10 +51,11 @@ Present behavior, verified in source and evidence:
   rehearsal started by `scripts/run-local-rehearsal.mjs` is different: it reads live data
   read-only, so it is not a screenshot source.
 - Existing handouts: `docs/products/renewal-operator-guide.md` (machine-checked step table),
-  `docs/products/renewal-training-guide.pdf`, `docs/products/wednesday-meeting-brief.pdf`,
+  `renewal-training-guide.pdf`, `wednesday-meeting-brief.pdf`,
   `docs/products/renewal-client-walkthrough-2026-09-09.md`,
-  `docs/products/renewal-meeting-walkthrough-runbook.md`, `docs/products/build-renewal-handouts.py`,
-  indexed by `docs/products/README.md`.
+  `docs/products/renewal-meeting-walkthrough-runbook.md`, `build-renewal-handouts.py`,
+  indexed by `docs/products/README.md` (the two PDFs and the build script were removed by this
+  suite; the three Markdown handouts are pointers to the hub).
 
 Intended end state: the complete guide set and screen references in the S242 content model, a
 scene manifest and capture script that regenerate every screenshot from the synthetic rehearsal,

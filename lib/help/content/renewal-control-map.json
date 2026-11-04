@@ -1,0 +1,781 @@
+[
+  {
+    "step": "1",
+    "page": "/lease-renewal",
+    "control": "Renewals",
+    "role": "heading",
+    "scope": "",
+    "availability": "required",
+    "expectation": "The desk or an honest source-unavailable state.",
+    "source": [
+      "components/admin/RenewalOriginalPublicationPolicy.tsx",
+      "components/lease-renewal/flag-actions.tsx"
+    ]
+  },
+  {
+    "step": "2",
+    "page": "/lease-renewal",
+    "control": "Filter renewal date",
+    "role": "summary",
+    "scope": "",
+    "availability": "required",
+    "expectation": "Read-only date filter.",
+    "source": ["components/lease-renewal/RenewalDeskTable.tsx"]
+  },
+  {
+    "step": "3",
+    "page": "/lease-renewal",
+    "control": "Month",
+    "role": "label",
+    "scope": "",
+    "availability": "conditional",
+    "expectation": "Choose the lease end month.",
+    "source": [
+      "components/admin/NoticeRulesAdminPanel.tsx",
+      "components/admin/RenewalPacketPolicyAdminPanel.tsx"
+    ]
+  },
+  {
+    "step": "4",
+    "page": "/lease-renewal",
+    "control": "Apply month",
+    "role": "button",
+    "scope": "",
+    "availability": "conditional",
+    "expectation": "Filter through the desk URL.",
+    "source": ["components/lease-renewal/RenewalDeskTable.tsx"]
+  },
+  {
+    "step": "5",
+    "page": "/lease-renewal",
+    "control": "Refresh source facts",
+    "role": "button",
+    "scope": "",
+    "availability": "conditional",
+    "expectation": "Refresh sources with returned freshness.",
+    "source": [
+      "lib/lease-renewal/meeting-walkthrough.ts",
+      "lib/lease-renewal/role-action-governance.ts"
+    ]
+  },
+  {
+    "step": "6",
+    "page": "workspace:verify-renewal",
+    "control": "← Back to renewals",
+    "role": "link",
+    "scope": "",
+    "availability": "required",
+    "expectation": "Retain the same filtered desk.",
+    "source": ["components/lease-renewal/RenewalDeskReturnLink.tsx"]
+  },
+  {
+    "step": "7",
+    "page": "workspace:verify-renewal",
+    "control": "Lease details",
+    "role": "link",
+    "scope": "navigation:Renewal dashboard sections",
+    "availability": "required",
+    "expectation": "Inspect this section without advancing work.",
+    "source": [
+      "components/lease-renewal/RenewalDashboardNavigation.tsx",
+      "components/lease-renewal/RenewalDocumentHandoff.tsx"
+    ]
+  },
+  {
+    "step": "8",
+    "page": "workspace:verify-renewal",
+    "control": "Market rent comparison",
+    "role": "link",
+    "scope": "navigation:Renewal dashboard sections",
+    "availability": "required",
+    "expectation": "Inspect this section without advancing work.",
+    "source": [
+      "lib/lease-renewal/dashboard-sections.ts",
+      "lib/lease-renewal/renewal-actions.ts"
+    ]
+  },
+  {
+    "step": "9",
+    "page": "workspace:verify-renewal",
+    "control": "Owner approval",
+    "role": "link",
+    "scope": "navigation:Renewal dashboard sections",
+    "availability": "required",
+    "expectation": "Inspect this section without advancing work.",
+    "source": [
+      "components/admin/SpaceRequestPanel.tsx",
+      "components/lease-renewal/OwnerApprovalCoverageLine.tsx"
+    ]
+  },
+  {
+    "step": "10",
+    "page": "workspace:verify-renewal",
+    "control": "Tenant offer and response",
+    "role": "link",
+    "scope": "navigation:Renewal dashboard sections",
+    "availability": "required",
+    "expectation": "Inspect this section without advancing work.",
+    "source": ["components/lease-renewal/RenewalDashboardNavigation.tsx"]
+  },
+  {
+    "step": "11",
+    "page": "workspace:verify-renewal",
+    "control": "Documents and completion",
+    "role": "link",
+    "scope": "navigation:Renewal dashboard sections",
+    "availability": "required",
+    "expectation": "Inspect this section without advancing work.",
+    "source": [
+      "lib/lease-renewal/dashboard-sections.ts",
+      "lib/lease-renewal/section-help.ts"
+    ]
+  },
+  {
+    "step": "12",
+    "page": "workspace:verify-renewal",
+    "control": "Open this lease in RentVine",
+    "role": "link",
+    "scope": "",
+    "availability": "conditional",
+    "expectation": "The exact lease record on the configured RentVine host, independent of any Sheet link.",
+    "source": ["components/lease-renewal/RenewalWorkspace.tsx"]
+  },
+  {
+    "step": "13",
+    "page": "workspace:verify-renewal",
+    "control": "Open the operating renewal Sheet",
+    "role": "link",
+    "scope": "",
+    "availability": "conditional",
+    "expectation": "The configured source Sheet.",
+    "source": ["components/lease-renewal/RenewalWorkspace.tsx"]
+  },
+  {
+    "step": "14",
+    "page": "workspace:verify-renewal",
+    "control": "Fact to correct",
+    "role": "label",
+    "scope": "region:Correct a lease fact",
+    "availability": "required",
+    "expectation": "Choose a supported business fact.",
+    "source": ["components/lease-renewal/RenewalCorrections.tsx"]
+  },
+  {
+    "step": "15",
+    "page": "workspace:verify-renewal",
+    "control": "Source or context (optional)",
+    "role": "label",
+    "scope": "region:Correct a lease fact",
+    "availability": "required",
+    "expectation": "Add the source of the correction when you have one.",
+    "source": [
+      "components/lease-renewal/RenewalCorrections.tsx",
+      "components/lease-renewal/RentvineUpdatesPanel.tsx"
+    ]
+  },
+  {
+    "step": "16",
+    "page": "workspace:verify-renewal",
+    "control": "Destinations",
+    "role": "label",
+    "scope": "region:Correct a lease fact",
+    "availability": "required",
+    "expectation": "Show exact supported destinations.",
+    "source": [
+      "components/lease-renewal/RenewalCorrections.tsx",
+      "components/lease-renewal/RenewalDeskTable.tsx"
+    ]
+  },
+  {
+    "step": "17",
+    "page": "workspace:verify-renewal",
+    "control": "Working current rent",
+    "role": "label",
+    "scope": "region:Rent and charges working area",
+    "availability": "required",
+    "expectation": "Type what the tenant pays today; it saves in the app by itself and shows its difference from each source.",
+    "source": [
+      "components/lease-renewal/AutosaveStatus.tsx",
+      "components/lease-renewal/RenewalCurrentRent.tsx"
+    ]
+  },
+  {
+    "step": "18",
+    "page": "workspace:verify-renewal",
+    "control": "Apply Sheet update",
+    "role": "button",
+    "scope": "article:Review Sheet updates",
+    "availability": "conditional",
+    "expectation": "Applies the one reviewed Sheet change once; this is its exact confirmation, followed by readback and a receipt.",
+    "source": ["components/lease-renewal/OperatingSheetPanel.tsx"]
+  },
+  {
+    "step": "19",
+    "page": "workspace:verify-renewal",
+    "control": "Reconcile from Sheet state",
+    "role": "button",
+    "scope": "article:Review Sheet updates",
+    "availability": "conditional",
+    "expectation": "Recover an uncertain Sheet attempt by reading fresh Sheet state; nothing is retried.",
+    "source": ["components/lease-renewal/OperatingSheetPanel.tsx"]
+  },
+  {
+    "step": "20",
+    "page": "workspace:verify-renewal",
+    "control": "Reconcile from provider state",
+    "role": "button",
+    "scope": "article:Review RentVine updates",
+    "availability": "conditional",
+    "expectation": "Recover the existing attempt.",
+    "source": [
+      "components/lease-renewal/RentvineUpdatesPanel.tsx",
+      "components/maintenance/RentvineWorkOrderPanel.tsx"
+    ]
+  },
+  {
+    "step": "21",
+    "page": "workspace:owner-decision",
+    "control": "Copy formatted body",
+    "role": "button",
+    "scope": "region:Owner message preparation",
+    "availability": "conditional",
+    "expectation": "Copy reviewed formatted owner wording.",
+    "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"]
+  },
+  {
+    "step": "22",
+    "page": "workspace:owner-decision",
+    "control": "Preview unsent Gmail draft",
+    "role": "button",
+    "scope": "region:Owner message preparation",
+    "availability": "conditional",
+    "expectation": "Preview an exact unsent draft.",
+    "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"]
+  },
+  {
+    "step": "23",
+    "page": "workspace:owner-decision",
+    "control": "Owner response",
+    "role": "label",
+    "scope": "region:Owner approval",
+    "availability": "conditional",
+    "expectation": "Choose the owner's actual answer; it saves at once. Exact terms live in Rent and charges.",
+    "source": [
+      "components/lease-renewal/RenewalDashboardNavigation.tsx",
+      "components/lease-renewal/RenewalManualWorkspace.tsx"
+    ]
+  },
+  {
+    "step": "24",
+    "page": "workspace:tenant-decision",
+    "control": "Copy plain text",
+    "role": "button",
+    "scope": "region:Tenant message preparation",
+    "availability": "conditional",
+    "expectation": "Copy the current-cycle tenant message.",
+    "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"]
+  },
+  {
+    "step": "25",
+    "page": "workspace:tenant-decision",
+    "control": "Tenant response",
+    "role": "label",
+    "scope": "region:Tenant offer and response",
+    "availability": "conditional",
+    "expectation": "Choose acceptance, decline or counter; it saves at once.",
+    "source": [
+      "components/lease-renewal/RenewalDashboardNavigation.tsx",
+      "components/lease-renewal/RenewalManualWorkspace.tsx"
+    ]
+  },
+  {
+    "step": "26",
+    "page": "/connections",
+    "control": "Insurance flyer",
+    "role": "label",
+    "scope": "region:Renewal resource links",
+    "availability": "required",
+    "expectation": "Persistent labeled blank or reviewed location.",
+    "source": [
+      "lib/email-refinement/context.ts",
+      "lib/lease-renewal/renewal-message-content.ts"
+    ]
+  },
+  {
+    "step": "27",
+    "page": "/connections",
+    "control": "Renewal information form",
+    "role": "label",
+    "scope": "region:Renewal resource links",
+    "availability": "required",
+    "expectation": "Persistent labeled blank or reviewed location.",
+    "source": [
+      "lib/email-refinement/context.ts",
+      "lib/lease-renewal/renewal-message-content.ts"
+    ]
+  },
+  {
+    "step": "28",
+    "page": "workspace:document-packet",
+    "control": "Reload document readiness and attempts",
+    "role": "button",
+    "scope": "region:Document preparation and signature handoff",
+    "availability": "required",
+    "expectation": "Current gates and saved exact attempts.",
+    "source": ["components/lease-renewal/RenewalDocumentHandoff.tsx"]
+  },
+  {
+    "step": "29",
+    "page": "workspace:document-packet",
+    "control": "Preview exact Dotloop packet creation",
+    "role": "button",
+    "scope": "region:Document preparation and signature handoff",
+    "availability": "conditional",
+    "expectation": "Exact preview only when document gates pass.",
+    "source": ["components/lease-renewal/RenewalDocumentHandoff.tsx"]
+  },
+  {
+    "step": "30",
+    "page": "workspace:compliance-close",
+    "control": "Record staff completion",
+    "role": "button",
+    "scope": "region:Documents and completion",
+    "availability": "conditional",
+    "expectation": "Explicit staff-recorded completion.",
+    "source": [
+      "components/lease-renewal/RenewalDashboardNavigation.tsx",
+      "components/lease-renewal/RenewalLeaseFollowUps.tsx"
+    ]
+  },
+  {
+    "step": "32",
+    "page": "/",
+    "control": "Get answer",
+    "role": "button",
+    "scope": "",
+    "availability": "required",
+    "expectation": "One of three read-only answers, a clarification, or unavailable state.",
+    "source": ["components/ask/AskForm.tsx"]
+  },
+  {
+    "step": "37",
+    "page": "/connections",
+    "control": "Approved standard lease location",
+    "role": "label",
+    "scope": "region:Renewal resource links",
+    "availability": "required",
+    "expectation": "Persistent labeled blank or reviewed location.",
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
+    "sourceText": "Approved standard lease"
+  },
+  {
+    "step": "38",
+    "page": "/connections",
+    "control": "Approved renewal extension location",
+    "role": "label",
+    "scope": "region:Renewal resource links",
+    "availability": "required",
+    "expectation": "Persistent labeled blank or reviewed location.",
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
+    "sourceText": "Approved renewal extension"
+  },
+  {
+    "step": "39",
+    "page": "/connections",
+    "control": "Approved animal agreement location",
+    "role": "label",
+    "scope": "region:Renewal resource links",
+    "availability": "required",
+    "expectation": "Persistent labeled blank or reviewed location.",
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
+    "sourceText": "Approved animal agreement"
+  },
+  {
+    "step": "40",
+    "page": "/connections",
+    "control": "Approved lead-based-paint disclosure location",
+    "role": "label",
+    "scope": "region:Renewal resource links",
+    "availability": "required",
+    "expectation": "Persistent labeled blank or reviewed location.",
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
+    "sourceText": "Approved lead-based-paint disclosure"
+  },
+  {
+    "step": "41",
+    "page": "/connections",
+    "control": "Approved city addendum location",
+    "role": "label",
+    "scope": "region:Renewal resource links",
+    "availability": "required",
+    "expectation": "Persistent labeled blank or reviewed location.",
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
+    "sourceText": "Approved city addendum"
+  },
+  {
+    "step": "42",
+    "page": "/connections",
+    "control": "Approved HOA artifact location",
+    "role": "label",
+    "scope": "region:Renewal resource links",
+    "availability": "required",
+    "expectation": "Persistent labeled blank or reviewed location.",
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
+    "sourceText": "Approved HOA artifact"
+  },
+  {
+    "step": "43",
+    "page": "/connections",
+    "control": "Approved owner acknowledgment location",
+    "role": "label",
+    "scope": "region:Renewal resource links",
+    "availability": "required",
+    "expectation": "Persistent labeled blank or reviewed location.",
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
+    "sourceText": "Approved owner acknowledgment"
+  },
+  {
+    "step": "43a",
+    "page": "/connections",
+    "control": "Approved KCRAR additional disclosures location",
+    "role": "label",
+    "scope": "region:Renewal resource links",
+    "availability": "required",
+    "expectation": "Recorded source location; separate applicability and legal approval.",
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
+    "sourceText": "Approved KCRAR additional disclosures"
+  },
+  {
+    "step": "43b",
+    "page": "/connections",
+    "control": "Approved brokerage disclosure brochure location",
+    "role": "label",
+    "scope": "region:Renewal resource links",
+    "availability": "required",
+    "expectation": "Recorded source location; separate applicability and legal approval.",
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
+    "sourceText": "Approved brokerage disclosure brochure"
+  },
+  {
+    "step": "43c",
+    "page": "/connections",
+    "control": "Approved insurance program addendum location",
+    "role": "label",
+    "scope": "region:Renewal resource links",
+    "availability": "required",
+    "expectation": "Recorded source location; separate applicability and legal approval.",
+    "source": ["lib/lease-documents/artifact-catalog.ts"],
+    "sourceText": "Approved insurance program addendum"
+  },
+  {
+    "step": "44",
+    "page": "workspace:verify-renewal",
+    "control": "Lease information",
+    "role": "button",
+    "scope": "",
+    "availability": "required",
+    "expectation": "Toggle the lease information side panel from anywhere on the page.",
+    "source": [
+      "components/lease-renewal/OperatingSheetPanel.tsx",
+      "components/lease-renewal/RenewalWorkspaceSidebars.tsx"
+    ]
+  },
+  {
+    "step": "45",
+    "page": "workspace:verify-renewal",
+    "control": "Process guide",
+    "role": "button",
+    "scope": "",
+    "availability": "required",
+    "expectation": "Toggle the separate process guide side panel.",
+    "source": [
+      "components/lease-renewal/RenewalDashboardNavigation.tsx",
+      "components/lease-renewal/RenewalWorkspaceSidebars.tsx"
+    ]
+  },
+  {
+    "step": "46",
+    "page": "workspace:verify-renewal",
+    "control": "Copy all tenant emails",
+    "role": "button",
+    "scope": "complementary:Lease information",
+    "availability": "conditional",
+    "expectation": "Copy every source-backed tenant address once the panel is open.",
+    "source": ["components/lease-renewal/RenewalCopyValue.tsx"],
+    "sourceText": "Copy all {audience} emails"
+  },
+  {
+    "step": "47",
+    "page": "workspace:verify-renewal",
+    "control": "About Lease details",
+    "role": "button",
+    "scope": "region:Lease details",
+    "availability": "required",
+    "expectation": "Plain-language help for the section opens beside the heading; nothing changes.",
+    "source": ["lib/lease-renewal/section-help.ts"],
+    "aboutId": "section-lease-details"
+  },
+  {
+    "step": "48",
+    "page": "workspace:verify-renewal",
+    "control": "About Lease term",
+    "role": "button",
+    "scope": "region:Lease details",
+    "availability": "required",
+    "expectation": "Help explains what recording a term changes in the app and that RentVine is not edited.",
+    "source": ["lib/lease-renewal/section-help.ts"],
+    "aboutId": "lease-term"
+  },
+  {
+    "step": "49",
+    "page": "workspace:verify-renewal",
+    "control": "About Correct a lease fact",
+    "role": "button",
+    "scope": "region:Correct a lease fact",
+    "availability": "required",
+    "expectation": "Help names the input, the destination and the separate confirmation.",
+    "source": ["lib/lease-renewal/section-help.ts"],
+    "aboutId": "correct-a-fact"
+  },
+  {
+    "step": "50",
+    "page": "workspace:verify-renewal",
+    "control": "About Owner approval",
+    "role": "button",
+    "scope": "region:Owner approval",
+    "availability": "required",
+    "expectation": "Help gives the communicate-then-record sequence; the app sends nothing.",
+    "source": ["lib/lease-renewal/section-help.ts"],
+    "aboutId": "section-owner"
+  },
+  {
+    "step": "51",
+    "page": "workspace:verify-renewal",
+    "control": "About Documents and completion",
+    "role": "button",
+    "scope": "region:Documents and completion",
+    "availability": "required",
+    "expectation": "Help separates staff-recorded work from provider-verified completion.",
+    "source": ["lib/lease-renewal/section-help.ts"],
+    "aboutId": "section-documents"
+  },
+  {
+    "step": "52",
+    "page": "workspace:owner-decision",
+    "control": "Copy recipients",
+    "role": "button",
+    "scope": "region:Owner message preparation",
+    "availability": "conditional",
+    "expectation": "Copy the complete To/Cc set the draft carries; a missing party refuses instead.",
+    "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"]
+  },
+  {
+    "step": "53",
+    "page": "workspace:verify-renewal",
+    "control": "Preview Owner emails update",
+    "role": "button",
+    "scope": "article:Review Sheet updates",
+    "availability": "conditional",
+    "expectation": "Prepare the complete owner address set from RentVine into the Owner emails column.",
+    "source": ["components/lease-renewal/OperatingSheetPanel.tsx"],
+    "sourceText": "Preview {view.label} update"
+  },
+  {
+    "step": "54",
+    "page": "workspace:verify-renewal",
+    "control": "Preview Tenant emails update",
+    "role": "button",
+    "scope": "article:Review Sheet updates",
+    "availability": "conditional",
+    "expectation": "Prepare the complete tenant address set from RentVine into the Tenant emails column.",
+    "source": ["components/lease-renewal/OperatingSheetPanel.tsx"],
+    "sourceText": "Preview {view.label} update"
+  },
+  {
+    "step": "55",
+    "page": "workspace:verify-renewal",
+    "control": "Rent and charges working area",
+    "role": "region",
+    "scope": "region:Lease details",
+    "availability": "required",
+    "expectation": "The one working area: values, charges, intents and destination status.",
+    "source": ["components/lease-renewal/RenewalWorkspace.tsx"]
+  },
+  {
+    "step": "56",
+    "page": "workspace:verify-renewal",
+    "control": "Correct the current rent",
+    "role": "link",
+    "scope": "region:Rent and charges working area",
+    "availability": "required",
+    "expectation": "Jumps to the working current rent for a value that is wrong today.",
+    "source": ["components/lease-renewal/RentAndCharges.tsx"]
+  },
+  {
+    "step": "57",
+    "page": "workspace:verify-renewal",
+    "control": "Prepare future renewal rent",
+    "role": "link",
+    "scope": "region:Rent and charges working area",
+    "availability": "required",
+    "expectation": "Jumps to the renewal rent preview control bound to the working renewal terms.",
+    "source": [
+      "components/lease-renewal/RenewalFutureRent.tsx",
+      "components/lease-renewal/RentAndCharges.tsx"
+    ]
+  },
+  {
+    "step": "58",
+    "page": "workspace:verify-renewal",
+    "control": "Update status by destination",
+    "role": "region",
+    "scope": "region:Rent and charges working area",
+    "availability": "required",
+    "expectation": "Per-destination saved, prepared, applied, read-back or mismatch state.",
+    "source": ["components/lease-renewal/RenewalCurrentRent.tsx"]
+  },
+  {
+    "step": "59",
+    "page": "workspace:verify-renewal",
+    "control": "Prepare this future-rent preview",
+    "role": "button",
+    "scope": "region:Rent and charges working area",
+    "availability": "conditional",
+    "expectation": "Only with working renewal terms and a reviewed schedule.",
+    "source": ["components/lease-renewal/RenewalFutureRent.tsx"]
+  },
+  {
+    "step": "60",
+    "page": "workspace:verify-renewal",
+    "control": "Apply RentVine update",
+    "role": "button",
+    "scope": "article:Review RentVine updates",
+    "availability": "conditional",
+    "expectation": "Applies the one reviewed RentVine change once; this is its exact confirmation, followed by readback and a receipt.",
+    "source": ["components/lease-renewal/RentvineUpdatesPanel.tsx"]
+  },
+  {
+    "step": "61",
+    "page": "workspace:verify-renewal",
+    "control": "Check effect statuses",
+    "role": "button",
+    "scope": "article:Review RentVine updates",
+    "availability": "conditional",
+    "expectation": "Read the current state of each prepared RentVine effect again; nothing is applied.",
+    "source": ["components/lease-renewal/RentvineUpdatesPanel.tsx"]
+  },
+  {
+    "step": "62",
+    "page": "workspace:verify-renewal",
+    "control": "Open the RentCast property report",
+    "role": "link",
+    "scope": "region:Market rent comparison",
+    "availability": "conditional",
+    "expectation": "RentCast's own report for the resolved address, known unit attributes and the radius above; a missing address is named instead.",
+    "source": ["components/lease-renewal/RenewalProgressControls.tsx"]
+  },
+  {
+    "step": "63",
+    "page": "workspace:verify-renewal",
+    "control": "Open this lookup's RentCast property report",
+    "role": "link",
+    "scope": "region:Market rent comparison",
+    "availability": "conditional",
+    "expectation": "The retained lookup's exact query on RentCast's site, not a copy of the saved result.",
+    "source": ["components/lease-renewal/RenewalProgressControls.tsx"]
+  },
+  {
+    "step": "64",
+    "page": "workspace:verify-renewal",
+    "control": "Work status (recorded by staff)",
+    "role": "label",
+    "scope": "region:Staff status and Status log",
+    "availability": "conditional",
+    "expectation": "Choose where the work stands; the choice saves by itself with your identity and time, and nothing else changes.",
+    "source": ["lib/lease-renewal/work-status.ts"]
+  },
+  {
+    "step": "65",
+    "page": "workspace:verify-renewal",
+    "control": "Add a note",
+    "role": "label",
+    "scope": "region:Staff status and Status log",
+    "availability": "conditional",
+    "expectation": "Write context beneath the status; the note saves by itself as one log entry and the status stays as it is.",
+    "source": ["lib/lease-renewal/work-status-notes.ts"]
+  },
+  {
+    "step": "66",
+    "page": "workspace:verify-renewal",
+    "control": "Status log",
+    "role": "summary",
+    "scope": "region:Staff status and Status log",
+    "availability": "conditional",
+    "expectation": "Status changes and notes together, newest first, each with its recorder and time.",
+    "source": [
+      "components/lease-renewal/RenewalWorkspace.tsx",
+      "components/lease-renewal/RenewalWorkStatusControl.tsx"
+    ]
+  },
+  {
+    "step": "67",
+    "page": "/lease-renewal",
+    "control": "Work status (recorded by staff)",
+    "role": "label",
+    "scope": "",
+    "availability": "conditional",
+    "expectation": "Filter the table by the saved staff status, including Not recorded, inside Filter status.",
+    "source": ["lib/lease-renewal/work-status.ts"]
+  },
+  {
+    "step": "68",
+    "page": "workspace:document-packet",
+    "control": "Manage shared resource links in Connections",
+    "role": "link",
+    "scope": "region:Renewal resource links",
+    "availability": "required",
+    "who": "Admin",
+    "expectation": "The lease shows each shared entry's current state and opens its exact Connections entry; no edit form is repeated per lease.",
+    "source": ["components/lease-renewal/RenewalResourceLinksSummary.tsx"]
+  },
+  {
+    "step": "69",
+    "page": "workspace:owner-decision",
+    "control": "Marked values",
+    "role": "list",
+    "scope": "region:Owner message preparation",
+    "availability": "conditional",
+    "expectation": "Present while the message carries Needs Verification markers; each item links to the control that resolves it.",
+    "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"]
+  },
+  {
+    "step": "70",
+    "page": "workspace:tenant-decision",
+    "control": "Response request (optional wording edit)",
+    "role": "label",
+    "scope": "region:Tenant message preparation",
+    "availability": "required",
+    "expectation": "Its help names the exact paragraph the wording replaces; the current paragraph is shown under it.",
+    "source": ["components/lease-renewal/RenewalMessagePreparation.tsx"]
+  },
+  {
+    "step": "71",
+    "page": "workspace:document-packet",
+    "control": "Current facts for this packet",
+    "role": "region",
+    "scope": "region:Document preparation and signature handoff",
+    "availability": "required",
+    "expectation": "Property, parties, lease end, approved terms and pending source updates with their origin and links; nothing is filled into a PDF or Dotloop.",
+    "source": ["components/lease-renewal/RenewalDocumentHandoff.tsx"]
+  },
+  {
+    "step": "72",
+    "page": "/connections",
+    "control": "Resident benefits package flyer",
+    "role": "label",
+    "scope": "region:Renewal resource links",
+    "availability": "required",
+    "expectation": "Persistent labeled blank or reviewed location, maintained once for every lease.",
+    "source": ["lib/lease-renewal/resource-locations.ts"]
+  }
+]

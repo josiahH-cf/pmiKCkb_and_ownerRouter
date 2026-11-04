@@ -4,6 +4,7 @@ export type PrimaryNavigationIconKey =
   | "clipboard-checklist"
   | "assistant-spark"
   | "approval-tray"
+  | "help-book"
   | "calendar-renew"
   | "wrench"
   | "workflow-nodes"

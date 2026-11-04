@@ -15,6 +15,7 @@ export type IconName =
   | "close"
   | "error"
   | "external"
+  | "help-book"
   | "info"
   | "message-envelope"
   | "notifications"
@@ -67,6 +68,12 @@ const GLYPHS: Readonly<Record<IconName, ReactNode>> = {
   ),
   external: (
     <path d="M14 5h5v5M19 5l-8 8M18 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+  ),
+  "help-book": (
+    <>
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z" />
+      <path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5M10 8.5a2 2 0 1 1 2.6 1.9c-.4.2-.6.5-.6.9V12M12 14.5h.01" />
+    </>
   ),
   info: (
     <>

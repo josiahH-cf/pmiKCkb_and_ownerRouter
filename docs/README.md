@@ -88,8 +88,8 @@ Manual client workflows: [presentation and weekly status commands](weekly-client
 
 ## Product lanes
 
-- [Printable renewal training](products/renewal-training-guide.pdf) and
-  [Wednesday meeting brief](products/wednesday-meeting-brief.pdf) — reviewed client handouts.
+- The staff help hub (`/help`) is the canonical staff guidance; its content lives in `lib/help/`
+  (author notes in `lib/help/README.md`) and its screenshots in `public/help/`.
 - `docs/products/pmi-kc-kb.md`
 - `docs/products/lease-renewal-agent.md`
 - `docs/products/gmail-inbox-zero.md` (compatibility filename; lane is Workflow Communications)
@@ -97,11 +97,11 @@ Manual client workflows: [presentation and weekly status commands](weekly-client
 - `docs/products/rentvine-live-field-map-2026-07-22.md`
 - `docs/products/move-in-move-out-process.md`
 - `docs/products/rentvine-connection-setup.md`
-- `docs/products/renewal-operator-guide.md` — the operator training guide; its step-to-control table
-  is read by `npm run smoke:renewal-guide-controls-browser`, so a step cannot name a control the
-  application does not show.
+- `docs/products/renewal-operator-guide.md` — pointer to the help hub; the renewal step-to-control
+  map it carried is `lib/help/content/renewal-control-map.json`, read by
+  `npm run smoke:renewal-guide-controls-browser`.
 
-- `docs/products/renewal-client-walkthrough-2026-09-09.md` — reusable visual training with branches, recovery and current availability.
+- `docs/products/renewal-client-walkthrough-2026-09-09.md` — pointer to the help hub.
 - `docs/products/client-call-agenda-2026-09-09.md` — owner-supplied Wednesday agenda and exact inputs.
 - `docs/products/wednesday-decisions-and-inputs-2026-09-09.md` — three client inputs, decisions and owners/dates.
 - `docs/products/wednesday-delivery-readout-2026-09-09.md` — current written outcomes and acceptance plan.
@@ -163,7 +163,6 @@ completion is distinct from provider verification; no live customer completion w
 - `docs/evidence/adversary-review-2026-09-29.md` — deployment-source inspection and verified corrective delivery, with remaining external/human boundaries stated explicitly.
 - `docs/evidence/batch-litmus-audit-2026-09-28.md` — all thirteen suites, the 118 supplied litmus references, original release receipts and their exact verification scopes.
 - docs/evidence/renewal-training-control-review-2026-09-09.md — current control and handoff analysis.
-- docs/products/build-renewal-handouts.py — printable training and meeting documents.
 
 - `docs/evidence/wednesday-readiness-review-2026-09-07.md` — adversarial scope and exact result ledger.
 - `docs/products/wednesday-delivery-readout-2026-09-09.md` — current meeting readout. The stale

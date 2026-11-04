@@ -11,13 +11,13 @@ import {
   parseWalkthroughScript,
   SAFE_MEETING_BRANCHES,
 } from "@/lib/lease-renewal/meeting-walkthrough";
-import { parseGuideSteps } from "@/scripts/lib/renewal-guide-controls.mjs";
+import { loadGuideSteps } from "@/scripts/lib/renewal-guide-controls.mjs";
 
-const RUNBOOK_PATH = "docs/products/renewal-meeting-walkthrough-runbook.md";
+// S243 R-S243-7: the runbook record moved to the S132 fixture and the guide steps it cites live in
+// the help hub's renewal control map (lib/help/content/renewal-control-map.json).
+const RUNBOOK_PATH = "tests/fixtures/s132/renewal-meeting-walkthrough-runbook.md";
 const RUNBOOK = readFileSync(resolve(process.cwd(), RUNBOOK_PATH), "utf8");
-const GUIDE = parseGuideSteps(
-  readFileSync(resolve(process.cwd(), "docs/products/renewal-operator-guide.md"), "utf8"),
-) as { step: string; control: string; page: string }[];
+const GUIDE = loadGuideSteps() as { step: string; control: string; page: string }[];
 const GUIDE_BY_STEP = new Map(GUIDE.map((step) => [step.step, step]));
 
 describe("S132 AC-S132-3: side-by-side script names only real controls", () => {
@@ -74,7 +74,7 @@ describe("S132 AC-S132-3: side-by-side script names only real controls", () => {
       for (const control of row.controls)
         expect(
           GUIDE.some((step) => step.control === control),
-          `control "${control}" is not in the operator guide`,
+          `control "${control}" is not in the help hub control map`,
         ).toBe(true);
     }
   });

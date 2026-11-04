@@ -5,8 +5,9 @@ import { z } from "zod";
  *
  * Everything here is preparation and observation bookkeeping for a human meeting. Nothing in this
  * module reads a provider, writes app state, schedules anything or grades a step on the person's
- * behalf. The runbook (`docs/products/renewal-meeting-walkthrough-runbook.md`) is the human-facing
- * artifact; this module gives it a typed shape so tests can prove the artifact stays honest:
+ * behalf. The September runbook record (`tests/fixtures/s132/renewal-meeting-walkthrough-runbook.md`;
+ * staff guidance now lives in the help hub, `lib/help/`) is the human-facing artifact; this module
+ * gives it a typed shape so tests can prove the artifact stays honest:
  * unrun steps stay Not run, missing inputs stay named, and a technical pass never becomes a human
  * verdict.
  */

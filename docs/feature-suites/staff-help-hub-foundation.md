@@ -35,7 +35,7 @@ Present behavior, verified in source:
   step-to-control table is parsed by `scripts/lib/renewal-guide-controls.mjs` and checked against
   the live rehearsal by `scripts/smoke-renewal-guide-controls-browser.mjs` and
   `tests/unit/s132-walkthrough-script.test.ts`), the printable handouts rendered by
-  `docs/products/build-renewal-handouts.py`, the staff walkthrough and the meeting runbook.
+  `build-renewal-handouts.py` (removed by S243), the staff walkthrough and the meeting runbook.
 - Published read-only operational pages exist (`lib/firestore/operational-pages.ts`,
   `lib/operational-pages/schema.ts`) with headings, text, callouts, checklists and internal links
   only, no images and at most 40 components. The owner chose not to use them for help; they stay

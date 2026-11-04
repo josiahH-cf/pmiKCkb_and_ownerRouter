@@ -12,7 +12,7 @@ import {
   TASK_NAVIGATION_LINKS,
 } from "@/lib/navigation/admin-connections";
 import { RENEWAL_RESOURCE_FIELDS } from "@/lib/lease-renewal/resource-locations";
-import { parseGuideSteps } from "../../scripts/lib/renewal-guide-controls.mjs";
+import { loadGuideSteps } from "../../scripts/lib/renewal-guide-controls.mjs";
 
 // S120 (R120.3): the existing shared resource entries are managed through Connections and the
 // Admin task navigation over the one existing store; each lease consumes the current state with a
@@ -142,10 +142,8 @@ describe("S120 shared resource configuration", () => {
     expect(screen.getByRole("link", { name: /Request access/ })).toBeInTheDocument();
   });
 
-  it("AC-S120-3: the operator guide checks the ten labeled entries on Connections and the lease's manage link", () => {
-    const steps = parseGuideSteps(
-      read("docs/products/renewal-operator-guide.md"),
-    ) as Array<{
+  it("AC-S120-3: the help hub's control map checks the ten labeled entries on Connections and the lease's manage link", () => {
+    const steps = loadGuideSteps() as Array<{
       page?: string;
       scope?: string;
       control?: string;

@@ -1,0 +1,646 @@
+[
+  {
+    "kind": "inline",
+    "location": "app/admin/gmail-inbox-zero/page.tsx",
+    "text": "Workflow-linked Gmail only. A staff member reviews an unsent Gmail draft and sends it from Gmail. Confirmed renewal Send and Schedule are available in Workflow Communications. Old drafts retain their original state. Open Workflow Communications· Back to Admin",
+    "describes": "Communications governance scope: unsent Gmail drafts and confirmed renewal Send",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/admin/gmail-inbox-zero/page.tsx",
+    "text": "Immutable base copy only. Every instance still blocks on authoritative recipient, mailbox, values, source context, and exact human confirmation. AI policy: ….",
+    "describes": "Approved v1.0 communication artifact registry and its per-message send gates",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/admin/migration/page.tsx",
+    "text": "Read-only readiness report. Generated …. … Back to Admin",
+    "describes": "Migration readiness report header with generation time and away mode",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/admin/migration/page.tsx",
+    "text": "These blockers need credentials, billing, real project ids, or a reviewed production manifest, so they cannot be cleared from this session.",
+    "describes": "Owner-side cutover blockers that need credentials or a reviewed manifest",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/admin/page.tsx",
+    "text": "…staff start as Editors. Approver and Admin roles can approve work.",
+    "describes": "Default Editor role for staff and which roles approve queue items",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/admin/page.tsx",
+    "text": "Source target: … - Data store: …- Source records: ……",
+    "describes": "Space setup health line for source target, data store and records",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/admin/page.tsx",
+    "text": "Approval attention stays in the app. Email delivery is off.",
+    "describes": "Approval label panel: queue attention stays in-app with email delivery off",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/admin/page.tsx",
+    "text": "Read-only cutover, environment, source-corpus, Action Registry, and notification posture.",
+    "describes": "Migration console summary of its read-only readiness sections",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/admin/page.tsx",
+    "text": "Workflow Gmail is action-gated; review its approved artifacts.",
+    "describes": "Admin Workflow Communications panel linking to communication governance",
+    "disposition": "correct",
+    "contradicts": ["S186", "S193"],
+    "corrections": [
+      {
+        "before": "Workflow Gmail remains action-gated; rule examples are local only.",
+        "after": "Workflow Gmail is action-gated; review its approved artifacts."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "app/admin/spaces/request/page.tsx",
+    "text": "Describe the Space you want and the app records the request and shows its exact fixed resource plan. Nothing is provisioned automatically.",
+    "describes": "Space request page: recorded request and exact fixed resource plan preview",
+    "disposition": "correct",
+    "contradicts": ["S36"],
+    "corrections": [
+      {
+        "before": "Describe the Space you want and the app prints the exact commands to provision it. The app records the request only; you run the commands. Nothing is provisioned automatically.",
+        "after": "Describe the Space you want and the app records the request and shows its exact fixed resource plan. Nothing is provisioned automatically."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "app/admin/team-work/page.tsx",
+    "text": "Staff-recorded tasks and time. Employment decisions remain with people.",
+    "describes": "Team work board of staff-recorded tasks and time",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/notifications/page.tsx",
+    "text": "Reviewing staff feedback requires Admin access.",
+    "describes": "Feedback review section shown to staff without Admin access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/AccessCenter.tsx",
+    "text": "Role and Space access do not open closed actions, bypass provider readiness, or remove required human confirmation.",
+    "describes": "Access Center note that roles never bypass action gates or confirmation",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/AccessCenter.tsx",
+    "text": "Do not include resident, owner, lease, credential, or other customer details.",
+    "describes": "Privacy hint on the access request reason field",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/AdminActivityLogPanel.tsx",
+    "text": "Recent access and Production action-stop changes, newest first. This is read-only history; nothing is changed or emailed here.",
+    "describes": "Admin activity log of access and Production action-stop changes",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/AdminTaskIndex.tsx",
+    "text": "These links organize existing controls. They do not change roles, connection truth, or action authority.",
+    "describes": "Admin task index links that only navigate to existing controls",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/ApprovalQueueAdminPanel.tsx",
+    "text": "Queue notification health is unavailable. Refresh credentials or check Firestore setup before relying on notification status.",
+    "describes": "Approval Queue notification health unavailable state",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/ApprovalQueueAdminPanel.tsx",
+    "text": "Kept for audit. Email delivery is off. In-app notifications stay on.",
+    "describes": "Retained earlier queue email preferences with email delivery off",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/CommunicationsRetentionAdminPanel.tsx",
+    "text": "Confirmation 30d · dedupe 7d · sync 90d · workflow link 365d · bodyless audit 7y. Holds pause deletion; releasing a hold never restores deleted data.",
+    "describes": "Communications retention windows and legal hold behavior",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/KbCorrectionsPanel.tsx",
+    "text": "Filing a correction proposes a change only. Approving files a Draft KB entry that still needs its own approval before it affects answers. Nothing self-modifies.",
+    "describes": "Answer corrections panel: proposal, Draft KB entry, separate approval",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/LeaseArtifactIntakePanel.tsx",
+    "text": "Each family has one entry. A file is received only through the trusted publication path and classified from its bytes as data; a recorded mapping is Preview only; approval puts that exact version into the packet catalog and supersedes the earlier one. Supported AcroForms and static PDFs with reviewed regions use the lease packet&apos;s filled PDF controls: prepare from verified facts, download, inspect and approve the exact output. A static file without reviewed regions and a provider template keep their manual handoff; a file with no variable values is an unchanged approved attachment. Nothing here uploads, connects an account or opens an action key.",
+    "describes": "Lease artifact intake: trusted receipt, mapping preview, catalog approval, filled PDFs",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/LeaseArtifactIntakePanel.tsx",
+    "text": "publication:<id> of the trusted publication that holds the approved file.",
+    "describes": "Publication reference field on lease artifact intake",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/LeaseArtifactIntakePanel.tsx",
+    "text": "The published content hash; the bytes are read back and must match.",
+    "describes": "Content hash field checked against the published bytes on intake",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/LeaseArtifactIntakePanel.tsx",
+    "text": "Recorded by staff only. Parsed AcroForms remain fillable; a provider reference alone never proves field filling.",
+    "describes": "Optional Dotloop template reference field on lease artifact intake",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/LeaseArtifactIntakePanel.tsx",
+    "text": "Exact field ids, meanings, requiredness, repeats, sources and signer roles as reviewed on the actual form. For repeated values, set pdfFieldNames to the exact slots in authoritative party or animal order. For a static PDF, add static pages from the page positions, then one region per field and repeat slot. A file with no variable values is recorded with unchangedAttachment set to true and no fields.",
+    "describes": "Reviewed field mapping JSON for an intake form family",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/LeaseArtifactIntakePanel.tsx",
+    "text": "Required for approve or reject; recorded with the decision.",
+    "describes": "Decision reason field for approving or rejecting an artifact intake",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/LiveVendorLifecyclePanel.tsx",
+    "text": "Production actions use current Live records and their exact committed Registry gates. For an Available action, preparing never changes an account or assignment; execution remains blocked until the linked Approval Queue item is approved.",
+    "describes": "Not rendered by any staff route: Retired Live Vendor lifecycle panel with Approval Queue gated execution",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/LiveVendorLifecyclePanel.tsx",
+    "text": "Use this flow for a new Vendor or an exact setup-link reissue while the account is still pending setup. An active or disabled account cannot be reset here; it requires the separately governed account-reset lifecycle.",
+    "describes": "Not rendered by any staff route: Retired Vendor invite and setup-link reissue form",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/LiveVendorLifecyclePanel.tsx",
+    "text": "Keep this page open so this exact prepared preview remains available. Approval Queue opens in a new tab; return here after approval to execute it.",
+    "describes": "Not rendered by any staff route: Retired prepared Vendor preview awaiting Approval Queue approval",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/ModelConfigPanel.tsx",
+    "text": "This panel is read only. The production model is set by GEMINI_MODEL_ANSWER, GEMINI_MODEL_CLASSIFY and GEMINI_MODEL_LOCATION in the reviewed release configuration plus an owner-run deploy.",
+    "describes": "Read-only model configuration panel and where production models are set",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/NoticeRulesAdminPanel.tsx",
+    "text": "Global, property, and lease timing resolve most-specific-first. A rule creates internal attention only after every effective value is explicitly client-confirmed. It never sends mail.",
+    "describes": "Renewal notice rules: scope precedence, client-confirmed values, no mail",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/NoticeRulesAdminPanel.tsx",
+    "text": "Add only an exact source key and supplied values. Every field starts blank so the app cannot invent an override.",
+    "describes": "Property and lease override entry that starts with blank fields",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/NoticeRulesAdminPanel.tsx",
+    "text": "No property or lease overrides are saved.",
+    "describes": "Empty state when no notice rule overrides are saved",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/NoticeRulesAdminPanel.tsx",
+    "text": "Saved as a new immutable policy version. No message was sent.",
+    "describes": "Notice rule set save confirmation as an immutable version",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/OperationalPageBuilderPanel.tsx",
+    "text": "Build only headings, text, callouts, checklists, and approved internal links. There is no HTML, script, style, embed, action, provider, auth, role, prompt, or secret field.",
+    "describes": "Operational page builder allowed block types and excluded fields",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/PolicyMaterialAdminPanel.tsx",
+    "text": "Submitting records one exact version as pending. Approval enables only that version and supersedes the earlier approved one; rejection never touches the version in use. The configuration binds a trusted publication by id and content hash and declares typed conditions, required inputs and output slots. It is engineering scaffolding, not the policy and not legal content. Nothing here writes to a provider or the operating Sheet.",
+    "describes": "Renewal policy material versions: pending submission, approval and supersession",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/PolicyMaterialAdminPanel.tsx",
+    "text": "Required for approve or reject; recorded with the decision.",
+    "describes": "Decision reason field for approving or rejecting policy material",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/PublicationPolicyAdminPanel.tsx",
+    "text": "The connector and root define this space&rsquo;s authority boundary. Existing policies may only be tightened; widening requires a new audited policy.",
+    "describes": "Trusted publication policy authority boundary and tighten-only changes",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/PublicationPolicyAdminPanel.tsx",
+    "text": "Existing managed staff ownership and audit metadata is retained. The exact reviewed hash covers the full canonical bytes, including that metadata; this review does not claim it was erased.",
+    "describes": "Process publication review that keeps staff ownership and audit metadata",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/PublicationPolicyAdminPanel.tsx",
+    "text": "Process only: …. File and folder publication are excluded. Reviewed SHA-256: ….",
+    "describes": "Exact-process publication policy scope and its reviewed content hash",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/PublicationPolicyAdminPanel.tsx",
+    "text": "Limits this policy to one existing process. Required for the managed process scanner; files and folders remain excluded.",
+    "describes": "Exact process field limiting a new publication policy",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/ReindexPanel.tsx",
+    "text": "Re-indexing runs cost-bearing Vertex ingestion. This records the request and shows the command only for a ready plan. Nothing is ingested automatically.",
+    "describes": "Re-index request panel: cost note, request record and command handoff",
+    "disposition": "correct",
+    "contradicts": ["S240"],
+    "corrections": [
+      {
+        "before": "Re-indexing runs Vertex ingestion, which is cost-bearing. This records the request and prints the command; you run it. Nothing is ingested automatically.",
+        "after": "Re-indexing runs cost-bearing Vertex ingestion. This records the request and shows the command only for a ready plan. Nothing is ingested automatically."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/ReindexPanel.tsx",
+    "text": "The request is saved. No import has run.",
+    "describes": "Re-index plan result after the request is saved",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RenewalPacketPolicyAdminPanel.tsx",
+    "text": "Record which form families each renewal packet uses and publish the charge policy that packets calculate from. Renewal staff review every packet before it is finalized.",
+    "describes": "Renewal packet configuration: form family use and charge policy",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RenewalPacketPolicyAdminPanel.tsx",
+    "text": "… Amounts here are company policy you enter; they are never read from a form.",
+    "describes": "Renewal charge policy version line and staff-entered policy amounts",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RenewalPacketPolicyAdminPanel.tsx",
+    "text": "Today or earlier. A charge policy is used from the day it is published.",
+    "describes": "Charge policy effective date field limited to today or earlier",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RuntimeSuspensionAdminPanel.tsx",
+    "text": "For a Sev-1 incident, stop the affected Production action here first. Do not wait for a deploy. This control can only stop new provider actions listed below. It cannot enable an unavailable action, disconnect a provider, or stop read-only live desks and connection checks.",
+    "describes": "Production action stop control scope for Sev-1 incidents",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RuntimeSuspensionAdminPanel.tsx",
+    "text": "The list is not treated as empty. Executable actions fail closed when the suspension state cannot be read.",
+    "describes": "Action stop list unavailable state that keeps executable actions closed",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RuntimeSuspensionAdminPanel.tsx",
+    "text": "Production actions remain closed when affected state cannot be read. Use server-side review to resolve these records.",
+    "describes": "Action stop records with unknown keys keep Production actions closed",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RuntimeSuspensionAdminPanel.tsx",
+    "text": "Optional ticket ID such as INC-42 or SEV1.2026-001. Do not enter a resident, address, message, URL, path, or token.",
+    "describes": "Incident reference field hint on a Production action stop",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/SupportReportsPanel.tsx",
+    "text": "Feedback teammates shared with the &ldquo;Feedback&rdquo; button: ideas, questions, or problems. Each note is filed here for review, and one metadata-only internal notice goes to the configured staff destination (the note itself stays here).",
+    "describes": "Staff feedback queue and its metadata-only internal notice",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/TransactionalDestinationPanel.tsx",
+    "text": "The internal staff address the app auto-sends a feedback notice to when a teammate files feedback (metadata only; the full note stays in the feedback queue for Admin review). It must be an internal address. Tenant and owner-of-record notices are never sent from here; they resolve their recipient from verified sources and stay human-confirmed.",
+    "describes": "Internal feedback notice destination and its limits on customer notices",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/UserManagementPanel.tsx",
+    "text": "……with access. A change takes effect the next time they sign in.",
+    "describes": "User list count and when a role change takes effect",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/UserManagementPanel.tsx",
+    "text": "Every staff account has every internal Space. Renewal authority reflects this role; exact action keys, provider readiness, quotas, and confirmation remain separate checks.",
+    "describes": "Per-user note on all internal Spaces and separate action checks",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/AccessRequestsLane.tsx",
+    "text": "The list shows the last completed selection. Apply these filters to update it.",
+    "describes": "Access request filters that differ from the last completed list",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/ApprovalQueue.tsx",
+    "text": "Browse every queue item, renewal review, and write-back proposal.",
+    "describes": "Approval Queue other views: all items, renewal review and write-back",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/ApprovalQueue.tsx",
+    "text": "The controls contain a different view. The list still shows the last completed view; Apply to read the requested selection.",
+    "describes": "Approval Queue filters that differ from the last completed view",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/ApprovalQueueFilterBar.tsx",
+    "text": "Use Reset to retry the queue connection.",
+    "describes": "Approval Queue unavailable state pointing to the reset control",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/DecisionMetricsCard.tsx",
+    "text": "No decisions recorded yet. Once the team resolves flags and approves write-backs, the accept / correct / dismiss rates show here.",
+    "describes": "Decision metrics empty state before any flag or write-back decision",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/DecisionMetricsCard.tsx",
+    "text": "…decision(s) recorded. Counts only: every value stays on the run page.",
+    "describes": "Decision metrics count summary that shows no values",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/NeedsDecisionInboxPanel.tsx",
+    "text": "Nothing needs your decision right now.",
+    "describes": "Needs your decision panel empty state",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/RenewalReviewPanel.tsx",
+    "text": "…open reconciliation flag …across …renewal run …. Resolve each on its run page. Each Sheet update has its own exact confirmation.",
+    "describes": "Renewal review open reconciliation flag count and where to resolve them",
+    "disposition": "correct",
+    "contradicts": ["S156", "S160", "S182"],
+    "corrections": [
+      {
+        "before": "…open reconciliation flag …across …renewal run …. Resolve each on its run page. The app writes to the sheet only after you approve.",
+        "after": "…open reconciliation flag …across …renewal run …. Resolve each on its run page. Each Sheet update has its own exact confirmation."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/RenewalReviewPanel.tsx",
+    "text": "…write-back proposal …awaiting your approval ….",
+    "describes": "Write-back proposals awaiting a staff decision in renewal review",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/RenewalReviewPanel.tsx",
+    "text": "Nothing in this run needs a decision.",
+    "describes": "Renewal run with no open flag needing a decision",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/WritebackQueuePanel.tsx",
+    "text": "No write-back proposals are queued right now.",
+    "describes": "Write-back queue empty state",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/approval/WritebackQueuePanel.tsx",
+    "text": "…queued write-back proposal …across all runs: …awaiting approval · … approved (ready to write, not executed) · …returned. Approve or return each on its run page. Each Sheet update has its own exact confirmation.",
+    "describes": "Cross-run write-back proposal counts by decision state",
+    "disposition": "correct",
+    "contradicts": ["S156", "S160", "S182"],
+    "corrections": [
+      {
+        "before": "…queued write-back proposal …across all runs: …awaiting approval · … approved (ready to write, not executed) · …returned. Approve or return each on its run page. Sheet writes stay gated behind an approved action.",
+        "after": "…queued write-back proposal …across all runs: …awaiting approval · … approved (ready to write, not executed) · …returned. Approve or return each on its run page. Each Sheet update has its own exact confirmation."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "components/connections/ConnectorCard.tsx",
+    "text": "This connector reports its stored status; live verification is available only where a connector supports it.",
+    "describes": "Connector without live verification reporting its stored status",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/connections/ConnectorSetupActions.tsx",
+    "text": "…connects with a key that is set up on the server, not entered here. Ask an administrator to run the setup, then use Verify connection to confirm it works.",
+    "describes": "Server-key connector setup handoff and the Verify connection check",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/connections/ConnectorSetupActions.tsx",
+    "text": "The app&apos;s stored credentials were removed. …did not confirm every token was revoked.",
+    "describes": "Disconnect result when the provider did not confirm token revocation",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/connections/ConnectorSetupActions.tsx",
+    "text": "Disconnect recovery needs Admin investigation. No credential action is available.",
+    "describes": "Disconnect state that needs Admin investigation before any recovery",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/connections/DotloopConnectionPanel.tsx",
+    "text": "An Admin manages this company connection. Your renewal work uses it without a separate Dotloop sign-in.",
+    "describes": "Dotloop company connection note for staff without Admin access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/connections/DotloopConnectionPanel.tsx",
+    "text": "Refresh Dotloop resources after connecting to choose the renewal profile and template.",
+    "describes": "Dotloop resource picker before Dotloop resources are refreshed",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/connections/DotloopConnectionPanel.tsx",
+    "text": "Company and office templates are shown for diagnosis. Renewal loop selection still requires a supported individual profile. A visible template does not enable loop creation or uploads.",
+    "describes": "Observed Dotloop template visibility shown for diagnosis only",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/email/RefineWithAi.tsx",
+    "text": "From your instruction: …. This changes the email only; the source record is not updated.",
+    "describes": "AI email revision values taken from the staff instruction",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/gmail-hub/AnticipatoryDraftComposer.tsx",
+    "text": "Approved patterns only; excluded categories are refused. A person sends from Gmail.",
+    "describes": "Not rendered by any staff route: Retired anticipatory draft composer for approved reply patterns",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/gmail-hub/CommunicationComposer.tsx",
+    "text": "Prepared signature: …· business profile v…. Later profile changes leave this saved wording unchanged.",
+    "describes": "Saved signature snapshot on a prepared communication message",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/gmail-hub/CommunicationComposer.tsx",
+    "text": "No approved business profile is currently available for your managed sender. Existing wording is kept.",
+    "describes": "Missing approved business profile for the managed sender",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/gmail-hub/GmailHubHome.tsx",
+    "text": "Linked workflows · mailbox management stays in Gmail.",
+    "describes": "Workflow Communications subtitle on linked workflows and Gmail mailbox management",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/gmail-hub/LiveGmailWorkspace.tsx",
+    "text": "No linked renewal communication needs attention.",
+    "describes": "Communications attention list empty state for linked conversations",
+    "disposition": "correct",
+    "contradicts": ["S227"],
+    "corrections": [
+      {
+        "before": "No linked renewal or maintenance communication needs attention.",
+        "after": "No linked renewal communication needs attention."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "components/gmail-hub/TemplateWorkspace.tsx",
+    "text": "Evaluate a message against the Admin-approved rule and reply-pattern sets over pasted, sanitized facts. Approved rules only; Shadow phase applies nothing; hard-excluded categories are label-only; every draft carries the review-before-sending banner. This workspace reads only your pasted text; sending stays a human step in Gmail.",
+    "describes": "Not rendered by any staff route: Retired template and triage workspace over pasted sanitized facts",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/gmail-hub/TemplateWorkspace.tsx",
+    "text": "No approved rule matched these facts.",
+    "describes": "Not rendered by any staff route: Retired template workspace result when no approved rule matches",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/gmail-hub/ThreadSummaryPanel.tsx",
+    "text": "Summarizes pasted, sanitized thread text only. A person sends from Gmail.",
+    "describes": "Not rendered by any staff route: Retired pasted thread summary panel",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
+    "text": "Proposal only. This preview stays in the browser; workflows and external systems change only when you act.",
+    "describes": "Not rendered by any staff route: Never-rendered AI thread understanding proposal on a linked conversation",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
+    "text": "Describe the change you want. Your instruction is not added to the reply.",
+    "describes": "Not rendered by any staff route: Never-rendered Refine with AI instruction field for a linked reply",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
+    "text": "Revision from the earlier draft; your current wording is kept.",
+    "describes": "Not rendered by any staff route: Never-rendered AI reply revision built from an earlier draft",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/gmail-hub/WorkflowCommunicationPanel.tsx",
+    "text": "Transient proposal only. Review every source and exact word, then prepare the exact mailbox, recipient, subject, and body confirmation.",
+    "describes": "Not rendered by any staff route: Never-rendered AI reply proposal before the exact linked reply confirmation",
+    "disposition": "keep"
+  }
+]

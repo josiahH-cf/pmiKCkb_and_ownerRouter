@@ -1,0 +1,555 @@
+[
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/DiscrepancyDispositionPanel.tsx",
+    "text": "Saved in the app · no RentVine or Sheet update.",
+    "describes": "Discrepancy disposition record, saved in the app without source updates",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/DiscrepancyDispositionPanel.tsx",
+    "text": "No disposition has been recorded for this lease.",
+    "describes": "Empty discrepancy disposition audit history for this lease",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/DotloopPacketLinkPanel.tsx",
+    "text": "Not recorded. After the signers finish in Dotloop, record the outside result in the signatures step.",
+    "describes": "Dotloop packet panel with no staff-recorded signature result",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/DotloopPacketLinkPanel.tsx",
+    "text": "A staff report is not provider-verified or signed-artifact evidence; loop status and uploads never prove signatures.",
+    "describes": "Limits of staff-reported execution versus provider and signed-artifact evidence",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/LeaseDecisionProjectionPanel.tsx",
+    "text": "App decisions · provider updates require separate confirmation.",
+    "describes": "Live renewal decision projection, separate from confirmed provider updates",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/LeasePacketReadiness.tsx",
+    "text": "Read-only. Evaluate packet records a snapshot; nothing here writes one or sends anything.",
+    "describes": "Read-only form family readiness table for the lease packet",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/LeasePacketReadiness.tsx",
+    "text": "The saved selection matches the latest observation.",
+    "describes": "Dotloop selection freshness when the saved selection matches observation",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/LeaseTermReviewControl.tsx",
+    "text": "Recording the lease term needs Editor access. Ask an Admin to review your role; the term above stays visible read-only.",
+    "describes": "Lease term review control shown read-only without Editor access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/LiveRenewalNotices.tsx",
+    "text": "Actionable leases ending on a month boundary through …, from a live RentVine read (… leases scanned). Open a lease to compose in Communications. A staff member reviews the exact message and chooses Send or Schedule.",
+    "describes": "Legacy live renewal notices list header; no staff route renders it",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/LiveRenewalReview.tsx",
+    "text": "RentVine and Sheet facts · read-only. App decisions are recorded separately.",
+    "describes": "Live renewal review page reading RentVine and Sheet facts",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/LiveRenewalReview.tsx",
+    "text": "Data status: …from the RentVine read at …. Refresh now",
+    "describes": "Live review data currency and RentVine read time with refresh link",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/LiveRenewalReview.tsx",
+    "text": "One read-only RentVine export and one renewal-sheet read. This view only reads and carries production_allowed: ….",
+    "describes": "Live review read details: one RentVine export and one Sheet read",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/LiveRenewalReview.tsx",
+    "text": "Suggested source: …(…). Suggestion only, needs human approval.",
+    "describes": "Suggested source for a live review item, awaiting a staff decision",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/LiveRenewalReview.tsx",
+    "text": "Blocked: …. Needs a human decision.",
+    "describes": "Live review item without a suggestion that needs a staff decision",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/NoticeTimingBasisSelection.tsx",
+    "text": "Shared basis for all renewal notice comparisons. Choosing the documented option saves it immediately. Missing or stale dates can still read Cannot determine. No message, schedule or provider record is created.",
+    "describes": "Shared notice timing basis selection that saves on choosing",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/NoticeTimingBasisSelection.tsx",
+    "text": "Current saved version …, recorded by …at …. Recorded source: …",
+    "describes": "Current saved notice basis version, recorder, time and source",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/NoticeTimingBasisSelection.tsx",
+    "text": "This session can read the basis; an authorized renewal staff session is required to select it.",
+    "describes": "Notice basis selection shown read-only without renewal staff authority",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetLookup.tsx",
+    "text": "The operating Sheet read did not complete on this page load, so the app&apos;s current lookup is not shown. Your saved selection below is unchanged.",
+    "describes": "Operating Sheet lookup when the page's Sheet read did not complete",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetLookup.tsx",
+    "text": "The selection saves in the app and reads the chosen location. Nothing changes in the Sheet.",
+    "describes": "Choosing where the app looks in the operating Sheet",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetPanel.tsx",
+    "text": "Sheet updates are off by policy right now. Your working values and recorded progress save in the app, and Sheet reads continue; preparing or confirming a Sheet update waits until the switch is on. After that, prepare a fresh preview.",
+    "describes": "Operating Sheet panel while the server Sheet update switch is off",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetPanel.tsx",
+    "text": "Target: the operating renewal tab, read ….",
+    "describes": "Sheet update proposal target tab and its read time",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetPanel.tsx",
+    "text": "This proposal&apos;s confirmation window has expired. Save a fresh proposal to continue; the exact terms below stay visible for review.",
+    "describes": "Expired confirmation window on a saved Sheet update proposal",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetPanel.tsx",
+    "text": "The Sheet outcome is unproven. Reconciliation reads fresh state by the row&apos;s system note or the exact cell and may report before, after, or drift without claiming causality. Nothing is retried automatically, and new Sheet previews for this lease stay locked while this attempt is uncertain. If reconciliation still cannot prove the outcome, the lease needs an engineering readback and a manual clear from this attempt&apos;s record; the app offers no archive for an uncertain attempt.",
+    "describes": "Locked state and recovery route for an ambiguous Sheet update outcome",
+    "disposition": "correct",
+    "contradicts": ["S244"],
+    "corrections": [
+      {
+        "before": "The Sheet outcome is unproven. Reconciliation reads fresh state by the row&apos;s system note or the exact cell and may report before, after, or drift without claiming causality. Nothing is retried automatically, and new Sheet previews for this lease stay locked while this attempt is uncertain. If reconciliation still cannot prove the outcome, the lease needs an engineering readback and a manual clear from this attempt&apos;s record; archiving an uncertain attempt is a deferred owner decision.",
+        "after": "The Sheet outcome is unproven. Reconciliation reads fresh state by the row&apos;s system note or the exact cell and may report before, after, or drift without claiming causality. Nothing is retried automatically, and new Sheet previews for this lease stay locked while this attempt is uncertain. If reconciliation still cannot prove the outcome, the lease needs an engineering readback and a manual clear from this attempt&apos;s record; the app offers no archive for an uncertain attempt."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetPanel.tsx",
+    "text": "Sheet updates are off by policy, so this one waits. The reviewed value stays visible. Once the switch is on, prepare a fresh preview and confirm it.",
+    "describes": "A prepared Sheet update waiting while the update switch is off",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetPanel.tsx",
+    "text": "Confirming a Sheet update needs Editor access.",
+    "describes": "Sheet update confirmation shown without Editor access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetPanel.tsx",
+    "text": "Enter the working current rent in Rent and charges first. This Sheet update uses that value.",
+    "describes": "Current rent Sheet update needs a saved working current rent",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetPanel.tsx",
+    "text": "Enter the working current rent above to prepare this update. The Sheet update uses that value; nothing else on this lease waits on it.",
+    "describes": "Preparing the current rent Sheet update without a working current rent",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetPanel.tsx",
+    "text": "Preview replaces the Sheet&apos;s current base rent with the working current rent shown above. You confirm the exact change afterwards.",
+    "describes": "Current rent Sheet update preview built from the working current rent",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetPanel.tsx",
+    "text": "Optional. Where this value came from, if you want it on record.",
+    "describes": "Optional note recording where a typed Sheet field value came from",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OperatingSheetPanel.tsx",
+    "text": "The server will append one row only if a fresh RentVine-to-Sheet link check confirms this lease has no exact row. Lease, property, and tenant identity come from RentVine; every unconfirmed column stays blank.",
+    "describes": "Missing Sheet row append, guarded by a fresh RentVine link check",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/OwnerApprovalEvidenceForm.tsx",
+    "text": "Where the written approval is kept. Never paste its text or a customer value.",
+    "describes": "Reference field for a written owner approval kept outside the app",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/PacketInputsEditor.tsx",
+    "text": "Each fact, person and animal the packet, filled files and Dotloop handoff use.",
+    "describes": "Packet inputs summary before the editor is opened",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/PacketInputsEditor.tsx",
+    "text": "Enter each fact, person and animal once. The packet, filled files and Dotloop handoff use these saved values. …",
+    "describes": "Packet inputs editor: facts, people and animals entered once",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/PacketInputsEditor.tsx",
+    "text": "One person may hold several roles. A PMI manager or broker signs for PMI, never as the property owner. Use a reviewed email for anyone who signs in Dotloop.",
+    "describes": "People and signer roles in the packet inputs",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/PacketInputsEditor.tsx",
+    "text": "No animal is recorded for this lease.",
+    "describes": "Animals section with no recorded animal for the lease",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/PacketInputsEditor.tsx",
+    "text": "Calculated from charge policy version ……. Calculating writes no RentVine charge.",
+    "describes": "Packet charges calculated from the charge policy without RentVine writes",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RemainingDifferences.tsx",
+    "text": "Each field compares the Working or approved value with the latest read from its source. A match is not a claim that RentVine and the Sheet are synchronized.",
+    "describes": "What still differs between Working or approved values and source reads",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalCorrections.tsx",
+    "text": "Using a source value changes the working value in this app only. RentVine changes only through Prepare RentVine rent charge update beside the working current rent; the Sheet changes only under Review Sheet updates.",
+    "describes": "Using an observed source value as the working current rent",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalCurrentRent.tsx",
+    "text": "RentVine lease total; the sum of active recurring charges, never the rent",
+    "describes": "RentVine lease total label in the rent facts",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalCurrentRent.tsx",
+    "text": "No rent or charge update is recorded, prepared or waiting for this lease.",
+    "describes": "Update status by destination when no rent or charge update exists",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalCurrentRent.tsx",
+    "text": "…. Saved in the app only; RentVine and the Sheet change only through a confirmed update.",
+    "describes": "Working current rent saved in the app, not a source update",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalCurrentRent.tsx",
+    "text": "…. Today&apos;s rent and the Sheet current rent stay as they are until a confirmed source update.",
+    "describes": "Working renewal terms saved in the app before any source update",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalDecider.tsx",
+    "text": "No open renewal flags remain in this review.",
+    "describes": "Live review decider when every renewal flag is resolved",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalDeciderCard.tsx",
+    "text": "The resolution is saved. Approval is a separate audited decision; the Sheet write stays gated.",
+    "describes": "Optional write-back approval after accepting a suggested source",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalDeciderCard.tsx",
+    "text": "Staff review the queued write-back proposal.",
+    "describes": "Queued write-back proposal shown to a viewer without Editor access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalDeciderCard.tsx",
+    "text": "Editor access is required to save skip progress.",
+    "describes": "Skip control shown without Editor access in the live review decider",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalDesk.tsx",
+    "text": "This lease data is …old, past the …-minute limit. Composing and recording are paused until a refresh completes. You can still look at the list.",
+    "describes": "Renewal desk data past the freshness limit",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalDesk.tsx",
+    "text": "Refreshing lease data. Showing data from …ago while the new read completes.",
+    "describes": "Renewal desk data refreshing while older data stays shown",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalDesk.tsx",
+    "text": "Last updated …ago. The latest refresh did not complete; the app will retry.",
+    "describes": "Renewal desk data after a refresh that did not complete",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalDesk.tsx",
+    "text": "The lease read stopped before it reached the whole portfolio, so this page shows a partial list. Some leases are missing. Reload to read again, and if this notice stays, check the RentVine connection.",
+    "describes": "Renewal desk notice for a partial lease read",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalDeskTable.tsx",
+    "text": "View counts reflect a partial source read.",
+    "describes": "Worklist view counts when the source read is partial",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalDocumentHandoff.tsx",
+    "text": "Readiness does not execute an operation or confirm a signature. Current sources and every gate are checked again for an exact staff preview and confirmation.",
+    "describes": "Dotloop loop creation and upload readiness rows and their limits",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalDocumentHandoff.tsx",
+    "text": "Recorded source facts; provider receipts and signatures are separate. Other forms retain their manual Dotloop handoff.",
+    "describes": "Current facts for the packet and their evidence boundaries",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalDocumentHandoff.tsx",
+    "text": "Create one loop from the company template when its readiness row allows it, or link an existing loop you reviewed. A changed packet never creates another loop; reviewed new versions upload into the same loop.",
+    "describes": "Dotloop loop creation or linking for this lease",
+    "disposition": "correct",
+    "contradicts": ["S34", "S182", "S235"],
+    "corrections": [
+      {
+        "before": "Create one loop from the company template, or link an existing loop you reviewed. A changed packet never creates another loop; reviewed new versions upload into the same loop.",
+        "after": "Create one loop from the company template when its readiness row allows it, or link an existing loop you reviewed. A changed packet never creates another loop; reviewed new versions upload into the same loop."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalDocumentHandoff.tsx",
+    "text": "Reviewing reads the loop through the company connection and changes nothing.",
+    "describes": "Existing Dotloop loop number field and its read-only review",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalDocumentHandoff.tsx",
+    "text": "A matching name or address is a hint only. Confirm this is the loop for this lease.",
+    "describes": "Review of an existing Dotloop loop before linking it",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalFocusViewPane.tsx",
+    "text": "The fix belongs in the source record; refresh this lease after updating it.",
+    "describes": "Focus task whose fix happens in the source record",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalFocusViewPane.tsx",
+    "text": "Lease data is out of date. Refresh this lease to read the sources again.",
+    "describes": "Focus view notice when lease data is out of date",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalFollowUpThreadControl.tsx",
+    "text": "This reads one opaque Gmail thread and records only message identity, time, and direction. It cannot draft, reply, or send.",
+    "describes": "Linking or refreshing one exact Gmail thread as follow-up evidence",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalLeaseInformation.tsx",
+    "text": "Staff reports. Approvals, source updates, sent messages and signatures require their own evidence.",
+    "describes": "Staff work status in lease information and its evidence limits",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalLeaseInformation.tsx",
+    "text": "RentVine lease record: not available from the current source read.",
+    "describes": "RentVine lease record link unavailable from the current read",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalLeaseInformation.tsx",
+    "text": "RentVine lease list filtered to this owner or property: unavailable (no verified RentVine filter destination).",
+    "describes": "Unavailable RentVine lease list filtered to the owner or property",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalManualWorkspace.tsx",
+    "text": "Saved with Revision requested. The Working terms stay the one terms record; update them, then ask the owner again.",
+    "describes": "Owner revision request note saved with Revision requested",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalManualWorkspace.tsx",
+    "text": "Owner-approved terms recorded earlier on this cycle: …from …to ….",
+    "describes": "Earlier owner-approved terms recorded on this renewal cycle",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Edits save in the app. In Communications, review the exact message and use Send or Schedule when its current checks pass. Resume requires a fresh review. You can also create an unsent Gmail draft below and send it from Gmail.",
+    "describes": "Message preparation saving and sending through Communications or a Gmail draft",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Copy uses the wording shown, including unresolved markers. The unsent Gmail draft validates the current message before exact creation confirmation.",
+    "describes": "Email body copy and unsent Gmail draft validation",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "… Mailbox: …. A person sends from Gmail.",
+    "describes": "Created unsent Gmail draft location and who sends it",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Replaces the paragraph after the terms, charges and insurance wording, before the request to complete the renewal information form. Blank keeps approved wording; amounts, dates and recipients remain in the email body.",
+    "describes": "Optional response request wording edit and the paragraph it replaces (protected copy, AC-S120-5; kept byte-identical)",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Verified current charge · comparison remains staff-recorded.",
+    "describes": "Filling a message charge from a current RentVine charge",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Filled from RentVine recurring charge …. Change anything that differs for the renewal.",
+    "describes": "Message charge filled from a RentVine recurring charge",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Copied text does not include this file.",
+    "describes": "Owner comp screenshot attachment excluded from copied text",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalMessagePreparation.tsx",
+    "text": "Not saved yet: …. Each entry saves by itself once it is complete; everything else is already saved.",
+    "describes": "Message inputs that are incomplete and so unsaved",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalNoticeReview.tsx",
+    "text": "This review does not start a renewal cycle; a new cycle needs its own review.",
+    "describes": "Notice evidence review when no renewal cycle is selected",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalNoticeReview.tsx",
+    "text": "This records staff evidence only. It does not cancel a provider notice, clear a non-renewal decision, create a draft, or send a message.",
+    "describes": "Recording notice evidence or a reviewed withdrawal as staff evidence",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalOwnerOutcomeControl.tsx",
+    "text": "Use a Gmail thread/message id or exact app receipt id. Never paste an email body, customer value, or note.",
+    "describes": "Evidence reference hint in the progress-route owner response control",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalOwnerOutcomeControl.tsx",
+    "text": "Asking for changes reopens the owner copy and every preview built from it. A decline continues through the non-renewal handoff. No response keeps this lease waiting on the owner.",
+    "describes": "Owner outcome choices in the progress-route owner response control",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalProcessPanel.tsx",
+    "text": "Progress comes from exact source, receipt, policy, packet, signature, and compliance evidence. A note, click, draft, or provider estimate cannot complete a step by itself.",
+    "describes": "Evidence-based six-step process panel; no staff route renders it",
+    "disposition": "keep"
+  }
+]

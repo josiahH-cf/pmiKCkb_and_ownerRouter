@@ -15,6 +15,10 @@
     ["run", "verify:spec-traceability"],
     ["run", "verify:copy-voice"],
     ["run", "verify:redaction"],
+    ["run", "verify:help-coverage"],
+    ["run", "verify:help-controls"],
+    ["run", "verify:help-screenshots"],
+    ["run", "verify:help-content"],
     ["run", "check:budget-guard"],
     ["run", "build"]
   ],

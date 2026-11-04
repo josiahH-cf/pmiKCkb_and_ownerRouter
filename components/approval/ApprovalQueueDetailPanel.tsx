@@ -1,3 +1,4 @@
+import { HelpGuideLink } from "@/components/help/HelpGuideLink";
 import type { Dispatch, SetStateAction } from "react";
 import { InfoTip } from "@/components/ui";
 import { formatCalendarDate } from "@/lib/date-display";
@@ -139,7 +140,15 @@ export function QueueDetailPanel({
             </button>
             {!actionAvailability?.approve && actionAvailability?.approveReason ? (
               <InfoTip
-                content={actionAvailability.approveReason}
+                content={
+                  <>
+                    <p>{actionAvailability.approveReason}</p>
+                    <p>
+                      <HelpGuideLink id={{ infotip: "approve-availability" }} />
+                    </p>
+                  </>
+                }
+                interactive
                 label="Approve availability"
               />
             ) : null}
@@ -167,7 +176,15 @@ export function QueueDetailPanel({
             </button>
             {!actionAvailability?.deny && actionAvailability?.denyReason ? (
               <InfoTip
-                content={actionAvailability.denyReason}
+                content={
+                  <>
+                    <p>{actionAvailability.denyReason}</p>
+                    <p>
+                      <HelpGuideLink id={{ infotip: "deny-availability" }} />
+                    </p>
+                  </>
+                }
+                interactive
                 label="Deny availability"
               />
             ) : null}

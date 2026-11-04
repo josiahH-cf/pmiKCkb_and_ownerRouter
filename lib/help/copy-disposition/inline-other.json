@@ -1,0 +1,541 @@
+[
+  {
+    "kind": "inline",
+    "location": "app/processes/[definitionId]/page.tsx",
+    "text": "This process definition is unavailable. Refresh Google credentials or check Firestore setup.",
+    "describes": "Process definition page when the definition cannot be loaded",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/processes/page.tsx",
+    "text": "Creating or updating an internal process requires Editor access.",
+    "describes": "Processes page note on the edit capability for process changes",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/spaces/[spaceId]/page.tsx",
+    "text": "Gmail authorization applies per user, and the app stays scoped to your workflows. It reads only deliberately linked renewal threads and keeps no copy of their message bodies. Gmail remains the message system of record.",
+    "describes": "Workflow communication reference panel on Gmail scope and stored data",
+    "disposition": "correct",
+    "contradicts": ["S187", "S189"],
+    "corrections": [
+      {
+        "before": "Gmail authorization applies per user, and the app stays scoped to your workflows. It reads only deliberately linked renewal threads and stores only bodyless workflow/audit metadata. Gmail remains the message system of record.",
+        "after": "Gmail authorization applies per user, and the app stays scoped to your workflows. It reads only deliberately linked renewal threads and keeps no copy of their message bodies. Gmail remains the message system of record."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "app/spaces/[spaceId]/page.tsx",
+    "text": "Review value-free communication attention in Workflow Communications, then open the authorized workflow entity for targeted reading or review.",
+    "describes": "Pointer to Workflow Communications attention and the linked workflow record",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/spaces/[spaceId]/page.tsx",
+    "text": "This Space is listed for launch planning. Add approved sources before treating its placeholder content as final operating procedure.",
+    "describes": "Scaffold panel for a Space with no process or editable seed",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/spaces/[spaceId]/pages/[slug]/page.tsx",
+    "text": "Published read-only page · version …· no actions or external effects",
+    "describes": "Published operational page footer: version, read-only, no actions",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/work/page.tsx",
+    "text": "Time is recorded after Start work; pauses and corrections stay visible.",
+    "describes": "My work page note on session timing, pauses and corrections",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "app/workflow-runs/[runId]/page.tsx",
+    "text": "This workflow run or its saved process version is unavailable. Reload or check the saved run and version; a current definition is not substituted for missing published content.",
+    "describes": "Workflow run page when the run or pinned version is missing",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/DashboardSavedNav.tsx",
+    "text": "Your saved questions could not be loaded just now. Nothing was removed.",
+    "describes": "Saved questions list when it fails to load",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/DashboardSavedNav.tsx",
+    "text": "No saved questions yet. Use Save question on an answer to keep it here.",
+    "describes": "Empty saved questions list and the Save question control",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/DashboardSavedNav.tsx",
+    "text": "Showing your 100 most recently saved questions.",
+    "describes": "Saved questions list capped at the 100 most recent",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/DashboardTurnView.tsx",
+    "text": "Saved answer from …. It shows what was true then, not current results.",
+    "describes": "Reopened saved answer label: past results, not current ones",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/DashboardTurnView.tsx",
+    "text": "Your access has changed since this answer, so its records are hidden.",
+    "describes": "Reopened answer whose records are hidden after an access change",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/DashboardTurnView.tsx",
+    "text": "No answer was saved for this question.",
+    "describes": "Reopened question whose answer failed and was never saved",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/DashboardTurnView.tsx",
+    "text": "This question was interrupted before an answer was saved. No answer is shown.",
+    "describes": "Reopened question interrupted before an answer was saved",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/DashboardTurnView.tsx",
+    "text": "This question was still being answered when you opened it. No answer is saved yet.",
+    "describes": "Reopened question still being answered when it was opened",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/DashboardTurnView.tsx",
+    "text": "The assistant could not answer just now, so only the knowledge answer is shown.",
+    "describes": "Assistant unavailable, so only the knowledge answer is shown",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/DashboardTurnView.tsx",
+    "text": "This question could not be saved just now. Nothing was saved.",
+    "describes": "Save question failure beside the Save question control",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/ask/DashboardTurnView.tsx",
+    "text": "Filing a correction changes nothing on its own. An Admin reviews it.",
+    "describes": "Suggest a correction form; an Admin reviews filed corrections",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/auth/SignInPanel.tsx",
+    "text": "Use this app&rsquo;s menu to open the page in your browser, or copy the link and paste it there.",
+    "describes": "Sign-in note for a page opened inside another app",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/console/DashboardAttentionQueue.tsx",
+    "text": "Some sources could not be read just now, so this list may be incomplete.",
+    "describes": "Waiting on you list when some sources did not answer",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/console/DashboardAttentionQueue.tsx",
+    "text": "Approving eligible app work requires Approver access.",
+    "describes": "Waiting on you note: approving queue items needs Approver access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/console/DashboardAttentionQueue.tsx",
+    "text": "The list could not be refreshed just now. It shows the last result.",
+    "describes": "Waiting on you refresh failure that keeps the last result",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/console/StartRunButton.tsx",
+    "text": "This process is not available to start. Open the Space",
+    "describes": "Start run failure in anticipated work, with a Space link",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/desk/EvidencePacketCard.tsx",
+    "text": "This read-only packet has no evidence lines, so its suggested deduction is zero.",
+    "describes": "Move-Out deposit evidence packet card with no evidence lines",
+    "disposition": "correct",
+    "contradicts": ["S13"],
+    "corrections": [
+      {
+        "before": "No evidence entered yet. Add inspection charges, vendor bids, RentVine ledger refs, and the lock-change / 4265 charge to see a suggested deduction.",
+        "after": "This read-only packet has no evidence lines, so its suggested deduction is zero."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "components/desk/EvidencePacketCard.tsx",
+    "text": "…line(s) at or above …need the owner&apos;s explicit sign-off before use.",
+    "describes": "Evidence lines at or above the owner sign-off threshold",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/desk/NoticeRuleCard.tsx",
+    "text": "These are starting defaults. They stay Needs Verification until they are confirmed for the property or lease.",
+    "describes": "Notice timing rules card while its values are unconfirmed defaults",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/desk/SpaceDeskRunPanel.tsx",
+    "text": "You have read-only access to this Space.",
+    "describes": "Space desk start run area without edit access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/desk/SpaceDeskRunPanel.tsx",
+    "text": "This run is closed. Its checklist is read-only.",
+    "describes": "Closed workflow run checklist on the Space desk",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/desk/SpaceDeskRunPanel.tsx",
+    "text": "Updating this checklist requires Editor access.",
+    "describes": "Space desk checklist note on the edit capability",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/feedback/ReportIssueButton.tsx",
+    "text": "Be as descriptive as possible so we can help the best way. We include the page you are on automatically, so you do not have to.",
+    "describes": "Report an issue dialog guidance; the current page is included",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/help/HelpViews.tsx",
+    "text": "Every screen, its controls and who can use them.",
+    "describes": "Help landing card for Reference: screens, controls and roles",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/help/HelpViews.tsx",
+    "text": "The terms the app uses, in plain words.",
+    "describes": "Help landing card for the Glossary of app terms",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/MaintenanceBlockerReport.tsx",
+    "text": "No open ticket is waiting on anything right now.",
+    "describes": "Not rendered by any staff route: Retired maintenance blocker report empty state",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/MaintenanceCapture.tsx",
+    "text": "Live in-app ticket preview. Creating it writes this app only; any provider write is a separate exact action with its own target and confirmation.",
+    "describes": "Not rendered by any staff route: Retired maintenance ticket capture preview and provider write note",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/MaintenanceCapture.tsx",
+    "text": "Trade suggestion only. Assign a roster-backed Vendor from the ticket after creation; any provider write remains a separate confirmed action.",
+    "describes": "Not rendered by any staff route: Retired maintenance trade suggestion and vendor assignment note",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/MaintenanceCaseFactsPanel.tsx",
+    "text": "Open this section to read saved case history. Missing source evidence stays unresolved.",
+    "describes": "Not rendered by any staff route: Retired maintenance ticket case history section",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/MaintenanceLifecyclePanel.tsx",
+    "text": "PMI makes the final closure decision. Case status does not prove provider completion, invoicing, accounting posting or payment.",
+    "describes": "Not rendered by any staff route: Retired maintenance ticket closure decision panel",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/MaintenancePreapprovalImport.tsx",
+    "text": "RentVine keeps a maintenance limit on some properties. Preview those limits, then record them here as preapprovals in one confirmed step. A property without a RentVine limit keeps its current preapproval.",
+    "describes": "Not rendered by any staff route: Retired RentVine maintenance limit preapproval import",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/MaintenanceQueue.tsx",
+    "text": "No tickets yet. Build a work-order draft and create a ticket.",
+    "describes": "Not rendered by any staff route: Retired maintenance ticket queue empty state",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/RentvineWorkOrderPanel.tsx",
+    "text": "Explicit bounded reads and reviewed one-at-a-time writes against the official account operations. Every write needs Admin approval and an exact confirmation; nothing is shared, sent, assigned, or deleted from here.",
+    "describes": "Not rendered by any staff route: Retired RentVine work-order panel and its Admin-approved writes",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/RentvineWorkOrderPanel.tsx",
+    "text": "Reads the exact work order and checks its property and unit against this ticket. Confirmation records the link in the app.",
+    "describes": "Not rendered by any staff route: Retired RentVine work-order link check and confirmation",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/RentvineWorkOrderPanel.tsx",
+    "text": "This ticket needs a verified unit before a create can be proposed.",
+    "describes": "Not rendered by any staff route: Retired RentVine work-order create requiring a verified unit",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/RentvineWorkOrderPanel.tsx",
+    "text": "The preview fixes owner approval, both portal shares, and both provider notifications off; the exact reviewed ticket description is used as-is.",
+    "describes": "Not rendered by any staff route: Retired RentVine work-order create preview field settings",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/RentvineWorkOrderPanel.tsx",
+    "text": "Run Check RentVine first; the target comes from a fresh read and the fresh status catalog.",
+    "describes": "Not rendered by any staff route: Retired RentVine work-order status change precondition",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/RentvineWorkOrderPanel.tsx",
+    "text": "Only the status changes; vendor notification and completion review stay off, and readback must show every other field unchanged.",
+    "describes": "Not rendered by any staff route: Retired RentVine work-order status change readback rule",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/RentvineWorkOrderPanel.tsx",
+    "text": "Prepared …awaiting Admin approval. Open the Approval Queue.",
+    "describes": "Not rendered by any staff route: Retired RentVine work-order action awaiting Admin approval",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/RentvineWorkOrderReadback.tsx",
+    "text": "Observed …. This is a manual source read; it does not synchronize Vendoroo history or change PMI&apos;s case status.",
+    "describes": "Not rendered by any staff route: Retired RentVine work-order manual read result",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/RentvineWorkOrderReadback.tsx",
+    "text": "Times retain the provider&apos;s supplied representation; its timezone is unverified. Summaries and closeout comments do not establish a complete communication or troubleshooting history, verified financial evidence, or PMI closure. This read is not retained as canonical case history.",
+    "describes": "Not rendered by any staff route: Retired RentVine work-order read limits on times and history",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/RentvineWorkOrderReadback.tsx",
+    "text": "Complete call history, individual troubleshooting attempts and outcomes, photos, escalation events, sentiment and Vendoroo takeover controls are not supplied by this read projection. Resident chat synchronization is a separate confirmed action that marks manager messages read.",
+    "describes": "Not rendered by any staff route: Retired work-order read gaps and resident chat synchronization note",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/WorkOrderChatPanel.tsx",
+    "text": "Manually import the RentVine work-order conversation one page at a time and reply only through one reviewed unsent Gmail draft. Nothing loads, posts, or sends on its own.",
+    "describes": "Not rendered by any staff route: Retired work-order conversation import and Gmail draft reply",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/maintenance/WorkOrderChatPanel.tsx",
+    "text": "Unsent draft …is in your Gmail Drafts. Review and send or delete it there yourself; this resident-reply draft control never sends or deletes drafts.",
+    "describes": "Not rendered by any staff route: Retired resident reply unsent Gmail draft result",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/search/EntitySearchResults.tsx",
+    "text": "…shown · read …. Select a record to open it in a new tab.",
+    "describes": "Search results count, read time and new tab opening",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/spaces/SpaceDetailClient.tsx",
+    "text": "Creating or updating this Space requires Editor access.",
+    "describes": "Space knowledge editor note on the edit capability",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/spaces/SpaceDetailClient.tsx",
+    "text": "Marking app work approved requires Approver access.",
+    "describes": "Mark Approved on a Space SOP needs Approver access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/spaces/SpaceDetailClient.tsx",
+    "text": "Removing eligible app records requires Admin access.",
+    "describes": "Delete on Space templates needs Admin access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/spaces/SpaceDetailClient.tsx",
+    "text": "Resolving verified placeholders requires Approver access.",
+    "describes": "Resolve on Space placeholders needs Approver access",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/spaces/SpaceDetailClient.tsx",
+    "text": "No recent changes are available for this Space.",
+    "describes": "Space change log when no recent changes exist",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/spaces/TrustedPublicationPanel.tsx",
+    "text": "Publishing approved sources requires Editor access.",
+    "describes": "Source publication panel note on the edit capability",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/spaces/TrustedPublicationPanel.tsx",
+    "text": "Accepted files: Markdown and text up to 2 MB, PDF and DOCX up to 25 MB, CSV up to 10 MB, and common images up to 10 MB. The app publishes documents and images that pass its safety scan.",
+    "describes": "Source publication file types, size limits and safety scan",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/vendor/VendorPortal.tsx",
+    "text": "Signed in as …. Assigned tickets only.",
+    "describes": "Not rendered by any staff route: Retired vendor portal signed-in header",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/vendor/VendorSignIn.tsx",
+    "text": "Start from the one-time setup link PMI KC sends you; your account is created there.",
+    "describes": "Not rendered by any staff route: Retired vendor sign-in setup link guidance",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/work/LeaseFollowUpOriginView.tsx",
+    "text": "Task status records staff work. Policy applicability, coverage and provider effects require their own evidence.",
+    "describes": "Lease follow-up task origin: task status versus policy evidence",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/work/WorkAccountabilityBoard.tsx",
+    "text": "Task completion changes this internal record only; linked product work keeps its own controls.",
+    "describes": "Task Complete changes only the internal work record",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/work/WorkAccountabilityBoard.tsx",
+    "text": "Historical task context for your own session record. Task controls are unavailable after reassignment.",
+    "describes": "Task card for a task reassigned away from you",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/work/WorkAccountabilityBoard.tsx",
+    "text": "Expectations are manager-set versions. Session durations never set or revise an expectation.",
+    "describes": "Team work configuration: manager-set expectation versions and session durations",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/work/WorkAccountabilityBoard.tsx",
+    "text": "Create an approved mapping version first.",
+    "describes": "Derive a task form when no mapping version exists",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/work/WorkAccountabilityBoard.tsx",
+    "text": "Preview a bounded batch. Active, unexpired, or legal-hold records remain untouched.",
+    "describes": "12-month retention cleanup preview and its exclusions",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/workflows/ProcessDefinitionDetailClient.tsx",
+    "text": "Editing, publishing, or starting this process requires Editor access.",
+    "describes": "Process definition page note on the edit capability",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/workflows/ProcessDefinitionDetailClient.tsx",
+    "text": "One per line: label | system | action | readiness | missing setup | approval owner | rollback note | Action Registry key",
+    "describes": "Format hint for the process action references field",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/workflows/ProcessDefinitionDetailClient.tsx",
+    "text": "Publishing pins an immutable version for the runs that start after it. A Draft definition can still start an app-plane run, recorded as Not pinned (draft).",
+    "describes": "Publication pinning versus Draft runs recorded as Not pinned",
+    "disposition": "correct",
+    "contradicts": ["S244"],
+    "corrections": [
+      {
+        "before": "Publishing pins an immutable version for future runs. A Draft definition can still start an app-plane run, recorded as Not pinned (draft).",
+        "after": "Publishing pins an immutable version for the runs that start after it. A Draft definition can still start an app-plane run, recorded as Not pinned (draft)."
+      }
+    ]
+  },
+  {
+    "kind": "inline",
+    "location": "components/workflows/ProcessDefinitionDetailClient.tsx",
+    "text": "Only a validated version becomes Active. Publication grants no external action or role.",
+    "describes": "Process publication: validation before Active, no granted authority",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/workflows/ProcessDefinitionDetailClient.tsx",
+    "text": "Creates an internal checklist. External changes use their separate confirmation controls.",
+    "describes": "Start run on a process definition creates an internal checklist",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/workflows/WorkflowRunClient.tsx",
+    "text": "Updating this workflow run requires Editor access.",
+    "describes": "Workflow run outcome panel note on the edit capability",
+    "disposition": "keep"
+  }
+]

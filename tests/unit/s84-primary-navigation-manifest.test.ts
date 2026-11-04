@@ -45,7 +45,8 @@ afterEach(() => {
 });
 
 describe("S84 primary-navigation manifest", () => {
-  it("owns exactly the requested groups and eight ordered destinations with no retired maintenance entry", () => {
+  // S242 R-S242-1 adds Help to the first group, so every staff member reaches it from every page.
+  it("owns exactly the requested groups and nine ordered destinations with no retired maintenance entry", () => {
     expect(PRIMARY_NAVIGATION_MANIFEST.map((group) => group.label)).toEqual([
       "My Work",
       "Operations",
@@ -54,11 +55,11 @@ describe("S84 primary-navigation manifest", () => {
     expect(
       PRIMARY_NAVIGATION_MANIFEST.map((group) => group.items.map((item) => item.label)),
     ).toEqual([
-      ["My Work", "Dashboard", "Approval Queue"],
+      ["My Work", "Dashboard", "Approval Queue", "Help"],
       ["Lease Renewal", "Internal Processes"],
       ["Admin", "Connections", "Communications"],
     ]);
-    expect(PRIMARY_NAVIGATION_MANIFEST.flatMap((group) => group.items)).toHaveLength(8);
+    expect(PRIMARY_NAVIGATION_MANIFEST.flatMap((group) => group.items)).toHaveLength(9);
     expect(
       PRIMARY_NAVIGATION_MANIFEST.flatMap((group) => group.items).some((item) =>
         item.href.startsWith("/maintenance"),
@@ -70,7 +71,7 @@ describe("S84 primary-navigation manifest", () => {
           group.items.map((item) => item.icon),
         ),
       ).size,
-    ).toBe(8);
+    ).toBe(9);
     expect(PRIMARY_NAVIGATION_MANIFEST.map((group) => group.tone)).toEqual([
       "work",
       "operations",
@@ -102,6 +103,7 @@ describe("S84 primary-navigation manifest", () => {
         "My Work",
         "Dashboard",
         "Approval Queue",
+        "Help",
       ]);
       expect(labels(groups, "operations")).toEqual(ALL_OPERATIONS);
       expect(labels(groups, "admin")).toEqual(["Admin", "Connections", "Communications"]);
@@ -249,6 +251,7 @@ describe("S84 primary-navigation manifest", () => {
       "/admin": "app/admin/page.tsx",
       "/connections": "app/connections/page.tsx",
       "/gmail-hub": "app/gmail-hub/page.tsx",
+      "/help": "app/help/page.tsx",
     };
     expect(() =>
       validatePrimaryNavigationManifest(PRIMARY_NAVIGATION_MANIFEST, {
