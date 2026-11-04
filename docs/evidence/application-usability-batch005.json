@@ -17469,8 +17469,264 @@
         "plannedChecks": [],
         "compiledCoverage": "Passed owning route matrix; actual unavailable/permission states remain distinguished from populated local fixtures.",
         "ownerUnitFilesPassed": []
-      }
-    ],
+      },
+{
+  "owner": "app/help/page.tsx",
+  "inspected": true,
+  "checks": [
+    {
+      "test": "Current owning source inspection: app/help/page.tsx (S242-S244 staff help hub)",
+      "outcome": "passed",
+      "environment": "S242-S244 implementation review, 2026-11-04; privacy-safe static strings only",
+      "evidence": "private review of the committed source; no customer value in help content"
+    },
+    {
+      "test": "Compiled owning route: app/help/page.tsx",
+      "outcome": "passed",
+      "environment": "Isolated synthetic help rehearsal (Demo descriptor, Firestore emulator, synthetic RentVine and Google stand-ins, every other outbound connection refused), next dev, local demo Editor, Approver and Admin sessions",
+      "statuses": [
+        200
+      ],
+      "evidence": "private ~/pmi-kc-work/evidence/help-hub/route-sweep-r1.json from rehearsal ~/.local/state/pmi-kc-help-rehearsal/20261104T140452Z-09d72236/ (Editor, Approver and Admin)"
+    }
+  ],
+  "cohort": "knowledge_processes",
+  "ownerTests": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ],
+  "plannedChecks": [],
+  "compiledCoverage": "Help route family read-only and guarded by the read capability; rendered in the isolated rehearsal.",
+  "ownerUnitFilesPassed": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ]
+},
+{
+  "owner": "app/help/[section]/page.tsx",
+  "inspected": true,
+  "checks": [
+    {
+      "test": "Current owning source inspection: app/help/[section]/page.tsx (S242-S244 staff help hub)",
+      "outcome": "passed",
+      "environment": "S242-S244 implementation review, 2026-11-04; privacy-safe static strings only",
+      "evidence": "private review of the committed source; no customer value in help content"
+    },
+    {
+      "test": "Compiled owning route: app/help/[section]/page.tsx",
+      "outcome": "passed",
+      "environment": "Isolated synthetic help rehearsal (Demo descriptor, Firestore emulator, synthetic RentVine and Google stand-ins, every other outbound connection refused), next dev, local demo Editor, Approver and Admin sessions",
+      "statuses": [
+        200
+      ],
+      "evidence": "private ~/pmi-kc-work/evidence/help-hub/route-sweep-r1.json from rehearsal ~/.local/state/pmi-kc-help-rehearsal/20261104T140452Z-09d72236/ (Editor, Approver and Admin)"
+    }
+  ],
+  "cohort": "knowledge_processes",
+  "ownerTests": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ],
+  "plannedChecks": [],
+  "compiledCoverage": "Help route family read-only and guarded by the read capability; rendered in the isolated rehearsal.",
+  "ownerUnitFilesPassed": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ]
+},
+{
+  "owner": "app/help/[section]/[guide]/page.tsx",
+  "inspected": true,
+  "checks": [
+    {
+      "test": "Current owning source inspection: app/help/[section]/[guide]/page.tsx (S242-S244 staff help hub)",
+      "outcome": "passed",
+      "environment": "S242-S244 implementation review, 2026-11-04; privacy-safe static strings only",
+      "evidence": "private review of the committed source; no customer value in help content"
+    },
+    {
+      "test": "Compiled owning route: app/help/[section]/[guide]/page.tsx",
+      "outcome": "passed",
+      "environment": "Isolated synthetic help rehearsal (Demo descriptor, Firestore emulator, synthetic RentVine and Google stand-ins, every other outbound connection refused), next dev, local demo Editor, Approver and Admin sessions",
+      "statuses": [
+        200
+      ],
+      "evidence": "private ~/pmi-kc-work/evidence/help-hub/route-sweep-r1.json from rehearsal ~/.local/state/pmi-kc-help-rehearsal/20261104T140452Z-09d72236/ (Editor, Approver and Admin)"
+    }
+  ],
+  "cohort": "knowledge_processes",
+  "ownerTests": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ],
+  "plannedChecks": [],
+  "compiledCoverage": "Help route family read-only and guarded by the read capability; rendered in the isolated rehearsal.",
+  "ownerUnitFilesPassed": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ]
+},
+{
+  "owner": "app/help/reference/page.tsx",
+  "inspected": true,
+  "checks": [
+    {
+      "test": "Current owning source inspection: app/help/reference/page.tsx (S242-S244 staff help hub)",
+      "outcome": "passed",
+      "environment": "S242-S244 implementation review, 2026-11-04; privacy-safe static strings only",
+      "evidence": "private review of the committed source; no customer value in help content"
+    },
+    {
+      "test": "Compiled owning route: app/help/reference/page.tsx",
+      "outcome": "passed",
+      "environment": "Isolated synthetic help rehearsal (Demo descriptor, Firestore emulator, synthetic RentVine and Google stand-ins, every other outbound connection refused), next dev, local demo Editor, Approver and Admin sessions",
+      "statuses": [
+        200
+      ],
+      "evidence": "private ~/pmi-kc-work/evidence/help-hub/route-sweep-r1.json from rehearsal ~/.local/state/pmi-kc-help-rehearsal/20261104T140452Z-09d72236/ (Editor, Approver and Admin)"
+    }
+  ],
+  "cohort": "knowledge_processes",
+  "ownerTests": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ],
+  "plannedChecks": [],
+  "compiledCoverage": "Help route family read-only and guarded by the read capability; rendered in the isolated rehearsal.",
+  "ownerUnitFilesPassed": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ]
+},
+{
+  "owner": "app/help/reference/[screen]/page.tsx",
+  "inspected": true,
+  "checks": [
+    {
+      "test": "Current owning source inspection: app/help/reference/[screen]/page.tsx (S242-S244 staff help hub)",
+      "outcome": "passed",
+      "environment": "S242-S244 implementation review, 2026-11-04; privacy-safe static strings only",
+      "evidence": "private review of the committed source; no customer value in help content"
+    },
+    {
+      "test": "Compiled owning route: app/help/reference/[screen]/page.tsx",
+      "outcome": "passed",
+      "environment": "Isolated synthetic help rehearsal (Demo descriptor, Firestore emulator, synthetic RentVine and Google stand-ins, every other outbound connection refused), next dev, local demo Editor, Approver and Admin sessions",
+      "statuses": [
+        200
+      ],
+      "evidence": "private ~/pmi-kc-work/evidence/help-hub/route-sweep-r1.json from rehearsal ~/.local/state/pmi-kc-help-rehearsal/20261104T140452Z-09d72236/ (Editor, Approver and Admin)"
+    }
+  ],
+  "cohort": "knowledge_processes",
+  "ownerTests": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ],
+  "plannedChecks": [],
+  "compiledCoverage": "Help route family read-only and guarded by the read capability; rendered in the isolated rehearsal.",
+  "ownerUnitFilesPassed": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ]
+},
+{
+  "owner": "app/help/glossary/page.tsx",
+  "inspected": true,
+  "checks": [
+    {
+      "test": "Current owning source inspection: app/help/glossary/page.tsx (S242-S244 staff help hub)",
+      "outcome": "passed",
+      "environment": "S242-S244 implementation review, 2026-11-04; privacy-safe static strings only",
+      "evidence": "private review of the committed source; no customer value in help content"
+    },
+    {
+      "test": "Compiled owning route: app/help/glossary/page.tsx",
+      "outcome": "passed",
+      "environment": "Isolated synthetic help rehearsal (Demo descriptor, Firestore emulator, synthetic RentVine and Google stand-ins, every other outbound connection refused), next dev, local demo Editor, Approver and Admin sessions",
+      "statuses": [
+        200
+      ],
+      "evidence": "private ~/pmi-kc-work/evidence/help-hub/route-sweep-r1.json from rehearsal ~/.local/state/pmi-kc-help-rehearsal/20261104T140452Z-09d72236/ (Editor, Approver and Admin)"
+    }
+  ],
+  "cohort": "knowledge_processes",
+  "ownerTests": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ],
+  "plannedChecks": [],
+  "compiledCoverage": "Help route family read-only and guarded by the read capability; rendered in the isolated rehearsal.",
+  "ownerUnitFilesPassed": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ]
+},
+{
+  "owner": "app/help/what-changed/page.tsx",
+  "inspected": true,
+  "checks": [
+    {
+      "test": "Current owning source inspection: app/help/what-changed/page.tsx (S242-S244 staff help hub)",
+      "outcome": "passed",
+      "environment": "S242-S244 implementation review, 2026-11-04; privacy-safe static strings only",
+      "evidence": "private review of the committed source; no customer value in help content"
+    },
+    {
+      "test": "Compiled owning route: app/help/what-changed/page.tsx",
+      "outcome": "passed",
+      "environment": "Isolated synthetic help rehearsal (Demo descriptor, Firestore emulator, synthetic RentVine and Google stand-ins, every other outbound connection refused), next dev, local demo Editor, Approver and Admin sessions",
+      "statuses": [
+        200
+      ],
+      "evidence": "private ~/pmi-kc-work/evidence/help-hub/route-sweep-r1.json from rehearsal ~/.local/state/pmi-kc-help-rehearsal/20261104T140452Z-09d72236/ (Editor, Approver and Admin)"
+    }
+  ],
+  "cohort": "knowledge_processes",
+  "ownerTests": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ],
+  "plannedChecks": [],
+  "compiledCoverage": "Help route family read-only and guarded by the read capability; rendered in the isolated rehearsal.",
+  "ownerUnitFilesPassed": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ]
+},
+{
+  "owner": "app/help/print/page.tsx",
+  "inspected": true,
+  "checks": [
+    {
+      "test": "Current owning source inspection: app/help/print/page.tsx (S242-S244 staff help hub)",
+      "outcome": "passed",
+      "environment": "S242-S244 implementation review, 2026-11-04; privacy-safe static strings only",
+      "evidence": "private review of the committed source; no customer value in help content"
+    },
+    {
+      "test": "Compiled owning route: app/help/print/page.tsx",
+      "outcome": "passed",
+      "environment": "Isolated synthetic help rehearsal (Demo descriptor, Firestore emulator, synthetic RentVine and Google stand-ins, every other outbound connection refused), next dev, local demo Editor, Approver and Admin sessions",
+      "statuses": [
+        200
+      ],
+      "evidence": "private ~/pmi-kc-work/evidence/help-hub/route-sweep-r1.json from rehearsal ~/.local/state/pmi-kc-help-rehearsal/20261104T140452Z-09d72236/ (Editor, Approver and Admin)"
+    }
+  ],
+  "cohort": "knowledge_processes",
+  "ownerTests": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ],
+  "plannedChecks": [],
+  "compiledCoverage": "Help route family read-only and guarded by the read capability; rendered in the isolated rehearsal.",
+  "ownerUnitFilesPassed": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-navigation.test.ts"
+  ]
+}
+],
     "consumers": [
       {
         "owner": "components/admin/AccessCenter.tsx",
@@ -29198,8 +29454,238 @@
         ],
         "compiledCoverage": "Owning route/cohort matrix plus separately named mounted/server/store scenarios; immediate/delegated presentation remains source-reviewed. No blanket claim that every leaf state ran in a browser.",
         "ownerUnitFilesPassed": ["tests/unit/workflow-components.test.tsx"]
-      }
-    ],
+      },
+{
+  "owner": "components/help/HelpFrame.tsx",
+  "cohort": "knowledge_processes",
+  "kind": "server render",
+  "lifetime": "none: repository content, no request or write",
+  "ownerTests": [
+    "tests/unit/s242-help-pages.test.tsx",
+    "tests/unit/s242-help-controls-mounted.test.tsx"
+  ],
+  "inspected": true,
+  "checks": [
+    {
+      "test": "Current owning source inspection: components/help/HelpFrame.tsx (S242-S244 staff help hub)",
+      "outcome": "passed",
+      "environment": "S242-S244 implementation review, 2026-11-04; privacy-safe static strings only",
+      "evidence": "private review of the committed source; no customer value in help content"
+    },
+    {
+      "test": "tests/unit/s242-help-pages.test.tsx",
+      "outcome": "passed",
+      "environment": "WSL native checkout on feat/staff-help-hub, vitest (jsdom for components), 2026-11-04",
+      "evidence": "private ~/pmi-kc-work/logs/verify-help-hub-r2.log"
+    },
+    {
+      "test": "tests/unit/s242-help-controls-mounted.test.tsx",
+      "outcome": "passed",
+      "environment": "WSL native checkout on feat/staff-help-hub, vitest (jsdom for components), 2026-11-04",
+      "evidence": "private ~/pmi-kc-work/logs/verify-help-hub-r2.log"
+    }
+  ],
+  "plannedChecks": [],
+  "compiledCoverage": "Mounted unit coverage plus the isolated help rehearsal; no blanket claim that every state ran in a browser.",
+  "ownerUnitFilesPassed": [
+    "tests/unit/s242-help-pages.test.tsx",
+    "tests/unit/s242-help-controls-mounted.test.tsx"
+  ]
+},
+{
+  "owner": "components/help/HelpViews.tsx",
+  "cohort": "knowledge_processes",
+  "kind": "server render",
+  "lifetime": "none: repository content, no request or write",
+  "ownerTests": [
+    "tests/unit/s242-help-pages.test.tsx",
+    "tests/unit/s242-help-controls-mounted.test.tsx",
+    "tests/unit/s242-help-safety.test.ts"
+  ],
+  "inspected": true,
+  "checks": [
+    {
+      "test": "Current owning source inspection: components/help/HelpViews.tsx (S242-S244 staff help hub)",
+      "outcome": "passed",
+      "environment": "S242-S244 implementation review, 2026-11-04; privacy-safe static strings only",
+      "evidence": "private review of the committed source; no customer value in help content"
+    },
+    {
+      "test": "tests/unit/s242-help-pages.test.tsx",
+      "outcome": "passed",
+      "environment": "WSL native checkout on feat/staff-help-hub, vitest (jsdom for components), 2026-11-04",
+      "evidence": "private ~/pmi-kc-work/logs/verify-help-hub-r2.log"
+    },
+    {
+      "test": "tests/unit/s242-help-controls-mounted.test.tsx",
+      "outcome": "passed",
+      "environment": "WSL native checkout on feat/staff-help-hub, vitest (jsdom for components), 2026-11-04",
+      "evidence": "private ~/pmi-kc-work/logs/verify-help-hub-r2.log"
+    },
+    {
+      "test": "tests/unit/s242-help-safety.test.ts",
+      "outcome": "passed",
+      "environment": "WSL native checkout on feat/staff-help-hub, vitest (jsdom for components), 2026-11-04",
+      "evidence": "private ~/pmi-kc-work/logs/verify-help-hub-r2.log"
+    }
+  ],
+  "plannedChecks": [],
+  "compiledCoverage": "Mounted unit coverage plus the isolated help rehearsal; no blanket claim that every state ran in a browser.",
+  "ownerUnitFilesPassed": [
+    "tests/unit/s242-help-pages.test.tsx",
+    "tests/unit/s242-help-controls-mounted.test.tsx",
+    "tests/unit/s242-help-safety.test.ts"
+  ]
+},
+{
+  "owner": "components/help/HelpTableOfContents.tsx",
+  "cohort": "knowledge_processes",
+  "kind": "client disclosure state (session storage only)",
+  "lifetime": "none: repository content, no request or write",
+  "ownerTests": [
+    "tests/unit/s242-help-pages.test.tsx",
+    "tests/unit/s242-help-safety.test.ts"
+  ],
+  "inspected": true,
+  "checks": [
+    {
+      "test": "Current owning source inspection: components/help/HelpTableOfContents.tsx (S242-S244 staff help hub)",
+      "outcome": "passed",
+      "environment": "S242-S244 implementation review, 2026-11-04; privacy-safe static strings only",
+      "evidence": "private review of the committed source; no customer value in help content"
+    },
+    {
+      "test": "tests/unit/s242-help-pages.test.tsx",
+      "outcome": "passed",
+      "environment": "WSL native checkout on feat/staff-help-hub, vitest (jsdom for components), 2026-11-04",
+      "evidence": "private ~/pmi-kc-work/logs/verify-help-hub-r2.log"
+    },
+    {
+      "test": "tests/unit/s242-help-safety.test.ts",
+      "outcome": "passed",
+      "environment": "WSL native checkout on feat/staff-help-hub, vitest (jsdom for components), 2026-11-04",
+      "evidence": "private ~/pmi-kc-work/logs/verify-help-hub-r2.log"
+    }
+  ],
+  "plannedChecks": [],
+  "compiledCoverage": "Mounted unit coverage plus the isolated help rehearsal; no blanket claim that every state ran in a browser.",
+  "ownerUnitFilesPassed": [
+    "tests/unit/s242-help-pages.test.tsx",
+    "tests/unit/s242-help-safety.test.ts"
+  ]
+},
+{
+  "owner": "components/help/HelpPrintButton.tsx",
+  "cohort": "knowledge_processes",
+  "kind": "client print (window.print)",
+  "lifetime": "none: repository content, no request or write",
+  "ownerTests": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-controls-mounted.test.tsx"
+  ],
+  "inspected": true,
+  "checks": [
+    {
+      "test": "Current owning source inspection: components/help/HelpPrintButton.tsx (S242-S244 staff help hub)",
+      "outcome": "passed",
+      "environment": "S242-S244 implementation review, 2026-11-04; privacy-safe static strings only",
+      "evidence": "private review of the committed source; no customer value in help content"
+    },
+    {
+      "test": "tests/unit/s242-help-safety.test.ts",
+      "outcome": "passed",
+      "environment": "WSL native checkout on feat/staff-help-hub, vitest (jsdom for components), 2026-11-04",
+      "evidence": "private ~/pmi-kc-work/logs/verify-help-hub-r2.log"
+    },
+    {
+      "test": "tests/unit/s242-help-controls-mounted.test.tsx",
+      "outcome": "passed",
+      "environment": "WSL native checkout on feat/staff-help-hub, vitest (jsdom for components), 2026-11-04",
+      "evidence": "private ~/pmi-kc-work/logs/verify-help-hub-r2.log"
+    }
+  ],
+  "plannedChecks": [],
+  "compiledCoverage": "Mounted unit coverage plus the isolated help rehearsal; no blanket claim that every state ran in a browser.",
+  "ownerUnitFilesPassed": [
+    "tests/unit/s242-help-safety.test.ts",
+    "tests/unit/s242-help-controls-mounted.test.tsx"
+  ]
+},
+{
+  "owner": "components/help/HelpStepTarget.tsx",
+  "cohort": "knowledge_processes",
+  "kind": "client hash read (moved-step notice)",
+  "lifetime": "none: repository content, no request or write",
+  "ownerTests": [
+    "tests/unit/s242-help-pages.test.tsx",
+    "tests/unit/s242-help-safety.test.ts"
+  ],
+  "inspected": true,
+  "checks": [
+    {
+      "test": "Current owning source inspection: components/help/HelpStepTarget.tsx (S242-S244 staff help hub)",
+      "outcome": "passed",
+      "environment": "S242-S244 implementation review, 2026-11-04; privacy-safe static strings only",
+      "evidence": "private review of the committed source; no customer value in help content"
+    },
+    {
+      "test": "tests/unit/s242-help-pages.test.tsx",
+      "outcome": "passed",
+      "environment": "WSL native checkout on feat/staff-help-hub, vitest (jsdom for components), 2026-11-04",
+      "evidence": "private ~/pmi-kc-work/logs/verify-help-hub-r2.log"
+    },
+    {
+      "test": "tests/unit/s242-help-safety.test.ts",
+      "outcome": "passed",
+      "environment": "WSL native checkout on feat/staff-help-hub, vitest (jsdom for components), 2026-11-04",
+      "evidence": "private ~/pmi-kc-work/logs/verify-help-hub-r2.log"
+    }
+  ],
+  "plannedChecks": [],
+  "compiledCoverage": "Mounted unit coverage plus the isolated help rehearsal; no blanket claim that every state ran in a browser.",
+  "ownerUnitFilesPassed": [
+    "tests/unit/s242-help-pages.test.tsx",
+    "tests/unit/s242-help-safety.test.ts"
+  ]
+},
+{
+  "owner": "components/help/HelpGuideLink.tsx",
+  "cohort": "knowledge_processes",
+  "kind": "immediate link or plain-text fallback",
+  "lifetime": "none: repository content, no request or write",
+  "ownerTests": [
+    "tests/unit/s244-help-guide-links.test.tsx",
+    "tests/unit/s86-infotip.test.tsx"
+  ],
+  "inspected": true,
+  "checks": [
+    {
+      "test": "Current owning source inspection: components/help/HelpGuideLink.tsx (S242-S244 staff help hub)",
+      "outcome": "passed",
+      "environment": "S242-S244 implementation review, 2026-11-04; privacy-safe static strings only",
+      "evidence": "private review of the committed source; no customer value in help content"
+    },
+    {
+      "test": "tests/unit/s244-help-guide-links.test.tsx",
+      "outcome": "passed",
+      "environment": "WSL native checkout on feat/staff-help-hub, vitest (jsdom for components), 2026-11-04",
+      "evidence": "private ~/pmi-kc-work/logs/verify-help-hub-r2.log"
+    },
+    {
+      "test": "tests/unit/s86-infotip.test.tsx",
+      "outcome": "passed",
+      "environment": "WSL native checkout on feat/staff-help-hub, vitest (jsdom for components), 2026-11-04",
+      "evidence": "private ~/pmi-kc-work/logs/verify-help-hub-r2.log"
+    }
+  ],
+  "plannedChecks": [],
+  "compiledCoverage": "Mounted unit coverage plus the isolated help rehearsal; no blanket claim that every state ran in a browser.",
+  "ownerUnitFilesPassed": [
+    "tests/unit/s244-help-guide-links.test.tsx",
+    "tests/unit/s86-infotip.test.tsx"
+  ]
+}
+],
     "cohorts": [
       {
         "cohort": "public_vendor",
