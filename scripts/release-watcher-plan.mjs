@@ -82,6 +82,19 @@ export function evaluateRelease({
     checkpoint.sha !== sha
   )
     return { state: "resume", sha: checkpoint.sha, phase: checkpoint.phase };
+  // An unfinished checkpoint of this same head keeps its own phase. Promotion records the head as
+  // deployed, so after an observation hold the diff from that record is empty; it is not a
+  // documentation-only change, and the held observation must run again.
+  if (
+    checkpoint &&
+    !checkpoint.terminalFailure &&
+    checkpoint.phase !== "complete" &&
+    checkpoint.sha === sha
+  ) {
+    if (!foundationPresent)
+      return { state: "blocked", reason: "foundation_not_in_target" };
+    return { state: "release", sha, phase: checkpoint.phase };
+  }
   if (!classifyReleaseChanges(changedPaths)) return { state: "documentation_only" };
   if (!foundationPresent) return { state: "blocked", reason: "foundation_not_in_target" };
   return {
