@@ -29,6 +29,6 @@ export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
       "outreach-checklist",
       "maintenance-history",
     ],
-    contentDigest: "a083b8b16c64cb909706c0f845c9de054d4dc2c4cf69e2591fa2241ec9a4bc1c",
+    contentDigest: "c46cbfc54efacac936b74b05b2b170fad72a73047313cd76bdf43745f2a1d21c",
   },
 ];
