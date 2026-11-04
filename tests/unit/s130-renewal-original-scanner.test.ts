@@ -95,11 +95,11 @@ describe("S130 managed exact blank-original PDF scanner", () => {
       { request },
     );
     expect(await malformedScanner.scanMalware(malformed, metadata)).toEqual({
-      code: "scanner_unavailable",
+      code: "content_unsupported",
     });
     expect(request).not.toHaveBeenCalled();
   });
-  it("distinguishes engine detection from outage and refuses stale or wrong-byte engine evidence", async () => {
+  it("distinguishes engine detection, outage and evidence that does not bind the bytes or pinned engine", async () => {
     const { scanner, content, metadata, evidence, request } = await fixture();
     request.mockResolvedValueOnce({
       status: 200,
@@ -112,20 +112,76 @@ describe("S130 managed exact blank-original PDF scanner", () => {
     expect(await scanner.scanMalware(content, metadata)).toEqual({
       code: "scanner_unavailable",
     });
+    for (const mismatch of [
+      { contentHash: "0".repeat(64) },
+      { scannedBytes: content.byteLength + 1 },
+      { engineVersion: "1.4.5" },
+      { dailyTimestamp: "2026-10-30T06:00:00Z" },
+      { dailyTimestamp: "2026-11-04T06:00:00Z" },
+    ]) {
+      request.mockResolvedValueOnce({ status: 200, body: { ...evidence, ...mismatch } });
+      expect(await scanner.scanMalware(content, metadata)).toEqual({
+        code: "evidence_mismatch",
+      });
+    }
     request.mockResolvedValueOnce({
       status: 200,
-      body: { ...evidence, contentHash: "0".repeat(64) },
+      body: { ...evidence, malware: "unknown" },
     });
     expect(await scanner.scanMalware(content, metadata)).toEqual({
       code: "scanner_unavailable",
     });
-    request.mockResolvedValueOnce({
-      status: 200,
-      body: { ...evidence, dailyTimestamp: "2026-10-30T06:00:00Z" },
+  });
+  it("reports unsupported and undecodable originals distinctly from an outage and never sends them to the engine", async () => {
+    const { scope, metadata, request } = await fixture();
+    const scannerFor = (bytes: Uint8Array) =>
+      new ManagedRenewalOriginalScanner(
+        {
+          ...scope,
+          contentHash: createHash("sha256").update(bytes).digest("hex"),
+          byteSize: bytes.length,
+        },
+        { request },
+      );
+    const active = await PDFDocument.create();
+    active.addPage();
+    active.catalog.set(PDFName.of("OpenAction"), active.context.obj({}));
+    const activeBytes = await active.save();
+    expect(
+      await scannerFor(activeBytes).scanMalware(activeBytes, {
+        ...metadata,
+        declaredByteSize: activeBytes.length,
+      }),
+    ).toEqual({ code: "content_unsupported" });
+    // An object stream the parser consumes while loading, declaring no objects but carrying text:
+    // never enumerated, so it must be refused by accounting for the container's own bytes.
+    const hidden = await PDFDocument.create();
+    hidden.addPage();
+    hidden.context.register(
+      hidden.context.flateStream(
+        Buffer.from("BT /F1 12 Tf (Bearer synthetic-secret-value) Tj ET"),
+        { Type: "ObjStm", N: 0, First: 0 },
+      ),
+    );
+    const hiddenBytes = await hidden.save({ useObjectStreams: false });
+    await expect(readPublicationPdfText(hiddenBytes)).rejects.toThrow(
+      /do not account for/,
+    );
+    expect(
+      await scannerFor(hiddenBytes).scanSensitivity(hiddenBytes, {
+        ...metadata,
+        declaredByteSize: hiddenBytes.length,
+      }),
+    ).toEqual({ code: "content_undecodable" });
+    expect(request).not.toHaveBeenCalled();
+    // Genuine object streams, fully accounted for by their declared objects, still read.
+    const genuine = await PDFDocument.create();
+    genuine.addPage().drawText("Blank", {
+      font: await genuine.embedFont(StandardFonts.Helvetica),
+      size: 10,
     });
-    expect(await scanner.scanMalware(content, metadata)).toEqual({
-      code: "scanner_unavailable",
-    });
+    const genuineBytes = await genuine.save({ useObjectStreams: true });
+    expect(await readPublicationPdfText(genuineBytes)).toContain("Blank");
   });
   it("checks complete decoded text rather than the capped Admin preview", async () => {
     const pdf = await PDFDocument.create(),

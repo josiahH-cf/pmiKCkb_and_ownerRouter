@@ -18,7 +18,7 @@ import {
   StandardFonts,
   type PDFField,
 } from "pdf-lib";
-import { EditableLayerError } from "@/lib/firestore/errors";
+import { PdfRefusalError } from "@/lib/lease-documents/pdf-refusal";
 
 export const ACROFORM_ADAPTER = "pdf-lib@1.17.1:bounded-acroform/v1";
 export const MAX_FILL_PDF_BYTES = 2 * 1024 * 1024;
@@ -44,7 +44,7 @@ const forbidden = new Set([
 const hash = (bytes: Uint8Array | string) =>
   createHash("sha256").update(bytes).digest("hex");
 function refuse(message: string): never {
-  throw new EditableLayerError(`PDF filling unavailable: ${message}`, 409);
+  throw new PdfRefusalError(`PDF filling unavailable: ${message}`, "unsupported");
 }
 
 /** Approved bytes only. Never interprets PDF actions, infers fields, flattens, or touches signatures. */

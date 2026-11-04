@@ -331,12 +331,7 @@ function resolveArtifacts(
     const use = familyUse?.find((entry) => entry.kind === requirement.kind) ?? null;
     if (familyUse && (!use || use.use === "not_used")) {
       excluded.push(
-        familyResult(
-          requirement,
-          audience,
-          "Not applicable",
-          "Not used by the approved form configuration.",
-        ),
+        familyResult(requirement, audience, "Not applicable", FAMILY_NOT_USED_REASON),
       );
       continue;
     }
@@ -422,6 +417,9 @@ function resolveArtifacts(
 
   return { included, excluded, fields, blockers };
 }
+
+/** The exact exclusion reason for a family the approved configuration marks not used. */
+export const FAMILY_NOT_USED_REASON = "Not used by the approved form configuration.";
 
 function familyResult(
   requirement: { kind: PacketArtifactResult["kind"]; label: string },

@@ -7,6 +7,7 @@ const router = vi.hoisted(() => ({ refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 import { MoveOutTimingBasisAdminPanel } from "@/components/admin/MoveOutTimingBasisAdminPanel";
+import { NoticeTimingBasisSelection } from "@/components/lease-renewal/NoticeTimingBasisSelection";
 import { RenewalDeskTable } from "@/components/lease-renewal/RenewalDeskTable";
 import { RenewalWorkspace } from "@/components/lease-renewal/RenewalWorkspace";
 import type {
@@ -370,6 +371,31 @@ describe("S125 workspace timing panel (AC-S125-1, AC-S125-3, AC-S125-5)", () => 
     ).toBe(true);
   });
 
+  it("shows the shared basis read-only, with no alert, to a session that cannot select it", async () => {
+    const fetcher = vi.fn(async (url: string, options?: RequestInit) => {
+      expect(String(url)).toContain("/notice-timing-basis");
+      expect(options?.method ?? "GET").toBe("GET");
+      return Response.json({
+        timingBasis: { state: "missing", record: null },
+        canSelect: false,
+        intent: { state: "missing" },
+      });
+    });
+    vi.stubGlobal("fetch", fetcher);
+    const { container } = render(<NoticeTimingBasisSelection canEdit={false} />);
+    await waitFor(() =>
+      expect(
+        container.querySelector('[data-notice-basis-selection-state="idle"]'),
+      ).not.toBeNull(),
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Documented notice basis" }),
+    ).toBeDisabled();
+    expect(screen.getByText(/No basis is saved/)).toBeInTheDocument();
+    expect(screen.getByText(/This session can read the basis/)).toBeInTheDocument();
+  });
   it("names both dates, the days given and the basis version for a below-threshold notice, with a source review path", () => {
     renderWorkspace(timing("initiated", "2026-08-15", "2026-09-10"));
     const panel = screen.getByRole("region", { name: "Notice timing" });

@@ -6,11 +6,13 @@ import { afterEach, describe, expect, it } from "vitest";
 import { LeasePacketReadiness } from "@/components/lease-renewal/LeasePacketReadiness";
 import { emptyArtifactIntakeManifest } from "@/lib/lease-documents/artifact-intake-contract";
 import { LEASE_ARTIFACT_FAMILIES } from "@/lib/lease-documents/artifact-catalog";
+import { evaluateRenewalPacket } from "@/lib/lease-documents/evaluate-packet";
 import { nextFamilyUseRecord, resolveFamilyUse } from "@/lib/lease-documents/family-use";
 import {
   ENGINEERING_DEFAULT_LABEL,
   projectLeasePacketReadiness,
 } from "@/lib/lease-documents/lease-packet-readiness";
+import { readyS66Input } from "@/tests/fixtures/s66-packet";
 
 // S235 R-S235-1/2: the read-only per-family readiness for one lease. Synthetic configuration only:
 // no approved original, map, policy or lease fact is used or invented.
@@ -77,6 +79,78 @@ describe("S235 lease packet readiness", () => {
       expect(row.use).toBe("Unknown");
       expect(row.useSource).toBe("Configuration could not be read");
       expect(row.missing[0]).toBe("Family use could not be read (Admin)");
+    }
+  });
+
+  it("follows the execution evaluation for applicability instead of the separately recorded use", () => {
+    // A legacy approved catalog without family use still evaluates its required families by rule;
+    // the display must agree with that execution path even when the family-use record differs.
+    const record = nextFamilyUseRecord(
+      null,
+      {
+        kind: "renewal_extension",
+        use: "not_used",
+        expectedVersion: 0,
+        operationId: crypto.randomUUID(),
+      },
+      "fixture-admin",
+      AT,
+    );
+    const evaluation = evaluateRenewalPacket(readyS66Input());
+    expect(
+      evaluation.manifest?.includedArtifacts.map((artifact) => artifact.kind),
+    ).toContain("renewal_extension");
+    const rows = projectLeasePacketReadiness({
+      manifest: emptyArtifactIntakeManifest(),
+      evaluation,
+      familyUse: { readable: true, families: resolveFamilyUse(record, AT) },
+    });
+    const extension = rows.find((row) => row.kind === "renewal_extension")!;
+    expect(extension.use).toBe("Not used");
+    expect(extension.applicability).toBe("Applies to this lease");
+    expect(extension.catalogSetup.join(" ")).toMatch(
+      /does not yet apply the recorded use/,
+    );
+    const reference = rows.find((row) => row.kind === "kcrar_additional_disclosures")!;
+    expect(reference.applicability).toBe("Not part of the current packet policy");
+    expect(reference.missing).toEqual([]);
+  });
+
+  it("agrees with the execution evaluation family by family, with and without approved family use", () => {
+    const legacy = readyS66Input();
+    const configured = readyS66Input();
+    configured.catalog = {
+      ...configured.catalog,
+      requirements: [...LEASE_ARTIFACT_FAMILIES],
+      familyUse: resolveFamilyUse(null, AT),
+    };
+    for (const input of [legacy, configured]) {
+      const evaluation = evaluateRenewalPacket(input);
+      const included = new Set(
+        evaluation.manifest!.includedArtifacts.map((artifact) => artifact.kind),
+      );
+      const excluded = new Set(
+        evaluation
+          .manifest!.excludedArtifacts.filter(
+            (artifact) => artifact.ruleResult === "Not applicable",
+          )
+          .map((artifact) => artifact.kind),
+      );
+      const rows = projectLeasePacketReadiness({
+        manifest: emptyArtifactIntakeManifest(),
+        evaluation,
+        familyUse: { readable: true, families: resolveFamilyUse(null, AT) },
+      });
+      expect(included.size).toBeGreaterThan(0);
+      for (const row of rows) {
+        expect(row.applicability === "Applies to this lease", row.kind).toBe(
+          included.has(row.kind as never),
+        );
+        if (excluded.has(row.kind as never))
+          expect(["Not used", "Does not apply to this lease"], row.kind).toContain(
+            row.applicability,
+          );
+      }
     }
   });
 

@@ -90,15 +90,23 @@ describe("S241 managed real-engine protocol client", () => {
     { scannedBytes: bytes.length + 1 },
     { dailyTimestamp: "2026-11-04T12:00:00.000Z" },
     { dailyTimestamp: "2026-11-01T12:00:00.000Z" },
-    { dailyTimestamp: "invalid" },
-    { dailyVersion: 0 },
     { engineVersion: "other" },
-    { malware: "unknown" },
-  ])("refuses malformed, mismatched or stale evidence %j", async (overrides) => {
-    expect(await harness(overrides).scanner.scanMalware(bytes, metadata)).toEqual({
-      code: "scanner_unavailable",
-    });
-  });
+  ])(
+    "reports well-formed evidence that does not bind the bytes, engine or a fresh database as a mismatch %j",
+    async (overrides) => {
+      expect(await harness(overrides).scanner.scanMalware(bytes, metadata)).toEqual({
+        code: "evidence_mismatch",
+      });
+    },
+  );
+  it.each([{ dailyTimestamp: "invalid" }, { dailyVersion: 0 }, { malware: "unknown" }])(
+    "refuses malformed evidence as unavailable %j",
+    async (overrides) => {
+      expect(await harness(overrides).scanner.scanMalware(bytes, metadata)).toEqual({
+        code: "scanner_unavailable",
+      });
+    },
+  );
   it.each(["file", "folder", "another-process"])(
     "never calls the provider for out-of-scope %s",
     async (kind) => {

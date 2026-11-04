@@ -51,6 +51,15 @@ describe("S78 canonical renewal route", () => {
     );
   });
 
+  it("evaluates the displayed packet exactly as resolved and keeps the failing read's safe reason", () => {
+    const workspace = source("app/lease-renewal/live/desk/lease/[leaseId]/page.tsx");
+    // Q-ENG-ADV-S235: display and execution evaluate the same resolved input; the catalog is not
+    // reshaped for display, and a failed read carries its app-authored reason.
+    expect(workspace).toContain("evaluateRenewalPacket(currentPacketRead.input)");
+    expect(workspace).not.toContain("requirements: [...LEASE_ARTIFACT_FAMILIES]");
+    expect(workspace).toContain("reason: safePacketReadFailure(error)");
+  });
+
   it("upgrades the compat lease route to the guarded canonical workspace without dropping the id", () => {
     const compat = source("app/lease-renewal/lease/[leaseId]/page.tsx");
     expect(compat).toContain('renewalRoleCapability("read_workspace")');

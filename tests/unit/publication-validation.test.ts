@@ -84,6 +84,27 @@ describe("publication validation", () => {
       }),
       "sensitivity_violation",
     ],
+    [
+      "unsupported content",
+      new FakePublicationScanner("fake-clean-v1", {
+        malware: { code: "content_unsupported" },
+      }),
+      "content_unsupported",
+    ],
+    [
+      "undecodable content",
+      new FakePublicationScanner("fake-clean-v1", {
+        sensitivity: { code: "content_undecodable" },
+      }),
+      "content_undecodable",
+    ],
+    [
+      "engine evidence mismatch",
+      new FakePublicationScanner("fake-clean-v1", {
+        malware: { code: "evidence_mismatch" },
+      }),
+      "evidence_mismatch",
+    ],
   ])("fails closed for %s without echoing content", async (_label, scanner, code) => {
     const secretFixture = "fixture-secret-that-must-not-echo";
     let caught: unknown;

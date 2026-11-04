@@ -152,15 +152,17 @@ export class ManagedProcessPublicationScanner implements PublicationScanner {
       const evidence = evidenceSchema.parse(response.body);
       const signatureTime = Date.parse(evidence.dailyTimestamp),
         now = Date.parse(this.now());
+      if (!Number.isFinite(now)) return { code: "scanner_unavailable" };
+      // The engine answered; evidence that does not bind these exact bytes, the pinned engine and
+      // a fresh daily database is a mismatch, distinct from an outage.
       if (
         evidence.contentHash !== createHash("sha256").update(content).digest("hex") ||
         evidence.scannedBytes !== content.byteLength ||
         evidence.engineVersion !== this.configuration.engineVersion ||
-        !Number.isFinite(now) ||
         signatureTime > now ||
         now - signatureTime > MAX_SIGNATURE_AGE_MS
       )
-        return { code: "scanner_unavailable" };
+        return { code: "evidence_mismatch" };
       return { code: evidence.malware === "clean" ? "clean" : "malware_detected" };
     } catch {
       return { code: "scanner_unavailable" };

@@ -20,6 +20,7 @@ import {
   type PublicationMetadata,
   type PublicationPolicyRecord,
   type PublicationScanner,
+  type PublicationScanResult,
   type PublicationSensitivity,
   type PublicationValidationResult,
 } from "@/lib/publication/types";
@@ -70,11 +71,11 @@ export async function validatePublication(
   assertProcessShape(metadata, content, context.registeredProcessActionKeys);
 
   const malware = await scanner.scanMalware(content, metadata);
-  if (malware.code === "scanner_unavailable") fail("scanner_unavailable", 409);
+  refuseUndecidedScan(malware);
   if (malware.code !== "clean") fail("malware_detected");
 
   const sensitivity = await scanner.scanSensitivity(content, metadata);
-  if (sensitivity.code === "scanner_unavailable") fail("scanner_unavailable", 409);
+  refuseUndecidedScan(sensitivity);
   if (sensitivity.code !== "clean") fail("sensitivity_violation");
 
   const detectedSensitivity = sensitivity.sensitivity ?? "Low";
@@ -247,4 +248,12 @@ function sensitivityRank(value: PublicationSensitivity) {
 
 function fail(code: PublicationFailureCode, status: 400 | 403 | 404 | 409 = 400): never {
   throw new PublicationValidationError(code, status);
+}
+
+/** A scan that reached no verdict keeps its distinct cause and is never reported as a detection. */
+function refuseUndecidedScan(result: PublicationScanResult): void {
+  if (result.code === "scanner_unavailable" || result.code === "evidence_mismatch")
+    fail(result.code, 409);
+  if (result.code === "content_unsupported" || result.code === "content_undecodable")
+    fail(result.code);
 }

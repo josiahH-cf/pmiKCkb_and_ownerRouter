@@ -98,6 +98,12 @@ export type PublicationScanCode =
   | "clean"
   | "malware_detected"
   | "sensitivity_violation"
+  /** Refused before any engine request: not a complete, parseable, inert PDF within bounds. */
+  | "content_unsupported"
+  /** Parsed, but its text and streams cannot be completely and exactly inspected. */
+  | "content_undecodable"
+  /** The engine answered, but its evidence does not bind these bytes and the pinned engine. */
+  | "evidence_mismatch"
   | "scanner_unavailable";
 
 export interface PublicationScanResult {
@@ -121,7 +127,10 @@ export type PublicationFailureCode =
   | "actor_not_authorized"
   | "authority_field_forbidden"
   | "content_size_mismatch"
+  | "content_undecodable"
+  | "content_unsupported"
   | "data_mode_mismatch"
+  | "evidence_mismatch"
   | "malware_detected"
   | "mime_mismatch"
   | "path_outside_root"
