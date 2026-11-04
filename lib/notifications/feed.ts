@@ -5,6 +5,7 @@
 // and applies the low-alarm layer (mute + per-lane threshold / snooze / digest, B4). Pure and
 // client-safe: it accepts already-fetched records + already-built value-free signals and imports record
 // shapes with `import type` only, so no firebase-admin module reaches a client bundle. It makes ZERO
+import { isCurrentDecisionItem } from "@/lib/approval/current-work-eligibility";
 // external calls (AC-S17-8).
 
 import type { ApprovalQueueNotificationRecord } from "@/lib/firestore/types";
@@ -189,17 +190,25 @@ function collapseDigestedLanes(
   );
 }
 
+/** Retained notifications for retired work keep their record but never read as an open action. */
+export const RETIRED_NOTIFICATION_MESSAGE =
+  "This item belongs to retired work. No action is available; the record is retained for history.";
+
 function toUnifiedFromApproval(
   record: ApprovalQueueNotificationRecord,
 ): UnifiedNotification {
+  const current = isCurrentDecisionItem({
+    process_run_ref: record.process_run_ref,
+    direct_link: record.direct_link,
+  });
   return {
     id: record.id,
     source: "approval_queue",
     family: "approval_queue",
     lane: FAMILY_LANE.approval_queue,
-    severity: DEFAULT_EVENT_SEVERITY,
-    title: record.title,
-    message: record.message,
+    severity: current ? DEFAULT_EVENT_SEVERITY : "low",
+    title: current ? record.title : `Retired: ${record.title}`,
+    message: current ? record.message : RETIRED_NOTIFICATION_MESSAGE,
     href: `/approval-queue?item_id=${encodeURIComponent(record.item_id)}`,
     created_at: record.created_at,
     ...(record.read_at ? { read_at: record.read_at } : {}),

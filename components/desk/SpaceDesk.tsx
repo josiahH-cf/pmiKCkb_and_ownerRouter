@@ -19,6 +19,7 @@ import {
 } from "@/components/ui";
 import { SpaceDeskRunPanel } from "@/components/desk/SpaceDeskRunPanel";
 import { classifyConnector } from "@/lib/connections/connection-status";
+import { SPACE_CARD_STATE_LABEL } from "@/lib/space-card-state";
 import type { ConnectorDef } from "@/lib/connections/connector-catalog";
 import type {
   ProcessDefinitionRecord,
@@ -57,9 +58,17 @@ export function SpaceDesk({
   canEdit = false,
   domainSlot,
 }: Readonly<SpaceDeskProps>) {
+  // The chip reads the definition's actual status: a published process is not a draft.
+  const processChip = !definition
+    ? SPACE_CARD_STATE_LABEL["draft-process"]
+    : definition.status === "Retired"
+      ? SPACE_CARD_STATE_LABEL["retired-process"]
+      : definition.status === "Active" && definition.active_version_id
+        ? SPACE_CARD_STATE_LABEL["published-process"]
+        : SPACE_CARD_STATE_LABEL["draft-process"];
   const header = (
     <PageHeader
-      actions={<ModeChip>Draft process</ModeChip>}
+      actions={<ModeChip>{processChip}</ModeChip>}
       subtitle={processCategory}
       title={spaceName}
     />
@@ -133,6 +142,7 @@ export function SpaceDesk({
       <SpaceDeskRunPanel
         canEdit={canEdit}
         definitionId={definitionId}
+        definitionRevision={definition.revision}
         initialChecks={stepChecks}
         run={run}
         steps={definition.steps}

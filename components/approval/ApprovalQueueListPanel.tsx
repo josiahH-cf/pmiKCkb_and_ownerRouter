@@ -1,6 +1,10 @@
 import type { ApprovalQueueItemRecord } from "@/lib/firestore/types";
+import { isCurrentDecisionItem } from "@/lib/approval/current-work-eligibility";
 import { displayValue } from "./ApprovalQueueModel";
 import { formatCalendarDate } from "@/lib/date-display";
+
+export const RETIRED_QUEUE_NOTE =
+  "Retired work: no action is available; the record is retained.";
 
 interface QueueListPanelProps {
   items: ApprovalQueueItemRecord[];
@@ -42,13 +46,19 @@ export function QueueListPanel({
               <span className="queue-row-main">
                 <strong>{item.action_needed}</strong>
                 <span>{item.process_run_ref.label}</span>
+                {isCurrentDecisionItem(item) ? null : (
+                  <span className="muted">{RETIRED_QUEUE_NOTE}</span>
+                )}
               </span>
               <span className="queue-row-meta">
                 <QueuePill
                   label={item.data_mode === "test" ? "NON-LIVE: BLOCKED" : "LIVE"}
                   tone="mode"
                 />
-                <QueuePill label={item.status} tone="status" />
+                <QueuePill
+                  label={isCurrentDecisionItem(item) ? item.status : "Retired"}
+                  tone="status"
+                />
                 <QueuePill label={item.risk} tone="risk" />
                 <span>Assignee: {displayValue(item.assignee_uid)}</span>
                 <span>Approver: {displayValue(item.required_approver_uid)}</span>

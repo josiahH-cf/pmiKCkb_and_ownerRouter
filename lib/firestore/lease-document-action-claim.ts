@@ -11,6 +11,7 @@ import {
   type DerivedArtifactRecord,
 } from "@/lib/lease-documents/derived-artifact-contract";
 import type { LoopAssociation } from "@/lib/lease-documents/dotloop-loop-association";
+import { isRenewalArtifactPublicationSpace } from "@/lib/lease-documents/publication-space";
 import {
   planLoopCreationClaim,
   planUploadClaim,
@@ -146,7 +147,7 @@ export async function assertCurrentPacketActionClaim(
     if (
       !record?.validated ||
       record.contentHash !== artifact.contentHash ||
-      record.spaceId !== "renewals" ||
+      !isRenewalArtifactPublicationSpace(record.spaceId) ||
       ![undefined, "live"].includes(record.data_mode)
     )
       refuse();

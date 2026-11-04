@@ -218,6 +218,7 @@ export function ProcessDefinitionDetailClient({
         `/api/process-definitions/${definition.id}/runs`,
         {
           body: JSON.stringify({
+            expected_revision: definition.revision,
             due_date: runForm.due_date || undefined,
             note: runForm.note || undefined,
           }),

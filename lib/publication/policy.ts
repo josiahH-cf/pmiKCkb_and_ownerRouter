@@ -26,7 +26,10 @@ import { stablePublicationResourceId } from "./resource-id";
 import { getProcessDefinition } from "@/lib/firestore/workflows";
 import { spaceIdForProcessDefinition } from "@/lib/space-scope-resources";
 import { processDefinitionPublicationContent } from "./process-definition-content";
-import { processDefinitionRevision } from "./process-definition-revision";
+import {
+  processDefinitionRevision,
+  storedProcessDefinitionRevision,
+} from "./process-definition-revision";
 import { inspectProcessSensitivity } from "./process-sensitivity";
 
 export const PUBLICATION_POLICY_COLLECTION = "publication_policies";
@@ -159,8 +162,7 @@ export async function createPublicationPolicy(
       );
       if (
         !current.exists ||
-        processDefinitionRevision({ id: current.id, ...current.data() }) !==
-          review.revision
+        storedProcessDefinitionRevision(current.id, current.data()) !== review.revision
       )
         rejectReview();
     }
@@ -242,7 +244,7 @@ export async function tightenPublicationPolicy(
       );
       if (
         !definition.exists ||
-        processDefinitionRevision({ id: definition.id, ...definition.data() }) !==
+        storedProcessDefinitionRevision(definition.id, definition.data()) !==
           review.revision ||
         !nextSpaces.includes(review.spaceId)
       )

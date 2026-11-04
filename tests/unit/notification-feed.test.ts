@@ -5,7 +5,10 @@ import { describe, expect, it } from "vitest";
 import { ATTENTION_LANES, toAttentionSignal } from "@/lib/attention/lanes";
 import type { ApprovalQueueNotificationRecord } from "@/lib/firestore/types";
 import type { MaintenanceTicketNotificationRecord } from "@/lib/firestore/maintenance-ticket-notifications";
-import { buildNotificationFeed } from "@/lib/notifications/feed";
+import {
+  buildNotificationFeed,
+  RETIRED_NOTIFICATION_MESSAGE,
+} from "@/lib/notifications/feed";
 
 function approval(
   overrides: Partial<ApprovalQueueNotificationRecord> = {},
@@ -45,6 +48,33 @@ function maintenance(
 }
 
 describe("buildNotificationFeed", () => {
+  it("relabels retained notifications for retired work as non-actionable history", () => {
+    const feed = buildNotificationFeed({
+      approval: [
+        approval({
+          id: "a-retired",
+          item_id: "item-retired",
+          title: "New queue item: S99 proof create",
+          message:
+            "Review the requested approval action. Action needed: Approve rentvine.work_order.create for execution.",
+          process_run_ref: { id: "maintenance:01a0-retired", label: "S99 proof create" },
+          direct_link: "/approval-queue?item_id=item-retired",
+          created_at: "2026-07-09T03:00:00.000Z",
+        }),
+        approval(),
+      ],
+      maintenance: [],
+    });
+    const retired = feed.notifications.find((n) => n.id === "a-retired")!;
+    const current = feed.notifications.find((n) => n.id === "a-1")!;
+    expect(retired.title).toBe("Retired: New queue item: S99 proof create");
+    expect(retired.message).toBe(RETIRED_NOTIFICATION_MESSAGE);
+    expect(retired.message).not.toMatch(/Action needed/);
+    expect(retired.severity).toBe("low");
+    expect(retired.href).toBe("/approval-queue?item_id=item-retired");
+    expect(current.message).toBe("Review the requested approval action.");
+  });
+
   it("merges approval + maintenance newest-first and maps hrefs per source", () => {
     const feed = buildNotificationFeed({
       approval: [approval()],

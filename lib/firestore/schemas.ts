@@ -692,10 +692,7 @@ export const CreateProcessDefinitionInputSchema = z.object({
 
 export const UpdateProcessDefinitionInputSchema = z
   .object({
-    expected_revision: z
-      .string()
-      .regex(/^[a-f0-9]{64}$/)
-      .optional(),
+    expected_revision: z.string().regex(/^[a-f0-9]{64}$/),
     space_id: optionalTextSchema,
     name: requiredTextSchema.optional(),
     short_outcome: requiredTextSchema.optional(),
@@ -720,6 +717,10 @@ export const SubmitProcessDefinitionInputSchema = z.object({
 });
 
 export const StartWorkflowRunInputSchema = z.object({
+  expected_revision: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
   due_date: isoDateSchema.optional(),
   note: optionalTextSchema,
 });

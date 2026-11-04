@@ -212,12 +212,14 @@ beforeEach(async () => {
   });
   for (const artifact of input.catalog.artifacts) {
     const id = artifact.publicationSource.reference.slice("publication:".length);
+    // Canonical lease-renewals originals must pass the S20 one-attempt claim at execution; the
+    // legacy renewals Space is covered by the S113 backend journey.
     fake.seed(`publication_versions/${id}`, {
       id,
       resourceId: `resource-${id}`,
       validated: true,
       data_mode: "live",
-      spaceId: "renewals",
+      spaceId: "lease-renewals",
       contentHash: byteHash,
       contentRef: { contentHash: byteHash },
       contentByteSize: fixture.bytes.length,

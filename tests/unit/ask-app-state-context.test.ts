@@ -116,6 +116,8 @@ describe("resolveCoverageState", () => {
 
     expect(labels).not.toContain("Owner Email"); // read-only reference Space is never a gap
     expect(labels).toContain("Move-In"); // unmapped scaffold → needs a process
+    // Retired maintenance work is read-only history, never a Space that "needs a process".
+    expect(labels.some((label) => /maintenance|vendor/i.test(label))).toBe(false);
     expect(result.items.every((item) => typeof item.href === "string")).toBe(true);
   });
 });

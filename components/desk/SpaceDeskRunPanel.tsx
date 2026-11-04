@@ -18,6 +18,8 @@ import type {
 
 interface SpaceDeskRunPanelProps {
   definitionId: string;
+  /** The reviewed definition revision this page rendered; a changed definition refuses the start. */
+  definitionRevision?: string;
   run: WorkflowRunRecord | null;
   steps: readonly ProcessDefinitionStep[];
   initialChecks: readonly WorkflowRunStepCheckRecord[];
@@ -32,6 +34,7 @@ const STATUS_PILL: Record<WorkflowRunStepCheckStatus, string> = {
 
 export function SpaceDeskRunPanel({
   definitionId,
+  definitionRevision,
   run,
   steps,
   initialChecks,
@@ -57,7 +60,9 @@ export function SpaceDeskRunPanel({
       const response = await fetch(`/api/process-definitions/${definitionId}/runs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: "{}",
+        body: JSON.stringify(
+          definitionRevision ? { expected_revision: definitionRevision } : {},
+        ),
       });
       if (!response.ok) {
         setError("Could not start a run.");

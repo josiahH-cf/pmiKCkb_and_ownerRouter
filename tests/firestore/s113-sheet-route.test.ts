@@ -21,6 +21,7 @@ import {
   describe,
   expect,
   it,
+  onTestFailed,
   vi,
 } from "vitest";
 import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
@@ -2704,6 +2705,26 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         threw: 0,
       };
       let messageReadCountsSaturated = false;
+      // On a plain budget overrun vitest prints nothing from the body. Record where the journey
+      // was and the owning read counters so the next CI failure is diagnosable from its log.
+      const journeyStartedAtMs = Date.now();
+      const journeyPhases: Array<{ phase: string; atMs: number }> = [];
+      const markPhase = (phase: string) =>
+        journeyPhases.push({ phase, atMs: Date.now() - journeyStartedAtMs });
+      onTestFailed(() => {
+        console.error(
+          "S113 journey failure diagnostics",
+          JSON.stringify({
+            start,
+            elapsedMs: Date.now() - journeyStartedAtMs,
+            phases: journeyPhases,
+            messageReadCounts,
+            messageReadCountsSaturated,
+            requests: mountedRequests.snapshot(),
+            ...mountedReadDiagnostics(),
+          }),
+        );
+      });
       function countMessageRead(key: keyof typeof messageReadCounts) {
         if (messageReadCounts[key] < 4096) messageReadCounts[key]++;
         else messageReadCountsSaturated = true;
@@ -3383,6 +3404,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       expect(screen.getByLabelText("Insurance flyer")).toHaveValue("");
       expect(screen.getByLabelText("Renewal information form")).toHaveValue("");
       expect(requests.filter((request) => request.startsWith("POST"))).toEqual([]);
+      markPhase("lease opened");
       // S154: there is no cycle step. Opening the lease records nothing; the first saved work
       // establishes the work record from the lease's real basis.
       if (start === "fresh")
@@ -3392,6 +3414,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
       ).findByLabelText("Owner response");
       const change = (node: HTMLElement, value: string) =>
         fireEvent.change(node, { target: { value } });
+      markPhase("working record autosave");
       // S155: a text entry saves by itself when the person leaves the control.
       const enter = (node: HTMLElement, value: string) => {
         change(node, value);
@@ -3705,6 +3728,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         effectiveDate: "2027-01-01",
         endDate: "2027-12-31",
       });
+      markPhase("owner approval recorded");
       // S156: the recorded approval is the answer alone; the terms live on the working record.
       expect(
         (await getRenewalWorkspace(actor, "701", db))!.ownerResponse!.terms,
@@ -3914,6 +3938,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         screen.getByRole("button", { name: "Record staff completion" }),
       ).toBeEnabled();
       expect(screen.getAllByText(/Suggested next: /).length).toBeGreaterThan(0);
+      markPhase("counteroffer");
       // The owner answers the counter: the working rent changes, and the renewed approval is
       // recorded with its own source.
       await respond(
@@ -3954,6 +3979,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         );
         expect(group.getByLabelText(`${definition.label} outcome`)).toBeEnabled();
       }
+      markPhase("pending source updates");
       // S155/S160: saving reads and writes no Sheet. Every recorded value waits as pending until
       // staff prepare it deliberately, and nothing was confirmed.
       const recordedWork = (await getRenewalWorkspace(actor, "701", db))!;
@@ -3969,6 +3995,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           manualRenewalSummary((await getRenewalWorkspace(actor, "701", db))!).complete,
         ).toBe(true),
       );
+      markPhase("remount after final state");
       // Remount only after the actual control receives the route's final state, otherwise the
       // new provider can start from the intermediate revision and correctly refuse a later edit.
       await waitFor(
@@ -3978,6 +4005,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           ).toBeEnabled(),
         { timeout: 10_000 },
       );
+      markPhase("completion recorded");
       // S156: completion is the staff record itself; the independent staff-lane oracle reads it
       // that way. The predecessor oracle still parses the same stored record.
       const independentlyRead = await readIndependentDecisionFacts(db);
@@ -4096,6 +4124,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           ).toMatchObject({ complete: true, nonRenewal: true }),
         );
       }
+      markPhase("communications handoff");
       // S193 ordinary draft creation has moved to the explicit Communications composer.
       expect((await db.collection("action_executions").get()).size).toBe(0);
       expect(messageTransport.creates).toBe(0);

@@ -25,14 +25,23 @@ export function processDefinitionRevision(definition: unknown): string {
     .update(JSON.stringify(canonical(definition)))
     .digest("hex");
 }
+/** Hash a stored record exactly as the reader does: legacy lane-only `Testing` reads as Draft. */
+export function storedProcessDefinitionRevision(
+  id: string,
+  data: Record<string, unknown> | undefined,
+): string {
+  return processDefinitionRevision({
+    id,
+    ...data,
+    ...(data?.status === "Testing" ? { status: "Draft" } : {}),
+  });
+}
+/** Every save, publish or start binds to the exact reviewed revision; no definition is exempt. */
 export function assertProcessDefinitionRevision(
   definition: { id: string },
-  expected?: string,
+  expected: string | undefined,
 ) {
-  if (
-    (definition.id === "owner-renewal-outreach" && !expected) ||
-    (expected && expected !== processDefinitionRevision(definition))
-  )
+  if (!expected || expected !== processDefinitionRevision(definition))
     throw new EditableLayerError(
       "The process definition changed or its reviewed revision is missing. Reload the current definition and review your edits before retrying.",
       409,

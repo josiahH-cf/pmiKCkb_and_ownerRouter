@@ -5,6 +5,7 @@
 // decision-read failures preserve available rows and explain incomplete coverage, never a false clear.
 
 import { gatherNeedsDecisionInbox } from "@/lib/approval/needs-decision-gather";
+import { isRetiredMaintenanceWorkflow } from "@/lib/maintenance/retirement";
 import { needsDecisionReadWarning } from "@/lib/approval/needs-decision-inbox";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { buildConnectionView } from "@/lib/connections/connection-status";
@@ -131,6 +132,8 @@ export async function resolveCoverageState(
       (space) => space.showInDirectory !== false && canAccessLaunchSpace(user, space),
     )
     .filter((space) => !space.readOnly)
+    // Retired work is read-only history, not a Space waiting for a process.
+    .filter((space) => !isRetiredMaintenanceWorkflow(space.id, space.processDefinitionId))
     .map((space) => ({
       space,
       state: computeSpaceCardState(space, definitionIds, presence),
