@@ -208,6 +208,8 @@ describe("S242 BEH-S242-4 / AC-S242-6: print", () => {
       `PMI KC staff help ${HELP_VERSION} · ${guide.title.replace(/["\\]/g, "")}`,
     );
     expect(style).toContain('"Page " counter(page)');
+    // The footer is drawn in the page margin; without a declared margin a print can omit it.
+    expect(style).toMatch(/@page \{ margin: \d+mm \d+mm \d+mm;/);
     expect(screen.getByRole("button", { name: "Print this guide" })).toBeVisible();
   });
 

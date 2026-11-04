@@ -119,11 +119,15 @@ export function HelpMeta({
   );
 }
 
-/** Per-page print footer: help version, title and page number on every printed page. */
+/**
+ * Per-page print footer: help version, title and page number on every printed page. The footer
+ * lives in the page's bottom margin, so the help pages declare that margin; a print with no page
+ * margin has nowhere to draw it.
+ */
 export function HelpPrintFooter({ title }: Readonly<{ title: string }>) {
   const label = `${HELP_PRODUCT_TITLE} ${HELP_VERSION} · ${title}`.replace(/["\\]/g, "");
   return (
-    <style>{`@page { @bottom-left { content: "${label}"; } @bottom-right { content: "Page " counter(page); } }`}</style>
+    <style>{`@page { margin: 16mm 14mm 18mm; @bottom-left { content: "${label}"; } @bottom-right { content: "Page " counter(page); } }`}</style>
   );
 }
 
