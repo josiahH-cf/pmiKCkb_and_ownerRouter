@@ -272,6 +272,12 @@ reload does not hide the original failure or imply that someone needs to sign in
 - Model verdict: PASS for the bounded diagnosis, options-only repair, preservation and application delivery in [delivery/configuration evidence](../evidence/application-gap-delivery-2026-11-03.md). Original POST purpose and provider-internal cause remain unknown; no live replay or internal provider repair is inferred.
 - Human verdict: NOT RUN — no human observer
 
+<!-- batch005-evidence: follow-up rows below are outside the automated evidence gate -->
+
+The A-05 rows below are outside the batch 005 automated evidence gate, which covers R-S168-1
+to R-S168-7 in `docs/evidence/application-usability-batch005.json`. Their verified status is
+the model verdict above and the register in `docs/open-blockers.md`.
+
 **Requirement-to-outcome traceability.**
 
 | Requirement                     | Architecture outcome | Behavior outcome | Human litmus                           | Deterministic evidence / falsification                                                                                        |

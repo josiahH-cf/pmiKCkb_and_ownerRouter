@@ -26,6 +26,14 @@ jobs:
           java-version: "21"
       - name: Actual quality checks in a credential-free namespace
         run: python3 scripts/isolated-verify.py --ci-sudo --task quality --output "$RUNNER_TEMP/pmi-quality" --timeout-seconds 900 --memory-mib 4096 --typecheck-heap-mib 3072
+      - name: Retain the lane's evidence when it fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmi-quality-evidence
+          path: ${{ runner.temp }}/pmi-quality
+          if-no-files-found: ignore
+          retention-days: 14
 
   unit:
     runs-on: ubuntu-latest
@@ -44,6 +52,14 @@ jobs:
           java-version: "21"
       - name: Complete unit inventory after OS isolation controls
         run: python3 scripts/isolated-verify.py --ci-sudo --task unit --output "$RUNNER_TEMP/pmi-unit" --timeout-seconds 900 --memory-mib 4096
+      - name: Retain the lane's evidence when it fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmi-unit-evidence
+          path: ${{ runner.temp }}/pmi-unit
+          if-no-files-found: ignore
+          retention-days: 14
 
   firestore:
     runs-on: ubuntu-latest
@@ -62,6 +78,14 @@ jobs:
           java-version: "21"
       - name: Complete backend inventory with public emulator binaries and no provider route
         run: python3 scripts/isolated-verify.py --ci-sudo --task firestore --output "$RUNNER_TEMP/pmi-firestore" --timeout-seconds 900 --memory-mib 4096
+      - name: Retain the lane's evidence when it fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmi-firestore-evidence
+          path: ${{ runner.temp }}/pmi-firestore
+          if-no-files-found: ignore
+          retention-days: 14
 
   policy-build:
     runs-on: ubuntu-latest
@@ -80,6 +104,14 @@ jobs:
           java-version: "21"
       - name: Public font preparation, actual production audit, policy checks and build
         run: python3 scripts/isolated-verify.py --ci-sudo --task policy-build --output "$RUNNER_TEMP/pmi-policy-build" --timeout-seconds 900 --memory-mib 6144 --build-heap-mib 3072
+      - name: Retain the lane's evidence when it fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmi-policy-build-evidence
+          path: ${{ runner.temp }}/pmi-policy-build
+          if-no-files-found: ignore
+          retention-days: 14
 
   verify:
     if: ${{ always() }}

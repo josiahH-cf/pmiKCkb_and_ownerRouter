@@ -236,17 +236,27 @@ class ControllerBoundaryTests(unittest.TestCase):
             value.scan(b"{}")
         self.assertEqual(value.commands, [])
 
-    def test_failed_refresh_remains_unavailable_without_repeated_update(self):
+    def test_failed_refresh_keeps_scanning_a_fresh_loaded_database_without_repeating_the_update(self):
         value = self.controller()
+        value.last_update_attempt = scanner.time.monotonic() - scanner.UPDATE_INTERVAL_SECONDS
         with patch.object(scanner, "bounded_command", side_effect=scanner.Unavailable()) as run:
-            with self.assertRaises(scanner.Unavailable):
-                value._update(scanner.time.monotonic() + 1)
+            result = value.scan(b"{}")
+            self.assertEqual(result["malware"], "clean")
+            self.assertEqual(run.call_count, 1)
+            self.assertEqual(value.ready()[0], "1.4.6")
+            self.assertEqual(run.call_count, 1)
+        self.assertFalse(value.update_ok)
+        self.assertEqual(len(value.commands), 1)
+
+    def test_failed_refresh_with_a_stale_loaded_database_refuses_scans_and_readiness(self):
+        value = self.controller(stale=True)
+        value.last_update_attempt = scanner.time.monotonic() - scanner.UPDATE_INTERVAL_SECONDS
+        with patch.object(scanner, "bounded_command", side_effect=scanner.Unavailable()) as run:
             with self.assertRaises(scanner.Unavailable):
                 value.scan(b"{}")
             with self.assertRaises(scanner.Unavailable):
                 value.ready()
             self.assertEqual(run.call_count, 1)
-        self.assertFalse(value.update_ok)
         self.assertEqual(value.commands, [])
 
     def test_database_change_during_scan_does_not_return_clean(self):

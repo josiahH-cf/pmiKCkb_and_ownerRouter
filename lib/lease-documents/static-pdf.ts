@@ -34,6 +34,8 @@ import {
   PDFDocument,
   PDFName,
   PDFNumber,
+  PDFObjectParser,
+  PDFParser,
   PDFRawStream,
   PDFRef,
   PDFStream,
@@ -42,6 +44,7 @@ import {
   StandardFontEmbedder,
   StandardFonts,
   decodePDFRawStream,
+  type PDFContext,
   type PDFPage,
 } from "pdf-lib";
 
@@ -59,6 +62,7 @@ import type {
   StaticValueFormat,
 } from "@/lib/lease-documents/artifact-intake-contract";
 import { EditableLayerError } from "@/lib/errors/editable-layer-error";
+import { PdfRefusalError } from "@/lib/lease-documents/pdf-refusal";
 
 export const STATIC_ADAPTER = "pdf-lib@1.17.1:bounded-static/v1";
 const MAX_PAGE_CONTENT_BYTES = 8 * 1024 * 1024;
@@ -69,7 +73,7 @@ const CAP_HEIGHT = 0.72;
 const FILL_TAG = "PMIFill";
 
 function refuse(message: string): never {
-  throw new EditableLayerError(`Static PDF filling unavailable: ${message}`, 409);
+  throw new PdfRefusalError(`Static PDF filling unavailable: ${message}`, "undecodable");
 }
 /** Every entry point answers a parser or library failure with this module's typed refusal. */
 async function bounded<T>(work: () => Promise<T>): Promise<T> {
@@ -1513,6 +1517,135 @@ function publicationAuxiliaryStreams(pdf: PDFDocument): ReadonlyMap<PDFStream, s
   return accepted;
 }
 
+const ENDOBJ_KEYWORD = [0x65, 0x6e, 0x64, 0x6f, 0x62, 0x6a];
+const PDF_WHITESPACE = new Set([0x00, 0x09, 0x0a, 0x0c, 0x0d, 0x20]);
+/** The pinned pdf-lib parser members reused to keep containers instead of expanding them. */
+interface IndirectObjectParser {
+  parseIndirectObjectHeader(): PDFRef;
+  skipWhitespaceAndComments(): void;
+  parseObject(): unknown;
+  matchKeyword(keyword: number[]): boolean;
+  readonly context: PDFContext;
+}
+
+/**
+ * Object streams (/ObjStm) and cross-reference streams (/XRef) are containers the parser consumes
+ * while loading, so they never reach the enumerated objects the text review inspects, and each is
+ * recognized only by its own /Type. This check parses the original again keeping every container
+ * and refuses one whose decoded bytes its declared objects or entries do not account for: text
+ * hidden in a container is never passed as reviewed.
+ */
+async function assertContainersAccounted(original: Uint8Array): Promise<void> {
+  const parser = PDFParser.forBytesWithOptions(original, Infinity, true);
+  const internals = parser as unknown as IndirectObjectParser;
+  const containers: PDFRawStream[] = [];
+  Object.defineProperty(parser, "parseIndirectObject", {
+    value: async () => {
+      const ref = internals.parseIndirectObjectHeader();
+      internals.skipWhitespaceAndComments();
+      const object = internals.parseObject();
+      internals.skipWhitespaceAndComments();
+      internals.matchKeyword(ENDOBJ_KEYWORD);
+      const type =
+        object instanceof PDFRawStream ? object.dict.get(PDFName.of("Type")) : undefined;
+      if (
+        object instanceof PDFRawStream &&
+        (type === PDFName.of("ObjStm") || type === PDFName.of("XRef"))
+      )
+        containers.push(object);
+      else internals.context.assign(ref, object as never);
+      return ref;
+    },
+  });
+  await parser.parseDocument();
+  if (containers.length > 256)
+    refuse(
+      "publication object and cross-reference streams exceed their supported count.",
+    );
+  for (const container of containers) {
+    const bytes = decodePDFRawStream(container).decode();
+    if (bytes.byteLength > 2 * 1024 * 1024)
+      refuse("a publication object or cross-reference stream exceeds its byte bound.");
+    const accounted =
+      container.dict.get(PDFName.of("Type")) === PDFName.of("XRef")
+        ? xrefStreamExtent(container.dict, bytes)
+        : objectStreamExtents(container.dict, bytes, internals.context);
+    for (let index = 0; index < bytes.byteLength; index++)
+      if (!accounted[index] && !PDF_WHITESPACE.has(bytes[index]))
+        refuse(
+          "a publication object or cross-reference stream carries bytes its declared objects do not account for.",
+        );
+  }
+}
+
+/** The bytes of an object stream that its header and each listed object occupy. */
+function objectStreamExtents(dict: PDFDict, bytes: Uint8Array, context: PDFContext) {
+  const count = dict.lookup(PDFName.of("N")),
+    first = dict.lookup(PDFName.of("First"));
+  if (!(count instanceof PDFNumber) || !(first instanceof PDFNumber))
+    refuse("a publication object stream has no complete header.");
+  const objectCount = count.asNumber(),
+    firstOffset = first.asNumber();
+  if (
+    !Number.isInteger(objectCount) ||
+    objectCount < 0 ||
+    objectCount > 10_000 ||
+    !Number.isInteger(firstOffset) ||
+    firstOffset < 0 ||
+    firstOffset > bytes.byteLength
+  )
+    refuse("a publication object stream header is outside its supported bound.");
+  const header = new TextDecoder("latin1").decode(bytes.subarray(0, firstOffset));
+  const tokens = header.split(/[\x00\t\n\f\r ]+/).filter((token) => token.length);
+  if (tokens.length !== objectCount * 2 || tokens.some((token) => !/^\d+$/.test(token)))
+    refuse(
+      "a publication object stream header does not match its declared object count.",
+    );
+  const accounted = new Uint8Array(bytes.byteLength).fill(1, 0, firstOffset);
+  for (let index = 0; index < objectCount; index++) {
+    const start = firstOffset + Number(tokens[index * 2 + 1]);
+    if (start >= bytes.byteLength)
+      refuse("a publication object stream lists an object outside the stream.");
+    const objectParser = PDFObjectParser.forBytes(bytes.subarray(start), context);
+    objectParser.parseObject();
+    const length = (
+      objectParser as unknown as { bytes: { offset(): number } }
+    ).bytes.offset();
+    accounted.fill(1, start, start + length);
+  }
+  return accounted;
+}
+
+/** The bytes of a cross-reference stream that its declared entries occupy. */
+function xrefStreamExtent(dict: PDFDict, bytes: Uint8Array) {
+  const widths = dict.lookup(PDFName.of("W"));
+  if (!(widths instanceof PDFArray))
+    refuse("a publication cross-reference stream has no field widths.");
+  let rowWidth = 0;
+  for (let position = 0; position < widths.size(); position++) {
+    const width = widths.lookup(position);
+    if (!(width instanceof PDFNumber))
+      refuse("a publication cross-reference stream has an unreadable field width.");
+    rowWidth += width.asNumber();
+  }
+  const index = dict.lookup(PDFName.of("Index")),
+    size = dict.lookup(PDFName.of("Size"));
+  let rows = 0;
+  if (index instanceof PDFArray) {
+    for (let position = 1; position < index.size(); position += 2) {
+      const length = index.lookup(position);
+      if (!(length instanceof PDFNumber))
+        refuse("a publication cross-reference stream has an unreadable index.");
+      rows += length.asNumber();
+    }
+  } else if (size instanceof PDFNumber) rows = size.asNumber();
+  else refuse("a publication cross-reference stream has no entry count.");
+  const extent = rows * rowWidth;
+  if (!Number.isInteger(extent) || extent < 0 || extent > bytes.byteLength)
+    refuse("a publication cross-reference stream does not match its declared entries.");
+  return new Uint8Array(bytes.byteLength).fill(1, 0, extent);
+}
+
 /**
  * Complete bounded text-layer review for exact reviewed blank-original publication. Unlike the
  * Admin geometry preview, this never truncates. Images are not OCR'd; their blank/content review
@@ -1521,6 +1654,7 @@ function publicationAuxiliaryStreams(pdf: PDFDocument): ReadonlyMap<PDFStream, s
 export function readPublicationPdfText(original: Uint8Array): Promise<string> {
   return bounded(async () => {
     const { pdf, fields } = await parseSafePdf(original, true);
+    await assertContainersAccounted(original);
     if (
       fields.length &&
       Object.values(await readAcroformValues(original)).some(

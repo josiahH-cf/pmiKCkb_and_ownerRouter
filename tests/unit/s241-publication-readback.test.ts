@@ -54,7 +54,7 @@ async function fixture() {
   const published = await publishProcessDefinition(
     actor,
     definition.id,
-    {},
+    { expected_revision: definition.revision! },
     { db, scanner: new FakePublicationScanner() },
   );
   const read = async () =>
@@ -130,7 +130,12 @@ it.each([
 );
 it("a saved Draft retains its old pointer without claiming current publication", async () => {
   const { db, definition, published, read } = await fixture();
-  await updateProcessDefinition(actor, definition.id, { name: "New draft" }, db);
+  await updateProcessDefinition(
+    actor,
+    definition.id,
+    { name: "New draft", expected_revision: published.definition.revision! },
+    db,
+  );
   const result = await read();
   expect(result.publication).toEqual({
     state: "not_published",

@@ -25,6 +25,63 @@ const validChecks = (checks) =>
       check.test.trim(),
   );
 
+/**
+ * Marks the point in a native contract after which `| R-S<suite>-` trace rows belong to a later,
+ * separately verified follow-up rather than the completed batch 005 intake. The reader refuses a
+ * contract that adds such rows without this marker, so no trace row leaves the automated gate
+ * silently.
+ */
+export const BATCH005_FOLLOW_UP_MARKER =
+  "<!-- batch005-evidence: follow-up rows below are outside the automated evidence gate -->";
+
+/** One contract's trace rows: the original contiguous table, then any marked follow-up rows. */
+export function readContractTraceRows(text, suite) {
+  const rows = [];
+  const followUps = [];
+  let readingOriginalTable = false;
+  let originalTableClosed = false;
+  let marked = false;
+  for (const line of text.split(/\r?\n/)) {
+    if (line.trim() === BATCH005_FOLLOW_UP_MARKER) {
+      if (!originalTableClosed)
+        throw new Error(`Follow-up marker precedes the original trace table S${suite}`);
+      marked = true;
+      continue;
+    }
+    if (!line.startsWith(`| R-S${suite}-`)) {
+      if (readingOriginalTable) {
+        readingOriginalTable = false;
+        originalTableClosed = true;
+      }
+      continue;
+    }
+    if (originalTableClosed) {
+      if (!marked)
+        throw new Error(
+          `Unregistered follow-up trace rows S${suite}: add the batch005-evidence follow-up marker or extend the gate`,
+        );
+      const id = line
+        .split("|")[1]
+        ?.trim()
+        .match(/^R-S\d+-\d+/)?.[0];
+      if (!id) throw new Error(`Incomplete follow-up trace row S${suite}`);
+      followUps.push({ id });
+      continue;
+    }
+    readingOriginalTable = true;
+    const [requirement, architecture, behavior, humanLitmus, adversarial] = line
+      .split("|")
+      .slice(1, 6)
+      .map((value) => value.trim());
+    const id = requirement.match(/^R-S\d+-\d+/)?.[0];
+    const ac = adversarial.match(/^AC-S\d+-\d+/)?.[0];
+    if (!id || !ac || !architecture || !behavior || !humanLitmus)
+      throw new Error(`Incomplete trace row S${suite}`);
+    rows.push({ id, requirement, architecture, behavior, adversarial: ac, humanLitmus });
+  }
+  return { rows, followUps };
+}
+
 /** Read the native contracts without changing them or inventing verification results. */
 export function readBatch005Requirements(root) {
   const directory = join(root, "docs/feature-suites");
@@ -43,34 +100,10 @@ export function readBatch005Requirements(root) {
     if (!contract) throw new Error(`Missing native contract S${suite}`);
     const owners = [...contract.text.matchAll(/^- `([^`]+)`/gm)].map((match) => match[1]);
     // Batch 005 owns the original contiguous trace table. Later independently authored suite
-    // follow-ups do not amend that completed intake or become a new execution queue here.
-    let readingOriginalTable = false;
-    for (const line of contract.text.split(/\r?\n/)) {
-      if (!line.startsWith(`| R-S${suite}-`)) {
-        if (readingOriginalTable) break;
-        continue;
-      }
-      readingOriginalTable = true;
-      const [requirement, architecture, behavior, humanLitmus, adversarial] = line
-        .split("|")
-        .slice(1, 6)
-        .map((value) => value.trim());
-      const id = requirement.match(/^R-S\d+-\d+/)?.[0];
-      const ac = adversarial.match(/^AC-S\d+-\d+/)?.[0];
-      if (!id || !ac || !architecture || !behavior || !humanLitmus)
-        throw new Error(`Incomplete trace row S${suite}`);
-      rows.push({
-        id,
-        requirement,
-        suite: `S${suite}`,
-        contract: contract.path,
-        architecture,
-        behavior,
-        adversarial: ac,
-        humanLitmus,
-        owners,
-      });
-    }
+    // follow-ups do not amend that completed intake or become a new execution queue here, and
+    // they must be marked as outside this gate rather than silently dropped.
+    for (const row of readContractTraceRows(contract.text, suite).rows)
+      rows.push({ ...row, suite: `S${suite}`, contract: contract.path, owners });
   }
   if (rows.length !== 116 || new Set(rows.map(({ id }) => id)).size !== 116)
     throw new Error("Batch 005 must contain exactly 116 unique requirements");

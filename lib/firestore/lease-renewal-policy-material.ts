@@ -18,6 +18,7 @@ import { can } from "@/lib/auth/roles";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { resolveStoredDataMode } from "@/lib/data-mode";
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
+import { isRenewalArtifactPublicationSpace } from "@/lib/lease-documents/publication-space";
 import { getAdminFirestore } from "@/lib/firestore/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
@@ -131,7 +132,7 @@ export async function assertPolicyMaterialBinding(
     version.id !== versionId ||
     !version.validated ||
     resolveStoredDataMode(version) !== "live" ||
-    version.spaceId !== "renewals" ||
+    !isRenewalArtifactPublicationSpace(version.spaceId) ||
     version.contentHash !== config.publicationSource.contentHash ||
     version.contentRef?.contentHash !== config.publicationSource.contentHash ||
     (await deps.readActiveVersionId(version.resourceId)) !== versionId

@@ -251,9 +251,12 @@ def bounded(config, label, argv, env, cwd, monitor_handshake=None):
         os.close(descriptor)
     save(evidence / 'result.json', record)
     print(json.dumps(record), flush=True)
-    print((evidence / 'stdout.log').read_text(errors='replace')[-5000:], flush=True)
+    # A passing lane prints a short tail; a failing lane prints the complete streams (bounded) so the
+    # failing file's own result lines, durations and diagnostics survive in the CI log.
+    retained = 400_000 if child.returncode else 5000
+    print((evidence / 'stdout.log').read_text(errors='replace')[-retained:], flush=True)
     if child.returncode:
-        print((evidence / 'stderr.log').read_text(errors='replace')[-5000:], flush=True)
+        print((evidence / 'stderr.log').read_text(errors='replace')[-retained:], flush=True)
     if reason or remaining or not monitoring_established:
         return 1
     return child.returncode if child.returncode >= 0 else 1

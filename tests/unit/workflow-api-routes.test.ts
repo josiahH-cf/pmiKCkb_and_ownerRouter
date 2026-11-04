@@ -130,7 +130,10 @@ describe("workflow API routes", () => {
       definitionContext("def-1"),
     );
     const patchResponse = await PATCH_DEFINITION(
-      jsonRequest({ short_outcome: "Updated outcome." }),
+      jsonRequest({
+        expected_revision: "a".repeat(64),
+        short_outcome: "Updated outcome.",
+      }),
       definitionContext("def-1"),
     );
 
@@ -146,7 +149,32 @@ describe("workflow API routes", () => {
     expect(updateProcessDefinition).toHaveBeenCalledWith(
       expect.objectContaining({ uid: "editor-1" }),
       "def-1",
-      { short_outcome: "Updated outcome." },
+      { expected_revision: "a".repeat(64), short_outcome: "Updated outcome." },
+    );
+  });
+
+  it("rejects a process definition edit without its reviewed revision before repository work", async () => {
+    setEditor();
+    const response = await PATCH_DEFINITION(
+      jsonRequest({ short_outcome: "Unbound edit." }),
+      definitionContext("def-1"),
+    );
+    expect(response.status).toBe(400);
+    expect(updateProcessDefinition).not.toHaveBeenCalled();
+  });
+
+  it("passes the reviewed revision through to a workflow start", async () => {
+    setEditor();
+    vi.mocked(startWorkflowRun).mockResolvedValue(workflowRun());
+    const response = await POST_RUN(
+      jsonRequest({ expected_revision: "a".repeat(64) }),
+      definitionContext("def-1"),
+    );
+    expect(response.status).toBe(201);
+    expect(startWorkflowRun).toHaveBeenCalledWith(
+      expect.objectContaining({ uid: "editor-1" }),
+      "def-1",
+      { expected_revision: "a".repeat(64) },
     );
   });
 

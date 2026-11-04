@@ -4,12 +4,14 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { LeasePacketReadiness } from "@/components/lease-renewal/LeasePacketReadiness";
+import { EditableLayerError } from "@/lib/errors/editable-layer-error";
 import { emptyArtifactIntakeManifest } from "@/lib/lease-documents/artifact-intake-contract";
 import { evaluateRenewalPacket } from "@/lib/lease-documents/evaluate-packet";
 import { resolveFamilyUse } from "@/lib/lease-documents/family-use";
 import {
   projectLeasePacketReadiness,
   projectPacketContextReadiness,
+  safePacketReadFailure,
 } from "@/lib/lease-documents/lease-packet-readiness";
 import { projectSelectionFreshness } from "@/lib/lease-documents/packet-selection-freshness";
 import { readyS66Input } from "@/tests/fixtures/s66-packet";
@@ -93,6 +95,32 @@ describe("S235 A03 current output requirements", () => {
     expect(failed.state).toBe("unavailable");
     expect(failed.label).not.toBe("Renewal extension");
     expect(failed.saved).toMatch(/has not been reverified/);
+  });
+
+  it("names which current read failed, in the app's own words, and never echoes other errors", () => {
+    const refused = projectPacketContextReadiness({
+      evaluation: null,
+      observedAt: null,
+      savedSnapshot: null,
+      readFailure: safePacketReadFailure(
+        new EditableLayerError("The packet lease is missing or ambiguous.", 409),
+      ),
+    });
+    expect(refused.state).toBe("unavailable");
+    expect(refused.missing).toEqual([
+      "The packet lease is missing or ambiguous (team); reload to try again.",
+    ]);
+    expect(safePacketReadFailure(new Error("ECONNRESET fixture-host"))).toBeNull();
+    const generic = projectPacketContextReadiness({
+      evaluation: null,
+      observedAt: null,
+      savedSnapshot: null,
+      readFailure: safePacketReadFailure(new Error("ECONNRESET fixture-host")),
+    });
+    expect(generic.missing.join(" ")).not.toContain("fixture-host");
+    expect(generic.missing).toEqual([
+      "The current source or packet-input read did not complete (team); reload to try again.",
+    ]);
   });
 
   it("does not call approved intake current when its active publication is unavailable", () => {

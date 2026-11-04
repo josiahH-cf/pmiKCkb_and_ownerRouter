@@ -16,6 +16,7 @@ import type { PublicationScanner } from "@/lib/publication/types";
 import {
   assertProcessDefinitionRevision,
   processDefinitionRevision,
+  storedProcessDefinitionRevision,
 } from "./process-definition-revision";
 import {
   assertProcessDefinitionRecordAccess,
@@ -25,10 +26,7 @@ import {
 
 export const PublishProcessDefinitionSchema = z
   .object({
-    expected_revision: z
-      .string()
-      .regex(/^[a-f0-9]{64}$/)
-      .optional(),
+    expected_revision: z.string().regex(/^[a-f0-9]{64}$/),
     note: z.string().trim().max(1000).optional(),
     policy_id: z.string().trim().min(1).optional(),
   })
@@ -41,7 +39,7 @@ export type PublishProcessDefinitionInput = z.input<
 export async function publishProcessDefinition(
   actor: AuthenticatedUser,
   definitionId: string,
-  input: PublishProcessDefinitionInput = {},
+  input: PublishProcessDefinitionInput,
   options: {
     db?: Firestore;
     scanner?: PublicationScanner;
@@ -50,10 +48,10 @@ export async function publishProcessDefinition(
   const db = options.db ?? getAdminFirestore();
   const parsed = PublishProcessDefinitionSchema.parse(input);
   const definition = await getProcessDefinition(actor, definitionId, db);
-  assertProcessDefinitionRevision(definition, parsed.expected_revision);
-  assertProcessDefinitionRecordAccess(actor, definition);
   if (isRetiredMaintenanceWorkflow(definition.space_id, definition.id))
     throw new EditableLayerError(MAINTENANCE_RETIREMENT_MESSAGE, 410);
+  assertProcessDefinitionRevision(definition, parsed.expected_revision);
+  assertProcessDefinitionRecordAccess(actor, definition);
   const spaceId = spaceIdForProcessDefinition(definition);
   if (!spaceId) {
     throw new EditableLayerError(
@@ -123,7 +121,7 @@ export async function publishProcessDefinition(
         );
         if (
           !current.exists ||
-          processDefinitionRevision({ id: current.id, ...current.data() }) !==
+          storedProcessDefinitionRevision(current.id, current.data()) !==
             processDefinitionRevision(definition)
         )
           throw new EditableLayerError(

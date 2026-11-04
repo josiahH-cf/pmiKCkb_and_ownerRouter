@@ -58,7 +58,7 @@ describe("trusted process publication", () => {
     const result = await publishProcessDefinition(
       editor,
       definition.id,
-      { policy_id: "policy-1" },
+      { policy_id: "policy-1", expected_revision: definition.revision! },
       { db, scanner: new FakePublicationScanner() },
     );
 
@@ -102,7 +102,7 @@ describe("trusted process publication", () => {
       publishProcessDefinition(
         editor,
         definition.id,
-        { policy_id: "policy-1" },
+        { policy_id: "policy-1", expected_revision: definition.revision! },
         { db, scanner: new FakePublicationScanner() },
       ),
     ).rejects.toThrow("unregistered action key");

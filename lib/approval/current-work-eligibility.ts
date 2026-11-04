@@ -22,7 +22,12 @@ export type CurrentDecisionProvenance = Partial<
   >
 >;
 
-export function isCurrentDecisionItem(item: CurrentDecisionProvenance): boolean {
+/**
+ * Provenance-only retirement: the item belongs to retired maintenance work. Presentation uses this
+ * to label retained history; it says nothing about an ordinary item's own lifecycle, so approved,
+ * denied, disabled or closed decisions keep their recorded status.
+ */
+export function isRetiredWorkItem(item: CurrentDecisionProvenance): boolean {
   if (
     isRetiredMaintenanceWorkflow(item.space_id, item.process_run_ref?.id) ||
     item.process_run_ref?.id?.startsWith("maintenance:") ||
@@ -30,12 +35,17 @@ export function isCurrentDecisionItem(item: CurrentDecisionProvenance): boolean 
     (item.affected_system_action &&
       isRetiredMaintenanceOperation(item.affected_system_action))
   )
-    return false;
+    return true;
 
   if (item.direct_link?.startsWith("/") && !item.direct_link.startsWith("//")) {
     const path = item.direct_link.split(/[?#]/, 1)[0];
-    if (maintenanceRequestDisposition("GET", path) !== "allow") return false;
+    if (maintenanceRequestDisposition("GET", path) !== "allow") return true;
   }
+  return false;
+}
+
+export function isCurrentDecisionItem(item: CurrentDecisionProvenance): boolean {
+  if (isRetiredWorkItem(item)) return false;
 
   // These are written by the existing lifecycle owner. A stale nonterminal status must not
   // reopen an exact closed/superseded record. No status, receipt or historical record is rewritten.

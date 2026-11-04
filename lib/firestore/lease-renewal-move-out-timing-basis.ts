@@ -16,6 +16,7 @@ import { v7 as uuidv7 } from "uuid";
 
 import { can } from "@/lib/auth/roles";
 import { hasSpaceAccess, type AuthenticatedUser } from "@/lib/auth/session";
+import { ROLES } from "@/lib/constants";
 import { isVerificationAccount } from "@/lib/auth/canary-policy";
 import { assertRenewalRoleAuthority } from "@/lib/lease-renewal/role-action-governance";
 import {
@@ -138,13 +139,17 @@ function assertTimingBasisAdmin(actor: AuthenticatedUser, writing = false) {
   }
 }
 
-/** Recheck the same managed identity/Space/role boundary even for direct service callers. */
+/**
+ * Recheck the same managed identity/Space/role boundary even for direct service callers. Every
+ * managed role reads under `read_workspace`, the capability the GET route admits; selecting needs
+ * the governance matrix's `select_notice_timing_basis` capability. No second role list is kept.
+ */
 export function assertTimingBasisStaff(actor: AuthenticatedUser, writing: boolean) {
   if (
     actor.hd !== "pmikcmetro.com" ||
     !actor.email.toLowerCase().endsWith("@pmikcmetro.com") ||
     !hasSpaceAccess(actor, "renewals") ||
-    !["Editor", "Approver", "Admin"].includes(actor.role)
+    !(ROLES as readonly string[]).includes(actor.role)
   ) {
     throw new EditableLayerError("Managed renewal staff access is required.", 403);
   }

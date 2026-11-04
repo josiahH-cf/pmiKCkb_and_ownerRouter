@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  BATCH005_FOLLOW_UP_MARKER,
   BATCH005_HANDOFF,
   readBatch005Requirements,
+  readContractTraceRows,
   validateBatch005Evidence,
 } from "../../scripts/lib/batch005-evidence.mjs";
 
@@ -68,7 +70,7 @@ describe("S181 native batch evidence admission", () => {
     expect(new Set(rows.map((row) => row.suite)).size).toBe(15);
     expect(validateBatch005Evidence(rows, initial())).toBe(true);
   });
-  it("keeps current S168 follow-up requirements outside the original completed batch intake", () => {
+  it("keeps the marked S168 follow-up rows outside the original completed batch intake", () => {
     const original = rows.filter((row) => row.suite === "S168");
     expect(original.map((row) => row.id)).toEqual(
       Array.from({ length: 7 }, (_, index) => `R-S168-${index + 1}`),
@@ -79,7 +81,33 @@ describe("S181 native batch evidence admission", () => {
     );
     expect(currentContract).toContain("## November 3 assessment follow-up — A-05");
     expect(currentContract).toContain("| R-S168-11 demonstrated repair");
+    expect(currentContract).toContain(BATCH005_FOLLOW_UP_MARKER);
+    expect(
+      readContractTraceRows(currentContract, 168).followUps.map((row) => row.id),
+    ).toEqual(["R-S168-8", "R-S168-9", "R-S168-10", "R-S168-11"]);
     expect(rows.some((row) => row.id === "R-S168-11")).toBe(false);
+  });
+  it("refuses unmarked follow-up trace rows instead of silently truncating the gate", () => {
+    const table = (ids) =>
+      ids
+        .map(
+          (id) =>
+            `| ${id} fixture | ARCH-S999-1 | BEH-S999-1 | Fixture litmus | AC-S999-1 fixture |`,
+        )
+        .join("\n");
+    const original = `# S999 Fixture\n\n${table(["R-S999-1", "R-S999-2"])}\n\nProse.\n`;
+    expect(() =>
+      readContractTraceRows(`${original}\n${table(["R-S999-3"])}\n`, 999),
+    ).toThrow(/Unregistered follow-up/);
+    const marked = readContractTraceRows(
+      `${original}\n${BATCH005_FOLLOW_UP_MARKER}\n\n${table(["R-S999-3"])}\n`,
+      999,
+    );
+    expect(marked.rows.map((row) => row.id)).toEqual(["R-S999-1", "R-S999-2"]);
+    expect(marked.followUps.map((row) => row.id)).toEqual(["R-S999-3"]);
+    expect(() =>
+      readContractTraceRows(`${BATCH005_FOLLOW_UP_MARKER}\n${original}`, 999),
+    ).toThrow(/precedes/);
   });
   it("refuses missing, duplicate and altered independent trace rows", () => {
     const evidence = initial();

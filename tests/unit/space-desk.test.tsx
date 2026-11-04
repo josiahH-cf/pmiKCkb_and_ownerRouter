@@ -69,6 +69,29 @@ function run(overrides: Partial<WorkflowRunRecord> = {}): WorkflowRunRecord {
 const rentvine = CONNECTORS.find((connector) => connector.id === "rentvine")!;
 
 describe("SpaceDesk", () => {
+  it.each([
+    [{ status: "Draft" as const }, "Draft process"],
+    [{ status: "Active" as const, active_version_id: "v-1" }, "Published process"],
+    [{ status: "Retired" as const }, "Retired process"],
+  ])("labels the Space from the definition status %o", (overrides, label) => {
+    render(
+      <SpaceDesk
+        connectors={[]}
+        definition={definition(overrides)}
+        definitionId="move-in"
+        presence={{}}
+        processCategory="Move-In"
+        run={null}
+        spaceId="move-in"
+        spaceName="Move-In"
+        stepChecks={[]}
+      />,
+    );
+    expect(screen.getByText(label)).toBeInTheDocument();
+    for (const other of ["Draft process", "Published process", "Retired process"])
+      if (other !== label) expect(screen.queryByText(other)).not.toBeInTheDocument();
+  });
+
   it("renders the process steps as workflow rows, including e-sign and certified funds", () => {
     render(
       <SpaceDesk

@@ -42,12 +42,19 @@ it.each([
     });
     const before = JSON.stringify([...fake.store]);
     await expect(
-      updateProcessDefinition(actor, id, { name: "Changed" }, db),
+      updateProcessDefinition(
+        actor,
+        id,
+        { name: "Changed", expected_revision: "a".repeat(64) },
+        db,
+      ),
     ).rejects.toMatchObject({ status: 410 });
     await expect(
       submitProcessDefinitionForApproval(actor, id, {}, db),
     ).rejects.toMatchObject({ status: 410 });
-    await expect(publishProcessDefinition(actor, id, {}, { db })).rejects.toMatchObject({
+    await expect(
+      publishProcessDefinition(actor, id, { expected_revision: "a".repeat(64) }, { db }),
+    ).rejects.toMatchObject({
       status: 410,
     });
     await expect(startWorkflowRun(actor, id, {}, db)).rejects.toMatchObject({

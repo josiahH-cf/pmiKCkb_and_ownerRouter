@@ -9,6 +9,8 @@ import {
   projectFamilyReadiness,
   slotCapacityIssues,
 } from "@/lib/lease-documents/artifact-intake";
+import { EditableLayerError } from "@/lib/errors/editable-layer-error";
+import { FAMILY_NOT_USED_REASON } from "@/lib/lease-documents/evaluate-packet";
 import { FAMILY_USE_LABELS } from "@/lib/lease-documents/family-use";
 import { LEASE_ARTIFACT_FAMILIES } from "@/lib/lease-documents/artifact-catalog";
 import { formatCentralTime } from "@/lib/lease-documents/returned-state-view";
@@ -50,11 +52,21 @@ const CONTEXT_LABELS = {
   owner_acknowledgment: "Owner acknowledgment",
 } as const;
 
+/**
+ * R-S235-8: which current read failed, in the app's own words. Only an app-authored refusal is
+ * carried to the page; any other error reads generically so no store or provider detail leaks.
+ */
+export function safePacketReadFailure(error: unknown): string | null {
+  return error instanceof EditableLayerError ? error.message : null;
+}
+
 /** Current display evidence never updates or substitutes for the saved execution snapshot. */
 export function projectPacketContextReadiness(input: {
   readonly evaluation: PacketEvaluation | null;
   readonly observedAt: string | null;
   readonly savedSnapshot: RenewalPacketSnapshot | null;
+  /** The safe reason the current read failed, when it did; otherwise the generic line is shown. */
+  readonly readFailure?: string | null;
 }): PacketContextReadiness {
   const { evaluation, savedSnapshot } = input;
   const saved = savedSnapshot
@@ -67,7 +79,9 @@ export function projectPacketContextReadiness(input: {
       observedAt: null,
       basis: [],
       missing: [
-        "The current source or packet-input read did not complete (team); reload to try again.",
+        input.readFailure
+          ? `${input.readFailure.replace(/\.$/, "")} (team); reload to try again.`
+          : "The current source or packet-input read did not complete (team); reload to try again.",
       ],
       saved,
     };
@@ -109,6 +123,7 @@ export function projectPacketContextReadiness(input: {
 const APPLICABILITY_LABELS = {
   required: "Applies to this lease",
   not_applicable: "Does not apply to this lease",
+  not_in_policy: "Not part of the current packet policy",
   unknown: "Unknown until the packet facts are recorded",
   not_evaluated: "Current applicability unavailable",
 } as const;
@@ -129,10 +144,31 @@ export function projectLeasePacketReadiness(input: {
     connection: "not_read",
     actionExecutable: null,
   });
+  // Applicability follows the execution evaluation of the resolved input: the families it
+  // evaluated, the ones it excluded as not used, and the ones outside the approved catalog's
+  // current policy. The separately recorded family use labels the Use column only.
+  const manifest = input.evaluation?.manifest ?? null;
+  const evaluatedKinds = manifest
+    ? new Set<string>([
+        ...manifest.includedArtifacts.map((artifact) => artifact.kind),
+        ...manifest.excludedArtifacts.map((artifact) => artifact.kind),
+        ...(input.evaluation?.blockers ?? []).map((blocker) => blocker.scope),
+      ])
+    : null;
   return families.map((family): LeasePacketFamilyRow => {
     const entry = input.manifest.entries[family.kind];
     const recordedUse = input.familyUse.families.find((use) => use.kind === family.kind);
-    const notUsed = input.familyUse.readable && recordedUse?.use === "not_used";
+    const notUsedByEvaluation = manifest
+      ? manifest.excludedArtifacts.some(
+          (artifact) =>
+            artifact.kind === family.kind &&
+            artifact.ruleResult === "Not applicable" &&
+            artifact.reason === FAMILY_NOT_USED_REASON,
+        )
+      : null;
+    const notUsed =
+      notUsedByEvaluation ??
+      (input.familyUse.readable && recordedUse?.use === "not_used");
     const evaluation = input.evaluation;
     const evaluatedFamily = evaluation?.manifest?.excludedArtifacts.find(
       (entry) => entry.kind === family.kind,
@@ -142,16 +178,21 @@ export function projectLeasePacketReadiness(input: {
       !LEASE_ARTIFACT_FAMILIES.find(
         (entry) => entry.kind === family.kind,
       )?.packetContexts.includes(evaluation.packetContext);
+    const outsidePolicy =
+      evaluatedKinds !== null && !otherContext && !evaluatedKinds.has(family.kind);
     const applicability = otherContext
       ? "not_applicable"
-      : family.applicability === "unknown" &&
-          evaluation?.blockers.some(
-            (blocker) =>
-              blocker.scope === family.kind && blocker.code === "artifact_unavailable",
-          )
-        ? "required"
-        : family.applicability;
-    const excluded = notUsed || applicability === "not_applicable";
+      : outsidePolicy
+        ? "not_in_policy"
+        : family.applicability === "unknown" &&
+            evaluation?.blockers.some(
+              (blocker) =>
+                blocker.scope === family.kind && blocker.code === "artifact_unavailable",
+            )
+          ? "required"
+          : family.applicability;
+    const excluded =
+      notUsed || applicability === "not_applicable" || applicability === "not_in_policy";
     const original =
       entry?.state === "approved" && entry.publication
         ? `Approved original ${entry.publication.reference} · ${shortHash(entry.publication.contentHash)}`
@@ -168,6 +209,15 @@ export function projectLeasePacketReadiness(input: {
     if (!input.familyUse.readable) missing.push("Family use could not be read (Admin)");
     else if (recordedUse?.source.system === "engineering_default")
       catalogSetup.push("The client's use decision, recorded by an Admin");
+    if (
+      notUsedByEvaluation === false &&
+      input.familyUse.readable &&
+      recordedUse?.use === "not_used" &&
+      evaluatedKinds?.has(family.kind)
+    )
+      catalogSetup.push(
+        "The approved catalog does not yet apply the recorded use; the current packet policy still evaluates this family (Admin)",
+      );
     if (!excluded && input.familyUse.readable) {
       if (input.manifest.state === "unreadable")
         missing.push("The approved form intake could not be read (team)");

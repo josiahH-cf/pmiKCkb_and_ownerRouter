@@ -57,9 +57,12 @@ older than 24 hours or dated in the future is refused. This is the application's
 conservative policy, not a ClamAV update-service availability promise. Main database
 age is not substituted for daily age. Startup runs bounded one-shot FreshClam,
 then starts ClamAV; an active scan request refreshes after an hour and explicitly
-reloads/polls the loaded database. A failed update remains unavailable until a
-later bounded retry. `GET /ready` verifies existing disk/loaded metadata only and
-never updates, starts or reloads the engine. Readiness is not a malware scan.
+reloads/polls the loaded database. A failed hourly refresh is not fatal on its own:
+scanning and readiness continue while the verified disk and loaded daily databases
+still agree and are under 24 hours old, and the next refresh waits for the usual
+interval; once that age check fails, the service refuses until a refresh succeeds.
+`GET /ready` verifies existing disk/loaded metadata only and never updates, starts
+or reloads the engine. Readiness is not a malware scan.
 
 ## Isolated checks and remaining qualification
 

@@ -21,6 +21,9 @@ const editor = {
   hd: "pmikcmetro.com",
   role: "Editor" as const,
 };
+/** Every save, publish and start binds to the revision the caller just reviewed. */
+const revisionOf = async (db: Firestore, id: string) =>
+  (await getProcessDefinition(editor, id, db)).revision!;
 async function fixture() {
   const fake = new FakeFirestore();
   const db = fake as unknown as Firestore;
@@ -87,13 +90,17 @@ describe("S241 reviewed existing process content and conflict safety", () => {
     const published = await publishProcessDefinition(
       editor,
       created.id,
-      {},
+      { expected_revision: await revisionOf(db, created.id) },
       { db, scanner: new FakePublicationScanner() },
     );
     await updateProcessDefinition(
       editor,
       created.id,
-      { name: "Edited draft", steps: [{ id: "draft-step", title: "Draft work" }] },
+      {
+        expected_revision: await revisionOf(db, created.id),
+        name: "Edited draft",
+        steps: [{ id: "draft-step", title: "Draft work" }],
+      },
       db,
     );
     const run = await startWorkflowRun(editor, created.id, {}, db);
@@ -109,7 +116,7 @@ describe("S241 reviewed existing process content and conflict safety", () => {
     const published = await publishProcessDefinition(
       editor,
       created.id,
-      {},
+      { expected_revision: await revisionOf(db, created.id) },
       { db, scanner: new FakePublicationScanner() },
     );
     const run = await startWorkflowRun(editor, created.id, {}, db);
@@ -119,7 +126,10 @@ describe("S241 reviewed existing process content and conflict safety", () => {
     await updateProcessDefinition(
       editor,
       created.id,
-      { steps: [{ id: "draft-step", title: "Draft work" }] },
+      {
+        expected_revision: await revisionOf(db, created.id),
+        steps: [{ id: "draft-step", title: "Draft work" }],
+      },
       db,
     );
     expect((await getWorkflowRunDefinition(editor, run, db)).steps).toEqual(
@@ -149,7 +159,7 @@ describe("S241 reviewed existing process content and conflict safety", () => {
     const first = await publishProcessDefinition(
       editor,
       created.id,
-      {},
+      { expected_revision: await revisionOf(db, created.id) },
       { db, scanner: new FakePublicationScanner() },
     );
     const before = structuredClone(
@@ -158,13 +168,16 @@ describe("S241 reviewed existing process content and conflict safety", () => {
     await updateProcessDefinition(
       editor,
       created.id,
-      { steps: [{ id: "v2-step", title: "Version two work" }] },
+      {
+        expected_revision: await revisionOf(db, created.id),
+        steps: [{ id: "v2-step", title: "Version two work" }],
+      },
       db,
     );
     const second = await publishProcessDefinition(
       editor,
       created.id,
-      {},
+      { expected_revision: await revisionOf(db, created.id) },
       { db, scanner: new FakePublicationScanner() },
     );
     const run = await startWorkflowRun(editor, created.id, {}, db);
@@ -187,7 +200,7 @@ describe("S241 reviewed existing process content and conflict safety", () => {
       const published = await publishProcessDefinition(
         editor,
         created.id,
-        {},
+        { expected_revision: await revisionOf(db, created.id) },
         { db, scanner: new FakePublicationScanner() },
       );
       const run = await startWorkflowRun(editor, created.id, {}, db);
@@ -231,7 +244,7 @@ describe("S241 reviewed existing process content and conflict safety", () => {
       await publishProcessDefinition(
         editor,
         created.id,
-        {},
+        { expected_revision: await revisionOf(db, created.id) },
         { db, scanner: new FakePublicationScanner() },
       );
       const actor = { ...editor, role };
@@ -281,17 +294,15 @@ describe("S241 reviewed existing process content and conflict safety", () => {
     const beforeRun = structuredClone(fake.store.get("workflow_runs/prior-run"));
     const reviewed = await getProcessDefinition(editor, id, db);
     await expect(
-      publishProcessDefinition(
-        editor,
-        id,
-        { policy_id: "policy-1" },
-        { db, scanner: new FakePublicationScanner() },
-      ),
+      publishProcessDefinition(editor, id, { policy_id: "policy-1" } as never, {
+        db,
+        scanner: new FakePublicationScanner(),
+      }),
     ).rejects.toThrow("revision");
     const result = await publishProcessDefinition(
       editor,
       id,
-      { policy_id: "policy-1", expected_revision: reviewed.revision },
+      { policy_id: "policy-1", expected_revision: reviewed.revision! },
       { db, scanner: new FakePublicationScanner() },
     );
     expect(result.definition.status).toBe("Active");
@@ -304,7 +315,7 @@ describe("S241 reviewed existing process content and conflict safety", () => {
       publishProcessDefinition(
         editor,
         id,
-        { policy_id: "policy-1", expected_revision: reviewed.revision },
+        { policy_id: "policy-1", expected_revision: reviewed.revision! },
         { db, scanner: new FakePublicationScanner() },
       ),
     ).rejects.toThrow("changed");
@@ -340,7 +351,7 @@ describe("S241 reviewed existing process content and conflict safety", () => {
         created.id,
         {
           name: "Stale editor title",
-          expected_revision: created.revision,
+          expected_revision: created.revision!,
         },
         db,
       ),
@@ -365,7 +376,7 @@ describe("S241 reviewed existing process content and conflict safety", () => {
       publishProcessDefinition(
         editor,
         created.id,
-        { policy_id: "policy-1" },
+        { policy_id: "policy-1", expected_revision: created.revision! },
         { db, scanner },
       ),
     ).rejects.toThrow(/changed|revision/i);
@@ -375,6 +386,82 @@ describe("S241 reviewed existing process content and conflict safety", () => {
     expect(
       [...fake.store.keys()].filter((key) => key.startsWith("publication_versions/")),
     ).toHaveLength(0);
+  });
+  it("refuses an unbound save, publish or start so no caller can overwrite unseen content", async () => {
+    const { fake, db, created } = await fixture();
+    await expect(
+      updateProcessDefinition(editor, created.id, { name: "Unbound" } as never, db),
+    ).rejects.toThrow();
+    await expect(
+      publishProcessDefinition(editor, created.id, {} as never, {
+        db,
+        scanner: new FakePublicationScanner(),
+      }),
+    ).rejects.toThrow();
+    await expect(
+      startWorkflowRun(editor, created.id, { expected_revision: "b".repeat(64) }, db),
+    ).rejects.toMatchObject({ status: 409 });
+    expect((await getProcessDefinition(editor, created.id, db)).name).toBe(created.name);
+    expect(
+      [...fake.store.keys()].filter((key) => key.startsWith("workflow_runs/")),
+    ).toHaveLength(0);
+    const run = await startWorkflowRun(
+      editor,
+      created.id,
+      { expected_revision: await revisionOf(db, created.id) },
+      db,
+    );
+    expect(run.status).toBe("In Progress");
+  });
+  it("refuses to start a run while the definition still carries placeholder staff assignments", async () => {
+    const { fake, db } = await fixture();
+    const template = buildOwnerRenewalOutreachProcessTemplate({
+      ownerUid: "process-owner-PLACEHOLDER",
+      approverUid: "process-approver-PLACEHOLDER",
+    });
+    const seeded = await createProcessDefinition(
+      editor,
+      { ...template, space_id: "owner-renewal-outreach" },
+      db,
+    );
+    await expect(startWorkflowRun(editor, seeded.id, {}, db)).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringMatching(/placeholder/i),
+    });
+    expect(
+      [...fake.store.keys()].filter((key) => key.startsWith("workflow_runs/")),
+    ).toHaveLength(0);
+    await updateProcessDefinition(
+      editor,
+      seeded.id,
+      {
+        expected_revision: await revisionOf(db, seeded.id),
+        owner_uid: editor.uid,
+        default_approver_uid: editor.uid,
+      },
+      db,
+    );
+    const run = await startWorkflowRun(editor, seeded.id, {}, db);
+    expect(run.owner_uid).toBe(editor.uid);
+  });
+  it("publishes a legacy Testing-status record once under the reader's normalized revision", async () => {
+    const { fake, db, created } = await fixture();
+    fake.seed(`process_definitions/${created.id}`, {
+      ...fake.store.get(`process_definitions/${created.id}`),
+      status: "Testing",
+    });
+    const reviewed = await getProcessDefinition(editor, created.id, db);
+    expect(reviewed.status).toBe("Draft");
+    const result = await publishProcessDefinition(
+      editor,
+      created.id,
+      { expected_revision: reviewed.revision! },
+      { db, scanner: new FakePublicationScanner() },
+    );
+    expect(result.definition.status).toBe("Active");
+    expect(
+      [...fake.store.keys()].filter((key) => key.startsWith("publication_versions/")),
+    ).toHaveLength(1);
   });
   it("shows an unpublished definition as draft rather than published readiness", () => {
     const space = {

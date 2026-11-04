@@ -46,6 +46,7 @@ describe("workflow foundation repository", () => {
       editor,
       definition.id,
       {
+        expected_revision: definition.revision!,
         short_outcome: "Prepare a reviewed renewal package.",
         steps: [{ title: "Gather lease facts" }, { title: "Prepare package" }],
       },
@@ -131,7 +132,7 @@ describe("workflow foundation repository", () => {
     const edited = await updateProcessDefinition(
       editor,
       definition.id,
-      { name: "Revised after disable" },
+      { name: "Revised after disable", expected_revision: reverted.revision! },
       db,
     );
     expect(edited.status).toBe("Draft");
@@ -161,7 +162,7 @@ describe("workflow foundation repository", () => {
     const edited = await updateProcessDefinition(
       editor,
       definition.id,
-      { name: "Revised after deny" },
+      { name: "Revised after deny", expected_revision: reverted.revision! },
       db,
     );
     expect(edited.status).toBe("Draft");
@@ -186,6 +187,8 @@ describe("workflow foundation repository", () => {
       editor,
       definition.id,
       {
+        expected_revision: (await getProcessDefinition(editor, definition.id, db))
+          .revision!,
         steps: [{ title: "Gather lease facts" }, { title: "Draft owner summary" }],
       },
       db,

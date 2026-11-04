@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { parseSafePdf } from "@/lib/lease-documents/acroform-pdf";
+import { PdfRefusalError } from "@/lib/lease-documents/pdf-refusal";
 import { readPublicationPdfText } from "@/lib/lease-documents/static-pdf";
 import {
   authenticatedRequest,
@@ -77,7 +78,11 @@ export class ManagedRenewalOriginalScanner implements PublicationScanner {
   ): Promise<PublicationScanResult> {
     try {
       if (!this.permitted(content, metadata)) return { code: "scanner_unavailable" };
-      await parseSafePdf(content, true);
+      try {
+        await parseSafePdf(content, true);
+      } catch (error) {
+        return { code: contentRefusalCode(error) ?? "scanner_unavailable" };
+      }
       const response = await this.request({
         method: "POST",
         url: `${this.configuration.serviceUrl}/v1/scan-renewal-original`,
@@ -88,15 +93,17 @@ export class ManagedRenewalOriginalScanner implements PublicationScanner {
       const evidence = evidenceSchema.parse(response.body);
       const time = Date.parse(evidence.dailyTimestamp),
         now = Date.parse(this.now());
+      if (!Number.isFinite(now)) return { code: "scanner_unavailable" };
+      // The engine answered; evidence that does not bind these exact bytes, the pinned engine and
+      // a fresh daily database is a mismatch, distinct from an outage.
       if (
         evidence.contentHash !== this.scope.contentHash ||
         evidence.scannedBytes !== content.byteLength ||
         evidence.engineVersion !== this.configuration.engineVersion ||
-        !Number.isFinite(now) ||
         time > now ||
         now - time > MAX_SIGNATURE_AGE_MS
       )
-        return { code: "scanner_unavailable" };
+        return { code: "evidence_mismatch" };
       return { code: evidence.malware === "clean" ? "clean" : "malware_detected" };
     } catch {
       return { code: "scanner_unavailable" };
@@ -108,10 +115,21 @@ export class ManagedRenewalOriginalScanner implements PublicationScanner {
   ): Promise<PublicationScanResult> {
     try {
       if (!this.permitted(content, metadata)) return { code: "scanner_unavailable" };
-      const text = await readPublicationPdfText(content);
+      let text: string;
+      try {
+        text = await readPublicationPdfText(content);
+      } catch (error) {
+        return { code: contentRefusalCode(error) ?? "scanner_unavailable" };
+      }
       return inspectProcessSensitivity(Buffer.from(JSON.stringify({ text }), "utf8"));
     } catch {
       return { code: "scanner_unavailable" };
     }
   }
+}
+
+/** A reader refusal is a property of the content, reported distinctly from a scanner outage. */
+function contentRefusalCode(error: unknown): PublicationScanResult["code"] | null {
+  if (!(error instanceof PdfRefusalError)) return null;
+  return error.kind === "unsupported" ? "content_unsupported" : "content_undecodable";
 }

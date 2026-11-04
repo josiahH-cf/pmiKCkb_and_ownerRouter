@@ -70,6 +70,8 @@ assertIncludes("docs/products/gmail-inbox-zero.md", [
   "at-most-once occurrence",
   "Historical authorizations cannot dispatch",
   "Both Dotloop write keys remain closed",
+  "The two previously activated notice-send keys retain their recorded metadata",
+  "retired before provider construction regardless of its historical open key",
   "Generic `gmail.message.send` remains closed",
   "Original draft,",
   "own-attempt recovery",

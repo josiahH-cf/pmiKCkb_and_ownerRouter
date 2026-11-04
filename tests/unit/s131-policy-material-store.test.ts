@@ -279,6 +279,23 @@ describe("S131 intake is pending, never active (AC-S131-2, AC-S131-3)", () => {
       state: "none",
     });
   });
+
+  it.each(["lease-renewals", "renewals"])(
+    "accepts the %s publication Space for a bound policy material version",
+    async (spaceId) => {
+      const { db } = harness();
+      expect(
+        await status(
+          intakePolicyMaterial(
+            admin,
+            { config: config("v1"), operationId: OP(4) },
+            db,
+            deps({ readPublication: vi.fn(async () => publication({ spaceId })) }),
+          ),
+        ),
+      ).toBe(200);
+    },
+  );
 });
 
 describe("S131 approval enables the exact version and supersedes the earlier one (AC-S131-3, AC-S131-8)", () => {

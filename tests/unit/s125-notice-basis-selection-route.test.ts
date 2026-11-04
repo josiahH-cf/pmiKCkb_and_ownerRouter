@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GET, PATCH } from "@/app/api/lease-renewal/notice-timing-basis/route";
 import { setAuthResolverForTest } from "@/lib/auth/session";
 import {
+  assertTimingBasisStaff,
   readMoveOutTimingBasisSelection,
   selectMoveOutTimingBasis,
 } from "@/lib/firestore/lease-renewal-move-out-timing-basis";
@@ -13,6 +14,23 @@ vi.mock("@/lib/firestore/lease-renewal-move-out-timing-basis", async (original) 
   readMoveOutTimingBasisSelection: vi.fn(),
   selectMoveOutTimingBasis: vi.fn(),
 }));
+// No read-only managed role exists today (ROLES is Editor, Approver, Admin), and session
+// validation admits only those three. This stub adds one so the staff gate the GET route calls is
+// proven to follow the capability table rather than its own role list.
+vi.mock("@/lib/constants", async (original) => {
+  const actual = await original<typeof import("@/lib/constants")>();
+  return { ...actual, ROLES: [...actual.ROLES, "Viewer"] };
+});
+vi.mock("@/lib/auth/roles", async (original) => {
+  const actual = await original<typeof import("@/lib/auth/roles")>();
+  return {
+    ...actual,
+    can: (role: string, capability: string) =>
+      role === "Viewer"
+        ? capability === "read"
+        : actual.can(role as never, capability as never),
+  };
+});
 const editor = {
   uid: "staff-one",
   email: "staff-one@pmikcmetro.com",
@@ -81,6 +99,16 @@ describe("S125 canonical staff route (ARCH-S125-3/4)", () => {
       expect((await PATCH(request(body))).status).toBe(400);
     }
     expect(selectMoveOutTimingBasis).not.toHaveBeenCalled();
+  });
+  it("admits any managed role with read_workspace to the read gate and keeps selecting on edit", () => {
+    const viewer = { ...editor, uid: "staff-viewer", role: "Viewer" as never };
+    expect(() => assertTimingBasisStaff(viewer, false)).not.toThrow();
+    expect(() => assertTimingBasisStaff(viewer, true)).toThrow(
+      /Editor access is required/,
+    );
+    expect(() =>
+      assertTimingBasisStaff({ ...editor, role: "Stranger" as never }, false),
+    ).toThrow(/Managed renewal staff access is required/);
   });
   it("reads the exact owned receipt with no-store and keeps verification reads available", async () => {
     setAuthResolverForTest(() => ({ ...editor, email: "canary-editor@pmikcmetro.com" }));

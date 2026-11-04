@@ -129,12 +129,12 @@ export async function updateProcessDefinition(
   await db.runTransaction(async (transaction) => {
     const snapshot = await transaction.get(definitionRef(db, definitionId));
     const current = readRequiredProcessDefinition(snapshot.id, snapshot.data());
-    assertProcessDefinitionRevision(current, parsed.expected_revision);
     if (
       isRetiredMaintenanceWorkflow(current.space_id, current.id) ||
       isRetiredMaintenanceWorkflow(parsed.space_id)
     )
       throw new EditableLayerError(MAINTENANCE_RETIREMENT_MESSAGE, 410);
+    assertProcessDefinitionRevision(current, parsed.expected_revision);
     assertDefinitionEditable(current);
 
     const updates = stripUndefined({
@@ -221,6 +221,19 @@ export async function submitProcessDefinitionForApproval(
   return getProcessDefinition(actor, definitionId, db);
 }
 
+/** Seeded definitions carry literal placeholder owner/approver values until real staff are recorded. */
+const PLACEHOLDER_STAFF_UID = /placeholder/i;
+export const PLACEHOLDER_STAFF_ASSIGNMENT_MESSAGE =
+  "This process still carries placeholder owner or approver assignments. Record the responsible staff on the definition before starting a run.";
+export function hasPlaceholderStaffAssignment(content: {
+  owner_uid?: string;
+  default_approver_uid?: string;
+}) {
+  return [content.owner_uid, content.default_approver_uid].some(
+    (value) => typeof value === "string" && PLACEHOLDER_STAFF_UID.test(value),
+  );
+}
+
 export async function startWorkflowRun(
   actor: AuthenticatedUser,
   definitionId: string,
@@ -238,6 +251,13 @@ export async function startWorkflowRun(
     throw new EditableLayerError("Retired process definitions cannot be started.", 409);
   }
   assertProcessDefinitionRecordAccess(actor, definition);
+  // A caller that reviewed one revision starts only that revision; the transaction below still
+  // rechecks the stored record against this read.
+  if (parsed.expected_revision && parsed.expected_revision !== definition.revision)
+    throw new EditableLayerError(
+      "The process definition changed before this run started. Reload the current process before starting again.",
+      409,
+    );
 
   const runId = options.runId ? validateTrustedWorkflowRunId(options.runId) : uuidv7();
 
@@ -268,6 +288,8 @@ export async function startWorkflowRun(
         current.status === "Active" ? current.active_version_id : undefined,
     };
     const content = await readWorkflowRunDefinition(actor, binding, db, transaction);
+    if (hasPlaceholderStaffAssignment(content))
+      throw new EditableLayerError(PLACEHOLDER_STAFF_ASSIGNMENT_MESSAGE, 409);
     const run: Omit<WorkflowRunRecord, "created_at" | "updated_at"> & {
       created_at: FieldValue;
       updated_at: FieldValue;
@@ -565,8 +587,9 @@ export function normalizeDefinitionFields(input: ParsedCreateProcessDefinitionIn
 }
 
 function normalizeDefinitionUpdateFields(input: ParsedUpdateProcessDefinitionInput) {
-  const content = { ...input };
-  delete content.expected_revision;
+  // The reviewed revision binds the write; it is never stored as content.
+  const { expected_revision: reviewedRevision, ...content } = input;
+  void reviewedRevision;
   return stripUndefined({
     ...content,
     action_references: input.action_references

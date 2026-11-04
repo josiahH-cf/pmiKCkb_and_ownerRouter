@@ -34,10 +34,13 @@ describe("buildReindexCommand", () => {
   it("is not runnable when the Space has no configured data store", () => {
     const plan = buildReindexCommand({
       spaceId: "brand-new",
+      gcpProjectId: "pmi-kc-kb-prod",
       vertexSearchLocation: "us",
     });
     expect(plan.runnable).toBe(false);
-    expect(plan.notes.join(" ")).toMatch(/configured/);
+    expect(plan.notes[0]).toBe(
+      "No valid Vertex data store is configured for this Space.",
+    );
     // Still cost-safe: it prints guidance, never a runnable ingestion command.
     expect(plan.command).not.toContain("import:agent-search");
   });
@@ -50,6 +53,8 @@ describe("buildReindexCommand", () => {
     });
     expect(plan.runnable).toBe(false);
     expect(plan.command).toBe("");
-    expect(plan.notes.join(" ")).toMatch(/project/);
+    expect(plan.notes[0]).toBe(
+      "A real configured Google Cloud project is required; no placeholder command was prepared.",
+    );
   });
 });

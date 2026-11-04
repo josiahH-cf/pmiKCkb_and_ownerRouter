@@ -201,12 +201,11 @@ class EngineController:
         return loaded
 
     def ready(self):
-        # Readiness is a genuine read: no update, daemon start or reload.
+        # Readiness is a genuine read: no update, daemon start or reload. The verified disk and
+        # loaded daily databases decide; a failed hourly refresh alone does not refuse readiness.
         if not self.lock.acquire(blocking=False):
             raise Unavailable()
         try:
-            if not self.update_ok:
-                raise Unavailable()
             return self._ready(time.monotonic() + 12)
         finally:
             self.lock.release()
@@ -256,9 +255,13 @@ class EngineController:
             if self.process is None or self.process.poll() is not None:
                 raise Unavailable()
             if self.last_update_attempt is None or time.monotonic() - self.last_update_attempt >= UPDATE_INTERVAL_SECONDS:
-                self._update(deadline)
-            if not self.update_ok:
-                raise Unavailable()
+                try:
+                    self._update(deadline)
+                except Unavailable:
+                    # A failed refresh is not fatal by itself: the readiness check below still
+                    # requires the verified disk and loaded daily databases to agree and to be
+                    # under 24 hours old. The next refresh waits for the usual interval.
+                    pass
             before = self._ready(deadline)
             malware = scan_result(self._command(instream_parts(body), deadline))
             after = self._ready(deadline)
