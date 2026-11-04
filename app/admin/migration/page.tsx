@@ -112,10 +112,7 @@ export default async function AdminMigrationPage() {
                     ? "Production configuration is complete."
                     : `${report.production_env.errors.length} required production values are missing or invalid.`}
                 </p>
-                <p className="muted">
-                  Checked against the current process environment; expected to fail until
-                  the client-owned production values exist.
-                </p>
+                <p className="muted">Checked against the current process environment.</p>
               </>
             ) : (
               <p className="muted">{report.production_env.note}</p>

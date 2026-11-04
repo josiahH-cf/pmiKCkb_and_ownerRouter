@@ -1,6 +1,9 @@
 // S242/S243: the rendered help pages. Server components over the repository content model; they
 // read nothing from Firestore or a provider and issue no write. Every guide shows the help
 // version, its last updated date and the serving release it describes.
+import { closeSync, openSync, readSync } from "node:fs";
+import { join } from "node:path";
+
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -18,7 +21,7 @@ import {
   helpSection,
 } from "@/lib/help";
 import { HELP_CHANGELOG } from "@/lib/help/content/changelog";
-import { helpScene } from "@/lib/help/scenes";
+import { helpScene, type HelpScene } from "@/lib/help/scenes";
 import {
   HELP_GLOSSARY_HREF,
   HELP_PRINT_HREF,
@@ -131,9 +134,47 @@ export function HelpPrintFooter({ title }: Readonly<{ title: string }>) {
   );
 }
 
+const pictureSizes = new Map<string, Readonly<{ width: number; height: number }>>();
+
+/**
+ * The pixel size the picture really has. A viewport frame is exactly the scene viewport (the
+ * screenshot gate checks it); a region frame is cropped smaller, so its size is read from the
+ * committed PNG's header. Declaring the viewport size for a crop reserves a taller box until the
+ * picture loads, and a step reached from a link on another page then moves out of view when it
+ * arrives. An unreadable picture keeps the viewport size.
+ */
+function scenePictureSize(scene: HelpScene) {
+  const known = pictureSizes.get(scene.id);
+  if (known) return known;
+  let size: Readonly<{ width: number; height: number }> = scene.viewport;
+  if (scene.frame === "region") {
+    try {
+      const file = openSync(
+        join(process.cwd(), "public", HELP_ASSET_ROOT, `${scene.id}.png`),
+        "r",
+      );
+      try {
+        const header = Buffer.alloc(24);
+        if (
+          readSync(file, header, 0, 24, 0) === 24 &&
+          header.toString("ascii", 12, 16) === "IHDR"
+        )
+          size = { width: header.readUInt32BE(16), height: header.readUInt32BE(20) };
+      } finally {
+        closeSync(file);
+      }
+    } catch {
+      // Keep the viewport size.
+    }
+  }
+  pictureSizes.set(scene.id, size);
+  return size;
+}
+
 function SceneFigure({ sceneId }: Readonly<{ sceneId: string }>) {
   const scene = helpScene(sceneId);
   if (!scene) return null;
+  const size = scenePictureSize(scene);
   return (
     <figure className="help-figure">
       {/* Eager, not lazy: a printed guide or the whole manual must carry every picture, and a
@@ -141,11 +182,11 @@ function SceneFigure({ sceneId }: Readonly<{ sceneId: string }>) {
       <Image
         alt={scene.alt}
         className="help-figure-image"
-        height={scene.viewport.height}
+        height={size.height}
         loading="eager"
         src={`${HELP_ASSET_ROOT}/${scene.id}.png`}
         unoptimized
-        width={scene.viewport.width}
+        width={size.width}
       />
       <figcaption>{scene.caption}</figcaption>
     </figure>
@@ -291,7 +332,10 @@ export function HelpGuidePage({
   return (
     <>
       <HelpPrintFooter title={guide.title} />
-      <HelpStepTarget stepIds={guide.steps.map((step) => step.id)} />
+      <HelpStepTarget
+        sectionHref={helpSectionHref(guide.section)}
+        stepIds={guide.steps.map((step) => step.id)}
+      />
       <div className="help-page-actions help-print-hide">
         <HelpPrintButton label="Print this guide" />
       </div>
@@ -352,7 +396,7 @@ export function HelpScreenBody({
               {screen.controls.map((control) => (
                 <tr
                   id={helpControlAnchor(control.label)}
-                  key={`${control.region}|${control.label}`}
+                  key={`${control.region}|${control.role}|${control.label}`}
                 >
                   <td>
                     <strong>{control.label}</strong>

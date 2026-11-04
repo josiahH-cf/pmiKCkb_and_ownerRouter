@@ -172,4 +172,47 @@ describe("S86 InfoTip", () => {
     const tip = screen.getByRole("tooltip");
     expect(tip).toHaveStyle({ left: "16px", width: "288px" });
   });
+
+  it("S244 litmus L26: measures the panel at its own width so its last line stays on screen", async () => {
+    vi.stubGlobal("innerWidth", 1360);
+    vi.stubGlobal("innerHeight", 900);
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      bottom: 556,
+      height: 44,
+      left: 204,
+      right: 248,
+      top: 512,
+      width: 44,
+      x: 204,
+      y: 512,
+      toJSON: () => ({}),
+    });
+    // A panel wraps more at its 360-pixel width than unconstrained, so it is taller there.
+    vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return this.style.width === "360px" ? 453 : 200;
+    });
+    const user = userEvent.setup();
+    render(
+      <InfoTip
+        content={
+          <p>
+            <Link href="/help/lease-renewals/update-sources#offered-source-updates">
+              Open the guide
+            </Link>
+          </p>
+        }
+        interactive
+        label="Source updates"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "About Source updates" }));
+    // 556 + 8 + 453 runs past 900 - 16, so the panel opens above the trigger: 512 - 453 - 8.
+    expect(screen.getByRole("region", { name: "About Source updates" })).toHaveStyle({
+      top: "51px",
+      width: "360px",
+    });
+  });
 });
