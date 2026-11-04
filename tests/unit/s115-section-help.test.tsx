@@ -223,6 +223,34 @@ describe("S115 plain-language section help", () => {
     }
   });
 
+  it("S244 R-S244-5: the corrected About wording is pinned", () => {
+    // Document handoff: ordinary staff confirmation, closed Dotloop actions, signing by hand.
+    expect(SECTION_HELP["document-handoff"].purpose).toMatch(
+      /^Prepares the approved packet for Dotloop\. A renewal staff member with edit access confirms each supported packet action through its exact preview; the Dotloop loop creation and upload actions are closed, so the readiness rows say so and nothing is created\. Signatures are collected in Dotloop by hand\. /,
+    );
+    // Working terms: the packet reads the terms the recorded owner approval covers.
+    expect(SECTION_HELP["working-terms"].saves).toContain(
+      "the document packet reads the Working terms the recorded owner approval covers",
+    );
+    // Owner response: Approved asks who approved, how and when; any other answer saves at once.
+    expect(SECTION_HELP["owner-response"].purpose).toContain(
+      "Choosing Approved asks who approved, how and when, and Record approval saves it; any other answer saves when you choose it.",
+    );
+    // Tenant: only an explicit Send or Schedule in Communications sends.
+    expect(SECTION_HELP["section-tenant"].notDone).toContain(
+      "The app sends nothing on its own; only your explicit Send or Schedule in Communications sends.",
+    );
+    for (const id of SECTION_HELP_IDS) {
+      const help = SECTION_HELP[id];
+      const text = [help.purpose, ...(help.steps ?? []), help.saves, help.notDone].join(
+        " ",
+      );
+      expect(text, id).not.toMatch(
+        /Admin approval reason|approval note|does not read them yet/,
+      );
+    }
+  });
+
   it("AC-S115-2: the affected work areas each host their own About control", () => {
     // Without staff records the workspace shows the decision, offer and draft cards.
     renderWorkspace();
@@ -357,12 +385,10 @@ describe("S115 plain-language section help", () => {
     expect(screen.queryByRole("region", { name: "About Lease details" })).toBeNull();
   });
 
-  it("AC-S115-4: the operator guide's About rows name controls that render", async () => {
-    const { parseGuideSteps } =
+  it("AC-S115-4: the help hub's About rows name controls that render", async () => {
+    const { loadGuideSteps } =
       await import("../../scripts/lib/renewal-guide-controls.mjs");
-    const steps = parseGuideSteps(
-      read("docs/products/renewal-operator-guide.md"),
-    ) as Array<{
+    const steps = loadGuideSteps() as Array<{
       control: string;
       role: string;
     }>;

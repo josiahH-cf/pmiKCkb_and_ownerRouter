@@ -1,0 +1,85 @@
+{
+  "description": "S243 help rehearsal: a synthetic operating Sheet for the isolated stand-in in tests/browser/renewal-novdec-journey-network.mjs, served only when HELP_REHEARSAL_SHEET_FIXTURE names this file. Every name, date and amount is invented. Each row links its tenant cell to its synthetic RentVine lease, and rentvinePropertyIds gives each synthetic lease detail the property id the lease-to-row resolution requires.",
+  "rentvinePropertyIds": {
+    "4821": 8001,
+    "5001": 8002,
+    "6001": 8003
+  },
+  "rows": [
+    {
+      "leaseId": 4821,
+      "link": { "column": 2, "url": "https://pmikcmetro.rentvine.com/leases/4821" },
+      "cells": [
+        "no",
+        "no",
+        "Sam Example & Riley Example",
+        "11/30/2026",
+        "$1,250",
+        "$1,300",
+        "no",
+        "no",
+        "no",
+        "no",
+        "no",
+        "no policy",
+        "no pet",
+        "no",
+        "no",
+        "no",
+        "n/a",
+        "n/a",
+        "n/a"
+      ]
+    },
+    {
+      "leaseId": 5001,
+      "link": { "column": 2, "url": "https://pmikcmetro.rentvine.com/leases/5001" },
+      "cells": [
+        "yes",
+        "no",
+        "Casey Example",
+        "12/31/2026",
+        "$1,400",
+        "$1,450",
+        "no",
+        "no",
+        "no",
+        "no",
+        "no",
+        "no policy",
+        "no pet",
+        "no",
+        "no",
+        "no",
+        "n/a",
+        "n/a",
+        "n/a"
+      ]
+    },
+    {
+      "leaseId": 6001,
+      "link": { "column": 2, "url": "https://pmikcmetro.rentvine.com/leases/6001" },
+      "cells": [
+        "no",
+        "no",
+        "Morgan Example",
+        "11/20/2026",
+        "$1,300",
+        "$1,350",
+        "not renewing",
+        "not renewing",
+        "no",
+        "no",
+        "no",
+        "no policy",
+        "no pet",
+        "no",
+        "no",
+        "no",
+        "n/a",
+        "n/a",
+        "n/a"
+      ]
+    }
+  ]
+}

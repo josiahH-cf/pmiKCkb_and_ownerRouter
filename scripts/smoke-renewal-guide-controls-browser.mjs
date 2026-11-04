@@ -6,13 +6,15 @@ import { resolveBrowserExecutable as findBrowserExecutable } from "./lib/browser
 // It also walks desk to lease and back, so the guide's "your filters come back with you" claim is
 // proven rather than asserted. Everything is read-only; the rehearsal surface refuses changes.
 
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { chromium } from "playwright-core";
-import { assertGuideControl, parseGuideSteps } from "./lib/renewal-guide-controls.mjs";
-
-const GUIDE_PATH = "docs/products/renewal-operator-guide.md";
+import {
+  assertGuideControl,
+  GUIDE_CONTROL_MAP_PATH,
+  loadGuideSteps,
+} from "./lib/renewal-guide-controls.mjs";
 
 const baseUrlInput =
   readArgument("--base-url") ?? process.env.DESK_BROWSER_BASE_URL?.trim();
@@ -27,10 +29,10 @@ const ROUTE_BUDGET_MS = 90_000;
 const artifactDir = join(process.cwd(), "temp", "renewal-guide-controls-s111");
 mkdirSync(artifactDir, { recursive: true });
 
-const steps = parseGuideSteps(readFileSync(GUIDE_PATH, "utf8"));
+const steps = loadGuideSteps();
 if (steps.length < 5) {
   throw new Error(
-    `The training guide's step-to-control table produced ${steps.length} steps; it must name every step it teaches.`,
+    `The help hub's renewal control map (${GUIDE_CONTROL_MAP_PATH}) produced ${steps.length} steps; it must name every step the guides teach.`,
   );
 }
 

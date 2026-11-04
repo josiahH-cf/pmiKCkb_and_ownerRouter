@@ -62,6 +62,9 @@ const DIRECT_PRODUCT_RECORD_REFERENCE_INVENTORY = {
     "lib/firestore/approval-queue.ts",
     "lib/vendor/live-lifecycle-runtime.ts",
     "scripts/demo-firestore.mjs",
+    // S243: the isolated help rehearsal copies the demo items into its emulator and requests one
+    // through createApprovalQueueItem; it writes no queue item directly.
+    "scripts/lib/help-rehearsal-fixtures.mjs",
   ],
   lease_renewal_progress: [
     "lib/firestore/lease-derived-artifacts.ts",

@@ -1,0 +1,480 @@
+{
+  "version": "V1.0",
+  "routeParameters": {
+    "leaseId": "4821",
+    "propertyKey": "4821",
+    "spaceId": "owner-renewal-outreach",
+    "definitionId": "owner-renewal-outreach",
+    "slug": "overview",
+    "runId": "help-rehearsal-run",
+    "fieldKey": "current_rent"
+  },
+  "outlineRoutes": [
+    "/search",
+    "/spaces",
+    "/processes",
+    "/processes/[definitionId]",
+    "/spaces/maintenance-work-order-intake",
+    "/spaces/owner-renewal-outreach",
+    "/search?q=Example",
+    "/notifications",
+    "/profile",
+    "/work",
+    "/search/entity",
+    "/search/open",
+    "/approval-queue?view=all",
+    "/lease-renewal/readiness",
+    "/lease-renewal/collections",
+    "/lease-renewal/property/[propertyKey]",
+    "/lease-renewal/live",
+    "/admin/team-work",
+    "/admin/presentation",
+    "/admin/migration",
+    "/admin/gmail-inbox-zero",
+    "/admin/spaces/request",
+    "/admin/access"
+  ],
+  "scenes": [
+    {
+      "id": "home-dashboard",
+      "guide": "find-your-way",
+      "step": "open-the-dashboard",
+      "route": "/",
+      "role": "Editor",
+      "fixture": "Synthetic Dashboard with seeded Approval Queue items",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "page",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "The Dashboard after sign-in, with the top bar, Ask a question and the work waiting on you.",
+      "caption": "The Dashboard is the first page after sign-in."
+    },
+    {
+      "id": "home-operations-menu",
+      "guide": "find-your-way",
+      "step": "open-a-menu",
+      "route": "/",
+      "role": "Editor",
+      "fixture": "Synthetic Dashboard",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "page",
+      "frame": "viewport",
+      "actions": ["click-button:Operations"],
+      "source": "rehearsal",
+      "alt": "The Operations menu open in the top bar, listing Lease Renewal and Internal Processes with their descriptions.",
+      "caption": "Each top bar menu lists its destinations with a short description."
+    },
+    {
+      "id": "help-contents-narrow",
+      "guide": "find-your-way",
+      "step": "open-help",
+      "route": "/help",
+      "role": "Editor",
+      "fixture": "Help landing page",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "region": "page",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "Help on a phone-width screen, with the Help contents button above the page.",
+      "caption": "On a narrow screen, Help contents opens from the button above the page."
+    },
+    {
+      "id": "renewal-desk",
+      "guide": "work-a-renewal",
+      "step": "choose-a-worklist-view",
+      "route": "/lease-renewal/live/desk",
+      "role": "Editor",
+      "fixture": "Synthetic renewal desk with three leases",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "page",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "The Renewal worklist with its views, counts, filters and the first rows of the Renewal table.",
+      "caption": "Worklist views and filters sit above the Renewal table."
+    },
+    {
+      "id": "renewal-desk-narrow",
+      "guide": "work-a-renewal",
+      "step": "filter-the-desk",
+      "route": "/lease-renewal/live/desk",
+      "role": "Editor",
+      "fixture": "Synthetic renewal desk with three leases",
+      "viewport": {
+        "width": 375,
+        "height": 812
+      },
+      "region": "region:Renewal worklist",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "The Renewal worklist on a phone-width screen, with views and filters above the table.",
+      "caption": "The desk on a narrow screen keeps the same views and filters."
+    },
+    {
+      "id": "lease-full-view",
+      "guide": "work-a-renewal",
+      "step": "choose-full-view",
+      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "role": "Editor",
+      "fixture": "Synthetic lease workspace",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "css:.renewal-workspace-toolbar",
+      "frame": "region",
+      "actions": ["click-button:Full view"],
+      "source": "rehearsal",
+      "alt": "The lease workspace header in Full view, with the lease identity, the Lease view switch, Lease information, Process guide and the section links.",
+      "caption": "Full view shows every section with links to each one."
+    },
+    {
+      "id": "lease-details",
+      "guide": "work-a-renewal",
+      "step": "read-lease-details",
+      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "role": "Editor",
+      "fixture": "Synthetic lease workspace",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "heading:Lease details",
+      "frame": "viewport",
+      "actions": ["click-button:Full view"],
+      "source": "rehearsal",
+      "alt": "The Lease details section with its About button and the Lease term card.",
+      "caption": "Lease details shows the facts the app read from RentVine and the operating Sheet."
+    },
+    {
+      "id": "market-rent-comparison",
+      "guide": "compare-rent",
+      "step": "open-market-comparison",
+      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "role": "Editor",
+      "fixture": "Synthetic lease workspace",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "heading:Market rent comparison",
+      "frame": "viewport",
+      "actions": ["click-button:Full view"],
+      "source": "rehearsal",
+      "alt": "The Market rent comparison section with Market evidence and the working offer.",
+      "caption": "Market rent comparison holds the evidence and the working offer."
+    },
+    {
+      "id": "tenant-offer",
+      "guide": "tenant-offer",
+      "step": "open-tenant-section",
+      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "role": "Editor",
+      "fixture": "Synthetic lease workspace",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "heading:Tenant offer and response",
+      "frame": "viewport",
+      "actions": ["click-button:Full view"],
+      "source": "rehearsal",
+      "alt": "The Tenant offer and response section with Tenant message preparation.",
+      "caption": "Tenant offer and response holds the tenant message, delivery and response."
+    },
+    {
+      "id": "update-status",
+      "guide": "update-sources",
+      "step": "read-update-status",
+      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "role": "Editor",
+      "fixture": "Synthetic lease workspace",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "region:Update status by destination",
+      "frame": "viewport",
+      "actions": ["click-button:Full view"],
+      "source": "rehearsal",
+      "alt": "Update status by destination in Rent and charges, one row per destination.",
+      "caption": "Update status by destination shows what is saved, prepared and applied."
+    },
+    {
+      "id": "owner-message-preparation",
+      "guide": "owner-message",
+      "step": "prepare-owner-message",
+      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "role": "Editor",
+      "fixture": "Synthetic lease workspace",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "region:Owner message preparation",
+      "frame": "viewport",
+      "actions": ["click-button:Full view"],
+      "source": "rehearsal",
+      "alt": "Owner message preparation in Owner approval, with the subject, body and copy buttons.",
+      "caption": "The owner message is prepared from the lease facts and the saved comparison."
+    },
+    {
+      "id": "owner-composer",
+      "guide": "owner-message",
+      "step": "send-or-schedule",
+      "route": "/gmail-hub?compose=renewal_owner&lease=5001",
+      "role": "Editor",
+      "fixture": "Synthetic owner composer for a renewal lease",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "button:Send",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "The lower part of the workflow communication composer in Communications, with the review note and the Save draft, Send and Schedule buttons.",
+      "caption": "The message is sent only when you choose Send or Schedule in Communications.",
+      "align": "center"
+    },
+    {
+      "id": "document-handoff",
+      "guide": "prepare-documents",
+      "step": "reload-readiness",
+      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "role": "Editor",
+      "fixture": "Synthetic lease workspace",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "region:Document preparation and signature handoff",
+      "frame": "viewport",
+      "actions": ["click-button:Full view"],
+      "source": "rehearsal",
+      "alt": "Document preparation and signature handoff with the Dotloop line and the readiness rows.",
+      "caption": "The readiness rows say which packet actions are available."
+    },
+    {
+      "id": "connections-resource-links",
+      "guide": "manage-connections",
+      "step": "enter-resource-link",
+      "route": "/connections",
+      "role": "Admin",
+      "fixture": "Connections with synthetic, unconfigured connectors",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "region:Renewal resource links",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "The Renewal resource links section in Connections with the labeled link boxes.",
+      "caption": "Renewal resource links hold the shared links the renewal documents use."
+    },
+    {
+      "id": "admin-space-request",
+      "guide": "admin-tasks",
+      "step": "request-a-space",
+      "route": "/admin/spaces/request",
+      "role": "Admin",
+      "fixture": "Space request form",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "page",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "The Request a new Space page with the request form.",
+      "caption": "A Space request records the request and shows its fixed plan."
+    },
+    {
+      "id": "maintenance-history",
+      "guide": "maintenance-history",
+      "step": "read-the-retirement-panel",
+      "route": "/spaces/maintenance-work-order-intake",
+      "role": "Editor",
+      "fixture": "Maintenance history Space",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "heading:Custom maintenance is retired",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "The Maintenance history Space with the Custom maintenance is retired panel.",
+      "caption": "Maintenance history is read-only; maintenance work happens in Vendoroo."
+    },
+    {
+      "id": "my-work",
+      "guide": "my-work-and-profile",
+      "step": "read-work-totals",
+      "route": "/work",
+      "role": "Editor",
+      "fixture": "My Work with synthetic tasks",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "page",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "My work with Factual work totals and Assigned tasks.",
+      "caption": "My work counts your own tasks and recorded time."
+    },
+    {
+      "id": "search-results",
+      "guide": "search",
+      "step": "run-the-search",
+      "route": "/search?q=Example",
+      "role": "Editor",
+      "fixture": "Entity search over synthetic records",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "page",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "Entity search results for a synthetic query, each match naming its type and the field that matched.",
+      "caption": "Search reads records and changes nothing."
+    },
+    {
+      "id": "process-publication",
+      "guide": "publish-a-process",
+      "step": "read-active-version",
+      "route": "/processes/[definitionId]",
+      "role": "Admin",
+      "fixture": "Owner Renewal Outreach definition published as Active version 1",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "heading:Publication",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "The Publication panel of the Owner Renewal Outreach process definition, naming its Active immutable version.",
+      "caption": "Publication names the Active version new runs record."
+    },
+    {
+      "id": "process-start-run",
+      "guide": "outreach-checklist",
+      "step": "start-run",
+      "route": "/processes/[definitionId]",
+      "role": "Editor",
+      "fixture": "Owner Renewal Outreach definition published as Active version 1",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "heading:Start run",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "The Start run panel with the Due date and Start note fields and the Start run button.",
+      "caption": "Start run creates an internal checklist run."
+    },
+    {
+      "id": "approval-queue-item",
+      "guide": "approve-or-deny",
+      "step": "open-item",
+      "route": "/approval-queue?view=all",
+      "role": "Admin",
+      "fixture": "Seeded synthetic Approval Queue items",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "region:Queue item detail",
+      "frame": "viewport",
+      "source": "rehearsal",
+      "alt": "Queue item detail in the Approval Queue, with the item's status, risk, approver, affected action and activity.",
+      "caption": "Queue item detail says what approval changes."
+    },
+    {
+      "id": "notifications-panel",
+      "guide": "notifications",
+      "step": "open-notifications",
+      "route": "/",
+      "role": "Editor",
+      "fixture": "Synthetic Dashboard",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "region": "page",
+      "frame": "viewport",
+      "actions": ["click-button:Notifications"],
+      "source": "rehearsal",
+      "alt": "The Notifications panel open from the top bar.",
+      "caption": "Notifications opens from the top bar on every page."
+    }
+  ],
+  "outlineVariants": [
+    {
+      "role": "Admin",
+      "route": "/",
+      "actions": ["click-button:My Work Contains current page"]
+    },
+    {
+      "role": "Admin",
+      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "actions": ["click-button:Full view"]
+    },
+    {
+      "role": "Admin",
+      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "actions": ["click-button:Full view", "click-button:Lease information"]
+    },
+    {
+      "role": "Admin",
+      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "actions": ["click-button:Full view", "click-button:Process guide"]
+    },
+    {
+      "role": "Editor",
+      "route": "/lease-renewal/live/desk/lease/[leaseId]",
+      "actions": ["click-button:Full view"]
+    },
+    {
+      "role": "Editor",
+      "route": "/",
+      "actions": ["click-button:Admin"]
+    },
+    {
+      "role": "Editor",
+      "route": "/admin/access",
+      "actions": []
+    },
+    {
+      "role": "Editor",
+      "route": "/connections",
+      "actions": []
+    },
+    {
+      "role": "Approver",
+      "route": "/approval-queue",
+      "actions": []
+    },
+    {
+      "role": "Admin",
+      "route": "/gmail-hub?compose=renewal_owner&lease=5001",
+      "actions": []
+    },
+    {
+      "role": "Admin",
+      "route": "/lease-renewal/live/desk",
+      "actions": ["open-summary:Filter renewal date"]
+    }
+  ]
+}

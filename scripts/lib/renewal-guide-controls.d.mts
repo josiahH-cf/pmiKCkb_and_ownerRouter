@@ -24,3 +24,6 @@ export function assertGuideControl(
   step: GuideStep,
 ): Promise<"visible" | "unavailable">;
 export function parseGuideSteps(markdown: string): GuideStep[];
+export const GUIDE_CONTROL_MAP_PATH: string;
+export function guideStepsFromControlMap(rows: unknown): GuideStep[];
+export function loadGuideSteps(root?: string): GuideStep[];
