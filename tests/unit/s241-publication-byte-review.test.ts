@@ -84,7 +84,7 @@ describe("S241 fresh exact-byte policy review through existing Admin change path
     const first = await publishProcessDefinition(
       actor,
       id,
-      { policy_id: policy.id, expected_revision: definition.revision },
+      { policy_id: policy.id, expected_revision: definition.revision! },
       { db, scanner: new FakePublicationScanner() },
     );
     const prior = structuredClone(
@@ -95,7 +95,7 @@ describe("S241 fresh exact-byte policy review through existing Admin change path
       actor,
       id,
       {
-        expected_revision: current.revision,
+        expected_revision: current.revision!,
         short_outcome: "Reviewed current outreach and reply handoff.",
       },
       db,
@@ -105,7 +105,7 @@ describe("S241 fresh exact-byte policy review through existing Admin change path
       publishProcessDefinition(
         actor,
         id,
-        { policy_id: policy.id, expected_revision: changed.revision },
+        { policy_id: policy.id, expected_revision: changed.revision! },
         { db, scanner: new FakePublicationScanner() },
       ),
     ).rejects.toMatchObject({ code: "resource_not_allowed" });
@@ -124,7 +124,7 @@ describe("S241 fresh exact-byte policy review through existing Admin change path
     const second = await publishProcessDefinition(
       actor,
       id,
-      { policy_id: policy.id, expected_revision: changed.revision },
+      { policy_id: policy.id, expected_revision: changed.revision! },
       { db, scanner: new FakePublicationScanner() },
     );
     expect(second.publicationVersion.resourceId).toBe(
