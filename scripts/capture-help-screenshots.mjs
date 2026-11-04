@@ -38,10 +38,13 @@ const SCENES_PATH = "lib/help/content/scenes.json";
 const ROUTE_BUDGET_MS = 120_000;
 
 // Bring a framed region to the top of the viewport, below every sticky or fixed bar pinned to the
-// top (for example the renewal workspace toolbar). String page functions keep tsx's name helper out
-// of the page.
-const SCROLL_TO_TOP = `(element) => {
-  element.scrollIntoView({ block: "start" });
+// top (for example the renewal workspace toolbar). Element functions are built from source text at
+// run time: Playwright calls a function with the element but only evaluates a string as an
+// expression, and a function compiled by the TypeScript loader would carry its name helper into the
+// page.
+const SCROLL_TO_TOP = new Function(
+  "element",
+  `element.scrollIntoView({ block: "start" });
   let cover = 0;
   for (const node of document.querySelectorAll("body *")) {
     const style = getComputedStyle(node);
@@ -50,11 +53,25 @@ const SCROLL_TO_TOP = `(element) => {
     if (rect.top <= 1 && rect.width > innerWidth * 0.5 && rect.bottom < innerHeight * 0.6)
       cover = Math.max(cover, rect.bottom);
   }
-  window.scrollBy(0, -(cover + 12));
-}`;
+  window.scrollBy(0, -(cover + 12));`,
+);
 
 // A scene with `align: "center"` centers its region in the viewport instead.
-const SCROLL_TO_CENTER = `(element) => element.scrollIntoView({ block: "center" })`;
+const SCROLL_TO_CENTER = new Function(
+  "element",
+  `element.scrollIntoView({ block: "center" });`,
+);
+
+// Where a framed region sits in the viewport, to confirm the framing held before the capture.
+const PLACEMENT = new Function(
+  "element",
+  `const rect = element.getBoundingClientRect();
+  return { top: rect.top, bottom: rect.bottom, height: innerHeight };`,
+);
+const placed = (placement, align) =>
+  align === "center"
+    ? placement.top < placement.height && placement.bottom > 0
+    : placement.top >= 0 && placement.top < placement.height * 0.6;
 
 // The Next dev overlay (build and compile indicator) is development chrome, not the interface.
 const HIDE_DEV_OVERLAY = "nextjs-portal { display: none !important; }";
@@ -257,11 +274,23 @@ async function captureScene(scene) {
     const region = locate(page, scene.region);
     await region.first().waitFor({ state: "visible" });
     const framed = scene.region && scene.region !== "page";
-    if (framed && scene.frame === "viewport")
-      await region
-        .first()
-        .evaluate(scene.align === "center" ? SCROLL_TO_CENTER : SCROLL_TO_TOP);
-    else if (framed) await region.first().scrollIntoViewIfNeeded();
+    if (framed && scene.frame === "viewport") {
+      // Frame the region, let the page settle and confirm it is still where it was put; a late
+      // layout change gets one more framing. A region that will not hold its place fails the scene.
+      let placement;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        await region
+          .first()
+          .evaluate(scene.align === "center" ? SCROLL_TO_CENTER : SCROLL_TO_TOP);
+        await quiet(page);
+        placement = await region.first().evaluate(PLACEMENT);
+        if (placed(placement, scene.align)) break;
+      }
+      assert.ok(
+        placed(placement, scene.align),
+        `scene ${scene.id} region ${scene.region} is not framed (top ${Math.round(placement.top)} of ${placement.height}).`,
+      );
+    } else if (framed) await region.first().scrollIntoViewIfNeeded();
     await quiet(page);
     return scene.frame === "region"
       ? await region.first().screenshot({ animations: "disabled", caret: "hide" })

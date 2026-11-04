@@ -92,9 +92,20 @@ async function verifyGuideControls() {
     );
     if (path.startsWith("workspace:")) {
       // S152: a lease opens in Focus view; the guide's workspace rows are located in Full view.
+      // The switch renders before the page hydrates, and a press that lands first is lost, so it
+      // is pressed until it reports Full view (aria-pressed) before any row is located.
       const fullView = page.getByRole("button", { name: "Full view", exact: true });
       await fullView.waitFor({ state: "visible", timeout: 90_000 });
-      await fullView.click();
+      for (let press = 1; ; press += 1) {
+        await fullView.click();
+        const opened = await page
+          .getByRole("button", { name: "Full view", exact: true, pressed: true })
+          .waitFor({ state: "visible", timeout: 3_000 })
+          .then(() => true)
+          .catch(() => false);
+        if (opened) break;
+        assert(press < 10, "The lease workspace did not switch to Full view.");
+      }
     }
     for (const step of pageSteps) {
       const availability = await assertGuideControl(page, step);
@@ -121,23 +132,32 @@ async function verifyDeskReturn() {
   await page.goto(deskUrl, { waitUntil: "domcontentloaded" });
   const table = page.locator("table.renewal-table");
   await table.waitFor();
-  const firstLease = table.locator("tbody tr a").first();
+  const firstLease = table.locator("tbody tr a.renewal-lease-link").first();
   await firstLease.waitFor();
   const leaseLabel = (await firstLease.innerText()).trim();
-  await firstLease.click();
+  // The desk opens a lease workspace in a new tab; Back to renewals there returns to the same view.
+  const [workspace] = await Promise.all([
+    context.waitForEvent("page"),
+    firstLease.click(),
+  ]);
+  workspace.setDefaultNavigationTimeout(ROUTE_BUDGET_MS);
+  workspace.setDefaultTimeout(ROUTE_BUDGET_MS);
 
-  await page.getByRole("link", { name: "← Back to renewals" }).waitFor();
+  await workspace.getByRole("link", { name: "← Back to renewals" }).waitFor();
   assert(
-    page.url().includes("/lease-renewal/live/desk/lease/"),
+    workspace.url().includes("/lease-renewal/live/desk/lease/"),
     "Opening a lease from the table did not reach its workspace.",
   );
-  await page.getByRole("link", { name: "← Back to renewals" }).click();
-  await table.waitFor();
+  await workspace.getByRole("link", { name: "← Back to renewals" }).click();
+  const returnedTable = workspace.locator("table.renewal-table");
+  await returnedTable.waitFor();
   assert(
-    page.url().includes("v=2"),
+    workspace.url().includes("v=2"),
     "Returning from the workspace dropped the desk view the operator was on.",
   );
-  const returned = (await table.locator("tbody tr a").first().innerText()).trim();
+  const returned = (
+    await returnedTable.locator("tbody tr a.renewal-lease-link").first().innerText()
+  ).trim();
   assert(returned === leaseLabel, "Returning to the desk changed the first row.");
   await context.close();
 }
