@@ -4,13 +4,17 @@ Last updated: 2026-11-04 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current execution
 
-The owner launched P1–P9 through implementation and delivery. Source, exact-main CI, controlled
-application delivery and thirteen named normal configuration outcomes are verified. Current
-canonical source is b5ba780279be0eb5661e463d2e73b5add1064056 /
-pmi-kc-app-rmw123csb-dc0ce89a8583, 100%. Run ff1f44bf-9864-42e7-884f-1c2b8e2a545f completed;
-its permit is consumed and controller exited zero. One release is queued below: the S242–S245
-staff help hub (#175) and the merged #173 adversary-review fixes, in one candidate.
-See docs/evidence/application-gap-delivery-2026-11-03.md.
+The S242–S245 staff help hub and the merged #173 adversary-review fixes are DELIVERED. Canonical
+source is 323e8be36535dabe21623ff28ca1160f8aae6657 / pmi-kc-app-rmw2hrh4d-8b96ea7b6800, 100%.
+Run 74d79a9d-87ff-4084-93e2-d09ac5e8a15f completed; its permit is consumed and controller exited
+zero. Exact-main CI41886947757 passed all five jobs; observation passed two checkpoints/413,080 ms
+with 375 matched records and zero discrepancies/5xx/unresolved effects/mutation attempts; all
+eleven final readbacks matched at 19:31:37Z. The first run of this source, 6960e4e1 at b0f3fca2,
+held at observation and its resume ended in a verified rollback; it and the wrong-root run
+697b754f are archived as superseded. See docs/evidence/help-hub-delivery-2026-11-04.md.
+The S245 machine-run litmus continues against the released build; its repairs are a separate
+release that must pass the same gates. The earlier P1–P9 delivery (run ff1f44bf, b5ba7802) is in
+docs/evidence/application-gap-delivery-2026-11-03.md; its details follow.
 
 Full07 passed 10,162 unit tests/four existing parity skips, all 497 backend tests/no skips and
 all sixteen commands/build. Core passed 46/23 explicit no-emulator skips on the same aceee3fe
@@ -50,19 +54,10 @@ attempts and free profile before/after. It also exposed the remaining source-acc
 
 ## Awaiting release
 
-1. S242 staff help hub foundation, navigation, versioning, print and gates — `a88e956da5d57c7de85a48ad682811e1446306b3`.
-2. S243 staff help hub content, rehearsal screenshots and handout consolidation — `a88e956da5d57c7de85a48ad682811e1446306b3`.
-3. S244 in-app help copy refresh and Open the guide links — `a88e956da5d57c7de85a48ad682811e1446306b3`.
-4. S245 help hub litmus template and validator; the machine-run report follows this release — `a88e956da5d57c7de85a48ad682811e1446306b3`.
-5. S130 canonical claim Space and scan codes (Q-ENG-ADV) — `173ad2a602111fb4e8c2446ecbad96299a17d2dd`.
-6. S241 required revision binding and placeholder Start refusal (Q-ENG-ADV) — `173ad2a602111fb4e8c2446ecbad96299a17d2dd`.
-7. S227 retired work labeled as retired history (Q-ENG-ADV) — `173ad2a602111fb4e8c2446ecbad96299a17d2dd`.
-8. S125 read gate (Q-ENG-ADV) — `173ad2a602111fb4e8c2446ecbad96299a17d2dd`.
-9. S235 display parity (Q-ENG-ADV) — `173ad2a602111fb4e8c2446ecbad96299a17d2dd`.
-
-The ten suites S227/S238/S168/S240/S130/S66/S125/S235/S241/S34 were delivered by ff1; rows 5–9
-carry only their later #173 fixes. Documentation-only closure does not deploy. Never resume the consumed run or use its receipts as
-a new queue. The stopped original native owner and archived held run remain untouched.
+None. S242–S245 and the five #173 fixes (S130, S241, S227, S125, S235) were delivered by run
+74d79a9d at 323e8be3. Documentation-only closure does not deploy. Never resume a consumed or
+archived run or use its receipts as a new queue. The stopped original native owner and archived
+held runs remain untouched.
 
 ## Continuation contract
 

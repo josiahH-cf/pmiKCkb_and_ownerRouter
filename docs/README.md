@@ -34,7 +34,10 @@ release acceptance passed; no live customer completion or human usability verdic
 
 ## Current core
 
-The launched November 3 gap work is delivered at b5ba7802 / pmi-kc-app-rmw123csb-dc0ce89a8583.
+The S242–S245 staff help hub and the merged #173 adversary-review fixes are delivered at
+323e8be3 / pmi-kc-app-rmw2hrh4d-8b96ea7b6800; see the
+[help hub delivery evidence](evidence/help-hub-delivery-2026-11-04.md).
+The launched November 3 gap work was delivered at b5ba7802 / pmi-kc-app-rmw123csb-dc0ce89a8583.
 Its [delivery and configuration evidence](evidence/application-gap-delivery-2026-11-03.md) records
 exact-main CI, actual release/readbacks, thirteen normal configuration outcomes and remaining
 boundaries. [Implementation evidence](evidence/application-gap-implementation-2026-11-03.md) and

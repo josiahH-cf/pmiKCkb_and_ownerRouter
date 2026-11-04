@@ -3,7 +3,7 @@
 
 # S242 — Staff help hub foundation: section, navigation, content model, versioning, print
 
-> Status: Authoring FINAL / READY (intake 108); implementation not started. Owner decisions of 2026-11-04: help content is repository-managed and ships as a release; screenshots come from the isolated synthetic rehearsal, with blurred production captures only where the rehearsal cannot show a state; one global help version; browser print; a table of contents sidebar with collapsible sections; a backend coverage check proves every developed staff feature is documented.
+> Status: DELIVERED 2026-11-04 by run 74d79a9d at 323e8be3; authoring FINAL / READY (intake 108). Owner decisions of 2026-11-04: help content is repository-managed and ships as a release; screenshots come from the isolated synthetic rehearsal, with blurred production captures only where the rehearsal cannot show a state; one global help version; browser print; a table of contents sidebar with collapsible sections; a backend coverage check proves every developed staff feature is documented.
 
 **Goal.**
 

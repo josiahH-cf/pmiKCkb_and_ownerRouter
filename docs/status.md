@@ -1,9 +1,23 @@
 # Current status
 
-Updated: 2026-11-03 (UTC).
+Updated: 2026-11-04 (UTC).
 
-The P1–P9 application delta is DELIVERED at `b5ba7802` /
-`pmi-kc-app-rmw123csb-dc0ce89a8583`, 100% canonical traffic. Run `ff1f44bf` completed and its permit
+The S242–S245 staff help hub and the merged #173 adversary-review fixes are DELIVERED at
+`323e8be3` / `pmi-kc-app-rmw2hrh4d-8b96ea7b6800`, 100% canonical traffic. Run `74d79a9d` completed
+and its permit is consumed. Exact-main CI passed five jobs (`41886947757`); the pull-request head's
+full gate passed 10,387 unit and 497 backend tests. Observation passed two checkpoints/413,080 ms,
+375 matched records, zero discrepancies/5xx/unresolved effects or mutation attempts; all eleven
+final readbacks matched at 19:31:37Z.
+
+The first run of this source (`6960e4e1`, `b0f3fca2`) held at observation after one passed
+checkpoint; its resume ended in a verified rollback and it is archived as superseded. The S245
+machine-run litmus report follows; repairs it finds ship as their own release. Exact holds remain
+in `docs/open-blockers.md`; delivery evidence: `docs/evidence/help-hub-delivery-2026-11-04.md`.
+
+## November 3 gap-program delivery (historical)
+
+The P1–P9 application delta was DELIVERED at `b5ba7802` /
+`pmi-kc-app-rmw123csb-dc0ce89a8583`, then 100% canonical traffic. Run `ff1f44bf` completed and its permit
 is consumed. Exact-main CI passed five jobs; full07 passed 10,162 unit/four parity skips and 497
 backend/no skips, with core 46 passes/23 explicit no-emulator skips. Observation passed two
 checkpoints/417,609 ms, 375 matched records, zero discrepancies/5xx/unresolved effects or mutation

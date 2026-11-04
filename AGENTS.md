@@ -19,7 +19,34 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — November 3 gap-program delivery
+## Present production truth — November 4 help-hub delivery
+
+Production serves `323e8be36535dabe21623ff28ca1160f8aae6657` /
+`pmi-kc-app-rmw2hrh4d-8b96ea7b6800` at 100% canonical traffic. Run
+`74d79a9d-87ff-4084-93e2-d09ac5e8a15f` completed at 19:31:23Z; its permit is consumed and controller
+exited zero. One application build `98e4dfca-c178-495f-8524-9a81bbb05e98` succeeded. Candidate
+receipt `f6cf1600-89fc-4542-9a46-c12b7df7a7a7` issued at 19:24:17.951Z; receipt-bound promotion
+verified at 19:24:32.657Z. Two observation checkpoints passed in 413,080 ms, within the
+300,000/480,000 ms bounds. All 375 source/projected/rendered records matched, with zero
+discrepancies, candidate 5xx, unresolved effects or guarded Admin mutation attempts. Editor browser
+remains `not_run` under the existing policy. All eleven independent final readback sections matched
+at 19:31:37Z. Runtime fingerprint:
+`sha256:71c35604ae103658e23bc9255cb7f7054c84d54549c392671e50a30a61163cd5`. The running digest
+matches the successful regional build. Only APP_COMMIT_SHA changed among 54 environment keys;
+managed runtime identity, eleven paired Space maps, five secret bindings, Production/Live,
+Demo=false and Sheet=true match reviewed state.
+
+S242–S244 (the signed-in Help section, rehearsal-captured guides and screen references, and the
+in-app help copy refresh), the S245 litmus template and validator, and the merged #173
+adversary-review fixes (S130, S241, S227, S125, S235) are delivered. Exact-main CI passed all five
+jobs in `41886947757`. The first run of the same application source, `6960e4e1` at `b0f3fca2`,
+promoted and then held at observation; its operator resume ended in a verified rollback to the
+exact predecessor, and it is archived as superseded. The S245 machine-run litmus report follows this
+delivery; repairs it finds ship as their own release. Both Dotloop write keys remain closed; no
+customer dispatch, provider business write or signature was release proof.
+Evidence: `docs/evidence/help-hub-delivery-2026-11-04.md`; current holds: `docs/open-blockers.md`.
+
+## Previous production truth — November 3 gap-program delivery (historical)
 
 Production serves `b5ba780279be0eb5661e463d2e73b5add1064056` /
 `pmi-kc-app-rmw123csb-dc0ce89a8583` at 100% canonical traffic. Run

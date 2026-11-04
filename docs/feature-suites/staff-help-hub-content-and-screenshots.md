@@ -3,7 +3,7 @@
 
 # S243 — Staff help hub content and screenshot pipeline
 
-> Status: Authoring FINAL / READY (intake 109); implementation not started. Writes every process guide and screen reference for the developed staff features, captures their screenshots from the isolated synthetic rehearsal with a repeatable script, allows blurred production captures only where the rehearsal cannot show a state, and consolidates the existing handouts into the hub. Ships with S242 as one release.
+> Status: DELIVERED 2026-11-04 by run 74d79a9d at 323e8be3; authoring FINAL / READY (intake 109). Writes every process guide and screen reference for the developed staff features, captures their screenshots from the isolated synthetic rehearsal with a repeatable script, allows blurred production captures only where the rehearsal cannot show a state, and consolidates the existing handouts into the hub. Ships with S242 as one release.
 
 **Goal.**
 

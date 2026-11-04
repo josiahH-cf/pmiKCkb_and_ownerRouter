@@ -1,6 +1,6 @@
 # Current plan
 
-Updated: 2026-11-03 (UTC), owner clarification of the application gap assessment.
+Updated: 2026-11-04 (UTC), staff help hub delivery.
 
 ## Authorized outcome
 
@@ -8,7 +8,8 @@ Implement and qualify the finalized work for the three active application lanes,
 assessment gaps, newly diagnosed A-08 PDF publication dependency, and the configuration/approval/
 communication work needed to unblock real renewals.
 The owner finalized this scope, then launched implementation and backend-question maintenance.
-It is implemented and delivered at `b5ba7802` / `pmi-kc-app-rmw123csb-dc0ce89a8583`, 100% traffic.
+It was delivered at `b5ba7802` / `pmi-kc-app-rmw123csb-dc0ce89a8583`; the current serving source
+`323e8be3` / `pmi-kc-app-rmw2hrh4d-8b96ea7b6800` includes it.
 The four independent source findings are repaired and reviewed; full07 passed 10,162 unit tests
 with four parity skips and all 497 backend tests, core passed 46 with 23 explicit configuration
 skips, and exact-main CI passed all five jobs. Run `ff1f44bf` passed candidate/promotion, two
@@ -36,6 +37,12 @@ pmi-kc-app-rmvzwt7ms-00754475effd, verified in the
 [Delivery evidence](evidence/application-delivery-2026-11-03.md) retains the completed release,
 consumed permit and prior verification limits. A future run must re-establish source and deployment;
 it cannot resume the completed run or infer an execution grant from this plan.
+
+The S242–S245 staff help hub and the merged #173 adversary-review fixes were delivered on
+November 4 by run `74d79a9d` (exact-main CI `41886947757`, two observation checkpoints in
+413,080 ms, 375 matched records, eleven matched readbacks); see the
+[help hub delivery evidence](evidence/help-hub-delivery-2026-11-04.md). The S245 machine-run
+litmus report follows; repairs it finds ship as their own release.
 
 ## Settled authoring decisions
 

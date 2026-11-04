@@ -3,7 +3,7 @@
 
 # S244 — Refresh every in-app hover and inline help against the current processes
 
-> Status: Authoring FINAL / READY (intake 110); implementation not started. Owner decision 2026-11-04: every About panel, InfoTip, inline helper sentence and the Process guide panel is audited and corrected against the processes delivered on November 3, and each gains a link into the matching help hub guide. Can ship before or with S242/S243.
+> Status: DELIVERED 2026-11-04 by run 74d79a9d at 323e8be3; authoring FINAL / READY (intake 110). Owner decision 2026-11-04: every About panel, InfoTip, inline helper sentence and the Process guide panel is audited and corrected against the processes delivered on November 3, and each gains a link into the matching help hub guide. Can ship before or with S242/S243.
 
 **Goal.**
 
