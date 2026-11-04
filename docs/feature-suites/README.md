@@ -1,5 +1,34 @@
 # Active feature suites
 
+## November 4 staff help hub and in-app help refresh — finalized specifications
+
+The owner clarified a staff training release on November 4: one in-app Help section that is the
+single, versioned, printable manual for every developed staff feature, plus a refresh of every
+hover and inline help text so the app and the manual say the same thing. Authoring is
+**FINAL / READY**; implementation is **NOT STARTED**; it ships as a release under the ordinary
+gates. Content is repository-managed, screenshots come from the isolated synthetic rehearsal
+(blurred production captures only where the rehearsal cannot show a state), one global help
+version (`V1.x`) is shown on the landing page, every guide and every print footer, printing uses
+the browser, the table of contents sidebar has collapsible sections, and a backend coverage gate
+proves every staff route, navigation item, directory Space and About panel is documented. The
+manual describes only what exists and works today; client holds, unproven work and roadmap stay
+out of it. S245 is the machine-run adversary litmus a fresh session executes after S242–S244
+are built, with repairs in scope and a sanitized report in evidence.
+
+| Clarified outcome                                                    | Owning specification                              | Finalized boundary                                                                                                       |
+| -------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| One signed-in Help section with navigation, versioning, print, gates | [S242](staff-help-hub-foundation.md)              | Help in primary navigation for all staff; repository content; coverage, control-name, screenshot and content rules gates |
+| Every developed staff feature documented with accurate pictures      | [S243](staff-help-hub-content-and-screenshots.md) | Process guides first, then screen reference; rehearsal captures; handouts consolidated into the hub                      |
+| Every hover and inline help text matches the current processes       | [S244](in-app-help-copy-refresh.md)               | Disposition for every text; stale approval and packet wording removed; "Open the guide" links; consistency gate          |
+| An outside model proves the manual before staff are trained on it    | [S245](staff-help-hub-adversary-litmus.md)        | Paste-ready brief and L01–L34 checks; rehearsal only; repair in scope; acceptance blocked by any No                      |
+
+| Suite | Active contract                                                 | State                                                                                                                                                                                      |
+| ----- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| S242  | `docs/feature-suites/staff-help-hub-foundation.md`              | AUTHORING FINAL / READY — intake 108; implementation NOT STARTED; ships as a release with S243. Help route family, sidebar, version, deep links, print, coverage and content gates.        |
+| S243  | `docs/feature-suites/staff-help-hub-content-and-screenshots.md` | AUTHORING FINAL / READY — intake 109; implementation NOT STARTED; ships with S242. Guides, screen references, glossary, What changed, scene manifest, capture script, consolidation.       |
+| S244  | `docs/feature-suites/in-app-help-copy-refresh.md`               | AUTHORING FINAL / READY — intake 110; implementation NOT STARTED; may ship before or with S242. Audit table, corrected copy, guide links with plain-text fallback, pins, consistency gate. |
+| S245  | `docs/feature-suites/staff-help-hub-adversary-litmus.md`        | AUTHORING FINAL / READY — intake 111; runs after S242–S244 are built. Fresh-session litmus handoff, report template and validator, repair loop, acceptance rule.                           |
+
 ## November 3 application completion — finalized specifications and plan
 
 The owner finalized and launched P1–P9. Authoring remains **FINAL / READY**; source and
