@@ -64,6 +64,41 @@ describe("local watcher exact-SHA release gates", () => {
       true,
     );
   });
+  it("re-runs a held observation of the same promoted head instead of reading it as documentation only", () => {
+    const held = {
+      sha,
+      phase: "observe",
+      lastDeployedSha: sha,
+      blocked: "observe_unverified",
+    };
+    expect(evaluateRelease({ ...ready, changedPaths: [], checkpoint: held })).toEqual({
+      state: "release",
+      sha,
+      phase: "observe",
+    });
+    expect(
+      evaluateRelease({
+        ...ready,
+        changedPaths: [],
+        checkpoint: held,
+        foundationPresent: false,
+      }).reason,
+    ).toBe("foundation_not_in_target");
+    expect(
+      evaluateRelease({
+        ...ready,
+        changedPaths: [],
+        checkpoint: { ...held, terminalFailure: true },
+      }).reason,
+    ).toBe("rolled_back_verified");
+    expect(
+      evaluateRelease({
+        ...ready,
+        changedPaths: ["docs/facts.md"],
+        checkpoint: { sha, phase: "complete" },
+      }).state,
+    ).toBe("current");
+  });
   it("resumes an unfinished exact revision before considering newer main", () => {
     expect(
       evaluateRelease({ ...ready, checkpoint: { sha: "b".repeat(40), phase: "smoke" } }),
