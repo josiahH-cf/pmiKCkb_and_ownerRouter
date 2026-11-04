@@ -4,7 +4,7 @@ Status: Draft for validation. Prepared 2026-09-20 for the next staff meeting; no
 run, no lease has been selected and no step below has a human verdict. The facilitator updates
 this document only after staff observe the real controls. Companion contract:
 `lib/lease-renewal/meeting-walkthrough.ts`; controls come from the
-[operator guide](renewal-operator-guide.md) step-to-control map and are cited by guide step number.
+[operator guide](../../../docs/products/renewal-operator-guide.md) step-to-control map and are cited by guide step number.
 
 The session is planned at about 90 minutes. That is planning context, not a timeout: the
 application enforces no deadline, schedules nothing and sends no invitation. A paused session
@@ -111,7 +111,7 @@ session.
 
 1. Import the ledger. Steps with a pass outcome become confirmed procedure; failed and unrun steps
    stay open questions with their owner and next action.
-2. Update the [operator guide](renewal-operator-guide.md) and the knowledge materials only with
+2. Update the [operator guide](../../../docs/products/renewal-operator-guide.md) and the knowledge materials only with
    confirmed steps and decisions, dated and tied to the serving revision. Keep unresolved
    questions visible.
 3. Keep raw customer material out of Git. Do not overwrite legal wording, and do not remove a
