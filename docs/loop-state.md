@@ -1,6 +1,6 @@
 # Loop state
 
-Last updated: 2026-11-03 (UTC). Read AGENTS.md and docs/facts.md first.
+Last updated: 2026-11-04 (UTC). Read AGENTS.md and docs/facts.md first.
 
 ## Current execution
 
@@ -8,7 +8,8 @@ The owner launched P1–P9 through implementation and delivery. Source, exact-ma
 application delivery and thirteen named normal configuration outcomes are verified. Current
 canonical source is b5ba780279be0eb5661e463d2e73b5add1064056 /
 pmi-kc-app-rmw123csb-dc0ce89a8583, 100%. Run ff1f44bf-9864-42e7-884f-1c2b8e2a545f completed;
-its permit is consumed and controller exited zero. No application build/release is pending.
+its permit is consumed and controller exited zero. One release is queued below: the S242–S245
+staff help hub (#175) and the merged #173 adversary-review fixes, in one candidate.
 See docs/evidence/application-gap-delivery-2026-11-03.md.
 
 Full07 passed 10,162 unit tests/four existing parity skips, all 497 backend tests/no skips and
@@ -49,8 +50,18 @@ attempts and free profile before/after. It also exposed the remaining source-acc
 
 ## Awaiting release
 
-None. The ten owning suites S227/S238/S168/S240/S130/S66/S125/S235/S241/S34 were delivered by ff1.
-Documentation-only closure does not deploy. Never resume the consumed run or use its receipts as
+1. S242 staff help hub foundation, navigation, versioning, print and gates — `a88e956da5d57c7de85a48ad682811e1446306b3`.
+2. S243 staff help hub content, rehearsal screenshots and handout consolidation — `a88e956da5d57c7de85a48ad682811e1446306b3`.
+3. S244 in-app help copy refresh and Open the guide links — `a88e956da5d57c7de85a48ad682811e1446306b3`.
+4. S245 help hub litmus template and validator; the machine-run report follows this release — `a88e956da5d57c7de85a48ad682811e1446306b3`.
+5. S130 canonical claim Space and scan codes (Q-ENG-ADV) — `173ad2a602111fb4e8c2446ecbad96299a17d2dd`.
+6. S241 required revision binding and placeholder Start refusal (Q-ENG-ADV) — `173ad2a602111fb4e8c2446ecbad96299a17d2dd`.
+7. S227 retired work labeled as retired history (Q-ENG-ADV) — `173ad2a602111fb4e8c2446ecbad96299a17d2dd`.
+8. S125 read gate (Q-ENG-ADV) — `173ad2a602111fb4e8c2446ecbad96299a17d2dd`.
+9. S235 display parity (Q-ENG-ADV) — `173ad2a602111fb4e8c2446ecbad96299a17d2dd`.
+
+The ten suites S227/S238/S168/S240/S130/S66/S125/S235/S241/S34 were delivered by ff1; rows 5–9
+carry only their later #173 fixes. Documentation-only closure does not deploy. Never resume the consumed run or use its receipts as
 a new queue. The stopped original native owner and archived held run remain untouched.
 
 ## Continuation contract
