@@ -5,7 +5,7 @@
 // and applies the low-alarm layer (mute + per-lane threshold / snooze / digest, B4). Pure and
 // client-safe: it accepts already-fetched records + already-built value-free signals and imports record
 // shapes with `import type` only, so no firebase-admin module reaches a client bundle. It makes ZERO
-import { isCurrentDecisionItem } from "@/lib/approval/current-work-eligibility";
+import { isRetiredWorkItem } from "@/lib/approval/current-work-eligibility";
 // external calls (AC-S17-8).
 
 import type { ApprovalQueueNotificationRecord } from "@/lib/firestore/types";
@@ -197,7 +197,7 @@ export const RETIRED_NOTIFICATION_MESSAGE =
 function toUnifiedFromApproval(
   record: ApprovalQueueNotificationRecord,
 ): UnifiedNotification {
-  const current = isCurrentDecisionItem({
+  const current = !isRetiredWorkItem({
     process_run_ref: record.process_run_ref,
     direct_link: record.direct_link,
   });

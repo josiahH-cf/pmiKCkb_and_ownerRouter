@@ -63,4 +63,31 @@ describe("S227 Approval Queue rows for retired work", () => {
     expect(within(retired).getByText("Retired")).toBeInTheDocument();
     expect(within(retired).queryByText("Ready for Approval")).not.toBeInTheDocument();
   });
+
+  it("keeps the recorded status of ordinarily closed or superseded decisions", () => {
+    render(
+      <QueueListPanel
+        items={[
+          queueItem({
+            id: "item-approved",
+            status: "Approved",
+            closed_at: "2026-06-06T00:00:00.000Z",
+          }),
+          queueItem({
+            id: "item-superseded",
+            status: "Denied",
+            superseded_by_item_id: "item-later",
+          }),
+        ]}
+        onSelectItem={vi.fn()}
+        onToggleBulkItem={vi.fn()}
+        selectedBulkIds={new Set()}
+        selectedItemId={null}
+      />,
+    );
+    expect(screen.getByText("Approved")).toBeInTheDocument();
+    expect(screen.getByText("Denied")).toBeInTheDocument();
+    expect(screen.queryByText("Retired")).not.toBeInTheDocument();
+    expect(screen.queryByText(RETIRED_QUEUE_NOTE)).not.toBeInTheDocument();
+  });
 });

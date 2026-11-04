@@ -1,5 +1,5 @@
 import type { ApprovalQueueItemRecord } from "@/lib/firestore/types";
-import { isCurrentDecisionItem } from "@/lib/approval/current-work-eligibility";
+import { isRetiredWorkItem } from "@/lib/approval/current-work-eligibility";
 import { displayValue } from "./ApprovalQueueModel";
 import { formatCalendarDate } from "@/lib/date-display";
 
@@ -46,9 +46,9 @@ export function QueueListPanel({
               <span className="queue-row-main">
                 <strong>{item.action_needed}</strong>
                 <span>{item.process_run_ref.label}</span>
-                {isCurrentDecisionItem(item) ? null : (
+                {isRetiredWorkItem(item) ? (
                   <span className="muted">{RETIRED_QUEUE_NOTE}</span>
-                )}
+                ) : null}
               </span>
               <span className="queue-row-meta">
                 <QueuePill
@@ -56,7 +56,7 @@ export function QueueListPanel({
                   tone="mode"
                 />
                 <QueuePill
-                  label={isCurrentDecisionItem(item) ? item.status : "Retired"}
+                  label={isRetiredWorkItem(item) ? "Retired" : item.status}
                   tone="status"
                 />
                 <QueuePill label={item.risk} tone="risk" />
