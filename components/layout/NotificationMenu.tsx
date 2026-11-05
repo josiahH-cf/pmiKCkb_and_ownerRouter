@@ -336,8 +336,10 @@ export function NotificationMenu({
         type="button"
       >
         <span>{buttonLabel}</span>
+        {/* The label already states the count, so the badge is hidden from assistive technology
+            and a screen reader reads the count once. */}
         {unreadCount > 0 ? (
-          <span className="notification-badge">
+          <span aria-hidden="true" className="notification-badge">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         ) : null}
