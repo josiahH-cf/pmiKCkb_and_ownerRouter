@@ -16,7 +16,8 @@ with 375 matched records and zero discrepancies/5xx/unresolved effects/mutation 
 eleven final readbacks matched at 07:04:43Z. The S245 machine-run litmus accepted the hub on
 Run 4 at 13e5ab40 (docs/evidence/help-hub-litmus-2026-11-04.md); L10 is UNVERIFIED for 25
 provider-bound steps and the human verdict is NOT RUN. See
-docs/evidence/help-hub-litmus-repairs-delivery-2026-11-05.md. The November 4 help hub delivery
+docs/evidence/help-hub-litmus-repairs-delivery-2026-11-05.md. The litmus's outside-scope
+repairs (PRs #178 and #179) and the S113 test fix (PR #180) await release below. The November 4 help hub delivery
 (run 74d79a9d, 323e8be3) is in docs/evidence/help-hub-delivery-2026-11-04.md. The earlier P1–P9
 delivery (run ff1f44bf, b5ba7802) is in
 docs/evidence/application-gap-delivery-2026-11-03.md; its details follow.
@@ -59,7 +60,17 @@ attempts and free profile before/after. It also exposed the remaining source-acc
 
 ## Awaiting release
 
-None. The five PR #177 items (S242 repairs, S243 help V1.1, S244 copy repairs, the S245 litmus
+1. S87 present-tense copy and display from the S245 litmus: the Connections no-sign-in result, the Approval Queue bulk Execute refusal, the People and Access and Space request read-failure notes, and a workflow run's Next Action from its checklist on the run page, Space card, process summary and shared context, with the Space card reading the run's pinned steps — `d51e84adede237e47516491888613c1535540d45`, `cf654c7297c000cc383be7ef7123373e2fce7593`.
+2. S126 Source last read in the date and time convention on Waiting on you, Notifications, Spaces and the assistant's approvals answer — `d51e84adede237e47516491888613c1535540d45`.
+3. S147 Try again waits, bounded at 30 s, for the lease read in flight before re-reading — `d51e84adede237e47516491888613c1535540d45`.
+4. S242 print keeps every help heading with the content it introduces — `d51e84adede237e47516491888613c1535540d45`.
+5. S86 InfoTip and Notifications from the S245 litmus: leaving a trigger cancels its pending open, content scrolled under a resting pointer opens nothing, Escape keeps an About panel closed, and the bell's name states the unread count once — `f1449e1d757a14afaece5be683610788c2130b79`.
+
+One candidate carries all five items. The batch PR merges PRs #179, #178 and #180 with merge
+commits, so every row's commit stays an ancestor of main. PR #180 changes only tests and docs
+(the S113 journey's jsdom label lookup, Q-ENG-ADV-CI), so it has no row. The litmus's two open owner questions (S34 closed-key label, S115
+unreachable About panels) and the QuickBooks Connect button are in docs/facts.md Open Questions.
+The five PR #177 items (S242 repairs, S243 help V1.1, S244 copy repairs, the S245 litmus
 report and the S235 Admin form-family hint) were delivered together by run 6951545a at merge
 commit 3f2e3f5d; S242–S245 and the five #173 fixes were delivered earlier by run 74d79a9d at
 323e8be3. Documentation-only closure does not deploy. Never resume a consumed or archived run or

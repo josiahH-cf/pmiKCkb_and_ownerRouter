@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NotificationMenu } from "@/components/layout/NotificationMenu";
@@ -105,6 +105,26 @@ describe("NotificationMenu", () => {
     // not guarantee the title effect has run. Reading it directly races that effect and fails
     // intermittently under full-suite load.
     await waitFor(() => expect(document.title).toBe("(20) PMI KC"));
+  });
+
+  // S245 litmus Run 3: the visible badge repeated the count already in the name, so a screen reader
+  // read "Notifications, 2 unread 2". The name states the count once and the badge stays visible.
+  it("names the button with the unread count once while the badge shows it", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse({
+          notifications: [approvalUnified(), maintenanceUnified()],
+          families: familyViews(),
+        }),
+      ),
+    );
+
+    render(<NotificationMenu navigate={() => undefined} />);
+
+    const button = await screen.findByRole("button", { name: /Notifications, 2 unread/ });
+    expect(button).toHaveAccessibleName("Notifications, 2 unread");
+    expect(within(button).getByText("2")).toBeVisible();
   });
 
   it("prefixes the tab title with the unread count (NOTIF-4)", async () => {

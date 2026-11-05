@@ -34,6 +34,7 @@ vi.mock("@/lib/firestore/operational-pages", () => ({
 }));
 vi.mock("@/lib/firestore/workflows", () => ({
   getProcessDefinition: vi.fn(async () => null),
+  getWorkflowRunDefinition: vi.fn(),
   listWorkflowRuns: vi.fn(async () => []),
 }));
 vi.mock("@/lib/firestore/workflow-run-step-checks", () => ({
@@ -44,7 +45,13 @@ import SpaceDetailPage from "@/app/spaces/[spaceId]/page";
 import { requirePageCapability } from "@/lib/auth/page-guards";
 import { getApprovedTemplate } from "@/lib/firestore/approved-templates";
 import { listPublishedOperationalPages } from "@/lib/firestore/operational-pages";
-import { getProcessDefinition, listWorkflowRuns } from "@/lib/firestore/workflows";
+import {
+  getProcessDefinition,
+  getWorkflowRunDefinition,
+  listWorkflowRuns,
+} from "@/lib/firestore/workflows";
+import { listStepChecksForRun } from "@/lib/firestore/workflow-run-step-checks";
+import type { ProcessDefinitionRecord, WorkflowRunRecord } from "@/lib/firestore/types";
 import { SpaceDesk } from "@/components/desk/SpaceDesk";
 import { TrustedPublicationPanel } from "@/components/spaces/TrustedPublicationPanel";
 import { notFound, redirect } from "next/navigation";
@@ -106,6 +113,70 @@ describe("Space detail access boundary", () => {
     ).rejects.toThrow("NEXT_NOT_FOUND");
     expect(redirect).not.toHaveBeenCalled();
     expect(listPublishedOperationalPages).not.toHaveBeenCalled();
+  });
+});
+
+// PR #182 review: the Overview desk reads the latest run's own steps from the version it is
+// pinned to, as the Workflow Run page does, so a later draft edit cannot change its Next Action.
+describe("Space Overview desk Next Action source", () => {
+  const spaceId = "owner-renewal-outreach";
+  const draft = {
+    id: spaceId,
+    status: "Active",
+    active_version_id: "v-2",
+    revision: 3,
+    steps: [{ id: "step-new", title: "A step added to the draft later" }],
+  } as unknown as ProcessDefinitionRecord;
+  const latest = {
+    id: "run-1",
+    definition_id: spaceId,
+    definition_version_id: "v-1",
+    next_action: "Gather facts",
+    status: "In Progress",
+  } as unknown as WorkflowRunRecord;
+  const pinnedSteps = [
+    { id: "step-1", title: "Gather facts" },
+    { id: "step-2", title: "Draft owner message" },
+  ];
+
+  function deskProps(page: ReactNode) {
+    return allElements(page).find((element) => element.type === SpaceDesk)?.props;
+  }
+
+  it("passes the run's pinned steps to the Workflow card", async () => {
+    vi.mocked(getProcessDefinition).mockResolvedValueOnce(draft);
+    vi.mocked(listWorkflowRuns).mockResolvedValueOnce([latest]);
+    vi.mocked(getWorkflowRunDefinition).mockResolvedValueOnce({
+      default_approver_uid: "admin-1",
+      id: spaceId,
+      name: "Owner Renewal Outreach",
+      space_id: spaceId,
+      steps: pinnedSteps,
+    } as Awaited<ReturnType<typeof getWorkflowRunDefinition>>);
+
+    const page = await SpaceDetailPage({ params: Promise.resolve({ spaceId }) });
+
+    expect(getWorkflowRunDefinition).toHaveBeenCalledWith(editor, latest);
+    expect(deskProps(page)).toMatchObject({
+      definition: draft,
+      run: latest,
+      runSteps: pinnedSteps,
+    });
+  });
+
+  it("passes no steps when the pinned version or the run's checks cannot be read", async () => {
+    vi.mocked(getProcessDefinition).mockResolvedValueOnce(draft);
+    vi.mocked(listWorkflowRuns).mockResolvedValueOnce([latest]);
+    vi.mocked(getWorkflowRunDefinition).mockRejectedValueOnce(new Error("unavailable"));
+    const unread = await SpaceDetailPage({ params: Promise.resolve({ spaceId }) });
+    expect(deskProps(unread)?.runSteps).toBeNull();
+
+    vi.mocked(getProcessDefinition).mockResolvedValueOnce(draft);
+    vi.mocked(listWorkflowRuns).mockResolvedValueOnce([latest]);
+    vi.mocked(listStepChecksForRun).mockRejectedValueOnce(new Error("unavailable"));
+    const noChecks = await SpaceDetailPage({ params: Promise.resolve({ spaceId }) });
+    expect(deskProps(noChecks)?.runSteps).toBeNull();
+    expect(getWorkflowRunDefinition).toHaveBeenCalledTimes(1);
   });
 });
 

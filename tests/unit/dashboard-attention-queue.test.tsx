@@ -74,8 +74,13 @@ describe("S147 compact attention queue", () => {
       },
     });
     const region = await renderQueue(initial);
+    // S126 (litmus 2026-11-04): the read time uses the app's month/day/year convention in the
+    // business time zone, never the raw ISO instant the API carries.
     expect(within(region).getByTestId("renewal-review-issue")).toHaveTextContent(
-      "2026-11-03T08:29:00.000Z",
+      "Source last read: 11/03/2026, 2:29 AM CST.",
+    );
+    expect(within(region).getByTestId("renewal-review-issue").textContent).not.toContain(
+      "2026-11-03T",
     );
     expect(within(region).getByTestId("renewal-review-issue")).toHaveTextContent(
       "source is stale",

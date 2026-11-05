@@ -19,10 +19,12 @@ import {
 } from "@/components/ui";
 import { SpaceDeskRunPanel } from "@/components/desk/SpaceDeskRunPanel";
 import { classifyConnector } from "@/lib/connections/connection-status";
+import { workflowRunNextAction } from "@/lib/processes/run-next-action";
 import { SPACE_CARD_STATE_LABEL } from "@/lib/space-card-state";
 import type { ConnectorDef } from "@/lib/connections/connector-catalog";
 import type {
   ProcessDefinitionRecord,
+  ProcessDefinitionStep,
   WorkflowRunRecord,
   WorkflowRunStepCheckRecord,
 } from "@/lib/firestore/types";
@@ -41,6 +43,12 @@ export interface SpaceDeskProps {
   /** The latest ordinary workflow run, if one is attached. */
   run: WorkflowRunRecord | null;
   stepChecks: readonly WorkflowRunStepCheckRecord[];
+  /**
+   * The latest run's own steps, read from the version it is pinned to (the draft for an unpinned
+   * run). Null when there is no run or that read failed; the Next Action then keeps the value the
+   * run stored at start.
+   */
+  runSteps?: readonly Pick<ProcessDefinitionStep, "id" | "title">[] | null;
   canEdit?: boolean;
   /** Domain-specific Card (Move-In welcome / Move-Out evidence packet); omitted for the others. */
   domainSlot?: ReactNode;
@@ -55,6 +63,7 @@ export function SpaceDesk({
   connectors,
   run,
   stepChecks,
+  runSteps = null,
   canEdit = false,
   domainSlot,
 }: Readonly<SpaceDeskProps>) {
@@ -104,7 +113,13 @@ export function SpaceDesk({
   });
   const currentIndex = firstOpen === -1 ? steps.length : firstOpen;
 
-  const nextAction = run ? run.next_action : "Start a run to begin the checklist.";
+  // The run's Next Action follows its own pinned steps, never a later draft of the process.
+  const nextAction = run
+    ? workflowRunNextAction(
+        run,
+        runSteps ? { steps: runSteps, checks: stepChecks } : undefined,
+      )
+    : "Start a run to begin the checklist.";
 
   return (
     <div className="ui-stack">

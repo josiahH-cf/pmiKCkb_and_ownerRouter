@@ -16,7 +16,7 @@ export default async function AdminSpaceRequestPage() {
     requests = await listSpaceRequests(user);
   } catch {
     unavailableNote =
-      "Prior requests are unavailable in this session. Refresh Google credentials (npm run auth:session) or check the Firebase Admin setup, then reload.";
+      "Prior requests could not be read in this session, so none are listed and nothing changed. Reload the page to try again, and report it with Feedback if it keeps happening.";
   }
 
   return (

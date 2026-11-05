@@ -45,9 +45,10 @@ Litmus Run 4 at `13e5ab40` was accepted under R-S245-5: no check is No; L10 is U
 steps that need RentCast, Gmail, Dotloop, the Sheet updates switch or Production with Live data;
 human verdict NOT RUN (`docs/evidence/help-hub-litmus-2026-11-04.md`). PR #177's firestore lane
 failed on the S113 mounted journey's tenant-preview wait in attempt 1 of run 41968323970
-(`13e5ab40`) and of run 41974275990 (`f5840775`); both commits change only help text and docs, each
-passed unchanged on re-run, the test was not changed, and a root-cause follow-up is proposed
-separately. Evidence: `docs/evidence/help-hub-litmus-repairs-delivery-2026-11-05.md`.
+(`13e5ab40`) and of run 41974275990 (`f5840775`); both commits change only help text and docs and
+each passed unchanged on re-run. The cause is test-side: jsdom's label lookup starved the journey's
+shared thread; its repair is tracked as Q-ENG-ADV-CI in `docs/open-blockers.md`. Evidence:
+`docs/evidence/help-hub-litmus-repairs-delivery-2026-11-05.md`.
 
 ## November 4 help hub — delivered staff help hub and adversary-review fixes
 
@@ -882,6 +883,19 @@ and their serving truth stays in the ledger above (F-S114 through F-S120). Ownin
   review is the next yearly anniversary of its month-to-month start date on or after the current
   month (2026-09-06 correction), not a fixed start date plus twelve months, which left long-running
   leases with a past date forever. Default kept unless the owner wants a different cadence.
+- **Confirm-with-default: the closed Dotloop key label (S34, from the S245 litmus).** Loop creation
+  and Document upload readiness read "Exact-key activation remains a separate authority hold" for
+  a closed key, and the documents guide quotes it. AC-S34-11 requires that hold label. Proposed:
+  amend R-S34-11/AC-S34-11 to "Exact action closed, so the app does not run it", with help V1.2
+  quoting it. Default kept: the current label.
+- **Confirm-with-default: three About panels on no route (S115, from the S245 litmus).** The
+  `owner-decision`, `tenant-offer` and `renewal-notice-draft` cards render only without staff
+  record state, which the live lease page never passes; the retired S115 About-control check in
+  `tests/unit/s115-section-help.test.tsx` pins them and help V1.1 lists them. Proposed: retire the
+  three ids, amend that check and drop their help V1.2 rows. Default kept.
+- **Confirm-with-default: the QuickBooks Connect button.** The app has no QuickBooks sign-in, and
+  the button's result now says so. Proposed: show QuickBooks without a Connect button, under the
+  voice rule that removes dead controls. Default kept: the button stays.
 - **Authorized sign-in domains.** The accepted S113 release replaced only its exact superseded
   candidate entry and read back the required origins under existing standing authority. Canonical
   authentication and the other configured domains were preserved; no broad pruning is authorized.

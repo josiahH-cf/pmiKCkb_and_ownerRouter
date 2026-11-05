@@ -14,10 +14,10 @@ interface RouteContext {
   params: Promise<{ connectorId: string }>;
 }
 
-// Admin-only OAuth "begin" for an oauth connector. Shell only: no redirect and no token exchange in
-// this slice. It reports honestly what stands between here and a live sign-in. If the connection
-// details are not present, it says so; if they are present, it reports that the provider sign-in is
-// not built yet. It never creates a connection record.
+// Admin-only OAuth "begin" for an oauth connector without its own connect route (Dotloop has one).
+// No redirect and no token exchange: if the connection details are not present it says so, and
+// otherwise it reports that the app has no sign-in for this provider. It never creates a
+// connection record.
 export async function POST(_request: Request, context: RouteContext) {
   try {
     const user = await requireCapability("read");

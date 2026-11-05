@@ -27,6 +27,8 @@ import {
 import { FIRESTORE_EMULATOR_TARGET } from "./emulator-target";
 import { createPendingRequestTracker } from "../helpers/pending-requests";
 import { runAfterImmediateSourceDrain } from "../helpers/immediate-source-drain";
+import { installIndexedLabelControl } from "../helpers/jsdom-label-control";
+import { installPollingErrorsWithoutDom } from "../helpers/polling-element-errors";
 import {
   clearLiveLeaseCache,
   invalidateLiveLeaseCache,
@@ -149,6 +151,7 @@ let assertMountedReadbacks: () => void = () => undefined;
 let observeMountedTransaction:
   | ((request: Promise<unknown>, callerStack: string) => void)
   | null = null;
+let restoreQueryCosts: Array<() => void> = [];
 let marketValue = "1000",
   mutations = 0,
   loseResponse = false,
@@ -189,8 +192,16 @@ beforeAll(async () => {
   vi.stubEnv("LEASE_RENEWAL_SHEET_WRITEBACK_ENABLED", "true");
   vi.stubEnv("K_REVISION", "pmi-kc-app-test-enabled-a");
   vi.stubEnv("RENEWAL_DESK_PARTY_FILTER_KEY", Buffer.alloc(32, 29).toString("base64url"));
+  // Q-ENG-ADV-CI: this file's routes and Firestore client share the test's one thread, so a
+  // polling wait whose check is expensive starves the reads it awaits. jsdom's own label lookup
+  // made each label or named-role query on the mounted lease page cost seconds, and every failed
+  // check formatted the whole page into an error it then discarded. Both repairs keep every
+  // answer identical.
+  restoreQueryCosts = [installIndexedLabelControl(), installPollingErrorsWithoutDom()];
 });
 afterAll(async () => {
+  for (const restore of restoreQueryCosts.reverse()) restore();
+  restoreQueryCosts = [];
   await runAfterImmediateSourceDrain(
     mountedRequests,
     async () => {
@@ -2599,7 +2610,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
     "resumes %s work, handles a counteroffer and records manual completion independently of provider receipts",
     async (start) => {
       const { createElement: h } = await import("react");
-      const { render, screen, fireEvent, waitFor, within, cleanup } =
+      const { render, screen, fireEvent, waitFor, within, cleanup, queryAllByAttribute } =
         await import("@testing-library/react");
       const { RenewalWorkspace } =
         await import("@/components/lease-renewal/RenewalWorkspace");
@@ -2803,6 +2814,11 @@ describe("S113 mounted operator journey with persisted backend state", () => {
         cyclePresent: boolean;
         savedRevision: number | null;
         expectedSavedEntryPresent: boolean;
+        // When the read ran in the journey, and the working rent its response carried, so a
+        // failed wait shows whether the reloads it awaited had read the saved terms.
+        startedAtJourneyMs: number;
+        completedAtJourneyMs: number | null;
+        termsRent: number | null;
         errorName: string | null;
         errorCode: string | number | null;
         errorCategory: string | null;
@@ -3138,6 +3154,9 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             cyclePresent: false,
             savedRevision: null,
             expectedSavedEntryPresent: false,
+            startedAtJourneyMs: Date.now() - journeyStartedAtMs,
+            completedAtJourneyMs: null,
+            termsRent: null,
             errorName: null,
             errorCode: null,
             errorCategory: null,
@@ -3172,8 +3191,11 @@ describe("S113 mounted operator journey with persisted backend state", () => {
               cycleId?: unknown;
               saved?: { revision?: unknown };
               inputs?: { edits?: { responseRequest?: unknown } };
+              facts?: { ownerTerms?: { rent?: unknown } | null };
             } | null;
             owningGetParsed("message_preparation", body);
+            const termsRent = body?.facts?.ownerTerms?.rent;
+            read.termsRent = typeof termsRent === "number" ? termsRent : null;
             read.contentPresent = typeof body?.content?.htmlBody === "string";
             read.errorPresent = typeof body?.error === "string";
             read.cyclePresent = typeof body?.cycleId === "string";
@@ -3192,6 +3214,7 @@ describe("S113 mounted operator journey with persisted backend state", () => {
             throw error;
           } finally {
             read.elapsedMs = Date.now() - read.startedAt;
+            read.completedAtJourneyMs = Date.now() - journeyStartedAtMs;
           }
         }
         if (url.pathname.endsWith("/notice-review") && request.method === "GET") {
@@ -3656,6 +3679,8 @@ describe("S113 mounted operator journey with persisted backend state", () => {
                 ).toBe(Number(terms.rent)),
               { timeout: 10_000 },
             );
+            // Reads that start after this mark must carry the saved rent.
+            markPhase("owner working rent read back");
           }
           if (control.value !== outcome) change(control, outcome);
           const again = root.queryByRole("button", { name: "Record a new approval" });
@@ -3738,46 +3763,98 @@ describe("S113 mounted operator journey with persisted backend state", () => {
           name: "Tenant offer and response",
         });
         const tenant = within(tenantRegion);
+        // The preview is a div named only by its aria-label, so testing-library's aria-label
+        // branch is all getByLabelText can match for it. It reads in about a millisecond. The
+        // labels walk it replaces held the thread the awaited reload runs on (Q-ENG-ADV-CI).
+        const tenantPreviews = (root: HTMLElement) =>
+          queryAllByAttribute("aria-label", root, "tenant formatted body");
+        // Q-ENG-ADV-CI diagnostics: the check's own time on the thread the in-process routes
+        // share, and how late that thread ran other work, measured over this wait only.
+        const { monitorEventLoopDelay } = await import("node:perf_hooks");
+        const loopDelay = monitorEventLoopDelay({ resolution: 10 });
+        const previewWait = {
+          startedAtJourneyMs: Date.now() - journeyStartedAtMs,
+          checks: 0,
+          checkMs: 0,
+          checkMaxMs: 0,
+        };
+        const previewWaitStats = () => ({
+          startedAtJourneyMs: previewWait.startedAtJourneyMs,
+          elapsedMs: Date.now() - journeyStartedAtMs - previewWait.startedAtJourneyMs,
+          checks: previewWait.checks,
+          checkMs: Math.round(previewWait.checkMs),
+          checkMaxMs: Math.round(previewWait.checkMaxMs),
+          loopDelayMs: {
+            p50: Math.round(loopDelay.percentile(50) / 1e6),
+            p99: Math.round(loopDelay.percentile(99) / 1e6),
+            max: Math.round(loopDelay.max / 1e6),
+          },
+        });
+        loopDelay.enable();
         // The tenant preparation reloads after the working terms are saved; wait for it.
         // S161: the message is editable and copyable at once, with each absent value marked.
-        await waitFor(
-          () =>
-            expect(tenant.getByLabelText("tenant formatted body")).toHaveTextContent(
-              "$1,100.00",
-            ),
-          {
-            timeout: 10_000,
-            onTimeout: (error) => {
-              const liveRegions = screen.queryAllByRole("region", {
-                name: "Tenant offer and response",
-              });
-              const livePreviews = screen.queryAllByLabelText("tenant formatted body");
-              return new Error(
-                `Tenant preview wait diagnostics: ${JSON.stringify({
-                  capturedRegionConnected: tenantRegion.isConnected,
-                  currentRegionCount: liveRegions.length,
-                  sameRegion: liveRegions.includes(tenantRegion),
-                  currentPreviewCount: livePreviews.length,
-                  currentPreviewHasExpectedRent: livePreviews.some((node) =>
-                    node.textContent?.includes("$1,100.00"),
-                  ),
-                  messageReadCounts: { ...messageReadCounts },
-                  messageReadCountsSaturated,
-                  reads: messageReads.slice(-16).map(({ startedAt, ...read }) => ({
-                    ...read,
-                    pendingMs: read.elapsedMs === null ? Date.now() - startedAt : null,
-                  })),
-                })}`,
-                { cause: error },
-              );
+        try {
+          await waitFor(
+            () => {
+              const startedAt = performance.now();
+              previewWait.checks++;
+              try {
+                const previews = tenantPreviews(tenantRegion);
+                expect(previews).toHaveLength(1);
+                expect(previews[0]).toHaveTextContent("$1,100.00");
+              } finally {
+                const spent = performance.now() - startedAt;
+                previewWait.checkMs += spent;
+                previewWait.checkMaxMs = Math.max(previewWait.checkMaxMs, spent);
+              }
             },
-          },
-        );
+            {
+              timeout: 10_000,
+              onTimeout: (error) => {
+                const liveRegions = screen.queryAllByRole("region", {
+                  name: "Tenant offer and response",
+                });
+                const livePreviews = tenantPreviews(document.body);
+                return new Error(
+                  `Tenant preview wait diagnostics: ${JSON.stringify({
+                    capturedRegionConnected: tenantRegion.isConnected,
+                    currentRegionCount: liveRegions.length,
+                    sameRegion: liveRegions.includes(tenantRegion),
+                    currentPreviewCount: livePreviews.length,
+                    currentPreviewHasExpectedRent: livePreviews.some((node) =>
+                      node.textContent?.includes("$1,100.00"),
+                    ),
+                    wait: previewWaitStats(),
+                    statusTexts: Array.from(
+                      tenantRegion.querySelectorAll('[role="status"]'),
+                    ).map((node) => (node.textContent ?? "").trim().slice(0, 240)),
+                    readAt:
+                      Array.from(tenantRegion.querySelectorAll("p"))
+                        .map((node) => node.textContent ?? "")
+                        .find((text) =>
+                          text.startsWith("Lease facts and saved wording read at"),
+                        ) ?? null,
+                    messageReadCounts: { ...messageReadCounts },
+                    messageReadCountsSaturated,
+                    reads: messageReads.slice(-16).map(({ startedAt, ...read }) => ({
+                      ...read,
+                      pendingMs: read.elapsedMs === null ? Date.now() - startedAt : null,
+                    })),
+                  })}`,
+                  { cause: error },
+                );
+              },
+            },
+          );
+        } finally {
+          loopDelay.disable();
+        }
+        console.info("S113 tenant preview wait", JSON.stringify(previewWaitStats()));
         // The publication is still pending, so only the Gmail step waits; copy is open.
         expect(
           tenant.queryByRole("button", { name: "Preview unsent Gmail draft" }),
         ).toBeDisabled();
-        expect(tenant.getByLabelText("tenant formatted body").textContent).not.toContain(
+        expect(tenantPreviews(tenantRegion)[0].textContent).not.toContain(
           "https://example",
         );
         expect(
