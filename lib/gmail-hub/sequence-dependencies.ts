@@ -10,14 +10,13 @@ import { validateAuthClaims } from "@/lib/auth/session";
 import { getFirebaseAdminApp } from "@/lib/firebase/admin";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { currentRenewalMessage } from "@/lib/lease-renewal/current-renewal-message";
+import { requireEnvironmentDescriptor } from "@/lib/environment/descriptor";
+import { resolveRehearsalStandIn } from "@/lib/environment/rehearsal-stand-in";
 import {
-  assertLiveProviderActionAllowed,
-  requireEnvironmentDescriptor,
-} from "@/lib/environment/descriptor";
-import {
+  assertGmailEffectEnvironment,
   createGmailHubService,
+  createGmailMailboxClient,
   getGmailHubDependencies,
-  createDescriptorBoundGmailRuntimeClient,
 } from "./dependencies";
 import { assertProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 import { FirestoreCommunicationSequenceStore, sequenceHash } from "./sequence-store";
@@ -44,6 +43,8 @@ export function setCommunicationSequenceDependenciesForTest(
 export function createCommunicationSequenceService() {
   if (testDependencies) return new WorkflowCommunicationSequenceService(testDependencies);
   const descriptor = requireEnvironmentDescriptor();
+  // S254: null everywhere except the isolated rehearsal (lib/environment/rehearsal-stand-in.ts).
+  const standIn = resolveRehearsalStandIn();
   const attachments = new CommunicationAttachmentStore();
   return new WorkflowCommunicationSequenceService({
     store: new FirestoreCommunicationSequenceStore(),
@@ -51,7 +52,7 @@ export function createCommunicationSequenceService() {
     resolveAttachment: (id, context) => attachments.resolve(id, context),
     readActor: readCurrentCommunicationActor,
     readBusinessProfile: (actor) => readBusinessProfile(actor),
-    assertEffectEnvironment: () => assertLiveProviderActionAllowed(descriptor),
+    assertEffectEnvironment: () => assertGmailEffectEnvironment(descriptor, standIn),
     assertRuntimeAction: assertProductionRuntimeActionExecutable,
     syncMailbox: async (actor) => {
       await createGmailHubService(actor).refreshMailbox({ attemptKey: randomUUID() });
@@ -67,8 +68,7 @@ export function createCommunicationSequenceService() {
           senderEmail: actor.email.toLowerCase(),
           threadId: l.gmail_thread_id!,
         })),
-    createClient: (mailbox) =>
-      createDescriptorBoundGmailRuntimeClient(mailbox, descriptor),
+    createClient: (mailbox) => createGmailMailboxClient(mailbox, descriptor, standIn),
   });
 }
 export async function readCurrentCommunicationActor(

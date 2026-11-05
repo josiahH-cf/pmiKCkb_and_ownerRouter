@@ -39,6 +39,24 @@ publication, customer/provider business effect, signature or Dotloop activation 
 The guarded post-configuration five-route UI read had all 200 responses, no errors/mutation
 attempts and free profile before/after. It also exposed the remaining source-access seam below.
 
+## One-path batch S246–S254: in progress, handed off
+
+The owner started the unattended one-path run (S246–S254) on November 5 and handed it to another
+runner the same day. Nothing of it is merged or released, and the queue below is still empty.
+Resume from `~/pmi-kc-work/one-path-run/` (outside Git): its handoff file gives the state, the
+decisions made and the next steps, beside the owner's run instruction and the builder briefs.
+
+- Built on branches, each still needing review, the full gate and a squash merge: PR #184
+  (`feat/s254-litmus-harness`: shared litmus validator, the November 5 mix fixture and the one-path
+  rehearsal with mail, comparison and model stand-ins behind a loopback-only Demo fence), PR #185
+  (`feat/s253-confirmed-form-answers`) and PR #186 (`feat/s246-working-batch`).
+- Not started: S247 with S248, S249, S250 with S251, S252, the queue commit, the S254 litmus run,
+  the release and its closure.
+- Release-critical and unproven until built: the canary landmarks and the reconciliation follow
+  the new default desk and lease views in the same pull request as each view, and S249's automatic
+  comparison start never fires in a verification session or an automated browser.
+- Human verdict NOT RUN. The run made no send, provider write, billed lookup or production change.
+
 ## Exact remaining boundaries
 
 - **B-GCP-REINDEX:** the app lacks storage.objects.list on its existing corpus bucket. Bucket,
