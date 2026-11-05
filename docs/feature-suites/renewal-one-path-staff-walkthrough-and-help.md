@@ -253,8 +253,8 @@ taken from a name or a title.
 
 Consumes S246–S251 as delivered; a slice that is not delivered leaves its budget and ledger rows
 open with that reason. Consumes S253 only when the first full case includes a pet agreement or an
-owner acknowledgment. Reuses S238 and S242–S245. Runs last in the bundle and can run again after
-each weekly session.
+owner acknowledgment. Reuses S238 and S242–S245. Runs before the S254 litmus and can run again
+after each weekly session.
 
 **Standalone delivery contract.**
 
