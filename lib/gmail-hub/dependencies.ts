@@ -5,6 +5,10 @@ import {
   type EnvironmentDescriptor,
 } from "@/lib/environment/descriptor";
 import {
+  resolveRehearsalStandIn,
+  type RehearsalStandIn,
+} from "@/lib/environment/rehearsal-stand-in";
+import {
   FirestoreGmailLabelEffectStore,
   type GmailLabelEffectStore,
 } from "@/lib/firestore/gmail-label-effects";
@@ -14,6 +18,7 @@ import {
   type GmailStateStore,
 } from "@/lib/gmail-hub/state-store";
 import { GmailRuntimeClient } from "@/lib/gmail-runtime/client";
+import { createRehearsalStandInGmailClient } from "@/lib/gmail-runtime/rehearsal-stand-in-client";
 import { isApprovedWorkflowReplyTemplate } from "@/lib/gmail-hub/governed-artifacts";
 import type { WorkflowCommunicationContext } from "@/lib/gmail-hub/workflow-context";
 import {
@@ -71,13 +76,16 @@ export function createGmailHubRuntimeDependencies(
   // controls the pre-claim effect fence, provider construction, and whether a terminal state may
   // produce a Live A2 event. Resolution happens before either injected factory can run.
   const environment = resolveGmailHubEffectEnvironment(env);
+  // S254: null everywhere except the isolated rehearsal (lib/environment/rehearsal-stand-in.ts).
+  const standIn = resolveRehearsalStandIn(env);
   const assertEffectEnvironment = () =>
-    assertLiveProviderActionAllowed(environment.descriptor);
+    assertGmailEffectEnvironment(environment.descriptor, standIn);
   return {
     createClient: (subject) =>
-      createDescriptorBoundGmailRuntimeClient(
+      createGmailMailboxClient(
         subject,
         environment.descriptor,
+        standIn,
         factories.constructClient,
       ),
     store: factories.createStore
@@ -139,6 +147,47 @@ export function createDescriptorBoundGmailRuntimeClient(
 ) {
   assertLiveProviderActionAllowed(descriptor);
   return construct(subject);
+}
+
+/** True only for the descriptor the isolated rehearsal runs under: Demo with Demo data. */
+function ownsRehearsalStandIn(
+  descriptor: EnvironmentDescriptor,
+  standIn: RehearsalStandIn | null,
+): standIn is RehearsalStandIn {
+  return (
+    standIn !== null &&
+    descriptor.environmentKind === "demo" &&
+    descriptor.dataContext === "demo"
+  );
+}
+
+/**
+ * The pre-claim effect fence for Gmail. Production with Live data passes. The isolated rehearsal
+ * passes because its Demo-owned client can reach its loopback stand-in and nothing else. Every
+ * other context is refused exactly as before; a stand-in beside any other descriptor is ignored.
+ */
+export function assertGmailEffectEnvironment(
+  descriptor: EnvironmentDescriptor,
+  standIn: RehearsalStandIn | null = null,
+) {
+  if (ownsRehearsalStandIn(descriptor, standIn)) return;
+  assertLiveProviderActionAllowed(descriptor);
+}
+
+/**
+ * The mailbox client for this process: the rehearsal's stand-in client under Demo with Demo data
+ * when a stand-in was resolved, otherwise the descriptor-bound real client, which is refused
+ * outside Production with Live data before it is constructed.
+ */
+export function createGmailMailboxClient(
+  subject: string,
+  descriptor: EnvironmentDescriptor,
+  standIn: RehearsalStandIn | null = null,
+  construct?: (subject: string) => GmailRuntimeClient,
+) {
+  if (ownsRehearsalStandIn(descriptor, standIn))
+    return createRehearsalStandInGmailClient(subject, standIn);
+  return createDescriptorBoundGmailRuntimeClient(subject, descriptor, construct);
 }
 
 export function createGmailHubService(actor: AuthenticatedUser) {

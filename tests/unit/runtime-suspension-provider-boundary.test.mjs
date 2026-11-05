@@ -54,6 +54,7 @@ const EXPECTED_BOUNDARIES = [
   "lib/gmail-hub/service.ts:runGovernedLabelEffect:this.createClient",
   "lib/gmail-hub/service.ts:sendConfirmed:this.createClient",
   "lib/gmail-hub/service.ts:watchMailbox:this.createClient",
+  "lib/gmail-runtime/rehearsal-stand-in-client.ts:createRehearsalStandInGmailClient:new GmailRuntimeClient",
   "lib/lease-renewal/comp-screenshot-attachment-runtime.ts:resolveRenewalDraftCompScreenshotAttachment:deps.createProvider",
   "lib/lease-renewal/comp-screenshot-runtime.ts:createProvider:new GoogleDriveRenewalCompScreenshotProvider",
   "lib/lease-renewal/comp-screenshot-service.ts:commitCompScreenshotRollback:deps.createProvider",
@@ -339,6 +340,17 @@ const OWNER_PROVISIONING_SCRIPT_BOUNDARIES = new Set([
 // proof, readback, and isolated rollback. The focused pilot tests prove refusal before provider work.
 const EXACT_CONFIRMED_SPACE_PROVISIONING_BOUNDARIES = new Set([
   "lib/admin/space-provisioning-provider.ts:provisionDataStoreAndImportSource:this.dataStores.createDataStore",
+]);
+
+// S254: the isolated rehearsal's Demo-owned mail adapter. It is the mailbox client with a
+// transport that reaches only the rehearsal's loopback stand-in and a fixed label in place of a
+// token; the delegated token mint is never called. It is constructed only through
+// createGmailMailboxClient with the stand-in resolveRehearsalStandIn returns, which needs the
+// explicit Demo descriptor with Demo data, a non-production build, local demo sign-in, a loopback
+// Firestore emulator and a loopback REHEARSAL_STAND_IN_ORIGIN. It has no Live effect to suspend.
+// tests/unit/s254-rehearsal-stand-in-fence.test.ts proves each of those properties.
+const REHEARSAL_STAND_IN_ADAPTERS = new Set([
+  "lib/gmail-runtime/rehearsal-stand-in-client.ts:createRehearsalStandInGmailClient:new GmailRuntimeClient",
 ]);
 
 const GATED_PROVIDER_ADAPTERS = new Set([
@@ -1199,10 +1211,14 @@ describe("runtime suspension provider-construction boundary", () => {
       ...PROOF_LEDGER_SCRIPT_BOUNDARIES,
       ...OWNER_PROVISIONING_SCRIPT_BOUNDARIES,
       ...EXACT_CONFIRMED_SPACE_PROVISIONING_BOUNDARIES,
+      ...REHEARSAL_STAND_IN_ADAPTERS,
       ...GATED_PROVIDER_ADAPTERS,
     ];
     expect(new Set(classified).size).toBe(classified.length);
     expect(classified.sort()).toEqual(EXPECTED_BOUNDARIES);
+    expect([...REHEARSAL_STAND_IN_ADAPTERS]).toEqual([
+      "lib/gmail-runtime/rehearsal-stand-in-client.ts:createRehearsalStandInGmailClient:new GmailRuntimeClient",
+    ]);
     expect([...DESCRIPTOR_BOUND_DEPENDENCY_FACTORIES].sort()).toEqual([
       "lib/gmail-hub/dependencies.ts:createDescriptorBoundGmailRuntimeClient:construct",
       "lib/gmail-hub/dependencies.ts:createDescriptorBoundGmailRuntimeClient:new GmailRuntimeClient",
