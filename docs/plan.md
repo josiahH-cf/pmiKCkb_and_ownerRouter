@@ -1,6 +1,6 @@
 # Current plan
 
-Updated: 2026-11-05 (UTC), help hub litmus repairs delivery.
+Updated: 2026-11-05 (UTC), S245 litmus fixes delivery.
 
 ## Authorized outcome
 
@@ -9,7 +9,7 @@ assessment gaps, newly diagnosed A-08 PDF publication dependency, and the config
 communication work needed to unblock real renewals.
 The owner finalized this scope, then launched implementation and backend-question maintenance.
 It was delivered at `b5ba7802` / `pmi-kc-app-rmw123csb-dc0ce89a8583`; the current serving source
-`3f2e3f5d` / `pmi-kc-app-rmw3661as-aecc6937ff3f` includes it.
+`5b5c65c6` / `pmi-kc-app-rmw3h1wp5-706485135a02` includes it.
 The four independent source findings are repaired and reviewed; full07 passed 10,162 unit tests
 with four parity skips and all 497 backend tests, core passed 46 with 23 explicit configuration
 skips, and exact-main CI passed all five jobs. Run `ff1f44bf` passed candidate/promotion, two
@@ -49,6 +49,13 @@ repairs, help V1.1 and the S235 Admin form-family hint were delivered on Novembe
 promotion with production untouched and no proven cause beyond slow cold first loads; the operator
 resume of that pass passed assurance and every later phase, with no rollback. See the
 [litmus repairs delivery evidence](evidence/help-hub-litmus-repairs-delivery-2026-11-05.md).
+The litmus's outside-scope fixes for S87, S126, S147, S242 and S86 (PR #182, with PR #180's S113
+test fix) were delivered later on November 5 by run `8bf183d8` at `5b5c65c6` (exact-main CI
+`42018344883`, two observation checkpoints in 414,492 ms, 375 matched records, eleven matched
+readbacks). Every phase passed on its first pass, with no stop, resume or rollback; two
+preparation stops (authentication, then `remote_main_moved`) came before admission, and the
+release followed main past PR #183's test and CI tooling. See the
+[litmus fixes delivery evidence](evidence/s245-litmus-fixes-delivery-2026-11-05.md).
 
 ## Settled authoring decisions
 

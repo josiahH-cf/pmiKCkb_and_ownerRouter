@@ -19,7 +19,43 @@ When two sources disagree, use this order:
 Never revive a historical blocker, Demo/Test policy, action grant, or provider claim without checking
 the current code and live service. Date-stamped history is not authority.
 
-## Present production truth — November 5 help-hub litmus repairs delivery
+## Present production truth — November 5 S245 litmus fixes delivery
+
+Production serves `5b5c65c6b7be2b504b38e8c8fdea3d81367e5202` /
+`pmi-kc-app-rmw3h1wp5-706485135a02` at 100% canonical traffic. Run
+`8bf183d8-52e3-4244-b2ed-8894df854de8` completed at 12:01:30Z; its permit is consumed and controller
+exited zero. One application build `3b45e869-c0ec-4be8-9b64-276b61faf7ff` succeeded. Candidate
+receipt `9fb1b2e5-5d18-433b-8365-fd4e6e85c516` issued at 11:54:21.299Z; receipt-bound promotion
+verified at 11:54:42.628Z. Two observation checkpoints passed in 414,492 ms, within the
+300,000/480,000 ms bounds. All 375 source/projected/rendered records matched, with zero
+discrepancies, candidate 5xx, unresolved effects or guarded Admin mutation attempts. Editor browser
+remains `not_run` under the existing policy. All eleven independent final readback sections matched
+at 12:02:19Z. Runtime fingerprint:
+`sha256:ce13be98ce4c6b9cb59a82b17399f8f93a4b489bce95de91dd90b8412eeb5c8b`. The running digest
+matches the successful regional build. Only APP_COMMIT_SHA changed among 54 environment keys;
+managed runtime identity, eleven paired Space maps, five secret bindings, Production/Live,
+Demo=false and Sheet=true match reviewed state.
+
+The run passed every phase on its first pass, with no stop, resume or rollback. Two preparation
+stops came before admission. The first prepare at `952b33e7` stopped on authentication: the WSL
+CLI/ADC enrollment was 17.6 h old, past Google's roughly 16 h reauthentication limit, and the owner
+re-enrolled at 11:22:58Z. The second refused `remote_main_moved` because PR #183 had merged, so
+the release followed main to `5b5c65c6`. `auth:ensure` then reported gcloud and ADC ok with a
+verified token refresh and the Admin canary ok on its existing session.
+
+PR #182 is delivered in one candidate: the S245 litmus's outside-scope repairs for S87
+(present-tense copy and display, and a workflow run's Next Action from its own checklist), S126
+(Source last read in the date and time convention), S147 (Try again waits, bounded at 30 s, for a
+lease read in flight), S242 (print keeps every help heading with its content) and S86 (InfoTip
+hover and Escape behavior, and one unread count in the Notifications button's name). Help stays
+V1.1. PR #180's test-side S113 journey fix rode the candidate without a queue row and closes
+Q-ENG-ADV-CI; PR #183 changed only test and CI tooling. Exact-main CI passed all seven jobs in
+`42018344883`. The November 5 help-hub litmus repairs delivery (run `6951545a` at `3f2e3f5d`) is
+historical. Both Dotloop write keys remain closed; no customer dispatch, provider business write or
+signature was release proof.
+Evidence: `docs/evidence/s245-litmus-fixes-delivery-2026-11-05.md`; current holds: `docs/open-blockers.md`.
+
+## Previous production truth — November 5 help-hub litmus repairs delivery (historical)
 
 Production serves `3f2e3f5dc20a6b010afacac472419d81429a79a7` /
 `pmi-kc-app-rmw3661as-aecc6937ff3f` at 100% canonical traffic. Run

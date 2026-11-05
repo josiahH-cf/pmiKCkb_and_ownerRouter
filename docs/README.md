@@ -34,7 +34,10 @@ release acceptance passed; no live customer completion or human usability verdic
 
 ## Current core
 
-The S242–S245 help hub litmus repairs and help V1.1, with the S235 Admin form-family hint, are
+The S245 litmus fixes for S87, S126, S147, S242 and S86 are delivered at 5b5c65c6 /
+pmi-kc-app-rmw3h1wp5-706485135a02; see the
+[litmus fixes delivery evidence](evidence/s245-litmus-fixes-delivery-2026-11-05.md).
+The S242–S245 help hub litmus repairs and help V1.1, with the S235 Admin form-family hint, were
 delivered at 3f2e3f5d / pmi-kc-app-rmw3661as-aecc6937ff3f; see the
 [litmus repairs delivery evidence](evidence/help-hub-litmus-repairs-delivery-2026-11-05.md).
 The S242–S245 staff help hub and the merged #173 adversary-review fixes were delivered at

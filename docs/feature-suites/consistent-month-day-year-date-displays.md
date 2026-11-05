@@ -4,7 +4,7 @@
 # S126 — Consistent month/day/year date presentation
 
 > **Approval reference:** F06 (original feature #6).
-> **Status:** IMPLEMENTED AND DEPLOYED in the verified cumulative corrective batch at `c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220`. Exact CI 36650984450, release gates, independent source/runtime readbacks and six guarded product checks passed. Current evidence: [adversary review](../evidence/adversary-review-2026-09-29.md); original per-reference scopes and human/provider boundaries: [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md).
+> **Status:** IMPLEMENTED AND DEPLOYED in the verified cumulative corrective batch at `c541db723d3622234956a16e95765867733427cf` / `pmi-kc-app-rmundpf2v-249c945f2220`. Exact CI 36650984450, release gates, independent source/runtime readbacks and six guarded product checks passed. Current evidence: [adversary review](../evidence/adversary-review-2026-09-29.md); original per-reference scopes and human/provider boundaries: [shared batch audit](../evidence/batch-litmus-audit-2026-09-28.md). The S245 litmus correction (Source last read in the date and time convention on Waiting on you, Notifications, Spaces and the assistant's approvals answer) DELIVERED 2026-11-05 by run 8bf183d8 at `5b5c65c6`: [litmus fixes delivery](../evidence/s245-litmus-fixes-delivery-2026-11-05.md).
 > **Export date:** 2026-09-18. **Repository baseline:** `d61eecf309fef75f5fe0a80f8f203c1d24c6804a`.
 > **Registration:** Registered as S126 in `docs/feature-suites/README.md`; the original F06 approval mapping and independent suite acceptance contract are retained.
 > **Classification:** Application-wide presentation correction with unchanged date semantics.

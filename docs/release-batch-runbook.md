@@ -9,40 +9,42 @@ Keep all pending outcomes in the overall program. Exact-main CI, fresh prerequis
 one watcher/application build, receipts, full observation and recovery remain mandatory. Failed
 attempts and consumed permits are immutable and never reusable.
 
-## Current verified delivery — November 5 help hub litmus repairs
+## Current verified delivery — November 5 S245 litmus fixes
 
-Canonical production serves `3f2e3f5dc20a6b010afacac472419d81429a79a7` /
-`pmi-kc-app-rmw3661as-aecc6937ff3f` at 100% traffic. Run
-`6951545a-4e90-4620-b53f-ef5de75b2c1a` completed at 07:04:20Z with actual exit 0 and consumed
-permit. Its one regional application build `10aff53f-a5a8-4cb0-9877-54a6791ee0d3` succeeded; the
+Canonical production serves `5b5c65c6b7be2b504b38e8c8fdea3d81367e5202` /
+`pmi-kc-app-rmw3h1wp5-706485135a02` at 100% traffic. Run
+`8bf183d8-52e3-4244-b2ed-8894df854de8` completed at 12:01:30Z with actual exit 0 and consumed
+permit. Its one regional application build `3b45e869-c0ec-4be8-9b64-276b61faf7ff` succeeded; the
 resolved running image matches
-`sha256:d97f5a1e7b896db03787460b433407acf34b253f894d3be62fff1375355ab53b`.
-Candidate receipt `eac936d1-13e5-49c9-ac09-fbbd68a62458` issued at 06:57:08.097Z;
-receipt-bound promotion verified at 06:57:27.868Z. Two observation checkpoints passed over
-416,972 ms within the 300,000/480,000 ms bounds: all 375 source/projected/rendered records
+`sha256:2bfa3a81206549a367bb02ad39ceb3ed645c261a9ef34098df414f9acb629df5`.
+Candidate receipt `9fb1b2e5-5d18-433b-8365-fd4e6e85c516` issued at 11:54:21.299Z;
+receipt-bound promotion verified at 11:54:42.628Z. Two observation checkpoints passed over
+414,492 ms within the 300,000/480,000 ms bounds: all 375 source/projected/rendered records
 matched, with zero discrepancies, candidate 5xx or unresolved effects. Thirteen guarded Admin
 routes had zero diagnostics/mutation attempts; Editor browser remains `not_run`. All eleven
-independent final readback sections matched at 07:04:43Z. Runtime fingerprint:
-`sha256:e5e35e04f4df400919a8ce6c9e1f21b51afac60858e0f6285da0ed1e683cf814`.
+independent final readback sections matched at 12:02:19Z. Runtime fingerprint:
+`sha256:ce13be98ce4c6b9cb59a82b17399f8f93a4b489bce95de91dd90b8412eeb5c8b`.
 The revision comparison found only APP_COMMIT_SHA changed among 54 environment keys; the managed
 runtime identity, five secret bindings, eleven paired Space maps, Production/Live, Demo=false and
 Sheet=true are preserved.
 
-Captured predecessor: `pmi-kc-app-rmw2hrh4d-8b96ea7b6800` /
-`323e8be36535dabe21623ff28ca1160f8aae6657`, Sheet=true. Run-bound recovery `pmi-kc-app-recovery-6951545a4e904620`, receipt
-`024e2916-ab10-48fd-a150-529288bcca9e`, reference
-`sha256:de407ab86542120916b8090306162759fdef947a74acd42e873e56e347ef50dc`, preserves that
-actual predecessor image/configuration. Original and target runtime fingerprints both equal
-`sha256:71c35604ae103658e23bc9255cb7f7054c84d54549c392671e50a30a61163cd5`.
-No traffic rollback occurred in run 6951545a; its consumed receipts grant no new dispatch.
-Its first candidate assurance pass stopped before promotion (`assurance_unverified`) with canonical
-traffic untouched on the predecessor. The gate kept no report, so the cause is not proven beyond
-slow cold first loads; read-only diagnostics on the warm candidate passed, and the operator resume
-of that same pass passed assurance and every later phase.
-The run carried the five PR #177 queue items in one candidate
-([delivery evidence](evidence/help-hub-litmus-repairs-delivery-2026-11-05.md)). The November 4
-help hub delivery (run `74d79a9d`, `323e8be3`, after run `6960e4e1`'s verified rollback) and the
-November 3 gap-program delivery (run `ff1f44bf`, `b5ba7802`) remain in their
+Captured predecessor: `pmi-kc-app-rmw3661as-aecc6937ff3f` /
+`3f2e3f5dc20a6b010afacac472419d81429a79a7`, Sheet=true. Run-bound recovery
+`pmi-kc-app-recovery-8bf183d852e34244` (tag `cand-rmw3661as-aecc6937ff3f`), receipt
+`599103fb-eab9-447a-851f-a5ab764bbf27`, reference
+`sha256:fb169176c29d9a0e2db7da9494831a40f93782923f7c1b07a1c8a895a308760e`, preserves that actual
+predecessor image/configuration. Original and target runtime fingerprints
+both equal `sha256:e5e35e04f4df400919a8ce6c9e1f21b51afac60858e0f6285da0ed1e683cf814`.
+No traffic rollback occurred in run 8bf183d8; its consumed receipts grant no new dispatch.
+Every phase passed on its first pass, with no stop or resume. Before admission, the first prepare
+at `952b33e7` stopped on a 17.6 h old WSL CLI/ADC enrollment and the owner re-enrolled; a second
+refused `remote_main_moved` after PR #183 merged, so the release followed main.
+The run carried the five PR #182 queue items in one candidate
+([delivery evidence](evidence/s245-litmus-fixes-delivery-2026-11-05.md)). The November 5 help hub
+litmus repairs delivery (run `6951545a`, `3f2e3f5d`), the November 4 help hub delivery (run
+`74d79a9d`, `323e8be3`, after run `6960e4e1`'s verified rollback) and the November 3 gap-program
+delivery (run `ff1f44bf`, `b5ba7802`) remain in their
+[litmus repairs](evidence/help-hub-litmus-repairs-delivery-2026-11-05.md),
 [help hub](evidence/help-hub-delivery-2026-11-04.md) and
 [gap](evidence/application-gap-delivery-2026-11-03.md) delivery evidence.
 

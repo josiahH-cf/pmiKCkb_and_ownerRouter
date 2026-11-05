@@ -2,10 +2,32 @@
 
 Updated: 2026-11-05 (UTC).
 
-The S242–S245 help hub litmus repairs and help V1.1, with the S235 Admin form-family hint, are
-DELIVERED at `3f2e3f5d` / `pmi-kc-app-rmw3661as-aecc6937ff3f`, 100% canonical traffic. Run `6951545a`
-completed and its permit is consumed. Exact-main CI passed five jobs (`41979132377`); the
-pull-request head's full gate passed 10,391 unit and 497 backend tests. Observation passed two
+The S245 litmus fixes for S87, S126, S147, S242 and S86 (PR #182) are DELIVERED at `5b5c65c6` /
+`pmi-kc-app-rmw3h1wp5-706485135a02`, 100% canonical traffic. Run `8bf183d8` completed on its first
+pass and its permit is consumed. Exact-main CI passed seven jobs (`42018344883`), after five at
+`952b33e7` (`42009697057`); the exact head's full gate passed 10,479 unit and 497 backend tests.
+Observation passed two checkpoints/414,492 ms, 375 matched records, zero discrepancies/5xx/unresolved
+effects or mutation attempts; all eleven final readbacks matched at 12:02:19Z.
+
+Two preparation stops came before admission. The first prepare at `952b33e7` stopped on
+authentication because the WSL CLI/ADC enrollment was 17.6 h old, past Google's roughly 16 h
+reauthentication limit, and the owner re-enrolled; the second refused `remote_main_moved` after
+PR #183 (test and CI tooling) merged, so the release followed main to `5b5c65c6`. A read-only production check then found help V1.1 at the
+serving commit, every help heading kept with its content in print, the Notifications button's
+count named once and the Workflow card's Next line on all five process Spaces.
+
+PR #180's test-side S113 journey fix rode the candidate without a queue row; the green exact-main
+runs close Q-ENG-ADV-CI. Help stays V1.1; the three Open Questions keep their defaults, the 25
+S245 L10 steps are unchanged and the human verdict is NOT RUN. Exact holds remain in
+`docs/open-blockers.md`; delivery evidence:
+`docs/evidence/s245-litmus-fixes-delivery-2026-11-05.md`.
+
+## November 5 help-hub litmus repairs delivery (historical)
+
+The S242–S245 help hub litmus repairs and help V1.1, with the S235 Admin form-family hint, were
+DELIVERED at `3f2e3f5d` / `pmi-kc-app-rmw3661as-aecc6937ff3f`, then 100% canonical traffic. Run
+`6951545a` completed and its permit is consumed. Exact-main CI passed five jobs (`41979132377`);
+the pull-request head's full gate passed 10,391 unit and 497 backend tests. Observation passed two
 checkpoints/416,972 ms, 375 matched records, zero discrepancies/5xx/unresolved effects or
 mutation attempts; all eleven final readbacks matched at 07:04:43Z.
 
@@ -21,9 +43,8 @@ No, L10 is UNVERIFIED for 25 steps that need RentCast, Gmail, Dotloop, the Sheet
 Production with Live data, and the human verdict is NOT RUN. Pull-request CI's firestore lane failed
 twice on the S113 mounted journey's tenant-preview wait (attempt one of runs 41968323970
 and 41974275990) on commits that change only help text and docs; each passed unchanged on re-run.
-Its cause is test-side (jsdom's label lookup starved the journey's shared thread) and its repair is
-Q-ENG-ADV-CI. Exact holds remain in
-`docs/open-blockers.md`; delivery evidence:
+Its cause is test-side (jsdom's label lookup starved the journey's shared thread); PR #180's repair
+shipped in the release above and closed Q-ENG-ADV-CI. Delivery evidence:
 `docs/evidence/help-hub-litmus-repairs-delivery-2026-11-05.md`.
 
 ## November 4 help-hub delivery (historical)
