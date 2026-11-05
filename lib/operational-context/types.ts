@@ -2,6 +2,8 @@
 // the Dashboard conversation and workflow-linked email refinement see the same record identities,
 // provenance, coverage and failure states the owning screens use. Types only; no I/O.
 
+import type { RenewalBatchPlacement } from "@/lib/lease-renewal/renewal-batch";
+
 export const OPERATIONAL_SOURCES = [
   "renewals",
   "work",
@@ -82,6 +84,11 @@ export interface RenewalRecordFacts {
   readonly waitingOn: string | null;
   readonly workStatus: string | null;
   readonly lifecycle: string | null;
+  /**
+   * S246 R-S246-10: where the Renewals desk places this lease in its working batch, from the one
+   * target definition. A month answer lists exactly the leases this places in that month.
+   */
+  readonly batch: RenewalBatchPlacement;
 }
 
 export interface WorkRecordFacts {
@@ -180,12 +187,16 @@ export interface OperationalContext {
   listKnownPeople(): Promise<readonly KnownPerson[] | null>;
 }
 
-/** The owning view for each source, for "open the full list" links. In-app routes only. */
+/**
+ * The owning view for each source, for "open the full list" links. In-app routes only.
+ * S246 (D-OP-4): the Renewals desk always opens on its working batch, so this link is the desk's
+ * ordinary entry. The batch counts every loaded lease and offers the full table one action away.
+ */
 export const OPERATIONAL_SOURCE_VIEWS: Record<
   OperationalSource,
   { readonly label: string; readonly href: string }
 > = {
-  renewals: { label: "Open the Renewals desk", href: "/lease-renewal/live/desk?v=2" },
+  renewals: { label: "Open the Renewals desk", href: "/lease-renewal/live/desk" },
   work: { label: "Open My Work", href: "/work" },
   approvals: { label: "Open the Approval Queue", href: "/approval-queue" },
   connections: { label: "Open Connections", href: "/connections" },

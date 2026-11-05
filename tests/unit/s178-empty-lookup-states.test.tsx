@@ -32,7 +32,9 @@ const NAMED: readonly LeaseFixture[] = [
 ];
 const WANTED = "Zebulon Quartermain";
 const REFRESH = "Use Refresh data on the Renewals desk, then ask again.";
-const DESK = { label: "Open the Renewals desk", href: "/lease-renewal/live/desk?v=2" };
+// S246 (D-OP-4): the Renewals desk always opens on its working batch, where Refresh data sits in
+// the page header, so this link is the desk's ordinary entry.
+const DESK = { label: "Open the Renewals desk", href: "/lease-renewal/live/desk" };
 
 type Interpreter = NonNullable<
   Parameters<typeof runAssistantConversation>[1]["interpret"]

@@ -174,8 +174,9 @@ describe("S110 questions still answer through the S138 conversation (ARCH-S110-1
     const blocked = await ask("What renewal blockers do I currently have?");
     expect(blocked.answer.groups.map((group) => group.source)).toEqual(["renewals"]);
     const month = await ask("Which renewals come up next month?");
+    // S246 R-S246-10: a month answer opens that month of the working batch.
     expect(month.answer.groups[0].link?.href).toBe(
-      "/lease-renewal/live/desk?v=2&month=2026-10",
+      "/lease-renewal/live/desk?batch=2026-10",
     );
   });
 

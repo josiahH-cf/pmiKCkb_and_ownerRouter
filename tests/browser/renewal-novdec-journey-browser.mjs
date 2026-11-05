@@ -443,14 +443,280 @@ try {
     },
   );
 
+  // S246: the bare Renewals route opens the working batch. Checked on the three synthetic leases
+  // before any work is recorded: 5001 ends in December 2026, 4821 ends in November 2026 with no
+  // completion, and 6001 carries a move-out notice. The synthetic status list carries no primary
+  // status, so every lease reads "RentVine status unavailable" and none is excluded (R-S246-12).
+  const batch = page.locator('section[aria-label="Working batch"]');
+  const batchMonth = (month) =>
+    page.locator(`section[aria-label="Working batch"][data-batch-month="${month}"]`);
+  const batchListed = (group) =>
+    page
+      .locator(`[data-batch-list="${group}"] li[data-batch-lease]`)
+      .evaluateAll((rows) => rows.map((row) => row.getAttribute("data-batch-lease")));
+  await step(
+    "S246-working-batch",
+    "R-S246-2, R-S246-3, R-S246-6, R-S246-7, R-S246-8, R-S246-9, R-S246-11, R-S246-12, AC-S246-3",
+    "The bare route opens the working batch: December's target, November's lease carried over and the move-out counted. A month, a count, a lease and Back to renewals stay in one tab, restore the same place and record nothing",
+    async () => {
+      const writes = [];
+      const onRequest = (request) => {
+        const url = new URL(request.url());
+        if (
+          url.origin === origin &&
+          !["GET", "HEAD", "OPTIONS"].includes(request.method())
+        )
+          writes.push(`${request.method()} ${url.pathname}`);
+      };
+      page.on("request", onRequest);
+      try {
+        await page.goto(`${origin}/lease-renewal/live/desk`, {
+          waitUntil: "domcontentloaded",
+        });
+        await batch.waitFor();
+        assert.equal(
+          await page.locator("table.renewal-table").count(),
+          0,
+          "the bare route rendered the table",
+        );
+        assert.equal(await page.locator('[data-desk-surface="batch"]').count(), 1);
+        // D-OP-4: the working month defaults to the next calendar month on the Central date.
+        const today = new Intl.DateTimeFormat("en-US", {
+          timeZone: "America/Chicago",
+          year: "numeric",
+          month: "numeric",
+        }).formatToParts(new Date());
+        const year = Number(today.find((part) => part.type === "year").value);
+        const month = Number(today.find((part) => part.type === "month").value);
+        const defaultMonth =
+          month === 12
+            ? `${year + 1}-01`
+            : `${year}-${String(month + 1).padStart(2, "0")}`;
+        assert.equal(await batch.getAttribute("data-batch-month"), defaultMonth);
+
+        await page.goto(`${origin}/lease-renewal/live/desk?batch=2026-12`, {
+          waitUntil: "domcontentloaded",
+        });
+        await batchMonth("2026-12").waitFor();
+        const summary = (await page.locator(".renewal-batch-summary").innerText()).trim();
+        assert.equal(summary, "One lease ending in December 2026 needs renewal work.");
+        assert.deepEqual(await batchListed("carried_over"), ["4821"]);
+        assert.deepEqual(await batchListed("this_batch"), ["5001"]);
+        // Carried over shows first.
+        assert.ok(
+          await page.evaluate(() => {
+            const carried = document.querySelector('[data-batch-list="carried_over"]');
+            const current = document.querySelector('[data-batch-list="this_batch"]');
+            return Boolean(
+              carried &&
+              current &&
+              carried.compareDocumentPosition(current) & Node.DOCUMENT_POSITION_FOLLOWING,
+            );
+          }),
+          "Carried over is not listed before This batch",
+        );
+        // R-S246-11: the two lists and the counts account for every loaded lease, once each.
+        const counts = await page
+          .locator("button[data-batch-group]")
+          .evaluateAll((buttons) =>
+            Object.fromEntries(
+              buttons.map((button) => [
+                button.getAttribute("data-batch-group"),
+                Number(button.getAttribute("data-batch-count")),
+              ]),
+            ),
+          );
+        assert.deepEqual(counts, {
+          renewed_in_rentvine: 0,
+          month_to_month_reviews: 0,
+          non_renewals: 1,
+          coming_up_later: 0,
+          not_targets: 0,
+          completed: 0,
+        });
+        assert.equal(await batch.getAttribute("data-batch-total"), "3");
+
+        // R-S246-7: one short row. Names are text, and nothing opens a second tab.
+        const row = page.locator(
+          '[data-batch-list="this_batch"] li[data-batch-lease="5001"]',
+        );
+        const rowText = (await row.innerText()).replace(/\s+/g, " ");
+        assert.match(rowText, /Sample Pl/);
+        assert.match(rowText, /Casey Example/);
+        assert.match(rowText, /Ends 12\/31\/2026/);
+        assert.match(rowText, /RentVine status unavailable/);
+        assert.equal(await row.locator(".renewal-batch-stage").count(), 1);
+        assert.equal(await row.locator("[data-batch-next-step]").count(), 1);
+        assert.ok((await row.locator("[data-batch-tag]").count()) <= 3);
+        assert.equal(await row.locator(".renewal-batch-tenants a").count(), 0);
+        assert.equal(await batch.locator("a[target]").count(), 0);
+        const nextStepBox = await row.locator("[data-batch-next-step]").boundingBox();
+        assert.ok(
+          nextStepBox && nextStepBox.height >= 43.5 && nextStepBox.width >= 43.5,
+          "the next-step link is smaller than a 44px target",
+        );
+
+        // R-S246-6: a count opens its rows.
+        await page.locator('button[data-batch-group="non_renewals"]').click();
+        const opened = page.locator('[data-batch-open-group="non_renewals"]');
+        await opened.waitFor();
+        assert.deepEqual(
+          await opened
+            .locator("li[data-batch-lease]")
+            .evaluateAll((rows) =>
+              rows.map((entry) => entry.getAttribute("data-batch-lease")),
+            ),
+          ["6001"],
+        );
+        assert.equal(new URL(page.url()).searchParams.get("group"), "non_renewals");
+
+        // R-S246-2: Previous month and Next month change the month; the open count stays open.
+        await page.getByRole("link", { name: "Previous month", exact: true }).click();
+        await batchMonth("2026-11").waitFor();
+        assert.equal(
+          (await page.locator(".renewal-batch-summary").innerText()).trim(),
+          "One lease ending in November 2026 needs renewal work.",
+        );
+        assert.deepEqual(await batchListed("this_batch"), ["4821"]);
+        assert.equal(await page.locator('[data-batch-list="carried_over"]').count(), 0);
+        assert.equal(await opened.count(), 1);
+        await page.getByRole("link", { name: "Next month", exact: true }).click();
+        await batchMonth("2026-12").waitFor();
+        assert.deepEqual(await batchListed("this_batch"), ["5001"]);
+
+        // R-S246-8: a lease opens in this tab, and Back to renewals restores month, group and
+        // scroll position. A short viewport makes the page scroll.
+        await page.setViewportSize({ width: 1360, height: 420 });
+        const nextStep = opened.locator(
+          'li[data-batch-lease="6001"] [data-batch-next-step]',
+        );
+        await page.evaluate(() =>
+          window.scrollTo(0, document.documentElement.scrollHeight),
+        );
+        await nextStep.scrollIntoViewIfNeeded();
+        const scrolled = await page.evaluate(() => Math.round(window.scrollY));
+        assert.ok(scrolled > 0, "the batch did not scroll at this height");
+        const tabs = context.pages().length;
+        await nextStep.click();
+        await page.waitForURL(
+          (url) => url.pathname === "/lease-renewal/live/desk/lease/6001",
+        );
+        assert.equal(context.pages().length, tabs, "the lease opened a second tab");
+        assert.match(
+          new URL(page.url()).searchParams.get("deskView") ?? "",
+          /^(batch=2026-12&)?group=non_renewals$/,
+        );
+        // R-S246-1: the lease page states the same verdict the desk placed the lease by.
+        const verdict = page.locator("[data-renewal-target]").first();
+        await verdict.waitFor();
+        assert.equal(await verdict.getAttribute("data-renewal-target"), "not_target");
+        assert.match(
+          await verdict.innerText(),
+          /^Outside the monthly renewal batch: Move-out notice in RentVine/,
+        );
+        await page.getByRole("link", { name: "← Back to renewals" }).click();
+        await batchMonth("2026-12").waitFor();
+        await opened.waitFor();
+        await page.waitForFunction(
+          (expected) => Math.abs(window.scrollY - expected) <= 2,
+          scrolled,
+        );
+        assert.equal(
+          await page.evaluate(() =>
+            document.activeElement
+              ?.closest("[data-batch-lease]")
+              ?.getAttribute("data-batch-lease"),
+          ),
+          "6001",
+          "focus did not return to the lease that was opened",
+        );
+        await page.setViewportSize({ width: 1360, height: 900 });
+        const file = await capture(page, "s246-working-batch");
+
+        // R-S246-9: All leases and filters opens the table over every loaded lease.
+        await page
+          .getByRole("link", { name: "All leases and filters", exact: true })
+          .click();
+        await page.waitForURL(
+          (url) =>
+            url.pathname === "/lease-renewal/live/desk" &&
+            url.search === "?v=2&scope=all",
+        );
+        await page.locator("table.renewal-table").first().waitFor();
+        assert.equal(
+          await page.locator("table.renewal-table tbody tr[data-lease-id]").count(),
+          3,
+        );
+        // AC-S246-3: nothing above recorded, sent or scheduled anything.
+        assert.deepEqual(writes, [], "the working batch issued a write");
+        const workRecords =
+          (await db.collection("lease_renewal_workspaces").get()).size +
+          (await db.collection("lease_renewal_lease_bound_workspaces").get()).size +
+          (await db.collection("lease_renewal_cycle_date_decisions").get()).size;
+        assert.equal(workRecords, 0, "opening the batch created a record");
+        return {
+          defaultMonth,
+          summary,
+          carriedOver: ["4821"],
+          thisBatch: ["5001"],
+          counts,
+          restoredScrollY: scrolled,
+          writes: writes.length,
+          screenshot: file,
+        };
+      } finally {
+        page.off("request", onRequest);
+        await page.setViewportSize({ width: 1360, height: 900 });
+      }
+    },
+  );
+
+  // S246 R-S246-10: the Dashboard assistant's own route, asked about the same month, lists the
+  // same lease the batch lists and states the other counts. The deterministic interpreter answers
+  // in this rehearsal, and the route is a read.
+  await step(
+    "S246-assistant-parity",
+    "R-S246-10, BEH-S246-4, AC-S246-4",
+    "The assistant route's answer for December 2026 lists exactly the batch's lease and names the other counts",
+    async () => {
+      const answered = await page.evaluate(async () => {
+        const response = await fetch("/api/assistant/query", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ question: "Which leases end in December 2026?" }),
+        });
+        return { status: response.status, body: await response.json() };
+      });
+      assert.equal(answered.status, 200, JSON.stringify(answered.body).slice(0, 300));
+      const group = answered.body.groups?.[0];
+      assert.ok(group, "the answer carries no group");
+      assert.deepEqual(
+        group.items.map((item) => item.ref.id),
+        ["5001"],
+      );
+      const notes = group.notes.join(" ");
+      assert.match(
+        notes,
+        /Also on the Renewals desk for December 2026: Carried over \(1\); Non-renewals to hand off \(1\)\./,
+      );
+      assert.equal(group.link?.href, "/lease-renewal/live/desk?batch=2026-12");
+      return { listed: ["5001"], notes: group.notes, link: group.link };
+    },
+  );
+
   await step(
     "S232-desk-november",
     "R-S232 (S238 phase: inventory and next action)",
     "November 2026 shows lease 4821 and not the December lease",
     async () => {
+      // S246: the bare route opens the working batch; the table and its filters are one link away.
       await page.goto(`${origin}/lease-renewal/live/desk`, {
         waitUntil: "domcontentloaded",
       });
+      await batch.waitFor();
+      await page
+        .getByRole("link", { name: "All leases and filters", exact: true })
+        .click();
       await page.locator("table.renewal-table").first().waitFor();
       await page.getByText("Filter renewal date").first().click();
       await page.locator("#renewal-filter-month").fill("2026-11");

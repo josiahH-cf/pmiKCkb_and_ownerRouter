@@ -1,10 +1,9 @@
 // S110 renewal adapters. Both read the same `DeskLeaseRow` projection the Renewals desk renders and
-// apply the desk's OWN predicates (exported by `desk-query-v2`), so the assistant and the table can
-// never disagree about which leases are blocked or which come up in a month: the same default scope
-// hides the same out-of-window rows, and "next month" means the desk's Renewal-month filter (lease
-// end month). A month-to-month lease's periodic review is not a renewal and is not listed here; the
-// desk shows it under its periodic-review scope. They filter and project; they read no source of
-// their own and write nothing.
+// apply the desk's OWN predicates, so the assistant and the desk can never disagree about which
+// leases are blocked or which come up in a month. S246: "next month" means that month's working
+// batch, from the one renewal target definition each desk row carries. A month-to-month lease's
+// periodic review is not a renewal and is not listed here; the desk counts it under its own group.
+// They filter and project; they read no source of their own and write nothing.
 //
 // S166: each projected lease links its own workspace by its real lease id and names the tenants the
 // row already carries, so a result can be told apart and opened. A row with no resolved lease id is
@@ -14,8 +13,11 @@ import type { AssistantItem } from "@/lib/assistant/envelope";
 import {
   renewalDeskItemInScope,
   renewalDeskItemIsBlocked,
-  renewalDeskItemMatchesMonth,
 } from "@/lib/lease-renewal/desk-query-v2";
+import {
+  renewalBatchGroupFor,
+  renewalBatchPlacement,
+} from "@/lib/lease-renewal/renewal-batch";
 import {
   EXPLICIT_DEFAULT_DESK_VIEW,
   RENEWAL_DESK_ROUTE,
@@ -31,13 +33,17 @@ export function selectBlockedRenewalRows(
   );
 }
 
-/** The rows the desk's default worklist lists for one Renewal month. */
+/**
+ * S246 R-S246-10: the rows the Renewals desk lists under "This batch" for one month, from the one
+ * target definition the desk row carries. A closed or pending lease, a move-out, a hold, a
+ * month-to-month lease and a completed cycle are counted in their own groups, never listed here.
+ */
 export function selectRenewalRowsInMonth(
   rows: readonly DeskLeaseRow[],
   month: string,
 ): readonly DeskLeaseRow[] {
   return rows.filter(
-    (row) => renewalDeskItemInScope(row) && renewalDeskItemMatchesMonth(row, month),
+    (row) => renewalBatchGroupFor(renewalBatchPlacement(row), month) === "this_batch",
   );
 }
 

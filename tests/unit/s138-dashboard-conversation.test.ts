@@ -96,7 +96,7 @@ describe("S138 question families answer from the owning records", () => {
     );
   });
 
-  it("lists leases ending next month with the desk's Renewal-month filter", async () => {
+  it("lists leases ending next month and opens that month of the working batch", async () => {
     const { answer } = await ask("Which leases are coming up next month?", {
       reads: {
         renewals: renewalsRead([
@@ -110,9 +110,9 @@ describe("S138 question families answer from the owning records", () => {
     expect(answer.summary).toContain(
       "next month, October 2026 (10/01/2026 through 10/31/2026)",
     );
-    expect(answer.groups[0].link?.href).toBe(
-      "/lease-renewal/live/desk?v=2&month=2026-10",
-    );
+    // S246 R-S246-10: a month answer lists that month's working batch, so its link opens the
+    // same leases there. The table's month filter would also list leases outside renewal work.
+    expect(answer.groups[0].link?.href).toBe("/lease-renewal/live/desk?batch=2026-10");
   });
 
   it("answers leases and work assigned to me from open My Work tasks", async () => {
@@ -593,9 +593,9 @@ describe("S138 empty, partial, unavailable and denied stay distinct", () => {
     expect(answer.groups[0].notes).toContain(
       "Showing the first 25 of 30. Open the full list for the rest.",
     );
-    expect(answer.groups[0].link?.href).toBe(
-      "/lease-renewal/live/desk?v=2&month=2026-10",
-    );
+    // S246 R-S246-10: a month answer lists that month's working batch, so its link opens the
+    // same leases there. The table's month filter would also list leases outside renewal work.
+    expect(answer.groups[0].link?.href).toBe("/lease-renewal/live/desk?batch=2026-10");
   });
 
   it("reports a source that throws as unavailable while other groups answer", async () => {

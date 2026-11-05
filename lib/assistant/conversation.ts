@@ -39,7 +39,15 @@ import {
   inclusiveRangeDays,
   type RenewalDeskQueryV2State,
 } from "@/lib/lease-renewal/desk-query-v2";
-import { buildExplicitDeskHref } from "@/lib/lease-renewal/desk-view-continuation";
+import {
+  buildExplicitDeskHref,
+  renewalBatchHref,
+} from "@/lib/lease-renewal/desk-view-continuation";
+import {
+  partitionRenewalBatch,
+  renewalBatchExcludedNotes,
+  renewalBatchGroupFor,
+} from "@/lib/lease-renewal/renewal-batch";
 import {
   OPERATIONAL_SOURCE_VIEWS,
   type ApprovalRecordFacts,
@@ -855,6 +863,8 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
   const clauses: Array<readonly [string, string]> = [];
   const desk: RenewalDeskQueryV2State = { ...DEFAULT_RENEWAL_DESK_QUERY_V2 };
   let records = read.records;
+  // S246 R-S246-10: the month whose working batch this answer lists, when it lists one.
+  let batchMonth: string | null = null;
 
   if (
     filters.includeClosed ||
@@ -878,8 +888,34 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
       preset === "last_month"
     ) {
       const month = range.endIso.slice(0, 7);
-      records = records.filter((record) => record.facts.endMonth === month);
-      desk.month = month;
+      if (desk.scope !== "all" && uncoveredNote(range, read.coverage) === null) {
+        // S246 R-S246-10: inside the read's coverage a month answer is that month's working
+        // batch, from the same target definition and partition the Renewals desk renders.
+        // Every lease the batch lists for a covered month is already in the default scope.
+        batchMonth = month;
+        records = records.filter(
+          (record) => renewalBatchGroupFor(record.facts.batch, month) === "this_batch",
+        );
+        exec.interpretation.push(
+          "Leases listed: the renewal targets of that month, the leases the Renewals desk lists under This batch. A renewal target is a lease RentVine reports active, with a fixed or unresolved term, ending in the month, with no move-out, hold or recorded completion.",
+        );
+        notes.push(
+          ...renewalBatchExcludedNotes(
+            partitionRenewalBatch(
+              read.records.map((record) => ({
+                key: record.ref.id,
+                placement: record.facts.batch,
+                sortDateIso: record.facts.endDateIso,
+                sortLabel: record.title,
+              })),
+              month,
+            ),
+          ),
+        );
+      } else {
+        records = records.filter((record) => record.facts.endMonth === month);
+        desk.month = month;
+      }
     } else {
       records = records.filter((record) =>
         inBusinessRange(record.facts.endDateIso, range),
@@ -1121,10 +1157,13 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
         notes: empty ? [...notes, ...empty.notes] : notes,
         status,
         // S166: the link names its view, so the unfiltered worklist opens the default view the
-        // answer described rather than the account's remembered view.
+        // answer described rather than the account's remembered view. S246: a month's working
+        // batch opens as that month of the batch, the same leases the answer lists.
         link: empty?.link ?? {
           label: "Open these on the Renewals desk",
-          href: buildExplicitDeskHref(desk),
+          href: batchMonth
+            ? renewalBatchHref({ month: batchMonth, group: null })
+            : buildExplicitDeskHref(desk),
         },
       }),
     ],

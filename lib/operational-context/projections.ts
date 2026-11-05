@@ -31,6 +31,7 @@ import {
   renewalDeskItemInScope,
   renewalDeskItemIsBlocked,
 } from "@/lib/lease-renewal/desk-query-v2";
+import { renewalBatchPlacement } from "@/lib/lease-renewal/renewal-batch";
 import type { MaintenanceTicketRecord } from "@/lib/maintenance/ticket-model";
 import {
   MAINTENANCE_WAITING_ON_LABELS,
@@ -120,6 +121,7 @@ export function projectRenewalRead(
         waitingOn: WAITING_LABELS[row.queryKeys.waitingOn] ?? null,
         workStatus: row.workStatus?.state === "recorded" ? row.workStatus.label : null,
         lifecycle: row.lifecycle?.label ?? null,
+        batch: renewalBatchPlacement(row),
       },
     }),
   );
