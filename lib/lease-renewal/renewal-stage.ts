@@ -838,3 +838,10 @@ export function renewalStageWaitingLine(waiting: RenewalStageWaiting): string {
     : " No contact recorded yet.";
   return `${line}.${contact} The app is watching: ${waiting.watching}`;
 }
+
+/** Who the stage waits on, in the stage's own words ("Waiting on the owner"); null when no one. */
+export function renewalStageWaitingOn(
+  stage: Pick<RenewalStageSummary, "waiting">,
+): string | null {
+  return stage.waiting ? `Waiting on ${stage.waiting.party}` : null;
+}

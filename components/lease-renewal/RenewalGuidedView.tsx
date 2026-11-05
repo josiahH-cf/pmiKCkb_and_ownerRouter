@@ -363,7 +363,7 @@ function GuidedPane({
         </section>
       ) : null}
       <nav aria-label="Every section in Full view" className="renewal-guided-sections">
-        <p className="muted">Every section and control stays in Full view:</p>
+        <h3 className="renewal-focus-group">Every section in Full view</h3>
         <ul className="ui-row">
           {RENEWAL_DASHBOARD_SECTIONS.map((section) => (
             <li key={section.id}>
