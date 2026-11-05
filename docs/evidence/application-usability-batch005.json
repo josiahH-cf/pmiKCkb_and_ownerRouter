@@ -29668,6 +29668,50 @@
           "tests/unit/s244-help-guide-links.test.tsx",
           "tests/unit/s86-infotip.test.tsx"
         ]
+      },
+      {
+        "owner": "components/lease-renewal/RenewalWorkingBatch.tsx",
+        "cohort": "renewals",
+        "kind": "immediate month and group selection held in the address; two staff-chosen saves through the existing workspace route",
+        "lifetime": "one operation id per choice, reused after a lost response; a completed save or a refusal refreshes the batch",
+        "ownerTests": [
+          "tests/unit/s246-batch-view.test.tsx",
+          "tests/unit/s246-assurance-landmarks.test.tsx",
+          "tests/unit/theme-token-contract.test.ts"
+        ],
+        "inspected": true,
+        "checks": [
+          {
+            "test": "Current owning source inspection: components/lease-renewal/RenewalWorkingBatch.tsx (S246 working batch)",
+            "outcome": "passed",
+            "environment": "S246 implementation review, 2026-11-05; synthetic fixture values and static strings only",
+            "evidence": "private review of the committed source; no customer value in labels or fixtures"
+          },
+          {
+            "test": "tests/unit/s246-batch-view.test.tsx",
+            "outcome": "passed",
+            "environment": "WSL native lane checkout on feat/s246-working-batch, vitest (jsdom for components), 2026-11-05",
+            "evidence": "private ~/pmi-kc-work/lanes/logs/s246-unit-full.log"
+          },
+          {
+            "test": "tests/unit/s246-assurance-landmarks.test.tsx",
+            "outcome": "passed",
+            "environment": "WSL native lane checkout on feat/s246-working-batch, vitest (jsdom for components), 2026-11-05",
+            "evidence": "private ~/pmi-kc-work/lanes/logs/s246-unit-full.log"
+          },
+          {
+            "test": "tests/browser/renewal-novdec-journey-browser.mjs step S246-working-batch",
+            "outcome": "passed",
+            "environment": "isolated synthetic rehearsal (Demo descriptor, Firestore emulator, synthetic RentVine transport), Chromium, 2026-11-05",
+            "evidence": "private overlay run under ~/.local/state/pmi-kc-novdec-journey-20261028"
+          }
+        ],
+        "plannedChecks": [],
+        "compiledCoverage": "Mounted unit coverage plus the isolated renewal journey's working batch step; no blanket claim that every state ran in a browser.",
+        "ownerUnitFilesPassed": [
+          "tests/unit/s246-batch-view.test.tsx",
+          "tests/unit/s246-assurance-landmarks.test.tsx"
+        ]
       }
     ],
     "cohorts": [

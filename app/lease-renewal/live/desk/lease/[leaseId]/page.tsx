@@ -95,7 +95,8 @@ import {
   sheetFieldCells,
 } from "@/lib/lease-renewal/sheet-writeback/lookup-target";
 import { buildOperatingSheetCellDestination } from "@/lib/lease-renewal/desk-destinations";
-import { validateDeskView } from "@/lib/lease-renewal/desk-view-continuation";
+import { validateDeskContinuation } from "@/lib/lease-renewal/desk-view-continuation";
+import { getRenewalCycleDateDecision } from "@/lib/firestore/renewal-cycle-date-decisions";
 import {
   hasRenewalRoleAuthority,
   renewalRoleCapability,
@@ -171,8 +172,9 @@ export default async function LiveRenewalLeaseWorkspacePage({
     ? search.deskView[0]
     : search.deskView;
   // S82: an invalid/oversized/noncanonical continuation falls back to the default desk; it can never
-  // become an open redirect or partially restore a different view.
-  const deskView = validateDeskView(rawDeskView);
+  // become an open redirect or partially restore a different view. S246: the continuation is a
+  // table view or the working batch (its month and open group) the lease was opened from.
+  const deskView = validateDeskContinuation(rawDeskView);
 
   const liveConfig = buildLiveRenewalConfig();
   if (liveConfig.ok)
@@ -411,6 +413,11 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const resolutions = renewalAuxiliaryValue(resolutionsRead, []);
   const termReview = renewalAuxiliaryValue(termReviewRead, null);
   const workingRecordRead = await workingRecordReadPromise;
+  // S246 R-S246-5: this lease's keep-working choice, so the lease page carries the same renewal
+  // target verdict as the desk. An unreadable choice counts as none.
+  const cycleDateDecision = await getRenewalCycleDateDecision(user, leaseId).catch(
+    () => null,
+  );
   const pricingRead = await readRenewalAuxiliary("pricing_policy", async () => {
     if (leaseSnapshotAttempt?.status !== "available")
       throw new Error("Source unavailable");
@@ -453,6 +460,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
     ),
     renewalAuxiliaryValue(workingRecordRead, null),
     pricingRead.status === "available" ? pricingRead.value : undefined,
+    cycleDateDecision,
   );
   const dispositions = renewalAuxiliaryValue(dispositionsRead, []);
   const writebackProposal = renewalAuxiliaryValue(writebackProposalRead, null);

@@ -20,6 +20,7 @@ import { LEASE_EXPORT_TTL_MS } from "@/lib/lease-renewal/live-lease-cache";
 import {
   applyRenewalDeskQueryV2,
   parseRenewalDeskQueryV2,
+  renewalDeskUrlNamesView,
   serializeRenewalDeskQueryV2,
   type RenewalDeskQueryV2State,
 } from "@/lib/lease-renewal/desk-query-v2";
@@ -135,6 +136,12 @@ function OwnedRenewalDeskInventory({
   );
   async function choose(search: string, fromHistory = false) {
     const target = `${RENEWAL_DESK_ROUTE}?${search || "v=2"}`;
+    const chosen = parseRenewalDeskQueryV2(new URLSearchParams(search));
+    // S246: another shared collection's saved leases are read by the server, never guessed here.
+    if (chosen.collection && chosen.collection !== query.collection) {
+      window.location.assign(target);
+      return;
+    }
     const readAt = Date.parse(view.dataCurrency.readAtIso);
     if (
       !scopeKey ||
@@ -193,7 +200,10 @@ function OwnedRenewalDeskInventory({
       if (!fromHistory) window.history.pushState({}, "", target);
       setSelection({
         generation,
-        state: parseRenewalDeskQueryV2(new URLSearchParams(search)),
+        // The same collection keeps the saved leases the server read for this render.
+        state: chosen.collection
+          ? { ...chosen, collectionView: query.collectionView }
+          : chosen,
         source: "explicit",
       });
     } finally {
@@ -207,7 +217,11 @@ function OwnedRenewalDeskInventory({
   });
   useEffect(() => {
     const pop = () => {
-      if (window.location.pathname === RENEWAL_DESK_ROUTE)
+      // S246: a history entry that names no table view is the working batch; the page shows it.
+      if (
+        window.location.pathname === RENEWAL_DESK_ROUTE &&
+        renewalDeskUrlNamesView(new URLSearchParams(window.location.search))
+      )
         void chooseRef.current(window.location.search.slice(1), true);
     };
     window.addEventListener("popstate", pop);

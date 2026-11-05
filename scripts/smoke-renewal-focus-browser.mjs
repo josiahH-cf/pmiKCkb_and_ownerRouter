@@ -66,7 +66,10 @@ async function workspaceLinks() {
   page.setDefaultNavigationTimeout(ROUTE_BUDGET_MS);
   page.setDefaultTimeout(ROUTE_BUDGET_MS);
   await signIn(page);
-  await page.goto(`${baseUrl}/lease-renewal`, { waitUntil: "domcontentloaded" });
+  // S246: Lease Renewal opens the working batch; the lease links are read from the table.
+  await page.goto(`${baseUrl}/lease-renewal/live/desk?v=2`, {
+    waitUntil: "domcontentloaded",
+  });
   const links = page.locator(
     'table.renewal-table tbody tr[data-workspace-available="true"]:is([data-disposition="actionable"], [data-retention-state="tracked_incomplete"]) a.renewal-lease-link',
   );

@@ -123,6 +123,7 @@ import {
   EXTERNAL_LINK_TARGET,
 } from "@/lib/lease-renewal/desk-destinations";
 import { buildWorkspaceHref } from "@/lib/lease-renewal/desk-view-continuation";
+import { renewalTargetLine } from "@/lib/lease-renewal/renewal-target";
 import { LEASE_TERM_LABELS } from "@/lib/lease-renewal/lease-term";
 import type { ReadinessStatus } from "@/lib/lease-renewal/renewal-readiness";
 import type {
@@ -398,6 +399,15 @@ export function RenewalWorkspace({
           />
           {summary.lifecycle.label}
           {summary.lifecycle.qualifier ? `: ${summary.lifecycle.qualifier}` : ""}
+        </span>
+      ) : null}
+      {summary.renewalTarget ? (
+        // S246 R-S246-1: the same target verdict the Renewals desk placed this lease by.
+        <span
+          className="renewal-workspace-identity-status"
+          data-renewal-target={summary.renewalTarget.kind}
+        >
+          {renewalTargetLine(summary.renewalTarget)}
         </span>
       ) : null}
       {compactWorkStatus ? (

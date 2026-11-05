@@ -999,12 +999,13 @@ export function RenewalDeskTable({
   campaign?: RenewalDeskCampaignContext;
 }>) {
   const canonicalView = serializeRenewalDeskQueryV2(state);
-  // S166: the default view normally omits its continuation. While another view is remembered and
-  // this one came from an explicit link, the default carries itself so returning from a lease
-  // reopens this view instead of the remembered one.
+  // S166: the default view carries itself when the page opened it from an explicit link, so
+  // returning from a lease reopens this table view. S246: the bare route now opens the working
+  // batch, so that holds whether or not another view is remembered. A table rendered without the
+  // page's view memory keeps omitting the continuation.
   const deskView =
     encodeDeskView(state) ??
-    (viewMemory.source === "explicit" && viewMemory.savedView !== null
+    (viewMemory !== NO_VIEW_MEMORY && viewMemory.source === "explicit"
       ? EXPLICIT_DEFAULT_DESK_VIEW
       : null);
   const chips = buildActiveFilterChips(state);
@@ -1119,6 +1120,25 @@ export function RenewalDeskTable({
         <span className="renewal-scope-indicator">
           <strong>Worklist scope:</strong> {SCOPE_LABELS[state.scope]}
         </span>
+        {state.collection ? (
+          // S246 R-S246-9: a shared collection link lists that collection's saved leases.
+          <span
+            className="renewal-scope-indicator"
+            data-desk-collection={state.collection}
+          >
+            <strong>Shared collection:</strong>{" "}
+            {state.collectionView
+              ? `${state.collectionView.name}, ${state.collectionView.memberIds.length} saved ${state.collectionView.memberIds.length === 1 ? "lease" : "leases"}.`
+              : "This collection could not be read, so no leases are listed."}{" "}
+            <Link
+              prefetch={false}
+              className="text-link"
+              href={`/lease-renewal/collections?id=${state.collection}`}
+            >
+              Open the collection
+            </Link>
+          </span>
+        ) : null}
         {campaign ? <RenewalCampaignContext campaign={campaign} state={state} /> : null}
         {chips.length > 0 ? (
           <ul aria-label="Active filters" className="renewal-filter-chips">

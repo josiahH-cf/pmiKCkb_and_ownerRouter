@@ -11,14 +11,20 @@ import {
   serializeRenewalDeskQueryV2,
   type RenewalDeskQueryV2State,
 } from "@/lib/lease-renewal/desk-query-v2";
+import {
+  serializeRenewalBatchQuery,
+  validateRenewalBatchContinuation,
+  type RenewalBatchQuery,
+} from "@/lib/lease-renewal/renewal-batch";
 
 export const RENEWAL_DESK_ROUTE = "/lease-renewal/live/desk";
 export const RENEWAL_WORKSPACE_ROUTE_PREFIX = "/lease-renewal/live/desk/lease/";
 export const DESK_VIEW_PARAM = "deskView";
 export const DESK_VIEW_MAX_CODE_UNITS = 8192;
 /**
- * S166: the explicit default view. The bare desk route is the ordinary entry, which opens the
- * signed-in account's remembered view; `?v=2` alone always means the default view itself.
+ * S166: the explicit default view. `?v=2` alone always means the table's default view itself.
+ * S246: the bare desk route is the ordinary entry and opens the working batch, so every link
+ * that means the table names its view.
  */
 export const EXPLICIT_DEFAULT_DESK_VIEW = "v=2";
 
@@ -124,10 +130,47 @@ export function leaseWorkspaceHrefOrNull(
   return buildWorkspaceHref({ leaseId, step, deskView: null });
 }
 
+/**
+ * S246 R-S246-8: a lease link's return value. Either a canonical table view, or the working
+ * batch (its month and open group) the lease was opened from. Anything else is null, so the
+ * return link can only ever rebuild the internal desk route.
+ */
+export function validateDeskContinuation(
+  value: string | null | undefined,
+): string | null {
+  return validateDeskView(value) ?? validateRenewalBatchContinuation(value);
+}
+
 /** The workspace's return link: exactly the canonical internal desk route for the carried view. */
 export function buildDeskReturnHref(deskView: string | null | undefined): string {
-  const canonical = validateDeskView(deskView);
+  const canonical = validateDeskContinuation(deskView);
   return canonical === null ? RENEWAL_DESK_ROUTE : `${RENEWAL_DESK_ROUTE}?${canonical}`;
+}
+
+/**
+ * S246 R-S246-9: "All leases and filters". The existing table over every loaded lease, named
+ * explicitly so it never lands on the working batch the bare route opens.
+ */
+export const RENEWAL_DESK_ALL_LEASES_VIEW = "v=2&scope=all";
+export const RENEWAL_DESK_ALL_LEASES_HREF = `${RENEWAL_DESK_ROUTE}?${RENEWAL_DESK_ALL_LEASES_VIEW}`;
+
+/** The working batch's address: the bare desk route, or its month and open group. */
+export function renewalBatchHref(query: RenewalBatchQuery): string {
+  const search = serializeRenewalBatchQuery(query);
+  return search === "" ? RENEWAL_DESK_ROUTE : `${RENEWAL_DESK_ROUTE}?${search}`;
+}
+
+/**
+ * S246 R-S246-9: "Open my saved view". The account's remembered table view by its own link, or
+ * null when no view other than the default is remembered.
+ */
+export function renewalDeskSavedViewHref(
+  savedView: string | null | undefined,
+): string | null {
+  const canonical = validateDeskView(savedView);
+  return canonical === null || canonical === EXPLICIT_DEFAULT_DESK_VIEW
+    ? null
+    : `${RENEWAL_DESK_ROUTE}?${canonical}`;
 }
 
 export { withDeskView };

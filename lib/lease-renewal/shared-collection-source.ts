@@ -105,7 +105,8 @@ export async function readSharedCollectionSource(
     records,
     matches: (basis) => {
       const parsed = parseRenewalDeskQueryV2(new URLSearchParams(basis.criteria));
-      if (serializeRenewalDeskQueryV2(parsed) !== basis.criteria)
+      // S246: a collection's membership is never defined by another collection's filter.
+      if (serializeRenewalDeskQueryV2(parsed) !== basis.criteria || parsed.collection)
         throw new EditableLayerError(
           "The stored selection filters need explicit review.",
           409,

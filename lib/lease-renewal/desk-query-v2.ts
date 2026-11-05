@@ -186,8 +186,26 @@ export interface RenewalDeskQueryV2State {
   lifecycle: LifecycleDeskFilter;
   /** S232 R-S232-3: filter by the cohort reason a lease is listed for. */
   reason: RenewalDeskReasonFilter;
+  /**
+   * S246 R-S246-9: the id of a shared lease collection whose saved membership narrows the table.
+   * Optional in every bookmark; absent means no collection, exactly as before this key existed.
+   */
+  collection?: string;
   /** Noncanonical render-only feedback; never serialized into a desk URL. */
   readonly dateDiagnostics?: readonly RenewalDeskDateDiagnostic[];
+  /**
+   * Noncanonical render-only data for `collection`: its name and saved lease ids as the server
+   * read them. Never serialized. While a collection is named and this is absent (the collection
+   * could not be read), no lease matches, so nothing is ever listed under a collection it is not
+   * known to belong to.
+   */
+  readonly collectionView?: RenewalDeskCollectionView;
+}
+
+/** S246: one shared lease collection as the desk reads it for the `collection` filter. */
+export interface RenewalDeskCollectionView {
+  readonly name: string;
+  readonly memberIds: readonly string[];
 }
 
 export const DEFAULT_RENEWAL_DESK_QUERY_V2: Readonly<RenewalDeskQueryV2State> = {
@@ -243,14 +261,16 @@ const V2_KEY_ORDER = [
   "moveOutTiming",
   "lifecycle",
   "reason",
+  // S246: appended last, so the canonical string of every earlier view is unchanged.
+  "collection",
 ] as const satisfies readonly (keyof RenewalDeskQueryV2State)[];
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
 
 /**
  * S166: every URL key that names a desk view: the version marker, each canonical key and the two
- * legacy party labels. A URL carrying none of them is an ordinary entry, which opens the signed-in
- * account's remembered view; `?v=2` alone is the explicit default view.
+ * legacy party labels. `?v=2` alone is the explicit default view. S246: a URL carrying none of
+ * them is the ordinary entry, which opens the working batch.
  */
 const VIEW_NAMING_URL_KEYS: readonly string[] = ["v", ...V2_KEY_ORDER, "owner", "tenant"];
 
@@ -297,6 +317,15 @@ export function inclusiveRangeDays(fromIso: string, throughIso: string): number 
   const from = Date.parse(`${fromIso}T00:00:00.000Z`);
   const through = Date.parse(`${throughIso}T00:00:00.000Z`);
   return Math.round((through - from) / 86_400_000) + 1;
+}
+
+const COLLECTION_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+/** A shared collection id exactly as the collection store issues it; anything else is none. */
+function collectionId(value: string | undefined): string {
+  const bounded = boundedText(value, 37).toLowerCase();
+  return COLLECTION_ID_PATTERN.test(bounded) ? bounded : "";
 }
 
 function partyToken(value: string | undefined): string {
@@ -353,6 +382,7 @@ export function parseRenewalDeskQueryV2(
     }
   }
 
+  const collection = collectionId(firstValue(input, "collection"));
   const dateDiagnostics: RenewalDeskDateDiagnostic[] = [];
   const endDateValid =
     endDateCandidate.length <= 10 &&
@@ -453,6 +483,7 @@ export function parseRenewalDeskQueryV2(
     ),
     lifecycle: oneOf(firstValue(input, "lifecycle"), LIFECYCLE_DESK_FILTERS, "all"),
     reason: oneOf(firstValue(input, "reason"), RENEWAL_DESK_REASON_FILTERS, "all"),
+    ...(collection ? { collection } : {}),
     ...(dateDiagnostics.length > 0 ? { dateDiagnostics } : {}),
   };
   return state;
@@ -467,7 +498,11 @@ export function serializeRenewalDeskQueryV2(state: RenewalDeskQueryV2State): str
   let nondefault = false;
   for (const key of V2_KEY_ORDER) {
     const value = state[key];
-    if (value !== DEFAULT_RENEWAL_DESK_QUERY_V2[key] && value !== "") {
+    if (
+      value !== undefined &&
+      value !== DEFAULT_RENEWAL_DESK_QUERY_V2[key] &&
+      value !== ""
+    ) {
       nondefault = true;
     }
   }
@@ -475,7 +510,11 @@ export function serializeRenewalDeskQueryV2(state: RenewalDeskQueryV2State): str
   params.set("v", RENEWAL_DESK_QUERY_V2_VERSION);
   for (const key of V2_KEY_ORDER) {
     const value = state[key];
-    if (value !== DEFAULT_RENEWAL_DESK_QUERY_V2[key] && value !== "") {
+    if (
+      value !== undefined &&
+      value !== DEFAULT_RENEWAL_DESK_QUERY_V2[key] &&
+      value !== ""
+    ) {
       params.set(key, value);
     }
   }
@@ -742,7 +781,26 @@ function matchesQuery(
   }
   if (!matchesLifecycleFilter(query.lifecycle, item.queryKeys.lifecycle)) return false;
   if (query.reason !== "all" && item.reason !== query.reason) return false;
+  // S246: a named collection lists only its saved leases; an unread collection lists none.
+  if (query.collection && !collectionMembers(query.collectionView).has(item.id))
+    return false;
   return true;
+}
+
+const NO_COLLECTION_MEMBERS: ReadonlySet<string> = new Set();
+const collectionMemberSets = new WeakMap<readonly string[], ReadonlySet<string>>();
+
+/** The collection's saved lease ids as a set, built once per read. */
+function collectionMembers(
+  view: RenewalDeskCollectionView | undefined,
+): ReadonlySet<string> {
+  if (!view) return NO_COLLECTION_MEMBERS;
+  let members = collectionMemberSets.get(view.memberIds);
+  if (!members) {
+    members = new Set(view.memberIds);
+    collectionMemberSets.set(view.memberIds, members);
+  }
+  return members;
 }
 
 function comparePresent<T>(
@@ -930,7 +988,27 @@ export function buildActiveFilterChips(
   for (const key of V2_KEY_ORDER) {
     if (key === "sort" || key === "direction" || key === "through") continue;
     const value = state[key];
-    if (value === DEFAULT_RENEWAL_DESK_QUERY_V2[key] || value === "") continue;
+    if (
+      value === undefined ||
+      value === DEFAULT_RENEWAL_DESK_QUERY_V2[key] ||
+      value === ""
+    )
+      continue;
+    if (key === "collection") {
+      const withoutFilter: RenewalDeskQueryV2State = {
+        ...state,
+        collectionView: undefined,
+      };
+      delete withoutFilter.collection;
+      chips.push({
+        key,
+        label: state.collectionView
+          ? `Shared collection: ${state.collectionView.name}`
+          : "Shared collection: could not be read",
+        withoutFilter,
+      });
+      continue;
+    }
     if (key === "from") {
       chips.push({
         key,

@@ -151,9 +151,16 @@ export function projectCollectionStatuses(
     };
   });
 }
+/**
+ * S246 R-S246-9: the shared collection link. It opens the Renewals table over every loaded lease,
+ * narrowed to this collection's saved leases.
+ */
+export function sharedCollectionDeskHref(collectionId: string) {
+  return `/lease-renewal/live/desk?${new URLSearchParams({ v: "2", scope: "all", collection: collectionId })}`;
+}
 export function sharedCollectionEntryHref(
   ids: readonly string[],
-  origin: "assistant" | "worklist",
+  origin: "assistant" | "worklist" | "explicit",
   criteria = "",
 ) {
   return `/lease-renewal/collections?${new URLSearchParams({ members: [...new Set(ids)].join(","), origin, ...(criteria ? { criteria } : {}) })}`;

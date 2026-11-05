@@ -5,6 +5,11 @@ import { resolveBrowserExecutable as findBrowserExecutable } from "./lib/browser
 // ever called). It proves table semantics, header sort/filter behavior, exact-value shortcuts,
 // chips/clear recovery, workspace section navigation, desk-view return continuity, browser Back,
 // narrow contained scroll, and a Chromium 200%-zoom layout equivalent without page-level overflow.
+//
+// S246: the bare desk route opens the working batch, so the smoke first proves that default view
+// (month and count in words, every loaded lease counted once, month and count controls, same-tab
+// lease navigation and return, no write) and then runs every table check, unchanged, on the
+// explicit table view over every loaded lease.
 
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -25,6 +30,15 @@ const DESK_ROUTE_DOM_BUDGET_MS = 60_000;
 const DESK_INTERACTION_BUDGET_MS = 20_000;
 const WORKFLOW_ROW_SELECTOR =
   'tbody tr[data-workspace-available="true"]:is([data-disposition="actionable"], [data-retention-state="tracked_incomplete"])';
+const WORKING_BATCH_SELECTOR = 'section[aria-label="Working batch"]';
+const WORKING_BATCH_COUNT_GROUPS = [
+  "renewed_in_rentvine",
+  "month_to_month_reviews",
+  "non_renewals",
+  "coming_up_later",
+  "not_targets",
+  "completed",
+];
 
 const artifactDir = join(process.cwd(), "temp", "renewal-desk-browser-s82");
 mkdirSync(artifactDir, { recursive: true });
@@ -35,6 +49,7 @@ const browser = cdpUrl
   : await chromium.launch({ executablePath: findBrowserExecutable(), headless: true });
 
 try {
+  await verifyWorkingBatch();
   await verifyDeskAndWorkspace();
   await verifyNarrowAndZoom();
 } finally {
@@ -42,7 +57,7 @@ try {
 }
 
 process.stdout.write(
-  `S82 renewal desk browser smoke passed: full-cohort cardinality, unique rows/destinations, bounded load, keyboard sort/filter/navigation, 44px targets, table semantics, shortcuts, chips/clear, workspace sections, desk/workspace term parity, deskView return, Back, narrow contained scroll, zoom overflow. Artifacts: ${artifactDir}\n`,
+  `S82 renewal desk browser smoke passed: working batch default (month and count in words, groups sum to the loaded leases, month and count controls, same-tab lease and return, no write), full-cohort cardinality, unique rows/destinations, bounded load, keyboard sort/filter/navigation, 44px targets, table semantics, shortcuts, chips/clear, workspace sections, desk/workspace term parity, deskView return, Back, narrow contained scroll, zoom overflow. Artifacts: ${artifactDir}\n`,
 );
 
 async function verifyDeskAndWorkspace() {
@@ -412,6 +427,273 @@ async function verifyDeskAndWorkspace() {
 
   await page.screenshot({ path: join(artifactDir, "desk-desktop.png"), fullPage: true });
   await context.close();
+}
+
+// S246: the bare desk route is the ordinary entry and opens the working batch, a presentation
+// over the same loaded leases. Read-only: this changes the month, opens a count and a lease and
+// returns. The two recording actions under "Renewed in RentVine" are never chosen, and any write
+// after the local sign-in fails the smoke.
+async function verifyWorkingBatch() {
+  const context = await browser.newContext({ viewport: { width: 1360, height: 900 } });
+  const page = await context.newPage();
+  page.setDefaultNavigationTimeout(DESK_ROUTE_DOM_BUDGET_MS);
+  page.setDefaultTimeout(DESK_INTERACTION_BUDGET_MS);
+  const writes = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (
+      url.origin === baseUrl &&
+      url.pathname !== "/api/auth/demo" &&
+      !["GET", "HEAD", "OPTIONS"].includes(request.method())
+    )
+      writes.push(`${request.method()} ${url.pathname}`);
+  });
+  const loadStartedAt = performance.now();
+  await signInAndOpen(page, "/lease-renewal/live/desk");
+
+  const batch = page.locator(WORKING_BATCH_SELECTOR);
+  await batch.waitFor();
+  assertWithinBudget(
+    loadStartedAt,
+    DESK_ROUTE_DOM_BUDGET_MS,
+    "Working batch route and DOM",
+  );
+  assert(
+    (await page.locator('[data-desk-surface="batch"]').count()) === 1,
+    "The bare desk route did not open the working batch.",
+  );
+  assert(
+    (await page.locator("table.renewal-table").count()) === 0,
+    "The bare desk route rendered the table beside the working batch.",
+  );
+  assert(
+    (await page.getByRole("heading", { name: "Renewals", exact: true }).count()) === 1,
+    "The working batch lost the Renewals heading.",
+  );
+
+  // The working month is the next calendar month on the Central business date, in words.
+  const defaultMonth = nextCentralMonth();
+  assert(
+    (await batch.getAttribute("data-batch-month")) === defaultMonth,
+    `The working month is not the next calendar month (${defaultMonth}).`,
+  );
+  const summary = (await page.locator(".renewal-batch-summary").innerText()).trim();
+  assert(
+    /^(?:No leases|One lease|[A-Z][a-z]+ leases|\d+ leases) ending in [A-Z][a-z]+ \d{4} needs? renewal work\.$/.test(
+      summary,
+    ),
+    `The working month and count are not stated in words (${summary}).`,
+  );
+  const facts = await readWorkingBatch(page);
+  assert(facts.total > 0, "The working batch loaded no lease.");
+  assert(
+    facts.statedCount === facts.current.length,
+    `The stated count (${facts.statedCount}) disagrees with This batch (${facts.current.length}).`,
+  );
+  assert(
+    facts.counts.map((entry) => entry.group).join(",") ===
+      WORKING_BATCH_COUNT_GROUPS.join(","),
+    "The counted groups changed.",
+  );
+  // Every loaded lease is in exactly one group: the two lists and the counts sum to the total.
+  const counted = facts.counts.reduce((sum, entry) => sum + entry.count, 0);
+  assert(
+    facts.carried.length + facts.current.length + counted === facts.total,
+    `The groups do not sum to the loaded leases (${facts.carried.length} + ${facts.current.length} + ${counted} of ${facts.total}).`,
+  );
+  const listedIds = [...facts.carried, ...facts.current].filter(Boolean);
+  assert(
+    new Set(listedIds).size === listedIds.length,
+    "A lease is listed twice in the working batch.",
+  );
+  for (const row of facts.workRows) {
+    assert(
+      row.stageLines === 1 && row.nextSteps <= 1 && row.tags <= 3,
+      `Batch row ${row.id || "without a stable id"} is not one stage line, one next step and at most three tags.`,
+    );
+    assert(
+      row.newTabLinks === 0 && row.nameLinks === 0,
+      `Batch row ${row.id || "without a stable id"} opens a new tab or links a tenant name.`,
+    );
+  }
+  await assertMinimumTargetSize(
+    page,
+    ".renewal-batch-month-link",
+    "working month control",
+  );
+  await assertMinimumTargetSize(page, "button.renewal-batch-count", "group count");
+  await assertMinimumTargetSize(page, ".renewal-batch-views a", "other view link");
+  if ((await page.locator("[data-batch-next-step]").count()) > 0)
+    await assertMinimumTargetSize(page, "[data-batch-next-step]", "batch next-step link");
+  assert((await pageOverflow(page)) <= 1, "The working batch overflowed the page.");
+
+  // Next month and Previous month change the month and keep every lease counted.
+  const laterMonth = shiftMonth(defaultMonth, 1);
+  let interactionStartedAt = performance.now();
+  await page.getByRole("link", { name: "Next month", exact: true }).click();
+  await page
+    .locator(`${WORKING_BATCH_SELECTOR}[data-batch-month="${laterMonth}"]`)
+    .waitFor();
+  assertWithinBudget(interactionStartedAt, DESK_INTERACTION_BUDGET_MS, "Next month");
+  assert(
+    new URL(page.url()).searchParams.get("batch") === laterMonth,
+    "Next month did not put the month in the address.",
+  );
+  const later = await readWorkingBatch(page);
+  assert(
+    later.total === facts.total &&
+      later.carried.length +
+        later.current.length +
+        later.counts.reduce((sum, entry) => sum + entry.count, 0) ===
+        later.total,
+    "Changing the month lost or duplicated a lease.",
+  );
+  await page.getByRole("link", { name: "Previous month", exact: true }).click();
+  await page
+    .locator(`${WORKING_BATCH_SELECTOR}[data-batch-month="${defaultMonth}"]`)
+    .waitFor();
+  assert(
+    new URL(page.url()).search === "",
+    "The default working month did not return to the bare desk route.",
+  );
+
+  // A count opens its rows and closes again.
+  const openable = facts.counts.find((entry) => entry.count > 0);
+  if (openable) {
+    const control = page.locator(`button[data-batch-group="${openable.group}"]`);
+    await control.focus();
+    assert(await isFocused(control), "The group count did not receive focus.");
+    await page.keyboard.press("Enter");
+    const panel = page.locator(`[data-batch-open-group="${openable.group}"]`);
+    await panel.waitFor();
+    assert(
+      (await control.getAttribute("aria-expanded")) === "true",
+      "The opened count is not marked expanded.",
+    );
+    assert(
+      (await panel.locator("li[data-batch-lease]").count()) === openable.count,
+      `The ${openable.group} count does not match the rows it opens.`,
+    );
+    if (openable.group === "not_targets") {
+      const reasons = await panel
+        .locator("[data-batch-reason-count]")
+        .evaluateAll((items) =>
+          items.reduce(
+            (sum, item) => sum + Number(item.getAttribute("data-batch-reason-count")),
+            0,
+          ),
+        );
+      assert(
+        reasons === openable.count,
+        "The not-a-target reasons do not sum to their count.",
+      );
+    }
+    await control.click();
+    await panel.waitFor({ state: "detached" });
+  }
+
+  // All leases and filters opens the table over the same loaded leases, in this tab.
+  await page.getByRole("link", { name: "All leases and filters", exact: true }).click();
+  await page.waitForURL(
+    (url) => url.toString() === `${baseUrl}/lease-renewal/live/desk?v=2&scope=all`,
+  );
+  await page.locator("table.renewal-table").waitFor();
+  const tableCount = await page.locator(".renewal-table-count").innerText();
+  const totalLoaded = Number(tableCount.match(/Total loaded:\s*(\d+)/)?.[1] ?? "-1");
+  assert(
+    totalLoaded === facts.total,
+    `The working batch counted ${facts.total} leases; the table loaded ${totalLoaded}.`,
+  );
+  await page.goBack();
+  await batch.waitFor();
+
+  // A lease opens in this tab, and Back to renewals returns to the same batch.
+  const leaseLink = page
+    .locator(`${WORKING_BATCH_SELECTOR} a.renewal-batch-lease`)
+    .first();
+  if ((await leaseLink.count()) > 0) {
+    const batchUrl = page.url();
+    interactionStartedAt = performance.now();
+    await leaseLink.click();
+    await page.waitForURL((url) =>
+      url.pathname.startsWith("/lease-renewal/live/desk/lease/"),
+    );
+    await page.getByRole("link", { name: "← Back to renewals" }).waitFor();
+    assertWithinBudget(
+      interactionStartedAt,
+      DESK_INTERACTION_BUDGET_MS,
+      "Working batch lease navigation",
+    );
+    assert(context.pages().length === 1, "A batch lease opened a second tab.");
+    assert(
+      (await page.locator("[data-renewal-target]").count()) >= 1,
+      "The lease page does not state its renewal target verdict.",
+    );
+    await page.getByRole("link", { name: "← Back to renewals" }).click();
+    await page.waitForURL((url) => url.toString() === batchUrl);
+    await batch.waitFor();
+  } else {
+    process.stdout.write("No openable lease is listed in the working batch right now.\n");
+  }
+
+  assert(writes.length === 0, `The working batch issued a write (${writes.join(", ")}).`);
+  await page.screenshot({
+    path: join(artifactDir, "desk-working-batch.png"),
+    fullPage: true,
+  });
+  await context.close();
+  process.stdout.write(
+    `Working batch default verified: ${facts.total} loaded leases counted once across its groups.\n`,
+  );
+}
+
+async function readWorkingBatch(page) {
+  return page.locator(WORKING_BATCH_SELECTOR).evaluate((root) => {
+    const leases = (selector) =>
+      [...root.querySelectorAll(selector)].map(
+        (row) => row.getAttribute("data-batch-lease") ?? "",
+      );
+    return {
+      total: Number(root.getAttribute("data-batch-total") ?? "-1"),
+      statedCount: Number(
+        root.querySelector(".renewal-batch-summary")?.getAttribute("data-batch-count") ??
+          "-1",
+      ),
+      carried: leases('[data-batch-list="carried_over"] li[data-batch-lease]'),
+      current: leases('[data-batch-list="this_batch"] li[data-batch-lease]'),
+      counts: [...root.querySelectorAll("button[data-batch-group]")].map((button) => ({
+        group: button.getAttribute("data-batch-group") ?? "",
+        count: Number(button.getAttribute("data-batch-count") ?? "-1"),
+      })),
+      workRows: [
+        ...root.querySelectorAll('li[data-batch-lease][data-batch-row-kind="work"]'),
+      ].map((row) => ({
+        id: row.getAttribute("data-batch-lease") ?? "",
+        stageLines: row.querySelectorAll(".renewal-batch-stage").length,
+        nextSteps: row.querySelectorAll("[data-batch-next-step]").length,
+        tags: row.querySelectorAll("[data-batch-tag]").length,
+        newTabLinks: row.querySelectorAll("a[target]").length,
+        nameLinks: row.querySelectorAll(".renewal-batch-tenants a").length,
+      })),
+    };
+  });
+}
+
+/** `YYYY-MM` of the month after today's America/Chicago business date. */
+function nextCentralMonth() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "numeric",
+  }).formatToParts(new Date());
+  const year = Number(parts.find((part) => part.type === "year")?.value);
+  const month = Number(parts.find((part) => part.type === "month")?.value);
+  return shiftMonth(`${year}-${String(month).padStart(2, "0")}`, 1);
+}
+
+function shiftMonth(month, delta) {
+  const index = Number(month.slice(0, 4)) * 12 + Number(month.slice(5, 7)) - 1 + delta;
+  return `${Math.floor(index / 12)}-${String((index % 12) + 1).padStart(2, "0")}`;
 }
 
 async function verifyNarrowAndZoom() {

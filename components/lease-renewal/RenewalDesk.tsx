@@ -4,6 +4,10 @@
 // every current actionable blocker. Source trust (Live chip, currency, partial-read notice) and the
 // existing refresh action remain because they change whether the table can be trusted. Server
 // component; every control navigates one canonical GET URL.
+//
+// S246: the bare desk route opens the working batch, a presentation over the same loaded rows;
+// every URL that names a view opens the table below, unchanged. Both share this page header,
+// the source currency banner and the supporting-information notice.
 
 import Link from "next/link";
 import { sharedCollectionEntryHref } from "@/lib/lease-renewal/shared-collections";
@@ -20,6 +24,10 @@ import {
   type DeskPartyShortcuts,
   type RenewalDeskViewMemoryInput,
 } from "@/components/lease-renewal/RenewalDeskTable";
+import {
+  RenewalWorkingBatch,
+  type RenewalWorkingBatchProps,
+} from "@/components/lease-renewal/RenewalWorkingBatch";
 import { Card, ModeChip, PageHeader } from "@/components/ui";
 import type { Role } from "@/lib/auth/roles";
 import {
@@ -110,6 +118,7 @@ export function RenewalDesk({
   sheetWritebackPaused = false,
   viewMemory,
   scopeKey = "",
+  batch,
 }: Readonly<{
   view: RenewalDeskView;
   liveReviewHref?: string;
@@ -122,6 +131,11 @@ export function RenewalDesk({
   /** S166: how the page chose this view and whether the account's view can be remembered. */
   viewMemory?: RenewalDeskViewMemoryInput;
   scopeKey?: string;
+  /**
+   * S246: present when this navigation opens the working batch (the bare desk route). Absent,
+   * the table renders exactly as before.
+   */
+  batch?: RenewalWorkingBatchProps;
 }>) {
   const result = applyRenewalDeskQueryV2(view.items, query, partyFilters.matches);
   const partyOptions = buildDeskPartyFilterOptions(view.items, partyFilters);
@@ -141,6 +155,7 @@ export function RenewalDesk({
   return (
     <div
       className="ui-stack"
+      data-desk-surface={batch ? "batch" : undefined}
       data-source-currency-state={view.dataCurrency.state}
       data-source-read-complete={view.readComplete ? "true" : "false"}
       data-source-refresh-failed={view.dataCurrency.lastError ? "true" : "false"}
@@ -152,13 +167,22 @@ export function RenewalDesk({
             <ModeChip tone="live">Live data</ModeChip>
             <Link href="/lease-renewal/collections">Shared lease collections</Link>
             <Link href="/lease-renewal/readiness">Renewal run readiness</Link>
-            {result.items.length > 0 && result.items.length <= 2000 ? (
+            {!batch && result.items.length > 0 && result.items.length <= 2000 ? (
               <Link
-                href={sharedCollectionEntryHref(
-                  result.items.map((row) => row.id),
-                  "worklist",
-                  serializeRenewalDeskQueryV2(query),
-                )}
+                href={
+                  // S246: leases listed under a shared collection are saved as those exact
+                  // leases; a collection's membership is never another collection's filter.
+                  query.collection
+                    ? sharedCollectionEntryHref(
+                        result.items.map((row) => row.id),
+                        "explicit",
+                      )
+                    : sharedCollectionEntryHref(
+                        result.items.map((row) => row.id),
+                        "worklist",
+                        serializeRenewalDeskQueryV2(query),
+                      )
+                }
               >
                 Save reviewed leases as a shared collection
               </Link>
@@ -194,7 +218,9 @@ export function RenewalDesk({
         </Card>
       )}
 
-      {scopeKey ? (
+      {batch ? (
+        <RenewalWorkingBatch {...batch} />
+      ) : scopeKey ? (
         <RenewalDeskInventory
           view={view}
           query={query}
