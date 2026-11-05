@@ -70,8 +70,9 @@ attempts and free profile before/after. It also exposed the remaining source-acc
 
 One candidate carries all ten items. PRs #177 and #179 merge with a merge commit so every row's
 commits stay ancestors of main. The litmus's two open owner questions (S34 closed-key label, S115
-unreachable About panels) and the QuickBooks Connect button are in docs/facts.md Open Questions. S242–S245 and the five #173 fixes were delivered by run 74d79a9d at
-323e8be3. Documentation-only closure does not deploy. Never resume a consumed or archived run or
+unreachable About panels) and the QuickBooks Connect button are in docs/facts.md Open Questions.
+S242–S245 and the five #173 fixes were delivered by run 74d79a9d at 323e8be3.
+Documentation-only closure does not deploy. Never resume a consumed or archived run or
 use its receipts as a new queue. The stopped original native owner and archived held runs remain
 untouched.
 
