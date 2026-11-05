@@ -11,10 +11,16 @@ import {
   type ArtifactFieldMap,
 } from "@/lib/lease-documents/artifact-intake-contract";
 import { ChargePolicyRecordSchema } from "@/lib/lease-documents/charge-policy";
+import { bindCurrentPacketForDotloop } from "@/lib/lease-documents/dotloop-packet-binding";
 import {
   HELD_ANIMAL_REASON,
   evaluateRenewalPacket,
 } from "@/lib/lease-documents/evaluate-packet";
+import { assemblePacketSources } from "@/lib/lease-documents/packet-assembly";
+import type {
+  PacketEvaluation,
+  RenewalPacketSnapshot,
+} from "@/lib/lease-documents/packet-types";
 import {
   PET_AGREEMENT_DEPOSIT_FACT,
   PET_AGREEMENT_TOTAL_FACT,
@@ -33,6 +39,7 @@ import {
   SEEDED_AT,
   STAFF_AT,
   feeAlonePolicy,
+  onePathInputs,
   onePathView,
   setupOnePathLease,
   type OnePathLeaseOptions,
@@ -73,6 +80,32 @@ async function prepared(t: Lease, kind: Form) {
     map,
     values: await readStaticPdfValues(content, map.static!),
     lines: (await readStaticPdfLines(content)).map((line) => line.text),
+  };
+}
+
+/** A current snapshot of the evaluation with its own head, as the Dotloop preview reads it. */
+function currentPacket(evaluation: PacketEvaluation) {
+  const snapshot: RenewalPacketSnapshot = {
+    ...evaluation,
+    snapshotId: `review-${evaluation.leaseId}`,
+    snapshotVersion: 1,
+    current: true,
+    visibleState: evaluation.state,
+    createdAt: STAFF_AT,
+    actorUid: admin.uid,
+    previousSnapshotId: null,
+  };
+  return {
+    snapshot,
+    currentHead: {
+      leaseId: snapshot.leaseId,
+      transactionId: snapshot.transactionId,
+      snapshotId: snapshot.snapshotId,
+      snapshotVersion: 1,
+      payloadHash: snapshot.payloadHash,
+    },
+    catalog: { catalogVersion: snapshot.catalogVersion, artifacts: [] } as never,
+    confirmedPayloadHash: snapshot.payloadHash,
   };
 }
 
@@ -427,6 +460,46 @@ describe("S253 BEH-S253-2: a missing part names the need, prints no total and ho
     expect((await prepared(t, "renewal_extension")).record.comparison.verified).toBe(
       true,
     );
+    // Review fix (R-S253-6, never free): the open agreement decision holds the packet's execution,
+    // so a signed packet can never leave the animal agreement out as if it were settled.
+    expect(() => bindCurrentPacketForDotloop(currentPacket(evaluation))).toThrow(
+      /A form decision is still open, so this packet cannot enter Dotloop preview yet: An assistance animal needs the approved rule/,
+    );
+  });
+
+  it("review fix: a packet with every form decided passes the open-decision check", async () => {
+    const t = await setupOnePathLease({ animals: "one_pet", deposits: [30_000] });
+    const evaluation = evaluateRenewalPacket(t.tenant);
+    expect(evaluation).toMatchObject({ state: "Ready for preview", blockers: [] });
+    expect(
+      evaluation.manifest!.excludedArtifacts.filter(
+        (artifact) => artifact.ruleResult === "Needs input",
+      ),
+    ).toEqual([]);
+    // It goes on to the mapping checks, which the synthetic catalog does not satisfy.
+    expect(() => bindCurrentPacketForDotloop(currentPacket(evaluation))).not.toThrow(
+      /A form decision is still open/,
+    );
+  });
+
+  it("review fix: with the fee published alone, an animal of unrecorded type names its type as the need", () => {
+    const inputs = onePathInputs({ animals: "one_pet", deposits: [30_000] });
+    const untyped = structuredClone(inputs);
+    untyped.animals.entries[0].treatment = null;
+    const reasonFor = (record: typeof inputs) =>
+      assemblePacketSources({
+        leaseId: "701",
+        mapping: null,
+        inputs: record,
+        policy: feeAlonePolicy(),
+        source: { facts: [], parties: [] },
+        approvedTermFacts: [],
+      }).calculated!.animals[0].reason;
+    expect(reasonFor(inputs)).not.toMatch(/no animal rules/);
+    expect(reasonFor(untyped)).toMatch(
+      /record whether this animal is a pet or an assistance animal/,
+    );
+    expect(reasonFor(untyped)).not.toMatch(/no animal rules/);
   });
 
   it("an ordinary pet on the same lease still totals, and the assistance animal is placed on no form", async () => {

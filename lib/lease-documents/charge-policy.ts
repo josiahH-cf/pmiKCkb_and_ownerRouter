@@ -555,16 +555,18 @@ export function calculateRenewalCharges(input: {
       animals.push(result);
       continue;
     }
-    if (!animalRules) {
+    // S253: name the lease's own missing fact before the policy's, so a fee-only policy never
+    // sends staff toward a deposit schedule that is still an open question.
+    if (animal.treatment === null) {
       agreementApplicable[animal.animalId] = null;
-      needs("the published charge policy has no animal rules.");
+      needs("record whether this animal is a pet or an assistance animal.");
       emit(null, null);
       animals.push(result);
       continue;
     }
-    if (animal.treatment === null) {
+    if (!animalRules) {
       agreementApplicable[animal.animalId] = null;
-      needs("record whether this animal is a pet or an assistance animal.");
+      needs("the published charge policy has no animal rules.");
       emit(null, null);
       animals.push(result);
       continue;
