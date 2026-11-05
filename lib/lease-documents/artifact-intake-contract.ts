@@ -150,7 +150,9 @@ export const ArtifactApplicabilitySchema = z.discriminatedUnion("kind", [
 /**
  * S130 (R-F10-03): how a static region shows its value. Money is either whole or decimal dollars
  * (`money`) or integer cents (`money_cents`), as the reviewer records for the mapped fact; the unit
- * is never inferred. A checkmark is drawn only for true.
+ * is never inferred. A checkmark is drawn only for true. S253: `paragraphs` is a multi-line box that
+ * keeps the paragraph breaks staff typed and wraps at the reviewed size; every other format is one
+ * line and refuses a line break.
  */
 export const STATIC_VALUE_FORMATS = [
   "text",
@@ -159,8 +161,18 @@ export const STATIC_VALUE_FORMATS = [
   "money",
   "money_cents",
   "checkmark",
+  "paragraphs",
 ] as const;
 export type StaticValueFormat = (typeof STATIC_VALUE_FORMATS)[number];
+
+/** Areas of a static original where nothing is ever drawn. */
+export const PROTECTED_REGION_KINDS = [
+  "signature",
+  "initial",
+  "signing_date",
+  "execution_date",
+] as const;
+export type ProtectedRegionKind = (typeof PROTECTED_REGION_KINDS)[number];
 
 const coordinate = z.number().finite().min(0).max(5000);
 const RegionRectSchema = z
@@ -178,7 +190,10 @@ export type RegionRect = z.infer<typeof RegionRectSchema>;
  * exact original's page sizes, crop boxes and rotations; each region names the mapped field and
  * repeat slot it shows, its format, and whether it is blank on the original or holds approved
  * existing variable text that the fill removes. Signature, initial and signing-date areas are
- * protected: nothing is ever drawn there.
+ * protected: nothing is ever drawn there. S253: an execution-date area the business has yet to
+ * define is protected the same way, and an initial area may name the signer role it is kept for; it
+ * never names one person or one position. A file used exactly as approved carries no regions, only
+ * its pages and protected areas.
  */
 export const StaticPdfGeometrySchema = z
   .object({
@@ -223,7 +238,6 @@ export const StaticPdfGeometrySchema = z
           })
           .strict(),
       )
-      .min(1)
       .max(300),
     protectedRegions: z
       .array(
@@ -231,7 +245,9 @@ export const StaticPdfGeometrySchema = z
           .object({
             pageIndex: z.number().int().min(0).max(39),
             rect: RegionRectSchema,
-            kind: z.enum(["signature", "initial", "signing_date"]),
+            kind: z.enum(PROTECTED_REGION_KINDS),
+            /** The signer role this area is kept for; never one person or one position. */
+            signerRole: z.enum(SIGNER_ROLES).optional(),
           })
           .strict(),
       )
@@ -239,6 +255,14 @@ export const StaticPdfGeometrySchema = z
   })
   .strict();
 export type StaticPdfGeometry = z.infer<typeof StaticPdfGeometrySchema>;
+
+/**
+ * S253 (R-S253-10): text a form prints about its own organization, representative or signer, as
+ * the reviewer read it on that form and page. It is information about that one form: nothing reads
+ * it to fill, match or correct another form.
+ */
+export const PRINTED_PARTY_KINDS = ["organization", "representative", "signer"] as const;
+export type PrintedPartyKind = (typeof PRINTED_PARTY_KINDS)[number];
 
 function rectsOverlap(left: RegionRect, right: RegionRect): boolean {
   return (
@@ -375,17 +399,38 @@ export const ArtifactFieldMapSchema = z
     static: StaticPdfGeometrySchema.optional(),
     /** S130: a brochure or attachment with no variable values, used exactly as approved. */
     unchangedAttachment: z.literal(true).optional(),
+    /** S253: what this form prints about its own organization, representative and signers. */
+    printedParties: z
+      .array(
+        z
+          .object({
+            pageIndex: z.number().int().min(0).max(39),
+            kind: z.enum(PRINTED_PARTY_KINDS),
+            text: bounded(200),
+          })
+          .strict(),
+      )
+      .max(40)
+      .optional(),
   })
   .strict()
   .superRefine((map, ctx) => {
     if (map.unchangedAttachment) {
-      if (map.fields.length || map.static)
+      // S253: its pages and protected areas may be recorded; nothing is ever drawn on it.
+      if (map.fields.length || map.static?.regions.length)
         ctx.addIssue({
           code: "custom",
           path: ["unchangedAttachment"],
           message: "An unchanged approved attachment has no mapped fields or regions.",
         });
     } else {
+      if (map.static && map.static.regions.length === 0)
+        ctx.addIssue({
+          code: "custom",
+          path: ["static", "regions"],
+          message:
+            "Place at least one region. A file with no variable values is recorded as an unchanged approved attachment.",
+        });
       if (!map.fields.length)
         ctx.addIssue({
           code: "custom",
@@ -462,6 +507,20 @@ export const ArtifactFieldMapSchema = z
         path: ["reviewNote"],
         message: "Executable or embedded content is not allowed in a mapping.",
       });
+    (map.printedParties ?? []).forEach((printed, index) => {
+      if (EXECUTABLE_CONTENT.test(printed.text))
+        ctx.addIssue({
+          code: "custom",
+          path: ["printedParties", index, "text"],
+          message: "Executable or embedded content is not allowed in a mapping.",
+        });
+      if (map.static && !map.static.pages.some((p) => p.pageIndex === printed.pageIndex))
+        ctx.addIssue({
+          code: "custom",
+          path: ["printedParties", index, "pageIndex"],
+          message: `Printed text names page ${printed.pageIndex + 1}, which is not described.`,
+        });
+    });
     if (map.artifactKind === "owner_acknowledgment" && map.audience !== "owner")
       ctx.addIssue({
         code: "custom",
