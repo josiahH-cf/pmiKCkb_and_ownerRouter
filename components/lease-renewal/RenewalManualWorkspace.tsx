@@ -583,40 +583,43 @@ export function RenewalManualSection({
             </Button>
             <AutosaveStatus state={completionState} subject="Completion" />
           </div>
-          <RenewalSectionHeading id="source-updates" as="h3">
-            Source updates
-          </RenewalSectionHeading>
-          {state && Object.values(state.sourceUpdates).length ? (
-            <ul>
-              {Object.values(state.sourceUpdates).map((update) => (
-                <li key={update.eventId}>
-                  {SHEET_FIELD_LABELS[update.intent.field]}: {String(update.intent.value)}{" "}
-                  :{" "}
-                  {update.state === "verified"
-                    ? "Read back after confirmed update"
-                    : context.writebackPaused
-                      ? "Saved in the app. Sheet updates are paused"
-                      : "Saved in the app. The Sheet changes only when you confirm its update"}
-                  {update.reason ? ` · ${update.reason}` : ""}.{" "}
-                  <a href="#renewal-step-verify-renewal">Review Sheet updates</a>
-                  {update.state !== "verified" ? (
-                    <Button
-                      variant="secondary"
-                      disabled={context.pending || context.writebackPaused}
-                      onClick={() =>
-                        void context.prepareSource(update.intent.field, update.eventId)
-                      }
-                    >
-                      Prepare the Sheet update for{" "}
-                      {SHEET_FIELD_LABELS[update.intent.field].toLowerCase()}
-                    </Button>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p>No source update is recorded for this lease.</p>
-          )}
+          {/* S247: Finish up shows the source updates in place, by this one wrapper. */}
+          <div className="ui-stack" id="renewal-manual-source-updates">
+            <RenewalSectionHeading id="source-updates" as="h3">
+              Source updates
+            </RenewalSectionHeading>
+            {state && Object.values(state.sourceUpdates).length ? (
+              <ul>
+                {Object.values(state.sourceUpdates).map((update) => (
+                  <li key={update.eventId}>
+                    {SHEET_FIELD_LABELS[update.intent.field]}:{" "}
+                    {String(update.intent.value)} :{" "}
+                    {update.state === "verified"
+                      ? "Read back after confirmed update"
+                      : context.writebackPaused
+                        ? "Saved in the app. Sheet updates are paused"
+                        : "Saved in the app. The Sheet changes only when you confirm its update"}
+                    {update.reason ? ` · ${update.reason}` : ""}.{" "}
+                    <a href="#renewal-step-verify-renewal">Review Sheet updates</a>
+                    {update.state !== "verified" ? (
+                      <Button
+                        variant="secondary"
+                        disabled={context.pending || context.writebackPaused}
+                        onClick={() =>
+                          void context.prepareSource(update.intent.field, update.eventId)
+                        }
+                      >
+                        Prepare the Sheet update for{" "}
+                        {SHEET_FIELD_LABELS[update.intent.field].toLowerCase()}
+                      </Button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No source update is recorded for this lease.</p>
+            )}
+          </div>
         </>
       ) : null}
     </Card>

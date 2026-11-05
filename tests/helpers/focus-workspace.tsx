@@ -217,6 +217,12 @@ export interface WorkspaceRenderOptions {
   readonly manualReadUnavailable?: boolean;
   readonly rentChargeStatus?: readonly RentChargeOutcomeRow[];
   readonly sheetWritebackPaused?: boolean;
+  /**
+   * S247: the view the address names. The Focus harness opens Focus view as a `?view=focus` link
+   * does, the same view S152 opened by default; "default" leaves the address without a view, so
+   * the lease opens in Guided view.
+   */
+  readonly view?: "guided" | "focus" | "full" | "default";
   /** Any further existing RenewalWorkspace props, such as a provider panel or read failures. */
   readonly extra?: Partial<ComponentProps<typeof RenewalWorkspace>>;
 }
@@ -230,6 +236,7 @@ export function workspaceElement(options: WorkspaceRenderOptions = {}) {
     <RenewalWorkspace
       // S234 R-S234-1: a readable synthetic owner roster for the approval form.
       ownerApprovalChoices={SYNTHETIC_APPROVAL_CHOICES}
+      {...(options.view === "default" ? {} : { viewParam: options.view ?? "focus" })}
       {...options.extra}
       workspace={workspace}
       role={options.role ?? "Editor"}
@@ -274,7 +281,7 @@ export async function openOtherReadyTasks(user: {
 }
 
 /** The lease-level view switch button; S152 marks the selected view with aria-pressed. */
-export function viewButton(name: "Focus view" | "Full view") {
+export function viewButton(name: "Guided view" | "Focus view" | "Full view") {
   return within(screen.getByRole("group", { name: "Lease view" })).getByRole("button", {
     name,
   });

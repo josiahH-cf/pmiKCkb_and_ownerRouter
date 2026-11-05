@@ -132,8 +132,10 @@ export function RenewalWorkspaceSidebars({
   const informationToggleRef = useRef<HTMLButtonElement>(null);
   const guideToggleRef = useRef<HTMLButtonElement>(null);
   // S143: Focus view shows one task, so the section navigation and the process guide step aside
-  // until Full view returns, with their own state intact.
-  const focusView = useRenewalFocusView()?.view === "focus";
+  // until Full view returns, with their own state intact. S247: Guided view lists the five
+  // sections itself, as links that open Full view at each one.
+  const viewName = useRenewalFocusView()?.view;
+  const focusView = viewName === "focus" || viewName === "guided";
   // S152: links and the section navigation land their target below this sticky toolbar. Its
   // height varies with wrapping, so the measured height feeds the scroll margin.
   const shellRef = useRef<HTMLDivElement>(null);

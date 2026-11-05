@@ -42,6 +42,9 @@ import {
   RenewalFocusViewPane,
   type RenewalFocusFacts,
 } from "@/components/lease-renewal/RenewalFocusViewPane";
+import { RenewalGuidedView } from "@/components/lease-renewal/RenewalGuidedView";
+import { renewalStageContextFor } from "@/lib/lease-renewal/renewal-stage-context";
+import { initialRenewalWorkspaceView } from "@/lib/lease-renewal/workspace-view";
 import { buildRenewalActionSnapshot } from "@/lib/lease-renewal/renewal-action-snapshot";
 import {
   staffOwnerOutcome,
@@ -162,6 +165,7 @@ export function RenewalWorkspace({
   role = "Editor",
   workspace,
   selectedStepId,
+  viewParam,
   deskView = null,
   attemptSummary = null,
   discrepancyPanel = null,
@@ -199,6 +203,8 @@ export function RenewalWorkspace({
   workspace: RenewalLeaseWorkspace;
   /** Raw `step` URL value; invalid/empty falls back to the process-current phase without error. */
   selectedStepId?: string;
+  /** S247: the raw `view` URL value; a view chosen by hand lasts for the visit through it. */
+  viewParam?: string;
   /** Canonical desk continuation; phase links preserve it so Back to renewals restores the view. */
   deskView?: string | null;
   resourceLocationsPanel?: ReactNode;
@@ -344,6 +350,24 @@ export function RenewalWorkspace({
   const focusPane = actionSnapshot ? (
     <RenewalFocusViewPane facts={focusFacts} snapshot={actionSnapshot} />
   ) : null;
+  // S247: the Guided view opens by default wherever Focus view is offered, from the same stage
+  // context the desk row's stage came from (the live page passes it; a sample lease builds it).
+  const openView = initialRenewalWorkspaceView(viewParam, focusAvailable);
+  const stageContext =
+    workspace.renewalStageContext ??
+    renewalStageContextFor(
+      { ...summary, guidance: workspace.guidance },
+      null,
+      workspace.dataCurrency?.readAtIso ?? null,
+    );
+  const guidedPane = focusAvailable ? (
+    <RenewalGuidedView
+      canEdit={can(role, "edit")}
+      context={stageContext}
+      facts={focusFacts}
+      {...(selectedStepId ? { selectedStepId } : {})}
+    />
+  ) : null;
   // S114: the consolidated header facts live in the toggleable information panel; the compact
   // identity, Back link, freshness and actionable attention stay in the main workspace.
   const leaseInformation = (
@@ -420,7 +444,8 @@ export function RenewalWorkspace({
 
   return (
     <RenewalFocusViewProvider
-      initialView={focusAvailable ? "focus" : "full"}
+      explicitView={openView.explicit}
+      initialView={openView.view}
       key={summary.id}
     >
       <RenewalWorkingRecordProvider
@@ -549,6 +574,7 @@ export function RenewalWorkspace({
                         admin={role === "Admin"}
                       />
                     ) : null}
+                    {guidedPane}
                     {focusPane}
                     <RenewalDashboardNavigation selectedStepId={selectedStepId}>
                       {attemptSummary ? (

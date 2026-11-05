@@ -29,6 +29,10 @@ import {
   confirmSourceRenewalCompletion,
   keepWorkingRecordedCycle,
 } from "@/lib/lease-renewal/cycle-date-choice";
+import {
+  CorrectRenewalOutreachSchema,
+  correctRenewalOutreach,
+} from "@/lib/firestore/renewal-outreach-records";
 
 const Body = z.discriminatedUnion("operation", [
   z
@@ -52,6 +56,9 @@ const Body = z.discriminatedUnion("operation", [
   // also names the cycle and revision of the work record the row showed.
   KeepWorkingCycleSchema.extend({ operation: z.literal("keep_working") }),
   ConfirmSourceRenewalSchema.extend({ operation: z.literal("confirm_source_renewal") }),
+  // S248 R-S248-10: "This was not the renewal outreach" removes a derived outreach record with a
+  // reason; the record and its history stay.
+  CorrectRenewalOutreachSchema.extend({ operation: z.literal("correct_outreach") }),
 ]);
 export async function GET(request: Request) {
   try {
@@ -99,6 +106,10 @@ export async function POST(request: Request) {
           await resolveRenewalCycleBasis(actor, value.leaseId, value.basis),
         ),
       );
+    }
+    if (input.operation === "correct_outreach") {
+      const { operation: _, ...value } = input;
+      return NextResponse.json({ record: await correctRenewalOutreach(actor, value) });
     }
     if (
       input.operation === "keep_working" ||

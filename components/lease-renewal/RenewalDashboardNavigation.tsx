@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import {
   RENEWAL_DASHBOARD_SECTIONS,
   renewalDashboardTarget,
@@ -311,6 +312,10 @@ export function RenewalDashboardNavigation({
   selectedStepId?: string;
   children?: ReactNode;
 }) {
+  // S247: in Guided view a `step` names a path step, which the guided view opens itself; an older
+  // link's hash opens Full view through the view context. Only a later in-page link is followed.
+  const viewName = useRenewalFocusView()?.view;
+  const [openedGuided] = useState(viewName === "guided");
   useEffect(() => {
     const focusTarget = () => {
       const id =
@@ -319,7 +324,7 @@ export function RenewalDashboardNavigation({
       if (!id.startsWith("renewal-")) return;
       focusRenewalDashboardControl(id);
     };
-    focusTarget();
+    if (!openedGuided) focusTarget();
     const onClick = (event: MouseEvent) => {
       const anchor =
         event.target instanceof Element ? event.target.closest("a[href]") : null;
@@ -339,7 +344,7 @@ export function RenewalDashboardNavigation({
       window.removeEventListener("hashchange", focusTarget);
       document.removeEventListener("click", onClick);
     };
-  }, [selectedStepId]);
+  }, [selectedStepId, openedGuided]);
 
   return <div className="ui-stack renewal-guided-content">{children}</div>;
 }

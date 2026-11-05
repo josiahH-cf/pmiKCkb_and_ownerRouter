@@ -20,6 +20,10 @@ import {
 } from "./dependencies";
 import { assertProductionRuntimeActionExecutable } from "@/lib/operations/runtime-suspension-gate";
 import { FirestoreCommunicationSequenceStore, sequenceHash } from "./sequence-store";
+import {
+  outreachRecordForAcceptedSend,
+  writeRenewalOutreachRecord,
+} from "@/lib/firestore/renewal-outreach-records";
 import { CommunicationAttachmentStore } from "./sequence-attachments";
 import {
   WorkflowCommunicationSequenceService,
@@ -69,6 +73,16 @@ export function createCommunicationSequenceService() {
           threadId: l.gmail_thread_id!,
         })),
     createClient: (mailbox) => createGmailMailboxClient(mailbox, descriptor, standIn),
+    // S248 ARCH-S248-2: one outreach record per accepted renewal message, after the send settled.
+    recordAcceptedSend: async (sequence, occurrence, sentAtMs) => {
+      const record = outreachRecordForAcceptedSend(
+        sequence,
+        occurrence,
+        sentAtMs,
+        Date.now(),
+      );
+      if (record) await writeRenewalOutreachRecord(record);
+    },
   });
 }
 export async function readCurrentCommunicationActor(

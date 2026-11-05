@@ -12,7 +12,10 @@ import {
   projectRenewalStage,
   type RenewalStageContext,
 } from "@/lib/lease-renewal/renewal-stage";
-import { RENEWAL_WORK_STATUSES, RENEWAL_WORK_STATUS_LABELS } from "@/lib/lease-renewal/work-status";
+import {
+  RENEWAL_WORK_STATUSES,
+  RENEWAL_WORK_STATUS_LABELS,
+} from "@/lib/lease-renewal/work-status";
 import { RENEWAL_PROCESS_DEFINITION } from "@/lib/lease-renewal/renewal-process";
 import { renewalBatchRowStage } from "@/lib/lease-renewal/renewal-batch-row";
 import { projectRenewalRead } from "@/lib/operational-context/projections";
@@ -75,7 +78,10 @@ describe("S247 R-S247-1: one ordered path definition", () => {
       const step = RENEWAL_PATH_DEFINITION[id];
       expect(step.controls.length, id).toBeGreaterThan(0);
       expect(step.handlers.length, id).toBeGreaterThan(0);
-      expect(step.handlers.every((route) => route.startsWith("/api/")), id).toBe(true);
+      expect(
+        step.handlers.every((route) => route.startsWith("/api/")),
+        id,
+      ).toBe(true);
       expect(step.primary.label.trim(), id).not.toBe("");
       expect(step.completion.trim(), id).not.toBe("");
       expect(step.ready.trim(), id).not.toBe("");
@@ -111,7 +117,9 @@ describe("S247 R-S247-1: one ordered path definition", () => {
 
 describe("S247 R-S247-2: variants are slots in the definition", () => {
   const ids = (variants: Parameters<typeof renewalPathSteps>[0]) =>
-    renewalPathSteps(variants).map((step) => `${step.id}${step.applies ? "" : " (not part)"}`);
+    renewalPathSteps(variants).map(
+      (step) => `${step.id}${step.applies ? "" : " (not part)"}`,
+    );
   const standard = {
     nonRenewal: null,
     monthToMonth: false,
@@ -151,7 +159,9 @@ describe("S247 R-S247-2: variants are slots in the definition", () => {
   it("a RentVine move-out notice goes to the handoff without an offer step", () => {
     const stage = projectRenewalStage(null, { ...BASE_CONTEXT, moveOutInitiated: true });
     expect(stage.currentStepId).toBe("non-renewal-handoff");
-    expect(stage.steps.find((step) => step.id === "offer-tenant")?.state).toBe("not_part");
+    expect(stage.steps.find((step) => step.id === "offer-tenant")?.state).toBe(
+      "not_part",
+    );
   });
 
   it("a month-to-month lease shows its review step first", () => {
@@ -168,7 +178,10 @@ describe("S247 R-S247-2: variants are slots in the definition", () => {
       null,
       {
         ...BASE_CONTEXT,
-        standingAgreement: { label: null, reason: "Standing owner authority covers this lease." },
+        standingAgreement: {
+          label: null,
+          reason: "Standing owner authority covers this lease.",
+        },
       },
       { standingCovered: true },
     );
@@ -180,7 +193,9 @@ describe("S247 R-S247-2: variants are slots in the definition", () => {
   });
 
   it("the housing assistance slot (S251) puts the program and the owner's answer ahead of rent", () => {
-    expect(ids({ ...standard, housingAssistance: { program: "Sample Program" } })).toEqual([
+    expect(
+      ids({ ...standard, housingAssistance: { program: "Sample Program" } }),
+    ).toEqual([
       "check-numbers",
       "assisted-program-contact",
       "assisted-owner-renewal-answer",
@@ -272,10 +287,7 @@ describe("S247 ARCH-S247-1 / BEH-S247-4 / AC-S247-1: one stage on the desk row, 
       [S246_LEASES.activeInMonthSecond, MANUAL_102],
     ]),
     outreach: new Map([
-      [
-        S246_LEASES.activeInMonth,
-        evidenceInput([message({ replyAtMs: REPLY_AT_MS })]),
-      ],
+      [S246_LEASES.activeInMonth, evidenceInput([message({ replyAtMs: REPLY_AT_MS })])],
     ]),
   };
 
@@ -296,6 +308,7 @@ describe("S247 ARCH-S247-1 / BEH-S247-4 / AC-S247-1: one stage on the desk row, 
         readComplete: true,
         currencyState: "fresh" as const,
         progressStateAvailable: true,
+        sheetWritebackPaused: false,
       });
       const snapshot = buildRenewalActionSnapshot({
         workspace,
@@ -332,7 +345,9 @@ describe("S247 ARCH-S247-1 / BEH-S247-4 / AC-S247-1: one stage on the desk row, 
         nextAction: row.renewalStage!.nextStep.label,
       });
       expect(assistant.detail).toContain(row.renewalStage!.stageLine);
-      expect(assistant.detail).toContain(`Next step: ${row.renewalStage!.nextStep.label}`);
+      expect(assistant.detail).toContain(
+        `Next step: ${row.renewalStage!.nextStep.label}`,
+      );
       expect(assistant.href).toContain(`step=${row.renewalStage!.nextStep.stepId}`);
     }
     const replied = s246Row(view, S246_LEASES.activeInMonth).renewalStage!;

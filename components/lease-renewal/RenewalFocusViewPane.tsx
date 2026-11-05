@@ -45,7 +45,6 @@ import { RenewalIssueResolution } from "./RenewalIssueResolution";
 import { useRenewalFocusView } from "./RenewalFocusViewContext";
 import { useRenewalManualWorkspace } from "./RenewalManualWorkspace";
 import { useRenewalWorkingRecord } from "./RenewalWorkingRecord";
-import { createFocusReveal, type FocusReveal } from "./renewal-focus-reveal";
 
 /**
  * S143/S144: the Focus view's single-task pane. It shows the chosen action from the S142
@@ -257,7 +256,6 @@ export function RenewalFocusViewPane({
   const complete =
     projection.outcome.state === "complete_recorded_by_staff" ||
     projection.outcome.state === "complete_verified";
-  const reveal = useRef<FocusReveal | null>(null);
   const heading = useRef<HTMLHeadingElement | null>(null);
   const result = useRef<HTMLParagraphElement | null>(null);
   const pendingFocus = useRef<string | null>(null);
@@ -277,15 +275,11 @@ export function RenewalFocusViewPane({
 
   // Reveal only the chosen action's existing regions; everything else stays mounted but hidden.
   // A completed staff renewal shows its completion record, which holds the existing Reopen control.
+  // S247: the reveal is the one the view context shares with Guided view; Full view clears it.
   useLayoutEffect(() => {
-    if (!focusView || !view?.slot) {
-      reveal.current?.clear();
-      reveal.current = null;
-      return;
-    }
+    if (!focusView || !view?.slot) return;
     const body = view.slot.parentElement;
     if (!body) return;
-    reveal.current ??= createFocusReveal(body);
     const targetIds = selected
       ? (selected.control?.targets ?? [])
       : projection.outcome.state === "complete_recorded_by_staff"
@@ -300,7 +294,7 @@ export function RenewalFocusViewPane({
     const contextTargets = [
       ...body.querySelectorAll<HTMLElement>("[data-renewal-focus-context]"),
     ];
-    reveal.current.apply([view.slot, ...contextTargets, ...targets]);
+    view.applyReveal([view.slot, ...contextTargets, ...targets]);
     if (pendingFocus.current) {
       const id = pendingFocus.current;
       pendingFocus.current = null;
@@ -310,14 +304,6 @@ export function RenewalFocusViewPane({
       if (heading.current) focusProgrammatically(heading.current);
     }
   });
-  useEffect(
-    () => () => {
-      reveal.current?.clear();
-      reveal.current = null;
-    },
-    [],
-  );
-
   // A new cycle or a finished task never keeps a stale choice; every change of the shown task, or of
   // its state, is announced, and a change the person did not make moves focus predictably.
   useEffect(() => {
