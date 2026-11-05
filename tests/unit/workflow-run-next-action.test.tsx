@@ -212,6 +212,7 @@ describe("Space and process summaries", () => {
       definitionId: "def-1",
       presence: {},
       processCategory: "Owner outreach",
+      runSteps: STEPS,
       spaceId: "owner-renewal-outreach",
       spaceName: "Owner Renewal Outreach",
     };
@@ -225,6 +226,65 @@ describe("Space and process summaries", () => {
     );
     expect(screen.getByText("Next: None")).toBeInTheDocument();
     expect(screen.queryByText("Next: Gather facts")).toBeNull();
+  });
+
+  // PR #182 review: a draft edited after the run started must not choose the run's Next Action.
+  it("the Space Workflow card follows the run's pinned steps, not a later draft", () => {
+    const draft: ProcessDefinitionRecord = {
+      ...definition(),
+      steps: [
+        { id: "step-new", title: "A step added to the draft later" },
+        { id: "step-1", title: "Gather facts" },
+      ],
+    };
+    const props = {
+      connectors: [],
+      definition: draft,
+      definitionId: "def-1",
+      presence: {},
+      processCategory: "Owner outreach",
+      spaceId: "owner-renewal-outreach",
+      spaceName: "Owner Renewal Outreach",
+    };
+    const { unmount } = render(
+      <SpaceDesk
+        {...props}
+        run={run()}
+        runSteps={STEPS}
+        stepChecks={[check("step-1", "Checked")]}
+      />,
+    );
+    expect(screen.getByText("Next: Draft owner message")).toBeInTheDocument();
+    expect(screen.queryByText("Next: A step added to the draft later")).toBeNull();
+    unmount();
+    // Every pinned step resolved: the draft's extra step does not hold the run open.
+    const { unmount: unmountDone } = render(
+      <SpaceDesk {...props} run={run()} runSteps={STEPS} stepChecks={ALL_DONE} />,
+    );
+    expect(
+      screen.getByText(`Next: ${WORKFLOW_RUN_COMPLETE_NEXT_ACTION}`),
+    ).toBeInTheDocument();
+    unmountDone();
+    // Without the pinned steps the card keeps the value the run stored, never the draft's.
+    const { unmount: unmountUnread } = render(
+      <SpaceDesk
+        {...props}
+        run={run()}
+        runSteps={null}
+        stepChecks={[check("step-1", "Checked")]}
+      />,
+    );
+    expect(screen.getByText("Next: Gather facts")).toBeInTheDocument();
+    unmountUnread();
+    render(
+      <SpaceDesk
+        {...props}
+        run={run({ status: "Completed" })}
+        runSteps={null}
+        stepChecks={ALL_DONE}
+      />,
+    );
+    expect(screen.getByText("Next: None")).toBeInTheDocument();
   });
 
   it("the Space process summary lists a completed run with no next action", () => {

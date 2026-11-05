@@ -19,7 +19,11 @@ import {
   listPublishedOperationalPages,
   type OperationalPageHead,
 } from "@/lib/firestore/operational-pages";
-import { getProcessDefinition, listWorkflowRuns } from "@/lib/firestore/workflows";
+import {
+  getProcessDefinition,
+  getWorkflowRunDefinition,
+  listWorkflowRuns,
+} from "@/lib/firestore/workflows";
 import { listStepChecksForRun } from "@/lib/firestore/workflow-run-step-checks";
 import type {
   ProcessDefinitionRecord,
@@ -122,6 +126,7 @@ export default async function SpaceDetailPage({
   let processRuns: WorkflowRunRecord[] = [];
   let latestRun: WorkflowRunRecord | null = null;
   let deskStepChecks: WorkflowRunStepCheckRecord[] = [];
+  let deskRunSteps: ProcessDefinitionRecord["steps"] | null = null;
   let deskPresence: Record<string, boolean> = {};
   let deskConnectors: ConnectorDef[] = [];
   let operationalPages: OperationalPageHead[] = [];
@@ -164,10 +169,22 @@ export default async function SpaceDetailPage({
         latestRun = null;
       }
       if (latestRun) {
+        let checksRead = false;
         try {
           deskStepChecks = await listStepChecksForRun(user, latestRun.id);
+          checksRead = true;
         } catch {
           deskStepChecks = [];
+        }
+        // The Next Action follows the run's own steps from the version it is pinned to, as the
+        // Workflow Run page reads them, so a later draft edit cannot change it. Without both
+        // reads the card keeps the value the run stored.
+        if (checksRead) {
+          try {
+            deskRunSteps = (await getWorkflowRunDefinition(user, latestRun)).steps;
+          } catch {
+            deskRunSteps = null;
+          }
         }
       }
     }
@@ -270,6 +287,7 @@ export default async function SpaceDetailPage({
             presence={deskPresence}
             processCategory={space.processCategory}
             run={latestRun}
+            runSteps={deskRunSteps}
             spaceId={space.id}
             spaceName={space.name}
             stepChecks={deskStepChecks}
