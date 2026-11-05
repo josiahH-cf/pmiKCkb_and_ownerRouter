@@ -14,7 +14,8 @@ held at observation and its resume ended in a verified rollback; it and the wron
 697b754f are archived as superseded. See docs/evidence/help-hub-delivery-2026-11-04.md.
 The S245 machine-run litmus accepted the hub on Run 4 at 13e5ab40
 (docs/evidence/help-hub-litmus-2026-11-04.md). Its repairs and help V1.1 await one release (PR
-#177, Awaiting release below) that must pass the same gates. The earlier P1–P9 delivery (run
+#177, Awaiting release below) that must pass the same gates; PR #179 adds the litmus's
+outside-scope wording and display repairs to that release. The earlier P1–P9 delivery (run
 ff1f44bf, b5ba7802) is in
 docs/evidence/application-gap-delivery-2026-11-03.md; its details follow.
 
@@ -61,9 +62,15 @@ attempts and free profile before/after. It also exposed the remaining source-acc
 3. S244 in-app help copy: InfoTip width, three present-behavior lines and the conditional-branch inventory with its 65 rows — `cbe0de3482173883f357d0924c78b39882bc369f`, `d2d3a7874d8f58aa12d190a6540d872416685d30`, `13e5ab40e3dd18eb8697aac820ee3ffc75365f9d`.
 4. S245 machine-run litmus report, Runs 1 to 4, accepted on Run 4 — `cbe0de3482173883f357d0924c78b39882bc369f`, `d9647ea7fc427ceba812617b9e8c30d36ca76b87`.
 5. S235 Admin form-family hint by the owner's decision of 2026-11-04, R-S235-2 amended — `d2d3a7874d8f58aa12d190a6540d872416685d30`.
+6. S87 present-tense copy from the S245 litmus: the Connections no-sign-in result, the Approval Queue bulk Execute refusal and the People and Access and Space request read-failure notes — `d51e84adede237e47516491888613c1535540d45`.
+7. S126 Source last read in the date and time convention on Waiting on you, Notifications, Spaces and the assistant's approvals answer — `d51e84adede237e47516491888613c1535540d45`.
+8. S147 Try again waits, bounded at 30 s, for the lease read in flight before re-reading — `d51e84adede237e47516491888613c1535540d45`.
+9. S87 workflow run Next Action follows the checklist on the run page, Space card, process summary and shared context — `d51e84adede237e47516491888613c1535540d45`.
+10. S242 print keeps every help heading with the content it introduces — `d51e84adede237e47516491888613c1535540d45`.
 
-One candidate carries all five items. PR #177 merges with a merge commit so every row's commits
-stay ancestors of main. S242–S245 and the five #173 fixes were delivered by run 74d79a9d at
+One candidate carries all ten items. PRs #177 and #179 merge with a merge commit so every row's
+commits stay ancestors of main. The litmus's two open owner questions (S34 closed-key label, S115
+unreachable About panels) and the QuickBooks Connect button are in docs/facts.md Open Questions. S242–S245 and the five #173 fixes were delivered by run 74d79a9d at
 323e8be3. Documentation-only closure does not deploy. Never resume a consumed or archived run or
 use its receipts as a new queue. The stopped original native owner and archived held runs remain
 untouched.
