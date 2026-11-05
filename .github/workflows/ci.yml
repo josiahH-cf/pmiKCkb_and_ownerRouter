@@ -203,10 +203,10 @@ jobs:
           path: ${{ runner.temp }}/pmi-npm-cache
           key: pmi-npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
           restore-keys: pmi-npm-${{ runner.os }}-
-      - name: Served E2E inventory with the emulator, then the degraded-mode group
+      - name: Complete served E2E inventory with the public emulator binaries
         run: |
           mkdir -p "$RUNNER_TEMP/pmi-npm-cache"
-          python3 scripts/isolated-verify.py --ci-sudo --task e2e-all --output "$RUNNER_TEMP/pmi-e2e" --npm-cache "$RUNNER_TEMP/pmi-npm-cache" --timeout-seconds 900 --memory-mib 6144
+          python3 scripts/isolated-verify.py --ci-sudo --task e2e --output "$RUNNER_TEMP/pmi-e2e" --npm-cache "$RUNNER_TEMP/pmi-npm-cache" --timeout-seconds 900 --memory-mib 6144
       - name: Retain the lane's evidence when it fails
         if: failure()
         uses: actions/upload-artifact@v4

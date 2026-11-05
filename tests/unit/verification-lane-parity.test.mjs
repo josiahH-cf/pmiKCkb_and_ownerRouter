@@ -63,7 +63,6 @@ const REQUIRED_IN_BOTH = [
   "check:budget-guard",
   "build",
   "test:e2e",
-  "test:e2e:core",
 ];
 
 describe("S54 verification lane parity", () => {

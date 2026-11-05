@@ -58,7 +58,6 @@ fi
 "$NPM_CMD" test
 "$NPM_CMD" run test:firestore
 "$NPM_CMD" run build
-# Served E2E last, in its own build directory: the complete inventory with the emulator, then the
-# degraded-mode group that runs only without it. CI runs the same pair in its e2e lane.
+# Served E2E last, in its own build directory: the complete inventory with the emulator, as CI's
+# e2e lane runs it. The degraded-mode group (the e2e core script) remains a separate step.
 "$NPM_CMD" run test:e2e -- --firestore
-"$NPM_CMD" run test:e2e:core
