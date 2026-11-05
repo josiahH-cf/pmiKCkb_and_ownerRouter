@@ -17,6 +17,7 @@ import {
   type LiveLeaseSnapshotResult,
 } from "@/lib/lease-renewal/live-lease-cache";
 import type { RenewalLeaseWorkspace } from "@/lib/lease-renewal/desk-model";
+import type { LeaseOutreachEvidenceInput } from "@/lib/lease-renewal/outreach-evidence";
 import { RENEWAL_PROCESS_VERSION } from "@/lib/lease-renewal/renewal-process";
 import {
   RENEWAL_STAGE,
@@ -245,6 +246,10 @@ export interface S246DeskOptions {
   /** False when saved progress could not be read: every desk row then needs verification. */
   readonly progressStateAvailable?: boolean;
   readonly readTs?: string;
+  /** S248: linked renewal message evidence by lease id; absent means the desk did not read it. */
+  readonly outreach?: ReadonlyMap<string, LeaseOutreachEvidenceInput>;
+  /** S248: the evidence read failed for this render. */
+  readonly outreachUnavailable?: boolean;
 }
 
 /** The synthetic sources and one lease generation both orchestrations read. */
@@ -321,6 +326,12 @@ export async function loadS246Desk(
     undefined,
     undefined,
     options.decisions,
+    options.outreach || options.outreachUnavailable
+      ? {
+          available: options.outreachUnavailable !== true,
+          byLease: options.outreach ?? new Map(),
+        }
+      : undefined,
   );
   if (result.status !== "ok") throw new Error(`desk load ${result.status}`);
   return result.view;
@@ -353,6 +364,16 @@ export async function loadS246Workspace(
     undefined,
     undefined,
     options.decisions?.get(leaseId) ?? null,
+    options.outreachUnavailable
+      ? { readable: false, messages: [], records: [], drafts: [] }
+      : options.outreach
+        ? (options.outreach.get(leaseId) ?? {
+            readable: true,
+            messages: [],
+            records: [],
+            drafts: [],
+          })
+        : null,
   );
   if (result.status !== "ok") throw new Error(`workspace load ${result.status}`);
   return result.workspace;

@@ -513,14 +513,26 @@ export function manualActivitySatisfied(
     (activity?.outcome === "not_applicable" && MANUAL_ACTIVITIES[key].conditional)
   );
 }
+/** S248 R-S248-4: the next step once a reply is observed; no outcome is chosen for staff. */
+export const OWNER_DECISION_AFTER_REPLY_LABEL = "Record the owner's decision";
+export const TENANT_DECISION_AFTER_REPLY_LABEL = "Record the tenant's decision";
+
 /** The shared next-action wording for one staff-recorded activity, response or completion. */
 export function manualActionLabel(
   key: ManualActivity | "owner_response" | "tenant_response" | "complete",
   /** S234 R-S234-4: after "Revision requested" the owner step is to revise and ask again. */
-  options: { ownerRevisionRequested?: boolean } = {},
+  options: {
+    ownerRevisionRequested?: boolean;
+    ownerReplied?: boolean;
+    tenantReplied?: boolean;
+  } = {},
 ): string {
   if (key === "owner_response" && options.ownerRevisionRequested)
     return "Update the working terms and ask the owner again";
+  if (key === "owner_response" && options.ownerReplied)
+    return OWNER_DECISION_AFTER_REPLY_LABEL;
+  if (key === "tenant_response" && options.tenantReplied)
+    return TENANT_DECISION_AFTER_REPLY_LABEL;
   return key in MANUAL_ACTIVITIES
     ? MANUAL_ACTIVITIES[key as ManualActivity].label
     : key === "owner_response"
@@ -529,11 +541,23 @@ export function manualActionLabel(
         ? "Record tenant response"
         : "Review recorded completion";
 }
+/**
+ * S248: what the app's own evidence fills on this staff record (see `outreachFill` in
+ * `outreach-evidence.ts`). Absent, the summary reads the staff record alone, exactly as before.
+ */
+export interface ManualEvidenceFill {
+  readonly owner_outreach: unknown | null;
+  readonly tenant_offer: unknown | null;
+  readonly ownerReplyAtMs: number | null;
+  readonly tenantReplyAtMs: number | null;
+}
+
 export function manualRenewalSummary(
   state: RenewalWorkspaceState | null,
-  options: { standingOwnerAuthority?: boolean } = {},
+  options: { standingOwnerAuthority?: boolean; evidence?: ManualEvidenceFill | null } = {},
 ) {
   const standing = options.standingOwnerAuthority === true;
+  const evidence = options.evidence ?? null;
   let nextActivity:
     | ManualActivity
     | "owner_response"
@@ -541,9 +565,16 @@ export function manualRenewalSummary(
     // S154/S156: with nothing recorded yet the suggestion is simply the first staff activity.
     | "complete" = "owner_outreach";
   let waitingParty: "staff" | "owner" | "tenant" = "staff";
+  let ownerReplied = false;
+  let tenantReplied = false;
   const nonRenewal = manualNonRenewal(state);
+  // S248 R-S248-1: an accepted renewal message fills the outreach or offer staff have not recorded.
   const satisfied = (key: ManualActivity) =>
-    key === "owner_outreach" && standing ? true : manualActivitySatisfied(state!, key);
+    key === "owner_outreach" && standing
+      ? true
+      : manualActivitySatisfied(state!, key) ||
+        (key === "owner_outreach" && Boolean(evidence?.owner_outreach)) ||
+        (key === "tenant_offer" && Boolean(evidence?.tenant_offer));
   if (state) {
     if (nonRenewal)
       nextActivity = satisfied("non_renewal_handoff")
@@ -553,8 +584,15 @@ export function manualRenewalSummary(
     // S156: the owner's approval is the recorded answer; exact terms live on the working record.
     else if (!standing && state.ownerResponse?.outcome !== "approved_terms") {
       nextActivity = "owner_response";
+      // S248 R-S248-4: an observed owner reply after the latest staff answer is the team's move.
+      ownerReplied =
+        state.ownerResponse?.outcome !== "revision_requested" &&
+        evidence?.ownerReplyAtMs !== null &&
+        evidence?.ownerReplyAtMs !== undefined;
       waitingParty =
-        state.ownerResponse?.outcome === "revision_requested" ? "staff" : "owner";
+        state.ownerResponse?.outcome === "revision_requested" || ownerReplied
+          ? "staff"
+          : "owner";
     } else if (!satisfied("tenant_offer")) {
       nextActivity = "tenant_offer";
     } else if (currentManualTenantOutcome(state) !== "accepted") {
@@ -563,9 +601,15 @@ export function manualRenewalSummary(
         currentResponse === "counter_change_requested"
           ? "owner_response"
           : "tenant_response";
+      tenantReplied =
+        nextActivity === "tenant_response" &&
+        currentResponse !== "needs_verification" &&
+        evidence?.tenantReplyAtMs !== null &&
+        evidence?.tenantReplyAtMs !== undefined;
       waitingParty =
         currentResponse === "counter_change_requested" ||
-        currentResponse === "needs_verification"
+        currentResponse === "needs_verification" ||
+        tenantReplied
           ? "staff"
           : "tenant";
     } else
@@ -602,6 +646,13 @@ export function manualRenewalSummary(
     nextActivity === "owner_response" &&
     state?.ownerResponse?.outcome === "revision_requested"
       ? { ownerRevisionRequested: true as const }
+      : {}),
+    // S248 R-S248-4: present only while an observed reply waits for staff to record the decision.
+    ...(!complete && nextActivity === "owner_response" && ownerReplied
+      ? { ownerReplied: true as const }
+      : {}),
+    ...(!complete && nextActivity === "tenant_response" && tenantReplied
+      ? { tenantReplied: true as const }
       : {}),
     label: complete
       ? "Completed: recorded by staff"

@@ -1,0 +1,795 @@
+// S247 R-S247-3 (ARCH-S247-1): the ONE stage projection. The desk row, the lease page's guided
+// view, assistant answers about a lease and My Work lease links read the stage and the one next
+// step from here, so they cannot name different next steps. It walks the path definition in
+// `renewal-path.ts` over the existing predicates: the staff lane (`manualRenewalSummary`), the
+// S248 evidence (`outreach-evidence.ts`), the S246 target verdict and the shared desk guidance.
+//
+// Pure and client-safe. It stores nothing and gates nothing (ARCH-S247-3): every step can be
+// chosen and worked at any time, and only a control's own inputs and authority limit it (S156).
+// R-S248-12: nothing here derives a reminder, a deadline, a follow-up or a schedule; elapsed time
+// is stated as a fact ("since 11/04/2026") and nothing more.
+
+import { formatCalendarDate, formatCalendarDateOrTimestamp } from "@/lib/date-display";
+import {
+  MANUAL_ACTIVITIES,
+  MANUAL_REQUIRED_RENEWAL,
+  currentManualTenantOutcome,
+  currentStaffActivity,
+  manualActionLabel,
+  manualActivitySatisfied,
+  manualRenewalSummary,
+  type ManualActivity,
+  type RenewalWorkspaceState,
+} from "@/lib/lease-renewal/workspace-state";
+import {
+  audienceEvidenceSentence,
+  derivedOutreachAttribution,
+  outreachDate,
+  outreachFill,
+  projectOutreachEvidence,
+  type AudienceOutreachEvidence,
+  type DerivedOutreachRecord,
+  type LeaseOutreachEvidenceInput,
+  type OutreachCheck,
+  type OutreachEvidence,
+  type OutreachFill,
+} from "@/lib/lease-renewal/outreach-evidence";
+import {
+  NOT_PART_OF_PATH_LABEL,
+  RENEWAL_PATH_DEFINITION,
+  renewalPathSteps,
+  type RenewalPathStepId,
+  type RenewalPathVariants,
+} from "@/lib/lease-renewal/renewal-path";
+import type { RenewalProcessStepId } from "@/lib/lease-renewal/renewal-process";
+import {
+  RENEWAL_WORK_STATUS_LABELS,
+  type RenewalWorkStatus,
+} from "@/lib/lease-renewal/work-status";
+
+export const RENEWAL_STAGE_VERSION = "renewal-stage/v1" as const;
+
+const TEAM = "the PMI KC team";
+
+/** The exact next-step words the evidence states read (S248). */
+export const RENEWAL_STAGE_NEXT_STEP = {
+  checkSend: "Check whether the message went out",
+  checkAddress: "Check the address and send again",
+  sentFromGmail: "I sent it from Gmail",
+  confirmFinished: "Confirm this renewal is finished",
+  notOutreach: "This was not the renewal outreach",
+} as const;
+
+/**
+ * Everything the projection reads besides the staff record. The server builds it once from the
+ * same loaded row the desk renders; the lease page recomputes the stage from it and the live staff
+ * record after each save, so both read the same facts. Serializable.
+ */
+export interface RenewalStageContext {
+  readonly leaseId: string;
+  /** The staff-record read failed for this render; nothing about it is known. */
+  readonly staffRecordUnavailable: boolean;
+  /** The existing standing owner authority (S194) covering this lease's current record. */
+  readonly standingAgreement: { readonly label: string | null; readonly reason: string } | null;
+  /** S251 slot; null until that suite records the lease fact. */
+  readonly housingAssistance: { readonly program: string } | null;
+  /** Check the numbers: the shared desk guidance's rent verification and the open differences. */
+  readonly numbers: { readonly verified: boolean; readonly openDifferences: number };
+  readonly term: { readonly monthToMonth: boolean; readonly reviewNeeded: boolean };
+  /** RentVine reports a move-out notice: the later steps become the non-renewal handoff. */
+  readonly moveOutInitiated: boolean;
+  /** S246 R-S246-5: RentVine reports a later lease end than the recorded cycle. */
+  readonly sourceRenewal: {
+    readonly recordedDateIso: string;
+    readonly sourceDateIso: string;
+    readonly cycleId: string;
+    readonly revision: number;
+  } | null;
+  /** The shared guidance says the lease needs verification; the Now card leads with this. */
+  readonly verification: { readonly label: string; readonly refresh: boolean } | null;
+  /** S119: the hand-set staff work status for the current cycle, when one is saved. */
+  readonly handStatus: { readonly key: RenewalWorkStatus; readonly label: string } | null;
+  /** S75: the last contact the follow-up projection observed. */
+  readonly lastContactAtIso: string | null;
+  /**
+   * S232 R-S232-4: the staff record and the linked Gmail thread disagree, in both facts' words, as
+   * `leaseWorkStatusLines` writes them; null when they agree or no thread fact is known.
+   */
+  readonly threadCheck: string | null;
+  /** S248: this lease's linked renewal messages, records and drafts; null when not read. */
+  readonly outreach: LeaseOutreachEvidenceInput | null;
+}
+
+export type RenewalPathStepState =
+  | "done"
+  | "current"
+  | "open"
+  | "waiting"
+  | "covered"
+  | "not_part";
+
+export interface RenewalPathStepView {
+  readonly id: RenewalPathStepId;
+  readonly label: string;
+  readonly state: RenewalPathStepState;
+  /** One line about this step's state; null when its label is enough. */
+  readonly detail: string | null;
+  /** The step's one primary action, or null when the step asks for nothing. */
+  readonly primary: { readonly label: string; readonly target: string } | null;
+  readonly controls: readonly string[];
+}
+
+export interface RenewalStageWaiting {
+  readonly party: string;
+  readonly sinceIso: string | null;
+  readonly lastContactIso: string | null;
+  readonly watching: string;
+}
+
+export interface RenewalStageCheck {
+  readonly kind: "evidence" | "linked_thread";
+  /** Both facts in one sentence. */
+  readonly sentence: string;
+}
+
+export interface RenewalDerivedFact {
+  readonly record: DerivedOutreachRecord;
+  readonly attribution: string;
+}
+
+export interface RenewalStage {
+  readonly version: typeof RENEWAL_STAGE_VERSION;
+  readonly stage: { readonly key: RenewalWorkStatus; readonly label: string };
+  /** One line: the stage, who the lease waits on and since when, or the fact to settle. */
+  readonly stageLine: string;
+  readonly currentStepId: RenewalPathStepId;
+  readonly nextStep: {
+    readonly label: string;
+    readonly stepId: RenewalPathStepId;
+    /** The legacy `step` value for links from surfaces that predate the path. */
+    readonly processStepId: RenewalProcessStepId | null;
+  };
+  readonly waiting: RenewalStageWaiting | null;
+  /** The evidence sentence behind the stage ("Owner replied 11/05/2026"), when there is one. */
+  readonly evidenceLine: string | null;
+  readonly steps: readonly RenewalPathStepView[];
+  /**
+   * R-S248-9: staff recorded something different after the evidence time, or (S232) the staff
+   * record and the linked Gmail thread disagree. Both facts, and neither wins.
+   */
+  readonly check: RenewalStageCheck | null;
+  /** The S248 evidence disagreement itself, when that is the check. */
+  readonly evidenceCheck: OutreachCheck | null;
+  /** R-S248-10: facts the app derived, with where they came from. */
+  readonly derived: readonly RenewalDerivedFact[];
+  /** R-S247-8: the hand-set status and the derived stage in one line when they differ. */
+  readonly handStatusLine: string | null;
+  /** Something to resolve before relying on the stage: a refresh or a record reload. */
+  readonly blocker: { readonly label: string; readonly target: string | null } | null;
+  readonly evidence: OutreachEvidence;
+}
+
+const STEP_FOR_ACTIVITY: Record<
+  ManualActivity | "owner_response" | "tenant_response" | "complete",
+  RenewalPathStepId
+> = {
+  owner_outreach: "ask-owner",
+  owner_response: "ask-owner",
+  tenant_offer: "offer-tenant",
+  tenant_response: "offer-tenant",
+  information_form: "offer-tenant",
+  form_returned: "offer-tenant",
+  documents: "documents",
+  document_delivery: "documents",
+  signatures: "documents",
+  insurance: "finish-up",
+  rhino: "finish-up",
+  pet: "finish-up",
+  charges: "finish-up",
+  inspection: "finish-up",
+  filter: "finish-up",
+  utilities: "finish-up",
+  assisted_housing: "finish-up",
+  non_renewal_handoff: "non-renewal-handoff",
+  complete: "complete",
+};
+
+const DOCUMENT_ACTIVITIES: readonly ManualActivity[] = [
+  "documents",
+  "document_delivery",
+  "signatures",
+];
+const FOLLOW_UP_ACTIVITIES: readonly ManualActivity[] = MANUAL_REQUIRED_RENEWAL.filter(
+  (key) => STEP_FOR_ACTIVITY[key] === "finish-up",
+);
+
+/** Imperative wording for the staff activities whose labels read as records. */
+const ACTIVITY_NEXT_STEP: Partial<Record<ManualActivity, string>> = {
+  documents: "Prepare the required documents",
+  document_delivery: "Deliver the required documents",
+  signatures: "Collect the required signatures",
+  information_form: "Send the renewal information form",
+  form_returned: "Record the returned information form",
+  non_renewal_handoff: "Record the non-renewal handoff",
+};
+
+function stageLabel(key: RenewalWorkStatus): string {
+  return RENEWAL_WORK_STATUS_LABELS[key];
+}
+
+/** "since 11/04/2026", from an instant or a calendar date. */
+function since(iso: string | null): string {
+  return iso ? ` since ${formatCalendarDateOrTimestamp(iso).split(",")[0]}` : "";
+}
+
+function msIso(ms: number | null): string | null {
+  return ms === null ? null : new Date(ms).toISOString();
+}
+
+type Lane = ReturnType<typeof manualRenewalSummary>;
+
+interface Evaluation {
+  readonly state: RenewalWorkspaceState | null;
+  readonly lane: Lane;
+  readonly fill: OutreachFill;
+  readonly evidence: OutreachEvidence;
+  readonly context: RenewalStageContext;
+  readonly variants: RenewalPathVariants;
+}
+
+const satisfiedFor = (evaluation: Evaluation) => (key: ManualActivity) => {
+  const { state, fill } = evaluation;
+  if (!state) return false;
+  if (manualActivitySatisfied(state, key)) return true;
+  if (key === "owner_outreach") return Boolean(fill.owner_outreach);
+  if (key === "tenant_offer") return Boolean(fill.tenant_offer);
+  return false;
+};
+
+/** The audience step's evidence-aware substate: what the step shows and its next step. */
+function audienceStep(
+  evaluation: Evaluation,
+  audience: "owner" | "tenant",
+): {
+  readonly state: RenewalPathStepState;
+  readonly stage: RenewalWorkStatus;
+  readonly nextStep: string;
+  readonly primary: { label: string; target: string } | null;
+  readonly detail: string | null;
+  readonly waiting: RenewalStageWaiting | null;
+} {
+  const { lane, state } = evaluation;
+  const satisfied = satisfiedFor(evaluation);
+  const evidence: AudienceOutreachEvidence = evaluation.evidence[audience];
+  const definition =
+    RENEWAL_PATH_DEFINITION[audience === "owner" ? "ask-owner" : "offer-tenant"];
+  const outreachKey = audience === "owner" ? "owner_outreach" : "tenant_offer";
+  const responseKey = audience === "owner" ? "owner_response" : "tenant_response";
+  const messageTarget =
+    audience === "owner" ? "renewal-card-message-owner" : "renewal-card-message-tenant";
+  const responseTarget = `renewal-manual-${responseKey}`;
+  const who = audience === "owner" ? "owner" : "tenant";
+  const sentence = audienceEvidenceSentence(evidence);
+  const outreachDone = satisfied(outreachKey);
+  const tenantOutcome = state ? currentManualTenantOutcome(state) : null;
+  // As in the staff lane, a current tenant counter reopens the owner response.
+  const counterReopen = satisfied("tenant_offer") && tenantOutcome === "counter_change_requested";
+  // The recorded answer that ends the step.
+  const decided =
+    audience === "owner"
+      ? (state?.ownerResponse?.outcome === "approved_terms" && !counterReopen) ||
+        state?.ownerResponse?.outcome === "declined_non_renewal"
+      : tenantOutcome === "accepted" || tenantOutcome === "declined_nonrenewing";
+  if (audience === "owner" && evaluation.context.standingAgreement && !decided)
+    return {
+      state: "covered",
+      stage: definition.stage,
+      nextStep: definition.primary.label,
+      primary: null,
+      detail: null,
+      waiting: null,
+    };
+  if (audience === "tenant" && tenantOutcome === "counter_change_requested") {
+    const label = manualActionLabel("tenant_response", lane);
+    return {
+      state: "open",
+      stage: definition.stage,
+      nextStep: label,
+      primary: { label, target: responseTarget },
+      detail: "The tenant requested a change to the current terms.",
+      waiting: null,
+    };
+  }
+  if (decided) {
+    return {
+      state: "done",
+      stage: definition.stage,
+      nextStep: definition.primary.label,
+      primary: null,
+      detail: null,
+      waiting: null,
+    };
+  }
+  if (outreachDone) {
+    const replied =
+      audience === "owner" ? Boolean(lane.ownerReplied) : Boolean(lane.tenantReplied);
+    const revision =
+      audience === "owner" && Boolean(lane.ownerRevisionRequested);
+    const staffMove =
+      lane.nextActivity === responseKey && lane.waitingParty === "staff";
+    if (replied || revision || staffMove) {
+      const label = manualActionLabel(responseKey, lane);
+      return {
+        state: "current",
+        stage: definition.waitingStage ?? definition.stage,
+        nextStep: label,
+        primary: { label, target: responseTarget },
+        detail: replied ? sentence : null,
+        waiting: null,
+      };
+    }
+    // R-S247-5: waiting is a state; who, since when, the last contact and what is watched.
+    const derived = evidence.derived;
+    const staffRecord = state ? currentStaffActivity(state, outreachKey) : null;
+    const sinceIso =
+      msIso(derived?.sentAtMs ?? null) ??
+      staffRecord?.occurredAt ??
+      staffRecord?.recordedAt ??
+      null;
+    return {
+      state: "waiting",
+      stage: definition.waitingStage ?? definition.stage,
+      nextStep: manualActionLabel(responseKey, lane),
+      primary: { label: manualActionLabel(responseKey, lane), target: responseTarget },
+      detail: sentence,
+      waiting: {
+        party: `the ${who}`,
+        sinceIso,
+        lastContactIso:
+          msIso(evidence.lastSentAtMs) ?? evaluation.context.lastContactAtIso ?? sinceIso,
+        watching: definition.waiting!.watching,
+      },
+    };
+  }
+  // Not yet sent: the evidence state names its own next step and never counts as outreach.
+  switch (evidence.state) {
+    case "unconfirmed":
+      return {
+        state: "current",
+        stage: definition.stage,
+        nextStep: RENEWAL_STAGE_NEXT_STEP.checkSend,
+        primary: { label: RENEWAL_STAGE_NEXT_STEP.checkSend, target: messageTarget },
+        detail: sentence,
+        waiting: null,
+      };
+    case "delivery_failed":
+      return {
+        state: "current",
+        stage: definition.stage,
+        nextStep: RENEWAL_STAGE_NEXT_STEP.checkAddress,
+        primary: { label: RENEWAL_STAGE_NEXT_STEP.checkAddress, target: messageTarget },
+        detail: sentence,
+        waiting: null,
+      };
+    case "scheduled":
+      return {
+        state: "waiting",
+        stage: definition.stage,
+        nextStep: `Review the scheduled ${who} message`,
+        primary: { label: `Review the scheduled ${who} message`, target: messageTarget },
+        detail: sentence,
+        waiting: {
+          party: "the scheduled send",
+          sinceIso: null,
+          lastContactIso: evaluation.context.lastContactAtIso,
+          watching: `The ${who} message is counted as sent only once Gmail accepts it.`,
+        },
+      };
+    case "draft":
+      return {
+        state: "current",
+        stage: definition.stage,
+        nextStep: "Send the Gmail draft",
+        primary: {
+          label: RENEWAL_STAGE_NEXT_STEP.sentFromGmail,
+          target: `renewal-manual-${outreachKey}`,
+        },
+        detail: sentence,
+        waiting: null,
+      };
+    default:
+      return {
+        state: "current",
+        stage: definition.stage,
+        nextStep: definition.primary.label,
+        primary: definition.primary,
+        detail: null,
+        waiting: null,
+      };
+  }
+}
+
+function activityStepState(
+  evaluation: Evaluation,
+  keys: readonly ManualActivity[],
+): { done: boolean; next: ManualActivity | null } {
+  const satisfied = satisfiedFor(evaluation);
+  const next = keys.find((key) => !satisfied(key)) ?? null;
+  return { done: next === null && evaluation.state !== null, next };
+}
+
+function variantsFor(
+  state: RenewalWorkspaceState | null,
+  lane: Lane,
+  context: RenewalStageContext,
+): RenewalPathVariants {
+  return {
+    nonRenewal: lane.nonRenewal
+      ? { source: "recorded" }
+      : context.moveOutInitiated
+        ? { source: "rentvine" }
+        : null,
+    monthToMonth: context.term.monthToMonth,
+    standingAgreement: context.standingAgreement,
+    housingAssistance: context.housingAssistance,
+  };
+}
+
+/** The current step: the staff lane's step once work has started, else the first open one. */
+function currentStepFor(
+  evaluation: Evaluation,
+  steps: readonly { id: RenewalPathStepId; applies: boolean; done: boolean }[],
+): RenewalPathStepId {
+  const { lane, state, context, evidence } = evaluation;
+  if (lane.complete) return "complete";
+  if (context.sourceRenewal) return "complete";
+  if (evaluation.variants.nonRenewal?.source === "rentvine" && !lane.nonRenewal) {
+    const handoffDone = state ? manualActivitySatisfied(state, "non_renewal_handoff") : false;
+    return handoffDone ? "complete" : "non-renewal-handoff";
+  }
+  const laneStep = STEP_FOR_ACTIVITY[lane.nextActivity];
+  const started =
+    Boolean(state) &&
+    (Object.keys(state!.activities).length > 0 ||
+      state!.ownerResponse !== null ||
+      state!.tenantResponse !== null ||
+      state!.completion !== null);
+  const progressed =
+    started ||
+    evidence.owner.state !== "none" ||
+    evidence.tenant.state !== "none" ||
+    Boolean(context.standingAgreement);
+  if (!progressed) {
+    const first = steps.find(
+      (step) =>
+        step.applies &&
+        !step.done &&
+        (step.id === "month-to-month-review" ||
+          step.id === "check-numbers" ||
+          step.id === "compare-market"),
+    );
+    if (first) return first.id;
+  }
+  if (evaluation.variants.housingAssistance && laneStep === "ask-owner")
+    return "assisted-owner-renewal-answer";
+  return laneStep;
+}
+
+/**
+ * BEH-S247-4 / AC-S247-1: the one stage and next step for a lease. `standingCovered` is the
+ * standing authority bound to this exact staff record revision (S194), as Focus reads it.
+ */
+export function projectRenewalStage(
+  state: RenewalWorkspaceState | null,
+  context: RenewalStageContext,
+  options: { readonly standingCovered?: boolean } = {},
+): RenewalStage {
+  const standingCovered =
+    options.standingCovered ?? Boolean(context.standingAgreement);
+  const evidence = projectOutreachEvidence(context.outreach, state?.cycleId ?? null);
+  const fill = outreachFill(state, evidence);
+  const lane = manualRenewalSummary(state, {
+    standingOwnerAuthority: standingCovered,
+    evidence: fill,
+  });
+  const scopedContext: RenewalStageContext = standingCovered
+    ? context
+    : { ...context, standingAgreement: null };
+  const variants = variantsFor(state, lane, scopedContext);
+  const evaluation: Evaluation = {
+    state,
+    lane,
+    fill,
+    evidence,
+    context: scopedContext,
+    variants,
+  };
+  const satisfied = satisfiedFor(evaluation);
+  const owner = audienceStep(evaluation, "owner");
+  const tenant = audienceStep(evaluation, "tenant");
+  const documents = activityStepState(evaluation, DOCUMENT_ACTIVITIES);
+  const followUps = activityStepState(evaluation, FOLLOW_UP_ACTIVITIES);
+  const handoffDone = state ? manualActivitySatisfied(state, "non_renewal_handoff") : false;
+  // Documents delivered and signatures outstanding: the step waits on the signers.
+  const deliveryRecord =
+    state && documents.next === "signatures" && satisfied("document_delivery")
+      ? currentStaffActivity(state, "document_delivery")
+      : null;
+
+  const doneFor = (id: RenewalPathStepId): boolean => {
+    switch (id) {
+      case "month-to-month-review":
+        return !scopedContext.term.reviewNeeded;
+      case "check-numbers":
+        return scopedContext.numbers.verified && scopedContext.numbers.openDifferences === 0;
+      case "compare-market":
+        return Boolean(state?.preparation);
+      case "ask-owner":
+        return owner.state === "done";
+      case "offer-tenant":
+        return tenant.state === "done";
+      case "documents":
+        return documents.done;
+      case "finish-up":
+        return followUps.done;
+      case "non-renewal-handoff":
+        return handoffDone;
+      case "complete":
+        return lane.complete;
+      default:
+        // S251 slots: their predicates arrive with that suite.
+        return false;
+    }
+  };
+  const pathSteps = renewalPathSteps(variants).map((step) => ({
+    ...step,
+    done: step.applies && doneFor(step.id),
+  }));
+  const currentStepId = currentStepFor(evaluation, pathSteps);
+
+  const views: RenewalPathStepView[] = pathSteps.map((step) => {
+    const definition = RENEWAL_PATH_DEFINITION[step.id];
+    const base = {
+      id: step.id,
+      label: definition.label,
+      controls: definition.controls,
+    };
+    if (!step.applies)
+      return { ...base, state: "not_part", detail: NOT_PART_OF_PATH_LABEL, primary: null };
+    if (step.id === "ask-owner" && scopedContext.standingAgreement && owner.state !== "done")
+      return {
+        ...base,
+        state: "covered",
+        detail: scopedContext.standingAgreement.label
+          ? `Covered by ${scopedContext.standingAgreement.label}: no owner message needed`
+          : scopedContext.standingAgreement.reason,
+        primary: null,
+      };
+    const audience =
+      step.id === "ask-owner" ? owner : step.id === "offer-tenant" ? tenant : null;
+    const isCurrent = step.id === currentStepId;
+    const stateFor = (): RenewalPathStepState => {
+      if (step.done) return "done";
+      if (audience?.state === "waiting") return "waiting";
+      if (step.id === "documents" && deliveryRecord) return "waiting";
+      return isCurrent ? "current" : "open";
+    };
+    const primary =
+      audience?.primary ??
+      (step.id === "documents" && documents.next
+        ? {
+            label: ACTIVITY_NEXT_STEP[documents.next] ?? MANUAL_ACTIVITIES[documents.next].label,
+            target: `renewal-manual-${documents.next}`,
+          }
+        : step.id === "finish-up" && followUps.next
+          ? {
+              label: `Finish up: ${MANUAL_ACTIVITIES[followUps.next].label}`,
+              target: `renewal-manual-${followUps.next}`,
+            }
+          : step.id === "check-numbers"
+            ? scopedContext.numbers.openDifferences > 0 || !scopedContext.numbers.verified
+              ? definition.primary
+              : { label: "Continue to Compare market rent", target: "renewal-section-comps" }
+            : step.id === "complete" && scopedContext.sourceRenewal && !lane.complete
+              ? {
+                  label: RENEWAL_STAGE_NEXT_STEP.confirmFinished,
+                  target: "renewal-manual-complete",
+                }
+              : step.id === "complete" && lane.complete
+                ? { label: "Review the recorded completion", target: "renewal-manual-complete" }
+                : definition.primary);
+    const detail =
+      audience?.detail ??
+      (step.id === "check-numbers"
+        ? scopedContext.numbers.openDifferences > 0
+          ? scopedContext.numbers.openDifferences === 1
+            ? "One difference to settle"
+            : `${scopedContext.numbers.openDifferences} differences to settle`
+          : scopedContext.numbers.verified
+            ? "Numbers agree"
+            : "The current rent needs a check"
+        : step.id === "complete" && scopedContext.sourceRenewal && !lane.complete
+          ? `RentVine now reports lease end ${formatCalendarDate(scopedContext.sourceRenewal.sourceDateIso)}; this cycle recorded ${formatCalendarDate(scopedContext.sourceRenewal.recordedDateIso)}`
+          : null);
+    return { ...base, state: stateFor(), detail, primary };
+  });
+
+  const current = views.find((step) => step.id === currentStepId)!;
+  const currentDefinition = RENEWAL_PATH_DEFINITION[currentStepId];
+  const audience =
+    currentStepId === "ask-owner" ? owner : currentStepId === "offer-tenant" ? tenant : null;
+  // The one next step: the current step's primary action, or the staff lane's own wording.
+  const nextStepLabel = (() => {
+    if (audience) return audience.nextStep;
+    if (currentStepId === "documents" || currentStepId === "finish-up")
+      return current.primary?.label ?? currentDefinition.primary.label;
+    if (currentStepId === "non-renewal-handoff")
+      return ACTIVITY_NEXT_STEP.non_renewal_handoff!;
+    if (currentStepId === "complete")
+      return scopedContext.sourceRenewal && !lane.complete
+        ? RENEWAL_STAGE_NEXT_STEP.confirmFinished
+        : lane.complete
+          ? "Review the recorded completion"
+          : "Record staff completion";
+    return currentDefinition.label;
+  })();
+  const stageKey: RenewalWorkStatus = (() => {
+    if (audience) return audience.stage;
+    if (currentStepId === "documents")
+      return documents.next === "signatures"
+        ? "waiting_on_signatures"
+        : "preparing_lease_documents";
+    if (currentStepId === "complete")
+      return lane.complete ? "complete_staff_status" : "completing_follow_up";
+    return currentDefinition.stage;
+  })();
+  const documentsWaiting: RenewalStageWaiting | null =
+    currentStepId === "documents" && deliveryRecord
+      ? {
+          party: RENEWAL_PATH_DEFINITION.documents.waiting!.party,
+          sinceIso: deliveryRecord.occurredAt ?? deliveryRecord.recordedAt,
+          lastContactIso: scopedContext.lastContactAtIso,
+          watching: RENEWAL_PATH_DEFINITION.documents.waiting!.watching,
+        }
+      : null;
+  const waiting = audience?.waiting ?? documentsWaiting;
+  const evidenceLine = audience?.detail ?? null;
+  // R-S248-9 first; S232's staff-record and linked-thread disagreement keeps its own words.
+  const check: RenewalStageCheck | null = fill.checks[0]
+    ? {
+        kind: "evidence",
+        sentence: `The staff record ${fill.checks[0].staffRecord}; the app's records ${fill.checks[0].appEvidence}.`,
+      }
+    : scopedContext.threadCheck
+      ? { kind: "linked_thread", sentence: scopedContext.threadCheck }
+      : null;
+  const recordedAtIso = latestRecordIso(state, fill);
+  const label = stageLabel(stageKey);
+  const stageLine = (() => {
+    // A failed read is the thing to resolve; it never reads as nothing recorded (S232).
+    if (scopedContext.staffRecordUnavailable)
+      return "Needs verification: the staff record could not be read";
+    if (scopedContext.verification)
+      return `Needs verification: ${scopedContext.verification.label.trim().replace(/\.$/, "")}`;
+    if (check) return `Needs a check: ${check.sentence}`;
+    if (lane.complete) return label;
+    if (waiting && waiting.party.startsWith("the ") && label.startsWith("Waiting on"))
+      return `${label}${since(waiting.sinceIso)}`;
+    if (waiting) return `${label}: ${evidenceLine ?? `waiting on ${waiting.party}`}`;
+    if (evidenceLine) return `${label}: ${evidenceLine}`;
+    if (currentStepId === "complete" && scopedContext.sourceRenewal)
+      return `${label}: RentVine reports a later lease end`;
+    return recordedAtIso
+      ? `${label}, waiting on ${TEAM}${since(recordedAtIso)}`
+      : `${label}, nothing recorded yet`;
+  })();
+  const derived: RenewalDerivedFact[] = [fill.owner_outreach, fill.tenant_offer]
+    .filter((record): record is DerivedOutreachRecord => record !== null)
+    .map((record) => ({ record, attribution: derivedOutreachAttribution(record) }));
+  const handStatusLine =
+    scopedContext.handStatus && scopedContext.handStatus.key !== stageKey
+      ? `Set by hand: ${scopedContext.handStatus.label}. From the recorded work: ${label}.`
+      : null;
+  const blocker = scopedContext.staffRecordUnavailable
+    ? {
+        label: "Reload records and history",
+        target: "renewal-card-manual-records",
+      }
+    : scopedContext.verification
+      ? {
+          label: scopedContext.verification.label,
+          target: scopedContext.verification.refresh ? null : "renewal-card-data-check",
+        }
+      : null;
+  return {
+    version: RENEWAL_STAGE_VERSION,
+    stage: { key: stageKey, label },
+    stageLine,
+    currentStepId,
+    nextStep: {
+      label: nextStepLabel,
+      stepId: currentStepId,
+      processStepId: currentDefinition.processStepId,
+    },
+    waiting,
+    evidenceLine,
+    steps: views.map((step) =>
+      step.id === currentStepId && step.state === "open"
+        ? { ...step, state: "current" }
+        : step,
+    ),
+    check,
+    evidenceCheck: fill.checks[0] ?? null,
+    derived,
+    handStatusLine,
+    blocker,
+    evidence,
+  };
+}
+
+/** The newest staff record or derived fact on this cycle, for "since" on the team's move. */
+function latestRecordIso(
+  state: RenewalWorkspaceState | null,
+  fill: OutreachFill,
+): string | null {
+  const times: number[] = [];
+  if (state) {
+    for (const value of [
+      state.ownerResponse?.recordedAt,
+      state.tenantResponse?.recordedAt,
+      state.completion?.recordedAt,
+      state.preparation?.recordedAt,
+      ...Object.values(state.activities).map((record) => record?.recordedAt),
+    ]) {
+      const ms = typeof value === "string" ? Date.parse(value) : Number.NaN;
+      if (Number.isFinite(ms)) times.push(ms);
+    }
+  }
+  for (const record of [fill.owner_outreach, fill.tenant_offer])
+    if (record) times.push(record.sentAtMs);
+  return times.length ? new Date(Math.max(...times)).toISOString() : null;
+}
+
+/**
+ * The compact stage a desk row and an assistant answer carry: the same stage line and next step
+ * the lease page shows, from the same projection.
+ */
+export interface RenewalStageSummary {
+  readonly version: typeof RENEWAL_STAGE_VERSION;
+  readonly stage: RenewalStage["stage"];
+  readonly stageLine: string;
+  readonly currentStepId: RenewalPathStepId;
+  readonly currentStepLabel: string;
+  readonly nextStep: RenewalStage["nextStep"];
+  readonly needsCheck: boolean;
+  readonly checkDetail: string | null;
+  readonly waiting: RenewalStageWaiting | null;
+  /** The hand-set status and the derived stage, when they differ. */
+  readonly handStatusLine: string | null;
+}
+
+export function summarizeRenewalStage(stage: RenewalStage): RenewalStageSummary {
+  return {
+    version: stage.version,
+    stage: stage.stage,
+    stageLine: stage.stageLine,
+    currentStepId: stage.currentStepId,
+    currentStepLabel: RENEWAL_PATH_DEFINITION[stage.currentStepId].label,
+    nextStep: stage.nextStep,
+    needsCheck: stage.check !== null,
+    checkDetail: stage.check?.sentence ?? null,
+    waiting: stage.waiting,
+    handStatusLine: stage.handStatusLine,
+  };
+}
+
+/** The stage's one waiting sentence for the Now card (L19). */
+export function renewalStageWaitingLine(waiting: RenewalStageWaiting): string {
+  const parts = [`Waiting on ${waiting.party}`];
+  if (waiting.sinceIso) parts.push(`since ${outreachDate(Date.parse(waiting.sinceIso))}`);
+  const line = parts.join(" ");
+  const contact = waiting.lastContactIso
+    ? ` Last contact ${outreachDate(Date.parse(waiting.lastContactIso))}.`
+    : " No contact recorded yet.";
+  return `${line}.${contact} The app is watching: ${waiting.watching}`;
+}

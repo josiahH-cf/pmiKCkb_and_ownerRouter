@@ -187,7 +187,12 @@ export function deskGuidanceVerificationCause(
 export function staffLaneGuidance(
   manual: Pick<
     ReturnType<typeof manualRenewalSummary>,
-    "complete" | "nextActivity" | "waitingParty" | "ownerRevisionRequested"
+    | "complete"
+    | "nextActivity"
+    | "waitingParty"
+    | "ownerRevisionRequested"
+    | "ownerReplied"
+    | "tenantReplied"
   >,
 ): {
   readonly status: "complete" | "waiting" | "ready";
