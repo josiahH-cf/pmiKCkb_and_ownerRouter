@@ -21,6 +21,11 @@ import {
   resolveRenewalCycleBasis,
   resolveRenewalWorkBasis,
 } from "@/lib/lease-renewal/workspace-cycle-context";
+import { KeepWorkingCycleSchema } from "@/lib/firestore/renewal-cycle-date-decisions";
+import {
+  confirmSourceRenewalCompletion,
+  keepWorkingRecordedCycle,
+} from "@/lib/lease-renewal/cycle-date-choice";
 
 const Body = z.discriminatedUnion("operation", [
   z
@@ -39,6 +44,10 @@ const Body = z.discriminatedUnion("operation", [
     .strict(),
   StartRenewalCycleSchema.extend({ operation: z.literal("start_cycle") }),
   SaveRenewalWorkspaceSchema.extend({ operation: z.literal("record") }),
+  // S246 R-S246-5: the two staff choices when RentVine reports a later lease end than the
+  // recorded cycle. Each names the recorded date and the RentVine date staff saw.
+  KeepWorkingCycleSchema.extend({ operation: z.literal("keep_working") }),
+  KeepWorkingCycleSchema.extend({ operation: z.literal("confirm_source_renewal") }),
 ]);
 export async function GET(request: Request) {
   try {
@@ -86,6 +95,25 @@ export async function POST(request: Request) {
           await resolveRenewalCycleBasis(actor, value.leaseId, value.basis),
         ),
       );
+    }
+    if (
+      input.operation === "keep_working" ||
+      input.operation === "confirm_source_renewal"
+    ) {
+      const choice = {
+        leaseId: input.leaseId,
+        recordedDateIso: input.recordedDateIso,
+        sourceDateIso: input.sourceDateIso,
+        operationId: input.operationId,
+      };
+      if (input.operation === "keep_working")
+        return NextResponse.json(await keepWorkingRecordedCycle(actor, choice));
+      // The existing staff completion of the work record, with the RentVine lease end as its
+      // source evidence. Application persistence only: it reads and writes no Sheet.
+      return NextResponse.json({
+        ...(await confirmSourceRenewalCompletion(actor, choice)),
+        writeback_paused: isOperatingSheetWritebackPaused(),
+      });
     }
     const { operation: _, ...value } = input;
     // S236 R-S236-6: a fully tracked current packet derives Required signatures complete.

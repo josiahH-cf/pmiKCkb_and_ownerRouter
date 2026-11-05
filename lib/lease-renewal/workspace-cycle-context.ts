@@ -49,6 +49,20 @@ export async function resolveRenewalWorkBasis(
     : null;
 }
 
+/**
+ * S246 R-S246-5: the lease end the current source read reports for one lease, through the same
+ * read a first save uses for its basis (no second source reader). Null when the source is not
+ * connected, the lease does not resolve exactly once, or it reports no end date; a choice about
+ * a later RentVine lease end is then not recorded.
+ */
+export async function resolveCurrentLeaseEndIso(
+  actor: AuthenticatedUser,
+  id: string,
+): Promise<string | null> {
+  const basis = await resolveRenewalWorkBasis(actor, id);
+  return basis?.kind === "lease_end" ? basis.dateIso : null;
+}
+
 export async function resolveRenewalCycleBasis(
   actor: AuthenticatedUser,
   id: string,
