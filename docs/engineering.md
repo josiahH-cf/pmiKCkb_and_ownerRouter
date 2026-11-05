@@ -63,6 +63,9 @@ Updated: 2026-10-20.
   together cover every file, restores the public npm download cache for the anonymous install, and
   cancels a pull request's superseded run. `scripts/verify.sh` runs the second-scale policy checks
   before format, lint, typecheck, the test lanes and the build.
+- Both gates run served E2E: the complete inventory with the emulator (65 passed and 4 skipped in
+  204 s locally on 2026-11-05), then the degraded-mode group without it. Locally this needs Java,
+  the E2E emulator port 8090 and the dev-server port 4310 free.
 - Firestore Rules tests cover access boundaries.
 - Architecture sentinels constrain imports, routes, secrets, gates, and provider construction.
 - E2E is bounded and must terminate on setup failure.
