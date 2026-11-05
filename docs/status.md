@@ -20,8 +20,9 @@ The S245 machine-run litmus accepted the hub on Run 4 at `13e5ab40` under R-S245
 No, L10 is UNVERIFIED for 25 steps that need RentCast, Gmail, Dotloop, the Sheet updates switch or
 Production with Live data, and the human verdict is NOT RUN. Pull-request CI's firestore lane failed
 twice on the S113 mounted journey's tenant-preview wait (attempt one of runs 41968323970
-and 41974275990) on commits that change only help text and docs; each passed unchanged on re-run,
-the test is unchanged and a root-cause follow-up is proposed separately. Exact holds remain in
+and 41974275990) on commits that change only help text and docs; each passed unchanged on re-run.
+Its cause is test-side (jsdom's label lookup starved the journey's shared thread) and its repair is
+Q-ENG-ADV-CI. Exact holds remain in
 `docs/open-blockers.md`; delivery evidence:
 `docs/evidence/help-hub-litmus-repairs-delivery-2026-11-05.md`.
 

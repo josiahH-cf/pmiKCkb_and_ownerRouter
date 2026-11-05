@@ -45,9 +45,10 @@ Litmus Run 4 at `13e5ab40` was accepted under R-S245-5: no check is No; L10 is U
 steps that need RentCast, Gmail, Dotloop, the Sheet updates switch or Production with Live data;
 human verdict NOT RUN (`docs/evidence/help-hub-litmus-2026-11-04.md`). PR #177's firestore lane
 failed on the S113 mounted journey's tenant-preview wait in attempt 1 of run 41968323970
-(`13e5ab40`) and of run 41974275990 (`f5840775`); both commits change only help text and docs, each
-passed unchanged on re-run, the test was not changed, and a root-cause follow-up is proposed
-separately. Evidence: `docs/evidence/help-hub-litmus-repairs-delivery-2026-11-05.md`.
+(`13e5ab40`) and of run 41974275990 (`f5840775`); both commits change only help text and docs and
+each passed unchanged on re-run. The cause is test-side: jsdom's label lookup starved the journey's
+shared thread; its repair is tracked as Q-ENG-ADV-CI in `docs/open-blockers.md`. Evidence:
+`docs/evidence/help-hub-litmus-repairs-delivery-2026-11-05.md`.
 
 ## November 4 help hub — delivered staff help hub and adversary-review fixes
 
