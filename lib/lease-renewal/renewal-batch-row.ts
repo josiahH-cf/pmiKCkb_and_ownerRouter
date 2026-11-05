@@ -189,12 +189,18 @@ export interface RenewalBatchRowView extends RenewalBatchItem {
   readonly statusNote: string | null;
   /** The plain reason a lease sits in its count group, when the group label is not enough. */
   readonly reason: string | null;
-  /** R-S246-5: the recorded cycle date and the later lease end RentVine reports now. */
+  /**
+   * R-S246-5: the recorded cycle date and the later lease end RentVine reports now, with the
+   * cycle and revision of the work record this row was projected from. A confirmation names that
+   * version, so a record another operator changed after the row was shown is refused.
+   */
   readonly sourceRenewal: {
     readonly recordedDateIso: string;
     readonly sourceDateIso: string;
     readonly recordedLabel: string;
     readonly sourceLabel: string;
+    readonly cycleId: string;
+    readonly revision: number;
   } | null;
 }
 
@@ -257,12 +263,16 @@ export function projectRenewalBatchRow(
       target?.kind === "not_target" &&
       target.reason === "renewed_in_rentvine" &&
       target.recordedDateIso &&
-      target.sourceDateIso
+      target.sourceDateIso &&
+      target.cycleId &&
+      target.revision !== undefined
         ? {
             recordedDateIso: target.recordedDateIso,
             sourceDateIso: target.sourceDateIso,
             recordedLabel: formatCalendarDate(target.recordedDateIso),
             sourceLabel: formatCalendarDate(target.sourceDateIso),
+            cycleId: target.cycleId,
+            revision: target.revision,
           }
         : null,
   };

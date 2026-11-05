@@ -66,6 +66,17 @@ export const KeepWorkingCycleSchema = z
   .strict();
 export type KeepWorkingCycleInput = z.input<typeof KeepWorkingCycleSchema>;
 
+/**
+ * A confirmation also names the work record staff reviewed: its cycle and its revision. The two
+ * dates cannot tell when another operator changed that record after the row was shown, so the
+ * completion is bound to the exact version on screen and a newer one is refused.
+ */
+export const ConfirmSourceRenewalSchema = KeepWorkingCycleSchema.extend({
+  cycleId: z.string().uuid(),
+  expectedRevision: z.number().int().nonnegative(),
+}).strict();
+export type ConfirmSourceRenewalInput = z.input<typeof ConfirmSourceRenewalSchema>;
+
 export const CYCLE_DATE_CHANGED_MESSAGE =
   "This lease changed since the page was opened, so nothing was recorded. Reload Renewals and choose again.";
 

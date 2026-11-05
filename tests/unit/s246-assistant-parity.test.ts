@@ -10,6 +10,8 @@ import {
   partitionRenewalBatch,
   renewalBatchExcludedNotes,
 } from "@/lib/lease-renewal/renewal-batch";
+import { DEFAULT_RENEWAL_DESK_QUERY_V2 } from "@/lib/lease-renewal/desk-query-v2";
+import { buildExplicitDeskHref } from "@/lib/lease-renewal/desk-view-continuation";
 import { projectRenewalBatchRows } from "@/lib/lease-renewal/renewal-batch-row";
 import { projectRenewalRead } from "@/lib/operational-context/projections";
 import { fakeOperationalContext } from "@/tests/helpers/operational-context-fake";
@@ -129,6 +131,23 @@ describe("S246 the assistant and the desk agree on a month (BEH-S246-4, AC-S246-
     expect(answer.groups[0].link).toEqual({
       label: "Open these on the Renewals desk",
       href: "/lease-renewal/live/desk?batch=2026-12",
+    });
+  });
+
+  it("a narrowed month answer keeps its filter on the desk link", async () => {
+    const { answer } = await deskAndAnswer(
+      "Which blocked leases are coming up next month?",
+    );
+    expect(answer.interpretation.join(" ")).toMatch(/renewal targets/i);
+    // The batch link would open every target of the month. A blocked answer opens the table with
+    // the month and the blocked filter, the leases the answer narrowed to.
+    expect(answer.groups[0].link).toEqual({
+      label: "Open these on the Renewals desk",
+      href: buildExplicitDeskHref({
+        ...DEFAULT_RENEWAL_DESK_QUERY_V2,
+        month: "2026-12",
+        blocked: "blocked",
+      }),
     });
   });
 

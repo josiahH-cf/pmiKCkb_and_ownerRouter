@@ -173,12 +173,17 @@ describe("S246 renewed in RentVine (BEH-S246-2, R-S246-5)", () => {
   it("offers confirm and close with both dates and completes nothing by itself", async () => {
     const { rows, partition } = await batch();
     const row = rows.find((entry) => entry.leaseId === S246_LEASES.renewedInSource)!;
+    // The row names the work record version it was projected from; a confirmation is bound to it.
+    const shown = s246Manual().get(S246_LEASES.renewedInSource)!;
     expect(row.sourceRenewal).toEqual({
       recordedDateIso: "2026-12-31",
       sourceDateIso: "2027-12-31",
       recordedLabel: "12/31/2026",
       sourceLabel: "12/31/2027",
+      cycleId: S246_RENEWED_CYCLE,
+      revision: shown.revision,
     });
+    expect(shown.cycleId).toBe(S246_RENEWED_CYCLE);
     expect(partition.counts.completed).toBe(1);
     expect(ids(partition.groups.this_batch)).not.toContain(S246_LEASES.renewedInSource);
   });

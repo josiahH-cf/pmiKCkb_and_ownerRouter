@@ -254,7 +254,9 @@ export function RenewalWorkingBatch({
   async function record(row: RenewalBatchRowView, choice: CycleDateChoice) {
     const dates = row.sourceRenewal;
     if (!dates || busy) return false;
-    const key = `${choice}:${row.leaseId}:${dates.recordedDateIso}:${dates.sourceDateIso}`;
+    // The key names the work record version on screen, so a row re-read after another operator's
+    // change starts a new request instead of replaying the earlier one.
+    const key = `${choice}:${row.leaseId}:${dates.recordedDateIso}:${dates.sourceDateIso}:${dates.cycleId}:${dates.revision}`;
     // One operation id per choice: a repeat after a lost response cannot record it twice.
     let operationId = pendingOperations.current.get(key);
     if (!operationId) {
@@ -273,6 +275,10 @@ export function RenewalWorkingBatch({
           recordedDateIso: dates.recordedDateIso,
           sourceDateIso: dates.sourceDateIso,
           operationId,
+          // A completion is bound to the work record version this row showed.
+          ...(choice === "confirm_source_renewal"
+            ? { cycleId: dates.cycleId, expectedRevision: dates.revision }
+            : {}),
         }),
       });
       if (!response.ok) {

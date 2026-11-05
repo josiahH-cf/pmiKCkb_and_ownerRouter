@@ -893,6 +893,8 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
         // batch, from the same target definition and partition the Renewals desk renders.
         // Every lease the batch lists for a covered month is already in the default scope.
         batchMonth = month;
+        // A narrowed answer links the table instead of the batch; that link names the month too.
+        desk.month = month;
         records = records.filter(
           (record) => renewalBatchGroupFor(record.facts.batch, month) === "this_batch",
         );
@@ -1140,6 +1142,15 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
 
   if (clauses.length === 0)
     clauses.push(["is in the renewal worklist", "are in the renewal worklist"]);
+  // S246 R-S246-10: true when the answer lists less than the month's whole batch because the
+  // question asked for it (blocked, a search, an assignee, named people, or a follow-up on an
+  // earlier answer). It is decided by what was asked, never by how many leases happened to match.
+  const narrowedBeyondBatch =
+    Boolean(related) ||
+    Boolean(filters.blocked) ||
+    Boolean(filters.text) ||
+    filters.assignee === "me" ||
+    filters.people.length > 0;
   const matched = records.map((record) => toItem(record, extraDetail.get(record.ref.id)));
   const looked =
     filters.people.length > 0 ? filters.people : filters.text ? [filters.text] : [];
@@ -1158,12 +1169,15 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
         status,
         // S166: the link names its view, so the unfiltered worklist opens the default view the
         // answer described rather than the account's remembered view. S246: a month's working
-        // batch opens as that month of the batch, the same leases the answer lists.
+        // batch opens as that month of the batch, the same leases the answer lists. An answer
+        // narrowed further keeps its predicates on the table link, so the link never opens the
+        // whole batch for an answer that lists part of it.
         link: empty?.link ?? {
           label: "Open these on the Renewals desk",
-          href: batchMonth
-            ? renewalBatchHref({ month: batchMonth, group: null })
-            : buildExplicitDeskHref(desk),
+          href:
+            batchMonth && !narrowedBeyondBatch
+              ? renewalBatchHref({ month: batchMonth, group: null })
+              : buildExplicitDeskHref(desk),
         },
       }),
     ],

@@ -69,6 +69,11 @@ export interface RenewalTargetInput {
    * lease end, for exactly this recorded date and this RentVine date.
    */
   readonly keepWorking: boolean;
+  /**
+   * R-S246-5: the cycle and revision of the work record this projection read, so a confirmation
+   * can name the exact version staff reviewed. Null or absent when no work record exists.
+   */
+  readonly workRecord?: { readonly cycleId: string; readonly revision: number } | null;
 }
 
 export type RenewalTargetProjection =
@@ -93,6 +98,9 @@ export type RenewalTargetProjection =
       /** R-S246-5: the recorded cycle date and the later lease end RentVine reports now. */
       readonly recordedDateIso?: string;
       readonly sourceDateIso?: string;
+      /** R-S246-5: the work record version behind those dates, which a confirmation names. */
+      readonly cycleId?: string;
+      readonly revision?: number;
     };
 
 const SKIP_LABEL = {
@@ -127,7 +135,12 @@ export function projectRenewalTarget(input: RenewalTargetInput): RenewalTargetPr
   const not = (
     reason: RenewalNotTargetReason,
     label: string,
-    extra: { recordedDateIso?: string; sourceDateIso?: string } = {},
+    extra: {
+      recordedDateIso?: string;
+      sourceDateIso?: string;
+      cycleId?: string;
+      revision?: number;
+    } = {},
   ): RenewalTargetProjection => ({
     kind: "not_target",
     reason,
@@ -177,7 +190,13 @@ export function projectRenewalTarget(input: RenewalTargetInput): RenewalTargetPr
     return not(
       "renewed_in_rentvine",
       `Cycle recorded ${formatCalendarDate(cycle.recordedIso)}; RentVine now reports ${formatCalendarDate(cycle.currentIso)}`,
-      { recordedDateIso: cycle.recordedIso, sourceDateIso: cycle.currentIso },
+      {
+        recordedDateIso: cycle.recordedIso,
+        sourceDateIso: cycle.currentIso,
+        ...(input.workRecord
+          ? { cycleId: input.workRecord.cycleId, revision: input.workRecord.revision }
+          : {}),
+      },
     );
   }
   const cycleDateIso = keptWorking

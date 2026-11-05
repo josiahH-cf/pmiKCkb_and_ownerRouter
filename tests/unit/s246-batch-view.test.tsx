@@ -35,8 +35,10 @@ import {
 import {
   S246_LEASES,
   S246_READ_TS,
+  S246_RENEWED_CYCLE,
   S246_TODAY,
   loadS246Desk,
+  s246Manual,
 } from "@/tests/helpers/s246-portfolio";
 
 // S246: the working batch as staff see it. The rows come from the one desk orchestration over the
@@ -465,6 +467,13 @@ describe("S246 renewed in RentVine, confirm and close (R-S246-5, BEH-S246-2)", (
     recordedDateIso: "2026-12-31",
     sourceDateIso: "2027-12-31",
     operationId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    // A confirmation names the work record version the row showed; keep working does not.
+    ...(operation === "confirm_source_renewal"
+      ? {
+          cycleId: S246_RENEWED_CYCLE,
+          expectedRevision: s246Manual().get(S246_LEASES.renewedInSource)!.revision,
+        }
+      : {}),
   });
 
   it("offers both choices and completes nothing by itself", () => {

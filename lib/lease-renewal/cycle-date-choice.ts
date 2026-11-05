@@ -7,7 +7,9 @@
 //     so it stays on the record it names and reaches no provider.
 //
 // Both verify, on the server, that the work record is still the unfinished cycle staff saw and
-// that RentVine still reports the later lease end they saw. Nothing completes by itself: each
+// that RentVine still reports the later lease end they saw. The completion is also bound to the
+// cycle and revision of the work record the row showed, so a record another operator changed
+// afterwards is refused. Nothing completes by itself: each
 // runs only from a staff confirmation and is refused for a verification account.
 
 import type { Firestore } from "firebase-admin/firestore";
@@ -16,6 +18,7 @@ import type { AuthenticatedUser } from "@/lib/auth/session";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import {
   CYCLE_DATE_CHANGED_MESSAGE,
+  ConfirmSourceRenewalSchema,
   KeepWorkingCycleSchema,
   assertCycleDateChoiceAuthority,
   recordKeepWorkingCycle,
@@ -61,7 +64,7 @@ export async function confirmSourceRenewalCompletion(
   dependencies: CycleDateChoiceDependencies = {},
 ) {
   assertCycleDateChoiceAuthority(actor);
-  const input = KeepWorkingCycleSchema.parse(raw);
+  const input = ConfirmSourceRenewalSchema.parse(raw);
   const [state, sourceEnd] = await Promise.all([
     getRenewalWorkspace(actor, input.leaseId, dependencies.db),
     (dependencies.currentLeaseEndIso ?? resolveCurrentLeaseEndIso)(actor, input.leaseId),
@@ -70,6 +73,10 @@ export async function confirmSourceRenewalCompletion(
   if (
     !state ||
     state.completion ||
+    // The record must still be the version staff reviewed. A newer revision (for example a
+    // non-renewal another operator recorded meanwhile) is refused, never completed in its place.
+    state.cycleId !== input.cycleId ||
+    state.revision !== input.expectedRevision ||
     state.basis.kind !== "lease_end" ||
     state.basis.dateIso !== input.recordedDateIso ||
     sourceEnd !== input.sourceDateIso ||
@@ -80,8 +87,8 @@ export async function confirmSourceRenewalCompletion(
     actor,
     {
       leaseId: input.leaseId,
-      cycleId: state.cycleId,
-      expectedRevision: state.revision,
+      cycleId: input.cycleId,
+      expectedRevision: input.expectedRevision,
       operationId: input.operationId,
       action: {
         kind: "complete",

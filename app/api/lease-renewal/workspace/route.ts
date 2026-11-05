@@ -21,7 +21,10 @@ import {
   resolveRenewalCycleBasis,
   resolveRenewalWorkBasis,
 } from "@/lib/lease-renewal/workspace-cycle-context";
-import { KeepWorkingCycleSchema } from "@/lib/firestore/renewal-cycle-date-decisions";
+import {
+  ConfirmSourceRenewalSchema,
+  KeepWorkingCycleSchema,
+} from "@/lib/firestore/renewal-cycle-date-decisions";
 import {
   confirmSourceRenewalCompletion,
   keepWorkingRecordedCycle,
@@ -45,9 +48,10 @@ const Body = z.discriminatedUnion("operation", [
   StartRenewalCycleSchema.extend({ operation: z.literal("start_cycle") }),
   SaveRenewalWorkspaceSchema.extend({ operation: z.literal("record") }),
   // S246 R-S246-5: the two staff choices when RentVine reports a later lease end than the
-  // recorded cycle. Each names the recorded date and the RentVine date staff saw.
+  // recorded cycle. Each names the recorded date and the RentVine date staff saw; a confirmation
+  // also names the cycle and revision of the work record the row showed.
   KeepWorkingCycleSchema.extend({ operation: z.literal("keep_working") }),
-  KeepWorkingCycleSchema.extend({ operation: z.literal("confirm_source_renewal") }),
+  ConfirmSourceRenewalSchema.extend({ operation: z.literal("confirm_source_renewal") }),
 ]);
 export async function GET(request: Request) {
   try {
@@ -109,9 +113,14 @@ export async function POST(request: Request) {
       if (input.operation === "keep_working")
         return NextResponse.json(await keepWorkingRecordedCycle(actor, choice));
       // The existing staff completion of the work record, with the RentVine lease end as its
-      // source evidence. Application persistence only: it reads and writes no Sheet.
+      // source evidence, bound to the record version staff reviewed. Application persistence
+      // only: it reads and writes no Sheet.
       return NextResponse.json({
-        ...(await confirmSourceRenewalCompletion(actor, choice)),
+        ...(await confirmSourceRenewalCompletion(actor, {
+          ...choice,
+          cycleId: input.cycleId,
+          expectedRevision: input.expectedRevision,
+        })),
         writeback_paused: isOperatingSheetWritebackPaused(),
       });
     }

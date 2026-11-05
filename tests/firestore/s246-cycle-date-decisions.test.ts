@@ -30,7 +30,10 @@ import {
   keepWorkingRecordedCycle,
 } from "@/lib/lease-renewal/cycle-date-choice";
 import { cycleDateDecisionIsCurrent } from "@/lib/lease-renewal/cycle-date-decision";
-import { manualRenewalSummary } from "@/lib/lease-renewal/workspace-state";
+import {
+  manualNonRenewal,
+  manualRenewalSummary,
+} from "@/lib/lease-renewal/workspace-state";
 
 // S246 R-S246-5 / BEH-S246-2: a lease whose recorded cycle date is earlier than the lease end
 // RentVine reports now offers two staff choices. "Keep working" is an app-owned decision bound to
@@ -113,6 +116,23 @@ function choice(operation: number, overrides: Record<string, string> = {}) {
     ...overrides,
   };
 }
+
+/**
+ * What the batch row showed for a confirmation: the two dates and the work record staff reviewed
+ * (its cycle and revision), so a record another operator changed afterwards is refused.
+ */
+function confirmChoice(
+  operation: number,
+  reviewed: { readonly cycleId: string; readonly revision: number },
+) {
+  return {
+    ...choice(operation),
+    cycleId: reviewed.cycleId,
+    expectedRevision: reviewed.revision,
+  };
+}
+/** A syntactically valid work record identity that names no stored record. */
+const NO_RECORD = { cycleId: OP(90), revision: 1 };
 
 async function decisionWrites() {
   return {
@@ -264,7 +284,7 @@ describe("S246 keep working the recorded cycle (R-S246-5, BEH-S246-2)", () => {
   });
 
   it("a verification account records neither choice, and is offered neither", async () => {
-    await recordedCycle();
+    const record = await recordedCycle();
     const dependencies = { db, currentLeaseEndIso: sourceReports(SOURCE) };
     expect(canRecordCycleDateChoice(editor)).toBe(true);
     expect(canRecordCycleDateChoice(verification)).toBe(false);
@@ -273,7 +293,11 @@ describe("S246 keep working the recorded cycle (R-S246-5, BEH-S246-2)", () => {
     );
     expect(kept.status).toBe(403);
     const confirmed = await rejection(
-      confirmSourceRenewalCompletion(verification, choice(10), dependencies),
+      confirmSourceRenewalCompletion(
+        verification,
+        confirmChoice(10, record),
+        dependencies,
+      ),
     );
     expect(confirmed.status).toBe(403);
     expect(await decisionWrites()).toEqual({ head: 0, activity: 0 });
@@ -283,7 +307,7 @@ describe("S246 keep working the recorded cycle (R-S246-5, BEH-S246-2)", () => {
   });
 
   it("the live read-only inspection context offers and records neither choice", async () => {
-    await recordedCycle();
+    const record = await recordedCycle();
     vi.stubEnv("ENVIRONMENT_KIND", "demo");
     vi.stubEnv("DATA_CONTEXT", "live_readonly");
     try {
@@ -293,7 +317,7 @@ describe("S246 keep working the recorded cycle (R-S246-5, BEH-S246-2)", () => {
         keepWorkingRecordedCycle(editor, choice(17), dependencies),
       ).rejects.toThrow(/inspection context/);
       await expect(
-        confirmSourceRenewalCompletion(editor, choice(18), dependencies),
+        confirmSourceRenewalCompletion(editor, confirmChoice(18, record), dependencies),
       ).rejects.toThrow(/inspection context/);
     } finally {
       vi.stubEnv("ENVIRONMENT_KIND", "production");
@@ -316,7 +340,7 @@ describe("S246 record staff completion from the RentVine lease end (R-S246-5, BE
     const dependencies = { db, currentLeaseEndIso: sourceReports(SOURCE) };
     const confirmed = await confirmSourceRenewalCompletion(
       editor,
-      choice(11),
+      confirmChoice(11, record),
       dependencies,
     );
     expect(confirmed.duplicate).toBe(false);
@@ -343,13 +367,18 @@ describe("S246 record staff completion from the RentVine lease end (R-S246-5, BE
 
     // A lost response is resolved by replay: the same completion, no second event.
     const activityCount = await countDocs(RENEWAL_WORKSPACE_COLLECTIONS.activity);
-    const replay = await confirmSourceRenewalCompletion(editor, choice(11), dependencies);
+    // The replay names the version staff reviewed, which the completion has since advanced.
+    const replay = await confirmSourceRenewalCompletion(
+      editor,
+      confirmChoice(11, record),
+      dependencies,
+    );
     expect(replay.duplicate).toBe(true);
     expect(replay.state?.completion?.eventId).toBe(OP(11));
     expect(await countDocs(RENEWAL_WORKSPACE_COLLECTIONS.activity)).toBe(activityCount);
     // A second, different confirmation finds the record already completed and records nothing.
     const again = await rejection(
-      confirmSourceRenewalCompletion(editor, choice(12), dependencies),
+      confirmSourceRenewalCompletion(editor, confirmChoice(12, record), dependencies),
     );
     expect(again.status).toBe(409);
     expect(again.message).toBe(CYCLE_DATE_CHANGED_MESSAGE);
@@ -358,7 +387,7 @@ describe("S246 record staff completion from the RentVine lease end (R-S246-5, BE
 
   it("completes nothing when RentVine no longer reports the lease end staff confirmed, or no work record exists", async () => {
     const missing = await rejection(
-      confirmSourceRenewalCompletion(editor, choice(13), {
+      confirmSourceRenewalCompletion(editor, confirmChoice(13, NO_RECORD), {
         db,
         currentLeaseEndIso: sourceReports(SOURCE),
       }),
@@ -366,10 +395,10 @@ describe("S246 record staff completion from the RentVine lease end (R-S246-5, BE
     expect(missing.status).toBe(409);
     expect(await countDocs(RENEWAL_WORKSPACE_COLLECTIONS.head)).toBe(0);
 
-    await recordedCycle();
+    const record = await recordedCycle();
     for (const reported of ["2028-01-31", RECORDED, null]) {
       const moved = await rejection(
-        confirmSourceRenewalCompletion(editor, choice(14), {
+        confirmSourceRenewalCompletion(editor, confirmChoice(14, record), {
           db,
           currentLeaseEndIso: sourceReports(reported),
         }),
@@ -380,6 +409,49 @@ describe("S246 record staff completion from the RentVine lease end (R-S246-5, BE
     const state = await getRenewalWorkspace(editor, LEASE, db);
     expect(state?.completion).toBeNull();
     expect(state && manualRenewalSummary(state).complete).toBe(false);
+  });
+
+  it("refuses the completion when another operator changed the work record after the row was shown", async () => {
+    const shown = await recordedCycle();
+    const dependencies = { db, currentLeaseEndIso: sourceReports(SOURCE) };
+    // Another operator records the owner's decline after the batch row was rendered. The two
+    // dates staff confirmed are unchanged, so only the reviewed revision can tell.
+    const declined = await saveRenewalWorkspace(
+      editor,
+      {
+        leaseId: LEASE,
+        cycleId: shown.cycleId,
+        expectedRevision: shown.revision,
+        operationId: OP(30),
+        action: { kind: "owner_response", outcome: "declined_non_renewal" },
+      },
+      db,
+    );
+    expect(manualNonRenewal(declined.state ?? null)).toBe(true);
+    const activityCount = await countDocs(RENEWAL_WORKSPACE_COLLECTIONS.activity);
+    const refused = await rejection(
+      confirmSourceRenewalCompletion(editor, confirmChoice(31, shown), dependencies),
+    );
+    expect(refused.status).toBe(409);
+    expect(refused.message).toBe(CYCLE_DATE_CHANGED_MESSAGE);
+    const state = await getRenewalWorkspace(editor, LEASE, db);
+    expect(state?.completion).toBeNull();
+    expect(manualNonRenewal(state)).toBe(true);
+    expect(await countDocs(RENEWAL_WORKSPACE_COLLECTIONS.activity)).toBe(activityCount);
+  });
+
+  it("refuses a confirmation that names another work record", async () => {
+    const shown = await recordedCycle();
+    const refused = await rejection(
+      confirmSourceRenewalCompletion(
+        editor,
+        confirmChoice(32, { cycleId: OP(91), revision: shown.revision }),
+        { db, currentLeaseEndIso: sourceReports(SOURCE) },
+      ),
+    );
+    expect(refused.status).toBe(409);
+    expect(refused.message).toBe(CYCLE_DATE_CHANGED_MESSAGE);
+    expect((await getRenewalWorkspace(editor, LEASE, db))?.completion).toBeNull();
   });
 
   it("keep working and a later confirmation stay independent: the decision is kept as history and the completion is the staff record", async () => {

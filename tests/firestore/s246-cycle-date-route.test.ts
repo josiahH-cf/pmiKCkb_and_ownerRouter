@@ -42,6 +42,7 @@ import {
 import {
   ensureRenewalWorkRecord,
   getRenewalWorkspace,
+  saveRenewalWorkspace,
 } from "@/lib/firestore/renewal-workspace";
 
 const projectId = "pmi-kc-kb-s246-cycle-date-route-test";
@@ -65,6 +66,8 @@ const OP = (n: number) =>
 let app: App;
 let db: Firestore;
 let testEnv: RulesTestEnvironment;
+/** The work record version the batch row showed: a confirmation names its cycle and revision. */
+let reviewed: { readonly cycleId: string; readonly revision: number };
 
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
@@ -83,7 +86,7 @@ beforeEach(async () => {
   testState.actor = editor;
   testState.sourceEnd = SOURCE;
   testState.sourceReads = 0;
-  await ensureRenewalWorkRecord(editor, LEASE, db, async () => ({
+  reviewed = await ensureRenewalWorkRecord(editor, LEASE, db, async () => ({
     kind: "lease_end",
     dateIso: RECORDED,
     source: "RentVine lease end",
@@ -126,6 +129,9 @@ const choice = (
   recordedDateIso: RECORDED,
   sourceDateIso: SOURCE,
   operationId: OP(id),
+  ...(operation === "confirm_source_renewal"
+    ? { cycleId: reviewed.cycleId, expectedRevision: reviewed.revision }
+    : {}),
   ...overrides,
 });
 
@@ -188,12 +194,36 @@ describe("S246 the two cycle date choices through the workspace route (BEH-S246-
     expect(await getRenewalCycleDateDecision(editor, LEASE, db)).toBeNull();
   });
 
+  it("refuses to complete a work record another operator changed after the row was shown", async () => {
+    // The dates staff confirmed still hold; only the reviewed revision tells the record moved.
+    await saveRenewalWorkspace(
+      editor,
+      {
+        leaseId: LEASE,
+        cycleId: reviewed.cycleId,
+        expectedRevision: reviewed.revision,
+        operationId: OP(20),
+        action: { kind: "owner_response", outcome: "declined_non_renewal" },
+      },
+      db,
+    );
+    const refused = await post(choice("confirm_source_renewal", 21));
+    expect(refused.status).toBe(409);
+    expect(refused.body.error).toBe(CYCLE_DATE_CHANGED_MESSAGE);
+    expect((await getRenewalWorkspace(editor, LEASE, db))?.completion).toBeNull();
+  });
+
   it("accepts only the exact request shape", async () => {
     for (const body of [
       choice("keep_working", 6, { sourceDateIso: "12/31/2027" }),
       choice("keep_working", 7, { leaseId: "0" }),
       choice("confirm_source_renewal", 8, { note: "extra" }),
       choice("confirm_source_renewal", 9, { operationId: "not-an-id" }),
+      // A confirmation that does not name the work record version staff reviewed is no request.
+      choice("confirm_source_renewal", 12, { cycleId: undefined }),
+      choice("confirm_source_renewal", 13, { expectedRevision: undefined }),
+      choice("confirm_source_renewal", 14, { expectedRevision: -1 }),
+      choice("keep_working", 15, { cycleId: reviewed.cycleId }),
       { operation: "keep_working", leaseId: LEASE },
     ]) {
       const refused = await post(body);

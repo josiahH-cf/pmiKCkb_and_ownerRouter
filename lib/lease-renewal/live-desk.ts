@@ -966,6 +966,7 @@ function renewalTargetFor(input: {
       : null,
     appCompletionCurrent: input.appCompletionCurrent,
     cycleSourceDate,
+    workRecord: manual ? { cycleId: manual.cycleId, revision: manual.revision } : null,
     reviewDateIso: classification.termProjection.nextReviewIso,
     keepWorking:
       cycleSourceDate?.state === "changed" &&
