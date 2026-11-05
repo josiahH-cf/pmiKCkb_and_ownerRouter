@@ -3,8 +3,13 @@
 // local demo Editor, opens Renewals with no action and counts the rows of the default list, with
 // one counting rule that reads the same on the starting commit and on the candidate:
 //
-//   a row is an element inside the page's main region that carries a lease id (data-lease-id);
-//   where a page carries none, a row is a lease that a link in the main region opens.
+//   a row is a lease named by a row marker on an element the page is showing (an element with a
+//   layout box, so a row inside a closed group is not counted); where a page shows no marked row,
+//   a row is a lease that a link the page is showing opens.
+//
+// ROW_MARKERS names the markers. The worklist table marks each row with data-lease-id on the
+// starting commit and on main. EXTENSION POINT: S246's working batch marks its rows on its lane
+// with data-batch-lease; confirm that name when S246 merges, and add any other row marker here.
 //
 // It asserts only what holds on any commit: the desk lists leases, and every listed lease is one
 // of the "November 5 mix". What each commit lists is the measurement, written to smoke.json in the
@@ -22,27 +27,36 @@ const origin = requireLoopbackRehearsalOrigin(process.env.ONE_PATH_REHEARSAL_ORI
 const runDir = process.env.ONE_PATH_REHEARSAL_RUN_DIR;
 assert.ok(runDir, "Run through scripts/run-renewal-one-path-rehearsal.sh.");
 const rehearsal = readRehearsal(runDir);
-const ROW = "main [data-lease-id]";
-const LEASE_LINK = "main a[href*='/lease-renewal/live/desk/lease/']";
+const ROW_MARKERS = ["data-lease-id", "data-batch-lease"];
+const ROW = ROW_MARKERS.map((marker) => `[${marker}]`).join(", ");
+const LEASE_LINK = "a[href*='/lease-renewal/live/desk/lease/']";
 
 // Evaluated in the page as plain source text.
 const COUNT = `(() => {
-  const main = document.querySelector("main") ?? document.body;
+  const markers = ${JSON.stringify(ROW_MARKERS)};
   const unique = (values) => [...new Set(values.filter(Boolean))];
-  const rows = unique(
-    [...main.querySelectorAll("[data-lease-id]")].map((el) => el.getAttribute("data-lease-id")),
-  );
+  const shown = (el) => el.getClientRects().length > 0;
+  const byMarker = {};
+  for (const marker of markers)
+    byMarker[marker] = unique(
+      [...document.querySelectorAll("[" + marker + "]")]
+        .filter(shown)
+        .map((el) => el.getAttribute(marker)),
+    );
   const linked = unique(
-    [...main.querySelectorAll("a[href]")].map(
-      (a) => /\\/lease-renewal\\/live\\/desk\\/lease\\/(\\d+)/.exec(a.getAttribute("href") ?? "")?.[1],
-    ),
+    [...document.querySelectorAll("a[href]")]
+      .filter(shown)
+      .map(
+        (a) => /\\/lease-renewal\\/live\\/desk\\/lease\\/(\\d+)/.exec(a.getAttribute("href") ?? "")?.[1],
+      ),
   );
-  const text = main.innerText;
   return {
-    rows,
+    byMarker,
+    rows: unique(Object.values(byMarker).flat()),
     linked,
-    counted: /Matching:\\s*\\d+[^\\n]*/.exec(text)?.[0] ?? null,
-    headings: [...main.querySelectorAll("h1, h2")]
+    counted: /Matching:\\s*\\d+[^\\n]*/.exec(document.body.innerText)?.[0] ?? null,
+    headings: [...document.querySelectorAll("h1, h2")]
+      .filter(shown)
       .map((heading) => heading.textContent.trim())
       .filter(Boolean)
       .slice(0, 10),
@@ -101,7 +115,9 @@ try {
     if (settled && look >= 1) break;
   }
 
-  const rule = counted.rows.length ? "data-lease-id" : "lease links";
+  const rule = counted.rows.length
+    ? ROW_MARKERS.filter((marker) => counted.byMarker[marker].length).join(" and ")
+    : "lease links";
   const listed = (counted.rows.length ? counted.rows : counted.linked).map(Number);
   const groupOf = (leaseId) =>
     Object.entries(rehearsal.groups).find(([, ids]) => ids.includes(leaseId))?.[0] ??
@@ -119,6 +135,9 @@ try {
     workingMonth: rehearsal.workingMonth,
     url: page.url().replace(origin, ""),
     countingRule: rule,
+    rowsByMarker: Object.fromEntries(
+      ROW_MARKERS.map((marker) => [marker, counted.byMarker[marker].length]),
+    ),
     defaultRows: listed.length,
     byGroup,
     closedLeasesListed: byGroup.closed ?? 0,
@@ -128,6 +147,11 @@ try {
     seeds: rehearsal.seeds.map((seed) => `${seed.name}: ${seed.state}`),
   };
   writeFileSync(join(runDir, "smoke.json"), `${JSON.stringify(result, null, 2)}\n`);
+  // What the page said, for whoever reads the count later. Synthetic values only.
+  writeFileSync(
+    join(runDir, "smoke-desk.txt"),
+    `${page.url().replace(origin, "")}\n${await page.locator("body").innerText()}\n`,
+  );
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 
   assert.ok(listed.length > 0, "The default Renewals list shows no lease.");

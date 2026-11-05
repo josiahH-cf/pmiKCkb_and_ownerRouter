@@ -48,16 +48,21 @@
 #                           driver gets ONE_PATH_REHEARSAL_ORIGIN and ONE_PATH_REHEARSAL_RUN_DIR,
 #                           reads <run>/rehearsal.json (role leases, groups, stand-in origin,
 #                           files) through readRehearsal, and uses the control functions. Files
-#                           named tests/browser/one-path-*.mjs travel with --commit.
+#                           named tests/browser/one-path-*-driver.mjs travel with --commit.
 #   Candidate-only seeds    scripts/lib/one-path-rehearsal/seeds.mjs lists the seed steps. Built:
-#                           recorded cycles for the three leases renewed in RentVine, and the
+#                           recorded cycles for the three leases renewed in RentVine, one fresh
+#                           RentVine read so move-out evidence shows as it does day to day, and the
 #                           replied lease's sent owner message with an owner reply. Named and not
 #                           built until their suites are: the standing agreement (S250), the
-#                           housing assistance fact (S251), the prepared lease's stored comparison,
-#                           signature and approved template (S248, S249), and the forms seed module
-#                           tests/browser/one-path-forms-seed.mjs (S253), which is loaded when it
-#                           exists and exports seedOnePathForms. A seed a commit cannot take is
-#                           reported in rehearsal.json and the run carries on.
+#                           housing assistance fact (S251) and the prepared lease's stored
+#                           comparison, signature and approved template (S248, S249); each goes
+#                           through the served app's routes, so a commit without the feature
+#                           refuses it. The forms seed module tests/browser/one-path-forms-seed.mjs
+#                           (S253) writes the emulator directly, so it is the served commit's own
+#                           file: it is loaded when that commit has it, called as
+#                           seedOnePathForms(database, { leases }), and never travels with
+#                           --commit. A seed a commit cannot take is reported in rehearsal.json
+#                           and the run carries on.
 #   Litmus session (S254)   Start --serve on the candidate, run the handoff's checks in a browser
 #                           at the printed origin, and use the control hooks where a check names a
 #                           stand-in. Stop it, then start --serve --commit <starting commit> for
@@ -114,7 +119,8 @@ else
   fi
 fi
 # The files a named commit is served with: the rehearsal's own helpers, the provider boundary, the
-# fixture and the drivers. Nothing under app, components or lib is in this list.
+# fixture and the drivers. Nothing under app, components or lib is in this list, and neither is a
+# seed module that writes a commit's own document shapes (tests/browser/one-path-*-seed.mjs).
 harness_files() {
   (
     cd "$repo"
@@ -125,7 +131,7 @@ harness_files() {
       if [[ -f "$path" ]]; then echo "$path"; fi
     done
     find scripts/lib/one-path-rehearsal -type f 2>/dev/null || true
-    find tests/browser -maxdepth 1 -type f -name 'one-path-*.mjs' 2>/dev/null || true
+    find tests/browser -maxdepth 1 -type f -name 'one-path-*-driver.mjs' 2>/dev/null || true
     # A driver named on the command line travels too.
     if [[ -n "$driver_file" && -f "$driver_file" ]]; then echo "${driver_file#./}"; fi
   ) | sort -u

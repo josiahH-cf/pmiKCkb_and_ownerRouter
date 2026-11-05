@@ -268,25 +268,40 @@ async function seedDemoAccounts() {
     /ALLOWED_HD_DEFAULT\s*=\s*"([^"]+)"/.exec(
       readFileSync("lib/constants.ts", "utf8"),
     )?.[1] ?? "pmikcmetro.com";
+  const accounts = `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/projects/${PROJECT_ID}/accounts`;
+  const emulator = async (path, body) => {
+    const response = await fetch(`${accounts}${path}`, {
+      method: "POST",
+      // The emulator's owner token is a fixed word, not a credential.
+      headers: { "content-type": "application/json", authorization: "Bearer owner" },
+      body: JSON.stringify(body),
+    });
+    return { status: response.status, body: await response.json().catch(() => null) };
+  };
   for (const role of ROLES) {
     const uid = `local-demo-${role.toLowerCase()}`;
     const email = role === "Admin" ? `local-demo@${domain}` : `${uid}@${domain}`;
-    const response = await fetch(
-      `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/identitytoolkit.googleapis.com/v1/projects/${PROJECT_ID}/accounts`,
-      {
-        method: "POST",
-        // The emulator's owner token is a fixed word, not a credential.
-        headers: { "content-type": "application/json", authorization: "Bearer owner" },
-        body: JSON.stringify({
-          localId: uid,
-          email,
-          emailVerified: true,
-          customAttributes: JSON.stringify({ role }),
-        }),
-      },
+    const created = await emulator("", { localId: uid, email, emailVerified: true });
+    // The emulator sets a role claim on an account update, as the Admin SDK does.
+    const claimed = await emulator(":update", {
+      localId: uid,
+      customAttributes: JSON.stringify({ role }),
+    });
+    const read = await emulator(":lookup", { localId: [uid] });
+    const account = read.body?.users?.[0];
+    record({
+      event: "demo-account",
+      role,
+      created: created.status,
+      claimed: claimed.status,
+      read: read.status,
+    });
+    assert.ok(
+      account?.email === email &&
+        account.emailVerified === true &&
+        JSON.parse(account.customAttributes ?? "{}").role === role,
+      `The Auth emulator does not hold the local demo ${role} account with its role.`,
     );
-    record({ event: "demo-account", role, status: response.status });
-    assert.ok(response.ok, `The Auth emulator refused the local demo ${role} account.`);
   }
 }
 

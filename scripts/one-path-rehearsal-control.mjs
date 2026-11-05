@@ -24,8 +24,9 @@
 //   refused                             connections the provider boundary refused (L58)
 //
 // Without --run the newest run directory under ~/.local/state/pmi-kc-one-path-rehearsal is used.
-// After a RentVine control, choose Refresh on the Renewals desk (the lease read is kept for up to
-// a minute).
+// After a RentVine control, choose "Refresh data" on the Renewals desk: the app keeps its RentVine
+// read until it is refreshed or runs out. After a reply or a bounce, the app shows it once the
+// message's thread is read again.
 import {
   bounceSentMessage,
   deliverOwnerReply,

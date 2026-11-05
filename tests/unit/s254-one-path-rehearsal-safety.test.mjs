@@ -19,7 +19,14 @@ import {
   readNovember5Mix,
   rentvineStandInResponse,
 } from "@/scripts/lib/one-path-rehearsal/november-5-mix.mjs";
-import { SEED_STEPS, runSeeds } from "@/scripts/lib/one-path-rehearsal/seeds.mjs";
+import { openRehearsalDatabase } from "@/scripts/lib/one-path-rehearsal/emulator-database.mjs";
+import {
+  SEED_STEPS,
+  formsSeedLeases,
+  runSeeds,
+  seedForms,
+  sequenceStanding,
+} from "@/scripts/lib/one-path-rehearsal/seeds.mjs";
 
 // S254 R-S254-4 / AC-S254-5 and S252 R-S252-2: the one-path rehearsal can reach nothing but
 // itself. The static half is here; each run's refused-connection log is the runtime half.
@@ -33,6 +40,7 @@ const standIns = read("scripts/lib/one-path-rehearsal/stand-ins.mjs");
 const seeds = read("scripts/lib/one-path-rehearsal/seeds.mjs");
 const preload = read("tests/browser/renewal-novdec-journey-network.mjs");
 const smoke = read("tests/browser/one-path-smoke-driver.mjs");
+const proof = read("tests/browser/one-path-stand-in-proof-driver.mjs");
 const everyScript = {
   launcher,
   rehearsal,
@@ -41,6 +49,7 @@ const everyScript = {
   standIns,
   seeds,
   smoke,
+  proof,
 };
 
 const temporary = [];
@@ -127,7 +136,9 @@ describe("S254: the rehearsal runs only in a disposable worktree against loopbac
       "tests/browser/renewal-novdec-journey-network.mjs",
       "tests/fixtures/lease-renewal/november-5-mix.json",
     ]);
-    expect(launcher).toMatch(/-name 'one-path-\*\.mjs'/);
+    // Drivers travel; a seed module that writes a commit's own document shapes does not.
+    expect(launcher).toMatch(/-name 'one-path-\*-driver\.mjs'/);
+    expect(list).not.toMatch(/one-path-\*\.mjs|-seed\.mjs/);
     expect(list).not.toMatch(/(?:^|[\s"'])(?:app|components|lib|public)\//m);
   });
 
@@ -337,6 +348,7 @@ describe("S254: seeds and drivers", () => {
   it("names every seed, built or waiting on its suite", () => {
     expect(SEED_STEPS.map((step) => [step.name, step.suite])).toEqual([
       ["recorded-cycles", "S246"],
+      ["notice-admission", "S254"],
       ["replied-owner-message", "S249"],
       ["standing-agreement", "S250"],
       ["housing-assistance", "S251"],
@@ -387,14 +399,146 @@ describe("S254: seeds and drivers", () => {
     ]);
   });
 
+  it("the forms seed gets the five role leases with their tenants and animals", () => {
+    const mix = loadNovember5Mix(readNovember5Mix(), "2026-11-05");
+    expect(formsSeedLeases(mix)).toEqual([
+      { leaseId: "9101", tenants: 2, animals: "one_pet" },
+      { leaseId: "9102", tenants: 1, animals: "two_pets" },
+      { leaseId: "9103", tenants: 1, animals: "assistance_animal" },
+      { leaseId: "9104", tenants: 5, animals: "none" },
+      { leaseId: "9105", tenants: 2, animals: "none" },
+    ]);
+  });
+
+  it("the forms seed is the served commit's own module: absent, it is named and not run", async () => {
+    const mix = loadNovember5Mix(readNovember5Mix(), "2026-11-05");
+    const dir = mkdtempSync(join(tmpdir(), "s254-forms-"));
+    temporary.push(dir);
+    const opened = [];
+    const openDatabase = (described) => {
+      opened.push(described);
+      return { name: "rehearsal emulator" };
+    };
+    expect(
+      await seedForms(
+        { mix, rehearsal: {} },
+        { file: join(dir, "absent.mjs"), openDatabase },
+      ),
+    ).toEqual({
+      state: "not_built",
+      detail: "tests/browser/one-path-forms-seed.mjs does not exist on this tree.",
+    });
+
+    const other = join(dir, "other.mjs");
+    writeFileSync(other, "export const somethingElse = 1;\n");
+    expect(
+      (await seedForms({ mix, rehearsal: {} }, { file: other, openDatabase })).state,
+    ).toBe("skipped");
+    expect(opened).toEqual([]);
+
+    // Present, it is called with the rehearsal's database and the role leases.
+    const present = join(dir, "present.mjs");
+    writeFileSync(
+      present,
+      "export async function seedOnePathForms(database, options) {\n" +
+        "  globalThis.s254FormsSeedCall = { database, options };\n" +
+        "  return { forms: { animal_agreement: {}, owner_acknowledgment: {} } };\n" +
+        "}\n",
+    );
+    const described = { projectId: "pmi-kc-kb-one-path-rehearsal-test" };
+    const result = await seedForms(
+      { mix, rehearsal: described },
+      { file: present, openDatabase },
+    );
+    expect(result.state).toBe("seeded");
+    expect(result.detail).toContain("animal_agreement, owner_acknowledgment");
+    expect(result.detail).toContain("lease 9104: 5 tenant(s), none");
+    expect(opened).toEqual([described]);
+    expect(globalThis.s254FormsSeedCall).toEqual({
+      database: { name: "rehearsal emulator" },
+      options: { leases: formsSeedLeases(mix) },
+    });
+    delete globalThis.s254FormsSeedCall;
+  });
+
+  it("the rehearsal database opens the rehearsal's own emulator on 127.0.0.1 and nothing else", () => {
+    const described = {
+      firestoreEmulatorHost: "127.0.0.1:8123",
+      projectId: "pmi-kc-kb-one-path-rehearsal-test",
+    };
+    const bound = process.env.FIRESTORE_EMULATOR_HOST;
+    try {
+      delete process.env.FIRESTORE_EMULATOR_HOST;
+      expect(() => openRehearsalDatabase(described)).toThrow(/127\.0\.0\.1 only/);
+      process.env.FIRESTORE_EMULATOR_HOST = "firestore.googleapis.com:443";
+      expect(() => openRehearsalDatabase(described)).toThrow(/127\.0\.0\.1 only/);
+      process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:9999";
+      expect(() => openRehearsalDatabase(described)).toThrow(
+        /another Firestore emulator/,
+      );
+      process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8123";
+      expect(() =>
+        openRehearsalDatabase({ ...described, projectId: "pmi-kc-kb" }),
+      ).toThrow(/test project only/);
+    } finally {
+      if (bound === undefined) delete process.env.FIRESTORE_EMULATOR_HOST;
+      else process.env.FIRESTORE_EMULATOR_HOST = bound;
+    }
+  });
+
+  it("a message record's standing is reported in the app's own terms", () => {
+    expect(sequenceStanding(null)).toBe("no message record");
+    expect(
+      sequenceStanding({
+        state: "paused",
+        pause: { cause: "authorization_unavailable" },
+        observation: { state: "unavailable", reason: "read_failed" },
+        threads: [],
+      }),
+    ).toBe(
+      "sequence state paused, pause cause authorization_unavailable, incoming mail check unavailable (read_failed), 0 sent message(s)",
+    );
+    expect(
+      sequenceStanding({ state: "completed", observation: null, threads: [{}] }),
+    ).toBe("sequence state completed, 1 sent message(s)");
+  });
+
   it("the smoke driver drives only a loopback origin and counts with one stated rule", () => {
     expect(smoke).toContain(
       "const origin = requireLoopbackRehearsalOrigin(process.env.ONE_PATH_REHEARSAL_ORIGIN);",
     );
     expect(smoke).toContain("new URL(route.request().url()).origin === origin");
     expect(smoke).toContain(
-      "a row is an element inside the page's main region that carries a lease id",
+      "a row is a lease named by a row marker on an element the page is showing",
     );
+    expect(smoke).toContain('const ROW_MARKERS = ["data-lease-id", "data-batch-lease"];');
+  });
+
+  it("the stand-in proof driver drives only the rehearsal's origin and its own controls", () => {
+    expect(proof).toContain(
+      "const origin = requireLoopbackRehearsalOrigin(process.env.ONE_PATH_REHEARSAL_ORIGIN);",
+    );
+    expect(proof).toContain("new URL(route.request().url()).origin === origin");
+    expect(proof).toContain("const rehearsal = readRehearsal(runDir);");
+    // It names no address of its own: every request is a path on the rehearsal's origin, and
+    // every control goes through the control library, which calls 127.0.0.1 only.
+    expect(proof).not.toMatch(/https?:\/\//);
+    expect(seeds).not.toMatch(/https?:\/\//);
+  });
+
+  it("a send made by a seed or a driver goes through the app's own reviewed send", () => {
+    const send = seeds.slice(
+      seeds.indexOf("export async function sendOwnerMessage"),
+      seeds.indexOf("/**", seeds.indexOf("export async function sendOwnerMessage")),
+    );
+    expect(send).toContain("/api/gmail-hub/composition?purpose=renewal_owner&lease=");
+    expect(send).toContain('action: "save"');
+    expect(send).toContain('action: "send"');
+    expect(send).toContain("reviewedDraftHash: saved.body.reviewedDraftHash");
+    expect(send).toContain("reviewedTargetHash,");
+    // No seed reaches the mail stand-in's send by itself; only its controls are called.
+    expect(seeds).not.toMatch(/messages\/send|gmail\/v1/);
+    expect(proof).not.toMatch(/messages\/send|gmail\/v1/);
   });
 
   it("the launcher's header says where each later piece goes", () => {

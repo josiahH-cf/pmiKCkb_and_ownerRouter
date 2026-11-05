@@ -9,13 +9,21 @@
 // { state: "seeded" | "skipped" | "not_built", detail }.
 //   recorded-cycles         built here: the three leases renewed in RentVine get a work record
 //                           whose cycle date is the earlier, recorded one.
+//   notice-admission        built here: the desk is read, RentVine is read again and the desk is
+//                           read again, so move-out evidence shows as it does day to day.
 //   replied-owner-message   built here: the replied lease's owner message is sent from the app
 //                           and an owner reply is delivered by the mail stand-in.
 //   standing-agreement      S250: the covered lease's portfolio agreement (roles.covered).
 //   housing-assistance      S251: Housing assistance Yes with the program name (roles.assisted).
 //   prepared-kickoff        S248/S249: the prepared lease's stored comparison, signature and
 //                           approved template (roles.prepared).
-//   forms                   S253: tests/browser/one-path-forms-seed.mjs, loaded when it exists.
+//   forms                   S253: tests/browser/one-path-forms-seed.mjs, the served commit's own
+//                           file, loaded when it exists and called as
+//                           seedOnePathForms(database, { leases }) with the rehearsal's Firestore
+//                           emulator (emulator-database.mjs) and the five role leases.
+// A step that writes the emulator directly, as the forms step does, must be the served commit's
+// own file so that it writes that commit's document shapes; a step in this file goes through the
+// served app's routes.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -25,7 +33,7 @@ import { deliverOwnerReply, setRecordingCycles } from "./control.mjs";
 const FORMS_SEED_MODULE = "tests/browser/one-path-forms-seed.mjs";
 
 /** POST or GET a JSON route from the signed-in page; never throws on a refusal. */
-async function route(page, path, body) {
+export async function routeFromPage(page, path, body) {
   return page.evaluate(
     async ({ path, body }) => {
       const response = await fetch(path, {
@@ -45,8 +53,67 @@ async function route(page, path, body) {
     { path, body },
   );
 }
+const route = routeFromPage;
 const refusal = (answer) =>
   `HTTP ${answer.status}: ${String(answer.body?.error ?? answer.text).slice(0, 200)}`;
+
+/** Where the app's own record of a message stands, in the app's words, for a report line. */
+export function sequenceStanding(sequence) {
+  if (!sequence) return "no message record";
+  return [
+    `sequence state ${sequence.state}`,
+    sequence.pause?.cause ? `pause cause ${sequence.pause.cause}` : null,
+    sequence.observation
+      ? `incoming mail check ${sequence.observation.state}${sequence.observation.reason ? ` (${sequence.observation.reason})` : ""}`
+      : null,
+    `${(sequence.threads ?? []).length} sent message(s)`,
+  ]
+    .filter(Boolean)
+    .join(", ");
+}
+
+/**
+ * Send one lease's owner message from the app, as staff do through the composer's routes: read
+ * the message the app prepared, save it, then send it with the reviewed message and recipient
+ * hashes. Returns the step reached, the answers, and the refusal when a step was refused. In the
+ * rehearsal the message goes to the mail stand-in; nothing here can address a real mailbox.
+ */
+export async function sendOwnerMessage(page, leaseId) {
+  const uuid = () => page.evaluate(() => crypto.randomUUID());
+  const composition = await route(
+    page,
+    `/api/gmail-hub/composition?purpose=renewal_owner&lease=${leaseId}`,
+  );
+  if (composition.status !== 200)
+    return { step: "composition", refusal: refusal(composition) };
+  const { context, initial, reviewedTargetHash, target } = composition.body;
+  if (target?.blockers?.length)
+    return { step: "composition", refusal: `Blocked: ${target.blockers.join(" ")}` };
+  const saved = await route(page, "/api/gmail-hub/sequences", {
+    action: "save",
+    draft: { id: await uuid(), context, initial, followUp: null },
+    expectedVersion: 0,
+    operationId: await uuid(),
+  });
+  if (saved.status !== 200) return { step: "save", refusal: refusal(saved) };
+  const sequenceId = saved.body.sequence.id;
+  const sent = await route(page, "/api/gmail-hub/sequences", {
+    action: "send",
+    id: sequenceId,
+    expectedVersion: saved.body.sequence.version,
+    operationId: await uuid(),
+    reviewedDraftHash: saved.body.reviewedDraftHash,
+    reviewedTargetHash,
+    schedule: null,
+  });
+  return {
+    step: "send",
+    sequenceId,
+    sent,
+    to: target?.to ?? [],
+    ...(sent.status === 200 ? {} : { refusal: refusal(sent) }),
+  };
+}
 
 /**
  * R-S254-2: three leases whose RentVine end date is later than their recorded cycle. While the
@@ -88,10 +155,53 @@ async function recordedCycles({ page, mix, rehearsal }) {
     saved.push(`${leaseId} recorded on ${recorded}`);
   }
   setRecordingCycles(rehearsal, false);
-  const refreshed = await route(page, "/api/lease-renewal/refresh", { mode: "force" });
+  const refreshed = await forceSourceRefresh(page);
   return {
     state: "seeded",
-    detail: `${saved.join("; ")}. RentVine now shows the later dates (refresh HTTP ${refreshed.status}).`,
+    detail: `${saved.join("; ")}. RentVine now shows the later dates (${refreshed.body?.refreshed ? "read again" : `not read again: ${refusal(refreshed)}`}).`,
+  };
+}
+
+/** A forced RentVine read, as "Refresh data" asks for; honored once every ten seconds for each account. */
+export async function forceSourceRefresh(page) {
+  let answer = { status: 0, body: null, text: "" };
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    if (attempt) await page.waitForTimeout(2500);
+    answer = await route(page, "/api/lease-renewal/refresh", { mode: "force" });
+    if (answer.status !== 200 || answer.body?.refreshed) break;
+  }
+  return answer;
+}
+
+const WAITING_ON_A_FRESH_READ = "fresh admitted source read";
+
+/**
+ * The desk shows a lease's move-out evidence only from a RentVine read that began after that
+ * lease's notice marker existed, and a new database holds no marker: the first desk read creates
+ * them and tells staff to use "Refresh data". This step does that once, as staff would on a first
+ * day: it opens the desk, asks for a fresh read and opens the desk again, so every later read of
+ * the rehearsal shows the evidence as staff see it day to day. It writes nothing else.
+ */
+async function noticeAdmission({ page, origin }) {
+  const desk = `${origin}/lease-renewal/live/desk`;
+  const waiting = () =>
+    page.evaluate(
+      (phrase) => document.querySelectorAll(`[title*="${phrase}"]`).length,
+      WAITING_ON_A_FRESH_READ,
+    );
+  await page.goto(desk, { waitUntil: "domcontentloaded" });
+  const before = await waiting();
+  const refreshed = await forceSourceRefresh(page);
+  if (!refreshed.body?.refreshed)
+    return {
+      state: "skipped",
+      detail: `No fresh RentVine read was made: ${refusal(refreshed)}`,
+    };
+  await page.goto(desk, { waitUntil: "domcontentloaded" });
+  const after = await waiting();
+  return {
+    state: "seeded",
+    detail: `The desk was read, RentVine was read again and the desk was read again; ${before} lease(s) waited on a fresh read before and ${after} after.`,
   };
 }
 
@@ -106,40 +216,17 @@ async function repliedOwnerMessage({ page, mix, rehearsal }) {
   const leaseId = role.leaseId;
   const owner = mix.leases.find((row) => row.lease.leaseID === leaseId)?.portfolio
     .owners[0]?.email;
-  const composition = await route(
-    page,
-    `/api/gmail-hub/composition?purpose=renewal_owner&lease=${leaseId}`,
-  );
-  if (composition.status !== 200)
-    return { state: "skipped", detail: `No owner message: ${refusal(composition)}` };
-  const { context, initial, reviewedTargetHash, target } = composition.body;
-  if (target?.blockers?.length)
-    return { state: "skipped", detail: `Blocked: ${target.blockers.join(" ")}` };
-  const uuid = () => page.evaluate(() => crypto.randomUUID());
-  const saved = await route(page, "/api/gmail-hub/sequences", {
-    action: "save",
-    draft: { id: await uuid(), context, initial, followUp: null },
-    expectedVersion: 0,
-    operationId: await uuid(),
-  });
-  if (saved.status !== 200)
-    return { state: "skipped", detail: `The message was not saved: ${refusal(saved)}` };
-  const sent = await route(page, "/api/gmail-hub/sequences", {
-    action: "send",
-    id: saved.body.sequence.id,
-    expectedVersion: saved.body.sequence.version,
-    operationId: await uuid(),
-    reviewedDraftHash: saved.body.reviewedDraftHash,
-    reviewedTargetHash,
-    schedule: null,
-  });
-  if (sent.status !== 200)
-    return { state: "skipped", detail: `The send was refused: ${refusal(sent)}` };
-  const threads = sent.body?.sequence?.threads ?? [];
-  if (!threads.length)
+  const message = await sendOwnerMessage(page, leaseId);
+  if (message.refusal)
     return {
       state: "skipped",
-      detail: `The send was not accepted (sequence state ${sent.body?.sequence?.state}).`,
+      detail: `The owner message was not sent (${message.step}): ${message.refusal}`,
+    };
+  const sequence = message.sent.body?.sequence;
+  if (!(sequence?.threads ?? []).length)
+    return {
+      state: "skipped",
+      detail: `The send was not accepted (${sequenceStanding(sequence)}).`,
     };
   const reply = await deliverOwnerReply(rehearsal, {
     to: owner,
@@ -147,12 +234,12 @@ async function repliedOwnerMessage({ page, mix, rehearsal }) {
   });
   const observed = await route(page, "/api/gmail-hub/sequences", {
     action: "refresh",
-    id: saved.body.sequence.id,
+    id: message.sequenceId,
   });
   return {
     state: "seeded",
-    detail: `Lease ${leaseId}: sent on thread ${reply.threadId}, owner reply delivered, thread read (HTTP ${observed.status}, sequence state ${observed.body?.sequence?.state ?? "unknown"}).`,
-    sequenceId: saved.body.sequence.id,
+    detail: `Lease ${leaseId}: sent on thread ${reply.threadId}, owner reply delivered, thread read (HTTP ${observed.status}, ${sequenceStanding(observed.body?.sequence)}).`,
+    sequenceId: message.sequenceId,
   };
 }
 
@@ -161,30 +248,71 @@ const notBuilt = (suite, what) => async () => ({
   detail: `${suite} seeds this once it is built: ${what}.`,
 });
 
-/** S253's forms seed module, when that suite has added it. */
-async function forms(context) {
-  const file = join(process.cwd(), FORMS_SEED_MODULE);
+/**
+ * The five role leases as S253's forms seed takes them: the lease id, how many tenants it has and
+ * its animal profile, all read from the mix (prepared: one pet; covered: two pets; assisted: an
+ * assistance animal; missing recipient: five tenants).
+ */
+export function formsSeedLeases(mix) {
+  return Object.values(mix.roles).map((role) => {
+    const row = mix.leases.find((entry) => entry.lease.leaseID === role.leaseId);
+    const kinds = (role.animals ?? []).map((animal) => animal.kind);
+    const pets = kinds.filter((kind) => kind === "pet").length;
+    const assistance = kinds.filter((kind) => kind === "assistance_animal").length;
+    return {
+      leaseId: String(role.leaseId),
+      tenants: row?.lease.tenants?.length ?? 1,
+      animals:
+        pets && assistance
+          ? "pet_and_assistance_animal"
+          : assistance
+            ? "assistance_animal"
+            : pets > 1
+              ? "two_pets"
+              : pets === 1
+                ? "one_pet"
+                : "none",
+    };
+  });
+}
+
+/**
+ * S253's forms seed module, when the served commit has it. The module is that commit's own file
+ * (it writes that commit's document shapes), so it never travels with --commit and the starting
+ * commit is served without it. It is called as seedOnePathForms(database, { leases }) with the
+ * rehearsal's Firestore emulator and the five role leases. `overrides` is for tests.
+ */
+export async function seedForms({ mix, rehearsal }, overrides = {}) {
+  const file = overrides.file ?? join(process.cwd(), FORMS_SEED_MODULE);
   if (!existsSync(file))
     return {
       state: "not_built",
       detail: `${FORMS_SEED_MODULE} does not exist on this tree.`,
     };
-  const module = await import(pathToFileURL(file).href);
-  if (typeof module.seedOnePathForms !== "function")
+  const formsSeed = await import(pathToFileURL(file).href);
+  if (typeof formsSeed.seedOnePathForms !== "function")
     return {
       state: "skipped",
       detail: `${FORMS_SEED_MODULE} exports no seedOnePathForms function.`,
     };
-  const result = await module.seedOnePathForms(context);
+  const leases = formsSeedLeases(mix);
+  const open =
+    overrides.openDatabase ??
+    (await import("./emulator-database.mjs")).openRehearsalDatabase;
+  const seeded = await formsSeed.seedOnePathForms(open(rehearsal), { leases });
   return {
     state: "seeded",
-    detail: String(result?.detail ?? "Forms seeded."),
-    ...result,
+    detail: `Forms seeded (${Object.keys(seeded?.forms ?? {}).join(", ") || "no form named"}) for ${leases
+      .map(
+        (lease) => `lease ${lease.leaseId}: ${lease.tenants} tenant(s), ${lease.animals}`,
+      )
+      .join("; ")}. The module's header lists the Admin steps that remain.`,
   };
 }
 
 export const SEED_STEPS = [
   { name: "recorded-cycles", suite: "S246", run: recordedCycles },
+  { name: "notice-admission", suite: "S254", run: noticeAdmission },
   { name: "replied-owner-message", suite: "S249", run: repliedOwnerMessage },
   {
     name: "standing-agreement",
@@ -210,7 +338,7 @@ export const SEED_STEPS = [
       "the prepared lease's stored comparison, signature and approved template",
     ),
   },
-  { name: "forms", suite: "S253", run: forms },
+  { name: "forms", suite: "S253", run: (context) => seedForms(context) },
 ];
 
 /** Run every seed in order. A seed that throws is reported as skipped with its message. */
