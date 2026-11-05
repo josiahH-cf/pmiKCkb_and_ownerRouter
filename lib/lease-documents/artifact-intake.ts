@@ -408,7 +408,8 @@ export function buildFillWorksheet(
       continue;
     }
     const attribute = field.factKey.slice("animal.".length);
-    for (const animal of input.animals) {
+    // S253 (R-S253-6): an assistance animal waiting on the approved rule is not placed on a form.
+    for (const animal of input.animals.filter((entry) => !entry.heldBy)) {
       const key = `animal.${animal.animalId}.${attribute}`;
       const facts: PacketFact[] = animal.facts
         .filter((fact) => fact.key === attribute)
@@ -649,9 +650,12 @@ export function catalogFromIntake(
         version: publicationId,
       },
       // A static PDF fills only through reviewed region geometry; without it the original stays a
-      // manual handoff, and an unchanged attachment is used exactly as approved.
+      // manual handoff, and an unchanged attachment is used exactly as approved. S253: an
+      // unchanged attachment may record its pages and protected areas and still has nothing to fill.
       ...(entry.classification?.format === "fillable_pdf" ||
-      (entry.classification?.format === "static_pdf" && map.static)
+      (entry.classification?.format === "static_pdf" &&
+        map.static &&
+        !map.unchangedAttachment)
         ? {
             fillMapping: { map, mapHash: mapHashOf(map), intakeRevision: entry.revision },
           }

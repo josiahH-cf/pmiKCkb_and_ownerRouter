@@ -288,6 +288,10 @@ export function assemblePacketSources(input: {
         .filter((charge) => charge.animalId === animal.animalId)
         .map((charge) => charge.chargeId),
       ...(calculated!.policyVersion ? { policyVersion: calculated!.policyVersion } : {}),
+      // S253 (R-S253-6): an assistance animal waiting on the approved rule holds only itself.
+      ...(calculated!.heldAnimalIds.includes(animal.animalId)
+        ? { heldBy: "assistance_animal_rule" as const }
+        : {}),
     }));
     for (const issue of calculated.issues) notices.push(issue.label);
   }

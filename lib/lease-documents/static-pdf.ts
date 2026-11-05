@@ -606,6 +606,21 @@ export function layoutStaticParagraphs(
   return layout;
 }
 
+/**
+ * Why a text in paragraphs cannot be set in its box, or null when it fits. The filler refuses with
+ * these words and the lease's preview shows the same ones, so staff read one answer in both places.
+ */
+export function paragraphLayoutIssue(layout: ParagraphLayout): string | null {
+  if (layout.unsupported)
+    return "the value has characters the approved font cannot show.";
+  if (layout.capacity < 1) return "the text is taller than its region.";
+  if (layout.wideWord !== null)
+    return "a word is wider than its box. The reviewed text size is kept and every word stays whole: shorten that word, or use an approved form with room for it.";
+  if (layout.overLines > 0)
+    return `the text is ${layout.overLines} ${layout.overLines === 1 ? "line" : "lines"} longer than its box holds, about ${layout.overCharacters} characters. The reviewed text size is kept and nothing is cut: shorten the text, or use an approved form with room for it.`;
+  return null;
+}
+
 function parseToUnicode(bytes: Uint8Array): Map<number, string> {
   const map = new Map<number, string>();
   const text = Buffer.from(bytes).toString("latin1");
@@ -2220,20 +2235,8 @@ async function fill(
         across,
         fontSize: region.fontSize,
       });
-      if (layout.unsupported)
-        refuse(
-          `${region.regionId}: the value has characters the approved font cannot show.`,
-        );
-      if (layout.capacity < 1)
-        refuse(`${region.regionId}: the text is taller than its region.`);
-      if (layout.wideWord !== null)
-        refuse(
-          `${region.regionId}: a word is wider than its box. The reviewed text size is kept and every word stays whole: shorten that word, or use an approved form with room for it.`,
-        );
-      if (layout.overLines > 0)
-        refuse(
-          `${region.regionId}: the text is ${layout.overLines} ${layout.overLines === 1 ? "line" : "lines"} longer than its box holds, about ${layout.overCharacters} characters. The reviewed text size is kept and nothing is cut: shorten the text, or use an approved form with room for it.`,
-        );
+      const issue = paragraphLayoutIssue(layout);
+      if (issue) refuse(`${region.regionId}: ${issue}`);
       const top = across - PARAGRAPH_PAD - CAP_HEIGHT * region.fontSize;
       const rows = layout.lines.map((line, row): DrawnRow => {
         const encoded = encodeWinAnsi(line.text) ?? new Uint8Array();
@@ -2621,6 +2624,69 @@ export function readStaticPageRuns(
       text: run.text,
       fillRegion: run.fill,
     }));
+  });
+}
+
+/** One line of a page as a program reads it: the runs on one baseline, in reading order. */
+export interface StaticTextLine {
+  pageIndex: number;
+  text: string;
+}
+
+/**
+ * S253 (R-S253-5, R-S253-10): the text of a saved file line by line, the form's own text and any
+ * drawn value together, as text extraction reads them. Runs are grouped by their baseline and
+ * ordered along their own direction, so a value drawn into a sentence reads inside that sentence
+ * on an upright or a turned page. No review cap applies; nothing is rendered or recognized.
+ */
+export function readStaticPdfLines(content: Uint8Array): Promise<StaticTextLine[]> {
+  return bounded(async () => {
+    const { pdf } = await parseSafePdf(content, true);
+    const lines: StaticTextLine[] = [];
+    for (const [pageIndex, page] of pdf.getPages().entries()) {
+      const items = readPage(pdf, page).runs.map((run) => {
+        const length = Math.hypot(run.matrix[0], run.matrix[1]) || 1;
+        const dx = run.matrix[0] / length;
+        const dy = run.matrix[1] / length;
+        const [x, y] = point(run.matrix, 0, run.rise);
+        const along = x * dx + y * dy;
+        return {
+          text: run.text,
+          direction: `${Math.round(dx)}:${Math.round(dy)}`,
+          along,
+          end: along + run.advance * length,
+          across: y * dx - x * dy,
+          size: Math.abs(run.fontSize) * length,
+        };
+      });
+      for (const direction of [...new Set(items.map((item) => item.direction))]) {
+        const sorted = items
+          .filter((item) => item.direction === direction)
+          .sort((left, right) => right.across - left.across || left.along - right.along);
+        let line: typeof sorted = [];
+        const flush = () => {
+          if (!line.length) return;
+          const ordered = [...line].sort((left, right) => left.along - right.along);
+          let text = "";
+          ordered.forEach((item, index) => {
+            const gap = index === 0 ? 0 : item.along - ordered[index - 1].end;
+            text += `${gap > 0.15 * item.size ? " " : ""}${item.text}`;
+          });
+          lines.push({ pageIndex, text: text.replace(/\s+/g, " ").trim() });
+          line = [];
+        };
+        for (const item of sorted) {
+          if (
+            line.length &&
+            Math.abs(item.across - line[0].across) > Math.max(1.5, 0.3 * item.size)
+          )
+            flush();
+          line.push(item);
+        }
+        flush();
+      }
+    }
+    return lines;
   });
 }
 

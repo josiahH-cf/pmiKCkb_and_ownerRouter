@@ -7,9 +7,15 @@ import { fetchWithDeadline as fetch } from "@/lib/ui/fetch-lifetime";
 // adopted for the person. Charges are calculated by the server from the published policy; an
 // override needs a reason. Saving writes only the app's own record. Opening the lease makes no
 // request: the inputs are read when a person opens them.
+//
+// S253: a pet's refundable deposit is recorded here with where it comes from, the pet agreement's
+// fee, deposit and total are shown before anything is prepared, and staff write the owner
+// acknowledgment's explanation for this lease. The application writes none of that text and
+// offers no value from another lease.
 
 import { useCallback, useId, useRef, useState } from "react";
 
+import { FilledArtifactPanel } from "@/components/lease-renewal/FilledArtifactPanel";
 import { Button, Field, Notice } from "@/components/ui";
 import {
   SIGNER_ROLES,
@@ -32,6 +38,13 @@ import type {
   PacketInputsView,
   PacketQuestion,
 } from "@/lib/lease-documents/packet-inputs-view";
+import { formHoldLabels } from "@/lib/lease-documents/form-holds";
+import { packetFilesPreparable } from "@/lib/lease-documents/owner-acknowledgment";
+import {
+  OWNER_EXPLANATION_NEED,
+  OWNER_EXPLANATION_TERMS_CHANGED,
+} from "@/lib/lease-documents/owner-explanation";
+import type { RenewalPacketSnapshot } from "@/lib/lease-documents/packet-types";
 import { formatBusinessTimestamp } from "@/lib/date-display";
 
 const CADENCES: ReadonlyArray<[ChargeCadence, string]> = [
@@ -190,6 +203,12 @@ export function PacketInputsEditor({
       <PeopleSection view={view} canEdit={canEdit} save={save} />
       <AnimalsSection view={view} canEdit={canEdit} save={save} />
       <ChargesSection view={view} canEdit={canEdit} save={save} />
+      <OwnerAcknowledgmentSection
+        view={view}
+        leaseId={leaseId}
+        canEdit={canEdit}
+        save={save}
+      />
     </section>
   );
 }
@@ -505,18 +524,65 @@ function normalizedPeople(people: readonly PacketPersonInput[]) {
   }));
 }
 
-function animalsDraft(entries: readonly PacketAnimalInput[]): PacketAnimalInput[] {
-  return entries.map((animal) => ({ ...animal }));
+/**
+ * S253: an animal as it is edited. The deposit is typed as text with where it comes from; an empty
+ * amount means no deposit is recorded, never a deposit of zero.
+ */
+interface AnimalDraft extends Omit<PacketAnimalInput, "deposit"> {
+  depositAmount: string;
+  depositSource: string;
 }
 
-function normalizedAnimals(animals: readonly PacketAnimalInput[]) {
+function animalsDraft(entries: readonly PacketAnimalInput[]): AnimalDraft[] {
+  return entries.map(({ deposit, ...animal }) => ({
+    ...animal,
+    depositAmount: deposit ? String(deposit.amountCents / 100) : "",
+    depositSource: deposit?.source ?? "",
+  }));
+}
+
+/** Compared and saved as the server stores them. A deposit belongs to a pet only. */
+function normalizedAnimals(animals: readonly AnimalDraft[]): PacketAnimalInput[] {
   const trimmed = (value: string | null) => (value === null ? null : value.trim());
-  return animals.map((animal) => ({
+  return animals.map(({ depositAmount, depositSource, ...animal }) => ({
     ...animal,
     name: trimmed(animal.name),
     species: trimmed(animal.species),
     breed: trimmed(animal.breed),
+    ...(animal.treatment === "pet" && depositAmount.trim() !== ""
+      ? {
+          deposit: {
+            amountCents: Math.round(Number(depositAmount) * 100),
+            source: depositSource.trim(),
+          },
+        }
+      : {}),
   }));
+}
+
+/** Why a typed deposit cannot be saved yet, or null. */
+function depositIssue(animal: AnimalDraft, index: number): string | null {
+  if (animal.treatment !== "pet") return null;
+  const label = animal.name ?? `Animal ${index + 1}`;
+  const amount = depositAmountOf(animal.depositAmount);
+  if (animal.depositAmount.trim() === "")
+    return animal.depositSource.trim() === ""
+      ? null
+      : `${label}: enter the deposit amount, or clear where it comes from.`;
+  if (amount === null) return `${label}: enter the deposit as dollars and cents.`;
+  return animal.depositSource.trim().length < 3
+    ? `${label}: say where the deposit comes from.`
+    : null;
+}
+
+function depositAmountOf(raw: string): number | null {
+  const value = Number(raw);
+  return raw.trim() !== "" &&
+    Number.isFinite(value) &&
+    value >= 0 &&
+    /^\d+(\.\d{1,2})?$/.test(raw.trim())
+    ? Math.round(value * 100)
+    : null;
 }
 
 interface OverrideDraft {
@@ -831,7 +897,7 @@ function PeopleSection({
   );
 }
 
-function blankAnimal(): PacketAnimalInput {
+function blankAnimal(): AnimalDraft {
   return {
     animalId: crypto.randomUUID(),
     name: null,
@@ -843,6 +909,8 @@ function blankAnimal(): PacketAnimalInput {
     maturity: null,
     fidoScore: null,
     treatment: null,
+    depositAmount: "",
+    depositSource: "",
   };
 }
 
@@ -859,10 +927,17 @@ function AnimalsSection({
   const { draft: animals, setDraft: setAnimals } = section;
   const [result, setResult] = useState<SaveResult | null>(null);
   const [busy, setBusy] = useState(false);
-  const update = (index: number, change: Partial<PacketAnimalInput>) =>
+  const update = (index: number, change: Partial<AnimalDraft>) =>
     setAnimals((current) =>
       current.map((animal, at) => (at === index ? { ...animal, ...change } : animal)),
     );
+  // S253 (R-S253-3): without published tiers a pet's deposit is recorded here by staff.
+  const recordsDeposit = view.depositEntry === "staff_record";
+  const savedDeposit = (animalId: string) =>
+    view.record?.animals.entries.find((entry) => entry.animalId === animalId)?.deposit;
+  const depositIssues = recordsDeposit
+    ? animals.flatMap((animal, index) => depositIssue(animal, index) ?? [])
+    : [];
   return (
     <div className="ui-stack-tight" data-packet-animals>
       <strong>Animals</strong>
@@ -1001,6 +1076,45 @@ function AnimalsSection({
                   <option value="assistance_animal">Assistance animal</option>
                 </select>
               </Field>
+              {recordsDeposit && animal.treatment === "pet" ? (
+                <>
+                  <Field
+                    label="Refundable deposit"
+                    htmlFor={`${key}-deposit`}
+                    hint="The amount for this pet on this lease. Leave empty until it is known."
+                  >
+                    <input
+                      id={`${key}-deposit`}
+                      disabled={!canEdit}
+                      inputMode="decimal"
+                      value={animal.depositAmount}
+                      onChange={(event) =>
+                        update(index, { depositAmount: event.target.value })
+                      }
+                    />
+                  </Field>
+                  <Field
+                    label="Where the deposit comes from"
+                    htmlFor={`${key}-deposit-source`}
+                    hint="For example the pet screening result it follows."
+                  >
+                    <input
+                      id={`${key}-deposit-source`}
+                      disabled={!canEdit}
+                      value={animal.depositSource}
+                      onChange={(event) =>
+                        update(index, { depositSource: event.target.value })
+                      }
+                    />
+                  </Field>
+                  {savedDeposit(key)?.recordedAt ? (
+                    <p className="muted" data-packet-deposit-recorded>
+                      Deposit recorded{" "}
+                      {formatBusinessTimestamp(savedDeposit(key)!.recordedAt!)}.
+                    </p>
+                  ) : null}
+                </>
+              ) : null}
               {canEdit ? (
                 <Button
                   variant="tertiary"
@@ -1031,12 +1145,16 @@ function AnimalsSection({
             busy={busy}
             busyLabel="Saving…"
             onClick={async () => {
+              if (depositIssues.length > 0) {
+                setResult({ ok: false, message: depositIssues.join(" ") });
+                return;
+              }
               setBusy(true);
               setResult(
                 await save("animals", {
                   animals: {
                     expectedRevision: section.baseRevision,
-                    entries: animals,
+                    entries: normalizedAnimals(animals),
                   },
                 }),
               );
@@ -1058,6 +1176,46 @@ function AnimalsSection({
         />
       ) : null}
       {result && !result.ok ? <p role="alert">{result.message}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * S253 (R-S253-4): the pet agreement's fee, deposit and total as the calculator made them, shown
+ * before anything is prepared. A part nobody knows yet is left blank with what is needed; it is
+ * never shown as zero. A lease with no ordinary pet shows none of it, so the fee is never read as
+ * an assistance animal's.
+ */
+function PetAgreementAmountsBlock({ view }: Readonly<{ view: PacketInputsView }>) {
+  const amounts = view.petAgreement;
+  if (!amounts || amounts.ordinaryPets === 0) return null;
+  const shown = (cents: number | null, waiting: string) =>
+    cents === null ? waiting : money(cents);
+  return (
+    <div className="ui-stack-tight" data-renewal-field="pet-agreement-amounts">
+      <strong>Pet agreement amounts</strong>
+      <ul className="ui-rows">
+        <li data-pet-agreement="fee">
+          Processing fee: {shown(amounts.feeCents, "waiting on the published fee")}
+        </li>
+        <li data-pet-agreement="deposit">
+          Refundable deposit, first amount blank:{" "}
+          {shown(amounts.depositCents, "left blank")}
+        </li>
+        <li data-pet-agreement="total">
+          Total, second amount blank: {shown(amounts.totalCents, "left blank")}
+        </li>
+      </ul>
+      {amounts.feeSource ? (
+        <p className="muted">Fee source: {amounts.feeSource}</p>
+      ) : null}
+      {amounts.needs.length > 0 ? (
+        <ul className="ui-rows" data-pet-agreement-needs>
+          {amounts.needs.map((need) => (
+            <li key={need}>{need}</li>
+          ))}
+        </ul>
+      ) : null}
     </div>
   );
 }
@@ -1133,11 +1291,16 @@ function ChargesSection({
               <li key={animal.animalId} data-packet-animal-charge={animal.status}>
                 <strong>{animal.label}</strong>
                 {animal.tierLabel ? ` · ${animal.tierLabel}` : ""}
-                {animal.status === "needs_input" ? (
+                {animal.status === "needs_input" || animal.status === "needs_rule" ? (
                   <span>: {animal.reason}</span>
                 ) : (
                   <ul className="ui-rows">
-                    {CADENCES.map(([cadence, label]) => {
+                    {/* S253: without published tiers a pet carries its recorded deposit only. */}
+                    {CADENCES.filter(
+                      ([cadence]) =>
+                        view.depositEntry !== "staff_record" ||
+                        cadence === "refundable_deposit",
+                    ).map(([cadence, label]) => {
                       const chargeId = `animal:${animal.animalId}:${cadence}`;
                       const override = overrideFor(chargeId);
                       return (
@@ -1205,6 +1368,7 @@ function ChargesSection({
               ([cadence, label]) => `${label} ${money(charges.totals[cadence])}`,
             ).join(" · ")}
           </p>
+          <PetAgreementAmountsBlock view={view} />
           {charges.issues.length > 0 ? (
             <ul className="ui-rows">
               {charges.issues.map((issue) => (
@@ -1255,6 +1419,299 @@ function ChargesSection({
         />
       ) : null}
       {result && !result.ok ? <p role="alert">{result.message}</p> : null}
+    </div>
+  );
+}
+
+/**
+ * S253 (R-S253-7, R-S253-8): the owner acknowledgment of this lease. Staff write the explanation
+ * for this lease and renewal; the form prints exactly the saved text in the paragraphs typed.
+ * Nothing is written for them: the box starts empty, the team's starting text is copied in only
+ * when a person chooses it, and no other lease's text is ever offered.
+ */
+function OwnerAcknowledgmentSection({
+  view,
+  leaseId,
+  canEdit,
+  save,
+}: Readonly<{
+  view: PacketInputsView;
+  leaseId: string;
+  canEdit: boolean;
+  save: Save;
+}>) {
+  const explanation = view.ownerExplanation;
+  const saved = explanation?.text ?? "";
+  const revision = explanation?.revision ?? 0;
+  const [draft, setDraft] = useState(saved);
+  const [seen, setSeen] = useState({ revision, saved });
+  const [result, setResult] = useState<SaveResult | null>(null);
+  const [busy, setBusy] = useState(false);
+  const fieldId = useId();
+  // A reload that brings a different saved text replaces the box only while it has no unsaved
+  // edits; typed text is never replaced under the person writing it.
+  if (seen.revision !== revision || seen.saved !== saved) {
+    if (draft.trim() === seen.saved) setDraft(saved);
+    setSeen({ revision, saved });
+  }
+  // A response from before this section existed carries no explanation state.
+  if (explanation === undefined) return null;
+  if (explanation === null)
+    return (
+      <div className="ui-stack-tight" data-owner-acknowledgment="unavailable">
+        <strong>Owner acknowledgment</strong>
+        <p className="muted">
+          The owner explanation appears once the current lease sources are readable.
+        </p>
+      </div>
+    );
+  const preview = explanation.preview;
+  return (
+    <div className="ui-stack-tight" data-owner-acknowledgment>
+      <strong>Owner acknowledgment</strong>
+      <p className="muted">
+        Write the explanation for this lease&apos;s owner. The owner acknowledgment prints
+        exactly what you save here, in the paragraphs you type.
+      </p>
+      {explanation.need ? (
+        <p data-renewal-field="owner-explanation-need" role="status">
+          {OWNER_EXPLANATION_NEED}
+        </p>
+      ) : null}
+      {explanation.termsChangedAfter ? (
+        <p data-renewal-field="owner-explanation-flag" role="status">
+          <strong>{OWNER_EXPLANATION_TERMS_CHANGED}</strong>. The saved text is kept;
+          review it against the current terms.
+        </p>
+      ) : null}
+      {explanation.fromEarlierCycle ? (
+        <p className="muted">
+          An explanation written for an earlier renewal is kept on the record. This
+          renewal needs its own.
+        </p>
+      ) : null}
+      <Field label="Explanation for the owner" htmlFor={fieldId}>
+        <textarea
+          id={fieldId}
+          disabled={!canEdit}
+          rows={8}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+        />
+      </Field>
+      {canEdit ? (
+        <div className="ui-row">
+          {explanation.startingText !== "" && draft.trim() === "" ? (
+            <Button
+              variant="tertiary"
+              size="compact"
+              onClick={() => setDraft(explanation.startingText)}
+            >
+              Use the team&apos;s starting text
+            </Button>
+          ) : null}
+          <Button
+            variant="secondary"
+            size="compact"
+            busy={busy}
+            busyLabel="Saving…"
+            onClick={async () => {
+              setBusy(true);
+              setResult(
+                await save("ownerExplanation", {
+                  ownerExplanation: {
+                    expectedRevision: revision,
+                    text: draft.trim() === "" ? null : draft,
+                  },
+                }),
+              );
+              setBusy(false);
+            }}
+          >
+            Save explanation
+          </Button>
+        </div>
+      ) : null}
+      {result?.ok ? <p role="status">Saved.</p> : null}
+      {result && !result.ok ? <p role="alert">{result.message}</p> : null}
+      {explanation.recordedAt ? (
+        <p className="muted" data-owner-explanation-recorded>
+          Explanation saved {formatBusinessTimestamp(explanation.recordedAt)}.
+        </p>
+      ) : null}
+      {preview ? (
+        <div className="ui-stack-tight">
+          <strong>How the saved explanation prints in the box</strong>
+          {preview.lines.length > 0 ? (
+            <pre data-renewal-field="owner-explanation-preview">
+              {preview.lines.join("\n")}
+            </pre>
+          ) : (
+            <p className="muted">Nothing is saved to print yet.</p>
+          )}
+          <p className="muted">
+            The reviewed box holds {preview.capacity}{" "}
+            {preview.capacity === 1 ? "line" : "lines"} at its reviewed text size.
+          </p>
+          {preview.issue ? (
+            <p data-renewal-field="owner-explanation-overflow" role="alert">
+              {preview.issue}
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <p className="muted">
+          The print preview appears once an approved owner acknowledgment places the
+          explanation in a reviewed box.
+        </p>
+      )}
+      {explanation.formNotes.length > 0 || explanation.printed.length > 0 ? (
+        <ul className="ui-rows" data-form-notes>
+          {explanation.formNotes.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+          {explanation.printed.map((line) => (
+            <li key={line} className="muted">
+              Printed on this form. {line}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <OwnerAcknowledgmentFiles
+        leaseId={leaseId}
+        transactionId={explanation.transactionId}
+        canEvaluate={canEdit}
+      />
+    </div>
+  );
+}
+
+/**
+ * S253: the owner acknowledgment is evaluated and saved as its own packet, so the tenant packet
+ * and its prepared files never change when the explanation does. Checking it is an explicit
+ * action; preparing its file sends nothing.
+ */
+function OwnerAcknowledgmentFiles({
+  leaseId,
+  transactionId,
+  canEvaluate,
+}: Readonly<{ leaseId: string; transactionId: string; canEvaluate: boolean }>) {
+  const [snapshot, setSnapshot] = useState<RenewalPacketSnapshot | null>(null);
+  const [checked, setChecked] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function check() {
+    setBusy(true);
+    setError(null);
+    try {
+      const read = await fetch(
+        `/api/lease-renewal/packet-truth?${new URLSearchParams({ leaseId, transactionId })}`,
+        { cache: "no-store" },
+      );
+      const current = (await read.json().catch(() => ({}))) as {
+        snapshot?: RenewalPacketSnapshot | null;
+        error?: string;
+      };
+      if (!read.ok)
+        throw new Error(current.error ?? "The owner acknowledgment could not be read.");
+      if (!canEvaluate) {
+        setSnapshot(current.snapshot ?? null);
+        setChecked(true);
+        return;
+      }
+      const response = await fetch("/api/lease-renewal/packet-truth", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          action: "evaluate",
+          leaseId,
+          transactionId,
+          expectedCurrentSnapshotId: current.snapshot?.snapshotId ?? null,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        snapshot?: RenewalPacketSnapshot;
+        error?: string;
+      };
+      if (!response.ok || !payload.snapshot)
+        throw new Error(
+          payload.error ?? "The owner acknowledgment could not be checked.",
+        );
+      setSnapshot(payload.snapshot);
+      setChecked(true);
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "The owner acknowledgment could not be checked.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const manifest = snapshot?.manifest ?? null;
+  const waiting = formHoldLabels(manifest?.formHolds, "owner_acknowledgment");
+  const otherBlockers = (snapshot?.blockers ?? []).filter(
+    (blocker) => blocker.code !== "owner_ack_proof_unavailable",
+  );
+  const preparable =
+    snapshot !== null &&
+    snapshot.current &&
+    packetFilesPreparable(snapshot) &&
+    waiting.length === 0;
+  return (
+    <div className="ui-stack-tight" aria-busy={busy} data-owner-acknowledgment-files>
+      <Button variant="secondary" size="compact" busy={busy} onClick={() => void check()}>
+        {checked ? "Check the owner acknowledgment again" : "Check the owner acknowledgment"}
+      </Button>
+      {error ? <p role="alert">{error}</p> : null}
+      {checked && !snapshot ? (
+        <p className="muted">The owner acknowledgment has not been checked yet.</p>
+      ) : null}
+      {waiting.map((label) => (
+        <p key={label} data-form-hold="owner_acknowledgment" role="status">
+          {label}
+        </p>
+      ))}
+      {otherBlockers.length > 0 ? (
+        <ul className="ui-rows" data-owner-acknowledgment-blockers>
+          {otherBlockers.map((blocker, index) => (
+            <li key={`${blocker.code}-${blocker.fieldKey ?? index}`}>{blocker.label}</li>
+          ))}
+        </ul>
+      ) : null}
+      {snapshot && manifest ? (
+        manifest.includedArtifacts.length > 0 ? (
+          <ul className="ui-rows">
+            {manifest.includedArtifacts.map((artifact) => (
+              <li key={artifact.artifactId ?? artifact.kind}>
+                {artifact.label}
+                {preparable && artifact.artifactId ? (
+                  <FilledArtifactPanel
+                    key={`${snapshot.snapshotId}:${artifact.artifactId}`}
+                    leaseId={snapshot.leaseId}
+                    snapshotId={snapshot.snapshotId}
+                    artifactId={artifact.artifactId}
+                  />
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">
+            An approved owner acknowledgment form is needed before its file can be
+            prepared.
+          </p>
+        )
+      ) : null}
+      {preparable ? (
+        <p className="muted">
+          This file can be prepared and inspected now. Sending it to the owner for
+          signature waits for the fully signed tenant packet.
+        </p>
+      ) : null}
     </div>
   );
 }

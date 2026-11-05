@@ -18,6 +18,14 @@ export function FilledArtifactPanel({
     record: DerivedArtifactRecord | null;
     canPrepare: boolean;
     canApprove: boolean;
+    /** S253: what this form leaves blank, asks, prints and waits for; each absent when empty. */
+    notes?: string[];
+    questions?: string[];
+    printed?: string[];
+    holds?: string[];
+    mapIssues?: string[];
+    /** S253: the exact approved file of an unchanged attachment, for inspection. */
+    originalHref?: string;
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +94,49 @@ export function FilledArtifactPanel({
           {state.reason}
         </p>
       ) : null}
-      {state?.supported ? (
+      {state?.originalHref ? (
+        <DownloadLink fileName="approved-attachment.pdf" href={state.originalHref}>
+          Download the approved file for inspection
+        </DownloadLink>
+      ) : null}
+      {state?.notes?.length || state?.questions?.length ? (
+        <ul className="ui-rows" data-form-notes>
+          {(state.notes ?? []).map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+          {(state.questions ?? []).map((question) => (
+            <li key={question} data-form-question>
+              {question}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {state?.printed?.length ? (
+        <details>
+          <summary>Printed on this form</summary>
+          <ul data-form-printed>
+            {state.printed.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+      {(state?.holds ?? []).map((hold) => (
+        <p key={hold} data-form-hold role="status">
+          {hold}
+        </p>
+      ))}
+      {(state?.mapIssues ?? []).map((issue) => (
+        <p key={issue} role="alert">
+          {issue}
+        </p>
+      ))}
+      {state?.supported && (state.holds?.length || state.mapIssues?.length) ? (
+        <p className="muted">
+          This form waits. The lease&apos;s other forms can be prepared.
+        </p>
+      ) : null}
+      {state?.supported && !state.holds?.length && !state.mapIssues?.length ? (
         <>
           <p>
             Prepare a copy using the current approved facts and the reviewed fields or

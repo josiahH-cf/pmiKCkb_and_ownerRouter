@@ -19,6 +19,7 @@ import {
 import { canonicalJson, hashExecutionPreview } from "@/lib/execution/preview-hash";
 import {
   resolveLivePacketInput,
+  resolveOwnerAcknowledgmentInput,
   PACKET_SOURCE_COLLECTIONS,
 } from "@/lib/lease-documents/live-input";
 import { evaluateRenewalPacket } from "@/lib/lease-documents/evaluate-packet";
@@ -27,6 +28,19 @@ import type {
   PacketEvaluationInput,
   RenewalPacketSnapshot,
 } from "@/lib/lease-documents/packet-types";
+import type { ArtifactFieldMap } from "@/lib/lease-documents/artifact-intake-contract";
+import { PET_PROCESSING_FEE_FACT } from "@/lib/lease-documents/charge-policy";
+import { formHoldLabels } from "@/lib/lease-documents/form-holds";
+import { formNotesOf } from "@/lib/lease-documents/form-notes";
+import {
+  ownerAcknowledgmentTransactionId,
+  packetFilesPreparable,
+} from "@/lib/lease-documents/owner-acknowledgment";
+import {
+  lostPrintedText,
+  petFeeConsistencyIssues,
+} from "@/lib/lease-documents/prepared-form-checks";
+import { readArtifactIntakeManifest } from "./lease-artifact-intake";
 import {
   readHistoricalApprovedArtifact,
   resolveApprovedDotloopArtifact,
@@ -79,19 +93,55 @@ export interface DerivedContext {
   guards?: Array<{ collection: string; id: string; hash: string }>;
 }
 export interface DerivedArtifactDeps {
-  resolve: (actor: AuthenticatedUser, leaseId: string) => Promise<DerivedContext>;
+  /**
+   * The lease's current packet context. S253: when the named snapshot is the lease's current owner
+   * acknowledgment, the context is that packet's; otherwise it is the tenant packet's, as before.
+   */
+  resolve: (
+    actor: AuthenticatedUser,
+    leaseId: string,
+    snapshotId?: string,
+  ) => Promise<DerivedContext>;
   original: typeof resolveApprovedDotloopArtifact;
   historicalOriginal?: typeof readHistoricalApprovedArtifact;
   content: PublicationContentStore;
   now: () => string;
+  /** S253: the reviewed map of an unchanged approved attachment, for its form notes. */
+  attachmentMap?: (artifact: LeaseArtifactVersion) => Promise<ArtifactFieldMap | null>;
 }
 export function derivedArtifactDeps(db: Firestore): DerivedArtifactDeps {
   return {
-    resolve: async (actor, leaseId) => {
-      const [resolved, snapshot] = await Promise.all([
-        resolveLivePacketInput(actor, leaseId, leaseId, new Date().toISOString(), db),
+    attachmentMap: async (artifact) => {
+      const entry = (await readArtifactIntakeManifest(db)).entries[artifact.kind];
+      return entry?.state === "approved" &&
+        entry.fieldMap &&
+        entry.publication?.reference === artifact.publicationSource.reference &&
+        entry.publication.contentHash === artifact.contentHash
+        ? entry.fieldMap
+        : null;
+    },
+    resolve: async (actor, leaseId, snapshotId) => {
+      const observedAt = new Date().toISOString();
+      const [resolved, tenantSnapshot] = await Promise.all([
+        resolveLivePacketInput(actor, leaseId, leaseId, observedAt, db),
         getCurrentPacketSnapshot(actor, leaseId, leaseId, db),
       ]);
+      // S253: a request that names the lease's current owner acknowledgment snapshot reads that
+      // packet. Every other request reads the tenant packet exactly as before.
+      const ownerSnapshot =
+        snapshotId && tenantSnapshot?.snapshotId !== snapshotId
+          ? await getCurrentPacketSnapshot(
+              actor,
+              leaseId,
+              ownerAcknowledgmentTransactionId(leaseId),
+              db,
+            )
+          : null;
+      const owner = ownerSnapshot !== null && ownerSnapshot.snapshotId === snapshotId;
+      const snapshot = owner ? ownerSnapshot : tenantSnapshot;
+      const input = owner
+        ? await resolveOwnerAcknowledgmentInput(resolved, observedAt, db)
+        : resolved.input;
       // S34: the current work record is the dated head when one exists, otherwise the
       // lease-bound head; guarding only the dated head refused every lease-bound record.
       const [dated, leaseBound] = await Promise.all([
@@ -114,7 +164,7 @@ export function derivedArtifactDeps(db: Firestore): DerivedArtifactDeps {
       )
         fail("The workspace changed while resolving document inputs.");
       return {
-        input: resolved.input,
+        input,
         snapshot,
         guards: [
           {
@@ -224,7 +274,9 @@ function currentArtifact(
     snapshot.leaseId !== request.leaseId ||
     context.input.leaseId !== request.leaseId ||
     evaluateRenewalPacket(context.input).payloadHash !== snapshot.payloadHash ||
-    snapshot.state !== "Ready for preview"
+    // S253: an owner acknowledgment may be prepared while the tenant packet's execution proof
+    // is the only thing it lacks; every other packet must be ready for preview.
+    !packetFilesPreparable(snapshot)
   )
     fail("The packet or its sources changed. Evaluate and review current truth.");
   if (mutable && snapshot.execution)
@@ -310,7 +362,7 @@ export async function readCurrentDerivedArtifact(
   deps = derivedArtifactDeps(db),
 ) {
   allowed(actor, "read");
-  const context = await deps.resolve(actor, request.leaseId);
+  const context = await deps.resolve(actor, request.leaseId, request.snapshotId);
   const artifact = currentArtifact(context, request);
   const head = await db
     .collection(DERIVED_ARTIFACT_COLLECTIONS.heads)
@@ -321,6 +373,32 @@ export async function readCurrentDerivedArtifact(
   validateCurrent(record, context, artifact);
   return record;
 }
+
+/**
+ * S253 (R-S253-8, R-S253-9, R-S253-10, R-S253-11): what a form says about itself on this lease:
+ * what it leaves blank, the question this lease raises, the text it prints and what it waits for.
+ * Every part is absent when the form has nothing to say, so a form without any reads as before.
+ */
+function formStatusNotes(
+  context: DerivedContext,
+  artifact: LeaseArtifactVersion,
+  map: ArtifactFieldMap | null,
+) {
+  const manifest = context.snapshot?.manifest;
+  const tenants = manifest
+    ? manifest.participants.filter((participant) => participant.kind === "tenant").length
+    : null;
+  const notes = formNotesOf(map, manifest?.audience === "tenant" ? tenants : null);
+  const holds = formHoldLabels(manifest?.formHolds, artifact.kind);
+  return {
+    ...(notes.notes.length ? { notes: notes.notes } : {}),
+    ...(notes.questions.length ? { questions: notes.questions } : {}),
+    ...(notes.printed.length ? { printed: notes.printed } : {}),
+    ...(notes.mapIssues.length ? { mapIssues: notes.mapIssues } : {}),
+    ...(holds.length ? { holds } : {}),
+  };
+}
+
 export async function readDerivedArtifactStatus(
   actor: AuthenticatedUser,
   request: DerivedArtifactRequest,
@@ -328,7 +406,7 @@ export async function readDerivedArtifactStatus(
   deps = derivedArtifactDeps(db),
 ) {
   allowed(actor, "read");
-  const context = await deps.resolve(actor, request.leaseId);
+  const context = await deps.resolve(actor, request.leaseId, request.snapshotId);
   const artifact = context.input.catalog.artifacts.find(
     (item) =>
       item.artifactId === request.artifactId &&
@@ -338,24 +416,46 @@ export async function readDerivedArtifactStatus(
       ),
   );
   if (!artifact) fail("The document does not belong to the current packet.");
-  if (!artifact.fillMapping)
-    return artifact.unchangedAttachment
-      ? {
-          supported: false,
-          unchangedAttachment: true,
-          reason:
-            "Unchanged approved attachment: it has no variable values and is used exactly as approved.",
-          record: null,
-        }
-      : {
-          supported: false,
-          reason:
-            "This original needs a reviewed field or region mapping before a filled PDF can be prepared. Until then a person completes it in Dotloop.",
-          record: null,
-        };
+  if (!artifact.fillMapping) {
+    if (!artifact.unchangedAttachment)
+      return {
+        supported: false,
+        reason:
+          "This original needs a reviewed field or region mapping before a filled PDF can be prepared. Until then a person completes it in Dotloop.",
+        record: null,
+      };
+    const documentRef = artifact.providerBindings?.dotloopDocumentRef;
+    const status = formStatusNotes(
+      context,
+      artifact,
+      (await deps.attachmentMap?.(artifact).catch(() => null)) ?? null,
+    );
+    return {
+      supported: false,
+      unchangedAttachment: true,
+      reason:
+        "Unchanged approved attachment: it has no variable values and is used exactly as approved.",
+      record: null,
+      ...status,
+      // A form with protected areas offers its exact approved file for inspection: it is the
+      // file the packet uses, byte for byte, so its protected areas can be seen untouched.
+      ...(documentRef &&
+      Object.keys(status).length > 0 &&
+      context.snapshot?.transactionId === request.leaseId
+        ? {
+            originalHref: `/api/lease-renewal/document-artifact?${new URLSearchParams({ leaseId: request.leaseId, documentRef })}`,
+          }
+        : {}),
+    };
+  }
+  const status = formStatusNotes(context, artifact, artifact.fillMapping.map);
+  // A held form has no output to read: it waits, and the packet's other forms go on.
+  if (status.holds || status.mapIssues)
+    return { supported: true, record: null, ...status };
   return {
     supported: true,
     record: await readCurrentDerivedArtifact(actor, request, db, deps),
+    ...status,
   };
 }
 
@@ -457,8 +557,20 @@ export async function prepareDerivedArtifact(
 ) {
   allowed(actor, "edit");
   const request = PrepareDerivedArtifactSchema.parse(raw);
-  const context = await deps.resolve(actor, request.leaseId);
+  const context = await deps.resolve(actor, request.leaseId, request.snapshotId);
   const artifact = currentArtifact(context, request, true);
+  // S253 (R-S253-11): a form that waits on a named input is never prepared, and says what it
+  // waits for. The packet's other forms are prepared as usual.
+  const waiting = formHoldLabels(context.snapshot!.manifest?.formHolds, artifact.kind);
+  if (waiting.length)
+    fail(
+      `${artifact.label} waits: ${waiting
+        .map((need) => (/[.!?]$/.test(need) ? need : `${need}.`))
+        .join(" ")} The lease's other forms can be prepared.`,
+    );
+  // S253: a map that would answer an open question for the business is refused with the reason.
+  const openQuestionIssues = formNotesOf(artifact.fillMapping!.map).mapIssues;
+  if (openQuestionIssues.length) fail(openQuestionIssues.join(" "));
   const requestHash = hashExecutionPreview({
     ...request,
     actorUid: actor.uid,
@@ -565,6 +677,43 @@ export async function prepareDerivedArtifact(
     }
     filled = await fillAcroformPdf(original.content, values, reviewed);
   }
+  // S253 (R-S253-5): one fee on the finished pet agreement. The value the fill placed and the
+  // text a program reads from the saved file both state the published amount, or nothing is kept.
+  const publishedFee = context.input.facts.find(
+    (fact) => fact.fieldKey === PET_PROCESSING_FEE_FACT && fact.confidence === "Verified",
+  );
+  if (
+    artifact.kind === "animal_agreement" &&
+    typeof publishedFee?.normalizedValue === "number"
+  ) {
+    const feeFields = new Set(
+      map.fields
+        .filter((field) => field.factKey === PET_PROCESSING_FEE_FACT)
+        .map((field) => field.fieldId),
+    );
+    const feeTargets = map.static
+      ? map.static.regions
+          .filter((region) => feeFields.has(region.fieldId))
+          .map((region) => region.regionId)
+      : map.fields
+          .filter((field) => feeFields.has(field.fieldId))
+          .flatMap((field) => field.pdfFieldNames ?? [field.fieldId]);
+    const written = filled.comparison.allFields as Record<string, unknown>;
+    const feeIssues = await petFeeConsistencyIssues({
+      output: filled.content,
+      publishedFeeCents: Math.round(publishedFee.normalizedValue * 100),
+      drawnFees: feeTargets.map((target) => String(written[target] ?? "")),
+    });
+    if (feeIssues.length) fail(feeIssues.join(" "));
+  }
+  // S253 (R-S253-10): the organization, representative and signer text a form prints is still
+  // printed on the prepared file. Each form is read against itself only.
+  const lost = await lostPrintedText({
+    original: original.content,
+    output: filled.content,
+    printed: map.printedParties ?? [],
+  });
+  if (lost.length) fail(lost.join(" "));
   const contentRef = await deps.content.put({
     content: filled.content,
     contentHash: filled.outputHash,
@@ -689,7 +838,7 @@ export async function readDerivedArtifactContent(
       record.approval.provenanceHash !== record.provenanceHash)
   )
     fail("Review and approve the exact filled output first.");
-  const context = await deps.resolve(actor, request.leaseId);
+  const context = await deps.resolve(actor, request.leaseId, request.snapshotId);
   const artifact = currentArtifact(context, request);
   validateCurrent(record, context, artifact);
   await deps.original(actor, {
@@ -714,7 +863,7 @@ export async function approveDerivedArtifact(
   // S182: ordinary renewal staff approve the exact output they inspected.
   allowed(actor, renewalRoleCapability("approve_filled_artifact"));
   const request = ApproveDerivedArtifactSchema.parse(raw);
-  const context = await deps.resolve(actor, request.leaseId);
+  const context = await deps.resolve(actor, request.leaseId, request.snapshotId);
   currentArtifact(context, request, true);
   const { record } = await readDerivedArtifactContent(actor, request, db, deps);
   if (record.outputHash !== request.outputHash)

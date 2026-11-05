@@ -86,8 +86,13 @@ export function isFormQuestionOpen(
 
 /** A charge policy as this check reads it: only the parts a listed item could be answered through. */
 export interface ChargePolicyLike {
+  readonly [part: string]: unknown;
   animals?: unknown;
-  petProcessingFee?: { unit?: string | null } | null;
+  petProcessingFee?: {
+    unit?: string | null;
+    amountCents?: number;
+    source?: string;
+  } | null;
 }
 
 /** Everything the application ships that could supply a value for a listed item. */

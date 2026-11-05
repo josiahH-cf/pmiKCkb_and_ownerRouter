@@ -8,6 +8,7 @@ import { PacketInputsEditor } from "@/components/lease-renewal/PacketInputsEdito
 import { useEffect, useRef, useState } from "react";
 
 import { LEASE_ARTIFACT_FAMILIES } from "@/lib/lease-documents/artifact-catalog";
+import { formHoldLabels } from "@/lib/lease-documents/form-holds";
 import { resourceEntryHref } from "@/lib/lease-renewal/message-readiness";
 import type {
   PacketVisibleState,
@@ -233,6 +234,12 @@ function PacketSnapshotDetails({
                   <li key={artifact.artifactId}>
                     {artifact.label} · version {artifact.version} · {artifact.audience}
                     <span className="muted">: {artifact.reason}</span>
+                    {/* S253: a form that waits on one named input holds only itself. */}
+                    {formHoldLabels(manifest.formHolds, artifact.kind).map((label) => (
+                      <p key={label} data-form-hold={artifact.kind}>
+                        This form waits: {label}
+                      </p>
+                    ))}
                     {snapshot.current &&
                     artifact.artifactId &&
                     snapshot.state === "Ready for preview" ? (

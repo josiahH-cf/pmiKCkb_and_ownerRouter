@@ -11,6 +11,15 @@ import { z } from "zod";
 
 import { hashExecutionPreview } from "@/lib/execution/preview-hash";
 import { chargePolicyOpenQuestionIssue } from "@/lib/lease-documents/form-open-questions";
+import {
+  PET_AGREEMENT_DEPOSIT_FACT,
+  PET_AGREEMENT_TOTAL_FACT,
+  PET_FEE_CHARGE_ID,
+  PET_FEE_UNITS,
+  PET_PROCESSING_FEE_FACT,
+  STAFF_DEPOSIT_SOURCE_SYSTEM,
+  type PetFeeUnit,
+} from "@/lib/lease-documents/pet-agreement-facts";
 import type {
   PacketAnimalInput,
   StoredChargeOverride,
@@ -26,23 +35,18 @@ export const CHARGE_POLICY_SOURCE_SYSTEM = "renewal_charge_policy";
 export const CHARGE_OVERRIDE_SOURCE_SYSTEM = "renewal_staff_override";
 export const RBP_ELECTION_KEY = "charges.resident_benefit_package.enrolled";
 export const INSURANCE_METHOD_KEY = "insurance.coverage_method";
-/** S253: the source system of a refundable deposit staff recorded for one pet on one lease. */
-export const STAFF_DEPOSIT_SOURCE_SYSTEM = "renewal_staff_deposit";
-/** S253: the published processing fee, and the pet agreement's two amount blanks. */
-export const PET_PROCESSING_FEE_FACT = "charges.pet_processing_fee";
-export const PET_AGREEMENT_DEPOSIT_FACT = "charges.pet_agreement_deposit";
-export const PET_AGREEMENT_TOTAL_FACT = "charges.pet_agreement_total";
-export const PET_FEE_CHARGE_ID = "pet_agreement:processing_fee";
-/**
- * S253 (R-S253-2): what one processing fee can cover. The policy carries no default: the value is
- * unset until the business confirms it.
- */
-export const PET_FEE_UNITS = ["pet", "agreement"] as const;
-export type PetFeeUnit = (typeof PET_FEE_UNITS)[number];
-export const PET_FEE_UNIT_LABELS: Readonly<Record<PetFeeUnit, string>> = {
-  pet: "Each pet",
-  agreement: "Each agreement",
-};
+// S253: the pet agreement's fact names and fee units live in a client-safe module; the policy and
+// its calculator are their one writer.
+export {
+  PET_AGREEMENT_DEPOSIT_FACT,
+  PET_AGREEMENT_TOTAL_FACT,
+  PET_FEE_CHARGE_ID,
+  PET_FEE_UNITS,
+  PET_FEE_UNIT_LABELS,
+  PET_PROCESSING_FEE_FACT,
+  STAFF_DEPOSIT_SOURCE_SYSTEM,
+  type PetFeeUnit,
+} from "@/lib/lease-documents/pet-agreement-facts";
 
 const cents = z.number().int().nonnegative().max(10_000_000);
 

@@ -5,6 +5,7 @@ import { apiErrorResponse, parseJsonBody } from "@/lib/api/editable";
 import { requireCapabilityInSpace } from "@/lib/auth/session";
 import { EditableLayerError } from "@/lib/firestore/errors";
 import { readChargePolicy } from "@/lib/firestore/lease-charge-policy";
+import { readOwnerExplanationStartingText } from "@/lib/firestore/lease-owner-explanation-starting-text";
 import { getPacketInputs, savePacketInputs } from "@/lib/firestore/lease-packet-inputs";
 import { resolveLivePacketInput } from "@/lib/lease-documents/live-input";
 import { SavePacketInputsSchema } from "@/lib/lease-documents/packet-inputs";
@@ -29,9 +30,11 @@ export async function GET(request: Request) {
     if (!parsedLeaseId.success)
       throw new EditableLayerError("leaseId must be a RentVine lease id.", 400);
     const leaseId = parsedLeaseId.data;
-    const [record, policy] = await Promise.all([
+    const [record, policy, startingText] = await Promise.all([
       getPacketInputs(actor, leaseId),
       readChargePolicy(),
+      // S253: the team's starting text for the owner explanation; empty until an Admin saves one.
+      readOwnerExplanationStartingText(),
     ]);
     // The current sources, calculated charges and open questions come from the same reader the
     // packet evaluation uses. When a source is unavailable the saved inputs stay editable.
@@ -51,7 +54,13 @@ export async function GET(request: Request) {
           : "Current lease sources are unavailable. Saved inputs stay editable.";
     }
     return NextResponse.json(
-      buildPacketInputsView({ record, policy, resolved, unavailableReason }),
+      buildPacketInputsView({
+        record,
+        policy,
+        resolved,
+        unavailableReason,
+        startingText: startingText.text,
+      }),
     );
   } catch (error) {
     return apiErrorResponse(error);

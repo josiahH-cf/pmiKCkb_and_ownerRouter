@@ -246,7 +246,11 @@ export const StaticPdfGeometrySchema = z
             pageIndex: z.number().int().min(0).max(39),
             rect: RegionRectSchema,
             kind: z.enum(PROTECTED_REGION_KINDS),
-            /** The signer role this area is kept for; never one person or one position. */
+            /**
+             * The signer role this area is kept for; never one person or one position. An
+             * initial area that names a role is one box for one signer of that role; an area
+             * every signer shares names none.
+             */
             signerRole: z.enum(SIGNER_ROLES).optional(),
           })
           .strict(),
