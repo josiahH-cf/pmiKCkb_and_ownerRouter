@@ -63,6 +63,11 @@ Updated: 2026-10-20.
   together cover every file, restores the public npm download cache for the anonymous install, and
   cancels a pull request's superseded run. `scripts/verify.sh` runs the second-scale policy checks
   before format, lint, typecheck, the test lanes and the build.
+- `npm run lint` uses two ESLint threads (measured 26.9 s against 75.7 s, identical output, 2.4 GB
+  peak; each thread holds about 1.1 GB, so more threads exhaust the WSL machine). `format:check`
+  keeps Prettier's content-hash cache under `node_modules`, so a repeat local check takes about 5 s
+  instead of 37 s; CI and every fresh install start cold. ESLint's cache is not used because some
+  rules read other files.
 - Both gates run the complete served E2E inventory with the emulator (65 passed and 4 skipped:
   204 s locally and 176 s in CI on 2026-11-05). Locally this needs Java, the E2E emulator port 8090
   and the dev-server port 4310 free. The degraded-mode group (`npm run test:e2e:core`, the four
