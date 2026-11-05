@@ -408,8 +408,8 @@
   {
     "kind": "inline",
     "location": "components/admin/RenewalPacketPolicyAdminPanel.tsx",
-    "text": "Asked of …. Holds only: …. Works meanwhile: ….",
-    "describes": "Open form question row with who is asked, the one output it holds and what works meanwhile",
+    "text": "Holds only: …. Works meanwhile: ….",
+    "describes": "Open form question row with the one output it holds and what works meanwhile",
     "disposition": "keep"
   },
   {

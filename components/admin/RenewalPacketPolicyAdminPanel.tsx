@@ -178,7 +178,8 @@ function OwnerExplanationStartingTextEditor() {
 
 /**
  * S253 (R-S253-11): the form questions the business has yet to answer, each with the one output it
- * holds and what works meanwhile. The list is ready to copy into a message a person sends.
+ * holds and what works meanwhile. The questions are ready to copy into a message a person sends;
+ * who each one is asked of stays in the checked list, and no person is named on the page.
  */
 function OpenFormQuestions() {
   return (
@@ -193,8 +194,7 @@ function OpenFormQuestions() {
             <strong>{entry.question}</strong>
             <br />
             <span className="muted">
-              Asked of {entry.askedOf}. Holds only: {entry.holdsOnly}. Works meanwhile:{" "}
-              {entry.worksMeanwhile}.
+              Holds only: {entry.holdsOnly}. Works meanwhile: {entry.worksMeanwhile}.
             </span>
           </li>
         ))}

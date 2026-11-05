@@ -679,13 +679,13 @@ export async function prepareDerivedArtifact(
   }
   // S253 (R-S253-5): one fee on the finished pet agreement. The value the fill placed and the
   // text a program reads from the saved file both state the published amount, or nothing is kept.
-  const publishedFee = context.input.facts.find(
-    (fact) => fact.fieldKey === PET_PROCESSING_FEE_FACT && fact.confidence === "Verified",
-  );
-  if (
-    artifact.kind === "animal_agreement" &&
-    typeof publishedFee?.normalizedValue === "number"
-  ) {
+  // With no fee published, a form whose text states a processing fee is not kept either: an
+  // amount nobody published is never the fee on a finished form.
+  if (artifact.kind === "animal_agreement") {
+    const publishedFee = context.input.facts.find(
+      (fact) =>
+        fact.fieldKey === PET_PROCESSING_FEE_FACT && fact.confidence === "Verified",
+    );
     const feeFields = new Set(
       map.fields
         .filter((field) => field.factKey === PET_PROCESSING_FEE_FACT)
@@ -701,7 +701,10 @@ export async function prepareDerivedArtifact(
     const written = filled.comparison.allFields as Record<string, unknown>;
     const feeIssues = await petFeeConsistencyIssues({
       output: filled.content,
-      publishedFeeCents: Math.round(publishedFee.normalizedValue * 100),
+      publishedFeeCents:
+        typeof publishedFee?.normalizedValue === "number"
+          ? Math.round(publishedFee.normalizedValue * 100)
+          : null,
       drawnFees: feeTargets.map((target) => String(written[target] ?? "")),
     });
     if (feeIssues.length) fail(feeIssues.join(" "));

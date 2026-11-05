@@ -16,7 +16,10 @@ import {
   type ChargePolicyRecord,
 } from "@/lib/lease-documents/charge-policy";
 import { resolveFamilyUse } from "@/lib/lease-documents/family-use";
-import { FORM_QUESTION_IDS } from "@/lib/lease-documents/form-open-questions";
+import {
+  FORM_OPEN_QUESTIONS,
+  FORM_QUESTION_IDS,
+} from "@/lib/lease-documents/form-open-questions";
 
 // S253 R-S253-2, R-S253-7, R-S253-11 on the Admin configuration: the pet processing fee is
 // published with a source note and no default, the starting text is the team's own and ships
@@ -294,7 +297,7 @@ describe("S253 R-S253-7: the team's starting text is an Admin setting that ships
 });
 
 describe("S253 R-S253-11: the open questions are listed copy-ready", () => {
-  it("lists every open question with who is asked, what it holds and what works meanwhile", () => {
+  it("lists every open question with what it holds and what works meanwhile, and names no person", () => {
     render(<RenewalPacketPolicyAdminPanel initial={initial()} />);
     const list = document.querySelector("[data-open-form-questions]") as HTMLElement;
     expect(list.querySelector("summary")?.textContent).toBe("Open form questions (8)");
@@ -304,9 +307,12 @@ describe("S253 R-S253-11: the open questions are listed copy-ready", () => {
       ),
     ).toEqual([...FORM_QUESTION_IDS]);
     const first = list.querySelector('[data-open-form-question="deposit_schedule"]');
-    expect(first?.textContent).toContain(
-      "Asked of Dan. Holds only: A deposit filled in without staff. Works meanwhile: A deposit staff record with its source.",
+    expect(first?.textContent).toBe(
+      "Which pet screening result or schedule sets the refundable pet deposit, who approves it, and is it entered by hand or filled in automatically?Holds only: A deposit filled in without staff. Works meanwhile: A deposit staff record with its source.",
     );
+    // Who each question is asked of stays in the checked list; the page names no person.
+    for (const entry of FORM_OPEN_QUESTIONS.open)
+      expect(list.textContent).not.toContain(entry.askedOf);
     // The list is shown, never sent: nothing here requests anything.
     expect(requests).toEqual([]);
   });

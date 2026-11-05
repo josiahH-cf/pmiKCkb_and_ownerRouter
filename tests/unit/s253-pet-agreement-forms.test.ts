@@ -10,6 +10,7 @@ import {
   ArtifactFieldMapSchema,
   type ArtifactFieldMap,
 } from "@/lib/lease-documents/artifact-intake-contract";
+import { ChargePolicyRecordSchema } from "@/lib/lease-documents/charge-policy";
 import {
   HELD_ANIMAL_REASON,
   evaluateRenewalPacket,
@@ -29,6 +30,7 @@ import { admin } from "@/tests/fixtures/s130-derived";
 import {
   DEPOSIT_SOURCE,
   FEE_SOURCE,
+  SEEDED_AT,
   STAFF_AT,
   feeAlonePolicy,
   onePathView,
@@ -250,6 +252,69 @@ describe("S253 AC-S253-2: one fee on the finished form, or no file", () => {
       /states a processing fee of \$350\.00 in its text, and the published fee is \$50\.00/,
     );
     expect(kept(t)).toEqual([]);
+  });
+
+  it("with no fee published, keeps no pet agreement whose text states a processing fee", async () => {
+    // A policy that prices pets by tier and publishes no processing fee, and a map that places
+    // none of the three amounts: the form's own text would still state a fee nobody published.
+    const tieredWithoutFee = ChargePolicyRecordSchema.parse({
+      schemaVersion: "renewal-charge-policy/v1",
+      version: 3,
+      effectiveFrom: "2026-11-01",
+      content: {
+        residentBenefitPackage: null,
+        insuranceProgram: null,
+        animals: {
+          basis: "fido_score",
+          tiers: [
+            {
+              tierId: "all",
+              label: "Every score",
+              min: 1,
+              maxExclusive: null,
+              monthlyCents: 2_500,
+              oneTimeCents: 0,
+              refundableDepositCents: 22_500,
+            },
+          ],
+          treatments: { pet: "tiered", assistance_animal: "no_charge" },
+          agreementFor: { pet: true, assistance_animal: false },
+          juvenileWeightBasis: null,
+        },
+      },
+      publishedAt: SEEDED_AT,
+      publishedByUid: admin.uid,
+    });
+    const amounts = new Set(["ProcessingFee", "Deposit", "Total"]);
+    const withoutAmounts = (map: ArtifactFieldMap): ArtifactFieldMap =>
+      ArtifactFieldMapSchema.parse({
+        ...map,
+        mapVersion: "one-path-pet-no-amounts",
+        fields: map.fields.filter((field) => !amounts.has(field.fieldId)),
+        static: {
+          ...map.static!,
+          regions: map.static!.regions.filter((region) => !amounts.has(region.fieldId)),
+        },
+      });
+    const t = await setupOnePathLease({
+      animals: "one_pet",
+      policy: tieredWithoutFee,
+      remap: { animal_agreement: withoutAmounts },
+    });
+    const evaluation = evaluateRenewalPacket(t.tenant);
+    expect(evaluation).toMatchObject({ state: "Ready for preview", blockers: [] });
+    expect(evaluation.manifest!.formHolds).toBeUndefined();
+    await expect(
+      prepareDerivedArtifact(admin, t.prepareRequest("animal_agreement"), t.db, t.deps),
+    ).rejects.toThrow(
+      // Both amounts stand in the fee sentence: the earlier text and the overlay drawn over it.
+      /Page 1 of this form states a processing fee of \$150\.00 and \$50\.00 in its text, and no processing fee is published\. An Admin publishes the pet processing fee before this form is prepared\./,
+    );
+    expect(kept(t)).toEqual([]);
+    // The lease's other forms are prepared as usual.
+    expect((await prepared(t, "renewal_extension")).record.comparison.verified).toBe(
+      true,
+    );
   });
 });
 

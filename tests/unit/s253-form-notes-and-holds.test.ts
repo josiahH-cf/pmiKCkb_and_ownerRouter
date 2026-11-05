@@ -373,6 +373,45 @@ describe("S253 R-S253-5: the fee a prepared form states", () => {
     ).toEqual([]);
   });
 
+  it("reads every amount set directly beside the fee's amount, whichever comes first", () => {
+    expect(cents("The tenant pays a processing fee of $50$150 at signing.")).toEqual([
+      5_000, 15_000,
+    ]);
+    expect(cents("The tenant pays a processing fee of $150 $50 at signing.")).toEqual([
+      15_000, 5_000,
+    ]);
+    expect(cents("A $50$150 non-refundable pet processing fee is due.")).toEqual([
+      15_000, 5_000,
+    ]);
+    // A comma, a word or a sentence end separates another amount of the same line.
+    expect(cents("The processing fee of $50, $300 deposit.")).toEqual([5_000]);
+    expect(cents("A processing fee of $50 at signing, then $300.")).toEqual([5_000]);
+    expect(cents("Processing Fee: $1,250.50, $300")).toEqual([125_050]);
+  });
+
+  it("finds an earlier amount under a later one in either order", async () => {
+    // Two amounts stand at the same place of the fee sentence, as an overlay over earlier text.
+    const page = (first: string, second: string) =>
+      staticPage([
+        "BT /F1 11 Tf 1 0 0 1 72 600 Tm (The tenant pays a processing fee of) Tj ET",
+        `BT /F1 11 Tf 1 0 0 1 250 600 Tm (${first}) Tj ET`,
+        `BT /F1 11 Tf 1 0 0 1 250 600 Tm (${second}) Tj ET`,
+      ]);
+    for (const [first, second] of [
+      ["$150", "$50"],
+      ["$50", "$150"],
+    ])
+      expect(
+        await petFeeConsistencyIssues({
+          output: await page(first, second),
+          publishedFeeCents: 5_000,
+          drawnFees: [],
+        }),
+      ).toEqual([
+        "Page 1 of this form states a processing fee of $150.00 in its text, and the published fee is $50.00. Use a corrected original, or a reviewed map region that replaces that exact text.",
+      ]);
+  });
+
   it("refuses a drawn fee that is not the published amount, and a file that states another", async () => {
     const page = (sentence: string) =>
       staticPage([`BT /F1 11 Tf 1 0 0 1 72 600 Tm (${sentence}) Tj ET`]);
@@ -421,6 +460,46 @@ describe("S253 R-S253-5: the fee a prepared form states", () => {
     ).toEqual([
       "This form's text could not be read to compare its processing fee with the published fee, so the file was not kept.",
     ]);
+  });
+
+  it("with no fee published, keeps no form that states a processing fee", async () => {
+    const page = (sentence: string) =>
+      staticPage([`BT /F1 11 Tf 1 0 0 1 72 600 Tm (${sentence}) Tj ET`]);
+    // An amount nobody published is never the fee on a finished form.
+    expect(
+      await petFeeConsistencyIssues({
+        output: await page("The tenant pays a processing fee of $150 at signing."),
+        publishedFeeCents: null,
+        drawnFees: [],
+      }),
+    ).toEqual([
+      "Page 1 of this form states a processing fee of $150.00 in its text, and no processing fee is published. An Admin publishes the pet processing fee before this form is prepared.",
+    ]);
+    expect(
+      await petFeeConsistencyIssues({
+        output: await page("The tenant keeps the animal on a leash outside."),
+        publishedFeeCents: null,
+        drawnFees: ["$50.00"],
+      }),
+    ).toEqual([
+      "The processing fee placed on this form reads $50.00, and no processing fee is published.",
+    ]);
+    // A form that states no processing fee is kept as before, with its fee blank left blank.
+    expect(
+      await petFeeConsistencyIssues({
+        output: await page("The tenant keeps the animal on a leash outside."),
+        publishedFeeCents: null,
+        drawnFees: [""],
+      }),
+    ).toEqual([]);
+    // With no amount to compare, a file whose text cannot be read is left to the filler's proof.
+    expect(
+      await petFeeConsistencyIssues({
+        output: new Uint8Array([1, 2, 3]),
+        publishedFeeCents: null,
+        drawnFees: [],
+      }),
+    ).toEqual([]);
   });
 });
 
