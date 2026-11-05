@@ -838,7 +838,13 @@ export async function recordWorkspaceSourceStatus(
         "The staff fact changed while its source update was being prepared. Review the current record.",
         409,
       );
-    const updated = { eventId: entry.eventId, intent: entry.intent, ...input.update };
+    const updated = {
+      eventId: entry.eventId,
+      intent: entry.intent,
+      // S248 R-S248-11: a derived value keeps the message it is bound to through each status.
+      ...(entry.derivedFrom ? { derivedFrom: entry.derivedFrom } : {}),
+      ...input.update,
+    };
     if (hashExecutionPreview(entry) === hashExecutionPreview(updated)) return;
     const next = parseState(
       {

@@ -167,7 +167,9 @@ function dayPlus(dateIso: string, days: number): string {
  * days before its first staff event and stays open; a lease-bound record with no staff event yet
  * counts none. Independent copy.
  */
-function independentCycleWindow(state: RenewalWorkspaceState): (sentAtMs: number) => boolean {
+function independentCycleWindow(
+  state: RenewalWorkspaceState,
+): (sentAtMs: number) => boolean {
   const basis = state.basis as { kind: string; dateIso?: string };
   if (basis.kind !== "lease_bound") {
     const opens = dayPlus(basis.dateIso ?? "", -120);

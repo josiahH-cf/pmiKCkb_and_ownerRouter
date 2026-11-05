@@ -209,7 +209,9 @@ describe("S248 R-S248-7 a verified receipt marks its Finish up item done", () =>
         detail: RENEWAL_FINISH_UP_WORDS.staff,
       }),
     );
-    expect(RENEWAL_FINISH_UP_WORDS.staff).not.toBe(RENEWAL_FINISH_UP_WORDS.providerVerified);
+    expect(RENEWAL_FINISH_UP_WORDS.staff).not.toBe(
+      RENEWAL_FINISH_UP_WORDS.providerVerified,
+    );
     expect(after.steps.find((step) => step.id === "finish-up")!.detail).toMatch(
       /verified by the provider's receipt$/,
     );

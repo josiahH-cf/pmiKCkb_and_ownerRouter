@@ -555,7 +555,9 @@ function finishUpItems(
       label: update.label,
       done: update.verified,
       origin: update.verified ? "provider_verified" : null,
-      detail: update.verified ? RENEWAL_FINISH_UP_WORDS.providerVerified : update.stateLabel,
+      detail: update.verified
+        ? RENEWAL_FINISH_UP_WORDS.providerVerified
+        : update.stateLabel,
     });
   return items;
 }

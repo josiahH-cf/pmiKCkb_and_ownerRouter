@@ -272,6 +272,20 @@ describe("post-promotion assurance state machine", () => {
     }
   });
 
+  it("S248: holds a run whose rendered rows could not read their renewal message evidence", () => {
+    const result = evaluateReleaseObservation(
+      input({
+        reconciliation: {
+          ...input().reconciliation,
+          state: "inconclusive_evidence_unavailable",
+        },
+      }),
+    );
+    expect(result.decision).toBe("hold");
+    expect(result.reasons).toContain("evidence_unavailable");
+    expect(result.rollbackRevision).toBeNull();
+  });
+
   it("refuses an absent, malformed, or candidate-equal predecessor", () => {
     for (const predecessorRevision of ["", "LATEST", CANDIDATE]) {
       expect(() => evaluateReleaseObservation(input({ predecessorRevision }))).toThrow(

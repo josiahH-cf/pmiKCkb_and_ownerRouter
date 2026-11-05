@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   FILTERED_EMPTY_COPY,
+  OUTREACH_EVIDENCE_UNAVAILABLE_NOTICE,
   PARTY_FILTERING_UNAVAILABLE_NOTICE,
   RenewalDeskTable,
   UNFILTERED_EMPTY_COPY,
@@ -1003,4 +1004,46 @@ it("S196/S247 opens a verified internal lease in this tab at its top, retaining 
     "href",
     expect.stringContaining("scope=all"),
   );
+});
+
+describe("S248 a failed renewal message evidence read says so", () => {
+  it("marks each row with its evidence read and shows staff a short notice when one failed", () => {
+    render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[
+          row("L1", { outreachEvidence: "read" }),
+          row("L2", { outreachEvidence: "unavailable" }),
+          row("L3"),
+        ]}
+        shortcuts={shortcuts}
+        sourceReadOk
+        state={state}
+        totalBeforeQuery={3}
+      />,
+    );
+    const rows = Array.from(document.querySelectorAll("tr[data-lease-id]"));
+    expect(rows.map((tr) => tr.getAttribute("data-outreach-evidence"))).toEqual([
+      "read",
+      "unavailable",
+      "none",
+    ]);
+    expect(screen.getByRole("note")).toHaveTextContent(
+      OUTREACH_EVIDENCE_UNAVAILABLE_NOTICE,
+    );
+  });
+
+  it("shows no notice when every row's evidence was read", () => {
+    render(
+      <RenewalDeskTable
+        role="Editor"
+        rows={[row("L1", { outreachEvidence: "read" })]}
+        shortcuts={shortcuts}
+        sourceReadOk
+        state={state}
+        totalBeforeQuery={1}
+      />,
+    );
+    expect(document.querySelector("[data-outreach-evidence-notice]")).toBeNull();
+  });
 });

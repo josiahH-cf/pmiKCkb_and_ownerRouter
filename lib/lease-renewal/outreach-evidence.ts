@@ -267,11 +267,13 @@ export function outreachScopeFor(
   if (state.basis.kind !== "lease_bound")
     return { cycleId: state.cycleId, unscoped: outreachCycleWindow(state.basis.dateIso) };
   const earliest = earliestStaffEventMs(state);
-  if (!Number.isFinite(earliest)) return { cycleId: state.cycleId, unscoped: () => false };
+  if (!Number.isFinite(earliest))
+    return { cycleId: state.cycleId, unscoped: () => false };
   const opens = shiftDays(businessDateIso(earliest), -OUTREACH_WINDOW_DAYS_BEFORE);
   return {
     cycleId: state.cycleId,
-    unscoped: (sentAtMs) => Number.isFinite(sentAtMs) && businessDateIso(sentAtMs) >= opens,
+    unscoped: (sentAtMs) =>
+      Number.isFinite(sentAtMs) && businessDateIso(sentAtMs) >= opens,
   };
 }
 
@@ -611,7 +613,10 @@ export function outreachFillFor(
   if (!state || !evidence?.input) return null;
   return outreachFill(
     state,
-    projectOutreachEvidence(evidence.input, outreachScopeFor(state, evidence.cycleDateIso)),
+    projectOutreachEvidence(
+      evidence.input,
+      outreachScopeFor(state, evidence.cycleDateIso),
+    ),
   );
 }
 

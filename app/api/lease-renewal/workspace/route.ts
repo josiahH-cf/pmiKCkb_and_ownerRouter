@@ -118,9 +118,14 @@ export async function POST(request: Request) {
         state: await prepareWorkspaceSheetUpdate(actor, input),
       });
     if (input.operation === "prepare_derived_source") {
-      const { operation: _, ...value } = input;
       return NextResponse.json({
-        state: await prepareDerivedWorkspaceSheetUpdate(actor, value),
+        state: await prepareDerivedWorkspaceSheetUpdate(actor, {
+          leaseId: input.leaseId,
+          cycleId: input.cycleId,
+          audience: input.audience,
+          sequenceId: input.sequenceId,
+          occurrenceId: input.occurrenceId,
+        }),
         writeback_paused: isOperatingSheetWritebackPaused(),
       });
     }

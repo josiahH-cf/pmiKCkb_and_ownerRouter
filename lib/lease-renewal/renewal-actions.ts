@@ -509,12 +509,17 @@ function manualDrafts(
   const standing =
     snapshot.standingOwnerAuthority?.covered === true &&
     snapshot.standingOwnerAuthority.manualRevision === (state?.revision ?? 0);
-  const summary =
-    state || standing ? laneSummary(snapshot, state, standing) : null;
+  const summary = state || standing ? laneSummary(snapshot, state, standing) : null;
   const nonRenewal = manualNonRenewal(state);
   const ownerDeclined = state?.ownerResponse?.outcome === "declined_non_renewal";
+  // S248: an outreach the app's own confirmed send recorded is done, as on the desk row.
+  const fill = outreachFillFor(state, snapshot.outreach);
   const satisfied = (key: ManualActivity) =>
-    state ? manualActivitySatisfied(state, key) : false;
+    state
+      ? manualActivitySatisfied(state, key) ||
+        (key === "owner_outreach" && Boolean(fill?.owner_outreach)) ||
+        (key === "tenant_offer" && Boolean(fill?.tenant_offer))
+      : false;
   const tenantOutcome = state ? currentManualTenantOutcome(state) : null;
   const approved = state?.ownerResponse?.outcome === "approved_terms";
   // As in the summary, a current tenant counter reopens the owner response only once the offer is
@@ -1011,8 +1016,7 @@ export function projectRenewalActions(
   const standing =
     snapshot.standingOwnerAuthority?.covered === true &&
     snapshot.standingOwnerAuthority.manualRevision === (state?.revision ?? 0);
-  const summary =
-    state || standing ? laneSummary(snapshot, state, standing) : null;
+  const summary = state || standing ? laneSummary(snapshot, state, standing) : null;
   const outcome: RenewalActionProjection["outcome"] =
     lane === "manual" && summary
       ? summary.complete

@@ -395,13 +395,14 @@ export async function correctRenewalOutreach(
     .collection(RENEWAL_WORKSPACE_COLLECTIONS.activity)
     .doc(input.operationId);
   return db.runTransaction(async (tx) => {
-    const [snapshot, holderSnapshot, dated, leaseBound, priorActivity] = await Promise.all([
-      tx.get(ref),
-      tx.get(holderRef),
-      tx.get(heads.dated),
-      tx.get(heads.leaseBound),
-      tx.get(activityRef),
-    ]);
+    const [snapshot, holderSnapshot, dated, leaseBound, priorActivity] =
+      await Promise.all([
+        tx.get(ref),
+        tx.get(holderRef),
+        tx.get(heads.dated),
+        tx.get(heads.leaseBound),
+        tx.get(activityRef),
+      ]);
     let record = snapshot.exists
       ? (snapshot.data() as RenewalOutreachRecordDocument)
       : null;
@@ -486,7 +487,9 @@ export async function correctRenewalOutreach(
         )?.[0]
       : undefined;
     if (current && derivedField) {
-      const { [derivedField]: _withdrawn, ...sourceUpdates } = current.sourceUpdates;
+      const sourceUpdates = Object.fromEntries(
+        Object.entries(current.sourceUpdates).filter(([field]) => field !== derivedField),
+      );
       const withdrawn = { ...current, revision: current.revision + 1, sourceUpdates };
       tx.set(dated.exists ? heads.dated : heads.leaseBound, withdrawn);
       tx.set(

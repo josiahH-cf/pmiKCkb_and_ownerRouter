@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { evaluateReconciliation } from "@/lib/production-assurance/reconciliation";
 import { SYNTHETIC_APPROVAL } from "../helpers/owner-approval";
 
 import type { Firestore } from "firebase-admin/firestore";
@@ -39,6 +40,7 @@ import {
 import {
   buildExpectedProjectionRows,
   compareProjectionRows,
+  compareProjectionRowsWithEvidence,
   countIndependentRowGuidanceMismatches,
   projectIndependentExpectedGuidanceState,
   readIndependentDecisionFacts,
@@ -1163,5 +1165,89 @@ describe("S156 oracle: the independent work-record read", () => {
     );
     // Without the read no staff record is invented; the caller reports the read as unavailable.
     expect(rows.every((row) => row.manual === null)).toBe(true);
+  });
+});
+
+describe("S248 oracle: a row whose renewal message evidence could not be read", () => {
+  const EVIDENCE_MARKER = INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER;
+  // The oracle's own reading of the app's evidence moves one recorded lease on.
+  const moved = STAFF_LANE_ROWS.find((row) => row.manual)!.leaseId;
+  const evidenceRows = STAFF_LANE_ROWS.map((row) =>
+    row.leaseId === moved && row.manual
+      ? {
+          ...row,
+          manual: {
+            ...row.manual,
+            nextActivity:
+              row.manual.nextActivity === "tenant_offer" ? "documents" : "tenant_offer",
+          },
+        }
+      : row,
+  );
+  const direct: DirectProjection = {
+    ...DIRECT,
+    evidenceStage: { rows: evidenceRows, decision: "complete", sourceDigest: "evidence" },
+  };
+  // The application rendered every row from the staff record alone, as it does when its own
+  // evidence read failed, and each row says which it was.
+  const rendered = (outreachEvidence: string): RenderedProjection => {
+    const base = page(STAFF_LANE_RENDER, () => EVIDENCE_MARKER);
+    return { ...base, rows: base.rows.map((row) => ({ ...row, outreachEvidence })) };
+  };
+  const verdict = (result: ReturnType<typeof compareProjectionRowsWithEvidence>) =>
+    evaluateReconciliation(
+      {
+        rentvine: "complete",
+        sheet: "complete",
+        application: "complete",
+        sourceDrift: "stable",
+        counts: result.counts,
+      },
+      { evidenceUnavailableRows: result.evidenceUnavailableRows },
+    ).state;
+
+  it("reads such a row under the staff record alone and reports the run in its own class", () => {
+    // A row that claims its evidence was read is held to the oracle's evidence reading.
+    const read = compareProjectionRowsWithEvidence(
+      direct,
+      rendered("read"),
+      "Admin",
+      ORIGIN,
+    );
+    expect(mismatches(read.counts)).toBeGreaterThan(0);
+    expect(read.evidenceUnavailableRows).toBe(0);
+    expect(verdict(read)).toBe("mismatch");
+    // A row that says its evidence was unavailable is no field mismatch, and never a pass.
+    const unavailable = compareProjectionRowsWithEvidence(
+      direct,
+      rendered("unavailable"),
+      "Admin",
+      ORIGIN,
+    );
+    expect(mismatches(unavailable.counts)).toBe(0);
+    expect(unavailable.evidenceUnavailableRows).toBe(LEASE_IDS.length);
+    expect(verdict(unavailable)).toBe("inconclusive_evidence_unavailable");
+    // An older render with no attribute is read as evidence the row holds.
+    const legacy = compareProjectionRowsWithEvidence(
+      direct,
+      page(STAFF_LANE_RENDER, () => EVIDENCE_MARKER),
+      "Admin",
+      ORIGIN,
+    );
+    expect(legacy.evidenceUnavailableRows).toBe(0);
+    expect(verdict(legacy)).toBe("mismatch");
+  });
+
+  it("lets a genuine mismatch on another row still fail the run", () => {
+    const base = rendered("unavailable");
+    const broken: RenderedProjection = {
+      ...base,
+      rows: base.rows.map((row) =>
+        row.leaseId === moved ? { ...row, outreachEvidence: "read" } : row,
+      ),
+    };
+    const result = compareProjectionRowsWithEvidence(direct, broken, "Admin", ORIGIN);
+    expect(result.evidenceUnavailableRows).toBe(LEASE_IDS.length - 1);
+    expect(verdict(result)).toBe("mismatch");
   });
 });

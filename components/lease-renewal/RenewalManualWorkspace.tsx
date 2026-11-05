@@ -600,7 +600,10 @@ export function RenewalManualSection({
     ? derivedOutreachSheetIntent(fill.tenant_offer.activity)
     : null;
   const derivedSheetValue =
-    state && fill?.tenant_offer && derivedIntent && !state.sourceUpdates[derivedIntent.field]
+    state &&
+    fill?.tenant_offer &&
+    derivedIntent &&
+    !state.sourceUpdates[derivedIntent.field]
       ? { record: fill.tenant_offer, intent: derivedIntent }
       : null;
   const activities = Object.entries(MANUAL_ACTIVITIES)
@@ -672,7 +675,9 @@ export function RenewalManualSection({
                 <Button
                   variant="secondary"
                   disabled={context.pending || context.writebackPaused}
-                  onClick={() => void context.prepareDerivedSource(derivedSheetValue.record)}
+                  onClick={() =>
+                    void context.prepareDerivedSource(derivedSheetValue.record)
+                  }
                 >
                   Prepare the Sheet update for{" "}
                   {SHEET_FIELD_LABELS[derivedSheetValue.intent.field].toLowerCase()}

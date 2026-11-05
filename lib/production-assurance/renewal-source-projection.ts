@@ -1633,6 +1633,7 @@ export function independentRowEvidenceUnavailable(
   outreachEvidence: string | null,
 ): boolean {
   return (
-    independentContractReadsEvidence(marker, expected) && outreachEvidence === "unavailable"
+    independentContractReadsEvidence(marker, expected) &&
+    outreachEvidence === "unavailable"
   );
 }

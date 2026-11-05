@@ -313,18 +313,18 @@ describe("S248 AC-S248-4: a message sent before the lease had a work record", ()
   it("counts a message inside this cycle's own window, sent before or after the record began", () => {
     const end = "2026-12-31";
     // Opens 120 days before the cycle date (09/02/2026) and closes 60 days after (03/01/2027).
-    expect(counted(Date.parse("2026-09-02T15:00:00.000Z"), outreachScopeFor(dated(end)))).toBe(
-      true,
-    );
-    expect(counted(Date.parse("2026-09-01T15:00:00.000Z"), outreachScopeFor(dated(end)))).toBe(
-      false,
-    );
-    expect(counted(Date.parse("2027-03-01T15:00:00.000Z"), outreachScopeFor(dated(end)))).toBe(
-      true,
-    );
-    expect(counted(Date.parse("2027-03-02T15:00:00.000Z"), outreachScopeFor(dated(end)))).toBe(
-      false,
-    );
+    expect(
+      counted(Date.parse("2026-09-02T15:00:00.000Z"), outreachScopeFor(dated(end))),
+    ).toBe(true);
+    expect(
+      counted(Date.parse("2026-09-01T15:00:00.000Z"), outreachScopeFor(dated(end))),
+    ).toBe(false);
+    expect(
+      counted(Date.parse("2027-03-01T15:00:00.000Z"), outreachScopeFor(dated(end))),
+    ).toBe(true);
+    expect(
+      counted(Date.parse("2027-03-02T15:00:00.000Z"), outreachScopeFor(dated(end))),
+    ).toBe(false);
     // A message reviewed before S233 recorded the cycle, sent after the record's first staff
     // event: it is this cycle's outreach.
     const began = dated(end, [

@@ -77,7 +77,10 @@ export async function assertManualSheetProposalCurrent(
     );
   // S248 R-S248-11: a value from the app's confirmed send stays bound to that message. Once staff
   // said "This was not the renewal outreach", its Sheet update cannot be confirmed.
-  if (entry.derivedFrom && (await derivedOutreachCorrected(entry.derivedFrom.occurrenceId)))
+  if (
+    entry.derivedFrom &&
+    (await derivedOutreachCorrected(entry.derivedFrom.occurrenceId))
+  )
     throw new EditableLayerError(
       "That message no longer counts as the renewal outreach. Nothing was sent to the Sheet.",
       409,

@@ -485,7 +485,9 @@ describe("S248 outreach records from the confirmed renewal Send", () => {
         },
       );
     await batch.commit();
-    const occurrenceId = /<pmi-([0-9a-f]{64})@/.exec(sequence.threads[0]!.rfcMessageId)![1]!;
+    const occurrenceId = /<pmi-([0-9a-f]{64})@/.exec(
+      sequence.threads[0]!.rfcMessageId,
+    )![1]!;
     const corrected = await correctRenewalOutreach(
       actor,
       {
@@ -576,7 +578,7 @@ describe("S248 outreach records from the confirmed renewal Send", () => {
         .authorization.operationId,
     ).toBe(authorized.authorizationOperation!.id);
     // A communication authorized before the operation was kept names none.
-    const { authorizationOperation: _, ...legacy } = later;
+    const legacy = { ...later, authorizationOperation: undefined };
     expect(
       outreachRecordForAcceptedSend(legacy, occurrence, thread.sentAtMs, Date.now())!
         .authorization.operationId,
