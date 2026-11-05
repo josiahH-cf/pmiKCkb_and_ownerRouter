@@ -61,12 +61,23 @@ it("prioritizes nonrenewals only for an unset view; a deliberate due sort and fi
     applyRenewalDeskQueryV2(rows, entry.state, () => false).items.map((r) => r.id),
   ).toEqual(["2", "1"]);
   const saved = "v=2&sort=due&scope=all";
-  const remembered = resolveRenewalDeskEntry({
+  // S246 ARCH-S246-3: the bare route opens the working batch and only offers the remembered view.
+  const ordinary = resolveRenewalDeskEntry({
     searchParams: {},
     storedView: saved,
     parseExplicit: parseRenewalDeskQueryV2,
     partyTokenResolves: () => false,
   });
+  expect(ordinary.surface).toBe("batch");
+  expect(ordinary.savedView).toBe(saved);
+  // The deliberate view is its own address, so a reload of it, or its saved-view link, keeps it.
+  const remembered = resolveRenewalDeskEntry({
+    searchParams: new URLSearchParams(saved),
+    storedView: saved,
+    parseExplicit: parseRenewalDeskQueryV2,
+    partyTokenResolves: () => false,
+  });
+  expect(remembered.surface).toBe("table");
   expect(remembered.source).toBe("saved");
   expect(serializeRenewalDeskQueryV2(remembered.state)).toBe(saved);
   expect(

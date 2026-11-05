@@ -75,7 +75,8 @@ it.each(["first_fixture", "repeat_fixture"] as const)(
     expect(answer.groups[0].notes).toContain(
       "Showing the first 25 of 312. Open the full list for the rest.",
     );
-    expect(answer.groups[0].link?.href).toContain("month=2026-10");
+    // S246 R-S246-10: a month answer lists that month's working batch and opens it there.
+    expect(answer.groups[0].link?.href).toBe("/lease-renewal/live/desk?batch=2026-10");
     expect(base.calls).toEqual(["renewals"]);
     expect(provider.generateText).toHaveBeenCalledTimes(1);
     console.info(

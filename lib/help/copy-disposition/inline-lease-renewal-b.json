@@ -155,6 +155,34 @@
   },
   {
     "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkingBatch.tsx",
+    "text": "All …loaded leases are counted once across these groups. Choose a count to list its leases.",
+    "describes": "Working batch: every loaded lease is in exactly one group, and a count lists its leases",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkingBatch.tsx",
+    "text": "Recording a completion or a keep-working choice needs Editor access. You can open each lease to review it.",
+    "describes": "Renewed in RentVine group: the two staff choices need Editor access; leases stay openable",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkingBatch.tsx",
+    "text": "Recording is paused while the lease data is past its limit. Refresh the lease data first.",
+    "describes": "Renewed in RentVine group: recording pauses while the lease data is past its limit",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/lease-renewal/RenewalWorkingBatch.tsx",
+    "text": "Lease record needs a check before it can open",
+    "describes": "Working batch row with no stable lease id: shown without a link",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
     "location": "components/lease-renewal/RenewalWorkingRecord.tsx",
     "text": "Prefilled from policy v…. …This amount is saved when you leave or submit the field.",
     "describes": "Working renewal rent prefilled from the pricing policy, saved on leave",
