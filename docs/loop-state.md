@@ -60,7 +60,7 @@ attempts and free profile before/after. It also exposed the remaining source-acc
 
 ## Awaiting release
 
-1. S87 present-tense copy and display from the S245 litmus: the Connections no-sign-in result, the Approval Queue bulk Execute refusal, the People and Access and Space request read-failure notes, and a workflow run's Next Action from its checklist on the run page, Space card, process summary and shared context — `d51e84adede237e47516491888613c1535540d45`.
+1. S87 present-tense copy and display from the S245 litmus: the Connections no-sign-in result, the Approval Queue bulk Execute refusal, the People and Access and Space request read-failure notes, and a workflow run's Next Action from its checklist on the run page, Space card, process summary and shared context, with the Space card reading the run's pinned steps — `d51e84adede237e47516491888613c1535540d45`, `cf654c7297c000cc383be7ef7123373e2fce7593`.
 2. S126 Source last read in the date and time convention on Waiting on you, Notifications, Spaces and the assistant's approvals answer — `d51e84adede237e47516491888613c1535540d45`.
 3. S147 Try again waits, bounded at 30 s, for the lease read in flight before re-reading — `d51e84adede237e47516491888613c1535540d45`.
 4. S242 print keeps every help heading with the content it introduces — `d51e84adede237e47516491888613c1535540d45`.
