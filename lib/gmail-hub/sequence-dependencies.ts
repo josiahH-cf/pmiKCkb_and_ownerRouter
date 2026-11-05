@@ -25,6 +25,7 @@ import {
   writeRenewalOutreachRecord,
 } from "@/lib/firestore/renewal-outreach-records";
 import { CommunicationAttachmentStore } from "./sequence-attachments";
+import { renewalNoticeMaterialIdentity } from "./renewal-material-source";
 import {
   WorkflowCommunicationSequenceService,
   assertCommunicationStaff,
@@ -119,12 +120,13 @@ async function renewalTarget(actor: AuthenticatedUser, c: WorkflowCommunicationC
     noticeCycleId: current.noticeCycleId ?? null,
     blockers,
     // Material values, not an admission generation, read timestamp, signature or unrelated field.
+    // S248 L39: the notice's scope and semantic identity, never the marker's admission version.
     materialSourceHash: sequenceHash({
       leaseId: c.entityId,
       channel,
       to,
       cc,
-      notice: current.basis.noticeSafety,
+      notice: renewalNoticeMaterialIdentity(current.basis.noticeSafety),
       address: f.address,
       currentRent: f.currentBaseRent?.value ?? null,
       leaseEnd: f.leaseEndDate,
