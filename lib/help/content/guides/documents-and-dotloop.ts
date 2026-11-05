@@ -245,7 +245,7 @@ export const DOCUMENTS_AND_DOTLOOP_GUIDES: readonly HelpGuide[] = [
         route: WORKSPACE,
         where: "Documents and completion, Completion checks, at the end of the section",
         result:
-          "The card says whether staff completion is recorded and whether provider-verified document completion is established. A staff completion marker is staff evidence, separate from provider completion.",
+          "The card reads Provider-verified document completion: not established. Staff completion shows under Work recorded by staff, as staff evidence separate from provider completion.",
         effect: "reads",
       },
     ],

@@ -11,9 +11,9 @@ export const HELP_CHANGELOG: readonly HelpChangelogEntry[] = [
     version: "V1.1",
     date: "2026-11-04",
     summary:
-      "V1.1, the Manage Connections guide says what the card shows after a live check passes or does not pass",
-    affectedGuides: ["manage-connections"],
-    contentDigest: "26f721848804b337cc93b9fc4aedf359715549db70c2c0596b05657fd726f9a4",
+      "V1.1, three guide results now match the app: the Completion checks card, the connection card after a live check and a snoozed queue item",
+    affectedGuides: ["prepare-documents", "manage-connections", "approve-or-deny"],
+    contentDigest: "a77ea88054d52bdade8d4c1f573934025e0de03f12fbee6acfedde6bb0641bfb",
   },
   {
     version: "V1.0",

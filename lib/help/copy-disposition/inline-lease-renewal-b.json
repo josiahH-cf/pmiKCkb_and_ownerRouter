@@ -234,7 +234,7 @@
     "kind": "inline",
     "location": "components/lease-renewal/RenewalWorkspace.tsx",
     "text": "Staff completion recorded. Provider-verified document completion: not established.",
-    "describes": "Completion checks card after staff record completion",
+    "describes": "Completion checks card when the lease's renewal progress record reads complete",
     "disposition": "keep"
   },
   {

@@ -120,7 +120,7 @@ export const APPROVAL_QUEUE_AND_NOTIFICATIONS_GUIDES: readonly HelpGuide[] = [
         route: "/approval-queue",
         where: "Approval Queue, Queue item detail",
         result:
-          "The status reads Snoozed until that date and Activity records your reason. Without both the queue says Snooze requires a date and reason.",
+          "The status reads Snoozed and Activity records your reason. Without both the queue says Snooze requires a date and reason.",
         effect: "saves-in-app",
       },
       {
