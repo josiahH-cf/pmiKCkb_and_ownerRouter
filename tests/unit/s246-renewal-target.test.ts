@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { projectCycleSourceDateChange } from "@/lib/lease-renewal/cycle-source-date";
 import {
+  renewalBatchGroupFor,
+  renewalBatchPlacement,
+} from "@/lib/lease-renewal/renewal-batch";
+import {
   RENTVINE_STATUS_UNAVAILABLE_LABEL,
   isRenewalTargetForMonth,
   projectRenewalTarget,
@@ -50,14 +54,14 @@ describe("S246 target projection in the shared desk orchestration (ARCH-S246-1)"
     expect(closed.renewalTarget).toEqual({
       kind: "not_target",
       reason: "rentvine_closed",
-      label: "RentVine status: Closed",
+      label: "RentVine reports Closed",
       statusUnavailable: false,
       statusName: "Closed",
     });
     expect(s246Row(view, S246_LEASES.pending).renewalTarget).toMatchObject({
       kind: "not_target",
       reason: "rentvine_pending",
-      label: "RentVine status: Future",
+      label: "RentVine reports Future",
     });
     expect(s246Row(view, S246_LEASES.activeInMonth).renewalTarget).toEqual({
       kind: "target",
@@ -275,6 +279,92 @@ describe("S246 the one target definition (R-S246-1)", () => {
     ).toMatchObject({ kind: "target", cycleMonth: "2026-11" });
   });
 
+  it("a record from an earlier cycle never settles the cycle RentVine reports now", () => {
+    // A non-renewal handoff completed on the cycle staff recorded, after which RentVine reports a
+    // later lease end on the same lease: the new cycle is a renewal target for its own month.
+    expect(
+      projectRenewalTarget({
+        ...base,
+        endDateIso: "2027-12-31",
+        staffRecord: { complete: true, nonRenewal: true },
+        cycleSourceDate: recorded("2026-12-31", "2027-12-31"),
+      }),
+    ).toEqual({
+      kind: "target",
+      cycleDateIso: "2027-12-31",
+      cycleMonth: "2027-12",
+      statusUnavailable: false,
+      keptWorking: false,
+      statusName: "Active",
+    });
+    // The same holds for a non-renewal handoff completed for an earlier periodic review.
+    const reviewCycle = projectCycleSourceDateChange(
+      {
+        kind: "review_date",
+        dateIso: "2025-12-10",
+        source: "Month-to-month annual review date",
+      },
+      null,
+    );
+    expect(
+      projectRenewalTarget({
+        ...base,
+        term: "month_to_month",
+        endDateIso: null,
+        staffRecord: { complete: true, nonRenewal: true },
+        cycleSourceDate: reviewCycle,
+        reviewDateIso: "2026-12-10",
+      }),
+    ).toMatchObject({ kind: "not_target", reason: "month_to_month" });
+    // An open non-renewal decision is still a handoff to finish; once it is completed the lease
+    // follows the cycle RentVine reports, as above.
+    expect(
+      projectRenewalTarget({
+        ...base,
+        endDateIso: "2027-12-31",
+        staffRecord: { complete: false, nonRenewal: true },
+        cycleSourceDate: recorded("2026-12-31", "2027-12-31"),
+      }),
+    ).toMatchObject({ kind: "not_target", reason: "staff_non_renewal" });
+  });
+
+  it("an earlier RentVine lease end keeps a completion recorded for the same cycle", () => {
+    const earlier = recorded("2026-12-31", "2026-11-30");
+    const renewal = projectRenewalTarget({
+      ...base,
+      endDateIso: "2026-11-30",
+      staffRecord: { complete: true, nonRenewal: false },
+      cycleSourceDate: earlier,
+    });
+    expect(renewal).toMatchObject({
+      kind: "not_target",
+      reason: "completed",
+      label: "Renewal completed, recorded by staff",
+    });
+    // The completed lease stays under Completed; it never comes back as carried over.
+    expect(
+      renewalBatchGroupFor(
+        renewalBatchPlacement({
+          renewalTarget: renewal,
+          endDateIso: "2026-11-30",
+          retention: { state: "window" },
+        }),
+        "2026-12",
+      ),
+    ).toBe("completed");
+    expect(
+      projectRenewalTarget({
+        ...base,
+        endDateIso: "2026-11-30",
+        staffRecord: { complete: true, nonRenewal: true },
+        cycleSourceDate: earlier,
+      }),
+    ).toMatchObject({
+      reason: "completed",
+      label: "Non-renewal handoff completed, recorded by staff",
+    });
+  });
+
   it("R-S246-12: an unavailable status keeps the lease a target and marks it", () => {
     expect(
       projectRenewalTarget({
@@ -312,6 +402,32 @@ describe("S246 the one target definition (R-S246-1)", () => {
     ).toMatchObject({ reason: "month_to_month" });
   });
 
+  it("each lease page line reads with at most one colon, whatever the reason", () => {
+    const inputs: Partial<RenewalTargetInput>[] = [
+      {},
+      { status: { state: "closed", name: "Closed" } },
+      { status: { state: "pending", name: "Future" } },
+      { skipReason: "owner_authorized" },
+      { skipReason: "program" },
+      { moveOutInitiated: true },
+      { staffRecord: { complete: false, nonRenewal: true } },
+      { staffRecord: { complete: true, nonRenewal: true } },
+      { staffRecord: { complete: true, nonRenewal: false } },
+      { appCompletionCurrent: true },
+      { term: "month_to_month", endDateIso: null },
+      { endDateIso: null },
+      {
+        endDateIso: "2027-12-31",
+        staffRecord: { complete: false, nonRenewal: false },
+        cycleSourceDate: recorded("2026-12-31", "2027-12-31"),
+      },
+    ];
+    for (const input of inputs) {
+      const line = renewalTargetLine(projectRenewalTarget({ ...base, ...input }));
+      expect(line.split(":").length - 1, line).toBeLessThanOrEqual(1);
+    }
+  });
+
   it("says the same verdict in one line for the lease page", () => {
     expect(renewalTargetLine(projectRenewalTarget(base))).toBe(
       "Renewal target for December 2026",
@@ -328,7 +444,7 @@ describe("S246 the one target definition (R-S246-1)", () => {
       renewalTargetLine(
         projectRenewalTarget({ ...base, status: { state: "closed", name: "Closed" } }),
       ),
-    ).toBe("Outside the monthly renewal batch: RentVine status: Closed");
+    ).toBe("Outside the monthly renewal batch: RentVine reports Closed");
     expect(
       renewalTargetLine(projectRenewalTarget({ ...base, term: "month_to_month" })),
     ).toBe("Month-to-month: follows the annual review");

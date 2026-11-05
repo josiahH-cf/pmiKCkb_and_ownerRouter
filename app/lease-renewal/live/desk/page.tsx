@@ -161,11 +161,12 @@ export default async function LiveRenewalDeskPage({
         ),
       ),
   });
-  // S246 R-S246-9: a shared collection link narrows the table to that collection's saved leases.
-  // An unreadable collection lists none of them, and the table says so.
+  // S246 R-S246-9: a shared collection link narrows the table to that collection's saved leases,
+  // each on the cycle it was saved for (S201), matched against the rows loaded above. An
+  // unreadable collection lists none of them, and the table says so.
   const collectionView =
     entry.surface === "table" && entry.state.collection
-      ? await readDeskCollectionView(user, entry.state.collection)
+      ? await readDeskCollectionView(user, entry.state.collection, items)
       : null;
   const query = collectionView ? { ...entry.state, collectionView } : entry.state;
   const viewMemory = {

@@ -39,6 +39,13 @@ import {
 import type { CohortReason } from "@/lib/lease-renewal/cohort";
 import { humanizeCohortReason } from "@/lib/lease-renewal/desk-model";
 import {
+  isRenewalBatchMonth,
+  renewalBatchGroupFor,
+  renewalBatchMonthInWords,
+  renewalBatchPlacement,
+} from "@/lib/lease-renewal/renewal-batch";
+import type { RenewalTargetProjection } from "@/lib/lease-renewal/renewal-target";
+import {
   LIFECYCLE_DESK_FILTERS,
   lifecycleFilterLabel,
   lifecycleSortValue,
@@ -191,6 +198,12 @@ export interface RenewalDeskQueryV2State {
    * Optional in every bookmark; absent means no collection, exactly as before this key existed.
    */
   collection?: string;
+  /**
+   * S246 R-S246-10: a working month (`YYYY-MM`) whose renewal targets narrow the table: exactly the
+   * leases the working batch lists under "This batch" for that month, from each row's one target
+   * verdict. Optional in every bookmark; absent means no such restriction, as before it existed.
+   */
+  target?: string;
   /** Noncanonical render-only feedback; never serialized into a desk URL. */
   readonly dateDiagnostics?: readonly RenewalDeskDateDiagnostic[];
   /**
@@ -205,7 +218,12 @@ export interface RenewalDeskQueryV2State {
 /** S246: one shared lease collection as the desk reads it for the `collection` filter. */
 export interface RenewalDeskCollectionView {
   readonly name: string;
+  /** S201: the saved leases whose current cycle is the cycle each was saved for. */
   readonly memberIds: readonly string[];
+  /** Saved leases now on a different cycle than the one they were saved for; absent when none. */
+  readonly otherCycleCount?: number;
+  /** Saved leases this read holds no current cycle for; absent when none. */
+  readonly outsideReadCount?: number;
 }
 
 export const DEFAULT_RENEWAL_DESK_QUERY_V2: Readonly<RenewalDeskQueryV2State> = {
@@ -263,6 +281,7 @@ const V2_KEY_ORDER = [
   "reason",
   // S246: appended last, so the canonical string of every earlier view is unchanged.
   "collection",
+  "target",
 ] as const satisfies readonly (keyof RenewalDeskQueryV2State)[];
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
@@ -328,6 +347,12 @@ function collectionId(value: string | undefined): string {
   return COLLECTION_ID_PATTERN.test(bounded) ? bounded : "";
 }
 
+/** A working month exactly as `YYYY-MM`; anything else names none. */
+function targetMonth(value: string | undefined): string {
+  const bounded = boundedText(value, 8);
+  return isRenewalBatchMonth(bounded) ? bounded : "";
+}
+
 function partyToken(value: string | undefined): string {
   const bounded = boundedText(value, 46);
   return PARTY_FILTER_TOKEN_PATTERN.test(bounded) ? bounded : "";
@@ -383,6 +408,7 @@ export function parseRenewalDeskQueryV2(
   }
 
   const collection = collectionId(firstValue(input, "collection"));
+  const target = targetMonth(firstValue(input, "target"));
   const dateDiagnostics: RenewalDeskDateDiagnostic[] = [];
   const endDateValid =
     endDateCandidate.length <= 10 &&
@@ -484,6 +510,7 @@ export function parseRenewalDeskQueryV2(
     lifecycle: oneOf(firstValue(input, "lifecycle"), LIFECYCLE_DESK_FILTERS, "all"),
     reason: oneOf(firstValue(input, "reason"), RENEWAL_DESK_REASON_FILTERS, "all"),
     ...(collection ? { collection } : {}),
+    ...(target ? { target } : {}),
     ...(dateDiagnostics.length > 0 ? { dateDiagnostics } : {}),
   };
   return state;
@@ -581,6 +608,8 @@ export interface RenewalDeskV2Item {
   readonly reason?: CohortReason;
   /** S232: the end date passed with no recorded renewal outcome. */
   readonly endedWithoutOutcome?: boolean;
+  /** S246 R-S246-1: the one renewal target verdict the working batch reads. */
+  readonly renewalTarget?: RenewalTargetProjection;
   readonly guidance: {
     readonly currentBaseRent: number | null;
     readonly rentVerification: { readonly state: RenewalRentVerificationState };
@@ -784,7 +813,25 @@ function matchesQuery(
   // S246: a named collection lists only its saved leases; an unread collection lists none.
   if (query.collection && !collectionMembers(query.collectionView).has(item.id))
     return false;
+  if (query.target && !renewalDeskItemInBatch(item, query.target)) return false;
   return true;
+}
+
+/**
+ * S246 R-S246-10: the table's `target` filter. The lease is one the working batch lists under
+ * "This batch" for the month, placed by the same function the batch and the assistant use.
+ */
+export function renewalDeskItemInBatch(item: RenewalDeskV2Item, month: string): boolean {
+  return (
+    renewalBatchGroupFor(
+      renewalBatchPlacement({
+        renewalTarget: item.renewalTarget,
+        endDateIso: item.queryKeys.endDateIso,
+        retention: item.retention,
+      }),
+      month,
+    ) === "this_batch"
+  );
 }
 
 const NO_COLLECTION_MEMBERS: ReadonlySet<string> = new Set();
@@ -1005,6 +1052,16 @@ export function buildActiveFilterChips(
         label: state.collectionView
           ? `Shared collection: ${state.collectionView.name}`
           : "Shared collection: could not be read",
+        withoutFilter,
+      });
+      continue;
+    }
+    if (key === "target") {
+      const withoutFilter: RenewalDeskQueryV2State = { ...state };
+      delete withoutFilter.target;
+      chips.push({
+        key,
+        label: `Renewal targets for ${renewalBatchMonthInWords(value)}`,
         withoutFilter,
       });
       continue;

@@ -84,8 +84,8 @@ describe("S246 working batch partition (ARCH-S246-2, AC-S246-1)", () => {
       { label: "No end date on file", count: 1 },
       { label: "Owner-authorized hold", count: 1 },
       { label: "Program lease", count: 1 },
-      { label: "RentVine status: Closed", count: 1 },
-      { label: "RentVine status: Future", count: 1 },
+      { label: "RentVine reports Closed", count: 1 },
+      { label: "RentVine reports Future", count: 1 },
     ]);
     expect(ids(partition.groups.renewed_in_rentvine)).toEqual([
       S246_LEASES.renewedInSource,
@@ -134,7 +134,7 @@ describe("S246 working batch partition (ARCH-S246-2, AC-S246-1)", () => {
     const { rows, partition } = await batch({ statuses: "unavailable" });
     expect(partition.total).toBe(16);
     expect(partition.notTargetReasons.map((entry) => entry.label)).not.toContain(
-      "RentVine status: Closed",
+      "RentVine reports Closed",
     );
     for (const row of rows)
       expect(row.statusNote, row.leaseId).toBe("RentVine status unavailable");

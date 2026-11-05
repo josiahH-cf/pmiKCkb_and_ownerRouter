@@ -8,11 +8,20 @@ import type { RenewalCycleDateDecision } from "@/lib/lease-renewal/cycle-date-de
 import { buildRenewalDeskWindow } from "@/lib/lease-renewal/desk-query";
 import type { DeskLeaseRow, RenewalDeskView } from "@/lib/lease-renewal/desk-model";
 import { clearLeaseStatusTableCache } from "@/lib/lease-renewal/lease-status-table";
-import { loadLiveRenewalDesk } from "@/lib/lease-renewal/live-desk";
+import {
+  loadLiveRenewalDesk,
+  loadLiveRenewalLeaseWorkspace,
+} from "@/lib/lease-renewal/live-desk";
 import {
   clearLiveLeaseCache,
   type LiveLeaseSnapshotResult,
 } from "@/lib/lease-renewal/live-lease-cache";
+import type { RenewalLeaseWorkspace } from "@/lib/lease-renewal/desk-model";
+import { RENEWAL_PROCESS_VERSION } from "@/lib/lease-renewal/renewal-process";
+import {
+  RENEWAL_STAGE,
+  type RenewalProgress,
+} from "@/lib/lease-renewal/renewal-progress";
 import { SAMPLE_RENEWAL_TABLES } from "@/lib/lease-renewal/sample-sheet";
 import {
   emptyRenewalWorkspace,
@@ -190,18 +199,56 @@ export function s246Manual(): Map<string, RenewalWorkspaceState> {
   ]);
 }
 
+/**
+ * A lease whose saved app progress records a completion, with no staff record, that ended in
+ * October (outside the desk window). It is kept out of `s246Rows()` so the sixteen-lease portfolio
+ * and every count pinned on it stay as they are; a test adds it with `s246RowsWithAppCompletion()`.
+ */
+export const S246_APP_COMPLETED = "117";
+
+export function s246RowsWithAppCompletion(): Row[] {
+  return [
+    ...s246Rows(),
+    lease(117, { endDate: "2026-10-31" }, "Recorded Row", "Quinn Sample"),
+  ];
+}
+
+/** Saved app progress that records a completion, for each lease id given. */
+export function s246AppProgress(
+  leaseIds: readonly string[] = [S246_APP_COMPLETED],
+): Map<string, RenewalProgress> {
+  return new Map(
+    leaseIds.map((leaseId) => [
+      leaseId,
+      {
+        leaseId,
+        processVersion: RENEWAL_PROCESS_VERSION,
+        stageIndex: RENEWAL_STAGE.close,
+        ownerDecision: null,
+        ownerDecisionRevision: 0,
+        tenantOfferDraftId: null,
+        tenantOutcome: null,
+        evidence: {},
+        complete: true,
+      },
+    ]),
+  );
+}
+
 export interface S246DeskOptions {
   readonly rows?: Row[];
   readonly statuses?: RentVineLeaseStatus[] | "unavailable";
   readonly manual?: ReadonlyMap<string, RenewalWorkspaceState>;
   readonly decisions?: ReadonlyMap<string, RenewalCycleDateDecision>;
+  /** Saved app progress by lease id; absent means none is saved. */
+  readonly progress?: Map<string, RenewalProgress>;
+  /** False when saved progress could not be read: every desk row then needs verification. */
+  readonly progressStateAvailable?: boolean;
   readonly readTs?: string;
 }
 
-/** Run the one desk orchestration over the synthetic portfolio. */
-export async function loadS246Desk(
-  options: S246DeskOptions = {},
-): Promise<RenewalDeskView> {
+/** The synthetic sources and one lease generation both orchestrations read. */
+function s246Sources(options: S246DeskOptions) {
   clearLiveLeaseCache();
   clearLeaseStatusTableCache();
   const rows = options.rows ?? s246Rows();
@@ -246,15 +293,23 @@ export async function loadS246Desk(
       lastError: false,
     },
   };
+  return { readTs, config, snapshot };
+}
+
+/** Run the one desk orchestration over the synthetic portfolio. */
+export async function loadS246Desk(
+  options: S246DeskOptions = {},
+): Promise<RenewalDeskView> {
+  const { readTs, config, snapshot } = s246Sources(options);
   const result = await loadLiveRenewalDesk(
     [buildRenewalDeskWindow(readTs.slice(0, 10))],
     readTs,
     config as unknown as Parameters<typeof loadLiveRenewalDesk>[2],
-    undefined,
+    options.progress,
     undefined,
     [],
     undefined,
-    true,
+    options.progressStateAvailable ?? true,
     snapshot,
     undefined,
     options.manual ?? s246Manual(),
@@ -269,6 +324,38 @@ export async function loadS246Desk(
   );
   if (result.status !== "ok") throw new Error(`desk load ${result.status}`);
   return result.view;
+}
+
+/** Open one synthetic lease the way its lease page does, over the same sources as the desk. */
+export async function loadS246Workspace(
+  leaseId: string,
+  options: S246DeskOptions = {},
+): Promise<RenewalLeaseWorkspace> {
+  const { readTs, config, snapshot } = s246Sources(options);
+  const result = await loadLiveRenewalLeaseWorkspace(
+    leaseId,
+    readTs,
+    config as unknown as Parameters<typeof loadLiveRenewalLeaseWorkspace>[2],
+    options.progress?.get(leaseId) ?? null,
+    null,
+    [],
+    undefined,
+    undefined,
+    null,
+    { status: "available", value: snapshot },
+    null,
+    (options.manual ?? s246Manual()).get(leaseId) ?? null,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    options.decisions?.get(leaseId) ?? null,
+  );
+  if (result.status !== "ok") throw new Error(`workspace load ${result.status}`);
+  return result.workspace;
 }
 
 export function s246Row(view: RenewalDeskView, leaseId: string): DeskLeaseRow {

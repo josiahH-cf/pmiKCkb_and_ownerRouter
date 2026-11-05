@@ -257,8 +257,8 @@ describe("S246 the working batch is the default view (R-S246-2, R-S246-3, R-S246
     );
     // Each exclusion is counted with its reason; RentVine's own status name is the reason.
     for (const reason of [
-      "RentVine status: Closed: 1",
-      "RentVine status: Future: 1",
+      "RentVine reports Closed: 1",
+      "RentVine reports Future: 1",
       "Program lease: 1",
       "Owner-authorized hold: 1",
       "No end date on file: 1",
@@ -266,7 +266,7 @@ describe("S246 the working batch is the default view (R-S246-2, R-S246-3, R-S246
       expect(within(panel).getByText(reason)).toBeInTheDocument();
     const closed = batchRow(panel, S246_LEASES.closed);
     expect(closed).toHaveAttribute("data-batch-row-kind", "context");
-    expect(within(closed).getByText("RentVine status: Closed")).toBeInTheDocument();
+    expect(within(closed).getByText("RentVine reports Closed")).toBeInTheDocument();
     // AC-S246-3 / S154: it opens like any lease, with no renewal next step invented for it.
     expect(closed.querySelector(".renewal-batch-stage")).toBeNull();
     const openLease = within(closed).getByRole("link", { name: "Open the lease" });

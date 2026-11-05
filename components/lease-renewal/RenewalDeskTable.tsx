@@ -1130,6 +1130,13 @@ export function RenewalDeskTable({
             {state.collectionView
               ? `${state.collectionView.name}, ${state.collectionView.memberIds.length} saved ${state.collectionView.memberIds.length === 1 ? "lease" : "leases"}.`
               : "This collection could not be read, so no leases are listed."}{" "}
+            {/* S201: a saved lease is listed on the cycle it was saved for; the rest are counted. */}
+            {state.collectionView?.otherCycleCount
+              ? `${state.collectionView.otherCycleCount} more saved ${state.collectionView.otherCycleCount === 1 ? "lease is" : "leases are"} on a different cycle now. `
+              : null}
+            {state.collectionView?.outsideReadCount
+              ? `${state.collectionView.outsideReadCount} more saved ${state.collectionView.outsideReadCount === 1 ? "lease is" : "leases are"} outside this read. `
+              : null}
             <Link
               prefetch={false}
               className="text-link"

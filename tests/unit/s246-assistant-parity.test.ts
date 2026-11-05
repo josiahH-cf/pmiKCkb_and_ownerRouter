@@ -10,7 +10,13 @@ import {
   partitionRenewalBatch,
   renewalBatchExcludedNotes,
 } from "@/lib/lease-renewal/renewal-batch";
-import { DEFAULT_RENEWAL_DESK_QUERY_V2 } from "@/lib/lease-renewal/desk-query-v2";
+import {
+  DEFAULT_RENEWAL_DESK_QUERY_V2,
+  applyRenewalDeskQueryV2,
+  buildActiveFilterChips,
+  parseRenewalDeskQueryV2,
+  serializeRenewalDeskQueryV2,
+} from "@/lib/lease-renewal/desk-query-v2";
 import { buildExplicitDeskHref } from "@/lib/lease-renewal/desk-view-continuation";
 import { projectRenewalBatchRows } from "@/lib/lease-renewal/renewal-batch-row";
 import { projectRenewalRead } from "@/lib/operational-context/projections";
@@ -42,6 +48,7 @@ async function deskAndAnswer(
 ): Promise<{
   answer: ConversationAnswer;
   partition: ReturnType<typeof partitionRenewalBatch>;
+  view: Awaited<ReturnType<typeof loadS246Desk>>;
 }> {
   const view = await loadS246Desk(options);
   const window = view.windows[0];
@@ -73,7 +80,7 @@ async function deskAndAnswer(
     }),
     S246_WORKING_MONTH,
   );
-  return { answer, partition };
+  return { answer, partition, view };
 }
 
 const answerIds = (answer: ConversationAnswer) =>
@@ -116,7 +123,7 @@ describe("S246 the assistant and the desk agree on a month (BEH-S246-4, AC-S246-
       "Also on the Renewals desk for December 2026: Carried over (2); Renewed in RentVine, confirm and close (1); Month-to-month reviews due (1); Non-renewals to hand off (1); Coming up later (2); Not renewal targets (5); Completed (1).",
     );
     expect(notes).toContain(
-      "Not renewal targets by reason: No end date on file (1); Owner-authorized hold (1); Program lease (1); RentVine status: Closed (1); RentVine status: Future (1).",
+      "Not renewal targets by reason: No end date on file (1); Owner-authorized hold (1); Program lease (1); RentVine reports Closed (1); RentVine reports Future (1).",
     );
     // The listed leases and the stated counts account for every loaded lease.
     expect(
@@ -134,19 +141,35 @@ describe("S246 the assistant and the desk agree on a month (BEH-S246-4, AC-S246-
     });
   });
 
-  it("a narrowed month answer keeps its filter on the desk link", async () => {
-    const { answer } = await deskAndAnswer(
+  it("a narrowed month answer links a table that lists exactly the leases it names", async () => {
+    // With saved progress unreadable every lease needs verification, so the blocked filter
+    // narrows nothing away and the month's table would hold leases the answer excludes.
+    const { answer, view } = await deskAndAnswer(
       "Which blocked leases are coming up next month?",
+      { progressStateAvailable: false },
     );
     expect(answer.interpretation.join(" ")).toMatch(/renewal targets/i);
-    // The batch link would open every target of the month. A blocked answer opens the table with
-    // the month and the blocked filter, the leases the answer narrowed to.
+    expect(answerIds(answer)).toEqual([
+      S246_LEASES.activeInMonth,
+      S246_LEASES.activeInMonthSecond,
+      S246_LEASES.statusUnreadable,
+    ]);
+    // The batch link would open every target of the month, and the month's table would also list
+    // the closed, pending and completed leases the answer excludes. A blocked answer opens the
+    // table restricted to that month's renewal targets with the blocked filter: its leases.
+    const href = answer.groups[0].link?.href ?? "";
+    const linked = applyRenewalDeskQueryV2(
+      view.items,
+      parseRenewalDeskQueryV2(new URL(href, "https://x.invalid").searchParams),
+      () => false,
+    );
+    expect(linked.items.map((row) => row.id).sort()).toEqual(answerIds(answer));
     expect(answer.groups[0].link).toEqual({
       label: "Open these on the Renewals desk",
       href: buildExplicitDeskHref({
         ...DEFAULT_RENEWAL_DESK_QUERY_V2,
-        month: "2026-12",
         blocked: "blocked",
+        target: "2026-12",
       }),
     });
   });
@@ -195,7 +218,7 @@ describe("S246 the assistant and the desk agree on a month (BEH-S246-4, AC-S246-
     expect(answerIds(answer)).toEqual(
       expect.arrayContaining([S246_LEASES.closed, S246_LEASES.pending]),
     );
-    expect(answer.groups[0].notes.join(" ")).not.toContain("RentVine status: Closed");
+    expect(answer.groups[0].notes.join(" ")).not.toContain("RentVine reports Closed");
   });
 
   it("a named month gives the same membership as the relative one", async () => {
@@ -209,5 +232,51 @@ describe("S246 the assistant and the desk agree on a month (BEH-S246-4, AC-S246-
     const current = await deskAndAnswer("renewals for 2026-11");
     expect(answerIds(current.answer)).toEqual([S246_LEASES.endingThisMonth]);
     expect(current.answer.groups[0].notes.join(" ")).toContain("Carried over (1)");
+  });
+});
+
+describe("S246 the table's renewal-target key (R-S246-10, AC-S246-2)", () => {
+  const named = (search: string) => parseRenewalDeskQueryV2(new URLSearchParams(search));
+
+  it("lists exactly the month's This batch leases, the same leases the batch lists", async () => {
+    const view = await loadS246Desk();
+    const partition = partitionRenewalBatch(
+      projectRenewalBatchRows(view.items, {
+        sourceReadAtIso: S246_READ_TS,
+        todayIso: S246_TODAY,
+      }),
+      S246_WORKING_MONTH,
+    );
+    const listed = applyRenewalDeskQueryV2(
+      view.items,
+      named("v=2&scope=all&target=2026-12"),
+      () => false,
+    );
+    expect(listed.items.map((row) => row.id).sort()).toEqual(
+      partition.groups.this_batch.map((row) => row.key).sort(),
+    );
+    expect(listed.totalLoaded).toBe(view.items.length);
+  });
+
+  it("is appended after every earlier key, round-trips canonically and shows as one removable filter", () => {
+    expect(serializeRenewalDeskQueryV2(named("target=2026-12&blocked=blocked"))).toBe(
+      "v=2&blocked=blocked&target=2026-12",
+    );
+    for (const refused of ["", "2026-13", "2026-1", "december", "2026-12-31"])
+      expect("target" in named(`v=2&target=${refused}`), refused).toBe(false);
+    for (const earlier of [
+      "v=2&scope=all",
+      "v=2&month=2026-12",
+      "v=2&overallStatus=blocked",
+    ])
+      expect("target" in named(earlier), earlier).toBe(false);
+    const chip = buildActiveFilterChips(named("v=2&blocked=blocked&target=2026-12")).find(
+      (entry) => entry.key === "target",
+    );
+    expect(chip?.label).toBe("Renewal targets for December 2026");
+    expect(chip && serializeRenewalDeskQueryV2(chip.withoutFilter)).toBe(
+      "v=2&blocked=blocked",
+    );
+    expect(chip && "target" in chip.withoutFilter).toBe(false);
   });
 });

@@ -893,8 +893,9 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
         // batch, from the same target definition and partition the Renewals desk renders.
         // Every lease the batch lists for a covered month is already in the default scope.
         batchMonth = month;
-        // A narrowed answer links the table instead of the batch; that link names the month too.
-        desk.month = month;
+        // A narrowed answer links the table instead of the batch. That link names the month's
+        // renewal targets, so the table lists the batch membership the answer lists from.
+        desk.target = month;
         records = records.filter(
           (record) => renewalBatchGroupFor(record.facts.batch, month) === "this_batch",
         );
@@ -1170,8 +1171,9 @@ async function answerLeases(exec: Execution, related: Related | null): Promise<O
         // S166: the link names its view, so the unfiltered worklist opens the default view the
         // answer described rather than the account's remembered view. S246: a month's working
         // batch opens as that month of the batch, the same leases the answer lists. An answer
-        // narrowed further keeps its predicates on the table link, so the link never opens the
-        // whole batch for an answer that lists part of it.
+        // narrowed further opens the table restricted to that month's renewal targets with the
+        // answer's table predicates, so the link never opens the whole batch for an answer that
+        // lists part of it, nor the month's closed, pending or completed leases it excluded.
         link: empty?.link ?? {
           label: "Open these on the Renewals desk",
           href:

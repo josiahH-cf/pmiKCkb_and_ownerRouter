@@ -6,6 +6,11 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn() }));
 const source = vi.hoisted(() => ({ view: null as unknown }));
+// The stored collection and the recorded work cycles the server reads; empty unless a test sets them.
+const stored = vi.hoisted(() => ({
+  collection: null as unknown,
+  workspaces: new Map<string, unknown>(),
+}));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@/lib/lease-renewal/assistant-source", () => ({
   loadRenewalAssistantSource: async () => ({
@@ -16,7 +21,17 @@ vi.mock("@/lib/lease-renewal/assistant-source", () => ({
 }));
 vi.mock("@/lib/firestore/renewal-workspace", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/firestore/renewal-workspace")>()),
-  listRenewalWorkspaces: async () => new Map(),
+  listRenewalWorkspaces: async () => stored.workspaces,
+}));
+vi.mock("@/lib/firestore/renewal-shared-collections", async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import("@/lib/firestore/renewal-shared-collections")
+  >()),
+  RenewalSharedCollectionStore: class {
+    async get() {
+      return stored.collection;
+    }
+  },
 }));
 
 import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
@@ -39,13 +54,15 @@ import {
   encodeDeskView,
   validateDeskView,
 } from "@/lib/lease-renewal/desk-view-continuation";
+import { readDeskCollectionView } from "@/lib/lease-renewal/shared-collection-desk";
 import { readSharedCollectionSource } from "@/lib/lease-renewal/shared-collection-source";
 import {
   sharedCollectionDeskHref,
   sharedCollectionEntryHref,
   type CollectionBasis,
+  type CollectionMember,
 } from "@/lib/lease-renewal/shared-collections";
-import { S246_LEASES, loadS246Desk } from "@/tests/helpers/s246-portfolio";
+import { S246_LEASES, loadS246Desk, s246Manual } from "@/tests/helpers/s246-portfolio";
 
 // S246 R-S246-9: a shared collection link opens the Renewals table narrowed to that collection's
 // saved leases. The collection is one optional desk key, appended after every earlier key, so no
@@ -301,6 +318,109 @@ describe("S246 a collection's membership is never another collection's filter", 
     );
     expect(sharedCollectionEntryHref(["101", "101", "106"], "explicit")).toBe(
       "/lease-renewal/collections?members=101%2C106&origin=explicit",
+    );
+  });
+});
+
+describe("S246 the collection link lists a lease only on the cycle it was saved for (S201)", () => {
+  const actor: AuthenticatedUser = {
+    uid: "uid-sample",
+    email: "sample.editor@pmikcmetro.com",
+    hd: "pmikcmetro.com",
+    role: "Editor",
+  };
+  const rowIds = () =>
+    [
+      ...document.querySelectorAll(
+        'section[aria-label="Renewal worklist"] table.renewal-table tbody > tr[data-lease-id]',
+      ),
+    ].map((row) => row.getAttribute("data-lease-id"));
+  const saved = (members: CollectionMember[]) => ({
+    schemaVersion: "shared-renewal-collection/v1",
+    id: ID,
+    name: "December follow-up",
+    members,
+    version: 1,
+  });
+  /** Each lease's current S201 cycle identity, read exactly as the collection page reads it. */
+  async function currentMember(leaseId: string): Promise<CollectionMember> {
+    const read = await readSharedCollectionSource(actor);
+    const record = read.records.find((entry) => entry.member.leaseId === leaseId);
+    if (!record) throw new Error(`synthetic lease ${leaseId} has no cycle`);
+    return record.member;
+  }
+
+  afterEach(() => {
+    stored.collection = null;
+    stored.workspaces = new Map();
+  });
+
+  it("a lease saved for an earlier cycle is not listed on its current cycle's row", async () => {
+    stored.collection = saved([
+      await currentMember(S246_LEASES.closed),
+      {
+        leaseId: S246_LEASES.activeInMonth,
+        cycleKey: "source:lease_end:2025-12-31",
+        cycleDate: "2025-12-31",
+      },
+      {
+        leaseId: "999999",
+        cycleKey: "source:lease_end:2026-12-31",
+        cycleDate: "2026-12-31",
+      },
+    ]);
+    const collectionView = await readDeskCollectionView(actor, ID, view.items);
+    expect(collectionView).toEqual({
+      name: "December follow-up",
+      memberIds: [S246_LEASES.closed],
+      otherCycleCount: 1,
+      outsideReadCount: 1,
+    });
+    const listed = applyRenewalDeskQueryV2(
+      view.items,
+      { ...named(`v=2&scope=all&collection=${ID}`), collectionView: collectionView! },
+      matchNoParty,
+    );
+    expect(listed.items.map((row) => row.id)).toEqual([S246_LEASES.closed]);
+  });
+
+  it("a recorded work cycle is matched by its own identity, as the collection page matches it", async () => {
+    stored.workspaces = s246Manual();
+    const recordedCycle = await currentMember(S246_LEASES.renewedInSource);
+    expect(recordedCycle.cycleKey).toMatch(/^recorded:/);
+    stored.collection = saved([
+      recordedCycle,
+      {
+        leaseId: S246_LEASES.completed,
+        cycleKey: "source:lease_end:2026-12-31",
+        cycleDate: "2026-12-31",
+      },
+    ]);
+    expect(await readDeskCollectionView(actor, ID, view.items)).toEqual({
+      name: "December follow-up",
+      memberIds: [S246_LEASES.renewedInSource],
+      otherCycleCount: 1,
+    });
+  });
+
+  it("names the saved leases it does not list, beside the ones it does", () => {
+    render(
+      <RenewalDesk
+        query={{
+          ...named(`v=2&scope=all&collection=${ID}`),
+          collectionView: {
+            name: "December follow-up",
+            memberIds: [S246_LEASES.closed],
+            otherCycleCount: 1,
+            outsideReadCount: 2,
+          },
+        }}
+        view={view}
+      />,
+    );
+    expect(rowIds()).toEqual([S246_LEASES.closed]);
+    expect(document.querySelector(`[data-desk-collection="${ID}"]`)).toHaveTextContent(
+      "Shared collection: December follow-up, 1 saved lease. 1 more saved lease is on a different cycle now. 2 more saved leases are outside this read.",
     );
   });
 });

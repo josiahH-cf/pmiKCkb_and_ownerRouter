@@ -119,13 +119,17 @@ export function cycleRenewedInRentvine(
  * The one target projection. Decision order (first wins):
  *   1. RentVine reports the lease closed or pending;
  *   2. an existing skip signal (owner hold, program);
- *   3. a completed non-renewal handoff;
+ *   3. a completed non-renewal handoff for the current cycle;
  *   4. a move-out initiated in RentVine, or an open staff non-renewal decision;
  *   5. a completion recorded for the current cycle;
  *   6. a month-to-month term (it follows the annual review, never the monthly batch);
  *   7. a later RentVine lease end than the recorded cycle, until staff confirm or keep working;
  *   8. no end date to place the lease in a month;
  *   9. otherwise a renewal target for the month of its cycle date.
+ * A completion (rules 3 and 5) belongs to an earlier cycle when RentVine now reports a later lease
+ * end than the cycle it was recorded for, or when it was recorded for an earlier periodic review;
+ * it then settles nothing for the cycle RentVine reports now. An earlier RentVine lease end is a
+ * change to the same cycle, so a completion recorded for that cycle still stands.
  * An unavailable status never reaches rule 1, so it never excludes a lease.
  */
 export function projectRenewalTarget(input: RenewalTargetInput): RenewalTargetProjection {
@@ -153,7 +157,7 @@ export function projectRenewalTarget(input: RenewalTargetInput): RenewalTargetPr
   if (status.state === "closed" || status.state === "pending")
     return not(
       status.state === "closed" ? "rentvine_closed" : "rentvine_pending",
-      `RentVine status: ${status.name}`,
+      `RentVine reports ${status.name}`,
     );
   if (input.skipReason)
     return not(
@@ -161,21 +165,23 @@ export function projectRenewalTarget(input: RenewalTargetInput): RenewalTargetPr
       SKIP_LABEL[input.skipReason],
     );
   const staff = input.staffRecord;
-  if (staff?.complete && staff.nonRenewal)
-    return not("completed", "Non-renewal handoff completed, recorded by staff");
-  if (input.moveOutInitiated)
-    return not("move_out_initiated", "Move-out notice in RentVine");
-  if (staff?.nonRenewal) return not("staff_non_renewal", "Non-renewal recorded by staff");
-
   const renewedInRentvine = cycleRenewedInRentvine(input.cycleSourceDate);
-  const dateChanged = input.cycleSourceDate?.state === "changed";
   // A completion recorded for an earlier periodic review does not cover the review due now.
   const earlierReview =
     input.cycleSourceDate?.state === "review_basis" &&
     typeof input.reviewDateIso === "string" &&
     input.cycleSourceDate.recordedIso !== input.reviewDateIso;
-  // A completion on a cycle RentVine has since moved past belongs to the earlier cycle.
-  if (staff?.complete && !dateChanged && !earlierReview)
+  // The staff record's completion belongs to an earlier cycle: RentVine has since moved the lease
+  // end past the cycle it was recorded for, or it closed an earlier periodic review.
+  const completedEarlierCycle =
+    staff?.complete === true && (renewedInRentvine || earlierReview);
+  if (staff?.complete && staff.nonRenewal && !completedEarlierCycle)
+    return not("completed", "Non-renewal handoff completed, recorded by staff");
+  if (input.moveOutInitiated)
+    return not("move_out_initiated", "Move-out notice in RentVine");
+  if (staff?.nonRenewal && !staff.complete)
+    return not("staff_non_renewal", "Non-renewal recorded by staff");
+  if (staff?.complete && !completedEarlierCycle)
     return not("completed", "Renewal completed, recorded by staff");
   if (!staff && input.appCompletionCurrent)
     return not("completed", "Renewal completed, recorded in the app");

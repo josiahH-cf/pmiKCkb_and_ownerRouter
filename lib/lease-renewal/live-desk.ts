@@ -978,6 +978,73 @@ function renewalTargetFor(input: {
   });
 }
 
+/**
+ * The current-source renewal process for one lease, built the same way for a desk row and for the
+ * lease page. Live source drift can invalidate stored downstream evidence without mutating
+ * Firestore during a read, so every coupled field is projected through the effective evidence and
+ * a stale draft, outcome or completion flag cannot survive merely because its scalar is present.
+ */
+function projectLiveLeaseProcess(input: {
+  readonly leaseId: string;
+  readonly view: RawLease;
+  readonly endDateIso: string | null;
+  readonly currentRentDecision: LiveOwnerCurrentRentDecision;
+  readonly dataCheck: DeskReconItem[];
+  readonly currency: LiveLeaseCurrency;
+  readonly readComplete: boolean;
+  readonly progress: RenewalProgress | null;
+  readonly packetSnapshot: RenewalPacketSnapshot | null | undefined;
+  readonly readTimestamp: string;
+  readonly followUpSources: RenewalFollowUpSources;
+  readonly manual: RenewalWorkspaceState | null;
+}) {
+  const processEvidence = buildLiveProcessEvidence({
+    leaseId: input.leaseId,
+    view: input.view,
+    endDateIso: input.endDateIso,
+    currentRent: input.currentRentDecision.currentRent,
+    currentRentEvidence: input.currentRentDecision.currentRentEvidence,
+    dataCheck: input.dataCheck,
+    dataCurrency: input.currency,
+    readComplete: input.readComplete,
+    progress: input.progress,
+    packetSnapshot: input.packetSnapshot,
+  });
+  const evidence = applyLiveFollowUpEvidence({
+    evidence: processEvidence.evidence,
+    leaseId: input.leaseId,
+    view: input.view,
+    readTimestamp: input.readTimestamp,
+    sources: input.followUpSources,
+  });
+  const effectiveProgress = effectiveProgressAfterEvidence(input.progress, evidence);
+  const process = projectRenewalProcess({
+    processVersion: effectiveProgress?.processVersion ?? RENEWAL_PROCESS_VERSION,
+    evidence,
+    evidenceBlockers: processEvidence.blockers,
+    ownerOutcome: effectiveProgress?.ownerOutcome ?? null,
+    staffOwnerOutcome: staffOwnerOutcome(input.manual, input.endDateIso),
+    tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
+    complete: effectiveProgress?.complete ?? false,
+  });
+  return { evidence, effectiveProgress, process };
+}
+
+/**
+ * S246 R-S246-1: whether the app-recorded completion counts for the one target verdict, read the
+ * same way for a desk row and the lease page. Saved progress must record a completion and the
+ * current-source process projection must verify it; a historical completion scalar never
+ * verifies itself. The process is built only when saved progress records a completion.
+ */
+function appCompletionIsCurrent(input: {
+  readonly progress: RenewalProgress | null;
+  readonly progressStateAvailable: boolean;
+  readonly process: () => ReturnType<typeof projectRenewalProcess> | null;
+}): boolean {
+  if (!input.progressStateAvailable || input.progress?.complete !== true) return false;
+  return input.process()?.status === "complete";
+}
+
 /** Reuse the process evidence result; a historical completion scalar cannot verify itself. */
 function withCurrentLifecycle(
   summaryBase: DeskLeaseSummaryBase,
@@ -1740,7 +1807,7 @@ export async function loadLiveRenewalDesk(
       // classification, lifecycle and guidance above are unchanged by it.
       const withTarget = (
         row: DeskLeaseRow,
-        appCompletionCurrent = false,
+        appCompletionCurrent: boolean,
       ): DeskLeaseRow => ({
         ...row,
         renewalTarget: renewalTargetFor({
@@ -1809,6 +1876,44 @@ export async function loadLiveRenewalDesk(
       const currentRentDecision = effectiveDataCheck
         ? resolveOwnerCurrentRentDecision(view, effectiveDataCheck, currency)
         : null;
+      // S246 R-S246-1: the app-recorded completion is read exactly as the lease page reads it, for
+      // every row: the current-source process projection, built with this row's own data check.
+      // A row the process below does not project builds it only when saved progress records a
+      // completion, so a lease outside the window reaches the verdict its lease page shows.
+      const verifiedAppCompletion = (
+        projected?: ReturnType<typeof projectRenewalProcess>,
+      ): boolean =>
+        appCompletionIsCurrent({
+          progress,
+          progressStateAvailable,
+          process: () => {
+            if (projected) return projected;
+            if (!leaseId) return null;
+            const completionCheck =
+              effectiveDataCheck ??
+              projectEffectiveDataCheck(
+                buildLeaseDataCheck(view, portfolioOutcomes),
+                resolutions,
+                LIVE_DESK_RUN_ID,
+              );
+            return projectLiveLeaseProcess({
+              leaseId,
+              view,
+              endDateIso: classification.endDateIso,
+              currentRentDecision:
+                currentRentDecision ??
+                resolveOwnerCurrentRentDecision(view, completionCheck, currency),
+              dataCheck: completionCheck.items,
+              currency,
+              readComplete: complete,
+              progress,
+              packetSnapshot: packetSnapshotFromBatch(packetSnapshotsByLease, leaseId),
+              readTimestamp,
+              followUpSources,
+              manual,
+            }).process;
+          },
+        });
       const sourceAwareSummary = dataCheck
         ? toLiveSummary(
             view,
@@ -1837,6 +1942,7 @@ export async function loadLiveRenewalDesk(
               dataCheck,
               rentDecision: currentRentDecision,
             }),
+            verifiedAppCompletion(),
           );
         }
         if (!effectiveDataCheck || !dataCheck || !currentRentDecision) {
@@ -1846,40 +1952,25 @@ export async function loadLiveRenewalDesk(
               dataCheck,
               rentDecision: currentRentDecision,
             }),
+            verifiedAppCompletion(),
           );
         }
-        const processEvidence = buildLiveProcessEvidence({
+        const { process } = projectLiveLeaseProcess({
           leaseId,
           view,
           endDateIso: classification.endDateIso,
-          currentRent: currentRentDecision.currentRent,
-          currentRentEvidence: currentRentDecision.currentRentEvidence,
+          currentRentDecision,
           dataCheck,
-          dataCurrency: currency,
+          currency,
           readComplete: complete,
           progress,
           packetSnapshot: packetSnapshotFromBatch(packetSnapshotsByLease, leaseId),
-        });
-        const evidence = applyLiveFollowUpEvidence({
-          evidence: processEvidence.evidence,
-          leaseId,
-          view,
           readTimestamp,
-          sources: followUpSources,
-        });
-        const effectiveProgress = effectiveProgressAfterEvidence(progress, evidence);
-        const process = projectRenewalProcess({
-          processVersion: effectiveProgress?.processVersion ?? RENEWAL_PROCESS_VERSION,
-          evidence,
-          evidenceBlockers: processEvidence.blockers,
-          ownerOutcome: effectiveProgress?.ownerOutcome ?? null,
-          staffOwnerOutcome: staffOwnerOutcome(manual, classification.endDateIso),
-          tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
-          complete: effectiveProgress?.complete ?? false,
+          followUpSources,
+          manual,
         });
         // The same verified-completion fact the lifecycle reads, never a stored scalar by itself.
-        const appCompletionCurrent =
-          progressStateAvailable && process.status === "complete";
+        const appCompletionCurrent = verifiedAppCompletion(process);
         const row = toRow(
           withRenewalDeskQueryKeys({
             ...withCurrentLifecycle(
@@ -1939,6 +2030,7 @@ export async function loadLiveRenewalDesk(
           ),
           { process: null, dataCheck, rentDecision: currentRentDecision },
         ),
+        verifiedAppCompletion(),
       );
     });
     // S70 AC-S70-1: the queue is ordered soonest-lease-end first. Before this it had no sort at all
@@ -2132,37 +2224,21 @@ export async function loadLiveRenewalLeaseWorkspace(
       };
     }
 
-    const processEvidence = buildLiveProcessEvidence({
+    // Live source drift can invalidate stored downstream evidence without mutating Firestore during a
+    // read; the shared projection carries every coupled field through that effective evidence.
+    const { evidence, effectiveProgress, process } = projectLiveLeaseProcess({
       leaseId,
       view,
       endDateIso: classification.endDateIso,
-      currentRent,
-      currentRentEvidence: currentRentDecision.currentRentEvidence,
+      currentRentDecision,
       dataCheck,
-      dataCurrency: currency,
+      currency,
       readComplete: complete,
       progress,
       packetSnapshot,
-    });
-    // Live source drift can invalidate stored downstream evidence without mutating Firestore during a
-    // read. Project every coupled field through that effective evidence so stale draft/outcome/
-    // completion flags cannot survive merely because their historical scalar is still present.
-    const evidence = applyLiveFollowUpEvidence({
-      evidence: processEvidence.evidence,
-      leaseId,
-      view,
       readTimestamp,
-      sources: followUpSources,
-    });
-    const effectiveProgress = effectiveProgressAfterEvidence(progress, evidence);
-    const process = projectRenewalProcess({
-      processVersion: effectiveProgress?.processVersion ?? RENEWAL_PROCESS_VERSION,
-      evidence,
-      evidenceBlockers: processEvidence.blockers,
-      ownerOutcome: effectiveProgress?.ownerOutcome ?? null,
-      staffOwnerOutcome: staffOwnerOutcome(manual, classification.endDateIso),
-      tenantOutcome: effectiveProgress?.tenantOutcome ?? null,
-      complete: effectiveProgress?.complete ?? false,
+      followUpSources,
+      manual,
     });
     const followUp = buildLiveFollowUp({
       leaseId,
@@ -2179,14 +2255,19 @@ export async function loadLiveRenewalLeaseWorkspace(
       stageLabel: RENEWAL_STEPS[process.currentStepIndex]?.label ?? null,
       nextAction: STAGE_NEXT_ACTION[process.currentStepIndex] ?? null,
       followUp,
-      // S246 R-S246-1: the lease page carries the same target verdict as the desk row.
+      // S246 R-S246-1: the lease page carries the same target verdict as the desk row, with the
+      // app-recorded completion read by the same rule the desk applies to every row.
       renewalTarget: renewalTargetFor({
         view,
         classification,
         moveOut: summary.moveOut,
         manual,
         statusTable: moveOutInputs.statusTable,
-        appCompletionCurrent: process.status === "complete",
+        appCompletionCurrent: appCompletionIsCurrent({
+          progress,
+          progressStateAvailable: true,
+          process: () => process,
+        }),
         decision: cycleDateDecision,
       }),
     };

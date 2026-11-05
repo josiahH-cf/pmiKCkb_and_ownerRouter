@@ -110,6 +110,7 @@ import {
   unavailableRenewalAuxiliary,
 } from "@/lib/lease-renewal/auxiliary-read";
 import { DEFAULT_NOTICE_RULE_SET } from "@/lib/lease-renewal/notice-rules";
+import { withReadDeadline } from "@/lib/observability/read-lifetime";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import { readArtifactIntakeManifest } from "@/lib/firestore/lease-artifact-intake";
 import { readFamilyUseRecord } from "@/lib/firestore/lease-artifact-family-use";
@@ -195,6 +196,13 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const workingRecordReadPromise = readRenewalAuxiliary("working_record", () =>
     getRenewalWorkingRecord(user, leaseId),
   );
+  // S246 R-S246-5: this lease's keep-working choice, so the lease page carries the same renewal
+  // target verdict as the desk. It is independent of every other read, so it starts here with the
+  // same bounded wait as the page's other optional reads; an unreadable or late choice counts as
+  // none and never holds the page.
+  const cycleDateDecisionPromise = withReadDeadline(() =>
+    getRenewalCycleDateDecision(user, leaseId),
+  ).catch(() => null);
   // Independent genuine reads start after both access guards, alongside the lease snapshot.
   // Every result retains its typed failure; there is no cache or provider effect on navigation.
   const supportingReads = Promise.all([
@@ -413,11 +421,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const resolutions = renewalAuxiliaryValue(resolutionsRead, []);
   const termReview = renewalAuxiliaryValue(termReviewRead, null);
   const workingRecordRead = await workingRecordReadPromise;
-  // S246 R-S246-5: this lease's keep-working choice, so the lease page carries the same renewal
-  // target verdict as the desk. An unreadable choice counts as none.
-  const cycleDateDecision = await getRenewalCycleDateDecision(user, leaseId).catch(
-    () => null,
-  );
+  const cycleDateDecision = await cycleDateDecisionPromise;
   const pricingRead = await readRenewalAuxiliary("pricing_policy", async () => {
     if (leaseSnapshotAttempt?.status !== "available")
       throw new Error("Source unavailable");
