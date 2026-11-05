@@ -11,7 +11,7 @@
     "dev": "node scripts/run-local-rehearsal.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint . --concurrency=2",
+    "lint": "eslint .",
     "format": "prettier --check .",
     "format:check": "prettier --check . --cache --cache-strategy content",
     "format:write": "prettier --write .",
