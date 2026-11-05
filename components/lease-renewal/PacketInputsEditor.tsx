@@ -1664,7 +1664,9 @@ function OwnerAcknowledgmentFiles({
   return (
     <div className="ui-stack-tight" aria-busy={busy} data-owner-acknowledgment-files>
       <Button variant="secondary" size="compact" busy={busy} onClick={() => void check()}>
-        {checked ? "Check the owner acknowledgment again" : "Check the owner acknowledgment"}
+        {checked
+          ? "Check the owner acknowledgment again"
+          : "Check the owner acknowledgment"}
       </Button>
       {error ? <p role="alert">{error}</p> : null}
       {checked && !snapshot ? (

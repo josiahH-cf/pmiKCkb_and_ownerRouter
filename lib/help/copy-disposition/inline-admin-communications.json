@@ -393,6 +393,55 @@
   },
   {
     "kind": "inline",
+    "location": "components/admin/RenewalPacketPolicyAdminPanel.tsx",
+    "text": "The text renewal staff may begin from when they write a lease&apos;s explanation for the owner acknowledgment. Staff edit and save each explanation on its own lease.",
+    "describes": "Owner explanation starting text setting that staff may copy into a lease's explanation",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RenewalPacketPolicyAdminPanel.tsx",
+    "text": "Each question holds only its own output. Everything else on a lease goes on.",
+    "describes": "Open form questions list, where each question holds one output",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RenewalPacketPolicyAdminPanel.tsx",
+    "text": "Asked of …. Holds only: …. Works meanwhile: ….",
+    "describes": "Open form question row with who is asked, the one output it holds and what works meanwhile",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RenewalPacketPolicyAdminPanel.tsx",
+    "text": "One amount for an ordinary pet, separate from any deposit. Leave empty when no fee is published.",
+    "describes": "Pet processing fee field of the charge policy",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RenewalPacketPolicyAdminPanel.tsx",
+    "text": "Needed with the fee. Name who confirmed the amount and when.",
+    "describes": "Source note field published with the pet processing fee",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RenewalPacketPolicyAdminPanel.tsx",
+    "text": "What one fee covers is still an open question for the business, so it stays unset. An agreement for one ordinary pet totals without it; an agreement for more than one waits for the answer.",
+    "describes": "Pet processing fee unit shown unset until the business confirms what one fee covers",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
+    "location": "components/admin/RenewalPacketPolicyAdminPanel.tsx",
+    "text": "Choose what the business confirmed. Until one is chosen, an agreement for more than one pet waits.",
+    "describes": "Pet processing fee unit field once the business has confirmed what one fee covers",
+    "disposition": "keep"
+  },
+  {
+    "kind": "inline",
     "location": "components/admin/RuntimeSuspensionAdminPanel.tsx",
     "text": "For a Sev-1 incident, stop the affected Production action here first. Do not wait for a deploy. This control can only stop new provider actions listed below. It cannot enable an unavailable action, disconnect a provider, or stop read-only live desks and connection checks.",
     "describes": "Production action stop control scope for Sev-1 incidents",

@@ -164,7 +164,9 @@ function ownerExplanationView(
   const field = map?.fields.find((entry) => entry.factKey === OWNER_EXPLANATION_FACT);
   const region = map?.static?.regions.find(
     (entry) =>
-      entry.fieldId === field?.fieldId && entry.slot === 0 && entry.format === "paragraphs",
+      entry.fieldId === field?.fieldId &&
+      entry.slot === 0 &&
+      entry.format === "paragraphs",
   );
   let preview: OwnerExplanationPreview | null = null;
   if (map?.static && region) {

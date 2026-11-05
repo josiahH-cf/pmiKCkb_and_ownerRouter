@@ -21,10 +21,7 @@ const AMOUNT = String.raw`\$\s?(\d[\d,]*(?:\.\d{1,2})?)`;
  * directly before them. Words that begin another amount (a deposit, a total, rent) end the reach,
  * so the amount read is the fee's own.
  */
-const FEE_AFTER = new RegExp(
-  String.raw`processing\s+fee([^$.;]{0,48}?)${AMOUNT}`,
-  "gi",
-);
+const FEE_AFTER = new RegExp(String.raw`processing\s+fee([^$.;]{0,48}?)${AMOUNT}`, "gi");
 const FEE_BEFORE = new RegExp(
   String.raw`${AMOUNT}\s+(?:(?:non-?refundable|one-?time|pet)\s+){0,3}processing\s+fee`,
   "gi",
@@ -58,9 +55,7 @@ export function statedProcessingFees(
     const next = lines[index + 1];
     const texts = [
       line.text,
-      ...(next && next.pageIndex === line.pageIndex
-        ? [`${line.text} ${next.text}`]
-        : []),
+      ...(next && next.pageIndex === line.pageIndex ? [`${line.text} ${next.text}`] : []),
     ];
     for (const text of texts) {
       for (const match of text.matchAll(FEE_AFTER))
