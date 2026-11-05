@@ -95,7 +95,8 @@ import {
   sheetFieldCells,
 } from "@/lib/lease-renewal/sheet-writeback/lookup-target";
 import { buildOperatingSheetCellDestination } from "@/lib/lease-renewal/desk-destinations";
-import { validateDeskView } from "@/lib/lease-renewal/desk-view-continuation";
+import { validateDeskContinuation } from "@/lib/lease-renewal/desk-view-continuation";
+import { getRenewalCycleDateDecision } from "@/lib/firestore/renewal-cycle-date-decisions";
 import {
   hasRenewalRoleAuthority,
   renewalRoleCapability,
@@ -109,6 +110,7 @@ import {
   unavailableRenewalAuxiliary,
 } from "@/lib/lease-renewal/auxiliary-read";
 import { DEFAULT_NOTICE_RULE_SET } from "@/lib/lease-renewal/notice-rules";
+import { withReadDeadline } from "@/lib/observability/read-lifetime";
 import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import { readArtifactIntakeManifest } from "@/lib/firestore/lease-artifact-intake";
 import { readFamilyUseRecord } from "@/lib/firestore/lease-artifact-family-use";
@@ -171,8 +173,9 @@ export default async function LiveRenewalLeaseWorkspacePage({
     ? search.deskView[0]
     : search.deskView;
   // S82: an invalid/oversized/noncanonical continuation falls back to the default desk; it can never
-  // become an open redirect or partially restore a different view.
-  const deskView = validateDeskView(rawDeskView);
+  // become an open redirect or partially restore a different view. S246: the continuation is a
+  // table view or the working batch (its month and open group) the lease was opened from.
+  const deskView = validateDeskContinuation(rawDeskView);
 
   const liveConfig = buildLiveRenewalConfig();
   if (liveConfig.ok)
@@ -193,6 +196,13 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const workingRecordReadPromise = readRenewalAuxiliary("working_record", () =>
     getRenewalWorkingRecord(user, leaseId),
   );
+  // S246 R-S246-5: this lease's keep-working choice, so the lease page carries the same renewal
+  // target verdict as the desk. It is independent of every other read, so it starts here with the
+  // same bounded wait as the page's other optional reads; an unreadable or late choice counts as
+  // none and never holds the page.
+  const cycleDateDecisionPromise = withReadDeadline(() =>
+    getRenewalCycleDateDecision(user, leaseId),
+  ).catch(() => null);
   // Independent genuine reads start after both access guards, alongside the lease snapshot.
   // Every result retains its typed failure; there is no cache or provider effect on navigation.
   const supportingReads = Promise.all([
@@ -411,6 +421,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
   const resolutions = renewalAuxiliaryValue(resolutionsRead, []);
   const termReview = renewalAuxiliaryValue(termReviewRead, null);
   const workingRecordRead = await workingRecordReadPromise;
+  const cycleDateDecision = await cycleDateDecisionPromise;
   const pricingRead = await readRenewalAuxiliary("pricing_policy", async () => {
     if (leaseSnapshotAttempt?.status !== "available")
       throw new Error("Source unavailable");
@@ -453,6 +464,7 @@ export default async function LiveRenewalLeaseWorkspacePage({
     ),
     renewalAuxiliaryValue(workingRecordRead, null),
     pricingRead.status === "available" ? pricingRead.value : undefined,
+    cycleDateDecision,
   );
   const dispositions = renewalAuxiliaryValue(dispositionsRead, []);
   const writebackProposal = renewalAuxiliaryValue(writebackProposalRead, null);

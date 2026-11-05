@@ -6,9 +6,10 @@
 //
 // Precedence for one navigation:
 //   1. A URL that names a view (any desk key, including the explicit default `?v=2`) decides that
-//      navigation. It is read-only: following a link never changes what is remembered.
-//   2. Otherwise the ordinary entry opens the remembered view, when one still validates.
-//   3. Otherwise the existing default view opens, without an error.
+//      navigation and opens the table. It is read-only: following a link never changes what is
+//      remembered.
+//   2. Otherwise the ordinary entry opens the working batch (S246 ARCH-S246-3). The remembered
+//      view no longer applies by itself there; the batch offers it as "Open my saved view".
 // Pure; no I/O. The store is `lib/firestore/renewal-desk-preferences.ts`.
 
 import {
@@ -22,6 +23,10 @@ import {
   DESK_VIEW_MAX_CODE_UNITS,
   validateDeskView,
 } from "@/lib/lease-renewal/desk-view-continuation";
+import {
+  parseRenewalBatchQuery,
+  type RenewalBatchQuery,
+} from "@/lib/lease-renewal/renewal-batch";
 
 export const RENEWAL_DESK_PREFERENCE_SCHEMA_VERSION = "renewal-desk-preference/v1";
 
@@ -73,12 +78,23 @@ export function revalidateStoredDeskView(stored: unknown): string | null {
 
 export type RenewalDeskEntrySource = "explicit" | "saved" | "default";
 
+/** S246: what one desk navigation opens. Only the bare route opens the working batch. */
+export type RenewalDeskEntrySurface = "batch" | "table";
+
 export interface RenewalDeskEntry {
+  /** The working batch for the ordinary entry, the table for every URL that names a view. */
+  readonly surface: RenewalDeskEntrySurface;
+  /** The table view; the default view while the batch is shown. */
   readonly state: RenewalDeskQueryV2State;
-  /** What chose this view: the URL, the account's remembered view, or the existing default. */
+  /**
+   * What chose the table view: the URL ("saved" when that URL names exactly the account's
+   * remembered view), or the default while the batch is shown.
+   */
   readonly source: RenewalDeskEntrySource;
   /** The account's remembered non-default view as it would open now, or null. */
   readonly savedView: string | null;
+  /** The batch month and open group the URL names; both null for the plain batch. */
+  readonly batch: RenewalBatchQuery;
 }
 
 export interface ResolveRenewalDeskEntryInput {
@@ -118,7 +134,13 @@ function rememberedState(
   return serializeRenewalDeskQueryV2(state) === "" ? null : state;
 }
 
-/** Choose the view for one desk navigation. Never writes; an explicit URL always wins. */
+const NO_BATCH_QUERY: RenewalBatchQuery = { month: null, group: null };
+
+/**
+ * Choose what one desk navigation opens. Never writes. A URL that names a view always opens the
+ * table with exactly that view; the bare route opens the working batch and only offers the
+ * remembered view.
+ */
 export function resolveRenewalDeskEntry(
   input: ResolveRenewalDeskEntryInput,
 ): RenewalDeskEntry {
@@ -126,12 +148,23 @@ export function resolveRenewalDeskEntry(
   const savedView = remembered ? serializeRenewalDeskQueryV2(remembered) : null;
   if (renewalDeskUrlNamesView(input.searchParams)) {
     const parse = input.parseExplicit ?? parseRenewalDeskQueryV2;
-    return { state: parse(input.searchParams), source: "explicit", savedView };
+    const state = parse(input.searchParams);
+    return {
+      surface: "table",
+      state,
+      source:
+        savedView !== null && serializeRenewalDeskQueryV2(state) === savedView
+          ? "saved"
+          : "explicit",
+      savedView,
+      batch: NO_BATCH_QUERY,
+    };
   }
-  if (remembered) return { state: remembered, source: "saved", savedView };
   return {
+    surface: "batch",
     state: { ...DEFAULT_RENEWAL_DESK_QUERY_V2 },
     source: "default",
-    savedView: null,
+    savedView,
+    batch: parseRenewalBatchQuery(input.searchParams),
   };
 }

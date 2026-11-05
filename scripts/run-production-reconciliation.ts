@@ -3,6 +3,7 @@ import {
   type AssuranceDomPlan,
 } from "./production-assurance-dom-snapshot";
 import { mapAssuranceReads } from "../lib/production-assurance/bounded-reads";
+import { ASSURANCE_RENEWAL_DESK_PATH } from "../lib/production-assurance/manifest";
 import {
   RENEWAL_WORKSPACE_COLLECTIONS,
   RenewalWorkspaceStateSchema,
@@ -1490,13 +1491,12 @@ async function readRenderedProjection(
     const navigationTimeoutMs = remainingAssuranceTime(pageDeadlineAtMs, PAGE_TIMEOUT_MS);
     if (navigationTimeoutMs <= 0)
       throw new Error("rendered_projection_deadline_exceeded");
-    const response = await page.goto(
-      `${options.origin}/lease-renewal/live/desk?v=2&scope=all`,
-      {
-        waitUntil: "domcontentloaded",
-        timeout: navigationTimeoutMs,
-      },
-    );
+    // S246: the bare desk route opens the working batch. The rendered record count is read from
+    // the table over every loaded lease, the one path the canary landmarks also read.
+    const response = await page.goto(`${options.origin}${ASSURANCE_RENEWAL_DESK_PATH}`, {
+      waitUntil: "domcontentloaded",
+      timeout: navigationTimeoutMs,
+    });
     await page.waitForTimeout(750);
     if (
       !response?.ok() ||

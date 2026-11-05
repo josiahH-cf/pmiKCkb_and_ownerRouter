@@ -12,10 +12,17 @@ import {
 } from "@/lib/lease-renewal/desk-query-v2";
 import { derivePartyFilterToken } from "@/lib/lease-renewal/party-filter-key";
 
-// S166 (F15): the desk page chooses its view. An ordinary entry opens the account's remembered
-// view; a URL that names a view decides that navigation; opening the page never writes.
+// S166 (F15): the desk page chooses its view. A URL that names a view decides that navigation;
+// opening the page never writes.
+// S246 ARCH-S246-3: an ordinary entry (the bare route) opens the working batch. The account's
+// remembered view is offered there by its own link and opens exactly as saved from that link.
 
 interface CapturedDeskProps {
+  /** S246: present when the navigation opens the working batch. */
+  readonly batch?: {
+    readonly rows: readonly unknown[];
+    readonly savedViewHref: string | null;
+  };
   readonly query: RenewalDeskQueryV2State;
   readonly viewMemory: {
     readonly source: string;
@@ -66,9 +73,22 @@ vi.mock("@/components/lease-renewal/RenewalDesk", () => ({
 }));
 vi.mock("@/lib/lease-renewal/assistant-source", () => ({
   loadRenewalAssistantSource: async () => ({
-    outcome: { status: "ok", view: { items: state.items } },
+    outcome: {
+      status: "ok",
+      view: {
+        items: state.items,
+        dataCurrency: { readAtIso: "2026-11-05T15:00:00.000Z", state: "fresh" },
+      },
+    },
     auxiliaryFailures: [],
+    cycleDateDecisionsAvailable: true,
   }),
+}));
+// The batch row projection has its own tests (s246-working-batch); this file pins which surface
+// the page chooses, so its partial fixture rows are counted here and never projected.
+vi.mock("@/lib/lease-renewal/renewal-batch-row", () => ({
+  projectRenewalBatchRows: (rows: readonly { id: string }[]) =>
+    rows.map((row) => ({ leaseId: row.id })),
 }));
 vi.mock("@/lib/firestore/renewal-desk-preferences", () => ({
   deskPreferenceModeFor: () => "saved",
@@ -98,6 +118,7 @@ const lee: AuthenticatedUser = {
 };
 
 const SAVED = "v=2&sort=end_date&direction=desc&scope=all";
+const SAVED_HREF = `/lease-renewal/live/desk?${SAVED}`;
 const KEY = Buffer.alloc(32, 7);
 
 async function open(
@@ -126,11 +147,22 @@ afterEach(() => {
 });
 
 describe("S166 the worklist page chooses its view (ARCH-S166-3)", () => {
-  it("BEH-S166-6: an ordinary entry opens the account's remembered view, in any later session or device", async () => {
+  it("BEH-S166-6 after S246 ARCH-S246-3: an ordinary entry opens the working batch and offers the account's remembered view, which its own link opens in any later session or device", async () => {
     state.stored = SAVED;
     const desk = await open({});
-    expect(serializeRenewalDeskQueryV2(desk.query)).toBe(SAVED);
+    expect(desk.batch?.savedViewHref).toBe(SAVED_HREF);
+    expect(desk.query).toEqual({ ...DEFAULT_RENEWAL_DESK_QUERY_V2 });
     expect(desk.viewMemory).toEqual({
+      accountId: pat.uid,
+      source: "default",
+      savedView: SAVED,
+      memory: "saved",
+    });
+    // The link that names the remembered view opens the table exactly as saved.
+    const opened = await open(Object.fromEntries(new URLSearchParams(SAVED)));
+    expect(opened.batch).toBeUndefined();
+    expect(serializeRenewalDeskQueryV2(opened.query)).toBe(SAVED);
+    expect(opened.viewMemory).toEqual({
       accountId: pat.uid,
       source: "saved",
       savedView: SAVED,
@@ -144,23 +176,30 @@ describe("S166 the worklist page chooses its view (ARCH-S166-3)", () => {
     const desk = await open({});
     expect(desk.query).toEqual({ ...DEFAULT_RENEWAL_DESK_QUERY_V2 });
     expect(desk.viewMemory).toMatchObject({ source: "default", savedView: null });
+    // S246: its working batch offers no saved view, because this account remembered none.
+    expect(desk.batch).toBeDefined();
+    expect(desk.batch?.savedViewHref).toBeNull();
   });
 
   it("BEH-S166-8 / BEH-S166-9: a link that names a view decides this navigation and the remembered view is untouched", async () => {
     state.stored = SAVED;
     const linked = await open({ v: "2", overallStatus: "blocked" });
+    expect(linked.batch).toBeUndefined();
     expect(serializeRenewalDeskQueryV2(linked.query)).toBe("v=2&overallStatus=blocked");
     expect(linked.viewMemory).toMatchObject({ source: "explicit", savedView: SAVED });
     // The explicit default link shows the default view.
     const explicitDefault = await open({ v: "2" });
+    expect(explicitDefault.batch).toBeUndefined();
     expect(explicitDefault.query).toEqual({ ...DEFAULT_RENEWAL_DESK_QUERY_V2 });
     expect(explicitDefault.viewMemory).toMatchObject({
       source: "explicit",
       savedView: SAVED,
     });
-    // Returning ordinarily afterwards opens the remembered view again.
+    // S246: returning ordinarily afterwards opens the working batch, which still offers the
+    // remembered view unchanged.
     const back = await open({});
-    expect(serializeRenewalDeskQueryV2(back.query)).toBe(SAVED);
+    expect(back.batch?.savedViewHref).toBe(SAVED_HREF);
+    expect(back.viewMemory).toMatchObject({ source: "default", savedView: SAVED });
   });
 
   it("BEH-S166-10 / AC-S166-3: malformed URLs resolve safely and never change what is remembered", async () => {
@@ -173,9 +212,12 @@ describe("S166 the worklist page chooses its view (ARCH-S166-3)", () => {
     const legacy = await open({ scope: "all" });
     expect(serializeRenewalDeskQueryV2(legacy.query)).toBe("v=2&scope=all");
     expect(legacy.viewMemory.source).toBe("explicit");
-    // An unrelated key is an ordinary entry.
+    expect(legacy.batch).toBeUndefined();
+    // An unrelated key is an ordinary entry: the working batch (S246), with the remembered view
+    // still offered.
     const unrelated = await open({ utm_source: "mail" });
-    expect(serializeRenewalDeskQueryV2(unrelated.query)).toBe(SAVED);
+    expect(unrelated.batch?.savedViewHref).toBe(SAVED_HREF);
+    expect(unrelated.viewMemory).toMatchObject({ source: "default", savedView: SAVED });
   });
 
   it("BEH-S166-10 / AC-S166-3: a remembered value that no longer validates, or a store that cannot be read, opens the default without an error", async () => {
@@ -183,12 +225,14 @@ describe("S166 the worklist page chooses its view (ARCH-S166-3)", () => {
     const stale = await open({});
     expect(stale.query).toEqual({ ...DEFAULT_RENEWAL_DESK_QUERY_V2 });
     expect(stale.viewMemory).toMatchObject({ source: "default", savedView: null });
+    expect(stale.batch?.savedViewHref).toBeNull();
 
     state.stored = SAVED;
     state.readError = true;
     const unreadable = await open({});
     expect(unreadable.query).toEqual({ ...DEFAULT_RENEWAL_DESK_QUERY_V2 });
     expect(unreadable.viewMemory).toMatchObject({ source: "default", savedView: null });
+    expect(unreadable.batch?.savedViewHref).toBeNull();
   });
 
   it("BEH-S166-10: a remembered party filter is kept only while it resolves against a loaded party", async () => {
@@ -218,14 +262,19 @@ describe("S166 the worklist page chooses its view (ARCH-S166-3)", () => {
         },
       },
     ];
+    // S246: the ordinary entry offers the remembered view by its link; the same rule decides
+    // what that link carries.
     state.stored = `v=2&scope=all&ownerKey=${present}`;
-    expect(serializeRenewalDeskQueryV2((await open({})).query)).toBe(state.stored);
+    const kept = await open({});
+    expect(kept.batch?.rows).toHaveLength(1);
+    expect(kept.batch?.savedViewHref).toBe(`/lease-renewal/live/desk?${state.stored}`);
+    expect(kept.viewMemory.savedView).toBe(state.stored);
     // A token minted under a key that has since rotated out no longer resolves: it is dropped.
     state.stored = `v=2&scope=all&ownerKey=${rotated}`;
     const dropped = await open({});
-    expect(serializeRenewalDeskQueryV2(dropped.query)).toBe("v=2&scope=all");
+    expect(dropped.batch?.savedViewHref).toBe("/lease-renewal/live/desk?v=2&scope=all");
     expect(dropped.viewMemory).toMatchObject({
-      source: "saved",
+      source: "default",
       savedView: "v=2&scope=all",
     });
   });

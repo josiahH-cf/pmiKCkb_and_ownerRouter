@@ -16,7 +16,46 @@ import { normalizeRenewalDeskText } from "@/lib/lease-renewal/desk-query";
 import { workStatusDisplayLabel } from "./work-status";
 import { canonicalJson } from "@/lib/execution/preview-hash";
 import { EditableLayerError } from "@/lib/firestore/errors";
+import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
+import type { RenewalWorkspaceState } from "@/lib/lease-renewal/workspace-state";
 import type { CollectionSource } from "./shared-collections";
+
+/**
+ * S201: each loaded lease's current cycle identity, the lease and cycle a collection member names.
+ * A recorded work cycle is keyed by its id and basis; otherwise the lease end (or, for a
+ * month-to-month lease, the annual review) RentVine reports. A lease with neither has no cycle.
+ * The collection page and the Renewals desk's collection link both read membership through this.
+ */
+export function collectionSourceRecords(
+  rows: readonly DeskLeaseRow[],
+  cycles: ReadonlyMap<string, RenewalWorkspaceState>,
+): CollectionSource["records"] {
+  return rows.flatMap((row) => {
+    const cycle = cycles.get(row.id);
+    const date =
+      cycle && cycle.basis.kind !== "lease_bound"
+        ? cycle.basis.dateIso
+        : row.leaseTerm.term === "month_to_month"
+          ? row.queryKeys.nextReviewIso
+          : row.endDateIso;
+    const cycleKey = cycle
+      ? `recorded:${cycle.cycleId}:${createHash("sha256").update(canonicalJson(cycle.basis)).digest("hex").slice(0, 24)}`
+      : date
+        ? `source:${row.leaseTerm.term === "month_to_month" ? "annual_review" : "lease_end"}:${date}`
+        : null;
+    if (!cycleKey) return [];
+    return [
+      {
+        member: { leaseId: row.id, cycleKey, cycleDate: date ?? null },
+        label: row.addressLabel,
+        href: `/lease-renewal/live/desk/lease/${encodeURIComponent(row.id)}`,
+        lifecycle: row.lifecycle?.label ?? "Lifecycle unavailable",
+        workStatus: workStatusDisplayLabel(row.workStatus),
+      },
+    ];
+  });
+}
+
 export async function readSharedCollectionSource(
   actor: AuthenticatedUser,
 ): Promise<CollectionSource> {
@@ -74,30 +113,7 @@ export async function readSharedCollectionSource(
       ),
     ),
   );
-  const records = view.items.flatMap((row) => {
-    const cycle = manual.records.get(row.id);
-    const date =
-      cycle && cycle.basis.kind !== "lease_bound"
-        ? cycle.basis.dateIso
-        : row.leaseTerm.term === "month_to_month"
-          ? row.queryKeys.nextReviewIso
-          : row.endDateIso;
-    const cycleKey = cycle
-      ? `recorded:${cycle.cycleId}:${createHash("sha256").update(canonicalJson(cycle.basis)).digest("hex").slice(0, 24)}`
-      : date
-        ? `source:${row.leaseTerm.term === "month_to_month" ? "annual_review" : "lease_end"}:${date}`
-        : null;
-    if (!cycleKey) return [];
-    return [
-      {
-        member: { leaseId: row.id, cycleKey, cycleDate: date ?? null },
-        label: row.addressLabel,
-        href: `/lease-renewal/live/desk/lease/${encodeURIComponent(row.id)}`,
-        lifecycle: row.lifecycle?.label ?? "Lifecycle unavailable",
-        workStatus: workStatusDisplayLabel(row.workStatus),
-      },
-    ];
-  });
+  const records = collectionSourceRecords(view.items, manual.records);
   return {
     complete: issues.length === 0,
     readAt: view.dataCurrency.readAtIso,
@@ -105,7 +121,8 @@ export async function readSharedCollectionSource(
     records,
     matches: (basis) => {
       const parsed = parseRenewalDeskQueryV2(new URLSearchParams(basis.criteria));
-      if (serializeRenewalDeskQueryV2(parsed) !== basis.criteria)
+      // S246: a collection's membership is never defined by another collection's filter.
+      if (serializeRenewalDeskQueryV2(parsed) !== basis.criteria || parsed.collection)
         throw new EditableLayerError(
           "The stored selection filters need explicit review.",
           409,

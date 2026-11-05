@@ -9,6 +9,16 @@ export interface CanaryRouteDefinition {
   readonly dynamicFrom?: "renewal_desk";
 }
 
+/**
+ * The Renewals desk view release assurance reads: the table over every loaded lease, named
+ * explicitly. S246: the bare desk route opens the working batch, which lists two groups and
+ * shows every other lease as a count. The canary landmarks and the reconciliation both read this
+ * path instead, so each still sees one table row per loaded lease and the rendered record count
+ * reconciles against the source and projected counts. An earlier revision renders the same table
+ * at this path.
+ */
+export const ASSURANCE_RENEWAL_DESK_PATH = "/lease-renewal/live/desk?v=2&scope=all";
+
 const COMMON_ROUTES: readonly CanaryRouteDefinition[] = [
   {
     key: "dashboard",
@@ -36,7 +46,7 @@ const COMMON_ROUTES: readonly CanaryRouteDefinition[] = [
   },
   {
     key: "renewal_desk",
-    path: "/lease-renewal/live/desk?v=2&scope=all",
+    path: ASSURANCE_RENEWAL_DESK_PATH,
     expectedOutcome: "rendered",
     heading: "Renewals",
     requiredSpace: "renewals",

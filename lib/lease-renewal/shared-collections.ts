@@ -124,8 +124,8 @@ export function collectionDifference(
   };
 }
 export function projectCollectionStatuses(
-  collection: SharedLeaseCollection,
-  source: CollectionSource,
+  collection: Pick<SharedLeaseCollection, "members">,
+  source: Pick<CollectionSource, "records">,
 ): CollectionStatus[] {
   const byId = new Map(source.records.map((r) => [r.member.leaseId, r]));
   return collection.members.map((member) => {
@@ -151,9 +151,16 @@ export function projectCollectionStatuses(
     };
   });
 }
+/**
+ * S246 R-S246-9: the shared collection link. It opens the Renewals table over every loaded lease,
+ * narrowed to this collection's saved leases on the cycle each was saved for (S201).
+ */
+export function sharedCollectionDeskHref(collectionId: string) {
+  return `/lease-renewal/live/desk?${new URLSearchParams({ v: "2", scope: "all", collection: collectionId })}`;
+}
 export function sharedCollectionEntryHref(
   ids: readonly string[],
-  origin: "assistant" | "worklist",
+  origin: "assistant" | "worklist" | "explicit",
   criteria = "",
 ) {
   return `/lease-renewal/collections?${new URLSearchParams({ members: [...new Set(ids)].join(","), origin, ...(criteria ? { criteria } : {}) })}`;

@@ -169,9 +169,10 @@ describe("S166 deliberate worklist changes are remembered (ARCH-S166-2)", () => 
       "This link opened its own view. Your saved view is unchanged.",
     );
     expect(fetchMock).not.toHaveBeenCalled();
+    // S246 ARCH-S246-3: the bare route opens the working batch, so the link names the view.
     expect(screen.getByRole("link", { name: "Open your saved view" })).toHaveAttribute(
       "href",
-      "/lease-renewal/live/desk",
+      `/lease-renewal/live/desk?${SAVED}`,
     );
     // Returning to the ordinary entry is not a change either.
     follow(screen.getByRole("link", { name: "Open your saved view" }));

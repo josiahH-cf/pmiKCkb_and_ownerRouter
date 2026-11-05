@@ -437,7 +437,13 @@ try {
     fixture,
   );
   const fresh = await second.newPage();
-  await open(fresh, "/lease-renewal/live/desk", "restored_private_view");
+  // S246: the bare route opens the working batch, which offers the remembered view by its own
+  // link. That link restores the private view exactly as saved.
+  await open(fresh, "/lease-renewal/live/desk", "working_batch_offers_private_view");
+  await fresh.locator('section[aria-label="Working batch"]').waitFor();
+  assert.equal(await fresh.locator("[data-admitted-view]").count(), 0);
+  await fresh.getByRole("link", { name: "Open my saved view", exact: true }).click();
+  await fresh.locator("[data-admitted-view]").waitFor();
   assert.equal(
     new URLSearchParams(
       await fresh.locator("[data-admitted-view]").getAttribute("data-admitted-view"),

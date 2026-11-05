@@ -6,6 +6,7 @@ import { formatBusinessTimestamp } from "@/lib/date-display";
 import {
   CollectionBasisSchema,
   CollectionRenameSchema,
+  sharedCollectionDeskHref,
   type CollectionBasis,
   type CollectionReview,
   type CollectionStatus,
@@ -492,6 +493,12 @@ export function SharedLeaseCollections({
           >
             Refresh current status
           </button>
+          {/* S246 R-S246-9: the shared collection link opens the table on exactly these leases. */}
+          <p>
+            <Link href={sharedCollectionDeskHref(detail.collection.id)}>
+              Open this collection on the Renewals desk
+            </Link>
+          </p>
           <ul>
             {detail.statuses.map((status) => (
               <li key={`${status.member.leaseId}:${status.member.cycleKey}`}>

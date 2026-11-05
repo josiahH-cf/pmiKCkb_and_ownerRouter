@@ -734,6 +734,13 @@ export const RENEWAL_CONTROL_INVENTORY = [
     enforcementSources: ["app/api/lease-renewal/workspace/route.ts"],
   },
   {
+    // S246 R-S246-5: the working batch's two choices for a lease RentVine has moved past.
+    control: "Record staff completion from a later RentVine lease end, or keep working",
+    source: "components/lease-renewal/RenewalWorkingBatch.tsx",
+    capability: "save_renewal_progress",
+    enforcementSources: ["app/api/lease-renewal/workspace/route.ts"],
+  },
+  {
     control: "Prepare filled output from reviewed source values",
     source: "components/lease-renewal/FilledArtifactPanel.tsx",
     capability: "prepare_filled_artifact",

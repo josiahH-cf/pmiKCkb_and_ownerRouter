@@ -20,6 +20,7 @@ import { pathToFileURL } from "node:url";
 import { chromium, type BrowserContext, type Page } from "playwright-core";
 
 import {
+  ASSURANCE_RENEWAL_DESK_PATH,
   closeGuardedManagedBrowser,
   forceCloseGuardedManagedBrowser,
   launchGuardedManagedBrowser,
@@ -408,7 +409,9 @@ export async function runProductionFocusCheck(
       const desk = await context.newPage();
       desk.setDefaultNavigationTimeout(ROUTE_BUDGET_MS);
       desk.setDefaultTimeout(ROUTE_BUDGET_MS);
-      await desk.goto(`${options.origin}/lease-renewal`, {
+      // S246: the bare desk route opens the working batch. The lease workspaces are read from
+      // the table over every loaded lease, the path the canary and the reconciliation read.
+      await desk.goto(`${options.origin}${ASSURANCE_RENEWAL_DESK_PATH}`, {
         waitUntil: "domcontentloaded",
       });
       if (!safeSameOrigin(desk.url(), options.origin))

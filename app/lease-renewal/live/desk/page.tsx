@@ -6,13 +6,18 @@ import { RenewalDesk } from "@/components/lease-renewal/RenewalDesk";
 import { requirePageCapability, requirePageSpaceAccess } from "@/lib/auth/page-guards";
 import type { AuthenticatedUser } from "@/lib/auth/session";
 import { deskPreferenceModeFor } from "@/lib/firestore/renewal-desk-preferences";
+import { canRecordCycleDateChoice } from "@/lib/firestore/renewal-cycle-date-decisions";
 import { loadRenewalAssistantSource } from "@/lib/lease-renewal/assistant-source";
+import { businessDateIso } from "@/lib/lease-renewal/business-calendar";
 import { getPersonalView } from "@/lib/firestore/personal-views";
 import { renewalDisplayScopeKey } from "@/lib/lease-renewal/display-scope";
 import type { LiveDeskStatus } from "@/lib/lease-renewal/live-desk";
 import type { DeskLeaseRow } from "@/lib/lease-renewal/desk-model";
 import { resolveRenewalDeskEntry } from "@/lib/lease-renewal/desk-preferences";
 import { normalizeRenewalDeskText } from "@/lib/lease-renewal/desk-query";
+import { renewalDeskSavedViewHref } from "@/lib/lease-renewal/desk-view-continuation";
+import { projectRenewalBatchRows } from "@/lib/lease-renewal/renewal-batch-row";
+import { readDeskCollectionView } from "@/lib/lease-renewal/shared-collection-desk";
 import { parseRenewalDeskQueryV2 } from "@/lib/lease-renewal/desk-query-v2";
 import { isOperatingSheetWritebackPaused } from "@/lib/lease-renewal/sheet-writeback-policy";
 import {
@@ -31,9 +36,12 @@ import {
 // sortable, filterable table (S82).
 //
 // S166: this page only reads the signed-in account's remembered worklist view. A URL that names a
-// view decides the navigation; the bare route is the ordinary entry and opens the remembered view;
-// anything that no longer validates opens the default. Opening the page never changes what is
+// view decides the navigation and opens the table. Opening the page never changes what is
 // remembered, and the remembered view never decides whether a lease can be opened or worked.
+//
+// S246: the bare route is the ordinary entry and opens the working batch, a presentation over the
+// same loaded rows (no second inventory). The remembered view no longer applies by itself there;
+// the batch offers it as "Open my saved view", and "All leases and filters" opens the table.
 export const dynamic = "force-dynamic";
 
 const RENEWALS_SPACE_ID = "renewals";
@@ -90,10 +98,11 @@ export default async function LiveRenewalDeskPage({
     now.getTime(),
   );
   // The one small preference read runs beside the source load; it never delays or fails it.
-  const [{ outcome, auxiliaryFailures }, storedView] = await Promise.all([
-    loadRenewalAssistantSource(user, now, sourceRefreshAfter),
-    storedDeskView(user),
-  ]);
+  const [{ outcome, auxiliaryFailures, cycleDateDecisionsAvailable }, storedView] =
+    await Promise.all([
+      loadRenewalAssistantSource(user, now, sourceRefreshAfter),
+      storedDeskView(user),
+    ]);
 
   // S82: opaque owner/tenant filter shortcuts. Missing key configuration fails only these
   // shortcuts closed; the unfiltered table stays usable.
@@ -152,22 +161,50 @@ export default async function LiveRenewalDeskPage({
         ),
       ),
   });
-  const query = entry.state;
+  // S246 R-S246-9: a shared collection link narrows the table to that collection's saved leases,
+  // each on the cycle it was saved for (S201), matched against the rows loaded above. An
+  // unreadable collection lists none of them, and the table says so.
+  const collectionView =
+    entry.surface === "table" && entry.state.collection
+      ? await readDeskCollectionView(user, entry.state.collection, items)
+      : null;
+  const query = collectionView ? { ...entry.state, collectionView } : entry.state;
   const viewMemory = {
     accountId: user.uid,
     source: entry.source,
     savedView: entry.savedView,
     memory: deskPreferenceModeFor(user),
   };
+  // S246 ARCH-S246-2: the batch rows are projected from the rows already loaded above. Group
+  // membership is decided in the batch view from each row's one target verdict.
+  const todayIso = businessDateIso(now);
+  const batch =
+    entry.surface === "batch" && outcome.status === "ok"
+      ? {
+          rows: projectRenewalBatchRows(outcome.view.items, {
+            sourceReadAtIso: outcome.view.dataCurrency.readAtIso,
+            todayIso,
+          }),
+          todayIso,
+          initial: entry.batch,
+          savedViewHref: renewalDeskSavedViewHref(entry.savedView),
+          canRecord: canRecordCycleDateChoice(user),
+          recordingPaused: outcome.view.dataCurrency.state === "expired",
+          decisionsAvailable: cycleDateDecisionsAvailable,
+        }
+      : undefined;
 
   return (
     <AppShell user={user}>
       <section className="content content--workspace">
-        <Link className="back-link" href="/lease-renewal">
-          ← Renewals
-        </Link>
+        {entry.surface === "table" ? (
+          <Link className="back-link" href="/lease-renewal">
+            ← Renewals
+          </Link>
+        ) : null}
         {outcome.status === "ok" ? (
           <RenewalDesk
+            batch={batch}
             scopeKey={renewalDisplayScopeKey(user)}
             auxiliaryFailures={auxiliaryFailures}
             sheetWritebackPaused={isOperatingSheetWritebackPaused()}

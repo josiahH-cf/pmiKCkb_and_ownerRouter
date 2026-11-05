@@ -146,11 +146,21 @@ describe("S166 what may be remembered (ARCH-S166-2)", () => {
 });
 
 describe("S166 one navigation chooses its view (ARCH-S166-3)", () => {
-  it("BEH-S166-6: an ordinary entry opens the remembered view", () => {
+  it("BEH-S166-6 after S246 ARCH-S246-3: an ordinary entry opens the working batch and offers the remembered view, which opens by its own link", () => {
     const entry = resolveRenewalDeskEntry({ searchParams: {}, storedView: SAVED });
-    expect(entry.source).toBe("saved");
-    expect(serializeRenewalDeskQueryV2(entry.state)).toBe(SAVED);
+    expect(entry.surface).toBe("batch");
+    expect(entry.source).toBe("default");
+    expect(serializeRenewalDeskQueryV2(entry.state)).toBe("");
     expect(entry.savedView).toBe(SAVED);
+    // The remembered view still opens exactly as saved, by the link that names it.
+    const opened = resolveRenewalDeskEntry({
+      searchParams: new URLSearchParams(SAVED),
+      storedView: SAVED,
+    });
+    expect(opened.surface).toBe("table");
+    expect(opened.source).toBe("saved");
+    expect(serializeRenewalDeskQueryV2(opened.state)).toBe(SAVED);
+    expect(opened.savedView).toBe(SAVED);
   });
 
   it("BEH-S166-6 / BEH-S166-7: with nothing remembered, or the default remembered, an ordinary entry opens the default", () => {
@@ -216,20 +226,21 @@ describe("S166 one navigation chooses its view (ARCH-S166-3)", () => {
 
   it("BEH-S166-10: a remembered party filter that no longer resolves is dropped and the rest of the view is kept", () => {
     const storedView = `v=2&scope=all&ownerKey=${TOKEN}`;
+    // S246 ARCH-S246-3: the ordinary entry offers the remembered view; it no longer applies it.
     const kept = resolveRenewalDeskEntry({
       searchParams: {},
       storedView,
       partyTokenResolves: () => true,
     });
-    expect(serializeRenewalDeskQueryV2(kept.state)).toBe(storedView);
+    expect(kept.surface).toBe("batch");
+    expect(kept.savedView).toBe(storedView);
 
     const dropped = resolveRenewalDeskEntry({
       searchParams: {},
       storedView,
       partyTokenResolves: (kind, token) => !(kind === "owner" && token === TOKEN),
     });
-    expect(dropped.source).toBe("saved");
-    expect(serializeRenewalDeskQueryV2(dropped.state)).toBe("v=2&scope=all");
+    expect(dropped.surface).toBe("batch");
     expect(dropped.savedView).toBe("v=2&scope=all");
 
     // When the party filter was the whole view, what is left is the default.
@@ -261,7 +272,9 @@ describe("S166 preferences never decide whether a lease can be worked (ARCH-S166
       searchParams: {},
       storedView: "v=2&overallStatus=blocked",
     });
-    expect(entry.source).toBe("saved");
+    // S246: the remembered filters are only offered; the ordinary entry is the working batch.
+    expect(entry.surface).toBe("batch");
+    expect(entry.savedView).toBe("v=2&overallStatus=blocked");
     expect(buildWorkspaceHref({ leaseId: "7002", deskView: null })).toBe(
       "/lease-renewal/live/desk/lease/7002",
     );

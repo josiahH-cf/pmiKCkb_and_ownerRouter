@@ -381,7 +381,12 @@ export function RenewalDeskViewMemoryStatus() {
         </Button>
       ) : null}
       {linked && rememberedView !== "" ? (
-        <Link className="text-link" href={RENEWAL_DESK_ROUTE} prefetch={false}>
+        // S246: the bare route opens the working batch, so the saved view is named by its link.
+        <Link
+          className="text-link"
+          href={`${RENEWAL_DESK_ROUTE}?${rememberedView}`}
+          prefetch={false}
+        >
           Open your saved view
         </Link>
       ) : null}

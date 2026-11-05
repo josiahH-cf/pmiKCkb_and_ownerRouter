@@ -580,7 +580,8 @@ describe("S111 the assistant answers from the same records (READY-06)", () => {
 
   it("returns the lease whose end date falls in the asked month", async () => {
     const answer = await ask("Which renewals come up next month?");
-    expect(answer.groups[0].link?.href).toContain("month=2026-10");
+    // S246 R-S246-10: a month answer lists that month's working batch and opens it there.
+    expect(answer.groups[0].link?.href).toBe("/lease-renewal/live/desk?batch=2026-10");
     expect(answer.groups[0].items.map((item) => item.ref.id).sort()).toEqual([
       "4001",
       "4004",
