@@ -304,8 +304,8 @@ describe("S248 R-S248-11: a derived record prepares the staff record's Sheet upd
     const staffEffect = staff.effects[0]!.effect;
     const derivedEffect = derived.effects[0]!.effect;
     for (const key of ["kind", "field", "rowNumber", "expectedValue"] as const)
-      expect((derivedEffect as Record<string, unknown>)[key]).toEqual(
-        (staffEffect as Record<string, unknown>)[key],
+      expect((derivedEffect as unknown as Record<string, unknown>)[key]).toEqual(
+        (staffEffect as unknown as Record<string, unknown>)[key],
       );
     expect(derivedEffect.kind === "field_update" && derivedEffect.field).toBe(
       "renewal_letter_sent",
