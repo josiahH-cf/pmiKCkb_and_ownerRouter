@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
 import type { RenewalWorkspaceState } from "../lease-renewal/workspace-state";
+import {
+  NO_INDEPENDENT_OUTREACH_FILL,
+  type IndependentOutreachFill,
+} from "./outreach-evidence-projection";
 
 export interface IndependentManualRenewal {
   readonly cycleId: string;
@@ -82,8 +86,10 @@ const STAFF_LANE_TERMS_DEPENDENT: ReadonlySet<string> = new Set([
  */
 export function projectIndependentStaffLaneManualRenewal(
   state: RenewalWorkspaceState,
+  /** S248: the oracle's own reading of the app's evidence; absent under the S232 rules. */
+  evidence: IndependentOutreachFill = NO_INDEPENDENT_OUTREACH_FILL,
 ): IndependentManualRenewal {
-  const done = (key: string) => {
+  const recorded = (key: string) => {
     const entry = state.activities[key as keyof typeof state.activities];
     if (
       !entry ||
@@ -95,6 +101,11 @@ export function projectIndependentStaffLaneManualRenewal(
       (entry.outcome === "not_applicable" && STAFF_LANE_CONDITIONAL.has(key))
     );
   };
+  // S248: an accepted renewal message fills the outreach or the offer the staff record lacks.
+  const done = (key: string) =>
+    recorded(key) ||
+    (key === "owner_outreach" && evidence.ownerOutreach) ||
+    (key === "tenant_offer" && evidence.tenantOffer);
   const tenant =
     state.tenantResponse?.termsRevision === state.termsRevision
       ? state.tenantResponse
@@ -123,11 +134,13 @@ export function projectIndependentStaffLaneManualRenewal(
   const awaitedParty =
     nextActivity === "owner_response"
       ? state.ownerResponse?.outcome === "approved_terms" ||
-        state.ownerResponse?.outcome === "revision_requested"
+        state.ownerResponse?.outcome === "revision_requested" ||
+        // S248: an observed owner reply is the team's move until staff record the decision.
+        evidence.ownerReplied
         ? null
         : "owner"
       : nextActivity === "tenant_response"
-        ? tenant?.outcome === "needs_verification"
+        ? tenant?.outcome === "needs_verification" || evidence.tenantReplied
           ? null
           : "tenant"
         : null;

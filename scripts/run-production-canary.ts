@@ -2,6 +2,7 @@ import { mapAssuranceReads } from "../lib/production-assurance/bounded-reads";
 import { pathToFileURL } from "node:url";
 import type { PredecessorExceptionObserver } from "../lib/production-assurance/predecessor-exception-observer";
 import { RENEWAL_DASHBOARD_SECTIONS } from "../lib/lease-renewal/dashboard-sections";
+import { ASSURANCE_GUIDED_WORKSPACE } from "../lib/production-assurance/manifest";
 
 import { chromium, type Page, type Response } from "playwright-core";
 
@@ -775,10 +776,16 @@ export async function hasRenewalWorkspaceLandmarks(
       (await legacy.isVisible()) &&
       (await legacy.getByRole("link").count()) === 6
     );
-  // S152: the lease opens in Focus view. Exactly one view switch whose Focus view is the selected
-  // one and whose Full view is offered, and exactly one visible Focus view region.
   const viewSwitch = page.getByRole("group", { name: "Lease view", exact: true });
   if ((await viewSwitch.count()) !== 1 || !(await viewSwitch.isVisible())) return false;
+  // S247: a switch that offers Guided view is held to the exact Guided default contract.
+  const guided = viewSwitch.getByRole("button", {
+    name: ASSURANCE_GUIDED_WORKSPACE.views[0],
+    exact: true,
+  });
+  if (await guided.count()) return hasGuidedWorkspaceLandmarks(page, viewSwitch);
+  // S152: the lease opens in Focus view. Exactly one view switch whose Focus view is the selected
+  // one and whose Full view is offered, and exactly one visible Focus view region.
   const focus = viewSwitch.getByRole("button", { name: "Focus view", exact: true });
   const full = viewSwitch.getByRole("button", { name: "Full view", exact: true });
   const pane = page.getByRole("region", { name: "Focus view", exact: true });
@@ -792,6 +799,68 @@ export async function hasRenewalWorkspaceLandmarks(
     (await pane.count()) === 1 &&
     (await pane.isVisible())
   );
+}
+
+/**
+ * S247: the exact Guided view contract (lib/production-assurance/manifest.ts). Every count is
+ * exact; the canary reads and clicks nothing.
+ */
+async function hasGuidedWorkspaceLandmarks(
+  page: Page,
+  viewSwitch: ReturnType<Page["getByRole"]>,
+): Promise<boolean> {
+  const contract = ASSURANCE_GUIDED_WORKSPACE;
+  if ((await viewSwitch.getByRole("button").count()) !== contract.views.length)
+    return false;
+  for (const [index, name] of contract.views.entries()) {
+    const button = viewSwitch.getByRole("button", { name, exact: true });
+    if (
+      (await button.count()) !== 1 ||
+      !(await button.isVisible()) ||
+      (await button.getAttribute("aria-pressed")) !== (index === 0 ? "true" : "false")
+    )
+      return false;
+  }
+  const region = page.getByRole("region", { name: contract.region, exact: true });
+  if ((await region.count()) !== 1 || !(await region.isVisible())) return false;
+  if ((await page.getByRole("region", { name: "Focus view", exact: true }).count()) !== 0)
+    return false;
+  const path = region.getByRole("navigation", { name: contract.path, exact: true });
+  if ((await path.count()) !== 1 || !(await path.isVisible())) return false;
+  const steps = path.getByRole("button");
+  const stepCount = await steps.count();
+  if (stepCount < contract.minimumSteps) return false;
+  const first = (await steps.nth(0).textContent())?.trim() ?? "";
+  const last = (await steps.nth(stepCount - 1).textContent())?.trim() ?? "";
+  if (
+    !(contract.firstSteps as readonly string[]).includes(first) ||
+    last !== contract.lastStep
+  )
+    return false;
+  if ((await path.locator('[aria-current="step"]').count()) !== 1) return false;
+  const now = region.getByRole("region", { name: contract.now, exact: true });
+  if ((await now.count()) !== 1 || !(await now.isVisible())) return false;
+  const primary = now.locator(contract.primarySelector);
+  if ((await primary.count()) !== 1 || !(await primary.isVisible())) return false;
+  const sections = region.getByRole("navigation", {
+    name: contract.sections,
+    exact: true,
+  });
+  if (
+    (await sections.count()) !== 1 ||
+    (await sections.getByRole("link").count()) !== RENEWAL_DASHBOARD_SECTIONS.length
+  )
+    return false;
+  for (const section of RENEWAL_DASHBOARD_SECTIONS) {
+    const link = sections.getByRole("link", { name: section.label, exact: true });
+    if (
+      (await link.count()) !== 1 ||
+      !(await link.isVisible()) ||
+      (await link.getAttribute("href")) !== `#renewal-section-${section.id}`
+    )
+      return false;
+  }
+  return true;
 }
 
 async function waitForSettledRoute(

@@ -8,7 +8,11 @@ import {
   RENEWAL_WORKSPACE_COLLECTIONS,
   RenewalWorkspaceStateSchema,
 } from "../lib/firestore/renewal-workspace";
-import { LeaseBoundBasisSchema } from "../lib/lease-renewal/workspace-state";
+import {
+  LeaseBoundBasisSchema,
+  type RenewalWorkspaceState,
+} from "../lib/lease-renewal/workspace-state";
+import { projectIndependentOutreachFill } from "../lib/production-assurance/outreach-evidence-projection";
 import {
   INDEPENDENT_UNRECORDED_STAFF_LANE,
   independentLeaseDetailIds,
@@ -58,6 +62,7 @@ import { LEASE_RENEWAL_PROGRESS_COLLECTIONS } from "../lib/firestore/lease-renew
 import { LEASE_RENEWAL_COLLECTIONS } from "../lib/firestore/lease-renewal-resolutions";
 import { buildLiveRentVineConfig } from "../lib/lease-renewal/live-config";
 import {
+  INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER,
   INDEPENDENT_ONE_STATUS_CONTRACT_MARKER,
   INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
   countIndependentActionDestinationMismatches,
@@ -67,6 +72,7 @@ import {
   countIndependentStatusMismatches,
   countIndependentWorkspaceDestinationMismatches,
   independentSourceDigest,
+  independentContractReadsEvidence,
   independentRentVineCurrentRent,
   independentStaffLaneWaitingRule,
   independentWorkspaceExpected,
@@ -204,6 +210,11 @@ export interface ContractDirectProjection {
 export interface DirectProjection extends ContractDirectProjection {
   /** `rows`, `decision` and `sourceDigest` hold the predecessor-contract expectation. */
   readonly staffLane: ContractDirectProjection;
+  /**
+   * S248: the staff-lane expectation with the oracle's own reading of the app's evidence, for
+   * rows that render the evidence-stage marker. Absent on an older projection.
+   */
+  readonly evidenceStage?: ContractDirectProjection;
   readonly sourceRecords: number;
   readonly projectedRecords: number;
   readonly rentvine: SourceReadState;
@@ -242,11 +253,13 @@ export interface LiveReconciliationOptions extends ProductionTarget {
 const EXPECTED_GUIDANCE_CONTRACTS: ReadonlySet<string> = new Set([
   INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
   INDEPENDENT_ONE_STATUS_CONTRACT_MARKER,
+  INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER,
   "none",
 ]);
 
 /**
- * `--expected-guidance-contract=s232-one-status|s156-staff-lane|none`; absent means select by the
+ * `--expected-guidance-contract=s248-evidence-stage|s232-one-status|s156-staff-lane|none`; absent
+ * means select by the
  * rendered marker.
  */
 export function resolveExpectedGuidanceContract(argv: readonly string[]): {
@@ -359,6 +372,15 @@ export interface IndependentDecisionFacts {
    * the predecessor's.
    */
   readonly staffLaneManualByLease?: ReadonlyMap<string, IndependentManualRenewal> | null;
+  /**
+   * S248: the staff-lane work records with the oracle's own reading of the app's renewal message
+   * evidence, for a revision that renders the evidence-stage marker. Null when the evidence could
+   * not be read; absent when not read.
+   */
+  readonly evidenceStageManualByLease?: ReadonlyMap<
+    string,
+    IndependentManualRenewal
+  > | null;
   readonly resolutions: readonly Readonly<Record<string, unknown>>[];
   readonly trackedIncompleteLeaseIds: ReadonlySet<string>;
   /** S232: every lease with a progress record, complete or not. Absent means unknown. */
@@ -417,9 +439,15 @@ export async function readIndependentDecisionFacts(
     datedByLease.set(state.leaseId, projectIndependentStaffLaneManualRenewal(state));
   }
   let staffLaneManualByLease: Map<string, IndependentManualRenewal> | null = null;
+  // S248: the same work records with the oracle's own reading of the app's renewal message
+  // evidence. Null when either evidence collection could not be read: that fails only an
+  // evidence-stage verdict.
+  let evidenceStageManualByLease: Map<string, IndependentManualRenewal> | null = null;
+  const evidence = await readIndependentOutreachDocuments(firestore);
   if (leaseBound) {
     try {
       staffLaneManualByLease = new Map<string, IndependentManualRenewal>();
+      const states = new Map<string, RenewalWorkspaceState>();
       for (const document of leaseBound.docs) {
         const state = parseIndependentWorkRecord(document.data());
         const expectedId = createHash("sha256").update(state.leaseId).digest("hex");
@@ -429,13 +457,34 @@ export async function readIndependentDecisionFacts(
           state.leaseId,
           projectIndependentStaffLaneManualRenewal(state),
         );
+        states.set(state.leaseId, state);
       }
       // A dated record established later takes the place of the lease-bound record.
       for (const [leaseId, record] of datedByLease) {
         staffLaneManualByLease.set(leaseId, record);
       }
+      for (const document of manual.docs) {
+        const state = RenewalWorkspaceStateSchema.parse(document.data());
+        states.set(state.leaseId, state);
+      }
+      if (evidence) {
+        evidenceStageManualByLease = new Map();
+        for (const [leaseId, state] of states)
+          evidenceStageManualByLease.set(
+            leaseId,
+            projectIndependentStaffLaneManualRenewal(
+              state,
+              projectIndependentOutreachFill(
+                state,
+                evidence.sequences.get(leaseId) ?? [],
+                evidence.records.get(leaseId) ?? [],
+              ),
+            ),
+          );
+      }
     } catch {
       staffLaneManualByLease = null;
+      evidenceStageManualByLease = null;
     }
   }
   return {
@@ -444,7 +493,49 @@ export async function readIndependentDecisionFacts(
     progressLeaseIds: seenLeaseIds,
     manualByLease,
     staffLaneManualByLease,
+    evidenceStageManualByLease,
   };
+}
+
+/**
+ * S248: the renewal communications and outreach records, by lease, read directly and
+ * read-only. Independent literals: the oracle never imports the application's store.
+ */
+async function readIndependentOutreachDocuments(firestore: Firestore): Promise<{
+  readonly sequences: ReadonlyMap<string, Readonly<Record<string, unknown>>[]>;
+  readonly records: ReadonlyMap<string, Readonly<Record<string, unknown>>[]>;
+} | null> {
+  try {
+    const [sequences, records] = await Promise.all([
+      firestore
+        .collection("gmail_communication_sequences")
+        .where("context.entityType", "==", "renewal_lease")
+        .get(),
+      firestore.collection("renewal_outreach_records").get(),
+    ]);
+    const byLease = (
+      docs: readonly { data(): Record<string, unknown> }[],
+      leaseOf: (value: Record<string, unknown>) => unknown,
+    ) => {
+      const map = new Map<string, Readonly<Record<string, unknown>>[]>();
+      for (const doc of docs) {
+        const value = doc.data();
+        const leaseId = leaseOf(value);
+        if (typeof leaseId !== "string") continue;
+        map.set(leaseId, [...(map.get(leaseId) ?? []), value]);
+      }
+      return map;
+    };
+    return {
+      sequences: byLease(
+        sequences.docs,
+        (value) => (value.context as { entityId?: unknown } | undefined)?.entityId,
+      ),
+      records: byLease(records.docs, (value) => value.leaseId),
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function createIndependentSourceClients(
@@ -728,6 +819,19 @@ async function reconcileWithIndependentClients(
   return reportForReconciliation(options, reconciliation);
 }
 
+/** The rule set one row is read under; S248 reads the staff lane with the app's evidence. */
+type AppliedRuleSet = IndependentGuidanceContract | "evidence_stage";
+
+function appliedRuleSet(
+  marker: string | null,
+  expected: IndependentExpectedContractMarker | undefined,
+): AppliedRuleSet {
+  const contract = resolveIndependentGuidanceContract(marker, expected);
+  return contract === "staff_lane" && independentContractReadsEvidence(marker, expected)
+    ? "evidence_stage"
+    : contract;
+}
+
 /**
  * The rule sets the rendered rows are read under. A caller-named contract applies to every row;
  * otherwise each row's own marker selects. With no rows to read, both rule sets must have read
@@ -736,23 +840,29 @@ async function reconcileWithIndependentClients(
 function appliedGuidanceContracts(
   rows: readonly RenderedProjectionRow[],
   expected: IndependentExpectedContractMarker | undefined,
-): ReadonlySet<IndependentGuidanceContract> {
+): ReadonlySet<AppliedRuleSet> {
   if (expected !== undefined) {
-    return new Set([resolveIndependentGuidanceContract(null, expected)]);
+    return new Set([appliedRuleSet(null, expected)]);
   }
   if (rows.length === 0) return new Set(["predecessor", "staff_lane"]);
-  return new Set(
-    rows.map((row) => resolveIndependentGuidanceContract(row.guidanceContract)),
-  );
+  return new Set(rows.map((row) => appliedRuleSet(row.guidanceContract, undefined)));
 }
 
 function appliedDirectProjection(
   projection: DirectProjection,
-  applied: ReadonlySet<IndependentGuidanceContract>,
+  applied: ReadonlySet<AppliedRuleSet>,
 ): Pick<ContractDirectProjection, "decision" | "sourceDigest"> {
-  const parts = [...applied]
-    .sort()
-    .map((contract) => (contract === "staff_lane" ? projection.staffLane : projection));
+  const parts = [...applied].sort().map((contract) =>
+    contract === "evidence_stage"
+      ? (projection.evidenceStage ?? {
+          rows: [],
+          decision: "unavailable" as const,
+          sourceDigest: null,
+        })
+      : contract === "staff_lane"
+        ? projection.staffLane
+        : projection,
+  );
   return {
     decision: aggregateReadStates(...parts.map((part) => part.decision)),
     sourceDigest: parts.every((part) => part.sourceDigest !== null)
@@ -893,16 +1003,26 @@ async function readDirectProjection(
     : [];
   const projectContract = (
     contract: IndependentGuidanceContract,
+    /** S248: read the staff lane with the oracle's own reading of the app's evidence. */
+    readsEvidence = false,
   ): ContractDirectProjection => {
     const emptyDecisions: IndependentDecisionFacts = {
       resolutions: [],
       trackedIncompleteLeaseIds: new Set(),
     };
+    const facts: IndependentDecisionFacts | null = decisionRead.ok
+      ? readsEvidence
+        ? {
+            ...decisionRead.value,
+            staffLaneManualByLease: decisionRead.value.evidenceStageManualByLease ?? null,
+          }
+        : decisionRead.value
+      : null;
     // S156: the staff-lane expectation needs both work-record heads; a predecessor expectation
-    // never depends on the lease-bound head read.
+    // never depends on the lease-bound head read. S248: the evidence-stage expectation also needs
+    // the evidence read.
     let decision: SourceReadState =
-      decisionRead.ok &&
-      (contract === "predecessor" || decisionRead.value.staffLaneManualByLease !== null)
+      facts && (contract === "predecessor" || facts.staffLaneManualByLease !== null)
         ? "complete"
         : "unavailable";
     let rows: ExpectedProjectionRow[] = [];
@@ -912,7 +1032,7 @@ async function readDirectProjection(
           baseRows,
           rentvineRead.value.rows,
           sheetRead.ok ? sheetRead.value : null,
-          decisionRead.ok ? decisionRead.value : emptyDecisions,
+          facts ?? emptyDecisions,
           referenceDateIso,
           leaseDetails,
           contract,
@@ -941,9 +1061,11 @@ async function readDirectProjection(
   };
   const predecessor = projectContract("predecessor");
   const staffLane = projectContract("staff_lane");
+  const evidenceStage = projectContract("staff_lane", true);
   return {
     ...predecessor,
     staffLane,
+    evidenceStage,
     sourceRecords: rentvineRead.ok ? rentvineRead.value.rows.length : 0,
     projectedRecords: predecessor.rows.length,
     rentvine: rentvineRead.ok
@@ -2219,6 +2341,10 @@ export function compareProjectionRows(
   );
   const expected = indexRows(direct.rows);
   const staffLaneExpected = indexRows(direct.staffLane.rows);
+  // S248: a row with the evidence-stage marker is read under the staff lane with the evidence.
+  const evidenceStageExpected = direct.evidenceStage
+    ? indexRows(direct.evidenceStage.rows)
+    : null;
   const observed = indexRows(rendered.rows);
   counts.duplicateApplicationKeys = observed.duplicates;
   for (const [key, expectedRows] of expected.byKey) {
@@ -2243,7 +2369,12 @@ export function compareProjectionRows(
       // Both expectations are built from the same source rows in the same order.
       const expectedRow =
         contract === "staff_lane"
-          ? staffLaneExpected.byKey.get(key)?.[index]
+          ? independentContractReadsEvidence(
+              observedRow.guidanceContract,
+              expectedGuidanceContract,
+            )
+            ? evidenceStageExpected?.byKey.get(key)?.[index]
+            : staffLaneExpected.byKey.get(key)?.[index]
           : expectedRows[index];
       if (!expectedRow) {
         counts.fieldMismatches += 1;
@@ -2311,7 +2442,8 @@ export function countIndependentRowGuidanceMismatches(input: {
 }): { readonly fieldMismatches: number; readonly invalidDestinations: number } {
   const { expectedRow, observedRow, role, origin } = input;
   const allowEndedWithoutOutcome =
-    input.expectedGuidanceContract === INDEPENDENT_ONE_STATUS_CONTRACT_MARKER &&
+    (input.expectedGuidanceContract === INDEPENDENT_ONE_STATUS_CONTRACT_MARKER ||
+      input.expectedGuidanceContract === INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER) &&
     expectedRow.endedWithoutOutcomeEligible === true;
   if (input.contract === "staff_lane") {
     const expectedGuidance = projectIndependentExpectedGuidanceState({

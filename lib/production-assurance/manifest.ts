@@ -19,6 +19,28 @@ export interface CanaryRouteDefinition {
  */
 export const ASSURANCE_RENEWAL_DESK_PATH = "/lease-renewal/live/desk?v=2&scope=all";
 
+/**
+ * S247: a lease opened from the desk opens in Guided view. The canary asserts this exact contract
+ * as rendered, selecting and clicking nothing: one view switch offering exactly these three views
+ * with Guided view pressed; one visible Guided view region; inside it one visible path navigation
+ * whose steps begin with "Check the numbers" (or the month-to-month review) and end with
+ * "Complete", with exactly one current step; one visible Now region with exactly one primary
+ * action; and one navigation of the five sections, each a link to its Full view anchor. A revision
+ * whose switch offers no Guided view keeps the S152 Focus contract (the predecessor).
+ */
+export const ASSURANCE_GUIDED_WORKSPACE = {
+  switchName: "Lease view",
+  views: ["Guided view", "Focus view", "Full view"],
+  region: "Guided view",
+  path: "Renewal path",
+  firstSteps: ["Check the numbers", "Month-to-month review"],
+  lastStep: "Complete",
+  minimumSteps: 7,
+  now: "Now",
+  primarySelector: "[data-renewal-now-primary]",
+  sections: "Every section in Full view",
+} as const;
+
 const COMMON_ROUTES: readonly CanaryRouteDefinition[] = [
   {
     key: "dashboard",

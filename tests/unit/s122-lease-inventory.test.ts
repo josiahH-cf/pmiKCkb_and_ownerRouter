@@ -345,7 +345,7 @@ describe("S122 inspection independent of workflow eligibility (AC-S122-4)", () =
       complete: false,
     });
     expect(workspace.workspace.guidance).toMatchObject({
-      contract: "s232-one-status",
+      contract: "s248-evidence-stage",
       overallStatus: "ready",
       action: { kind: "act", label: "Owner outreach" },
     });

@@ -483,9 +483,14 @@ function NowCard({
     }
   }
 
-  // The one primary action. A failed read is the thing to resolve first.
+  // The one primary action. A failed read is the thing to resolve first; a step waiting on someone
+  // else asks staff to record what happened; every other step has its own action.
   const blocker = isCurrent ? stage.blocker : null;
-  const primary = blocker ?? shown.primary;
+  const recordWhatHappened =
+    shown.state === "waiting" && audience
+      ? { label: "Record what happened", target: `renewal-manual-${audience}_response` }
+      : null;
+  const primary = blocker ?? shown.primary ?? recordWhatHappened ?? definition.primary;
   const runPrimary = () => {
     if (!primary) return;
     if (blocker) {
@@ -523,8 +528,8 @@ function NowCard({
       setConfirming(true);
       return;
     }
-    const step = shown.primary;
-    if (step && !focusControl(step.target) && definition.controls[0])
+    const step = shown.primary ?? recordWhatHappened ?? definition.primary;
+    if (!focusControl(step.target) && definition.controls[0])
       focusControl(definition.controls[0]);
   };
 
@@ -677,17 +682,15 @@ function NowCard({
       <div className="ui-row renewal-now-secondary">
         {shown.state === "waiting" && audience ? (
           <>
-            <Button
-              onClick={() =>
-                focusControl(
-                  `renewal-manual-${audience === "owner" ? "owner_outreach" : "tenant_offer"}`,
-                )
-              }
-              size="compact"
-              variant="secondary"
-            >
-              Record what happened
-            </Button>
+            {recordWhatHappened && primary !== recordWhatHappened ? (
+              <Button
+                onClick={() => focusControl(recordWhatHappened.target)}
+                size="compact"
+                variant="secondary"
+              >
+                {recordWhatHappened.label}
+              </Button>
+            ) : null}
             <Button
               onClick={() =>
                 focusControl(

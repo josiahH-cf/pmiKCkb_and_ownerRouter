@@ -25,6 +25,7 @@ import {
   projectIndependentStaffLaneManualRenewal,
 } from "@/lib/production-assurance/manual-renewal-projection";
 import {
+  INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER,
   INDEPENDENT_ONE_STATUS_CONTRACT_MARKER,
   INDEPENDENT_STAFF_LANE_CONTRACT_MARKER,
   PRODUCTION_RECONCILIATION_DESK_VIEW,
@@ -485,10 +486,18 @@ const rowMismatches = (
 describe("S156 oracle: the contract marker selects exactly one rule set", () => {
   it("names the same marker the application renders, without importing it into the oracle", () => {
     expect(MARKER).toBe("s156-staff-lane");
-    // S232 R-S232-4: this checkout renders the one-status marker; S156's stays recognised for an
+    // S232 R-S232-4: the one-status marker; S156's stays recognised for an earlier serving revision.
+    // S248: this checkout renders the evidence-stage marker; S232's stays recognised for an
     // earlier serving revision.
     expect(INDEPENDENT_ONE_STATUS_CONTRACT_MARKER).toBe("s232-one-status");
-    expect(INDEPENDENT_ONE_STATUS_CONTRACT_MARKER).toBe(DESK_GUIDANCE_CONTRACT);
+    expect(INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER).toBe("s248-evidence-stage");
+    expect(INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER).toBe(DESK_GUIDANCE_CONTRACT);
+    expect(
+      resolveIndependentGuidanceContract(INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER),
+    ).toBe("staff_lane");
+    expect(
+      independentStaffLaneWaitingRule(INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER),
+    ).toBe("awaited_party");
     expect(
       resolveIndependentGuidanceContract(INDEPENDENT_ONE_STATUS_CONTRACT_MARKER),
     ).toBe("staff_lane");
@@ -1010,7 +1019,8 @@ describe("S156 oracle: the independent rules equal the rules the application ren
         });
         const destination =
           "destination" in rendered.action ? rendered.action.destination : null;
-        expect(rendered.contract).toBe(INDEPENDENT_ONE_STATUS_CONTRACT_MARKER);
+        // S248: the rendered marker is this checkout's evidence-stage contract.
+        expect(rendered.contract).toBe(INDEPENDENT_EVIDENCE_STAGE_CONTRACT_MARKER);
         expect(rendered.blockers).toEqual([]);
         expect(expected.markerMismatches).toBe(0);
         expect(expected.overallStatus).toBe(rendered.overallStatus);

@@ -42,9 +42,12 @@ export type {
  * The guidance rules this build renders, exposed on each desk row so the independent production
  * reconciliation can tell which rules a serving revision follows (an earlier revision has none).
  * S232 R-S232-4: the S156 staff-lane rules, except that a response step is Waiting only while the
- * owner or tenant has the move; a revision before this rendered "s156-staff-lane".
+ * owner or tenant has the move; a revision before this rendered "s156-staff-lane". S248: the same
+ * rules with the app's own renewal message evidence filling the staff record (an accepted message
+ * records the outreach or offer; an observed reply hands the move to the team); a revision before
+ * this rendered "s232-one-status".
  */
-export const DESK_GUIDANCE_CONTRACT = "s232-one-status";
+export const DESK_GUIDANCE_CONTRACT = "s248-evidence-stage";
 
 /** Grounded control gates only; every other blocker link is plain phase navigation. */
 export const DESK_EVIDENCE_CAPABILITY: Readonly<Partial<Record<string, Capability>>> = {
