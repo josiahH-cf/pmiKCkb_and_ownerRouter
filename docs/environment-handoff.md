@@ -348,7 +348,7 @@ Node tooling runs in WSL. The tested alternate runtime is Linux Node 22.23.2 at
 
 ```bash
 export PATH=/home/josiah/.local/opt/node-v22.23.2-linux-x64/bin:$PATH
-VITEST_MAX_WORKERS=2 npm run dev
+npm run dev
 ```
 
 The fallback tested was `npm run dev -- --webpack`. Both were tested with a scratch network refusal
@@ -359,7 +359,8 @@ The final Dashboard smoke selects the installed Linux browser explicitly with
 `DESK_BROWSER_EXECUTABLE=/home/josiah/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome`;
 the Windows browser fallback cannot use a Linux remote-debugging pipe. This does not enroll or
 change a managed canary profile.
-Use the required two-worker ceiling for Vitest and complete scratch logs without piping through tail.
+Let the runners choose Vitest workers (see Testing in `docs/engineering.md`) and keep complete
+scratch logs without piping through tail.
 Local Demo + Live-read-only refuses business/provider effects, including app-owned progress.
 The owner-approved G2 exception permits only lease-bound version/hash/time approval-invalidation
 metadata during authenticated source reads; it creates no workflow milestone, reviewed history or draft.

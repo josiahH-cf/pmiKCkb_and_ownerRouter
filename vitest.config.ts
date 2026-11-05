@@ -1,7 +1,9 @@
-import { availableParallelism } from "node:os";
 import { defineConfig } from "vitest/config";
+import { workersForCheckout } from "./scripts/run-unit-tests.mjs";
 
-const maxWorkers = Math.min(2, Math.max(1, availableParallelism() - 1));
+// One worker per logical CPU but one, at most eight and bounded by memory; two when files are
+// read straight from a WSL Windows mount. `npm test` passes the same count explicitly.
+const maxWorkers = workersForCheckout({ cwd: process.cwd() });
 
 export default defineConfig({
   test: {

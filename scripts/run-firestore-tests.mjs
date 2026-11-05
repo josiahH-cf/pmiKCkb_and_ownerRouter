@@ -8,7 +8,9 @@ const projectId = "pmi-kc-kb-test";
 // Reuse native WSL staging and bounded workers for mounted UI/backend integration as well.
 const testCommand = "node scripts/run-unit-tests.mjs --config vitest.firestore.config.ts";
 
-const env = { ...process.env };
+// The emulator shares the machine with the test workers; keep one CPU free for it so mounted
+// journeys are not starved of the requests they wait on.
+const env = { ...process.env, PMIKC_TEST_RESERVED_CPUS: "1" };
 const requestedTarget = env.FIRESTORE_EMULATOR_HOST?.trim();
 const defaultPort = requestedTarget ? Number(requestedTarget.split(":").at(-1)) : 8080;
 const emulatorPort = await chooseEmulatorPort(defaultPort);

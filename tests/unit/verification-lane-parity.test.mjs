@@ -37,7 +37,7 @@ const ciYml = readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8")
 const isolatedLanes = JSON.parse(
   readFileSync(join(root, "scripts", "isolation", "lanes.json"), "utf8"),
 );
-const ciCommands = [...ciYml.matchAll(/isolated-verify\.py[^\n]*--task\s+([a-z-]+)/g)]
+const ciCommands = [...ciYml.matchAll(/isolated-verify\.py[^\n]*--task\s+([a-z0-9-]+)/g)]
   .flatMap((match) => isolatedLanes[match[1]] ?? [])
   .map((args) => `npm ${args.join(" ")}`)
   .join("\n");
@@ -83,6 +83,26 @@ describe("S54 verification lane parity", () => {
       { onlyLocal, onlyCi },
       "The two verification lanes have drifted. A gate that runs in only one lane means a regression can reach main through the other.",
     ).toEqual({ onlyLocal: [], onlyCi: [] });
+  });
+
+  it("CI runs every unit shard, so the split lane still covers the complete inventory", () => {
+    const tasks = [
+      ...ciYml.matchAll(/isolated-verify\.py[^\n]*--task\s+([a-z0-9-]+)/g),
+    ].map((match) => match[1]);
+    const unitCommands = tasks
+      .flatMap((task) => isolatedLanes[task] ?? [])
+      .filter((args) => args[0] === "test");
+    expect(unitCommands.length, "ci.yml runs no unit lane").toBeGreaterThan(0);
+    const shards = unitCommands.map((args) =>
+      args.find((arg) => arg.startsWith("--shard="))?.slice("--shard=".length),
+    );
+    if (shards.includes(undefined)) return; // an unsharded run already covers every file
+    const totals = new Set(shards.map((shard) => shard.split("/")[1]));
+    expect(totals.size, `mixed shard counts: ${shards.join(", ")}`).toBe(1);
+    const total = Number([...totals][0]);
+    expect(
+      shards.map((shard) => Number(shard.split("/")[0])).sort((a, b) => a - b),
+    ).toEqual(Array.from({ length: total }, (_, index) => index + 1));
   });
 
   it("public asset preparation preserves the native build command and default engine", () => {
